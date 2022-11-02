@@ -1,0 +1,64 @@
+.btn {
+  @apply inline-block rounded bg-sky-600 p-3.5 text-white;
+  @apply transition duration-100 ease-in-out;
+
+  &:hover,
+  &:focus {
+    @apply bg-sky-700;
+  }
+
+  &:active {
+    @apply bg-sky-800;
+  }
+
+  &-red {
+    @apply bg-red-600;
+  }
+  &-red:hover,
+  &-red:focus {
+    @apply bg-red-700;
+  }
+
+  &-red:active {
+    @apply bg-red-800;
+  }
+
+  &-green {
+    @apply bg-green-600;
+  }
+  &-green:hover,
+  &-green:focus {
+    @apply bg-green-700;
+  }
+
+  &-green:active {
+    @apply bg-green-800;
+  }
+
+  &.disabled,
+  &.disabled:hover,
+  & .disabled,
+  & .disabled:hover,
+  &[disabled],
+  &[disabled]:hover {
+    @apply cursor-not-allowed border-transparent bg-gray-300 text-gray-500;
+  }
+
+  &.loading,
+  & .loading {
+    &.btn-square:before,
+    &.btn-circle:before {
+      @apply mr-0;
+    }
+
+    &.btn-xl:before,
+    &.btn-lg:before {
+      @apply h-5 w-5;
+    }
+
+    &.btn-sm:before,
+    &.btn-xs:before {
+      @apply h-3 w-3;
+    }
+  }
+}

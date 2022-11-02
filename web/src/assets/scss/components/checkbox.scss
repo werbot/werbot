@@ -1,0 +1,21 @@
+.checkbox {
+  @apply mr-2 h-6 w-6 cursor-pointer appearance-none rounded border border-solid border-gray-300 bg-gray-50;
+
+  &:focus-visible {
+    outline-offset: 2px;
+  }
+
+  &:checked,
+  &[checked="true"] {
+    @apply border-sky-600 bg-no-repeat;
+    background-image: linear-gradient(-45deg, transparent 65%, #0284c7 65.99%),
+      linear-gradient(45deg, transparent 75%, #0284c7 75.99%),
+      linear-gradient(-45deg, #0284c7 40%, transparent 40.99%),
+      linear-gradient(45deg, #0284c7 30%, #ffffff 30.99%, #ffffff 40%, transparent 40.99%),
+      linear-gradient(-45deg, #ffffff 50%, #0284c7 50.99%);
+  }
+
+  &:disabled {
+    @apply cursor-not-allowed border-transparent bg-gray-300;
+  }
+}

@@ -1,0 +1,355 @@
+version: "3.7"
+
+networks:
+  public:
+    driver: bridge
+  private:
+    #internal: true
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.16.0.0/16
+          gateway: 10.16.0.1
+
+volumes:
+  grafana_data: {}
+  loki_data: {}
+  prometheus_data: {}
+  nats_data: {}
+  postgres_data: {}
+  redis_data: {}
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20M"
+    max-file: "10"
+    tag: "{{.ImageName}}|{{.Name}}"
+
+x-resources: &default-resources
+  limits:
+    memory: 50M
+    cpus: "0.15"
+
+x-environment: &grpc-environment
+  GRPCSERVER_DSN: buffet:50051
+  GRPCSERVER_TOKEN: ${GRPCSERVER_TOKEN:-grpcServerToken}
+
+services:
+  grafana:
+    image: grafana/grafana:9.1.7
+    container_name: monitoring.grafana
+    restart: always
+    ports:
+      - 3000:3000
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    networks:
+      - private
+    labels:
+      com.werbot.group: "monitoring"
+    logging: *default-logging
+
+  loki:
+    image: grafana/loki:2.6.1
+    container_name: monitoring.loki
+    restart: always
+    volumes:
+      - ./loki/config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/var/lib/loki
+    environment:
+      CLOKI_LOGIN: ${CLOKI_LOGIN:-admin}
+      CLOKI_PASSWORD: ${CLOKI_PASSWORD:-admin}
+    networks:
+      - private
+    labels:
+      com.werbot.group: "monitoring"
+    logging: *default-logging
+
+  nats-prometheus:
+    image: natsio/prometheus-nats-exporter:0.10.0
+    container_name: monitoring.nats-prometheus
+    restart: always
+    depends_on:
+      - nats
+    command: -varz http://service.nats:8222
+    networks:
+      - private
+    labels:
+      com.werbot.group: "monitoring"
+    logging: *default-logging
+
+  prometheus:
+    image: prom/prometheus:v2.39.0
+    container_name: monitoring.prometheus
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - private
+    labels:
+      com.werbot.group: "monitoring"
+    logging: *default-logging
+
+  promtail:
+    image: grafana/promtail:2.6.1
+    container_name: monitoring.promtail
+    restart: always
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./promtail/config.yml:/etc/promtail/config.yml:ro
+    networks:
+      - private
+    labels:
+      com.werbot.group: "monitoring"
+    logging: *default-logging
+
+  acme:
+    image: neilpang/acme.sh:latest
+    container_name: service.acmesh
+    restart: always
+    environment:
+      CF_Email: ${DNS_CLOUDFLARE_EMAIL:-}
+      CF_Key: ${DNS_CLOUDFLARE_API_KEY:-}
+      DEPLOY_DOCKER_CONTAINER_LABEL: sh.acme.autoload.domain=${DOMAIN:-}
+      DEPLOY_DOCKER_CONTAINER_RELOAD_CMD: "killall -0 haproxy"
+    volumes:
+      - ./haproxy/data/acme:/acme.sh
+      - ./haproxy/data/certs:/etc/haproxy
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: daemon
+    networks:
+      - private
+    labels:
+      com.werbot.group: "service"
+    logging: *default-logging
+
+  haproxy:
+    image: haproxy:2.5.9-alpine
+    container_name: service.haproxy
+    restart: always
+    ports:
+      #- "8404:8404"
+      - "80:80"
+      - "443:443"
+      - "22:22"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./haproxy/config.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./haproxy/data/certs:/usr/local/etc/haproxy/certs:ro
+      - ./haproxy/blacklist-agent.txt:/usr/local/etc/haproxy/blacklist-agent.txt:ro
+      - ./haproxy/cloudflare-ips.txt:/usr/local/etc/haproxy/cdn-ips.txt:ro
+    dns:
+      - 127.0.0.11
+    networks:
+      - private
+    labels:
+      com.werbot.group: "service"
+      sh.acme.autoload.domain: ${DOMAIN:-}
+    logging: *default-logging
+
+  nats:
+    image: nats:2.9.2-alpine
+    container_name: service.nats
+    restart: always
+    ports:
+      - 4222:4222
+      #- 8222:8222
+    volumes:
+      - nats_data:/tmp/nats/jetstream
+    command: --user ${NATS_USER:-werbot} --pass ${NATS_PASSWORD:-natsPAssword} --jetstream --http_port 8222
+    networks:
+      - private
+    labels:
+      com.werbot.group: "service"
+    logging: *default-logging
+
+  postgres:
+    image: postgres:14-alpine
+    container_name: service.postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-werbot}
+      POSTGRES_DB: ${POSTGRES_DB:-werbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgresPassword}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./postgres/ca/server.crt:/var/lib/postgresql/server.crt:ro
+      - ./postgres/ca/server.key:/var/lib/postgresql/server.key:ro
+      - postgres_data:/var/lib/postgresql/data
+    command: -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-werbot}"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - private
+    labels:
+      com.werbot.group: "service"
+    logging: *default-logging
+
+  postgres-backup:
+    image: ghcr.io/werbot/postgres-backup:latest
+    container_name: service.postgres-backup
+    restart: always
+    environment:
+      SCHEDULE: "@hourly"
+      S3_REGION: ${S3_REGION:-region}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-key}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-secret}
+      S3_BUCKET: ${S3_BUCKET:-bucket}
+      S3_PREFIX: ${S3_PREFIX:-backup}
+      POSTGRES_HOST: service.postgres
+      POSTGRES_DATABASE: ${POSTGRES_DB:-werbot}
+      POSTGRES_USER: ${POSTGRES_USER:-werbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgresPassword}
+      POSTGRES_EXTRA_OPTS: "--schema=public --blobs"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - private
+    labels:
+      com.werbot.group: "service"
+    logging: *default-logging
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: service.redis
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    #  - ./redis/config.cfg:/usr/local/etc/redis/redis.conf
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redisPassword}
+    networks:
+      - private
+    labels:
+      com.werbot.group: "service"
+    logging: *default-logging
+
+  app:
+    image: ghcr.io/werbot/app:latest
+    restart: always
+    deploy:
+      replicas: 1
+      resources: *default-resources
+    networks:
+      - private
+    labels:
+      com.werbot.group: "werbot"
+    logging: *default-logging
+
+  avocado:
+    image: ghcr.io/werbot/avocado:latest
+    restart: always
+    environment:
+      SECURITY_AES_KEY: ${SECURITY_AES_KEY:-securittAesKey}
+      NATSSERVER_DSN: nats://${NATS_USER:-werbot}:${NATS_PASSWORD:-natsPAssword}@service.nats:4222
+      <<: *grpc-environment
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./core/grpc_public.key:/grpc_public.key:ro
+      - ./core/grpc_private.key:/grpc_private.key:ro
+      - ./core/server.key:/server.key:ro
+      - ./core/license.key:/license.key:ro
+    #depends_on:
+    #  - service.nats
+    deploy:
+      replicas: 1
+      resources: *default-resources
+    networks:
+      - private
+    labels:
+      com.werbot.group: "werbot"
+    logging: *default-logging
+
+  buffet:
+    image: ghcr.io/werbot/buffet:latest
+    restart: always
+    environment:
+      SECURITY_AES_KEY: ${SECURITY_AES_KEY:-securittAesKey}
+      GRPCSERVER_TOKEN: ${GRPCSERVER_TOKEN:-grpcServerToken}
+      LICENSE_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
+      PSQLSERVER_DSN: postgres://${POSTGRES_USER:-werbot}:${POSTGRES_PASSWORD:-postgresPassword}@postgres:5432/${POSTGRES_DB:-werbot}?sslmode=require
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./core/grpc_public.key:/grpc_public.key:ro
+      - ./core/grpc_private.key:/grpc_private.key:ro
+      - ./core/license.key:/license.key:ro
+      - ./core/GeoLite2-Country.mmdb:/etc/geoip2/GeoLite2-Country.mmdb:ro
+      #- ./storage:/storage
+    deploy:
+      replicas: 1
+      resources: *default-resources
+    networks:
+      - private
+    labels:
+      com.werbot.group: "werbot"
+    logging: *default-logging
+
+  ghost:
+    image: ghcr.io/werbot/ghost:latest
+    container_name: werbot.ghost
+    restart: always
+    environment: *grpc-environment
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./core/grpc_public.key:/grpc_public.key:ro
+      - ./core/grpc_private.key:/grpc_private.key:ro
+      - ./core:/data
+    networks:
+      - private
+    labels:
+      com.werbot.group: "werbot"
+    logging: *default-logging
+
+  taco:
+    image: ghcr.io/werbot/taco:latest
+    restart: always
+    user: root
+    environment:
+      APP_TOKEN: ${APP_TOKEN:-werbot}
+      REDIS_ADDR: service.redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redisPassword}
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-accesTokenSecret}
+      ACCESS_TOKEN_DURATION: 1m
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-refreshTokenSecret}
+      KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
+      KEY_PRIVATE: ${LICENSE_KEY_PRIVATE:-}
+      API_DSN: https://api.werbot.net
+      <<: *grpc-environment
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./core/grpc_public.key:/grpc_public.key:ro
+      - ./core/grpc_private.key:/grpc_private.key:ro
+    deploy:
+      replicas: 1
+      resources: *default-resources
+    networks:
+      - private
+    labels:
+      com.werbot.group: "werbot"
+    logging: *default-logging

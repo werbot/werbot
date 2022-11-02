@@ -1,0 +1,37 @@
+run:
+  deadline: 5m
+  tests: false
+  skip-files:
+    - ".*\\.pb\\.go"
+    - ".*\\.gen\\.go"
+
+linters-settings:
+  goconst:
+    min-len: 5
+    min-occurrences: 4
+  misspell:
+    locale: US
+
+linters:
+  enable:
+    - bodyclose
+    - dupl
+    - exportloopref
+    - goconst
+    #- godox
+    - goimports
+    - goprintffuncname
+    - gosec
+    - misspell
+    - prealloc
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+    - whitespace
+    - staticcheck
+    - ineffassign
+    - unused
+    - govet
+    - gocritic

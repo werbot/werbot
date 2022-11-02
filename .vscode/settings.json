@@ -1,0 +1,107 @@
+{
+  "go.buildFlags": ["-tags=saas"],
+  "scss.lint.unknownAtRules": "ignore",
+
+  "editor.tabSize": 2,
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/*.log": true,
+    "**/*.log*": true,
+    "**/bower_components": true,
+    "**/dist": true,
+    "**/elehukouben": true,
+    "**/.git": true,
+    "**/.gitignore": true,
+    "**/.svn": true,
+    "**/.DS_Store": true,
+    "**/.idea": true,
+    "**/.vscode": false,
+    "**/yarn.lock": true,
+    "**/tmp": true,
+    "out": true,
+    "dist": true,
+    "node_modules": true,
+    "CHANGELOG.md": true,
+    "examples": true,
+    "res": true,
+    "screenshots": true,
+    "yarn-error.log": true,
+    "**/.yarn": true
+  },
+
+  "files.exclude": {
+    "**/.cache": true,
+    "**/.editorconfig": true,
+    "**/.eslintcache": true,
+    "**/bower_components": true,
+    "**/.idea": true,
+    "**/tmp": true,
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true
+  },
+
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/.vscode/**": true,
+    "**/node_modules/**": true,
+    "**/tmp/**": true,
+    "**/bower_components/**": true,
+    "**/dist/**": true,
+    "**/yarn.lock": true
+  },
+
+  "[vue]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": true,
+      "source.fixAll.stylelint": true
+    },
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "protoc": {
+    "options": ["--proto_path=${workspaceFolder}/internal/grpc/proto/"]
+  },
+
+  "cSpell.words": [
+    "antd",
+    "antv",
+    "brotli",
+    "browserslist",
+    "codemirror",
+    "commitlint",
+    "cropperjs",
+    "echarts",
+    "esnext",
+    "esno",
+    "iconify",
+    "INTLIFY",
+    "lint-staged",
+    "lintstagedrc",
+    "logicflow",
+    "mkcert",
+    "mockjs",
+    "nprogress",
+    "pinia",
+    "pnpm",
+    "popperjs",
+    "qrcode",
+    "sider",
+    "sortablejs",
+    "stylelint",
+    "tailwindcss",
+    "tinymce",
+    "unplugin",
+    "vben",
+    "vditor",
+    "vitejs",
+    "vueuse",
+    "windi",
+    "windicss",
+    "zxcvbn"
+  ]
+}

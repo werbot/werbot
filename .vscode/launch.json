@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "🍱 gRPC (Buffet)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/buffet/",
+      "envFile": "${workspaceFolder}/.vscode/config/.env.buffet",
+      "buildFlags": "-tags saas",
+      "args": [""]
+    },
+    {
+      "name": "🥑 core (Avocado)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/avocado/",
+      "envFile": "${workspaceFolder}/.vscode/config/.env.avocado",
+      "args": [""]
+    },
+    {
+      "name": "👻 master (Ghost)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/ghost/",
+      "envFile": "${workspaceFolder}/.vscode/config/.env.ghost",
+      "args": [""]
+    },
+    {
+      "name": "🌮 api (Taco)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/taco/",
+      "envFile": "${workspaceFolder}/.vscode/config/.env.taco",
+      "buildFlags": "-tags saas",
+      "args": [""]
+    }
+  ]
+}

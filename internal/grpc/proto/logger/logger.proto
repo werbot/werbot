@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package logger;
+
+option go_package = "github.com/werbot/werbot/internal/grpc/proto/logger";
+
+enum Logger {
+    logger_unspecified = 0;
+    profile = 1;
+    project = 2;
+    server = 3;
+}
+
+enum EventType {
+    event_unspecified = 0;
+    onOnline = 1;
+    onOffline = 2;
+    onCreate = 3;
+    onEdit = 4;
+    onRemove = 5;
+    onActive = 6;
+    onInactive = 7;
+    onChange = 8;
+}

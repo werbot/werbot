@@ -1,0 +1,31 @@
+textarea {
+  @apply w-full rounded border border-solid border-gray-300 bg-gray-50 py-1.5 pl-2;
+
+  &:focus {
+    @apply border-solid border-sky-600;
+  }
+
+  &.warning,
+  & .warning {
+    @apply border-red-300 bg-red-50;
+
+    &:focus {
+      @apply border-solid border-red-600 bg-red-50;
+    }
+  }
+
+  &.error,
+  & .error {
+    @apply border-red-300 bg-red-50;
+
+    &:focus {
+      @apply border-solid border-red-600 bg-red-50;
+    }
+  }
+
+  &.disabled,
+  & .disabled,
+  &[disabled] {
+    @apply cursor-not-allowed border-transparent bg-gray-300 text-gray-500;
+  }
+}

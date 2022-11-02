@@ -1,0 +1,11 @@
+@import "./components/main.scss";
+@import "./components/artboard.scss";
+@import "./components/divider.scss";
+@import "./components/checkbox.scss";
+@import "./components/card.scss";
+@import "./components/dropdown.scss";
+@import "./components/button.scss";
+@import "./components/form.scss";
+@import "./components/input.scss";
+@import "./components/textarea.scss";
+@import "./components/table.scss";

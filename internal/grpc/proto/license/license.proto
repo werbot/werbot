@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package license;
+
+option go_package = "github.com/werbot/werbot/internal/grpc/proto/license";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+service LicenseHandlers {
+    rpc NewLicense(NewLicense.Request) returns (NewLicense.Response) {}
+    rpc GetLicenseInfo(GetLicenseInfo.Request) returns (GetLicenseInfo.Response) {}
+    rpc GetLicenseExpired(GetLicenseExpired.Request)   returns (GetLicenseExpired.Response) {}
+}
+
+// -----------------------------------------------------
+// global messages
+message License {
+    message Limits {
+        int32 companies = 1;
+        int32 servers = 2;
+        int32 users = 3;
+        repeated string modules = 4;
+    }
+
+    int32 version = 1;
+    string issued = 2;
+    string customer = 3;
+    string subscriber = 4;
+    string type = 5;
+    repeated string ip = 6;
+    google.protobuf.Timestamp issued_at = 7;
+    google.protobuf.Timestamp expires_at = 8;
+    Limits limits = 9;
+}
+// -----------------------------------------------------
+
+
+// rpc NewLicense
+message NewLicense{
+    message Request{
+        string ip = 1          [(tagger.tags) = "validate:\"required,ip\""];
+        string customer = 2    [(tagger.tags) = "validate:\"omitempty,uuid\""];
+        string subscriber = 3  [(tagger.tags) = "validate:\"omitempty,uuid\""];
+        string token = 4       [(tagger.tags) = "validate:\"omitempty,alphanum,len=32\""];
+    }
+
+    message Response {
+        bytes license = 1;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc GetLicenseInfo
+message GetLicenseInfo {
+    message Request {}
+
+    message Response {
+        License license = 1;
+        bool expired = 2;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc GetLicenseExpired
+message GetLicenseExpired {
+    message Request {
+        bytes license = 1;
+    }
+    message Response {
+        bool status = 1;
+    }
+}
+// -----------------------------------------------------
+

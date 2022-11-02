@@ -1,0 +1,351 @@
+syntax = "proto3";
+
+package subscription;
+
+option go_package = "github.com/werbot/werbot/internal/grpc/proto/subscription";
+
+import "google/protobuf/timestamp.proto";
+
+service SubscriptionHandlers {
+    // Subscription section
+    rpc ListSubscriptions(ListSubscriptions.Request) returns (ListSubscriptions.Response) {}
+    rpc GetSubscription(GetSubscription.Request) returns (GetSubscription.Response) {}
+    rpc CreateSubscription(CreateSubscription.Request) returns (CreateSubscription.Response) {}
+    rpc UpdateSubscription(UpdateSubscription.Request) returns (UpdateSubscription.Response) {}
+    rpc DeleteSubscription(DeleteSubscription.Request) returns (DeleteSubscription.Response) {}
+
+    // Plan section
+    rpc ListPlans(ListPlans.Request) returns (ListPlans.Response) {}
+    rpc GetPlan(GetPlan.Request) returns (GetPlan.Response) {}
+    rpc UpdatePlan(UpdatePlan.Request) returns (UpdatePlan.Response) {}
+
+    // Customer section
+    rpc ListCustomers(ListCustomers.Request) returns (ListCustomers.Response) {}
+    rpc GetCustomer(GetCustomer.Request) returns (GetCustomer.Response) {}
+    rpc CreateCustomer(CreateCustomer.Request) returns (CreateCustomer.Response) {}
+    rpc UpdateCustomer(UpdateCustomer.Request) returns (UpdateCustomer.Response) {}
+    rpc DeleteCustomer(DeleteCustomer.Request) returns (DeleteCustomer.Response) {}
+
+    rpc GetChanges(GetChanges.Request) returns (GetChanges.Response) {}
+
+    rpc GetInvoices(GetInvoices.Request) returns (GetInvoices.Response) {}
+}
+
+enum Sections {
+	servers = 0;
+	members = 1;
+    invites = 2;
+    ldap = 3;
+    tasks = 4;
+    security = 5;
+    log_activities = 6;
+}
+
+
+// use only on http answer to ROLE_USER
+message PlansLite {
+    message PlanLite{
+        string plan_id = 1;
+        int32 cost = 2;
+        int32 period = 3;
+        string title = 4;
+        string image = 5;
+        int32 trial_period = 6;
+        int32 limits_servers = 7;
+        int32 limits_users = 8;
+        int32 limits_companies = 9;
+        int32 limits_connections = 10;
+    }
+    
+    int32 total = 1;
+    repeated PlanLite plans = 2;
+}
+// -----------------------------------------------------
+
+
+// rpc ListSubscriptions
+message ListSubscriptions {
+    message Request {
+        int32 limit = 1;
+        int32 offset = 2;
+        string sort_by = 3;
+        string query = 4;
+    }
+
+    message Response {
+        int32 total = 1;
+        repeated GetSubscription.Response subscriptions = 2;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc GetSubscription
+message GetSubscription {
+    message Request {
+        string subscription_id = 1;
+    }
+
+    message Response {
+        string subscription_id = 1;
+        string customer_id = 2;
+        string customer_name = 3;
+        string plan_id = 4;
+        string plan_name = 5;
+        google.protobuf.Timestamp start_date = 6;
+        google.protobuf.Timestamp end_date = 7;
+        string state = 8;
+        string stripe_id = 9;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc CreateSubscription
+message CreateSubscription {
+    message Request {
+        string subscription_id = 1;
+        string customer_id = 2;
+        string customer_name = 3;
+        string plan_id = 4;
+        string plan_name = 5;
+        google.protobuf.Timestamp start_date = 6;
+        google.protobuf.Timestamp end_date = 7;
+        string state = 8;
+        string stripe_id = 9;
+    }
+
+    message Response {
+        string subscription_id = 1;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc UpdateSubscription
+message UpdateSubscription {
+    message Request {
+        string subscription_id = 1;
+        string customer_id = 2;
+        string customer_name = 3;
+        string plan_id = 4;
+        string plan_name = 5;
+        google.protobuf.Timestamp start_date = 6;
+        google.protobuf.Timestamp end_date = 7;
+        string state = 8;
+        string stripe_id = 9;
+    }
+
+    message Response {}
+}
+// -----------------------------------------------------
+
+
+// rpc DeleteSubscription
+message DeleteSubscription {
+    message Request {
+        string subscription_id = 1;
+    }
+
+    message Response {}
+}
+// -----------------------------------------------------
+
+
+
+// rpc ListPlans
+message ListPlans {
+    message Request {
+        int32 limit = 1;
+        int32 offset = 2;
+        string sort_by = 3;
+        string query = 4;
+    }
+
+    message Response {
+        message PlanInfo {
+            int32 subscription_count = 1;
+            GetPlan.Response plan = 2;
+        }
+
+        int32 total = 1;
+        repeated PlanInfo plans = 2;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc GetPlan
+message GetPlan {
+    message Request {
+        string plan_id = 1;
+    }
+
+    message Response {
+        string plan_id = 1;
+        int32 cost = 2;
+        int32 period = 3;
+        string title = 4;
+        string stripe_id = 5;
+        repeated string allowed_sections = 6;
+        map<int32, string>  benefits = 7;
+        string image = 8;
+        bool active = 9;
+        bool trial = 10;
+        int32 trial_period = 11;
+        int32 limits_servers = 12;
+        int32 limits_users = 13;
+        int32 limits_companies = 14;
+        int32 limits_connections = 15;
+        bool default = 16;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc UpdatePlan
+message UpdatePlan {
+    message Request {
+        string plan_id = 1;
+        int32 cost = 2;
+        int32 period = 3;
+        string title = 4;
+        string stripe_id = 5;
+        repeated string allowed_sections = 6;
+        map<int32, string>  benefits = 7;
+        string image = 8;
+        bool active = 9;
+        bool trial = 10;
+        int32 trial_period = 11;
+        int32 limits_servers = 12;
+        int32 limits_users = 13;
+        int32 limits_companies = 14;
+        int32 limits_connections = 15;
+        bool default = 16;
+    }
+
+    message Response {}
+}
+// -----------------------------------------------------
+
+
+// rpc ListCustomers
+message ListCustomers {
+    message Request {
+        int32 limit = 1;
+        int32 offset = 2;
+        string sort_by = 3;
+    }
+
+    message Response {
+        int32 total = 1;
+        repeated GetCustomer.Response customers = 2;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc GetCustomer
+message GetCustomer {
+    message Request {
+        string user_id = 1;
+    }
+
+    message Response {
+        string user_id = 1;
+        string stripe_id = 2;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc CreateCustomer
+message CreateCustomer {
+    message Request {
+        string user_id = 1;
+        string stripe_id = 2;
+    }
+
+    message Response {
+        string customer_id = 1;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc UpdateCustomer
+message UpdateCustomer {
+    message Request {
+        string user_id = 1;
+        string stripe_id = 2;
+    }
+
+    message Response {}
+}
+// -----------------------------------------------------
+
+
+// rpc DeleteCustomer
+message DeleteCustomer {
+    message Request {
+        string user_id = 1;
+    }
+
+    message Response {}
+}
+// -----------------------------------------------------
+
+
+// rpc GetChanges
+message GetChanges {
+    message Request {
+        int32 limit = 1;
+        int32 offset = 2;
+        string sort_by = 3;
+        string query = 4;
+    }
+
+    message Response {
+        message Change {
+            string change_id = 1;
+            string subscription_id = 2;
+            string plan_id = 3;
+            google.protobuf.Timestamp date = 4;
+        }
+
+        int32 total = 1;
+        repeated Change change = 2;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc GetInvoices
+message GetInvoices {
+    message Request {
+        int32 limit = 1;
+        int32 offset = 2;
+        string sort_by = 3;
+        string query = 4; 
+    }
+
+    message Response {
+        message Invoice {
+            string invoice_id = 1;
+            string subscription_id = 2;
+            string plan_id = 3;
+            string stripe_id = 4;
+            string url = 5;
+            string status = 6;
+            google.protobuf.Timestamp date = 7;
+            int32 amount = 8;
+            string currency = 9;
+            google.protobuf.Timestamp period_start = 10;
+            google.protobuf.Timestamp period_end = 11;
+        }
+
+        int32 total = 1;
+        repeated Invoice invoice = 2;
+    }
+}
+// -----------------------------------------------------

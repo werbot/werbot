@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package account;
+
+option go_package = "github.com/werbot/werbot/internal/grpc/proto/account";
+
+import "google/protobuf/timestamp.proto";
+
+service AccountHandlers {
+    rpc ListAccounts(ListAccounts.Request) returns (ListAccounts.Response) {}
+    rpc GetAccount(GetAccount.Request) returns (GetAccount.Response) {}
+    //rpc CreateAccount(CreateAccount.Request) returns (CreateAccount.Response) {}
+    //rpc UpdateAccount(UpdateAccount.Request) returns (UpdateAccount.Response) {}
+    //rpc DeleteAccount(DeleteAccount.Request) returns (DeleteAccount.Response) {}
+
+    rpc GetAccountByID(GetAccountByID.Request) returns (GetAccountByID.Response) {}
+    rpc SetAccountStatus(SetAccountStatus.Request) returns (SetAccountStatus.Response) {}
+    rpc SessionAccount(SessionAccount.Request) returns (SessionAccount.Response) {}
+    rpc FindByTokenAccount(FindByTokenAccount.Request) returns (FindByTokenAccount.Response) {}
+}
+
+enum AccountStatus {
+    ACCOUNT_STATUS_UNSPECIFIED = 0;
+    OFFLINE = 1;  
+    ONLINE = 2;
+}
+
+// rpc ListAccounts
+message ListAccounts {
+    message Request {
+        int32 limit = 1;
+        int32 offset = 2;
+        string sort_by = 3;
+        string query = 4;
+    }
+
+    message Response{
+        int32 total = 1;
+        repeated GetAccount.Response accounts = 2;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc GetAccount
+message GetAccount {
+    message Request {
+       string account_id = 1;
+    }
+
+    message Response {
+        string account_id = 1;
+        bool online = 2;
+        bool active = 3;
+        string user_fio = 4;
+        google.protobuf.Timestamp last_activity = 5;
+        string connection_login = 6;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc GetAccountByID
+message GetAccountByID {
+    message Request {
+        string username = 1;
+        string fingerprint = 2;
+        string client_ip = 3;
+    }
+
+    message Response {
+        string user_id = 1;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc SetAccountStatus
+message SetAccountStatus {
+    message Request {
+        string account_id = 1;
+        AccountStatus status = 2;
+    }
+
+    message Response {
+        int32 total = 1;
+        repeated GetAccount.Response accounts = 2;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc SessionAccount
+message SessionAccount {
+    message Request {
+       string name = 1;
+    }
+
+    message Response {
+        int32 total = 1;
+        repeated GetAccount.Response accounts = 2;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc SessionAccount
+message FindByTokenAccount {
+    message Request {
+        string name = 1;
+    }
+    
+    message Response {}
+}
+// -----------------------------------------------------

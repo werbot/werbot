@@ -1,0 +1,11 @@
+.card {
+  @apply place-content-center rounded-md bg-white p-7 shadow-lg;
+
+  & .title {
+    @apply grid gap-2 text-2xl;
+  }
+
+  & .message {
+    @apply grid pt-4;
+  }
+}

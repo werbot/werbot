@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "isolatedModules": false,
+    "noEmit": true,
+    "lib": ["esnext", "dom"],
+    "plugins": [{ "name": "@vuedx/typescript-plugin-vue" }],
+    "types": [
+      "node",
+      "vite-plugin-svg-icons/client",
+      "vite-plugin-pages/client",
+      "vite-plugin-vue-layouts/client"
+    ],
+    "jsx": "preserve",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@proto/*": ["../internal/grpc/proto/*"]
+    }
+  },
+  "vueCompilerOptions": {
+    "target": 3,
+    "strictTemplates": true,
+    "experimentalDisableTemplateSupport": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.vue",
+    "src/router.ts",
+    "src/main.ts",
+    "src/utils/request.js",
+    "../internal/grpc/proto/**/*.ts",
+    "../internal/grpc/proto/**/*.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "public"]
+}

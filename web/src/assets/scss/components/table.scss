@@ -1,0 +1,27 @@
+table {
+  @apply min-w-full;
+
+  th {
+    @apply bg-gray-200 py-4 text-left text-gray-700 first:pl-6 last:pr-6;
+  }
+
+  tr {
+    @apply border-b border-gray-100 bg-white;
+  }
+
+  td {
+    @apply whitespace-nowrap py-4 first:pl-6 last:pr-6;
+  }
+
+  .adaptive-sm {
+    @apply hidden sm:table-cell;
+  }
+
+  .adaptive-md {
+    @apply hidden md:table-cell;
+  }
+
+  .adaptive-lg {
+    @apply hidden lg:table-cell;
+  }
+}

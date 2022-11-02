@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package key;
+
+option go_package = "github.com/werbot/werbot/internal/grpc/proto/key";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+service KeyHandlers {
+    rpc ListPublicKeys(ListPublicKeys.Request) returns (ListPublicKeys.Response) {}
+    rpc GetPublicKey(GetPublicKey.Request) returns (GetPublicKey.Response) {}
+    rpc CreatePublicKey(CreatePublicKey.Request) returns (CreatePublicKey.Response) {}
+    rpc UpdatePublicKey(UpdatePublicKey.Request) returns (UpdatePublicKey.Response) {}
+    rpc DeletePublicKey(DeletePublicKey.Request) returns (DeletePublicKey.Response) {}
+    rpc GenerateSSHKey(GenerateSSHKey.Request) returns (GenerateSSHKey.Response) {}
+}
+
+enum KeyType {
+    KEY_TYPE_UNSPECIFIED = 0;
+    KEY_TYPE_ED25519 = 1;
+    KEY_TYPE_RSA = 2;
+}
+
+
+// rpc ListPublicKeys
+message ListPublicKeys {
+    message Request {
+        int32 limit = 1;
+        int32 offset = 2;
+        string sort_by = 3;
+        string query = 4;
+    }
+
+    message Response {    
+        int32 total = 1;
+        repeated GetPublicKey.Response public_keys = 3;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc GetPublicKey
+message GetPublicKey {
+    message Request {
+        string key_id = 1   [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"key_id\"   params:\"key_id\""];
+        string user_id = 2  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"  params:\"user_id\""];
+    }
+
+    message Response {
+        string key_id = 1;
+        string user_id = 2;
+        string user_name = 3;
+        string title = 4;
+        string key = 5;
+        string fingerprint = 6;
+        google.protobuf.Timestamp last_used = 7;
+        google.protobuf.Timestamp created = 8;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc CreatePublicKey
+message CreatePublicKey {
+    message Request {
+        string user_id = 1  [(tagger.tags) = "validate:\"omitempty,uuid\""];
+        string title = 2    [(tagger.tags) = "validate:\"required,min=5,max=20\""];
+        string key = 3      [(tagger.tags) = "validate:\"required\""];
+    }
+
+    message Response {
+        string key_id = 1;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc UpdatePublicKey
+message UpdatePublicKey {
+    message Request {
+        string key_id = 1   [(tagger.tags) = "validate:\"required,uuid\"          query:\"key_id\"   params:\"key_id\""];
+        string user_id = 2  [(tagger.tags) = "validate:\"omitempty,uuid\"         query:\"user_id\"  params:\"user_id\""];
+        string title = 3    [(tagger.tags) = "validate:\"required,min=5,max=20\"  query:\"title\"    params:\"title\""];
+        string key = 4      [(tagger.tags) = "validate:\"required\"               query:\"key\"      params:\"key\""];
+    }
+
+    message Response {}
+}
+
+// -----------------------------------------------------
+
+
+// rpc DeletePublicKey
+message DeletePublicKey{
+    message Request {
+        string user_id = 1  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"  params:\"user_id\""];
+        string key_id = 2   [(tagger.tags) = "validate:\"required,uuid\"   query:\"key_id\"   params:\"key_id\""];
+    }
+
+    message Response {}
+}
+// -----------------------------------------------------
+
+
+// rpc GenerateSSHKey
+message GenerateSSHKey {
+    message Request {
+        KeyType key_type = 1;
+    }
+
+    message Response {
+        KeyType key_type = 1;
+        string uuid = 2;
+        string passphrase = 3;
+        //bytes private = 3;
+        bytes public = 4;
+        string finger_print = 5;
+    }
+}
+// -----------------------------------------------------
+

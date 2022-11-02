@@ -1,0 +1,43 @@
+body {
+  @apply bg-gray-50 font-sans text-sm text-gray-700 antialiased;
+}
+
+.content {
+  @apply relative flex w-full flex-row pt-5;
+
+  & .left {
+    @apply flex-none pr-8 sm:pr-12;
+
+  }
+  & .right {
+    @apply flex-grow;
+  }
+}
+
+.fon {
+  @apply min-h-screen bg-gray-50 bg-[url('/img/pattern.png')];
+}
+
+.center {
+  @apply flex flex-col items-center justify-center;
+}
+
+a {
+  @apply text-sky-700;
+
+  &:hover {
+    @apply underline;
+  }
+
+  &:focus {
+    @apply outline-none;
+  }
+}
+
+h1 {
+  @apply flex gap-2 text-2xl;
+}
+
+.dot{
+  @apply relative inline-flex h-3 w-3 rounded-full;
+}
