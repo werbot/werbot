@@ -29,7 +29,12 @@ databases or app access</h3>
     <a href="https://stackoverflow.com/questions/tagged/werbot"><img height="20" src="https://github.com/werbot/.github/raw/main/img/social/stack-overflow.svg" alt="StackOverflow"></a>
 </p>
 
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fwerbot%2Fwerbot.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fwerbot%2Fwerbot?ref=badge_large)
+
 ## <img width="24" src="https://github.com/werbot/.github/raw/main/img/yellow/logo.svg">&nbsp;&nbsp;What is Werbot?
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fwerbot%2Fwerbot.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fwerbot%2Fwerbot?ref=badge_shield)
+
 
 <img src="https://github.com/werbot/.github/raw/main/img/preview/app_main_sh.png">
 
