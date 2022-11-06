@@ -51,16 +51,15 @@ scrape_configs:
           level:
           module:
           message:
-          error: 
-          user_name: 
-          user_address: 
-          user_id: 
-          uuid: 
-          host_id: 
+          error:
+          user_name:
+          user_address:
+          user_id:
+          uuid:
+          host_id:
       - match:
           selector: '{job="docker",container_name="",image_name=""}'
           action: drop
-
 #      - match:
 #          selector: '{container_name=~".*-avocado-.*"}'
 #          stages:

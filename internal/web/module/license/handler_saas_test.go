@@ -105,7 +105,7 @@ func TestHandler_postLicense(t *testing.T) {
 			respondStatus: http.StatusBadRequest,
 		},
 
-		// Error validating ip adress
+		// Error validating ip address
 		{
 			name: "postLicense_02",
 			requestBody: map[string]any{
