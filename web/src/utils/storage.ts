@@ -26,7 +26,7 @@ export function batchSaveSetting(keys: any, obj: any) {
 }
 
 export function getSetting(key: string, defVal = undefined): string {
-  let item = localStorage.getItem(key);
+  const item = localStorage.getItem(key);
   if (invalids.includes(item)) {
     return defVal;
   } else {
