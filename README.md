@@ -12,16 +12,23 @@ databases or app access</h3>
 <br>
 
 <p align="center">
-    <a href="https://goreportcard.com/report/github.com/werbot/werbot"><img src="https://goreportcard.com/badge/github.com/werbot/werbot"></a>
-    &nbsp;
-    <a href="https://www.codefactor.io/repository/github/werbot/werbot"><img src="https://www.codefactor.io/repository/github/werbot/werbot/badge" alt="CodeFactor" /></a>
+    <a href="https://github.com/werbot/werbot/releases">
+    <img src="https://img.shields.io/github/v/release/werbot/werbot?sort=semver&label=Release&color=651FFF" />
+    </a>
     &nbsp;
     <a href="/LICENSE"><img src="https://img.shields.io/badge/license-BUSL--1.1-green.svg"></a>
     &nbsp;
     <a href="https://app.fossa.com/projects/git%2Bgithub.com%2Fwerbot%2Fwerbot?ref=badge_shield"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2Fwerbot%2Fwerbot.svg?type=shield"></a>
     &nbsp;
-    <a href="https://github.com/werbot/werbot"><img src="https://img.shields.io/badge/built%20with-go%2Bvue-orange.svg"></a>
+    <a href="https://goreportcard.com/report/github.com/werbot/werbot"><img src="https://goreportcard.com/badge/github.com/werbot/werbot"></a>
     &nbsp;
+    <a href="https://www.codefactor.io/repository/github/werbot/werbot"><img src="https://www.codefactor.io/repository/github/werbot/werbot/badge" alt="CodeFactor" /></a>
+    &nbsp;
+    <a href="https://github.com/werbot/werbot"><img src="https://img.shields.io/badge/frontend-vue-orange.svg"></a>
+    &nbsp;
+    <a href="https://github.com/werbot/werbot"><img src="https://img.shields.io/badge/backend-go-orange.svg"></a>
+    &nbsp;
+    <a href="https://golang.org/"><img src="https://img.shields.io/github/go-mod/go-version/werbot/werbot?color=7fd5ea"></a>
 </p>
 
 <p align="center">

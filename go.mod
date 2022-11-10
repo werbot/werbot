@@ -27,13 +27,13 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/zerolog v1.28.0
 	github.com/srikrsna/protoc-gen-gotag v0.6.2
-	github.com/steinfletcher/apitest v1.5.13
+	github.com/steinfletcher/apitest v1.5.14
 	github.com/steinfletcher/apitest-jsonpath v1.7.1
 	github.com/vanng822/go-premailer v1.20.1
-	github.com/xhit/go-simple-mail/v2 v2.12.0
-	golang.org/x/crypto v0.1.0
-	golang.org/x/oauth2 v0.1.0
-	golang.org/x/term v0.1.0
+	github.com/xhit/go-simple-mail/v2 v2.13.0
+	golang.org/x/crypto v0.2.0
+	golang.org/x/oauth2 v0.2.0
+	golang.org/x/term v0.2.0
 	google.golang.org/grpc v1.50.1
 	google.golang.org/protobuf v1.28.1
 )
@@ -74,7 +74,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/moby/sys/mount v0.3.3 // indirect
 	github.com/moby/sys/mountinfo v0.6.2 // indirect
-	github.com/moby/term v0.0.0-20220808134915-39b0c02b01ae // indirect
+	github.com/moby/term v0.0.0-20221105221325-4eb28fa6025c // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.9.3 // indirect
 	github.com/nats-io/nkeys v0.3.0 // indirect
@@ -93,11 +93,11 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/vanng822/css v1.0.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/mod v0.6.0 // indirect
-	golang.org/x/net v0.1.0 // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/mod v0.7.0 // indirect
+	golang.org/x/net v0.2.0 // indirect
+	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
-	golang.org/x/tools v0.2.0 // indirect
+	golang.org/x/tools v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20221027153422-115e99e71e1c // indirect
+	google.golang.org/genproto v0.0.0-20221109142239-94d6d90a7d66 // indirect
 )
