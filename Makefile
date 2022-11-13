@@ -399,7 +399,7 @@ srv_migration:
 		MIGRATION_DIR=${ROOT_PATH}/migration;\
 		DB_POSTFIX="goose_db_version";\
 		if [ "$(ARG_TYPE)" == "saas" ];then\
-			MIGRATION_DIR=${MIGRATION_DIR}/saas;\
+			MIGRATION_DIR=${ROOT_PATH}/add-on/saas/migration;\
 			DB_POSTFIX=${DB_POSTFIX}"_saas";\
 		elif [ "$(ARG_TYPE)" == "test" ]; then\
 			MIGRATION_DIR=${ROOT_PATH}/migration/test;\
