@@ -26,7 +26,7 @@
     "less-loader": "^11.1.0",
     "notiwind": "^1.2.6",
     "nprogress": "^0.2.0",
-    "pinia": "^2.0.23",
+    "pinia": "^2.0.24",
     "postcss": "^8.4.19",
     "postcss-import": "^15.0.0",
     "prettier": "^2.7.1",
