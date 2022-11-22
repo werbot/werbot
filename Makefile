@@ -387,6 +387,7 @@ upd_cdn_ip:
 
 
 #############################################################################
+# install latest version goose - go install github.com/pressly/goose/v3/cmd/goose@latest
 # make srv_migration ent up && make srv_migration saas up && make srv_migration test up
 # make srv_migration test down && make srv_migration saas down && make srv_migration ent down
 .PHONY: srv_migration
@@ -402,19 +403,24 @@ srv_migration:
 			MIGRATION_DIR=${ROOT_PATH}/add-on/saas/migration;\
 			DB_POSTFIX=${DB_POSTFIX}"_saas";\
 		elif [ "$(ARG_TYPE)" == "test" ]; then\
-			MIGRATION_DIR=${ROOT_PATH}/migration/test;\
+			mkdir $(ROOT_PATH)/.vscode/migrate_tmp;\
+			for file_migrate in ${shell find . -path '*/migration/test/*' | sort -r}; do \
+				cp "$$file_migrate" $(ROOT_PATH)/.vscode/migrate_tmp/;\
+			done; \
+			MIGRATION_DIR=$(ROOT_PATH)/.vscode/migrate_tmp;\
 			DB_POSTFIX=${DB_POSTFIX}"_test";\
 		fi;\
 		if [ $(ARG_GOOSE) ]; then\
 			source ${ROOT_PATH}/.vscode/config/.env.buffet;\
 			GOOSE_CMD="goose -dir $$MIGRATION_DIR -table $$DB_POSTFIX postgres "$$PSQLSERVER_DSN"";\
-			if [ $(ARG_GOOSE) == "create" ]; then $$GOOSE_CMD create migration_name sql && $$GOOSE_CMD fix; fi;\
+			if [ $(ARG_GOOSE) == "create" ]; then $$GOOSE_CMD create migration_name sql; fi;\
 			if [ $(ARG_GOOSE) == "up" ]; then $$GOOSE_CMD up; fi;\
 			if [ $(ARG_GOOSE) == "up1" ]; then $$GOOSE_CMD up-by-one; fi;\
 			if [ $(ARG_GOOSE) == "down" ]; then $$GOOSE_CMD reset; fi;\
 			if [ $(ARG_GOOSE) == "down1" ]; then $$GOOSE_CMD down; fi;\
 			if [ $(ARG_GOOSE) == "redo" ]; then $$GOOSE_CMD redo; fi;\
 			if [ $(ARG_GOOSE) == "status" ]; then $$GOOSE_CMD status; fi;\
+			rm -rf $(ROOT_PATH)/.vscode/migrate_tmp;\
 		else \
 			echo "Parameters not passed";\
 		fi; \

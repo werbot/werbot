@@ -11,17 +11,17 @@ require (
 	github.com/go-playground/universal-translator v0.18.0
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/gofiber/fiber/v2 v2.39.0
-	github.com/gofiber/helmet/v2 v2.2.18
+	github.com/gofiber/fiber/v2 v2.40.0
+	github.com/gofiber/helmet/v2 v2.2.21
 	github.com/gofiber/jwt/v3 v3.3.3
 	github.com/gofiber/keyauth/v2 v2.1.29
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgtype v1.12.0
-	github.com/jackc/pgx/v5 v5.0.4
+	github.com/jackc/pgx/v5 v5.1.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/joho/godotenv v1.4.0
-	github.com/nats-io/nats.go v1.19.1
+	github.com/nats-io/nats.go v1.20.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/oschwald/geoip2-golang v1.8.0
 	github.com/robfig/cron/v3 v3.0.1
@@ -31,10 +31,10 @@ require (
 	github.com/steinfletcher/apitest-jsonpath v1.7.1
 	github.com/vanng822/go-premailer v1.20.1
 	github.com/xhit/go-simple-mail/v2 v2.13.0
-	golang.org/x/crypto v0.2.0
+	golang.org/x/crypto v0.3.0
 	golang.org/x/oauth2 v0.2.0
 	golang.org/x/term v0.2.0
-	google.golang.org/grpc v1.50.1
+	google.golang.org/grpc v1.51.0
 	google.golang.org/protobuf v1.28.1
 )
 
@@ -52,7 +52,7 @@ require (
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
-	github.com/containerd/containerd v1.6.9 // indirect
+	github.com/containerd/containerd v1.6.10 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/docker/docker v20.10.21+incompatible // indirect
@@ -74,9 +74,9 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/moby/sys/mount v0.3.3 // indirect
 	github.com/moby/sys/mountinfo v0.6.2 // indirect
-	github.com/moby/term v0.0.0-20221105221325-4eb28fa6025c // indirect
+	github.com/moby/term v0.0.0-20221120202655-abb19827d345 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/nats-io/nats-server/v2 v2.9.3 // indirect
+	github.com/nats-io/nats-server/v2 v2.9.7 // indirect
 	github.com/nats-io/nkeys v0.3.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -84,7 +84,7 @@ require (
 	github.com/opencontainers/runc v1.1.4 // indirect
 	github.com/oschwald/maxminddb-golang v1.10.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/rivo/uniseg v0.4.2 // indirect
+	github.com/rivo/uniseg v0.4.3 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/toorop/go-dkim v0.0.0-20201103131630-e1cd1a0a5208 // indirect
@@ -99,5 +99,5 @@ require (
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/tools v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20221109142239-94d6d90a7d66 // indirect
+	google.golang.org/genproto v0.0.0-20221118155620-16455021b5e6 // indirect
 )
