@@ -18,8 +18,8 @@ type member struct {
 	pb_member.UnimplementedMemberHandlersServer
 }
 
-// ListMembers is ...
-func (m *member) ListMembers(ctx context.Context, in *pb_member.ListMembers_Request) (*pb_member.ListMembers_Response, error) {
+// ListProjectMembers is ...
+func (m *member) ListProjectMembers(ctx context.Context, in *pb_member.ListProjectMembers_Request) (*pb_member.ListProjectMembers_Response, error) {
 	sqlSearch := db.SQLAddWhere(in.GetQuery())
 	sqlFooter := db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 
@@ -35,7 +35,7 @@ func (m *member) ListMembers(ctx context.Context, in *pb_member.ListMembers_Requ
 			"project_member"."active" AS "member_active",
 			"project_member"."online" AS "member_online",
 			"project_member"."created" AS "member_created",
-			( SELECT COUNT ( * ) FROM "server_account" WHERE "member_id" = "project_member"."id"  ) AS "count_servers"
+			( SELECT COUNT ( * ) FROM "server_member" WHERE "member_id" = "project_member"."id"  ) AS "count_servers"
 		FROM
 			"project_member"
 			INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
@@ -45,9 +45,9 @@ func (m *member) ListMembers(ctx context.Context, in *pb_member.ListMembers_Requ
 		return nil, err
 	}
 
-	members := []*pb_member.GetMember_Response{}
+	members := []*pb_member.GetProjectMember_Response{}
 	for rows.Next() {
-		member := pb_member.GetMember_Response{}
+		member := pb_member.GetProjectMember_Response{}
 		var created pgtype.Timestamp
 		var role string
 
@@ -84,19 +84,19 @@ func (m *member) ListMembers(ctx context.Context, in *pb_member.ListMembers_Requ
 			INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
 			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"` + sqlSearch).Scan(&total)
 
-	return &pb_member.ListMembers_Response{
+	return &pb_member.ListProjectMembers_Response{
 		Total:   total,
 		Members: members,
 	}, nil
 }
 
-// GetMember is ...
-func (m *member) GetMember(ctx context.Context, in *pb_member.GetMember_Request) (*pb_member.GetMember_Response, error) {
+// GetProjectMember is ...
+func (m *member) GetProjectMember(ctx context.Context, in *pb_member.GetProjectMember_Request) (*pb_member.GetProjectMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
 		return nil, errors.New(message.ErrNotFound)
 	}
 
-	member := pb_member.GetMember_Response{}
+	member := pb_member.GetProjectMember_Response{}
 
 	// TODO старый формат ROLE, используемый в php. Перевести в цифровой
 	var role string
@@ -145,8 +145,8 @@ func (m *member) GetMember(ctx context.Context, in *pb_member.GetMember_Request)
 	return &member, nil
 }
 
-// CreateMember is ...
-func (m *member) CreateMember(ctx context.Context, in *pb_member.CreateMember_Request) (*pb_member.CreateMember_Response, error) {
+// CreateProjectMember is ...
+func (m *member) CreateProjectMember(ctx context.Context, in *pb_member.CreateProjectMember_Request) (*pb_member.CreateProjectMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
 		return nil, errors.New(message.ErrNotFound)
 	}
@@ -182,7 +182,7 @@ func (m *member) CreateMember(ctx context.Context, in *pb_member.CreateMember_Re
 		in.GetActive(),
 	).Scan(&id, &created)
 	if err != nil {
-		return nil, errors.New("CreateMember failed")
+		return nil, errors.New("CreateProjectMember failed")
 	}
 
 	err = db.Conn.QueryRow(`SELECT
@@ -205,13 +205,13 @@ func (m *member) CreateMember(ctx context.Context, in *pb_member.CreateMember_Re
 		return nil, errors.New("Get member info failed")
 	}
 
-	return &pb_member.CreateMember_Response{
+	return &pb_member.CreateProjectMember_Response{
 		MemberId: id,
 	}, nil
 }
 
-// UpdateMember is ...
-func (m *member) UpdateMember(ctx context.Context, in *pb_member.UpdateMember_Request) (*pb_member.UpdateMember_Response, error) {
+// UpdateProjectMember is ...
+func (m *member) UpdateProjectMember(ctx context.Context, in *pb_member.UpdateProjectMember_Request) (*pb_member.UpdateProjectMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
 		return nil, errors.New(message.ErrNotFound)
 	}
@@ -229,7 +229,7 @@ func (m *member) UpdateMember(ctx context.Context, in *pb_member.UpdateMember_Re
 		in.GetMemberId(),
 	)
 	if err != nil {
-		return nil, errors.New("UpdateMember failed")
+		return nil, errors.New("UpdateProjectMember failed")
 	}
 
 	err = db.Conn.QueryRow(`SELECT
@@ -254,25 +254,25 @@ func (m *member) UpdateMember(ctx context.Context, in *pb_member.UpdateMember_Re
 		return nil, errors.New("Get member info failed from UpdateMember")
 	}
 
-	return &pb_member.UpdateMember_Response{}, nil
+	return &pb_member.UpdateProjectMember_Response{}, nil
 }
 
-// DeleteMember is ...
-func (m *member) DeleteMember(ctx context.Context, in *pb_member.DeleteMember_Request) (*pb_member.DeleteMember_Response, error) {
+// DeleteProjectMember is ...
+func (m *member) DeleteProjectMember(ctx context.Context, in *pb_member.DeleteProjectMember_Request) (*pb_member.DeleteProjectMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
 		return nil, errors.New(message.ErrNotFound)
 	}
 
 	_, err := db.Conn.Query(`DELETE FROM "project_member" WHERE "id" = $1`, in.GetMemberId())
 	if err != nil {
-		return &pb_member.DeleteMember_Response{}, errors.New("DeleteMember failed")
+		return &pb_member.DeleteProjectMember_Response{}, errors.New("DeleteMember failed")
 	}
 
-	return &pb_member.DeleteMember_Response{}, nil
+	return &pb_member.DeleteProjectMember_Response{}, nil
 }
 
-// UpdateMemberActiveStatus is ...
-func (m *member) UpdateMemberActiveStatus(ctx context.Context, in *pb_member.UpdateMemberActiveStatus_Request) (*pb_member.UpdateMemberActiveStatus_Response, error) {
+// UpdateProjectMemberStatus is ...
+func (m *member) UpdateProjectMemberStatus(ctx context.Context, in *pb_member.UpdateProjectMemberStatus_Request) (*pb_member.UpdateProjectMemberStatus_Response, error) {
 	// TODO After turning off, turn off all users who online
 	ct, err := db.Conn.Exec(`	UPDATE
 			"project_member"
@@ -285,13 +285,13 @@ func (m *member) UpdateMemberActiveStatus(ctx context.Context, in *pb_member.Upd
 			"project"."owner_id"  = $3 AND
 			"project_member"."project_id" = "project"."id"`, in.GetStatus(), in.GetMemberId(), in.GetOwnerId())
 	if err != nil {
-		return &pb_member.UpdateMemberActiveStatus_Response{}, err
+		return &pb_member.UpdateProjectMemberStatus_Response{}, err
 	}
 	if rows, _ := ct.RowsAffected(); rows != 1 {
-		return &pb_member.UpdateMemberActiveStatus_Response{}, errors.New(message.ErrNotFound)
+		return &pb_member.UpdateProjectMemberStatus_Response{}, errors.New(message.ErrNotFound)
 	}
 
-	return &pb_member.UpdateMemberActiveStatus_Response{}, nil
+	return &pb_member.UpdateProjectMemberStatus_Response{}, nil
 }
 
 // GetMemberByID is ...
@@ -405,69 +405,68 @@ func (m *member) GetUsersWithoutProject(ctx context.Context, in *pb_member.GetUs
 	}, nil
 }
 
-// GetServerMembers is ...
-func (m *member) GetServerMembers(ctx context.Context, in *pb_member.ListServerMembers_Request) (*pb_member.ListServerMembers_Response, error) {
+// ListServerMembers is ...
+func (m *member) ListServerMembers(ctx context.Context, in *pb_member.ListServerMembers_Request) (*pb_member.ListServerMembers_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
 		return nil, errors.New(message.ErrNotFound)
 	}
 
 	sqlFooter := db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 
-	accounts := []*pb_member.GetServerMember_Response{}
+	members := []*pb_member.GetServerMember_Response{}
 	rows, err := db.Conn.Query(`SELECT
+			"user"."id"
 			"user"."name",
-			"user"."email",
-			"server_account"."id",
-			"server_account"."active",
-			"server_account"."online",
-			"server_account"."last_activity"
+			"server_member"."id",
+			"server_member"."active",
+			"server_member"."online",
+			"server_member"."last_activity"
 		FROM
-			"server_account"
-			INNER JOIN "project_member" ON "server_account"."member_id" = "project_member"."id"
+			"server_member"
+			INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE
 			"project_member"."project_id" = $1
-			AND "server_account"."server_id" = $2`+sqlFooter, in.GetProjectId(), in.GetServerId())
+			AND "server_member"."server_id" = $2`+sqlFooter, in.GetProjectId(), in.GetServerId())
 	if err != nil {
-		return nil, errors.New("Action GetServerMembers query parameters failed")
+		return nil, errors.New("GetServerMembers: query parameters failed")
 	}
 
 	for rows.Next() {
-		account := pb_member.GetServerMember_Response{}
+		member := pb_member.GetServerMember_Response{}
 		var lastActivity pgtype.Timestamp
 
 		err = rows.Scan(
-			&account.UserName,
-			&account.UserEmail,
-			&account.AccountId,
-			&account.Active,
-			&account.Online,
+			&member.UserId,
+			&member.UserName,
+			&member.MemberId,
+			&member.Active,
+			&member.Online,
 			&lastActivity,
 		)
 
 		if err != nil {
-			return nil, errors.New("GetServerMembers scan failed")
+			return nil, errors.New("GetServerMembers: scan failed")
 		}
 
-		account.LastActivity = timestamppb.New(lastActivity.Time)
-
-		accounts = append(accounts, &account)
+		member.LastActivity = timestamppb.New(lastActivity.Time)
+		members = append(members, &member)
 	}
 	defer rows.Close()
 
 	var total int32
 	db.Conn.QueryRow(`SELECT COUNT (*)
 		FROM
-			"server_account"
-			INNER JOIN "project_member" ON "server_account"."member_id" = "project_member"."id"
+			"server_member"
+			INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE
 			"project_member"."project_id" = $1
-			AND "server_account"."server_id" = $2`, in.GetProjectId(), in.GetServerId()).Scan(&total)
+			AND "server_member"."server_id" = $2`, in.GetProjectId(), in.GetServerId()).Scan(&total)
 
 	return &pb_member.ListServerMembers_Response{
-		Total:    total,
-		Accounts: accounts,
+		Total:   total,
+		Members: members,
 	}, nil
 }
 
@@ -481,20 +480,20 @@ func (m *member) GetServerMember(ctx context.Context, in *pb_member.GetServerMem
 
 	var lastActivity pgtype.Timestamp
 	err := db.Conn.QueryRowx(`SELECT
+			"user"."id",
 			"user"."name",
-			"user"."email",
-			"server_account"."active",
-			"server_account"."online",
-			"server_account"."last_activity"
+			"server_member"."active",
+			"server_member"."online",
+			"server_member"."last_activity"
 		FROM
-			"server_account"
-			INNER JOIN "project_member" ON "server_account"."member_id" = "project_member"."id"
+			"server_member"
+			INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE
-			"server_account"."id" = $1`, in.GetAccountId()).
+			"server_member"."id" = $1`, in.GetMemberId()).
 		Scan(
+			&member.UserId,
 			&member.UserName,
-			&member.UserEmail,
 			&member.Active,
 			&member.Online,
 			&lastActivity,
@@ -503,7 +502,7 @@ func (m *member) GetServerMember(ctx context.Context, in *pb_member.GetServerMem
 		return nil, errors.New(message.ErrNotFound)
 	}
 
-	member.AccountId = in.GetAccountId()
+	member.MemberId = in.GetMemberId()
 	member.LastActivity = timestamppb.New(lastActivity.Time)
 
 	return &member, nil
@@ -516,7 +515,7 @@ func (m *member) CreateServerMember(ctx context.Context, in *pb_member.CreateSer
 	}
 
 	var accountID int32
-	err := db.Conn.QueryRowx(`INSERT INTO "server_account" (
+	err := db.Conn.QueryRowx(`INSERT INTO "server_member" (
 		"server_id",
 		"member_id",
 		"active"
@@ -543,7 +542,7 @@ func (m *member) UpdateServerMember(ctx context.Context, in *pb_member.UpdateSer
 		return nil, errors.New(message.ErrNotFound)
 	}
 
-	_, err := db.Conn.Exec(`UPDATE "server_account" 
+	_, err := db.Conn.Exec(`UPDATE "server_member" 
 		SET 
 			"active" = $1 
 		WHERE 
@@ -566,12 +565,35 @@ func (m *member) DeleteServerMember(ctx context.Context, in *pb_member.DeleteSer
 		return nil, errors.New(message.ErrNotFound)
 	}
 
-	_, err := db.Conn.Exec(`DELETE FROM "server_account" WHERE "id" = $1 AND "server_id" = $2`, in.GetAccountId(), in.GetServerId())
+	_, err := db.Conn.Exec(`DELETE FROM "server_member" WHERE "id" = $1 AND "server_id" = $2`, in.GetAccountId(), in.GetServerId())
 	if err != nil {
 		return &pb_member.DeleteServerMember_Response{}, errors.New("DeleteMember failed")
 	}
 
 	return &pb_member.DeleteServerMember_Response{}, nil
+}
+
+// UpdateServerMemberStatus is ...
+func (m *member) UpdateServerMemberStatus(ctx context.Context, in *pb_member.UpdateServerMemberStatus_Request) (*pb_member.UpdateServerMemberStatus_Response, error) {
+	ct, err := db.Conn.Exec(`UPDATE
+			"server_member"
+		SET
+			"active" = $1
+		FROM
+			"project"
+		WHERE
+			"project_member"."id" = $2 AND 
+			"project"."owner_id"  = $3 AND
+			"server_member"."id" = $4 AND
+			"project_member"."project_id" = "project"."id"`, in.GetStatus(), in.GetMemberId(), in.GetOwnerId(), in.GetServerId())
+	if err != nil {
+		return &pb_member.UpdateServerMemberStatus_Response{}, err
+	}
+	if rows, _ := ct.RowsAffected(); rows != 1 {
+		return &pb_member.UpdateServerMemberStatus_Response{}, errors.New(message.ErrNotFound)
+	}
+
+	return &pb_member.UpdateServerMemberStatus_Response{}, nil
 }
 
 // GetMemberWithoutServer
@@ -592,7 +614,7 @@ func (m *member) GetMemberWithoutServer(ctx context.Context, in *pb_member.GetMe
 		WHERE
 			"project_member"."id" NOT IN(
 				SELECT
-					"member_id" FROM "server_account"
+					"member_id" FROM "server_member"
 				WHERE
 					"server_id" = $1)
 			AND "project_member"."project_id" = $2
@@ -613,7 +635,6 @@ func (m *member) GetMemberWithoutServer(ctx context.Context, in *pb_member.GetMe
 			&member.Name,
 			&member.Email,
 		)
-
 		if err != nil {
 			return nil, errors.New("GetUsersWithoutServer scan failed")
 		}

@@ -12,6 +12,16 @@
       "args": [""]
     },
     {
+      "name": "🌮 api (Taco)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/taco/",
+      "envFile": "${workspaceFolder}/.vscode/config/.env.taco",
+      "buildFlags": "-tags saas",
+      "args": [""]
+    },
+    {
       "name": "🥑 core (Avocado)",
       "type": "go",
       "request": "launch",
@@ -27,16 +37,6 @@
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/ghost/",
       "envFile": "${workspaceFolder}/.vscode/config/.env.ghost",
-      "args": [""]
-    },
-    {
-      "name": "🌮 api (Taco)",
-      "type": "go",
-      "request": "launch",
-      "mode": "auto",
-      "program": "${workspaceFolder}/cmd/taco/",
-      "envFile": "${workspaceFolder}/.vscode/config/.env.taco",
-      "buildFlags": "-tags saas",
       "args": [""]
     }
   ]

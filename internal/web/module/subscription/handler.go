@@ -7,8 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal/database/sanitize"
 	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -60,7 +60,7 @@ func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
 		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, "List of all subscriptions", subscriptions)
+	return httputil.StatusOK(c, "List of subscriptions", subscriptions)
 }
 
 // TODO Addition of the API patchSubscription method

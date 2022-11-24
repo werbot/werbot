@@ -98,7 +98,7 @@ COMMENT ON COLUMN "public"."server"."auth" IS '(DC2Type:AuthType)';
 COMMENT ON COLUMN "public"."server"."scheme" IS '(DC2Type:ProtocolSchemeType)';
 
 
-CREATE TABLE "public"."server_account" (
+CREATE TABLE "public"."server_member" (
     "id" uuid DEFAULT gen_random_uuid (),
     "server_id" uuid,
     "member_id" uuid,
@@ -124,7 +124,7 @@ CREATE TABLE "public"."server_access_token" (
     "account_id" uuid,
     "expired" timestamp(0) NOT NULL,
     PRIMARY KEY ("id"),
-    FOREIGN KEY ("account_id") REFERENCES "public"."server_account"("id") ON DELETE CASCADE
+    FOREIGN KEY ("account_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."server_activity" (
@@ -201,7 +201,7 @@ CREATE TABLE "public"."session" (
     "message" varchar(1024) NOT NULL,
     "uuid" varchar(255) NOT NULL,
     PRIMARY KEY ("id"),
-    FOREIGN KEY ("account_id") REFERENCES "public"."server_account"("id") ON DELETE CASCADE
+    FOREIGN KEY ("account_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
 );
 COMMENT ON COLUMN "public"."session"."status" IS '(DC2Type:SessionStatusType)';
 
@@ -255,7 +255,7 @@ CREATE TABLE "public"."audit" (
     "session" varchar(255) NOT NULL,
     "client_ip" varchar(255) NOT NULL,
     PRIMARY KEY ("id"),
-    FOREIGN KEY ("account_id") REFERENCES "public"."server_account"("id") ON DELETE CASCADE
+    FOREIGN KEY ("account_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."audit_record" (
@@ -283,14 +283,6 @@ CREATE TABLE "public"."server_host_key" (
   FOREIGN KEY ("server_id") REFERENCES "public"."server" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
 );
 
-CREATE TABLE "public"."record" (
-  "id" uuid DEFAULT gen_random_uuid (),
-  "audit_id" uuid,
-  "duration" float8 NOT NULL,
-  "screen" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
-  FOREIGN KEY ("audit_id") REFERENCES "public"."audit" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
-);
-
 CREATE TABLE "public"."project_key" (
     "id" uuid DEFAULT gen_random_uuid (),
     "project_id" uuid NOT NULL,
@@ -307,7 +299,6 @@ CREATE TABLE "public"."project_key" (
 -- +goose StatementBegin
 DROP EXTENSION IF EXISTS "pgcrypto";
 DROP TABLE IF EXISTS "public"."server_host_key";
-DROP TABLE IF EXISTS "public"."record";
 DROP TABLE IF EXISTS "public"."project_key";
 DROP TABLE IF EXISTS "public"."limit_user_count";
 DROP TABLE IF EXISTS "public"."audit_record";
@@ -324,7 +315,7 @@ DROP TABLE IF EXISTS "public"."country";
 DROP TABLE IF EXISTS "public"."server_activity";
 DROP TABLE IF EXISTS "public"."server_access_policy";
 DROP TABLE IF EXISTS "public"."server_access_token";
-DROP TABLE IF EXISTS "public"."server_account";
+DROP TABLE IF EXISTS "public"."server_member";
 DROP TABLE IF EXISTS "public"."server";
 DROP TABLE IF EXISTS "public"."project_member";
 DROP TABLE IF EXISTS "public"."project_ldap";

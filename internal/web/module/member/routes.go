@@ -3,8 +3,8 @@ package member
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/cache"
 	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/web/middleware"
 )
 
@@ -30,19 +30,20 @@ func (h *Handler) Routes() {
 
 	memberV1 := h.app.Group("/v1/members", authMiddleware.Execute())
 	// Project section
-	memberV1.Get("/", h.getMember)
-	memberV1.Post("/", h.addMember)
-	memberV1.Patch("/", h.patchMember)
-	memberV1.Delete("/", h.deleteMember)
+	memberV1.Get("/", h.getProjectMember)
+	memberV1.Post("/", h.addProjectMember)
+	memberV1.Patch("/", h.patchProjectMember)
+	memberV1.Delete("/", h.deleteProjectMember)
 
-	memberV1.Patch("/active", h.patchMemberStatus)
-
-	memberV1.Get("/search", h.getUsersWithoutProject)        // for project
-	memberV1.Get("/server/search", h.getMemberWithoutServer) // for server
+	memberV1.Patch("/active", h.patchProjectMemberStatus)
+	memberV1.Get("/search", h.getUsersWithoutProject)
 
 	// Server section
 	memberV1.Get("/server", h.getServerMember)
 	memberV1.Post("/server", h.addServerMember)
 	memberV1.Patch("/server", h.patchServerMember)
 	memberV1.Delete("/server", h.deleteServerMember)
+
+	memberV1.Patch("/server/active", h.patchServerMemberStatus)
+	memberV1.Get("/server/search", h.getMemberWithoutServer)
 }

@@ -2,8 +2,8 @@ package key
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/werbot/werbot/internal/cache"
 	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/web/middleware"
 )
 

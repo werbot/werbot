@@ -8,8 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/werbot/werbot/internal/database/sanitize"
 	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -529,9 +529,9 @@ func (h *Handler) patchServerStatus(c *fiber.Ctx) error {
 	}
 
 	// message section
-	message := "Access to the server is open, the server is online"
+	message := "Server is online"
 	if input.GetStatus() == false {
-		message = "Access to the server is closed"
+		message = "Server is offline"
 	}
 
 	return httputil.StatusOK(c, message, nil)

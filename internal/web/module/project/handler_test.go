@@ -67,7 +67,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser:  userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of all projects").
+				Equal(`$.message`, "List of projects").
 				Equal(`$.result.total`, float64(1)).
 				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
 				End(),
@@ -94,7 +94,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of all projects").
+				Equal(`$.message`, "List of projects").
 				Equal(`$.result.total`, float64(1)).
 				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
 				End(),
@@ -132,7 +132,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser:  adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of all projects").
+				Equal(`$.message`, "List of projects").
 				Equal(`$.result.total`, float64(2)).
 				Equal(`$.result.projects[0].owner_id`, adminInfo.UserID).
 				End(),
@@ -183,7 +183,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of all projects").
+				Equal(`$.message`, "List of projects").
 				Equal(`$.result.total`, float64(1)).
 				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
 				End(),

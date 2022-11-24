@@ -3,17 +3,17 @@ package logger
 import (
 	"errors"
 
-	"github.com/werbot/werbot/internal/database"
 	pb "github.com/werbot/werbot/internal/grpc/proto/logger"
+	"github.com/werbot/werbot/internal/storage/postgres"
 )
 
 // Service is ...
 type Service struct {
-	db *database.Connect
+	db *postgres.Connect
 }
 
 // NewEvent is ...
-func NewEvent(db *database.Connect) *Service {
+func NewEvent(db *postgres.Connect) *Service {
 	return &Service{
 		db: db,
 	}

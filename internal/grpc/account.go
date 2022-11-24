@@ -61,12 +61,12 @@ func (s *account) GetAccountByID(ctx context.Context, in *pb_account.GetAccountB
 // SetAccountStatus is ...
 func (s *account) SetAccountStatus(ctx context.Context, in *pb_account.SetAccountStatus_Request) (*pb_account.SetAccountStatus_Response, error) {
 	if in.GetStatus() == 1 {
-		if _, err := db.Conn.Exec(`UPDATE "server_account" SET "online" = true, "last_activity" = $1 WHERE "id" = $2`, time.Now(), in.GetAccountId()); err != nil {
+		if _, err := db.Conn.Exec(`UPDATE "server_member" SET "online" = true, "last_activity" = $1 WHERE "id" = $2`, time.Now(), in.GetAccountId()); err != nil {
 			return &pb_account.SetAccountStatus_Response{}, errors.New("SetAccountStatus update server account failed")
 		}
 	}
 	if in.Status == 2 {
-		if _, err := db.Conn.Exec(`UPDATE "server_account" SET "online" = false WHERE "id" = $1`, in.GetAccountId()); err != nil {
+		if _, err := db.Conn.Exec(`UPDATE "server_member" SET "online" = false WHERE "id" = $1`, in.GetAccountId()); err != nil {
 			return &pb_account.SetAccountStatus_Response{}, errors.New("SetAccountStatus update server account failed")
 		}
 	}

@@ -10,11 +10,11 @@ import (
 
 	"github.com/go-redis/redis/v8"
 
-	cache_lib "github.com/werbot/werbot/internal/cache"
 	"github.com/werbot/werbot/internal/config"
-	"github.com/werbot/werbot/internal/database"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/logger"
+	cache_lib "github.com/werbot/werbot/internal/storage/cache"
+	"github.com/werbot/werbot/internal/storage/postgres"
 )
 
 var (
@@ -32,7 +32,7 @@ func main() {
 	config.Load("../../.vscode/config/.env.buffet")
 
 	var err error
-	db, err := database.ConnectDB(&database.PgSQLConfig{
+	db, err := postgres.ConnectDB(&postgres.PgSQLConfig{
 		DSN:             config.GetString("PSQLSERVER_DSN", "postgres://login:password@localhost:5432/werbot?sslmode=require"),
 		MaxConn:         config.GetInt("PSQLSERVER_MAX_CONN", 50),
 		MaxIdleConn:     config.GetInt("PSQLSERVER_MAX_IDLEC_ON", 10),

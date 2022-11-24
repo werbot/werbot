@@ -58,7 +58,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 					"server"."auth",
 					"server"."scheme",
 					"server_host_key"."host_key",
-					"server_account"."id" AS "account_id",
+					"server_member"."id" AS "account_id",
 					"project_member"."project_id",
 					"project"."login" AS "project_login"	
 				FROM
@@ -67,11 +67,11 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 					JOIN "project" ON "project"."id" = "project_member"."project_id"
 					JOIN "server" ON "project"."id" = "server"."project_id"
 					JOIN "server_host_key" ON "server_host_key"."server_id" = "server"."id"
-					JOIN "server_account" ON "server_account"."server_id" = "server"."id"
-					AND "server_account"."member_id" = "project_member"."id"
+					JOIN "server_member" ON "server_member"."server_id" = "server"."id"
+					AND "server_member"."member_id" = "project_member"."id"
 				WHERE
 					"user"."name" = $1
-					AND "server_account"."active" = TRUE
+					AND "server_member"."active" = TRUE
 					AND "server"."active" = TRUE`
 
 		switch nameLen {
@@ -214,7 +214,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 				"server".scheme,
 				"server".private_description,
 				"server".public_description,
-				( SELECT COUNT ( * ) FROM "server_account" WHERE "server_id" = "server"."id"  ) AS "count_members"
+				( SELECT COUNT ( * ) FROM "server_member" WHERE "server_id" = "server"."id"  ) AS "count_members"
 			FROM
 				"server"
 				INNER JOIN "project" ON "server"."project_id" = "project"."id" 

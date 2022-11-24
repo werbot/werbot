@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/werbot/werbot/internal/database/sanitize"
+	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/utils/convert"
 
 	pb_audit "github.com/werbot/werbot/internal/grpc/proto/audit"
@@ -82,7 +82,7 @@ func (s *audit) CreateRecord(ctx context.Context, in *pb_audit.CreateRecord_Requ
 	query = query[:len(query)-1]
 
 	if _, err := db.Conn.Exec(query); err != nil {
-		return &pb_audit.CreateRecord_Response{}, errors.New("CreateRecord failed")
+		return &pb_audit.CreateRecord_Response{}, errors.New("Record failed")
 	}
 
 	return &pb_audit.CreateRecord_Response{}, nil

@@ -98,7 +98,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser:  adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of all user keys").
+				Equal(`$.message`, "List of user keys").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -110,7 +110,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of all user keys").
+				Equal(`$.message`, "List of user keys").
 				Equal(`$.result.total`, float64(3)).
 				End(),
 			RespondStatus: http.StatusOK,
@@ -138,7 +138,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of all user keys").
+				Equal(`$.message`, "List of user keys").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -230,7 +230,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser:  userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of all user keys").
+				Equal(`$.message`, "List of user keys").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -242,7 +242,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of all user keys").
+				Equal(`$.message`, "List of user keys").
 				Equal(`$.result.total`, float64(2)).
 				End(),
 			RespondStatus: http.StatusOK,
@@ -255,7 +255,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of all user keys").
+				Equal(`$.message`, "List of user keys").
 				Equal(`$.result.total`, float64(2)).
 				End(),
 			RespondStatus: http.StatusOK,

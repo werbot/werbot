@@ -6,8 +6,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v3"
 
-	"github.com/werbot/werbot/internal/cache"
 	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/web/httputil"
 )
 

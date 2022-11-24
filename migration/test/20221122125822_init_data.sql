@@ -124,7 +124,7 @@ INSERT INTO "public"."server_access_policy" ("server_id", "ip", "country") VALUE
 ('5057c9c6-5ed1-4447-9dab-2792bd23d045', 'f', 'f'),
 ('bc4e9e5a-bdb9-4fb9-82f8-f4178a33429a', 'f', 'f');
 
-INSERT INTO "public"."server_account" ("id", "server_id", "member_id", "active", "online", "last_activity", "previous_state") VALUES 
+INSERT INTO "public"."server_member" ("id", "server_id", "member_id", "active", "online", "last_activity", "previous_state") VALUES 
 ('8ca0ad93-4338-44cb-93dd-3f57272d0ffa', 'c95bf4ae-811e-45f1-acf1-e71131ad7ced', '9d3f7efc-14a5-436d-a763-314441d6e0a5', 't', 'f', NOW(), '[]');
 
 INSERT INTO "public"."server_activity" ("server_id", "dow", "time_from", "time_to") VALUES 
@@ -309,7 +309,7 @@ DELETE FROM "public"."project_invite";
 DELETE FROM "public"."project_member";
 DELETE FROM "public"."server";
 DELETE FROM "public"."server_access_policy";
-DELETE FROM "public"."server_account";
+DELETE FROM "public"."server_member";
 DELETE FROM "public"."server_activity";
 DELETE FROM "public"."server_host_key";
 -- +goose StatementEnd

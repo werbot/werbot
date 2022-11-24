@@ -14,11 +14,11 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 
-	"github.com/werbot/werbot/internal/cache"
 	"github.com/werbot/werbot/internal/config"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/version"
 
 	"github.com/werbot/werbot/internal/web/httputil"

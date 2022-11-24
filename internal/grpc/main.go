@@ -30,15 +30,15 @@ import (
 	pb_user "github.com/werbot/werbot/internal/grpc/proto/user"
 	pb_utility "github.com/werbot/werbot/internal/grpc/proto/utility"
 
-	cache_lib "github.com/werbot/werbot/internal/cache"
-	"github.com/werbot/werbot/internal/database"
 	"github.com/werbot/werbot/internal/logger"
+	cache_lib "github.com/werbot/werbot/internal/storage/cache"
+	"github.com/werbot/werbot/internal/storage/postgres"
 )
 
 var (
 	log = logger.NewLogger("internal/grpc")
 
-	db     *database.Connect
+	db     *postgres.Connect
 	cache  cache_lib.Cache
 	gToken string
 )
@@ -49,7 +49,7 @@ type ServerService struct {
 }
 
 // NewServer is ...
-func NewServer(token string, dbConn *database.Connect, cacheConn cache_lib.Cache, cert tls.Certificate) *ServerService {
+func NewServer(token string, dbConn *postgres.Connect, cacheConn cache_lib.Cache, cert tls.Certificate) *ServerService {
 	gToken = token
 	db = dbConn
 	cache = cacheConn

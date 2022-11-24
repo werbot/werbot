@@ -427,16 +427,16 @@ func accountActivityList(accountID, country, ip string) (bool, error) {
 func userAccountActivity(accountID, userID string) (bool, error) {
 	id := 0
 	row := db.Conn.QueryRow(`SELECT
-			"server_account"."id" 
+			"server_member"."id" 
 		FROM
-			server_account
-			INNER JOIN "project_member" ON "server_account"."member_id" = "project_member"."id"
-			INNER JOIN "server" ON "server_account"."server_id" = "server"."id" 
+			server_member
+			INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
+			INNER JOIN "server" ON "server_member"."server_id" = "server"."id" 
 		WHERE
 			"project_member"."user_id" = $2 
 			AND "project_member"."active" = TRUE 
-			AND "server_account"."server_id" = $1 
-			AND "server_account"."active" = TRUE 
+			AND "server_member"."server_id" = $1 
+			AND "server_member"."active" = TRUE 
 			AND "server"."active" = TRUE`, accountID, userID)
 	if err := row.Scan(&id); err != nil {
 		return false, errors.New("userAccountActivity field")

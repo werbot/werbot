@@ -73,8 +73,8 @@ import { useRoute } from "vue-router";
 import { SvgIcon, Pagination, Badge, Toggle, Tabs } from "@/components";
 import { showMessage } from "@/utils/message";
 
-import { getMembers, updateMemberStatus } from "@/api/member";
-import { UpdateMemberActiveStatus_Request } from "@proto/member/member";
+import { getProjectMembers, updateProjectMemberStatus } from "@/api/member/project";
+import { UpdateProjectMemberStatus_Request } from "@proto/member/member";
 import { RoleUser } from "@proto/user/user";
 
 const { proxy } = getCurrentInstance();
@@ -101,7 +101,7 @@ const getData = async (routeQuery: any) => {
     routeQuery.member_id = proxy.$authStore.hasUserID;
   }
   routeQuery.project_id = props.projectId;
-  await getMembers(routeQuery.member_id, routeQuery.project_id, routeQuery).then((res) => {
+  await getProjectMembers(routeQuery.member_id, routeQuery.project_id, routeQuery).then((res) => {
     data.value = res.data.result;
   });
 };
@@ -118,7 +118,7 @@ const changeMemberActive = async (index: number, online: boolean) => {
   const status = !online;
   data.value.members[Number(index)].active = status;
 
-  await updateMemberStatus(<UpdateMemberActiveStatus_Request>{
+  await updateProjectMemberStatus(<UpdateProjectMemberStatus_Request>{
     owner_id: proxy.$authStore.hasUserID,
     project_id: props.projectId,
     member_id: data.value.members[Number(index)].member_id,

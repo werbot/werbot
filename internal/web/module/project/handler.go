@@ -6,8 +6,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/database/sanitize"
 	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -54,7 +54,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 		if projects.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, message.ErrNotFound, nil)
 		}
-		return httputil.StatusOK(c, "List of all projects", projects)
+		return httputil.StatusOK(c, "List of projects", projects)
 	}
 
 	// show information about the project

@@ -51,7 +51,7 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 		if err != nil {
 			return httputil.ReturnGRPCError(c, err)
 		}
-		return httputil.StatusOK(c, "List of all users", users)
+		return httputil.StatusOK(c, "List of users", users)
 	}
 
 	// show information about the key
