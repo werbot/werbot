@@ -66,7 +66,7 @@ func Test_getKey(t *testing.T) {
 			RespondStatus: http.StatusUnauthorized,
 		},
 		{
-			Name: "List user keys your user_id",
+			Name: "User keys your user_id",
 			RequestParam: map[string]string{
 				"user_id": adminInfo.UserID,
 			},
@@ -98,19 +98,19 @@ func Test_getKey(t *testing.T) {
 			RequestUser:  adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of user keys").
+				Equal(`$.message`, "User keys").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
 		{
-			Name: "List user keys your user_id", // for user test-admin@werbot.net
+			Name: "User keys your user_id", // for user test-admin@werbot.net
 			RequestParam: map[string]string{
 				"user_id": adminInfo.UserID,
 			},
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of user keys").
+				Equal(`$.message`, "User keys").
 				Equal(`$.result.total`, float64(3)).
 				End(),
 			RespondStatus: http.StatusOK,
@@ -131,14 +131,14 @@ func Test_getKey(t *testing.T) {
 			RespondStatus: http.StatusOK,
 		},
 		{
-			Name: "List all keys another user_id", // for user test-user@werbot.net
+			Name: "All keys another user_id", // for user test-user@werbot.net
 			RequestParam: map[string]string{
 				"user_id": userInfo.UserID,
 			},
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of user keys").
+				Equal(`$.message`, "User keys").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -230,7 +230,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser:  userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of user keys").
+				Equal(`$.message`, "User keys").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -242,7 +242,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of user keys").
+				Equal(`$.message`, "User keys").
 				Equal(`$.result.total`, float64(2)).
 				End(),
 			RespondStatus: http.StatusOK,
@@ -255,7 +255,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of user keys").
+				Equal(`$.message`, "User keys").
 				Equal(`$.result.total`, float64(2)).
 				End(),
 			RespondStatus: http.StatusOK,

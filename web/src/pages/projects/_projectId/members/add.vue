@@ -10,7 +10,7 @@
             },
           }"
         >
-          Invites list
+          Invites
         </router-link>
         <span>Invite new member</span>
       </h1>

@@ -49,7 +49,8 @@
           </td>
 
           <td class="flex items-center">
-            0
+            <div v-if="item.count_members">{{ item.count_members }}</div>
+            <div v-else>0</div>
           </td>
 
           <td class="pr-1.5">

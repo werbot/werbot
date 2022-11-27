@@ -53,10 +53,8 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 		if err != nil {
 			return httputil.ReturnGRPCError(c, err)
 		}
-		if members.GetTotal() == 0 {
-			return httputil.StatusNotFound(c, message.ErrNotFound, nil)
-		}
-		return httputil.StatusOK(c, "List of members", members)
+
+		return httputil.StatusOK(c, "Members", members)
 	}
 
 	// show information about the member
@@ -212,7 +210,7 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 	if err != nil {
 		return httputil.ReturnGRPCError(c, err)
 	}
-	return httputil.StatusOK(c, "List users without project", members)
+	return httputil.StatusOK(c, "Users without project", members)
 }
 
 // @Summary      Update member status of project

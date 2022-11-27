@@ -11,10 +11,10 @@ require (
 	github.com/go-playground/universal-translator v0.18.0
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/gofiber/fiber/v2 v2.40.0
-	github.com/gofiber/helmet/v2 v2.2.21
-	github.com/gofiber/jwt/v3 v3.3.3
-	github.com/gofiber/keyauth/v2 v2.1.29
+	github.com/gofiber/fiber/v2 v2.40.1
+	github.com/gofiber/helmet/v2 v2.2.22
+	github.com/gofiber/jwt/v3 v3.3.4
+	github.com/gofiber/keyauth/v2 v2.1.30
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgtype v1.12.0
@@ -76,7 +76,7 @@ require (
 	github.com/moby/sys/mountinfo v0.6.2 // indirect
 	github.com/moby/term v0.0.0-20221120202655-abb19827d345 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/nats-io/nats-server/v2 v2.9.7 // indirect
+	github.com/nats-io/nats-server/v2 v2.9.8 // indirect
 	github.com/nats-io/nkeys v0.3.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -89,7 +89,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/toorop/go-dkim v0.0.0-20201103131630-e1cd1a0a5208 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.41.0 // indirect
+	github.com/valyala/fasthttp v1.42.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/vanng822/css v1.0.1 // indirect
 	go.opencensus.io v0.24.0 // indirect

@@ -86,7 +86,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "List of servers available in this project").
+				Equal(`$.message`, "Servers available in this project").
 				End(),
 			RespondStatus: http.StatusOK,
 		},

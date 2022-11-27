@@ -1,7 +1,7 @@
 <template>
   <div class="artboard">
     <header>
-      <h1>Members list</h1>
+      <h1>Members</h1>
       <router-link :to="{ name: 'projects-projectId-members-add' }">
         <label class="plus">
           <SvgIcon name="plus_square" />
@@ -17,7 +17,12 @@
         <tr>
           <th class="w-12"></th>
           <th>Name</th>
-          <th class="w-16">Servers</th>
+          <th class="w-12"><SvgIcon name="server" class="text-gray-700" /></th>
+          <th class="w-12"><SvgIcon name="database" class="text-gray-700" /></th>
+          <th class="w-12"><SvgIcon name="application" class="text-gray-700" /></th>
+          <th class="w-12"><SvgIcon name="desktop" class="text-gray-700" /></th>
+          <th class="w-12"><SvgIcon name="container" class="text-gray-700" /></th>
+          <th class="w-12"><SvgIcon name="cloud" class="text-gray-700" /></th>
           <th class="w-20">Role</th>
           <th class="w-20">Activity</th>
           <th class="w-8"></th>
@@ -32,6 +37,11 @@
           </td>
           <td>{{ item.user_name }}</td>
           <td>{{ item.servers_count }}</td>
+          <td>999</td>
+          <td>999</td>
+          <td>999</td>
+          <td>999</td>
+          <td>999</td>
           <td class="flex items-center">
             <Badge :name="RoleUser[item.role]" />
           </td>

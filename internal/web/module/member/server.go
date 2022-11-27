@@ -54,9 +54,6 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 		if err != nil {
 			return httputil.ReturnGRPCError(c, err)
 		}
-		if members.Total == 0 {
-			return httputil.StatusNotFound(c, message.ErrNotFound, nil)
-		}
 
 		return httputil.StatusOK(c, "Members on server", members)
 	}
@@ -138,7 +135,7 @@ func (h *Handler) patchServerMember(c *fiber.Ctx) error {
 		OwnerId:   ownerID,
 		ProjectId: input.GetProjectId(),
 		ServerId:  input.GetServerId(),
-		AccountId: input.GetAccountId(),
+		MemberId:  input.GetMemberId(),
 		Active:    input.GetActive(),
 	})
 	if err != nil {
@@ -154,7 +151,7 @@ func (h *Handler) patchServerMember(c *fiber.Ctx) error {
 // @Param        project_id      path     uuid true "Project ID"
 // @Param        owner_id        path     uuid true "Owner ID"
 // @Param        server_id       path     uuid true "Server ID"
-// @Param        account_id      path     uuid true "Account ID"
+// @Param        member_id       path     uuid true "Member ID"
 // @Success      200             {object} httputil.HTTPResponse
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/server [delete]
@@ -176,7 +173,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 		OwnerId:   ownerID,
 		ProjectId: input.GetProjectId(),
 		ServerId:  input.GetServerId(),
-		AccountId: input.GetAccountId(),
+		MemberId:  input.GetMemberId(),
 	})
 	if err != nil {
 		return httputil.ReturnGRPCError(c, err)
@@ -195,8 +192,8 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/server/search [get]
-func (h *Handler) getMemberWithoutServer(c *fiber.Ctx) error {
-	input := new(pb.GetMemberWithoutServer_Request)
+func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
+	input := new(pb.GetMembersWithoutServer_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
 		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
@@ -209,7 +206,11 @@ func (h *Handler) getMemberWithoutServer(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
 
-	members, err := rClient.GetMemberWithoutServer(ctx, &pb.GetMemberWithoutServer_Request{
+	pagination := httputil.GetPaginationFromCtx(c)
+	members, err := rClient.GetMembersWithoutServer(ctx, &pb.GetMembersWithoutServer_Request{
+		Limit:     pagination.GetLimit(),
+		Offset:    pagination.GetOffset(),
+		SortBy:    "\"user\".\"name\":ASC",
 		OwnerId:   ownerID,
 		ProjectId: input.GetProjectId(),
 		ServerId:  input.GetServerId(),
@@ -218,7 +219,7 @@ func (h *Handler) getMemberWithoutServer(c *fiber.Ctx) error {
 	if err != nil {
 		return httputil.ReturnGRPCError(c, err)
 	}
-	return httputil.StatusOK(c, "List members without server", members)
+	return httputil.StatusOK(c, "Members without server", members)
 }
 
 // @Summary      Update member status of server

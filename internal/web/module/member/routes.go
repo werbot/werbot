@@ -45,5 +45,5 @@ func (h *Handler) Routes() {
 	memberV1.Delete("/server", h.deleteServerMember)
 
 	memberV1.Patch("/server/active", h.patchServerMemberStatus)
-	memberV1.Get("/server/search", h.getMemberWithoutServer)
+	memberV1.Get("/server/search", h.getMembersWithoutServer)
 }

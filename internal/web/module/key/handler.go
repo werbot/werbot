@@ -54,7 +54,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 		if keys.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, message.ErrNotFound, nil)
 		}
-		return httputil.StatusOK(c, "List of user keys", keys)
+		return httputil.StatusOK(c, "User keys", keys)
 	}
 
 	// show information about the key

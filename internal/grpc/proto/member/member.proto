@@ -35,7 +35,7 @@ service MemberHandlers {
 
     rpc UpdateServerMemberStatus(UpdateServerMemberStatus.Request) returns (UpdateServerMemberStatus.Response) {}
 
-    rpc GetMemberWithoutServer(GetMemberWithoutServer.Request) returns (GetMemberWithoutServer.Response) {}
+    rpc GetMembersWithoutServer(GetMembersWithoutServer.Request) returns (GetMembersWithoutServer.Response) {}
 
     // Search member by user id and return true if found or false
     rpc GetMemberByID(GetMemberByID.Request) returns (GetMemberByID.Response) {}
@@ -233,10 +233,11 @@ message GetServerMember {
         string member_id = 1;
         string user_id = 2;
         string user_name = 3;
-        user.RoleUser role = 4;
-        bool active = 5;
-        bool online = 6;
-        google.protobuf.Timestamp last_activity = 7;
+        string email = 4;
+        user.RoleUser role = 5;
+        bool active = 6;
+        bool online = 7;
+        google.protobuf.Timestamp last_activity = 8;
     }
 }
 // -----------------------------------------------------
@@ -252,7 +253,7 @@ message CreateServerMember {
     }
 
     message Response {
-        int32 account_id = 1;
+        string member_id = 1;
     }
 }
 // -----------------------------------------------------
@@ -263,7 +264,7 @@ message UpdateServerMember {
         string owner_id = 1    [(tagger.tags) = "validate:\"required,uuid\""];
         string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\""];
         string server_id = 3   [(tagger.tags) = "validate:\"required,uuid\""];
-        string account_id = 4;
+        string member_id = 4   [(tagger.tags) = "validate:\"required,uuid\""];
         bool active = 5;
     }
 
@@ -276,8 +277,8 @@ message DeleteServerMember {
     message Request {
         string owner_id = 1    [(tagger.tags) = "validate:\"required,uuid\"  query:\"owner_id\""];
         string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string server_id = 3   [(tagger.tags) = "validate:\"uuid\"           query:\"server_id\""];
-        string account_id = 4;
+        string server_id = 3   [(tagger.tags) = "validate:\"required,uuid\"  query:\"server_id\""];
+        string member_id = 4   [(tagger.tags) = "validate:\"required,uuid\"  query:\"member_id\""];
     }
 
     message Response {}
@@ -299,21 +300,20 @@ message UpdateServerMemberStatus {
 }
 // -----------------------------------------------------
 
-// rpc GetMemberWithoutServer
-message GetMemberWithoutServer {
+// rpc GetMembersWithoutServer
+message GetMembersWithoutServer {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"required,uuid\"  query:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uid\"   query:\"project_id\""];
-        string server_id = 3   [(tagger.tags) = "validate:\"required,uuid\"  query:\"server_id\""];
-        string name = 4;
+        int32 limit = 1;
+        int32 offset = 2;
+        string sort_by = 3;
+        string owner_id = 4    [(tagger.tags) = "validate:\"required,uuid\"  query:\"owner_id\""];
+        string project_id = 5  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
+        string server_id = 6   [(tagger.tags) = "validate:\"required,uuid\"  query:\"server_id\""];
+        string name = 7;
     }
     message Response {
-        message Member{
-            string member_id = 1;
-            string name = 2;
-            string email = 3;
-        }
-        repeated Member members = 1;
+        int32 total = 1;
+        repeated GetServerMember.Response members = 2;   
     }
 }
 // -----------------------------------------------------

@@ -11,35 +11,66 @@
             },
           }"
         >
-          Member list
+          Members
         </router-link>
         <span>Add new</span>
       </h1>
     </header>
     <BServers :projectId="props.projectId" :serverId="props.serverId" />
 
-    <div class="desc">
-      In order to add a new member, he must first be invited to the general list of
-      <router-link
-        :to="{
-          name: 'projects-projectId-members',
-          params: {
-            projectId: props.projectId,
-          },
-        }"
-      >
-        project members </router-link
-      >.
-    </div>
+    <table v-if="data.members">
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th class="w-20">Status</th>
+          <th class="w-20">Add</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(item, index) in data.members" :key="index">
+          <td>{{ item.user_name }}</td>
+          <td>
+            <div v-if="item.active"><Badge name="online" color="green" /></div>
+            <div v-else><Badge name="offline" color="red" /></div>
+          </td>
+          <td>
+            <div class="flex items-center">
+              <Toggle :id="index" @change="addingMember(index)" />
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div v-else class="desc">Empty</div>
 
-    <div class="artboard-content">content</div>
+    <div class="artboard-content">
+      <Pagination :total="data.total" @selectPage="onSelectPage" />
+    </div>
+  </div>
+
+  <div class="m-6">
+    In order to add a new member, he must first be invited to the general list of
+    <router-link
+      :to="{
+        name: 'projects-projectId-members',
+        params: {
+          projectId: props.projectId,
+        },
+      }"
+    >
+      project members </router-link
+    >.
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount, getCurrentInstance } from "vue";
+import { ref, onMounted, getCurrentInstance } from "vue";
 import { useRoute } from "vue-router";
-import { FormInput, FormTextarea, BServers } from "@/components";
+import { Toggle, BServers, Badge, Pagination } from "@/components";
+import { showMessage } from "@/utils/message";
+
+import { getMembersWithoutServer, postServerMember } from "@/api/member/server";
+import { GetMembersWithoutServer_Request, CreateServerMember_Request } from "@proto/member/member";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});
@@ -50,4 +81,51 @@ const props = defineProps({
   projectId: String,
   serverId: String,
 });
+
+const getData = async (routeQuery: any) => {
+  if (proxy.$authStore.hasUserRole === 3) {
+    routeQuery.owner_id = proxy.$authStore.hasUserID;
+  }
+  routeQuery.project_id = props.projectId;
+  routeQuery.server_id = props.serverId;
+  await getMembersWithoutServer(<GetMembersWithoutServer_Request>{
+    limit: routeQuery.limit,
+    offset: routeQuery.offset,
+    owner_id: routeQuery.owner_id,
+    project_id: routeQuery.project_id,
+    server_id: routeQuery.server_id,
+    name: "",
+  }).then((res) => {
+    data.value = res.data.result;
+  });
+};
+
+const onSelectPage = (e) => {
+  getData(e);
+};
+
+onMounted(() => {
+  getData(route.query);
+});
+
+const addingMember = async (index: number) => {
+  await postServerMember(<CreateServerMember_Request>{
+    owner_id: proxy.$authStore.hasUserID,
+    project_id: props.projectId,
+    server_id: props.serverId,
+    member_id: data.value.members[Number(index)].member_id,
+    active: true,
+  })
+    .then((res) => {
+      if (res.data.success) {
+        data.value.members.splice(index, 1);
+
+        showMessage(res.data.message);
+        proxy.$errorStore.$reset();
+      }
+    })
+    .catch((err) => {
+      showMessage(err.response.data.message, "connextError");
+    });
+};
 </script>

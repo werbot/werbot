@@ -51,7 +51,7 @@ func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
 	}
 
 	if userParameter.IsUserAdmin() {
-		return httputil.StatusOK(c, "List of tariff plans", plans)
+		return httputil.StatusOK(c, "Tariff plans", plans)
 	}
 
 	// response info for ROLE_USER
@@ -73,7 +73,7 @@ func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
 		planLite = append(planLite, &plan)
 	}
 
-	return httputil.StatusOK(c, "List of all tariff plans", pb.PlansLite{
+	return httputil.StatusOK(c, "Tariff plans", pb.PlansLite{
 		Total: plans.GetTotal(),
 		Plans: planLite,
 	})

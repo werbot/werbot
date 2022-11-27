@@ -1,7 +1,7 @@
 <template>
   <div class="artboard">
     <header>
-      <h1>Member list</h1>
+      <h1>Members</h1>
       <router-link :to="{ name: 'projects-projectId-servers-serverId-members-add' }">
         <label class="plus">
           <SvgIcon name="plus_square" />
@@ -11,12 +11,12 @@
     </header>
     <BServers :projectId="props.projectId" :serverId="props.serverId" />
 
-    <table>
+    <table v-if="data.members">
       <thead>
         <tr>
           <th class="w-12"></th>
           <th>Member</th>
-          <th>Last activity</th>
+          <th class="w-40">Last activity</th>
           <th class="w-20">Activity</th>
           <th class="w-8"></th>
           <th class="w-8"></th>
@@ -30,7 +30,7 @@
             </div>
           </td>
           <td>{{ item.user_name }}</td>
-          <td>{{ item }}</td>
+          <td>{{ toDate(item.last_activity) }}</td>
           <td>
             <div class="flex items-center">
               <Toggle
@@ -41,38 +41,99 @@
             </div>
           </td>
           <td>
-            <SvgIcon name="logs" class="text-gray-700" />
+            <router-link
+              active-class="current"
+              :to="{
+                name: 'projects-projectId-servers-serverId-members-memberId',
+                params: {
+                  projectId: props.projectId,
+                  serverId: props.serverId,
+                  memberId: item.member_id,
+                },
+              }"
+            >
+              <SvgIcon name="logs" class="text-gray-700" />
+            </router-link>
           </td>
           <td>
-            <SvgIcon name="setting" class="text-gray-700" />
+            <SvgIcon name="delete" class="cursor-pointer text-red-500" @click="openModal(index)" />
           </td>
         </tr>
       </tbody>
     </table>
+    <div v-else class="desc">Empty</div>
 
     <div class="artboard-content">
       <Pagination :total="data.total" @selectPage="onSelectPage" />
     </div>
   </div>
+
+  <Modal
+    :showModal="modalActive"
+    @close="closeModal"
+    title="Are you sure you want to delete this member?"
+  >
+    <p>This action CANNOT be undone. But this member can be added again.<br /></p>
+    <template v-slot:footer>
+      <div class="flex flex-row justify-end">
+        <button class="btn btn-red" @click="removeMember(member.id)">Delete member</button>
+        <button class="btn ml-5" @click="closeModal">Close</button>
+      </div>
+    </template>
+  </Modal>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, getCurrentInstance } from "vue";
 import { useRoute } from "vue-router";
-import { SvgIcon, Toggle, BServers } from "@/components";
+import { toDate } from "@/utils/time";
+import { SvgIcon, Modal, Toggle, BServers, Pagination } from "@/components";
 import { showMessage } from "@/utils/message";
 
-import { getServerMembers, updateServerMemberStatus } from "@/api/member/server";
-import { UpdateServerMemberStatus_Request } from "@proto/member/member";
-import { RoleUser } from "@proto/user/user";
+import {
+  getServerMembers,
+  updateServerMemberStatus,
+  deleteServerMember,
+} from "@/api/member/server";
+import { UpdateServerMemberStatus_Request, DeleteServerMember_Request } from "@proto/member/member";
 
 const { proxy } = getCurrentInstance();
 const route = useRoute();
 const data: any = ref({});
+const member: any = ref({});
 const props = defineProps({
   projectId: String,
   serverId: String,
 });
+const modalActive = ref(false);
+
+const openModal = async (id: number) => {
+  modalActive.value = true;
+  member.value.id = id;
+};
+
+const closeModal = () => {
+  modalActive.value = false;
+};
+
+const removeMember = async (id: number) => {
+  await deleteServerMember(<DeleteServerMember_Request>{
+    owner_id: proxy.$authStore.hasUserID,
+    project_id: props.projectId,
+    server_id: props.serverId,
+    member_id: data.value.members[Number(id)].member_id,
+  }).then((res) => {
+    if (res.data.success) {
+      closeModal();
+      data.value.members.splice(id, 1);
+
+      const eventError = new CustomEvent("connextSuccess", {
+        detail: res.data.message,
+      });
+      dispatchEvent(eventError);
+    }
+  });
+};
 
 const getData = async (routeQuery: any) => {
   if (proxy.$authStore.hasUserRole === 3) {

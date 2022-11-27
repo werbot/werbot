@@ -1,7 +1,7 @@
 <template>
   <div class="artboard">
     <header>
-      <h1>Invites list</h1>
+      <h1>Invites</h1>
       <router-link :to="{ name: 'projects-projectId-members-add' }">
         <label class="plus">
           <SvgIcon name="plus_square" />
@@ -17,7 +17,7 @@
         <tr>
           <th>Name</th>
           <th>Email</th>
-          <th class="w-32">Invited</th>
+          <th class="w-40">Invited</th>
           <th class="w-24">Status</th>
           <th class="w-8"></th>
         </tr>
@@ -38,7 +38,7 @@
                 },
               }"
             >
-              <SvgIcon name="delete" class="text-gray-700" />
+              <SvgIcon name="delete" class="cursor-pointer text-red-500" />
             </router-link>
           </td>
         </tr>

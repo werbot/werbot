@@ -60,7 +60,7 @@ func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
 		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, "List of subscriptions", subscriptions)
+	return httputil.StatusOK(c, "Subscriptions", subscriptions)
 }
 
 // TODO Addition of the API patchSubscription method

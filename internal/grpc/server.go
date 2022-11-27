@@ -253,11 +253,11 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 
 		// Total count
 		db.Conn.QueryRow(`SELECT COUNT (*) FROM
-		"server"
-		INNER JOIN "project" ON "server"."project_id" = "project"."id" 
-	WHERE
-		"server"."project_id" = $1 
-		AND "project"."owner_id" = $2`, query["project_id"], query["user_id"]).Scan(&count)
+				"server"
+				INNER JOIN "project" ON "server"."project_id" = "project"."id" 
+			WHERE
+				"server"."project_id" = $1 
+				AND "project"."owner_id" = $2`, query["project_id"], query["user_id"]).Scan(&count)
 
 		return &pb_server.ListServers_Response{
 			Total:   count,
@@ -406,11 +406,11 @@ func (s *server) UpdateServerAccess(ctx context.Context, in *pb_server.UpdateSer
 		cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
 
 		_, err = db.Conn.Exec(`UPDATE "server" 
-		SET "public_key" = $3,
-			"private_key" = $4
-		WHERE 
-			"id" = $1 
-			AND "project_id" = $2`,
+			SET "public_key" = $3,
+				"private_key" = $4
+			WHERE 
+				"id" = $1 
+				AND "project_id" = $2`,
 			in.GetServerId(),
 			in.GetProjectId(),
 			in.GetPublicKey(),
@@ -492,7 +492,6 @@ func (s *server) UpdateServerHostKey(ctx context.Context, in *pb_server.UpdateSe
 
 // CreateServerSession is ...
 func (s *server) CreateServerSession(ctx context.Context, in *pb_server.CreateServerSession_Request) (*pb_server.CreateServerSession_Response, error) {
-	// TODO: пришлось удалить из проверки  params.Status
 	if in.GetAccountId() == "" && in.GetUuid() == "" {
 		return nil, errors.New(message.ErrBadRequest)
 	}

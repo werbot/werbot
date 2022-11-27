@@ -54,10 +54,10 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 		if projects.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, message.ErrNotFound, nil)
 		}
-		return httputil.StatusOK(c, "List of projects", projects)
+		return httputil.StatusOK(c, "Projects", projects)
 	}
 
-	// show information about the project
+	// show project information
 	project, err := rClient.GetProject(ctx, &pb.GetProject_Request{
 		OwnerId:   userID,
 		ProjectId: input.GetProjectId(),
@@ -71,10 +71,10 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 
 	// If RoleUser_ADMIN - show detailed information
 	if userParameter.IsUserAdmin() {
-		return httputil.StatusOK(c, "Information about the project", project)
+		return httputil.StatusOK(c, "Project information", project)
 	}
 
-	return httputil.StatusOK(c, "Information about the project", &pb.GetProject_Response{
+	return httputil.StatusOK(c, "Project information", &pb.GetProject_Response{
 		Title: project.GetTitle(),
 		Login: project.GetLogin(),
 	})

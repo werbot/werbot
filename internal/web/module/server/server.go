@@ -58,7 +58,7 @@ func (h *Handler) getServer(c *fiber.Ctx) error {
 		if servers.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, message.ErrNotFound, nil)
 		}
-		return httputil.StatusOK(c, "List of servers available in this project", servers)
+		return httputil.StatusOK(c, "Servers available in this project", servers)
 	}
 
 	// show information about the server
@@ -74,7 +74,7 @@ func (h *Handler) getServer(c *fiber.Ctx) error {
 		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, "Information about the project", server)
+	return httputil.StatusOK(c, "Project information", server)
 }
 
 // @Summary      Adding a new server

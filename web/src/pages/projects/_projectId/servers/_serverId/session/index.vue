@@ -1,7 +1,7 @@
 <template>
   <div class="artboard">
     <header>
-      <h1>Sessions list</h1>
+      <h1>Sessions</h1>
     </header>
     <BServers :projectId="props.projectId" :serverId="props.serverId" />
 

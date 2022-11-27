@@ -22,7 +22,7 @@ const props = defineProps({
     type: String,
   },
   modelValue: {
-    required: true,
+    required: false,
   },
   disabled: {
     type: Boolean,
