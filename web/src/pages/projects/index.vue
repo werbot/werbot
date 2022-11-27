@@ -10,7 +10,7 @@
       </router-link>
     </header>
 
-    <table>
+    <table v-if="data.total > 0">
       <thead>
         <tr>
           <th>Name</th>
@@ -49,6 +49,7 @@
         </tr>
       </tbody>
     </table>
+    <div v-else class="desc">Empty</div>
 
     <div class="artboard-content">
       <Pagination :total="data.total" @selectPage="onSelectPage" />

@@ -15,7 +15,7 @@
       recognize.
     </div>
 
-    <table>
+    <table v-if="data.total > 0">
       <tbody>
         <tr v-for="(item, index) in data.public_keys" :key="index">
           <td>
@@ -37,6 +37,7 @@
         </tr>
       </tbody>
     </table>
+    <div v-else class="artboard-content p-5">Empty</div>
 
     <div class="artboard-content">
       <Pagination :total="data.total" @selectPage="onSelectPage" />

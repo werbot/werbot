@@ -11,7 +11,7 @@
     </header>
     <BServers :projectId="props.projectId" :serverId="props.serverId" />
 
-    <table v-if="data.members">
+    <table v-if="data.total > 0">
       <thead>
         <tr>
           <th class="w-12"></th>
@@ -175,7 +175,6 @@ const changeMemberActive = async (index: number, online: boolean) => {
       } else {
         showMessage(res.data.message);
       }
-
       proxy.$errorStore.$reset();
     })
     .catch((err) => {
