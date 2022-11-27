@@ -119,6 +119,7 @@ const addingMember = async (index: number) => {
     .then((res) => {
       if (res.data.success) {
         data.value.members.splice(index, 1);
+        data.value.total = data.value.total - 1;
 
         showMessage(res.data.message);
         proxy.$errorStore.$reset();
@@ -126,6 +127,7 @@ const addingMember = async (index: number) => {
     })
     .catch((err) => {
       showMessage(err.response.data.message, "connextError");
+      proxy.$errorStore.$reset();
     });
 };
 </script>

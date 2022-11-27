@@ -126,6 +126,7 @@ const removeMember = async (id: number) => {
     if (res.data.success) {
       closeModal();
       data.value.members.splice(id, 1);
+      data.value.total = data.value.total - 1;
 
       const eventError = new CustomEvent("connextSuccess", {
         detail: res.data.message,
