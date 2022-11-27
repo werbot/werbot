@@ -55,6 +55,7 @@
 import { onMounted, ref, getCurrentInstance, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import { SvgIcon, Pagination, Tabs, Badge } from "@/components";
+import { showMessage } from "@/utils/message";
 
 const { proxy } = getCurrentInstance();
 const route = useRoute();
@@ -120,10 +121,8 @@ const onAdd = async () => {
 
   await postMember(data.value).then((res) => {
     if (res.data.success) {
-      const eventError = new CustomEvent("connextSuccess", {
-        detail: res.data.message,
-      });
-      dispatchEvent(eventError);
+      showMessage(res.data.message);
+      proxy.$errorStore.$reset();
     }
   });
 

@@ -73,6 +73,7 @@ import { toDate } from "@/utils/time";
 import { getKeys, deleteKey } from "@/api/key";
 import { DeletePublicKey_Request } from "@proto/key/key";
 import { SvgIcon, Modal, Pagination } from "@/components";
+import { showMessage } from "@/utils/message";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});
@@ -99,10 +100,8 @@ const removeKey = async (id: number) => {
       data.value.public_keys.splice(id, 1);
       data.value.total = data.value.total - 1;
 
-      const eventError = new CustomEvent("connextSuccess", {
-        detail: res.data.message,
-      });
-      dispatchEvent(eventError);
+      showMessage(res.data.message);
+      proxy.$errorStore.$reset();
     }
   });
 };

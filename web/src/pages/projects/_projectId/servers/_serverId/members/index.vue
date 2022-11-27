@@ -128,10 +128,8 @@ const removeMember = async (id: number) => {
       data.value.members.splice(id, 1);
       data.value.total = data.value.total - 1;
 
-      const eventError = new CustomEvent("connextSuccess", {
-        detail: res.data.message,
-      });
-      dispatchEvent(eventError);
+      showMessage(res.data.message);
+      proxy.$errorStore.$reset();
     }
   });
 };

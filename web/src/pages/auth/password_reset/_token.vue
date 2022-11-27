@@ -46,6 +46,7 @@ import { ref, onMounted, onBeforeUnmount, getCurrentInstance } from "vue";
 import { useRouter } from "vue-router";
 import { FormInput } from "@/components";
 import { postCheckResetToken, postResetPassword } from "@/api/auth";
+import { showMessage } from "@/utils/message";
 
 const props = defineProps({
   token: String,
@@ -58,12 +59,13 @@ const router = useRouter();
 
 const onSubmit = async () => {
   if (data.value.password != data.value.password2) {
-    proxy.$errorStore.errors['password'] =  proxy.$errorStore.errors['password2'] = "Passwords do not match";
+    proxy.$errorStore.errors["password"] = proxy.$errorStore.errors["password2"] =
+      "Passwords do not match";
     return;
   }
 
   if (data.value.password.length < 8) {
-     proxy.$errorStore.errors['password'] =  proxy.$errorStore.errors['password2'] = "Weak password";
+    proxy.$errorStore.errors["password"] = proxy.$errorStore.errors["password2"] = "Weak password";
     return;
   }
 
@@ -72,10 +74,8 @@ const onSubmit = async () => {
   // @ts-ignore
   await postResetPassword(props.token, data.value.password)
     .then((res) => {
-      const eventMessage = new CustomEvent("connextSuccess", {
-        detail: res.data.result.message,
-      });
-      dispatchEvent(eventMessage);
+      showMessage(res.data.result.message);
+      proxy.$errorStore.$reset();
       router.push({ name: "auth-login" });
     })
     .catch(() => (loading.value = !loading.value));
