@@ -109,12 +109,17 @@ onMounted(() => {
 });
 
 const addingMember = async (index: number) => {
+  var active = data.value.members[Number(index)].active;
+  if (!active) {
+    active = false;
+  }
+
   await postServerMember(<CreateServerMember_Request>{
     owner_id: proxy.$authStore.hasUserID,
     project_id: props.projectId,
     server_id: props.serverId,
     member_id: data.value.members[Number(index)].member_id,
-    active: true,
+    active: active,
   })
     .then((res) => {
       if (res.data.success) {
