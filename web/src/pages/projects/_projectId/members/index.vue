@@ -2,17 +2,11 @@
   <div class="artboard">
     <header>
       <h1>Members</h1>
-      <router-link :to="{ name: 'projects-projectId-members-add' }">
-        <label class="plus">
-          <SvgIcon name="plus_square" />
-          add new
-        </label>
-      </router-link>
     </header>
 
     <Tabs :tabs="tabMenu" />
 
-    <table>
+    <table v-if="data.total > 0">
       <thead>
         <tr>
           <th class="w-12"></th>
@@ -70,6 +64,7 @@
         </tr>
       </tbody>
     </table>
+    <div v-else class="desc">Empty</div>
 
     <div class="artboard-content">
       <Pagination :total="data.total" @selectPage="onSelectPage" />

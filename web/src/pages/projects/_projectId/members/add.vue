@@ -12,7 +12,7 @@
         >
           Invites
         </router-link>
-        <span>Invite new member</span>
+        <span>New member</span>
       </h1>
     </header>
 
@@ -59,35 +59,45 @@
 
 <script setup lang="ts">
 import { ref, getCurrentInstance, onBeforeUnmount } from "vue";
-import { useRoute } from "vue-router";
+import { useRouter } from "vue-router";
 import { FormInput } from "@/components";
+import { showMessage } from "@/utils/message";
+
+import { postProjectMemberInvite } from "@/api/member/project";
+import { CreateProjectMemberInvite_Request } from "@proto/member/member";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});
 const loading = ref(false);
-const route = useRoute();
+const router = useRouter();
 
 const props = defineProps({
   projectId: String,
 });
 
 const onSendInvite = async () => {
-  console.log(data.value)
-  
-  /*
-  await updateUser(<UpdateUser_Request>{
-    user_id: proxy.$authStore.hasUserID,
+  console.log(data.value);
+
+  await postProjectMemberInvite(<CreateProjectMemberInvite_Request>{
+    owner_id: proxy.$authStore.hasUserID,
+    project_id: props.projectId,
+    user_name: data.value.name,
+    user_surname: data.value.surname,
     email: data.value.email,
-    fio: data.value.fio,
   })
     .then((res) => {
       showMessage(res.data.message);
       proxy.$errorStore.$reset();
+      router.push({
+        name: "projects-projectId-members-invites",
+        params: {
+          projectId: props.projectId,
+        },
+      });
     })
     .catch((err) => {
       showMessage(err.response.data.message, "connextError");
     });
-  */
 };
 
 onBeforeUnmount(() => proxy.$errorStore.$reset());

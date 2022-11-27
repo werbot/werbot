@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -653,8 +654,7 @@ func (m *member) GetMembersWithoutServer(ctx context.Context, in *pb_member.GetM
 	// Total count for pagination
 	var total int32
 	db.Conn.QueryRow(`SELECT COUNT (*)
-			FROM
-			"project_member"
+			FROM "project_member"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE
 			"project_member"."id" NOT IN(
@@ -671,7 +671,119 @@ func (m *member) GetMembersWithoutServer(ctx context.Context, in *pb_member.GetM
 	}, nil
 }
 
-// CreateMemberInvite is ...
-func (m *member) CreateMemberInvite(ctx context.Context, in *pb_member.CreateMemberInvite_Request) (*pb_member.CreateMemberInvite_Response, error) {
-	return &pb_member.CreateMemberInvite_Response{}, nil
+// ListProjectMembersInvite is ...
+func (m *member) ListProjectMembersInvite(ctx context.Context, in *pb_member.ListProjectMembersInvite_Request) (*pb_member.ListProjectMembersInvite_Response, error) {
+	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
+		return nil, errors.New(message.ErrNotFound)
+	}
+
+	sqlFooter := db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
+
+	rows, err := db.Conn.Query(`SELECT
+			"id",
+			"name",
+			"surname",
+			"email",
+			"created",
+			"status"
+		FROM
+			"project_invite"
+		WHERE
+			"project_invite"."project_id" = $1`+sqlFooter, in.GetProjectId())
+	if err != nil {
+		return nil, err
+	}
+
+	invites := []*pb_member.ListProjectMembersInvite_Invites{}
+	for rows.Next() {
+		invite := pb_member.ListProjectMembersInvite_Invites{}
+		var created pgtype.Timestamp
+
+		err = rows.Scan(
+			&invite.Id,
+			&invite.Name,
+			&invite.Surname,
+			&invite.Email,
+			&created,
+			&invite.Status,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		invite.Created = timestamppb.New(created.Time)
+		invites = append(invites, &invite)
+	}
+	defer rows.Close()
+
+	// Total count for pagination
+	var total int32
+	db.Conn.QueryRow(`SELECT COUNT (*)
+		FROM
+			"project_invite"
+		WHERE
+			"project_invite"."project_id" = $1`, in.GetProjectId()).Scan(&total)
+
+	return &pb_member.ListProjectMembersInvite_Response{
+		Total:   total,
+		Invites: invites,
+	}, nil
+}
+
+// CreateProjectMemberInvite is ...
+func (m *member) CreateProjectMemberInvite(ctx context.Context, in *pb_member.CreateProjectMemberInvite_Request) (*pb_member.CreateProjectMemberInvite_Response, error) {
+	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
+		return nil, errors.New(message.ErrNotFound)
+	}
+
+	var invite string
+	var inviteID string
+	db.Conn.QueryRow(`SELECT "id"
+		FROM "project_invite" 
+		WHERE
+			"project_invite"."email" = $1`, in.GetEmail()).Scan(&inviteID)
+	if inviteID != "" {
+		return nil, errors.New("Email in use")
+	}
+
+	err := db.Conn.QueryRow(`INSERT INTO "project_invite" (
+			"project_id",
+			"email",
+			"name",
+			"surname",
+			"invite",
+			"created",
+			"status",
+			"ldap_user"
+		)
+		VALUES
+			($1, $2, $3, $4, $5, NOW( ), 'send', false)
+		RETURNING "invite"`,
+		in.GetProjectId(),
+		in.GetEmail(),
+		in.GetUserName(),
+		in.GetUserSurname(),
+		uuid.New().String(),
+	).Scan(&invite)
+	if err != nil {
+		return nil, errors.New("ProjectMemberInvite failed")
+	}
+
+	return &pb_member.CreateProjectMemberInvite_Response{
+		Invite: invite,
+	}, nil
+}
+
+// DeleteProjectMemberInvite is ...
+func (m *member) DeleteProjectMemberInvite(ctx context.Context, in *pb_member.DeleteProjectMemberInvite_Request) (*pb_member.DeleteProjectMemberInvite_Response, error) {
+	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
+		return nil, errors.New(message.ErrNotFound)
+	}
+
+	_, err := db.Conn.Query(`DELETE FROM "project_invite" WHERE "id" = $1 AND "project_id" = $2 AND "status" = 'send'`, in.GetInviteId(), in.GetProjectId())
+	if err != nil {
+		return nil, errors.New("DeleteProjectMemberInvite: failed")
+	}
+
+	return &pb_member.DeleteProjectMemberInvite_Response{}, nil
 }

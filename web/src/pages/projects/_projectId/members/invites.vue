@@ -5,14 +5,14 @@
       <router-link :to="{ name: 'projects-projectId-members-add' }">
         <label class="plus">
           <SvgIcon name="plus_square" />
-          add new
+          new member
         </label>
       </router-link>
     </header>
 
     <Tabs :tabs="tabMenu" />
 
-    <table>
+    <table v-if="data.total > 0">
       <thead>
         <tr>
           <th>Name</th>
@@ -23,46 +23,87 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>Test user</td>
-          <td>test@email.com</td>
-          <td>2019-01-18 18:41:18</td>
-          <td><Badge name="activated" /></td>
+        <tr v-for="(item, index) in data.invites" :key="index">
+          <td>{{ item.name }} {{ item.surname }}</td>
+          <td>{{ item.email }}</td>
+          <td>{{ toDate(item.created) }}</td>
           <td>
-            <router-link
-              active-class="current"
-              :to="{
-                name: 'projects-projectId-members',
-                params: {
-                  projectId: props.projectId,
-                },
-              }"
-            >
-              <SvgIcon name="delete" class="cursor-pointer text-red-500" />
-            </router-link>
+            <Badge v-if="item.status == 'activated'" :name="item.status" color="green" />
+            <Badge v-if="item.status == 'send'" :name="item.status" color="yellow" />
+          </td>
+          <td>
+            
+            <SvgIcon v-if="item.status == 'send'" name="delete" class="cursor-pointer text-red-500" @click="openModal(index)" />
           </td>
         </tr>
       </tbody>
     </table>
+    <div v-else class="desc">Empty</div>
 
     <div class="artboard-content">
       <Pagination :total="data.total" @selectPage="onSelectPage" />
     </div>
   </div>
+
+  <Modal
+    :showModal="modalActive"
+    @close="closeModal"
+    title="Are you sure you want to delete this invite"
+  >
+    <p>This action CANNOT be undone.<br /></p>
+    <template v-slot:footer>
+      <div class="flex flex-row justify-end">
+        <button class="btn btn-red" @click="removeInvite(invite.id)">Delete invite</button>
+        <button class="btn ml-5" @click="closeModal">Close</button>
+      </div>
+    </template>
+  </Modal>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, getCurrentInstance, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
-import { SvgIcon, Pagination, Tabs, Badge } from "@/components";
+import { toDate } from "@/utils/time";
+import { SvgIcon, Pagination, Tabs, Badge, Modal } from "@/components";
 import { showMessage } from "@/utils/message";
+
+import { getProjectMembersInvite, deleteProjectMemberInvite } from "@/api/member/project";
+import { ListProjectMembersInvite_Request, DeleteProjectMemberInvite_Request } from "@proto/member/member";
 
 const { proxy } = getCurrentInstance();
 const route = useRoute();
 const data: any = ref({});
+const invite: any = ref({});
+const modalActive = ref(false);
 const props = defineProps({
   projectId: String,
 });
+
+const openModal = async (id: number) => {
+  modalActive.value = true;
+  invite.value.id = id;
+};
+
+const closeModal = () => {
+  modalActive.value = false;
+};
+
+const removeInvite = async (id: number) => {
+  await deleteProjectMemberInvite(<DeleteProjectMemberInvite_Request>{
+    owner_id: proxy.$authStore.hasUserID,
+    project_id: props.projectId,
+    invite_id: data.value.invites[id].id
+  }).then((res) => {
+    if (res.data.success) {
+      closeModal();
+      data.value.invites.splice(id, 1);
+      data.value.total = data.value.total - 1;
+
+      showMessage(res.data.message);
+      proxy.$errorStore.$reset();
+    }
+  });
+};
 
 // Tabs section
 const tabMenu = [
@@ -78,12 +119,18 @@ const tabMenu = [
 
 const getData = async (routeQuery: any) => {
   if (proxy.$authStore.hasUserRole === 3) {
-    routeQuery.member_id = proxy.$authStore.hasUserID;
+    routeQuery.owner_id = proxy.$authStore.hasUserID;
   }
   routeQuery.project_id = props.projectId;
-  //await getMembers(routeQuery.member_id, routeQuery.project_id, routeQuery).then((res) => {
-  //  data.value = res.data.result;
-  //});
+
+  await getProjectMembersInvite(<ListProjectMembersInvite_Request>{
+    limit: routeQuery.limit,
+    offset: routeQuery.offset,
+    owner_id: routeQuery.owner_id,
+    project_id: routeQuery.project_id,
+  }).then((res) => {
+    data.value = res.data.result;
+  });
 };
 
 const onSelectPage = (e) => {
@@ -93,42 +140,6 @@ const onSelectPage = (e) => {
 onMounted(() => {
   getData(route.query);
 });
-
-/*
-const searchUser = async () => {
-  if (proxy.$authStore.hasUserRole === 3) {
-    routeQuery.member_id = proxy.$authStore.hasUserID;
-  }
-
-  data.value.project_id = props.projectId;
-  data.value.name = data.value.member;
-
-  await getUsersWithoutProject(data.value).then((res) => {
-    users.value = res.data.result;
-  });
-};
-
-const selectUser = async (id: Number) => {
-  data.value.member = users.value.users[Number(id)].name;
-  data.value.user_id = users.value.users[Number(id)].user_id;
-};
-
-const onAdd = async () => {
-  data.value.owner_id = Number(props.userId);
-  data.value.project_id = Number(props.projectId);
-  delete data.value.name;
-  delete data.value.member;
-
-  await postMember(data.value).then((res) => {
-    if (res.data.success) {
-      showMessage(res.data.message);
-      proxy.$errorStore.$reset();
-    }
-  });
-
-  router.push({ name: "users-userId-projects-projectId-members" });
-};
-*/
 
 onBeforeUnmount(() => proxy.$errorStore.$reset());
 

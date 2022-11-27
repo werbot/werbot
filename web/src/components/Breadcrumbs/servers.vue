@@ -13,7 +13,7 @@
       <Badge :name="props.serverId" />
       {{props.sessionId}}
       <router-link :to="{ name: 'projects-projectId-servers-serverId-session' }">
-        <Badge name="Sessions" color="blue" />
+        <Badge name="All sessions" color="blue" />
       </router-link>
     </div>
 

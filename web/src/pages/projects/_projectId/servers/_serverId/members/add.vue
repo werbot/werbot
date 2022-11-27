@@ -30,8 +30,8 @@
         <tr v-for="(item, index) in data.members" :key="index">
           <td>{{ item.user_name }}</td>
           <td>
-            <div v-if="item.active"><Badge name="online" color="green" /></div>
-            <div v-else><Badge name="offline" color="red" /></div>
+            <Badge v-if="item.active" name="online" color="green" />
+            <Badge v-else name="offline" color="red" />
           </td>
           <td>
             <div class="flex items-center">

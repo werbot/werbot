@@ -46,10 +46,11 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, getCurrentInstance } from "vue";
 import { useRouter } from "vue-router";
-import { postKey } from "@/api/key";
-import { CreatePublicKey_Request } from "@proto/key/key";
 import { FormInput, FormTextarea } from "@/components";
 import { showMessage } from "@/utils/message";
+
+import { postKey } from "@/api/key";
+import { CreatePublicKey_Request } from "@proto/key/key";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});

@@ -38,6 +38,11 @@ func (h *Handler) Routes() {
 	memberV1.Patch("/active", h.patchProjectMemberStatus)
 	memberV1.Get("/search", h.getUsersWithoutProject)
 
+	memberV1.Get("/invite", h.getProjectMembersInvite)
+	memberV1.Post("/invite", h.addProjectMemberInvite)
+	memberV1.Delete("/invite", h.deleteProjectMemberInvite)
+	//memberV1.Get("/invite/:invite", h.getProjectMembersInviteCheck)
+
 	// Server section
 	memberV1.Get("/server", h.getServerMember)
 	memberV1.Post("/server", h.addServerMember)

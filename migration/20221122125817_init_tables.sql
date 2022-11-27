@@ -28,18 +28,19 @@ CREATE TABLE "public"."project" (
 
 CREATE TABLE "public"."project_invite" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "from_id" uuid,
+    "project_id" uuid,
     "user_id" uuid,
-    "token" varchar(255) NOT NULL,
+    "invite" uuid,
+    "name" varchar(255) DEFAULT NULL::character varying,
+    "surname" varchar(255) DEFAULT NULL::character varying,
     "email" varchar(255) NOT NULL,
-    "date" timestamp(0) NOT NULL,
+    "created" timestamp(0) NOT NULL,
     "status" varchar(255) NOT NULL,
-    "fio" varchar(255) DEFAULT NULL::character varying,
     "ldap_user" bool,
     "ldap_name" varchar(255) DEFAULT NULL::character varying,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE SET NULL,
-    FOREIGN KEY ("from_id") REFERENCES "public"."project"("id") ON DELETE CASCADE
+    FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."project_ldap" (

@@ -71,10 +71,11 @@
 import { onMounted, ref, getCurrentInstance } from "vue";
 import { useRoute } from "vue-router";
 import { toDate } from "@/utils/time";
-import { getKeys, deleteKey } from "@/api/key";
-import { DeletePublicKey_Request } from "@proto/key/key";
 import { SvgIcon, Modal, Pagination } from "@/components";
 import { showMessage } from "@/utils/message";
+
+import { getKeys, deleteKey } from "@/api/key";
+import { DeletePublicKey_Request } from "@proto/key/key";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});
