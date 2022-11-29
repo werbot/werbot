@@ -22,12 +22,12 @@ func init() {
 	NewHandler(testHandler.App, testHandler.GRPC, testHandler.Cache).Routes() // add test module handler
 	testHandler.FinishHandler()                                               // init finale handler for apitest
 
-	adminInfo = testHandler.GetUserInfo(&pb.AuthUser_Request{
+	adminInfo = testHandler.GetUserInfo(&pb.SignIn_Request{
 		Email:    "test-admin@werbot.net",
 		Password: "test-admin@werbot.net",
 	})
 
-	userInfo = testHandler.GetUserInfo(&pb.AuthUser_Request{
+	userInfo = testHandler.GetUserInfo(&pb.SignIn_Request{
 		Email:    "test-user@werbot.net",
 		Password: "test-user@werbot.net",
 	})

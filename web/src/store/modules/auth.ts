@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { postSignIn, postLogout, postRefresh, getProfile } from "@/api/auth";
 import { RefreshTokenRequest } from "@proto/auth/auth";
-import { AuthUser_Request } from "@proto/user/user";
+import { SignIn_Request } from "@proto/user/user";
 
 import { getStorage, setStorage, removeStorage } from "@/utils/storage";
 
@@ -29,7 +29,7 @@ export const useAuthStore = defineStore("auth", {
       this.$reset();
     },
 
-    async login(loginForm: AuthUser_Request) {
+    async login(loginForm: SignIn_Request) {
       await postSignIn(loginForm).then((res) => {
         if (res.data.access_token && res.data.refresh_token) {
           setStorage("access_token", res.data.access_token);

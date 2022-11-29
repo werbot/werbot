@@ -357,8 +357,8 @@ func (u *user) UpdatePassword(ctx context.Context, in *pb_user.UpdatePassword_Re
 	}, nil
 }
 
-// AuthUser is ...
-func (u *user) AuthUser(ctx context.Context, in *pb_user.AuthUser_Request) (*pb_user.GetUser_Response, error) {
+// SignIn is ...
+func (u *user) SignIn(ctx context.Context, in *pb_user.SignIn_Request) (*pb_user.GetUser_Response, error) {
 	user := pb_user.GetUser_Response{
 		Email: in.GetEmail(),
 	}

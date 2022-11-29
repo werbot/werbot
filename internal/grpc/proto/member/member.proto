@@ -254,6 +254,7 @@ message ProjectMemberInviteActivate {
 
     message Response {
         string project_id = 1;
+        string email = 2;
     }
 }
 // -----------------------------------------------------

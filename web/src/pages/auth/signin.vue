@@ -1,7 +1,7 @@
 <template>
   <img class="mb-8 w-32" src="/img/logo_mini.svg" alt="Werbot" />
   <div class="card w-[22rem]">
-    <span class="title">Authorization</span>
+    <span class="title">Sign In</span>
     <form @submit.prevent>
       <FormInput
         name="Email"
@@ -49,7 +49,7 @@
 <script setup lang="ts">
 import { onMounted, ref, onBeforeUnmount, getCurrentInstance } from "vue";
 import { useRouter } from "vue-router";
-import { AuthUser_Request } from "@proto/user/user";
+import { SignIn_Request } from "@proto/user/user";
 import { FormInput } from "@/components";
 
 const { proxy } = getCurrentInstance();
@@ -62,7 +62,7 @@ const onSubmit = async () => {
   loading.value = !loading.value;
 
   proxy.$authStore
-    .login(<AuthUser_Request>{
+    .login(<SignIn_Request>{
       email: data.value.email,
       password: data.value.password,
     })
@@ -86,7 +86,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => proxy.$errorStore.$reset());
 
-document.title = "Login";
+document.title = "Sign In";
 </script>
 
 <route lang="yaml">

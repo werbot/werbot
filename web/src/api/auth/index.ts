@@ -1,5 +1,5 @@
 import { RefreshTokenRequest } from "@proto/auth/auth";
-import { AuthUser_Request } from "@proto/user/user";
+import { SignIn_Request } from "@proto/user/user";
 
 import { http } from "@/api";
 
@@ -7,7 +7,7 @@ enum URL {
   auth = "auth",
 }
 
-const postSignIn = async (data: AuthUser_Request) =>
+const postSignIn = async (data: SignIn_Request) =>
   http("POST", URL.auth + "/signin", { data: data });
 
 const postLogout = async () => http("POST", URL.auth + "/logout");

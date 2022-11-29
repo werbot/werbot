@@ -101,8 +101,8 @@ func InitTestServer(envPath string) *TestHandler {
 }
 
 // GetUserInfo is ...
-func (h *TestHandler) GetUserInfo(authUser *pb.AuthUser_Request) *UserInfo {
-	tokens := h.getAuthToken(authUser)
+func (h *TestHandler) GetUserInfo(signIn *pb.SignIn_Request) *UserInfo {
+	tokens := h.getAuthToken(signIn)
 	return &UserInfo{
 		Tokens: *tokens,
 		UserID: h.getAuthUserID(tokens.AccessToken),
@@ -118,8 +118,8 @@ func (h *TestHandler) FinishHandler() {
 	h.Handler = h.fiberToHandlerFunc()
 }
 
-func (h *TestHandler) getAuthToken(authUser *pb.AuthUser_Request) *httputil.Tokens {
-	userData, _ := json.Marshal(authUser)
+func (h *TestHandler) getAuthToken(signIn *pb.SignIn_Request) *httputil.Tokens {
+	userData, _ := json.Marshal(signIn)
 	req, err := http.NewRequest("POST", "/auth/signin", bytes.NewBuffer(userData))
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
 	if err != nil {

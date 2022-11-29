@@ -26,13 +26,13 @@ import (
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        email    body     pb.AuthUser_Request true "Email"
-// @Param        password body     pb.AuthUser_Request true "Password"
+// @Param        email    body     pb.SignIn_Request true "Email"
+// @Param        password body     pb.SignIn_Request true "Password"
 // @Success      200      {object} token.Tokens
 // @Failure      400,500  {object} httputil.HTTPResponse
 // @Router       /auth/signin [post]
 func (h *Handler) postSignIn(c *fiber.Ctx) error {
-	input := &pb.AuthUser_Request{}
+	input := &pb.SignIn_Request{}
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
 		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
@@ -42,7 +42,7 @@ func (h *Handler) postSignIn(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewUserHandlersClient(h.grpc.Client)
 
-	user, err := rClient.AuthUser(ctx, &pb.AuthUser_Request{
+	user, err := rClient.SignIn(ctx, &pb.SignIn_Request{
 		Email:    input.GetEmail(),
 		Password: input.GetPassword(),
 	})

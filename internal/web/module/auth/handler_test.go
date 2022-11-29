@@ -22,12 +22,12 @@ func init() {
 	testHandler = tests.InitTestServer("../../../../.vscode/config/.env.taco")
 	testHandler.FinishHandler() // init finale handler for apitest
 
-	adminInfo = testHandler.GetUserInfo(&pb_user.AuthUser_Request{
+	adminInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
 		Email:    "test-admin@werbot.net",
 		Password: "test-admin@werbot.net",
 	})
 
-	userInfo = testHandler.GetUserInfo(&pb_user.AuthUser_Request{
+	userInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
 		Email:    "test-user@werbot.net",
 		Password: "test-user@werbot.net",
 	})

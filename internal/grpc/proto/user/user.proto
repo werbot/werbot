@@ -15,7 +15,7 @@ service UserHandlers {
     rpc UpdateUser(UpdateUser.Request) returns (UpdateUser.Response) {}
     rpc DeleteUser(DeleteUser.Request) returns (DeleteUser.Response) {}
   
-    rpc AuthUser(AuthUser.Request) returns (GetUser.Response) {}
+    rpc SignIn(SignIn.Request) returns (GetUser.Response) {}
     rpc ResetPassword(ResetPassword.Request) returns (ResetPassword.Response) {}
     rpc UpdatePassword(UpdatePassword.Request) returns (UpdatePassword.Response) {}
 }
@@ -144,8 +144,8 @@ message DeleteUser{
 // -----------------------------------------------------
 
 
-// rpc AuthUser
-message AuthUser {
+// rpc SignIn
+message SignIn {
     message Request {
         string email = 2    [(tagger.tags) = "validate:\"required,email\""];
         string password = 3 [(tagger.tags) = "validate:\"required\""];    
