@@ -3,11 +3,11 @@
 INSERT INTO "public"."user" ("id", "fio", "name", "email", "password", "enabled", "confirmed", "last_active", "register_date", "role") VALUES
 ('008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'admin', 'admin', 'admin@werbot.net', '$2a$13$xXMJafmfthQDqVZSQ5HJ/u1EmQ8PqkVAGlwKrOWH.cOVZr2KfvSAK', 't', 't', NOW(), NOW(), 3),
 ('c180ad5c-0c65-4cee-8725-12931cb5abb3', 'user', 'user', 'user@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', 't', 't', NOW(), NOW(), 1),
-('b3dc36e2-7f84-414b-b147-7ac850369518', 'user1', 'user1', 'user1@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', 't', 't', NOW(), NOW(), 1),
-('b8c3d9e4-6f4d-4e11-a3e6-72f9cb7660e0', 'user2', 'user2', 'user2@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', 't', 't', NOW(), NOW(), 1),
-('68bf07a3-0132-4709-920b-5054f9eaa89a', 'user3', 'user3', 'user3@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', 't', 't', NOW(), NOW(), 1),
-('395b237f-037e-49d4-b409-fd2f514242f6', 'user4', 'user4', 'user4@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', 't', 't', NOW(), NOW(), 1),
-('8adff845-1354-4e59-8cd3-83f69fd193d3', 'user5', 'user5', 'user5@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', 't', 't', NOW(), NOW(), 1),
+('b3dc36e2-7f84-414b-b147-7ac850369518', 'user1', 'user1', 'user1@werbot.net', '$2a$13$DJIAXdDTXli9vTbXbAoUl..Qs3Ns.B3CAtLzLvBb3fpHkPJxzOjxK', 't', 't', NOW(), NOW(), 1),
+('b8c3d9e4-6f4d-4e11-a3e6-72f9cb7660e0', 'user2', 'user2', 'user2@werbot.net', '$2a$13$iiPNSGIY2x6O/xrDXeXHdObc0ubJPcOSVfiKMKGLreoUGcenVm.v2', 't', 't', NOW(), NOW(), 1),
+('68bf07a3-0132-4709-920b-5054f9eaa89a', 'user3', 'user3', 'user3@werbot.net', '$2a$13$s.Lwbx8YFHbGVA9b5EGyMerNjVJVrvAhmm33/PY5lWsivB86eQZke', 't', 't', NOW(), NOW(), 1),
+('395b237f-037e-49d4-b409-fd2f514242f6', 'user4', 'user4', 'user4@werbot.net', '$2a$13$LBWcFi1.h8rg1WIoJCl4e.fzmCL7Buv7xfijaaNQLaR40YqAPACi6', 't', 't', NOW(), NOW(), 1),
+('8adff845-1354-4e59-8cd3-83f69fd193d3', 'user5', 'user5', 'user5@werbot.net', '$2a$13$SfEnNd11n8k.b67PTpRvvO4jxXQzMhRbqv6dMoWv2XkCrbKQZc4Bq', 't', 't', NOW(), NOW(), 1),
 ('0b792872-174a-4da4-9efa-f3fac872314e', 'test-admin', 'test-admin', 'test-admin@werbot.net', '$2a$13$jzjUNGsaie0IC7iAfM6dB..1vmuuk3/albKqJpHMF0dGeHy9EkG7q', 't', 't', NOW(), NOW(), 3),
 ('e9a1f437-8f32-4463-9f89-a886a623febc', 'test-user', 'test-user', 'test-user@werbot.net', '$2a$13$gVnr3nUTGnTnhavVPvse9OmYoxAZDyzL7Crc.hH/x4zqKDtmbXxqO', 't', 't', NOW(), NOW(), 1);
 
