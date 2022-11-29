@@ -15,7 +15,7 @@ onMounted(async () => {
   try {
     await proxy.$authStore.logout();
   } finally {
-    router.push({ name: "auth-login" });
+    router.push({ name: "auth-signin" });
   }
 });
 </script>

@@ -39,7 +39,7 @@ func apiTest() *apitest.APITest {
 		HandlerFunc(testHandler.Handler)
 }
 
-func Test_postLogin(t *testing.T) {
+func Test_postSignIn(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string][]tests.TestCase{}
@@ -125,7 +125,7 @@ func Test_postLogin(t *testing.T) {
 			for _, tc := range rtc {
 				t.Run(tc.Name, func(t *testing.T) {
 					apiTest().
-						Post("/auth/login").
+						Post("/auth/signin").
 						JSON(tc.RequestBody).
 						Expect(t).
 						Assert(tc.RespondBody).

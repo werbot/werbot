@@ -120,7 +120,7 @@ func (h *TestHandler) FinishHandler() {
 
 func (h *TestHandler) getAuthToken(authUser *pb.AuthUser_Request) *httputil.Tokens {
 	userData, _ := json.Marshal(authUser)
-	req, err := http.NewRequest("POST", "/auth/login", bytes.NewBuffer(userData))
+	req, err := http.NewRequest("POST", "/auth/signin", bytes.NewBuffer(userData))
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
 	if err != nil {
 		fmt.Println("Failure : ", err)

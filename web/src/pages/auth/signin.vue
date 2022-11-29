@@ -67,13 +67,18 @@ const onSubmit = async () => {
       password: data.value.password,
     })
     .then(() => {
+      if (proxy.$systemStore.invites.project) {
+        const invite = proxy.$systemStore.invites.project;
+        router.push({ name: "invite-project-invite", params: { invite } });
+        return;
+      }
       router.push({ name: "index" });
     })
     .catch(() => (loading.value = !loading.value));
 };
 
 onMounted(async () => {
-  proxy.$authStore.user.user_id
+  //proxy.$authStore.user.user_id
   if (proxy.$authStore.loggedIn) {
     router.push({ name: "index" });
   }

@@ -25,7 +25,7 @@ onMounted(async () => {
     .then((res) => {
       showMessage(res.data.message);
       proxy.$authStore.resetStore();
-      router.push({ name: "auth-login" });
+      router.push({ name: "auth-signin" });
     })
     .catch((err) => {
       showMessage(err.response.data.message, "connextError");

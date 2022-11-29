@@ -28,6 +28,9 @@ func NewHandler(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache) *Ha
 func (h *Handler) Routes() {
 	authMiddleware := middleware.NewAuthMiddleware(h.cache)
 
+	// project invite
+	h.app.Post("/v1/members/invite/:invite", h.postProjectMembersInviteActivate)
+
 	memberV1 := h.app.Group("/v1/members", authMiddleware.Execute())
 
 	// Project section
@@ -42,7 +45,6 @@ func (h *Handler) Routes() {
 	memberV1.Get("/invite", h.getProjectMembersInvite)
 	memberV1.Post("/invite", h.addProjectMemberInvite)
 	memberV1.Delete("/invite", h.deleteProjectMemberInvite)
-	memberV1.Post("/invite/:invite", h.postProjectMembersInviteActivate)
 
 	// Server section
 	memberV1.Get("/server", h.getServerMember)

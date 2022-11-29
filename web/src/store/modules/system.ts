@@ -8,6 +8,9 @@ export const useSystemStore = defineStore("system", {
       ui: "1.0 (00000000)",
       api: "1.0 (00000000)",
     },
+    invites: {
+      project: null,
+    }
   }),
 
   getters: {

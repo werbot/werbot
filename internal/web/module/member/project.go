@@ -329,7 +329,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	}
 
 	mailData := map[string]string{
-		"Link": fmt.Sprintf("%s/invite/member/%s", config.GetString("APP_DSN", "https://app.werbot.com"), member.GetInvite()),
+		"Link": fmt.Sprintf("%s/invite/project/%s", config.GetString("APP_DSN", "https://app.werbot.com"), member.GetInvite()),
 	}
 	go sender.SendMail(input.GetEmail(), "Invitation to the project", "project-invite", mailData)
 

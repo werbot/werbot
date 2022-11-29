@@ -15,7 +15,7 @@ router.beforeEach(async (to, from, next) => {
   NProgress.start();
 
   if (to.meta.requiresAuth && !useAuthStore().loggedIn) {
-    next({ name: "auth-login" });
+    next({ name: "auth-signin" });
   }
   next();
 });

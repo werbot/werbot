@@ -30,8 +30,8 @@ import (
 // @Param        password body     pb.AuthUser_Request true "Password"
 // @Success      200      {object} token.Tokens
 // @Failure      400,500  {object} httputil.HTTPResponse
-// @Router       /auth/login [post]
-func (h *Handler) postLogin(c *fiber.Ctx) error {
+// @Router       /auth/signin [post]
+func (h *Handler) postSignIn(c *fiber.Ctx) error {
 	input := &pb.AuthUser_Request{}
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {

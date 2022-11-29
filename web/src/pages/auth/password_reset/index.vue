@@ -39,7 +39,7 @@
   <div class="mt-10">
     <p>
       Already have an account?
-      <router-link :to="{ name: 'auth-login' }"> Sign in </router-link>
+      <router-link :to="{ name: 'auth-signin' }"> Sign in </router-link>
     </p>
   </div>
 </template>

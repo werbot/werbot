@@ -36,7 +36,7 @@
   <div class="mt-10">
     <p>
       Already have an account?
-      <router-link :to="{ name: 'auth-login' }"> Sign in </router-link>
+      <router-link :to="{ name: 'auth-signin' }"> Sign in </router-link>
     </p>
   </div>
 </template>
@@ -76,7 +76,7 @@ const onSubmit = async () => {
     .then((res) => {
       showMessage(res.data.result.message);
       proxy.$errorStore.$reset();
-      router.push({ name: "auth-login" });
+      router.push({ name: "auth-signin" });
     })
     .catch(() => (loading.value = !loading.value));
 };
@@ -84,7 +84,7 @@ const onSubmit = async () => {
 onMounted(async () => {
   await postCheckResetToken(props.token).catch((err) => {
     if (err.response.data.message === "Token is invalid") {
-      router.push({ name: "auth-login" });
+      router.push({ name: "auth-signin" });
     }
   });
 });

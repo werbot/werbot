@@ -860,7 +860,22 @@ func (m *member) DeleteProjectMemberInvite(ctx context.Context, in *pb_member.De
 
 // ProjectMemberInviteActivate is ...
 func (m *member) ProjectMemberInviteActivate(ctx context.Context, in *pb_member.ProjectMemberInviteActivate_Request) (*pb_member.ProjectMemberInviteActivate_Response, error) {
-	var userID, projectID, memberID, status string
+	var inviteID, userID, projectID, memberID, status string
+
+	db.Conn.QueryRow(`SELECT
+			"project_invite"."id"
+		FROM
+			"project_invite"
+		WHERE
+			"project_invite"."invite" = $1`,
+		in.GetInvite(),
+	).Scan(
+		&inviteID,
+	)
+
+	if inviteID == "" {
+		return nil, errors.New("invite is invalid")
+	}
 
 	db.Conn.QueryRow(`SELECT
 			"user"."id",
@@ -870,20 +885,24 @@ func (m *member) ProjectMemberInviteActivate(ctx context.Context, in *pb_member.
 			"project_invite"
 			INNER JOIN "user" ON "project_invite"."email" = "user"."email" 
 		WHERE
-			"project_invite"."invite" = $1`,
-		in.GetInvite(),
+			"project_invite"."id" = $1`,
+		inviteID,
 	).Scan(
 		&userID,
 		&projectID,
 		&status,
 	)
 
+	if userID == "" {
+		return nil, errors.New("new user")
+	}
+
 	if userID != in.GetUserId() {
 		return nil, errors.New("wrong user")
 	}
 
 	if status == "activated" {
-		return nil, errors.New("invite is invalid")
+		return nil, errors.New("invite is activated")
 	}
 
 	err := db.Conn.QueryRow(`INSERT 

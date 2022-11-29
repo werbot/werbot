@@ -7,8 +7,8 @@ enum URL {
   auth = "auth",
 }
 
-const postLogin = async (data: AuthUser_Request) =>
-  http("POST", URL.auth + "/login", { data: data });
+const postSignIn = async (data: AuthUser_Request) =>
+  http("POST", URL.auth + "/signin", { data: data });
 
 const postLogout = async () => http("POST", URL.auth + "/logout");
 
@@ -31,7 +31,7 @@ const getProfile = async () => http("GET", URL.auth + "/profile");
 
 export {
   postLogout,
-  postLogin,
+  postSignIn,
   postRefresh,
   getProfile,
   postSendEmail,

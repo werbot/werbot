@@ -9,5 +9,5 @@
 </template>
 
 <script setup lang="ts">
-import { Header, Navigation, Version } from "@/components";
+import { Header } from "@/components";
 </script>

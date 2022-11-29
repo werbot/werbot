@@ -32,7 +32,7 @@ func (h *Handler) Routes() {
 	authMiddleware := middleware.NewAuthMiddleware(h.cache)
 
 	g := h.app.Group("/auth")
-	g.Post("/login", h.postLogin)
+	g.Post("/signin", h.postSignIn)
 	g.Post("/refresh", h.postRefresh)
 	g.Post("/logout", authMiddleware.Execute(), h.postLogout)
 

@@ -5,5 +5,5 @@
 
 <script setup lang="ts">
 import { Alert } from "@/components";
-document.title = "werbot";
+document.title = "Werbot";
 </script>

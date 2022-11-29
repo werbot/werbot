@@ -1,15 +1,28 @@
 <template>
+  <div v-if="data.message == 'invite is invalid'" class="artboard-red">
+    <header>
+      <h1>Invitation to join the project</h1>
+    </header>
+    <div class="desc">
+      The link to join the project is invalid.
+    </div>
+  </div>
+
   <div v-if="data.message == 'wrong user'" class="artboard-red">
     <header>
       <h1>Invitation to join the project</h1>
     </header>
     <div class="desc">
-      This invite is not intended for the current account. To continue adding - log in with the
-      required account.
+      <b>Possible reasons for this warning:</b><br />
+      1. You are not authorized. To continue -
+      <router-link :to="{ name: 'index' }">login</router-link>.<br />
+      2. You are authorized, but the invite is not intended for the current account. You must be
+      logged in with the correct account (the email address you received the invitation to is the
+      correct account)
     </div>
   </div>
 
-  <div v-if="data.message == 'invite is invalid'" class="artboard-yellow">
+  <div v-if="data.message == 'invite is activated'" class="artboard-yellow">
     <header>
       <h1>Invitation to join the project</h1>
     </header>
@@ -33,23 +46,31 @@ const props = defineProps({
 });
 
 onMounted(async () => {
+  proxy.$systemStore.invites.project = props.invite;
+
   await getProjectMembersInviteActivate(props.invite)
     .then((res) => {
       data.value = res.data.result;
       if (data.value.project_id) {
+        proxy.$systemStore.invites.project = null;
         router.push({ name: "index" });
       }
     })
     .catch((err) => {
       data.value = err.response.data;
+      if (data.value.message == "new user") {
+        router.push({ name: "auth-signup" });
+      }
     });
 });
 
 onBeforeUnmount(() => proxy.$errorStore.$reset());
+
+document.title = "Invitation to join the project";
 </script>
 
 <route lang="yaml">
 meta:
-  layout: private_blank
-  requiresAuth: true
+  layout: public_blank
+  requiresAuth: false
 </route>
