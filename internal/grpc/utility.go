@@ -21,7 +21,10 @@ func (u *utility) GetCountry(ctx context.Context, in *pb_utility.GetCountry_Requ
       "country" 
     WHERE 
       LOWER("name") LIKE LOWER($1) 
-    ORDER BY "name" ASC LIMIT 15 OFFSET 0`, in.Name+"%")
+    ORDER BY "name" ASC 
+		LIMIT 15 OFFSET 0`,
+		in.Name+"%",
+	)
 	if err != nil {
 		return nil, err
 	}

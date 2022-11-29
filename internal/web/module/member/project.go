@@ -50,7 +50,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 		members, err := rClient.ListProjectMembers(ctx, &pb.ListProjectMembers_Request{
 			Limit:  pagination.GetLimit(),
 			Offset: pagination.GetOffset(),
-			SortBy: "member_id:ASC",
+			SortBy: "member_created:DESC",
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
@@ -329,7 +329,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	}
 
 	mailData := map[string]string{
-		"Link": fmt.Sprintf("%s/v1/member/invite/%s", config.GetString("APP_DSN", "https://app.werbot.com"), member.GetInvite()),
+		"Link": fmt.Sprintf("%s/invite/member/%s", config.GetString("APP_DSN", "https://app.werbot.com"), member.GetInvite()),
 	}
 	go sender.SendMail(input.GetEmail(), "Invitation to the project", "project-invite", mailData)
 
@@ -369,4 +369,36 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	return httputil.StatusOK(c, "Invite deleted", nil)
+}
+
+// @Summary      Confirmation of the invitation to join the project
+// @Tags         members
+// @Accept       json
+// @Produce      json
+// @Param        invite      path     uuid true "Invite"
+// @Success      200         {object} httputil.HTTPResponse
+// @Failure      400,500     {object} httputil.HTTPResponse
+// @Router       /v1/members/invite/:invite [post]
+func (h *Handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
+	request := new(pb.ProjectMemberInviteActivate_Request)
+	request.Invite = c.Params("invite")
+	if err := validator.ValidateStruct(request); err != nil {
+		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+	}
+
+	userParameter := middleware.GetUserParameters(c)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+
+	project, err := rClient.ProjectMemberInviteActivate(ctx, &pb.ProjectMemberInviteActivate_Request{
+		Invite: request.GetInvite(),
+		UserId: userParameter.User.UserId,
+	})
+	if err != nil {
+		return httputil.ReturnGRPCError(c, err)
+	}
+
+	return httputil.StatusOK(c, "Invitation confirmed", project)
 }

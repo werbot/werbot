@@ -57,6 +57,9 @@ const postProjectMemberInvite = async (data: CreateProjectMemberInvite_Request) 
 const deleteProjectMemberInvite = async (data: DeleteProjectMemberInvite_Request) =>
   http("DELETE", URL.project_members + "/invite", { params: data });
 
+const getProjectMembersInviteActivate = async (invite: string) =>
+  http("POST", URL.project_members + "/invite/" + invite);
+
 export {
   getProjectMembers,
   getProjectMember,
@@ -68,4 +71,5 @@ export {
   getProjectMembersInvite,
   postProjectMemberInvite,
   deleteProjectMemberInvite,
+  getProjectMembersInviteActivate,
 };

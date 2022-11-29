@@ -27,7 +27,10 @@ func (s *account) GetAccountByID(ctx context.Context, in *pb_account.GetAccountB
 			JOIN "user_public_key" ON "user"."id" = "user_public_key"."user_id" 
 		WHERE
 			"user"."name" = $1 
-			AND "user_public_key".fingerprint = $2`, nameArray[0], in.GetFingerprint())
+			AND "user_public_key".fingerprint = $2`,
+		nameArray[0],
+		in.GetFingerprint(),
+	)
 
 	if err := row.Scan(&id); err != nil {
 		return nil, errors.New("select to user_public_key")
@@ -61,12 +64,26 @@ func (s *account) GetAccountByID(ctx context.Context, in *pb_account.GetAccountB
 // SetAccountStatus is ...
 func (s *account) SetAccountStatus(ctx context.Context, in *pb_account.SetAccountStatus_Request) (*pb_account.SetAccountStatus_Response, error) {
 	if in.GetStatus() == 1 {
-		if _, err := db.Conn.Exec(`UPDATE "server_member" SET "online" = true, "last_activity" = $1 WHERE "id" = $2`, time.Now(), in.GetAccountId()); err != nil {
+		if _, err := db.Conn.Exec(`UPDATE "server_member" 
+			SET 
+				"online" = true, 
+				"last_activity" = $1 
+			WHERE 
+				"id" = $2`,
+			time.Now(),
+			in.GetAccountId(),
+		); err != nil {
 			return &pb_account.SetAccountStatus_Response{}, errors.New("SetAccountStatus update server account failed")
 		}
 	}
 	if in.Status == 2 {
-		if _, err := db.Conn.Exec(`UPDATE "server_member" SET "online" = false WHERE "id" = $1`, in.GetAccountId()); err != nil {
+		if _, err := db.Conn.Exec(`UPDATE "server_member" 
+			SET 
+				"online" = false 
+			WHERE 
+				"id" = $1`,
+			in.GetAccountId(),
+		); err != nil {
 			return &pb_account.SetAccountStatus_Response{}, errors.New("SetAccountStatus update server account failed")
 		}
 	}

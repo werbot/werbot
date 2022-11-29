@@ -26,6 +26,7 @@ service MemberHandlers {
     rpc ListProjectMembersInvite(ListProjectMembersInvite.Request) returns (ListProjectMembersInvite.Response) {}
     rpc CreateProjectMemberInvite(CreateProjectMemberInvite.Request) returns (CreateProjectMemberInvite.Response) {}
     rpc DeleteProjectMemberInvite(DeleteProjectMemberInvite.Request) returns (DeleteProjectMemberInvite.Response) {}
+    rpc ProjectMemberInviteActivate(ProjectMemberInviteActivate.Request) returns (ProjectMemberInviteActivate.Response) {}
 
     // Server section
     rpc ListServerMembers(ListServerMembers.Request) returns (ListServerMembers.Response) {}
@@ -240,6 +241,20 @@ message DeleteProjectMemberInvite {
     }
 
     message Response {}
+}
+// -----------------------------------------------------
+
+
+// rpc ProjectMemberInviteActivate
+message ProjectMemberInviteActivate {
+    message Request {
+        string invite = 1   [(tagger.tags) = "validate:\"uuid\"            query:\"invite\""];
+        string user_id = 2  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\""];
+    }
+
+    message Response {
+        string project_id = 1;
+    }
 }
 // -----------------------------------------------------
 

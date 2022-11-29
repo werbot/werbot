@@ -221,8 +221,11 @@ func (m *member) UpdateProjectMember(ctx context.Context, in *pb_member.UpdatePr
 	var ownerName, projectName, userName string
 
 	_, err := db.Conn.Exec(`UPDATE "project_member" 
-		SET "role" = $1, "active" = $2 
-		WHERE "id" = $3`,
+		SET 
+			"role" = $1, 
+			"active" = $2 
+		WHERE 
+			"id" = $3`,
 		in.GetRole(),
 		in.GetActive(),
 		in.GetMemberId(),
@@ -242,13 +245,14 @@ func (m *member) UpdateProjectMember(ctx context.Context, in *pb_member.UpdatePr
 			INNER JOIN "user" AS "member" ON "project_member"."project_id" = "member"."id"
 			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id" 
 		WHERE
-			"project_member"."id" = $1`, in.GetMemberId()).
-		Scan(
-			&ownerName,
-			&projectName,
-			&userName,
-			&created,
-		)
+			"project_member"."id" = $1`,
+		in.GetMemberId(),
+	).Scan(
+		&ownerName,
+		&projectName,
+		&userName,
+		&created,
+	)
 	if err != nil {
 		return nil, errors.New("Get member info failed from UpdateMember")
 	}
@@ -274,12 +278,18 @@ func (m *member) DeleteProjectMember(ctx context.Context, in *pb_member.DeletePr
 func (m *member) UpdateProjectMemberStatus(ctx context.Context, in *pb_member.UpdateProjectMemberStatus_Request) (*pb_member.UpdateProjectMemberStatus_Response, error) {
 	// TODO After turning off, turn off all users who online
 	ct, err := db.Conn.Exec(`	UPDATE "project_member"
-		SET "active" = $1
-		FROM "project"
+		SET 
+			"active" = $1
+		FROM 
+			"project"
 		WHERE
 			"project_member"."id" = $2 AND 
 			"project"."owner_id"  = $3 AND
-			"project_member"."project_id" = "project"."id"`, in.GetStatus(), in.GetMemberId(), in.GetOwnerId())
+			"project_member"."project_id" = "project"."id"`,
+		in.GetStatus(),
+		in.GetMemberId(),
+		in.GetOwnerId(),
+	)
 	if err != nil {
 		return &pb_member.UpdateProjectMemberStatus_Response{}, err
 	}
@@ -294,7 +304,8 @@ func (m *member) UpdateProjectMemberStatus(ctx context.Context, in *pb_member.Up
 func (m *member) GetMemberByID(ctx context.Context, in *pb_member.GetMemberByID_Request) (*pb_member.GetMemberByID_Response, error) {
 	count := 0
 	err := db.Conn.QueryRow(`SELECT COUNT (*) 
-		FROM "project_member" 
+		FROM 
+			"project_member" 
 		WHERE 
 			"project_member"."user_id" = $1 
 			AND "project_member"."project_id" = $2`,
@@ -324,7 +335,20 @@ func (m *member) GetMemberByID(ctx context.Context, in *pb_member.GetMemberByID_
 func (m *member) GetUsersByName(ctx context.Context, in *pb_member.GetUsersByName_Request) (*pb_member.GetUsersByName_Response, error) {
 	users := []*pb_member.GetUsersByName_Response_SearchUsersResult{}
 
-	rows, err := db.Conn.Query(`SELECT "id" AS "member_id", "name" AS "member_name", "email" FROM "user" WHERE "user"."name" LIKE '$1%'  ORDER BY "name" ASC LIMIT 15 OFFSET 0`, in.Name)
+	rows, err := db.Conn.Query(`SELECT 
+			"id" AS "member_id", 
+			"name" AS "member_name", 
+			"email" 
+		FROM 
+			"user" 
+		WHERE 
+			"user"."name" 
+		LIKE 
+			'$1%'
+		ORDER BY "name" ASC 
+		LIMIT 15 OFFSET 0`,
+		in.Name,
+	)
 	if err != nil {
 		return nil, errors.New("Action GetUsersByName query parameters failed")
 	}
@@ -362,17 +386,17 @@ func (m *member) GetUsersWithoutProject(ctx context.Context, in *pb_member.GetUs
 			"id",
 			"name",
 			"email"
-		FROM "user"
+		FROM 
+			"user"
 		WHERE
-			"id" NOT IN(
-				SELECT
-					"user_id" FROM "project_member"
-				WHERE
-					"project_id" = $1)
-		AND LOWER("name") LIKE LOWER($2 || '%')
+			"id" NOT IN(SELECT "user_id" FROM "project_member" WHERE "project_id" = $1)
+			AND LOWER("name") LIKE LOWER($2 || '%')
 		ORDER BY
 			"name" ASC
-		LIMIT 15 OFFSET 0`, in.GetProjectId(), in.GetName())
+		LIMIT 15 OFFSET 0`,
+		in.GetProjectId(),
+		in.GetName(),
+	)
 	if err != nil {
 		return nil, errors.New("Action GetUsersWithoutProject query parameters failed")
 	}
@@ -422,7 +446,10 @@ func (m *member) ListServerMembers(ctx context.Context, in *pb_member.ListServer
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE
 			"project_member"."project_id" = $1
-			AND "server_member"."server_id" = $2`+sqlFooter, in.GetProjectId(), in.GetServerId())
+			AND "server_member"."server_id" = $2`+sqlFooter,
+		in.GetProjectId(),
+		in.GetServerId(),
+	)
 	if err != nil {
 		return nil, errors.New("GetServerMembers: query parameters failed")
 	}
@@ -457,7 +484,10 @@ func (m *member) ListServerMembers(ctx context.Context, in *pb_member.ListServer
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE
 			"project_member"."project_id" = $1
-			AND "server_member"."server_id" = $2`, in.GetProjectId(), in.GetServerId()).Scan(&total)
+			AND "server_member"."server_id" = $2`,
+		in.GetProjectId(),
+		in.GetServerId(),
+	).Scan(&total)
 
 	return &pb_member.ListServerMembers_Response{
 		Total:   total,
@@ -485,14 +515,15 @@ func (m *member) GetServerMember(ctx context.Context, in *pb_member.GetServerMem
 			INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE
-			"server_member"."id" = $1`, in.GetMemberId()).
-		Scan(
-			&member.UserId,
-			&member.UserName,
-			&member.Active,
-			&member.Online,
-			&lastActivity,
-		)
+			"server_member"."id" = $1`,
+		in.GetMemberId(),
+	).Scan(
+		&member.UserId,
+		&member.UserName,
+		&member.Active,
+		&member.Online,
+		&lastActivity,
+	)
 	if err != nil {
 		return nil, errors.New(message.ErrNotFound)
 	}
@@ -510,18 +541,24 @@ func (m *member) CreateServerMember(ctx context.Context, in *pb_member.CreateSer
 	}
 
 	var memberID string
-	db.Conn.QueryRow(`SELECT "id"
-		FROM "server_member" 
+	db.Conn.QueryRow(`SELECT 
+			"id"
+		FROM 
+			"server_member" 
 		WHERE
 			"server_member"."server_id" = $1 
-			AND "server_member"."member_id" = $2`, in.GetServerId(), in.GetMemberId()).Scan(&memberID)
+			AND "server_member"."member_id" = $2`,
+		in.GetServerId(),
+		in.GetMemberId(),
+	).Scan(&memberID)
 	if memberID != "" {
 		return &pb_member.CreateServerMember_Response{
 			MemberId: memberID,
 		}, nil
 	}
 
-	err := db.Conn.QueryRow(`INSERT INTO "server_member" (
+	err := db.Conn.QueryRow(`INSERT 
+		INTO "server_member" (
 			"server_id",
 			"member_id",
 			"active"
@@ -548,10 +585,11 @@ func (m *member) UpdateServerMember(ctx context.Context, in *pb_member.UpdateSer
 	}
 
 	_, err := db.Conn.Exec(`UPDATE "server_member" 
-		SET "active" = $1 
-		WHERE 
-			"id" = $2 
-			AND "server_id" = $3`,
+			SET 
+				"active" = $1 
+			WHERE 
+				"id" = $2 
+				AND "server_id" = $3`,
 		in.GetActive(),
 		in.GetMemberId(),
 		in.GetServerId(),
@@ -569,7 +607,15 @@ func (m *member) DeleteServerMember(ctx context.Context, in *pb_member.DeleteSer
 		return nil, errors.New(message.ErrNotFound)
 	}
 
-	_, err := db.Conn.Exec(`DELETE FROM "server_member" WHERE "id" = $1 AND "server_id" = $2`, in.GetMemberId(), in.GetServerId())
+	_, err := db.Conn.Exec(`DELETE 
+			FROM 
+				"server_member" 
+			WHERE 
+				"id" = $1 
+				AND "server_id" = $2`,
+		in.GetMemberId(),
+		in.GetServerId(),
+	)
 	if err != nil {
 		return &pb_member.DeleteServerMember_Response{}, errors.New("DeleteMember failed")
 	}
@@ -584,10 +630,15 @@ func (m *member) UpdateServerMemberStatus(ctx context.Context, in *pb_member.Upd
 	}
 
 	ct, err := db.Conn.Exec(`UPDATE "server_member"
-		SET "active" = $1
-		WHERE
-			"server_member"."id" = $2
-			AND "server_member"."server_id" = $3`, in.GetStatus(), in.GetMemberId(), in.GetServerId())
+			SET 
+				"active" = $1
+			WHERE
+				"server_member"."id" = $2
+				AND "server_member"."server_id" = $3`,
+		in.GetStatus(),
+		in.GetMemberId(),
+		in.GetServerId(),
+	)
 	if err != nil {
 		return &pb_member.UpdateServerMemberStatus_Response{}, err
 	}
@@ -617,13 +668,13 @@ func (m *member) GetMembersWithoutServer(ctx context.Context, in *pb_member.GetM
 			"project_member"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE
-			"project_member"."id" NOT IN(
-				SELECT
-					"member_id" FROM "server_member"
-				WHERE
-					"server_id" = $1)
+			"project_member"."id" NOT IN(SELECT "member_id" FROM "server_member" WHERE "server_id" = $1)
 			AND "project_member"."project_id" = $2
-			AND LOWER("user"."name") LIKE LOWER($3 || '%') `+sqlFooter, in.GetServerId(), in.GetProjectId(), in.GetName())
+			AND LOWER("user"."name") LIKE LOWER($3 || '%') `+sqlFooter,
+		in.GetServerId(),
+		in.GetProjectId(),
+		in.GetName(),
+	)
 
 	if err != nil {
 		return nil, errors.New("GetUsersWithoutServer: query parameters failed")
@@ -654,16 +705,17 @@ func (m *member) GetMembersWithoutServer(ctx context.Context, in *pb_member.GetM
 	// Total count for pagination
 	var total int32
 	db.Conn.QueryRow(`SELECT COUNT (*)
-			FROM "project_member"
+			FROM 
+				"project_member"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE
-			"project_member"."id" NOT IN(
-				SELECT
-					"member_id" FROM "server_member"
-				WHERE
-					"server_id" = $1)
-		AND "project_member"."project_id" = $2
-		AND LOWER("user"."name") LIKE LOWER($3 || '%')`, in.GetServerId(), in.GetProjectId(), in.GetName()).Scan(&total)
+			"project_member"."id" NOT IN(SELECT "member_id" FROM "server_member" WHERE "server_id" = $1)
+			AND "project_member"."project_id" = $2
+			AND LOWER("user"."name") LIKE LOWER($3 || '%')`,
+		in.GetServerId(),
+		in.GetProjectId(),
+		in.GetName(),
+	).Scan(&total)
 
 	return &pb_member.GetMembersWithoutServer_Response{
 		Total:   total,
@@ -689,7 +741,9 @@ func (m *member) ListProjectMembersInvite(ctx context.Context, in *pb_member.Lis
 		FROM
 			"project_invite"
 		WHERE
-			"project_invite"."project_id" = $1`+sqlFooter, in.GetProjectId())
+			"project_invite"."project_id" = $1`+sqlFooter,
+		in.GetProjectId(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -722,7 +776,9 @@ func (m *member) ListProjectMembersInvite(ctx context.Context, in *pb_member.Lis
 		FROM
 			"project_invite"
 		WHERE
-			"project_invite"."project_id" = $1`, in.GetProjectId()).Scan(&total)
+			"project_invite"."project_id" = $1`,
+		in.GetProjectId(),
+	).Scan(&total)
 
 	return &pb_member.ListProjectMembersInvite_Response{
 		Total:   total,
@@ -738,15 +794,20 @@ func (m *member) CreateProjectMemberInvite(ctx context.Context, in *pb_member.Cr
 
 	var invite string
 	var inviteID string
-	db.Conn.QueryRow(`SELECT "id"
-		FROM "project_invite" 
+	db.Conn.QueryRow(`SELECT 
+			"id"
+		FROM 
+			"project_invite" 
 		WHERE
-			"project_invite"."email" = $1`, in.GetEmail()).Scan(&inviteID)
+			"project_invite"."email" = $1`,
+		in.GetEmail(),
+	).Scan(&inviteID)
 	if inviteID != "" {
 		return nil, errors.New("Email in use")
 	}
 
-	err := db.Conn.QueryRow(`INSERT INTO "project_invite" (
+	err := db.Conn.QueryRow(`INSERT 
+		INTO "project_invite" (
 			"project_id",
 			"email",
 			"name",
@@ -780,10 +841,82 @@ func (m *member) DeleteProjectMemberInvite(ctx context.Context, in *pb_member.De
 		return nil, errors.New(message.ErrNotFound)
 	}
 
-	_, err := db.Conn.Query(`DELETE FROM "project_invite" WHERE "id" = $1 AND "project_id" = $2 AND "status" = 'send'`, in.GetInviteId(), in.GetProjectId())
+	_, err := db.Conn.Query(`DELETE 
+		FROM 
+			"project_invite" 
+		WHERE 
+			"id" = $1 
+			AND "project_id" = $2 
+			AND "status" = 'send'`,
+		in.GetInviteId(),
+		in.GetProjectId(),
+	)
 	if err != nil {
 		return nil, errors.New("DeleteProjectMemberInvite: failed")
 	}
 
 	return &pb_member.DeleteProjectMemberInvite_Response{}, nil
+}
+
+// ProjectMemberInviteActivate is ...
+func (m *member) ProjectMemberInviteActivate(ctx context.Context, in *pb_member.ProjectMemberInviteActivate_Request) (*pb_member.ProjectMemberInviteActivate_Response, error) {
+	var userID, projectID, memberID, status string
+
+	db.Conn.QueryRow(`SELECT
+			"user"."id",
+			"project_invite"."project_id",
+			"project_invite"."status"
+		FROM
+			"project_invite"
+			INNER JOIN "user" ON "project_invite"."email" = "user"."email" 
+		WHERE
+			"project_invite"."invite" = $1`,
+		in.GetInvite(),
+	).Scan(
+		&userID,
+		&projectID,
+		&status,
+	)
+
+	if userID != in.GetUserId() {
+		return nil, errors.New("wrong user")
+	}
+
+	if status == "activated" {
+		return nil, errors.New("invite is invalid")
+	}
+
+	err := db.Conn.QueryRow(`INSERT 
+		INTO "project_member" (
+			"project_id",
+			"user_id",
+			"role",
+			"created"
+		)
+		VALUES
+			($1, $2, 'user', NOW( ))
+		RETURNING "id"`,
+		projectID,
+		userID,
+	).Scan(&memberID)
+	if err != nil {
+		return nil, errors.New("member not added")
+	}
+
+	_, err = db.Conn.Exec(`UPDATE "project_invite" 
+		SET 
+			"status" = 'activated',
+			"user_id" = $1
+		WHERE 
+			"invite" = $2`,
+		in.GetUserId(),
+		in.GetInvite(),
+	)
+	if err != nil {
+		return nil, errors.New("failed to update invite information")
+	}
+
+	return &pb_member.ProjectMemberInviteActivate_Response{
+		ProjectId: projectID,
+	}, nil
 }

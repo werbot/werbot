@@ -49,4 +49,29 @@
       @apply bg-red-800;
     }
   }
+
+  &-yellow {
+    @apply artboard shadow-md shadow-yellow-200 !important;
+
+    header {
+      @apply text-yellow-700;
+    }
+
+    .desc {
+      @apply bg-yellow-100 px-6 py-4 text-left text-yellow-700;
+    }
+
+    .btn {
+      @apply bg-yellow-600;
+    }
+
+    .btn:hover,
+    .btn:focus {
+      @apply bg-yellow-700;
+    }
+
+    .btn:active {
+      @apply bg-yellow-800;
+    }
+  }
 }

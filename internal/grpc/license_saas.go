@@ -22,7 +22,15 @@ import (
 func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Request) (*pb_license.NewLicense_Response, error) {
 	var status string
 	var licServer []byte
-	db.Conn.QueryRow(`SELECT "status", "license" FROM "license" WHERE "ip" = $1::inet`, in.GetIp()).Scan(&status, &licServer)
+	db.Conn.QueryRow(`SELECT 
+			"status", 
+			"license" 
+		FROM 
+			"license" 
+		WHERE 
+			"ip" = $1::inet`,
+		in.GetIp(),
+	).Scan(&status, &licServer)
 
 	if status == "" {
 		lic, err := license_lib.SetLicense([]byte(config.GetString("KEY_PRIVATE", "")))
@@ -33,7 +41,18 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 		var typeID, period, companies, servers, users int32
 		var name string
 		var modulesJSON pgtype.JSON
-		err = db.Conn.QueryRow(`SELECT "id", "name", "period", "companies", "servers", "users", "modules" FROM "license_type" WHERE "default" = $1`, true).
+		err = db.Conn.QueryRow(`SELECT 
+				"id", 
+				"name", 
+				"period", 
+				"companies", 
+				"servers", 
+				"users", 
+				"modules" 
+			FROM 
+				"license_type" 
+			WHERE 
+				"default" = true`).
 			Scan(&typeID,
 				&name,
 				&period,
@@ -82,7 +101,19 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 		}
 
 		status = "trial"
-		db.Conn.Exec(`INSERT INTO "public"."license" ("version", "customer_id", "subscriber_id", "type_id", "ip", "status", "issued_at", "expires_at", "license") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		db.Conn.Exec(`INSERT 
+			INTO "public"."license" (
+				"version", 
+				"customer_id", 
+				"subscriber_id", 
+				"type_id", 
+				"ip", 
+				"status", 
+				"issued_at", 
+				"expires_at", 
+				"license"
+			) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 			1,
 			customer,
 			subscriber,

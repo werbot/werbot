@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, getCurrentInstance } from "vue";
+  import { ref, getCurrentInstance } from "vue";
   import { useRoute } from "vue-router";
   import { BServers } from "@/components";
   

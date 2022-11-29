@@ -27,7 +27,9 @@ func (s *firewall) getAccessList(serverID string) (*pb_firewall.AccessList, erro
 		FROM
 			"server_access_policy" 
 		WHERE
-			"server_access_policy"."server_id" = $1`, serverID)
+			"server_access_policy"."server_id" = $1`,
+		serverID,
+	)
 	if err := row.Scan(&accessList.Network, &accessList.Country); err != nil {
 		return nil, err
 	}
@@ -51,7 +53,9 @@ func (s *firewall) GetServerFirewall(ctx context.Context, in *pb_firewall.GetSer
 			"server_security_country"
 			INNER JOIN "country" ON "server_security_country"."country_code" = "country"."code"
 		WHERE
-			"server_security_country"."server_id" = $1`, in.GetServerId())
+			"server_security_country"."server_id" = $1`,
+		in.GetServerId(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +85,9 @@ func (s *firewall) GetServerFirewall(ctx context.Context, in *pb_firewall.GetSer
 		FROM
 			"server_security_ip" 
 		WHERE
-			"server_id" = $1`, in.GetServerId())
+			"server_id" = $1`,
+		in.GetServerId(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -132,13 +138,23 @@ func (s *firewall) CreateServerFirewall(ctx context.Context, in *pb_firewall.Cre
 	var err error
 	switch record := in.Record.(type) {
 	case *pb_firewall.CreateServerFirewall_Request_Country:
-		row := db.Conn.QueryRowx(`SELECT "id" FROM "server_security_country" WHERE "server_id" = $1 AND "country_code" = $2`, in.GetServerId(), record.Country.Code)
+		row := db.Conn.QueryRowx(`SELECT 
+				"id" 
+			FROM 
+				"server_security_country" 
+			WHERE 
+				"server_id" = $1 
+				AND "country_code" = $2`,
+			in.GetServerId(),
+			record.Country.Code,
+		)
 		row.Scan(&recordID)
 		if recordID != "" {
 			return nil, errors.New(message.MsgObjectAlreadyExists)
 		}
 
-		err = db.Conn.QueryRow(`INSERT INTO "server_security_country" (
+		err = db.Conn.QueryRow(`INSERT 
+			INTO "server_security_country" (
 				"server_id", 
 				"country_code") 
 			VALUES 
@@ -154,13 +170,25 @@ func (s *firewall) CreateServerFirewall(ctx context.Context, in *pb_firewall.Cre
 		response.Id = recordID
 
 	case *pb_firewall.CreateServerFirewall_Request_Ip:
-		row := db.Conn.QueryRowx(`SELECT "id" FROM "server_security_ip" WHERE "server_id" = $1 AND "start_ip" = $2 AND "end_ip" = $3`, in.GetServerId(), record.Ip.StartIp, record.Ip.EndIp)
+		row := db.Conn.QueryRowx(`SELECT 
+				"id" 
+			FROM 
+				"server_security_ip" 
+			WHERE 
+				"server_id" = $1 
+				AND "start_ip" = $2 
+				AND "end_ip" = $3`,
+			in.GetServerId(),
+			record.Ip.StartIp,
+			record.Ip.EndIp,
+		)
 		row.Scan(&recordID)
 		if recordID != "" {
 			return nil, errors.New(message.MsgObjectAlreadyExists)
 		}
 
-		err = db.Conn.QueryRow(`INSERT INTO "server_security_ip" (
+		err = db.Conn.QueryRow(`INSERT 
+			INTO "server_security_ip" (
 				"server_id", 
 				"start_ip", 
 				"end_ip") 
@@ -193,9 +221,17 @@ func (s *firewall) UpdateAccessPolicy(ctx context.Context, in *pb_firewall.Updat
 	var sql string
 	switch in.Rule {
 	case pb_firewall.Rules_country:
-		sql = `UPDATE "server_access_policy" SET "country" = $1 WHERE "server_id" = $2`
+		sql = `UPDATE "server_access_policy" 
+			SET 
+				"country" = $1 
+			WHERE 
+				"server_id" = $2`
 	case pb_firewall.Rules_ip:
-		sql = `UPDATE "server_access_policy" SET "ip" = $1 WHERE "server_id" = $2`
+		sql = `UPDATE "server_access_policy" 
+			SET 
+				"ip" = $1 
+			WHERE 
+				"server_id" = $2`
 	default:
 		return &pb_firewall.UpdateAccessPolicy_Response{}, nil
 	}
@@ -216,9 +252,17 @@ func (s *firewall) DeleteServerFirewall(ctx context.Context, in *pb_firewall.Del
 	var sql string
 	switch in.Rule {
 	case pb_firewall.Rules_country:
-		sql = `DELETE FROM server_security_country WHERE "id" = $1`
+		sql = `DELETE 
+			FROM 
+				"server_security_country" 
+			WHERE 
+				"id" = $1`
 	case pb_firewall.Rules_ip:
-		sql = `DELETE FROM server_security_ip WHERE "id" = $1`
+		sql = `DELETE 
+			FROM 
+				"server_security_ip" 
+			WHERE 
+				"id" = $1`
 	default:
 		return &pb_firewall.DeleteServerFirewall_Response{}, nil
 	}
@@ -340,7 +384,11 @@ func timeAccountActivity(accountID string) (bool, error) {
 			"server_activity"."server_id" = $1 
 			AND "server_activity"."dow" = $2 
 			AND "server_activity"."time_from" < $3 
-			AND "server_activity"."time_to" > $3`, accountID, nowWeekInt, nowTime)
+			AND "server_activity"."time_to" > $3`,
+		accountID,
+		nowWeekInt,
+		nowTime,
+	)
 	if err := row.Scan(&id); err != nil {
 		return false, errors.New("select to server_activity")
 	}
@@ -367,7 +415,9 @@ func accountActivityList(accountID, country, ip string) (bool, error) {
 		FROM
 			"server_access_policy" 
 		WHERE
-			"server_access_policy"."server_id" =$1`, accountID)
+			"server_access_policy"."server_id" =$1`,
+		accountID,
+	)
 	if err := row.Scan(&accessListIP, &accessListCountry); err != nil {
 		return false, errors.New("server_access_policy failed")
 	}
@@ -381,7 +431,10 @@ func accountActivityList(accountID, country, ip string) (bool, error) {
 			JOIN "server_security_country" ON "server_access_policy"."server_id"="server_security_country"."server_id" 
 		WHERE 
 			"server_access_policy"."server_id" = $1 
-			AND "server_security_country"."country_code" = $2`, accountID, country)
+			AND "server_security_country"."country_code" = $2`,
+		accountID,
+		country,
+	)
 	if err := row.Scan(&count); err != nil {
 		return false, errors.New("server_access_policy failed")
 	}
@@ -405,7 +458,10 @@ func accountActivityList(accountID, country, ip string) (bool, error) {
 		WHERE
 			"server_access_policy"."server_id" = $1 
 			AND $2::inet >= "server_security_ip"."start_ip" 
-			AND $2::inet <= "server_security_ip"."end_ip"`, accountID, ip)
+			AND $2::inet <= "server_security_ip"."end_ip"`,
+		accountID,
+		ip,
+	)
 	if err := row.Scan(&count); err != nil {
 		return false, errors.New("select to server_security_ip")
 	}
@@ -437,7 +493,10 @@ func userAccountActivity(accountID, userID string) (bool, error) {
 			AND "project_member"."active" = TRUE 
 			AND "server_member"."server_id" = $1 
 			AND "server_member"."active" = TRUE 
-			AND "server"."active" = TRUE`, accountID, userID)
+			AND "server"."active" = TRUE`,
+		accountID,
+		userID,
+	)
 	if err := row.Scan(&id); err != nil {
 		return false, errors.New("userAccountActivity field")
 	}
@@ -460,7 +519,9 @@ func blackListIP(ip string) (bool, error) {
 		WHERE 
 			$1::inet >= "start_ip" 
 			AND $1::inet <= "end_ip"
-			AND "firewall_list"."active" = TRUE`, ip)
+			AND "firewall_list"."active" = TRUE`,
+		ip,
+	)
 	if err := row.Scan(&count); err != nil {
 		return true, errors.New("blackListIP failed")
 	}

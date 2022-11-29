@@ -95,7 +95,13 @@ func (s *subscription) UpdateSubscription(ctx context.Context, in *pb_subscripti
 
 // DeleteSubscription is ...
 func (s *subscription) DeleteSubscription(ctx context.Context, in *pb_subscription.DeleteSubscription_Request) (*pb_subscription.DeleteSubscription_Response, error) {
-	_, err := db.Conn.Exec(`DELETE FROM "subscription" WHERE "id" = $1`, in.SubscriptionId)
+	_, err := db.Conn.Exec(`DELETE 
+		FROM 
+			"subscription" 
+		WHERE 
+			"id" = $1`,
+		in.SubscriptionId,
+	)
 	if err != nil {
 		return &pb_subscription.DeleteSubscription_Response{}, errors.New("DeleteSubscription failed")
 	}

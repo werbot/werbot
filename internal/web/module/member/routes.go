@@ -29,6 +29,7 @@ func (h *Handler) Routes() {
 	authMiddleware := middleware.NewAuthMiddleware(h.cache)
 
 	memberV1 := h.app.Group("/v1/members", authMiddleware.Execute())
+
 	// Project section
 	memberV1.Get("/", h.getProjectMember)
 	memberV1.Post("/", h.addProjectMember)
@@ -41,7 +42,7 @@ func (h *Handler) Routes() {
 	memberV1.Get("/invite", h.getProjectMembersInvite)
 	memberV1.Post("/invite", h.addProjectMemberInvite)
 	memberV1.Delete("/invite", h.deleteProjectMemberInvite)
-	//memberV1.Get("/invite/:invite", h.getProjectMembersInviteCheck)
+	memberV1.Post("/invite/:invite", h.postProjectMembersInviteActivate)
 
 	// Server section
 	memberV1.Get("/server", h.getServerMember)

@@ -129,7 +129,13 @@ func (k *key) CreatePublicKey(ctx context.Context, in *pb_key.CreatePublicKey_Re
 
 	// Check public key fingerprint
 	var count int32
-	db.Conn.QueryRow(`SELECT COUNT(*) FROM "user_public_key" WHERE "fingerprint" = $1`, fingerprint).Scan(&count)
+	db.Conn.QueryRow(`SELECT COUNT(*) 
+		FROM 
+			"user_public_key" 
+		WHERE 
+			"fingerprint" = $1`,
+		fingerprint,
+	).Scan(&count)
 	if count > 0 {
 		return nil, errors.New("This key has already been added")
 	}
@@ -139,7 +145,15 @@ func (k *key) CreatePublicKey(ctx context.Context, in *pb_key.CreatePublicKey_Re
 	}
 
 	var id string
-	err = db.Conn.QueryRow(`INSERT INTO "user_public_key" ("user_id", "title", "key_", "fingerprint", "created") VALUES ($1, $2, $3, $4, NOW()) RETURNING id`,
+	err = db.Conn.QueryRow(`INSERT 
+		INTO "user_public_key" (
+			"user_id", 
+			"title", 
+			"key_", 
+			"fingerprint", 
+			"created") 
+		VALUES ($1, $2, $3, $4, NOW()) 
+		RETURNING id`,
 		in.GetUserId(),
 		comment,
 		in.GetKey(),
@@ -164,7 +178,13 @@ func (k *key) UpdatePublicKey(ctx context.Context, in *pb_key.UpdatePublicKey_Re
 
 	// Check public key fingerprint
 	var count int32
-	db.Conn.QueryRow(`SELECT COUNT(*) FROM "user_public_key" WHERE "fingerprint" = $1`, fingerprint).Scan(&count)
+	db.Conn.QueryRow(`SELECT COUNT(*) 
+		FROM 
+			"user_public_key" 
+		WHERE 
+			"fingerprint" = $1`,
+		fingerprint,
+	).Scan(&count)
 	if count > 1 {
 		return nil, errors.New("This key has already been added")
 	}
@@ -173,7 +193,14 @@ func (k *key) UpdatePublicKey(ctx context.Context, in *pb_key.UpdatePublicKey_Re
 		comment = in.GetTitle()
 	}
 
-	data, err := db.Conn.Exec(`UPDATE "user_public_key" SET "title" = $1, "key_" = $2, "fingerprint" = $3 WHERE "id" = $4 AND "user_id" = $5`,
+	data, err := db.Conn.Exec(`UPDATE "user_public_key" 
+		SET 
+			"title" = $1, 
+			"key_" = $2, 
+			"fingerprint" = $3 
+		WHERE 
+			"id" = $4 
+			AND "user_id" = $5`,
 		comment,
 		in.GetKey(),
 		fingerprint,
@@ -193,7 +220,15 @@ func (k *key) UpdatePublicKey(ctx context.Context, in *pb_key.UpdatePublicKey_Re
 
 // DeletePublicKey is ...
 func (k *key) DeletePublicKey(ctx context.Context, in *pb_key.DeletePublicKey_Request) (*pb_key.DeletePublicKey_Response, error) {
-	data, err := db.Conn.Exec(`DELETE FROM "user_public_key" WHERE "id" = $1 AND "user_id" = $2`, in.GetKeyId(), in.GetUserId())
+	data, err := db.Conn.Exec(`DELETE 
+		FROM 
+			"user_public_key" 
+		WHERE 
+			"id" = $1 
+			AND "user_id" = $2`,
+		in.GetKeyId(),
+		in.GetUserId(),
+	)
 	if err != nil {
 		return nil, errors.New("DeletePublicKey failed")
 	}

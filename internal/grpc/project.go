@@ -141,7 +141,8 @@ func (p *project) CreateProject(ctx context.Context, in *pb_project.CreateProjec
 // UpdateProject is ...
 func (p *project) UpdateProject(ctx context.Context, in *pb_project.UpdateProject_Request) (*pb_project.UpdateProject_Response, error) {
 	_, err := db.Conn.Exec(`UPDATE "project" 
-			SET "title" = $1
+			SET 
+				"title" = $1
 			WHERE
 				"id" = $2 
 				AND "owner_id" = $3`,
@@ -158,11 +159,25 @@ func (p *project) UpdateProject(ctx context.Context, in *pb_project.UpdateProjec
 
 // DeleteProject is ...
 func (p *project) DeleteProject(ctx context.Context, in *pb_project.DeleteProject_Request) (*pb_project.DeleteProject_Response, error) {
-	if _, err := db.Conn.Exec(`DELETE FROM "project" WHERE "id" = $1 AND "owner_id" = $2`, in.GetProjectId(), in.GetOwnerId()); err != nil {
+	if _, err := db.Conn.Exec(`DELETE 
+		FROM 
+			"project" 
+		WHERE 
+			"id" = $1 
+			AND "owner_id" = $2`,
+		in.GetProjectId(),
+		in.GetOwnerId(),
+	); err != nil {
 		return &pb_project.DeleteProject_Response{}, err
 	}
 
-	if _, err := db.Conn.Exec(`DELETE FROM "project_key" WHERE "id" = $1`, in.GetProjectId()); err != nil {
+	if _, err := db.Conn.Exec(`DELETE 
+		FROM 
+			"project_key" 
+		WHERE 
+			"id" = $1`,
+		in.GetProjectId(),
+	); err != nil {
 		return &pb_project.DeleteProject_Response{}, err
 	}
 

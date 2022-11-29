@@ -16,7 +16,14 @@ type update struct {
 
 // GetUpdate is ...
 func (u *update) GetUpdate(ctx context.Context, in *pb_update.GetUpdate_Request) (*pb_update.GetUpdate_Response, error) {
-	rows, err := db.Conn.Query(`SELECT "component", "description", "version", "version_after", "issued_at" FROM "update"`)
+	rows, err := db.Conn.Query(`SELECT 
+			"component", 
+			"description", 
+			"version", 
+			"version_after", 
+			"issued_at" 
+		FROM 
+			"update"`)
 	if err != nil {
 		return nil, errors.New("GetUpdate failed")
 	}

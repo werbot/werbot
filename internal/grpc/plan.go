@@ -179,7 +179,13 @@ func (p *subscription) UpdateSubscriptionPlan(ctx context.Context, in *pb_subscr
 
 	// update Starter plan
 	if in.Default {
-		if _, err := db.Conn.Query(`UPDATE "subscription_plan" SET "default" = false WHERE "id" != $1`, in.GetPlanId()); err != nil {
+		if _, err := db.Conn.Query(`UPDATE "subscription_plan" 
+			SET 
+				"default" = false 
+			WHERE 
+				"id" != $1`,
+			in.GetPlanId(),
+		); err != nil {
 			return nil, errors.New("Update default plan failed")
 		}
 	}

@@ -113,7 +113,10 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 
 		case 2:
 			rows, err := db.Conn.Query(query+`
-				AND "project"."login" = $2`, nameArray[0], nameArray[1])
+				AND "project"."login" = $2`,
+				nameArray[0],
+				nameArray[1],
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -152,7 +155,11 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 			rows, err := db.Conn.Query(query+`
 				AND "project"."login" = $2
 				AND "token" = $3
-				AND "project_member"."role" = 'user'`, nameArray[0], nameArray[1], nameArray[2])
+				AND "project_member"."role" = 'user'`,
+				nameArray[0],
+				nameArray[1],
+				nameArray[2],
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -220,7 +227,10 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 				INNER JOIN "project" ON "server"."project_id" = "project"."id" 
 			WHERE
 				"server"."project_id" = $1 
-				AND "project"."owner_id" = $2`+sqlFooter, query["project_id"], query["user_id"])
+				AND "project"."owner_id" = $2`+sqlFooter,
+			query["project_id"],
+			query["user_id"],
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -257,7 +267,10 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 				INNER JOIN "project" ON "server"."project_id" = "project"."id" 
 			WHERE
 				"server"."project_id" = $1 
-				AND "project"."owner_id" = $2`, query["project_id"], query["user_id"]).Scan(&count)
+				AND "project"."owner_id" = $2`,
+			query["project_id"],
+			query["user_id"],
+		).Scan(&count)
 
 		return &pb_server.ListServers_Response{
 			Total:   count,
@@ -294,21 +307,23 @@ func (s *server) GetServer(ctx context.Context, in *pb_server.GetServer_Request)
 			"server" 
 		WHERE
 			"server"."id" = $1 
-			AND "server"."project_id" = $2`, in.GetServerId(), in.GetProjectId()).
-		Scan(
-			&server.Address,
-			&server.Port,
-			&server.Token,
-			&server.Login,
-			&privateDescription,
-			&publicDescription,
-			&server.Title,
-			&server.Active,
-			&server.Audit,
-			&server.Online,
-			&server.Auth,
-			&server.Scheme,
-		)
+			AND "server"."project_id" = $2`,
+		in.GetServerId(),
+		in.GetProjectId(),
+	).Scan(
+		&server.Address,
+		&server.Port,
+		&server.Token,
+		&server.Login,
+		&privateDescription,
+		&publicDescription,
+		&server.Title,
+		&server.Active,
+		&server.Audit,
+		&server.Online,
+		&server.Auth,
+		&server.Scheme,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +340,15 @@ func (s *server) DeleteServer(ctx context.Context, in *pb_server.DeleteServer_Re
 		return nil, errors.New(message.ErrNotFound)
 	}
 
-	_, err := db.Conn.Exec(`DELETE FROM "server" WHERE "id" = $1 AND "project_id" = $2`, in.GetServerId(), in.GetProjectId())
+	_, err := db.Conn.Exec(`DELETE 
+		FROM 
+			"server" 
+		WHERE 
+			"id" = $1 
+			AND "project_id" = $2`,
+		in.GetServerId(),
+		in.GetProjectId(),
+	)
 	if err != nil {
 		return &pb_server.DeleteServer_Response{}, err
 	}
@@ -353,14 +376,17 @@ func (s *server) GetServerAccess(ctx context.Context, in *pb_server.GetServerAcc
 		WHERE
 			"server"."id" = $1
 			AND "server"."project_id" = $2
-			AND "project"."owner_id" = $3`, in.GetServerId(), in.GetProjectId(), in.GetUserId()).
-		Scan(
-			&data.Password,
-			&data.KeyPublic,
-			&data.KeyPrivate,
-			&data.KeyPassword,
-			&data.Auth,
-		)
+			AND "project"."owner_id" = $3`,
+		in.GetServerId(),
+		in.GetProjectId(),
+		in.GetUserId(),
+	).Scan(
+		&data.Password,
+		&data.KeyPublic,
+		&data.KeyPrivate,
+		&data.KeyPassword,
+		&data.Auth,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -390,7 +416,8 @@ func (s *server) UpdateServerAccess(ctx context.Context, in *pb_server.UpdateSer
 	switch in.Auth {
 	case pb_server.ServerAuth_PASSWORD:
 		_, err = db.Conn.Exec(`UPDATE "server" 
-			SET "password" = $3
+			SET 
+				"password" = $3
 			WHERE 
 				"id" = $1 
 				AND "project_id" = $2`,
@@ -406,7 +433,8 @@ func (s *server) UpdateServerAccess(ctx context.Context, in *pb_server.UpdateSer
 		cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
 
 		_, err = db.Conn.Exec(`UPDATE "server" 
-			SET "public_key" = $3,
+			SET 
+				"public_key" = $3,
 				"private_key" = $4
 			WHERE 
 				"id" = $1 
@@ -427,8 +455,7 @@ func (s *server) UpdateServerAccess(ctx context.Context, in *pb_server.UpdateSer
 
 // UpdateServerOnlineStatus is ...
 func (s *server) UpdateServerOnlineStatus(ctx context.Context, in *pb_server.UpdateServerOnlineStatus_Request) (*pb_server.UpdateServerOnlineStatus_Response, error) {
-	ct, err := db.Conn.Exec(`	UPDATE
-			"server"
+	ct, err := db.Conn.Exec(`	UPDATE "server"
 		SET
 			"online" = $1
 		FROM
@@ -436,7 +463,11 @@ func (s *server) UpdateServerOnlineStatus(ctx context.Context, in *pb_server.Upd
 		WHERE
 			"server"."id" = $2 AND 
 			"project"."owner_id"  = $3 AND
-			"server"."project_id" = "project"."id"`, in.GetStatus(), in.GetServerId(), in.GetUserId())
+			"server"."project_id" = "project"."id"`,
+		in.GetStatus(),
+		in.GetServerId(),
+		in.GetUserId(),
+	)
 	if err != nil {
 		return &pb_server.UpdateServerOnlineStatus_Response{}, err
 	}
@@ -451,8 +482,7 @@ func (s *server) UpdateServerOnlineStatus(ctx context.Context, in *pb_server.Upd
 // UpdateServerActiveStatus is ...
 func (s *server) UpdateServerActiveStatus(ctx context.Context, in *pb_server.UpdateServerActiveStatus_Request) (*pb_server.UpdateServerActiveStatus_Response, error) {
 	// TODO After turning off, turn off all users who online
-	ct, err := db.Conn.Exec(`	UPDATE
-			"server"
+	ct, err := db.Conn.Exec(`	UPDATE "server"
 		SET
 			"active" = $1
 		FROM
@@ -460,7 +490,11 @@ func (s *server) UpdateServerActiveStatus(ctx context.Context, in *pb_server.Upd
 		WHERE
 			"server"."id" = $2 AND 
 			"project"."owner_id"  = $3 AND
-			"server"."project_id" = "project"."id"`, in.GetStatus(), in.GetServerId(), in.GetUserId())
+			"server"."project_id" = "project"."id"`,
+		in.GetStatus(),
+		in.GetServerId(),
+		in.GetUserId(),
+	)
 	if err != nil {
 		return &pb_server.UpdateServerActiveStatus_Response{}, err
 	}
@@ -477,7 +511,10 @@ func (s *server) UpdateServerHostKey(ctx context.Context, in *pb_server.UpdateSe
 		SET 
 			"host_key" = $1
 		WHERE
-			"server_id" = $2`, in.GetHostkey(), in.GetServerId())
+			"server_id" = $2`,
+		in.GetHostkey(),
+		in.GetServerId(),
+	)
 
 	if err != nil {
 		return &pb_server.UpdateServerHostKey_Response{}, err
@@ -497,7 +534,8 @@ func (s *server) CreateServerSession(ctx context.Context, in *pb_server.CreateSe
 	}
 
 	var sessionID string
-	err := db.Conn.QueryRow(`INSERT INTO "session" (
+	err := db.Conn.QueryRow(`INSERT 
+		INTO "session" (
 			"account_id", 
 			"status", 
 			"created", 
@@ -563,7 +601,8 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 	serverScheme := strings.ToLower(pb_server.ServerScheme_name[int32(in.Scheme.Number())])
 
 	var serverID string
-	err = db.Conn.QueryRow(`INSERT INTO "server" (
+	err = db.Conn.QueryRow(`INSERT 
+		INTO "server" (
 			"project_id", 
 			"address",
 			"port",
@@ -609,10 +648,26 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 	}
 
 	// + record server_access_policy
-	db.Conn.Exec(`INSERT INTO "server_access_policy" ("server_id", "ip", "country") VALUES ($1, 'f', 'f')`, &serverID)
+	db.Conn.Exec(`INSERT 
+		INTO "server_access_policy" (
+			"server_id", 
+			"ip", 
+			"country"
+		) 
+		VALUES 
+			($1, 'f', 'f')`,
+		&serverID,
+	)
 
 	// + record server_activity
-	sqlCountDay := `INSERT INTO "server_activity" ("server_id", "dow", "time_from", "time_to") VALUES `
+	sqlCountDay := `INSERT 
+		INTO "server_activity" (
+			"server_id", 
+			"dow", 
+			"time_from", 
+			"time_to"
+		) 
+		VALUES `
 	for countDay := 1; countDay < 8; countDay++ {
 		for countHour := 0; countHour < 24; countHour++ {
 			timeFrom := fmt.Sprintf("%02v:00:00", strconv.Itoa(countHour))
@@ -636,7 +691,8 @@ func (s *server) UpdateServer(ctx context.Context, in *pb_server.UpdateServer_Re
 	}
 
 	_, err := db.Conn.Exec(`UPDATE "server" 
-		SET "address" = $3, 
+		SET 
+			"address" = $3, 
 			"port" = $4,
 			"login" = $5,
 			"title" = $6,
@@ -682,7 +738,10 @@ func (s *server) GetServerActivity(ctx context.Context, in *pb_server.GetServerA
 			INNER JOIN "server" ON "server_activity"."server_id" = "server"."id" 
 		WHERE
 			"server_activity"."server_id" = $1
-			AND "server"."project_id" = $2`, in.GetServerId(), in.GetProjectId())
+			AND "server"."project_id" = $2`,
+		in.GetServerId(),
+		in.GetProjectId(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -788,11 +847,27 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateS
 	}
 
 	if sqlDelete != "" {
-		sqlDelete = fmt.Sprintf(`DELETE FROM "server_activity" WHERE %s`, sqlDelete[:len(sqlDelete)-2])
+		sqlDelete = fmt.Sprintf(`DELETE 
+			FROM 
+				"server_activity" 
+			WHERE 
+				%s`,
+			sqlDelete[:len(sqlDelete)-2],
+		)
 		db.Conn.Exec(sqlDelete)
 	}
 	if sqlInsert != "" {
-		sqlInsert = fmt.Sprintf(`INSERT INTO "server_activity" ("server_id", "dow", "time_from", "time_to") VALUES %s`, sqlInsert[:len(sqlInsert)-1])
+		sqlInsert = fmt.Sprintf(`INSERT 
+			INTO "server_activity" (
+				"server_id", 
+				"dow", 
+				"time_from", 
+				"time_to"
+			) 
+			VALUES 
+				%s`,
+			sqlInsert[:len(sqlInsert)-1],
+		)
 		db.Conn.Exec(sqlInsert)
 	}
 
@@ -802,7 +877,14 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateS
 // GetServerNameByID is ...
 func (s *server) GetServerNameByID(ctx context.Context, in *pb_server.GetServerNameByID_Request) (*pb_server.GetServerNameByID_Response, error) {
 	var name string
-	err := db.Conn.QueryRow(`SELECT "title" FROM "server" WHERE "id" = $1`, in.GetServerId()).Scan(&name)
+	err := db.Conn.QueryRow(`SELECT 
+			"title" 
+		FROM 
+			"server" 
+		WHERE 
+			"id" = $1`,
+		in.GetServerId(),
+	).Scan(&name)
 	if err != nil {
 		return nil, err
 	}
@@ -832,7 +914,9 @@ func (s *server) ListServersShareForUser(ctx context.Context, in *pb_server.List
 			INNER JOIN "project_member" ON "project"."id" = "project_member"."project_id"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE
-			"project_member"."user_id" = $1`+sqlFooter, in.UserId)
+			"project_member"."user_id" = $1`+sqlFooter,
+		in.UserId,
+	)
 	if err != nil {
 		return nil, errors.New("Action ListServersShareForUser query parameters failed")
 	}
@@ -869,7 +953,9 @@ func (s *server) ListServersShareForUser(ctx context.Context, in *pb_server.List
 			"server"
 			INNER JOIN "project_member" ON "server"."project_id" = "project_member"."project_id"
 		WHERE
-			"project_member"."user_id" = $1`, in.GetUserId()).Scan(&total)
+			"project_member"."user_id" = $1`,
+		in.GetUserId(),
+	).Scan(&total)
 
 	return &pb_server.ListServersShareForUser_Response{
 		Total:   total,

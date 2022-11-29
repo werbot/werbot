@@ -67,22 +67,22 @@ INSERT INTO "public"."project_key" ("id", "project_id", "api_secret", "api_key",
 ('39b8565a-7884-4994-a587-55fbe3a257e3', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', 'F5W9LMcNMhDzYMDIMeiofJsaqED2KVKoMv7V', 'yDzYMVNOhYu9BOozSB1tFyt56fm29nY1VTZi', 't', NOW());
 
 INSERT INTO "public"."project_invite" ("id", "project_id", "user_id", "invite", "name", "surname", "email", "created", "status", "ldap_user", "ldap_name") VALUES 
-('05985260-cffd-4878-9d3b-73f09e34e4d0', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', '37AEC639-DD1C-4C73-A8E7-ADD2016050F7', 'test1', 'test1', 'user1@werbot.net', NOW(), 'activated', 'f', ''),
-('1274340d-5976-4660-84d7-4f463f811f9e', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'B5B128D7-FF0C-479C-8216-14EEDF9265AD', 'test2', 'test2', 'user2@werbot.net', NOW(), 'activated', 'f', ''),
-('0f89a265-2875-414c-bdca-4c2ca9c8ba0c', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'a60b7092-660e-4d05-a5d2-7d9b23b276b1', 'test3', 'test3', 'user3@werbot.net', NOW (), 'send', 'f', ''),
-('7b1d48ca-5520-4c39-9f4f-e0ae09aed51b', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '04439feb-f981-4581-8f2c-96f21418f258', 'user100', 'user100', 'user100@werbot.net', NOW (), 'send', 'f', NULL),
-('8ea8005e-ed8e-4a6b-b98b-b2ec21a8f756', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '4f405197-f312-4acb-a333-3781b6d23f9f', 'user101', 'user101', 'user101@werbot.net', NOW (), 'send', 'f', NULL),
-('15173a6b-ab37-4374-be7b-cec44ace0e76', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'b49b830b-d0be-4757-a5ce-ec2677735cc5', 'user102', 'user102', 'user102@werbot.net', NOW (), 'send', 'f', NULL),
-('7060fba6-ada3-41c5-8f88-2cb7d56369d0', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'b44dc303-5857-4bf6-af24-db64f3be1540', 'user103', 'user103', 'user103@werbot.net', NOW (), 'send', 'f', NULL),
-('fcbd9f1e-8bea-4ebe-95b2-e24c1a1f2fb2', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '13614994-63d4-4e1d-9ccd-d80bf2356910', 'user104', 'user104', 'user104@werbot.net', NOW (), 'send', 'f', NULL),
-('6a326873-4139-45c9-ba2a-e8697fc0ef7c', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'f0e9381e-ed3c-431c-bca2-019f8712436f', 'user105', 'user105', 'user105@werbot.net', NOW (), 'send', 'f', NULL),
-('bd167cbb-1322-46fe-b26d-f2f634767873', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'dc1dc751-1cb9-43af-a4e7-30c1100909cb', 'user106', 'user106', 'user106@werbot.net', NOW (), 'send', 'f', NULL),
-('d0ab5a62-a9f6-4be7-93d1-8d77fb3c5053', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '1b53f991-fa1b-401b-8ff4-1fe2f2498fe6', 'user107', 'user107', 'user107@werbot.net', NOW (), 'send', 'f', NULL),
-('377857fe-95f9-4500-9543-fc423ae6fbb1', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '1e6fdbf6-beb3-4a0e-93f6-3fa033fc2626', 'user108', 'user108', 'user108@werbot.net', NOW (), 'send', 'f', NULL),
-('638e2a33-2d70-4ed6-87f3-5651da16b8dc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '4d7f9bee-94e7-4463-a62d-0b939efe6096', 'user109', 'user109', 'user109@werbot.net', NOW (), 'send', 'f', NULL),
-('6f8465b4-c60d-461c-8a28-6e79ee3b47f1', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '506732f3-8477-4963-af08-93e5071b381c', 'user110', 'user110', 'user110@werbot.net', NOW (), 'send', 'f', NULL),
-('ccabd5e7-1bf6-46de-be64-b9d66c50c144', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'AA116F59-3061-4403-8FD9-4C3795846AD4', 'test', 'test', 'test-user@werbot.net', NOW(), 'activated',  'f', ''),
-('34411471-2536-404a-a2c5-cd85ccee6bd4', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'E404359C-7A48-427F-A449-41754E096AE3', 'test', 'test', 'test-user@werbot.net', NOW(), 'activated', 'f', '');
+('05985260-cffd-4878-9d3b-73f09e34e4d0', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', '37AEC639-DD1C-4C73-A8E7-ADD2016050F7', 'user', 'test1', 'user@werbot.net', NOW(), 'activated', 'f', ''),
+('1274340d-5976-4660-84d7-4f463f811f9e', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'B5B128D7-FF0C-479C-8216-14EEDF9265AD', 'user', 'test1', 'user@werbot.net', NOW(), 'activated', 'f', ''),
+('0f89a265-2875-414c-bdca-4c2ca9c8ba0c', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'a60b7092-660e-4d05-a5d2-7d9b23b276b1', 'test3', 'user3', 'user3@werbot.net', NOW (), 'send', 'f', ''),
+('7b1d48ca-5520-4c39-9f4f-e0ae09aed51b', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '04439feb-f981-4581-8f2c-96f21418f258', 'invite100', 'user100', 'invite100@werbot.net', NOW (), 'send', 'f', NULL),
+('8ea8005e-ed8e-4a6b-b98b-b2ec21a8f756', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '4f405197-f312-4acb-a333-3781b6d23f9f', 'invite101', 'user101', 'invite101@werbot.net', NOW (), 'send', 'f', NULL),
+('15173a6b-ab37-4374-be7b-cec44ace0e76', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'b49b830b-d0be-4757-a5ce-ec2677735cc5', 'invite102', 'user102', 'invite102@werbot.net', NOW (), 'send', 'f', NULL),
+('7060fba6-ada3-41c5-8f88-2cb7d56369d0', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'b44dc303-5857-4bf6-af24-db64f3be1540', 'invite103', 'user103', 'invite103@werbot.net', NOW (), 'send', 'f', NULL),
+('fcbd9f1e-8bea-4ebe-95b2-e24c1a1f2fb2', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '13614994-63d4-4e1d-9ccd-d80bf2356910', 'invite104', 'user104', 'invite104@werbot.net', NOW (), 'send', 'f', NULL),
+('6a326873-4139-45c9-ba2a-e8697fc0ef7c', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'f0e9381e-ed3c-431c-bca2-019f8712436f', 'invite105', 'user105', 'invite105@werbot.net', NOW (), 'send', 'f', NULL),
+('bd167cbb-1322-46fe-b26d-f2f634767873', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'dc1dc751-1cb9-43af-a4e7-30c1100909cb', 'invite106', 'user106', 'invite106@werbot.net', NOW (), 'send', 'f', NULL),
+('d0ab5a62-a9f6-4be7-93d1-8d77fb3c5053', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '1b53f991-fa1b-401b-8ff4-1fe2f2498fe6', 'invite107', 'user107', 'invite107@werbot.net', NOW (), 'send', 'f', NULL),
+('377857fe-95f9-4500-9543-fc423ae6fbb1', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '1e6fdbf6-beb3-4a0e-93f6-3fa033fc2626', 'invite108', 'user108', 'invite108@werbot.net', NOW (), 'send', 'f', NULL),
+('638e2a33-2d70-4ed6-87f3-5651da16b8dc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '4d7f9bee-94e7-4463-a62d-0b939efe6096', 'invite109', 'user109', 'invite109@werbot.net', NOW (), 'send', 'f', NULL),
+('6f8465b4-c60d-461c-8a28-6e79ee3b47f1', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '506732f3-8477-4963-af08-93e5071b381c', 'invite110', 'user110', 'invite110@werbot.net', NOW (), 'send', 'f', NULL),
+('ccabd5e7-1bf6-46de-be64-b9d66c50c144', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'AA116F59-3061-4403-8FD9-4C3795846AD4', 'test', 'test-user', 'test-user@werbot.net', NOW(), 'activated',  'f', ''),
+('34411471-2536-404a-a2c5-cd85ccee6bd4', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'E404359C-7A48-427F-A449-41754E096AE3', 'test', 'test-user', 'test-user@werbot.net', NOW(), 'activated', 'f', '');
 
 INSERT INTO "public"."project_member" ("id", "project_id", "user_id", "active", "online", "role", "created") VALUES 
 ('9d3f7efc-14a5-436d-a763-314441d6e0a5', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 't', 'f', 'user', NOW()),

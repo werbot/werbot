@@ -23,7 +23,8 @@ func (s *audit) CreateAudit(ctx context.Context, in *pb_audit.CreateAudit_Reques
 	}
 
 	var auditID string
-	err := db.Conn.QueryRow(`INSERT INTO "audit" (
+	err := db.Conn.QueryRow(`INSERT 
+		INTO "audit" (
 			"account_id",
 			"time_start",
 			"version",
@@ -38,7 +39,13 @@ func (s *audit) CreateAudit(ctx context.Context, in *pb_audit.CreateAudit_Reques
 			"client_ip")
 		VALUES
 			($1, $2, $3, 0, 0, '0', '', $4, '', '/bin/sh', $4, $5) 
-		RETURNING "id"`, in.GetAccountId(), time.Now(), in.GetVersion(), in.GetSession(), in.GetClientIp()).Scan(&auditID)
+		RETURNING "id"`,
+		in.GetAccountId(),
+		time.Now(),
+		in.GetVersion(),
+		in.GetSession(),
+		in.GetClientIp(),
+	).Scan(&auditID)
 	if err != nil {
 		return nil, errors.New("Action AuditSessionAdd failed")
 	}

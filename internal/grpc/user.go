@@ -112,15 +112,16 @@ func (u *user) GetUser(ctx context.Context, in *pb_user.GetUser_Request) (*pb_us
     FROM
       "user" 
     WHERE
-      "id" = $1`, in.GetUserId()).
-		Scan(
-			&user.Fio,
-			&user.Name,
-			&user.Email,
-			&user.Enabled,
-			&user.Confirmed,
-			&user.Role,
-		)
+      "id" = $1`,
+		in.GetUserId(),
+	).Scan(
+		&user.Fio,
+		&user.Name,
+		&user.Email,
+		&user.Enabled,
+		&user.Confirmed,
+		&user.Role,
+	)
 	if err != nil {
 		return nil, errors.New("Failed parse user information")
 	}
@@ -137,7 +138,14 @@ func (u *user) CreateUser(ctx context.Context, in *pb_user.CreateUser_Request) (
 
 	// Checking if the email address already exists
 	var id string
-	err = tx.QueryRow(`SELECT "id" FROM "user" WHERE "email" = $1`, in.GetEmail()).Scan(&id)
+	err = tx.QueryRow(`SELECT 
+			"id" 
+		FROM 
+			"user"
+		WHERE 
+			"email" = $1`,
+		in.GetEmail(),
+	).Scan(&id)
 	if err != nil {
 		return nil, errors.New("Query Execution Problem")
 	}
@@ -147,7 +155,8 @@ func (u *user) CreateUser(ctx context.Context, in *pb_user.CreateUser_Request) (
 
 	// Adds a new entry to the database
 	password, _ := crypto.HashPassword(in.Password)
-	err = tx.QueryRow(`INSERT INTO "user" (
+	err = tx.QueryRow(`INSERT 
+	INTO "user" (
 		"fio",
 		"name",
 		"email",
@@ -198,7 +207,14 @@ func (u *user) UpdateUser(ctx context.Context, in *pb_user.UpdateUser_Request) (
 
 	cnt++
 	args = append(args, in.GetUserId())
-	query := fmt.Sprintf(`UPDATE "user" SET %s WHERE "id" = $%v`, strings.Join(qParts, ", "), cnt)
+	query := fmt.Sprintf(`UPDATE "user" 
+		SET 
+			%s 
+		WHERE 
+			"id" = $%v`,
+		strings.Join(qParts, ", "),
+		cnt,
+	)
 	_, err := db.Conn.Exec(query, args...)
 	if err != nil {
 		return nil, errors.New("Failed to update user data")
@@ -212,7 +228,16 @@ func (u *user) DeleteUser(ctx context.Context, in *pb_user.DeleteUser_Request) (
 	var name, passwordHash, email, deleteToken string
 
 	if in.GetPassword() != "" && in.GetUserId() != "" {
-		err := db.Conn.QueryRow(`SELECT "name", "password", "email" FROM "user" WHERE "id" = $1`, in.GetUserId()).Scan(&name, &passwordHash, &email)
+		err := db.Conn.QueryRow(`SELECT 
+				"name", 
+				"password", 
+				"email" 
+			FROM 
+				"user" 
+			WHERE 
+				"id" = $1`,
+			in.GetUserId(),
+		).Scan(&name, &passwordHash, &email)
 		if err != nil {
 			return nil, errors.New("Query Execution Problem")
 		}
@@ -231,7 +256,15 @@ func (u *user) DeleteUser(ctx context.Context, in *pb_user.DeleteUser_Request) (
 		}
 
 		deleteToken = uuid.New().String()
-		_, err = db.Conn.Exec(`INSERT INTO "user_token" ("token", "user_id", "date_create", "action") VALUES ($1, $2, NOW(), 'delete')`,
+		_, err = db.Conn.Exec(`INSERT 
+			INTO "user_token" (
+				"token", 
+				"user_id", 
+				"date_create", 
+				"action"
+			) 
+			VALUES 
+				($1, $2, NOW(), 'delete')`,
 			deleteToken,
 			in.GetUserId(),
 		)
@@ -252,13 +285,35 @@ func (u *user) DeleteUser(ctx context.Context, in *pb_user.DeleteUser_Request) (
 		}
 
 		tx := db.Conn.MustBegin()
-		tx.MustExec(`UPDATE "user" SET "enabled" = 'f' WHERE "id" = $1`, in.GetUserId())
-		tx.MustExec(`UPDATE "user_token" SET "used" = 't', date_used = NOW() WHERE "token" = $1`, in.GetToken())
+		tx.MustExec(`UPDATE "user" 
+			SET 
+				"enabled" = 'f' 
+			WHERE 
+				"id" = $1`,
+			in.GetUserId(),
+		)
+
+		tx.MustExec(`UPDATE "user_token" 
+			SET 
+				"used" = 't', 
+				date_used = NOW() 
+			WHERE 
+				"token" = $1`,
+			in.GetToken(),
+		)
 		if err := tx.Commit(); err != nil {
 			return nil, errors.New("Account deletion failed")
 		}
 
-		err := db.Conn.QueryRow(`SELECT "name", "email" FROM "user" WHERE "id" = $1`, in.GetUserId()).Scan(&name, &email)
+		err := db.Conn.QueryRow(`SELECT 
+				"name", 
+				"email" 
+			FROM 
+				"user" 
+			WHERE 
+				"id" = $1`,
+			in.GetUserId(),
+		).Scan(&name, &email)
 		if err != nil {
 			return nil, errors.New("Query Execution Problem")
 		}
@@ -309,16 +364,30 @@ func (u *user) AuthUser(ctx context.Context, in *pb_user.AuthUser_Request) (*pb_
 	}
 
 	var password string
-	err := db.Conn.QueryRow(`SELECT "id", "fio", "name", "password", "enabled", "confirmed", "role" FROM "user" WHERE "email" = $1 AND "enabled" = 't' AND "confirmed" = 't'`, in.GetEmail()).
-		Scan(
-			&user.UserId,
-			&user.Fio,
-			&user.Name,
-			&password,
-			&user.Enabled,
-			&user.Confirmed,
-			&user.Role,
-		)
+	err := db.Conn.QueryRow(`SELECT 
+			"id", 
+			"fio", 
+			"name", 
+			"password", 
+			"enabled", 
+			"confirmed", 
+			"role" 
+		FROM 
+			"user" 
+		WHERE 
+			"email" = $1 
+			AND "enabled" = 't' 
+			AND "confirmed" = 't'`,
+		in.GetEmail(),
+	).Scan(
+		&user.UserId,
+		&user.Fio,
+		&user.Name,
+		&password,
+		&user.Enabled,
+		&user.Confirmed,
+		&user.Role,
+	)
 	if err != nil {
 		return nil, errors.New(message.ErrNotFound)
 	}
@@ -361,7 +430,15 @@ func (u *user) ResetPassword(ctx context.Context, in *pb_user.ResetPassword_Requ
 		}
 
 		resetToken = uuid.New().String()
-		_, err = db.Conn.Exec(`INSERT INTO "user_token" ("token", "user_id", "date_create", "action") VALUES ($1, $2, NOW(), 'reset')`,
+		_, err = db.Conn.Exec(`INSERT 
+			INTO "user_token" (
+				"token", 
+				"user_id", 
+				"date_create", 
+				"action"
+			)
+			VALUES 
+				($1, $2, NOW(), 'reset')`,
 			resetToken,
 			id,
 		)
@@ -399,8 +476,23 @@ func (u *user) ResetPassword(ctx context.Context, in *pb_user.ResetPassword_Requ
 		}
 
 		tx := db.Conn.MustBegin()
-		tx.MustExec(`UPDATE "user" SET "password" = $1 WHERE "id" = $2`, newPassword, id)
-		tx.MustExec(`UPDATE "user_token" SET "used" = 't', date_used = NOW() WHERE "token" = $1`, in.GetToken())
+		tx.MustExec(`UPDATE "user" 
+			SET 
+				"password" = $1 
+			WHERE 
+				"id" = $2`,
+			newPassword,
+			id,
+		)
+
+		tx.MustExec(`UPDATE "user_token" 
+			SET 
+				"used" = 't', 
+				date_used = NOW() 
+			WHERE 
+				"token" = $1`,
+			in.GetToken(),
+		)
 
 		if err = tx.Commit(); err != nil {
 			return nil, errors.New("There was a problem updating")
@@ -429,11 +521,14 @@ func (u *user) getUserIDByToken(token string) (string, error) {
 	var id string
 	err := db.Conn.QueryRow(`SELECT 
 			"user_id" AS "id" 
-		FROM "user_token" 
+		FROM 
+			"user_token" 
 		WHERE 
 			"token" = $1 
 			AND "used" = 'f' 
-			AND "date_create" > NOW() - INTERVAL '24 hour'`, token).Scan(&id)
+			AND "date_create" > NOW() - INTERVAL '24 hour'`,
+		token,
+	).Scan(&id)
 	if err != nil {
 		return id, errors.New("Query Execution Problem")
 	}
@@ -449,12 +544,16 @@ func (u *user) getTokenByUserID(userID, action string) (string, error) {
 	var token string
 	err := db.Conn.QueryRow(`SELECT 
 			"token" 
-		FROM "user_token" 
+		FROM 
+			"user_token" 
 		WHERE 
 			"user_id" = $1 
 			AND "used" = 'f' 
 			AND "action" = $2
-			AND "date_create" > NOW() - INTERVAL '24 hour'`, userID, action).Scan(&token)
+			AND "date_create" > NOW() - INTERVAL '24 hour'`,
+		userID,
+		action,
+	).Scan(&token)
 	if err != nil {
 		return token, errors.New("Query Execution Problem")
 	}

@@ -35,7 +35,7 @@
           </td>
           <td>
             <div class="flex items-center">
-              <Toggle :id="index" @change="addingMember(index)" />
+              <SvgIcon name="plus_square" @click="addingMember(index)" class="cursor-pointer" />
             </div>
           </td>
         </tr>
@@ -66,7 +66,7 @@
 <script setup lang="ts">
 import { ref, onMounted, getCurrentInstance } from "vue";
 import { useRoute } from "vue-router";
-import { Toggle, BServers, Badge, Pagination } from "@/components";
+import { SvgIcon, Toggle, BServers, Badge, Pagination } from "@/components";
 import { showMessage } from "@/utils/message";
 
 import { getMembersWithoutServer, postServerMember } from "@/api/member/server";
