@@ -429,14 +429,25 @@ srv_migration:
 
 
 #############################################################################
-.PHONY: srv_migration_reset
-srv_migration_reset:
-	@$(MAKE) -s srv_migration test down
-	@$(MAKE) -s srv_migration saas down
-	@$(MAKE) -s srv_migration ent down
-	@$(MAKE) -s srv_migration ent up
-	@$(MAKE) -s srv_migration saas up
-	@$(MAKE) -s srv_migration test up
+.PHONY: srv_migration_dev
+srv_migration_dev:
+	$(eval ARG_TYPE = $(filter up down reset,$(MAKECMDGOALS)))
+	@if [ $(ARG_TYPE) ]; then \
+		if [ "$(ARG_TYPE)" == "up" ];then \
+			$(MAKE) -s srv_migration ent up; \
+			$(MAKE) -s srv_migration saas up; \
+			$(MAKE) -s srv_migration test up; \
+		elif [ "$(ARG_TYPE)" == "down" ]; then \
+			$(MAKE) -s srv_migration test down; \
+			$(MAKE) -s srv_migration saas down; \
+			$(MAKE) -s srv_migration ent down; \
+		elif [ "$(ARG_TYPE)" == "reset" ]; then \
+			$(MAKE) -s srv_migration_dev down; \
+			$(MAKE) -s srv_migration_dev up; \
+		fi;\
+	else \
+		echo "Parameters not passed";\
+	fi
 #############################################################################
 
 
