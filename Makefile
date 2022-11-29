@@ -388,8 +388,6 @@ upd_cdn_ip:
 
 #############################################################################
 # install latest version goose - go install github.com/pressly/goose/v3/cmd/goose@latest
-# make srv_migration ent up && make srv_migration saas up && make srv_migration test up
-# make srv_migration test down && make srv_migration saas down && make srv_migration ent down
 .PHONY: srv_migration
 srv_migration:
 	$(eval MIGRATION_DIR=${ROOT_PATH}/migration)
@@ -427,6 +425,18 @@ srv_migration:
 	else \
 		echo "Parameters not passed";\
 	fi
+#############################################################################
+
+
+#############################################################################
+.PHONY: srv_migration_reset
+srv_migration_reset:
+	@$(MAKE) -s srv_migration test down
+	@$(MAKE) -s srv_migration saas down
+	@$(MAKE) -s srv_migration ent down
+	@$(MAKE) -s srv_migration ent up
+	@$(MAKE) -s srv_migration saas up
+	@$(MAKE) -s srv_migration test up
 #############################################################################
 
 
