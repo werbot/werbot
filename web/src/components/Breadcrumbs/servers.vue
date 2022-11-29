@@ -11,7 +11,7 @@
     <div class="flex flex-row pt-1">
       <div class="flex w-20">Server ID:</div>
       <Badge :name="props.serverId" />
-      {{props.sessionId}}
+      {{ props.sessionId }}
       <router-link :to="{ name: 'projects-projectId-servers-serverId-session' }">
         <Badge name="All sessions" color="blue" />
       </router-link>
@@ -24,7 +24,10 @@
         <Badge name="Members" color="blue" />
       </router-link>
 
-      <router-link :to="{ name: 'projects-projectId-servers-serverId-members' }" v-if="props.sessionId">
+      <router-link
+        :to="{ name: 'projects-projectId-servers-serverId-members' }"
+        v-if="props.sessionId"
+      >
         <Badge name="Sessions" color="blue" />
       </router-link>
     </div>

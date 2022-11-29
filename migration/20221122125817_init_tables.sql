@@ -91,7 +91,6 @@ CREATE TABLE "public"."server" (
     "auth" varchar(255) NOT NULL CHECK ((auth)::text = ANY ((ARRAY['key'::character varying, 'password'::character varying])::text[])),
     "scheme" varchar(255) NOT NULL CHECK ((scheme)::text = ANY ((ARRAY['telnet'::character varying, 'ssh'::character varying])::text[])),
     "previous_state" json NOT NULL DEFAULT '{}'::json,
-    "host_key" text NOT NULL DEFAULT ''::text,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE
 );

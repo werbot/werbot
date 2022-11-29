@@ -1,7 +1,7 @@
 <template>
   <div class="artboard">
     <header>
-      <h1>Server firewall</h1>
+      <h1>Firewall</h1>
     </header>
     <BServers :projectId="props.projectId" :serverId="props.serverId" />
 
