@@ -283,7 +283,7 @@ CREATE TABLE "public"."server_host_key" (
   FOREIGN KEY ("server_id") REFERENCES "public"."server" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
 );
 
-CREATE TABLE "public"."project_key" (
+CREATE TABLE "public"."project_api" (
     "id" uuid DEFAULT gen_random_uuid (),
     "project_id" uuid NOT NULL,
     "api_key" varchar(37) COLLATE "pg_catalog"."default" NOT NULL,
@@ -299,7 +299,7 @@ CREATE TABLE "public"."project_key" (
 -- +goose StatementBegin
 DROP EXTENSION IF EXISTS "pgcrypto";
 DROP TABLE IF EXISTS "public"."server_host_key";
-DROP TABLE IF EXISTS "public"."project_key";
+DROP TABLE IF EXISTS "public"."project_api";
 DROP TABLE IF EXISTS "public"."limit_user_count";
 DROP TABLE IF EXISTS "public"."audit_record";
 DROP TABLE IF EXISTS "public"."audit";

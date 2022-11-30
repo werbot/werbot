@@ -32,7 +32,7 @@ func (p *project) ListProjects(ctx context.Context, in *pb_project.ListProjects_
 			( SELECT COUNT ( * ) FROM "server" WHERE "project_id" = "project"."id" ) AS "count_servers" 
 		FROM
 			"project"
-			LEFT JOIN "project_key" ON "project"."id" = "project_key"."project_id"` + sqlSearch + sqlFooter)
+			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch + sqlFooter)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (p *project) ListProjects(ctx context.Context, in *pb_project.ListProjects_
 	// Total count for pagination
 	var total int32
 	db.Conn.QueryRow(`SELECT COUNT (*) FROM "project"
-			LEFT JOIN "project_key" ON "project"."id" = "project_key"."project_id"` + sqlSearch).Scan(&total)
+			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch).Scan(&total)
 
 	return &pb_project.ListProjects_Response{
 		Total:    total,
@@ -88,7 +88,7 @@ func (p *project) GetProject(ctx context.Context, in *pb_project.GetProject_Requ
 			( SELECT COUNT ( * ) FROM "server" WHERE "project_id" = "project"."id" ) AS "count_servers" 
 		FROM
 			"project"
-			LEFT JOIN "project_key" ON "project"."id" = "project_key"."project_id"
+			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"
 		WHERE
 	    	"project"."owner_id" = $1 AND "project"."id" = $2`, in.GetOwnerId(), in.GetProjectId()).
 		Scan(
@@ -124,7 +124,7 @@ func (p *project) CreateProject(ctx context.Context, in *pb_project.CreateProjec
 		return nil, err
 	}
 
-	_, err = db.Conn.Exec(`INSERT INTO "public"."project_key" ("project_id", "api_key", "api_secret", "online", "created") VALUES ($1, $2, $3, 't', NOW())`,
+	_, err = db.Conn.Exec(`INSERT INTO "public"."project_api" ("project_id", "api_key", "api_secret", "online", "created") VALUES ($1, $2, $3, 't', NOW())`,
 		id,
 		crypto.NewPassword(37, false),
 		crypto.NewPassword(37, false),
@@ -173,7 +173,7 @@ func (p *project) DeleteProject(ctx context.Context, in *pb_project.DeleteProjec
 
 	if _, err := db.Conn.Exec(`DELETE 
 		FROM 
-			"project_key" 
+			"project_api" 
 		WHERE 
 			"id" = $1`,
 		in.GetProjectId(),

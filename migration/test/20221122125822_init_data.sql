@@ -49,7 +49,7 @@ INSERT INTO "public"."project" ("id", "owner_id", "title", "login", "created") V
 ('6a799ffb-55ad-4932-967e-1b0dffacc827', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_project2', 'testproject2', NOW()),
 ('69fbe29e-c955-41ad-b0c4-3a474cf01ea9', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'test_project3', 'testproject3', NOW());
 
-INSERT INTO "public"."project_key" ("id", "project_id", "api_secret", "api_key", "online", "created") VALUES
+INSERT INTO "public"."project_api" ("id", "project_id", "api_secret", "api_key", "online", "created") VALUES
 ('a1059d92-d032-427c-9444-571967d1f9a5', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'AweHj3rtANGfy0gG02ptsDzYMwYmgwnY11CC', '3GZBSPqDi7r1FDzYMUNV4l9HOJlb9y8b3ZI9', 't', NOW()),
 ('5d9e8b3e-d222-426e-980f-4664e52308c8', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'U8uSEKjM5a979LIQEhEUxKcP0OGYUTLBDzYM', 'r8tKBI6C64LDzYMRqxi1fZ8zMyikOERwMv0g', 't', NOW()),
 ('268def26-4efb-47c4-b699-f34903cf05f5', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', 'aDzYMy9g3mmsqXazPLvvCbj4kJAsgatxBDVW', '5tYJOkr3oLCOEvhwnB83AmDzYM7yJsJ0Sonl', 't', NOW()),
