@@ -10,9 +10,8 @@ import (
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
-	"github.com/werbot/werbot/internal/message"
 
 	pb_key "github.com/werbot/werbot/internal/grpc/proto/key"
 )
@@ -110,7 +109,7 @@ func (k *key) GetPublicKey(ctx context.Context, in *pb_key.GetPublicKey_Request)
 			&created,
 		)
 	if err != nil {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	publicKey.LastUsed = timestamppb.New(lastUsed.Time)
@@ -212,7 +211,7 @@ func (k *key) UpdatePublicKey(ctx context.Context, in *pb_key.UpdatePublicKey_Re
 	}
 
 	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	return &pb_key.UpdatePublicKey_Response{}, nil
@@ -234,7 +233,7 @@ func (k *key) DeletePublicKey(ctx context.Context, in *pb_key.DeletePublicKey_Re
 	}
 
 	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	return &pb_key.DeletePublicKey_Response{}, nil
@@ -249,7 +248,7 @@ func (k *key) GenerateSSHKey(ctx context.Context, in *pb_key.GenerateSSHKey_Requ
 	}
 
 	sub := uuid.New().String()
-	if err := cache.Set(fmt.Sprintf("tmp_key_ssh::%s", sub), key.PrivateKey, config.GetDuration("SSH_KEY_REFRESH_DURATION", "5m")); err != nil {
+	if err := cache.Set(fmt.Sprintf("tmp_key_ssh::%s", sub), key.PrivateKey, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "5m")); err != nil {
 		return nil, err
 	}
 

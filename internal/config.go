@@ -1,4 +1,4 @@
-package config
+package internal
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Load reads .env file configurations into ENV
-func Load(path string) error {
+// LoadConfig reads .env file configurations into ENV
+func LoadConfig(path string) error {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		return err

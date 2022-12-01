@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
@@ -28,7 +28,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 	input := new(pb.GetProject_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -52,7 +52,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 			return httputil.ReturnGRPCError(c, err)
 		}
 		if projects.GetTotal() == 0 {
-			return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+			return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 		}
 		return httputil.StatusOK(c, "Projects", projects)
 	}
@@ -66,7 +66,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	if project == nil {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	// If RoleUser_ADMIN - show detailed information
@@ -92,7 +92,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 	input := new(pb.CreateProject_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -125,7 +125,7 @@ func (h *Handler) patchProject(c *fiber.Ctx) error {
 	input := new(pb.UpdateProject_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -159,7 +159,7 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 	input := new(pb.DeleteProject_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)

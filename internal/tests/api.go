@@ -16,9 +16,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/message"
 	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/module/auth"
@@ -60,19 +59,19 @@ type Tokens struct {
 func InitTestServer(envPath string) *TestHandler {
 	rand.Seed(time.Now().UnixNano())
 
-	config.Load(envPath)
+	internal.LoadConfig(envPath)
 
 	grpcClient := grpc.NewClient(
-		config.GetString("GRPCSERVER_HOST", "localhost:50051"),
-		config.GetString("GRPCSERVER_TOKEN", "token"),
-		config.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
-		config.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),
-		config.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
+		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
+		internal.GetString("GRPCSERVER_TOKEN", "token"),
+		internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
+		internal.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),
+		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 
 	cacheClient := cache.NewRedisClient(context.TODO(), &redis.Options{
-		Addr:     config.GetString("REDIS_ADDR", "localhost:6379"),
-		Password: config.GetString("REDIS_PASSWORD", "redisPassword"),
+		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
+		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
 
 	server := fiber.New(fiber.Config{
@@ -112,7 +111,7 @@ func (h *TestHandler) GetUserInfo(signIn *pb.SignIn_Request) *UserInfo {
 // FinishHandler is ...
 func (h *TestHandler) FinishHandler() {
 	h.App.Use(func(c *fiber.Ctx) error {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	})
 
 	h.Handler = h.fiberToHandlerFunc()

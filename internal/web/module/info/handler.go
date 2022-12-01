@@ -12,11 +12,9 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/logger"
-	"github.com/werbot/werbot/internal/message"
 	"github.com/werbot/werbot/internal/utils/validator"
-	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -34,7 +32,7 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 	userParameter := middleware.GetUserParameters(c)
 
 	if !userParameter.IsUserAdmin() {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
@@ -56,7 +54,7 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 		return httputil.InternalServerError(c, "Unable to get list of containers", nil)
 	}
 
-	urlVersion := fmt.Sprintf("%s/v1/update/version", config.GetString("API_DSN", "https://api.werbot.com"))
+	urlVersion := fmt.Sprintf("%s/v1/update/version", internal.GetString("API_DSN", "https://api.werbot.com"))
 	getVersionInfo, err := http.Get(urlVersion)
 	if err != nil {
 		message := "Error getting data for updates"
@@ -98,7 +96,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 	request := new(pb.GetInfo_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -131,9 +129,9 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 func (h *Handler) getVersion(c *fiber.Ctx) error {
 	// userParameter := middleware.GetUserParametersFromCtx(c)
 	// if userParameter.UserRole != pb_user.RoleUser_ADMIN {
-	// 	return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+	// 	return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	// }
 
-	info := fmt.Sprintf("%s (%s)", version.Version(), version.Commit())
+	info := fmt.Sprintf("%s (%s)", internal.Version(), internal.Commit())
 	return httputil.StatusOK(c, "Version API", info)
 }

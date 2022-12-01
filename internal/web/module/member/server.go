@@ -7,7 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -30,7 +30,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 	input := new(pb.GetServerMember_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -68,7 +68,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	if member == nil {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	return httputil.StatusOK(c, "Member information", member)
@@ -86,7 +86,7 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 	input := new(pb.CreateServerMember_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -121,7 +121,7 @@ func (h *Handler) patchServerMember(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerMember_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -159,7 +159,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 	input := new(pb.DeleteServerMember_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -196,7 +196,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	input := new(pb.GetMembersWithoutServer_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -234,7 +234,7 @@ func (h *Handler) patchServerMemberStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerMemberStatus_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)

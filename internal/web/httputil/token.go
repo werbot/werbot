@@ -5,8 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 )
 
 /*
@@ -43,17 +42,17 @@ type RefreshToken struct {
 func CreateToken(sub string, context any) (*Detail, error) {
 	err := error(nil)
 	detail := &Detail{
-		AccessTokenExp:  config.GetDuration("ACCESS_TOKEN_DURATION", "15m"),
-		RefreshTokenExp: config.GetDuration("REFRESH_TOKEN_DURATION", "168h"),
+		AccessTokenExp:  internal.GetDuration("ACCESS_TOKEN_DURATION", "15m"),
+		RefreshTokenExp: internal.GetDuration("REFRESH_TOKEN_DURATION", "168h"),
 		Context:         context,
 	}
 
-	detail.Tokens.AccessToken, err = generate(sub, config.GetString("ACCESS_TOKEN_SECRET", "accessTokenSecret"), detail.AccessTokenExp, detail.Context)
+	detail.Tokens.AccessToken, err = generate(sub, internal.GetString("ACCESS_TOKEN_SECRET", "accessTokenSecret"), detail.AccessTokenExp, detail.Context)
 	if err != nil {
 		return nil, err
 	}
 
-	detail.Tokens.RefreshToken, err = generate(sub, config.GetString("REFRESH_TOKEN_SECRET", "refreshTokenSecret"), detail.RefreshTokenExp, nil)
+	detail.Tokens.RefreshToken, err = generate(sub, internal.GetString("REFRESH_TOKEN_SECRET", "refreshTokenSecret"), detail.RefreshTokenExp, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +65,7 @@ func VerifyToken(token *jwt.Token) (any, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 	}
-	return []byte(config.GetString("REFRESH_TOKEN_SECRET", "refreshTokenSecret")), nil
+	return []byte(internal.GetString("REFRESH_TOKEN_SECRET", "refreshTokenSecret")), nil
 }
 
 func generate(sub, signed string, expire time.Duration, context any) (string, error) {

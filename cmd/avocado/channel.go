@@ -13,7 +13,7 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc/proto/account"
 	"github.com/werbot/werbot/internal/grpc/proto/audit"
 	"github.com/werbot/werbot/internal/grpc/proto/firewall"
@@ -22,7 +22,6 @@ import (
 	"github.com/werbot/werbot/internal/service/ssh/pty"
 	"github.com/werbot/werbot/internal/utils/convert"
 	"github.com/werbot/werbot/internal/utils/parse"
-	"github.com/werbot/werbot/internal/version"
 
 	pb_account "github.com/werbot/werbot/internal/grpc/proto/account"
 	pb_audit "github.com/werbot/werbot/internal/grpc/proto/audit"
@@ -221,7 +220,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 			return
 		}
 
-		sendMessageInChannel(ch, " _    _  ____  ____  ____  _____  ____ \n( \\/\\/ )( ___)(  _ \\(  _ \\(  _  )(_  _)\n \033[0;31m)    (  )__)  )   / ) _ < )(_)(   )(\033[0m  \n(__/\\__)(____)(_)\\_)(____/(_____) (__) \n"+version.Version()+", "+version.Commit()+", "+version.BuildDate()+"\n\n")
+		sendMessageInChannel(ch, " _    _  ____  ____  ____  _____  ____ \n( \\/\\/ )( ___)(  _ \\(  _ \\(  _  )(_  _)\n \033[0;31m)    (  )__)  )   / ) _ < )(_)(   )(\033[0m  \n(__/\\__)(____)(_)\\_)(____/(_____) (__) \n"+internal.Version()+", "+internal.Commit()+", "+internal.BuildDate()+"\n\n")
 
 		serverList, _ := rClient.ListServers(_ctx, &server.ListServers_Request{
 			Query: "user_name=" + actx.userName,
@@ -411,7 +410,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 		Session:   sessConfig.UUID,
 	}
 
-	wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, int32(config.GetInt("SSHSERVER_RECORD_COUNT", 50)))
+	wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, int32(internal.GetInt("SSHSERVER_RECORD_COUNT", 50)))
 	auditID := wrappedlch.AuditID
 	defer wrappedlch.Close()
 
@@ -457,7 +456,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 		for req := range lreqs {
 			b, err := rch.SendRequest(req.Type, req.WantReply, req.Payload)
 			if req.Type == "exec" {
-				wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, int32(config.GetInt("SSHSERVER_RECORD_COUNT", 50)))
+				wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, int32(internal.GetInt("SSHSERVER_RECORD_COUNT", 50)))
 				command := append(req.Payload, []byte("\n")...)
 				if _, err := wrappedlch.Write(command); err != nil {
 					log.Error().Err(err).Msg("failed to write log")

@@ -8,8 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/werbot/werbot/internal/config"
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/sender"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
@@ -30,7 +29,7 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 	input := new(pb.GetUser_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -63,7 +62,7 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 	}
 
 	if user == nil {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	// If RoleUser_ADMIN - show detailed information
@@ -90,12 +89,12 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 	input := new(pb.CreateUser_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
 	if !userParameter.IsUserAdmin() {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -129,7 +128,7 @@ func (h *Handler) patchUser(c *fiber.Ctx) error {
 	input := new(pb.UpdateUser_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -185,7 +184,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 	}
 
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -209,7 +208,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 
 		mailData := map[string]string{
 			"Name": response.GetName(),
-			"Link": fmt.Sprintf("%s/profile/delete/%s", config.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
+			"Link": fmt.Sprintf("%s/profile/delete/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
 		}
 		go sender.SendMail(response.GetEmail(), "Account deletion confirmation", "account-deletion-confirmation", mailData)
 		return httputil.StatusOK(c, "An email with instructions to delete your profile has been sent to your email", nil)
@@ -235,7 +234,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 		return httputil.StatusOK(c, "Account deleted", nil)
 	}
 
-	return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, nil)
+	return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, nil)
 }
 
 // @Summary      Password update for a user.
@@ -251,7 +250,7 @@ func (h *Handler) patchPassword(c *fiber.Ctx) error {
 	input := new(pb.UpdatePassword_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)

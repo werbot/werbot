@@ -13,8 +13,8 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
-	"github.com/werbot/werbot/internal/message"
 
 	pb_user "github.com/werbot/werbot/internal/grpc/proto/user"
 )
@@ -389,16 +389,16 @@ func (u *user) SignIn(ctx context.Context, in *pb_user.SignIn_Request) (*pb_user
 		&user.Role,
 	)
 	if err != nil {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	// Does he have access to the admin panel
 	//if user.GetRole() != pb_user.RoleUser_ADMIN && in.GetApp() == pb_user.AppType_admin {
-	//	return nil, errors.New(message.MsgAccessIsDenied)
+	//	return nil, errors.New(internal.MsgAccessIsDenied)
 	//}
 
 	if !crypto.CheckPasswordHash(in.GetPassword(), password) {
-		return nil, errors.New(message.ErrInvalidPassword)
+		return nil, errors.New(internal.ErrInvalidPassword)
 	}
 
 	return &user, nil

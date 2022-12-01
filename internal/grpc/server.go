@@ -11,9 +11,8 @@ import (
 
 	"github.com/jackc/pgtype"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
-	"github.com/werbot/werbot/internal/message"
 	"github.com/werbot/werbot/internal/utils/parse"
 
 	pb_server "github.com/werbot/werbot/internal/grpc/proto/server"
@@ -197,7 +196,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 
 		count = int32(len(servers))
 		if count == 0 {
-			return nil, errors.New(message.ErrNotFound)
+			return nil, errors.New(internal.ErrNotFound)
 		}
 
 		return &pb_server.ListServers_Response{
@@ -284,7 +283,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 // GetServer is ...
 func (s *server) GetServer(ctx context.Context, in *pb_server.GetServer_Request) (*pb_server.GetServer_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	var privateDescription, publicDescription pgtype.Text
@@ -337,7 +336,7 @@ func (s *server) GetServer(ctx context.Context, in *pb_server.GetServer_Request)
 // DeleteServer is ...
 func (s *server) DeleteServer(ctx context.Context, in *pb_server.DeleteServer_Request) (*pb_server.DeleteServer_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	_, err := db.Conn.Exec(`DELETE 
@@ -359,7 +358,7 @@ func (s *server) DeleteServer(ctx context.Context, in *pb_server.DeleteServer_Re
 // GetServerAccess is ...
 func (s *server) GetServerAccess(ctx context.Context, in *pb_server.GetServerAccess_Request) (*pb_server.GetServerAccess_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	access := &pb_server.GetServerAccess_Response{}
@@ -409,7 +408,7 @@ func (s *server) GetServerAccess(ctx context.Context, in *pb_server.GetServerAcc
 // UpdateServerAccess is ...
 func (s *server) UpdateServerAccess(ctx context.Context, in *pb_server.UpdateServerAccess_Request) (*pb_server.UpdateServerAccess_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	var err error
@@ -473,7 +472,7 @@ func (s *server) UpdateServerOnlineStatus(ctx context.Context, in *pb_server.Upd
 	}
 
 	if rows, _ := ct.RowsAffected(); rows != 1 {
-		return &pb_server.UpdateServerOnlineStatus_Response{}, errors.New(message.ErrNotFound)
+		return &pb_server.UpdateServerOnlineStatus_Response{}, errors.New(internal.ErrNotFound)
 	}
 
 	return &pb_server.UpdateServerOnlineStatus_Response{}, nil
@@ -499,7 +498,7 @@ func (s *server) UpdateServerActiveStatus(ctx context.Context, in *pb_server.Upd
 		return &pb_server.UpdateServerActiveStatus_Response{}, err
 	}
 	if rows, _ := ct.RowsAffected(); rows != 1 {
-		return &pb_server.UpdateServerActiveStatus_Response{}, errors.New(message.ErrNotFound)
+		return &pb_server.UpdateServerActiveStatus_Response{}, errors.New(internal.ErrNotFound)
 	}
 
 	return &pb_server.UpdateServerActiveStatus_Response{}, nil
@@ -521,7 +520,7 @@ func (s *server) UpdateServerHostKey(ctx context.Context, in *pb_server.UpdateSe
 	}
 
 	if rows, _ := ct.RowsAffected(); rows != 1 {
-		return &pb_server.UpdateServerHostKey_Response{}, errors.New(message.ErrNotFound)
+		return &pb_server.UpdateServerHostKey_Response{}, errors.New(internal.ErrNotFound)
 	}
 
 	return &pb_server.UpdateServerHostKey_Response{}, nil
@@ -530,7 +529,7 @@ func (s *server) UpdateServerHostKey(ctx context.Context, in *pb_server.UpdateSe
 // CreateServerSession is ...
 func (s *server) CreateServerSession(ctx context.Context, in *pb_server.CreateServerSession_Request) (*pb_server.CreateServerSession_Response, error) {
 	if in.GetAccountId() == "" && in.GetUuid() == "" {
-		return nil, errors.New(message.ErrBadRequest)
+		return nil, errors.New(internal.ErrBadRequest)
 	}
 
 	var sessionID string
@@ -562,7 +561,7 @@ func (s *server) CreateServerSession(ctx context.Context, in *pb_server.CreateSe
 // CreateServer is ...
 func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Request) (*pb_server.CreateServer_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	var serverPassword string
@@ -583,7 +582,7 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 			serverKeys.PrivateKey = []byte(privateKey)
 			serverKeys.PublicKey = []byte(in.PublicKey)
 		} else {
-			serverKeys, err = crypto.NewSSHKey(config.GetString("SECURITY_SSH_KEY_TYPE", "KEY_TYPE_ED25519"))
+			serverKeys, err = crypto.NewSSHKey(internal.GetString("SECURITY_SSH_KEY_TYPE", "KEY_TYPE_ED25519"))
 			if err != nil {
 				return nil, err
 			}
@@ -687,7 +686,7 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 // UpdateServer is ...
 func (s *server) UpdateServer(ctx context.Context, in *pb_server.UpdateServer_Request) (*pb_server.UpdateServer_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	_, err := db.Conn.Exec(`UPDATE "server" 
@@ -725,7 +724,7 @@ func (s *server) UpdateServer(ctx context.Context, in *pb_server.UpdateServer_Re
 // GetServerActivity is ...
 func (s *server) GetServerActivity(ctx context.Context, in *pb_server.GetServerActivity_Request) (*pb_server.GetServerActivity_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	data := []map[string]int32{}

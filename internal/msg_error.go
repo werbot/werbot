@@ -1,4 +1,4 @@
-package message
+package internal
 
 const (
 	// ErrBadRequest is bad request

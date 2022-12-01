@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -24,7 +24,7 @@ func (h *Handler) getLicenseInfo(c *fiber.Ctx) error {
 	userParameter := middleware.GetUserParameters(c)
 
 	if !userParameter.IsUserAdmin() {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

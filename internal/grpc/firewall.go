@@ -8,8 +8,7 @@ import (
 
 	"github.com/oschwald/geoip2-golang"
 
-	"github.com/werbot/werbot/internal/config"
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/utils/convert"
 
 	pb_firewall "github.com/werbot/werbot/internal/grpc/proto/firewall"
@@ -40,7 +39,7 @@ func (s *firewall) getAccessList(serverID string) (*pb_firewall.AccessList, erro
 // GetServerFirewall is ...
 func (s *firewall) GetServerFirewall(ctx context.Context, in *pb_firewall.GetServerFirewall_Request) (*pb_firewall.GetServerFirewall_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	// get countries
@@ -129,7 +128,7 @@ func (s *firewall) GetServerFirewall(ctx context.Context, in *pb_firewall.GetSer
 // CreateServerFirewall is ...
 func (s *firewall) CreateServerFirewall(ctx context.Context, in *pb_firewall.CreateServerFirewall_Request) (*pb_firewall.CreateServerFirewall_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	response := &pb_firewall.CreateServerFirewall_Response{}
@@ -150,7 +149,7 @@ func (s *firewall) CreateServerFirewall(ctx context.Context, in *pb_firewall.Cre
 		)
 		row.Scan(&recordID)
 		if recordID != "" {
-			return nil, errors.New(message.MsgObjectAlreadyExists)
+			return nil, errors.New(internal.MsgObjectAlreadyExists)
 		}
 
 		err = db.Conn.QueryRow(`INSERT 
@@ -184,7 +183,7 @@ func (s *firewall) CreateServerFirewall(ctx context.Context, in *pb_firewall.Cre
 		)
 		row.Scan(&recordID)
 		if recordID != "" {
-			return nil, errors.New(message.MsgObjectAlreadyExists)
+			return nil, errors.New(internal.MsgObjectAlreadyExists)
 		}
 
 		err = db.Conn.QueryRow(`INSERT 
@@ -215,7 +214,7 @@ func (s *firewall) CreateServerFirewall(ctx context.Context, in *pb_firewall.Cre
 // UpdateAccessPolicy is ...
 func (s *firewall) UpdateAccessPolicy(ctx context.Context, in *pb_firewall.UpdateAccessPolicy_Request) (*pb_firewall.UpdateAccessPolicy_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	var sql string
@@ -246,7 +245,7 @@ func (s *firewall) UpdateAccessPolicy(ctx context.Context, in *pb_firewall.Updat
 // DeleteServerFirewall is ...
 func (s *firewall) DeleteServerFirewall(ctx context.Context, in *pb_firewall.DeleteServerFirewall_Request) (*pb_firewall.DeleteServerFirewall_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	var sql string
@@ -293,7 +292,7 @@ func (s *firewall) CheckIPAccess(ctx context.Context, in *pb_firewall.CheckIPAcc
 
 	// проверка страны по глобальному списку запрещенных стран
 	countryCode, _ := countryFromIP(in.GetClientIp())
-	if convert.StringInSlice(*countryCode, config.GetSliceString("SECURITY_BAD_COUNTRY", "")) {
+	if convert.StringInSlice(*countryCode, internal.GetSliceString("SECURITY_BAD_COUNTRY", "")) {
 		return &pb_firewall.CheckIPAccess_Response{
 			Access: false,
 		}, nil
@@ -355,7 +354,7 @@ func (s *firewall) CheckServerAccess(ctx context.Context, in *pb_firewall.CheckS
 }
 
 func countryFromIP(ip string) (*string, error) {
-	db, err := geoip2.Open(config.GetString("SECURITY_GEOIP2", "/etc/geoip2/GeoLite2-Country.mmdb"))
+	db, err := geoip2.Open(internal.GetString("SECURITY_GEOIP2", "/etc/geoip2/GeoLite2-Country.mmdb"))
 	if err != nil {
 		return nil, errors.New("countryFromIP failed")
 	}

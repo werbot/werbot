@@ -14,12 +14,10 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/logger"
-	"github.com/werbot/werbot/internal/message"
 	"github.com/werbot/werbot/internal/storage/cache"
-	"github.com/werbot/werbot/internal/version"
 
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/module/auth"
@@ -47,20 +45,20 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	config.Load("../../configs/.env")
-	appPort := config.GetString("APP_PORT", ":8088")
+	internal.LoadConfig("../../configs/.env")
+	appPort := internal.GetString("APP_PORT", ":8088")
 
 	grpcClient := grpc.NewClient(
-		config.GetString("GRPCSERVER_HOST", "localhost:50051"),
-		config.GetString("GRPCSERVER_TOKEN", "token"),
-		config.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
-		config.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),
-		config.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
+		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
+		internal.GetString("GRPCSERVER_TOKEN", "token"),
+		internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
+		internal.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),
+		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 
 	cache := cache.NewRedisClient(ctx, &redis.Options{
-		Addr:     config.GetString("REDIS_ADDR", "localhost:6379"),
-		Password: config.GetString("REDIS_PASSWORD", "redisPassword"),
+		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
+		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
 
 	ln, err := net.Listen("tcp", appPort)
@@ -71,7 +69,7 @@ func main() {
 
 	app = fiber.New(fiber.Config{
 		DisableStartupMessage: true,
-		ServerHeader:          fmt.Sprintf("[werbot] %s-%s", component, version.Version()),
+		ServerHeader:          fmt.Sprintf("[werbot] %s-%s", component, internal.Version()),
 	})
 
 	app.Use(
@@ -99,14 +97,14 @@ func main() {
 	utility.NewHandler(app, grpcClient).Routes()
 
 	// license server
-	license.NewHandler(app, grpcClient, cache, config.GetString("LICENSE_KEY_PUBLIC", "")).Routes()
+	license.NewHandler(app, grpcClient, cache, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes()
 
 	// dynamic handlers
 	handler(app, grpcClient, cache)
 
 	// notFoundRoute func for describe 404 Error route.
 	app.Use(func(c *fiber.Ctx) error {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	})
 
 	log.Info().Str("serverAddress", appPort).Msg(fmt.Sprintf("Start %s server", component))

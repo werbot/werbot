@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
@@ -28,7 +28,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 	input := new(pb.GetPublicKey_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -52,7 +52,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 			return httputil.ReturnGRPCError(c, err)
 		}
 		if keys.GetTotal() == 0 {
-			return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+			return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 		}
 		return httputil.StatusOK(c, "User keys", keys)
 	}
@@ -66,7 +66,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	if key == nil {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	return httputil.StatusOK(c, "Key information", key)
@@ -84,7 +84,7 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 	input := new(pb.CreatePublicKey_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -117,7 +117,7 @@ func (h *Handler) patchKey(c *fiber.Ctx) error {
 	input := new(pb.UpdatePublicKey_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -153,7 +153,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 	input := new(pb.DeletePublicKey_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)

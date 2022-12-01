@@ -6,8 +6,8 @@ import (
 
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
+	"github.com/werbot/werbot/internal"
 	pb_user "github.com/werbot/werbot/internal/grpc/proto/user"
-	"github.com/werbot/werbot/internal/message"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/httputil"
 )
@@ -50,7 +50,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrValidateBodyParams).
+				Equal(`$.message`, internal.ErrValidateBodyParams).
 				Equal(`$.result.email`, "Email is a required field").
 				Equal(`$.result.password`, "Password is a required field").
 				End(),
@@ -61,7 +61,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: []map[string]string{{"zz": "xx"}, {"xx": "zz"}},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrValidateBodyParams).
+				Equal(`$.message`, internal.ErrValidateBodyParams).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -70,7 +70,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{"email": "test-admin@werbot.net"},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrValidateBodyParams).
+				Equal(`$.message`, internal.ErrValidateBodyParams).
 				Equal(`$.result.password`, "Password is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -80,7 +80,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{"password": "test-admin@werbot.net"},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrValidateBodyParams).
+				Equal(`$.message`, internal.ErrValidateBodyParams).
 				Equal(`$.result.email`, "Email is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -90,7 +90,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{"email": "test-admin@werbot.net", "password": "user@werbot.net"},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrInvalidPassword).
+				Equal(`$.message`, internal.ErrInvalidPassword).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -264,7 +264,7 @@ func Test_getProfile(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrUnauthorized).
+				Equal(`$.message`, internal.ErrUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},

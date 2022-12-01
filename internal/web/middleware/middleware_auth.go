@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v3"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/web/httputil"
 )
@@ -27,7 +27,7 @@ func (m authMiddleware) Execute() fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SuccessHandler: m.authSuccess,
 		ErrorHandler:   authError,
-		SigningKey:     []byte(config.GetString("ACCESS_TOKEN_SECRET", "accessTokenSecret")),
+		SigningKey:     []byte(internal.GetString("ACCESS_TOKEN_SECRET", "accessTokenSecret")),
 		SigningMethod:  "HS256",
 	})
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -47,7 +47,7 @@ func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, message.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
 	}
 
 	if userParameter.IsUserAdmin() {
@@ -102,7 +102,7 @@ func (h *Handler) getSubscriptionPlan(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, message.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -140,12 +140,12 @@ func (h *Handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 	input := &pb.UpdatePlan_Request{}
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
 	if !userParameter.IsUserAdmin() {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -175,7 +175,7 @@ func (h *Handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, message.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
 	}
 
 	return httputil.StatusOK(c, "Tariff plan updated successfully", nil)

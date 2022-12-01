@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
@@ -53,11 +53,11 @@ func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, message.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
 	}
 
 	if subscriptions.Total == 0 {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	return httputil.StatusOK(c, "Subscriptions", subscriptions)
@@ -72,11 +72,11 @@ func (h *Handler) patchSubscription(c *fiber.Ctx) error {
 
 	var input userIDReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "новый ключ обновлен", map[string]string{
@@ -94,11 +94,11 @@ func (h *Handler) deleteSubscription(c *fiber.Ctx) error {
 
 	var input userIDReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "подписка удалена", map[string]string{
@@ -116,11 +116,11 @@ func (h *Handler) stopSubscription(c *fiber.Ctx) error {
 
 	var input userIDReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "подписка остановлена", map[string]string{
@@ -138,11 +138,11 @@ func (h *Handler) addSubscriptionToUser(c *fiber.Ctx) error {
 
 	var input userIDReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "подписка добавлена пользователю", map[string]string{

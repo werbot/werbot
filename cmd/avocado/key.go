@@ -11,7 +11,7 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/gliderlabs/ssh"
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc/proto/server"
 	"github.com/werbot/werbot/internal/utils/parse"
 
@@ -20,7 +20,7 @@ import (
 
 func privateKey() func(*ssh.Server) error {
 	return func(srv *ssh.Server) error {
-		privateBytes, err := os.ReadFile(config.GetString("SSHSERVER_PIPER_KEY_FILE", "/server.key"))
+		privateBytes, err := os.ReadFile(internal.GetString("SSHSERVER_PIPER_KEY_FILE", "/server.key"))
 		if err != nil {
 			log.Error().Err(err).Msg("Don't open piper key file")
 		}

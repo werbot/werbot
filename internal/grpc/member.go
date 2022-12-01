@@ -9,8 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/werbot/werbot/internal/message"
-
+	"github.com/werbot/werbot/internal"
 	pb_member "github.com/werbot/werbot/internal/grpc/proto/member"
 	pb_user "github.com/werbot/werbot/internal/grpc/proto/user"
 )
@@ -94,7 +93,7 @@ func (m *member) ListProjectMembers(ctx context.Context, in *pb_member.ListProje
 // GetProjectMember is ...
 func (m *member) GetProjectMember(ctx context.Context, in *pb_member.GetProjectMember_Request) (*pb_member.GetProjectMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	member := pb_member.GetProjectMember_Response{}
@@ -131,7 +130,7 @@ func (m *member) GetProjectMember(ctx context.Context, in *pb_member.GetProjectM
 			&created,
 		)
 	if err != nil {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	// TODO старый формат ROLE
@@ -149,7 +148,7 @@ func (m *member) GetProjectMember(ctx context.Context, in *pb_member.GetProjectM
 // CreateProjectMember is ...
 func (m *member) CreateProjectMember(ctx context.Context, in *pb_member.CreateProjectMember_Request) (*pb_member.CreateProjectMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	var id string
@@ -214,7 +213,7 @@ func (m *member) CreateProjectMember(ctx context.Context, in *pb_member.CreatePr
 // UpdateProjectMember is ...
 func (m *member) UpdateProjectMember(ctx context.Context, in *pb_member.UpdateProjectMember_Request) (*pb_member.UpdateProjectMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	var created pgtype.Timestamp
@@ -263,7 +262,7 @@ func (m *member) UpdateProjectMember(ctx context.Context, in *pb_member.UpdatePr
 // DeleteProjectMember is ...
 func (m *member) DeleteProjectMember(ctx context.Context, in *pb_member.DeleteProjectMember_Request) (*pb_member.DeleteProjectMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	_, err := db.Conn.Query(`DELETE FROM "project_member" WHERE "id" = $1`, in.GetMemberId())
@@ -294,7 +293,7 @@ func (m *member) UpdateProjectMemberStatus(ctx context.Context, in *pb_member.Up
 		return &pb_member.UpdateProjectMemberStatus_Response{}, err
 	}
 	if rows, _ := ct.RowsAffected(); rows != 1 {
-		return &pb_member.UpdateProjectMemberStatus_Response{}, errors.New(message.ErrNotFound)
+		return &pb_member.UpdateProjectMemberStatus_Response{}, errors.New(internal.ErrNotFound)
 	}
 
 	return &pb_member.UpdateProjectMemberStatus_Response{}, nil
@@ -378,7 +377,7 @@ func (m *member) GetUsersByName(ctx context.Context, in *pb_member.GetUsersByNam
 // GetUsersWithoutProject
 func (m *member) GetUsersWithoutProject(ctx context.Context, in *pb_member.GetUsersWithoutProject_Request) (*pb_member.GetUsersWithoutProject_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	users := []*pb_member.GetUsersWithoutProject_Response_User{}
@@ -426,7 +425,7 @@ func (m *member) GetUsersWithoutProject(ctx context.Context, in *pb_member.GetUs
 // ListServerMembers is ...
 func (m *member) ListServerMembers(ctx context.Context, in *pb_member.ListServerMembers_Request) (*pb_member.ListServerMembers_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	sqlFooter := db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
@@ -498,7 +497,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *pb_member.ListServer
 // GetServerMember is ...
 func (m *member) GetServerMember(ctx context.Context, in *pb_member.GetServerMember_Request) (*pb_member.GetServerMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	member := pb_member.GetServerMember_Response{}
@@ -525,7 +524,7 @@ func (m *member) GetServerMember(ctx context.Context, in *pb_member.GetServerMem
 		&lastActivity,
 	)
 	if err != nil {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	member.MemberId = in.GetMemberId()
@@ -537,7 +536,7 @@ func (m *member) GetServerMember(ctx context.Context, in *pb_member.GetServerMem
 // CreateServerMember is ...
 func (m *member) CreateServerMember(ctx context.Context, in *pb_member.CreateServerMember_Request) (*pb_member.CreateServerMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	var memberID string
@@ -581,7 +580,7 @@ func (m *member) CreateServerMember(ctx context.Context, in *pb_member.CreateSer
 // UpdateServerMember is ...
 func (m *member) UpdateServerMember(ctx context.Context, in *pb_member.UpdateServerMember_Request) (*pb_member.UpdateServerMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	_, err := db.Conn.Exec(`UPDATE "server_member" 
@@ -604,7 +603,7 @@ func (m *member) UpdateServerMember(ctx context.Context, in *pb_member.UpdateSer
 // DeleteServerMember is ...
 func (m *member) DeleteServerMember(ctx context.Context, in *pb_member.DeleteServerMember_Request) (*pb_member.DeleteServerMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	_, err := db.Conn.Exec(`DELETE 
@@ -626,7 +625,7 @@ func (m *member) DeleteServerMember(ctx context.Context, in *pb_member.DeleteSer
 // UpdateServerMemberStatus is ...
 func (m *member) UpdateServerMemberStatus(ctx context.Context, in *pb_member.UpdateServerMemberStatus_Request) (*pb_member.UpdateServerMemberStatus_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	ct, err := db.Conn.Exec(`UPDATE "server_member"
@@ -643,7 +642,7 @@ func (m *member) UpdateServerMemberStatus(ctx context.Context, in *pb_member.Upd
 		return &pb_member.UpdateServerMemberStatus_Response{}, err
 	}
 	if rows, _ := ct.RowsAffected(); rows != 1 {
-		return &pb_member.UpdateServerMemberStatus_Response{}, errors.New(message.ErrNotFound)
+		return &pb_member.UpdateServerMemberStatus_Response{}, errors.New(internal.ErrNotFound)
 	}
 
 	return &pb_member.UpdateServerMemberStatus_Response{}, nil
@@ -652,7 +651,7 @@ func (m *member) UpdateServerMemberStatus(ctx context.Context, in *pb_member.Upd
 // GetMembersWithoutServer
 func (m *member) GetMembersWithoutServer(ctx context.Context, in *pb_member.GetMembersWithoutServer_Request) (*pb_member.GetMembersWithoutServer_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	sqlFooter := db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
@@ -726,7 +725,7 @@ func (m *member) GetMembersWithoutServer(ctx context.Context, in *pb_member.GetM
 // ListProjectMembersInvite is ...
 func (m *member) ListProjectMembersInvite(ctx context.Context, in *pb_member.ListProjectMembersInvite_Request) (*pb_member.ListProjectMembersInvite_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	sqlFooter := db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
@@ -789,7 +788,7 @@ func (m *member) ListProjectMembersInvite(ctx context.Context, in *pb_member.Lis
 // CreateProjectMemberInvite is ...
 func (m *member) CreateProjectMemberInvite(ctx context.Context, in *pb_member.CreateProjectMemberInvite_Request) (*pb_member.CreateProjectMemberInvite_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	var invite string
@@ -838,7 +837,7 @@ func (m *member) CreateProjectMemberInvite(ctx context.Context, in *pb_member.Cr
 // DeleteProjectMemberInvite is ...
 func (m *member) DeleteProjectMemberInvite(ctx context.Context, in *pb_member.DeleteProjectMemberInvite_Request) (*pb_member.DeleteProjectMemberInvite_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errors.New(message.ErrNotFound)
+		return nil, errors.New(internal.ErrNotFound)
 	}
 
 	_, err := db.Conn.Query(`DELETE 

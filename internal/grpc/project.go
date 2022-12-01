@@ -7,8 +7,8 @@ import (
 	"github.com/jackc/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
-	"github.com/werbot/werbot/internal/message"
 
 	pb_project "github.com/werbot/werbot/internal/grpc/proto/project"
 )
@@ -100,7 +100,7 @@ func (p *project) GetProject(ctx context.Context, in *pb_project.GetProject_Requ
 		)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			return nil, errors.New(message.ErrNotFound)
+			return nil, errors.New(internal.ErrNotFound)
 		}
 		return nil, err
 	}

@@ -6,8 +6,8 @@ import (
 
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
+	"github.com/werbot/werbot/internal"
 	pb "github.com/werbot/werbot/internal/grpc/proto/user"
-	"github.com/werbot/werbot/internal/message"
 	"github.com/werbot/werbot/internal/tests"
 )
 
@@ -49,7 +49,7 @@ func Test_getUpdate(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrUnauthorized).
+				Equal(`$.message`, internal.ErrUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -73,7 +73,7 @@ func Test_getUpdate(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrNotFound).
+				Equal(`$.message`, internal.ErrNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -107,7 +107,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser:  &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrUnauthorized).
+				Equal(`$.message`, internal.ErrUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -211,7 +211,7 @@ func Test_getVersion(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrUnauthorized).
+				Equal(`$.message`, internal.ErrUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},

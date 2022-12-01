@@ -1,4 +1,4 @@
-package message
+package internal
 
 const (
 	// MsgAccessIsDenied is Access is denied

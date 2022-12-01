@@ -9,7 +9,7 @@ import (
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 	"github.com/werbot/werbot/internal/grpc/proto/server"
 	"github.com/werbot/werbot/internal/utils/parse"
@@ -102,6 +102,6 @@ func clientConfig(host *server.GetServer_Response, hk gossh.HostKeyCallback) (*g
 		User:            host.Login,
 		HostKeyCallback: hk,
 		Auth:            auth,
-		Timeout:         time.Duration(config.GetInt("SSHSERVER_IDLE_TIMEOUT", 300)) * time.Second,
+		Timeout:         time.Duration(internal.GetInt("SSHSERVER_IDLE_TIMEOUT", 300)) * time.Second,
 	}, nil
 }

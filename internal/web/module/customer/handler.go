@@ -3,7 +3,7 @@ package customer
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
 )
@@ -19,11 +19,11 @@ type userReq struct {
 func (h *Handler) getCustomer(c *fiber.Ctx) error {
 	var input userReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "Information about the subscription", input.UserID)
@@ -36,11 +36,11 @@ func (h *Handler) getCustomer(c *fiber.Ctx) error {
 func (h *Handler) deleteCustomer(c *fiber.Ctx) error {
 	var input userReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "The subscriber is deleted", input.UserID)

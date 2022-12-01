@@ -7,7 +7,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	license_lib "github.com/werbot/werbot/internal/license"
 
 	pb_license "github.com/werbot/werbot/internal/grpc/proto/license"
@@ -19,12 +19,12 @@ type license struct {
 
 // GetLicenseInfo is ...
 func (l *license) GetLicenseInfo(ctx context.Context, in *pb_license.GetLicenseInfo_Request) (*pb_license.GetLicenseInfo_Response, error) {
-	readFile, err := os.ReadFile(config.GetString("LICENSE_FILE", "/license.key"))
+	readFile, err := os.ReadFile(internal.GetString("LICENSE_FILE", "/license.key"))
 	if err != nil {
 		return nil, err
 	}
 
-	licensePublic := config.GetString("LICENSE_KEY_PUBLIC", "")
+	licensePublic := internal.GetString("LICENSE_KEY_PUBLIC", "")
 	lic, err := license_lib.GetLicense([]byte(licensePublic))
 	if err != nil {
 		return nil, err

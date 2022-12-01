@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	pb "github.com/werbot/werbot/internal/grpc/proto/user"
 )
 
@@ -62,7 +62,7 @@ func customKeyFunc() jwt.Keyfunc {
 			return nil, fmt.Errorf("Unexpected jwt signing method=%v", t.Header["alg"])
 		}
 
-		return []byte(config.GetString("ACCESS_TOKEN_SECRET", "accessTokenSecret")), nil
+		return []byte(internal.GetString("ACCESS_TOKEN_SECRET", "accessTokenSecret")), nil
 	}
 }
 

@@ -6,8 +6,8 @@ import (
 
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
+	"github.com/werbot/werbot/internal"
 	pb "github.com/werbot/werbot/internal/grpc/proto/user"
-	"github.com/werbot/werbot/internal/message"
 	"github.com/werbot/werbot/internal/tests"
 )
 
@@ -49,7 +49,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrUnauthorized).
+				Equal(`$.message`, internal.ErrUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -60,7 +60,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrValidateBodyParams).
+				Equal(`$.message`, internal.ErrValidateBodyParams).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -72,7 +72,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrValidateBodyParams).
+				Equal(`$.message`, internal.ErrValidateBodyParams).
 				Equal(`$.result.projectid`, "ProjectId is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -99,7 +99,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrNotFound).
+				Equal(`$.message`, internal.ErrNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},

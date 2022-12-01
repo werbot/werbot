@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
 
@@ -24,7 +24,7 @@ func (h *Handler) getCountry(c *fiber.Ctx) error {
 	input := &pb.GetCountry_Request{}
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -37,7 +37,7 @@ func (h *Handler) getCountry(c *fiber.Ctx) error {
 	if err != nil {
 		se, _ := status.FromError(err)
 
-		if se.Message() == message.ErrNotFound {
+		if se.Message() == internal.ErrNotFound {
 			return httputil.StatusNotFound(c, se.Message(), nil)
 		}
 

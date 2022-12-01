@@ -9,14 +9,14 @@ import (
 	"github.com/vanng822/go-premailer/premailer"
 	mail "github.com/xhit/go-simple-mail/v2"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 )
 
 // SendMail is ...
 func SendMail(to, subject, tmpl string, data any) error {
 	tmpls := []string{
-		fmt.Sprintf("%s/base.html.tmpl", config.GetString("MAIL_TEMPLATES", "./templates")),
-		fmt.Sprintf("%s/%s.html.tmpl", config.GetString("MAIL_TEMPLATES", "./templates"), tmpl),
+		fmt.Sprintf("%s/base.html.tmpl", internal.GetString("MAIL_TEMPLATES", "./templates")),
+		fmt.Sprintf("%s/%s.html.tmpl", internal.GetString("MAIL_TEMPLATES", "./templates"), tmpl),
 	}
 
 	t, err := template.New("mail").ParseFiles(tmpls...)
@@ -38,11 +38,11 @@ func SendMail(to, subject, tmpl string, data any) error {
 
 	// SMTP Server
 	server := mail.NewSMTPClient()
-	server.Host = config.GetString("SMTP_HOST", "localhost")
-	server.Port = config.GetInt("SMTP_PORT", 25)
-	server.Username = config.GetString("SMTP_USERNAME", "")
-	server.Password = config.GetString("SMTP_PASSWORD", "")
-	server.Encryption = getEncryption(config.GetString("SMTP_ENCRYPTION", "tls"))
+	server.Host = internal.GetString("SMTP_HOST", "localhost")
+	server.Port = internal.GetInt("SMTP_PORT", 25)
+	server.Username = internal.GetString("SMTP_USERNAME", "")
+	server.Password = internal.GetString("SMTP_PASSWORD", "")
+	server.Encryption = getEncryption(internal.GetString("SMTP_ENCRYPTION", "tls"))
 	server.KeepAlive = false
 	server.ConnectTimeout = 10 * time.Second
 	server.SendTimeout = 10 * time.Second
@@ -54,7 +54,7 @@ func SendMail(to, subject, tmpl string, data any) error {
 	}
 
 	email := mail.NewMSG()
-	email.SetFrom(config.GetString("SMTP_MAIL_FROM", "admin@localhost")).AddTo(to).SetSubject(subject)
+	email.SetFrom(internal.GetString("SMTP_MAIL_FROM", "admin@localhost")).AddTo(to).SetSubject(subject)
 	email.SetBody(mail.TextHTML, htmlMessage)
 
 	err = email.Send(smtpClient)

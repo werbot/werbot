@@ -11,9 +11,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/logger"
-	"github.com/werbot/werbot/internal/message"
 	"github.com/werbot/werbot/internal/sender"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
@@ -35,7 +34,7 @@ func (h *Handler) postSignIn(c *fiber.Ctx) error {
 	input := &pb.SignIn_Request{}
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -51,7 +50,7 @@ func (h *Handler) postSignIn(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, message.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
 	}
 
 	sub := uuid.New().String()
@@ -98,7 +97,7 @@ func (h *Handler) postLogout(c *fiber.Ctx) error {
 func (h *Handler) postRefresh(c *fiber.Ctx) error {
 	input := new(httputil.RefreshToken)
 	if err := c.BodyParser(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
 	t, err := jwt.Parse(input.Token, httputil.VerifyToken)
@@ -171,7 +170,7 @@ func (h *Handler) postResetPassword(c *fiber.Ctx) error {
 
 	request.Token = c.Params("reset_token")
 	if err := validator.ValidateStruct(request); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	// Sending an email with a verification link
@@ -190,7 +189,7 @@ func (h *Handler) postResetPassword(c *fiber.Ctx) error {
 	}
 
 	if request.Request == nil && request.GetToken() == "" {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -203,13 +202,13 @@ func (h *Handler) postResetPassword(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, message.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
 	}
 
 	// send token to send email
 	if response.GetToken() != "" {
 		mailData := map[string]string{
-			"Link": fmt.Sprintf("%s/auth/password_reset/%s", config.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
+			"Link": fmt.Sprintf("%s/auth/password_reset/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
 		}
 		go sender.SendMail(request.GetEmail(), "Reset password confirmation", "password-reset", mailData)
 	}

@@ -7,8 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/config"
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/sender"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/utils/validator"
@@ -33,7 +32,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 	input := new(pb.GetProjectMember_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -70,7 +69,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	if member == nil {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	return httputil.StatusOK(c, "Member information", member)
@@ -88,7 +87,7 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 	input := new(pb.CreateProjectMember_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -123,7 +122,7 @@ func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
 	input := new(pb.UpdateProjectMember_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -160,7 +159,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 	input := new(pb.DeleteProjectMember_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -195,7 +194,7 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 	input := new(pb.ActivityRequest)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -228,7 +227,7 @@ func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateProjectMemberStatus_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -270,7 +269,7 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 	input := new(pb.GetProjectMember_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -307,7 +306,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	input := new(pb.CreateProjectMemberInvite_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -329,7 +328,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	}
 
 	mailData := map[string]string{
-		"Link": fmt.Sprintf("%s/invite/project/%s", config.GetString("APP_DSN", "https://app.werbot.com"), member.GetInvite()),
+		"Link": fmt.Sprintf("%s/invite/project/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), member.GetInvite()),
 	}
 	go sender.SendMail(input.GetEmail(), "Invitation to the project", "project-invite", mailData)
 
@@ -350,7 +349,7 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 	input := new(pb.DeleteProjectMemberInvite_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -383,7 +382,7 @@ func (h *Handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 	request := new(pb.ProjectMemberInviteActivate_Request)
 	request.Invite = c.Params("invite")
 	if err := validator.ValidateStruct(request); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)

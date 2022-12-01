@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 )
 
 func TestHandler_getLicenseExpired(t *testing.T) {
@@ -24,7 +24,7 @@ func TestHandler_getLicenseExpired(t *testing.T) {
 			name: "getLicenseExpired_01",
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrValidateBodyParams).
+				Equal(`$.message`, internal.ErrValidateBodyParams).
 				End(),
 			respondStatus: http.StatusBadRequest,
 		},
@@ -100,7 +100,7 @@ func TestHandler_postLicense(t *testing.T) {
 			name: "postLicense_01",
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrValidateBodyParams).
+				Equal(`$.message`, internal.ErrValidateBodyParams).
 				End(),
 			respondStatus: http.StatusBadRequest,
 		},
@@ -113,7 +113,7 @@ func TestHandler_postLicense(t *testing.T) {
 			},
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrValidateBodyParams).
+				Equal(`$.message`, internal.ErrValidateBodyParams).
 				End(),
 			respondStatus: http.StatusBadRequest,
 		},
@@ -129,7 +129,7 @@ func TestHandler_postLicense(t *testing.T) {
 			},
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrValidateBodyParams).
+				Equal(`$.message`, internal.ErrValidateBodyParams).
 				Equal(`$.result.ip`, "Ip must be a valid IP address").
 				Equal(`$.result.customer`, "Customer must be a valid UUID").
 				Equal(`$.result.subscriber`, "Subscriber must be a valid UUID").

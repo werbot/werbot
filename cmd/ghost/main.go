@@ -11,7 +11,7 @@ import (
 
 	"github.com/robfig/cron/v3"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/utils/files"
 )
@@ -24,7 +24,7 @@ var (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	config.Load("../../configs/.env")
+	internal.LoadConfig("../../configs/.env")
 
 	var flagInit bool
 	flag.BoolVar(&flagInit, "init", false, "Initializing the required databases")
@@ -56,8 +56,8 @@ func main() {
 func downloadMMDB() {
 	log.Info().Msg("download mmdb")
 	err := files.DownloadFile(
-		fmt.Sprintf("%s/GeoLite2-Country.mmdb", config.GetString("APP_DATA_FOLDER", "/data")),
-		fmt.Sprintf("%s/GeoLite2-Country.mmdb", config.GetString("APP_CDN", "https://cdn.werbot.com")),
+		fmt.Sprintf("%s/GeoLite2-Country.mmdb", internal.GetString("APP_DATA_FOLDER", "/data")),
+		fmt.Sprintf("%s/GeoLite2-Country.mmdb", internal.GetString("APP_CDN", "https://cdn.werbot.com")),
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to download mmdb")
@@ -70,7 +70,7 @@ func downloadHAProxyLists() {
 
 	for _, list := range lists {
 		err := files.DownloadFile(
-			fmt.Sprintf("%s/haproxy/%s", config.GetString("APP_DATA_FOLDER", "/data"), list),
+			fmt.Sprintf("%s/haproxy/%s", internal.GetString("APP_DATA_FOLDER", "/data"), list),
 			fmt.Sprintf("https://raw.githubusercontent.com/werbot/installation/main/core/haproxy/%s", list),
 		)
 		if err != nil {
@@ -83,7 +83,7 @@ func downloadHAProxyLists() {
 func downloadLicense() {
 	log.Info().Msg("download license")
 	err := files.DownloadFile(
-		fmt.Sprintf("%s/license.key", config.GetString("APP_DATA_FOLDER", "/data")),
+		fmt.Sprintf("%s/license.key", internal.GetString("APP_DATA_FOLDER", "/data")),
 		"https://api.werbot.com/", // TODO: down license
 	)
 	if err != nil {

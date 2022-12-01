@@ -12,11 +12,10 @@ import (
 	"github.com/armon/go-proxyproto"
 	"github.com/gliderlabs/ssh"
 
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/storage/nats"
-	"github.com/werbot/werbot/internal/version"
 )
 
 var (
@@ -35,28 +34,28 @@ type App struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	config.Load("../../configs/.env")
+	internal.LoadConfig("../../configs/.env")
 
 	natsDSN := fmt.Sprintf("nats://%s:%s@%s",
-		config.GetString("NATS_USER", "werbot"),
-		config.GetString("NATS_PASSWORD", "natsPassword"),
-		config.GetString("NATS_HOST", "localhost:4222"),
+		internal.GetString("NATS_USER", "werbot"),
+		internal.GetString("NATS_PASSWORD", "natsPassword"),
+		internal.GetString("NATS_HOST", "localhost:4222"),
 	)
 	app.nats = nats.NewNATS(natsDSN)
 	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {}
 
 	app.grpc = grpc.NewClient(
-		config.GetString("GRPCSERVER_HOST", "localhost:50051"),
-		config.GetString("GRPCSERVER_TOKEN", "token"),
-		config.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
-		config.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),
-		config.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
+		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
+		internal.GetString("GRPCSERVER_TOKEN", "token"),
+		internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
+		internal.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),
+		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 
 	// app.nats.WriteStatus()
 
 	// create TCP listening socket
-	ln, err := net.Listen("tcp", config.GetString("SSHSERVER_BIND_ADDRESS", ":3022"))
+	ln, err := net.Listen("tcp", internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022"))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Start avocado server")
 	}
@@ -64,8 +63,8 @@ func main() {
 
 	// configure server
 	srv := &ssh.Server{
-		Addr:    config.GetString("SSHSERVER_BIND_ADDRESS", ":3022"),
-		Version: fmt.Sprintf("[werbot] avocado-%s", version.Version()),
+		Addr:    internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022"),
+		Version: fmt.Sprintf("[werbot] avocado-%s", internal.Version()),
 		ChannelHandlers: map[string]ssh.ChannelHandler{
 			"default": channelHandler,
 		},
@@ -84,8 +83,8 @@ func main() {
 		}
 	}
 
-	if config.GetInt("SSHSERVER_IDLE_TIMEOUT", 300) != 0 {
-		srv.IdleTimeout = time.Duration(config.GetInt("SSHSERVER_IDLE_TIMEOUT", 300)) * time.Second
+	if internal.GetInt("SSHSERVER_IDLE_TIMEOUT", 300) != 0 {
+		srv.IdleTimeout = time.Duration(internal.GetInt("SSHSERVER_IDLE_TIMEOUT", 300)) * time.Second
 		srv.MaxTimeout = math.MaxInt64
 	}
 
@@ -99,7 +98,7 @@ func main() {
 		}
 	}
 
-	log.Info().Str("serverAddress", config.GetString("SSHSERVER_BIND_ADDRESS", ":3022")).Dur("idleTimout", time.Duration(config.GetInt("SSHSERVER_IDLE_TIMEOUT", 300))*time.Second).Msg("SSH Server accepting connections")
+	log.Info().Str("serverAddress", internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022")).Dur("idleTimout", time.Duration(internal.GetInt("SSHSERVER_IDLE_TIMEOUT", 300))*time.Second).Msg("SSH Server accepting connections")
 	if err := srv.Serve(proxyListener); err != nil {
 		log.Fatal().Err(err).Msg("Create server")
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -31,7 +31,7 @@ func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
 	input := userIDReq{}
 	c.BodyParser(&input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -53,10 +53,10 @@ func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, message.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
 	}
 	if servers.Total == 0 {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	return httputil.StatusOK(c, "Shared servers list", servers)
@@ -68,11 +68,11 @@ func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
 func (h *Handler) postServersShareForUser(c *fiber.Ctx) error {
 	input := new(pb.CreateServerShareForUser_Request)
 	if err := c.BodyParser(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "message", pb.CreateServerShareForUser_Response{})
@@ -84,11 +84,11 @@ func (h *Handler) postServersShareForUser(c *fiber.Ctx) error {
 func (h *Handler) patchServerShareForUser(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerShareForUser_Request)
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "message", pb.UpdateServerShareForUser_Response{})
@@ -100,11 +100,11 @@ func (h *Handler) patchServerShareForUser(c *fiber.Ctx) error {
 func (h *Handler) deleteServerShareForUser(c *fiber.Ctx) error {
 	input := new(pb.DeleteServerShareForUser_Request)
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "message", pb.DeleteServerShareForUser_Response{})

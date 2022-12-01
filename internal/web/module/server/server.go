@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/werbot/werbot/internal/message"
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/utils/validator"
 	"github.com/werbot/werbot/internal/web/httputil"
@@ -32,7 +32,7 @@ func (h *Handler) getServer(c *fiber.Ctx) error {
 	input := new(pb.GetServer_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -56,7 +56,7 @@ func (h *Handler) getServer(c *fiber.Ctx) error {
 			return httputil.ReturnGRPCError(c, err)
 		}
 		if servers.GetTotal() == 0 {
-			return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+			return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 		}
 		return httputil.StatusOK(c, "Servers available in this project", servers)
 	}
@@ -71,7 +71,7 @@ func (h *Handler) getServer(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	if server == nil {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 
 	return httputil.StatusOK(c, "Project information", server)
@@ -89,7 +89,7 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 	input := new(pb.CreateServer_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -134,7 +134,7 @@ func (h *Handler) patchServer(c *fiber.Ctx) error {
 	input := new(pb.UpdateServer_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -165,7 +165,7 @@ func (h *Handler) patchServer(c *fiber.Ctx) error {
 	access := new(pb.UpdateServerAccess_Request)
 	c.BodyParser(access)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	// If the password is not indicated, skip the next step
@@ -202,7 +202,7 @@ func (h *Handler) deleteServer(c *fiber.Ctx) error {
 	input := new(pb.DeleteServer_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -237,7 +237,7 @@ func (h *Handler) getServerAccess(c *fiber.Ctx) error {
 	input := new(pb.GetServerAccess_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -256,7 +256,7 @@ func (h *Handler) getServerAccess(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	if access == nil {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 	return httputil.StatusOK(c, "Server access", access)
 }
@@ -275,7 +275,7 @@ func (h *Handler) getServerActivity(c *fiber.Ctx) error {
 	input := new(pb.GetServerActivity_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -294,7 +294,7 @@ func (h *Handler) getServerActivity(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	if activity == nil {
-		return httputil.StatusNotFound(c, message.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
 	return httputil.StatusOK(c, "Server activity", activity)
 }
@@ -311,7 +311,7 @@ func (h *Handler) patchServerActivity(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerActivity_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -345,7 +345,7 @@ func (h *Handler) getServerFirewall(c *fiber.Ctx) error {
 	input := new(pb_firewall.GetServerFirewall_Request)
 	c.QueryParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -380,7 +380,7 @@ func (h *Handler) postServerFirewall(c *fiber.Ctx) error {
 		fmt.Print(err)
 	}
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -439,7 +439,7 @@ func (h *Handler) patchAccessPolicy(c *fiber.Ctx) error {
 	input := new(pb_firewall.UpdateAccessPolicy_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -474,7 +474,7 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 	input := new(pb_firewall.DeleteServerFirewall_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)
@@ -509,7 +509,7 @@ func (h *Handler) patchServerStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerActiveStatus_Request)
 	c.BodyParser(input)
 	if err := validator.ValidateStruct(input); err != nil {
-		return httputil.StatusBadRequest(c, message.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
 	userParameter := middleware.GetUserParameters(c)

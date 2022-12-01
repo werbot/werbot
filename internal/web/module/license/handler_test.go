@@ -6,9 +6,8 @@ import (
 
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
-	"github.com/werbot/werbot/internal/config"
+	"github.com/werbot/werbot/internal"
 	pb "github.com/werbot/werbot/internal/grpc/proto/user"
-	"github.com/werbot/werbot/internal/message"
 	"github.com/werbot/werbot/internal/tests"
 )
 
@@ -19,11 +18,11 @@ var (
 )
 
 func init() {
-	config.Load("../../../../configs/.env") // only for LICENSE_KEY_PUBLIC
+	internal.LoadConfig("../../../../configs/.env") // only for LICENSE_KEY_PUBLIC
 
 	testHandler = tests.InitTestServer("../../../../configs/.env")
-	NewHandler(testHandler.App, testHandler.GRPC, testHandler.Cache, config.GetString("LICENSE_KEY_PUBLIC", "")).Routes() // add test module handler
-	testHandler.FinishHandler()                                                                                           // init finale handler for apitest
+	NewHandler(testHandler.App, testHandler.GRPC, testHandler.Cache, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes() // add test module handler
+	testHandler.FinishHandler()                                                                                             // init finale handler for apitest
 
 	adminInfo = testHandler.GetUserInfo(&pb.SignIn_Request{
 		Email:    "test-admin@werbot.net",
@@ -52,7 +51,7 @@ func TestHandler_getLicenseInfo(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrUnauthorized).
+				Equal(`$.message`, internal.ErrUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -72,7 +71,7 @@ func TestHandler_getLicenseInfo(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, message.ErrNotFound).
+				Equal(`$.message`, internal.ErrNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
