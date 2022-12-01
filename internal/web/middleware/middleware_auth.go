@@ -27,7 +27,7 @@ func (m authMiddleware) Execute() fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SuccessHandler: m.authSuccess,
 		ErrorHandler:   authError,
-		SigningKey:     []byte(config.GetString("ACCESS_TOKEN_SECRET", "secret")),
+		SigningKey:     []byte(config.GetString("ACCESS_TOKEN_SECRET", "accessTokenSecret")),
 		SigningMethod:  "HS256",
 	})
 }

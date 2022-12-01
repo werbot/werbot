@@ -47,11 +47,11 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	config.Load(fmt.Sprintf("../../configs/.env.%s", component))
-	appPort := config.GetString("APP_PORT", ":3000")
+	config.Load("../../configs/.env")
+	appPort := config.GetString("APP_PORT", ":8088")
 
 	grpcClient := grpc.NewClient(
-		config.GetString("GRPCSERVER_DSN", "localhost:50051"),
+		config.GetString("GRPCSERVER_HOST", "localhost:50051"),
 		config.GetString("GRPCSERVER_TOKEN", "token"),
 		config.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
 		config.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),
@@ -60,7 +60,7 @@ func main() {
 
 	cache := cache.NewRedisClient(ctx, &redis.Options{
 		Addr:     config.GetString("REDIS_ADDR", "localhost:6379"),
-		Password: config.GetString("REDIS_PASSWORD", ""),
+		Password: config.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
 
 	ln, err := net.Listen("tcp", appPort)
@@ -99,7 +99,7 @@ func main() {
 	utility.NewHandler(app, grpcClient).Routes()
 
 	// license server
-	license.NewHandler(app, grpcClient, cache, config.GetString("KEY_PUBLIC", "")).Routes()
+	license.NewHandler(app, grpcClient, cache, config.GetString("LICENSE_KEY_PUBLIC", "")).Routes()
 
 	// dynamic handlers
 	handler(app, grpcClient, cache)

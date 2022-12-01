@@ -12,7 +12,7 @@ import (
 var testHandler *tests.TestHandler
 
 func init() {
-	testHandler = tests.InitTestServer("../../../../configs/.env.taco")
+	testHandler = tests.InitTestServer("../../../../configs/.env")
 	NewHandler(testHandler.App).Routes() // add test module handler
 	testHandler.FinishHandler()          // init finale handler for apitest
 }

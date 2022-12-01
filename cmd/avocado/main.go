@@ -35,13 +35,18 @@ type App struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	config.Load(fmt.Sprintf("../../configs/.env.%s", component))
+	config.Load("../../configs/.env")
 
-	app.nats = nats.NewNATS(config.GetString("NATSSERVER_DSN", "nats://localhost:4222"))
+	natsDSN := fmt.Sprintf("nats://%s:%s@%s",
+		config.GetString("NATS_USER", "werbot"),
+		config.GetString("NATS_PASSWORD", "natsPassword"),
+		config.GetString("NATS_HOST", "localhost:4222"),
+	)
+	app.nats = nats.NewNATS(natsDSN)
 	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {}
 
 	app.grpc = grpc.NewClient(
-		config.GetString("GRPCSERVER_DSN", "localhost:50051"),
+		config.GetString("GRPCSERVER_HOST", "localhost:50051"),
 		config.GetString("GRPCSERVER_TOKEN", "token"),
 		config.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
 		config.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),

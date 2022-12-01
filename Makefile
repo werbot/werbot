@@ -409,8 +409,8 @@ srv_migration:
 			DB_POSTFIX=${DB_POSTFIX}"_test";\
 		fi;\
 		if [ $(ARG_GOOSE) ]; then\
-			source ${ROOT_PATH}/configs/.env.buffet;\
-			GOOSE_CMD="goose -dir $$MIGRATION_DIR -table $$DB_POSTFIX postgres "$$PSQLSERVER_DSN"";\
+			source ${ROOT_PATH}/configs/.env;\
+			GOOSE_CMD="goose -dir $$MIGRATION_DIR -table $$DB_POSTFIX postgres "postgres://$${POSTGRES_USER:-werbot}:$${POSTGRES_PASSWORD:-postgresPassword}@$${POSTGRES_HOST:-localhost:5432}/$${POSTGRES_DB:-werbot}?sslmode=require"";\
 			if [ $(ARG_GOOSE) == "create" ]; then $$GOOSE_CMD create migration_name sql; fi;\
 			if [ $(ARG_GOOSE) == "up" ]; then $$GOOSE_CMD up; fi;\
 			if [ $(ARG_GOOSE) == "up1" ]; then $$GOOSE_CMD up-by-one; fi;\
@@ -470,7 +470,7 @@ define _upd_env_files
 	NAME=$$(basename ${1});\
 	PARAMETERS=();\
 	HEADER=FALSE;\
-	ENV_FILE="${ROOT_PATH}/configs/.env.$$NAME";\
+	ENV_FILE="${ROOT_PATH}/configs/.env";\
 	echo "Scan $$NAME $$VERSION parameters";\
 	for file in ${ROOT_PATH}/cmd/$$NAME/*.go; do\
 		test -f "$$file" || continue;\

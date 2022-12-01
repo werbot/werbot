@@ -48,12 +48,12 @@ func CreateToken(sub string, context any) (*Detail, error) {
 		Context:         context,
 	}
 
-	detail.Tokens.AccessToken, err = generate(sub, config.GetString("ACCESS_TOKEN_SECRET", "secret"), detail.AccessTokenExp, detail.Context)
+	detail.Tokens.AccessToken, err = generate(sub, config.GetString("ACCESS_TOKEN_SECRET", "accessTokenSecret"), detail.AccessTokenExp, detail.Context)
 	if err != nil {
 		return nil, err
 	}
 
-	detail.Tokens.RefreshToken, err = generate(sub, config.GetString("REFRESH_TOKEN_SECRET", "secret"), detail.RefreshTokenExp, nil)
+	detail.Tokens.RefreshToken, err = generate(sub, config.GetString("REFRESH_TOKEN_SECRET", "refreshTokenSecret"), detail.RefreshTokenExp, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func VerifyToken(token *jwt.Token) (any, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 	}
-	return []byte(config.GetString("REFRESH_TOKEN_SECRET", "secret")), nil
+	return []byte(config.GetString("REFRESH_TOKEN_SECRET", "refreshTokenSecret")), nil
 }
 
 func generate(sub, signed string, expire time.Duration, context any) (string, error) {

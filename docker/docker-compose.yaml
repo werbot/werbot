@@ -32,7 +32,7 @@ x-resources: &default-resources
     cpus: "0.15"
 
 x-environment: &grpc-environment
-  GRPCSERVER_DSN: buffet:50051
+  GRPCSERVER_HOST: buffet:50051
   GRPCSERVER_TOKEN: ${GRPCSERVER_TOKEN:-grpcServerToken}
 
 services:
@@ -169,7 +169,7 @@ services:
       #- 8222:8222
     volumes:
       - nats_data:/tmp/nats/jetstream
-    command: --user ${NATS_USER:-werbot} --pass ${NATS_PASSWORD:-natsPAssword} --jetstream --http_port 8222
+    command: --user ${NATS_USER:-werbot} --pass ${NATS_PASSWORD:-natsPassword} --jetstream --http_port 8222
     networks:
       - private
     labels:
@@ -262,7 +262,7 @@ services:
     restart: always
     environment:
       SECURITY_AES_KEY: ${SECURITY_AES_KEY:-securittAesKey}
-      NATSSERVER_DSN: nats://${NATS_USER:-werbot}:${NATS_PASSWORD:-natsPAssword}@service.nats:4222
+      NATSSERVER_DSN: nats://${NATS_USER:-werbot}:${NATS_PASSWORD:-natsPassword}@service.nats:4222
       <<: *grpc-environment
     volumes:
       - /etc/localtime:/etc/localtime:ro
@@ -288,7 +288,7 @@ services:
     environment:
       SECURITY_AES_KEY: ${SECURITY_AES_KEY:-securittAesKey}
       GRPCSERVER_TOKEN: ${GRPCSERVER_TOKEN:-grpcServerToken}
-      LICENSE_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
+      LICENSE_KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
       PSQLSERVER_DSN: postgres://${POSTGRES_USER:-werbot}:${POSTGRES_PASSWORD:-postgresPassword}@postgres:5432/${POSTGRES_DB:-werbot}?sslmode=require
     volumes:
       - /etc/localtime:/etc/localtime:ro
@@ -332,11 +332,11 @@ services:
       APP_TOKEN: ${APP_TOKEN:-werbot}
       REDIS_ADDR: service.redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redisPassword}
-      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-accesTokenSecret}
-      ACCESS_TOKEN_DURATION: 1m
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-accessTokenSecret}
+      ACCESS_TOKEN_DURATION: ${ACCESS_TOKEN_DURATION:-15m}
       REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-refreshTokenSecret}
-      KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
-      KEY_PRIVATE: ${LICENSE_KEY_PRIVATE:-}
+      LICENSE_KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
+      LICENSE_KEY_PRIVATE: ${LICENSE_KEY_PRIVATE:-}
       API_DSN: https://api.werbot.net
       <<: *grpc-environment
     volumes:

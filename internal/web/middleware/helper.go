@@ -62,7 +62,7 @@ func customKeyFunc() jwt.Keyfunc {
 			return nil, fmt.Errorf("Unexpected jwt signing method=%v", t.Header["alg"])
 		}
 
-		return []byte(config.GetString("ACCESS_TOKEN_SECRET", "secret")), nil
+		return []byte(config.GetString("ACCESS_TOKEN_SECRET", "accessTokenSecret")), nil
 	}
 }
 

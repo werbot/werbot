@@ -14,13 +14,19 @@ import (
 )
 
 func init() {
-	config.Load("../../configs/.env.buffet")
+	config.Load("../../configs/.env")
 
 	var err error
+	pgDSN := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=require",
+		config.GetString("POSTGRES_USER", "werbot"),
+		config.GetString("POSTGRES_PASSWORD", "postgresPassword"),
+		config.GetString("POSTGRES_HOST", "localhost:5432"),
+		config.GetString("POSTGRES_DB", "werbot"),
+	)
 	db, err = database.ConnectDB(&database.PgSQLConfig{
-		DSN:             config.GetString("PSQLSERVER_DSN", "postgres://login:password@localhost:5432/werbot?sslmode=require"),
+		DSN:             pgDSN,
 		MaxConn:         config.GetInt("PSQLSERVER_MAX_CONN", 50),
-		MaxIdleConn:     config.GetInt("PSQLSERVER_MAX_IDLEC_ON", 10),
+		MaxIdleConn:     config.GetInt("PSQLSERVER_MAX_IDLEC_CONN", 10),
 		MaxLifetimeConn: config.GetInt("PSQLSERVER_MAX_LIFETIME_CONN", 300),
 	})
 	if err != nil {

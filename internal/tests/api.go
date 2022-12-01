@@ -63,7 +63,7 @@ func InitTestServer(envPath string) *TestHandler {
 	config.Load(envPath)
 
 	grpcClient := grpc.NewClient(
-		config.GetString("GRPCSERVER_DSN", "localhost:50051"),
+		config.GetString("GRPCSERVER_HOST", "localhost:50051"),
 		config.GetString("GRPCSERVER_TOKEN", "token"),
 		config.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
 		config.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),
@@ -72,7 +72,7 @@ func InitTestServer(envPath string) *TestHandler {
 
 	cacheClient := cache.NewRedisClient(context.TODO(), &redis.Options{
 		Addr:     config.GetString("REDIS_ADDR", "localhost:6379"),
-		Password: config.GetString("REDIS_PASSWORD", ""),
+		Password: config.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
 
 	server := fiber.New(fiber.Config{

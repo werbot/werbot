@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"math/rand"
 	"net"
 	"time"
@@ -29,13 +30,19 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	config.Load("../../configs/.env.buffet")
+	config.Load("../../configs/.env")
 
 	var err error
+	pgDSN := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=require",
+		config.GetString("POSTGRES_USER", "werbot"),
+		config.GetString("POSTGRES_PASSWORD", "postgresPassword"),
+		config.GetString("POSTGRES_HOST", "localhost:5432"),
+		config.GetString("POSTGRES_DB", "werbot"),
+	)
 	db, err := postgres.ConnectDB(&postgres.PgSQLConfig{
-		DSN:             config.GetString("PSQLSERVER_DSN", "postgres://login:password@localhost:5432/werbot?sslmode=require"),
+		DSN:             pgDSN,
 		MaxConn:         config.GetInt("PSQLSERVER_MAX_CONN", 50),
-		MaxIdleConn:     config.GetInt("PSQLSERVER_MAX_IDLEC_ON", 10),
+		MaxIdleConn:     config.GetInt("PSQLSERVER_MAX_IDLEC_CONN", 10),
 		MaxLifetimeConn: config.GetInt("PSQLSERVER_MAX_LIFETIME_CONN", 300),
 	})
 	if err != nil {
@@ -44,7 +51,7 @@ func main() {
 
 	cache := cache_lib.NewRedisClient(ctx, &redis.Options{
 		Addr:     config.GetString("REDIS_ADDR", "localhost:6379"),
-		Password: config.GetString("REDIS_PASSWORD", ""),
+		Password: config.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
 
 	cert, err = tls.X509KeyPair(
@@ -64,7 +71,7 @@ func main() {
 	certPool.AddCert(cert.Leaf)
 
 	s := grpc.NewServer(config.GetString("GRPCSERVER_TOKEN", "token"), db, cache, cert)
-	lis, err := net.Listen("tcp", config.GetString("GRPCSERVER_DSN", "0.0.0.0:50051"))
+	lis, err := net.Listen("tcp", config.GetString("GRPCSERVER_HOST", "0.0.0.0:50051"))
 	if err != nil {
 		log.Fatal().Msgf("failed to listen: %v", err)
 	}
