@@ -482,7 +482,7 @@ define _upd_env_files
 	for i in $$(printf "%s\n" $$PARAMETERS | sort -u); do\
 		PARAMETER_NAME=$$(echo $$i | cut -d= -f 1);\
 		PARAMETER_ARGUMENT=$$(echo $$i | cut -d= -f 2);\
-		if [ ! $$(grep $$PARAMETER_NAME $$ENV_FILE) ]; then\
+		if [[ ! $$( grep $$PARAMETER_NAME $$ENV_FILE) ]]; then\
 			if [ $$HEADER == FALSE ]; then\
 				echo -e "\n\n\n# New parameters from project files:" >>$$ENV_FILE;\
 				HEADER=TRUE;\
