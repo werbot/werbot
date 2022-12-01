@@ -455,18 +455,18 @@ srv_migration_dev:
 
 
 #############################################################################
-.PHONY: upd_env_files
-upd_env_files: 
-	@if [ $(filter-out $@,$(MAKECMDGOALS)) ]; then\
-		if [ -d ${ROOT_PATH}/cmd/$(filter-out $@,$(MAKECMDGOALS))/ ];then\
-			$(call _upd_env_files,${ROOT_PATH}/cmd/$(filter-out $@,$(MAKECMDGOALS))/);\
-		else \
-			echo "error";\
-		fi \
+.PHONY: env_dev
+env_dev: ## .env for dev environment
+	$(eval ARG_TYPE = $(filter update,$(MAKECMDGOALS)))
+	@if [ $(ARG_TYPE) ]; then\
+		ENV_FILE="${ROOT_PATH}/configs/.env";\
+		if [ "$(ARG_TYPE)" == "update" ]; then\
+			for entry in ${ROOT_PATH}/cmd/*/; do\
+				$(call _upd_env_files,$${entry});\
+			done \
+		fi;\
 	else \
-		for entry in ${ROOT_PATH}/cmd/*/; do\
-			$(call _upd_env_files,$${entry});\
-		done \
+		echo "Parameters not passed";\
 	fi
 
 define _upd_env_files
