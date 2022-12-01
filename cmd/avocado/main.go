@@ -35,7 +35,7 @@ type App struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	config.Load(fmt.Sprintf("../../.vscode/config/.env.%s", component))
+	config.Load(fmt.Sprintf("../../configs/.env.%s", component))
 
 	app.nats = nats.NewNATS(config.GetString("NATSSERVER_DSN", "nats://localhost:4222"))
 	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {}

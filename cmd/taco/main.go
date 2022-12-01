@@ -47,7 +47,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	config.Load(fmt.Sprintf("../../.vscode/config/.env.%s", component))
+	config.Load(fmt.Sprintf("../../configs/.env.%s", component))
 	appPort := config.GetString("APP_PORT", ":3000")
 
 	grpcClient := grpc.NewClient(

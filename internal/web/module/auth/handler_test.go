@@ -19,7 +19,7 @@ var (
 )
 
 func init() {
-	testHandler = tests.InitTestServer("../../../../.vscode/config/.env.taco")
+	testHandler = tests.InitTestServer("../../../../configs/.env.taco")
 	testHandler.FinishHandler() // init finale handler for apitest
 
 	adminInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{

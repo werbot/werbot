@@ -3,7 +3,7 @@ ROOT_PATH:=$(abspath $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)
 GO_PATH:=$(shell go env GOPATH)
 CPU_ARCH:=$(shell go env GOARCH)
 OS_NAME:=$(shell go env GOHOSTOS)
-include $(ROOT_PATH)/.vscode/config/.env
+include $(ROOT_PATH)/configs/.env
 
 DATE=$(shell date '+%Y-%m-%d-%H:%M:%S')
 GIT_COMMIT=$(shell cd "${ROOT_PATH}" && git rev-parse --short HEAD)
@@ -194,7 +194,7 @@ upd_geolite: ## Updating and install GeoLite database to the latest version
 	@if [ -f $(ROOT_PATH)/docker/core/GeoLite2-Country.mmdb ]; then \
 		rm -rf $(ROOT_PATH)/docker/core/GeoLite2-Country.mmdb; \
 	fi
-	@export $(shell sed 's/=.*//' $(ROOT_PATH)/.vscode/config/.env)
+	@export $(shell sed 's/=.*//' $(ROOT_PATH)/configs/.env)
 	@$(call make_target_dir,${ROOT_PATH}/.vscode/tmp)
 	@wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=$(GEOLITE_LICENSE)&suffix=tar.gz" -4 -q -O $(ROOT_PATH)/.vscode/tmp/country.tar.gz
 	@tar -zxf $(ROOT_PATH)/.vscode/tmp/country.tar.gz -C $(ROOT_PATH)/.vscode/tmp
@@ -328,7 +328,7 @@ prod_package_app:
 .PHONY: prod_push
 prod_push: ## Submitting the project to the docker registry
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
-#	@export $(shell sed 's/=.*//' $(ROOT_PATH)/.vscode/config/.env)
+#	@export $(shell sed 's/=.*//' $(ROOT_PATH)/configs/.env)
 #	@echo $(GITHUB_TOKEN) | docker login ghcr.io -u USERNAME --password-stdin
 	@if [ ${NAME} ]; then \
 		if [ -d ${ROOT_PATH}/cmd/${NAME}/ ];then\
@@ -409,7 +409,7 @@ srv_migration:
 			DB_POSTFIX=${DB_POSTFIX}"_test";\
 		fi;\
 		if [ $(ARG_GOOSE) ]; then\
-			source ${ROOT_PATH}/.vscode/config/.env.buffet;\
+			source ${ROOT_PATH}/configs/.env.buffet;\
 			GOOSE_CMD="goose -dir $$MIGRATION_DIR -table $$DB_POSTFIX postgres "$$PSQLSERVER_DSN"";\
 			if [ $(ARG_GOOSE) == "create" ]; then $$GOOSE_CMD create migration_name sql; fi;\
 			if [ $(ARG_GOOSE) == "up" ]; then $$GOOSE_CMD up; fi;\
@@ -470,7 +470,7 @@ define _upd_env_files
 	NAME=$$(basename ${1});\
 	PARAMETERS=();\
 	HEADER=FALSE;\
-	ENV_FILE="${ROOT_PATH}/.vscode/config/.env.$$NAME";\
+	ENV_FILE="${ROOT_PATH}/configs/.env.$$NAME";\
 	echo "Scan $$NAME $$VERSION parameters";\
 	for file in ${ROOT_PATH}/cmd/$$NAME/*.go; do\
 		test -f "$$file" || continue;\

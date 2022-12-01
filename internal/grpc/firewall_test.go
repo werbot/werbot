@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	config.Load("../../.vscode/config/.env.buffet")
+	config.Load("../../configs/.env.buffet")
 
 	var err error
 	db, err = database.ConnectDB(&database.PgSQLConfig{

@@ -29,7 +29,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	config.Load("../../.vscode/config/.env.buffet")
+	config.Load("../../configs/.env.buffet")
 
 	var err error
 	db, err := postgres.ConnectDB(&postgres.PgSQLConfig{
