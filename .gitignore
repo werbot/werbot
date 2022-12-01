@@ -79,18 +79,21 @@ build/*
 !.vscode/config
 
 !build/docker/
+/build/docker/core/license.key
+/build/docker/core/server.key
+/build/docker/core/GeoLite*
+/build/docker/core/grpc_*
+/build/docker/postgres/ca
+/build/docker/haproxy/data
+
+!build/docker_tmpl/
 
 !LOCK
 !.gitkeep
 .sequence
 rest.http
 
-/docker/core/license.key
-/docker/core/server.key
-/docker/core/GeoLite*
-/docker/core/grpc_*
-/docker/postgres/ca
-/docker/haproxy/data
+
 
 /scripts
 
