@@ -18,9 +18,9 @@ var (
 )
 
 func init() {
-	internal.LoadConfig("../../../../configs/.env") // only for LICENSE_KEY_PUBLIC
+	internal.LoadConfig("../../../../.env") // only for LICENSE_KEY_PUBLIC
 
-	testHandler = tests.InitTestServer("../../../../configs/.env")
+	testHandler = tests.InitTestServer("../../../../.env")
 	NewHandler(testHandler.App, testHandler.GRPC, testHandler.Cache, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes() // add test module handler
 	testHandler.FinishHandler()                                                                                             // init finale handler for apitest
 

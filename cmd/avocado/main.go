@@ -34,7 +34,7 @@ type App struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	internal.LoadConfig("../../configs/.env")
+	internal.LoadConfig("../../.env")
 
 	natsDSN := fmt.Sprintf("nats://%s:%s@%s",
 		internal.GetString("NATS_USER", "werbot"),

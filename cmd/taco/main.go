@@ -45,7 +45,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	internal.LoadConfig("../../configs/.env")
+	internal.LoadConfig("../../.env")
 	appPort := internal.GetString("APP_PORT", ":8088")
 
 	grpcClient := grpc.NewClient(

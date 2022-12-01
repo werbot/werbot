@@ -18,7 +18,7 @@ var (
 )
 
 func init() {
-	testHandler = tests.InitTestServer("../../../../configs/.env.taco")
+	testHandler = tests.InitTestServer("../../../../.env.taco")
 	NewHandler(testHandler.App, testHandler.GRPC, testHandler.Cache).Routes() // add test module handler
 	testHandler.FinishHandler()
 

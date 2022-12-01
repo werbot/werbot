@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	config.Load("../../configs/.env")
+	config.Load("../../.env")
 
 	var err error
 	pgDSN := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=require",

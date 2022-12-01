@@ -19,7 +19,7 @@ var (
 )
 
 func init() {
-	testHandler = tests.InitTestServer("../../../../configs/.env")
+	testHandler = tests.InitTestServer("../../../../.env")
 	testHandler.FinishHandler() // init finale handler for apitest
 
 	adminInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{

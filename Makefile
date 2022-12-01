@@ -3,7 +3,7 @@ ROOT_PATH:=$(abspath $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)
 GO_PATH:=$(shell go env GOPATH)
 CPU_ARCH:=$(shell go env GOARCH)
 OS_NAME:=$(shell go env GOHOSTOS)
-include $(ROOT_PATH)/configs/.env
+include $(ROOT_PATH)/.env
 
 DATE=$(shell date '+%Y-%m-%d-%H:%M:%S')
 GIT_COMMIT=$(shell cd "${ROOT_PATH}" && git rev-parse --short HEAD)
@@ -331,7 +331,7 @@ prod_package_app:
 .PHONY: prod_push
 prod_push: ## Submitting the project to the docker registry
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
-#	@export $(shell sed 's/=.*//' $(ROOT_PATH)/configs/.env)
+#	@export $(shell sed 's/=.*//' $(ROOT_PATH)/.env)
 #	@echo $(GITHUB_TOKEN) | docker login ghcr.io -u USERNAME --password-stdin
 	@if [ ${NAME} ]; then \
 		if [ -d ${ROOT_PATH}/cmd/${NAME}/ ];then\
@@ -412,7 +412,7 @@ srv_migration:
 			DB_POSTFIX=${DB_POSTFIX}"_test";\
 		fi;\
 		if [ $(ARG_GOOSE) ]; then\
-			source ${ROOT_PATH}/configs/.env;\
+			source ${ROOT_PATH}/.env;\
 			GOOSE_CMD="goose -dir $$MIGRATION_DIR -table $$DB_POSTFIX postgres "postgres://$${POSTGRES_USER:-werbot}:$${POSTGRES_PASSWORD:-postgresPassword}@$${POSTGRES_HOST:-localhost:5432}/$${POSTGRES_DB:-werbot}?sslmode=require"";\
 			if [ $(ARG_GOOSE) == "create" ]; then $$GOOSE_CMD create migration_name sql; fi;\
 			if [ $(ARG_GOOSE) == "up" ]; then $$GOOSE_CMD up; fi;\
@@ -459,7 +459,7 @@ srv_migration_dev:
 env_dev: ## .env for dev environment
 	$(eval ARG_TYPE = $(filter update,$(MAKECMDGOALS)))
 	@if [ $(ARG_TYPE) ]; then\
-		ENV_FILE="${ROOT_PATH}/configs/.env";\
+		ENV_FILE="${ROOT_PATH}/.env";\
 		if [ "$(ARG_TYPE)" == "update" ]; then\
 			for entry in ${ROOT_PATH}/cmd/*/; do\
 				$(call _upd_env_files,$${entry});\
@@ -473,7 +473,7 @@ define _upd_env_files
 	NAME=$$(basename ${1});\
 	PARAMETERS=();\
 	HEADER=FALSE;\
-	ENV_FILE="${ROOT_PATH}/configs/.env";\
+	ENV_FILE="${ROOT_PATH}/.env";\
 	echo "Scan $$NAME $$VERSION parameters";\
 	for file in ${ROOT_PATH}/cmd/$$NAME/*.go; do\
 		test -f "$$file" || continue;\

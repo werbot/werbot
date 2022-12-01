@@ -30,7 +30,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	internal.LoadConfig("../../configs/.env")
+	internal.LoadConfig("../../.env")
 
 	var err error
 	pgDSN := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=require",

@@ -7,7 +7,7 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/buffet/",
-      "envFile": "${workspaceFolder}/configs/.env",
+      "envFile": "${workspaceFolder}/.env",
       "buildFlags": "-tags saas",
       "args": [""]
     },
@@ -17,7 +17,7 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/taco/",
-      "envFile": "${workspaceFolder}/configs/.env",
+      "envFile": "${workspaceFolder}/.env",
       "buildFlags": "-tags saas",
       "args": [""]
     },
@@ -27,7 +27,7 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/avocado/",
-      "envFile": "${workspaceFolder}/configs/.env",
+      "envFile": "${workspaceFolder}/.env",
       "args": [""]
     },
     {
@@ -36,7 +36,7 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/ghost/",
-      "envFile": "${workspaceFolder}/configs/.env",
+      "envFile": "${workspaceFolder}/.env",
       "args": [""]
     }
   ]

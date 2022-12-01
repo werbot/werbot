@@ -24,7 +24,7 @@ var (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	internal.LoadConfig("../../configs/.env")
+	internal.LoadConfig("../../.env")
 
 	var flagInit bool
 	flag.BoolVar(&flagInit, "init", false, "Initializing the required databases")
