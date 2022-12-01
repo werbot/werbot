@@ -191,10 +191,13 @@ endef
 #############################################################################
 .PHONY: upd_geolite
 upd_geolite: ## Updating and install GeoLite database to the latest version
+	@if [ ! ${GEOLITE_LICENSE} ]; then \
+		echo "GEOLITE_LICENSE no key "; \
+		return; \
+	fi
 	@if [ -f $(ROOT_PATH)/docker/core/GeoLite2-Country.mmdb ]; then \
 		rm -rf $(ROOT_PATH)/docker/core/GeoLite2-Country.mmdb; \
 	fi
-	@export $(shell sed 's/=.*//' $(ROOT_PATH)/configs/.env)
 	@$(call make_target_dir,${ROOT_PATH}/.vscode/tmp)
 	@wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=$(GEOLITE_LICENSE)&suffix=tar.gz" -4 -q -O $(ROOT_PATH)/.vscode/tmp/country.tar.gz
 	@tar -zxf $(ROOT_PATH)/.vscode/tmp/country.tar.gz -C $(ROOT_PATH)/.vscode/tmp
