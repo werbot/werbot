@@ -13,8 +13,8 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/logger"
-	"github.com/werbot/werbot/internal/sender"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/mail"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -33,7 +33,7 @@ import (
 func (h *Handler) postSignIn(c *fiber.Ctx) error {
 	input := &pb.SignIn_Request{}
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -169,7 +169,7 @@ func (h *Handler) postResetPassword(c *fiber.Ctx) error {
 	}
 
 	request.Token = c.Params("reset_token")
-	if err := validator.ValidateStruct(request); err != nil {
+	if err := validate.Struct(request); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -210,7 +210,7 @@ func (h *Handler) postResetPassword(c *fiber.Ctx) error {
 		mailData := map[string]string{
 			"Link": fmt.Sprintf("%s/auth/password_reset/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
 		}
-		go sender.SendMail(request.GetEmail(), "Reset password confirmation", "password-reset", mailData)
+		go mail.Send(request.GetEmail(), "Reset password confirmation", "password-reset", mailData)
 	}
 
 	return httputil.StatusOK(c, "Password reset", response)

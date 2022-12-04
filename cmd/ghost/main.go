@@ -13,12 +13,12 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/logger"
-	"github.com/werbot/werbot/internal/utils/files"
+	"github.com/werbot/werbot/internal/utils/file"
 )
 
 var (
 	component = "ghost"
-	log       = logger.NewLogger(component)
+	log       = logger.New(component)
 )
 
 func main() {
@@ -55,7 +55,7 @@ func main() {
 
 func downloadMMDB() {
 	log.Info().Msg("download mmdb")
-	err := files.DownloadFile(
+	err := file.Download(
 		fmt.Sprintf("%s/GeoLite2-Country.mmdb", internal.GetString("APP_DATA_FOLDER", "/data")),
 		fmt.Sprintf("%s/GeoLite2-Country.mmdb", internal.GetString("APP_CDN", "https://cdn.werbot.com")),
 	)
@@ -69,7 +69,7 @@ func downloadHAProxyLists() {
 	lists := []string{"blacklist-agent.txt", "cloudflare-ips.txt"}
 
 	for _, list := range lists {
-		err := files.DownloadFile(
+		err := file.Download(
 			fmt.Sprintf("%s/haproxy/%s", internal.GetString("APP_DATA_FOLDER", "/data"), list),
 			fmt.Sprintf("https://raw.githubusercontent.com/werbot/installation/main/core/haproxy/%s", list),
 		)
@@ -82,7 +82,7 @@ func downloadHAProxyLists() {
 // TODO: рыба
 func downloadLicense() {
 	log.Info().Msg("download license")
-	err := files.DownloadFile(
+	err := file.Download(
 		fmt.Sprintf("%s/license.key", internal.GetString("APP_DATA_FOLDER", "/data")),
 		"https://api.werbot.com/", // TODO: down license
 	)

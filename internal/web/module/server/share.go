@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -30,7 +30,7 @@ type userIDReq struct {
 func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
 	input := userIDReq{}
 	c.BodyParser(&input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -71,7 +71,7 @@ func (h *Handler) postServersShareForUser(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -87,7 +87,7 @@ func (h *Handler) patchServerShareForUser(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -103,7 +103,7 @@ func (h *Handler) deleteServerShareForUser(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 

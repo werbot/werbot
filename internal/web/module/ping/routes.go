@@ -9,8 +9,8 @@ type Handler struct {
 	app *fiber.App
 }
 
-// NewHandler is ...
-func NewHandler(app *fiber.App) *Handler {
+// New is ...
+func New(app *fiber.App) *Handler {
 	return &Handler{
 		app: app,
 	}

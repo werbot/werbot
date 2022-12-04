@@ -38,7 +38,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 	var count int32
 
 	if query["user_name"] != "" {
-		nameArray := parse.UsernameParseInfo(query["user_name"])
+		nameArray := parse.Username(query["user_name"])
 		nameLen := len(nameArray)
 
 		query := `SELECT DISTINCT ON ("server"."id")

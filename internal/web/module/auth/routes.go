@@ -9,7 +9,7 @@ import (
 )
 
 //var moduleName = "module/auth"
-//var log = logger.NewLogger(moduleName)
+//var log = logger.New(moduleName)
 
 // Handler is ...
 type Handler struct {
@@ -18,8 +18,8 @@ type Handler struct {
 	cache cache.Cache
 }
 
-// NewHandler is ...
-func NewHandler(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache) *Handler {
+// New is ...
+func New(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache) *Handler {
 	return &Handler{
 		app:   app,
 		grpc:  grpc,

@@ -9,15 +9,15 @@ import (
 	"github.com/werbot/werbot/internal/logger"
 )
 
-var log = logger.NewLogger("pkg/nats")
+var log = logger.New("pkg/nats")
 
 // Service is ...
 type Service struct {
 	con *nats.Conn
 }
 
-// NewNATS is ...
-func NewNATS(dsn string) *Service {
+// New is ...
+func New(dsn string) *Service {
 	nc, err := nats.Connect(dsn, nats.ReconnectWait(5*time.Second))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to NATS server")

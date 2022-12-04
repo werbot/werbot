@@ -7,13 +7,21 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+// Cache is ...
+type Cache interface {
+	Ping() error
+	Set(key string, value any, expiration time.Duration) error
+	Get(key string) (string, error)
+	Delete(key string) (int64, error)
+}
+
 type redisCache struct {
 	ctx    context.Context
 	client *redis.Client
 }
 
-// NewRedisClient is ...
-func NewRedisClient(ctx context.Context, opts *redis.Options) Cache {
+// New is ...
+func New(ctx context.Context, opts *redis.Options) Cache {
 	return &redisCache{
 		ctx:    ctx,
 		client: redis.NewClient(opts),

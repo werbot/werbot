@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	log = logger.NewLogger("internal/grpc")
+	log = logger.New("internal/grpc")
 
 	db     *postgres.Connect
 	cache  cache_lib.Cache

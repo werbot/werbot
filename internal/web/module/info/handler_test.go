@@ -19,8 +19,8 @@ var (
 
 func init() {
 	testHandler = tests.InitTestServer("../../../../.env")
-	NewHandler(testHandler.App, testHandler.GRPC, testHandler.Cache).Routes() // add test module handler
-	testHandler.FinishHandler()                                               // init finale handler for apitest
+	New(testHandler.App, testHandler.GRPC, testHandler.Cache).Routes() // add test module handler
+	testHandler.FinishHandler()                                        // init finale handler for apitest
 
 	adminInfo = testHandler.GetUserInfo(&pb.SignIn_Request{
 		Email:    "test-admin@werbot.net",

@@ -13,8 +13,8 @@ var testHandler *tests.TestHandler
 
 func init() {
 	testHandler = tests.InitTestServer("../../../../.env")
-	NewHandler(testHandler.App).Routes() // add test module handler
-	testHandler.FinishHandler()          // init finale handler for apitest
+	New(testHandler.App).Routes() // add test module handler
+	testHandler.FinishHandler()   // init finale handler for apitest
 }
 
 func apiTest() *apitest.APITest {

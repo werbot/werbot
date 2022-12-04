@@ -35,7 +35,7 @@ import (
 
 var (
 	component = "taco"
-	log       = logger.NewLogger(component)
+	log       = logger.New(component)
 	app       *fiber.App
 )
 
@@ -56,7 +56,7 @@ func main() {
 		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 
-	cache := cache.NewRedisClient(ctx, &redis.Options{
+	cache := cache.New(ctx, &redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
@@ -84,20 +84,20 @@ func main() {
 		etag.New(),
 	)
 
-	ping.NewHandler(app).Routes()
-	auth.NewHandler(app, grpcClient, cache).Routes()
+	ping.New(app).Routes()
+	auth.New(app, grpcClient, cache).Routes()
 
-	customer.NewHandler(app, grpcClient, cache).Routes()
-	key.NewHandler(app, grpcClient, cache).Routes()
-	member.NewHandler(app, grpcClient, cache).Routes()
-	project.NewHandler(app, grpcClient, cache).Routes()
-	server.NewHandler(app, grpcClient, cache).Routes()
-	info.NewHandler(app, grpcClient, cache).Routes()
-	user.NewHandler(app, grpcClient, cache).Routes()
-	utility.NewHandler(app, grpcClient).Routes()
+	customer.New(app, grpcClient, cache).Routes()
+	key.New(app, grpcClient, cache).Routes()
+	member.New(app, grpcClient, cache).Routes()
+	project.New(app, grpcClient, cache).Routes()
+	server.New(app, grpcClient, cache).Routes()
+	info.New(app, grpcClient, cache).Routes()
+	user.New(app, grpcClient, cache).Routes()
+	utility.New(app, grpcClient).Routes()
 
 	// license server
-	license.NewHandler(app, grpcClient, cache, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes()
+	license.New(app, grpcClient, cache, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes()
 
 	// dynamic handlers
 	handler(app, grpcClient, cache)

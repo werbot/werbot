@@ -10,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -32,7 +32,7 @@ type licenseInput struct {
 func (h *Handler) getLicenseExpired(c *fiber.Ctx) error {
 	input := new(licenseInput)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -67,7 +67,7 @@ func (h *Handler) postLicense(c *fiber.Ctx) error {
 	input := new(pb.NewLicense_Request)
 	c.BodyParser(input)
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 

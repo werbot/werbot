@@ -19,7 +19,7 @@ var (
 
 func init() {
 	testHandler = tests.InitTestServer("../../../../.env.taco")
-	NewHandler(testHandler.App, testHandler.GRPC, testHandler.Cache).Routes() // add test module handler
+	New(testHandler.App, testHandler.GRPC, testHandler.Cache).Routes() // add test module handler
 	testHandler.FinishHandler()
 
 	adminInfo = testHandler.GetUserInfo(&pb.SignIn_Request{

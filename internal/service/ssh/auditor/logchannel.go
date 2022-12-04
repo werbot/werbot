@@ -14,7 +14,7 @@ import (
 	pb "github.com/werbot/werbot/internal/grpc/proto/audit"
 )
 
-var log = logger.NewLogger("internal/auditor")
+var log = logger.New("internal/auditor")
 
 // LogChannel is ...
 type LogChannel struct {

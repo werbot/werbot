@@ -45,7 +45,7 @@ func (c authContext) userType() server.UserType {
 		return server.UserType_INVITE
 	}
 
-	nameArray := parse.UsernameParseInfo(c.userName)
+	nameArray := parse.Username(c.userName)
 	if len(nameArray) == 3 && nameArray[2] != "" {
 		return server.UserType_BASTION
 	}

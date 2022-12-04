@@ -33,7 +33,7 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 	).Scan(&status, &licServer)
 
 	if status == "" {
-		lic, err := license_lib.SetLicense([]byte(internal.GetString("LICENSE_KEY_PRIVATE", "")))
+		lic, err := license_lib.New([]byte(internal.GetString("LICENSE_KEY_PRIVATE", "")))
 		if err != nil {
 			return nil, errors.New("NewLicense failed")
 		}
@@ -138,7 +138,7 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 
 // GetLicenseExpired is ...
 func (l *license) GetLicenseExpired(ctx context.Context, in *pb_license.GetLicenseExpired_Request) (*pb_license.GetLicenseExpired_Response, error) {
-	lic, err := license_lib.GetLicense([]byte(internal.GetString("LICENSE_KEY_PUBLIC", "")))
+	lic, err := license_lib.Read([]byte(internal.GetString("LICENSE_KEY_PUBLIC", "")))
 	if err != nil {
 		return nil, errors.New("GetLicenseExpired failed")
 	}

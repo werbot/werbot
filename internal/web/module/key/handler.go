@@ -8,7 +8,7 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -27,7 +27,7 @@ import (
 func (h *Handler) getKey(c *fiber.Ctx) error {
 	input := new(pb.GetPublicKey_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateParams, err)
 	}
 
@@ -83,7 +83,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 func (h *Handler) addKey(c *fiber.Ctx) error {
 	input := new(pb.CreatePublicKey_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -116,7 +116,7 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 func (h *Handler) patchKey(c *fiber.Ctx) error {
 	input := new(pb.UpdatePublicKey_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -152,7 +152,7 @@ func (h *Handler) patchKey(c *fiber.Ctx) error {
 func (h *Handler) deleteKey(c *fiber.Ctx) error {
 	input := new(pb.DeletePublicKey_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateParams, err)
 	}
 

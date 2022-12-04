@@ -35,8 +35,8 @@ type License struct {
 	Dat json.RawMessage `json:"dat,omitempty"` // Data
 }
 
-// SetLicense is generate new license
-func SetLicense(privateKey []byte) (*Private, error) {
+// New is generate new license
+func New(privateKey []byte) (*Private, error) {
 	decodedPrivateKey, err := decodeKey(privateKey)
 	if err != nil {
 		return nil, err
@@ -47,8 +47,8 @@ func SetLicense(privateKey []byte) (*Private, error) {
 	}, nil
 }
 
-// GetLicense is read and decode license
-func GetLicense(publicKey []byte) (*Public, error) {
+// Read and decode license
+func Read(publicKey []byte) (*Public, error) {
 	decodedPublicKey, err := decodeKey(publicKey)
 	if err != nil {
 		return nil, err
@@ -111,8 +111,8 @@ func (l *Public) Expired() bool {
 	return l.License.Exp.IsZero() == false && time.Now().After(l.License.Exp)
 }
 
-// GetLicenseInfo is ...
-func (l *Public) GetLicenseInfo() *License {
+// Info is ...
+func (l *Public) Info() *License {
 	return l.License
 }
 

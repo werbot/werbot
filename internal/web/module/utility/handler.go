@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 
 	pb "github.com/werbot/werbot/internal/grpc/proto/utility"
@@ -23,7 +23,7 @@ func (h *Handler) getMyIP(c *fiber.Ctx) error {
 func (h *Handler) getCountry(c *fiber.Ctx) error {
 	input := &pb.GetCountry_Request{}
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 

@@ -1,4 +1,4 @@
-package sender
+package mail
 
 import (
 	"bytes"
@@ -12,8 +12,8 @@ import (
 	"github.com/werbot/werbot/internal"
 )
 
-// SendMail is ...
-func SendMail(to, subject, tmpl string, data any) error {
+// Send is ...
+func Send(to, subject, tmpl string, data any) error {
 	tmpls := []string{
 		fmt.Sprintf("%s/base.html.tmpl", internal.GetString("MAIL_TEMPLATES", "./templates")),
 		fmt.Sprintf("%s/%s.html.tmpl", internal.GetString("MAIL_TEMPLATES", "./templates"), tmpl),

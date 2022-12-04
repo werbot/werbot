@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -29,7 +29,7 @@ import (
 func (h *Handler) getServerMember(c *fiber.Ctx) error {
 	input := new(pb.GetServerMember_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -85,7 +85,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 func (h *Handler) addServerMember(c *fiber.Ctx) error {
 	input := new(pb.CreateServerMember_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -120,7 +120,7 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 func (h *Handler) patchServerMember(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerMember_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -158,7 +158,7 @@ func (h *Handler) patchServerMember(c *fiber.Ctx) error {
 func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 	input := new(pb.DeleteServerMember_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -195,7 +195,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	input := new(pb.GetMembersWithoutServer_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -233,7 +233,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 func (h *Handler) patchServerMemberStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerMemberStatus_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 

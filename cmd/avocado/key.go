@@ -37,7 +37,7 @@ func privateKey() func(*ssh.Server) error {
 func dynamicHostKey(host *server.GetServer_Response) gossh.HostKeyCallback {
 	return func(hostname string, remote net.Addr, key gossh.PublicKey) error {
 		if len(host.HostKey) == 0 {
-			log.Info().Str("hostAddress", parse.ParseIP(hostname)).Msg("Discovering host fingerprint")
+			log.Info().Str("hostAddress", parse.IP(hostname)).Msg("Discovering host fingerprint")
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()

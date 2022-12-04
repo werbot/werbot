@@ -7,8 +7,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// NewLogger returns a configured logger instance
-func NewLogger(module string) zerolog.Logger {
+// New returns a configured logger instance
+func New(module string) zerolog.Logger {
 	var logger *zerolog.Logger
 	var getLoggerMutex sync.Mutex
 

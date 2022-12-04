@@ -38,7 +38,7 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 	return func(ctx ssh.Context, key ssh.PublicKey) bool {
 		actx := &authContext{
 			userName:        fixUsername(ctx.User()),
-			userAddr:        parse.ParseIP(ctx.RemoteAddr().String()),
+			userAddr:        parse.IP(ctx.RemoteAddr().String()),
 			userFingerPrint: gossh.FingerprintLegacyMD5(key),
 			uuid:            uuid.New().String(),
 			authMethod:      "pubkey",

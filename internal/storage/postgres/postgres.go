@@ -22,8 +22,8 @@ type PgSQLConfig struct {
 	MaxLifetimeConn int
 }
 
-// ConnectDB is ...
-func ConnectDB(conf *PgSQLConfig) (*Connect, error) {
+// New is ...
+func New(conf *PgSQLConfig) (*Connect, error) {
 	db, err := sqlx.Connect("pgx", conf.DSN)
 	if err != nil {
 		return nil, fmt.Errorf("error, not connected to database, %w", err)

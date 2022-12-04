@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 
 	pb "github.com/werbot/werbot/internal/grpc/proto/server"
@@ -25,7 +25,7 @@ import (
 func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 	input := new(pb.CreateServer_Request)
 	c.BodyParser(&input)
-	if err := validator.ValidateStruct(&input); err != nil {
+	if err := validate.Struct(&input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 

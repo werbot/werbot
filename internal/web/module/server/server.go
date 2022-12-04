@@ -10,7 +10,7 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -31,7 +31,7 @@ import (
 func (h *Handler) getServer(c *fiber.Ctx) error {
 	input := new(pb.GetServer_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -88,7 +88,7 @@ func (h *Handler) getServer(c *fiber.Ctx) error {
 func (h *Handler) addServer(c *fiber.Ctx) error {
 	input := new(pb.CreateServer_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -133,7 +133,7 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 func (h *Handler) patchServer(c *fiber.Ctx) error {
 	input := new(pb.UpdateServer_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -164,7 +164,7 @@ func (h *Handler) patchServer(c *fiber.Ctx) error {
 	// access setting
 	access := new(pb.UpdateServerAccess_Request)
 	c.BodyParser(access)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -201,7 +201,7 @@ func (h *Handler) patchServer(c *fiber.Ctx) error {
 func (h *Handler) deleteServer(c *fiber.Ctx) error {
 	input := new(pb.DeleteServer_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -236,7 +236,7 @@ func (h *Handler) deleteServer(c *fiber.Ctx) error {
 func (h *Handler) getServerAccess(c *fiber.Ctx) error {
 	input := new(pb.GetServerAccess_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -274,7 +274,7 @@ func (h *Handler) getServerAccess(c *fiber.Ctx) error {
 func (h *Handler) getServerActivity(c *fiber.Ctx) error {
 	input := new(pb.GetServerActivity_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -310,7 +310,7 @@ func (h *Handler) getServerActivity(c *fiber.Ctx) error {
 func (h *Handler) patchServerActivity(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerActivity_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -344,7 +344,7 @@ func (h *Handler) patchServerActivity(c *fiber.Ctx) error {
 func (h *Handler) getServerFirewall(c *fiber.Ctx) error {
 	input := new(pb_firewall.GetServerFirewall_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -379,7 +379,7 @@ func (h *Handler) postServerFirewall(c *fiber.Ctx) error {
 	if err := protojson.Unmarshal(c.Body(), input); err != nil {
 		fmt.Print(err)
 	}
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -438,7 +438,7 @@ func (h *Handler) postServerFirewall(c *fiber.Ctx) error {
 func (h *Handler) patchAccessPolicy(c *fiber.Ctx) error {
 	input := new(pb_firewall.UpdateAccessPolicy_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -473,7 +473,7 @@ func (h *Handler) patchAccessPolicy(c *fiber.Ctx) error {
 func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 	input := new(pb_firewall.DeleteServerFirewall_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -508,7 +508,7 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 func (h *Handler) patchServerStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerActiveStatus_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 

@@ -16,8 +16,8 @@ type Handler struct {
 	publicKey string
 }
 
-// NewHandler is ...
-func NewHandler(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache, publicKey string) *Handler {
+// New is ...
+func New(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache, publicKey string) *Handler {
 	return &Handler{
 		app:       app,
 		grpc:      grpc,

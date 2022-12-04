@@ -20,7 +20,7 @@ import (
 
 var (
 	component = "avocado"
-	log       = logger.NewLogger(component)
+	log       = logger.New(component)
 	app       = App{}
 )
 
@@ -41,7 +41,7 @@ func main() {
 		internal.GetString("NATS_PASSWORD", "natsPassword"),
 		internal.GetString("NATS_HOST", "localhost:4222"),
 	)
-	app.nats = nats.NewNATS(natsDSN)
+	app.nats = nats.New(natsDSN)
 	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {}
 
 	app.grpc = grpc.NewClient(

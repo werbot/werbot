@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-var log = logger.NewLogger("ssh/logtunnel")
+var log = logger.New("ssh/logtunnel")
 
 type logTunnel struct {
 	host    string

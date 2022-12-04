@@ -9,8 +9,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/sender"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/mail"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -28,7 +28,7 @@ import (
 func (h *Handler) getUser(c *fiber.Ctx) error {
 	input := new(pb.GetUser_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -88,7 +88,7 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 func (h *Handler) addUser(c *fiber.Ctx) error {
 	input := new(pb.CreateUser_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -127,7 +127,7 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 func (h *Handler) patchUser(c *fiber.Ctx) error {
 	input := new(pb.UpdateUser_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -183,7 +183,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 		fmt.Print(err)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -210,7 +210,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 			"Name": response.GetName(),
 			"Link": fmt.Sprintf("%s/profile/delete/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
 		}
-		go sender.SendMail(response.GetEmail(), "Account deletion confirmation", "account-deletion-confirmation", mailData)
+		go mail.Send(response.GetEmail(), "Account deletion confirmation", "account-deletion-confirmation", mailData)
 		return httputil.StatusOK(c, "An email with instructions to delete your profile has been sent to your email", nil)
 	}
 
@@ -230,7 +230,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 		mailData := map[string]string{
 			"Name": response.GetName(),
 		}
-		go sender.SendMail(response.GetEmail(), "Account deletion information", "account-deletion-info", mailData)
+		go mail.Send(response.GetEmail(), "Account deletion information", "account-deletion-info", mailData)
 		return httputil.StatusOK(c, "Account deleted", nil)
 	}
 
@@ -249,7 +249,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 func (h *Handler) patchPassword(c *fiber.Ctx) error {
 	input := new(pb.UpdatePassword_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 

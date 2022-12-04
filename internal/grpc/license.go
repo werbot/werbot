@@ -25,7 +25,7 @@ func (l *license) GetLicenseInfo(ctx context.Context, in *pb_license.GetLicenseI
 	}
 
 	licensePublic := internal.GetString("LICENSE_KEY_PUBLIC", "")
-	lic, err := license_lib.GetLicense([]byte(licensePublic))
+	lic, err := license_lib.Read([]byte(licensePublic))
 	if err != nil {
 		return nil, err
 	}

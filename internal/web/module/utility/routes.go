@@ -7,7 +7,7 @@ import (
 	"github.com/werbot/werbot/internal/logger"
 )
 
-var log = logger.NewLogger("module/utility")
+var log = logger.New("module/utility")
 
 // Handler is ...
 type Handler struct {
@@ -15,8 +15,8 @@ type Handler struct {
 	grpc *grpc.ClientService
 }
 
-// NewHandler is ...
-func NewHandler(app *fiber.App, grpc *grpc.ClientService) *Handler {
+// New is ...
+func New(app *fiber.App, grpc *grpc.ClientService) *Handler {
 	return &Handler{
 		app:  app,
 		grpc: grpc,

@@ -69,7 +69,7 @@ func InitTestServer(envPath string) *TestHandler {
 		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 
-	cacheClient := cache.NewRedisClient(context.TODO(), &redis.Options{
+	cacheClient := cache.New(context.TODO(), &redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
@@ -90,7 +90,7 @@ func InitTestServer(envPath string) *TestHandler {
 		etag.New(),
 	)
 
-	auth.NewHandler(server, grpcClient, cacheClient).Routes()
+	auth.New(server, grpcClient, cacheClient).Routes()
 
 	return &TestHandler{
 		App:   server,

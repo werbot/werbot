@@ -17,7 +17,7 @@ type account struct {
 // TODO: проверка на invite
 // TODO: включить проверку в Firewall
 func (s *account) GetAccountByID(ctx context.Context, in *pb_account.GetAccountByID_Request) (*pb_account.GetAccountByID_Response, error) {
-	nameArray := parse.UsernameParseInfo(in.GetUsername())
+	nameArray := parse.Username(in.GetUsername())
 	var id string
 
 	row := db.Conn.QueryRow(`SELECT

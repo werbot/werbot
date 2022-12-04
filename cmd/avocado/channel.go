@@ -230,7 +230,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 		if len(actx.serverList) > 0 {
 			log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Str("userID", actx.userID).Str("UUID", actx.uuid).Msg("Open shellconsole connection")
 
-			nameArray := parse.UsernameParseInfo(actx.userName)
+			nameArray := parse.Username(actx.userName)
 			status := map[bool]string{
 				false: "\x1B[01;31m•\x1B[0m",
 				true:  "\x1B[01;32m•\x1B[0m",

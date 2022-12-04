@@ -8,9 +8,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/sender"
+	"github.com/werbot/werbot/internal/mail"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -31,7 +31,7 @@ import (
 func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 	input := new(pb.GetProjectMember_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -86,7 +86,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 	input := new(pb.CreateProjectMember_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -121,7 +121,7 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
 	input := new(pb.UpdateProjectMember_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -158,7 +158,7 @@ func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
 func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 	input := new(pb.DeleteProjectMember_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -193,7 +193,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 	input := new(pb.ActivityRequest)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -226,7 +226,7 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateProjectMemberStatus_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -268,7 +268,7 @@ func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 	input := new(pb.GetProjectMember_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -305,7 +305,7 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	input := new(pb.CreateProjectMemberInvite_Request)
 	c.BodyParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -330,7 +330,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	mailData := map[string]string{
 		"Link": fmt.Sprintf("%s/invite/project/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), member.GetInvite()),
 	}
-	go sender.SendMail(input.GetEmail(), "Invitation to the project", "project-invite", mailData)
+	go mail.Send(input.GetEmail(), "Invitation to the project", "project-invite", mailData)
 
 	return httputil.StatusOK(c, "Member invited", member)
 }
@@ -348,7 +348,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 	input := new(pb.DeleteProjectMemberInvite_Request)
 	c.QueryParser(input)
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -381,7 +381,7 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 func (h *Handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 	request := new(pb.ProjectMemberInviteActivate_Request)
 	request.Invite = c.Params("invite")
-	if err := validator.ValidateStruct(request); err != nil {
+	if err := validate.Struct(request); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 

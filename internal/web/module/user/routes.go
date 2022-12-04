@@ -15,8 +15,8 @@ type Handler struct {
 	cache cache.Cache
 }
 
-// NewHandler is ...
-func NewHandler(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache) *Handler {
+// New is ...
+func New(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache) *Handler {
 	//log.Info().Msg("Module added")
 
 	return &Handler{

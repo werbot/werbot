@@ -4,8 +4,8 @@ import (
 	"net"
 )
 
-// ParseIP is parse ip to string
-func ParseIP(addr string) string {
+// IP is parse ip to string
+func IP(addr string) string {
 	ip, _, err := net.SplitHostPort(addr)
 	if err == nil {
 		return ip

@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	log      = logger.NewLogger("buffet")
+	log      = logger.New("buffet")
 	cert     tls.Certificate // Cert is a self signed certificate
 	certPool *x509.CertPool  // CertPool contains the self signed certificate
 )
@@ -39,7 +39,7 @@ func main() {
 		internal.GetString("POSTGRES_HOST", "localhost:5432"),
 		internal.GetString("POSTGRES_DB", "werbot"),
 	)
-	db, err := postgres.ConnectDB(&postgres.PgSQLConfig{
+	db, err := postgres.New(&postgres.PgSQLConfig{
 		DSN:             pgDSN,
 		MaxConn:         internal.GetInt("PSQLSERVER_MAX_CONN", 50),
 		MaxIdleConn:     internal.GetInt("PSQLSERVER_MAX_IDLEC_CONN", 10),
@@ -49,7 +49,7 @@ func main() {
 		log.Error().Err(err).Msg("Database connection problem")
 	}
 
-	cache := cache_lib.NewRedisClient(ctx, &redis.Options{
+	cache := cache_lib.New(ctx, &redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})

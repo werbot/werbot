@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 )
 
@@ -22,7 +22,7 @@ func (h *Handler) getCustomer(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -39,7 +39,7 @@ func (h *Handler) deleteCustomer(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 

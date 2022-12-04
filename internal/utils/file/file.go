@@ -1,4 +1,4 @@
-package files
+package file
 
 import (
 	"io"
@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-// DownloadFile is download file
-func DownloadFile(filepath string, url string) error {
+// Download is download file
+func Download(filepath string, url string) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return err

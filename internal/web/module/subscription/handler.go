@@ -9,7 +9,7 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/utils/validator"
+	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -75,7 +75,7 @@ func (h *Handler) patchSubscription(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -97,7 +97,7 @@ func (h *Handler) deleteSubscription(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -119,7 +119,7 @@ func (h *Handler) stopSubscription(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
@@ -141,7 +141,7 @@ func (h *Handler) addSubscriptionToUser(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
+	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 

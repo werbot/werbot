@@ -1,4 +1,4 @@
-package validator
+package validate
 
 import (
 	"strings"
@@ -9,8 +9,8 @@ import (
 	enTranslations "github.com/go-playground/validator/v10/translations/en"
 )
 
-// ValidateStruct is ...
-func ValidateStruct(input any) *map[string]string {
+// Struct is ...
+func Struct(input any) *map[string]string {
 	validate := validator.New()
 	en := en.New()
 	uni := ut.New(en, en)

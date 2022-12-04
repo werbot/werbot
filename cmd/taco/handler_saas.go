@@ -11,5 +11,5 @@ import (
 )
 
 func handler(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache) {
-	subscription.NewHandler(app, grpc, cache).Routes()
+	subscription.New(app, grpc, cache).Routes()
 }
