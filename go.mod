@@ -21,12 +21,11 @@ require (
 	github.com/jackc/pgx/v5 v5.1.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/joho/godotenv v1.4.0
-	github.com/nats-io/nats.go v1.20.0
+	github.com/nats-io/nats.go v1.21.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/oschwald/geoip2-golang v1.8.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/zerolog v1.28.0
-	github.com/srikrsna/protoc-gen-gotag v0.6.2
 	github.com/steinfletcher/apitest v1.5.14
 	github.com/steinfletcher/apitest-jsonpath v1.7.1
 	github.com/vanng822/go-premailer v1.20.1
