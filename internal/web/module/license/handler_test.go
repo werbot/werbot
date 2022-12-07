@@ -9,6 +9,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	pb "github.com/werbot/werbot/internal/grpc/proto/user"
 	"github.com/werbot/werbot/internal/tests"
+	"github.com/werbot/werbot/internal/web/middleware"
 )
 
 var (
@@ -21,8 +22,9 @@ func init() {
 	internal.LoadConfig("../../../../.env") // only for LICENSE_KEY_PUBLIC
 
 	testHandler = tests.InitTestServer("../../../../.env")
-	New(testHandler.App, testHandler.GRPC, testHandler.Cache, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes() // add test module handler
-	testHandler.FinishHandler()                                                                                      // init finale handler for apitest
+	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
+	New(testHandler.App, testHandler.GRPC, authMiddleware, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes() // add test module handler
+	testHandler.FinishHandler()                                                                                   // init finale handler for apitest
 
 	adminInfo = testHandler.GetUserInfo(&pb.SignIn_Request{
 		Email:    "test-admin@werbot.net",
@@ -82,7 +84,7 @@ func TestHandler_getLicenseInfo(t *testing.T) {
 			apiTest().
 				HandlerFunc(testHandler.Handler).
 				Get("/v1/license/info").
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 				Expect(t).
 				Assert(tc.RespondBody).
 				Status(tc.RespondStatus).

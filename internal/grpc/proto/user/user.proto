@@ -34,9 +34,10 @@ enum RoleUser {
 }
 
 message UserParameters {
-    string user_id = 1;
-    RoleUser user_role = 2;
-    string sub = 3;
+    string user_name = 1;
+    string user_id = 2;
+    RoleUser roles = 3;
+    string sub = 4;
 }
 
 message AuthUserInfo  {

@@ -35,8 +35,8 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	ownerID := userParameter.GetUserID(input.GetOwnerId())
+	userParameter := middleware.AuthUser(c)
+	ownerID := userParameter.UserID(input.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -90,8 +90,8 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetOwnerId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -125,8 +125,8 @@ func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	ownerID := userParameter.GetUserID(input.GetOwnerId())
+	userParameter := middleware.AuthUser(c)
+	ownerID := userParameter.UserID(input.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -162,8 +162,8 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	ownerID := userParameter.GetUserID(input.GetOwnerId())
+	userParameter := middleware.AuthUser(c)
+	ownerID := userParameter.UserID(input.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -197,8 +197,8 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	ownerID := userParameter.GetUserID(input.GetOwnerId())
+	userParameter := middleware.AuthUser(c)
+	ownerID := userParameter.UserID(input.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -230,8 +230,8 @@ func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	ownerID := userParameter.GetUserID(input.GetOwnerId())
+	userParameter := middleware.AuthUser(c)
+	ownerID := userParameter.UserID(input.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -272,8 +272,8 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	ownerID := userParameter.GetUserID(input.GetOwnerId())
+	userParameter := middleware.AuthUser(c)
+	ownerID := userParameter.UserID(input.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -309,8 +309,8 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetOwnerId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -352,8 +352,8 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	ownerID := userParameter.GetUserID(input.GetOwnerId())
+	userParameter := middleware.AuthUser(c)
+	ownerID := userParameter.UserID(input.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -385,7 +385,7 @@ func (h *Handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
+	userParameter := middleware.AuthUser(c)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -393,7 +393,7 @@ func (h *Handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 
 	project, err := rClient.ProjectMemberInviteActivate(ctx, &pb.ProjectMemberInviteActivate_Request{
 		Invite: request.GetInvite(),
-		UserId: userParameter.User.UserId,
+		UserId: userParameter.User.GetUserId(),
 	})
 	if err != nil {
 		return httputil.ReturnGRPCError(c, err)

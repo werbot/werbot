@@ -25,15 +25,15 @@ import (
 // @Success      200         {object} httputil.HTTPResponse{data=pb.ListUsersResponse}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users [get]
-func (h *Handler) getUser(c *fiber.Ctx) error {
+func (h *handler) getUser(c *fiber.Ctx) error {
 	input := new(pb.GetUser_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -85,14 +85,14 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb.CreateUser_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users [post]
-func (h *Handler) addUser(c *fiber.Ctx) error {
+func (h *handler) addUser(c *fiber.Ctx) error {
 	input := new(pb.CreateUser_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
+	userParameter := middleware.AuthUser(c)
 	if !userParameter.IsUserAdmin() {
 		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}
@@ -124,15 +124,15 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse(data=pb.UpdateUser_Response)
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users [patch]
-func (h *Handler) patchUser(c *fiber.Ctx) error {
+func (h *handler) patchUser(c *fiber.Ctx) error {
 	input := new(pb.UpdateUser_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -175,7 +175,7 @@ func (h *Handler) patchUser(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users [delete]
-func (h *Handler) deleteUser(c *fiber.Ctx) error {
+func (h *handler) deleteUser(c *fiber.Ctx) error {
 	input := new(pb.DeleteUser_Request)
 	//c.BodyParser(input)
 
@@ -187,8 +187,8 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -246,15 +246,15 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse(data=pb.UpdatePassword_Response)
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users/password [patch]
-func (h *Handler) patchPassword(c *fiber.Ctx) error {
+func (h *handler) patchPassword(c *fiber.Ctx) error {
 	input := new(pb.UpdatePassword_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

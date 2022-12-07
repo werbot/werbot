@@ -21,7 +21,7 @@ import (
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/license/info [get]
 func (h *Handler) getLicenseInfo(c *fiber.Ctx) error {
-	userParameter := middleware.GetUserParameters(c)
+	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
 		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)

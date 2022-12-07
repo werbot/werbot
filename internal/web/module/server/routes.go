@@ -4,30 +4,28 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/web/middleware"
 )
 
 // Handler is ...
 type Handler struct {
-	app   *fiber.App
-	grpc  *grpc.ClientService
-	cache cache.Cache
+	app  *fiber.App
+	grpc *grpc.ClientService
+	auth fiber.Handler
 }
 
 // New is ...
-func New(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache) *Handler {
+func New(app *fiber.App, grpc *grpc.ClientService, auth fiber.Handler) *Handler {
 	return &Handler{
-		app:   app,
-		grpc:  grpc,
-		cache: cache,
+		app:  app,
+		grpc: grpc,
+		auth: auth,
 	}
 }
 
 // Routes is ...
 func (h *Handler) Routes() {
-	keyMiddleware := middleware.NewKeyMiddleware(h.grpc)
-	authMiddleware := middleware.NewAuthMiddleware(h.cache)
+	keyMiddleware := middleware.Key(h.grpc)
 
 	// public
 	serviceV1 := h.app.Group("/v1/service", keyMiddleware.Execute())
@@ -35,7 +33,7 @@ func (h *Handler) Routes() {
 	serviceV1.Patch("/status", h.patchServiceServerStatus)
 
 	// private
-	serverV1 := h.app.Group("/v1/servers", authMiddleware.Execute())
+	serverV1 := h.app.Group("/v1/servers", h.auth)
 	serverV1.Patch("/active", h.patchServerStatus)
 
 	serverV1.Get("/", h.getServer)

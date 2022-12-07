@@ -79,10 +79,8 @@ build/*
 !.vscode/config
 
 !build/docker/
-/build/docker/core/license.key
-/build/docker/core/server.key
+/build/docker/core/*.key
 /build/docker/core/GeoLite*
-/build/docker/core/grpc_*
 /build/docker/postgres/ca
 /build/docker/haproxy/data
 

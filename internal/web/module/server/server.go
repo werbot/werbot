@@ -35,8 +35,8 @@ func (h *Handler) getServer(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -92,8 +92,8 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -137,8 +137,8 @@ func (h *Handler) patchServer(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -205,8 +205,8 @@ func (h *Handler) deleteServer(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -240,8 +240,8 @@ func (h *Handler) getServerAccess(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -278,8 +278,8 @@ func (h *Handler) getServerActivity(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -314,8 +314,8 @@ func (h *Handler) patchServerActivity(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -348,8 +348,8 @@ func (h *Handler) getServerFirewall(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -383,8 +383,8 @@ func (h *Handler) postServerFirewall(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -442,8 +442,8 @@ func (h *Handler) patchAccessPolicy(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -477,8 +477,8 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -512,8 +512,8 @@ func (h *Handler) patchServerStatus(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

@@ -5,7 +5,6 @@ import (
 
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/storage/cache"
-	"github.com/werbot/werbot/internal/web/middleware"
 )
 
 //var moduleName = "module/auth"
@@ -16,27 +15,27 @@ type Handler struct {
 	app   *fiber.App
 	grpc  *grpc.ClientService
 	cache cache.Cache
+	auth  fiber.Handler
 }
 
 // New is ...
-func New(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache) *Handler {
+func New(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache, auth fiber.Handler) *Handler {
 	return &Handler{
 		app:   app,
 		grpc:  grpc,
 		cache: cache,
+		auth:  auth,
 	}
 }
 
 // Routes is ...
 func (h *Handler) Routes() {
-	authMiddleware := middleware.NewAuthMiddleware(h.cache)
-
 	g := h.app.Group("/auth")
-	g.Post("/signin", h.postSignIn)
-	g.Post("/refresh", h.postRefresh)
-	g.Post("/logout", authMiddleware.Execute(), h.postLogout)
+	g.Post("/signin", h.signIn)
+	g.Post("/refresh", h.refresh)
+	g.Post("/logout", h.auth, h.logout)
 
-	g.Post("/password_reset/:reset_token?", h.postResetPassword)
+	g.Post("/password_reset/:reset_token?", h.resetPassword)
 
-	g.Get("/profile", authMiddleware.Execute(), h.getProfile)
+	g.Get("/profile", h.auth, h.getProfile)
 }

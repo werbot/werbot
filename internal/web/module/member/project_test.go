@@ -9,6 +9,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	pb "github.com/werbot/werbot/internal/grpc/proto/user"
 	"github.com/werbot/werbot/internal/tests"
+	"github.com/werbot/werbot/internal/web/middleware"
 )
 
 var (
@@ -19,7 +20,8 @@ var (
 
 func init() {
 	testHandler = tests.InitTestServer("../../../../.env.taco")
-	New(testHandler.App, testHandler.GRPC, testHandler.Cache).Routes() // add test module handler
+	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
+	New(testHandler.App, testHandler.GRPC, authMiddleware).Routes() // add test module handler
 	testHandler.FinishHandler()
 
 	adminInfo = testHandler.GetUserInfo(&pb.SignIn_Request{
@@ -110,7 +112,7 @@ func TestHandler_getMembers(t *testing.T) {
 			apiTest().
 				Get("/v1/members").
 				JSON(tc.RequestBody).
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 				Expect(t).
 				Assert(tc.RespondBody).
 				Status(tc.RespondStatus).

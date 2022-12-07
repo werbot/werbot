@@ -14,6 +14,7 @@ import (
 	pb_project "github.com/werbot/werbot/internal/grpc/proto/project"
 	pb_user "github.com/werbot/werbot/internal/grpc/proto/user"
 	"github.com/werbot/werbot/internal/tests"
+	"github.com/werbot/werbot/internal/web/middleware"
 )
 
 var (
@@ -24,8 +25,9 @@ var (
 
 func init() {
 	testHandler = tests.InitTestServer("../../../../.env")
-	New(testHandler.App, testHandler.GRPC, testHandler.Cache).Routes() // add test module handler
-	testHandler.FinishHandler()                                        // init finale handler for apitest
+	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
+	New(testHandler.App, testHandler.GRPC, authMiddleware).Routes() // add test module handler
+	testHandler.FinishHandler()                                     // init finale handler for apitest
 
 	adminInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
 		Email:    "test-admin@werbot.net",
@@ -211,7 +213,7 @@ func TestHandler_getProject(t *testing.T) {
 			apiTest().
 				Get("/v1/projects").
 				QueryParams(tc.RequestParam.(map[string]string)).
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 				Expect(t).
 				Assert(tc.RespondBody).
 				Status(tc.RespondStatus).
@@ -298,7 +300,7 @@ func TestHandler_addProject(t *testing.T) {
 			resp := apiTest().
 				Post("/v1/projects").
 				JSON(tc.RequestBody).
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 				Expect(t).
 				Assert(tc.RespondBody).
 				Status(tc.RespondStatus).
@@ -405,7 +407,7 @@ func TestHandler_patchProject(t *testing.T) {
 			apiTest().
 				Patch("/v1/projects").
 				JSON(tc.RequestBody).
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 				Expect(t).
 				Assert(tc.RespondBody).
 				Status(tc.RespondStatus).

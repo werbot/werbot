@@ -20,6 +20,8 @@ import (
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/web/httputil"
+	"github.com/werbot/werbot/internal/web/jwt"
+	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/internal/web/module/auth"
 
 	pb "github.com/werbot/werbot/internal/grpc/proto/user"
@@ -41,18 +43,19 @@ type TestHandler struct {
 	GRPC    *grpc.ClientService
 	Cache   cache.Cache
 	Handler http.HandlerFunc
+	Auth    *fiber.Handler
 }
 
 // UserInfo is ...
 type UserInfo struct {
-	Tokens httputil.Tokens
+	Tokens jwt.Tokens
 	UserID string `json:"user_id"`
 }
 
 // Tokens is ...
 type Tokens struct {
-	Admin *httputil.Tokens `json:"admin_tokens"`
-	User  *httputil.Tokens `json:"user_tokens"`
+	Admin *jwt.Tokens `json:"admin_tokens"`
+	User  *jwt.Tokens `json:"user_tokens"`
 }
 
 // InitTestServer is ...
@@ -90,12 +93,14 @@ func InitTestServer(envPath string) *TestHandler {
 		etag.New(),
 	)
 
-	auth.New(server, grpcClient, cacheClient).Routes()
+	authMiddleware := middleware.Auth(cacheClient).Execute()
+	auth.New(server, grpcClient, cacheClient, authMiddleware).Routes()
 
 	return &TestHandler{
 		App:   server,
 		GRPC:  grpcClient,
 		Cache: cacheClient,
+		Auth:  &authMiddleware,
 	}
 }
 
@@ -104,7 +109,7 @@ func (h *TestHandler) GetUserInfo(signIn *pb.SignIn_Request) *UserInfo {
 	tokens := h.getAuthToken(signIn)
 	return &UserInfo{
 		Tokens: *tokens,
-		UserID: h.getAuthUserID(tokens.AccessToken),
+		UserID: h.getAuthUserID(tokens.Access),
 	}
 }
 
@@ -117,7 +122,7 @@ func (h *TestHandler) FinishHandler() {
 	h.Handler = h.fiberToHandlerFunc()
 }
 
-func (h *TestHandler) getAuthToken(signIn *pb.SignIn_Request) *httputil.Tokens {
+func (h *TestHandler) getAuthToken(signIn *pb.SignIn_Request) *jwt.Tokens {
 	userData, _ := json.Marshal(signIn)
 	req, err := http.NewRequest("POST", "/auth/signin", bytes.NewBuffer(userData))
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
@@ -126,7 +131,7 @@ func (h *TestHandler) getAuthToken(signIn *pb.SignIn_Request) *httputil.Tokens {
 	}
 
 	res, _ := h.App.Test(req)
-	tokens := &httputil.Tokens{}
+	tokens := &jwt.Tokens{}
 	json.NewDecoder(res.Body).Decode(tokens)
 	return tokens
 }

@@ -28,11 +28,15 @@ func InternalServerError(c *fiber.Ctx, message string, err any) error {
 
 // NewError is ...
 func NewError(c *fiber.Ctx, status int, message string, data any) error {
-	return c.Status(status).JSON(HTTPResponse{
-		Success: false,
-		Message: message,
-		Result:  data,
-	})
+	if len(message) > 0 {
+		return c.Status(status).JSON(HTTPResponse{
+			Success: false,
+			Message: message,
+			Result:  data,
+		})
+	}
+
+	return c.Status(status).JSON(data)
 }
 
 // ReturnGRPCError is ...

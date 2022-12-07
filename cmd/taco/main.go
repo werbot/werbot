@@ -20,6 +20,7 @@ import (
 	"github.com/werbot/werbot/internal/storage/cache"
 
 	"github.com/werbot/werbot/internal/web/httputil"
+	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/internal/web/module/auth"
 	"github.com/werbot/werbot/internal/web/module/customer"
 	"github.com/werbot/werbot/internal/web/module/info"
@@ -31,6 +32,7 @@ import (
 	"github.com/werbot/werbot/internal/web/module/server"
 	"github.com/werbot/werbot/internal/web/module/user"
 	"github.com/werbot/werbot/internal/web/module/utility"
+	"github.com/werbot/werbot/internal/web/module/wellknown"
 )
 
 var (
@@ -85,22 +87,25 @@ func main() {
 	)
 
 	ping.New(app).Routes()
-	auth.New(app, grpcClient, cache).Routes()
+	wellknown.New(app).Routes()
 
-	customer.New(app, grpcClient, cache).Routes()
-	key.New(app, grpcClient, cache).Routes()
-	member.New(app, grpcClient, cache).Routes()
-	project.New(app, grpcClient, cache).Routes()
-	server.New(app, grpcClient, cache).Routes()
-	info.New(app, grpcClient, cache).Routes()
-	user.New(app, grpcClient, cache).Routes()
+	authMiddleware := middleware.Auth(cache).Execute()
+	auth.New(app, grpcClient, cache, authMiddleware).Routes()
+
+	customer.New(app, grpcClient, authMiddleware).Routes()
+	key.New(app, grpcClient, authMiddleware).Routes()
+	member.New(app, grpcClient, authMiddleware).Routes()
+	project.New(app, grpcClient, authMiddleware).Routes()
+	server.New(app, grpcClient, authMiddleware).Routes()
+	info.New(app, grpcClient, authMiddleware).Routes()
+	user.New(app, grpcClient, authMiddleware).Routes()
 	utility.New(app, grpcClient).Routes()
 
 	// license server
-	license.New(app, grpcClient, cache, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes()
+	license.New(app, grpcClient, authMiddleware, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes()
 
 	// dynamic handlers
-	handler(app, grpcClient, cache)
+	handler(app, grpcClient, authMiddleware)
 
 	// notFoundRoute func for describe 404 Error route.
 	app.Use(func(c *fiber.Ctx) error {

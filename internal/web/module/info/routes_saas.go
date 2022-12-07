@@ -2,10 +2,6 @@
 
 package info
 
-import (
-	"github.com/werbot/werbot/internal/web/middleware"
-)
-
-func routes(h *Handler, a middleware.Middleware) {
+func routes(h *Handler) {
 	h.app.Get("/v1/update/version", h.getUpdateVersion)
 }

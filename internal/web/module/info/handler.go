@@ -29,7 +29,7 @@ import (
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/update [get]
 func (h *Handler) getUpdate(c *fiber.Ctx) error {
-	userParameter := middleware.GetUserParameters(c)
+	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
 		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
@@ -99,15 +99,15 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	request.UserId = userParameter.GetUserID(input.GetUserId())
-	userRole := userParameter.GetUserRole()
+	userParameter := middleware.AuthUser(c)
+	request.UserId = userParameter.UserID(input.GetUserId())
+	userRole := userParameter.UserRole()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewInfoHandlersClient(h.grpc.Client)
 
-	if request.UserId == userParameter.GetOriginalUserID() {
+	if request.UserId == userParameter.OriginalUserID() {
 		request.Role = userRole
 	}
 

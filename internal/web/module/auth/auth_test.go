@@ -9,7 +9,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	pb_user "github.com/werbot/werbot/internal/grpc/proto/user"
 	"github.com/werbot/werbot/internal/tests"
-	"github.com/werbot/werbot/internal/web/httputil"
+	"github.com/werbot/werbot/internal/web/jwt"
 )
 
 var (
@@ -157,7 +157,7 @@ func Test_postLogout(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			apiTest().
 				Post("/auth/logout").
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 				Expect(t).
 				Status(tc.RespondStatus).
 				End()
@@ -172,7 +172,7 @@ func Test_postRefresh(t *testing.T) {
 	testCases["ROLE_USER_UNSPECIFIED"] = []tests.TestCase{
 		{
 			Name:        "Without parameters",
-			RequestBody: httputil.RefreshToken{},
+			RequestBody: jwt.Tokens{},
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -186,8 +186,8 @@ func Test_postRefresh(t *testing.T) {
 		{
 			Name:        "Authorized user refresh",
 			RequestUser: adminInfo,
-			RequestBody: httputil.RefreshToken{
-				Token: adminInfo.Tokens.RefreshToken,
+			RequestBody: jwt.Tokens{
+				Refresh: adminInfo.Tokens.Refresh,
 			},
 			RespondBody: jsonpath.Chain().
 				Present(`access_token`).
@@ -198,8 +198,8 @@ func Test_postRefresh(t *testing.T) {
 		{
 			Name:        "Bad token error",
 			RequestUser: adminInfo,
-			RequestBody: httputil.RefreshToken{
-				Token: adminInfo.Tokens.RefreshToken + "error",
+			RequestBody: jwt.Tokens{
+				Refresh: adminInfo.Tokens.Refresh + "error",
 			},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -213,8 +213,8 @@ func Test_postRefresh(t *testing.T) {
 		{
 			Name:        "Authorized user refresh",
 			RequestUser: userInfo,
-			RequestBody: httputil.RefreshToken{
-				Token: userInfo.Tokens.RefreshToken,
+			RequestBody: jwt.Tokens{
+				Refresh: userInfo.Tokens.Refresh,
 			},
 			RespondBody: jsonpath.Chain().
 				Present(`access_token`).
@@ -225,8 +225,8 @@ func Test_postRefresh(t *testing.T) {
 		{
 			Name:        "Bad token error",
 			RequestUser: userInfo,
-			RequestBody: httputil.RefreshToken{
-				Token: userInfo.Tokens.RefreshToken + "error",
+			RequestBody: jwt.Tokens{
+				Refresh: userInfo.Tokens.Refresh + "error",
 			},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -243,7 +243,7 @@ func Test_postRefresh(t *testing.T) {
 					apiTest().
 						Post("/auth/refresh").
 						JSON(tc.RequestBody).
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 						Expect(t).
 						Assert(tc.RespondBody).
 						Status(tc.RespondStatus).
@@ -304,7 +304,7 @@ func Test_getProfile(t *testing.T) {
 				t.Run(tc.Name, func(t *testing.T) {
 					apiTest().
 						Get("/auth/profile").
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 						Expect(t).
 						Assert(tc.RespondBody).
 						Status(tc.RespondStatus).

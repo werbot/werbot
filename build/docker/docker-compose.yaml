@@ -332,9 +332,7 @@ services:
       APP_TOKEN: ${APP_TOKEN:-werbot}
       REDIS_ADDR: service.redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redisPassword}
-      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-accessTokenSecret}
       ACCESS_TOKEN_DURATION: ${ACCESS_TOKEN_DURATION:-15m}
-      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-refreshTokenSecret}
       LICENSE_KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
       LICENSE_KEY_PRIVATE: ${LICENSE_KEY_PRIVATE:-}
       API_DSN: https://api.werbot.net
@@ -345,6 +343,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./core/grpc_public.key:/grpc_public.key:ro
       - ./core/grpc_private.key:/grpc_private.key:ro
+      - ./core/jwt_public.key:/jwt_public.key:ro
+      - ./core/jwt_private.key:/jwt_private.key:ro
     deploy:
       replicas: 1
       resources: *default-resources

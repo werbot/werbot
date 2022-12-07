@@ -15,12 +15,12 @@ import (
 	pb "github.com/werbot/werbot/internal/grpc/proto/utility"
 )
 
-func (h *Handler) getMyIP(c *fiber.Ctx) error {
+func (h *handler) getMyIP(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/plain")
 	return c.SendString(c.IP())
 }
 
-func (h *Handler) getCountry(c *fiber.Ctx) error {
+func (h *handler) getCountry(c *fiber.Ctx) error {
 	input := &pb.GetCountry_Request{}
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {

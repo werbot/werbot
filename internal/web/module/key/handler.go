@@ -31,8 +31,8 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -87,8 +87,8 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -120,8 +120,8 @@ func (h *Handler) patchKey(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -156,8 +156,8 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.GetUserId())
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

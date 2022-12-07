@@ -45,7 +45,6 @@ help:
 #############################################################################
 
 
-
 #############################################################################
 .PHONY: gen_key_aes
 gen_key_aes: ## Generating AES key
@@ -63,6 +62,15 @@ gen_key_server: ## Generating ssh server key
 	@rm -rf $(ROOT_PATH)/build/docker/core/server_key.pub
 	@mv $(ROOT_PATH)/build/docker/core/server_key $(ROOT_PATH)/build/docker/core/server.key
 
+	$(msg) "$(YELLOW)Server key generated$(RESET)"
+#############################################################################
+
+
+#############################################################################
+.PHONY: gen_key_jwt
+gen_key_jwt: ## Generating JWT key
+	@openssl genrsa -out $(ROOT_PATH)/build/docker/core/jwt_private.key 2048
+	@openssl rsa -in $(ROOT_PATH)/build/docker/core/jwt_private.key -pubout -outform PEM -out $(ROOT_PATH)/build/docker/core/jwt_public.key
 	$(msg) "$(YELLOW)Server key generated$(RESET)"
 #############################################################################
 
@@ -153,7 +161,7 @@ upd_protos:
 gen_key_grpc: ## Generating TLS keys for gRPC
 	@$(call make_target_dir,${ROOT_PATH}/.vscode/tmp) 
 	@echo "$$_gen_grpc_key_conf" > ${ROOT_PATH}/.vscode/tmp/.temp-openssl-config
-	@openssl genrsa 2048 > ${ROOT_PATH}/.vscode/tmp/private_key.pem
+	@openssl genrsa -out ${ROOT_PATH}/.vscode/tmp/private_key.pem 2048
 	@openssl req -nodes -new -x509 -sha256 -days 1825 -config ${ROOT_PATH}/.vscode/tmp/.temp-openssl-config \
 			-extensions 'req_ext' \
 			-key ${ROOT_PATH}/.vscode/tmp/private_key.pem \

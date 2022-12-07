@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -16,6 +15,7 @@ import (
 	"github.com/werbot/werbot/internal/mail"
 	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
+	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
 
 	pb "github.com/werbot/werbot/internal/grpc/proto/user"
@@ -27,10 +27,10 @@ import (
 // @Produce      json
 // @Param        email    body     pb.SignIn_Request true "Email"
 // @Param        password body     pb.SignIn_Request true "Password"
-// @Success      200      {object} token.Tokens
+// @Success      200      {object} jwt.Tokens
 // @Failure      400,500  {object} httputil.HTTPResponse
 // @Router       /auth/signin [post]
-func (h *Handler) postSignIn(c *fiber.Ctx) error {
+func (h *Handler) signIn(c *fiber.Ctx) error {
 	input := &pb.SignIn_Request{}
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -54,9 +54,11 @@ func (h *Handler) postSignIn(c *fiber.Ctx) error {
 	}
 
 	sub := uuid.New().String()
-	newToken, err := httputil.CreateToken(sub, &pb.UserParameters{
+	newToken, err := jwt.New(&pb.UserParameters{
+		UserName: "TODO",
 		UserId:   user.GetUserId(),
-		UserRole: user.GetRole(),
+		Roles:    user.GetRole(),
+		Sub:      sub,
 	})
 	if err != nil {
 		logger.OutErrorLog("gRPC", err, "Failed to create token")
@@ -64,13 +66,13 @@ func (h *Handler) postSignIn(c *fiber.Ctx) error {
 	}
 
 	// We write user_id (user.user.userid) in the database, since if Access_key will not know which user to create a new one
-	if err := h.cache.Set(fmt.Sprintf("ref_token::%s", sub), user.GetUserId(), newToken.RefreshTokenExp); err != nil {
+	if !jwt.AddToken(h.cache, sub, user.GetUserId()) {
 		return httputil.InternalServerError(c, "Failed to set cache", nil)
 	}
 
-	return httputil.StatusOK(c, "", httputil.Tokens{
-		AccessToken:  newToken.Tokens.AccessToken,
-		RefreshToken: newToken.Tokens.RefreshToken,
+	return httputil.StatusOK(c, "", jwt.Tokens{
+		Access:  newToken.Tokens.Access,
+		Refresh: newToken.Tokens.Refresh,
 	})
 }
 
@@ -80,9 +82,9 @@ func (h *Handler) postSignIn(c *fiber.Ctx) error {
 // @Produce      json
 // @Success      200 {object} httputil.HTTPResponse
 // @Router       /auth/logout [post]
-func (h *Handler) postLogout(c *fiber.Ctx) error {
-	userParameter := middleware.GetUserParameters(c)
-	h.cache.Delete(fmt.Sprintf("ref_token::%s", userParameter.GetUserSub()))
+func (h *Handler) logout(c *fiber.Ctx) error {
+	userParameter := middleware.AuthUser(c)
+	jwt.DeleteToken(h.cache, userParameter.UserSub())
 	return httputil.StatusOK(c, "Successfully logged out", nil)
 }
 
@@ -91,61 +93,20 @@ func (h *Handler) postLogout(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        refresh_token body     string true "Refresh token"
-// @Success      200           {object} token.RefreshToken
+// @Success      200           {object} jwt.Tokens
 // @Failure      400,404,500   {object} httputil.HTTPResponse
 // @Router       /auth/refresh  [post]
-func (h *Handler) postRefresh(c *fiber.Ctx) error {
-	input := new(httputil.RefreshToken)
+func (h *Handler) refresh(c *fiber.Ctx) error {
+	input := new(jwt.Tokens)
 	if err := c.BodyParser(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	t, err := jwt.Parse(input.Token, httputil.VerifyToken)
+	tokens, err := jwt.RefreshToken(h.cache, h.grpc, input.Refresh)
 	if err != nil {
-		return httputil.StatusBadRequest(c, "Token parsing error", nil)
+		return httputil.StatusBadRequest(c, err.Error(), nil)
 	}
-	if _, ok := t.Claims.(jwt.Claims); !ok && !t.Valid {
-		return httputil.StatusUnauthorized(c, "Token regeneration error", nil)
-	}
-
-	claims, ok := t.Claims.(jwt.MapClaims)
-	if ok && t.Valid {
-		sub, ok := claims["sub"].(string)
-		if !ok {
-			return httputil.StatusUnauthorized(c, "Token signature error", nil)
-		}
-
-		key := fmt.Sprintf("ref_token::%s", sub)
-		userID, err := h.cache.Get(key)
-		if err != nil {
-			return httputil.StatusUnauthorized(c, "Your token has been revoked", nil)
-		}
-		h.cache.Delete(key)
-
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		rClient := pb.NewUserHandlersClient(h.grpc.Client)
-
-		user, _ := rClient.GetUser(ctx, &pb.GetUser_Request{
-			UserId: userID,
-		})
-
-		newToken, err := httputil.CreateToken(sub, &pb.UserParameters{
-			UserId:   user.GetUserId(),
-			UserRole: user.GetRole(),
-		})
-		if err != nil {
-			return httputil.StatusBadRequest(c, "Failed to create token", nil)
-		}
-
-		h.cache.Set(key, userID, newToken.RefreshTokenExp)
-
-		return httputil.StatusOK(c, "", httputil.Tokens{
-			AccessToken:  newToken.Tokens.AccessToken,
-			RefreshToken: newToken.Tokens.RefreshToken,
-		})
-	}
-	return httputil.StatusUnauthorized(c, "Refresh expired", nil)
+	return httputil.StatusOK(c, "", tokens)
 }
 
 // @Summary      Password reset
@@ -162,7 +123,7 @@ func (h *Handler) postRefresh(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=user.ResetPassword_Response}
 // @Failure      400,500     {object} httputil.HTTPResponse
 // @Router       /auth/password_reset [post]
-func (h *Handler) postResetPassword(c *fiber.Ctx) error {
+func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	request := new(pb.ResetPassword_Request)
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		fmt.Print(err)
@@ -223,10 +184,10 @@ func (h *Handler) postResetPassword(c *fiber.Ctx) error {
 // @Success      200 {object} httputil.HTTPResponse
 // @Router       /auth/profile [get]
 func (h *Handler) getProfile(c *fiber.Ctx) error {
-	userParameter := middleware.GetUserParameters(c)
+	userParameter := middleware.AuthUser(c)
 	return httputil.StatusOK(c, "User information", pb.AuthUserInfo{
-		UserId:   userParameter.GetUserID(""),
-		UserRole: userParameter.GetUserRole(),
+		UserId:   userParameter.UserID(""),
+		UserRole: userParameter.UserRole(),
 		Name:     "Werbot User",
 	})
 }

@@ -2,13 +2,9 @@
 
 package subscription
 
-import (
-	"github.com/werbot/werbot/internal/web/middleware"
-)
+func routes(h *Handler) {
 
-func routes(h *Handler, a middleware.Middleware) {
-
-	apiV1 := h.app.Group("/v1/subscriptions", a.Execute())
+	apiV1 := h.app.Group("/v1/subscriptions", h.auth)
 	apiV1.Get("/", h.getSubscriptions)
 
 	apiV1.Patch("/:subscription_id", h.patchSubscription)

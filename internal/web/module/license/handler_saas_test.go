@@ -87,7 +87,7 @@ func TestHandler_postLicense(t *testing.T) {
 				"customer":   "8fdc79f2-dddd-11ec-9d64-0242ac120002",
 				"subscriber": "331aa86d-740b-4f6a-b7ba-07cf3bf041e3",
 			},
-			RequestToken: adminInfo.Tokens.AccessToken,
+			RequestToken: adminInfo.Tokens.Access,
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
 				Equal(`$.message`, "License key").

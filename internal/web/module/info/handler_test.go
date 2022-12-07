@@ -9,6 +9,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	pb "github.com/werbot/werbot/internal/grpc/proto/user"
 	"github.com/werbot/werbot/internal/tests"
+	"github.com/werbot/werbot/internal/web/middleware"
 )
 
 var (
@@ -19,8 +20,9 @@ var (
 
 func init() {
 	testHandler = tests.InitTestServer("../../../../.env")
-	New(testHandler.App, testHandler.GRPC, testHandler.Cache).Routes() // add test module handler
-	testHandler.FinishHandler()                                        // init finale handler for apitest
+	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
+	New(testHandler.App, testHandler.GRPC, authMiddleware).Routes() // add test module handler
+	testHandler.FinishHandler()                                     // init finale handler for apitest
 
 	adminInfo = testHandler.GetUserInfo(&pb.SignIn_Request{
 		Email:    "test-admin@werbot.net",
@@ -85,7 +87,7 @@ func Test_getUpdate(t *testing.T) {
 				t.Run(tc.Name, func(t *testing.T) {
 					apiTest().
 						Get("/v1/update").
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 						Expect(t).
 						Assert(tc.RespondBody).
 						Status(tc.RespondStatus).
@@ -190,7 +192,7 @@ func Test_getInfo(t *testing.T) {
 					apiTest().
 						Get("/v1/info").
 						QueryParams(tc.RequestParam.(map[string]string)).
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 						Expect(t).
 						Assert(tc.RespondBody).
 						Status(tc.RespondStatus).
@@ -248,7 +250,7 @@ func Test_getVersion(t *testing.T) {
 					apiTest().
 						Get("/v1/version").
 						JSON(tc.RequestBody).
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 						Expect(t).
 						Assert(tc.RespondBody).
 						Status(tc.RespondStatus).

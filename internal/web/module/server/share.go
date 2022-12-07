@@ -34,8 +34,8 @@ func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
-	userID := userParameter.GetUserID(input.UserID)
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.UserID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

@@ -76,7 +76,7 @@ func (h *Handler) postLicense(c *fiber.Ctx) error {
 		Token: input.GetToken(),
 	}
 
-	userParameter := middleware.GetUserParameters(c)
+	userParameter := middleware.AuthUser(c)
 	if userParameter.IsUserAdmin() {
 		dataLicense = &pb.NewLicense_Request{
 			Customer:   input.GetCustomer(),

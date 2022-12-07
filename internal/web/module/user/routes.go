@@ -2,35 +2,32 @@ package user
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog"
 
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/storage/cache"
-	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/internal/logger"
 )
 
-// Handler is ...
-type Handler struct {
-	app   *fiber.App
-	grpc  *grpc.ClientService
-	cache cache.Cache
+type handler struct {
+	app  *fiber.App
+	grpc *grpc.ClientService
+	auth fiber.Handler
+	log  zerolog.Logger
 }
 
 // New is ...
-func New(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache) *Handler {
-	//log.Info().Msg("Module added")
-
-	return &Handler{
-		app:   app,
-		grpc:  grpc,
-		cache: cache,
+func New(app *fiber.App, grpc *grpc.ClientService, auth fiber.Handler) *handler {
+	return &handler{
+		app:  app,
+		grpc: grpc,
+		auth: auth,
+		log:  logger.New("module/user"),
 	}
 }
 
 // Routes is ...
-func (h *Handler) Routes() {
-	authMiddleware := middleware.NewAuthMiddleware(h.cache)
-
-	userV1 := h.app.Group("/v1/users", authMiddleware.Execute())
+func (h *handler) Routes() {
+	userV1 := h.app.Group("/v1/users", h.auth)
 	userV1.Get("/", h.getUser)
 	userV1.Post("/", h.addUser)
 	userV1.Patch("/", h.patchUser)

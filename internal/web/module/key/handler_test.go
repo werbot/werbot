@@ -15,6 +15,7 @@ import (
 	pb_key "github.com/werbot/werbot/internal/grpc/proto/key"
 	pb_user "github.com/werbot/werbot/internal/grpc/proto/user"
 	"github.com/werbot/werbot/internal/tests"
+	"github.com/werbot/werbot/internal/web/middleware"
 )
 
 var (
@@ -25,8 +26,9 @@ var (
 
 func init() {
 	testHandler = tests.InitTestServer("../../../../.env")
-	New(testHandler.App, testHandler.GRPC, testHandler.Cache).Routes() // add test module handler
-	testHandler.FinishHandler()                                        // init finale handler for apitest
+	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
+	New(testHandler.App, testHandler.GRPC, authMiddleware).Routes() // add test module handler
+	testHandler.FinishHandler()                                     // init finale handler for apitest
 
 	adminInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
 		Email:    "test-admin@werbot.net",
@@ -310,7 +312,7 @@ func Test_getKey(t *testing.T) {
 					apiTest().
 						Get("/v1/keys").
 						QueryParams(tc.RequestParam.(map[string]string)).
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 						Expect(t).
 						Assert(tc.RespondBody).
 						Status(tc.RespondStatus).
@@ -465,7 +467,7 @@ func Test_addKey(t *testing.T) {
 					resp := apiTest().
 						Post("/v1/keys").
 						JSON(tc.RequestBody).
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 						Expect(t).
 						Assert(tc.RespondBody).
 						Status(tc.RespondStatus).
@@ -663,7 +665,7 @@ func Test_patchKey(t *testing.T) {
 					apiTest().
 						Patch("/v1/keys").
 						JSON(tc.RequestBody).
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 						Expect(t).
 						Assert(tc.RespondBody).
 						Status(tc.RespondStatus).
@@ -792,7 +794,7 @@ func TestHandler_deleteKey(t *testing.T) {
 					apiTest().
 						Delete("/v1/keys").
 						QueryParams(reqBody).
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 						Expect(t).
 						Assert(tc.RespondBody).
 						Status(tc.RespondStatus).
@@ -855,7 +857,7 @@ func TestHandler_getGenerateNewKey(t *testing.T) {
 					apiTest().
 						Get("/v1/keys/generate").
 						JSON(tc.RequestBody).
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.AccessToken).
+						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
 						Expect(t).
 						Assert(tc.RespondBody).
 						Status(tc.RespondStatus).

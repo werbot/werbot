@@ -26,7 +26,7 @@ func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
 	pagination := httputil.GetPaginationFromCtx(c)
 	sqlQuery := ""
 
-	userParameter := middleware.GetUserParameters(c)
+	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
 		sqlQuery = `"active"=true`
@@ -105,7 +105,7 @@ func (h *Handler) getSubscriptionPlan(c *fiber.Ctx) error {
 		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
+	userParameter := middleware.AuthUser(c)
 	if userParameter.IsUserAdmin() {
 		// response info for ROLE_ADMIN
 		return httputil.StatusOK(c, "Information about the tariff plan", plan)
@@ -143,7 +143,7 @@ func (h *Handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
 	}
 
-	userParameter := middleware.GetUserParameters(c)
+	userParameter := middleware.AuthUser(c)
 	if !userParameter.IsUserAdmin() {
 		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	}

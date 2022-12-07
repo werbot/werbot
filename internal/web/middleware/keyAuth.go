@@ -15,19 +15,20 @@ import (
 	pb "github.com/werbot/werbot/internal/grpc/proto/project"
 )
 
-type keyMiddleware struct {
-	grpc *grpc.ClientService
+// KeyMiddleware is ...
+type KeyMiddleware struct {
+	*grpc.ClientService
 }
 
-// NewKeyMiddleware is ...
-func NewKeyMiddleware(grpc *grpc.ClientService) Middleware {
-	return keyMiddleware{
-		grpc: grpc,
+// Key is ...
+func Key(grpc *grpc.ClientService) *KeyMiddleware {
+	return &KeyMiddleware{
+		ClientService: grpc,
 	}
 }
 
-// Protected is ...
-func (m keyMiddleware) Execute() fiber.Handler {
+// Execute is ...
+func (m KeyMiddleware) Execute() fiber.Handler {
 	return keyauth.New(keyauth.Config{
 		SuccessHandler: keySuccess,
 		ErrorHandler:   keyError,
@@ -44,10 +45,10 @@ func keySuccess(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func (m keyMiddleware) tokenCheck(c *fiber.Ctx, token string) (bool, error) {
+func (m KeyMiddleware) tokenCheck(c *fiber.Ctx, token string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewProjectHandlersClient(m.grpc.Client)
+	rClient := pb.NewProjectHandlersClient(m.Client)
 
 	project, err := rClient.ListProjects(ctx, &pb.ListProjects_Request{
 		Query: fmt.Sprintf("api_key='%v'", token),
