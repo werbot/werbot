@@ -95,17 +95,51 @@ func (h *Handler) logout(c *fiber.Ctx) error {
 // @Param        refresh_token body     string true "Refresh token"
 // @Success      200           {object} jwt.Tokens
 // @Failure      400,404,500   {object} httputil.HTTPResponse
-// @Router       /auth/refresh  [post]
+// @Router       /auth/refresh [post]
 func (h *Handler) refresh(c *fiber.Ctx) error {
 	input := new(jwt.Tokens)
 	if err := c.BodyParser(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
 	}
 
-	tokens, err := jwt.RefreshToken(h.cache, h.grpc, input.Refresh)
+	claims, err := jwt.Parse(input.Refresh)
 	if err != nil {
 		return httputil.StatusBadRequest(c, err.Error(), nil)
 	}
+
+	sub := jwt.GetClaimSub(*claims)
+	userID, err := h.cache.Get(fmt.Sprintf("ref_token::%s", sub))
+
+	if !jwt.ValidateToken(h.cache, sub) {
+		return httputil.StatusBadRequest(c, "Your token has been revoked", nil)
+	}
+	jwt.DeleteToken(h.cache, sub)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	rClient := pb.NewUserHandlersClient(h.grpc.Client)
+
+	user, _ := rClient.GetUser(ctx, &pb.GetUser_Request{
+		UserId: userID,
+	})
+
+	newToken, err := jwt.New(&pb.UserParameters{
+		UserName: "UserName",
+		UserId:   user.GetUserId(),
+		Roles:    user.GetRole(),
+		Sub:      sub,
+	})
+	if err != nil {
+		return httputil.StatusBadRequest(c, "Failed to create token", nil)
+	}
+
+	jwt.AddToken(h.cache, sub, userID)
+
+	tokens := &jwt.Tokens{
+		Access:  newToken.Tokens.Access,
+		Refresh: newToken.Tokens.Refresh,
+	}
+
 	return httputil.StatusOK(c, "", tokens)
 }
 
