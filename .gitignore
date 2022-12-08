@@ -76,13 +76,14 @@ __debug_bin
 node_modules
 build/*
 
-!.vscode/config
 
-!build/docker/
-/build/docker/core/*.key
-/build/docker/core/GeoLite*
-/build/docker/postgres/ca
-/build/docker/haproxy/data
+!.vscode/core
+.vscode/core/*.key
+.vscode/core/*.mmdb
+
+!docker/
+docker/postgres/ca
+docker/haproxy/data
 
 !build/docker_tmpl/
 
@@ -90,8 +91,6 @@ build/*
 !.gitkeep
 .sequence
 rest.http
-
-
 
 /scripts
 

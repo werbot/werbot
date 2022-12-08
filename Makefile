@@ -55,12 +55,12 @@ gen_key_aes: ## Generating AES key
 #############################################################################
 .PHONY: gen_key_server
 gen_key_server: ## Generating ssh server key
-	@if [ -f $(ROOT_PATH)/build/docker/core/server.key ]; then \
-		rm -rf $(ROOT_PATH)/build/docker/core/server.key*; \
+	@if [ -f $(ROOT_PATH)/.vscode/core/server.key ]; then \
+		rm -rf $(ROOT_PATH)/.vscode/core/server.key*; \
 	fi
-	@ssh-keygen -t rsa -b 4096 -f $(ROOT_PATH)/build/docker/core/server_key -N '' -C 'werbot@core'
-	@rm -rf $(ROOT_PATH)/build/docker/core/server_key.pub
-	@mv $(ROOT_PATH)/build/docker/core/server_key $(ROOT_PATH)/build/docker/core/server.key
+	@ssh-keygen -t rsa -b 4096 -f $(ROOT_PATH)/.vscode/core/server_key -N '' -C 'werbot@core'
+	@rm -rf $(ROOT_PATH)/.vscode/core/server_key.pub
+	@mv $(ROOT_PATH)/.vscode/core/server_key $(ROOT_PATH)/.vscode/core/server.key
 
 	$(msg) "$(YELLOW)Server key generated$(RESET)"
 #############################################################################
@@ -69,8 +69,8 @@ gen_key_server: ## Generating ssh server key
 #############################################################################
 .PHONY: gen_key_jwt
 gen_key_jwt: ## Generating JWT key
-	@openssl genrsa -out $(ROOT_PATH)/build/docker/core/jwt_private.key 2048
-	@openssl rsa -in $(ROOT_PATH)/build/docker/core/jwt_private.key -pubout -outform PEM -out $(ROOT_PATH)/build/docker/core/jwt_public.key
+	@openssl genrsa -out $(ROOT_PATH)/.vscode/core/jwt_private.key 2048
+	@openssl rsa -in $(ROOT_PATH)/.vscode/core/jwt_private.key -pubout -outform PEM -out $(ROOT_PATH)/.vscode/core/jwt_public.key
 	$(msg) "$(YELLOW)Server key generated$(RESET)"
 #############################################################################
 
@@ -166,8 +166,8 @@ gen_key_grpc: ## Generating TLS keys for gRPC
 			-extensions 'req_ext' \
 			-key ${ROOT_PATH}/.vscode/tmp/private_key.pem \
 			-out ${ROOT_PATH}/.vscode/tmp/public_key.pem
-	@mv ${ROOT_PATH}/.vscode/tmp/private_key.pem ${ROOT_PATH}/build/docker/core/grpc_private.key
-	@mv ${ROOT_PATH}/.vscode/tmp/public_key.pem ${ROOT_PATH}/build/docker/core/grpc_public.key
+	@mv ${ROOT_PATH}/.vscode/tmp/private_key.pem ${ROOT_PATH}/.vscode/core/grpc_private.key
+	@mv ${ROOT_PATH}/.vscode/tmp/public_key.pem ${ROOT_PATH}/.vscode/core/grpc_public.key
 	@rm -rf ${ROOT_PATH}/.vscode/tmp
 
 	$(msg) "$(YELLOW)TLS keys for gRPC generated$(RESET)"
@@ -203,13 +203,13 @@ upd_geolite: ## Updating and install GeoLite database to the latest version
 		echo "GEOLITE_LICENSE no key "; \
 		return; \
 	fi
-	@if [ -f $(ROOT_PATH)/build/docker/core/GeoLite2-Country.mmdb ]; then \
-		rm -rf $(ROOT_PATH)/build/docker/core/GeoLite2-Country.mmdb; \
+	@if [ -f $(ROOT_PATH)/.vscode/core/GeoLite2-Country.mmdb ]; then \
+		rm -rf $(ROOT_PATH)/.vscode/core/GeoLite2-Country.mmdb; \
 	fi
 	@$(call make_target_dir,${ROOT_PATH}/.vscode/tmp)
 	@wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=$(GEOLITE_LICENSE)&suffix=tar.gz" -4 -q -O $(ROOT_PATH)/.vscode/tmp/country.tar.gz
 	@tar -zxf $(ROOT_PATH)/.vscode/tmp/country.tar.gz -C $(ROOT_PATH)/.vscode/tmp
-	@cp $$(ls -d $(ROOT_PATH)/.vscode/tmp/*/ | head -n 1)*.mmdb $(ROOT_PATH)/build/docker/core/GeoLite2-Country.mmdb
+	@cp $$(ls -d $(ROOT_PATH)/.vscode/tmp/*/ | head -n 1)*.mmdb $(ROOT_PATH)/.vscode/core/GeoLite2-Country.mmdb
 	@rm -rf $(ROOT_PATH)/.vscode/tmp
 	$(msg) "$(YELLOW)Base GeoLite2-Country updated$(RESET)"
 #############################################################################
@@ -307,7 +307,7 @@ prod_package_go:
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
 	$(eval DESCRIPTION=$(shell cat ${ROOT_PATH}/cmd/${NAME}/.description))
 	@echo "Package go container" ${NAME} ${VERSION}
-	@cat ${ROOT_PATH}/build/docker_tmpl/Dockerfile_go > ${ROOT_PATH}/bin/Dockerfile_${NAME}
+	@cat ${ROOT_PATH}/build/docker/Dockerfile_go > ${ROOT_PATH}/bin/Dockerfile_${NAME}
 	@sed -i -E "s/_NAME_/${NAME}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
 	@sed -i -E "s/_GIT_COMMIT_/${GIT_COMMIT}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
 	@sed -i -E "s/_VERSION_/${VERSION}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
@@ -322,7 +322,7 @@ prod_package_go:
 prod_package_app:
 	$(eval DESCRIPTION=$(shell awk -F'"' '/"description": ".+"/{ print $$4; exit; }' ${ROOT_PATH}/web/package.json))
 	@echo "Package web app container" ${VERSION}
-	@cat ${ROOT_PATH}/build/docker_tmpl/Dockerfile_web > ${ROOT_PATH}/bin/Dockerfile_web
+	@cat ${ROOT_PATH}/build/docker/Dockerfile_web > ${ROOT_PATH}/bin/Dockerfile_web
 	@sed -i -E "s/_GIT_COMMIT_/${GIT_COMMIT}/g" ${ROOT_PATH}/bin/Dockerfile_web
 	@sed -i -E "s/_VERSION_/${VERSION}/g" ${ROOT_PATH}/bin/Dockerfile_web
 	@sed -i -E "s/_DESCRIPTION_/${DESCRIPTION}/g" ${ROOT_PATH}/bin/Dockerfile_web
@@ -383,14 +383,14 @@ lint: ## Cleaning garbage and inactive containers
 .PHONY: upd_cdn_ip
 upd_cdn_ip: 
 ## Cloudflare ip lists from https://www.cloudflare.com/en-gb/ips/
-	@echo -n >${ROOT_PATH}/build/docker/haproxy/cloudflare-ips.txt
+	@echo -n >${ROOT_PATH}/docker/haproxy/cloudflare-ips.txt
 
 	@for i in $(shell curl -s https://www.cloudflare.com/ips-v4); do\
-		echo $$i >>${ROOT_PATH}/build/docker/haproxy/cloudflare-ips.txt;\
+		echo $$i >>${ROOT_PATH}/docker/haproxy/cloudflare-ips.txt;\
 	done
 
 	@for i in $(shell curl -s https://www.cloudflare.com/ips-v6); do\
-		echo $$i >>${ROOT_PATH}/build/docker/haproxy/cloudflare-ips.txt;\
+		echo $$i >>${ROOT_PATH}/docker/haproxy/cloudflare-ips.txt;\
 	done
 
 	$(msg) "$(YELLOW)Cloudflare ip lists updated$(RESET)"
@@ -505,13 +505,13 @@ endef
 #############################################################################
 .PHONY: upd_install
 upd_install: 
-	@cp -a ${ROOT_PATH}/build/docker/grafana ${ROOT_PATH}/scripts/install/cfg/
-	@cp -a ${ROOT_PATH}/build/docker/haproxy/*.txt ${ROOT_PATH}/scripts/install/cfg/haproxy/
-	@cp -a ${ROOT_PATH}/build/docker/haproxy/config.cfg ${ROOT_PATH}/scripts/install/cfg/haproxy/
-	@cp -a ${ROOT_PATH}/build/docker/loki ${ROOT_PATH}/scripts/install/cfg/
-	@cp -a ${ROOT_PATH}/build/docker/prometheus ${ROOT_PATH}/scripts/install/cfg/
-	@cp -a ${ROOT_PATH}/build/docker/promtail ${ROOT_PATH}/scripts/install/cfg/
-	@cp -a ${ROOT_PATH}/build/docker/docker-compose.yaml ${ROOT_PATH}/scripts/install/cfg/
+	@cp -a ${ROOT_PATH}/docker/grafana ${ROOT_PATH}/scripts/install/cfg/
+	@cp -a ${ROOT_PATH}/docker/haproxy/*.txt ${ROOT_PATH}/scripts/install/cfg/haproxy/
+	@cp -a ${ROOT_PATH}/docker/haproxy/config.cfg ${ROOT_PATH}/scripts/install/cfg/haproxy/
+	@cp -a ${ROOT_PATH}/docker/loki ${ROOT_PATH}/scripts/install/cfg/
+	@cp -a ${ROOT_PATH}/docker/prometheus ${ROOT_PATH}/scripts/install/cfg/
+	@cp -a ${ROOT_PATH}/docker/promtail ${ROOT_PATH}/scripts/install/cfg/
+	@cp -a ${ROOT_PATH}/docker/docker-compose.yaml ${ROOT_PATH}/scripts/install/cfg/
 	$(msg) "$(YELLOW)Install configs updated$(RESET)"
 #############################################################################
 
