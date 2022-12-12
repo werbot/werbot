@@ -28,7 +28,9 @@ databases or app access</h3>
     &nbsp;
     <a href="https://github.com/werbot/werbot"><img src="https://img.shields.io/badge/backend-go-orange.svg"></a>
     &nbsp;
-    <a href="https://golang.org/"><img src="https://img.shields.io/github/go-mod/go-version/werbot/werbot?color=7fd5ea"></a>
+    <a href="https://github.com/werbot/werbot/blob/main/go.mod"><img src="https://img.shields.io/github/go-mod/go-version/werbot/werbot?color=7fd5ea"></a>
+    &nbsp;
+    <a href="https://twitter.com/werbot_"><img src="https://img.shields.io/twitter/follow/werbot_?style=social"></a>
 </p>
 
 <p align="center">
