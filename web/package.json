@@ -37,7 +37,7 @@
     "ts-protoc-gen": "^0.15.0",
     "typescript": "^4.9.4",
     "vite": "^3.2.5",
-    "vite-plugin-pages": "^0.27.1",
+    "vite-plugin-pages": "^0.28.0",
     "vite-plugin-svg-icons": "^2.0.1",
     "vite-plugin-vue-layouts": "^0.7.0",
     "vue": "^3.2.45",
