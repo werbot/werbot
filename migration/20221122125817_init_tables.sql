@@ -88,7 +88,7 @@ CREATE TABLE "public"."server" (
     "private_key" text NOT NULL,
     "private_key_password" varchar(255),
     "created" timestamp(0) NOT NULL,
-    "auth" varchar(255) NOT NULL CHECK ((auth)::text = ANY ((ARRAY['key'::character varying, 'password'::character varying])::text[])),
+    "auth" varchar(255) NOT NULL CHECK ((auth)::text = ANY ((ARRAY['key'::character varying, 'password'::character varying, 'agent'::character varying])::text[])),
     "scheme" varchar(255) NOT NULL CHECK ((scheme)::text = ANY ((ARRAY['telnet'::character varying, 'ssh'::character varying])::text[])),
     "previous_state" json NOT NULL DEFAULT '{}'::json,
     PRIMARY KEY ("id"),

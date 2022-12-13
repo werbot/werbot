@@ -62,7 +62,8 @@
           <td>
             <div class="flex items-center">
               <SvgIcon v-if="item.auth == 'key'" name="key" />
-              <SvgIcon v-else name="password" />
+              <SvgIcon v-else-if="item.auth == 'password'" name="password" />
+              <SvgIcon v-else name="agent" />
             </div>
           </td>
           <td class="flex items-center">

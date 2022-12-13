@@ -42,6 +42,7 @@ enum ServerAuth {
     SERVER_UNSPECIFIED = 0;
     PASSWORD = 1;
     KEY = 2;
+    AGENT = 3;
 }
 
 enum ServerScheme {
