@@ -117,6 +117,18 @@
         </router-link>
       </li>
       <li>
+        <router-link
+          :to="{
+            name: 'projects-projectId-groups',
+            params: { projectId: route.params.projectId },
+          }"
+          :class="{ current: route.name.startsWith('projects-projectId-groups') }"
+        >
+          <SvgIcon name="group" />
+          <span>Groups</span>
+        </router-link>
+      </li>
+      <li>
         <hr />
       </li>
       <li>
