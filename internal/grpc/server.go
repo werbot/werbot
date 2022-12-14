@@ -873,8 +873,12 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateS
 	return &pb_server.UpdateServerActivity_Response{}, nil
 }
 
-// GetServerNameByID is ...
-func (s *server) GetServerNameByID(ctx context.Context, in *pb_server.GetServerNameByID_Request) (*pb_server.GetServerNameByID_Response, error) {
+// ServerNameByID is ...
+func (s *server) ServerNameByID(ctx context.Context, in *pb_server.ServerNameByID_Request) (*pb_server.ServerNameByID_Response, error) {
+	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
+		return nil, errors.New(internal.ErrNotFound)
+	}
+
 	var name string
 	err := db.Conn.QueryRow(`SELECT 
 			"title" 
@@ -888,7 +892,7 @@ func (s *server) GetServerNameByID(ctx context.Context, in *pb_server.GetServerN
 		return nil, err
 	}
 
-	return &pb_server.GetServerNameByID_Response{
+	return &pb_server.ServerNameByID_Response{
 		ServerName: name,
 	}, nil
 }

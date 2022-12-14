@@ -6,6 +6,7 @@ import {
   UpdateServer_Request,
   DeleteServer_Request,
   UpdateServerActiveStatus_Request,
+  ServerNameByID_Request,
 } from "@proto/server/server";
 
 enum URL {
@@ -35,4 +36,15 @@ const deleteServer = async (data: DeleteServer_Request) =>
 const updateServerStatus = async (data: UpdateServerActiveStatus_Request) =>
   http("PATCH", URL.servers + "/active", { data: data });
 
-export { getServers, getServer, postServer, updateServer, deleteServer, updateServerStatus };
+const serverNameByID = async (data: ServerNameByID_Request) =>
+  http("GET", URL.servers + "/name", { params: data });
+
+export {
+  getServers,
+  getServer,
+  postServer,
+  updateServer,
+  deleteServer,
+  updateServerStatus,
+  serverNameByID,
+};

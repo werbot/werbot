@@ -119,13 +119,13 @@
       <li>
         <router-link
           :to="{
-            name: 'projects-projectId-groups',
+            name: 'projects-projectId-teams',
             params: { projectId: route.params.projectId },
           }"
-          :class="{ current: route.name.startsWith('projects-projectId-groups') }"
+          :class="{ current: route.name.startsWith('projects-projectId-teams') }"
         >
-          <SvgIcon name="group" />
-          <span>Groups</span>
+          <SvgIcon name="teams" />
+          <span>Teams</span>
         </router-link>
       </li>
       <li>

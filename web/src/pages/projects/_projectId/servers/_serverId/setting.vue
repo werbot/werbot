@@ -1,9 +1,16 @@
 <template>
   <div class="artboard">
     <header>
-      <h1>Setting</h1>
+      <h1>Servers</h1>
+      <div class="breadcrumbs">
+        <BServerName
+          :memberId="proxy.$authStore.hasUserID"
+          :serverId="props.serverId"
+          :projectId="props.projectId"
+        />
+        <span>Setting</span>
+      </div>
     </header>
-    <BServers :projectId="props.projectId" :serverId="props.serverId" />
 
     <div class="desc">
       Several options for adding new members are available. Choose the right one and follow the
@@ -15,7 +22,7 @@
 <script setup lang="ts">
 import { ref, onMounted, getCurrentInstance } from "vue";
 import { useRoute } from "vue-router";
-import { BServers } from "@/components";
+import { BServerName } from "@/components";
 
 const { proxy } = getCurrentInstance();
 const route = useRoute();

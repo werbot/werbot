@@ -1,7 +1,7 @@
 <template>
   <div class="artboard">
     <header>
-      <h1>Groups</h1>
+      <h1>Teams</h1>
     </header>
 
     <div class="desc">Description</div>

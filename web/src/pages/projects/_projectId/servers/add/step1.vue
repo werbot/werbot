@@ -1,24 +1,13 @@
 <template>
   <div class="artboard">
     <header>
-      <h1>
-        <router-link
-          :to="{
-            name: 'projects-projectId-servers',
-            params: {
-              projectId: props.projectId,
-            },
-          }"
-        >
-          Servers
-        </router-link>
-        <span>Add server #1</span>
-      </h1>
+      <h1>Servers</h1>
+      <div class="breadcrumbs">Step 1</div>
     </header>
 
     <div class="desc">step 1: description</div>
 
-    <div class="artboard-content">
+    <div class="artboard-content p-5">
       <router-link
         :to="{
           name: 'projects-projectId-servers-add-step2',

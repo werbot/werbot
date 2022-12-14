@@ -1,22 +1,29 @@
 <template>
   <div class="artboard">
     <header>
-      <h1>
-        <router-link
-          :to="{
-            name: 'projects-projectId-servers-serverId-members',
-            params: {
-              projectId: props.projectId,
-              serverId: props.serverId,
-            },
-          }"
-        >
-          Members
-        </router-link>
+      <h1>Servers</h1>
+      <div class="breadcrumbs">
+        <BServerName
+          :memberId="proxy.$authStore.hasUserID"
+          :serverId="props.serverId"
+          :projectId="props.projectId"
+        />
+        <span>
+          <router-link
+            :to="{
+              name: 'projects-projectId-servers-serverId-members',
+              params: {
+                projectId: props.projectId,
+                serverId: props.serverId,
+              },
+            }"
+          >
+            Members
+          </router-link>
+        </span>
         <span>Add new</span>
-      </h1>
+      </div>
     </header>
-    <BServers :projectId="props.projectId" :serverId="props.serverId" />
 
     <table v-if="data.total > 0">
       <thead>
@@ -66,7 +73,7 @@
 <script setup lang="ts">
 import { ref, onMounted, getCurrentInstance } from "vue";
 import { useRoute } from "vue-router";
-import { SvgIcon, Toggle, BServers, Badge, Pagination } from "@/components";
+import { SvgIcon, Toggle, BServerName, Badge, Pagination } from "@/components";
 import { showMessage } from "@/utils/message";
 
 import { getMembersWithoutServer, postServerMember } from "@/api/member/server";

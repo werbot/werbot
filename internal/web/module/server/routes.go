@@ -55,4 +55,6 @@ func (h *Handler) Routes() {
 	serverV1.Delete("/share", h.deleteServerShareForUser)
 
 	serverV1.Get("/access", h.getServerAccess)
+
+	serverV1.Get("/name", h.serverNameByID)
 }

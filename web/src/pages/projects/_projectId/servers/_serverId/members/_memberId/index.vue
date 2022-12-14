@@ -1,16 +1,36 @@
 <template>
   <div class="artboard">
     <header>
-      <h1>Member logs</h1>
+      <h1>Servers</h1>
+      <div class="breadcrumbs">
+        <BServerName
+          :memberId="proxy.$authStore.hasUserID"
+          :serverId="props.serverId"
+          :projectId="props.projectId"
+        />
+        <span>
+          <router-link
+            :to="{
+              name: 'projects-projectId-servers-serverId-members',
+              params: {
+                projectId: props.projectId,
+                serverId: props.serverId,
+              },
+            }"
+          >
+            Members
+          </router-link>
+        </span>
+        <span>Logs</span>
+      </div>
     </header>
-    <BServers :projectId="props.projectId" :serverId="props.serverId" :memberId="props.memberId" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, getCurrentInstance } from "vue";
 import { useRoute } from "vue-router";
-import { SvgIcon, Modal, Toggle, BServers, Pagination } from "@/components";
+import { SvgIcon, Modal, Toggle, BServerName, Pagination } from "@/components";
 
 const { proxy } = getCurrentInstance();
 const route = useRoute();

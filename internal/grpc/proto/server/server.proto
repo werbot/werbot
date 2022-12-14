@@ -29,7 +29,7 @@ service ServerHandlers {
     
     rpc CreateServerSession(CreateServerSession.Request) returns (CreateServerSession.Response) {}
 
-    rpc GetServerNameByID(GetServerNameByID.Request) returns (GetServerNameByID.Response) {}
+    rpc ServerNameByID(ServerNameByID.Request) returns (ServerNameByID.Response) {}
 
     // share server
     rpc ListServersShareForUser(ListServersShareForUser.Request) returns (ListServersShareForUser.Response) {}
@@ -334,10 +334,12 @@ message CreateServerSession {
 // -----------------------------------------------------
 
 
-// rpc GetServerNameByID
-message GetServerNameByID {
+// rpc ServerNameByID
+message ServerNameByID {
     message Request {
-        string server_id = 1;
+        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"     params:\"user_id\""];
+        string server_id = 2  [(tagger.tags) = "validate:\"uuid\"            query:\"server_id\"   params:\"server_id\""];
+        string project_id = 3 [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"project_id\"  params:\"project_id\""];
     }
 
     message Response {

@@ -536,3 +536,39 @@ func (h *Handler) patchServerStatus(c *fiber.Ctx) error {
 
 	return httputil.StatusOK(c, message, nil)
 }
+
+// @Summary      Server name by ID
+// @Tags         servers
+// @Accept       json
+// @Produce      json
+// @Param        req         body     pb.ServerNameByID_Request{}
+// @Success      200         {object} httputil.HTTPResponse
+// @Failure      400,401,500 {object} httputil.HTTPResponse
+// @Router       /v1/servers/name [get]
+func (h *Handler) serverNameByID(c *fiber.Ctx) error {
+	input := new(pb.ServerNameByID_Request)
+	c.QueryParser(input)
+	if err := validate.Struct(input); err != nil {
+		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+	}
+
+	userParameter := middleware.AuthUser(c)
+	userID := userParameter.UserID(input.GetUserId())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+
+	access, err := rClient.ServerNameByID(ctx, &pb.ServerNameByID_Request{
+		UserId:    userID,
+		ServerId:  input.GetServerId(),
+		ProjectId: input.GetProjectId(),
+	})
+	if err != nil {
+		return httputil.ReturnGRPCError(c, err)
+	}
+	if access == nil {
+		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+	}
+	return httputil.StatusOK(c, "Server name", access)
+}

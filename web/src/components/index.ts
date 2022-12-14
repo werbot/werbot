@@ -15,4 +15,4 @@ export { default as Toggle } from "./Toggle/index.vue";
 export { default as Version } from "./Version/index.vue";
 
 // Breadcrumbs navigation's
-export { default as BServers } from "./Breadcrumbs/servers.vue";
+export { default as BServerName } from "./Breadcrumbs/server-name.vue";

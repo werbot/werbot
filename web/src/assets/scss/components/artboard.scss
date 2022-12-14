@@ -1,11 +1,15 @@
 .artboard {
-  @apply w-full rounded-lg bg-white shadow-md mb-6;
+  @apply mb-6 w-full rounded-lg bg-white shadow-md;
 
   header {
     @apply flex items-center whitespace-nowrap py-5 pl-6;
 
+    .breadcrumbs {
+      @apply border-l ml-4 pl-4 pt-1 pb-1 relative -bottom-0.5;
+    }
+
     span {
-      @apply before:mr-2 before:text-gray-200 before:content-['/'];
+      @apply before:mr-2 before:ml-2 before:text-gray-200 before:content-['/'];
     }
 
     .plus {
