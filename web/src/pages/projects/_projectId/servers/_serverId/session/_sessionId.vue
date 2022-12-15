@@ -16,10 +16,7 @@
                 projectId: props.projectId,
                 serverId: props.serverId,
               },
-            }"
-          >
-            Sessions
-          </router-link>
+            }">Sessions</router-link>
         </span>
         <span>Session</span>
       </div>

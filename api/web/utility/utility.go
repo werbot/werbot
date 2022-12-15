@@ -29,7 +29,7 @@ func (h *handler) getCountry(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUtilityHandlersClient(h.grpc.Client)
+	rClient := pb.NewUtilityHandlersClient(h.Grpc.Client)
 
 	countries, err := rClient.GetCountry(ctx, &pb.GetCountry_Request{
 		Name: fmt.Sprintf(`%v`, input.Name),

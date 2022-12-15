@@ -29,7 +29,7 @@ import (
 // @Success      200      {object} jwt.Tokens
 // @Failure      400,500  {object} httputil.HTTPResponse
 // @Router       /auth/signin [post]
-func (h *Handler) signIn(c *fiber.Ctx) error {
+func (h *handler) signIn(c *fiber.Ctx) error {
 	input := &pb.SignIn_Request{}
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -38,7 +38,7 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.grpc.Client)
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	user, err := rClient.SignIn(ctx, &pb.SignIn_Request{
 		Email:    input.GetEmail(),
@@ -65,7 +65,7 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 	}
 
 	// We write user_id (user.user.userid) in the database, since if Access_key will not know which user to create a new one
-	if !jwt.AddToken(h.cache, sub, user.GetUserId()) {
+	if !jwt.AddToken(h.Cache, sub, user.GetUserId()) {
 		return httputil.InternalServerError(c, "Failed to set cache", nil)
 	}
 
@@ -81,9 +81,9 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 // @Produce      json
 // @Success      200 {object} httputil.HTTPResponse
 // @Router       /auth/logout [post]
-func (h *Handler) logout(c *fiber.Ctx) error {
+func (h *handler) logout(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	jwt.DeleteToken(h.cache, userParameter.UserSub())
+	jwt.DeleteToken(h.Cache, userParameter.UserSub())
 	return httputil.StatusOK(c, "Successfully logged out", nil)
 }
 
@@ -95,7 +95,7 @@ func (h *Handler) logout(c *fiber.Ctx) error {
 // @Success      200           {object} jwt.Tokens
 // @Failure      400,404,500   {object} httputil.HTTPResponse
 // @Router       /auth/refresh [post]
-func (h *Handler) refresh(c *fiber.Ctx) error {
+func (h *handler) refresh(c *fiber.Ctx) error {
 	input := new(jwt.Tokens)
 	if err := c.BodyParser(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
@@ -107,16 +107,16 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 	}
 
 	sub := jwt.GetClaimSub(*claims)
-	userID, err := h.cache.Get(fmt.Sprintf("ref_token::%s", sub))
+	userID, err := h.Cache.Get(fmt.Sprintf("ref_token::%s", sub))
 
-	if !jwt.ValidateToken(h.cache, sub) {
+	if !jwt.ValidateToken(h.Cache, sub) {
 		return httputil.StatusBadRequest(c, "Your token has been revoked", nil)
 	}
-	jwt.DeleteToken(h.cache, sub)
+	jwt.DeleteToken(h.Cache, sub)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.grpc.Client)
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	user, _ := rClient.GetUser(ctx, &pb.GetUser_Request{
 		UserId: userID,
@@ -132,7 +132,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, "Failed to create token", nil)
 	}
 
-	jwt.AddToken(h.cache, sub, userID)
+	jwt.AddToken(h.Cache, sub, userID)
 
 	tokens := &jwt.Tokens{
 		Access:  newToken.Tokens.Access,
@@ -156,7 +156,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=user.ResetPassword_Response}
 // @Failure      400,500     {object} httputil.HTTPResponse
 // @Router       /auth/password_reset [post]
-func (h *Handler) resetPassword(c *fiber.Ctx) error {
+func (h *handler) resetPassword(c *fiber.Ctx) error {
 	request := new(pb.ResetPassword_Request)
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		fmt.Print(err)
@@ -188,7 +188,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.grpc.Client)
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	response, err := rClient.ResetPassword(ctx, request)
 	if err != nil {
@@ -216,7 +216,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 // @Produce      json
 // @Success      200 {object} httputil.HTTPResponse
 // @Router       /auth/profile [get]
-func (h *Handler) getProfile(c *fiber.Ctx) error {
+func (h *handler) getProfile(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 	return httputil.StatusOK(c, "User information", pb.AuthUserInfo{
 		UserId:   userParameter.UserID(""),

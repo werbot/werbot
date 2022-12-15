@@ -27,7 +27,7 @@ import (
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/update [get]
-func (h *Handler) getUpdate(c *fiber.Ctx) error {
+func (h *handler) getUpdate(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
@@ -90,7 +90,7 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb.GetInfo_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/info [get]
-func (h *Handler) getInfo(c *fiber.Ctx) error {
+func (h *handler) getInfo(c *fiber.Ctx) error {
 	input := new(pb.GetInfo_Request)
 	request := new(pb.GetInfo_Request)
 	c.QueryParser(input)
@@ -104,7 +104,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewInfoHandlersClient(h.grpc.Client)
+	rClient := pb.NewInfoHandlersClient(h.Grpc.Client)
 
 	if request.UserId == userParameter.OriginalUserID() {
 		request.Role = userRole
@@ -125,7 +125,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/version [get]
-func (h *Handler) getVersion(c *fiber.Ctx) error {
+func (h *handler) getVersion(c *fiber.Ctx) error {
 	// userParameter := middleware.GetUserParametersFromCtx(c)
 	// if userParameter.UserRole != pb_user.RoleUser_ADMIN {
 	// 	return httputil.StatusNotFound(c, internal.ErrNotFound, nil)

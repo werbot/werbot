@@ -28,7 +28,7 @@ import (
 // @Success      200             {object} httputil.HTTPResponse{data=pb.GetProjectMember_Response}
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members [get]
-func (h *Handler) getProjectMember(c *fiber.Ctx) error {
+func (h *handler) getProjectMember(c *fiber.Ctx) error {
 	input := new(pb.GetProjectMember_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -40,7 +40,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	// show all members
 	if input.GetMemberId() == "" {
@@ -83,7 +83,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb.CreateProjectMember_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/members [post]
-func (h *Handler) addProjectMember(c *fiber.Ctx) error {
+func (h *handler) addProjectMember(c *fiber.Ctx) error {
 	input := new(pb.CreateProjectMember_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -95,7 +95,7 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	member, err := rClient.CreateProjectMember(ctx, &pb.CreateProjectMember_Request{
 		OwnerId:   userID,
@@ -118,7 +118,7 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse{data=pb.UpdateProjectMember_Response}
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members [patch]
-func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
+func (h *handler) patchProjectMember(c *fiber.Ctx) error {
 	input := new(pb.UpdateProjectMember_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -130,7 +130,7 @@ func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdateProjectMember(ctx, &pb.UpdateProjectMember_Request{
 		OwnerId:   ownerID,
@@ -155,7 +155,7 @@ func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members [delete]
-func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
+func (h *handler) deleteProjectMember(c *fiber.Ctx) error {
 	input := new(pb.DeleteProjectMember_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -167,7 +167,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.DeleteProjectMember(ctx, &pb.DeleteProjectMember_Request{
 		OwnerId:   ownerID,
@@ -190,7 +190,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/search [get]
-func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
+func (h *handler) getUsersWithoutProject(c *fiber.Ctx) error {
 	input := new(pb.ActivityRequest)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -202,7 +202,7 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	members, err := rClient.GetUsersWithoutProject(ctx, &pb.GetUsersWithoutProject_Request{
 		OwnerId:   ownerID,
@@ -223,7 +223,7 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/active [patch]
-func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
+func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateProjectMemberStatus_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -235,7 +235,7 @@ func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdateProjectMemberStatus(ctx, &pb.UpdateProjectMemberStatus_Request{
 		OwnerId:   ownerID,
@@ -265,7 +265,7 @@ func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse{data=pb.ListProjectMembersInvite_Response}
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/invite [get]
-func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
+func (h *handler) getProjectMembersInvite(c *fiber.Ctx) error {
 	input := new(pb.GetProjectMember_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -277,7 +277,7 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	pagination := httputil.GetPaginationFromCtx(c)
 	members, err := rClient.ListProjectMembersInvite(ctx, &pb.ListProjectMembersInvite_Request{
@@ -302,7 +302,7 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb.CreateProjectMemberInvite_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/invite [post]
-func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
+func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	input := new(pb.CreateProjectMemberInvite_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -314,7 +314,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	member, err := rClient.CreateProjectMemberInvite(ctx, &pb.CreateProjectMemberInvite_Request{
 		OwnerId:     userID,
@@ -345,7 +345,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/invite [delete]
-func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
+func (h *handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 	input := new(pb.DeleteProjectMemberInvite_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -357,7 +357,7 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.DeleteProjectMemberInvite(ctx, &pb.DeleteProjectMemberInvite_Request{
 		OwnerId:   ownerID,
@@ -378,7 +378,7 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,500     {object} httputil.HTTPResponse
 // @Router       /v1/members/invite/:invite [post]
-func (h *Handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
+func (h *handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 	request := new(pb.ProjectMemberInviteActivate_Request)
 	request.Invite = c.Params("invite")
 	if err := validate.Struct(request); err != nil {
@@ -389,7 +389,7 @@ func (h *Handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	project, err := rClient.ProjectMemberInviteActivate(ctx, &pb.ProjectMemberInviteActivate_Request{
 		Invite: request.GetInvite(),

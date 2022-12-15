@@ -6,6 +6,6 @@ import (
 	"github.com/werbot/werbot/internal/web/middleware"
 )
 
-func routes(h *Handler) {
-	// h.app.Get("/v1/license", h.auth, h.getLicenseInfo)
+func routes(h *handler) {
+	// h.App.Get("/v1/license", h.Auth, h.getLicenseInfo)
 }

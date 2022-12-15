@@ -20,10 +20,10 @@ import (
 // @Success      200         {object} httputil.HTTPResponse{data=pb.GetUpdatesResponse}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/update/version [get]
-func (h *Handler) getUpdateVersion(c *fiber.Ctx) error {
+func (h *handler) getUpdateVersion(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUpdateHandlersClient(h.grpc.Client)
+	rClient := pb.NewUpdateHandlersClient(h.Grpc.Client)
 
 	updateList, err := rClient.GetUpdate(ctx, &pb.GetUpdate_Request{})
 	if err != nil {

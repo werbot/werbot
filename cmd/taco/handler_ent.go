@@ -4,8 +4,8 @@ package main
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/internal/storage/cache"
 )
 
-func handler(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache) {}
+func handler(h *web.Handler) {}

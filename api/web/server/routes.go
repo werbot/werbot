@@ -1,39 +1,41 @@
 package server
 
 import (
-	"github.com/gofiber/fiber/v2"
-
-	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/web/middleware"
 )
 
-// Handler is ...
-type Handler struct {
-	app  *fiber.App
-	grpc *grpc.ClientService
-	auth fiber.Handler
+type handler struct {
+	*web.Handler
+	log logger.Logger
 }
 
 // New is ...
-func New(app *fiber.App, grpc *grpc.ClientService, auth fiber.Handler) *Handler {
-	return &Handler{
-		app:  app,
-		grpc: grpc,
-		auth: auth,
+func New(h *web.Handler) *handler {
+	log := logger.New("module/server")
+
+	return &handler{
+		Handler: &web.Handler{
+			App:  h.App,
+			Grpc: h.Grpc,
+			Auth: h.Auth,
+		},
+		log: log,
 	}
 }
 
 // Routes is ...
-func (h *Handler) Routes() {
-	keyMiddleware := middleware.Key(h.grpc)
+func (h *handler) Routes() {
+	keyMiddleware := middleware.Key(h.Grpc)
 
 	// public
-	serviceV1 := h.app.Group("/v1/service", keyMiddleware.Execute())
+	serviceV1 := h.App.Group("/v1/service", keyMiddleware.Execute())
 	serviceV1.Post("/server", h.addServiceServer)
 	serviceV1.Patch("/status", h.patchServiceServerStatus)
 
 	// private
-	serverV1 := h.app.Group("/v1/servers", h.auth)
+	serverV1 := h.App.Group("/v1/servers", h.Auth)
 	serverV1.Patch("/active", h.patchServerStatus)
 
 	serverV1.Get("/", h.getServer)

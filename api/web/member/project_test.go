@@ -7,6 +7,7 @@ import (
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	pb "github.com/werbot/werbot/api/proto/user"
+	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -21,7 +22,13 @@ var (
 func init() {
 	testHandler = tests.InitTestServer("../../../../.env.taco")
 	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
-	New(testHandler.App, testHandler.GRPC, authMiddleware).Routes() // add test module handler
+	webHandler := &web.Handler{
+		App:  testHandler.App,
+		Grpc: testHandler.GRPC,
+		Auth: authMiddleware,
+	}
+
+	New(webHandler).Routes() // add test module handler
 	testHandler.FinishHandler()
 
 	adminInfo = testHandler.GetUserInfo(&pb.SignIn_Request{

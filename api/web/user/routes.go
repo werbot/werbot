@@ -1,34 +1,32 @@
 package user
 
 import (
-	"github.com/gofiber/fiber/v2"
-
-	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/internal/logger"
 )
 
 type handler struct {
-	app  *fiber.App
-	grpc *grpc.ClientService
-	auth fiber.Handler
-	log  logger.Logger
+	*web.Handler
+	log logger.Logger
 }
 
 // New is ...
-func New(app *fiber.App, grpc *grpc.ClientService, auth fiber.Handler) *handler {
-	log := logger.New("web/user")
+func New(h *web.Handler) *handler {
+	log := logger.New("module/user")
 
 	return &handler{
-		app:  app,
-		grpc: grpc,
-		auth: auth,
-		log:  log,
+		Handler: &web.Handler{
+			App:  h.App,
+			Grpc: h.Grpc,
+			Auth: h.Auth,
+		},
+		log: log,
 	}
 }
 
 // Routes is ...
 func (h *handler) Routes() {
-	userV1 := h.app.Group("/v1/users", h.auth)
+	userV1 := h.App.Group("/v1/users", h.Auth)
 	userV1.Get("/", h.getUser)
 	userV1.Post("/", h.addUser)
 	userV1.Patch("/", h.patchUser)

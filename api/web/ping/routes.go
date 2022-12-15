@@ -1,22 +1,23 @@
 package ping
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/werbot/werbot/api/web"
 )
 
-// Handler is ...
-type Handler struct {
-	app *fiber.App
+type handler struct {
+	*web.Handler
 }
 
 // New is ...
-func New(app *fiber.App) *Handler {
-	return &Handler{
-		app: app,
+func New(h *web.Handler) *handler {
+	return &handler{
+		Handler: &web.Handler{
+			App: h.App,
+		},
 	}
 }
 
 // Routes is ...
-func (h *Handler) Routes() {
-	h.app.Get("/ping", h.getPing)
+func (h *handler) Routes() {
+	h.App.Get("/ping", h.getPing)
 }

@@ -16,10 +16,8 @@
                 projectId: props.projectId,
                 serverId: props.serverId,
               },
-            }"
+            }">Members</router-link
           >
-            Members
-          </router-link>
         </span>
         <span>Add new</span>
       </div>

@@ -1,32 +1,34 @@
 package license
 
 import (
-	"github.com/gofiber/fiber/v2"
-
-	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/internal/logger"
 )
 
-// Handler is ...
-type Handler struct {
-	app       *fiber.App
-	grpc      *grpc.ClientService
-	auth      fiber.Handler
+type handler struct {
+	*web.Handler
 	publicKey string
+	log       logger.Logger
 }
 
 // New is ...
-func New(app *fiber.App, grpc *grpc.ClientService, auth fiber.Handler, publicKey string) *Handler {
-	return &Handler{
-		app:       app,
-		grpc:      grpc,
-		auth:      auth,
+func New(h *web.Handler, publicKey string) *handler {
+	log := logger.New("module/license")
+
+	return &handler{
+		Handler: &web.Handler{
+			App:  h.App,
+			Grpc: h.Grpc,
+			Auth: h.Auth,
+		},
+		log:       log,
 		publicKey: publicKey,
 	}
 }
 
 // Routes is ...
-func (h *Handler) Routes() {
-	h.app.Get("/v1/license/info", h.auth, h.getLicenseInfo)
+func (h *handler) Routes() {
+	h.App.Get("/v1/license/info", h.Auth, h.getLicenseInfo)
 
 	routes(h)
 }

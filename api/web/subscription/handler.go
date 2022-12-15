@@ -28,7 +28,7 @@ type userIDReq struct {
 // @Success      200         {object} httputil.HTTPResponse(data=GetSubscriptions_Response)
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/subscriptions [get]
-func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
+func (h *handler) getSubscriptions(c *fiber.Ctx) error {
 	pagination := httputil.GetPaginationFromCtx(c)
 
 	input := userIDReq{}
@@ -39,7 +39,7 @@ func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewSubscriptionHandlersClient(h.grpc.Client)
+	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
 
 	sanitizeSQL, _ := sanitize.SQL(`"subscription"."customer_id" = $1`, userID)
 	subscriptions, err := rClient.ListSubscriptions(ctx, &pb.ListSubscriptions_Request{
@@ -67,7 +67,7 @@ func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
 // Update user subscription
 // request {user_id:1}
 // PATCH /v1/subscriptions/:subscription_id
-func (h *Handler) patchSubscription(c *fiber.Ctx) error {
+func (h *handler) patchSubscription(c *fiber.Ctx) error {
 	subscriptionID := c.Params("subscription_id")
 
 	var input userIDReq
@@ -89,7 +89,7 @@ func (h *Handler) patchSubscription(c *fiber.Ctx) error {
 // Removing user subscription
 // request {user_id:1}
 // DELETE /v1/subscriptions/:subscription_id
-func (h *Handler) deleteSubscription(c *fiber.Ctx) error {
+func (h *handler) deleteSubscription(c *fiber.Ctx) error {
 	subscriptionID := c.Params("subscription_id")
 
 	var input userIDReq
@@ -111,7 +111,7 @@ func (h *Handler) deleteSubscription(c *fiber.Ctx) error {
 // Stop user subscription
 // request {user_id:1}
 // POST /v1/subscriptions/:subscription_id/stop
-func (h *Handler) stopSubscription(c *fiber.Ctx) error {
+func (h *handler) stopSubscription(c *fiber.Ctx) error {
 	subscriptionID := c.Params("subscription_id")
 
 	var input userIDReq
@@ -133,7 +133,7 @@ func (h *Handler) stopSubscription(c *fiber.Ctx) error {
 // Adding a new subscription to the user
 // request {user_id:1}
 // POST /v1/subscriptions/:subscription_id/user
-func (h *Handler) addSubscriptionToUser(c *fiber.Ctx) error {
+func (h *handler) addSubscriptionToUser(c *fiber.Ctx) error {
 	subscriptionID := c.Params("subscription_id")
 
 	var input userIDReq

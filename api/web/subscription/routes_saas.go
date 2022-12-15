@@ -2,9 +2,9 @@
 
 package subscription
 
-func routes(h *Handler) {
+func routes(h *handler) {
 
-	apiV1 := h.app.Group("/v1/subscriptions", h.auth)
+	apiV1 := h.App.Group("/v1/subscriptions", h.Auth)
 	apiV1.Get("/", h.getSubscriptions)
 
 	apiV1.Patch("/:subscription_id", h.patchSubscription)

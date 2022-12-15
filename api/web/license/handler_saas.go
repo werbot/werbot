@@ -29,7 +29,7 @@ type licenseInput struct {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/license/expired [get]
-func (h *Handler) getLicenseExpired(c *fiber.Ctx) error {
+func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 	input := new(licenseInput)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -43,7 +43,7 @@ func (h *Handler) getLicenseExpired(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewLicenseHandlersClient(h.grpc.Client)
+	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
 
 	expiredLic, err := rClient.GetLicenseExpired(ctx, &pb.GetLicenseExpired_Request{
 		License: licenseDec,
@@ -63,7 +63,7 @@ func (h *Handler) getLicenseExpired(c *fiber.Ctx) error {
 // @Success      200     {object} httputil.HTTPResponse
 // @Failure      400,500 {object} httputil.HTTPResponse
 // @Router       /v1/license [post]
-func (h *Handler) postLicense(c *fiber.Ctx) error {
+func (h *handler) postLicense(c *fiber.Ctx) error {
 	input := new(pb.NewLicense_Request)
 	c.BodyParser(input)
 
@@ -86,7 +86,7 @@ func (h *Handler) postLicense(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewLicenseHandlersClient(h.grpc.Client)
+	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
 
 	// check ip from db license
 	dataLic, err := rClient.NewLicense(ctx, dataLicense)

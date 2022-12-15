@@ -27,7 +27,7 @@ type userIDReq struct {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/share [get]
-func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
+func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 	input := userIDReq{}
 	c.BodyParser(&input)
 	if err := validate.Struct(input); err != nil {
@@ -39,7 +39,7 @@ func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	pagination := httputil.GetPaginationFromCtx(c)
 	servers, err := rClient.ListServersShareForUser(ctx, &pb.ListServersShareForUser_Request{
@@ -65,7 +65,7 @@ func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
 // share the selected server with the user
 // request serverReq{user_id:1, project_id:1, server:1}
 // POST /v1/servers/share
-func (h *Handler) postServersShareForUser(c *fiber.Ctx) error {
+func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
 	input := new(pb.CreateServerShareForUser_Request)
 	if err := c.BodyParser(input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
@@ -81,7 +81,7 @@ func (h *Handler) postServersShareForUser(c *fiber.Ctx) error {
 // Updating the settings to the server that they shared
 // request serverReq{user_id:1, project_id:1, server:1}
 // PATCH /v1/servers/share
-func (h *Handler) patchServerShareForUser(c *fiber.Ctx) error {
+func (h *handler) patchServerShareForUser(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerShareForUser_Request)
 	if err := c.BodyParser(&input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
@@ -97,7 +97,7 @@ func (h *Handler) patchServerShareForUser(c *fiber.Ctx) error {
 // Removing from the user list available to him the server
 // request userReq{user_id:1, project_id:1}
 // DELETE /v1/servers/share
-func (h *Handler) deleteServerShareForUser(c *fiber.Ctx) error {
+func (h *handler) deleteServerShareForUser(c *fiber.Ctx) error {
 	input := new(pb.DeleteServerShareForUser_Request)
 	if err := c.BodyParser(&input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)

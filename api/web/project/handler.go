@@ -24,7 +24,7 @@ import (
 // @Success      200             {object} httputil.HTTPResponse{data=pb.ListProjects_Response}
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/projects [get]
-func (h *Handler) getProject(c *fiber.Ctx) error {
+func (h *handler) getProject(c *fiber.Ctx) error {
 	input := new(pb.GetProject_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -36,7 +36,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewProjectHandlersClient(h.grpc.Client)
+	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
 
 	// show all projects
 	if input.GetProjectId() == "" {
@@ -88,7 +88,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb.CreateProject_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/projects [post]
-func (h *Handler) addProject(c *fiber.Ctx) error {
+func (h *handler) addProject(c *fiber.Ctx) error {
 	input := new(pb.CreateProject_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -100,7 +100,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewProjectHandlersClient(h.grpc.Client)
+	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
 
 	project, err := rClient.CreateProject(ctx, &pb.CreateProject_Request{
 		OwnerId: userID,
@@ -121,7 +121,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse{data=pb.UpdateProject_Response}
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/projects [patch]
-func (h *Handler) patchProject(c *fiber.Ctx) error {
+func (h *handler) patchProject(c *fiber.Ctx) error {
 	input := new(pb.UpdateProject_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -133,7 +133,7 @@ func (h *Handler) patchProject(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewProjectHandlersClient(h.grpc.Client)
+	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdateProject(ctx, &pb.UpdateProject_Request{
 		OwnerId:   userID,
@@ -155,7 +155,7 @@ func (h *Handler) patchProject(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/projects [delete]
-func (h *Handler) deleteProject(c *fiber.Ctx) error {
+func (h *handler) deleteProject(c *fiber.Ctx) error {
 	input := new(pb.DeleteProject_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -167,7 +167,7 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewProjectHandlersClient(h.grpc.Client)
+	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.DeleteProject(ctx, &pb.DeleteProject_Request{
 		ProjectId: input.GetProjectId(),

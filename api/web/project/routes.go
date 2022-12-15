@@ -1,30 +1,32 @@
 package project
 
 import (
-	"github.com/gofiber/fiber/v2"
-
-	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/internal/logger"
 )
 
-// Handler is ...
-type Handler struct {
-	app  *fiber.App
-	grpc *grpc.ClientService
-	auth fiber.Handler
+type handler struct {
+	*web.Handler
+	log logger.Logger
 }
 
 // New is ...
-func New(app *fiber.App, grpc *grpc.ClientService, auth fiber.Handler) *Handler {
-	return &Handler{
-		app:  app,
-		grpc: grpc,
-		auth: auth,
+func New(h *web.Handler) *handler {
+	log := logger.New("module/project")
+
+	return &handler{
+		Handler: &web.Handler{
+			App:  h.App,
+			Grpc: h.Grpc,
+			Auth: h.Auth,
+		},
+		log: log,
 	}
 }
 
 // Routes is ...
-func (h *Handler) Routes() {
-	projectV1 := h.app.Group("/v1/projects", h.auth)
+func (h *handler) Routes() {
+	projectV1 := h.App.Group("/v1/projects", h.Auth)
 	projectV1.Get("/", h.getProject)
 	projectV1.Post("/", h.addProject)
 	projectV1.Patch("/", h.patchProject)

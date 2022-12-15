@@ -6,6 +6,7 @@ import (
 
 	"github.com/steinfletcher/apitest"
 
+	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/internal/tests"
 )
 
@@ -13,8 +14,12 @@ var testHandler *tests.TestHandler
 
 func init() {
 	testHandler = tests.InitTestServer("../../../../.env")
-	New(testHandler.App).Routes() // add test module handler
-	testHandler.FinishHandler()   // init finale handler for apitest
+	webHandler := &web.Handler{
+		App: testHandler.App,
+	}
+
+	New(webHandler).Routes()    // add test module handler
+	testHandler.FinishHandler() // init finale handler for apitest
 }
 
 func apiTest() *apitest.APITest {

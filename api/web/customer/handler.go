@@ -16,7 +16,7 @@ type userReq struct {
 // subscription information
 // request {user_id:1}
 // GET /v1/customers
-func (h *Handler) getCustomer(c *fiber.Ctx) error {
+func (h *handler) getCustomer(c *fiber.Ctx) error {
 	var input userReq
 	if err := c.BodyParser(&input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
@@ -33,7 +33,7 @@ func (h *Handler) getCustomer(c *fiber.Ctx) error {
 // Removing the subscriber
 // request {user_id:1}
 // DELETE /v1/customers
-func (h *Handler) deleteCustomer(c *fiber.Ctx) error {
+func (h *handler) deleteCustomer(c *fiber.Ctx) error {
 	var input userReq
 	if err := c.BodyParser(&input); err != nil {
 		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)

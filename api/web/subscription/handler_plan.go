@@ -22,7 +22,7 @@ import (
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/subscriptions/plans [get]
-func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
+func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 	pagination := httputil.GetPaginationFromCtx(c)
 	sqlQuery := ""
 
@@ -34,7 +34,7 @@ func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewSubscriptionHandlersClient(h.grpc.Client)
+	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
 
 	plans, err := rClient.ListPlans(ctx, &pb.ListPlans_Request{
 		Query:  sqlQuery,
@@ -87,12 +87,12 @@ func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/subscriptions/plans/:plan_id [get]
-func (h *Handler) getSubscriptionPlan(c *fiber.Ctx) error {
+func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 	planID := c.Params("plan_id")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewSubscriptionHandlersClient(h.grpc.Client)
+	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
 
 	plan, err := rClient.GetPlan(ctx, &pb.GetPlan_Request{
 		PlanId: planID,
@@ -135,7 +135,7 @@ func (h *Handler) getSubscriptionPlan(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/subscriptions/plans/:plan_id [patch]
-func (h *Handler) patchSubscriptionPlan(c *fiber.Ctx) error {
+func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 	planID := c.Params("plan_id")
 	input := &pb.UpdatePlan_Request{}
 	c.BodyParser(input)
@@ -150,7 +150,7 @@ func (h *Handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewSubscriptionHandlersClient(h.grpc.Client)
+	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdatePlan(ctx, &pb.UpdatePlan_Request{
 		PlanId:            planID,

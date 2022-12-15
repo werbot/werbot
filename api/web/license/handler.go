@@ -20,7 +20,7 @@ import (
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/license/info [get]
-func (h *Handler) getLicenseInfo(c *fiber.Ctx) error {
+func (h *handler) getLicenseInfo(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
@@ -29,7 +29,7 @@ func (h *Handler) getLicenseInfo(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewLicenseHandlersClient(h.grpc.Client)
+	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
 
 	lic, err := rClient.GetLicenseInfo(ctx, &pb.GetLicenseInfo_Request{})
 	if err != nil {

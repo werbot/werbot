@@ -1,22 +1,28 @@
 package wellknown
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/internal/logger"
 )
 
-// Handler is ...
-type Handler struct {
-	app *fiber.App
+type handler struct {
+	*web.Handler
+	log logger.Logger
 }
 
 // New is ...
-func New(app *fiber.App) *Handler {
-	return &Handler{
-		app: app,
+func New(h *web.Handler) *handler {
+	log := logger.New("module/wellknown")
+
+	return &handler{
+		Handler: &web.Handler{
+			App: h.App,
+		},
+		log: log,
 	}
 }
 
 // Routes is ...
-func (h *Handler) Routes() {
-	h.app.Get("/.well-known/jwks.json", h.jwks)
+func (h *handler) Routes() {
+	h.App.Get("/.well-known/jwks.json", h.jwks)
 }

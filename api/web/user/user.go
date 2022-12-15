@@ -37,7 +37,7 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.grpc.Client)
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	// show all users
 	if userParameter.IsUserAdmin() && input.GetUserId() == "" {
@@ -99,7 +99,7 @@ func (h *handler) addUser(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.grpc.Client)
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	user, err := rClient.CreateUser(ctx, &pb.CreateUser_Request{
 		Fio:       input.GetFio(),
@@ -136,7 +136,7 @@ func (h *handler) patchUser(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.grpc.Client)
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	// If RoleUser_ADMIN
 	if userParameter.IsUserAdmin() {
@@ -192,7 +192,7 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.grpc.Client)
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	// step 1 - send email and token
 	if input.GetPassword() != "" {
@@ -258,7 +258,7 @@ func (h *handler) patchPassword(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.grpc.Client)
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	msg, err := rClient.UpdatePassword(ctx, &pb.UpdatePassword_Request{
 		UserId:      userID,

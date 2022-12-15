@@ -28,7 +28,7 @@ import (
 // @Success      200         {object} httputil.HTTPResponse{data=pb.ListServer_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers [get]
-func (h *Handler) getServer(c *fiber.Ctx) error {
+func (h *handler) getServer(c *fiber.Ctx) error {
 	input := new(pb.GetServer_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -40,7 +40,7 @@ func (h *Handler) getServer(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	// show all project
 	if input.GetServerId() == "" {
@@ -85,7 +85,7 @@ func (h *Handler) getServer(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb.CreateServer_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers [post]
-func (h *Handler) addServer(c *fiber.Ctx) error {
+func (h *handler) addServer(c *fiber.Ctx) error {
 	input := new(pb.CreateServer_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -97,7 +97,7 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	server, err := rClient.CreateServer(ctx, &pb.CreateServer_Request{
 		UserId:             userID,
@@ -130,7 +130,7 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers [patch]
-func (h *Handler) patchServer(c *fiber.Ctx) error {
+func (h *handler) patchServer(c *fiber.Ctx) error {
 	input := new(pb.UpdateServer_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -142,7 +142,7 @@ func (h *Handler) patchServer(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdateServer(ctx, &pb.UpdateServer_Request{
 		UserId:             userID,
@@ -198,7 +198,7 @@ func (h *Handler) patchServer(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers [delete]
-func (h *Handler) deleteServer(c *fiber.Ctx) error {
+func (h *handler) deleteServer(c *fiber.Ctx) error {
 	input := new(pb.DeleteServer_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -210,7 +210,7 @@ func (h *Handler) deleteServer(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.DeleteServer(ctx, &pb.DeleteServer_Request{
 		UserId:    userID,
@@ -233,7 +233,7 @@ func (h *Handler) deleteServer(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb.GetServerAccess_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/access [get]
-func (h *Handler) getServerAccess(c *fiber.Ctx) error {
+func (h *handler) getServerAccess(c *fiber.Ctx) error {
 	input := new(pb.GetServerAccess_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -245,7 +245,7 @@ func (h *Handler) getServerAccess(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	access, err := rClient.GetServerAccess(ctx, &pb.GetServerAccess_Request{
 		UserId:    userID,
@@ -271,7 +271,7 @@ func (h *Handler) getServerAccess(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb.GetServerActivity_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/activity [get]
-func (h *Handler) getServerActivity(c *fiber.Ctx) error {
+func (h *handler) getServerActivity(c *fiber.Ctx) error {
 	input := new(pb.GetServerActivity_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -283,7 +283,7 @@ func (h *Handler) getServerActivity(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	activity, err := rClient.GetServerActivity(ctx, &pb.GetServerActivity_Request{
 		UserId:    userID,
@@ -307,7 +307,7 @@ func (h *Handler) getServerActivity(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/activity [patch]
-func (h *Handler) patchServerActivity(c *fiber.Ctx) error {
+func (h *handler) patchServerActivity(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerActivity_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -319,7 +319,7 @@ func (h *Handler) patchServerActivity(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdateServerActivity(ctx, &pb.UpdateServerActivity_Request{
 		UserId:    userID,
@@ -341,7 +341,7 @@ func (h *Handler) patchServerActivity(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb.GetServerFirewall_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/firewall [get]
-func (h *Handler) getServerFirewall(c *fiber.Ctx) error {
+func (h *handler) getServerFirewall(c *fiber.Ctx) error {
 	input := new(pb_firewall.GetServerFirewall_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -353,7 +353,7 @@ func (h *Handler) getServerFirewall(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb_firewall.NewFirewallHandlersClient(h.grpc.Client)
+	rClient := pb_firewall.NewFirewallHandlersClient(h.Grpc.Client)
 
 	firewall, err := rClient.GetServerFirewall(ctx, &pb_firewall.GetServerFirewall_Request{
 		UserId:    userID,
@@ -374,7 +374,7 @@ func (h *Handler) getServerFirewall(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb_firewall.CreateServerFirewall_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/firewall [post]
-func (h *Handler) postServerFirewall(c *fiber.Ctx) error {
+func (h *handler) postServerFirewall(c *fiber.Ctx) error {
 	input := new(pb_firewall.CreateServerFirewall_Request)
 	if err := protojson.Unmarshal(c.Body(), input); err != nil {
 		fmt.Print(err)
@@ -388,7 +388,7 @@ func (h *Handler) postServerFirewall(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb_firewall.NewFirewallHandlersClient(h.grpc.Client)
+	rClient := pb_firewall.NewFirewallHandlersClient(h.Grpc.Client)
 
 	var err error
 	response := new(pb_firewall.CreateServerFirewall_Response)
@@ -435,7 +435,7 @@ func (h *Handler) postServerFirewall(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/firewall [patch]
-func (h *Handler) patchAccessPolicy(c *fiber.Ctx) error {
+func (h *handler) patchAccessPolicy(c *fiber.Ctx) error {
 	input := new(pb_firewall.UpdateAccessPolicy_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -447,7 +447,7 @@ func (h *Handler) patchAccessPolicy(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb_firewall.NewFirewallHandlersClient(h.grpc.Client)
+	rClient := pb_firewall.NewFirewallHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdateAccessPolicy(ctx, &pb_firewall.UpdateAccessPolicy_Request{
 		UserId:    userID,
@@ -470,7 +470,7 @@ func (h *Handler) patchAccessPolicy(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/firewall [delete]
-func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
+func (h *handler) deleteServerFirewall(c *fiber.Ctx) error {
 	input := new(pb_firewall.DeleteServerFirewall_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -482,7 +482,7 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb_firewall.NewFirewallHandlersClient(h.grpc.Client)
+	rClient := pb_firewall.NewFirewallHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.DeleteServerFirewall(ctx, &pb_firewall.DeleteServerFirewall_Request{
 		UserId:    userID,
@@ -505,7 +505,7 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/active [patch]
-func (h *Handler) patchServerStatus(c *fiber.Ctx) error {
+func (h *handler) patchServerStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerActiveStatus_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -517,7 +517,7 @@ func (h *Handler) patchServerStatus(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdateServerActiveStatus(ctx, &pb.UpdateServerActiveStatus_Request{
 		UserId:   userID,
@@ -545,7 +545,7 @@ func (h *Handler) patchServerStatus(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/name [get]
-func (h *Handler) serverNameByID(c *fiber.Ctx) error {
+func (h *handler) serverNameByID(c *fiber.Ctx) error {
 	input := new(pb.ServerNameByID_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -557,7 +557,7 @@ func (h *Handler) serverNameByID(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.grpc.Client)
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	access, err := rClient.ServerNameByID(ctx, &pb.ServerNameByID_Request{
 		UserId:    userID,

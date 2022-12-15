@@ -1,28 +1,30 @@
 package subscription
 
 import (
-	"github.com/gofiber/fiber/v2"
-
-	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/internal/logger"
 )
 
-// Handler is ...
-type Handler struct {
-	app  *fiber.App
-	grpc *grpc.ClientService
-	auth fiber.Handler
+type handler struct {
+	*web.Handler
+	log logger.Logger
 }
 
 // New is ...
-func New(app *fiber.App, grpc *grpc.ClientService, auth fiber.Handler) *Handler {
-	return &Handler{
-		app:  app,
-		grpc: grpc,
-		auth: auth,
+func New(h *web.Handler) *handler {
+	log := logger.New("module/subscription")
+
+	return &handler{
+		Handler: &web.Handler{
+			App:  h.App,
+			Grpc: h.Grpc,
+			Auth: h.Auth,
+		},
+		log: log,
 	}
 }
 
 // Routes is ...
-func (h *Handler) Routes() {
+func (h *handler) Routes() {
 	routes(h)
 }

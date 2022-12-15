@@ -26,7 +26,7 @@ import (
 // @Success      200             {object} httputil.HTTPResponse
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/server/members [get]
-func (h *Handler) getServerMember(c *fiber.Ctx) error {
+func (h *handler) getServerMember(c *fiber.Ctx) error {
 	input := new(pb.GetServerMember_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -38,7 +38,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	// show all member on server
 	if input.GetMemberId() == "" {
@@ -82,7 +82,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse{data=pb.CreateServerMember_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/server [post]
-func (h *Handler) addServerMember(c *fiber.Ctx) error {
+func (h *handler) addServerMember(c *fiber.Ctx) error {
 	input := new(pb.CreateServerMember_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -94,7 +94,7 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	member, err := rClient.CreateServerMember(ctx, &pb.CreateServerMember_Request{
 		OwnerId:   userID,
@@ -117,7 +117,7 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse{data=UpdateServerMember_Response}
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/server [patch]
-func (h *Handler) patchServerMember(c *fiber.Ctx) error {
+func (h *handler) patchServerMember(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerMember_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -129,7 +129,7 @@ func (h *Handler) patchServerMember(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdateServerMember(ctx, &pb.UpdateServerMember_Request{
 		OwnerId:   ownerID,
@@ -155,7 +155,7 @@ func (h *Handler) patchServerMember(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/server [delete]
-func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
+func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 	input := new(pb.DeleteServerMember_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -167,7 +167,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.DeleteServerMember(ctx, &pb.DeleteServerMember_Request{
 		OwnerId:   ownerID,
@@ -192,7 +192,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 // @Success      200             {object} httputil.HTTPResponse
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/server/search [get]
-func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
+func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	input := new(pb.GetMembersWithoutServer_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -204,7 +204,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	pagination := httputil.GetPaginationFromCtx(c)
 	members, err := rClient.GetMembersWithoutServer(ctx, &pb.GetMembersWithoutServer_Request{
@@ -230,7 +230,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/active [patch]
-func (h *Handler) patchServerMemberStatus(c *fiber.Ctx) error {
+func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerMemberStatus_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
@@ -242,7 +242,7 @@ func (h *Handler) patchServerMemberStatus(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.grpc.Client)
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdateServerMemberStatus(ctx, &pb.UpdateServerMemberStatus_Request{
 		OwnerId:   ownerID,

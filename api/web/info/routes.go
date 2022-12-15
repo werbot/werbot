@@ -1,37 +1,34 @@
 package info
 
 import (
-	"github.com/gofiber/fiber/v2"
-
-	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/internal/logger"
 )
 
-// Handler is ...
-type Handler struct {
-	app  *fiber.App
-	grpc *grpc.ClientService
-	auth fiber.Handler
-	log  logger.Logger
+type handler struct {
+	*web.Handler
+	log logger.Logger
 }
 
 // New is ...
-func New(app *fiber.App, grpc *grpc.ClientService, auth fiber.Handler) *Handler {
-	log := logger.New("web/auth")
+func New(h *web.Handler) *handler {
+	log := logger.New("module/info")
 
-	return &Handler{
-		app:  app,
-		grpc: grpc,
-		auth: auth,
-		log:  log,
+	return &handler{
+		Handler: &web.Handler{
+			App:  h.App,
+			Grpc: h.Grpc,
+			Auth: h.Auth,
+		},
+		log: log,
 	}
 }
 
 // Routes is ...
-func (h *Handler) Routes() {
-	h.app.Get("/v1/update", h.auth, h.getUpdate)
-	h.app.Get("/v1/info", h.auth, h.getInfo)
-	h.app.Get("/v1/version", h.auth, h.getVersion)
+func (h *handler) Routes() {
+	h.App.Get("/v1/update", h.Auth, h.getUpdate)
+	h.App.Get("/v1/info", h.Auth, h.getInfo)
+	h.App.Get("/v1/version", h.Auth, h.getVersion)
 
 	routes(h)
 }

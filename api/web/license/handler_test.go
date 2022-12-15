@@ -7,6 +7,7 @@ import (
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	pb "github.com/werbot/werbot/api/proto/user"
+	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -23,8 +24,14 @@ func init() {
 
 	testHandler = tests.InitTestServer("../../../../.env")
 	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
-	New(testHandler.App, testHandler.GRPC, authMiddleware, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes() // add test module handler
-	testHandler.FinishHandler()                                                                                   // init finale handler for apitest
+	webHandler := &web.Handler{
+		App:  testHandler.App,
+		Grpc: testHandler.GRPC,
+		Auth: authMiddleware,
+	}
+
+	New(webHandler, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes() // add test module handler
+	testHandler.FinishHandler()                                            // init finale handler for apitest
 
 	adminInfo = testHandler.GetUserInfo(&pb.SignIn_Request{
 		Email:    "test-admin@werbot.net",
