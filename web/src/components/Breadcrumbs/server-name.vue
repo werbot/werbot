@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, getCurrentInstance } from "vue";
 import { serverNameByID } from "@/api/server";
-import { GetServerNameByID_Request } from "@proto/server/server";
+import { ServerNameByID_Request } from "@proto/server/server";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});
@@ -27,7 +27,7 @@ const props = defineProps({
 });
 
 onMounted(() => {
-  serverNameByID(<GetServerNameByID_Request>{
+  serverNameByID(<ServerNameByID_Request>{
     user_id: props.memberId,
     server_id: props.serverId,
     project_id: props.projectId,

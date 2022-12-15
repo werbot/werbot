@@ -10,7 +10,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 
-	pb_project "github.com/werbot/werbot/internal/grpc/proto/project"
+	pb_project "github.com/werbot/werbot/api/proto/project"
 )
 
 type project struct {

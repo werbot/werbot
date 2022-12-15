@@ -11,14 +11,14 @@ import (
 	"github.com/google/uuid"
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/werbot/werbot/internal/grpc/proto/account"
-	"github.com/werbot/werbot/internal/grpc/proto/firewall"
-	"github.com/werbot/werbot/internal/grpc/proto/server"
+	"github.com/werbot/werbot/api/proto/account"
+	"github.com/werbot/werbot/api/proto/firewall"
+	"github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal/utils/convert"
 	"github.com/werbot/werbot/internal/utils/parse"
 
-	pb_account "github.com/werbot/werbot/internal/grpc/proto/account"
-	pb_firewall "github.com/werbot/werbot/internal/grpc/proto/firewall"
+	pb_account "github.com/werbot/werbot/api/proto/account"
+	pb_firewall "github.com/werbot/werbot/api/proto/firewall"
 )
 
 func passwordAuthHandler() ssh.PasswordHandler {

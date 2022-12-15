@@ -7,11 +7,11 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/werbot/werbot/api/proto/audit"
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/grpc/proto/audit"
 	"github.com/werbot/werbot/internal/logger"
 
-	pb "github.com/werbot/werbot/internal/grpc/proto/audit"
+	pb "github.com/werbot/werbot/api/proto/audit"
 )
 
 var log = logger.New("internal/auditor")

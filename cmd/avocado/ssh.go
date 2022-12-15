@@ -9,9 +9,9 @@ import (
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
 
+	"github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
-	"github.com/werbot/werbot/internal/grpc/proto/server"
 	"github.com/werbot/werbot/internal/utils/parse"
 )
 

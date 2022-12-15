@@ -15,7 +15,7 @@ import (
 	"github.com/werbot/werbot/internal/crypto"
 	"github.com/werbot/werbot/internal/utils/parse"
 
-	pb_server "github.com/werbot/werbot/internal/grpc/proto/server"
+	pb_server "github.com/werbot/werbot/api/proto/server"
 )
 
 type server struct {

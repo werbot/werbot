@@ -9,9 +9,9 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	pb_member "github.com/werbot/werbot/api/proto/member"
+	pb_user "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal"
-	pb_member "github.com/werbot/werbot/internal/grpc/proto/member"
-	pb_user "github.com/werbot/werbot/internal/grpc/proto/user"
 )
 
 type member struct {

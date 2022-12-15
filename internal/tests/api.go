@@ -16,15 +16,15 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 
+	"github.com/werbot/werbot/api/web/auth"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
-	"github.com/werbot/werbot/internal/web/module/auth"
 
-	pb "github.com/werbot/werbot/internal/grpc/proto/user"
+	pb "github.com/werbot/werbot/api/proto/user"
 )
 
 // TestCase is ...

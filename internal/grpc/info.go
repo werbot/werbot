@@ -3,8 +3,8 @@ package grpc
 import (
 	"context"
 
-	pb_info "github.com/werbot/werbot/internal/grpc/proto/info"
-	pb_user "github.com/werbot/werbot/internal/grpc/proto/user"
+	pb_info "github.com/werbot/werbot/api/proto/info"
+	pb_user "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 )
 

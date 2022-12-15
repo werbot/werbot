@@ -3,7 +3,7 @@ package logger
 import (
 	"errors"
 
-	pb "github.com/werbot/werbot/internal/grpc/proto/logger"
+	pb "github.com/werbot/werbot/api/proto/logger"
 	"github.com/werbot/werbot/internal/storage/postgres"
 )
 

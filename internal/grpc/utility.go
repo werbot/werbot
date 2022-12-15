@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	pb_utility "github.com/werbot/werbot/internal/grpc/proto/utility"
+	pb_utility "github.com/werbot/werbot/api/proto/utility"
 )
 
 type utility struct {

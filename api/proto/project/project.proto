@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package project;
+
+option go_package = "github.com/werbot/werbot/api/proto/project";
+
+import "google/protobuf/timestamp.proto";
+import "tagger/tagger.proto";
+
+service ProjectHandlers {
+    rpc ListProjects(ListProjects.Request) returns (ListProjects.Response) {}
+    rpc GetProject(GetProject.Request) returns (GetProject.Response) {}
+    rpc CreateProject(CreateProject.Request) returns (CreateProject.Response) {}
+    rpc UpdateProject(UpdateProject.Request) returns (UpdateProject.Response) {}
+    rpc DeleteProject(DeleteProject.Request) returns (DeleteProject.Response) {}
+    rpc GetProjectApiData(GetProjectApiData.Request) returns (GetProjectApiData.Response) {}
+}
+
+// rpc ListProjects
+message ListProjects {
+    message Request {
+        int32 limit = 1;
+        int32 offset = 2;
+        string sort_by = 3;
+        string query = 4;
+    }
+
+    message Response{
+        int32 total = 1;
+        repeated GetProject.Response projects = 2;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc GetProject
+message GetProject {
+    message Request {
+        string owner_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"owner_id\"    params:\"owner_id\""];
+        string project_id = 2  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"project_id\"  params:\"project_id\""];
+    }
+
+    message Response{
+        string project_id = 1;
+        string owner_id = 2;
+        string title = 3;
+        string login = 4;
+        int32 members_count = 5;
+        int32 servers_count = 6;
+        google.protobuf.Timestamp created = 7;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc CreateProject
+message CreateProject {
+    message Request {
+        string owner_id = 1  [(tagger.tags) = "validate:\"omitempty,uuid\""];
+        string login = 2     [(tagger.tags) = "validate:\"required,alphanum\""];
+        string title = 3     [(tagger.tags) = "validate:\"required,min=5,max=20\""];
+    }
+
+    message Response {
+        string project_id = 1;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc UpdateProject
+message UpdateProject {
+    message Request {
+        string project_id = 1  [(tagger.tags) = "validate:\"required,uuid\"          query:\"project_id\"  params:\"project_id\""];
+        string owner_id = 2    [(tagger.tags) = "validate:\"omitempty,uuid\"         query:\"owner_id\"    params:\"owner_id\""];
+        string title = 3       [(tagger.tags) = "validate:\"required,min=5,max=20\"  query:\"title\"       params:\"title\""];
+    }
+
+    message Response {}
+}
+// -----------------------------------------------------
+
+
+// rpc DeleteProject
+message DeleteProject{
+    message Request {
+        string owner_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"owner_id\"    params:\"owner_id\""];
+        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"   query:\"project_id\"  params:\"project_id\""];
+    }
+
+    message Response {}
+}
+// -----------------------------------------------------
+
+// rpc GetProjectApiData
+message GetProjectApiData {
+    message Request {
+        string project_id = 1  [(tagger.tags) = "validate:\"uuid\" query:\"project_id\""];
+    }
+    
+    message Response {
+        string api_key = 1;
+        string api_secret = 2;
+        bool api_online =3;
+    }
+}
+// -----------------------------------------------------

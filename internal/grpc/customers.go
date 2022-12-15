@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	pb_subscription "github.com/werbot/werbot/internal/grpc/proto/subscription"
+	pb_subscription "github.com/werbot/werbot/api/proto/subscription"
 )
 
 // GetCustomers is ...

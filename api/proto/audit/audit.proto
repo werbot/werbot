@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package audit;
+
+option go_package = "github.com/werbot/werbot/api/proto/audit";
+
+//import "google/protobuf/timestamp.proto";
+
+service AuditHandlers {
+    rpc CreateAudit(CreateAudit.Request) returns (CreateAudit.Response) {}
+    rpc UpdateAudit(UpdateAudit.Request) returns (UpdateAudit.Response) {}
+    
+    rpc CreateRecord(CreateRecord.Request) returns (CreateRecord.Response) {}
+}
+
+// -----------------------------------------------------
+// global messages
+message Record {
+    string id = 1;
+    bool audit = 2;
+    string duration = 3;
+    string screen = 4;
+    string type = 5;
+}
+
+/*
+message Audit {
+    string audit_id = 1;
+    string account_id = 2;
+    google.protobuf.Timestamp time_start = 3;
+    int32 version = 4;
+    int32 width = 5;
+    int32 height = 6;
+    string duration = 7;
+    string command = 8;
+    string title = 9;
+    string env_term = 10;
+    string env_shell = 11;
+    string sessionv = 12;
+    google.protobuf.Timestamp time_end = 13;
+    string client_ip = 14;
+}
+
+message Records {
+    repeated Record records = 1;
+}
+*/
+// -----------------------------------------------------
+
+
+// rpc rpc CreateAudit
+message CreateAudit {
+    message Request {
+        string account_id = 1;
+        int32 version = 2;
+        string session = 3;
+        string client_ip = 4;
+    }
+    message Response {
+        string audit_id = 1;
+    }
+}
+// -----------------------------------------------------
+
+
+// rpc UpdateAudit
+message UpdateAudit {
+    message Request {
+        string audit_id = 1;
+        message Params {
+            int32 width = 1;
+            int32 height = 2;
+            string command = 3;
+            string title = 4;
+            string env_term = 5;
+            string env_shell = 6;
+            string duration = 7;
+            string time_end = 8;
+        }
+        Params params = 2;
+    }
+
+    message Response{}
+}
+// -----------------------------------------------------
+
+
+// rpc CreateRecord
+message CreateRecord {
+    message Request {
+        string audit_id = 1;
+        repeated Record records = 2;
+    }
+
+    message Response{}
+}
+// -----------------------------------------------------

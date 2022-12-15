@@ -10,7 +10,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	license_lib "github.com/werbot/werbot/internal/license"
 
-	pb_license "github.com/werbot/werbot/internal/grpc/proto/license"
+	pb_license "github.com/werbot/werbot/api/proto/license"
 )
 
 type license struct {

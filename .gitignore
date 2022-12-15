@@ -96,6 +96,6 @@ rest.http
 
 /web/proto
 
-/internal/grpc/proto/*/*.ts
-/internal/grpc/proto/*/google/protobuf/*.ts
-/internal/grpc/proto/*/*.pb.go
+/api/proto/*/*.ts
+/api/proto/*/google/protobuf/*.ts
+/api/proto/*/*.pb.go

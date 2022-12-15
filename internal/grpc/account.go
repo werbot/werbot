@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	pb_account "github.com/werbot/werbot/internal/grpc/proto/account"
+	pb_account "github.com/werbot/werbot/api/proto/account"
 	"github.com/werbot/werbot/internal/utils/parse"
 )
 

@@ -64,7 +64,7 @@
   },
 
   "protoc": {
-    "options": ["--proto_path=${workspaceFolder}/internal/grpc/proto/"]
+    "options": ["--proto_path=${workspaceFolder}/api/proto/"]
   },
 
   "cSpell.words": [

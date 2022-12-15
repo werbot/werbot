@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgtype"
 
-	pb_subscription "github.com/werbot/werbot/internal/grpc/proto/subscription"
+	pb_subscription "github.com/werbot/werbot/api/proto/subscription"
 )
 
 // GetSubscriptionPlans is ...

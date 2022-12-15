@@ -16,7 +16,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 
-	pb_user "github.com/werbot/werbot/internal/grpc/proto/user"
+	pb_user "github.com/werbot/werbot/api/proto/user"
 )
 
 type user struct {

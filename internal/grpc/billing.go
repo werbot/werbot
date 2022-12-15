@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	pb_billing "github.com/werbot/werbot/internal/grpc/proto/billing"
+	pb_billing "github.com/werbot/werbot/api/proto/billing"
 )
 
 type billing struct {

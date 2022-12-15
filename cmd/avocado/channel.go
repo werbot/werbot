@@ -13,20 +13,20 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 
+	"github.com/werbot/werbot/api/proto/account"
+	"github.com/werbot/werbot/api/proto/audit"
+	"github.com/werbot/werbot/api/proto/firewall"
+	"github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/grpc/proto/account"
-	"github.com/werbot/werbot/internal/grpc/proto/audit"
-	"github.com/werbot/werbot/internal/grpc/proto/firewall"
-	"github.com/werbot/werbot/internal/grpc/proto/server"
 	"github.com/werbot/werbot/internal/service/ssh/auditor"
 	"github.com/werbot/werbot/internal/service/ssh/pty"
 	"github.com/werbot/werbot/internal/utils/convert"
 	"github.com/werbot/werbot/internal/utils/parse"
 
-	pb_account "github.com/werbot/werbot/internal/grpc/proto/account"
-	pb_audit "github.com/werbot/werbot/internal/grpc/proto/audit"
-	pb_firewall "github.com/werbot/werbot/internal/grpc/proto/firewall"
-	pb_server "github.com/werbot/werbot/internal/grpc/proto/server"
+	pb_account "github.com/werbot/werbot/api/proto/account"
+	pb_audit "github.com/werbot/werbot/api/proto/audit"
+	pb_firewall "github.com/werbot/werbot/api/proto/firewall"
+	pb_server "github.com/werbot/werbot/api/proto/server"
 )
 
 type sessionConfig struct {

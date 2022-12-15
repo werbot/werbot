@@ -78,17 +78,17 @@ gen_key_jwt: ## Generating JWT key
 #############################################################################
 # run: 
 # make gen_protos - recreate all protofiles
-# make gen_protos user - recreate protofile user from folder /internal/grpc/proto/
+# make gen_protos user - recreate protofile user from folder /api/proto/
 .PHONY: gen_protos
 gen_protos: ## Generating protos files
 	@if [ $(filter-out $@,$(MAKECMDGOALS)) ]; then\
-		if [ -d ${ROOT_PATH}/internal/grpc/proto/$(filter-out $@,$(MAKECMDGOALS))/ ];then\
-			$(call _gen_protos,${ROOT_PATH}/internal/grpc/proto/$(filter-out $@,$(MAKECMDGOALS))/);\
+		if [ -d ${ROOT_PATH}/api/proto/$(filter-out $@,$(MAKECMDGOALS))/ ];then\
+			$(call _gen_protos,${ROOT_PATH}/api/proto/$(filter-out $@,$(MAKECMDGOALS))/);\
 		else \
 			echo "error";\
 		fi \
 	else \
-		for entry in ${ROOT_PATH}/internal/grpc/proto/*/; do\
+		for entry in ${ROOT_PATH}/api/proto/*/; do\
 			$(call _gen_protos,$${entry});\
 		done \
 	fi
@@ -104,18 +104,18 @@ define _gen_protos
 	echo "${1}*.proto";\
 	protoc --proto_path=. \
 	  --proto_path=/usr/local/include/ \
-		--proto_path=${ROOT_PATH}/internal/grpc/proto/ \
+		--proto_path=${ROOT_PATH}/api/proto/ \
 		--go_out=paths=source_relative:. \
 		--go-grpc_out=paths=source_relative:. \
 		$$(basename ${1}).proto;\
 	protoc --proto_path=. \
 	  --proto_path=/usr/local/include/ \
-		--proto_path=${ROOT_PATH}/internal/grpc/proto/ \
+		--proto_path=${ROOT_PATH}/api/proto/ \
 		--gotag_out=paths=source_relative:. \
 		$$(basename ${1}).proto;\
 	protoc --proto_path=. \
 	  --proto_path=/usr/local/include/ \
-		--proto_path=${ROOT_PATH}/internal/grpc/proto/ \
+		--proto_path=${ROOT_PATH}/api/proto/ \
 		--plugin=protoc-gen-ts=${ROOT_PATH}/web/node_modules/@protobuf-ts/plugin/bin/protoc-gen-ts \
 		--ts_out=. \
 		--ts_opt use_proto_field_name,ts_nocheck,long_type_string,force_optimize_code_size,force_client_none \
@@ -326,7 +326,7 @@ prod_package_app:
 	@sed -i -E "s/_GIT_COMMIT_/${GIT_COMMIT}/g" ${ROOT_PATH}/bin/Dockerfile_web
 	@sed -i -E "s/_VERSION_/${VERSION}/g" ${ROOT_PATH}/bin/Dockerfile_web
 	@sed -i -E "s/_DESCRIPTION_/${DESCRIPTION}/g" ${ROOT_PATH}/bin/Dockerfile_web
-	@cp -a ${ROOT_PATH}/internal/grpc/proto ${ROOT_PATH}/web/
+	@cp -a ${ROOT_PATH}/api/proto ${ROOT_PATH}/web/
 	docker build -f ${ROOT_PATH}/bin/Dockerfile_web -t ghcr.io/werbot/app:latest .
 	docker tag ghcr.io/werbot/app:latest ghcr.io/werbot/app:${VERSION}
 	rm -rf ${ROOT_PATH}/web/dist ${ROOT_PATH}/web/proto

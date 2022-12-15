@@ -11,11 +11,11 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/gliderlabs/ssh"
+	"github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/grpc/proto/server"
 	"github.com/werbot/werbot/internal/utils/parse"
 
-	pb "github.com/werbot/werbot/internal/grpc/proto/server"
+	pb "github.com/werbot/werbot/api/proto/server"
 )
 
 func privateKey() func(*ssh.Server) error {

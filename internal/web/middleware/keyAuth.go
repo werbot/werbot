@@ -12,7 +12,7 @@ import (
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/web/httputil"
 
-	pb "github.com/werbot/werbot/internal/grpc/proto/project"
+	pb "github.com/werbot/werbot/api/proto/project"
 )
 
 // KeyMiddleware is ...

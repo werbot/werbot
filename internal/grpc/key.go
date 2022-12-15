@@ -13,7 +13,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 
-	pb_key "github.com/werbot/werbot/internal/grpc/proto/key"
+	pb_key "github.com/werbot/werbot/api/proto/key"
 )
 
 type key struct {

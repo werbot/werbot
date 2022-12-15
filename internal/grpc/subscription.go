@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	pb_subscription "github.com/werbot/werbot/internal/grpc/proto/subscription"
+	pb_subscription "github.com/werbot/werbot/api/proto/subscription"
 )
 
 type subscription struct {

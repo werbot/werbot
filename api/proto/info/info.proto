@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package info;
+
+option go_package = "github.com/werbot/werbot/api/proto/info";
+
+import "user/user.proto";
+import "tagger/tagger.proto";
+
+service InfoHandlers {
+    rpc GetInfo(GetInfo.Request) returns (GetInfo.Response) {}
+}
+
+// rpc GetInfo
+message GetInfo {
+    message Request {
+        string user_id = 1  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"   params:\"user_id\""];
+        user.RoleUser role = 2;
+    }
+
+    message Response {
+        int32 users = 1;
+        int32 projects = 2;
+        int32 servers = 3;
+    }
+}
+// -----------------------------------------------------

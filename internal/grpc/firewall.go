@@ -11,7 +11,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/utils/convert"
 
-	pb_firewall "github.com/werbot/werbot/internal/grpc/proto/firewall"
+	pb_firewall "github.com/werbot/werbot/api/proto/firewall"
 )
 
 type firewall struct {

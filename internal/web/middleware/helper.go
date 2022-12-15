@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	golang_jwt "github.com/golang-jwt/jwt/v4"
 
-	pb "github.com/werbot/werbot/internal/grpc/proto/user"
+	pb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal/web/jwt"
 )
 

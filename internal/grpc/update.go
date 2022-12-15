@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	pb_update "github.com/werbot/werbot/internal/grpc/proto/update"
+	pb_update "github.com/werbot/werbot/api/proto/update"
 )
 
 type update struct {

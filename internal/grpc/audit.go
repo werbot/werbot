@@ -9,7 +9,7 @@ import (
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/utils/convert"
 
-	pb_audit "github.com/werbot/werbot/internal/grpc/proto/audit"
+	pb_audit "github.com/werbot/werbot/api/proto/audit"
 )
 
 type audit struct {

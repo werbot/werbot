@@ -10,7 +10,7 @@ import (
 	"github.com/werbot/werbot/internal/config"
 	"github.com/werbot/werbot/internal/database"
 
-	pb "github.com/werbot/werbot/internal/grpc/proto/firewall"
+	pb "github.com/werbot/werbot/api/proto/firewall"
 )
 
 func init() {
