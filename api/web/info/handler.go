@@ -13,7 +13,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -37,8 +36,7 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
-		message := "Unable to connect to Docker"
-		logger.OutErrorLog("docker", err, message)
+		h.log.Error(err).Msg("Unable to connect to Docker")
 		return httputil.InternalServerError(c, "Unable to get list of containers", nil)
 	}
 
@@ -49,17 +47,18 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 		},
 	})
 	if err != nil {
-		message := "Unable to get list of containers"
-		logger.OutErrorLog("docker", err, message)
+		h.log.Error(err).Msg("Unable to get list of containers")
 		return httputil.InternalServerError(c, "Unable to get list of containers", nil)
 	}
 
 	urlVersion := fmt.Sprintf("%s/v1/update/version", internal.GetString("API_DSN", "https://api.werbot.com"))
 	getVersionInfo, err := http.Get(urlVersion)
 	if err != nil {
-		message := "Error getting data for updates"
-		logger.OutErrorLog("docker", err, message)
+		h.log.Error(err).Msg("Error getting data for updates")
 		return httputil.InternalServerError(c, "Error getting data for updates", nil)
+	}
+	if getVersionInfo.StatusCode > 200 {
+		return httputil.StatusNotFound(c, "Update server not found", nil)
 	}
 	defer getVersionInfo.Body.Close()
 

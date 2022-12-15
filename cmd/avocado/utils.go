@@ -12,6 +12,6 @@ func sendMessageInChannel(ch gossh.Channel, msg string) {
 	p = bytes.ReplaceAll(p, []byte{'\n'}, []byte{'\r', '\n'})
 	p = bytes.ReplaceAll(p, []byte{'\r', '\r', '\n'}, []byte{'\r', '\n'})
 	if _, err := ch.Write(p); err != nil {
-		log.Error().Err(err).Msg("sendMessageInChannel Write")
+		app.log.Error(err).Msg("sendMessageInChannel Write")
 	}
 }

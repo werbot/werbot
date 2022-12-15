@@ -16,10 +16,7 @@ import (
 	"github.com/werbot/werbot/internal/utils/file"
 )
 
-var (
-	component = "ghost"
-	log       = logger.New(component)
-)
+var log = logger.New("ghost")
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -60,7 +57,7 @@ func downloadMMDB() {
 		fmt.Sprintf("%s/GeoLite2-Country.mmdb", internal.GetString("APP_CDN", "https://cdn.werbot.com")),
 	)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to download mmdb")
+		log.Error(err).Msg("failed to download mmdb")
 	}
 }
 
@@ -74,7 +71,7 @@ func downloadHAProxyLists() {
 			fmt.Sprintf("https://raw.githubusercontent.com/werbot/installation/main/core/haproxy/%s", list),
 		)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to download mmdb")
+			log.Error(err).Msg("failed to download mmdb")
 		}
 	}
 }
@@ -87,6 +84,6 @@ func downloadLicense() {
 		"https://api.werbot.com/", // TODO: down license
 	)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to download license")
+		log.Error(err).Msg("failed to download license")
 	}
 }

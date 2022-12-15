@@ -30,7 +30,7 @@ func NewWatcher() (*Watcher, error) {
 
 	go func() {
 		for err := range fsw.Errors {
-			log.Error().Err(err)
+			log.Error(err).Send()
 		}
 	}()
 
@@ -49,7 +49,7 @@ func NewWatcher() (*Watcher, error) {
 func (w *Watcher) Add(file string) {
 	w.Watching = append(w.Watching, file)
 	if err := w.Watcher.Add(file); err != nil {
-		log.Error().Err(err).Msg("Add file")
+		log.Error(err).Msg("Add file")
 	}
 }
 
@@ -65,7 +65,7 @@ func (w *Watcher) Close() error {
 func (w *Watcher) StopWatchingAll() {
 	for _, f := range w.Watching {
 		if err := w.Watcher.Remove(f); err != nil {
-			log.Error().Err(err)
+			log.Error(err).Send()
 		}
 	}
 	w.Watching = nil

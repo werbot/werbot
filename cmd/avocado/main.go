@@ -11,6 +11,7 @@ import (
 
 	"github.com/armon/go-proxyproto"
 	"github.com/gliderlabs/ssh"
+	"github.com/rs/zerolog/log"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
@@ -19,9 +20,7 @@ import (
 )
 
 var (
-	component = "avocado"
-	log       = logger.New(component)
-	app       = App{}
+	app = App{}
 )
 
 // App is ...
@@ -29,12 +28,15 @@ type App struct {
 	nats                  *nats.Service
 	grpc                  *grpc.ClientService
 	defaultChannelHandler ssh.ChannelHandler
+	log                   logger.Logger
 }
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	internal.LoadConfig("../../.env")
+
+	app.log = logger.New("avocado")
 
 	natsDSN := fmt.Sprintf("nats://%s:%s@%s",
 		internal.GetString("NATS_USER", "werbot"),
@@ -57,7 +59,8 @@ func main() {
 	// create TCP listening socket
 	ln, err := net.Listen("tcp", internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022"))
 	if err != nil {
-		log.Fatal().Err(err).Msg("Start avocado server")
+		app.log.Fatal(err).Msg("Start avocado server")
+
 	}
 	proxyListener := &proxyproto.Listener{Listener: ln}
 
@@ -78,7 +81,7 @@ func main() {
 			go ssh.DirectTCPIPHandler(srv, conn, newChan, ctx)
 		default:
 			if err := newChan.Reject(gossh.UnknownChannelType, "unsupported channel type"); err != nil {
-				log.Error().Err(err).Msg("Failed to reject chan")
+				app.log.Error(err).Msg("Failed to reject chan")
 			}
 		}
 	}
@@ -94,12 +97,12 @@ func main() {
 		privateKey(),
 	} {
 		if err := srv.SetOption(opt); err != nil {
-			log.Error().Err(err).Msg("Error SetOption")
+			app.log.Error(err).Msg("Error SetOption")
 		}
 	}
 
 	log.Info().Str("serverAddress", internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022")).Dur("idleTimout", time.Duration(internal.GetInt("SSHSERVER_IDLE_TIMEOUT", 300))*time.Second).Msg("SSH Server accepting connections")
 	if err := srv.Serve(proxyListener); err != nil {
-		log.Fatal().Err(err).Msg("Create server")
+		app.log.Fatal(err).Msg("Create server")
 	}
 }

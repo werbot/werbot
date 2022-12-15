@@ -4,11 +4,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/storage/cache"
 )
-
-//var moduleName = "module/auth"
-//var log = logger.New(moduleName)
 
 // Handler is ...
 type Handler struct {
@@ -16,15 +14,19 @@ type Handler struct {
 	grpc  *grpc.ClientService
 	cache cache.Cache
 	auth  fiber.Handler
+	log   logger.Logger
 }
 
 // New is ...
 func New(app *fiber.App, grpc *grpc.ClientService, cache cache.Cache, auth fiber.Handler) *Handler {
+	log := logger.New("module/auth")
+
 	return &Handler{
 		app:   app,
 		grpc:  grpc,
 		cache: cache,
 		auth:  auth,
+		log:   log,
 	}
 }
 

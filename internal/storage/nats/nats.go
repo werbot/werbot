@@ -20,7 +20,7 @@ type Service struct {
 func New(dsn string) *Service {
 	nc, err := nats.Connect(dsn, nats.ReconnectWait(5*time.Second))
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to NATS server")
+		log.Fatal(err).Msg("Failed to connect to NATS server")
 	}
 	// defer nc.Close()
 
@@ -49,7 +49,7 @@ func New(dsn string) *Service {
 func (n *Service) WriteConsole() {
 	ec, err := nats.NewEncodedConn(n.con, nats.JSON_ENCODER)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error with NewEncodedConn")
+		log.Error(err).Msg("Error with NewEncodedConn")
 	}
 	// defer ec.Close()
 
@@ -69,7 +69,7 @@ func (n *Service) WriteConsole() {
 		}
 		wg.Done()
 	}); err != nil {
-		log.Error().Err(err).Msgf("Error Subscribe")
+		log.Error(err).Msg("Error Subscribe")
 	}
 
 	wg.Wait()

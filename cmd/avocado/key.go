@@ -11,6 +11,7 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/gliderlabs/ssh"
+	"github.com/rs/zerolog/log"
 	"github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/utils/parse"
@@ -22,12 +23,12 @@ func privateKey() func(*ssh.Server) error {
 	return func(srv *ssh.Server) error {
 		privateBytes, err := os.ReadFile(internal.GetString("SSHSERVER_PIPER_KEY_FILE", "/server.key"))
 		if err != nil {
-			log.Error().Err(err).Msg("Don't open piper key file")
+			app.log.Error(err).Msg("Don't open piper key file")
 		}
 
 		private, err := gossh.ParsePrivateKey(privateBytes)
 		if err != nil {
-			log.Error().Err(err).Msg("Don't parse piper key file")
+			app.log.Error(err).Msg("Don't parse piper key file")
 		}
 		srv.AddHostKey(private)
 		return nil
@@ -48,7 +49,7 @@ func dynamicHostKey(host *server.GetServer_Response) gossh.HostKeyCallback {
 				Hostkey:  key.Marshal(),
 			})
 			if err != nil {
-				log.Error().Err(err).Msg("gRPC UpdateServerHostKey")
+				app.log.Error(err).Msg("gRPC UpdateServerHostKey")
 			}
 			return nil
 		}

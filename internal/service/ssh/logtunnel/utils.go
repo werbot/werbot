@@ -12,12 +12,12 @@ func writeHeader(fd io.Writer, length int) {
 	tv := syscall.NsecToTimeval(t.UnixNano())
 
 	if err := binary.Write(fd, binary.LittleEndian, int32(tv.Sec)); err != nil {
-		log.Error().Err(err).Msg("Failed to write log header")
+		log.Error(err).Msg("Failed to write log header")
 	}
 	if err := binary.Write(fd, binary.LittleEndian, tv.Usec); err != nil {
-		log.Error().Err(err).Msg("Failed to write log header")
+		log.Error(err).Msg("Failed to write log header")
 	}
 	if err := binary.Write(fd, binary.LittleEndian, int32(length)); err != nil {
-		log.Error().Err(err).Msg("Failed to write log header")
+		log.Error(err).Msg("Failed to write log header")
 	}
 }

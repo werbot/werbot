@@ -2,7 +2,6 @@ package utility
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/rs/zerolog"
 
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/logger"
@@ -11,15 +10,16 @@ import (
 type handler struct {
 	app  *fiber.App
 	grpc *grpc.ClientService
-	log  zerolog.Logger
+	log  logger.Logger
 }
 
 // New is ...
 func New(app *fiber.App, grpc *grpc.ClientService) *handler {
+	log := logger.New("web/utility")
 	return &handler{
 		app:  app,
 		grpc: grpc,
-		log:  logger.New("module/utility"),
+		log:  log,
 	}
 }
 

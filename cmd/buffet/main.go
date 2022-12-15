@@ -19,10 +19,11 @@ import (
 )
 
 var (
-	log      = logger.New("buffet")
 	cert     tls.Certificate // Cert is a self signed certificate
 	certPool *x509.CertPool  // CertPool contains the self signed certificate
 )
+
+var log = logger.New("buffet")
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -46,7 +47,7 @@ func main() {
 		MaxLifetimeConn: internal.GetInt("PSQLSERVER_MAX_LIFETIME_CONN", 300),
 	})
 	if err != nil {
-		log.Error().Err(err).Msg("Database connection problem")
+		log.Error(err).Msg("Database connection problem")
 	}
 
 	cache := cache_lib.New(ctx, &redis.Options{
@@ -59,12 +60,12 @@ func main() {
 		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 	if err != nil {
-		log.Fatal().Msgf("Failed to parse key pair: %s", err)
+		log.Fatal(err).Msg("Failed to parse key pair")
 	}
 
 	cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
-		log.Fatal().Msgf("Failed to parse certificate: %s", err)
+		log.Fatal(err).Msg("Failed to parse certificate")
 	}
 
 	certPool = x509.NewCertPool()
@@ -73,11 +74,12 @@ func main() {
 	s := grpc.NewServer(internal.GetString("GRPCSERVER_TOKEN", "token"), db, cache, cert)
 	lis, err := net.Listen("tcp", internal.GetString("GRPCSERVER_HOST", "0.0.0.0:50051"))
 	if err != nil {
-		log.Fatal().Msgf("failed to listen: %v", err)
+		log.Fatal(err).Msg("Failed to listen")
 	}
-	log.Info().Msgf("server listening at %v", lis.Addr())
+
+	log.Info().Str("serverAddress", lis.Addr().String()).Msg("Start buffet server")
 
 	if err := s.GRPC.Serve(lis); err != nil {
-		log.Fatal().Msgf("failed to serve: %v", err)
+		log.Fatal(err).Msg("Failed to serve")
 	}
 }

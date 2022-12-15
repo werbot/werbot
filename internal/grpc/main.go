@@ -112,11 +112,11 @@ func NewClient(dsn, token, nameOverride string, certPEM, keyPem []byte) *ClientS
 	// init certificate setting
 	cert, err := tls.X509KeyPair(certPEM, keyPem)
 	if err != nil {
-		log.Fatal().Msgf("Failed to parse key pair: %s", err)
+		log.Fatal(err).Msg("Failed to parse key pair")
 	}
 	cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
-		log.Fatal().Msgf("Failed to parse certificate: %s", err)
+		log.Fatal(err).Msg("Failed to parse certificate")
 	}
 
 	cfg := &ClientService{
@@ -137,7 +137,7 @@ func NewClient(dsn, token, nameOverride string, certPEM, keyPem []byte) *ClientS
 		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(cfg.certPool, nameOverride)),
 	)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to dial server")
+		log.Error(err).Msg("Failed to dial server")
 	}
 	// defer conn.Close()
 

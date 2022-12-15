@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/mail"
 	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
@@ -61,7 +60,7 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 		Sub:      sub,
 	})
 	if err != nil {
-		logger.OutErrorLog("gRPC", err, "Failed to create token")
+		h.log.Error(err).Msg("Failed to create token")
 		return httputil.InternalServerError(c, "Failed to create token", nil)
 	}
 

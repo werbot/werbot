@@ -44,7 +44,7 @@ func NewLogchannel(account *audit.CreateAudit_Request, channel ssh.Channel, grpc
 	})
 
 	if err != nil {
-		log.Error().Err(err).Msg("Log channel create new channel failed")
+		log.Error(err).Msg("Log channel create new channel failed")
 		return nil
 	}
 
@@ -87,7 +87,7 @@ func (l *LogChannel) Write(data []byte) (int, error) {
 			Records: l.Frames,
 		})
 		if err != nil {
-			log.Error().Err(err).Msg("goroutine CreateRecord")
+			log.Error(err).Msg("goroutine CreateRecord")
 		}
 		// }()
 
@@ -114,7 +114,7 @@ func (l *LogChannel) Close() error {
 			Records: l.Frames,
 		})
 		if err != nil {
-			log.Error().Err(err).Msg("CreateRecord")
+			log.Error(err).Msg("CreateRecord")
 		}
 		l.Frames = nil
 		l.FramesCount = 0
@@ -128,7 +128,7 @@ func (l *LogChannel) Close() error {
 	})
 
 	if err != nil {
-		log.Error().Err(err).Msg("Logchannel close error")
+		log.Error(err).Msg("Logchannel close error")
 	}
 	return l.Channel.Close()
 }

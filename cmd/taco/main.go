@@ -36,9 +36,8 @@ import (
 )
 
 var (
-	component = "taco"
-	log       = logger.New(component)
-	app       *fiber.App
+	log = logger.New("taco")
+	app *fiber.App
 )
 
 func main() {
@@ -65,13 +64,13 @@ func main() {
 
 	ln, err := net.Listen("tcp", appPort)
 	if err != nil {
-		log.Fatal().Err(err).Msg(fmt.Sprintf("Error %s server", component))
+		log.Fatal(err).Msg("Error server")
 	}
 	proxyListener := &proxyproto.Listener{Listener: ln}
 
 	app = fiber.New(fiber.Config{
 		DisableStartupMessage: true,
-		ServerHeader:          fmt.Sprintf("[werbot] %s-%s", component, internal.Version()),
+		ServerHeader:          fmt.Sprintf("[werbot] %s-%s", "taco", internal.Version()),
 	})
 
 	app.Use(
@@ -112,8 +111,8 @@ func main() {
 		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
 	})
 
-	log.Info().Str("serverAddress", appPort).Msg(fmt.Sprintf("Start %s server", component))
+	log.Info().Str("serverAddress", appPort).Msg("Start taco server")
 	if err := app.Listener(proxyListener); err != nil {
-		log.Fatal().Err(err).Msg("Create server")
+		log.Fatal(err).Msg("Create server")
 	}
 }

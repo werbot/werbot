@@ -42,10 +42,10 @@ func (l *logTunnel) Read(data []byte) (int, error) {
 func (l *logTunnel) Write(data []byte) (int, error) {
 	writeHeader(l.writer, len(data)+len(l.host+": "))
 	if _, err := l.writer.Write([]byte(l.host + ": ")); err != nil {
-		log.Error().Err(err).Msg("Failed to write log header")
+		log.Error(err).Msg("Failed to write log header")
 	}
 	if _, err := l.writer.Write(data); err != nil {
-		log.Error().Err(err).Msg("Failed to write log header")
+		log.Error(err).Msg("Failed to write log header")
 	}
 	return l.channel.Write(data)
 }
@@ -61,12 +61,12 @@ func writeHeader(fd io.Writer, length int) {
 	tv := syscall.NsecToTimeval(t.UnixNano())
 
 	if err := binary.Write(fd, binary.LittleEndian, int32(tv.Sec)); err != nil {
-		log.Error().Err(err).Msg("Failed to write log header")
+		log.Error(err).Msg("Failed to write log header")
 	}
 	if err := binary.Write(fd, binary.LittleEndian, tv.Usec); err != nil {
-		log.Error().Err(err).Msg("Failed to write log header")
+		log.Error(err).Msg("Failed to write log header")
 	}
 	if err := binary.Write(fd, binary.LittleEndian, int32(length)); err != nil {
-		log.Error().Err(err).Msg("Failed to write log header")
+		log.Error(err).Msg("Failed to write log header")
 	}
 }

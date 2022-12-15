@@ -42,10 +42,10 @@ func (l *logTunnel) Read(data []byte) (int, error) {
 func (l *logTunnel) Write(data []byte) (int, error) {
 	writeHeader(l.writer, len(data)+len(l.host+": "))
 	if _, err := l.writer.Write([]byte(l.host + ": ")); err != nil {
-		log.Error().Err(err).Msg("Failed to write log header")
+		log.Error(err).Msg("Failed to write log header")
 	}
 	if _, err := l.writer.Write(data); err != nil {
-		log.Error().Err(err).Msg("Failed to write log header")
+		log.Error(err).Msg("Failed to write log header")
 	}
 	return l.channel.Write(data)
 }

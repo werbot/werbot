@@ -6,7 +6,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v3"
-	"github.com/rs/zerolog"
 
 	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/storage/cache"
@@ -16,9 +15,9 @@ import (
 
 // AuthMiddleware is ...
 type AuthMiddleware struct {
-	log       *zerolog.Logger
 	cache     cache.Cache
 	publicKey *rsa.PublicKey
+	log       logger.Logger
 }
 
 // Auth is ...
@@ -27,11 +26,11 @@ func Auth(cache cache.Cache) *AuthMiddleware {
 
 	publicKey, err := jwt.PublicKey()
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal(err).Send()
 	}
 
 	return &AuthMiddleware{
-		log:       &log,
+		log:       log,
 		cache:     cache,
 		publicKey: publicKey,
 	}

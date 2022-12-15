@@ -10,6 +10,7 @@ import (
 
 	"github.com/gliderlabs/ssh"
 	"github.com/olekukonko/tablewriter"
+	"github.com/rs/zerolog/log"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 
@@ -78,7 +79,7 @@ func connectToHost(host *server.GetServer_Response, actx *authContext, ctx ssh.C
 		sessionConfigs := make([]sessionConfig, 0)
 		clientConfig, err := bastionClientConfig(ctx, host)
 		if err != nil {
-			log.Error().Err(err).Msg("Bastion ClientConfig error")
+			app.log.Error(err).Msg("Bastion ClientConfig error")
 			actx.message = fmt.Sprintf("%v", err)
 			sendMessageInChannel(ch.lch, actx.message+"\n")
 			ch.lch.Close()
@@ -91,7 +92,7 @@ func connectToHost(host *server.GetServer_Response, actx *authContext, ctx ssh.C
 			Status:    2, // online
 		})
 		if err != nil {
-			log.Error().Err(err).Msg("gRPC SetAccountStatus")
+			app.log.Error(err).Msg("gRPC SetAccountStatus")
 		}
 
 		_, err = rClientS.CreateServerSession(_ctx, &server.CreateServerSession_Request{
@@ -101,7 +102,7 @@ func connectToHost(host *server.GetServer_Response, actx *authContext, ctx ssh.C
 			Uuid:      actx.uuid,
 		})
 		if err != nil {
-			log.Error().Err(err).Msg("gRPC ServerSessionAdd")
+			app.log.Error(err).Msg("gRPC ServerSessionAdd")
 		}
 
 		_, err = rClientS.UpdateServerOnlineStatus(_ctx, &server.UpdateServerOnlineStatus_Request{
@@ -109,7 +110,7 @@ func connectToHost(host *server.GetServer_Response, actx *authContext, ctx ssh.C
 			Status:   true,
 		})
 		if err != nil {
-			log.Error().Err(err).Msg("gRPC UpdateServerOnlineStatus")
+			app.log.Error(err).Msg("gRPC UpdateServerOnlineStatus")
 		}
 
 		log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Str("hostID", actx.hostID).Str("userID", actx.userID).Str("UUID", actx.uuid).Msg("Open virtual connection")
@@ -126,13 +127,13 @@ func connectToHost(host *server.GetServer_Response, actx *authContext, ctx ssh.C
 		go func() {
 			err = multiChannelHandler(srv, conn, newChan, ctx, sessionConfigs)
 			if err != nil {
-				log.Error().Err(err).Msg("Multi ChannelHandler error")
+				app.log.Error(err).Msg("Multi ChannelHandler error")
 				_, err := rClientS.UpdateServerOnlineStatus(_ctx, &server.UpdateServerOnlineStatus_Request{
 					ServerId: host.ServerId,
 					Status:   false,
 				})
 				if err != nil {
-					log.Error().Err(err).Msg("gRPC UpdateServerOnlineStatus")
+					app.log.Error(err).Msg("gRPC UpdateServerOnlineStatus")
 				}
 
 				conn.Close()
@@ -145,7 +146,7 @@ func connectToHost(host *server.GetServer_Response, actx *authContext, ctx ssh.C
 				Uuid:      actx.uuid,
 			})
 			if err != nil {
-				log.Error().Err(err).Msg("gRPC ServerSessionAdd")
+				app.log.Error(err).Msg("gRPC ServerSessionAdd")
 			}
 
 			// app.nats.AccountStatus(host.AccountId, "offline")
@@ -154,11 +155,11 @@ func connectToHost(host *server.GetServer_Response, actx *authContext, ctx ssh.C
 				Status:    1, // offline
 			})
 			if err != nil {
-				log.Error().Err(err).Msg("gRPC SetAccountStatus")
+				app.log.Error(err).Msg("gRPC SetAccountStatus")
 			}
 
 			actx.message = "Host unavailable"
-			log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Str("hostID", actx.hostID).Str("userID", actx.userID).Str("UUID", actx.uuid).Msg("Closed virtual connection")
+			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Str("hostID", actx.hostID).Str("userID", actx.userID).Str("UUID", actx.uuid).Msg("Closed virtual connection")
 		}()
 
 	// case "telnet":
@@ -178,7 +179,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	case "direct-tcpip":
 	default:
 		if err := newChan.Reject(gossh.UnknownChannelType, "unsupported channel type"); err != nil {
-			log.Error().Err(err).Msg("Failed to reject channel")
+			app.log.Error(err).Msg("Failed to reject channel")
 		}
 		return
 	}
@@ -187,7 +188,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 	ch, req, err := newChan.Accept()
 	if err != nil {
-		log.Error().Err(err).Msg("Could not accept channel")
+		app.log.Error(err).Msg("Could not accept channel")
 		return
 	}
 
@@ -205,7 +206,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	// TODO: добавить одноразовые инвйты
 	// case config.UserTypeInvite:
 	case server.UserType_INVITE:
-		log.Info().Str("invite", actx.message).Str("userAddress", actx.userAddr).Msg("Invite is invalid")
+		app.log.Info().Str("invite", actx.message).Str("userAddress", actx.userAddr).Msg("Invite is invalid")
 		sendMessageInChannel(ch, fmt.Sprintf("Invite %s is invalid.\n", actx.message))
 		_ = ch.Close()
 		return
@@ -213,7 +214,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	// case config.UserTypeShell:
 	case server.UserType_SHELL:
 		if actx.userID == "" {
-			log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg("Permission denied")
+			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg("Permission denied")
 			actx.message = "Firewall denied access"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()
@@ -228,7 +229,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 		actx.serverList = serverList.GetServers()
 
 		if len(actx.serverList) > 0 {
-			log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Str("userID", actx.userID).Str("UUID", actx.uuid).Msg("Open shellconsole connection")
+			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Str("userID", actx.userID).Str("UUID", actx.uuid).Msg("Open shellconsole connection")
 
 			nameArray := parse.Username(actx.userName)
 			status := map[bool]string{
@@ -278,7 +279,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 	case server.UserType_BASTION:
 		if actx.userID == "" {
-			log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg("Permission denied")
+			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg("Permission denied")
 			actx.message = "Permission denied"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()
@@ -289,7 +290,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 			Query: "user_name=" + actx.userName,
 		})
 		if err != nil {
-			log.Error().Err(err).Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg("Host not found (channel)")
+			app.log.Error(err).Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg("Host not found (channel)")
 			actx.message = "Host not found"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()
@@ -389,7 +390,7 @@ func multiChannelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.
 
 	default:
 		if err := newChan.Reject(gossh.UnknownChannelType, "unsupported channel type"); err != nil {
-			log.Error().Err(err).Msg("failed to reject chan")
+			app.log.Error(err).Msg("failed to reject chan")
 		}
 		return nil
 	}
@@ -459,7 +460,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 				wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, int32(internal.GetInt("SSHSERVER_RECORD_COUNT", 50)))
 				command := append(req.Payload, []byte("\n")...)
 				if _, err := wrappedlch.Write(command); err != nil {
-					log.Error().Err(err).Msg("failed to write log")
+					app.log.Error(err).Msg("failed to write log")
 				}
 			}
 
@@ -475,7 +476,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 					},
 				})
 				if err != nil {
-					log.Error().Err(err).Msg("gRPC AuditUpdate")
+					app.log.Error(err).Msg("gRPC AuditUpdate")
 				}
 			}
 
