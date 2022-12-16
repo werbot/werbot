@@ -3,6 +3,7 @@ package logger
 import (
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/rs/zerolog"
@@ -60,14 +61,18 @@ func (l *Logger) errorDetails(level string, err error) *zerolog.Event {
 		log = l.log.Fatal()
 	}
 
-	pt, _, line, _ := runtime.Caller(1)
+	pt, file, line, _ := runtime.Caller(2)
 	se, _ := status.FromError(err)
+
+	parts := strings.Split(runtime.FuncForPC(pt).Name(), ".")
+	pl := len(parts)
 
 	if se.Code() == 2 { // Unknown status
 		log = log.Str("status", se.Code().String())
 	}
 
 	return log.Str("error", se.Message()).
-		Str("function", runtime.FuncForPC(pt).Name()).
+		Str("file", file).
+		Str("function", parts[pl-2]).
 		Int("line", line)
 }
