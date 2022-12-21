@@ -58,7 +58,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -69,7 +69,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -81,7 +81,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.projectid`, "ProjectId is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -108,7 +108,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},

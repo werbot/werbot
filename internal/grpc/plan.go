@@ -2,19 +2,17 @@ package grpc
 
 import (
 	"context"
-	"errors"
 
 	"github.com/jackc/pgtype"
 
 	pb_subscription "github.com/werbot/werbot/api/proto/subscription"
 )
 
-// GetSubscriptionPlans is ...
-func (p *subscription) GetSubscriptionPlans(ctx context.Context, in *pb_subscription.ListPlans_Request) (*pb_subscription.ListPlans_Response, error) {
-	sqlSearch := db.SQLAddWhere(in.GetQuery())
-	sqlFooter := db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-
-	rows, err := db.Conn.Query(`SELECT
+// ListPlans is ...
+func (p *subscription) ListPlans(ctx context.Context, in *pb_subscription.ListPlans_Request) (*pb_subscription.ListPlans_Response, error) {
+	sqlSearch := service.db.SQLAddWhere(in.GetQuery())
+	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
+	rows, err := service.db.Conn.Query(`SELECT
 			"id",
 			"cost",
 			"period",
@@ -31,15 +29,13 @@ func (p *subscription) GetSubscriptionPlans(ctx context.Context, in *pb_subscrip
 		FROM
 			"subscription_plan"` + sqlSearch + sqlFooter)
 	if err != nil {
-		//return nil, errors.New("ListSubscriptionPlans failed")
-		return nil, err
+		return nil, errFailedToSelect
 	}
 
 	plans := []*pb_subscription.ListPlans_Response_PlanInfo{}
 	for rows.Next() {
-		plan := pb_subscription.GetPlan_Response{}
 		var countSubscription int32
-
+		plan := new(pb_subscription.Plan_Response)
 		err = rows.Scan(&plan.PlanId,
 			&plan.Cost,
 			&plan.Period,
@@ -55,20 +51,21 @@ func (p *subscription) GetSubscriptionPlans(ctx context.Context, in *pb_subscrip
 			&countSubscription,
 		)
 		if err != nil {
-			//return nil, errors.New("ListSubscriptionPlans Scan failed")
-			return nil, err
+			return nil, errFailedToScan
 		}
 
 		plans = append(plans, &pb_subscription.ListPlans_Response_PlanInfo{
 			SubscriptionCount: countSubscription,
-			Plan:              &plan,
+			Plan:              plan,
 		})
 	}
 	defer rows.Close()
 
-	// Total count for pagination
 	var total int32
-	db.Conn.QueryRow(`SELECT COUNT (*) FROM "subscription_plan"` + sqlSearch).Scan(&total)
+	err = service.db.Conn.QueryRow(`SELECT COUNT (*) FROM "subscription_plan"` + sqlSearch).Scan(&total)
+	if err != nil {
+		return nil, errFailedToScan
+	}
 
 	return &pb_subscription.ListPlans_Response{
 		Total: total,
@@ -76,13 +73,13 @@ func (p *subscription) GetSubscriptionPlans(ctx context.Context, in *pb_subscrip
 	}, nil
 }
 
-// GetSubscriptionPlan is ...
-func (p *subscription) GetSubscriptionPlan(ctx context.Context, in *pb_subscription.GetPlan_Request) (*pb_subscription.GetPlan_Response, error) {
+// Plan is ...
+func (p *subscription) Plan(ctx context.Context, in *pb_subscription.Plan_Request) (*pb_subscription.Plan_Response, error) {
 	var allowedSections, benefits pgtype.JSON
-	plan := pb_subscription.GetPlan_Response{}
+	plan := new(pb_subscription.Plan_Response)
 	plan.PlanId = in.GetPlanId()
 
-	err := db.Conn.QueryRow(`SELECT
+	err := service.db.Conn.QueryRow(`SELECT
 			"cost",
 			"period",
 			"title",
@@ -97,9 +94,9 @@ func (p *subscription) GetSubscriptionPlan(ctx context.Context, in *pb_subscript
 			"limits_users",
 			"limits_companies",
 			"limits_connections",
-			"default" 
+			"default"
 		FROM
-			"subscription_plan" 
+			"subscription_plan"
 		WHERE
 			"id" = $1`, in.GetPlanId()).
 		Scan(
@@ -120,24 +117,24 @@ func (p *subscription) GetSubscriptionPlan(ctx context.Context, in *pb_subscript
 			&plan.Default,
 		)
 	if err != nil {
-		//return nil, errors.New("GetSubscriptionPlan failed")
-		return nil, err
+		return nil, errFailedToScan
 	}
 
-	var a []string
-	allowedSections.AssignTo(&a)
-	plan.AllowedSections = a
+	var jSections []string
+	allowedSections.AssignTo(&jSections)
+	plan.AllowedSections = jSections
 
-	var b map[int32]string
-	benefits.AssignTo(&b)
-	plan.Benefits = b
+	var jBenefits map[int32]string
+	benefits.AssignTo(&jBenefits)
+	plan.Benefits = jBenefits
 
-	return &plan, nil
+	return plan, nil
 }
 
-// UpdateSubscriptionPlan is ...
-func (p *subscription) UpdateSubscriptionPlan(ctx context.Context, in *pb_subscription.UpdatePlan_Request) (*pb_subscription.UpdatePlan_Response, error) {
-	_, err := db.Conn.Exec(`UPDATE "subscription_plan" 
+// UpdatePlan is ...
+func (p *subscription) UpdatePlan(ctx context.Context, in *pb_subscription.UpdatePlan_Request) (*pb_subscription.UpdatePlan_Response, error) {
+	data, err := service.db.Conn.Exec(`UPDATE
+      "subscription_plan"
 		SET "cost" = $1,
 			"period" = $2,
 			"title" = $3,
@@ -152,8 +149,8 @@ func (p *subscription) UpdateSubscriptionPlan(ctx context.Context, in *pb_subscr
 			"limits_users" = $12,
 			"limits_companies" = $13,
 			"limits_connections" = $14,
-			"default" = $15 
-		WHERE 
+			"default" = $15
+		WHERE
 			"id" = $16`,
 		in.GetCost(),
 		in.GetPeriod(),
@@ -173,20 +170,27 @@ func (p *subscription) UpdateSubscriptionPlan(ctx context.Context, in *pb_subscr
 		in.GetPlanId(),
 	)
 	if err != nil {
-		//return nil, errors.New("UpdateSubscriptionPlan failed")
-		return nil, err
+		return nil, errFailedToScan
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
 	}
 
 	// update Starter plan
 	if in.Default {
-		if _, err := db.Conn.Query(`UPDATE "subscription_plan" 
-			SET 
-				"default" = false 
-			WHERE 
-				"id" != $1`,
+		data, err := service.db.Conn.Exec(`UPDATE
+      "subscription_plan"
+		SET
+			"default" = false
+		WHERE
+			"id" != $1`,
 			in.GetPlanId(),
-		); err != nil {
-			return nil, errors.New("Update default plan failed")
+		)
+		if err != nil {
+			return nil, errFailedToUpdate
+		}
+		if affected, _ := data.RowsAffected(); affected == 0 {
+			return nil, errNotFound
 		}
 	}
 

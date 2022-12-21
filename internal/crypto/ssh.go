@@ -7,13 +7,18 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
 
-	// mathRand "math/rand"
-
 	"golang.org/x/crypto/ssh"
+)
+
+var (
+	MsgFailedCreatingSSHKey = "Failed to creating SSH key"
+
+	ErrFailedCreatingSSHKey = errors.New(MsgFailedCreatingSSHKey)
 )
 
 // PairOfKeys is ...

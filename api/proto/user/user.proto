@@ -6,16 +6,15 @@ option go_package = "github.com/werbot/werbot/api/proto/user";
 
 import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
-import "tagger/tagger.proto";
 
 service UserHandlers {
     rpc ListUsers(ListUsers.Request) returns (ListUsers.Response) {}
-    rpc GetUser(GetUser.Request) returns (GetUser.Response) {}
+    rpc User(User.Request) returns (User.Response) {}
     rpc CreateUser(CreateUser.Request) returns (CreateUser.Response) {}
     rpc UpdateUser(UpdateUser.Request) returns (UpdateUser.Response) {}
     rpc DeleteUser(DeleteUser.Request) returns (DeleteUser.Response) {}
   
-    rpc SignIn(SignIn.Request) returns (GetUser.Response) {}
+    rpc SignIn(SignIn.Request) returns (User.Response) {}
     rpc ResetPassword(ResetPassword.Request) returns (ResetPassword.Response) {}
     rpc UpdatePassword(UpdatePassword.Request) returns (UpdatePassword.Response) {}
 }
@@ -63,17 +62,17 @@ message ListUsers {
             int32 servers_count = 1;
             int32 projects_count = 2;
             int32 keys_count = 3;
-            GetUser.Response user = 4;
+            User.Response user = 4;
         }
         int32 total = 1;
         repeated UserInfo users = 2;
     }
 }
 
-// rpc GetUser
-message GetUser {
+// rpc User
+message User {
     message Request {
-        string user_id = 1 [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"  params:\"user_id\""];
+        string user_id = 1; // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
     }
 
     message Response {
@@ -95,12 +94,12 @@ message GetUser {
 // rpc CreateUser
 message CreateUser {
     message Request {
-        string name = 1     [(tagger.tags) = "validate:\"required,alphanum\""];
-        string email = 2    [(tagger.tags) = "validate:\"required,email\""];
-        string fio = 3      [(tagger.tags) = "validate:\"required,min=5\""];
+        string name = 1;     // @gotags: validate:"required,alphanum"
+        string email = 2;    // @gotags: validate:"required,email"
+        string fio = 3;      // @gotags: validate:"required,min=5"
         bool enabled = 4;
         bool confirmed = 5;
-        string password = 6 [(tagger.tags) = "validate:\"required,min=8\""];
+        string password = 6; // @gotags: validate:"required,min=8"
     }
 
     message Response {
@@ -113,12 +112,18 @@ message CreateUser {
 // rpc UpdateUser
 message UpdateUser {
     message Request {
-        string user_id = 1  [(sql_name) = "id",        (tagger.tags) = "validate:\"uuid\""];
-        string name = 2     [(sql_name) = "name",      (tagger.tags) = "validate:\"omitempty,alphanum\""];
-        string email = 3    [(sql_name) = "email",     (tagger.tags) = "validate:\"required,email\""];
-        string fio = 4      [(sql_name) = "fio",       (tagger.tags) = "validate:\"required,min=5\""];
-        bool enabled = 5    [(sql_name) = "enabled"];
-        bool confirmed = 6  [(sql_name) = "confirmed"];
+        // @gotags: validate:"uuid" sql_name:"id"
+        string user_id = 1 [(sql_name) = "id"]; 
+        // @gotags: validate:"omitempty,alphanum" sql_name:"name"
+        string name = 2    [(sql_name) = "name"]; 
+        // @gotags: validate:"required,email" sql_name:"email"   
+        string email = 3   [(sql_name) = "email"];  
+        // @gotags: validate:"required,min=5" sql_name:"fio"
+        string fio = 4     [(sql_name) = "fio"];   
+        // @gotags: sql_name:"enabled"    
+        bool enabled = 5   [(sql_name) = "enabled"];
+        // @gotags: sql_name:"confirmed"
+        bool confirmed = 6 [(sql_name) = "confirmed"];
     }
 
     message Response{}
@@ -148,8 +153,8 @@ message DeleteUser{
 // rpc SignIn
 message SignIn {
     message Request {
-        string email = 2    [(tagger.tags) = "validate:\"required,email\""];
-        string password = 3 [(tagger.tags) = "validate:\"required\""];    
+        string email = 2;    // @gotags: validate:"required,email"
+        string password = 3; // @gotags: validate:"required" 
     }
 }
 // -----------------------------------------------------
@@ -159,10 +164,10 @@ message SignIn {
 message ResetPassword {
     message Request {
         oneof request {
-            string email = 1    [(tagger.tags) = "validate:\"email\""];
-            string password = 2 [(tagger.tags) = "validate:\"min=8\""];
+            string email = 1;    // @gotags: validate:"email"
+            string password = 2; // @gotags: validate:"min=8"
         }
-        string token = 3        [(tagger.tags) = "validate:\"omitempty,uuid\""];
+        string token = 3;        // @gotags: validate:"omitempty,uuid"
     }
     message Response {
         string message = 1;

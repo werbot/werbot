@@ -31,7 +31,7 @@ func (h *handler) getUpdate(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
@@ -87,15 +87,15 @@ func (h *handler) getUpdate(c *fiber.Ctx) error {
 // @Tags         info
 // @Accept       json
 // @Produce      json
-// @Success      200         {object} httputil.HTTPResponse{data=pb.GetInfo_Response}
+// @Success      200         {object} httputil.HTTPResponse{data=pb.UserStatistics_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/info [get]
 func (h *handler) getInfo(c *fiber.Ctx) error {
-	input := new(pb.GetInfo_Request)
-	request := new(pb.GetInfo_Request)
+	input := new(pb.UserStatistics_Request)
+	request := new(pb.UserStatistics_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -110,7 +110,7 @@ func (h *handler) getInfo(c *fiber.Ctx) error {
 		request.Role = userRole
 	}
 
-	info, err := rClient.GetInfo(ctx, request)
+	info, err := rClient.UserStatistics(ctx, request)
 	if err != nil {
 		return httputil.ReturnGRPCError(c, err)
 	}

@@ -24,7 +24,7 @@ func TestHandler_getLicenseExpired(t *testing.T) {
 			name: "getLicenseExpired_01",
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				End(),
 			respondStatus: http.StatusBadRequest,
 		},
@@ -100,7 +100,7 @@ func TestHandler_postLicense(t *testing.T) {
 			name: "postLicense_01",
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				End(),
 			respondStatus: http.StatusBadRequest,
 		},
@@ -113,7 +113,7 @@ func TestHandler_postLicense(t *testing.T) {
 			},
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				End(),
 			respondStatus: http.StatusBadRequest,
 		},
@@ -129,7 +129,7 @@ func TestHandler_postLicense(t *testing.T) {
 			},
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.ip`, "Ip must be a valid IP address").
 				Equal(`$.result.customer`, "Customer must be a valid UUID").
 				Equal(`$.result.subscriber`, "Subscriber must be a valid UUID").

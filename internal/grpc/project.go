@@ -2,12 +2,11 @@ package grpc
 
 import (
 	"context"
-	"errors"
+	"database/sql"
 
 	"github.com/jackc/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 
 	pb_project "github.com/werbot/werbot/api/proto/project"
@@ -19,30 +18,28 @@ type project struct {
 
 // ListProjects is ...
 func (p *project) ListProjects(ctx context.Context, in *pb_project.ListProjects_Request) (*pb_project.ListProjects_Response, error) {
-	sqlSearch := db.SQLAddWhere(in.GetQuery())
-	sqlFooter := db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-
-	rows, err := db.Conn.Query(`SELECT
+	sqlSearch := service.db.SQLAddWhere(in.GetQuery())
+	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
+	rows, err := service.db.Conn.Query(`SELECT
 			"project"."id",
 			"project"."owner_id",
 			"project"."title",
 			"project"."login",
 			"project"."created",
 			( SELECT COUNT ( * ) FROM "project_member" WHERE "project_id" = "project"."id" ) AS "count_members",
-			( SELECT COUNT ( * ) FROM "server" WHERE "project_id" = "project"."id" ) AS "count_servers" 
+			( SELECT COUNT ( * ) FROM "server" WHERE "project_id" = "project"."id" ) AS "count_servers"
 		FROM
 			"project"
 			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch + sqlFooter)
 	if err != nil {
-		return nil, err
+		return nil, errFailedToSelect
 	}
 
-	projects := []*pb_project.GetProject_Response{}
+	projects := []*pb_project.Project_Response{}
 	for rows.Next() {
-		project := pb_project.GetProject_Response{}
-		var created pgtype.Timestamp
 		var countMembers, countServers int32
-
+		var created pgtype.Timestamp
+		project := new(pb_project.Project_Response)
 		err = rows.Scan(&project.ProjectId,
 			&project.OwnerId,
 			&project.Title,
@@ -52,21 +49,26 @@ func (p *project) ListProjects(ctx context.Context, in *pb_project.ListProjects_
 			&countServers,
 		)
 		if err != nil {
-			return nil, err
+			return nil, errFailedToScan
 		}
-
 		project.Created = timestamppb.New(created.Time)
 		project.MembersCount = countMembers
 		project.ServersCount = countServers
-
-		projects = append(projects, &project)
+		projects = append(projects, project)
 	}
 	defer rows.Close()
 
 	// Total count for pagination
 	var total int32
-	db.Conn.QueryRow(`SELECT COUNT (*) FROM "project"
-			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch).Scan(&total)
+	err = service.db.Conn.QueryRow(`SELECT
+			COUNT (*)
+		FROM
+			"project"
+			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch).
+		Scan(&total)
+	if err != nil {
+		return nil, errFailedToScan
+	}
 
 	return &pb_project.ListProjects_Response{
 		Total:    total,
@@ -74,18 +76,17 @@ func (p *project) ListProjects(ctx context.Context, in *pb_project.ListProjects_
 	}, nil
 }
 
-// GetProject is ...
-func (p *project) GetProject(ctx context.Context, in *pb_project.GetProject_Request) (*pb_project.GetProject_Response, error) {
-	project := pb_project.GetProject_Response{}
-	var created pgtype.Timestamp
+// Project is ...
+func (p *project) Project(ctx context.Context, in *pb_project.Project_Request) (*pb_project.Project_Response, error) {
 	var countMembers, countServers int32
-
-	err := db.Conn.QueryRow(`SELECT
+	var created pgtype.Timestamp
+	project := new(pb_project.Project_Response)
+	err := service.db.Conn.QueryRow(`SELECT
 			"project"."title",
 			"project"."login",
 			"project"."created",
 			( SELECT COUNT ( * ) FROM "project_member" WHERE "project_id" = "project"."id" ) AS "count_members",
-			( SELECT COUNT ( * ) FROM "server" WHERE "project_id" = "project"."id" ) AS "count_servers" 
+			( SELECT COUNT ( * ) FROM "server" WHERE "project_id" = "project"."id" ) AS "count_servers"
 		FROM
 			"project"
 			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"
@@ -99,38 +100,69 @@ func (p *project) GetProject(ctx context.Context, in *pb_project.GetProject_Requ
 			&countServers,
 		)
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return nil, errors.New(internal.ErrNotFound)
+		if err == sql.ErrNoRows {
+			return nil, errNotFound
 		}
-		return nil, err
+		return nil, errFailedToScan
 	}
 
 	project.Created = timestamppb.New(created.Time)
 	project.MembersCount = countMembers
 	project.ServersCount = countServers
-
-	return &project, nil
+	return project, nil
 }
 
 // CreateProject is ...
 func (p *project) CreateProject(ctx context.Context, in *pb_project.CreateProject_Request) (*pb_project.CreateProject_Response, error) {
+	//	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
+	//		return nil, errNotFound
+	//	}
+
+	tx, err := service.db.Conn.Beginx()
+	if err != nil {
+		return nil, errTransactionCreateError
+	}
+
 	var id string
-	err := db.Conn.QueryRow(`INSERT INTO "project" ( "owner_id", "title", "login", "created" ) VALUES ( $1, $2, $3, NOW( ) ) RETURNING "id"`,
+	err = tx.QueryRow(`INSERT
+    INTO "project" (
+      "owner_id",
+      "title",
+      "login",
+      "created"
+    )
+    VALUES ($1, $2, $3, NOW())
+    RETURNING "id"`,
 		in.GetOwnerId(),
 		in.GetTitle(),
 		in.GetLogin(),
 	).Scan(&id)
 	if err != nil {
-		return nil, err
+		return nil, errFailedToAdd
 	}
 
-	_, err = db.Conn.Exec(`INSERT INTO "public"."project_api" ("project_id", "api_key", "api_secret", "online", "created") VALUES ($1, $2, $3, 't', NOW())`,
+	data, err := tx.Exec(`INSERT
+    INTO "public"."project_api" (
+      "project_id",
+      "api_key",
+      "api_secret",
+      "online",
+      "created"
+    )
+    VALUES ($1, $2, $3, 't', NOW())`,
 		id,
 		crypto.NewPassword(37, false),
 		crypto.NewPassword(37, false),
 	)
 	if err != nil {
-		return nil, err
+		return nil, errFailedToAdd
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, errTransactionCommitError
 	}
 
 	return &pb_project.CreateProject_Response{
@@ -140,11 +172,16 @@ func (p *project) CreateProject(ctx context.Context, in *pb_project.CreateProjec
 
 // UpdateProject is ...
 func (p *project) UpdateProject(ctx context.Context, in *pb_project.UpdateProject_Request) (*pb_project.UpdateProject_Response, error) {
-	_, err := db.Conn.Exec(`UPDATE "project" 
-			SET 
+	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
+		return nil, errNotFound
+	}
+
+	data, err := service.db.Conn.Exec(`UPDATE
+        "project"
+			SET
 				"title" = $1
 			WHERE
-				"id" = $2 
+				"id" = $2
 				AND "owner_id" = $3`,
 		in.GetTitle(),
 		in.GetProjectId(),
@@ -153,32 +190,56 @@ func (p *project) UpdateProject(ctx context.Context, in *pb_project.UpdateProjec
 	if err != nil {
 		return nil, err
 	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
+	}
 
 	return &pb_project.UpdateProject_Response{}, nil
 }
 
 // DeleteProject is ...
 func (p *project) DeleteProject(ctx context.Context, in *pb_project.DeleteProject_Request) (*pb_project.DeleteProject_Response, error) {
-	if _, err := db.Conn.Exec(`DELETE 
-		FROM 
-			"project" 
-		WHERE 
-			"id" = $1 
+	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
+		return nil, errNotFound
+	}
+
+	tx, err := service.db.Conn.Beginx()
+	if err != nil {
+		return nil, errTransactionCreateError
+	}
+
+	data, err := tx.Exec(`DELETE
+		FROM
+			"project"
+		WHERE
+			"id" = $1
 			AND "owner_id" = $2`,
 		in.GetProjectId(),
 		in.GetOwnerId(),
-	); err != nil {
-		return &pb_project.DeleteProject_Response{}, err
+	)
+	if err != nil {
+		return nil, errFailedToDelete
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
 	}
 
-	if _, err := db.Conn.Exec(`DELETE 
-		FROM 
-			"project_api" 
-		WHERE 
+	data, err = tx.Exec(`DELETE
+		FROM
+			"project_api"
+		WHERE
 			"id" = $1`,
 		in.GetProjectId(),
-	); err != nil {
-		return &pb_project.DeleteProject_Response{}, err
+	)
+	if err != nil {
+		return nil, err
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, errTransactionCommitError
 	}
 
 	return &pb_project.DeleteProject_Response{}, nil

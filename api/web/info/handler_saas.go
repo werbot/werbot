@@ -17,7 +17,7 @@ import (
 // @Tags         info
 // @Accept       json
 // @Produce      json
-// @Success      200         {object} httputil.HTTPResponse{data=pb.GetUpdatesResponse}
+// @Success      200         {object} httputil.HTTPResponse{data=pb.Update_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/update/version [get]
 func (h *handler) getUpdateVersion(c *fiber.Ctx) error {
@@ -25,7 +25,7 @@ func (h *handler) getUpdateVersion(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewUpdateHandlersClient(h.Grpc.Client)
 
-	updateList, err := rClient.GetUpdate(ctx, &pb.GetUpdate_Request{})
+	updateList, err := rClient.Update(ctx, &pb.Update_Request{})
 	if err != nil {
 		return httputil.InternalServerError(c, "Unexpected error while getting updates", err)
 	}

@@ -75,7 +75,7 @@ import { SvgIcon, Toggle, BServerName, Badge, Pagination } from "@/components";
 import { showMessage } from "@/utils/message";
 
 import { getMembersWithoutServer, postServerMember } from "@/api/member/server";
-import { GetMembersWithoutServer_Request, CreateServerMember_Request } from "@proto/member/member";
+import { MembersWithoutServer_Request, CreateServerMember_Request } from "@proto/member/member";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});
@@ -93,7 +93,7 @@ const getData = async (routeQuery: any) => {
   }
   routeQuery.project_id = props.projectId;
   routeQuery.server_id = props.serverId;
-  await getMembersWithoutServer(<GetMembersWithoutServer_Request>{
+  await getMembersWithoutServer(<MembersWithoutServer_Request>{
     limit: routeQuery.limit,
     offset: routeQuery.offset,
     owner_id: routeQuery.owner_id,

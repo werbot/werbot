@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"errors"
 
 	"github.com/jackc/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -14,27 +13,26 @@ type update struct {
 	pb_update.UnimplementedUpdateHandlersServer
 }
 
-// GetUpdate is ...
-func (u *update) GetUpdate(ctx context.Context, in *pb_update.GetUpdate_Request) (*pb_update.GetUpdate_Response, error) {
-	rows, err := db.Conn.Query(`SELECT 
-			"component", 
-			"description", 
-			"version", 
-			"version_after", 
-			"issued_at" 
-		FROM 
+// Update is ...
+func (u *update) Update(ctx context.Context, in *pb_update.Update_Request) (*pb_update.Update_Response, error) {
+	rows, err := service.db.Conn.Query(`SELECT
+			"component",
+			"description",
+			"version",
+			"version_after",
+			"issued_at"
+		FROM
 			"update"`)
 	if err != nil {
-		return nil, errors.New("GetUpdate failed")
+		return nil, errFailedToSelect
 	}
 
-	components := map[string]*pb_update.GetUpdate_Response_Component{}
+	components := map[string]*pb_update.Update_Response_Component{}
 
 	for rows.Next() {
-		component := pb_update.GetUpdate_Response_Component{}
 		var name string
 		var issuedAt pgtype.Timestamp
-
+		component := new(pb_update.Update_Response_Component)
 		err = rows.Scan(
 			&name,
 			&component.Description,
@@ -43,16 +41,14 @@ func (u *update) GetUpdate(ctx context.Context, in *pb_update.GetUpdate_Request)
 			&issuedAt,
 		)
 		if err != nil {
-			return nil, errors.New("GetUpdate Scan")
+			return nil, errFailedToScan
 		}
-
 		component.IssuedAt = timestamppb.New(issuedAt.Time)
-
-		components[name] = &component
+		components[name] = component
 	}
 	defer rows.Close()
 
-	return &pb_update.GetUpdate_Response{
+	return &pb_update.Update_Response{
 		Components: components,
 	}, nil
 }

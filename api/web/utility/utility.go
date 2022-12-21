@@ -24,7 +24,7 @@ func (h *handler) getCountry(c *fiber.Ctx) error {
 	input := &pb.GetCountry_Request{}
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -37,7 +37,7 @@ func (h *handler) getCountry(c *fiber.Ctx) error {
 	if err != nil {
 		se, _ := status.FromError(err)
 
-		if se.Message() == internal.ErrNotFound {
+		if se.Message() == internal.MsgNotFound {
 			return httputil.StatusNotFound(c, se.Message(), nil)
 		}
 

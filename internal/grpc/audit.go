@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"time"
 
@@ -19,11 +18,11 @@ type audit struct {
 // CreateAudit is ...
 func (s *audit) CreateAudit(ctx context.Context, in *pb_audit.CreateAudit_Request) (*pb_audit.CreateAudit_Response, error) {
 	if in.GetAccountId() == "" && in.GetVersion() == 0 && in.GetSession() == "" && in.GetClientIp() == "" {
-		return nil, errors.New("CreatAudit, incorrect parameters")
+		return nil, errIncorrectParameters
 	}
 
 	var auditID string
-	err := db.Conn.QueryRow(`INSERT 
+	err := service.db.Conn.QueryRow(`INSERT
 		INTO "audit" (
 			"account_id",
 			"time_start",
@@ -38,7 +37,7 @@ func (s *audit) CreateAudit(ctx context.Context, in *pb_audit.CreateAudit_Reques
 			"session",
 			"client_ip")
 		VALUES
-			($1, $2, $3, 0, 0, '0', '', $4, '', '/bin/sh', $4, $5) 
+			($1, $2, $3, 0, 0, '0', '', $4, '', '/bin/sh', $4, $5)
 		RETURNING "id"`,
 		in.GetAccountId(),
 		time.Now(),
@@ -47,7 +46,7 @@ func (s *audit) CreateAudit(ctx context.Context, in *pb_audit.CreateAudit_Reques
 		in.GetClientIp(),
 	).Scan(&auditID)
 	if err != nil {
-		return nil, errors.New("Action AuditSessionAdd failed")
+		return nil, errFailedToAdd
 	}
 
 	return &pb_audit.CreateAudit_Response{
@@ -57,10 +56,10 @@ func (s *audit) CreateAudit(ctx context.Context, in *pb_audit.CreateAudit_Reques
 
 // UpdateAudit is ...
 func (s *audit) UpdateAudit(ctx context.Context, in *pb_audit.UpdateAudit_Request) (*pb_audit.UpdateAudit_Response, error) {
+	var values []any
 	query := `UPDATE "audit" SET `
 	j := 0
 	m := convert.StructToMap(in.GetParams())
-	var values []any
 	for i := range m {
 		if v := m[i]; v != "" && v != 0 {
 			j++
@@ -70,9 +69,12 @@ func (s *audit) UpdateAudit(ctx context.Context, in *pb_audit.UpdateAudit_Reques
 	}
 	sanitizeSQL, _ := sanitize.SQL(` WHERE "id" = $1`, in.GetAuditId())
 	query = query[:len(query)-1] + sanitizeSQL
-
-	if _, err := db.Conn.Exec(query, values...); err != nil {
-		return &pb_audit.UpdateAudit_Response{}, errors.New("UpdateAudit failed")
+	data, err := service.db.Conn.Exec(query, values...)
+	if err != nil {
+		return nil, errFailedToUpdate
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
 	}
 
 	return &pb_audit.UpdateAudit_Response{}, nil
@@ -87,9 +89,9 @@ func (s *audit) CreateRecord(ctx context.Context, in *pb_audit.CreateRecord_Requ
 		query += sanitizeSQL
 	}
 	query = query[:len(query)-1]
-
-	if _, err := db.Conn.Exec(query); err != nil {
-		return &pb_audit.CreateRecord_Response{}, errors.New("Record failed")
+	_, err := service.db.Conn.Exec(query)
+	if err != nil {
+		return nil, errFailedToAdd
 	}
 
 	return &pb_audit.CreateRecord_Response{}, nil

@@ -24,14 +24,14 @@ func (h *handler) getLicenseInfo(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
 
-	lic, err := rClient.GetLicenseInfo(ctx, &pb.GetLicenseInfo_Request{})
+	lic, err := rClient.License(ctx, &pb.License_Request{})
 	if err != nil {
 		return httputil.InternalServerError(c, "Unexpected error while getting license", err)
 	}

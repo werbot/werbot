@@ -6,14 +6,12 @@ option go_package = "github.com/werbot/werbot/api/proto/member";
 
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
-import "tagger/tagger.proto";
-
 import "user/user.proto";
 
 service MemberHandlers {
     // Project section
     rpc ListProjectMembers(ListProjectMembers.Request) returns (ListProjectMembers.Response) {}
-    rpc GetProjectMember(GetProjectMember.Request) returns (GetProjectMember.Response) {}
+    rpc ProjectMember(ProjectMember.Request) returns (ProjectMember.Response) {}
     rpc CreateProjectMember(CreateProjectMember.Request) returns (CreateProjectMember.Response) {}
     rpc UpdateProjectMember(UpdateProjectMember.Request) returns (UpdateProjectMember.Response) {}
     rpc DeleteProjectMember(DeleteProjectMember.Request) returns (DeleteProjectMember.Response) {}
@@ -21,7 +19,7 @@ service MemberHandlers {
     rpc UpdateProjectMemberStatus(UpdateProjectMemberStatus.Request) returns (UpdateProjectMemberStatus.Response) {}
 
     // Used in finding and adding a new member to the project
-    rpc GetUsersWithoutProject(GetUsersWithoutProject.Request) returns (GetUsersWithoutProject.Response) {}
+    rpc UsersWithoutProject(UsersWithoutProject.Request) returns (UsersWithoutProject.Response) {}
 
     rpc ListProjectMembersInvite(ListProjectMembersInvite.Request) returns (ListProjectMembersInvite.Response) {}
     rpc CreateProjectMemberInvite(CreateProjectMemberInvite.Request) returns (CreateProjectMemberInvite.Response) {}
@@ -30,27 +28,27 @@ service MemberHandlers {
 
     // Server section
     rpc ListServerMembers(ListServerMembers.Request) returns (ListServerMembers.Response) {}
-    rpc GetServerMember(GetServerMember.Request) returns (GetServerMember.Response) {}
+    rpc ServerMember(ServerMember.Request) returns (ServerMember.Response) {}
     rpc CreateServerMember(CreateServerMember.Request) returns (CreateServerMember.Response) {}
     rpc UpdateServerMember(UpdateServerMember.Request) returns (UpdateServerMember.Response) {}
     rpc DeleteServerMember(DeleteServerMember.Request) returns (DeleteServerMember.Response) {}
 
     rpc UpdateServerMemberStatus(UpdateServerMemberStatus.Request) returns (UpdateServerMemberStatus.Response) {}
 
-    rpc GetMembersWithoutServer(GetMembersWithoutServer.Request) returns (GetMembersWithoutServer.Response) {}
+    rpc MembersWithoutServer(MembersWithoutServer.Request) returns (MembersWithoutServer.Response) {}
 
     // Search member by user id and return true if found or false
-    rpc GetMemberByID(GetMemberByID.Request) returns (GetMemberByID.Response) {}
+    rpc MemberByID(MemberByID.Request) returns (MemberByID.Response) {}
 
     // Use for Ajax search Users from first letters of name
-    rpc GetUsersByName(GetUsersByName.Request) returns (GetUsersByName.Response) {}
+    rpc UsersByName(UsersByName.Request) returns (UsersByName.Response) {}
 }
 
 // -----------------------------------------------------
 // use in API in body request
 message ActivityRequest {
-    string owner_id = 1    [(tagger.tags) = "validate:\"uuid\"           query:\"owner_id\""];
-    string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
+    string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
+    string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
     string name = 3;
 }
 // -----------------------------------------------------
@@ -65,17 +63,17 @@ message ListProjectMembers {
     }
     message Response {
         int32 total = 1;
-        repeated GetProjectMember.Response members = 2;
+        repeated ProjectMember.Response members = 2;
     }
 }
 // -----------------------------------------------------
 
 
-// rpc GetProjectMember
-message GetProjectMember {
+// rpc ProjectMember
+message ProjectMember {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"uuid\"           query:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
+        string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
         string member_id = 3;
     }
 
@@ -100,9 +98,9 @@ message GetProjectMember {
 // rpc CreateProjectMember
 message CreateProjectMember {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"uuid\"           query:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string user_id = 3     [(tagger.tags) = "validate:\"required,uuid\""];
+        string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 2; // @gotags: validate:"required,uuid"  query:"project_id"
+        string user_id = 3;    // @gotags: validate:"required,uuid"
         user.RoleUser role = 4;
         bool active = 5;
     }
@@ -117,9 +115,9 @@ message CreateProjectMember {
 // rpc UpdateProjectMember
 message UpdateProjectMember {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"uuid\"           query:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string member_id = 3   [(tagger.tags) = "validate:\"required,uuid\"  query:\"member_id\""];
+        string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string member_id = 3;  // @gotags: validate:"required,uuid" query:"member_id"
         user.RoleUser role = 4;
         bool active = 5;
     }
@@ -132,9 +130,9 @@ message UpdateProjectMember {
 // rpc DeleteProjectMember
 message DeleteProjectMember {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"uuid\"           query:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string member_id = 3   [(tagger.tags) = "validate:\"required,uuid\"  query:\"member_id\""];
+        string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string member_id = 3;  // @gotags: validate:"required,uuid" query:"member_id"
     }
 
     message Response {}
@@ -145,9 +143,9 @@ message DeleteProjectMember {
 // rpc UpdateProjectMemberStatus
 message UpdateProjectMemberStatus {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"uuid\"           query:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string member_id = 3   [(tagger.tags) = "validate:\"required,uuid\"  query:\"member_id\""];
+        string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string member_id = 3;  // @gotags: validate:"required,uuid" query:"member_id"
         bool status = 4;
     }
 
@@ -156,8 +154,8 @@ message UpdateProjectMemberStatus {
 // -----------------------------------------------------
 
 
-// rpc GetMemberByID
-message GetMemberByID {
+// rpc MemberByID
+message MemberByID {
     message Request {
         string user_id = 1;
         string project_id = 2;
@@ -169,8 +167,8 @@ message GetMemberByID {
 // -----------------------------------------------------
 
 
-// rpc GetUsersWithoutProject
-message GetUsersWithoutProject {
+// rpc UsersWithoutProject
+message UsersWithoutProject {
     message Request {
         string owner_id = 1;
         string project_id = 2;
@@ -195,8 +193,8 @@ message ListProjectMembersInvite {
         int32 limit = 1;
         int32 offset = 2;
         string sort_by = 3;
-        string owner_id = 4     [(tagger.tags) = "validate:\"uuid\"            query:\"owner_id\""];
-        string project_id = 5   [(tagger.tags) = "validate:\"required,uuid\"   query:\"project_id\""];
+        string owner_id = 4;   // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 5; // @gotags: validate:"required,uuid" query:"project_id"
     }
     message Response {
         int32 total = 1;
@@ -218,11 +216,11 @@ message ListProjectMembersInvite {
 // rpc CreateProjectMemberInvite
 message CreateProjectMemberInvite {
     message Request {
-        string owner_id = 1     [(tagger.tags) = "validate:\"uuid\"            query:\"owner_id\""];
-        string project_id = 2   [(tagger.tags) = "validate:\"required,uuid\"   query:\"project_id\""];
-        string user_name = 3    [(tagger.tags) = "validate:\"required,min=3\"  query:\"user_name\""];
-        string user_surname = 4 [(tagger.tags) = "validate:\"required,min=3\"  query:\"user_surname\""];
-        string email = 5        [(tagger.tags) = "validate:\"required,email\"  query:\"email\""];
+        string owner_id = 1;     // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 2;   // @gotags: validate:"required,uuid" query:"project_id"
+        string user_name = 3;    // @gotags: validate:"required,min=3" query:"user_name"
+        string user_surname = 4; // @gotags: validate:"required,min=3" query:"user_surname"
+        string email = 5;        // @gotags: validate:"required,email" query:"email"
     }
 
     message Response {
@@ -235,9 +233,9 @@ message CreateProjectMemberInvite {
 // rpc DeleteProjectMemberInvite
 message DeleteProjectMemberInvite {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"uuid\"           query:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string invite_id = 3   [(tagger.tags) = "validate:\"required,uuid\"  query:\"invite_id\""];
+        string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string invite_id = 3;  // @gotags: validate:"required,uuid" query:"invite_id"
     }
 
     message Response {}
@@ -248,8 +246,8 @@ message DeleteProjectMemberInvite {
 // rpc ProjectMemberInviteActivate
 message ProjectMemberInviteActivate {
     message Request {
-        string invite = 1   [(tagger.tags) = "validate:\"uuid\"            query:\"invite\""];
-        string user_id = 2  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\""];
+        string invite = 1;  // @gotags: validate:"uuid" query:"invite"
+        string user_id = 2; // @gotags: validate:"omitempty,uuid" query:"user_id"
     }
 
     message Response {
@@ -266,24 +264,24 @@ message ListServerMembers {
         int32 limit = 1;
         int32 offset = 2;
         string sort_by = 3;
-        string owner_id = 4    [(tagger.tags) = "validate:\"uuid\"           query:\"owner_id\""];
-        string project_id = 5  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string server_id = 6   [(tagger.tags) = "validate:\"required,uuid\"  query:\"server_id\""];
+        string owner_id = 4;   // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 5; // @gotags: validate:"required,uuid" query:"project_id"
+        string server_id = 6;  // @gotags: validate:"required,uuid" query:"server_id"
     }
 
     message Response {
         int32 total = 1;
-        repeated GetServerMember.Response members = 2;    
+        repeated ServerMember.Response members = 2;    
     }
 }
 // -----------------------------------------------------
 
-// GetServerMember 
-message GetServerMember {
+// ServerMember 
+message ServerMember {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"uuid\"           query:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string server_id = 3   [(tagger.tags) = "validate:\"required,uuid\"  query:\"server_id\""];
+        string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string server_id = 3;  // @gotags: validate:"required,uuid" query:"server_id"
         string member_id = 4;
     }
 
@@ -303,9 +301,9 @@ message GetServerMember {
 // CreateServerMember
 message CreateServerMember {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"required,uuid\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\""];
-        string server_id = 3   [(tagger.tags) = "validate:\"required,uuid\""];
+        string owner_id = 1;   // @gotags: validate:"required,uuid"
+        string project_id = 2; // @gotags: validate:"required,uuid"
+        string server_id = 3;  // @gotags: validate:"required,uuid"
         string member_id = 4;
         bool active = 5;
     }
@@ -319,10 +317,10 @@ message CreateServerMember {
 // UpdateServerMember 
 message UpdateServerMember {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"required,uuid\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\""];
-        string server_id = 3   [(tagger.tags) = "validate:\"required,uuid\""];
-        string member_id = 4   [(tagger.tags) = "validate:\"required,uuid\""];
+        string owner_id = 1;   // @gotags: validate:"required,uuid"
+        string project_id = 2; // @gotags: validate:"required,uuid"
+        string server_id = 3;  // @gotags: validate:"required,uuid"
+        string member_id = 4;  // @gotags: validate:"required,uuid"
         bool active = 5;
     }
 
@@ -333,10 +331,10 @@ message UpdateServerMember {
 // DeleteServerMember 
 message DeleteServerMember {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"required,uuid\"  query:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string server_id = 3   [(tagger.tags) = "validate:\"required,uuid\"  query:\"server_id\""];
-        string member_id = 4   [(tagger.tags) = "validate:\"required,uuid\"  query:\"member_id\""];
+        string owner_id = 1;   // @gotags: validate:"required,uuid" query:"owner_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string server_id = 3;  // @gotags: validate:"required,uuid" query:"server_id"
+        string member_id = 4;  // @gotags: validate:"required,uuid" query:"member_id"
     }
 
     message Response {}
@@ -347,10 +345,10 @@ message DeleteServerMember {
 // rpc UpdateServerMemberStatus
 message UpdateServerMemberStatus {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"uuid\"           query:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string member_id = 3   [(tagger.tags) = "validate:\"required,uuid\"  query:\"member_id\""];
-        string server_id = 4   [(tagger.tags) = "validate:\"uuid\"           query:\"server_id\""];
+        string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string member_id = 3;  // @gotags: validate:"required,uuid" query:"member_id"
+        string server_id = 4;  // @gotags: validate:"uuid" query:"server_id"
         bool status = 5;
     }
 
@@ -358,27 +356,27 @@ message UpdateServerMemberStatus {
 }
 // -----------------------------------------------------
 
-// rpc GetMembersWithoutServer
-message GetMembersWithoutServer {
+// rpc MembersWithoutServer
+message MembersWithoutServer {
     message Request {
         int32 limit = 1;
         int32 offset = 2;
         string sort_by = 3;
-        string owner_id = 4    [(tagger.tags) = "validate:\"required,uuid\"  query:\"owner_id\""];
-        string project_id = 5  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string server_id = 6   [(tagger.tags) = "validate:\"required,uuid\"  query:\"server_id\""];
+        string owner_id = 4;   // @gotags: validate:"required,uuid" query:"owner_id"
+        string project_id = 5; // @gotags: validate:"required,uuid" query:"project_id"
+        string server_id = 6;  // @gotags: validate:"required,uuid" query:"server_id"
         string name = 7;
     }
     message Response {
         int32 total = 1;
-        repeated GetServerMember.Response members = 2;   
+        repeated ServerMember.Response members = 2;   
     }
 }
 // -----------------------------------------------------
 
 
-// rpc GetUsersByName
-message GetUsersByName {
+// rpc UsersByName
+message UsersByName {
     message Request {
         string name = 1;
     }

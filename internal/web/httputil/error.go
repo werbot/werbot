@@ -43,13 +43,13 @@ func NewError(c *fiber.Ctx, status int, message string, data any) error {
 func ReturnGRPCError(c *fiber.Ctx, err error) error {
 	se, _ := status.FromError(err)
 
-	if se.Message() == internal.ErrNotFound {
-		return StatusNotFound(c, internal.ErrNotFound, nil)
+	if se.Message() == internal.MsgNotFound {
+		return StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	if se.Message() != "" {
 		return StatusBadRequest(c, se.Message(), nil)
 	}
 
-	return InternalServerError(c, internal.ErrUnexpectedError, nil)
+	return InternalServerError(c, internal.MsgUnexpectedError, nil)
 }

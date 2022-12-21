@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, getCurrentInstance } from "vue";
 import { getProject } from "@/api/project";
-import { GetProject_Request } from "@proto/project/project";
+import { Project_Request } from "@proto/project/project";
 import { SvgIcon } from "@/components";
 
 const { proxy } = getCurrentInstance();
@@ -31,14 +31,14 @@ const getData = async (routeQuery: any) => {
 watch(
   () => props.projectId,
   () => {
-    getData(<GetProject_Request>{
+    getData(<Project_Request>{
       project_id: props.projectId,
     });
   }
 );
 
 onMounted(() => {
-  getData(<GetProject_Request>{
+  getData(<Project_Request>{
     project_id: props.projectId,
   });
 });

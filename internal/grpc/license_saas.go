@@ -5,7 +5,6 @@ package grpc
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -22,36 +21,40 @@ import (
 func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Request) (*pb_license.NewLicense_Response, error) {
 	var status string
 	var licServer []byte
-	db.Conn.QueryRow(`SELECT 
-			"status", 
-			"license" 
-		FROM 
-			"license" 
-		WHERE 
-			"ip" = $1::inet`,
+	newLicense := new(pb_license.NewLicense_Response)
+	err := service.db.Conn.QueryRow(`SELECT
+				"status",
+				"license"
+			FROM
+				"license"
+			WHERE
+				"ip" = $1::inet`,
 		in.GetIp(),
 	).Scan(&status, &licServer)
+	if err != nil {
+		return nil, errFailedToScan
+	}
 
 	if status == "" {
 		lic, err := license_lib.New([]byte(internal.GetString("LICENSE_KEY_PRIVATE", "")))
 		if err != nil {
-			return nil, errors.New("NewLicense failed")
+			return nil, license_lib.ErrLicenseKeyIsBroken
 		}
 
 		var typeID, period, companies, servers, users int32
 		var name string
 		var modulesJSON pgtype.JSON
-		err = db.Conn.QueryRow(`SELECT 
-				"id", 
-				"name", 
-				"period", 
-				"companies", 
-				"servers", 
-				"users", 
-				"modules" 
-			FROM 
-				"license_type" 
-			WHERE 
+		err = service.db.Conn.QueryRow(`SELECT
+				"id",
+				"name",
+				"period",
+				"companies",
+				"servers",
+				"users",
+				"modules"
+			FROM
+				"license_type"
+			WHERE
 				"default" = true`).
 			Scan(&typeID,
 				&name,
@@ -62,14 +65,14 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 				&modulesJSON,
 			)
 		if err != nil {
-			return nil, errors.New("NewLicense failed")
+			return nil, errFailedToScan
 		}
 
 		var modules []string
 		modulesJSON.AssignTo(&modules)
 
 		now := time.Now()
-		licData := &pb_license.License_Limits{
+		licData := &pb_license.LicenseInfo_Limits{
 			Companies: companies,
 			Servers:   servers,
 			Users:     users,
@@ -77,7 +80,7 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 		}
 		licDataByte, err := json.Marshal(licData)
 		if err != nil {
-			return nil, errors.New("NewLicense failed")
+			return nil, license_lib.ErrLicenseStructureIsBroken
 		}
 
 		customer := checkUUIDLicenseParam(in.GetCustomer())
@@ -97,22 +100,22 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 
 		licenseByte, err := lic.Encode()
 		if err != nil {
-			return nil, errors.New("NewLicense failed")
+			return nil, license_lib.ErrLicenseStructureIsBroken
 		}
 
 		status = "trial"
-		db.Conn.Exec(`INSERT 
+		data, err := service.db.Conn.Exec(`INSERT
 			INTO "public"."license" (
-				"version", 
-				"customer_id", 
-				"subscriber_id", 
-				"type_id", 
-				"ip", 
-				"status", 
-				"issued_at", 
-				"expires_at", 
+				"version",
+				"customer_id",
+				"subscriber_id",
+				"type_id",
+				"ip",
+				"status",
+				"issued_at",
+				"expires_at",
 				"license"
-			) 
+			)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 			1,
 			customer,
@@ -124,31 +127,34 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 			lic.License.Exp,
 			licenseByte,
 		)
+		if err != nil {
+			return nil, errFailedToAdd
+		}
+		if affected, _ := data.RowsAffected(); affected == 0 {
+			return nil, errFailedToAdd
+		}
 
-		return &pb_license.NewLicense_Response{
-			License: licenseByte,
-		}, nil
+		newLicense.License = licenseByte
+		return newLicense, nil
 	}
 
-	//return nil, errors.New("License release blocked")
-	return &pb_license.NewLicense_Response{
-		License: licServer,
-	}, nil
+	newLicense.License = licServer
+	return newLicense, nil
 }
 
-// GetLicenseExpired is ...
-func (l *license) GetLicenseExpired(ctx context.Context, in *pb_license.GetLicenseExpired_Request) (*pb_license.GetLicenseExpired_Response, error) {
+// LicenseExpired is ...
+func (l *license) LicenseExpired(ctx context.Context, in *pb_license.LicenseExpired_Request) (*pb_license.LicenseExpired_Response, error) {
 	lic, err := license_lib.Read([]byte(internal.GetString("LICENSE_KEY_PUBLIC", "")))
 	if err != nil {
-		return nil, errors.New("GetLicenseExpired failed")
+		return nil, license_lib.ErrLicenseKeyIsBroken
 	}
 
 	ld, err := lic.Decode(in.GetLicense())
 	if err != nil {
-		return nil, errors.New("GetLicenseExpired failed Decode")
+		return nil, license_lib.ErrLicenseStructureIsBroken
 	}
 
-	return &pb_license.GetLicenseExpired_Response{
+	return &pb_license.LicenseExpired_Response{
 		Status: ld.Expired(),
 	}, nil
 }

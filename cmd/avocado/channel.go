@@ -48,7 +48,7 @@ type channelTunnel struct {
 
 // TODO: объединить host и actx с необходимыми параметрами в один
 // https://git.piplos.by/werbot/werbot-server/blob/3c833b2e6fd5a5d2914a4d9aaa640040dd605371/server.go
-func connectToHost(host *server.GetServer_Response, actx *authContext, ctx ssh.Context, newChan gossh.NewChannel, srv *ssh.Server, conn *gossh.ServerConn, ch channelTunnel) {
+func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Context, newChan gossh.NewChannel, srv *ssh.Server, conn *gossh.ServerConn, ch channelTunnel) {
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClientF := pb_firewall.NewFirewallHandlersClient(app.grpc.Client)
@@ -87,12 +87,12 @@ func connectToHost(host *server.GetServer_Response, actx *authContext, ctx ssh.C
 		}
 
 		// app.nats.AccountStatus(host.AccountId, "online")
-		_, err = rClientA.SetAccountStatus(_ctx, &account.SetAccountStatus_Request{
+		_, err = rClientA.UpdateAccountStatus(_ctx, &account.UpdateAccountStatus_Request{
 			AccountId: host.AccountId,
 			Status:    2, // online
 		})
 		if err != nil {
-			app.log.Error(err).Msg("gRPC SetAccountStatus")
+			app.log.Error(err).Msg("gRPC UpdateAccountStatus")
 		}
 
 		_, err = rClientS.CreateServerSession(_ctx, &server.CreateServerSession_Request{
@@ -150,12 +150,12 @@ func connectToHost(host *server.GetServer_Response, actx *authContext, ctx ssh.C
 			}
 
 			// app.nats.AccountStatus(host.AccountId, "offline")
-			_, err := rClientA.SetAccountStatus(_ctx, &account.SetAccountStatus_Request{
+			_, err := rClientA.UpdateAccountStatus(_ctx, &account.UpdateAccountStatus_Request{
 				AccountId: host.AccountId,
 				Status:    1, // offline
 			})
 			if err != nil {
-				app.log.Error(err).Msg("gRPC SetAccountStatus")
+				app.log.Error(err).Msg("gRPC UpdateAccountStatus")
 			}
 
 			actx.message = "Host unavailable"
@@ -203,10 +203,10 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 		_ = ch.Close()
 		return
 
-	// TODO: добавить одноразовые инвйты
+	// TODO: Add disposable invites
 	// case config.UserTypeInvite:
 	case server.UserType_INVITE:
-		app.log.Info().Str("invite", actx.message).Str("userAddress", actx.userAddr).Msg("Invite is invalid")
+		app.log.Info().Str("invite", actx.message).Str("userAddress", actx.userAddr).Msg(internal.MsgInviteIsInvalid)
 		sendMessageInChannel(ch, fmt.Sprintf("Invite %s is invalid.\n", actx.message))
 		_ = ch.Close()
 		return
@@ -214,7 +214,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	// case config.UserTypeShell:
 	case server.UserType_SHELL:
 		if actx.userID == "" {
-			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg("Permission denied")
+			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg(internal.MsgAccessIsDenied)
 			actx.message = "Firewall denied access"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()

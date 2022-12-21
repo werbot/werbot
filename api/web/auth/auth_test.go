@@ -50,7 +50,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.email`, "Email is a required field").
 				Equal(`$.result.password`, "Password is a required field").
 				End(),
@@ -61,7 +61,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: []map[string]string{{"zz": "xx"}, {"xx": "zz"}},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -70,7 +70,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{"email": "test-admin@werbot.net"},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.password`, "Password is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -80,7 +80,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{"password": "test-admin@werbot.net"},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.email`, "Email is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -90,7 +90,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{"email": "test-admin@werbot.net", "password": "user@werbot.net"},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrInvalidPassword).
+				Equal(`$.message`, internal.MsgPasswordIsNotValid).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -264,7 +264,7 @@ func Test_getProfile(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},

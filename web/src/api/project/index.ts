@@ -1,7 +1,7 @@
 import { http } from "@/api";
 import {
   ListProjects_Request,
-  GetProject_Request,
+  Project_Request,
   CreateProject_Request,
   UpdateProject_Request,
   DeleteProject_Request,
@@ -20,7 +20,7 @@ const getProjects = async (data?: ListProjects_Request, owner_id?: string) =>
     },
   });
 
-const getProject = async (data: GetProject_Request) => http("GET", URL.projects, { params: data });
+const getProject = async (data: Project_Request) => http("GET", URL.projects, { params: data });
 
 const postProject = async (data: CreateProject_Request) =>
   http("POST", URL.projects, { data: data });

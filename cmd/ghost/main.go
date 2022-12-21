@@ -28,8 +28,8 @@ func main() {
 	flag.Parse()
 	if flagInit {
 		log.Info().Msg("Initializing the required databases")
-		//downloadMMDB()
-		//downloadHAProxyLists()
+		// downloadMMDB()
+		// downloadHAProxyLists()
 		downloadLicense()
 		return
 	}

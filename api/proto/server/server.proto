@@ -5,28 +5,27 @@ package server;
 option go_package = "github.com/werbot/werbot/api/proto/server";
 
 import "google/protobuf/timestamp.proto";
-import "tagger/tagger.proto";
 
 service ServerHandlers {
     rpc ListServers(ListServers.Request) returns (ListServers.Response) {}
-    rpc GetServer(GetServer.Request) returns (GetServer.Response) {}
+    rpc Server(Server.Request) returns (Server.Response) {}
     rpc CreateServer(CreateServer.Request) returns (CreateServer.Response) {}
     rpc UpdateServer(UpdateServer.Request) returns (UpdateServer.Response) {}
     rpc DeleteServer(DeleteServer.Request) returns (DeleteServer.Response) {}
 
+    // TODO: replace to UpdateServerStatus
     rpc UpdateServerOnlineStatus(UpdateServerOnlineStatus.Request) returns (UpdateServerOnlineStatus.Response) {}
     rpc UpdateServerActiveStatus(UpdateServerActiveStatus.Request) returns (UpdateServerActiveStatus.Response) {}
     // --------
     
-    rpc GetServerAccess(GetServerAccess.Request) returns (GetServerAccess.Response) {}
+    rpc ServerAccess(ServerAccess.Request) returns (ServerAccess.Response) {}
     rpc UpdateServerAccess(UpdateServerAccess.Request) returns (UpdateServerAccess.Response) {}
 
-    rpc GetServerActivity(GetServerActivity.Request) returns (GetServerActivity.Response) {}
+    rpc ServerActivity(ServerActivity.Request) returns (ServerActivity.Response) {}
     rpc UpdateServerActivity(UpdateServerActivity.Request) returns (UpdateServerActivity.Response) {}
 
-
     rpc UpdateServerHostKey(UpdateServerHostKey.Request) returns (UpdateServerHostKey.Response) {}
-    
+
     rpc CreateServerSession(CreateServerSession.Request) returns (CreateServerSession.Response) {}
 
     rpc ServerNameByID(ServerNameByID.Request) returns (ServerNameByID.Response) {}
@@ -47,9 +46,11 @@ enum ServerAuth {
 
 enum ServerScheme {
     SERVER_SCHEME_UNSPECIFIED = 0;
-    SSH = 1;
-    TELNET = 2;
-    RDP = 3;
+    TCP = 1;
+    UDP = 2;
+    SSH = 3;
+    TELNET = 4;
+    RDP = 5;
 }
 
 enum SessionStatus {
@@ -69,9 +70,9 @@ enum UserType {
 // -----------------------------------------------------
 // use in API in body request
 message ActivityRequest {
-    string user_id = 1     [(tagger.tags) = "validate:\"uuid\"           query:\"user_id\""];
-    string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-    GetServerActivity.Response activity = 3;
+    string user_id = 1;    // @gotags: validate:"uuid" query:"user_id"
+    string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+    ServerActivity.Response activity = 3;
 }
 // -----------------------------------------------------
 
@@ -87,18 +88,18 @@ message ListServers {
 
     message Response{
         int32 total = 1;
-        repeated GetServer.Response servers = 2;
+        repeated Server.Response servers = 2;
     }
 }
 // -----------------------------------------------------
 
 
-// rpc GetServer
-message GetServer {
+// rpc Server
+message Server {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"     params:\"user_id\""];
-        string server_id = 2  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"server_id\"   params:\"server_id\""];
-        string project_id = 3 [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"project_id\"  params:\"project_id\""];
+        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
+        string server_id = 2;  // @gotags: validate:"omitempty,uuid" query:"server_id" params:"server_id"
+        string project_id = 3; // @gotags: validate:"omitempty,uuid" query:"project_id" params:"project_id"
     }
 
     message Response {
@@ -132,14 +133,14 @@ message GetServer {
 // rpc CreateServer
 message CreateServer {
     message Request {
-        string user_id = 1      [(tagger.tags) = "validate:\"omitempty,uuid\""];
-        string project_id = 2   [(tagger.tags) = "validate:\"required,uuid\""];
-        string address = 3      [(tagger.tags) = "validate:\"required,hostname_rfc1123\""];
-        int32 port = 4          [(tagger.tags) = "validate:\"required,numeric,min=1,max=65536\""];
-        string login = 5        [(tagger.tags) = "validate:\"required,alphanum,min=3,max=20\""];
+        string user_id = 1;       // @gotags: validate:"omitempty,uuid"
+        string project_id = 2;    // @gotags: validate:"required,uuid"
+        string address = 3;       // @gotags: validate:"required,hostname_rfc1123"
+        int32 port = 4;           // @gotags: validate:"required,numeric,min=1,max=65536"
+        string login = 5;         // @gotags: validate:"required,alphanum,min=3,max=20"
         string title = 6;
-        ServerAuth auth = 7     [(tagger.tags) = "validate:\"required,numeric\""];
-        ServerScheme scheme = 8 [(tagger.tags) = "validate:\"required,numeric\""];
+        ServerAuth auth = 7;      // @gotags: validate:"required,numeric"
+        ServerScheme scheme = 8 ; // @gotags: validate:"required,numeric"
         bool audit = 9;
         bool active = 10;
         string private_description = 11;
@@ -160,13 +161,13 @@ message CreateServer {
 // rpc UpdateServer
 message UpdateServer {
     message Request {
-        string user_id = 1             [(tagger.tags) = "validate:\"omitempty,uuid\"                    query:\"user_id\"     params:\"user_id\""];
-        string server_id = 2           [(tagger.tags) = "validate:\"omitempty,uuid\"                    query:\"server_id\"   params:\"server_id\""];
-        string project_id = 3          [(tagger.tags) = "validate:\"required,uuid\"                     query:\"project_id\"  params:\"project_id\""];
-        string address = 4             [(tagger.tags) = "validate:\"required,hostname_rfc1123\"         query:\"address\"     params:\"address\""];
-        int32 port = 5                 [(tagger.tags) = "validate:\"required,numeric,min=1,max=65536\"  query:\"port\"        params:\"port\""];
-        string login = 6               [(tagger.tags) = "validate:\"required,alphanum,min=3,max=20\"    query:\"login\"       params:\"login\""];
-        string title = 7               [(tagger.tags) = "validate:\"required,min=5,max=20\"             query:\"title\"       params:\"title\""];
+        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
+        string server_id = 2;  // @gotags: validate:"omitempty,uuid" query:"server_id" params:"server_id"
+        string project_id = 3; // @gotags: validate:"required,uuid" query:"project_id" params:"project_id"
+        string address = 4;    // @gotags: validate:"required,hostname_rfc1123" query:"address" params:"address"
+        int32 port = 5;        // @gotags: validate:"required,numeric,min=1,max=65536" query:"port" params:"port"
+        string login = 6;      // @gotags: validate:"required,alphanum,min=3,max=20" query:"login" params:"login"
+        string title = 7;      // @gotags: validate:"required,min=5,max=20" query:"title" params:"title"
         string private_description = 8;
         string public_description = 9;
         bool audit =10;
@@ -181,9 +182,9 @@ message UpdateServer {
 // rpc DeleteServer
 message DeleteServer {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"     params:\"user_id\""];
-        string project_id = 2 [(tagger.tags) = "validate:\"required,uuid\"   query:\"project_id\"  params:\"project_id\""];
-        string server_id = 3  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"server_id\"   params:\"server_id\""];
+        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id" params:"project_id"
+        string server_id = 3;  // @gotags: validate:"omitempty,uuid" query:"server_id" params:"server_id"
     }
 
     message Response {}
@@ -194,8 +195,8 @@ message DeleteServer {
 // rpc UpdateServerOnlineStatus
 message UpdateServerOnlineStatus {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\""];
-        string server_id = 2  [(tagger.tags) = "validate:\"required,uuid\"   query:\"server_id\""];
+        string user_id = 1;   // @gotags: validate:"omitempty,uuid" query:"user_id"
+        string server_id = 2; // @gotags: validate:"required,uuid" query:"server_id"
         bool status = 3;
     }
 
@@ -207,8 +208,8 @@ message UpdateServerOnlineStatus {
 // rpc UpdateServerActiveStatus
 message UpdateServerActiveStatus {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\""];
-        string server_id = 2  [(tagger.tags) = "validate:\"required,uuid\"   query:\"server_id\""];
+        string user_id = 1;   // @gotags: validate:"omitempty,uuid" query:"user_id"
+        string server_id = 2; // @gotags: validate:"required,uuid" query:"server_id"
         bool status = 3;
     }
 
@@ -219,12 +220,12 @@ message UpdateServerActiveStatus {
 
 
 
-// rpc GetServerAccess
-message GetServerAccess {
+// rpc ServerAccess
+message ServerAccess {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"     params:\"user_id\""];
-        string project_id = 2 [(tagger.tags) = "validate:\"required,uuid\"   query:\"project_id\"  params:\"project_id\""];
-        string server_id = 3  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"server_id\"   params:\"server_id\""];
+        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id" params:"project_id"
+        string server_id = 3;  // @gotags: validate:"omitempty,uuid" query:"server_id" params:"server_id"
     }
 
     message Response {
@@ -242,9 +243,9 @@ message GetServerAccess {
 // rpc UpdateServerAccess
 message UpdateServerAccess {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\""];
-        string project_id = 2 [(tagger.tags) = "validate:\"required,uuid\"   query:\"project_id\""];
-        string server_id = 3  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"server_id\""];
+        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string server_id = 3 ; // @gotags: validate:"omitempty,uuid" query:"server_id"
 
         ServerAuth auth = 4;
         string password = 5;
@@ -257,11 +258,11 @@ message UpdateServerAccess {
 // -----------------------------------------------------
 
 
-// rpc GetServerActivity
-message GetServerActivity {
+// rpc ServerActivity
+message ServerActivity {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\""];
-        string project_id = 2 [(tagger.tags) = "validate:\"required,uuid\"   query:\"project_id\""];
+        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
         string server_id = 3;
     }  
 
@@ -281,10 +282,10 @@ message GetServerActivity {
 // rpc UpdateServerActivity
 message UpdateServerActivity {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\""];
-        string project_id = 2 [(tagger.tags) = "validate:\"required,uuid\"   query:\"project_id\""];
+        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
         string server_id = 3;
-        GetServerActivity.Response activity = 4;
+        ServerActivity.Response activity = 4;
     }
 
     message Response {}
@@ -295,8 +296,8 @@ message UpdateServerActivity {
 // rpc UpdateServerActive
 message UpdateServerActive {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\""];
-        string server_id = 2  [(tagger.tags) = "validate:\"required,uuid\"   query:\"server_id\""];
+        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id"
+        string server_id = 2 ; // @gotags: validate:"required,uuid" query:"server_id"
         bool status = 3;
     }
 
@@ -337,9 +338,9 @@ message CreateServerSession {
 // rpc ServerNameByID
 message ServerNameByID {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"     params:\"user_id\""];
-        string server_id = 2  [(tagger.tags) = "validate:\"uuid\"            query:\"server_id\"   params:\"server_id\""];
-        string project_id = 3 [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"project_id\"  params:\"project_id\""];
+        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
+        string server_id = 2;  // @gotags: validate:"uuid" query:"server_id" params:"server_id"
+        string project_id = 3; // @gotags: validate:"omitempty,uuid" query:"project_id" params:"project_id"
     }
 
     message Response {

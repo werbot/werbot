@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"net"
 	"time"
 
@@ -19,32 +18,32 @@ type firewall struct {
 }
 
 func (s *firewall) getAccessList(serverID string) (*pb_firewall.AccessList, error) {
-	accessList := pb_firewall.AccessList{}
-	row := db.Conn.QueryRowx(`SELECT
+	accessList := new(pb_firewall.AccessList)
+	err := service.db.Conn.QueryRowx(`SELECT
 			"server_access_policy"."ip",
-			"server_access_policy"."country" 
+			"server_access_policy"."country"
 		FROM
-			"server_access_policy" 
+			"server_access_policy"
 		WHERE
 			"server_access_policy"."server_id" = $1`,
 		serverID,
-	)
-	if err := row.Scan(&accessList.Network, &accessList.Country); err != nil {
-		return nil, err
+	).Scan(&accessList.Network, &accessList.Country)
+	if err != nil {
+		return nil, errFailedToSelect
 	}
 
-	return &accessList, nil
+	return accessList, nil
 }
 
-// GetServerFirewall is ...
-func (s *firewall) GetServerFirewall(ctx context.Context, in *pb_firewall.GetServerFirewall_Request) (*pb_firewall.GetServerFirewall_Response, error) {
+// ServerFirewall is ...
+func (s *firewall) ServerFirewall(ctx context.Context, in *pb_firewall.ServerFirewall_Request) (*pb_firewall.ServerFirewall_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(internal.ErrNotFound)
+		return nil, errNotFound
 	}
 
 	// get countries
 	countries := []*pb_firewall.Country{}
-	rows, err := db.Conn.Query(`SELECT
+	rows, err := service.db.Conn.Query(`SELECT
 			"server_security_country"."id",
 			"server_security_country"."country_code",
 			"country"."name"
@@ -56,69 +55,65 @@ func (s *firewall) GetServerFirewall(ctx context.Context, in *pb_firewall.GetSer
 		in.GetServerId(),
 	)
 	if err != nil {
-		return nil, err
+		return nil, errFailedToSelect
 	}
 
 	for rows.Next() {
-		country := pb_firewall.Country{}
+		country := new(pb_firewall.Country)
 		err = rows.Scan(
 			&country.Id,
 			&country.CountryCode,
 			&country.CountryName,
 		)
-
 		if err != nil {
-			return nil, err
+			return nil, errFailedToScan
 		}
-
-		countries = append(countries, &country)
+		countries = append(countries, country)
 	}
 	defer rows.Close()
 
 	// get networks
 	networks := []*pb_firewall.Network{}
-	rows, err = db.Conn.Query(`SELECT
+	rows, err = service.db.Conn.Query(`SELECT
 			"id",
 			"start_ip",
-			"end_ip" 
+			"end_ip"
 		FROM
-			"server_security_ip" 
+			"server_security_ip"
 		WHERE
 			"server_id" = $1`,
 		in.GetServerId(),
 	)
 	if err != nil {
-		return nil, err
+		return nil, errFailedToSelect
 	}
 
 	for rows.Next() {
-		network := pb_firewall.Network{}
+		network := new(pb_firewall.Network)
 		err = rows.Scan(
 			&network.Id,
 			&network.StartIp,
 			&network.EndIp,
 		)
-
 		if err != nil {
-			return nil, err
+			return nil, errFailedToScan
 		}
-
-		networks = append(networks, &network)
+		networks = append(networks, network)
 	}
 	defer rows.Close()
 
 	// get status black lists
 	accessList, err := s.getAccessList(in.GetServerId())
 	if err != nil {
-		return nil, errors.New("server_access_policy failed")
+		return nil, err
 	}
 
-	return &pb_firewall.GetServerFirewall_Response{
-		Country: &pb_firewall.GetServerFirewall_Response_Countries{
+	return &pb_firewall.ServerFirewall_Response{
+		Country: &pb_firewall.ServerFirewall_Response_Countries{
 			WiteList: accessList.Country,
 			List:     countries,
 		},
-		Network: &pb_firewall.GetServerFirewall_Response_Networks{
+		Network: &pb_firewall.ServerFirewall_Response_Networks{
 			WiteList: accessList.Network,
 			List:     networks,
 		},
@@ -128,78 +123,80 @@ func (s *firewall) GetServerFirewall(ctx context.Context, in *pb_firewall.GetSer
 // CreateServerFirewall is ...
 func (s *firewall) CreateServerFirewall(ctx context.Context, in *pb_firewall.CreateServerFirewall_Request) (*pb_firewall.CreateServerFirewall_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(internal.ErrNotFound)
+		return nil, errNotFound
 	}
 
-	response := &pb_firewall.CreateServerFirewall_Response{}
-
 	var recordID string
-	var err error
+	response := new(pb_firewall.CreateServerFirewall_Response)
 	switch record := in.Record.(type) {
 	case *pb_firewall.CreateServerFirewall_Request_Country:
-		row := db.Conn.QueryRowx(`SELECT 
-				"id" 
-			FROM 
-				"server_security_country" 
-			WHERE 
-				"server_id" = $1 
+		err := service.db.Conn.QueryRowx(`SELECT
+				"id"
+			FROM
+				"server_security_country"
+			WHERE
+				"server_id" = $1
 				AND "country_code" = $2`,
 			in.GetServerId(),
 			record.Country.Code,
-		)
-		row.Scan(&recordID)
+		).Scan(&recordID)
+		if err != nil {
+			return nil, errFailedToScan
+		}
 		if recordID != "" {
-			return nil, errors.New(internal.MsgObjectAlreadyExists)
+			return nil, errObjectAlreadyExists
 		}
 
-		err = db.Conn.QueryRow(`INSERT 
+		err = service.db.Conn.QueryRow(`INSERT
 			INTO "server_security_country" (
-				"server_id", 
-				"country_code") 
-			VALUES 
-				($1, $2) 
+				"server_id",
+				"country_code")
+			VALUES
+				($1, $2)
 			RETURNING id`,
 			in.GetServerId(),
 			record.Country.Code,
 		).Scan(&recordID)
 		if err != nil {
-			return nil, err
+			return nil, errFailedToAdd
 		}
 
 		response.Id = recordID
 
 	case *pb_firewall.CreateServerFirewall_Request_Ip:
-		row := db.Conn.QueryRowx(`SELECT 
-				"id" 
-			FROM 
-				"server_security_ip" 
-			WHERE 
-				"server_id" = $1 
-				AND "start_ip" = $2 
+		err := service.db.Conn.QueryRowx(`SELECT
+				"id"
+			FROM
+				"server_security_ip"
+			WHERE
+				"server_id" = $1
+				AND "start_ip" = $2
 				AND "end_ip" = $3`,
 			in.GetServerId(),
 			record.Ip.StartIp,
 			record.Ip.EndIp,
-		)
-		row.Scan(&recordID)
+		).Scan(&recordID)
+		if err != nil {
+			return nil, errFailedToScan
+		}
 		if recordID != "" {
-			return nil, errors.New(internal.MsgObjectAlreadyExists)
+			return nil, errObjectAlreadyExists
 		}
 
-		err = db.Conn.QueryRow(`INSERT 
+		err = service.db.Conn.QueryRow(`INSERT
 			INTO "server_security_ip" (
-				"server_id", 
-				"start_ip", 
-				"end_ip") 
-			VALUES 
-				($1, $2, $3) 
+				"server_id",
+				"start_ip",
+				"end_ip")
+			VALUES
+				($1, $2, $3)
 			RETURNING id`,
 			in.GetServerId(),
 			record.Ip.StartIp,
 			record.Ip.EndIp,
 		).Scan(&recordID)
 		if err != nil {
-			return nil, err
+			return nil, errFailedToAdd
 		}
 
 		response.Id = recordID
@@ -214,29 +211,33 @@ func (s *firewall) CreateServerFirewall(ctx context.Context, in *pb_firewall.Cre
 // UpdateAccessPolicy is ...
 func (s *firewall) UpdateAccessPolicy(ctx context.Context, in *pb_firewall.UpdateAccessPolicy_Request) (*pb_firewall.UpdateAccessPolicy_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(internal.ErrNotFound)
+		return nil, errNotFound
 	}
 
 	var sql string
 	switch in.Rule {
 	case pb_firewall.Rules_country:
-		sql = `UPDATE "server_access_policy" 
-			SET 
-				"country" = $1 
-			WHERE 
+		sql = `UPDATE "server_access_policy"
+			SET
+				"country" = $1
+			WHERE
 				"server_id" = $2`
 	case pb_firewall.Rules_ip:
-		sql = `UPDATE "server_access_policy" 
-			SET 
-				"ip" = $1 
-			WHERE 
+		sql = `UPDATE "server_access_policy"
+			SET
+				"ip" = $1
+			WHERE
 				"server_id" = $2`
 	default:
 		return &pb_firewall.UpdateAccessPolicy_Response{}, nil
 	}
 
-	if _, err := db.Conn.Exec(sql, in.GetStatus(), in.GetServerId()); err != nil {
-		return nil, err
+	data, err := service.db.Conn.Exec(sql, in.GetStatus(), in.GetServerId())
+	if err != nil {
+		return nil, errFailedToUpdate
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
 	}
 
 	return &pb_firewall.UpdateAccessPolicy_Response{}, nil
@@ -245,124 +246,116 @@ func (s *firewall) UpdateAccessPolicy(ctx context.Context, in *pb_firewall.Updat
 // DeleteServerFirewall is ...
 func (s *firewall) DeleteServerFirewall(ctx context.Context, in *pb_firewall.DeleteServerFirewall_Request) (*pb_firewall.DeleteServerFirewall_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errors.New(internal.ErrNotFound)
+		return nil, errNotFound
 	}
 
 	var sql string
 	switch in.Rule {
 	case pb_firewall.Rules_country:
-		sql = `DELETE 
-			FROM 
-				"server_security_country" 
-			WHERE 
+		sql = `DELETE
+			FROM
+				"server_security_country"
+			WHERE
 				"id" = $1`
 	case pb_firewall.Rules_ip:
-		sql = `DELETE 
-			FROM 
-				"server_security_ip" 
-			WHERE 
+		sql = `DELETE
+			FROM
+				"server_security_ip"
+			WHERE
 				"id" = $1`
 	default:
 		return &pb_firewall.DeleteServerFirewall_Response{}, nil
 	}
 
-	if _, err := db.Conn.Exec(sql, in.GetRecordId()); err != nil {
-		return nil, err
+	data, err := service.db.Conn.Exec(sql, in.GetRecordId())
+	if err != nil {
+		return nil, errFailedToDelete
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
 	}
 
 	return &pb_firewall.DeleteServerFirewall_Response{}, nil
 }
 
-// старая версия https://git.piplos.by/werbot/werbot-server/-/blob/feature/audit-record/pkg/acl/security.go
-// https://git.piplos.by/werbot/old-werbot/-/blob/master/wserver/firewall.go
+// old version https://git.piplos.media/werbot/werbot-server/-/blob/feature/audit-record/pkg/acl/security.go
+// https://git.piplos.media/werbot/old-werbot/-/blob/master/wserver/firewall.go
 
 // CheckIPAccess is ...
 func (s *firewall) CheckIPAccess(ctx context.Context, in *pb_firewall.CheckIPAccess_Request) (*pb_firewall.CheckIPAccess_Response, error) {
+	IPAccess := new(pb_firewall.CheckIPAccess_Response)
 	if in.GetClientIp() == "127.0.0.1" {
-		return &pb_firewall.CheckIPAccess_Response{
-			Access: true,
-		}, nil
+		IPAccess.Access = true
+		return IPAccess, nil
 	}
 
 	if in.GetClientIp() == "" {
-		return &pb_firewall.CheckIPAccess_Response{
-			Access: false,
-		}, errors.New("Incorrect parameters")
+		IPAccess.Access = false
+		return IPAccess, errIncorrectParameters
 	}
 
-	// проверка страны по глобальному списку запрещенных стран
+	// Verification of the country according to the global list of prohibited countries
 	countryCode, _ := countryFromIP(in.GetClientIp())
 	if convert.StringInSlice(*countryCode, internal.GetSliceString("SECURITY_BAD_COUNTRY", "")) {
-		return &pb_firewall.CheckIPAccess_Response{
-			Access: false,
-		}, nil
+		IPAccess.Access = false
+		return IPAccess, nil
 	}
 
-	// проверка ip по глобальному списку
+	// porch IP on the global list
 	access, err := blackListIP(in.GetClientIp())
-	if err != nil {
-		return &pb_firewall.CheckIPAccess_Response{
-			Access: false,
-		}, errors.New("blackList IP failed")
+	if err != nil || access {
+		IPAccess.Access = false
+		return IPAccess, errAccessIsDenied // blackList IP failed
 	}
 
-	if access {
-		return &pb_firewall.CheckIPAccess_Response{
-			Access: false,
-		}, nil
-	}
-
-	return &pb_firewall.CheckIPAccess_Response{
-		Access:  true,
-		Country: *countryCode,
-	}, nil
+	IPAccess.Access = true
+	IPAccess.Country = *countryCode
+	return IPAccess, nil
 }
 
 // CheckServerAccess is ...
 func (s *firewall) CheckServerAccess(ctx context.Context, in *pb_firewall.CheckServerAccess_Request) (*pb_firewall.CheckServerAccess_Response, error) {
-	// включен или нет профиль
+	serverAccess := new(pb_firewall.CheckServerAccess_Response)
+
+	// The profile is included or not
 	access, err := userAccountActivity(in.GetAccountId(), in.GetUserId())
 	if err != nil {
-		return &pb_firewall.CheckServerAccess_Response{
-			Access: false,
-		}, errors.New("user Account Activity failed")
+		serverAccess.Access = false
+		return serverAccess, err
 	}
 
-	// проверка страны и ip адреса по black и white листам
+	// Checking the country and IP addresses by Black and White sheets
 	if access {
 		access, err = accountActivityList(in.GetAccountId(), in.GetCountry(), in.GetClientIp())
 		if err != nil {
-			return &pb_firewall.CheckServerAccess_Response{
-				Access: false,
-			}, errors.New("account Activity List failed")
+			serverAccess.Access = false
+			return serverAccess, err
 		}
 	}
 
-	// проверить по времени
+	// Check by time
 	if access {
 		access, err = timeAccountActivity(in.GetAccountId())
 		if err != nil {
-			return &pb_firewall.CheckServerAccess_Response{
-				Access: false,
-			}, errors.New("time Account Activity failed")
+			serverAccess.Access = false
+			return serverAccess, err
 		}
 	}
 
-	return &pb_firewall.CheckServerAccess_Response{
-		Access: access,
-	}, nil
+	serverAccess.Access = access
+	return serverAccess, nil
 }
 
 func countryFromIP(ip string) (*string, error) {
 	db, err := geoip2.Open(internal.GetString("SECURITY_GEOIP2", "/etc/geoip2/GeoLite2-Country.mmdb"))
 	if err != nil {
-		return nil, errors.New("countryFromIP failed")
+		return nil, errFailedToOpenFile
 	}
 	defer db.Close()
 
 	record, err := db.City(net.ParseIP(ip))
 	if err != nil {
-		return nil, errors.New("countryFromIP city failed")
+		return nil, errAccessIsDenied
 	}
 	return &record.Country.IsoCode, nil
 }
@@ -375,104 +368,105 @@ func timeAccountActivity(accountID string) (bool, error) {
 	nowWeekInt := weekDays[time.Now().Weekday()]
 	nowTime := time.Now().Local().Format("15:04:05")
 
-	row := db.Conn.QueryRow(`SELECT
-			"server_activity"."id" 
+	err := service.db.Conn.QueryRow(`SELECT
+			"server_activity"."id"
 		FROM
-			"server_activity" 
+			"server_activity"
 		WHERE
-			"server_activity"."server_id" = $1 
-			AND "server_activity"."dow" = $2 
-			AND "server_activity"."time_from" < $3 
+			"server_activity"."server_id" = $1
+			AND "server_activity"."dow" = $2
+			AND "server_activity"."time_from" < $3
 			AND "server_activity"."time_to" > $3`,
 		accountID,
 		nowWeekInt,
 		nowTime,
-	)
-	if err := row.Scan(&id); err != nil {
-		return false, errors.New("select to server_activity")
+	).Scan(&id)
+	if err != nil {
+		return false, errFailedToScan
 	}
 	if id == 0 {
-		return false, errors.New("Access to this server is blocked at this time")
+		return false, errAccessIsDeniedTime // Access to this server is blocked at this time
 	}
+
 	return access, nil
 }
 
-// accountActivityList is ...
-// accessListCountry и accessListIP может возвращать следующие значения:
-//
-//	true - у данного сервера активен белый список
-//	false - у данного сервера активен черный список
+// accessListCountry and accessListIP can return the following values:
+// True - the white list is active in this server
+// false - this server is active in black list
 func accountActivityList(accountID, country, ip string) (bool, error) {
 	if ip == "127.0.0.1" {
 		return true, nil
 	}
 
 	var accessListCountry, accessListIP bool
-	row := db.Conn.QueryRow(`SELECT
+	err := service.db.Conn.QueryRow(`SELECT
 			"server_access_policy"."ip",
-			"server_access_policy"."country" 
+			"server_access_policy"."country"
 		FROM
-			"server_access_policy" 
+			"server_access_policy"
 		WHERE
 			"server_access_policy"."server_id" =$1`,
 		accountID,
-	)
-	if err := row.Scan(&accessListIP, &accessListCountry); err != nil {
-		return false, errors.New("server_access_policy failed")
+	).Scan(&accessListIP, &accessListCountry)
+	if err != nil {
+		return false, errFailedToScan
 	}
 
-	// выборка из таблицы со странами
+	// Sample from the table with countries
 	count := 0
-	row = db.Conn.QueryRow(`SELECT COUNT (*) 
-		FROM 
-			"server_access_policy" 
-		INNER 
-			JOIN "server_security_country" ON "server_access_policy"."server_id"="server_security_country"."server_id" 
-		WHERE 
-			"server_access_policy"."server_id" = $1 
+	err = service.db.Conn.QueryRow(`SELECT
+			COUNT (*)
+		FROM
+			"server_access_policy"
+		INNER
+			JOIN "server_security_country" ON "server_access_policy"."server_id"="server_security_country"."server_id"
+		WHERE
+			"server_access_policy"."server_id" = $1
 			AND "server_security_country"."country_code" = $2`,
 		accountID,
 		country,
-	)
-	if err := row.Scan(&count); err != nil {
-		return false, errors.New("server_access_policy failed")
+	).Scan(&count)
+	if err != nil {
+		return false, errFailedToScan
 	}
 
-	// черный список, страна найдена в списке:
+	// Black list, the country is found in the list:
 	if !accessListCountry && count > 0 {
-		return false, errors.New("Access to this server is blocked at this country")
+		return false, errAccessIsDeniedCountry
 	}
 
-	// белый список, страна не найдена в списке
+	// White list, the country was not found on the list
 	if accessListCountry && count == 0 {
-		return false, errors.New("Access to this server is blocked at this country")
+		return false, errAccessIsDeniedCountry
 	}
 
-	// делаем выборку в базе со списком ip адресов
-	count = 0 // сбрасываем значение
-	row = db.Conn.QueryRow(`SELECT COUNT (*)
+	// We make a sample in the database with a list of IP addresses
+	count = 0 // We drop the meaning
+	err = service.db.Conn.QueryRow(`SELECT
+      COUNT (*)
 		FROM
 			"server_access_policy"
-			INNER JOIN "server_security_ip" ON "server_access_policy"."server_id" = "server_security_ip"."server_id" 
+			INNER JOIN "server_security_ip" ON "server_access_policy"."server_id" = "server_security_ip"."server_id"
 		WHERE
-			"server_access_policy"."server_id" = $1 
-			AND $2::inet >= "server_security_ip"."start_ip" 
+			"server_access_policy"."server_id" = $1
+			AND $2::inet >= "server_security_ip"."start_ip"
 			AND $2::inet <= "server_security_ip"."end_ip"`,
 		accountID,
 		ip,
-	)
-	if err := row.Scan(&count); err != nil {
-		return false, errors.New("select to server_security_ip")
+	).Scan(&count)
+	if err != nil {
+		return false, errFailedToScan
 	}
 
-	// черный список, ip найден в списке
+	// Black list, IP found in the list
 	if !accessListIP && count > 0 {
-		return false, errors.New("Access to this server is blocked at this ip")
+		return false, errAccessIsDeniedIP
 	}
 
-	// белый список, ip не найден в списке
+	// White list, IP was not found on the list
 	if accessListIP && count == 0 {
-		return false, errors.New("Access to this server is blocked at this ip")
+		return false, errAccessIsDeniedIP
 	}
 
 	return true, nil
@@ -481,28 +475,28 @@ func accountActivityList(accountID, country, ip string) (bool, error) {
 // userAccountActivity is ...
 func userAccountActivity(accountID, userID string) (bool, error) {
 	id := 0
-	row := db.Conn.QueryRow(`SELECT
-			"server_member"."id" 
+	err := service.db.Conn.QueryRow(`SELECT
+			"server_member"."id"
 		FROM
-			server_member
+			"server_member"
 			INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
-			INNER JOIN "server" ON "server_member"."server_id" = "server"."id" 
+			INNER JOIN "server" ON "server_member"."server_id" = "server"."id"
 		WHERE
-			"project_member"."user_id" = $2 
-			AND "project_member"."active" = TRUE 
-			AND "server_member"."server_id" = $1 
-			AND "server_member"."active" = TRUE 
+			"project_member"."user_id" = $2
+			AND "project_member"."active" = TRUE
+			AND "server_member"."server_id" = $1
+			AND "server_member"."active" = TRUE
 			AND "server"."active" = TRUE`,
 		accountID,
 		userID,
-	)
-	if err := row.Scan(&id); err != nil {
-		return false, errors.New("userAccountActivity field")
+	).Scan(&id)
+	if err != nil {
+		return false, errFailedToScan
+	}
+	if id == 0 {
+		return false, errAccessIsDeniedUser // Access is blocked
 	}
 
-	if id == 0 {
-		return false, errors.New("Access is blocked")
-	}
 	return true, nil
 }
 
@@ -511,23 +505,25 @@ func userAccountActivity(accountID, userID string) (bool, error) {
 // returns false if the IP address is not in the active blacklist
 func blackListIP(ip string) (bool, error) {
 	count := 0
-	row := db.Conn.QueryRow(`SELECT COUNT(*) 
+	err := service.db.Conn.QueryRow(`SELECT
+			COUNT(*)
 		FROM
 			"firewall_ip"
-			INNER JOIN "firewall_list" ON "firewall_ip"."list_id" = "firewall_list"."id" 
-		WHERE 
-			$1::inet >= "start_ip" 
+			INNER JOIN "firewall_list" ON "firewall_ip"."list_id" = "firewall_list"."id"
+		WHERE
+			$1::inet >= "start_ip"
 			AND $1::inet <= "end_ip"
 			AND "firewall_list"."active" = TRUE`,
 		ip,
-	)
-	if err := row.Scan(&count); err != nil {
-		return true, errors.New("blackListIP failed")
+	).Scan(&count)
+	if err != nil {
+		return true, errFailedToScan
 	}
 
-	// черный список, ip найден в списке
+	// Black list, IP found in the list
 	if count > 0 {
 		return true, nil
 	}
+
 	return false, nil
 }

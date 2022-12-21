@@ -47,7 +47,7 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
 	}
 
 	if userParameter.IsUserAdmin() {
@@ -94,7 +94,7 @@ func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
 
-	plan, err := rClient.GetPlan(ctx, &pb.GetPlan_Request{
+	plan, err := rClient.Plan(ctx, &pb.Plan_Request{
 		PlanId: planID,
 	})
 	if err != nil {
@@ -102,7 +102,7 @@ func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -140,12 +140,12 @@ func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 	input := &pb.UpdatePlan_Request{}
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
 	if !userParameter.IsUserAdmin() {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -175,7 +175,7 @@ func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
 	}
 
 	return httputil.StatusOK(c, "Tariff plan updated successfully", nil)

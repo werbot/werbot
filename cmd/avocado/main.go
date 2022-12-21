@@ -60,7 +60,6 @@ func main() {
 	ln, err := net.Listen("tcp", internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022"))
 	if err != nil {
 		app.log.Fatal(err).Msg("Start avocado server")
-
 	}
 	proxyListener := &proxyproto.Listener{Listener: ln}
 

@@ -2,7 +2,7 @@ package grpc
 
 func checkUserIDAndProjectID(projectID, userID string) bool {
 	var id string
-	db.Conn.QueryRow(`SELECT 
+	service.db.Conn.QueryRow(`SELECT 
 			"id" 
 		FROM 
 			"project" 

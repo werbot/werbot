@@ -1,7 +1,7 @@
 import { http } from "@/api";
 import {
   ListUsers_Request,
-  GetUser_Request,
+  User_Request,
   CreateUser_Request,
   UpdateUser_Request,
   UpdatePassword_Request,
@@ -21,7 +21,7 @@ const getUsers = async (data?: ListUsers_Request, user_id?: string) =>
     },
   });
 
-const getUser = async (data: GetUser_Request) =>
+const getUser = async (data: User_Request) =>
   http("GET", URL.users, {params: data});
 
 const postUser = async (data: CreateUser_Request) => http("POST", URL.users, { data: data });

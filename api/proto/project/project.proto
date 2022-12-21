@@ -5,15 +5,15 @@ package project;
 option go_package = "github.com/werbot/werbot/api/proto/project";
 
 import "google/protobuf/timestamp.proto";
-import "tagger/tagger.proto";
 
 service ProjectHandlers {
     rpc ListProjects(ListProjects.Request) returns (ListProjects.Response) {}
-    rpc GetProject(GetProject.Request) returns (GetProject.Response) {}
+    rpc Project(Project.Request) returns (Project.Response) {}
     rpc CreateProject(CreateProject.Request) returns (CreateProject.Response) {}
     rpc UpdateProject(UpdateProject.Request) returns (UpdateProject.Response) {}
     rpc DeleteProject(DeleteProject.Request) returns (DeleteProject.Response) {}
-    rpc GetProjectApiData(GetProjectApiData.Request) returns (GetProjectApiData.Response) {}
+
+    rpc ProjectAPIByID(ProjectAPIByID.Request) returns (ProjectAPIByID.Response) {}
 }
 
 // rpc ListProjects
@@ -27,17 +27,17 @@ message ListProjects {
 
     message Response{
         int32 total = 1;
-        repeated GetProject.Response projects = 2;
+        repeated Project.Response projects = 2;
     }
 }
 // -----------------------------------------------------
 
 
-// rpc GetProject
-message GetProject {
+// rpc Project
+message Project {
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"owner_id\"    params:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"project_id\"  params:\"project_id\""];
+        string owner_id = 1;   // @gotags: validate:"omitempty,uuid" query:"owner_id" params:"owner_id"
+        string project_id = 2; // @gotags: validate:"omitempty,uuid" query:"project_id" params:"project_id"
     }
 
     message Response{
@@ -56,9 +56,9 @@ message GetProject {
 // rpc CreateProject
 message CreateProject {
     message Request {
-        string owner_id = 1  [(tagger.tags) = "validate:\"omitempty,uuid\""];
-        string login = 2     [(tagger.tags) = "validate:\"required,alphanum\""];
-        string title = 3     [(tagger.tags) = "validate:\"required,min=5,max=20\""];
+        string owner_id = 1; // @gotags: validate:"omitempty,uuid"
+        string login = 2;    // @gotags: validate:"required,alphanum"
+        string title = 3;    // @gotags: validate:"required,min=5,max=20"
     }
 
     message Response {
@@ -71,9 +71,9 @@ message CreateProject {
 // rpc UpdateProject
 message UpdateProject {
     message Request {
-        string project_id = 1  [(tagger.tags) = "validate:\"required,uuid\"          query:\"project_id\"  params:\"project_id\""];
-        string owner_id = 2    [(tagger.tags) = "validate:\"omitempty,uuid\"         query:\"owner_id\"    params:\"owner_id\""];
-        string title = 3       [(tagger.tags) = "validate:\"required,min=5,max=20\"  query:\"title\"       params:\"title\""];
+        string project_id = 1; // @gotags: validate:"required,uuid" query:"project_id" params:"project_id"
+        string owner_id = 2;   // @gotags: validate:"omitempty,uuid" query:"owner_id" params:"owner_id"
+        string title = 3;      // @gotags: validate:"required,min=5,max=20" query:"title" params:"title"
     }
 
     message Response {}
@@ -84,18 +84,18 @@ message UpdateProject {
 // rpc DeleteProject
 message DeleteProject{
     message Request {
-        string owner_id = 1    [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"owner_id\"    params:\"owner_id\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\"   query:\"project_id\"  params:\"project_id\""];
+        string owner_id = 1;    // @gotags: validate:"omitempty,uuid" query:"owner_id" params:"owner_id"
+        string project_id = 2 ; // @gotags: validate:"required,uuid" query:"project_id" params:"project_id"
     }
 
     message Response {}
 }
 // -----------------------------------------------------
 
-// rpc GetProjectApiData
-message GetProjectApiData {
+// rpc ProjectAPIByID
+message ProjectAPIByID {
     message Request {
-        string project_id = 1  [(tagger.tags) = "validate:\"uuid\" query:\"project_id\""];
+        string project_id = 1; // @gotags: validate:"uuid" query:"project_id"
     }
     
     message Response {

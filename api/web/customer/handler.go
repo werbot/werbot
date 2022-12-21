@@ -19,11 +19,11 @@ type userReq struct {
 func (h *handler) getCustomer(c *fiber.Ctx) error {
 	var input userReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
 	}
 
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "Information about the subscription", input.UserID)
@@ -36,11 +36,11 @@ func (h *handler) getCustomer(c *fiber.Ctx) error {
 func (h *handler) deleteCustomer(c *fiber.Ctx) error {
 	var input userReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
 	}
 
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "The subscriber is deleted", input.UserID)

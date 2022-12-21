@@ -124,7 +124,7 @@ func (h *TestHandler) GetUserInfo(signIn *pb.SignIn_Request) *UserInfo {
 // FinishHandler is ...
 func (h *TestHandler) FinishHandler() {
 	h.App.Use(func(c *fiber.Ctx) error {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	})
 
 	h.Handler = h.fiberToHandlerFunc()

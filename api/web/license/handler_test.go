@@ -60,7 +60,7 @@ func TestHandler_getLicenseInfo(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -80,7 +80,7 @@ func TestHandler_getLicenseInfo(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},

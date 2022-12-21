@@ -7,11 +7,11 @@ option go_package = "github.com/werbot/werbot/api/proto/update";
 import "google/protobuf/timestamp.proto";
 
 service UpdateHandlers {
-    rpc GetUpdate(GetUpdate.Request) returns (GetUpdate.Response) {}
+    rpc Update(Update.Request) returns (Update.Response) {}
 }
 
-// rpc GetUpdate
-message GetUpdate {
+// rpc Update
+message Update {
     message Request {}
 
     message Response {

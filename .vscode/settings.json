@@ -67,41 +67,8 @@
     "options": ["--proto_path=${workspaceFolder}/api/proto/"]
   },
 
-  "cSpell.words": [
-    "antd",
-    "antv",
-    "brotli",
-    "browserslist",
-    "codemirror",
-    "commitlint",
-    "cropperjs",
-    "echarts",
-    "esnext",
-    "esno",
-    "iconify",
-    "INTLIFY",
-    "lint-staged",
-    "lintstagedrc",
-    "logicflow",
-    "mkcert",
-    "mockjs",
-    "nprogress",
-    "pinia",
-    "pnpm",
-    "popperjs",
-    "qrcode",
-    "sider",
-    "sortablejs",
-    "stylelint",
-    "tailwindcss",
-    "tinymce",
-    "unplugin",
-    "vben",
-    "vditor",
-    "vitejs",
-    "vueuse",
-    "windi",
-    "windicss",
-    "zxcvbn"
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": [
+    "--fast"
   ]
 }

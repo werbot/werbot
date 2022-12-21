@@ -1,12 +1,12 @@
 import { http } from "@/api";
 import {
-  GetServerMember_Request,
+  ServerMember_Request,
   ListServerMembers_Request,
   CreateServerMember_Request,
   UpdateServerMember_Request,
   DeleteServerMember_Request,
   UpdateServerMemberStatus_Request,
-  GetMembersWithoutServer_Request,
+  MembersWithoutServer_Request,
 } from "@proto/member/member";
 
 enum URL {
@@ -29,7 +29,7 @@ const getServerMembers = async (
     },
   });
 
-const getServerMember = async (data: GetServerMember_Request) =>
+const getServerMember = async (data: ServerMember_Request) =>
   http("GET", URL.server_members, { params: data });
 
 const postServerMember = async (data: CreateServerMember_Request) =>
@@ -44,7 +44,7 @@ const deleteServerMember = async (data: DeleteServerMember_Request) =>
 const updateServerMemberStatus = async (data: UpdateServerMemberStatus_Request) =>
   http("PATCH", URL.server_members + "/active", { data: data });
 
-  const getMembersWithoutServer = async (data: GetMembersWithoutServer_Request) =>
+  const getMembersWithoutServer = async (data: MembersWithoutServer_Request) =>
   http("GET", URL.server_members + "/search", { params: data });
 
 export {

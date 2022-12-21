@@ -1,5 +1,5 @@
 <template>
-  <div v-if="data.message == 'invite is invalid'" class="artboard-red">
+  <div v-if="data.message == 'Invite is invalid'" class="artboard-red">
     <header>
       <h1>Invitation to join the project</h1>
     </header>
@@ -8,7 +8,7 @@
     </div>
   </div>
 
-  <div v-if="data.message == 'wrong user'" class="artboard-red">
+  <div v-if="data.message == 'Wrong user'" class="artboard-red">
     <header>
       <h1>Invitation to join the project</h1>
     </header>
@@ -22,7 +22,7 @@
     </div>
   </div>
 
-  <div v-if="data.message == 'invite is activated'" class="artboard-yellow">
+  <div v-if="data.message == 'Invite is activated'" class="artboard-yellow">
     <header>
       <h1>Invitation to join the project</h1>
     </header>
@@ -58,7 +58,7 @@ onMounted(async () => {
     })
     .catch((err) => {
       data.value = err.response.data;
-      if (data.value.message == "new user") {
+      if (data.value.message == "New user") {
         router.push({ name: "auth-signup" });
       }
     });

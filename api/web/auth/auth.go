@@ -33,7 +33,7 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 	input := &pb.SignIn_Request{}
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -49,7 +49,7 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
 	}
 
 	sub := uuid.New().String()
@@ -98,7 +98,7 @@ func (h *handler) logout(c *fiber.Ctx) error {
 func (h *handler) refresh(c *fiber.Ctx) error {
 	input := new(jwt.Tokens)
 	if err := c.BodyParser(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
 	}
 
 	claims, err := jwt.Parse(input.Refresh)
@@ -118,7 +118,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
-	user, _ := rClient.GetUser(ctx, &pb.GetUser_Request{
+	user, _ := rClient.User(ctx, &pb.User_Request{
 		UserId: userID,
 	})
 
@@ -164,7 +164,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 
 	request.Token = c.Params("reset_token")
 	if err := validate.Struct(request); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	// Sending an email with a verification link
@@ -183,7 +183,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 	}
 
 	if request.Request == nil && request.GetToken() == "" {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -196,7 +196,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
 	}
 
 	// send token to send email

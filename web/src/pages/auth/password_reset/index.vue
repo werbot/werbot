@@ -20,7 +20,7 @@
       </div>
     </form>
 
-    <div v-if="data.message === 'Your verification email has been sent'">
+    <div v-if="data.message === 'Verification email has been sent'">
       <span class="message"
         >Bad An email has been sent. It contains a link you must click to reset your password.</span
       >

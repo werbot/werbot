@@ -115,7 +115,7 @@ func main() {
 
 	// notFoundRoute func for describe 404 Error route.
 	app.Use(func(c *fiber.Ctx) error {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	})
 
 	log.Info().Str("serverAddress", appPort).Msg("Start taco server")

@@ -11,6 +11,17 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
+var (
+	// ErrLicenseKeyIsBroken is ...
+	ErrLicenseKeyIsBroken = errors.New("The license key has a broken")
+
+	// ErrLicenseStructureIsBroken is ...
+	ErrLicenseStructureIsBroken = errors.New("The license has a broken structure")
+
+	// ErrFailedToOpenLicenseFile is ...
+	ErrFailedToOpenLicenseFile = errors.New("Failed to open license file")
+)
+
 // Private is ...
 type Private struct {
 	key     ed25519.PrivateKey
@@ -108,7 +119,7 @@ func (l *Public) Decode(data []byte) (*Public, error) {
 
 // Expired is a ...
 func (l *Public) Expired() bool {
-	return l.License.Exp.IsZero() == false && time.Now().After(l.License.Exp)
+	return !l.License.Exp.IsZero() && time.Now().After(l.License.Exp)
 }
 
 // Info is ...

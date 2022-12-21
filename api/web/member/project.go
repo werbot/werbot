@@ -25,14 +25,14 @@ import (
 // @Param        project_id      path     uuid true  "Project ID"
 // @Param        owner_id        path     uuid false "Project owner ID"
 // @Param        member_id       path     uuid false "Member ID. Parameter Accessible with ROLE_ADMIN rights"
-// @Success      200             {object} httputil.HTTPResponse{data=pb.GetProjectMember_Response}
+// @Success      200             {object} httputil.HTTPResponse{data=pb.ProjectMember_Response}
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members [get]
 func (h *handler) getProjectMember(c *fiber.Ctx) error {
-	input := new(pb.GetProjectMember_Request)
+	input := new(pb.ProjectMember_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -60,7 +60,7 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 	}
 
 	// show information about the member
-	member, err := rClient.GetProjectMember(ctx, &pb.GetProjectMember_Request{
+	member, err := rClient.ProjectMember(ctx, &pb.ProjectMember_Request{
 		OwnerId:   ownerID,
 		ProjectId: input.GetProjectId(),
 		MemberId:  input.GetMemberId(),
@@ -69,7 +69,7 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	if member == nil {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	return httputil.StatusOK(c, "Member information", member)
@@ -87,7 +87,7 @@ func (h *handler) addProjectMember(c *fiber.Ctx) error {
 	input := new(pb.CreateProjectMember_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -122,7 +122,7 @@ func (h *handler) patchProjectMember(c *fiber.Ctx) error {
 	input := new(pb.UpdateProjectMember_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -159,7 +159,7 @@ func (h *handler) deleteProjectMember(c *fiber.Ctx) error {
 	input := new(pb.DeleteProjectMember_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -194,7 +194,7 @@ func (h *handler) getUsersWithoutProject(c *fiber.Ctx) error {
 	input := new(pb.ActivityRequest)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -204,7 +204,7 @@ func (h *handler) getUsersWithoutProject(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	members, err := rClient.GetUsersWithoutProject(ctx, &pb.GetUsersWithoutProject_Request{
+	members, err := rClient.UsersWithoutProject(ctx, &pb.UsersWithoutProject_Request{
 		OwnerId:   ownerID,
 		ProjectId: input.GetProjectId(),
 		Name:      input.GetName(),
@@ -227,7 +227,7 @@ func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateProjectMemberStatus_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -249,7 +249,7 @@ func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 
 	// message section
 	message := "Member is online"
-	if input.GetStatus() == false {
+	if !input.GetStatus() {
 		message = "Member is offline"
 	}
 	return httputil.StatusOK(c, message, nil)
@@ -266,10 +266,10 @@ func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/invite [get]
 func (h *handler) getProjectMembersInvite(c *fiber.Ctx) error {
-	input := new(pb.GetProjectMember_Request)
+	input := new(pb.ProjectMember_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -306,7 +306,7 @@ func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	input := new(pb.CreateProjectMemberInvite_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -349,7 +349,7 @@ func (h *handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 	input := new(pb.DeleteProjectMemberInvite_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -382,7 +382,7 @@ func (h *handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 	request := new(pb.ProjectMemberInviteActivate_Request)
 	request.Invite = c.Params("invite")
 	if err := validate.Struct(request); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

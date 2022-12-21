@@ -33,19 +33,19 @@ func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 	input := new(licenseInput)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	licenseDec, err := base64.StdEncoding.DecodeString(input.License)
 	if err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrBadRequest, err)
+		return httputil.StatusBadRequest(c, internal.MsgBadRequest, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
 
-	expiredLic, err := rClient.GetLicenseExpired(ctx, &pb.GetLicenseExpired_Request{
+	expiredLic, err := rClient.LicenseExpired(ctx, &pb.LicenseExpired_Request{
 		License: licenseDec,
 	})
 	if err != nil {
@@ -68,7 +68,7 @@ func (h *handler) postLicense(c *fiber.Ctx) error {
 	c.BodyParser(input)
 
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	dataLicense := &pb.NewLicense_Request{

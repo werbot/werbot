@@ -65,7 +65,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser:  &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -91,7 +91,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -117,7 +117,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -129,7 +129,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.projectid`, "ProjectId must be a valid UUID").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -156,7 +156,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -168,7 +168,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -180,7 +180,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -240,7 +240,7 @@ func TestHandler_addProject(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -254,7 +254,7 @@ func TestHandler_addProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.login`, "Login is a required field").
 				Equal(`$.result.title`, "Title is a required field").
 				End(),
@@ -269,7 +269,7 @@ func TestHandler_addProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.title`, "Title must be at least 5 characters in length").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -282,7 +282,7 @@ func TestHandler_addProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.title`, "Title is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -341,7 +341,7 @@ func TestHandler_patchProject(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -352,7 +352,7 @@ func TestHandler_patchProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.projectid`, "ProjectId is a required field").
 				Equal(`$.result.title`, "Title is a required field").
 				End(),
@@ -366,7 +366,7 @@ func TestHandler_patchProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.title`, "Title is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,

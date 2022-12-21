@@ -9,14 +9,16 @@ import (
 
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
-	pb "github.com/werbot/werbot/api/proto/key"
-	pb_key "github.com/werbot/werbot/api/proto/key"
-	pb_user "github.com/werbot/werbot/api/proto/user"
+
 	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/middleware"
+
+	pb "github.com/werbot/werbot/api/proto/key"
+	pb_key "github.com/werbot/werbot/api/proto/key"
+	pb_user "github.com/werbot/werbot/api/proto/user"
 )
 
 var (
@@ -55,7 +57,10 @@ func apiTest() *apitest.APITest {
 }
 
 func newKey() string {
-	key, _ := crypto.NewSSHKey("KEY_TYPE_ED25519")
+	key, err := crypto.NewSSHKey("KEY_TYPE_ED25519")
+	if err != nil {
+		return crypto.MsgFailedCreatingSSHKey
+	}
 	return string(key.PublicKey)
 }
 
@@ -70,7 +75,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser:  &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -82,7 +87,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -94,7 +99,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -160,7 +165,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -172,7 +177,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -185,7 +190,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -197,7 +202,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateParams).
+				Equal(`$.message`, internal.MsgValidateParams).
 				Equal(`$.result.userid`, "UserId must be a valid UUID").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -210,7 +215,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateParams).
+				Equal(`$.message`, internal.MsgValidateParams).
 				Equal(`$.result.keyid`, "KeyId must be a valid UUID").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -224,7 +229,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateParams).
+				Equal(`$.message`, internal.MsgValidateParams).
 				Equal(`$.result.userid`, "UserId must be a valid UUID").
 				Equal(`$.result.keyid`, "KeyId must be a valid UUID").
 				End(),
@@ -277,7 +282,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateParams).
+				Equal(`$.message`, internal.MsgValidateParams).
 				Equal(`$.result.userid`, "UserId must be a valid UUID").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -290,7 +295,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateParams).
+				Equal(`$.message`, internal.MsgValidateParams).
 				Equal(`$.result.keyid`, "KeyId must be a valid UUID").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -304,7 +309,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateParams).
+				Equal(`$.message`, internal.MsgValidateParams).
 				Equal(`$.result.userid`, "UserId must be a valid UUID").
 				Equal(`$.result.keyid`, "KeyId must be a valid UUID").
 				End(),
@@ -341,7 +346,7 @@ func Test_addKey(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -354,7 +359,7 @@ func Test_addKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -381,7 +386,7 @@ func Test_addKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -433,7 +438,7 @@ func Test_addKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.title`, "Title is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -453,7 +458,7 @@ func Test_addKey(t *testing.T) {
 			RespondStatus: http.StatusOK,
 		},
 		{
-			Name: "This key has already been added",
+			Name: "Object already exists",
 			RequestBody: pb_key.CreatePublicKey_Request{
 				Key:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWl2aY8FicEWNAlrQ+DwmhonSuhU8SsXJErdO9WpPKN",
 				Title: "test1",
@@ -461,7 +466,7 @@ func Test_addKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, "This key has already been added").
+				Equal(`$.message`, "Object already exists").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -510,7 +515,7 @@ func Test_patchKey(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -523,7 +528,7 @@ func Test_patchKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.key`, "Key is a required field").
 				Equal(`$.result.keyid`, "KeyId is a required field").
 				Equal(`$.result.title`, "Title is a required field").
@@ -539,7 +544,7 @@ func Test_patchKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.title`, "Title is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -554,7 +559,7 @@ func Test_patchKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, "This key has already been added").
+				Equal(`$.message`, "Object already exists").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -628,7 +633,7 @@ func Test_patchKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -655,7 +660,7 @@ func Test_patchKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateBodyParams).
+				Equal(`$.message`, internal.MsgValidateBodyParams).
 				Equal(`$.result.key`, "Key is a required field").
 				Equal(`$.result.keyid`, "KeyId must be a valid UUID").
 				Equal(`$.result.title`, "Title is a required field").
@@ -694,7 +699,7 @@ func TestHandler_deleteKey(t *testing.T) {
 			RequestUser:  &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},
@@ -734,7 +739,7 @@ func TestHandler_deleteKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateParams).
+				Equal(`$.message`, internal.MsgValidateParams).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -761,7 +766,7 @@ func TestHandler_deleteKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrNotFound).
+				Equal(`$.message`, internal.MsgNotFound).
 				End(),
 			RespondStatus: http.StatusNotFound,
 		},
@@ -773,7 +778,7 @@ func TestHandler_deleteKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrValidateParams).
+				Equal(`$.message`, internal.MsgValidateParams).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -823,7 +828,7 @@ func TestHandler_getGenerateNewKey(t *testing.T) {
 			RequestUser:  &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.ErrUnauthorized).
+				Equal(`$.message`, internal.MsgUnauthorized).
 				End(),
 			RespondStatus: http.StatusUnauthorized,
 		},

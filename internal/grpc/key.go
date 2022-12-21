@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -20,12 +21,15 @@ type key struct {
 	pb_key.UnimplementedKeyHandlersServer
 }
 
+var (
+	errPublicKeyIsBroken = errors.New("The public key has a broken structure")
+)
+
 // ListPublicKeys is ...
 func (k *key) ListPublicKeys(ctx context.Context, in *pb_key.ListPublicKeys_Request) (*pb_key.ListPublicKeys_Response, error) {
-	sqlSearch := db.SQLAddWhere(in.GetQuery())
-	sqlFooter := db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-
-	rows, err := db.Conn.Query(`SELECT
+	sqlSearch := service.db.SQLAddWhere(in.GetQuery())
+	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
+	rows, err := service.db.Conn.Query(`SELECT
 			"user_public_key"."id" AS "key_id",
 			"user_public_key"."user_id",
 			"user"."name" AS "user_name",
@@ -33,19 +37,18 @@ func (k *key) ListPublicKeys(ctx context.Context, in *pb_key.ListPublicKeys_Requ
 			"user_public_key"."key_",
 			"user_public_key"."fingerprint",
 			"user_public_key"."last_used",
-			"user_public_key"."created" 
+			"user_public_key"."created"
 		FROM
 			"user_public_key"
 			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"` + sqlSearch + sqlFooter)
 	if err != nil {
-		return nil, errors.New("ListPublicKeys failed")
+		return nil, errFailedToSelect
 	}
 
-	keys := []*pb_key.GetPublicKey_Response{}
+	keys := []*pb_key.PublicKey_Response{}
 	for rows.Next() {
-		publicKey := pb_key.GetPublicKey_Response{}
 		var lastUsed, created pgtype.Timestamp
-
+		publicKey := new(pb_key.PublicKey_Response)
 		err = rows.Scan(
 			&publicKey.KeyId,
 			&publicKey.UserId,
@@ -57,22 +60,25 @@ func (k *key) ListPublicKeys(ctx context.Context, in *pb_key.ListPublicKeys_Requ
 			&created,
 		)
 		if err != nil {
-			return nil, errors.New("ListCustomers Scan")
+			return nil, errFailedToScan
 		}
-
 		publicKey.LastUsed = timestamppb.New(lastUsed.Time)
 		publicKey.Created = timestamppb.New(created.Time)
-
-		keys = append(keys, &publicKey)
+		keys = append(keys, publicKey)
 	}
 	defer rows.Close()
 
 	// Total count for pagination
 	var total int32
-	db.Conn.QueryRow(`SELECT COUNT (*)
+	err = service.db.Conn.QueryRow(`SELECT
+      COUNT (*)
 		FROM
 			"user_public_key"
-			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"` + sqlSearch).Scan(&total)
+			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"` + sqlSearch).
+		Scan(&total)
+	if err != nil {
+		return nil, errFailedToScan
+	}
 
 	return &pb_key.ListPublicKeys_Response{
 		Total:      total,
@@ -80,13 +86,12 @@ func (k *key) ListPublicKeys(ctx context.Context, in *pb_key.ListPublicKeys_Requ
 	}, nil
 }
 
-// GetPublicKey is ...
-func (k *key) GetPublicKey(ctx context.Context, in *pb_key.GetPublicKey_Request) (*pb_key.GetPublicKey_Response, error) {
-	publicKey := pb_key.GetPublicKey_Response{}
-	publicKey.KeyId = in.GetKeyId()
+// PublicKey is ...
+func (k *key) PublicKey(ctx context.Context, in *pb_key.PublicKey_Request) (*pb_key.PublicKey_Response, error) {
 	var lastUsed, created pgtype.Timestamp
-
-	err := db.Conn.QueryRow(`SELECT
+	publicKey := new(pb_key.PublicKey_Response)
+	publicKey.KeyId = in.GetKeyId()
+	err := service.db.Conn.QueryRow(`SELECT
 			"user_public_key"."id" AS "key_id",
 			"user_public_key"."user_id",
 			"user"."name" AS "user_name",
@@ -94,7 +99,7 @@ func (k *key) GetPublicKey(ctx context.Context, in *pb_key.GetPublicKey_Request)
 			"user_public_key"."key_",
 			"user_public_key"."fingerprint",
 			"user_public_key"."last_used",
-			"user_public_key"."created" 
+			"user_public_key"."created"
 		FROM
 			"user_public_key"
 			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id" WHERE "user_public_key"."id" = $1 AND "user_public_key"."user_id" = $2`, in.GetKeyId(), in.GetUserId()).
@@ -109,49 +114,56 @@ func (k *key) GetPublicKey(ctx context.Context, in *pb_key.GetPublicKey_Request)
 			&created,
 		)
 	if err != nil {
-		return nil, errors.New(internal.ErrNotFound)
+		if err == sql.ErrNoRows {
+			return nil, errNotFound
+		}
+		return nil, errFailedToScan
 	}
 
 	publicKey.LastUsed = timestamppb.New(lastUsed.Time)
 	publicKey.Created = timestamppb.New(created.Time)
-
-	return &publicKey, nil
+	return publicKey, nil
 }
 
 // CreatePublicKey is ...
 func (k *key) CreatePublicKey(ctx context.Context, in *pb_key.CreatePublicKey_Request) (*pb_key.CreatePublicKey_Response, error) {
+	var count int32
+	var id string
+
 	publicKey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(in.GetKey()))
 	if err != nil {
-		return nil, errors.New("The public key has a broken structure")
+		return nil, errPublicKeyIsBroken
 	}
 	fingerprint := ssh.FingerprintLegacyMD5(publicKey)
 
 	// Check public key fingerprint
-	var count int32
-	db.Conn.QueryRow(`SELECT COUNT(*) 
-		FROM 
-			"user_public_key" 
-		WHERE 
+	err = service.db.Conn.QueryRow(`SELECT
+			COUNT(*)
+		FROM
+			"user_public_key"
+		WHERE
 			"fingerprint" = $1`,
 		fingerprint,
 	).Scan(&count)
+	if err != nil {
+		return nil, errFailedToScan
+	}
 	if count > 0 {
-		return nil, errors.New("This key has already been added")
+		return nil, errObjectAlreadyExists // This key has already been added
 	}
 
 	if in.GetTitle() != "" {
 		comment = in.GetTitle()
 	}
 
-	var id string
-	err = db.Conn.QueryRow(`INSERT 
+	err = service.db.Conn.QueryRow(`INSERT
 		INTO "user_public_key" (
-			"user_id", 
-			"title", 
-			"key_", 
-			"fingerprint", 
-			"created") 
-		VALUES ($1, $2, $3, $4, NOW()) 
+			"user_id",
+			"title",
+			"key_",
+			"fingerprint",
+			"created")
+		VALUES ($1, $2, $3, $4, NOW())
 		RETURNING id`,
 		in.GetUserId(),
 		comment,
@@ -159,7 +171,7 @@ func (k *key) CreatePublicKey(ctx context.Context, in *pb_key.CreatePublicKey_Re
 		fingerprint,
 	).Scan(&id)
 	if err != nil {
-		return nil, errors.New("CreatePublicKey failed")
+		return nil, errFailedToAdd
 	}
 
 	return &pb_key.CreatePublicKey_Response{
@@ -169,36 +181,38 @@ func (k *key) CreatePublicKey(ctx context.Context, in *pb_key.CreatePublicKey_Re
 
 // UpdatePublicKey is ...
 func (k *key) UpdatePublicKey(ctx context.Context, in *pb_key.UpdatePublicKey_Request) (*pb_key.UpdatePublicKey_Response, error) {
+	var count int32
+
 	publicKey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(in.GetKey()))
 	if err != nil {
-		return nil, errors.New("The public key has a broken structure")
+		return nil, errPublicKeyIsBroken
 	}
 	fingerprint := ssh.FingerprintLegacyMD5(publicKey)
 
 	// Check public key fingerprint
-	var count int32
-	db.Conn.QueryRow(`SELECT COUNT(*) 
-		FROM 
-			"user_public_key" 
-		WHERE 
+	service.db.Conn.QueryRow(`SELECT
+			COUNT(*)
+		FROM
+			"user_public_key"
+		WHERE
 			"fingerprint" = $1`,
 		fingerprint,
 	).Scan(&count)
 	if count > 1 {
-		return nil, errors.New("This key has already been added")
+		return nil, errObjectAlreadyExists // This key has already been added
 	}
 
 	if in.GetTitle() != "" {
 		comment = in.GetTitle()
 	}
 
-	data, err := db.Conn.Exec(`UPDATE "user_public_key" 
-		SET 
-			"title" = $1, 
-			"key_" = $2, 
-			"fingerprint" = $3 
-		WHERE 
-			"id" = $4 
+	data, err := service.db.Conn.Exec(`UPDATE "user_public_key"
+		SET
+			"title" = $1,
+			"key_" = $2,
+			"fingerprint" = $3
+		WHERE
+			"id" = $4
 			AND "user_id" = $5`,
 		comment,
 		in.GetKey(),
@@ -207,11 +221,10 @@ func (k *key) UpdatePublicKey(ctx context.Context, in *pb_key.UpdatePublicKey_Re
 		in.GetUserId(),
 	)
 	if err != nil {
-		return nil, errors.New("UpdatePublicKey failed")
+		return nil, errFailedToUpdate
 	}
-
 	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errors.New(internal.ErrNotFound)
+		return nil, errNotFound
 	}
 
 	return &pb_key.UpdatePublicKey_Response{}, nil
@@ -219,21 +232,20 @@ func (k *key) UpdatePublicKey(ctx context.Context, in *pb_key.UpdatePublicKey_Re
 
 // DeletePublicKey is ...
 func (k *key) DeletePublicKey(ctx context.Context, in *pb_key.DeletePublicKey_Request) (*pb_key.DeletePublicKey_Response, error) {
-	data, err := db.Conn.Exec(`DELETE 
-		FROM 
-			"user_public_key" 
-		WHERE 
-			"id" = $1 
+	data, err := service.db.Conn.Exec(`DELETE
+		FROM
+			"user_public_key"
+		WHERE
+			"id" = $1
 			AND "user_id" = $2`,
 		in.GetKeyId(),
 		in.GetUserId(),
 	)
 	if err != nil {
-		return nil, errors.New("DeletePublicKey failed")
+		return nil, errFailedToDelete
 	}
-
 	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errors.New(internal.ErrNotFound)
+		return nil, errNotFound
 	}
 
 	return &pb_key.DeletePublicKey_Response{}, nil
@@ -243,13 +255,12 @@ func (k *key) DeletePublicKey(ctx context.Context, in *pb_key.DeletePublicKey_Re
 func (k *key) GenerateSSHKey(ctx context.Context, in *pb_key.GenerateSSHKey_Request) (*pb_key.GenerateSSHKey_Response, error) {
 	key, err := crypto.NewSSHKey(in.GetKeyType().String())
 	if err != nil {
-		//return nil, errors.New("Error generating SSH key pair")
-		return nil, err
+		return nil, crypto.ErrFailedCreatingSSHKey
 	}
 
 	sub := uuid.New().String()
-	if err := cache.Set(fmt.Sprintf("tmp_key_ssh::%s", sub), key.PrivateKey, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "5m")); err != nil {
-		return nil, err
+	if err := service.cache.Set(fmt.Sprintf("tmp_key_ssh::%s", sub), key.PrivateKey, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "5m")); err != nil {
+		return nil, errIncorrectParameters
 	}
 
 	return &pb_key.GenerateSSHKey_Response{

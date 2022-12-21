@@ -31,7 +31,7 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 	input := userIDReq{}
 	c.BodyParser(&input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -53,10 +53,10 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 		if se.Message() != "" {
 			return httputil.StatusBadRequest(c, se.Message(), nil)
 		}
-		return httputil.InternalServerError(c, internal.ErrUnexpectedError, nil)
+		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
 	}
 	if servers.Total == 0 {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	return httputil.StatusOK(c, "Shared servers list", servers)
@@ -68,11 +68,11 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
 	input := new(pb.CreateServerShareForUser_Request)
 	if err := c.BodyParser(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
 	}
 
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "message", pb.CreateServerShareForUser_Response{})
@@ -84,11 +84,11 @@ func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
 func (h *handler) patchServerShareForUser(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerShareForUser_Request)
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
 	}
 
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "message", pb.UpdateServerShareForUser_Response{})
@@ -100,11 +100,11 @@ func (h *handler) patchServerShareForUser(c *fiber.Ctx) error {
 func (h *handler) deleteServerShareForUser(c *fiber.Ctx) error {
 	input := new(pb.DeleteServerShareForUser_Request)
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
 	}
 
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	return httputil.StatusOK(c, "message", pb.DeleteServerShareForUser_Response{})

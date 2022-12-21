@@ -89,7 +89,7 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 			return true
 		}
 
-		userID, err := rClientA.GetAccountByID(_ctx, &account.GetAccountByID_Request{
+		userID, err := rClientA.AccountIDByName(_ctx, &account.AccountIDByName_Request{
 			Username:    actx.userName,
 			Fingerprint: actx.userFingerPrint,
 			ClientIp:    actx.userAddr,

@@ -1,12 +1,12 @@
 import { http } from "@/api";
 import {
   ListProjectMembers_Request,
-  GetProjectMember_Request,
+  ProjectMember_Request,
   CreateProjectMember_Request,
   UpdateProjectMember_Request,
   DeleteProjectMember_Request,
   UpdateProjectMemberStatus_Request,
-  GetUsersWithoutProject_Request,
+  UsersWithoutProject_Request,
   ListProjectMembersInvite_Request,
   CreateProjectMemberInvite_Request,
   DeleteProjectMemberInvite_Request,
@@ -30,7 +30,7 @@ const getProjectMembers = async (
     },
   });
 
-const getProjectMember = async (data: GetProjectMember_Request) =>
+const getProjectMember = async (data: ProjectMember_Request) =>
   http("GET", URL.project_members, { params: data });
 
 const postProjectMember = async (data: CreateProjectMember_Request) =>
@@ -45,7 +45,7 @@ const deleteProjectMember = async (data: DeleteProjectMember_Request) =>
 const updateProjectMemberStatus = async (data: UpdateProjectMemberStatus_Request) =>
   http("PATCH", URL.project_members + "/active", { data: data });
 
-const getUsersWithoutProject = async (data: GetUsersWithoutProject_Request) =>
+const getUsersWithoutProject = async (data: UsersWithoutProject_Request) =>
   http("GET", URL.project_members + "/search", { params: data });
 
 const getProjectMembersInvite = async (data: ListProjectMembersInvite_Request) =>

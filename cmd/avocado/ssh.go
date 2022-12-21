@@ -32,8 +32,8 @@ type authContext struct {
 	userAddr        string
 	userCountry     string
 	aesKey          string // TODO добавить в базу для пользователя уникальный AES ключ по которому будут шифроваться его данные
-	serverList      []*server.GetServer_Response
-	//serverList      map[int32]*server.Server
+	serverList      []*server.Server_Response
+	// serverList      map[int32]*server.Server
 }
 
 func (c authContext) userType() server.UserType {
@@ -52,7 +52,7 @@ func (c authContext) userType() server.UserType {
 	return server.UserType_SHELL
 }
 
-func bastionClientConfig(ctx ssh.Context, host *server.GetServer_Response) (*gossh.ClientConfig, error) {
+func bastionClientConfig(ctx ssh.Context, host *server.Server_Response) (*gossh.ClientConfig, error) {
 	actx := ctx.Value(authContextKey).(*authContext)
 
 	host.Password = crypto.TextDecrypt(host.Password, actx.aesKey)
@@ -69,7 +69,7 @@ func bastionClientConfig(ctx ssh.Context, host *server.GetServer_Response) (*gos
 	return clientConfig, nil
 }
 
-func clientConfig(host *server.GetServer_Response, hk gossh.HostKeyCallback) (*gossh.ClientConfig, error) {
+func clientConfig(host *server.Server_Response, hk gossh.HostKeyCallback) (*gossh.ClientConfig, error) {
 	auth := []gossh.AuthMethod{}
 
 	if host.KeyPrivate == "" && host.Password == "" {

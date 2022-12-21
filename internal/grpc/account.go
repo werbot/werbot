@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	pb_account "github.com/werbot/werbot/api/proto/account"
@@ -13,81 +12,87 @@ type account struct {
 	pb_account.UnimplementedAccountHandlersServer
 }
 
-// GetAccountByID is ...
-// TODO: проверка на invite
-// TODO: включить проверку в Firewall
-func (s *account) GetAccountByID(ctx context.Context, in *pb_account.GetAccountByID_Request) (*pb_account.GetAccountByID_Response, error) {
-	nameArray := parse.Username(in.GetUsername())
+// AccountIDByName is ...
+// TODO: Check bu invite
+// TODO: Enable check in Firewall
+func (s *account) AccountIDByName(ctx context.Context, in *pb_account.AccountIDByName_Request) (*pb_account.AccountIDByName_Response, error) {
 	var id string
-
-	row := db.Conn.QueryRow(`SELECT
-			"user"."id" 
+	nameArray := parse.Username(in.GetUsername())
+	err := service.db.Conn.QueryRow(`SELECT
+			"user"."id"
 		FROM
 			"user"
-			JOIN "user_public_key" ON "user"."id" = "user_public_key"."user_id" 
+			JOIN "user_public_key" ON "user"."id" = "user_public_key"."user_id"
 		WHERE
-			"user"."name" = $1 
+			"user"."name" = $1
 			AND "user_public_key".fingerprint = $2`,
 		nameArray[0],
 		in.GetFingerprint(),
-	)
-
-	if err := row.Scan(&id); err != nil {
-		return nil, errors.New("select to user_public_key")
+	).Scan(&id)
+	if err != nil {
+		return nil, errFailedToScan
 	}
 
 	/*
+		// OLD CODE
 		if id > 0 {
-				if actx.userType() == UserTypeInvite {
-					actx.err = errors.New("invites are only supported for new SSH keys; your ssh key is already associated with the user")
-				}
-	*/
-	/*
-				firewall_setting := security.Setting{
-					db,
-					ctx,
-					config.Settings.ConfigPath,
-					config.Settings.FirewallWorkCountry,
-					config.Settings.FirewallBlacklistUris,
-				}
-				if !security.FirewallIpCheck(firewall_setting) {
-					return false
-				}
+			if actx.userType() == UserTypeInvite {
+				actx.err = errors.New("invites are only supported for new SSH keys; your ssh key is already associated with the user")
+			}
+			firewall_setting := security.Setting{
+				db,
+				ctx,
+				config.Settings.ConfigPath,
+				config.Settings.FirewallWorkCountry,
+				config.Settings.FirewallBlacklistUris,
+			}
+			if !security.FirewallIpCheck(firewall_setting) {
+				return false
+			}
 		}
 	*/
 
-	return &pb_account.GetAccountByID_Response{
+	return &pb_account.AccountIDByName_Response{
 		UserId: id,
 	}, nil
 }
 
-// SetAccountStatus is ...
-func (s *account) SetAccountStatus(ctx context.Context, in *pb_account.SetAccountStatus_Request) (*pb_account.SetAccountStatus_Response, error) {
+// UpdateAccountStatus is ...
+func (s *account) UpdateAccountStatus(ctx context.Context, in *pb_account.UpdateAccountStatus_Request) (*pb_account.UpdateAccountStatus_Response, error) {
 	if in.GetStatus() == 1 {
-		if _, err := db.Conn.Exec(`UPDATE "server_member" 
-			SET 
-				"online" = true, 
-				"last_activity" = $1 
-			WHERE 
+		data, err := service.db.Conn.Exec(`UPDATE "server_member"
+			SET
+				"online" = true,
+				"last_activity" = $1
+			WHERE
 				"id" = $2`,
 			time.Now(),
 			in.GetAccountId(),
-		); err != nil {
-			return &pb_account.SetAccountStatus_Response{}, errors.New("SetAccountStatus update server account failed")
+		)
+		if err != nil {
+			return nil, errFailedToUpdate
+		}
+		if affected, _ := data.RowsAffected(); affected == 0 {
+			return nil, errNotFound
 		}
 	}
 	if in.Status == 2 {
-		if _, err := db.Conn.Exec(`UPDATE "server_member" 
-			SET 
-				"online" = false 
-			WHERE 
+		data, err := service.db.Conn.Exec(`UPDATE "server_member"
+			SET
+				"online" = false
+			WHERE
 				"id" = $1`,
 			in.GetAccountId(),
-		); err != nil {
-			return &pb_account.SetAccountStatus_Response{}, errors.New("SetAccountStatus update server account failed")
+		)
+		if err != nil {
+			return nil, errFailedToUpdate
+		}
+		if affected, _ := data.RowsAffected(); affected == 0 {
+			return nil, errNotFound
 		}
 	}
-	return &pb_account.SetAccountStatus_Response{}, nil
+
+	return &pb_account.UpdateAccountStatus_Response{}, nil
 }
 
 // TODO SessionAccount is ...

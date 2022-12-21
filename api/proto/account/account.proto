@@ -8,13 +8,15 @@ import "google/protobuf/timestamp.proto";
 
 service AccountHandlers {
     rpc ListAccounts(ListAccounts.Request) returns (ListAccounts.Response) {}
-    rpc GetAccount(GetAccount.Request) returns (GetAccount.Response) {}
+    rpc Account(Account.Request) returns (Account.Response) {}
     //rpc CreateAccount(CreateAccount.Request) returns (CreateAccount.Response) {}
     //rpc UpdateAccount(UpdateAccount.Request) returns (UpdateAccount.Response) {}
     //rpc DeleteAccount(DeleteAccount.Request) returns (DeleteAccount.Response) {}
 
-    rpc GetAccountByID(GetAccountByID.Request) returns (GetAccountByID.Response) {}
-    rpc SetAccountStatus(SetAccountStatus.Request) returns (SetAccountStatus.Response) {}
+    rpc AccountIDByName(AccountIDByName.Request) returns (AccountIDByName.Response) {}
+
+    rpc UpdateAccountStatus(UpdateAccountStatus.Request) returns (UpdateAccountStatus.Response) {}
+    
     rpc SessionAccount(SessionAccount.Request) returns (SessionAccount.Response) {}
     rpc FindByTokenAccount(FindByTokenAccount.Request) returns (FindByTokenAccount.Response) {}
 }
@@ -36,14 +38,14 @@ message ListAccounts {
 
     message Response{
         int32 total = 1;
-        repeated GetAccount.Response accounts = 2;
+        repeated Account.Response accounts = 2;
     }
 }
 // -----------------------------------------------------
 
 
-// rpc GetAccount
-message GetAccount {
+// rpc Account
+message Account {
     message Request {
        string account_id = 1;
     }
@@ -60,8 +62,8 @@ message GetAccount {
 // -----------------------------------------------------
 
 
-// rpc GetAccountByID
-message GetAccountByID {
+// rpc AccountIDByName
+message AccountIDByName {
     message Request {
         string username = 1;
         string fingerprint = 2;
@@ -75,8 +77,8 @@ message GetAccountByID {
 // -----------------------------------------------------
 
 
-// rpc SetAccountStatus
-message SetAccountStatus {
+// rpc UpdateAccountStatus
+message UpdateAccountStatus {
     message Request {
         string account_id = 1;
         AccountStatus status = 2;
@@ -84,7 +86,7 @@ message SetAccountStatus {
 
     message Response {
         int32 total = 1;
-        repeated GetAccount.Response accounts = 2;
+        repeated Account.Response accounts = 2;
     }
 }
 // -----------------------------------------------------
@@ -98,7 +100,7 @@ message SessionAccount {
 
     message Response {
         int32 total = 1;
-        repeated GetAccount.Response accounts = 2;
+        repeated Account.Response accounts = 2;
     }
 }
 // -----------------------------------------------------

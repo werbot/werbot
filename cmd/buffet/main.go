@@ -72,6 +72,7 @@ func main() {
 	certPool.AddCert(cert.Leaf)
 
 	s := grpc.NewServer(internal.GetString("GRPCSERVER_TOKEN", "token"), db, cache, cert)
+
 	lis, err := net.Listen("tcp", internal.GetString("GRPCSERVER_HOST", "0.0.0.0:50051"))
 	if err != nil {
 		log.Fatal(err).Msg("Failed to listen")

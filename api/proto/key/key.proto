@@ -5,14 +5,14 @@ package key;
 option go_package = "github.com/werbot/werbot/api/proto/key";
 
 import "google/protobuf/timestamp.proto";
-import "tagger/tagger.proto";
 
 service KeyHandlers {
     rpc ListPublicKeys(ListPublicKeys.Request) returns (ListPublicKeys.Response) {}
-    rpc GetPublicKey(GetPublicKey.Request) returns (GetPublicKey.Response) {}
+    rpc PublicKey(PublicKey.Request) returns (PublicKey.Response) {}
     rpc CreatePublicKey(CreatePublicKey.Request) returns (CreatePublicKey.Response) {}
     rpc UpdatePublicKey(UpdatePublicKey.Request) returns (UpdatePublicKey.Response) {}
     rpc DeletePublicKey(DeletePublicKey.Request) returns (DeletePublicKey.Response) {}
+    
     rpc GenerateSSHKey(GenerateSSHKey.Request) returns (GenerateSSHKey.Response) {}
 }
 
@@ -34,17 +34,17 @@ message ListPublicKeys {
 
     message Response {    
         int32 total = 1;
-        repeated GetPublicKey.Response public_keys = 3;
+        repeated PublicKey.Response public_keys = 3;
     }
 }
 // -----------------------------------------------------
 
 
-// rpc GetPublicKey
-message GetPublicKey {
+// rpc PublicKey
+message PublicKey {
     message Request {
-        string key_id = 1   [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"key_id\"   params:\"key_id\""];
-        string user_id = 2  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"  params:\"user_id\""];
+        string key_id = 1;  // @gotags: validate:"omitempty,uuid" query:"key_id" params:"key_id"
+        string user_id = 2; // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
     }
 
     message Response {
@@ -64,9 +64,9 @@ message GetPublicKey {
 // rpc CreatePublicKey
 message CreatePublicKey {
     message Request {
-        string user_id = 1  [(tagger.tags) = "validate:\"omitempty,uuid\""];
-        string title = 2    [(tagger.tags) = "validate:\"required,min=5,max=20\""];
-        string key = 3      [(tagger.tags) = "validate:\"required\""];
+        string user_id = 1; // @gotags: validate:"omitempty,uuid"
+        string title = 2;   // @gotags: validate:"required,min=5,max=20"
+        string key = 3;     // @gotags: validate:"required"
     }
 
     message Response {
@@ -79,10 +79,10 @@ message CreatePublicKey {
 // rpc UpdatePublicKey
 message UpdatePublicKey {
     message Request {
-        string key_id = 1   [(tagger.tags) = "validate:\"required,uuid\"          query:\"key_id\"   params:\"key_id\""];
-        string user_id = 2  [(tagger.tags) = "validate:\"omitempty,uuid\"         query:\"user_id\"  params:\"user_id\""];
-        string title = 3    [(tagger.tags) = "validate:\"required,min=5,max=20\"  query:\"title\"    params:\"title\""];
-        string key = 4      [(tagger.tags) = "validate:\"required\"               query:\"key\"      params:\"key\""];
+        string key_id = 1;  // @gotags: validate:"required,uuid" query:"key_id" params:"key_id"
+        string user_id = 2; // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
+        string title = 3;   // @gotags: validate:"required,min=5,max=20" query:"title" params:"title";
+        string key = 4;     // @gotags: validate:"required" query:"key" params:"key";
     }
 
     message Response {}
@@ -94,8 +94,8 @@ message UpdatePublicKey {
 // rpc DeletePublicKey
 message DeletePublicKey{
     message Request {
-        string user_id = 1  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"  params:\"user_id\""];
-        string key_id = 2   [(tagger.tags) = "validate:\"required,uuid\"   query:\"key_id\"   params:\"key_id\""];
+        string user_id = 1; // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
+        string key_id = 2;  // @gotags: validate:"required,uuid" query:"key_id" params:"key_id"
     }
 
     message Response {}

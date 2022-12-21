@@ -26,7 +26,7 @@ func (h *handler) addServiceServer(c *fiber.Ctx) error {
 	input := new(pb.CreateServer_Request)
 	c.BodyParser(&input)
 	if err := validate.Struct(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

@@ -4,10 +4,8 @@ package firewall;
 
 option go_package = "github.com/werbot/werbot/api/proto/firewall";
 
-import "tagger/tagger.proto";
-
 service FirewallHandlers {
-    rpc GetServerFirewall(GetServerFirewall.Request) returns (GetServerFirewall.Response) {}
+    rpc ServerFirewall(ServerFirewall.Request) returns (ServerFirewall.Response) {}
     rpc CreateServerFirewall(CreateServerFirewall.Request) returns (CreateServerFirewall.Response) {}
     rpc DeleteServerFirewall(DeleteServerFirewall.Request) returns (DeleteServerFirewall.Response) {}
 
@@ -57,12 +55,12 @@ message CountryCode{
 // -----------------------------------------------------
 
 
-// rpc GetServerFirewall
-message GetServerFirewall {
+// rpc ServerFirewall
+message ServerFirewall {
     message Request {
-        string user_id = 1    [(tagger.tags) = "validate:\"uuid\"           query:\"user_id\""];
-        string project_id = 2 [(tagger.tags) = "validate:\"required,uuid\"  query:\"project_id\""];
-        string server_id = 3  [(tagger.tags) = "validate:\"uuid\""];
+        string user_id = 1;    // @gotags: validate:"uuid" query:"user_id"
+        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string server_id = 3;  // @gotags: validate:"uuid"
     }
 
     message Response {
@@ -86,9 +84,9 @@ message GetServerFirewall {
 // rpc CreateServerFirewall
 message CreateServerFirewall{
     message Request {
-        string user_id = 1     [(tagger.tags) = "validate:\"uuid\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\""];
-        string server_id = 3   [(tagger.tags) = "validate:\"uuid\""];
+        string user_id = 1;    // @gotags: validate:"uuid"
+        string project_id = 2; // @gotags: validate:"required,uuid"
+        string server_id = 3;  // @gotags: validate:"uuid"
 
         oneof record {
             IpMask ip = 4;
@@ -106,11 +104,11 @@ message CreateServerFirewall{
 // rpc DeleteServerFirewall
 message DeleteServerFirewall{
     message Request {
-        string user_id = 1     [(tagger.tags) = "validate:\"uuid\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\""];
-        string server_id = 3   [(tagger.tags) = "validate:\"uuid\""];
+        string user_id = 1;    // @gotags: validate:"uuid"
+        string project_id = 2; // @gotags: validate:"required,uuid"
+        string server_id = 3;  // @gotags: validate:"uuid"
         Rules rule = 4;
-        string record_id = 5   [(tagger.tags) = "validate:\"uuid\""];
+        string record_id = 5;  // @gotags: validate:"uuid"
     }
 
     message Response {}
@@ -121,9 +119,9 @@ message DeleteServerFirewall{
 // rpc UpdateAccessPolicy
 message UpdateAccessPolicy {
     message Request {
-        string user_id = 1     [(tagger.tags) = "validate:\"uuid\""];
-        string project_id = 2  [(tagger.tags) = "validate:\"required,uuid\""];
-        string server_id = 3   [(tagger.tags) = "validate:\"uuid\""];
+        string user_id = 1;    // @gotags: validate:"uuid"
+        string project_id = 2; // @gotags: validate:"required,uuid"
+        string server_id = 3;  // @gotags: validate:"uuid"
         Rules rule = 4;
         bool status = 5;
     }

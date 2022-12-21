@@ -5,17 +5,16 @@ package license;
 option go_package = "github.com/werbot/werbot/api/proto/license";
 
 import "google/protobuf/timestamp.proto";
-import "tagger/tagger.proto";
 
 service LicenseHandlers {
     rpc NewLicense(NewLicense.Request) returns (NewLicense.Response) {}
-    rpc GetLicenseInfo(GetLicenseInfo.Request) returns (GetLicenseInfo.Response) {}
-    rpc GetLicenseExpired(GetLicenseExpired.Request)   returns (GetLicenseExpired.Response) {}
+    rpc License(License.Request) returns (License.Response) {}
+    rpc LicenseExpired(LicenseExpired.Request)   returns (LicenseExpired.Response) {}
 }
 
 // -----------------------------------------------------
 // global messages
-message License {
+message LicenseInfo {
     message Limits {
         int32 companies = 1;
         int32 servers = 2;
@@ -39,10 +38,10 @@ message License {
 // rpc NewLicense
 message NewLicense{
     message Request{
-        string ip = 1          [(tagger.tags) = "validate:\"required,ip\""];
-        string customer = 2    [(tagger.tags) = "validate:\"omitempty,uuid\""];
-        string subscriber = 3  [(tagger.tags) = "validate:\"omitempty,uuid\""];
-        string token = 4       [(tagger.tags) = "validate:\"omitempty,alphanum,len=32\""];
+        string ip = 1;         // @gotags: validate:"required,ip"
+        string customer = 2;   // @gotags: validate:"omitempty,uuid"
+        string subscriber = 3; // @gotags: validate:"omitempty,uuid"
+        string token = 4;      // @gotags: validate:"omitempty,alphanum,len=32"
     }
 
     message Response {
@@ -52,20 +51,20 @@ message NewLicense{
 // -----------------------------------------------------
 
 
-// rpc GetLicenseInfo
-message GetLicenseInfo {
+// rpc License
+message License {
     message Request {}
 
     message Response {
-        License license = 1;
+        LicenseInfo license = 1;
         bool expired = 2;
     }
 }
 // -----------------------------------------------------
 
 
-// rpc GetLicenseExpired
-message GetLicenseExpired {
+// rpc LicenseExpired
+message LicenseExpired {
     message Request {
         bytes license = 1;
     }

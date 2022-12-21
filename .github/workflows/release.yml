@@ -42,7 +42,7 @@ jobs:
           make upd_protos
           ln -s $(go env GOPATH)/bin/protoc-gen-go /usr/local/bin/
           ln -s $(go env GOPATH)/bin/protoc-gen-go-grpc /usr/local/bin/
-          ln -s $(go env GOPATH)/bin/protoc-gen-gotag /usr/local/bin/
+          ln -s $(go env GOPATH)/bin/protoc-go-inject-tag /usr/local/bin/
           cd ./web && yarn install
 
       - name: Generate gRPC files

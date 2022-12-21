@@ -26,10 +26,10 @@ import (
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users [get]
 func (h *handler) getUser(c *fiber.Ctx) error {
-	input := new(pb.GetUser_Request)
+	input := new(pb.User_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -54,7 +54,7 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 	}
 
 	// show information about the key
-	user, err := rClient.GetUser(ctx, &pb.GetUser_Request{
+	user, err := rClient.User(ctx, &pb.User_Request{
 		UserId: userID,
 	})
 	if err != nil {
@@ -62,7 +62,7 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 	}
 
 	if user == nil {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	// If RoleUser_ADMIN - show detailed information
@@ -70,7 +70,7 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 		return httputil.StatusOK(c, "User information", user)
 	}
 
-	return httputil.StatusOK(c, "User information", &pb.GetUser_Response{
+	return httputil.StatusOK(c, "User information", &pb.User_Response{
 		Fio:   user.GetFio(),
 		Name:  user.GetName(),
 		Email: user.GetEmail(),
@@ -89,12 +89,12 @@ func (h *handler) addUser(c *fiber.Ctx) error {
 	input := new(pb.CreateUser_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
 	if !userParameter.IsUserAdmin() {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -128,7 +128,7 @@ func (h *handler) patchUser(c *fiber.Ctx) error {
 	input := new(pb.UpdateUser_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -177,14 +177,14 @@ func (h *handler) patchUser(c *fiber.Ctx) error {
 // @Router       /v1/users [delete]
 func (h *handler) deleteUser(c *fiber.Ctx) error {
 	input := new(pb.DeleteUser_Request)
-	//c.BodyParser(input)
+	// c.BodyParser(input)
 
 	if err := protojson.Unmarshal(c.Body(), input); err != nil {
 		fmt.Print(err)
 	}
 
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -234,7 +234,7 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 		return httputil.StatusOK(c, "Account deleted", nil)
 	}
 
-	return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, nil)
+	return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, nil)
 }
 
 // @Summary      Password update for a user.
@@ -250,7 +250,7 @@ func (h *handler) patchPassword(c *fiber.Ctx) error {
 	input := new(pb.UpdatePassword_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

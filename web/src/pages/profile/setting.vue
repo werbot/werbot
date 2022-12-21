@@ -119,7 +119,7 @@
 import { ref, onMounted, onBeforeUnmount, getCurrentInstance } from "vue";
 import { getUser, updateUser, updatePassword, deleteUserStep1 } from "@/api/user";
 import {
-  GetUser_Request,
+  User_Request,
   UpdateUser_Request,
   UpdatePassword_Request,
   DeleteUser_Request,
@@ -215,7 +215,7 @@ const onDelete = async () => {
 };
 
 onMounted(async () => {
-  await getUser(<GetUser_Request>{
+  await getUser(<User_Request>{
     user_id: proxy.$authStore.hasUserID,
   }).then((res) => {
     data.value = res.data.result;

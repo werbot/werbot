@@ -21,14 +21,14 @@ import (
 // @Produce      json
 // @Param        key_id      path     uuid true "Key ID"
 // @Param        user_id     path     uuid true "Key owner ID. Parameter Accessible with ROLE_ADMIN rights"
-// @Success      200         {object} httputil.HTTPResponse{data=pb.GetPublicKey_Response}
+// @Success      200         {object} httputil.HTTPResponse{data=pb.PublicKey_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/keys [get]
 func (h *handler) getKey(c *fiber.Ctx) error {
-	input := new(pb.GetPublicKey_Request)
+	input := new(pb.PublicKey_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -52,13 +52,13 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 			return httputil.ReturnGRPCError(c, err)
 		}
 		if keys.GetTotal() == 0 {
-			return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
 		return httputil.StatusOK(c, "User keys", keys)
 	}
 
 	// show information about the key
-	key, err := rClient.GetPublicKey(ctx, &pb.GetPublicKey_Request{
+	key, err := rClient.PublicKey(ctx, &pb.PublicKey_Request{
 		KeyId:  input.GetKeyId(),
 		UserId: userID,
 	})
@@ -66,7 +66,7 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	if key == nil {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	return httputil.StatusOK(c, "Key information", key)
@@ -84,7 +84,7 @@ func (h *handler) addKey(c *fiber.Ctx) error {
 	input := new(pb.CreatePublicKey_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -117,7 +117,7 @@ func (h *handler) patchKey(c *fiber.Ctx) error {
 	input := new(pb.UpdatePublicKey_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -153,7 +153,7 @@ func (h *handler) deleteKey(c *fiber.Ctx) error {
 	input := new(pb.DeletePublicKey_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

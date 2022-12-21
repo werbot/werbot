@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -13,7 +12,6 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 
 	pb_user "github.com/werbot/werbot/api/proto/user"
@@ -25,10 +23,9 @@ type user struct {
 
 // ListUsers is lists all users on the system
 func (u *user) ListUsers(ctx context.Context, in *pb_user.ListUsers_Request) (*pb_user.ListUsers_Response, error) {
-	sqlSearch := db.SQLAddWhere(in.GetQuery())
-	sqlFooter := db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-
-	rows, err := db.Conn.Query(`SELECT
+	sqlSearch := service.db.SQLAddWhere(in.GetQuery())
+	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
+	rows, err := service.db.Conn.Query(`SELECT
       "id",
       "fio",
       "name",
@@ -44,15 +41,14 @@ func (u *user) ListUsers(ctx context.Context, in *pb_user.ListUsers_Request) (*p
     FROM
       "user"` + sqlSearch + sqlFooter)
 	if err != nil {
-		return nil, errors.New("Failed show all users")
+		return nil, errFailedToSelect
 	}
 
 	users := []*pb_user.ListUsers_Response_UserInfo{}
 	for rows.Next() {
-		user := pb_user.GetUser_Response{}
-		var lastActive, registerDate pgtype.Timestamp
 		var countServers, countProjects, countKeys int32
-
+		var lastActive, registerDate pgtype.Timestamp
+		user := new(pb_user.User_Response)
 		err = rows.Scan(
 			&user.UserId,
 			&user.Fio,
@@ -68,26 +64,25 @@ func (u *user) ListUsers(ctx context.Context, in *pb_user.ListUsers_Request) (*p
 			&countServers,
 		)
 		if err != nil {
-			return nil, errors.New("Unable to parse response from database")
+			return nil, errFailedToScan
 		}
-
 		user.LastActive = timestamppb.New(lastActive.Time)
 		user.RegisterDate = timestamppb.New(registerDate.Time)
-
 		users = append(users, &pb_user.ListUsers_Response_UserInfo{
 			ServersCount:  countServers,
 			ProjectsCount: countProjects,
 			KeysCount:     countKeys,
-			User:          &user,
+			User:          user,
 		})
 	}
 	defer rows.Close()
 
 	// Total count for pagination
 	var total int32
-	err = db.Conn.QueryRow(`SELECT COUNT (*) FROM "user"` + sqlSearch).Scan(&total)
+	err = service.db.Conn.QueryRow(`SELECT COUNT (*) FROM "user"` + sqlSearch).
+		Scan(&total)
 	if err != nil {
-		return nil, errors.New("Query Execution Problem")
+		return nil, errFailedToScan
 	}
 
 	return &pb_user.ListUsers_Response{
@@ -96,13 +91,12 @@ func (u *user) ListUsers(ctx context.Context, in *pb_user.ListUsers_Request) (*p
 	}, nil
 }
 
-// GetUser is displays user information
-func (u *user) GetUser(ctx context.Context, in *pb_user.GetUser_Request) (*pb_user.GetUser_Response, error) {
-	user := pb_user.GetUser_Response{
-		UserId: in.GetUserId(),
-	}
+// User is displays user information
+func (u *user) User(ctx context.Context, in *pb_user.User_Request) (*pb_user.User_Response, error) {
+	user := new(pb_user.User_Response)
+	user.UserId = in.GetUserId()
 
-	err := db.Conn.QueryRow(`SELECT
+	err := service.db.Conn.QueryRow(`SELECT
       "fio",
       "name",
       "email",
@@ -110,7 +104,7 @@ func (u *user) GetUser(ctx context.Context, in *pb_user.GetUser_Request) (*pb_us
       "confirmed",
       "role"
     FROM
-      "user" 
+      "user"
     WHERE
       "id" = $1`,
 		in.GetUserId(),
@@ -123,39 +117,39 @@ func (u *user) GetUser(ctx context.Context, in *pb_user.GetUser_Request) (*pb_us
 		&user.Role,
 	)
 	if err != nil {
-		return nil, errors.New("Failed parse user information")
+		return nil, errFailedToScan
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 // CreateUser is adds a new user
 func (u *user) CreateUser(ctx context.Context, in *pb_user.CreateUser_Request) (*pb_user.CreateUser_Response, error) {
-	tx, err := db.Conn.Beginx()
+	tx, err := service.db.Conn.Beginx()
 	if err != nil {
-		return nil, errors.New("Error creating transaction")
+		return nil, errTransactionCreateError
 	}
 
 	// Checking if the email address already exists
 	var id string
-	err = tx.QueryRow(`SELECT 
-			"id" 
-		FROM 
+	err = tx.QueryRow(`SELECT
+			"id"
+		FROM
 			"user"
-		WHERE 
+		WHERE
 			"email" = $1`,
 		in.GetEmail(),
 	).Scan(&id)
 	if err != nil {
-		return nil, errors.New("Query Execution Problem")
+		return nil, errFailedToScan
 	}
 	if id != "" {
-		return nil, errors.New("User with this email is already registered")
+		return nil, errObjectAlreadyExists
 	}
 
 	// Adds a new entry to the database
 	password, _ := crypto.HashPassword(in.Password)
-	err = tx.QueryRow(`INSERT 
+	err = tx.QueryRow(`INSERT
 	INTO "user" (
 		"fio",
 		"name",
@@ -176,11 +170,11 @@ func (u *user) CreateUser(ctx context.Context, in *pb_user.CreateUser_Request) (
 		in.GetConfirmed(),
 	).Scan(&id)
 	if err != nil {
-		return nil, errors.New("Problem adding new user")
+		return nil, errFailedToAdd
 	}
 
 	if err = tx.Commit(); err != nil {
-		return nil, errors.New("Transaction commit error")
+		return nil, errTransactionCommitError
 	}
 
 	return &pb_user.CreateUser_Response{
@@ -207,17 +201,16 @@ func (u *user) UpdateUser(ctx context.Context, in *pb_user.UpdateUser_Request) (
 
 	cnt++
 	args = append(args, in.GetUserId())
-	query := fmt.Sprintf(`UPDATE "user" 
-		SET 
-			%s 
-		WHERE 
-			"id" = $%v`,
+	query := fmt.Sprintf(`UPDATE "user" SET %s WHERE "id" = $%v`,
 		strings.Join(qParts, ", "),
 		cnt,
 	)
-	_, err := db.Conn.Exec(query, args...)
+	data, err := service.db.Conn.Exec(query, args...)
 	if err != nil {
-		return nil, errors.New("Failed to update user data")
+		return nil, errFailedToUpdate
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
 	}
 
 	return &pb_user.UpdateUser_Response{}, nil
@@ -226,157 +219,178 @@ func (u *user) UpdateUser(ctx context.Context, in *pb_user.UpdateUser_Request) (
 // DeleteUser is ...
 func (u *user) DeleteUser(ctx context.Context, in *pb_user.DeleteUser_Request) (*pb_user.DeleteUser_Response, error) {
 	var name, passwordHash, email, deleteToken string
-
+	deleteUser := new(pb_user.DeleteUser_Response)
 	if in.GetPassword() != "" && in.GetUserId() != "" {
-		err := db.Conn.QueryRow(`SELECT 
-				"name", 
-				"password", 
-				"email" 
-			FROM 
-				"user" 
-			WHERE 
+		err := service.db.Conn.QueryRow(`SELECT
+				"name",
+				"password",
+				"email"
+			FROM
+				"user"
+			WHERE
 				"id" = $1`,
 			in.GetUserId(),
 		).Scan(&name, &passwordHash, &email)
 		if err != nil {
-			return nil, errors.New("Query Execution Problem")
+			return nil, errFailedToDelete
 		}
 		if !crypto.CheckPasswordHash(in.GetPassword(), passwordHash) {
-			return nil, errors.New("Password is not valid")
+			return nil, errPasswordIsNotValid
 		}
 
 		// Checking if a verification token has been sent in the last 24 hours
 		deleteToken, _ = u.getTokenByUserID(in.GetUserId(), "delete")
 		if len(deleteToken) > 0 {
-			return &pb_user.DeleteUser_Response{
-				Name:  name,
-				Email: email,
-				Token: deleteToken,
-			}, nil
+			deleteUser.Name = name
+			deleteUser.Email = email
+			deleteUser.Token = deleteToken
+			return deleteUser, nil
 		}
 
 		deleteToken = uuid.New().String()
-		_, err = db.Conn.Exec(`INSERT 
+		data, err := service.db.Conn.Exec(`INSERT
 			INTO "user_token" (
-				"token", 
-				"user_id", 
-				"date_create", 
+				"token",
+				"user_id",
+				"date_create",
 				"action"
-			) 
-			VALUES 
+			)
+			VALUES
 				($1, $2, NOW(), 'delete')`,
 			deleteToken,
 			in.GetUserId(),
 		)
 		if err != nil {
-			return nil, errors.New("Create delete token failed")
+			return nil, err // Create delete token failed
+		}
+		if affected, _ := data.RowsAffected(); affected == 0 {
+			return nil, errNotFound
 		}
 
-		return &pb_user.DeleteUser_Response{
-			Email: email,
-			Token: deleteToken,
-		}, nil
+		deleteUser.Email = email
+		deleteUser.Token = deleteToken
+		return deleteUser, nil
 	}
 
 	if in.GetToken() != "" && in.GetUserId() != "" {
 		userID, _ := u.getUserIDByToken(in.GetToken())
 		if userID != in.GetUserId() {
-			return nil, errors.New("Account deletion token not recognized")
+			return nil, errTokenIsNotValid
 		}
 
-		tx := db.Conn.MustBegin()
-		tx.MustExec(`UPDATE "user" 
-			SET 
-				"enabled" = 'f' 
-			WHERE 
+		tx, err := service.db.Conn.Beginx()
+		if err != nil {
+			return nil, errTransactionCreateError
+		}
+
+		data, err := tx.Exec(`UPDATE
+        "user"
+			SET
+				"enabled" = 'f'
+			WHERE
 				"id" = $1`,
 			in.GetUserId(),
 		)
+		if err != nil {
+			return nil, errFailedToUpdate
+		}
+		if affected, _ := data.RowsAffected(); affected == 0 {
+			return nil, errNotFound
+		}
 
-		tx.MustExec(`UPDATE "user_token" 
-			SET 
-				"used" = 't', 
-				date_used = NOW() 
-			WHERE 
+		data, err = tx.Exec(`UPDATE
+        "user_token"
+			SET
+				"used" = 't',
+				date_used = NOW()
+			WHERE
 				"token" = $1`,
 			in.GetToken(),
 		)
-		if err := tx.Commit(); err != nil {
-			return nil, errors.New("Account deletion failed")
+		if err != nil {
+			return nil, errFailedToUpdate
+		}
+		if affected, _ := data.RowsAffected(); affected == 0 {
+			return nil, errNotFound
 		}
 
-		err := db.Conn.QueryRow(`SELECT 
-				"name", 
-				"email" 
-			FROM 
-				"user" 
-			WHERE 
+		if err := tx.Commit(); err != nil {
+			return nil, errTransactionCommitError
+		}
+
+		err = service.db.Conn.QueryRow(`SELECT
+				"name",
+				"email"
+			FROM
+				"user"
+			WHERE
 				"id" = $1`,
 			in.GetUserId(),
 		).Scan(&name, &email)
 		if err != nil {
-			return nil, errors.New("Query Execution Problem")
+			return nil, errFailedToScan
 		}
 
-		return &pb_user.DeleteUser_Response{
-			Name:  name,
-			Email: email,
-		}, nil
+		deleteUser.Name = name
+		deleteUser.Email = email
+		return deleteUser, nil
 	}
 
-	return &pb_user.DeleteUser_Response{}, nil
+	return deleteUser, nil
 }
 
 // UpdatePassword is ...
 func (u *user) UpdatePassword(ctx context.Context, in *pb_user.UpdatePassword_Request) (*pb_user.UpdatePassword_Response, error) {
 	if len(in.GetOldPassword()) > 0 {
-		// проверяем на валидность старый пароль
+		// Check for a validity of the old password
 		var currentPassword string
-		err := db.Conn.QueryRow(`SELECT "password" FROM "user" WHERE "id" = $1`, in.GetUserId()).Scan(&currentPassword)
+		err := service.db.Conn.QueryRow(`SELECT "password" FROM "user" WHERE "id" = $1`, in.GetUserId()).Scan(&currentPassword)
 		if err != nil {
-			return nil, errors.New("Query Execution Problem")
+			return nil, errFailedToSelect
 		}
 		if !crypto.CheckPasswordHash(in.GetOldPassword(), currentPassword) {
-			return nil, errors.New("Old password is not valid")
+			return nil, errPasswordIsNotValid // Old password is not valid
 		}
 	}
 
-	// изменяем старый пароль на новый
+	// We change the old password for a new
 	newPassword, err := crypto.HashPassword(in.GetNewPassword())
 	if err != nil {
-		return nil, errors.New("HashPassword failed")
+		return nil, errHashIsNotValid // HashPassword failed
 	}
 
-	_, err = db.Conn.Exec(`UPDATE "user" SET "password" = $1 WHERE "id" = $2`, newPassword, in.GetUserId())
+	data, err := service.db.Conn.Exec(`UPDATE "user" SET "password" = $1 WHERE "id" = $2`, newPassword, in.GetUserId())
 	if err != nil {
-		return nil, errors.New("UpdateUser failed")
+		return nil, errFailedToUpdate
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
 	}
 
-	return &pb_user.UpdatePassword_Response{
-		Message: "Password update",
-	}, nil
+	// return &pb_user.UpdatePassword_Response{
+	//	 Message: "Password update",
+	// }, nil
+	return &pb_user.UpdatePassword_Response{}, nil
 }
 
 // SignIn is ...
-func (u *user) SignIn(ctx context.Context, in *pb_user.SignIn_Request) (*pb_user.GetUser_Response, error) {
-	user := pb_user.GetUser_Response{
-		Email: in.GetEmail(),
-	}
-
+func (u *user) SignIn(ctx context.Context, in *pb_user.SignIn_Request) (*pb_user.User_Response, error) {
 	var password string
-	err := db.Conn.QueryRow(`SELECT 
-			"id", 
-			"fio", 
-			"name", 
-			"password", 
-			"enabled", 
-			"confirmed", 
-			"role" 
-		FROM 
-			"user" 
-		WHERE 
-			"email" = $1 
-			AND "enabled" = 't' 
+	user := new(pb_user.User_Response)
+	user.Email = in.GetEmail()
+	err := service.db.Conn.QueryRow(`SELECT
+			"id",
+			"fio",
+			"name",
+			"password",
+			"enabled",
+			"confirmed",
+			"role"
+		FROM
+			"user"
+		WHERE
+			"email" = $1
+			AND "enabled" = 't'
 			AND "confirmed" = 't'`,
 		in.GetEmail(),
 	).Scan(
@@ -389,67 +403,69 @@ func (u *user) SignIn(ctx context.Context, in *pb_user.SignIn_Request) (*pb_user
 		&user.Role,
 	)
 	if err != nil {
-		return nil, errors.New(internal.ErrNotFound)
+		// return nil, errNotFound
+		return nil, errFailedToScan
 	}
 
 	// Does he have access to the admin panel
-	//if user.GetRole() != pb_user.RoleUser_ADMIN && in.GetApp() == pb_user.AppType_admin {
+	// if user.GetRole() != pb_user.RoleUser_ADMIN && in.GetApp() == pb_user.AppType_admin {
 	//	return nil, errors.New(internal.MsgAccessIsDenied)
-	//}
+	// }
 
 	if !crypto.CheckPasswordHash(in.GetPassword(), password) {
-		return nil, errors.New(internal.ErrInvalidPassword)
+		return nil, errPasswordIsNotValid
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 // ResetPassword is ...
 func (u *user) ResetPassword(ctx context.Context, in *pb_user.ResetPassword_Request) (*pb_user.ResetPassword_Response, error) {
 	var id, resetToken string
+	resetPassword := new(pb_user.ResetPassword_Response)
 
 	// Sending an email with a verification link
 	if in.GetEmail() != "" {
 		// Check if there is a user with the specified email
-		err := db.Conn.QueryRow(`SELECT "id" FROM "user" WHERE "email" = $1 AND "enabled" = 't'`, in.GetEmail()).Scan(&id)
+		err := service.db.Conn.QueryRow(`SELECT "id" FROM "user" WHERE "email" = $1 AND "enabled" = 't'`, in.GetEmail()).Scan(&id)
 		if err != nil {
-			return nil, errors.New("Query Execution Problem")
+			return nil, errFailedToSelect
 		}
 		if id == "" {
-			return &pb_user.ResetPassword_Response{
-				Message: "Your verification email has been sent",
-			}, nil
+			resetPassword.Message = "Verification email has been sent"
+			return resetPassword, nil
 		}
 
 		// Checking if a verification token has been sent in the last 24 hours
 		resetToken, _ = u.getTokenByUserID(id, "reset")
 		if len(resetToken) > 0 {
-			return &pb_user.ResetPassword_Response{
-				Message: "Resend only after 24 hours",
-			}, nil
+			resetPassword.Message = "Resend only after 24 hours"
+			return resetPassword, nil
 		}
 
 		resetToken = uuid.New().String()
-		_, err = db.Conn.Exec(`INSERT 
+		data, err := service.db.Conn.Exec(`INSERT
 			INTO "user_token" (
-				"token", 
-				"user_id", 
-				"date_create", 
+				"token",
+				"user_id",
+				"date_create",
 				"action"
 			)
-			VALUES 
+			VALUES
 				($1, $2, NOW(), 'reset')`,
 			resetToken,
 			id,
 		)
 		if err != nil {
-			return nil, errors.New("Create reset token failed")
+			return nil, errFailedToAdd
+		}
+		if affected, _ := data.RowsAffected(); affected == 0 {
+			return nil, errNotFound
 		}
 
-		return &pb_user.ResetPassword_Response{
-			Message: "Your verification email has been sent",
-			Token:   resetToken,
-		}, nil
+		resetPassword.Message = "Verification email has been sent"
+		resetPassword.Token = resetToken
+		return resetPassword, nil
 	}
 
 	// Checking the validity of a link
@@ -458,9 +474,8 @@ func (u *user) ResetPassword(ctx context.Context, in *pb_user.ResetPassword_Requ
 			return nil, err
 		}
 
-		return &pb_user.ResetPassword_Response{
-			Message: "Token is valid",
-		}, nil
+		resetPassword.Message = "Token is valid"
+		return resetPassword, nil
 	}
 
 	// Saving a new password
@@ -472,30 +487,34 @@ func (u *user) ResetPassword(ctx context.Context, in *pb_user.ResetPassword_Requ
 
 		newPassword, err := crypto.HashPassword(in.GetPassword())
 		if err != nil {
-			return nil, errors.New("HashPassword failed")
+			return nil, errHashIsNotValid // HashPassword failed
 		}
 
-		tx := db.Conn.MustBegin()
-		tx.MustExec(`UPDATE "user" 
-			SET 
-				"password" = $1 
-			WHERE 
+		tx, err := service.db.Conn.Beginx()
+		if err != nil {
+			return nil, errTransactionCreateError
+		}
+
+		tx.MustExec(`UPDATE "user"
+			SET
+				"password" = $1
+			WHERE
 				"id" = $2`,
 			newPassword,
 			id,
 		)
 
-		tx.MustExec(`UPDATE "user_token" 
-			SET 
-				"used" = 't', 
-				date_used = NOW() 
-			WHERE 
+		tx.MustExec(`UPDATE "user_token"
+			SET
+				"used" = 't',
+				date_used = NOW()
+			WHERE
 				"token" = $1`,
 			in.GetToken(),
 		)
 
 		if err = tx.Commit(); err != nil {
-			return nil, errors.New("There was a problem updating")
+			return nil, errTransactionCommitError
 		}
 
 		/*
@@ -508,32 +527,31 @@ func (u *user) ResetPassword(ctx context.Context, in *pb_user.ResetPassword_Requ
 		   }
 		*/
 
-		return &pb_user.ResetPassword_Response{
-			Message: "New password saved",
-		}, nil
+		resetPassword.Message = "New password saved"
+		return resetPassword, nil
 	}
 
-	return &pb_user.ResetPassword_Response{}, nil
+	return resetPassword, nil
 }
 
 // getUserIDByToken
 func (u *user) getUserIDByToken(token string) (string, error) {
 	var id string
-	err := db.Conn.QueryRow(`SELECT 
-			"user_id" AS "id" 
-		FROM 
-			"user_token" 
-		WHERE 
-			"token" = $1 
-			AND "used" = 'f' 
+	err := service.db.Conn.QueryRow(`SELECT
+			"user_id" AS "id"
+		FROM
+			"user_token"
+		WHERE
+			"token" = $1
+			AND "used" = 'f'
 			AND "date_create" > NOW() - INTERVAL '24 hour'`,
 		token,
 	).Scan(&id)
 	if err != nil {
-		return id, errors.New("Query Execution Problem")
+		return id, errFailedToScan
 	}
 	if id == "" {
-		return id, errors.New("Token is invalid")
+		return id, errTokenIsNotValid
 	}
 
 	return id, nil
@@ -542,23 +560,23 @@ func (u *user) getUserIDByToken(token string) (string, error) {
 // getTokenByUserID
 func (u *user) getTokenByUserID(userID, action string) (string, error) {
 	var token string
-	err := db.Conn.QueryRow(`SELECT 
-			"token" 
-		FROM 
-			"user_token" 
-		WHERE 
-			"user_id" = $1 
-			AND "used" = 'f' 
+	err := service.db.Conn.QueryRow(`SELECT
+			"token"
+		FROM
+			"user_token"
+		WHERE
+			"user_id" = $1
+			AND "used" = 'f'
 			AND "action" = $2
 			AND "date_create" > NOW() - INTERVAL '24 hour'`,
 		userID,
 		action,
 	).Scan(&token)
 	if err != nil {
-		return token, errors.New("Query Execution Problem")
+		return token, errFailedToScan
 	}
 	if token == "" {
-		return token, errors.New("Token is invalid")
+		return token, errTokenIsNotValid
 	}
 
 	return token, nil

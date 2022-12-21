@@ -5,16 +5,15 @@ package info;
 option go_package = "github.com/werbot/werbot/api/proto/info";
 
 import "user/user.proto";
-import "tagger/tagger.proto";
 
 service InfoHandlers {
-    rpc GetInfo(GetInfo.Request) returns (GetInfo.Response) {}
+    rpc UserStatistics(UserStatistics.Request) returns (UserStatistics.Response) {}
 }
 
-// rpc GetInfo
-message GetInfo {
+// rpc UserStatistics
+message UserStatistics {
     message Request {
-        string user_id = 1  [(tagger.tags) = "validate:\"omitempty,uuid\"  query:\"user_id\"   params:\"user_id\""];
+        string user_id = 1;     // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
         user.RoleUser role = 2;
     }
 

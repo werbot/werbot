@@ -30,7 +30,7 @@ func Send(to, subject, tmpl string, data any) error {
 		return err
 	}
 
-	//htmlMessage := tpl.String()
+	// htmlMessage := tpl.String()
 	htmlMessage, err := inlineCSS(tpl.String())
 	if err != nil {
 		return err

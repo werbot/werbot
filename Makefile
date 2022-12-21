@@ -107,20 +107,12 @@ define _gen_protos
 		--proto_path=${ROOT_PATH}/api/proto/ \
 		--go_out=paths=source_relative:. \
 		--go-grpc_out=paths=source_relative:. \
-		$$(basename ${1}).proto;\
-	protoc --proto_path=. \
-	  --proto_path=/usr/local/include/ \
-		--proto_path=${ROOT_PATH}/api/proto/ \
-		--gotag_out=paths=source_relative:. \
-		$$(basename ${1}).proto;\
-	protoc --proto_path=. \
-	  --proto_path=/usr/local/include/ \
-		--proto_path=${ROOT_PATH}/api/proto/ \
 		--plugin=protoc-gen-ts=${ROOT_PATH}/web/node_modules/@protobuf-ts/plugin/bin/protoc-gen-ts \
 		--ts_out=. \
 		--ts_opt use_proto_field_name,ts_nocheck,long_type_string,force_optimize_code_size,force_client_none \
 		$$(basename ${1}).proto;\
-		popd >/dev/null 2>&1
+	protoc-go-inject-tag -input="$$(basename ${1}).pb.go" -remove_tag_comment;\
+	popd >/dev/null 2>&1
 endef
 #############################################################################
 
@@ -129,7 +121,6 @@ endef
 .PHONY: upd_protos
 upd_protos:
 	$(eval PROTOS_LATEST=$(call get_latest_release,protocolbuffers/protobuf))
-	$(eval GOTAG_LATEST=$(call get_latest_release,srikrsna/protoc-gen-gotag))
 	@case $(OS_NAME) in \
 		darwin*) \
 			brew install protobuf protoc-gen-go protoc-gen-go-grpc;\
@@ -143,11 +134,9 @@ upd_protos:
 			sudo mv ${ROOT_PATH}/.vscode/tmp/protoc3/include/* /usr/local/include/;\
 			go install google.golang.org/protobuf/cmd/protoc-gen-go@latest;\
 			go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest;\
-			go install github.com/srikrsna/protoc-gen-gotag@latest;\
-			sudo rm -rf /usr/local/include/tagger;\
-			sudo cp -a ${GO_PATH}/pkg/mod/github.com/srikrsna/protoc-gen-gotag@${GOTAG_LATEST}/tagger /usr/local/include/tagger/;\
+			go install github.com/favadi/protoc-go-inject-tag@latest;\
 			sudo chown $(USER) /usr/local/bin/protoc;\
-			sudo chown -R $(USER) /usr/local/include/google /usr/local/include/tagger;\
+			sudo chown -R $(USER) /usr/local/include/google;\
 			rm -rf ${ROOT_PATH}/.vscode/tmp;\
 			;; \
 	esac

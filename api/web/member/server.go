@@ -27,10 +27,10 @@ import (
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/server/members [get]
 func (h *handler) getServerMember(c *fiber.Ctx) error {
-	input := new(pb.GetServerMember_Request)
+	input := new(pb.ServerMember_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -58,7 +58,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 		return httputil.StatusOK(c, "Members on server", members)
 	}
 
-	member, err := rClient.GetServerMember(ctx, &pb.GetServerMember_Request{
+	member, err := rClient.ServerMember(ctx, &pb.ServerMember_Request{
 		OwnerId:   ownerID,
 		ProjectId: input.GetProjectId(),
 		ServerId:  input.GetServerId(),
@@ -68,7 +68,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 		return httputil.ReturnGRPCError(c, err)
 	}
 	if member == nil {
-		return httputil.StatusNotFound(c, internal.ErrNotFound, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	return httputil.StatusOK(c, "Member information", member)
@@ -86,7 +86,7 @@ func (h *handler) addServerMember(c *fiber.Ctx) error {
 	input := new(pb.CreateServerMember_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -121,7 +121,7 @@ func (h *handler) patchServerMember(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerMember_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -159,7 +159,7 @@ func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 	input := new(pb.DeleteServerMember_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -193,10 +193,10 @@ func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/server/search [get]
 func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
-	input := new(pb.GetMembersWithoutServer_Request)
+	input := new(pb.MembersWithoutServer_Request)
 	c.QueryParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -207,7 +207,7 @@ func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	pagination := httputil.GetPaginationFromCtx(c)
-	members, err := rClient.GetMembersWithoutServer(ctx, &pb.GetMembersWithoutServer_Request{
+	members, err := rClient.MembersWithoutServer(ctx, &pb.MembersWithoutServer_Request{
 		Limit:     pagination.GetLimit(),
 		Offset:    pagination.GetOffset(),
 		SortBy:    "\"user\".\"name\":ASC",
@@ -234,7 +234,7 @@ func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerMemberStatus_Request)
 	c.BodyParser(input)
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.ErrValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -257,7 +257,7 @@ func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 
 	// message section
 	message := "Member is online"
-	if input.GetStatus() == false {
+	if !input.GetStatus() {
 		message = "Member is offline"
 	}
 	return httputil.StatusOK(c, message, nil)
