@@ -20,7 +20,7 @@ func (h *handler) getMyIP(c *fiber.Ctx) error {
 }
 
 func (h *handler) getCountry(c *fiber.Ctx) error {
-	input := new(pb.GetCountry_Request)
+	input := new(pb.ListCountries_Request)
 
 	if err := c.QueryParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -34,7 +34,7 @@ func (h *handler) getCountry(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewUtilityHandlersClient(h.Grpc.Client)
 
-	countries, err := rClient.GetCountry(ctx, &pb.GetCountry_Request{
+	countries, err := rClient.ListCountries(ctx, &pb.ListCountries_Request{
 		Name: fmt.Sprintf(`%v`, input.Name),
 	})
 	if err != nil {

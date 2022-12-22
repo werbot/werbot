@@ -126,16 +126,16 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *pb_firewall.ServerFir
 	}, nil
 }
 
-// CreateServerFirewall is ...
-func (s *firewall) CreateServerFirewall(ctx context.Context, in *pb_firewall.CreateServerFirewall_Request) (*pb_firewall.CreateServerFirewall_Response, error) {
+// AddServerFirewall is ...
+func (s *firewall) AddServerFirewall(ctx context.Context, in *pb_firewall.AddServerFirewall_Request) (*pb_firewall.AddServerFirewall_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
 
 	var recordID string
-	response := new(pb_firewall.CreateServerFirewall_Response)
+	response := new(pb_firewall.AddServerFirewall_Response)
 	switch record := in.Record.(type) {
-	case *pb_firewall.CreateServerFirewall_Request_Country:
+	case *pb_firewall.AddServerFirewall_Request_Country:
 		err := service.db.Conn.QueryRowx(`SELECT
 				"id"
 			FROM
@@ -171,7 +171,7 @@ func (s *firewall) CreateServerFirewall(ctx context.Context, in *pb_firewall.Cre
 
 		response.Id = recordID
 
-	case *pb_firewall.CreateServerFirewall_Request_Ip:
+	case *pb_firewall.AddServerFirewall_Request_Ip:
 		err := service.db.Conn.QueryRowx(`SELECT
 				"id"
 			FROM

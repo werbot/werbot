@@ -2,7 +2,7 @@ import { http } from "@/api";
 import {
   ServerMember_Request,
   ListServerMembers_Request,
-  CreateServerMember_Request,
+  AddServerMember_Request,
   UpdateServerMember_Request,
   DeleteServerMember_Request,
   UpdateServerMemberStatus_Request,
@@ -32,7 +32,7 @@ const getServerMembers = async (
 const getServerMember = async (data: ServerMember_Request) =>
   http("GET", URL.server_members, { params: data });
 
-const postServerMember = async (data: CreateServerMember_Request) =>
+const postServerMember = async (data: AddServerMember_Request) =>
   http("POST", URL.server_members, { data: data });
 
 const updateServerMember = async (data: UpdateServerMember_Request) =>

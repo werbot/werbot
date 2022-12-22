@@ -86,12 +86,12 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 // @Tags         members
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.CreateProject_Request{}
-// @Success      200         {object} httputil.HTTPResponse{data=pb.CreateProjectMember_Response}
+// @Param        req         body     pb.AddProject_Request{}
+// @Success      200         {object} httputil.HTTPResponse{data=pb.AddProjectMember_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/members [post]
 func (h *handler) addProjectMember(c *fiber.Ctx) error {
-	input := new(pb.CreateProjectMember_Request)
+	input := new(pb.AddProjectMember_Request)
 
 	if err := c.BodyParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -108,7 +108,7 @@ func (h *handler) addProjectMember(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	member, err := rClient.CreateProjectMember(ctx, &pb.CreateProjectMember_Request{
+	member, err := rClient.AddProjectMember(ctx, &pb.AddProjectMember_Request{
 		OwnerId:   userID,
 		ProjectId: input.GetProjectId(),
 		UserId:    input.GetUserId(),
@@ -334,12 +334,12 @@ func (h *handler) getProjectMembersInvite(c *fiber.Ctx) error {
 // @Tags         members
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.CreateProjectMemberInvite_Request{}
-// @Success      200         {object} httputil.HTTPResponse{data=pb.CreateProjectMemberInvite_Response}
+// @Param        req         body     pb.AddProjectMemberInvite_Request{}
+// @Success      200         {object} httputil.HTTPResponse{data=pb.AddProjectMemberInvite_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/invite [post]
 func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
-	input := new(pb.CreateProjectMemberInvite_Request)
+	input := new(pb.AddProjectMemberInvite_Request)
 
 	if err := c.BodyParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -356,7 +356,7 @@ func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	member, err := rClient.CreateProjectMemberInvite(ctx, &pb.CreateProjectMemberInvite_Request{
+	member, err := rClient.AddProjectMemberInvite(ctx, &pb.AddProjectMemberInvite_Request{
 		OwnerId:     userID,
 		ProjectId:   input.GetProjectId(),
 		UserName:    input.GetUserName(),

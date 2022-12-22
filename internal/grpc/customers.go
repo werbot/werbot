@@ -76,8 +76,8 @@ func (s *subscription) Customer(ctx context.Context, in *pb_subscription.Custome
 	return customer, nil
 }
 
-// CreateCustomer is ...
-func (s *subscription) CreateCustomer(ctx context.Context, in *pb_subscription.CreateCustomer_Request) (*pb_subscription.CreateCustomer_Response, error) {
+// AddCustomer is ...
+func (s *subscription) AddCustomer(ctx context.Context, in *pb_subscription.AddCustomer_Request) (*pb_subscription.AddCustomer_Response, error) {
 	var id string
 	err := service.db.Conn.QueryRow(`INSERT
 		INTO "subscription_customer" ("user_id", "stripe_id")
@@ -90,7 +90,7 @@ func (s *subscription) CreateCustomer(ctx context.Context, in *pb_subscription.C
 		return nil, errFailedToAdd
 	}
 
-	return &pb_subscription.CreateCustomer_Response{
+	return &pb_subscription.AddCustomer_Response{
 		CustomerId: id,
 	}, nil
 }

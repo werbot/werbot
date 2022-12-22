@@ -9,7 +9,7 @@ import "google/protobuf/timestamp.proto";
 service ServerHandlers {
     rpc ListServers(ListServers.Request) returns (ListServers.Response) {}
     rpc Server(Server.Request) returns (Server.Response) {}
-    rpc CreateServer(CreateServer.Request) returns (CreateServer.Response) {}
+    rpc AddServer(AddServer.Request) returns (AddServer.Response) {}
     rpc UpdateServer(UpdateServer.Request) returns (UpdateServer.Response) {}
     rpc DeleteServer(DeleteServer.Request) returns (DeleteServer.Response) {}
 
@@ -17,7 +17,7 @@ service ServerHandlers {
     rpc UpdateServerOnlineStatus(UpdateServerOnlineStatus.Request) returns (UpdateServerOnlineStatus.Response) {}
     rpc UpdateServerActiveStatus(UpdateServerActiveStatus.Request) returns (UpdateServerActiveStatus.Response) {}
     // --------
-    
+
     rpc ServerAccess(ServerAccess.Request) returns (ServerAccess.Response) {}
     rpc UpdateServerAccess(UpdateServerAccess.Request) returns (UpdateServerAccess.Response) {}
 
@@ -26,13 +26,13 @@ service ServerHandlers {
 
     rpc UpdateServerHostKey(UpdateServerHostKey.Request) returns (UpdateServerHostKey.Response) {}
 
-    rpc CreateServerSession(CreateServerSession.Request) returns (CreateServerSession.Response) {}
+    rpc AddServerSession(AddServerSession.Request) returns (AddServerSession.Response) {}
 
     rpc ServerNameByID(ServerNameByID.Request) returns (ServerNameByID.Response) {}
 
     // share server
     rpc ListServersShareForUser(ListServersShareForUser.Request) returns (ListServersShareForUser.Response) {}
-    rpc CreateServerShareForUser(CreateServerShareForUser.Request) returns (CreateServerShareForUser.Response) {}
+    rpc AddServerShareForUser(AddServerShareForUser.Request) returns (AddServerShareForUser.Response) {}
     rpc UpdateServerShareForUser(UpdateServerShareForUser.Request) returns (UpdateServerShareForUser.Response) {}
     rpc DeleteServerShareForUser(DeleteServerShareForUser.Request) returns (DeleteServerShareForUser.Response) {}
 }
@@ -64,7 +64,7 @@ enum UserType {
     HEALTHCHECK = 1;
 	SHELL = 2;
     BASTION = 3;
-    INVITE = 4; 
+    INVITE = 4;
 }
 
 // -----------------------------------------------------
@@ -104,7 +104,7 @@ message Server {
 
     message Response {
         string server_id = 1;
-        string project_id = 2;        
+        string project_id = 2;
         string project_login = 3;
         string address = 4;
         int32 port = 5;
@@ -130,8 +130,8 @@ message Server {
 // -----------------------------------------------------
 
 
-// rpc CreateServer
-message CreateServer {
+// rpc AddServer
+message AddServer {
     message Request {
         string user_id = 1;       // @gotags: validate:"omitempty,uuid"
         string project_id = 2;    // @gotags: validate:"required,uuid"
@@ -264,7 +264,7 @@ message ServerActivity {
         string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id"
         string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
         string server_id = 3;
-    }  
+    }
 
     message Response {
         repeated int32 monday = 1;
@@ -318,8 +318,8 @@ message UpdateServerHostKey {
 // -----------------------------------------------------
 
 
-// rpc CreateServerSession
-message CreateServerSession {
+// rpc AddServerSession
+message AddServerSession {
     message Request {
         string account_id = 1;
         SessionStatus status = 2;
@@ -377,8 +377,8 @@ message ListServersShareForUser {
 // -----------------------------------------------------
 
 
-// rpc CreateServerShareForUser
-message CreateServerShareForUser {
+// rpc AddServerShareForUser
+message AddServerShareForUser {
     message Request{
         string user_id = 1;
         string project_id = 2;

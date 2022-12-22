@@ -2,7 +2,7 @@ import { http } from "@/api";
 import {
   ListPublicKeys_Request,
   PublicKey_Request,
-  CreatePublicKey_Request,
+  AddPublicKey_Request,
   UpdatePublicKey_Request,
   DeletePublicKey_Request,
 } from "@proto/key/key";
@@ -22,7 +22,7 @@ const getKeys = async (data?: ListPublicKeys_Request, user_id?: string) =>
 
 const getKey = async (data: PublicKey_Request) => http("GET", URL.keys, { params: data });
 
-const postKey = async (data: CreatePublicKey_Request) => http("POST", URL.keys, { data: data });
+const postKey = async (data: AddPublicKey_Request) => http("POST", URL.keys, { data: data });
 
 const updateKey = async (data: UpdatePublicKey_Request) => http("PATCH", URL.keys, { data: data });
 

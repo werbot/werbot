@@ -88,12 +88,12 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 // @Tags         users
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.CreateUser_Request{}
-// @Success      200         {object} httputil.HTTPResponse{data=pb.CreateUser_Response}
+// @Param        req         body     pb.AddUser_Request{}
+// @Success      200         {object} httputil.HTTPResponse{data=pb.AddUser_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users [post]
 func (h *handler) addUser(c *fiber.Ctx) error {
-	input := new(pb.CreateUser_Request)
+	input := new(pb.AddUser_Request)
 
 	if err := c.BodyParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -112,7 +112,7 @@ func (h *handler) addUser(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
-	user, err := rClient.CreateUser(ctx, &pb.CreateUser_Request{
+	user, err := rClient.AddUser(ctx, &pb.AddUser_Request{
 		Fio:       input.GetFio(),
 		Name:      input.GetName(),
 		Email:     input.GetEmail(),

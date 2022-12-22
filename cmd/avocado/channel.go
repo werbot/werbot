@@ -95,7 +95,7 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 			app.log.Error(err).Msg("gRPC UpdateAccountStatus")
 		}
 
-		_, err = rClientS.CreateServerSession(_ctx, &server.CreateServerSession_Request{
+		_, err = rClientS.AddServerSession(_ctx, &server.AddServerSession_Request{
 			AccountId: host.AccountId,
 			Status:    server.SessionStatus_OPENED,
 			Message:   "",
@@ -139,7 +139,7 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 				conn.Close()
 			}
 
-			_, err = rClientS.CreateServerSession(_ctx, &server.CreateServerSession_Request{
+			_, err = rClientS.AddServerSession(_ctx, &server.AddServerSession_Request{
 				AccountId: host.AccountId,
 				Status:    server.SessionStatus_CLOSED,
 				Message:   actx.message,
@@ -405,7 +405,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 	errch := make(chan error, 1)
 	quit := make(chan string, 1)
 
-	newAudit := &audit.CreateAudit_Request{
+	newAudit := &audit.AddAudit_Request{
 		AccountId: sessConfig.AccountID,
 		ClientIp:  sessConfig.ClientIP,
 		Session:   sessConfig.UUID,

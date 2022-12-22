@@ -2,13 +2,13 @@ import { http } from "@/api";
 import {
   ListProjectMembers_Request,
   ProjectMember_Request,
-  CreateProjectMember_Request,
+  AddProjectMember_Request,
   UpdateProjectMember_Request,
   DeleteProjectMember_Request,
   UpdateProjectMemberStatus_Request,
   UsersWithoutProject_Request,
   ListProjectMembersInvite_Request,
-  CreateProjectMemberInvite_Request,
+  AddProjectMemberInvite_Request,
   DeleteProjectMemberInvite_Request,
 } from "@proto/member/member";
 
@@ -33,7 +33,7 @@ const getProjectMembers = async (
 const getProjectMember = async (data: ProjectMember_Request) =>
   http("GET", URL.project_members, { params: data });
 
-const postProjectMember = async (data: CreateProjectMember_Request) =>
+const postProjectMember = async (data: AddProjectMember_Request) =>
   http("POST", URL.project_members, { data: data });
 
 const updateProjectMember = async (data: UpdateProjectMember_Request) =>
@@ -51,7 +51,7 @@ const getUsersWithoutProject = async (data: UsersWithoutProject_Request) =>
 const getProjectMembersInvite = async (data: ListProjectMembersInvite_Request) =>
   http("GET", URL.project_members + "/invite", { params: data });
 
-const postProjectMemberInvite = async (data: CreateProjectMemberInvite_Request) =>
+const postProjectMemberInvite = async (data: AddProjectMemberInvite_Request) =>
   http("POST", URL.project_members + "/invite", { data: data });
 
 const deleteProjectMemberInvite = async (data: DeleteProjectMemberInvite_Request) =>

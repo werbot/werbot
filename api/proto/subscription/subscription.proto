@@ -10,7 +10,7 @@ service SubscriptionHandlers {
     // Subscription section
     rpc ListSubscriptions(ListSubscriptions.Request) returns (ListSubscriptions.Response) {}
     rpc Subscription(Subscription.Request) returns (Subscription.Response) {}
-    rpc CreateSubscription(CreateSubscription.Request) returns (CreateSubscription.Response) {}
+    rpc AddSubscription(AddSubscription.Request) returns (AddSubscription.Response) {}
     rpc UpdateSubscription(UpdateSubscription.Request) returns (UpdateSubscription.Response) {}
     rpc DeleteSubscription(DeleteSubscription.Request) returns (DeleteSubscription.Response) {}
 
@@ -22,7 +22,7 @@ service SubscriptionHandlers {
     // Customer section
     rpc ListCustomers(ListCustomers.Request) returns (ListCustomers.Response) {}
     rpc Customer(Customer.Request) returns (Customer.Response) {}
-    rpc CreateCustomer(CreateCustomer.Request) returns (CreateCustomer.Response) {}
+    rpc AddCustomer(AddCustomer.Request) returns (AddCustomer.Response) {}
     rpc UpdateCustomer(UpdateCustomer.Request) returns (UpdateCustomer.Response) {}
     rpc DeleteCustomer(DeleteCustomer.Request) returns (DeleteCustomer.Response) {}
 
@@ -56,7 +56,7 @@ message PlansLite {
         int32 limits_companies = 9;
         int32 limits_connections = 10;
     }
-    
+
     int32 total = 1;
     repeated PlanLite plans = 2;
 }
@@ -101,8 +101,8 @@ message Subscription {
 // -----------------------------------------------------
 
 
-// rpc CreateSubscription
-message CreateSubscription {
+// rpc AddSubscription
+message AddSubscription {
     message Request {
         string subscription_id = 1;
         string customer_id = 2;
@@ -259,8 +259,8 @@ message Customer {
 // -----------------------------------------------------
 
 
-// rpc CreateCustomer
-message CreateCustomer {
+// rpc AddCustomer
+message AddCustomer {
     message Request {
         string user_id = 1;
         string stripe_id = 2;
@@ -326,7 +326,7 @@ message Invoices {
         int32 limit = 1;
         int32 offset = 2;
         string sort_by = 3;
-        string query = 4; 
+        string query = 4;
     }
 
     message Response {

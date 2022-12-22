@@ -7,9 +7,9 @@ option go_package = "github.com/werbot/werbot/api/proto/audit";
 //import "google/protobuf/timestamp.proto";
 
 service AuditHandlers {
-    rpc CreateAudit(CreateAudit.Request) returns (CreateAudit.Response) {}
+    rpc AddAudit(AddAudit.Request) returns (AddAudit.Response) {}
     rpc UpdateAudit(UpdateAudit.Request) returns (UpdateAudit.Response) {}
-    
+
     rpc CreateRecord(CreateRecord.Request) returns (CreateRecord.Response) {}
 }
 
@@ -48,8 +48,8 @@ message Records {
 // -----------------------------------------------------
 
 
-// rpc rpc CreateAudit
-message CreateAudit {
+// rpc rpc AddAudit
+message AddAudit {
     message Request {
         string account_id = 1;
         int32 version = 2;

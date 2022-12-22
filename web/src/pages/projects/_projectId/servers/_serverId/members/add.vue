@@ -75,7 +75,7 @@ import { SvgIcon, Toggle, BServerName, Badge, Pagination } from "@/components";
 import { showMessage } from "@/utils/message";
 
 import { getMembersWithoutServer, postServerMember } from "@/api/member/server";
-import { MembersWithoutServer_Request, CreateServerMember_Request } from "@proto/member/member";
+import { MembersWithoutServer_Request, AddServerMember_Request } from "@proto/member/member";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});
@@ -119,7 +119,7 @@ const addingMember = async (index: number) => {
     active = false;
   }
 
-  await postServerMember(<CreateServerMember_Request>{
+  await postServerMember(<AddServerMember_Request>{
     owner_id: proxy.$authStore.hasUserID,
     project_id: props.projectId,
     server_id: props.serverId,

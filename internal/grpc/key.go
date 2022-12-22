@@ -129,8 +129,8 @@ func (k *key) PublicKey(ctx context.Context, in *pb_key.PublicKey_Request) (*pb_
 	return publicKey, nil
 }
 
-// CreatePublicKey is ...
-func (k *key) CreatePublicKey(ctx context.Context, in *pb_key.CreatePublicKey_Request) (*pb_key.CreatePublicKey_Response, error) {
+// AddPublicKey is ...
+func (k *key) AddPublicKey(ctx context.Context, in *pb_key.AddPublicKey_Request) (*pb_key.AddPublicKey_Response, error) {
 	var count int32
 	var id string
 
@@ -181,7 +181,7 @@ func (k *key) CreatePublicKey(ctx context.Context, in *pb_key.CreatePublicKey_Re
 		return nil, errFailedToAdd
 	}
 
-	return &pb_key.CreatePublicKey_Response{
+	return &pb_key.AddPublicKey_Response{
 		KeyId: id,
 	}, nil
 }

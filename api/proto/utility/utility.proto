@@ -5,11 +5,11 @@ package utility;
 option go_package = "github.com/werbot/werbot/api/proto/utility";
 
 service UtilityHandlers {
-    rpc GetCountry(GetCountry.Request) returns (GetCountry.Response) {}
+    rpc ListCountries(ListCountries.Request) returns (ListCountries.Response) {}
 }
 
 // rpc GetInfo
-message GetCountry {
+message ListCountries {
     message Request {
         string name = 1; // @gotags: validate:"required,min=2"
     }

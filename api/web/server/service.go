@@ -18,12 +18,12 @@ import (
 // @Tags         servers
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.CreateServer_Request{}
-// @Success      200         {object} httputil.HTTPResponse{data=pb.CreateServer_Response}
+// @Param        req         body     pb.AddServer_Request{}
+// @Success      200         {object} httputil.HTTPResponse{data=pb.AddServer_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/service/server [post]
 func (h *handler) addServiceServer(c *fiber.Ctx) error {
-	input := new(pb.CreateServer_Request)
+	input := new(pb.AddServer_Request)
 
 	if err := c.BodyParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -37,7 +37,7 @@ func (h *handler) addServiceServer(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
-	server, err := rClient.CreateServer(ctx, &pb.CreateServer_Request{
+	server, err := rClient.AddServer(ctx, &pb.AddServer_Request{
 		ProjectId: input.GetProjectId(),
 		Address:   strings.TrimSpace(input.GetAddress()),
 		Port:      input.GetPort(),

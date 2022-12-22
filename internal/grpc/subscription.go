@@ -33,7 +33,7 @@ func (s *subscription) GetSubscriptions(ctx context.Context, in *pb_subscription
       INNER JOIN "subscription_plan" ON "subscription"."plan_id" = "subscription_plan"."id"
       INNER JOIN "user" ON "subscription_customer"."user_id" = "user"."id"` + sqlSearch + sqlFooter)
 	if err != nil {
-    service.log.ErrorGRPC(err)
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToSelect
 	}
 
@@ -52,7 +52,7 @@ func (s *subscription) GetSubscriptions(ctx context.Context, in *pb_subscription
 			&subscription.StripeId,
 		)
 		if err != nil {
-      service.log.ErrorGRPC(err)
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToScan
 		}
 		subscription.StartDate = timestamppb.New(startDate.Time)
@@ -70,7 +70,7 @@ func (s *subscription) GetSubscriptions(ctx context.Context, in *pb_subscription
       INNER JOIN "user" ON "subscription"."customer_id" = "user"."id"` + sqlSearch).
 		Scan(&total)
 	if err != nil {
-    service.log.ErrorGRPC(err)
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToScan
 	}
 
@@ -85,9 +85,9 @@ func (s *subscription) GetSubscription(ctx context.Context, in *pb_subscription.
 	return &pb_subscription.Subscription_Response{}, nil
 }
 
-// TODO CreateSubscription is ...
-func (s *subscription) CreateSubscription(ctx context.Context, in *pb_subscription.CreateSubscription_Request) (*pb_subscription.CreateSubscription_Response, error) {
-	return &pb_subscription.CreateSubscription_Response{}, nil
+// TODO AddSubscription is ...
+func (s *subscription) AddSubscription(ctx context.Context, in *pb_subscription.AddSubscription_Request) (*pb_subscription.AddSubscription_Response, error) {
+	return &pb_subscription.AddSubscription_Response{}, nil
 }
 
 // TODO UpdateSubscription is ...
@@ -105,7 +105,7 @@ func (s *subscription) DeleteSubscription(ctx context.Context, in *pb_subscripti
 		in.SubscriptionId,
 	)
 	if err != nil {
-    service.log.ErrorGRPC(err)
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {

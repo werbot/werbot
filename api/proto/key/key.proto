@@ -9,10 +9,10 @@ import "google/protobuf/timestamp.proto";
 service KeyHandlers {
     rpc ListPublicKeys(ListPublicKeys.Request) returns (ListPublicKeys.Response) {}
     rpc PublicKey(PublicKey.Request) returns (PublicKey.Response) {}
-    rpc CreatePublicKey(CreatePublicKey.Request) returns (CreatePublicKey.Response) {}
+    rpc AddPublicKey(AddPublicKey.Request) returns (AddPublicKey.Response) {}
     rpc UpdatePublicKey(UpdatePublicKey.Request) returns (UpdatePublicKey.Response) {}
     rpc DeletePublicKey(DeletePublicKey.Request) returns (DeletePublicKey.Response) {}
-    
+
     rpc GenerateSSHKey(GenerateSSHKey.Request) returns (GenerateSSHKey.Response) {}
 }
 
@@ -32,7 +32,7 @@ message ListPublicKeys {
         string query = 4;
     }
 
-    message Response {    
+    message Response {
         int32 total = 1;
         repeated PublicKey.Response public_keys = 3;
     }
@@ -61,8 +61,8 @@ message PublicKey {
 // -----------------------------------------------------
 
 
-// rpc CreatePublicKey
-message CreatePublicKey {
+// rpc AddPublicKey
+message AddPublicKey {
     message Request {
         string user_id = 1; // @gotags: validate:"omitempty,uuid"
         string title = 2;   // @gotags: validate:"required,min=5,max=20"

@@ -89,12 +89,12 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 // @Tags         projects
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.CreateProject_Request{}
-// @Success      200         {object} httputil.HTTPResponse{data=pb.CreateProject_Response}
+// @Param        req         body     pb.AddProject_Request{}
+// @Success      200         {object} httputil.HTTPResponse{data=pb.AddProject_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/projects [post]
 func (h *handler) addProject(c *fiber.Ctx) error {
-	input := new(pb.CreateProject_Request)
+	input := new(pb.AddProject_Request)
 
 	if err := c.BodyParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -111,7 +111,7 @@ func (h *handler) addProject(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
 
-	project, err := rClient.CreateProject(ctx, &pb.CreateProject_Request{
+	project, err := rClient.AddProject(ctx, &pb.AddProject_Request{
 		OwnerId: userID,
 		Login:   input.GetLogin(),
 		Title:   input.GetTitle(),

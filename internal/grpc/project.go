@@ -116,8 +116,8 @@ func (p *project) Project(ctx context.Context, in *pb_project.Project_Request) (
 	return project, nil
 }
 
-// CreateProject is ...
-func (p *project) CreateProject(ctx context.Context, in *pb_project.CreateProject_Request) (*pb_project.CreateProject_Response, error) {
+// AddProject is ...
+func (p *project) AddProject(ctx context.Context, in *pb_project.AddProject_Request) (*pb_project.AddProject_Response, error) {
 	//	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
 	//		return nil, errNotFound
 	//	}
@@ -173,7 +173,7 @@ func (p *project) CreateProject(ctx context.Context, in *pb_project.CreateProjec
 		return nil, errTransactionCommitError
 	}
 
-	return &pb_project.CreateProject_Response{
+	return &pb_project.AddProject_Response{
 		ProjectId: id,
 	}, nil
 }

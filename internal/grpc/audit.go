@@ -15,8 +15,8 @@ type audit struct {
 	pb_audit.UnimplementedAuditHandlersServer
 }
 
-// CreateAudit is ...
-func (s *audit) CreateAudit(ctx context.Context, in *pb_audit.CreateAudit_Request) (*pb_audit.CreateAudit_Response, error) {
+// AddAudit is ...
+func (s *audit) AddAudit(ctx context.Context, in *pb_audit.AddAudit_Request) (*pb_audit.AddAudit_Response, error) {
 	if in.GetAccountId() == "" && in.GetVersion() == 0 && in.GetSession() == "" && in.GetClientIp() == "" {
 		return nil, errIncorrectParameters
 	}
@@ -50,7 +50,7 @@ func (s *audit) CreateAudit(ctx context.Context, in *pb_audit.CreateAudit_Reques
 		return nil, errFailedToAdd
 	}
 
-	return &pb_audit.CreateAudit_Response{
+	return &pb_audit.AddAudit_Response{
 		AuditId: auditID,
 	}, nil
 }

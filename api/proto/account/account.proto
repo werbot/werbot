@@ -9,21 +9,21 @@ import "google/protobuf/timestamp.proto";
 service AccountHandlers {
     rpc ListAccounts(ListAccounts.Request) returns (ListAccounts.Response) {}
     rpc Account(Account.Request) returns (Account.Response) {}
-    //rpc CreateAccount(CreateAccount.Request) returns (CreateAccount.Response) {}
+    //rpc AddAccount(AddAccount.Request) returns (AddAccount.Response) {}
     //rpc UpdateAccount(UpdateAccount.Request) returns (UpdateAccount.Response) {}
     //rpc DeleteAccount(DeleteAccount.Request) returns (DeleteAccount.Response) {}
 
     rpc AccountIDByName(AccountIDByName.Request) returns (AccountIDByName.Response) {}
 
     rpc UpdateAccountStatus(UpdateAccountStatus.Request) returns (UpdateAccountStatus.Response) {}
-    
+
     rpc SessionAccount(SessionAccount.Request) returns (SessionAccount.Response) {}
     rpc FindByTokenAccount(FindByTokenAccount.Request) returns (FindByTokenAccount.Response) {}
 }
 
 enum AccountStatus {
     ACCOUNT_STATUS_UNSPECIFIED = 0;
-    OFFLINE = 1;  
+    OFFLINE = 1;
     ONLINE = 2;
 }
 
@@ -111,7 +111,7 @@ message FindByTokenAccount {
     message Request {
         string name = 1;
     }
-    
+
     message Response {}
 }
 // -----------------------------------------------------

@@ -2,7 +2,7 @@ import { http } from "@/api";
 import {
   ListUsers_Request,
   User_Request,
-  CreateUser_Request,
+  AddUser_Request,
   UpdateUser_Request,
   UpdatePassword_Request,
   DeleteUser_Request,
@@ -24,7 +24,7 @@ const getUsers = async (data?: ListUsers_Request, user_id?: string) =>
 const getUser = async (data: User_Request) =>
   http("GET", URL.users, {params: data});
 
-const postUser = async (data: CreateUser_Request) => http("POST", URL.users, { data: data });
+const postUser = async (data: AddUser_Request) => http("POST", URL.users, { data: data });
 
 const updateUser = async (data: UpdateUser_Request) =>
   http("PATCH", URL.users, {data: data});
@@ -32,7 +32,7 @@ const updateUser = async (data: UpdateUser_Request) =>
 const updatePassword = async (data: UpdatePassword_Request) =>
   http("PATCH", URL.users + "/password", {data: data});
 
-const deleteUserStep1 = async (data: DeleteUser_Request) => 
+const deleteUserStep1 = async (data: DeleteUser_Request) =>
   http("DELETE", URL.users, {
     data: {
       user_id: data.user_id,

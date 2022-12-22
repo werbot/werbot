@@ -64,12 +64,12 @@ func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 // @Tags         license
 // @Accept       json
 // @Produce      json
-// @Param        req     body     pb.NewLicenseRequest
+// @Param        req     body     pb.AddLicenseRequest
 // @Success      200     {object} httputil.HTTPResponse
 // @Failure      400,500 {object} httputil.HTTPResponse
 // @Router       /v1/license [post]
 func (h *handler) postLicense(c *fiber.Ctx) error {
-	input := new(pb.NewLicense_Request)
+	input := new(pb.AddLicense_Request)
 
 	if err := c.BodyParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -79,14 +79,14 @@ func (h *handler) postLicense(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
-	dataLicense := &pb.NewLicense_Request{
+	dataLicense := &pb.AddLicense_Request{
 		Ip:    input.GetIp(),
 		Token: input.GetToken(),
 	}
 
 	userParameter := middleware.AuthUser(c)
 	if userParameter.IsUserAdmin() {
-		dataLicense = &pb.NewLicense_Request{
+		dataLicense = &pb.AddLicense_Request{
 			Customer:   input.GetCustomer(),
 			Subscriber: input.GetSubscriber(),
 		}
@@ -96,7 +96,7 @@ func (h *handler) postLicense(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
 
-	dataLic, err := rClient.NewLicense(ctx, dataLicense)
+	dataLic, err := rClient.AddLicense(ctx, dataLicense)
 	if err != nil {
 		return httputil.ErrorGRPC(c, h.log, err)
 	}

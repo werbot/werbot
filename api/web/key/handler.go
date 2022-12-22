@@ -80,12 +80,12 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 // @Tags         key
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.CreatePublicKey_Request{}
+// @Param        req         body     pb.AddPublicKey_Request{}
 // @Success      200         {object} httputil.HTTPResponse
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/keys [post]
 func (h *handler) addKey(c *fiber.Ctx) error {
-	input := new(pb.CreatePublicKey_Request)
+	input := new(pb.AddPublicKey_Request)
 
 	if err := c.BodyParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -102,7 +102,7 @@ func (h *handler) addKey(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
 
-	publicKey, err := rClient.CreatePublicKey(ctx, &pb.CreatePublicKey_Request{
+	publicKey, err := rClient.AddPublicKey(ctx, &pb.AddPublicKey_Request{
 		UserId: userID,
 		Title:  input.GetTitle(),
 		Key:    input.GetKey(),

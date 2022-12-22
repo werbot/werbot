@@ -236,7 +236,7 @@ func TestHandler_addProject(t *testing.T) {
 		// Cases with an anonymous user
 		{
 			Name:        "ANONYMOUS_USER_addProject_01", // User not authorized
-			RequestBody: pb_project.CreateProject_Request{},
+			RequestBody: pb_project.AddProject_Request{},
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -247,7 +247,7 @@ func TestHandler_addProject(t *testing.T) {
 		// Cases with an authorized user
 		{
 			Name: "ROLE_USER_addProject_01", // Error 400 when trying to pass invalid parameters
-			RequestBody: pb_project.CreateProject_Request{
+			RequestBody: pb_project.AddProject_Request{
 				Title: "",
 				Login: "",
 			},
@@ -262,7 +262,7 @@ func TestHandler_addProject(t *testing.T) {
 		},
 		{
 			Name: "ROLE_USER_addProject_02", // Error 400 when trying to pass invalid parameters
-			RequestBody: pb_project.CreateProject_Request{
+			RequestBody: pb_project.AddProject_Request{
 				Title: "user",
 				Login: "user999",
 			},
@@ -276,7 +276,7 @@ func TestHandler_addProject(t *testing.T) {
 		},
 		{
 			Name: "ROLE_USER_addProject_03", // Error 400 when trying to pass invalid parameters
-			RequestBody: pb_project.CreateProject_Request{
+			RequestBody: pb_project.AddProject_Request{
 				Login: "user999",
 			},
 			RequestUser: userInfo,
@@ -289,7 +289,7 @@ func TestHandler_addProject(t *testing.T) {
 		},
 		{
 			Name: "ROLE_USER_addProject_04",
-			RequestBody: pb_project.CreateProject_Request{
+			RequestBody: pb_project.AddProject_Request{
 				Title: "user999",
 				Login: "user999",
 			},
@@ -314,7 +314,7 @@ func TestHandler_addProject(t *testing.T) {
 				End()
 
 			// delete added project
-			data := map[string]pb_project.CreateProject_Response{}
+			data := map[string]pb_project.AddProject_Response{}
 			json.NewDecoder(resp.Response.Body).Decode(&data)
 			if data["result"].ProjectId != "" {
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

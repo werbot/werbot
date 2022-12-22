@@ -42,7 +42,7 @@ import { ref, onBeforeUnmount, getCurrentInstance } from "vue";
 import { useRouter } from "vue-router";
 import { FormInput } from "@/components";
 import { postProject } from "@/api/project";
-import { CreateProject_Request } from "@proto/project/project";
+import { AddProject_Request } from "@proto/project/project";
 import { showMessage } from "@/utils/message";
 
 const { proxy } = getCurrentInstance();
@@ -53,7 +53,7 @@ const router = useRouter();
 const onSubmit = async () => {
   loading.value = !loading.value;
 
-  await postProject(<CreateProject_Request>{
+  await postProject(<AddProject_Request>{
     title: data.value.title,
     login: data.value.login,
   })

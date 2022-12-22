@@ -146,8 +146,8 @@ func (m *member) ProjectMember(ctx context.Context, in *pb_member.ProjectMember_
 	return member, nil
 }
 
-// CreateProjectMember is ...
-func (m *member) CreateProjectMember(ctx context.Context, in *pb_member.CreateProjectMember_Request) (*pb_member.CreateProjectMember_Response, error) {
+// AddProjectMember is ...
+func (m *member) AddProjectMember(ctx context.Context, in *pb_member.AddProjectMember_Request) (*pb_member.AddProjectMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
 		return nil, errNotFound
 	}
@@ -208,7 +208,7 @@ func (m *member) CreateProjectMember(ctx context.Context, in *pb_member.CreatePr
 		return nil, errFailedToScan
 	}
 
-	return &pb_member.CreateProjectMember_Response{
+	return &pb_member.AddProjectMember_Response{
 		MemberId: id,
 	}, nil
 }
@@ -550,14 +550,14 @@ func (m *member) ServerMember(ctx context.Context, in *pb_member.ServerMember_Re
 	return member, nil
 }
 
-// CreateServerMember is ...
-func (m *member) CreateServerMember(ctx context.Context, in *pb_member.CreateServerMember_Request) (*pb_member.CreateServerMember_Response, error) {
+// AddServerMember is ...
+func (m *member) AddServerMember(ctx context.Context, in *pb_member.AddServerMember_Request) (*pb_member.AddServerMember_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
 		return nil, errNotFound
 	}
 
 	var memberID string
-	member := new(pb_member.CreateServerMember_Response)
+	member := new(pb_member.AddServerMember_Response)
 	err := service.db.Conn.QueryRow(`SELECT
 			"id"
 		FROM
@@ -824,8 +824,8 @@ func (m *member) ListProjectMembersInvite(ctx context.Context, in *pb_member.Lis
 	}, nil
 }
 
-// CreateProjectMemberInvite is ...
-func (m *member) CreateProjectMemberInvite(ctx context.Context, in *pb_member.CreateProjectMemberInvite_Request) (*pb_member.CreateProjectMemberInvite_Response, error) {
+// AddProjectMemberInvite is ...
+func (m *member) AddProjectMemberInvite(ctx context.Context, in *pb_member.AddProjectMemberInvite_Request) (*pb_member.AddProjectMemberInvite_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetOwnerId()) {
 		return nil, errNotFound
 	}
@@ -872,7 +872,7 @@ func (m *member) CreateProjectMemberInvite(ctx context.Context, in *pb_member.Cr
 		return nil, errFailedToAdd
 	}
 
-	return &pb_member.CreateProjectMemberInvite_Response{
+	return &pb_member.AddProjectMemberInvite_Response{
 		Invite: invite,
 	}, nil
 }

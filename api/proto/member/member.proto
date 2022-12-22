@@ -12,7 +12,7 @@ service MemberHandlers {
     // Project section
     rpc ListProjectMembers(ListProjectMembers.Request) returns (ListProjectMembers.Response) {}
     rpc ProjectMember(ProjectMember.Request) returns (ProjectMember.Response) {}
-    rpc CreateProjectMember(CreateProjectMember.Request) returns (CreateProjectMember.Response) {}
+    rpc AddProjectMember(AddProjectMember.Request) returns (AddProjectMember.Response) {}
     rpc UpdateProjectMember(UpdateProjectMember.Request) returns (UpdateProjectMember.Response) {}
     rpc DeleteProjectMember(DeleteProjectMember.Request) returns (DeleteProjectMember.Response) {}
 
@@ -22,14 +22,14 @@ service MemberHandlers {
     rpc UsersWithoutProject(UsersWithoutProject.Request) returns (UsersWithoutProject.Response) {}
 
     rpc ListProjectMembersInvite(ListProjectMembersInvite.Request) returns (ListProjectMembersInvite.Response) {}
-    rpc CreateProjectMemberInvite(CreateProjectMemberInvite.Request) returns (CreateProjectMemberInvite.Response) {}
+    rpc AddProjectMemberInvite(AddProjectMemberInvite.Request) returns (AddProjectMemberInvite.Response) {}
     rpc DeleteProjectMemberInvite(DeleteProjectMemberInvite.Request) returns (DeleteProjectMemberInvite.Response) {}
     rpc ProjectMemberInviteActivate(ProjectMemberInviteActivate.Request) returns (ProjectMemberInviteActivate.Response) {}
 
     // Server section
     rpc ListServerMembers(ListServerMembers.Request) returns (ListServerMembers.Response) {}
     rpc ServerMember(ServerMember.Request) returns (ServerMember.Response) {}
-    rpc CreateServerMember(CreateServerMember.Request) returns (CreateServerMember.Response) {}
+    rpc AddServerMember(AddServerMember.Request) returns (AddServerMember.Response) {}
     rpc UpdateServerMember(UpdateServerMember.Request) returns (UpdateServerMember.Response) {}
     rpc DeleteServerMember(DeleteServerMember.Request) returns (DeleteServerMember.Response) {}
 
@@ -95,8 +95,8 @@ message ProjectMember {
 // -----------------------------------------------------
 
 
-// rpc CreateProjectMember
-message CreateProjectMember {
+// rpc AddProjectMember
+message AddProjectMember {
     message Request {
         string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
         string project_id = 2; // @gotags: validate:"required,uuid"  query:"project_id"
@@ -213,8 +213,8 @@ message ListProjectMembersInvite {
 // -----------------------------------------------------
 
 
-// rpc CreateProjectMemberInvite
-message CreateProjectMemberInvite {
+// rpc AddProjectMemberInvite
+message AddProjectMemberInvite {
     message Request {
         string owner_id = 1;     // @gotags: validate:"uuid" query:"owner_id"
         string project_id = 2;   // @gotags: validate:"required,uuid" query:"project_id"
@@ -258,7 +258,7 @@ message ProjectMemberInviteActivate {
 // -----------------------------------------------------
 
 
-// ListServerMembers 
+// ListServerMembers
 message ListServerMembers {
     message Request {
         int32 limit = 1;
@@ -271,12 +271,12 @@ message ListServerMembers {
 
     message Response {
         int32 total = 1;
-        repeated ServerMember.Response members = 2;    
+        repeated ServerMember.Response members = 2;
     }
 }
 // -----------------------------------------------------
 
-// ServerMember 
+// ServerMember
 message ServerMember {
     message Request {
         string owner_id = 1;   // @gotags: validate:"uuid" query:"owner_id"
@@ -298,8 +298,8 @@ message ServerMember {
 }
 // -----------------------------------------------------
 
-// CreateServerMember
-message CreateServerMember {
+// AddServerMember
+message AddServerMember {
     message Request {
         string owner_id = 1;   // @gotags: validate:"required,uuid"
         string project_id = 2; // @gotags: validate:"required,uuid"
@@ -314,7 +314,7 @@ message CreateServerMember {
 }
 // -----------------------------------------------------
 
-// UpdateServerMember 
+// UpdateServerMember
 message UpdateServerMember {
     message Request {
         string owner_id = 1;   // @gotags: validate:"required,uuid"
@@ -328,7 +328,7 @@ message UpdateServerMember {
 }
 // -----------------------------------------------------
 
-// DeleteServerMember 
+// DeleteServerMember
 message DeleteServerMember {
     message Request {
         string owner_id = 1;   // @gotags: validate:"required,uuid" query:"owner_id"
@@ -369,7 +369,7 @@ message MembersWithoutServer {
     }
     message Response {
         int32 total = 1;
-        repeated ServerMember.Response members = 2;   
+        repeated ServerMember.Response members = 2;
     }
 }
 // -----------------------------------------------------

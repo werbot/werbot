@@ -50,7 +50,7 @@ import { FormInput, FormTextarea } from "@/components";
 import { showMessage } from "@/utils/message";
 
 import { postKey } from "@/api/key";
-import { CreatePublicKey_Request } from "@proto/key/key";
+import { AddPublicKey_Request } from "@proto/key/key";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});
@@ -60,7 +60,7 @@ const router = useRouter();
 const onSubmit = async () => {
   loading.value = !loading.value;
 
-  await postKey(<CreatePublicKey_Request>{
+  await postKey(<AddPublicKey_Request>{
     title: data.value.title,
     key: data.value.key,
   })

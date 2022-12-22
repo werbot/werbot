@@ -10,10 +10,10 @@ import "google/protobuf/timestamp.proto";
 service UserHandlers {
     rpc ListUsers(ListUsers.Request) returns (ListUsers.Response) {}
     rpc User(User.Request) returns (User.Response) {}
-    rpc CreateUser(CreateUser.Request) returns (CreateUser.Response) {}
+    rpc AddUser(AddUser.Request) returns (AddUser.Response) {}
     rpc UpdateUser(UpdateUser.Request) returns (UpdateUser.Response) {}
     rpc DeleteUser(DeleteUser.Request) returns (DeleteUser.Response) {}
-  
+
     rpc SignIn(SignIn.Request) returns (User.Response) {}
     rpc ResetPassword(ResetPassword.Request) returns (ResetPassword.Response) {}
     rpc UpdatePassword(UpdatePassword.Request) returns (UpdatePassword.Response) {}
@@ -91,8 +91,8 @@ message User {
 // -----------------------------------------------------
 
 
-// rpc CreateUser
-message CreateUser {
+// rpc AddUser
+message AddUser {
     message Request {
         string name = 1;     // @gotags: validate:"required,alphanum"
         string email = 2;    // @gotags: validate:"required,email"
@@ -113,14 +113,14 @@ message CreateUser {
 message UpdateUser {
     message Request {
         // @gotags: validate:"uuid" sql_name:"id"
-        string user_id = 1 [(sql_name) = "id"]; 
+        string user_id = 1 [(sql_name) = "id"];
         // @gotags: validate:"omitempty,alphanum" sql_name:"name"
-        string name = 2    [(sql_name) = "name"]; 
-        // @gotags: validate:"required,email" sql_name:"email"   
-        string email = 3   [(sql_name) = "email"];  
+        string name = 2    [(sql_name) = "name"];
+        // @gotags: validate:"required,email" sql_name:"email"
+        string email = 3   [(sql_name) = "email"];
         // @gotags: validate:"required,min=5" sql_name:"fio"
-        string fio = 4     [(sql_name) = "fio"];   
-        // @gotags: sql_name:"enabled"    
+        string fio = 4     [(sql_name) = "fio"];
+        // @gotags: sql_name:"enabled"
         bool enabled = 5   [(sql_name) = "enabled"];
         // @gotags: sql_name:"confirmed"
         bool confirmed = 6 [(sql_name) = "confirmed"];
@@ -154,7 +154,7 @@ message DeleteUser{
 message SignIn {
     message Request {
         string email = 2;    // @gotags: validate:"required,email"
-        string password = 3; // @gotags: validate:"required" 
+        string password = 3; // @gotags: validate:"required"
     }
 }
 // -----------------------------------------------------
@@ -184,7 +184,7 @@ message UpdatePassword {
         string old_password = 2;
         string new_password = 3;
     }
-    
+
     message Response{
         string message = 1;
     }

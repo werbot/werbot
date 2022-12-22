@@ -65,7 +65,7 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 // request serverReq{user_id:1, project_id:1, server:1}
 // POST /v1/servers/share
 func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
-	input := new(pb.CreateServerShareForUser_Request)
+	input := new(pb.AddServerShareForUser_Request)
 
 	if err := c.BodyParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -75,7 +75,7 @@ func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
-	return httputil.StatusOK(c, "message", pb.CreateServerShareForUser_Response{})
+	return httputil.StatusOK(c, "message", pb.AddServerShareForUser_Response{})
 }
 
 // Updating the settings to the server that they shared

@@ -545,8 +545,8 @@ func (s *server) UpdateServerHostKey(ctx context.Context, in *pb_server.UpdateSe
 	return &pb_server.UpdateServerHostKey_Response{}, nil
 }
 
-// CreateServerSession is ...
-func (s *server) CreateServerSession(ctx context.Context, in *pb_server.CreateServerSession_Request) (*pb_server.CreateServerSession_Response, error) {
+// AddServerSession is ...
+func (s *server) AddServerSession(ctx context.Context, in *pb_server.AddServerSession_Request) (*pb_server.AddServerSession_Response, error) {
 	if in.GetAccountId() == "" && in.GetUuid() == "" {
 		return nil, errBadRequest
 	}
@@ -573,13 +573,13 @@ func (s *server) CreateServerSession(ctx context.Context, in *pb_server.CreateSe
 		return nil, errFailedToAdd
 	}
 
-	return &pb_server.CreateServerSession_Response{
+	return &pb_server.AddServerSession_Response{
 		SessionId: sessionID,
 	}, nil
 }
 
-// CreateServer is ...
-func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Request) (*pb_server.CreateServer_Response, error) {
+// AddServer is ...
+func (s *server) AddServer(ctx context.Context, in *pb_server.AddServer_Request) (*pb_server.AddServer_Response, error) {
 	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
@@ -725,7 +725,7 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 		return nil, errTransactionCommitError
 	}
 
-	return &pb_server.CreateServer_Response{
+	return &pb_server.AddServer_Response{
 		ServerId:  serverID,
 		KeyPublic: string(serverKeys.PublicKey),
 	}, nil

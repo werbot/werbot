@@ -17,11 +17,11 @@ import (
 	pb_license "github.com/werbot/werbot/api/proto/license"
 )
 
-// NewLicense is ...
-func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Request) (*pb_license.NewLicense_Response, error) {
+// AddLicense is ...
+func (l *license) AddLicense(ctx context.Context, in *pb_license.AddLicense_Request) (*pb_license.AddLicense_Response, error) {
 	var status string
 	var licServer []byte
-	newLicense := new(pb_license.NewLicense_Response)
+	AddLicense := new(pb_license.AddLicense_Response)
 	err := service.db.Conn.QueryRow(`SELECT
 				"status",
 				"license"
@@ -140,12 +140,12 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 			return nil, errFailedToAdd
 		}
 
-		newLicense.License = licenseByte
-		return newLicense, nil
+		AddLicense.License = licenseByte
+		return AddLicense, nil
 	}
 
-	newLicense.License = licServer
-	return newLicense, nil
+	AddLicense.License = licServer
+	return AddLicense, nil
 }
 
 // LicenseExpired is ...

@@ -82,12 +82,12 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 // @Tags         members
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.CreateServerMember_Request{}
-// @Success      200         {object} httputil.HTTPResponse{data=pb.CreateServerMember_Response}
+// @Param        req         body     pb.AddServerMember_Request{}
+// @Success      200         {object} httputil.HTTPResponse{data=pb.AddServerMember_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/members/server [post]
 func (h *handler) addServerMember(c *fiber.Ctx) error {
-	input := new(pb.CreateServerMember_Request)
+	input := new(pb.AddServerMember_Request)
 
 	if err := c.BodyParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -104,7 +104,7 @@ func (h *handler) addServerMember(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	member, err := rClient.CreateServerMember(ctx, &pb.CreateServerMember_Request{
+	member, err := rClient.AddServerMember(ctx, &pb.AddServerMember_Request{
 		OwnerId:   userID,
 		ProjectId: input.GetProjectId(),
 		ServerId:  input.GetServerId(),

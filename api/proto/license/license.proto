@@ -7,7 +7,7 @@ option go_package = "github.com/werbot/werbot/api/proto/license";
 import "google/protobuf/timestamp.proto";
 
 service LicenseHandlers {
-    rpc NewLicense(NewLicense.Request) returns (NewLicense.Response) {}
+    rpc AddLicense(AddLicense.Request) returns (AddLicense.Response) {}
     rpc License(License.Request) returns (License.Response) {}
     rpc LicenseExpired(LicenseExpired.Request)   returns (LicenseExpired.Response) {}
 }
@@ -35,8 +35,8 @@ message LicenseInfo {
 // -----------------------------------------------------
 
 
-// rpc NewLicense
-message NewLicense{
+// rpc AddLicense
+message AddLicense{
     message Request{
         string ip = 1;         // @gotags: validate:"required,ip"
         string customer = 2;   // @gotags: validate:"omitempty,uuid"

@@ -2,7 +2,7 @@ import { http } from "@/api";
 import {
   ListServers_Request,
   Server_Request,
-  CreateServer_Request,
+  AddServer_Request,
   UpdateServer_Request,
   DeleteServer_Request,
   UpdateServerActiveStatus_Request,
@@ -25,7 +25,7 @@ const getServers = async (user_id: string, project_id: string, data?: ListServer
 
 const getServer = async (data: Server_Request) => http("GET", URL.servers, { params: data });
 
-const postServer = async (data: CreateServer_Request) => http("POST", URL.servers, { data: data });
+const postServer = async (data: AddServer_Request) => http("POST", URL.servers, { data: data });
 
 const updateServer = async (data: UpdateServer_Request) =>
   http("PATCH", URL.servers, { data: data });

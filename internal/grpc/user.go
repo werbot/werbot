@@ -127,8 +127,8 @@ func (u *user) User(ctx context.Context, in *pb_user.User_Request) (*pb_user.Use
 	return user, nil
 }
 
-// CreateUser is adds a new user
-func (u *user) CreateUser(ctx context.Context, in *pb_user.CreateUser_Request) (*pb_user.CreateUser_Response, error) {
+// AddUser is adds a new user
+func (u *user) AddUser(ctx context.Context, in *pb_user.AddUser_Request) (*pb_user.AddUser_Response, error) {
 	tx, err := service.db.Conn.Beginx()
 	if err != nil {
 		service.log.ErrorGRPC(err)
@@ -185,7 +185,7 @@ func (u *user) CreateUser(ctx context.Context, in *pb_user.CreateUser_Request) (
 		return nil, errTransactionCommitError
 	}
 
-	return &pb_user.CreateUser_Response{
+	return &pb_user.AddUser_Response{
 		UserId: id,
 	}, nil
 }

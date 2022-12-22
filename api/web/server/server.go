@@ -86,12 +86,12 @@ func (h *handler) getServer(c *fiber.Ctx) error {
 // @Tags         servers
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.CreateServer_Request{}
-// @Success      200         {object} httputil.HTTPResponse{data=pb.CreateServer_Response}
+// @Param        req         body     pb.AddServer_Request{}
+// @Success      200         {object} httputil.HTTPResponse{data=pb.AddServer_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers [post]
 func (h *handler) addServer(c *fiber.Ctx) error {
-	input := new(pb.CreateServer_Request)
+	input := new(pb.AddServer_Request)
 
 	if err := c.BodyParser(input); err != nil {
 		h.log.Error(err).Send()
@@ -108,7 +108,7 @@ func (h *handler) addServer(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
-	server, err := rClient.CreateServer(ctx, &pb.CreateServer_Request{
+	server, err := rClient.AddServer(ctx, &pb.AddServer_Request{
 		UserId:             userID,
 		ProjectId:          input.GetProjectId(),
 		Address:            input.GetAddress(),
@@ -414,12 +414,12 @@ func (h *handler) getServerFirewall(c *fiber.Ctx) error {
 // @Tags         servers
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb_firewall.CreateServerFirewall_Request
-// @Success      200         {object} httputil.HTTPResponse{data=pb_firewall.CreateServerFirewall_Response}
+// @Param        req         body     pb_firewall.AddServerFirewall_Request
+// @Success      200         {object} httputil.HTTPResponse{data=pb_firewall.AddServerFirewall_Response}
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/firewall [post]
 func (h *handler) postServerFirewall(c *fiber.Ctx) error {
-	input := new(pb_firewall.CreateServerFirewall_Request)
+	input := new(pb_firewall.AddServerFirewall_Request)
 
 	if err := protojson.Unmarshal(c.Body(), input); err != nil {
 		fmt.Print(err)
@@ -436,26 +436,26 @@ func (h *handler) postServerFirewall(c *fiber.Ctx) error {
 	rClient := pb_firewall.NewFirewallHandlersClient(h.Grpc.Client)
 
 	var err error
-	response := new(pb_firewall.CreateServerFirewall_Response)
+	response := new(pb_firewall.AddServerFirewall_Response)
 	switch record := input.Record.(type) {
-	case *pb_firewall.CreateServerFirewall_Request_Country:
-		response, err = rClient.CreateServerFirewall(ctx, &pb_firewall.CreateServerFirewall_Request{
+	case *pb_firewall.AddServerFirewall_Request_Country:
+		response, err = rClient.AddServerFirewall(ctx, &pb_firewall.AddServerFirewall_Request{
 			UserId:    userID,
 			ProjectId: input.GetProjectId(),
 			ServerId:  input.GetServerId(),
-			Record: &pb_firewall.CreateServerFirewall_Request_Country{
+			Record: &pb_firewall.AddServerFirewall_Request_Country{
 				Country: &pb_firewall.CountryCode{
 					Code: record.Country.Code,
 				},
 			},
 		})
 
-	case *pb_firewall.CreateServerFirewall_Request_Ip:
-		response, err = rClient.CreateServerFirewall(ctx, &pb_firewall.CreateServerFirewall_Request{
+	case *pb_firewall.AddServerFirewall_Request_Ip:
+		response, err = rClient.AddServerFirewall(ctx, &pb_firewall.AddServerFirewall_Request{
 			UserId:    userID,
 			ProjectId: input.GetProjectId(),
 			ServerId:  input.GetServerId(),
-			Record: &pb_firewall.CreateServerFirewall_Request_Ip{
+			Record: &pb_firewall.AddServerFirewall_Request_Ip{
 				Ip: &pb_firewall.IpMask{
 					StartIp: record.Ip.StartIp,
 					EndIp:   record.Ip.EndIp,

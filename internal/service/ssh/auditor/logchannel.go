@@ -31,12 +31,12 @@ type LogChannel struct {
 }
 
 // NewLogchannel is ...
-func NewLogchannel(account *audit.CreateAudit_Request, channel ssh.Channel, grpcSession *grpc.ClientService, recordCount int32) *LogChannel {
+func NewLogchannel(account *audit.AddAudit_Request, channel ssh.Channel, grpcSession *grpc.ClientService, recordCount int32) *LogChannel {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewAuditHandlersClient(grpcSession.Client)
 
-	auditData, err := rClient.CreateAudit(ctx, &audit.CreateAudit_Request{
+	auditData, err := rClient.AddAudit(ctx, &audit.AddAudit_Request{
 		AccountId: account.AccountId,
 		Version:   2,
 		ClientIp:  account.ClientIp,

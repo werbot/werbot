@@ -6,11 +6,11 @@ option go_package = "github.com/werbot/werbot/api/proto/firewall";
 
 service FirewallHandlers {
     rpc ServerFirewall(ServerFirewall.Request) returns (ServerFirewall.Response) {}
-    rpc CreateServerFirewall(CreateServerFirewall.Request) returns (CreateServerFirewall.Response) {}
+    rpc AddServerFirewall(AddServerFirewall.Request) returns (AddServerFirewall.Response) {}
     rpc DeleteServerFirewall(DeleteServerFirewall.Request) returns (DeleteServerFirewall.Response) {}
 
     rpc UpdateAccessPolicy(UpdateAccessPolicy.Request) returns (UpdateAccessPolicy.Response) {}
-    
+
     rpc CheckIPAccess(CheckIPAccess.Request) returns (CheckIPAccess.Response) {}
     rpc CheckServerAccess(CheckServerAccess.Request) returns (CheckServerAccess.Response) {}
 }
@@ -71,7 +71,7 @@ message ServerFirewall {
 
         message Networks {
             bool wite_list = 1;
-            repeated Network list = 2;        
+            repeated Network list = 2;
         }
 
         Countries country = 1;
@@ -81,8 +81,8 @@ message ServerFirewall {
 // -----------------------------------------------------
 
 
-// rpc CreateServerFirewall
-message CreateServerFirewall{
+// rpc AddServerFirewall
+message AddServerFirewall{
     message Request {
         string user_id = 1;    // @gotags: validate:"uuid"
         string project_id = 2; // @gotags: validate:"required,uuid"

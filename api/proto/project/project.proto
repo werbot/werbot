@@ -9,7 +9,7 @@ import "google/protobuf/timestamp.proto";
 service ProjectHandlers {
     rpc ListProjects(ListProjects.Request) returns (ListProjects.Response) {}
     rpc Project(Project.Request) returns (Project.Response) {}
-    rpc CreateProject(CreateProject.Request) returns (CreateProject.Response) {}
+    rpc AddProject(AddProject.Request) returns (AddProject.Response) {}
     rpc UpdateProject(UpdateProject.Request) returns (UpdateProject.Response) {}
     rpc DeleteProject(DeleteProject.Request) returns (DeleteProject.Response) {}
 
@@ -53,8 +53,8 @@ message Project {
 // -----------------------------------------------------
 
 
-// rpc CreateProject
-message CreateProject {
+// rpc AddProject
+message AddProject {
     message Request {
         string owner_id = 1; // @gotags: validate:"omitempty,uuid"
         string login = 2;    // @gotags: validate:"required,alphanum"
@@ -97,7 +97,7 @@ message ProjectAPIByID {
     message Request {
         string project_id = 1; // @gotags: validate:"uuid" query:"project_id"
     }
-    
+
     message Response {
         string api_key = 1;
         string api_secret = 2;
