@@ -1,37 +1,64 @@
+issues:
+  exclude-rules:
+    - linters:
+        - gosimple
+      text: "S1002: should omit comparison to bool constant"
+    - linters:
+        - revive
+      text: "exported: exported const"
+    - linters:
+        - unused
+      path: 'operator/controllers/resources/(.+)_controller_test\.go'
+  exclude-use-default: true
+  max-same-issues: 0
+  max-issues-per-linter: 0
+
+linters-settings:
+  depguard:
+    list-type: denylist
+    include-go-root: true
+    packages-with-error-message:
+      - io/ioutil: 'use "io" or "os" packages instead'
+      - github.com/golang/protobuf: 'use "google.golang.org/protobuf"'
+  goconst:
+    min-len: 5
+    min-occurrences: 4
+  misspell:
+    locale: US
+  nolintlint:
+    allow-unused: true # Enabled because of conditional builds / build tags.
+    require-explanation: true
+    require-specific: true
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - depguard
+    # - dupl
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nolintlint
+    - revive
+    - gosec
+    - sqlclosecheck
+    - goprintffuncname
+    - exportloopref
+    - unparam
+    - whitespace
+    - staticcheck
+    - unconvert
+    - unused
+    - goconst
+    - gocritic
+
 run:
   deadline: 5m
   tests: false
   skip-files:
     - ".*\\.pb\\.go"
     - ".*\\.gen\\.go"
-
-linters-settings:
-  goconst:
-    min-len: 5
-    min-occurrences: 4
-  misspell:
-    locale: US
-
-linters:
-  enable:
-    - bodyclose
-    - dupl
-    - exportloopref
-    - goconst
-    #- godox
-    - goimports
-    - goprintffuncname
-    - gosec
-    - misspell
-    - prealloc
-    - revive
-    - rowserrcheck
-    - sqlclosecheck
-    - unconvert
-    - unparam
-    - whitespace
-    - staticcheck
-    - ineffassign
-    - unused
-    - govet
-    - gocritic
+  go: "1.19"

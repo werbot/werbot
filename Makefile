@@ -40,7 +40,7 @@ get_latest_release = $(shell curl --silent "https://api.github.com/repos/$1/rele
 
 #############################################################################
 .PHONY: help
-help: 
+help:
 	@grep --no-filename -E '^[a-zA-Z_/-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 #############################################################################
 
@@ -76,7 +76,7 @@ gen_key_jwt: ## Generating JWT key
 
 
 #############################################################################
-# run: 
+# run:
 # make gen_protos - recreate all protofiles
 # make gen_protos user - recreate protofile user from folder /api/proto/
 .PHONY: gen_protos
@@ -148,7 +148,7 @@ upd_protos:
 #############################################################################
 .PHONY: gen_key_grpc
 gen_key_grpc: ## Generating TLS keys for gRPC
-	@$(call make_target_dir,${ROOT_PATH}/.vscode/tmp) 
+	@$(call make_target_dir,${ROOT_PATH}/.vscode/tmp)
 	@echo "$$_gen_grpc_key_conf" > ${ROOT_PATH}/.vscode/tmp/.temp-openssl-config
 	@openssl genrsa -out ${ROOT_PATH}/.vscode/tmp/private_key.pem 2048
 	@openssl req -nodes -new -x509 -sha256 -days 1825 -config ${ROOT_PATH}/.vscode/tmp/.temp-openssl-config \
@@ -178,7 +178,7 @@ commonName             = werbot.com
 
 [ req_ext ]
 subjectAltName         = @alt_names
- 
+
 [ alt_names ]
 DNS.1                  = werbot.com
 endef
@@ -370,7 +370,7 @@ lint: ## Cleaning garbage and inactive containers
 
 #############################################################################
 .PHONY: upd_cdn_ip
-upd_cdn_ip: 
+upd_cdn_ip:
 ## Cloudflare ip lists from https://www.cloudflare.com/en-gb/ips/
 	@echo -n >${ROOT_PATH}/docker/haproxy/cloudflare-ips.txt
 
@@ -493,7 +493,7 @@ endef
 
 #############################################################################
 .PHONY: upd_install
-upd_install: 
+upd_install:
 	@cp -a ${ROOT_PATH}/docker/grafana ${ROOT_PATH}/scripts/install/cfg/
 	@cp -a ${ROOT_PATH}/docker/haproxy/*.txt ${ROOT_PATH}/scripts/install/cfg/haproxy/
 	@cp -a ${ROOT_PATH}/docker/haproxy/config.cfg ${ROOT_PATH}/scripts/install/cfg/haproxy/
@@ -508,7 +508,7 @@ upd_install:
 #############################################################################
 .PHONY: clean
 clean: ## Cleaning garbage and inactive containers
-#	@(lsof -t -i :5172 | xargs kill) 2>/dev/null 	
+#	@(lsof -t -i :5172 | xargs kill) 2>/dev/null
 	@for pid in $$(echo $$(ps ax | grep __debug_bin | grep -v grep | awk '{print $$1}')); do \
 		printf "%.25s " "killing $$pid ..................................."; \
 		kill $$pid; \
