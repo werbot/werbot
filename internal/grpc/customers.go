@@ -16,6 +16,7 @@ func (s *subscription) ListCustomers(ctx context.Context, in *pb_subscription.Li
 		FROM
 			"subscription_customer"` + sqlFooter)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToSelect
 	}
 
@@ -27,6 +28,7 @@ func (s *subscription) ListCustomers(ctx context.Context, in *pb_subscription.Li
 			&customer.StripeId,
 		)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToScan
 		}
 		customers = append(customers, customer)
@@ -41,6 +43,7 @@ func (s *subscription) ListCustomers(ctx context.Context, in *pb_subscription.Li
 			"subscription_customer"`).
 		Scan(&total)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToScan
 	}
 
@@ -63,6 +66,7 @@ func (s *subscription) Customer(ctx context.Context, in *pb_subscription.Custome
 		in.GetUserId(),
 	).Scan(&customer.StripeId)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
@@ -82,6 +86,7 @@ func (s *subscription) CreateCustomer(ctx context.Context, in *pb_subscription.C
 		in.GetStripeId(),
 	).Scan(&id)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToAdd
 	}
 
@@ -101,6 +106,7 @@ func (s *subscription) UpdateCustomer(ctx context.Context, in *pb_subscription.U
 		in.GetUserId(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -120,6 +126,7 @@ func (s *subscription) DeleteCustomer(ctx context.Context, in *pb_subscription.D
 		in.GetUserId(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {

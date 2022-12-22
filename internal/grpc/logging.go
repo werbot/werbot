@@ -32,6 +32,7 @@ func (l *logging) AddLogRecord(ctx context.Context, in *pb_logging.AddLogRecord_
 		)
 	}
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToAdd
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {

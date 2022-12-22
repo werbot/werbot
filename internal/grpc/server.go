@@ -75,6 +75,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 		case 1:
 			rows, err := service.db.Conn.Query(query, nameArray[0])
 			if err != nil {
+				service.log.ErrorGRPC(err)
 				return nil, errFailedToSelect
 			}
 
@@ -100,6 +101,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
+					service.log.ErrorGRPC(err)
 					return nil, errFailedToScan
 				}
 				servers = append(servers, server)
@@ -112,6 +114,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 				nameArray[1],
 			)
 			if err != nil {
+				service.log.ErrorGRPC(err)
 				return nil, errFailedToSelect
 			}
 
@@ -137,6 +140,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
+					service.log.ErrorGRPC(err)
 					return nil, errFailedToScan
 				}
 				servers = append(servers, server)
@@ -152,6 +156,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 				nameArray[2],
 			)
 			if err != nil {
+				service.log.ErrorGRPC(err)
 				return nil, errFailedToSelect
 			}
 
@@ -177,6 +182,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
+					service.log.ErrorGRPC(err)
 					return nil, errFailedToScan
 				}
 				servers = append(servers, server)
@@ -222,6 +228,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 			query["user_id"],
 		)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToSelect
 		}
 
@@ -243,6 +250,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 				&server.CountMembers,
 			)
 			if err != nil {
+				service.log.ErrorGRPC(err)
 				return nil, errFailedToScan
 			}
 			servers = append(servers, server)
@@ -262,6 +270,7 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 			query["user_id"],
 		).Scan(&count)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToScan
 		}
 
@@ -317,6 +326,7 @@ func (s *server) Server(ctx context.Context, in *pb_server.Server_Request) (*pb_
 		&server.Scheme,
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToScan
 	}
 
@@ -341,6 +351,7 @@ func (s *server) DeleteServer(ctx context.Context, in *pb_server.DeleteServer_Re
 		in.GetProjectId(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -382,6 +393,7 @@ func (s *server) ServerAccess(ctx context.Context, in *pb_server.ServerAccess_Re
 		&server.Auth,
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToSelect
 	}
 
@@ -425,6 +437,7 @@ func (s *server) UpdateServerAccess(ctx context.Context, in *pb_server.UpdateSer
 	case pb_server.ServerAuth_KEY:
 		privateKey, _err := service.cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
 		if _err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToSelect
 		}
 		service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
@@ -445,6 +458,7 @@ func (s *server) UpdateServerAccess(ctx context.Context, in *pb_server.UpdateSer
 	}
 
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -471,6 +485,7 @@ func (s *server) UpdateServerOnlineStatus(ctx context.Context, in *pb_server.Upd
 		in.GetUserId(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -498,6 +513,7 @@ func (s *server) UpdateServerActiveStatus(ctx context.Context, in *pb_server.Upd
 		in.GetUserId(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -519,6 +535,7 @@ func (s *server) UpdateServerHostKey(ctx context.Context, in *pb_server.UpdateSe
 		in.GetServerId(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -552,6 +569,7 @@ func (s *server) CreateServerSession(ctx context.Context, in *pb_server.CreateSe
 		in.GetUuid(),
 	).Scan(&sessionID)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToAdd
 	}
 
@@ -577,6 +595,7 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 		if in.GetPublicKey() != "" && in.GetKeyUuid() != "" {
 			privateKey, err := service.cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
 			if err != nil {
+				service.log.ErrorGRPC(err)
 				return nil, errFailedToSelect
 			}
 			service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
@@ -585,6 +604,7 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 		} else {
 			serverKeys, err = crypto.NewSSHKey(internal.GetString("SECURITY_SSH_KEY_TYPE", "KEY_TYPE_ED25519"))
 			if err != nil {
+				service.log.ErrorGRPC(err)
 				return nil, crypto.ErrFailedCreatingSSHKey
 			}
 		}
@@ -598,6 +618,7 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 
 	tx, err := service.db.Conn.Beginx()
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errTransactionCreateError
 	}
 
@@ -650,6 +671,7 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 		serverKeys.Passphrase,
 	).Scan(&serverID)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToScan
 	}
 
@@ -665,6 +687,7 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 		&serverID,
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToAdd
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -690,6 +713,7 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 	sqlCountDay = strings.TrimSuffix(sqlCountDay, ",")
 	data, err = tx.Exec(sqlCountDay)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToAdd
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -697,6 +721,7 @@ func (s *server) CreateServer(ctx context.Context, in *pb_server.CreateServer_Re
 	}
 
 	if err = tx.Commit(); err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errTransactionCommitError
 	}
 
@@ -737,6 +762,7 @@ func (s *server) UpdateServer(ctx context.Context, in *pb_server.UpdateServer_Re
 		in.GetPublicDescription(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -767,6 +793,7 @@ func (s *server) ServerActivity(ctx context.Context, in *pb_server.ServerActivit
 		in.GetProjectId(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToSelect
 	}
 
@@ -778,6 +805,7 @@ func (s *server) ServerActivity(ctx context.Context, in *pb_server.ServerActivit
 			&hour,
 		)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToScan
 		}
 		data = append(data, map[string]int32{
@@ -844,6 +872,7 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateS
 		ProjectId: in.GetProjectId(),
 	})
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, err
 	}
 
@@ -878,6 +907,7 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateS
 		)
 		data, err := service.db.Conn.Exec(sqlDelete)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToDelete
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {
@@ -899,6 +929,7 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateS
 		)
 		data, err := service.db.Conn.Exec(sqlInsert)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToAdd
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {
@@ -925,6 +956,7 @@ func (s *server) ServerNameByID(ctx context.Context, in *pb_server.ServerNameByI
 		in.GetServerId(),
 	).Scan(&name)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToScan
 	}
 
@@ -956,6 +988,7 @@ func (s *server) ListServersShareForUser(ctx context.Context, in *pb_server.List
 		in.UserId,
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToSelect
 	}
 
@@ -973,6 +1006,7 @@ func (s *server) ListServersShareForUser(ctx context.Context, in *pb_server.List
 			&server.ServerDescription,
 		)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToScan
 		}
 		server.ProjectLogin = projectLogin
@@ -992,6 +1026,7 @@ func (s *server) ListServersShareForUser(ctx context.Context, in *pb_server.List
 		in.GetUserId(),
 	).Scan(&total)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToScan
 	}
 

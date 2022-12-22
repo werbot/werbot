@@ -30,6 +30,7 @@ func (s *account) AccountIDByName(ctx context.Context, in *pb_account.AccountIDB
 		in.GetFingerprint(),
 	).Scan(&id)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToScan
 	}
 
@@ -70,6 +71,7 @@ func (s *account) UpdateAccountStatus(ctx context.Context, in *pb_account.Update
 			in.GetAccountId(),
 		)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToUpdate
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {
@@ -85,6 +87,7 @@ func (s *account) UpdateAccountStatus(ctx context.Context, in *pb_account.Update
 			in.GetAccountId(),
 		)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToUpdate
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {

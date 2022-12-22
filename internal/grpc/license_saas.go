@@ -32,12 +32,14 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 		in.GetIp(),
 	).Scan(&status, &licServer)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToScan
 	}
 
 	if status == "" {
 		lic, err := license_lib.New([]byte(internal.GetString("LICENSE_KEY_PRIVATE", "")))
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, license_lib.ErrLicenseKeyIsBroken
 		}
 
@@ -65,6 +67,7 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 				&modulesJSON,
 			)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToScan
 		}
 
@@ -80,6 +83,7 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 		}
 		licDataByte, err := json.Marshal(licData)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, license_lib.ErrLicenseStructureIsBroken
 		}
 
@@ -100,6 +104,7 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 
 		licenseByte, err := lic.Encode()
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, license_lib.ErrLicenseStructureIsBroken
 		}
 
@@ -128,6 +133,7 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 			licenseByte,
 		)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToAdd
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {
@@ -146,11 +152,13 @@ func (l *license) NewLicense(ctx context.Context, in *pb_license.NewLicense_Requ
 func (l *license) LicenseExpired(ctx context.Context, in *pb_license.LicenseExpired_Request) (*pb_license.LicenseExpired_Response, error) {
 	lic, err := license_lib.Read([]byte(internal.GetString("LICENSE_KEY_PUBLIC", "")))
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, license_lib.ErrLicenseKeyIsBroken
 	}
 
 	ld, err := lic.Decode(in.GetLicense())
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, license_lib.ErrLicenseStructureIsBroken
 	}
 

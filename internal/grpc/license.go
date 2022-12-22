@@ -21,23 +21,27 @@ type license struct {
 func (l *license) License(ctx context.Context, in *pb_license.License_Request) (*pb_license.License_Response, error) {
 	readFile, err := os.ReadFile(internal.GetString("LICENSE_FILE", "/license.key"))
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, license_lib.ErrFailedToOpenLicenseFile
 	}
 
 	licensePublic := internal.GetString("LICENSE_KEY_PUBLIC", "")
 	lic, err := license_lib.Read([]byte(licensePublic))
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, license_lib.ErrLicenseKeyIsBroken
 	}
 
 	licDecode, err := lic.Decode(readFile)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, license_lib.ErrLicenseStructureIsBroken
 	}
 
 	var licData = new(pb_license.LicenseInfo_Limits)
 	err = json.Unmarshal(licDecode.License.Dat, &licData)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, license_lib.ErrLicenseStructureIsBroken
 	}
 

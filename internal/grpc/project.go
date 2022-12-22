@@ -32,6 +32,7 @@ func (p *project) ListProjects(ctx context.Context, in *pb_project.ListProjects_
 			"project"
 			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch + sqlFooter)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToSelect
 	}
 
@@ -49,6 +50,7 @@ func (p *project) ListProjects(ctx context.Context, in *pb_project.ListProjects_
 			&countServers,
 		)
 		if err != nil {
+			service.log.ErrorGRPC(err)
 			return nil, errFailedToScan
 		}
 		project.Created = timestamppb.New(created.Time)
@@ -67,6 +69,7 @@ func (p *project) ListProjects(ctx context.Context, in *pb_project.ListProjects_
 			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch).
 		Scan(&total)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToScan
 	}
 
@@ -100,6 +103,7 @@ func (p *project) Project(ctx context.Context, in *pb_project.Project_Request) (
 			&countServers,
 		)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
@@ -120,6 +124,7 @@ func (p *project) CreateProject(ctx context.Context, in *pb_project.CreateProjec
 
 	tx, err := service.db.Conn.Beginx()
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errTransactionCreateError
 	}
 
@@ -138,6 +143,7 @@ func (p *project) CreateProject(ctx context.Context, in *pb_project.CreateProjec
 		in.GetLogin(),
 	).Scan(&id)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToAdd
 	}
 
@@ -155,6 +161,7 @@ func (p *project) CreateProject(ctx context.Context, in *pb_project.CreateProjec
 		crypto.NewPassword(37, false),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToAdd
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -162,6 +169,7 @@ func (p *project) CreateProject(ctx context.Context, in *pb_project.CreateProjec
 	}
 
 	if err = tx.Commit(); err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errTransactionCommitError
 	}
 
@@ -188,6 +196,7 @@ func (p *project) UpdateProject(ctx context.Context, in *pb_project.UpdateProjec
 		in.GetOwnerId(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, err
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -205,6 +214,7 @@ func (p *project) DeleteProject(ctx context.Context, in *pb_project.DeleteProjec
 
 	tx, err := service.db.Conn.Beginx()
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errTransactionCreateError
 	}
 
@@ -218,6 +228,7 @@ func (p *project) DeleteProject(ctx context.Context, in *pb_project.DeleteProjec
 		in.GetOwnerId(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -232,6 +243,7 @@ func (p *project) DeleteProject(ctx context.Context, in *pb_project.DeleteProjec
 		in.GetProjectId(),
 	)
 	if err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, err
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -239,6 +251,7 @@ func (p *project) DeleteProject(ctx context.Context, in *pb_project.DeleteProjec
 	}
 
 	if err = tx.Commit(); err != nil {
+		service.log.ErrorGRPC(err)
 		return nil, errTransactionCommitError
 	}
 
