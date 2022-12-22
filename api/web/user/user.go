@@ -27,9 +27,13 @@ import (
 // @Router       /v1/users [get]
 func (h *handler) getUser(c *fiber.Ctx) error {
 	input := new(pb.User_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -48,8 +52,12 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 			SortBy: "id:ASC",
 		})
 		if err != nil {
-			return httputil.ReturnGRPCError(c, err)
+			return httputil.ErrorGRPC(c, h.log, err)
 		}
+		if users.GetTotal() == 0 {
+			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+		}
+
 		return httputil.StatusOK(c, "Users", users)
 	}
 
@@ -58,12 +66,11 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 		UserId: userID,
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
-
-	if user == nil {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
-	}
+	// if user == nil {
+	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+	//}
 
 	// If RoleUser_ADMIN - show detailed information
 	if userParameter.IsUserAdmin() {
@@ -87,9 +94,13 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 // @Router       /v1/users [post]
 func (h *handler) addUser(c *fiber.Ctx) error {
 	input := new(pb.CreateUser_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -110,8 +121,9 @@ func (h *handler) addUser(c *fiber.Ctx) error {
 		Password:  input.GetPassword(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "User added successfully", user)
 }
 
@@ -126,9 +138,13 @@ func (h *handler) addUser(c *fiber.Ctx) error {
 // @Router       /v1/users [patch]
 func (h *handler) patchUser(c *fiber.Ctx) error {
 	input := new(pb.UpdateUser_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -149,8 +165,9 @@ func (h *handler) patchUser(c *fiber.Ctx) error {
 			Confirmed: input.GetConfirmed(),
 		})
 		if err != nil {
-			return httputil.ReturnGRPCError(c, err)
+			return httputil.ErrorGRPC(c, h.log, err)
 		}
+
 		return httputil.StatusOK(c, "User data updated", nil)
 	}
 
@@ -160,8 +177,9 @@ func (h *handler) patchUser(c *fiber.Ctx) error {
 		Email:  input.GetEmail(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "User data updated", nil)
 }
 
@@ -182,9 +200,8 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 	if err := protojson.Unmarshal(c.Body(), input); err != nil {
 		fmt.Print(err)
 	}
-
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -203,7 +220,7 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 			},
 		})
 		if err != nil {
-			return httputil.ReturnGRPCError(c, err)
+			return httputil.ErrorGRPC(c, h.log, err)
 		}
 
 		mailData := map[string]string{
@@ -223,7 +240,7 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 			},
 		})
 		if err != nil {
-			return httputil.ReturnGRPCError(c, err)
+			return httputil.ErrorGRPC(c, h.log, err)
 		}
 
 		// send delete token to email
@@ -234,7 +251,7 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 		return httputil.StatusOK(c, "Account deleted", nil)
 	}
 
-	return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, nil)
+	return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 }
 
 // @Summary      Password update for a user.
@@ -248,9 +265,13 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 // @Router       /v1/users/password [patch]
 func (h *handler) patchPassword(c *fiber.Ctx) error {
 	input := new(pb.UpdatePassword_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -266,7 +287,7 @@ func (h *handler) patchPassword(c *fiber.Ctx) error {
 		NewPassword: input.GetNewPassword(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	return httputil.StatusOK(c, "Password updated", msg)

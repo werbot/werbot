@@ -26,9 +26,13 @@ import (
 // @Router       /v1/projects [get]
 func (h *handler) getProject(c *fiber.Ctx) error {
 	input := new(pb.Project_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -49,11 +53,12 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
-			return httputil.ReturnGRPCError(c, err)
+			return httputil.ErrorGRPC(c, h.log, err)
 		}
 		if projects.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
+
 		return httputil.StatusOK(c, "Projects", projects)
 	}
 
@@ -63,11 +68,11 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 		ProjectId: input.GetProjectId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
-	if project == nil {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
-	}
+	// if project == nil {
+	// 	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+	// }
 
 	// If RoleUser_ADMIN - show detailed information
 	if userParameter.IsUserAdmin() {
@@ -90,9 +95,13 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 // @Router       /v1/projects [post]
 func (h *handler) addProject(c *fiber.Ctx) error {
 	input := new(pb.CreateProject_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -108,8 +117,9 @@ func (h *handler) addProject(c *fiber.Ctx) error {
 		Title:   input.GetTitle(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Project added", project)
 }
 
@@ -123,9 +133,13 @@ func (h *handler) addProject(c *fiber.Ctx) error {
 // @Router       /v1/projects [patch]
 func (h *handler) patchProject(c *fiber.Ctx) error {
 	input := new(pb.UpdateProject_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -141,8 +155,9 @@ func (h *handler) patchProject(c *fiber.Ctx) error {
 		Title:     input.GetTitle(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Project data updated", nil)
 }
 
@@ -157,9 +172,13 @@ func (h *handler) patchProject(c *fiber.Ctx) error {
 // @Router       /v1/projects [delete]
 func (h *handler) deleteProject(c *fiber.Ctx) error {
 	input := new(pb.DeleteProject_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -174,7 +193,8 @@ func (h *handler) deleteProject(c *fiber.Ctx) error {
 		OwnerId:   userID,
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Project deleted", nil)
 }

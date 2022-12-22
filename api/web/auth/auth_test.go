@@ -50,7 +50,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgValidateBodyParams).
+				Equal(`$.message`, internal.MsgFailedToValidateBody).
 				Equal(`$.result.email`, "Email is a required field").
 				Equal(`$.result.password`, "Password is a required field").
 				End(),
@@ -61,7 +61,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: []map[string]string{{"zz": "xx"}, {"xx": "zz"}},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgValidateBodyParams).
+				Equal(`$.message`, internal.MsgFailedToValidateBody).
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -70,7 +70,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{"email": "test-admin@werbot.net"},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgValidateBodyParams).
+				Equal(`$.message`, internal.MsgFailedToValidateBody).
 				Equal(`$.result.password`, "Password is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -80,7 +80,7 @@ func Test_postSignIn(t *testing.T) {
 			RequestBody: map[string]string{"password": "test-admin@werbot.net"},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgValidateBodyParams).
+				Equal(`$.message`, internal.MsgFailedToValidateBody).
 				Equal(`$.result.email`, "Email is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,

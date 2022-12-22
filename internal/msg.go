@@ -37,11 +37,17 @@ const (
 	// MsgUnauthorized is unauthorized
 	MsgUnauthorized = "Unauthorized"
 
-	// MsgValidateParams is error validating params
-	MsgValidateParams = "Error validating params"
+	// MsgFailedToValidateStruct is ...
+	MsgFailedToValidateStruct = "Failed to validate struct"
 
-	// MsgValidateBodyParams is ...
-	MsgValidateBodyParams = "Error validating body params"
+	// MsgFailedToValidateParams is error validating params
+	MsgFailedToValidateParams = "Failed to validate params"
+
+	// MsgFailedToValidateBody is ...
+	MsgFailedToValidateBody = "Failed to validate body params"
+
+	// MsgFailedToValidateQuery is ...
+	MsgFailedToValidateQuery = "Failed to validate query params"
 
 	// MsgBadQueryParams is invalid query params
 	MsgBadQueryParams = "Invalid query params"

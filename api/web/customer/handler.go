@@ -18,29 +18,31 @@ type userReq struct {
 // GET /v1/customers
 func (h *handler) getCustomer(c *fiber.Ctx) error {
 	var input userReq
-	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
-	}
 
+	if err := c.BodyParser(&input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	return httputil.StatusOK(c, "Information about the subscription", input.UserID)
 }
 
-// Todo Addition of the API method deleteCustomer
+// TODO Addition of the API method deleteCustomer
 // Removing the subscriber
 // request {user_id:1}
 // DELETE /v1/customers
 func (h *handler) deleteCustomer(c *fiber.Ctx) error {
 	var input userReq
-	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
-	}
 
+	if err := c.BodyParser(&input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	return httputil.StatusOK(c, "The subscriber is deleted", input.UserID)

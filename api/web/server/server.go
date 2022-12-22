@@ -30,9 +30,13 @@ import (
 // @Router       /v1/servers [get]
 func (h *handler) getServer(c *fiber.Ctx) error {
 	input := new(pb.Server_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -53,11 +57,12 @@ func (h *handler) getServer(c *fiber.Ctx) error {
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
-			return httputil.ReturnGRPCError(c, err)
+			return httputil.ErrorGRPC(c, h.log, err)
 		}
 		if servers.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
+
 		return httputil.StatusOK(c, "Servers available in this project", servers)
 	}
 
@@ -68,11 +73,11 @@ func (h *handler) getServer(c *fiber.Ctx) error {
 		ProjectId: input.GetProjectId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
-	if server == nil {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
-	}
+	// if server == nil {
+	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+	//}
 
 	return httputil.StatusOK(c, "Project information", server)
 }
@@ -87,9 +92,13 @@ func (h *handler) getServer(c *fiber.Ctx) error {
 // @Router       /v1/servers [post]
 func (h *handler) addServer(c *fiber.Ctx) error {
 	input := new(pb.CreateServer_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -117,8 +126,9 @@ func (h *handler) addServer(c *fiber.Ctx) error {
 		KeyUuid:            input.GetKeyUuid(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Server added", server)
 }
 
@@ -132,9 +142,13 @@ func (h *handler) addServer(c *fiber.Ctx) error {
 // @Router       /v1/servers [patch]
 func (h *handler) patchServer(c *fiber.Ctx) error {
 	input := new(pb.UpdateServer_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -158,14 +172,18 @@ func (h *handler) patchServer(c *fiber.Ctx) error {
 		Active:             input.GetActive(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	// access setting
 	access := new(pb.UpdateServerAccess_Request)
-	c.BodyParser(access)
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
+	if err := validate.Struct(&input); err != nil {
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, err)
 	}
 
 	// If the password is not indicated, skip the next step
@@ -183,8 +201,9 @@ func (h *handler) patchServer(c *fiber.Ctx) error {
 		KeyUuid:   access.GetKeyUuid(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Server data updated", nil)
 }
 
@@ -200,9 +219,13 @@ func (h *handler) patchServer(c *fiber.Ctx) error {
 // @Router       /v1/servers [delete]
 func (h *handler) deleteServer(c *fiber.Ctx) error {
 	input := new(pb.DeleteServer_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -218,8 +241,9 @@ func (h *handler) deleteServer(c *fiber.Ctx) error {
 		ServerId:  input.GetServerId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Server deleted", nil)
 }
 
@@ -235,9 +259,13 @@ func (h *handler) deleteServer(c *fiber.Ctx) error {
 // @Router       /v1/servers/access [get]
 func (h *handler) getServerAccess(c *fiber.Ctx) error {
 	input := new(pb.ServerAccess_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -253,11 +281,12 @@ func (h *handler) getServerAccess(c *fiber.Ctx) error {
 		ServerId:  input.GetServerId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
-	if access == nil {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
-	}
+	// if access == nil {
+	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+	//}
+
 	return httputil.StatusOK(c, "Server access", access)
 }
 
@@ -273,9 +302,13 @@ func (h *handler) getServerAccess(c *fiber.Ctx) error {
 // @Router       /v1/servers/activity [get]
 func (h *handler) getServerActivity(c *fiber.Ctx) error {
 	input := new(pb.ServerActivity_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -291,11 +324,12 @@ func (h *handler) getServerActivity(c *fiber.Ctx) error {
 		ProjectId: input.GetProjectId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
-	if activity == nil {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
-	}
+	// if activity == nil {
+	// 	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+	// }
+
 	return httputil.StatusOK(c, "Server activity", activity)
 }
 
@@ -309,9 +343,13 @@ func (h *handler) getServerActivity(c *fiber.Ctx) error {
 // @Router       /v1/servers/activity [patch]
 func (h *handler) patchServerActivity(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerActivity_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -328,8 +366,9 @@ func (h *handler) patchServerActivity(c *fiber.Ctx) error {
 		Activity:  input.GetActivity(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Server activity updated", nil)
 }
 
@@ -343,9 +382,13 @@ func (h *handler) patchServerActivity(c *fiber.Ctx) error {
 // @Router       /v1/servers/firewall [get]
 func (h *handler) getServerFirewall(c *fiber.Ctx) error {
 	input := new(pb_firewall.ServerFirewall_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -361,8 +404,9 @@ func (h *handler) getServerFirewall(c *fiber.Ctx) error {
 		ProjectId: input.GetUserId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Server firewall data", firewall)
 }
 
@@ -376,11 +420,12 @@ func (h *handler) getServerFirewall(c *fiber.Ctx) error {
 // @Router       /v1/servers/firewall [post]
 func (h *handler) postServerFirewall(c *fiber.Ctx) error {
 	input := new(pb_firewall.CreateServerFirewall_Request)
+
 	if err := protojson.Unmarshal(c.Body(), input); err != nil {
 		fmt.Print(err)
 	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -417,13 +462,15 @@ func (h *handler) postServerFirewall(c *fiber.Ctx) error {
 				},
 			},
 		})
+
 	default:
 		return httputil.StatusBadRequest(c, "Bad rule", nil)
 	}
 
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Firewall added", response)
 }
 
@@ -437,9 +484,13 @@ func (h *handler) postServerFirewall(c *fiber.Ctx) error {
 // @Router       /v1/servers/firewall [patch]
 func (h *handler) patchAccessPolicy(c *fiber.Ctx) error {
 	input := new(pb_firewall.UpdateAccessPolicy_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -457,8 +508,9 @@ func (h *handler) patchAccessPolicy(c *fiber.Ctx) error {
 		Status:    input.GetStatus(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Firewall updated", nil)
 }
 
@@ -472,9 +524,13 @@ func (h *handler) patchAccessPolicy(c *fiber.Ctx) error {
 // @Router       /v1/servers/firewall [delete]
 func (h *handler) deleteServerFirewall(c *fiber.Ctx) error {
 	input := new(pb_firewall.DeleteServerFirewall_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -492,8 +548,9 @@ func (h *handler) deleteServerFirewall(c *fiber.Ctx) error {
 		RecordId:  input.GetRecordId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Firewall deleted", nil)
 }
 
@@ -507,9 +564,13 @@ func (h *handler) deleteServerFirewall(c *fiber.Ctx) error {
 // @Router       /v1/servers/active [patch]
 func (h *handler) patchServerStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerActiveStatus_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -525,7 +586,7 @@ func (h *handler) patchServerStatus(c *fiber.Ctx) error {
 		Status:   input.GetStatus(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	// message section
@@ -547,9 +608,13 @@ func (h *handler) patchServerStatus(c *fiber.Ctx) error {
 // @Router       /v1/servers/name [get]
 func (h *handler) serverNameByID(c *fiber.Ctx) error {
 	input := new(pb.ServerNameByID_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -565,10 +630,11 @@ func (h *handler) serverNameByID(c *fiber.Ctx) error {
 		ProjectId: input.GetProjectId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 	if access == nil {
 		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
+
 	return httputil.StatusOK(c, "Server name", access)
 }

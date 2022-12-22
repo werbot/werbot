@@ -31,13 +31,18 @@ type licenseInput struct {
 // @Router       /v1/license/expired [get]
 func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 	input := new(licenseInput)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	licenseDec, err := base64.StdEncoding.DecodeString(input.License)
 	if err != nil {
+		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgBadRequest, err)
 	}
 
@@ -49,7 +54,7 @@ func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 		License: licenseDec,
 	})
 	if err != nil {
-		return httputil.InternalServerError(c, "Having problems show info", nil)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	return httputil.StatusOK(c, "License expired", expiredLic.Status)
@@ -65,10 +70,13 @@ func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 // @Router       /v1/license [post]
 func (h *handler) postLicense(c *fiber.Ctx) error {
 	input := new(pb.NewLicense_Request)
-	c.BodyParser(input)
 
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	dataLicense := &pb.NewLicense_Request{
@@ -88,12 +96,12 @@ func (h *handler) postLicense(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
 
-	// check ip from db license
 	dataLic, err := rClient.NewLicense(ctx, dataLicense)
 	if err != nil {
-		return httputil.InternalServerError(c, "Having problems saving", nil)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	licenseKey := base64.StdEncoding.EncodeToString(dataLic.License)
+
 	return httputil.StatusOK(c, "License key", licenseKey)
 }

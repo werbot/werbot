@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/utils/validate"
@@ -21,10 +20,14 @@ func (h *handler) getMyIP(c *fiber.Ctx) error {
 }
 
 func (h *handler) getCountry(c *fiber.Ctx) error {
-	input := &pb.GetCountry_Request{}
-	c.QueryParser(input)
+	input := new(pb.GetCountry_Request)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -35,13 +38,7 @@ func (h *handler) getCountry(c *fiber.Ctx) error {
 		Name: fmt.Sprintf(`%v`, input.Name),
 	})
 	if err != nil {
-		se, _ := status.FromError(err)
-
-		if se.Message() == internal.MsgNotFound {
-			return httputil.StatusNotFound(c, se.Message(), nil)
-		}
-
-		return httputil.InternalServerError(c, "Having select problems", nil)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	return httputil.StatusOK(c, "Countries list", countries)

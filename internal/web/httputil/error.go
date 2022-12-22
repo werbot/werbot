@@ -3,7 +3,7 @@ package httputil
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/werbot/werbot/internal"
-	"google.golang.org/grpc/status"
+	"github.com/werbot/werbot/internal/logger"
 )
 
 // StatusBadRequest - HTTP error code 400
@@ -39,17 +39,12 @@ func NewError(c *fiber.Ctx, status int, message string, data any) error {
 	return c.Status(status).JSON(data)
 }
 
-// ReturnGRPCError is ...
-func ReturnGRPCError(c *fiber.Ctx, err error) error {
-	se, _ := status.FromError(err)
-
-	if se.Message() == internal.MsgNotFound {
+// ErrorGRPC is ...
+func ErrorGRPC(c *fiber.Ctx, log logger.Logger, err error) error {
+	if err.Error() == internal.MsgNotFound {
 		return StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	if se.Message() != "" {
-		return StatusBadRequest(c, se.Message(), nil)
-	}
-
+	log.Error(err).CallerSkipFrame(1).Send()
 	return InternalServerError(c, internal.MsgUnexpectedError, nil)
 }

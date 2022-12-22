@@ -30,9 +30,13 @@ import (
 // @Router       /v1/members [get]
 func (h *handler) getProjectMember(c *fiber.Ctx) error {
 	input := new(pb.ProjectMember_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -53,7 +57,10 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
-			return httputil.ReturnGRPCError(c, err)
+			return httputil.ErrorGRPC(c, h.log, err)
+		}
+		if members.GetTotal() == 0 {
+			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
 
 		return httputil.StatusOK(c, "Members", members)
@@ -66,11 +73,11 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 		MemberId:  input.GetMemberId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
-	if member == nil {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
-	}
+	// if member == nil {
+	// 	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+	// }
 
 	return httputil.StatusOK(c, "Member information", member)
 }
@@ -85,9 +92,13 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 // @Router       /v1/members [post]
 func (h *handler) addProjectMember(c *fiber.Ctx) error {
 	input := new(pb.CreateProjectMember_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -105,8 +116,9 @@ func (h *handler) addProjectMember(c *fiber.Ctx) error {
 		Active:    input.GetActive(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Member added", member)
 }
 
@@ -120,9 +132,13 @@ func (h *handler) addProjectMember(c *fiber.Ctx) error {
 // @Router       /v1/members [patch]
 func (h *handler) patchProjectMember(c *fiber.Ctx) error {
 	input := new(pb.UpdateProjectMember_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -140,8 +156,9 @@ func (h *handler) patchProjectMember(c *fiber.Ctx) error {
 		Active:    input.GetActive(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Member updated", nil)
 }
 
@@ -157,9 +174,13 @@ func (h *handler) patchProjectMember(c *fiber.Ctx) error {
 // @Router       /v1/members [delete]
 func (h *handler) deleteProjectMember(c *fiber.Ctx) error {
 	input := new(pb.DeleteProjectMember_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -175,8 +196,9 @@ func (h *handler) deleteProjectMember(c *fiber.Ctx) error {
 		MemberId:  input.GetMemberId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Member deleted", nil)
 }
 
@@ -192,9 +214,13 @@ func (h *handler) deleteProjectMember(c *fiber.Ctx) error {
 // @Router       /v1/members/search [get]
 func (h *handler) getUsersWithoutProject(c *fiber.Ctx) error {
 	input := new(pb.ActivityRequest)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -210,8 +236,9 @@ func (h *handler) getUsersWithoutProject(c *fiber.Ctx) error {
 		Name:      input.GetName(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Users without project", members)
 }
 
@@ -225,9 +252,13 @@ func (h *handler) getUsersWithoutProject(c *fiber.Ctx) error {
 // @Router       /v1/members/active [patch]
 func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateProjectMemberStatus_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -244,7 +275,7 @@ func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 		Status:    input.GetStatus(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	// message section
@@ -252,6 +283,7 @@ func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 	if !input.GetStatus() {
 		message = "Member is offline"
 	}
+
 	return httputil.StatusOK(c, message, nil)
 }
 
@@ -267,9 +299,13 @@ func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 // @Router       /v1/members/invite [get]
 func (h *handler) getProjectMembersInvite(c *fiber.Ctx) error {
 	input := new(pb.ProjectMember_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -288,7 +324,7 @@ func (h *handler) getProjectMembersInvite(c *fiber.Ctx) error {
 		ProjectId: input.GetProjectId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	return httputil.StatusOK(c, "Member invites", members)
@@ -304,9 +340,13 @@ func (h *handler) getProjectMembersInvite(c *fiber.Ctx) error {
 // @Router       /v1/members/invite [post]
 func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	input := new(pb.CreateProjectMemberInvite_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -324,7 +364,7 @@ func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
 		Email:       input.GetEmail(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	mailData := map[string]string{
@@ -347,9 +387,13 @@ func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
 // @Router       /v1/members/invite [delete]
 func (h *handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 	input := new(pb.DeleteProjectMemberInvite_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -365,8 +409,9 @@ func (h *handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 		InviteId:  input.GetInviteId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Invite deleted", nil)
 }
 
@@ -381,8 +426,9 @@ func (h *handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 func (h *handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 	request := new(pb.ProjectMemberInviteActivate_Request)
 	request.Invite = c.Params("invite")
+
 	if err := validate.Struct(request); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -396,7 +442,7 @@ func (h *handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 		UserId: userParameter.User.GetUserId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	return httputil.StatusOK(c, "Invitation confirmed", project)

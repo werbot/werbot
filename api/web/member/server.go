@@ -28,9 +28,13 @@ import (
 // @Router       /v1/server/members [get]
 func (h *handler) getServerMember(c *fiber.Ctx) error {
 	input := new(pb.ServerMember_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -52,7 +56,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 			ServerId:  input.GetServerId(),
 		})
 		if err != nil {
-			return httputil.ReturnGRPCError(c, err)
+			return httputil.ErrorGRPC(c, h.log, err)
 		}
 
 		return httputil.StatusOK(c, "Members on server", members)
@@ -65,7 +69,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 		MemberId:  input.GetMemberId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 	if member == nil {
 		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
@@ -84,9 +88,13 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 // @Router       /v1/members/server [post]
 func (h *handler) addServerMember(c *fiber.Ctx) error {
 	input := new(pb.CreateServerMember_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -104,8 +112,9 @@ func (h *handler) addServerMember(c *fiber.Ctx) error {
 		Active:    input.GetActive(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Member added", member)
 }
 
@@ -119,9 +128,13 @@ func (h *handler) addServerMember(c *fiber.Ctx) error {
 // @Router       /v1/members/server [patch]
 func (h *handler) patchServerMember(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerMember_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -139,8 +152,9 @@ func (h *handler) patchServerMember(c *fiber.Ctx) error {
 		Active:    input.GetActive(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Member updated", nil)
 }
 
@@ -157,9 +171,13 @@ func (h *handler) patchServerMember(c *fiber.Ctx) error {
 // @Router       /v1/members/server [delete]
 func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 	input := new(pb.DeleteServerMember_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -176,8 +194,9 @@ func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 		MemberId:  input.GetMemberId(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Member deleted", nil)
 }
 
@@ -194,9 +213,13 @@ func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 // @Router       /v1/members/server/search [get]
 func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	input := new(pb.MembersWithoutServer_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -217,8 +240,9 @@ func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 		Name:      fmt.Sprintf(`%v`, input.GetName()),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Members without server", members)
 }
 
@@ -232,9 +256,13 @@ func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 // @Router       /v1/members/active [patch]
 func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 	input := new(pb.UpdateServerMemberStatus_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -252,7 +280,7 @@ func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 		Status:    input.GetStatus(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	// message section
@@ -260,5 +288,6 @@ func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 	if !input.GetStatus() {
 		message = "Member is offline"
 	}
+
 	return httputil.StatusOK(c, message, nil)
 }

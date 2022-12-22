@@ -129,7 +129,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgValidateBodyParams).
+				Equal(`$.message`, internal.MsgFailedToValidateBody).
 				Equal(`$.result.projectid`, "ProjectId must be a valid UUID").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -254,7 +254,7 @@ func TestHandler_addProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgValidateBodyParams).
+				Equal(`$.message`, internal.MsgFailedToValidateBody).
 				Equal(`$.result.login`, "Login is a required field").
 				Equal(`$.result.title`, "Title is a required field").
 				End(),
@@ -269,7 +269,7 @@ func TestHandler_addProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgValidateBodyParams).
+				Equal(`$.message`, internal.MsgFailedToValidateBody).
 				Equal(`$.result.title`, "Title must be at least 5 characters in length").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -282,7 +282,7 @@ func TestHandler_addProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgValidateBodyParams).
+				Equal(`$.message`, internal.MsgFailedToValidateBody).
 				Equal(`$.result.title`, "Title is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
@@ -352,7 +352,7 @@ func TestHandler_patchProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgValidateBodyParams).
+				Equal(`$.message`, internal.MsgFailedToValidateBody).
 				Equal(`$.result.projectid`, "ProjectId is a required field").
 				Equal(`$.result.title`, "Title is a required field").
 				End(),
@@ -366,7 +366,7 @@ func TestHandler_patchProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgValidateBodyParams).
+				Equal(`$.message`, internal.MsgFailedToValidateBody).
 				Equal(`$.result.title`, "Title is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,

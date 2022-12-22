@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
@@ -30,9 +29,12 @@ type userIDReq struct {
 // @Router       /v1/subscriptions [get]
 func (h *handler) getSubscriptions(c *fiber.Ctx) error {
 	pagination := httputil.GetPaginationFromCtx(c)
+	input := new(userIDReq)
 
-	input := userIDReq{}
-	c.BodyParser(&input)
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 
 	userParameter := middleware.AuthUser(c)
 	userID := userParameter.UserID(input.UserID)
@@ -49,13 +51,8 @@ func (h *handler) getSubscriptions(c *fiber.Ctx) error {
 		Query:  sanitizeSQL,
 	})
 	if err != nil {
-		se, _ := status.FromError(err)
-		if se.Message() != "" {
-			return httputil.StatusBadRequest(c, se.Message(), nil)
-		}
-		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
-
 	if subscriptions.Total == 0 {
 		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
@@ -68,15 +65,14 @@ func (h *handler) getSubscriptions(c *fiber.Ctx) error {
 // request {user_id:1}
 // PATCH /v1/subscriptions/:subscription_id
 func (h *handler) patchSubscription(c *fiber.Ctx) error {
+	var input userIDReq
 	subscriptionID := c.Params("subscription_id")
 
-	var input userIDReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	return httputil.StatusOK(c, "новый ключ обновлен", map[string]string{
@@ -90,15 +86,14 @@ func (h *handler) patchSubscription(c *fiber.Ctx) error {
 // request {user_id:1}
 // DELETE /v1/subscriptions/:subscription_id
 func (h *handler) deleteSubscription(c *fiber.Ctx) error {
+	var input userIDReq
 	subscriptionID := c.Params("subscription_id")
 
-	var input userIDReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	return httputil.StatusOK(c, "подписка удалена", map[string]string{
@@ -112,15 +107,14 @@ func (h *handler) deleteSubscription(c *fiber.Ctx) error {
 // request {user_id:1}
 // POST /v1/subscriptions/:subscription_id/stop
 func (h *handler) stopSubscription(c *fiber.Ctx) error {
+	var input userIDReq
 	subscriptionID := c.Params("subscription_id")
 
-	var input userIDReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	return httputil.StatusOK(c, "подписка остановлена", map[string]string{
@@ -134,15 +128,14 @@ func (h *handler) stopSubscription(c *fiber.Ctx) error {
 // request {user_id:1}
 // POST /v1/subscriptions/:subscription_id/user
 func (h *handler) addSubscriptionToUser(c *fiber.Ctx) error {
+	var input userIDReq
 	subscriptionID := c.Params("subscription_id")
 
-	var input userIDReq
 	if err := c.BodyParser(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	return httputil.StatusOK(c, "подписка добавлена пользователю", map[string]string{

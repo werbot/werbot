@@ -2,8 +2,6 @@ package logger
 
 import (
 	"os"
-	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/rs/zerolog"
@@ -33,7 +31,7 @@ func New(module string) Logger {
 	}
 
 	return Logger{
-		log: newLogger.Timestamp().Logger(),
+		log: newLogger.Timestamp().Caller().Logger(),
 	}
 }
 
@@ -44,35 +42,22 @@ func (l *Logger) Info() *zerolog.Event {
 
 // Error is ...
 func (l *Logger) Error(err error) *zerolog.Event {
-	return l.errorDetails("error", err)
+	return l.log.Error().Err(err)
 }
 
 // Fatal is ...
 func (l *Logger) Fatal(err error) *zerolog.Event {
-	return l.errorDetails("fatal", err)
+	return l.log.Fatal().Err(err)
 }
 
-func (l *Logger) errorDetails(level string, err error) *zerolog.Event {
-	log := new(zerolog.Event)
-	switch level {
-	case "error":
-		log = l.log.Error()
-	case "fatal":
-		log = l.log.Fatal()
+// ErrorGRPC is ...
+func (l *Logger) ErrorGRPC(err error) *zerolog.Event {
+	log := l.log.Error()
+	se, ok := status.FromError(err)
+	if !ok {
+		return log.
+			Str("error", se.Message()).
+			Str("status", se.Code().String())
 	}
-
-	pt, file, line, _ := runtime.Caller(2)
-	se, _ := status.FromError(err)
-
-	parts := strings.Split(runtime.FuncForPC(pt).Name(), ".")
-	pl := len(parts)
-
-	if se.Code() == 2 { // Unknown status
-		log = log.Str("status", se.Code().String())
-	}
-
-	return log.Str("error", se.Message()).
-		Str("file", file).
-		Str("function", parts[pl-2]).
-		Int("line", line)
+	return log.Str("error", err.Error())
 }

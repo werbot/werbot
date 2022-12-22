@@ -7,7 +7,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal"
@@ -30,10 +29,14 @@ import (
 // @Failure      400,500  {object} httputil.HTTPResponse
 // @Router       /auth/signin [post]
 func (h *handler) signIn(c *fiber.Ctx) error {
-	input := &pb.SignIn_Request{}
-	c.BodyParser(input)
+	input := new(pb.SignIn_Request)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -45,11 +48,7 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 		Password: input.GetPassword(),
 	})
 	if err != nil {
-		se, _ := status.FromError(err)
-		if se.Message() != "" {
-			return httputil.StatusBadRequest(c, se.Message(), nil)
-		}
-		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	sub := uuid.New().String()
@@ -60,7 +59,7 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 		Sub:      sub,
 	})
 	if err != nil {
-		h.log.Error(err).Msg("Failed to create token")
+		h.log.Error(err).Send()
 		return httputil.InternalServerError(c, "Failed to create token", nil)
 	}
 
@@ -97,17 +96,24 @@ func (h *handler) logout(c *fiber.Ctx) error {
 // @Router       /auth/refresh [post]
 func (h *handler) refresh(c *fiber.Ctx) error {
 	input := new(jwt.Tokens)
+
 	if err := c.BodyParser(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgBadQueryParams, nil)
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	claims, err := jwt.Parse(input.Refresh)
 	if err != nil {
-		return httputil.StatusBadRequest(c, err.Error(), nil)
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateParams, nil)
 	}
 
 	sub := jwt.GetClaimSub(*claims)
 	userID, err := h.Cache.Get(fmt.Sprintf("ref_token::%s", sub))
+	if err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToSelect, nil)
+	}
 
 	if !jwt.ValidateToken(h.Cache, sub) {
 		return httputil.StatusBadRequest(c, "Your token has been revoked", nil)
@@ -118,9 +124,13 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
-	user, _ := rClient.User(ctx, &pb.User_Request{
+	user, err := rClient.User(ctx, &pb.User_Request{
 		UserId: userID,
 	})
+	if err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, "Failed to select user", nil)
+	}
 
 	newToken, err := jwt.New(&pb.UserParameters{
 		UserName: "UserName",
@@ -129,6 +139,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 		Sub:      sub,
 	})
 	if err != nil {
+		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, "Failed to create token", nil)
 	}
 
@@ -158,13 +169,15 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 // @Router       /auth/password_reset [post]
 func (h *handler) resetPassword(c *fiber.Ctx) error {
 	request := new(pb.ResetPassword_Request)
+
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
-		fmt.Print(err)
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateParams, nil)
 	}
 
 	request.Token = c.Params("reset_token")
 	if err := validate.Struct(request); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	// Sending an email with a verification link
@@ -183,7 +196,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 	}
 
 	if request.Request == nil && request.GetToken() == "" {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, nil)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -192,10 +205,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 
 	response, err := rClient.ResetPassword(ctx, request)
 	if err != nil {
-		se, _ := status.FromError(err)
-		if se.Message() != "" {
-			return httputil.StatusBadRequest(c, se.Message(), nil)
-		}
+		h.log.Error(err).Send()
 		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
 	}
 

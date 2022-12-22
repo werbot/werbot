@@ -24,9 +24,13 @@ import (
 // @Router       /v1/service/server [post]
 func (h *handler) addServiceServer(c *fiber.Ctx) error {
 	input := new(pb.CreateServer_Request)
-	c.BodyParser(&input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -41,8 +45,9 @@ func (h *handler) addServiceServer(c *fiber.Ctx) error {
 		Scheme:    pb.ServerScheme(pb.ServerAuth_KEY),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "Server key", server.KeyPublic)
 }
 

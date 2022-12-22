@@ -33,7 +33,7 @@ func (h *handler) getLicenseInfo(c *fiber.Ctx) error {
 
 	lic, err := rClient.License(ctx, &pb.License_Request{})
 	if err != nil {
-		return httputil.InternalServerError(c, "Unexpected error while getting license", err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	return httputil.StatusOK(c, "License information", lic)

@@ -36,7 +36,7 @@ func (h *handler) getUpdate(c *fiber.Ctx) error {
 
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
-		h.log.Error(err).Msg("Unable to connect to Docker")
+		h.log.Error(err).Send()
 		return httputil.InternalServerError(c, "Unable to get list of containers", nil)
 	}
 
@@ -47,14 +47,14 @@ func (h *handler) getUpdate(c *fiber.Ctx) error {
 		},
 	})
 	if err != nil {
-		h.log.Error(err).Msg("Unable to get list of containers")
+		h.log.Error(err).Send()
 		return httputil.InternalServerError(c, "Unable to get list of containers", nil)
 	}
 
 	urlVersion := fmt.Sprintf("%s/v1/update/version", internal.GetString("API_DSN", "https://api.werbot.com"))
 	getVersionInfo, err := http.Get(urlVersion)
 	if err != nil {
-		h.log.Error(err).Msg("Error getting data for updates")
+		h.log.Error(err).Send()
 		return httputil.InternalServerError(c, "Error getting data for updates", nil)
 	}
 	if getVersionInfo.StatusCode > 200 {
@@ -93,9 +93,13 @@ func (h *handler) getUpdate(c *fiber.Ctx) error {
 func (h *handler) getInfo(c *fiber.Ctx) error {
 	input := new(pb.UserStatistics_Request)
 	request := new(pb.UserStatistics_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -112,7 +116,7 @@ func (h *handler) getInfo(c *fiber.Ctx) error {
 
 	info, err := rClient.UserStatistics(ctx, request)
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	return httputil.StatusOK(c, "Short information", info)

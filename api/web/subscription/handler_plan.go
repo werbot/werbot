@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/utils/validate"
@@ -23,10 +22,9 @@ import (
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/subscriptions/plans [get]
 func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
+	userParameter := middleware.AuthUser(c)
 	pagination := httputil.GetPaginationFromCtx(c)
 	sqlQuery := ""
-
-	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
 		sqlQuery = `"active"=true`
@@ -43,11 +41,10 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 		SortBy: "id:ASC",
 	})
 	if err != nil {
-		se, _ := status.FromError(err)
-		if se.Message() != "" {
-			return httputil.StatusBadRequest(c, se.Message(), nil)
-		}
-		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
+		return httputil.ErrorGRPC(c, h.log, err)
+	}
+	if plans.GetTotal() == 0 {
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	if userParameter.IsUserAdmin() {
@@ -98,11 +95,7 @@ func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 		PlanId: planID,
 	})
 	if err != nil {
-		se, _ := status.FromError(err)
-		if se.Message() != "" {
-			return httputil.StatusBadRequest(c, se.Message(), nil)
-		}
-		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -137,10 +130,14 @@ func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 // @Router       /v1/subscriptions/plans/:plan_id [patch]
 func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 	planID := c.Params("plan_id")
-	input := &pb.UpdatePlan_Request{}
-	c.BodyParser(input)
+	input := new(pb.UpdatePlan_Request)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -171,11 +168,7 @@ func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 		Default:           input.GetDefault(),
 	})
 	if err != nil {
-		se, _ := status.FromError(err)
-		if se.Message() != "" {
-			return httputil.StatusBadRequest(c, se.Message(), nil)
-		}
-		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	return httputil.StatusOK(c, "Tariff plan updated successfully", nil)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
+	// Load jackc package
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 

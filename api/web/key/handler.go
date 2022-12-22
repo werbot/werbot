@@ -26,9 +26,13 @@ import (
 // @Router       /v1/keys [get]
 func (h *handler) getKey(c *fiber.Ctx) error {
 	input := new(pb.PublicKey_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -49,7 +53,7 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
-			return httputil.ReturnGRPCError(c, err)
+			return httputil.ErrorGRPC(c, h.log, err)
 		}
 		if keys.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
@@ -63,11 +67,11 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 		UserId: userID,
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
-	if key == nil {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
-	}
+	// if key == nil {
+	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+	// }
 
 	return httputil.StatusOK(c, "Key information", key)
 }
@@ -82,9 +86,13 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 // @Router       /v1/keys [post]
 func (h *handler) addKey(c *fiber.Ctx) error {
 	input := new(pb.CreatePublicKey_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -100,8 +108,9 @@ func (h *handler) addKey(c *fiber.Ctx) error {
 		Key:    input.GetKey(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "New key added", publicKey)
 }
 
@@ -115,9 +124,13 @@ func (h *handler) addKey(c *fiber.Ctx) error {
 // @Router       /v1/keys [patch]
 func (h *handler) patchKey(c *fiber.Ctx) error {
 	input := new(pb.UpdatePublicKey_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateBodyParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -134,7 +147,7 @@ func (h *handler) patchKey(c *fiber.Ctx) error {
 		Key:    input.GetKey(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	return httputil.StatusOK(c, "User key data updated", nil)
@@ -151,9 +164,13 @@ func (h *handler) patchKey(c *fiber.Ctx) error {
 // @Router       /v1/keys [delete]
 func (h *handler) deleteKey(c *fiber.Ctx) error {
 	input := new(pb.DeletePublicKey_Request)
-	c.QueryParser(input)
+
+	if err := c.QueryParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+	}
 	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgValidateParams, err)
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -168,8 +185,9 @@ func (h *handler) deleteKey(c *fiber.Ctx) error {
 		UserId: userID,
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
+
 	return httputil.StatusOK(c, "User key removed", nil)
 }
 
@@ -183,7 +201,11 @@ func (h *handler) deleteKey(c *fiber.Ctx) error {
 // @Router       /v1/keys/generate [get]
 func (h *handler) getGenerateNewKey(c *fiber.Ctx) error {
 	input := new(pb.GenerateSSHKey_Request)
-	c.BodyParser(input)
+
+	if err := c.BodyParser(input); err != nil {
+		h.log.Error(err).Send()
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
 
 	if input.GetKeyType() == 0 {
 		input.KeyType = pb.KeyType_KEY_TYPE_ED25519
@@ -197,7 +219,7 @@ func (h *handler) getGenerateNewKey(c *fiber.Ctx) error {
 		KeyType: input.GetKeyType(),
 	})
 	if err != nil {
-		return httputil.ReturnGRPCError(c, err)
+		return httputil.ErrorGRPC(c, h.log, err)
 	}
 
 	return httputil.StatusOK(c, "SSH key pair created", map[string]string{
