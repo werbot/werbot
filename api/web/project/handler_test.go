@@ -76,7 +76,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser:  userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Projects").
+				Equal(`$.message`, "projects").
 				Equal(`$.result.total`, float64(1)).
 				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
 				End(),
@@ -103,7 +103,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Projects").
+				Equal(`$.message`, "projects").
 				Equal(`$.result.total`, float64(1)).
 				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
 				End(),
@@ -130,7 +130,7 @@ func TestHandler_getProject(t *testing.T) {
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.projectid`, "ProjectId must be a valid UUID").
+				Equal(`$.result.projectid`, "projectId must be a valid UUID").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -141,7 +141,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser:  adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Projects").
+				Equal(`$.message`, "projects").
 				Equal(`$.result.total`, float64(2)).
 				Equal(`$.result.projects[0].owner_id`, adminInfo.UserID).
 				End(),
@@ -192,7 +192,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Projects").
+				Equal(`$.message`, "projects").
 				Equal(`$.result.total`, float64(1)).
 				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
 				End(),
@@ -207,7 +207,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Project information").
+				Equal(`$.message`, "project information").
 				Equal(`$.result.title`, "test_project3").
 				Equal(`$.result.login`, "testproject3").
 				End(),
@@ -255,8 +255,8 @@ func TestHandler_addProject(t *testing.T) {
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.login`, "Login is a required field").
-				Equal(`$.result.title`, "Title is a required field").
+				Equal(`$.result.login`, "login is a required field").
+				Equal(`$.result.title`, "title is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -270,7 +270,7 @@ func TestHandler_addProject(t *testing.T) {
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.title`, "Title must be at least 5 characters in length").
+				Equal(`$.result.title`, "title must be at least 5 characters in length").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -283,7 +283,7 @@ func TestHandler_addProject(t *testing.T) {
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.title`, "Title is a required field").
+				Equal(`$.result.title`, "title is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -296,7 +296,7 @@ func TestHandler_addProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Project added").
+				Equal(`$.message`, "project added").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -353,8 +353,8 @@ func TestHandler_patchProject(t *testing.T) {
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.projectid`, "ProjectId is a required field").
-				Equal(`$.result.title`, "Title is a required field").
+				Equal(`$.result.projectid`, "projectId is a required field").
+				Equal(`$.result.title`, "title is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -367,7 +367,7 @@ func TestHandler_patchProject(t *testing.T) {
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.title`, "Title is a required field").
+				Equal(`$.result.title`, "title is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -380,7 +380,7 @@ func TestHandler_patchProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Project data updated").
+				Equal(`$.message`, "project updated").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -393,7 +393,7 @@ func TestHandler_patchProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Project data updated").
+				Equal(`$.message`, "project updated").
 				End(),
 			RespondStatus: http.StatusOK,
 		},

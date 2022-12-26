@@ -42,7 +42,7 @@ import { ref, onBeforeUnmount, getCurrentInstance } from "vue";
 import { useRouter } from "vue-router";
 import { FormInput } from "@/components";
 import { postProject } from "@/api/project";
-import { AddProject_Request } from "@proto/project/project";
+import { AddProject_Request } from "@proto/project";
 import { showMessage } from "@/utils/message";
 
 const { proxy } = getCurrentInstance();

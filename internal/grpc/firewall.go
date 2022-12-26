@@ -29,7 +29,7 @@ func (s *firewall) getAccessList(serverID string) (*pb_firewall.AccessList, erro
 		serverID,
 	).Scan(&accessList.Network, &accessList.Country)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -56,7 +56,7 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *pb_firewall.ServerFir
 		in.GetServerId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -68,7 +68,7 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *pb_firewall.ServerFir
 			&country.CountryName,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		countries = append(countries, country)
@@ -88,7 +88,7 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *pb_firewall.ServerFir
 		in.GetServerId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -100,7 +100,7 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *pb_firewall.ServerFir
 			&network.EndIp,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		networks = append(networks, network)
@@ -110,7 +110,7 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *pb_firewall.ServerFir
 	// get status black lists
 	accessList, err := s.getAccessList(in.GetServerId())
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, err
 	}
 
@@ -147,7 +147,7 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *pb_firewall.AddSer
 			record.Country.Code,
 		).Scan(&recordID)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		if recordID != "" {
@@ -165,7 +165,7 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *pb_firewall.AddSer
 			record.Country.Code,
 		).Scan(&recordID)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToAdd
 		}
 
@@ -185,7 +185,7 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *pb_firewall.AddSer
 			record.Ip.EndIp,
 		).Scan(&recordID)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		if recordID != "" {
@@ -205,7 +205,7 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *pb_firewall.AddSer
 			record.Ip.EndIp,
 		).Scan(&recordID)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToAdd
 		}
 
@@ -244,7 +244,7 @@ func (s *firewall) UpdateAccessPolicy(ctx context.Context, in *pb_firewall.Updat
 
 	data, err := service.db.Conn.Exec(sql, in.GetStatus(), in.GetServerId())
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -280,7 +280,7 @@ func (s *firewall) DeleteServerFirewall(ctx context.Context, in *pb_firewall.Del
 
 	data, err := service.db.Conn.Exec(sql, in.GetRecordId())
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -332,7 +332,7 @@ func (s *firewall) CheckServerAccess(ctx context.Context, in *pb_firewall.CheckS
 	// The profile is included or not
 	access, err := userAccountActivity(in.GetAccountId(), in.GetUserId())
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		serverAccess.Access = false
 		return serverAccess, err
 	}
@@ -341,7 +341,7 @@ func (s *firewall) CheckServerAccess(ctx context.Context, in *pb_firewall.CheckS
 	if access {
 		access, err = accountActivityList(in.GetAccountId(), in.GetCountry(), in.GetClientIp())
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			serverAccess.Access = false
 			return serverAccess, err
 		}
@@ -351,7 +351,7 @@ func (s *firewall) CheckServerAccess(ctx context.Context, in *pb_firewall.CheckS
 	if access {
 		access, err = timeAccountActivity(in.GetAccountId())
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			serverAccess.Access = false
 			return serverAccess, err
 		}
@@ -364,14 +364,14 @@ func (s *firewall) CheckServerAccess(ctx context.Context, in *pb_firewall.CheckS
 func countryFromIP(ip string) (*string, error) {
 	db, err := geoip2.Open(internal.GetString("SECURITY_GEOIP2", "/etc/geoip2/GeoLite2-Country.mmdb"))
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToOpenFile
 	}
 	defer db.Close()
 
 	record, err := db.City(net.ParseIP(ip))
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errAccessIsDenied
 	}
 	return &record.Country.IsoCode, nil
@@ -399,7 +399,7 @@ func timeAccountActivity(accountID string) (bool, error) {
 		nowTime,
 	).Scan(&id)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return false, errFailedToScan
 	}
 	if id == 0 {
@@ -428,7 +428,7 @@ func accountActivityList(accountID, country, ip string) (bool, error) {
 		accountID,
 	).Scan(&accessListIP, &accessListCountry)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return false, errFailedToScan
 	}
 
@@ -447,7 +447,7 @@ func accountActivityList(accountID, country, ip string) (bool, error) {
 		country,
 	).Scan(&count)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return false, errFailedToScan
 	}
 
@@ -476,7 +476,7 @@ func accountActivityList(accountID, country, ip string) (bool, error) {
 		ip,
 	).Scan(&count)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return false, errFailedToScan
 	}
 
@@ -512,7 +512,7 @@ func userAccountActivity(accountID, userID string) (bool, error) {
 		userID,
 	).Scan(&id)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return false, errFailedToScan
 	}
 	if id == 0 {
@@ -539,7 +539,7 @@ func blackListIP(ip string) (bool, error) {
 		ip,
 	).Scan(&count)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return true, errFailedToScan
 	}
 

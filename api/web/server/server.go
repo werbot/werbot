@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -29,27 +29,33 @@ import (
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers [get]
 func (h *handler) getServer(c *fiber.Ctx) error {
-	input := new(pb.Server_Request)
+	request := new(pb.Server_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.Server_RequestMultiError) {
+			e := err.(pb.Server_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
 	// show all project
-	if input.GetServerId() == "" {
+	if request.GetServerId() == "" {
 		pagination := httputil.GetPaginationFromCtx(c)
-		sanitizeSQL, _ := sanitize.SQL(`project_id = $1 AND user_id = $2`, input.GetProjectId(), userID)
+		sanitizeSQL, _ := sanitize.SQL(`project_id = $1 AND user_id = $2`, request.GetProjectId(), userID)
 		servers, err := rClient.ListServers(ctx, &pb.ListServers_Request{
 			Limit:  pagination.GetLimit(),
 			Offset: pagination.GetOffset(),
@@ -57,29 +63,29 @@ func (h *handler) getServer(c *fiber.Ctx) error {
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
-			return httputil.ErrorGRPC(c, h.log, err)
+			return httputil.FromGRPC(c, h.log, err)
 		}
 		if servers.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
 
-		return httputil.StatusOK(c, "Servers available in this project", servers)
+		return httputil.StatusOK(c, "servers available in this project", servers)
 	}
 
 	// show information about the server
 	server, err := rClient.Server(ctx, &pb.Server_Request{
 		UserId:    userID,
-		ServerId:  input.GetServerId(),
-		ProjectId: input.GetProjectId(),
+		ServerId:  request.GetServerId(),
+		ProjectId: request.GetProjectId(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 	// if server == nil {
 	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	//}
 
-	return httputil.StatusOK(c, "Project information", server)
+	return httputil.StatusOK(c, "project information", server)
 }
 
 // @Summary      Adding a new server
@@ -91,18 +97,24 @@ func (h *handler) getServer(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers [post]
 func (h *handler) addServer(c *fiber.Ctx) error {
-	input := new(pb.AddServer_Request)
+	request := new(pb.AddServer_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.AddServer_RequestMultiError) {
+			e := err.(pb.AddServer_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -110,26 +122,26 @@ func (h *handler) addServer(c *fiber.Ctx) error {
 
 	server, err := rClient.AddServer(ctx, &pb.AddServer_Request{
 		UserId:             userID,
-		ProjectId:          input.GetProjectId(),
-		Address:            input.GetAddress(),
-		Port:               input.GetPort(),
-		Login:              input.GetLogin(),
-		Title:              input.GetTitle(),
-		PrivateDescription: input.GetPrivateDescription(),
-		PublicDescription:  input.GetPublicDescription(),
-		Auth:               input.GetAuth(),
-		Scheme:             input.GetScheme(),
-		Audit:              input.GetAudit(),
-		Active:             input.GetActive(),
-		Password:           input.GetPassword(),
-		PublicKey:          input.GetPublicKey(),
-		KeyUuid:            input.GetKeyUuid(),
+		ProjectId:          request.GetProjectId(),
+		Address:            request.GetAddress(),
+		Port:               request.GetPort(),
+		Login:              request.GetLogin(),
+		Title:              request.GetTitle(),
+		PrivateDescription: request.GetPrivateDescription(),
+		PublicDescription:  request.GetPublicDescription(),
+		Auth:               request.GetAuth(),
+		Scheme:             request.GetScheme(),
+		Audit:              request.GetAudit(),
+		Active:             request.GetActive(),
+		Password:           request.GetPassword(),
+		PublicKey:          request.GetPublicKey(),
+		KeyUuid:            request.GetKeyUuid(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Server added", server)
+	return httputil.StatusOK(c, "server added", server)
 }
 
 // @Summary      Server update
@@ -141,18 +153,24 @@ func (h *handler) addServer(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers [patch]
 func (h *handler) patchServer(c *fiber.Ctx) error {
-	input := new(pb.UpdateServer_Request)
+	request := new(pb.UpdateServer_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.UpdateServer_RequestMultiError) {
+			e := err.(pb.UpdateServer_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -160,51 +178,57 @@ func (h *handler) patchServer(c *fiber.Ctx) error {
 
 	_, err := rClient.UpdateServer(ctx, &pb.UpdateServer_Request{
 		UserId:             userID,
-		ServerId:           input.GetServerId(),
-		ProjectId:          input.GetProjectId(),
-		Address:            input.GetAddress(),
-		Port:               input.GetPort(),
-		Login:              input.GetLogin(),
-		Title:              input.GetTitle(),
-		PrivateDescription: input.GetPrivateDescription(),
-		PublicDescription:  input.GetPublicDescription(),
-		Audit:              input.GetAudit(),
-		Active:             input.GetActive(),
+		ServerId:           request.GetServerId(),
+		ProjectId:          request.GetProjectId(),
+		Address:            request.GetAddress(),
+		Port:               request.GetPort(),
+		Login:              request.GetLogin(),
+		Title:              request.GetTitle(),
+		PrivateDescription: request.GetPrivateDescription(),
+		PublicDescription:  request.GetPublicDescription(),
+		Audit:              request.GetAudit(),
+		Active:             request.GetActive(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
 	// access setting
 	access := new(pb.UpdateServerAccess_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, err)
+
+	if err := access.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.UpdateServerAccess_RequestMultiError) {
+			e := err.(pb.UpdateServerAccess_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	// If the password is not indicated, skip the next step
 	if access.Auth == pb.ServerAuth_PASSWORD && access.Password == "" {
-		return httputil.StatusOK(c, "Server data updated", nil)
+		return httputil.StatusOK(c, "server data updated", nil)
 	}
 
 	_, err = rClient.UpdateServerAccess(ctx, &pb.UpdateServerAccess_Request{
 		UserId:    userID,
-		ServerId:  input.GetServerId(),
-		ProjectId: input.GetProjectId(),
+		ServerId:  request.GetServerId(),
+		ProjectId: request.GetProjectId(),
 		Auth:      access.GetAuth(),
 		Password:  access.GetPassword(),
 		PublicKey: access.GetPublicKey(),
 		KeyUuid:   access.GetKeyUuid(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Server data updated", nil)
+	return httputil.StatusOK(c, "server data updated", nil)
 }
 
 // @Summary      Delete server
@@ -218,18 +242,24 @@ func (h *handler) patchServer(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers [delete]
 func (h *handler) deleteServer(c *fiber.Ctx) error {
-	input := new(pb.DeleteServer_Request)
+	request := new(pb.DeleteServer_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.DeleteServer_RequestMultiError) {
+			e := err.(pb.DeleteServer_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -237,14 +267,14 @@ func (h *handler) deleteServer(c *fiber.Ctx) error {
 
 	_, err := rClient.DeleteServer(ctx, &pb.DeleteServer_Request{
 		UserId:    userID,
-		ProjectId: input.GetProjectId(),
-		ServerId:  input.GetServerId(),
+		ProjectId: request.GetProjectId(),
+		ServerId:  request.GetServerId(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Server deleted", nil)
+	return httputil.StatusOK(c, "server deleted", nil)
 }
 
 // @Summary      Get server access
@@ -258,18 +288,24 @@ func (h *handler) deleteServer(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/access [get]
 func (h *handler) getServerAccess(c *fiber.Ctx) error {
-	input := new(pb.ServerAccess_Request)
+	request := new(pb.ServerAccess_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.ServerAccess_RequestMultiError) {
+			e := err.(pb.ServerAccess_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -277,17 +313,17 @@ func (h *handler) getServerAccess(c *fiber.Ctx) error {
 
 	access, err := rClient.ServerAccess(ctx, &pb.ServerAccess_Request{
 		UserId:    userID,
-		ProjectId: input.GetProjectId(),
-		ServerId:  input.GetServerId(),
+		ProjectId: request.GetProjectId(),
+		ServerId:  request.GetServerId(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 	// if access == nil {
 	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	//}
 
-	return httputil.StatusOK(c, "Server access", access)
+	return httputil.StatusOK(c, "server access", access)
 }
 
 // @Summary      Get server activity
@@ -301,18 +337,24 @@ func (h *handler) getServerAccess(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/activity [get]
 func (h *handler) getServerActivity(c *fiber.Ctx) error {
-	input := new(pb.ServerActivity_Request)
+	request := new(pb.ServerActivity_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.ServerActivity_RequestMultiError) {
+			e := err.(pb.ServerActivity_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -320,17 +362,17 @@ func (h *handler) getServerActivity(c *fiber.Ctx) error {
 
 	activity, err := rClient.ServerActivity(ctx, &pb.ServerActivity_Request{
 		UserId:    userID,
-		ServerId:  input.GetServerId(),
-		ProjectId: input.GetProjectId(),
+		ServerId:  request.GetServerId(),
+		ProjectId: request.GetProjectId(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 	// if activity == nil {
 	// 	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	// }
 
-	return httputil.StatusOK(c, "Server activity", activity)
+	return httputil.StatusOK(c, "server activity", activity)
 }
 
 // @Summary      Update server activity
@@ -342,18 +384,24 @@ func (h *handler) getServerActivity(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/activity [patch]
 func (h *handler) patchServerActivity(c *fiber.Ctx) error {
-	input := new(pb.UpdateServerActivity_Request)
+	request := new(pb.UpdateServerActivity_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.UpdateServerActivity_RequestMultiError) {
+			e := err.(pb.UpdateServerActivity_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -361,15 +409,15 @@ func (h *handler) patchServerActivity(c *fiber.Ctx) error {
 
 	_, err := rClient.UpdateServerActivity(ctx, &pb.UpdateServerActivity_Request{
 		UserId:    userID,
-		ProjectId: input.GetProjectId(),
-		ServerId:  input.GetServerId(),
-		Activity:  input.GetActivity(),
+		ProjectId: request.GetProjectId(),
+		ServerId:  request.GetServerId(),
+		Activity:  request.GetActivity(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Server activity updated", nil)
+	return httputil.StatusOK(c, "server activity updated", nil)
 }
 
 // @Summary      Get server firewall
@@ -381,18 +429,24 @@ func (h *handler) patchServerActivity(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/firewall [get]
 func (h *handler) getServerFirewall(c *fiber.Ctx) error {
-	input := new(pb_firewall.ServerFirewall_Request)
+	request := new(pb_firewall.ServerFirewall_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb_firewall.ServerFirewall_RequestMultiError) {
+			e := err.(pb_firewall.ServerFirewall_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -400,14 +454,14 @@ func (h *handler) getServerFirewall(c *fiber.Ctx) error {
 
 	firewall, err := rClient.ServerFirewall(ctx, &pb_firewall.ServerFirewall_Request{
 		UserId:    userID,
-		ServerId:  input.GetServerId(),
-		ProjectId: input.GetUserId(),
+		ServerId:  request.GetServerId(),
+		ProjectId: request.GetUserId(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Server firewall data", firewall)
+	return httputil.StatusOK(c, "server firewall data", firewall)
 }
 
 // @Summary      Add server firewall
@@ -419,17 +473,23 @@ func (h *handler) getServerFirewall(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/firewall [post]
 func (h *handler) postServerFirewall(c *fiber.Ctx) error {
-	input := new(pb_firewall.AddServerFirewall_Request)
+	request := new(pb_firewall.AddServerFirewall_Request)
 
-	if err := protojson.Unmarshal(c.Body(), input); err != nil {
+	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		fmt.Print(err)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb_firewall.AddServerFirewall_RequestMultiError) {
+			e := err.(pb_firewall.AddServerFirewall_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -437,12 +497,12 @@ func (h *handler) postServerFirewall(c *fiber.Ctx) error {
 
 	var err error
 	response := new(pb_firewall.AddServerFirewall_Response)
-	switch record := input.Record.(type) {
+	switch record := request.Record.(type) {
 	case *pb_firewall.AddServerFirewall_Request_Country:
 		response, err = rClient.AddServerFirewall(ctx, &pb_firewall.AddServerFirewall_Request{
 			UserId:    userID,
-			ProjectId: input.GetProjectId(),
-			ServerId:  input.GetServerId(),
+			ProjectId: request.GetProjectId(),
+			ServerId:  request.GetServerId(),
 			Record: &pb_firewall.AddServerFirewall_Request_Country{
 				Country: &pb_firewall.CountryCode{
 					Code: record.Country.Code,
@@ -453,8 +513,8 @@ func (h *handler) postServerFirewall(c *fiber.Ctx) error {
 	case *pb_firewall.AddServerFirewall_Request_Ip:
 		response, err = rClient.AddServerFirewall(ctx, &pb_firewall.AddServerFirewall_Request{
 			UserId:    userID,
-			ProjectId: input.GetProjectId(),
-			ServerId:  input.GetServerId(),
+			ProjectId: request.GetProjectId(),
+			ServerId:  request.GetServerId(),
 			Record: &pb_firewall.AddServerFirewall_Request_Ip{
 				Ip: &pb_firewall.IpMask{
 					StartIp: record.Ip.StartIp,
@@ -464,14 +524,14 @@ func (h *handler) postServerFirewall(c *fiber.Ctx) error {
 		})
 
 	default:
-		return httputil.StatusBadRequest(c, "Bad rule", nil)
+		return httputil.StatusBadRequest(c, "bad rule", nil)
 	}
 
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Firewall added", response)
+	return httputil.StatusOK(c, "firewall added", response)
 }
 
 // @Summary      Status firewall server
@@ -483,18 +543,24 @@ func (h *handler) postServerFirewall(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/firewall [patch]
 func (h *handler) patchAccessPolicy(c *fiber.Ctx) error {
-	input := new(pb_firewall.UpdateAccessPolicy_Request)
+	request := new(pb_firewall.UpdateAccessPolicy_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb_firewall.UpdateAccessPolicy_RequestMultiError) {
+			e := err.(pb_firewall.UpdateAccessPolicy_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -502,16 +568,16 @@ func (h *handler) patchAccessPolicy(c *fiber.Ctx) error {
 
 	_, err := rClient.UpdateAccessPolicy(ctx, &pb_firewall.UpdateAccessPolicy_Request{
 		UserId:    userID,
-		ProjectId: input.GetProjectId(),
-		ServerId:  input.GetServerId(),
-		Rule:      input.GetRule(),
-		Status:    input.GetStatus(),
+		ProjectId: request.GetProjectId(),
+		ServerId:  request.GetServerId(),
+		Rule:      request.GetRule(),
+		Status:    request.GetStatus(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Firewall updated", nil)
+	return httputil.StatusOK(c, "firewall updated", nil)
 }
 
 // @Summary      Delete server firewall
@@ -523,18 +589,24 @@ func (h *handler) patchAccessPolicy(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/firewall [delete]
 func (h *handler) deleteServerFirewall(c *fiber.Ctx) error {
-	input := new(pb_firewall.DeleteServerFirewall_Request)
+	request := new(pb_firewall.DeleteServerFirewall_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb_firewall.DeleteServerFirewall_RequestMultiError) {
+			e := err.(pb_firewall.DeleteServerFirewall_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -542,16 +614,16 @@ func (h *handler) deleteServerFirewall(c *fiber.Ctx) error {
 
 	_, err := rClient.DeleteServerFirewall(ctx, &pb_firewall.DeleteServerFirewall_Request{
 		UserId:    userID,
-		ProjectId: input.GetProjectId(),
-		ServerId:  input.GetServerId(),
-		Rule:      input.GetRule(),
-		RecordId:  input.GetRecordId(),
+		ProjectId: request.GetProjectId(),
+		ServerId:  request.GetServerId(),
+		Rule:      request.GetRule(),
+		RecordId:  request.GetRecordId(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Firewall deleted", nil)
+	return httputil.StatusOK(c, "firewall deleted", nil)
 }
 
 // @Summary      Update server status
@@ -563,18 +635,24 @@ func (h *handler) deleteServerFirewall(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/active [patch]
 func (h *handler) patchServerStatus(c *fiber.Ctx) error {
-	input := new(pb.UpdateServerActiveStatus_Request)
+	request := new(pb.UpdateServerActiveStatus_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.UpdateServerActiveStatus_RequestMultiError) {
+			e := err.(pb.UpdateServerActiveStatus_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -582,17 +660,17 @@ func (h *handler) patchServerStatus(c *fiber.Ctx) error {
 
 	_, err := rClient.UpdateServerActiveStatus(ctx, &pb.UpdateServerActiveStatus_Request{
 		UserId:   userID,
-		ServerId: input.GetServerId(),
-		Status:   input.GetStatus(),
+		ServerId: request.GetServerId(),
+		Status:   request.GetStatus(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
 	// message section
-	message := "Server is online"
-	if !input.GetStatus() {
-		message = "Server is offline"
+	message := "server is online"
+	if !request.GetStatus() {
+		message = "server is offline"
 	}
 
 	return httputil.StatusOK(c, message, nil)
@@ -607,18 +685,24 @@ func (h *handler) patchServerStatus(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/name [get]
 func (h *handler) serverNameByID(c *fiber.Ctx) error {
-	input := new(pb.ServerNameByID_Request)
+	request := new(pb.ServerNameByID_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.ServerNameByID_RequestMultiError) {
+			e := err.(pb.ServerNameByID_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -626,15 +710,15 @@ func (h *handler) serverNameByID(c *fiber.Ctx) error {
 
 	access, err := rClient.ServerNameByID(ctx, &pb.ServerNameByID_Request{
 		UserId:    userID,
-		ServerId:  input.GetServerId(),
-		ProjectId: input.GetProjectId(),
+		ServerId:  request.GetServerId(),
+		ProjectId: request.GetProjectId(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 	if access == nil {
 		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, "Server name", access)
+	return httputil.StatusOK(c, "server name", access)
 }

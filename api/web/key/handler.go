@@ -2,13 +2,13 @@ package key
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -25,25 +25,31 @@ import (
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/keys [get]
 func (h *handler) getKey(c *fiber.Ctx) error {
-	input := new(pb.PublicKey_Request)
+	request := new(pb.PublicKey_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.PublicKey_RequestMultiError) {
+			e := err.(pb.PublicKey_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
 
 	// show all keys
-	if input.GetKeyId() == "" {
+	if request.GetKeyId() == "" {
 		pagination := httputil.GetPaginationFromCtx(c)
 		sanitizeSQL, _ := sanitize.SQL(`"user"."id" = $1`, userID)
 		keys, err := rClient.ListPublicKeys(ctx, &pb.ListPublicKeys_Request{
@@ -53,27 +59,27 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
-			return httputil.ErrorGRPC(c, h.log, err)
+			return httputil.FromGRPC(c, h.log, err)
 		}
 		if keys.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
-		return httputil.StatusOK(c, "User keys", keys)
+		return httputil.StatusOK(c, "user keys", keys)
 	}
 
 	// show information about the key
 	key, err := rClient.PublicKey(ctx, &pb.PublicKey_Request{
-		KeyId:  input.GetKeyId(),
+		KeyId:  request.GetKeyId(),
 		UserId: userID,
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 	// if key == nil {
 	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	// }
 
-	return httputil.StatusOK(c, "Key information", key)
+	return httputil.StatusOK(c, "key information", key)
 }
 
 // @Summary      Adding a new key
@@ -85,18 +91,24 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/keys [post]
 func (h *handler) addKey(c *fiber.Ctx) error {
-	input := new(pb.AddPublicKey_Request)
+	request := new(pb.AddPublicKey_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.AddPublicKey_RequestMultiError) {
+			e := err.(pb.AddPublicKey_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -104,14 +116,14 @@ func (h *handler) addKey(c *fiber.Ctx) error {
 
 	publicKey, err := rClient.AddPublicKey(ctx, &pb.AddPublicKey_Request{
 		UserId: userID,
-		Title:  input.GetTitle(),
-		Key:    input.GetKey(),
+		Title:  request.GetTitle(),
+		Key:    request.GetKey(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "New key added", publicKey)
+	return httputil.StatusOK(c, "new key added", publicKey)
 }
 
 // @Summary      Updating a user key by its ID
@@ -123,34 +135,40 @@ func (h *handler) addKey(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/keys [patch]
 func (h *handler) patchKey(c *fiber.Ctx) error {
-	input := new(pb.UpdatePublicKey_Request)
+	request := new(pb.UpdatePublicKey_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.UpdatePublicKey_RequestMultiError) {
+			e := err.(pb.UpdatePublicKey_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdatePublicKey(ctx, &pb.UpdatePublicKey_Request{
-		KeyId:  input.GetKeyId(),
+		KeyId:  request.GetKeyId(),
 		UserId: userID,
-		Title:  input.GetTitle(),
-		Key:    input.GetKey(),
+		Title:  request.GetTitle(),
+		Key:    request.GetKey(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "User key data updated", nil)
+	return httputil.StatusOK(c, "user key data updated", nil)
 }
 
 // @Summary      Deleting a user key by its ID
@@ -163,32 +181,38 @@ func (h *handler) patchKey(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/keys [delete]
 func (h *handler) deleteKey(c *fiber.Ctx) error {
-	input := new(pb.DeletePublicKey_Request)
+	request := new(pb.DeletePublicKey_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.DeletePublicKey_RequestMultiError) {
+			e := err.(pb.DeletePublicKey_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.DeletePublicKey(ctx, &pb.DeletePublicKey_Request{
-		KeyId:  input.GetKeyId(),
+		KeyId:  request.GetKeyId(),
 		UserId: userID,
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "User key removed", nil)
+	return httputil.StatusOK(c, "user key removed", nil)
 }
 
 // @Summary      Generating a New SSH Key Pair
@@ -200,15 +224,15 @@ func (h *handler) deleteKey(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/keys/generate [get]
 func (h *handler) getGenerateNewKey(c *fiber.Ctx) error {
-	input := new(pb.GenerateSSHKey_Request)
+	request := new(pb.GenerateSSHKey_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
-	if input.GetKeyType() == 0 {
-		input.KeyType = pb.KeyType_KEY_TYPE_ED25519
+	if request.GetKeyType() == 0 {
+		request.KeyType = pb.KeyType_KEY_TYPE_ED25519
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -216,13 +240,13 @@ func (h *handler) getGenerateNewKey(c *fiber.Ctx) error {
 	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
 
 	key, err := rClient.GenerateSSHKey(ctx, &pb.GenerateSSHKey_Request{
-		KeyType: input.GetKeyType(),
+		KeyType: request.GetKeyType(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "SSH key pair created", map[string]string{
+	return httputil.StatusOK(c, "ssh key pair created", map[string]string{
 		"key_type": key.GetKeyType().String(),
 		"uuid":     key.GetUuid(),
 		"public":   string(key.GetPublic()),

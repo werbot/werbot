@@ -5,6 +5,7 @@ package server;
 option go_package = "github.com/werbot/werbot/api/proto/server";
 
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 service ServerHandlers {
     rpc ListServers(ListServers.Request) returns (ListServers.Response) {}
@@ -70,8 +71,8 @@ enum UserType {
 // -----------------------------------------------------
 // use in API in body request
 message ActivityRequest {
-    string user_id = 1;    // @gotags: validate:"uuid" query:"user_id"
-    string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+    string user_id = 1    [(validate.rules).string.uuid = true]; // @gotags: query:"user_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
     ServerActivity.Response activity = 3;
 }
 // -----------------------------------------------------
@@ -97,9 +98,9 @@ message ListServers {
 // rpc Server
 message Server {
     message Request {
-        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
-        string server_id = 2;  // @gotags: validate:"omitempty,uuid" query:"server_id" params:"server_id"
-        string project_id = 3; // @gotags: validate:"omitempty,uuid" query:"project_id" params:"project_id"
+        string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
+        string server_id = 2  [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"server_id" params:"server_id"
+        string project_id = 3 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"project_id" params:"project_id"
     }
 
     message Response {
@@ -133,14 +134,14 @@ message Server {
 // rpc AddServer
 message AddServer {
     message Request {
-        string user_id = 1;       // @gotags: validate:"omitempty,uuid"
-        string project_id = 2;    // @gotags: validate:"required,uuid"
-        string address = 3;       // @gotags: validate:"required,hostname_rfc1123"
-        int32 port = 4;           // @gotags: validate:"required,numeric,min=1,max=65536"
-        string login = 5;         // @gotags: validate:"required,alphanum,min=3,max=20"
-        string title = 6;
-        ServerAuth auth = 7;      // @gotags: validate:"required,numeric"
-        ServerScheme scheme = 8 ; // @gotags: validate:"required,numeric"
+        string user_id = 1      [(validate.rules).string = {ignore_empty: true, uuid: true}];
+        string project_id = 2   [(validate.rules).string.uuid = true];
+        string address = 3      [(validate.rules).string.address = true];
+        int32 port = 4          [(validate.rules).int32 = {gte: 1, lt: 65536}];
+        string login = 5        [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}];
+        string title = 6        [(validate.rules).string = {min_len: 3, max_len: 128}];
+        ServerAuth auth = 7     [(validate.rules).enum.defined_only = true];
+        ServerScheme scheme = 8 [(validate.rules).enum.defined_only = true];
         bool audit = 9;
         bool active = 10;
         string private_description = 11;
@@ -161,13 +162,13 @@ message AddServer {
 // rpc UpdateServer
 message UpdateServer {
     message Request {
-        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
-        string server_id = 2;  // @gotags: validate:"omitempty,uuid" query:"server_id" params:"server_id"
-        string project_id = 3; // @gotags: validate:"required,uuid" query:"project_id" params:"project_id"
-        string address = 4;    // @gotags: validate:"required,hostname_rfc1123" query:"address" params:"address"
-        int32 port = 5;        // @gotags: validate:"required,numeric,min=1,max=65536" query:"port" params:"port"
-        string login = 6;      // @gotags: validate:"required,alphanum,min=3,max=20" query:"login" params:"login"
-        string title = 7;      // @gotags: validate:"required,min=5,max=20" query:"title" params:"title"
+        string user_id = 1     [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
+        string server_id = 2   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"server_id" params:"server_id"
+        string project_id = 3  [(validate.rules).string.uuid=true]; // @gotags: query:"project_id" params:"project_id"
+        string address = 4     [(validate.rules).string.address = true]; // @gotags: query:"address" params:"address"
+        int32 port = 5         [(validate.rules).int32 = {gte: 1, lt: 65536}]; // @gotags: query:"port" params:"port"
+        string login = 6       [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}]; // @gotags: query:"login" params:"login"
+        string title = 7       [(validate.rules).string = {min_len: 3, max_len: 128}]; // @gotags: query:"title" params:"title"
         string private_description = 8;
         string public_description = 9;
         bool audit =10;
@@ -182,9 +183,9 @@ message UpdateServer {
 // rpc DeleteServer
 message DeleteServer {
     message Request {
-        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
-        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id" params:"project_id"
-        string server_id = 3;  // @gotags: validate:"omitempty,uuid" query:"server_id" params:"server_id"
+        string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
+        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+        string server_id = 3  [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"server_id" params:"server_id"
     }
 
     message Response {}
@@ -195,8 +196,8 @@ message DeleteServer {
 // rpc UpdateServerOnlineStatus
 message UpdateServerOnlineStatus {
     message Request {
-        string user_id = 1;   // @gotags: validate:"omitempty,uuid" query:"user_id"
-        string server_id = 2; // @gotags: validate:"required,uuid" query:"server_id"
+        string user_id = 1   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
+        string server_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
         bool status = 3;
     }
 
@@ -208,8 +209,8 @@ message UpdateServerOnlineStatus {
 // rpc UpdateServerActiveStatus
 message UpdateServerActiveStatus {
     message Request {
-        string user_id = 1;   // @gotags: validate:"omitempty,uuid" query:"user_id"
-        string server_id = 2; // @gotags: validate:"required,uuid" query:"server_id"
+        string user_id = 1   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
+        string server_id = 2 [(validate.rules).string.uuid = true];; // @gotags: query:"server_id"
         bool status = 3;
     }
 
@@ -223,9 +224,9 @@ message UpdateServerActiveStatus {
 // rpc ServerAccess
 message ServerAccess {
     message Request {
-        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
-        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id" params:"project_id"
-        string server_id = 3;  // @gotags: validate:"omitempty,uuid" query:"server_id" params:"server_id"
+        string user_id = 1     [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
+        string project_id = 2  [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+        string server_id = 3   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"server_id" params:"server_id"
     }
 
     message Response {
@@ -243,9 +244,9 @@ message ServerAccess {
 // rpc UpdateServerAccess
 message UpdateServerAccess {
     message Request {
-        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id"
-        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
-        string server_id = 3 ; // @gotags: validate:"omitempty,uuid" query:"server_id"
+        string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
+        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+        string server_id = 3  [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"server_id"
 
         ServerAuth auth = 4;
         string password = 5;
@@ -261,8 +262,8 @@ message UpdateServerAccess {
 // rpc ServerActivity
 message ServerActivity {
     message Request {
-        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id"
-        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
+        string project_id = 2 [(validate.rules).string.uuid = true];// @gotags: query:"project_id"
         string server_id = 3;
     }
 
@@ -282,8 +283,8 @@ message ServerActivity {
 // rpc UpdateServerActivity
 message UpdateServerActivity {
     message Request {
-        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id"
-        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
+        string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
+        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
         string server_id = 3;
         ServerActivity.Response activity = 4;
     }
@@ -296,8 +297,8 @@ message UpdateServerActivity {
 // rpc UpdateServerActive
 message UpdateServerActive {
     message Request {
-        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id"
-        string server_id = 2 ; // @gotags: validate:"required,uuid" query:"server_id"
+        string user_id = 1   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
+        string server_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
         bool status = 3;
     }
 
@@ -338,9 +339,9 @@ message AddServerSession {
 // rpc ServerNameByID
 message ServerNameByID {
     message Request {
-        string user_id = 1;    // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
-        string server_id = 2;  // @gotags: validate:"uuid" query:"server_id" params:"server_id"
-        string project_id = 3; // @gotags: validate:"omitempty,uuid" query:"project_id" params:"project_id"
+        string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
+        string server_id = 2  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id" params:"server_id"
+        string project_id = 3 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"project_id" params:"project_id"
     }
 
     message Response {
@@ -356,7 +357,7 @@ message ListServersShareForUser {
         int32 limit = 1;
         int32 offset = 2;
         string sort_by = 3;
-        string user_id = 4;
+        string user_id = 4 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
     }
 
     message Response {

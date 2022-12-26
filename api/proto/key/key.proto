@@ -5,6 +5,7 @@ package key;
 option go_package = "github.com/werbot/werbot/api/proto/key";
 
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 service KeyHandlers {
     rpc ListPublicKeys(ListPublicKeys.Request) returns (ListPublicKeys.Response) {}
@@ -43,8 +44,8 @@ message ListPublicKeys {
 // rpc PublicKey
 message PublicKey {
     message Request {
-        string key_id = 1;  // @gotags: validate:"omitempty,uuid" query:"key_id" params:"key_id"
-        string user_id = 2; // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
+        string key_id = 1  [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"key_id" params:"key_id"
+        string user_id = 2 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
     }
 
     message Response {
@@ -64,9 +65,9 @@ message PublicKey {
 // rpc AddPublicKey
 message AddPublicKey {
     message Request {
-        string user_id = 1; // @gotags: validate:"omitempty,uuid"
-        string title = 2;   // @gotags: validate:"required,min=5,max=20"
-        string key = 3;     // @gotags: validate:"required"
+        string user_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}];
+        string title = 2   [(validate.rules).string = {min_len: 3, max_len: 128}];
+        string key = 3     [(validate.rules).string = {min_len: 128}];
     }
 
     message Response {
@@ -79,10 +80,10 @@ message AddPublicKey {
 // rpc UpdatePublicKey
 message UpdatePublicKey {
     message Request {
-        string key_id = 1;  // @gotags: validate:"required,uuid" query:"key_id" params:"key_id"
-        string user_id = 2; // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
-        string title = 3;   // @gotags: validate:"required,min=5,max=20" query:"title" params:"title";
-        string key = 4;     // @gotags: validate:"required" query:"key" params:"key";
+        string key_id = 1  [(validate.rules).string.uuid = true]; // @gotags: query:"key_id" params:"key_id"
+        string user_id = 2 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
+        string title = 3   [(validate.rules).string = {min_len: 3, max_len: 128}]; // @gotags: query:"title" params:"title";
+        string key = 4     [(validate.rules).string = {min_len: 128}]; // @gotags: query:"key" params:"key";
     }
 
     message Response {}
@@ -94,8 +95,8 @@ message UpdatePublicKey {
 // rpc DeletePublicKey
 message DeletePublicKey{
     message Request {
-        string user_id = 1; // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
-        string key_id = 2;  // @gotags: validate:"required,uuid" query:"key_id" params:"key_id"
+        string user_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
+        string key_id = 2  [(validate.rules).string.uuid = true]; // @gotags: query:"key_id" params:"key_id"
     }
 
     message Response {}

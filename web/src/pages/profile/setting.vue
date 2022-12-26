@@ -123,7 +123,7 @@ import {
   UpdateUser_Request,
   UpdatePassword_Request,
   DeleteUser_Request,
-} from "@proto/user/user";
+} from "@proto/user";
 import { FormInput } from "@/components";
 import { showMessage } from "@/utils/message";
 

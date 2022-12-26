@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog"
-	"google.golang.org/grpc/status"
+	"google.golang.org/grpc"
 )
 
 // Logger is ...
@@ -50,14 +50,11 @@ func (l *Logger) Fatal(err error) *zerolog.Event {
 	return l.log.Fatal().Err(err)
 }
 
-// ErrorGRPC is ...
-func (l *Logger) ErrorGRPC(err error) *zerolog.Event {
-	log := l.log.Error()
-	se, ok := status.FromError(err)
-	if !ok {
-		return log.
-			Str("error", se.Message()).
-			Str("status", se.Code().String())
-	}
-	return log.Str("error", err.Error())
+// FromGRPC is ...
+func (l *Logger) FromGRPC(err error) *zerolog.Event {
+	code := grpc.Code(err)
+	message := grpc.ErrorDesc(err)
+	return l.log.Error().
+		Str("code", code.String()).
+		Interface("error", message)
 }

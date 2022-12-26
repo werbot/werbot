@@ -70,7 +70,7 @@ func TestHandler_getLicenseInfo(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "License information").
+				Equal(`$.message`, "license information").
 				End(),
 			RespondStatus: http.StatusOK,
 		},

@@ -2,10 +2,8 @@ FROM node:lts-alpine as build-stage
 WORKDIR /app
 ADD ./web .
 RUN yarn install
-RUN sed -i "s/..\/internal\/grpc\/proto/.\/proto/g" /app/vite.config.ts && \
-    sed -i "s/..\/internal\/grpc\/proto/.\/proto/g" /app/tsconfig.json && \
-    yarn run build
-    
+RUN yarn run build
+
 FROM nginx:stable-alpine
 LABEL com.werbot.commit _GIT_COMMIT_
 LABEL com.werbot.version _VERSION_

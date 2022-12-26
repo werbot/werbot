@@ -16,8 +16,10 @@ import (
 )
 
 var (
-	MsgFailedCreatingSSHKey = "Failed to creating SSH key"
+	// MsgFailedCreatingSSHKey is ...
+	MsgFailedCreatingSSHKey = "failed to creating SSH key"
 
+	// ErrFailedCreatingSSHKey is ...
 	ErrFailedCreatingSSHKey = errors.New(MsgFailedCreatingSSHKey)
 )
 

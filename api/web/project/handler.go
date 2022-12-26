@@ -2,13 +2,13 @@ package project
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -25,25 +25,31 @@ import (
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/projects [get]
 func (h *handler) getProject(c *fiber.Ctx) error {
-	input := new(pb.Project_Request)
+	request := new(pb.Project_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.Project_RequestMultiError) {
+			e := err.(pb.Project_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetOwnerId())
+	userID := userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
 
 	// show all projects
-	if input.GetProjectId() == "" {
+	if request.GetProjectId() == "" {
 		pagination := httputil.GetPaginationFromCtx(c)
 		sanitizeSQL, _ := sanitize.SQL(`"project"."owner_id" = $1`, userID)
 		projects, err := rClient.ListProjects(ctx, &pb.ListProjects_Request{
@@ -53,22 +59,22 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
-			return httputil.ErrorGRPC(c, h.log, err)
+			return httputil.FromGRPC(c, h.log, err)
 		}
 		if projects.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
 
-		return httputil.StatusOK(c, "Projects", projects)
+		return httputil.StatusOK(c, "projects", projects)
 	}
 
 	// show project information
 	project, err := rClient.Project(ctx, &pb.Project_Request{
 		OwnerId:   userID,
-		ProjectId: input.GetProjectId(),
+		ProjectId: request.GetProjectId(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 	// if project == nil {
 	// 	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
@@ -76,10 +82,10 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 
 	// If RoleUser_ADMIN - show detailed information
 	if userParameter.IsUserAdmin() {
-		return httputil.StatusOK(c, "Project information", project)
+		return httputil.StatusOK(c, "project information", project)
 	}
 
-	return httputil.StatusOK(c, "Project information", &pb.Project_Response{
+	return httputil.StatusOK(c, "project information", &pb.Project_Response{
 		Title: project.GetTitle(),
 		Login: project.GetLogin(),
 	})
@@ -94,18 +100,24 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/projects [post]
 func (h *handler) addProject(c *fiber.Ctx) error {
-	input := new(pb.AddProject_Request)
+	request := new(pb.AddProject_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.AddProject_RequestMultiError) {
+			e := err.(pb.AddProject_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetOwnerId())
+	userID := userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -113,14 +125,14 @@ func (h *handler) addProject(c *fiber.Ctx) error {
 
 	project, err := rClient.AddProject(ctx, &pb.AddProject_Request{
 		OwnerId: userID,
-		Login:   input.GetLogin(),
-		Title:   input.GetTitle(),
+		Login:   request.GetLogin(),
+		Title:   request.GetTitle(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Project added", project)
+	return httputil.StatusOK(c, "project added", project)
 }
 
 // @Summary      Updating project information.
@@ -132,18 +144,24 @@ func (h *handler) addProject(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/projects [patch]
 func (h *handler) patchProject(c *fiber.Ctx) error {
-	input := new(pb.UpdateProject_Request)
+	request := new(pb.UpdateProject_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.UpdateProject_RequestMultiError) {
+			e := err.(pb.UpdateProject_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetOwnerId())
+	userID := userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -151,14 +169,14 @@ func (h *handler) patchProject(c *fiber.Ctx) error {
 
 	_, err := rClient.UpdateProject(ctx, &pb.UpdateProject_Request{
 		OwnerId:   userID,
-		ProjectId: input.GetProjectId(),
-		Title:     input.GetTitle(),
+		ProjectId: request.GetProjectId(),
+		Title:     request.GetTitle(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Project data updated", nil)
+	return httputil.StatusOK(c, "project updated", nil)
 }
 
 // @Summary      Delete project
@@ -171,30 +189,36 @@ func (h *handler) patchProject(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} httputil.HTTPResponse
 // @Router       /v1/projects [delete]
 func (h *handler) deleteProject(c *fiber.Ctx) error {
-	input := new(pb.DeleteProject_Request)
+	request := new(pb.DeleteProject_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.DeleteProject_RequestMultiError) {
+			e := err.(pb.DeleteProject_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetOwnerId())
+	userID := userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.DeleteProject(ctx, &pb.DeleteProject_Request{
-		ProjectId: input.GetProjectId(),
+		ProjectId: request.GetProjectId(),
 		OwnerId:   userID,
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Project deleted", nil)
+	return httputil.StatusOK(c, "project deleted", nil)
 }

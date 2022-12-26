@@ -35,7 +35,7 @@ func TestHandler_getLicenseExpired(t *testing.T) {
 			requestBody: map[string]string{"License": "LS0tLS1CRUdJTiBMSUNFTlNFIEtFWS0tLS0tCjlpOVlxdk1YZnpWQXB4RkVTODRUK0RtYW5mQUdpcmQ1R0Q5Zjl4SUxlN2N0Qlh3T1pVTmM2V1RKaktaaWhwMFYKTkF4V0hpblByWUJwZGlSN1plTm5DM3NpWTNWeklqb2lkMlZ5WW05MElpd2lkSGx3SWpvaVpXNTBaWEp3Y21segpaU0lzSW1saGRDSTZJakl3TWpJdE1ESXRNVFpVTWpBNk5USTZNelV1TnpneE5EVTFOemc1V2lJc0ltVjRjQ0k2CklqSXdNakl0TURNdE1UWlVNakE2TlRJNk16VXVOemd4TkRVMU56ZzVXaUlzSW1SaGRDSTZleUp6WlhKMlpYSnoKSWpveU1Dd2lZMjl0Y0dGdWFXVnpJam94TUN3aWRYTmxjbk1pT2pFd01Dd2liVzlrZFd4bGN5STZXeUp6ZFdOagpaWE56SWl3aVpYSnliM0lpTENKM1lYSnVhVzVuSWwxOWZRPT0KLS0tLS1FTkQgTElDRU5TRSBLRVktLS0tLQ=="},
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "License expired").
+				Equal(`$.message`, "license expired").
 				Equal(`$.result`, true).
 				End(),
 			respondStatus: http.StatusOK,
@@ -47,7 +47,7 @@ func TestHandler_getLicenseExpired(t *testing.T) {
 			requestBody: map[string]string{"License": "LS0tLS1CRUdJTiBMSUNFTlNFIEtFWS0tLS0tCjRUOHpXak5pVTJuZGhCcmQ2NmxFclhpbnhoc3BVc1pzL3FvdDYyd0dOWWZoQlpCMWx3V1RhaUk2dXVLT2hPSDkKZE9PbkEzZ3ZvZzFiN29ZTXZDc1dDM3NpYVhOeklqb2lWMlZ5WW05MFh6SXdNakl3TlRJMk1qRXhOakUxTENCSgpibU11SWl3aVkzVnpJam9pTXpRMlpqUmlORGt0WmprME1DMDBOek00TFRrNU5XRXRNekV3TW1JNFpUZGtNbUpsCklpd2ljM1ZpSWpvaU5qRTRZV1ZrTW1ZdE1tVTVOaTAwTkRZeUxUaGpOekF0TldJNU1qWTVNRGN3WVRaaklpd2kKZEhsd0lqb2lSVzUwWlhKd2NtbHpaU0IwY21saGJDSXNJbWx3Y3lJNklqRXlOeTR3TGpBdU1TSXNJbWxoZENJNgpJakl3TWpJdE1EVXRNalpVTWpFNk1UWTZNVFV1TURnd09UQTNPVEU0V2lJc0ltVjRjQ0k2SWpJd01qVXRNREl0Ck1UaFVNakU2TVRZNk1UVXVNRGd3T1RBM09URTRXaUlzSW1SaGRDSTZleUpqYjIxd1lXNXBaWE1pT2pVc0luTmwKY25abGNuTWlPakl3TUN3aWRYTmxjbk1pT2pJd0xDSnRiMlIxYkdWeklqcGJJbk4xWTJObGMzTWlMQ0psY25KdgpjaUlzSW5kaGNtNXBibWNpWFgxOQotLS0tLUVORCBMSUNFTlNFIEtFWS0tLS0tCg=="},
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "License expired").
+				Equal(`$.message`, "license expired").
 				Equal(`$.result`, false).
 				End(),
 			respondStatus: http.StatusOK,
@@ -90,7 +90,7 @@ func TestHandler_postLicense(t *testing.T) {
 			RequestToken: adminInfo.Tokens.Access,
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "License key").
+				Equal(`$.message`, "license key").
 				End(),
 			respondStatus: http.StatusOK,
 		},
@@ -130,10 +130,10 @@ func TestHandler_postLicense(t *testing.T) {
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.ip`, "Ip must be a valid IP address").
-				Equal(`$.result.customer`, "Customer must be a valid UUID").
-				Equal(`$.result.subscriber`, "Subscriber must be a valid UUID").
-				Equal(`$.result.token`, "Token can only contain alphanumeric characters").
+				Equal(`$.result.ip`, "ip must be a valid IP address").
+				Equal(`$.result.customer`, "customer must be a valid UUID").
+				Equal(`$.result.subscriber`, "subscriber must be a valid UUID").
+				Equal(`$.result.token`, "token can only contain alphanumeric characters").
 				End(),
 			respondStatus: http.StatusBadRequest,
 		},
@@ -146,7 +146,7 @@ func TestHandler_postLicense(t *testing.T) {
 			},
 			respondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "License key").
+				Equal(`$.message`, "license key").
 				End(),
 			respondStatus: http.StatusOK,
 		},

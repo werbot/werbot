@@ -41,7 +41,7 @@ func (m *member) ListProjectMembers(ctx context.Context, in *pb_member.ListProje
 			INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
 			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"` + sqlSearch + sqlFooter)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -65,7 +65,7 @@ func (m *member) ListProjectMembers(ctx context.Context, in *pb_member.ListProje
 			&member.ServersCount,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		member.Role = pb_user.RoleUser_USER // TODO: We transfer from the old format to the new one due to PHP version of the site
@@ -85,7 +85,7 @@ func (m *member) ListProjectMembers(ctx context.Context, in *pb_member.ListProje
 			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"` + sqlSearch).
 		Scan(&total)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 
@@ -131,7 +131,7 @@ func (m *member) ProjectMember(ctx context.Context, in *pb_member.ProjectMember_
 			&created,
 		)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
@@ -159,7 +159,7 @@ func (m *member) AddProjectMember(ctx context.Context, in *pb_member.AddProjectM
 		ProjectId: in.GetProjectId(),
 	})
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, err
 	}
 	if getMember.Status.Value {
@@ -183,7 +183,7 @@ func (m *member) AddProjectMember(ctx context.Context, in *pb_member.AddProjectM
 		in.GetActive(),
 	).Scan(&id, &created)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 
@@ -204,7 +204,7 @@ func (m *member) AddProjectMember(ctx context.Context, in *pb_member.AddProjectM
 			&userName,
 		)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 
@@ -233,7 +233,7 @@ func (m *member) UpdateProjectMember(ctx context.Context, in *pb_member.UpdatePr
 		in.GetMemberId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -260,7 +260,7 @@ func (m *member) UpdateProjectMember(ctx context.Context, in *pb_member.UpdatePr
 		&created,
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 
@@ -275,7 +275,7 @@ func (m *member) DeleteProjectMember(ctx context.Context, in *pb_member.DeletePr
 
 	data, err := service.db.Conn.Exec(`DELETE FROM "project_member" WHERE "id" = $1`, in.GetMemberId())
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -303,7 +303,7 @@ func (m *member) UpdateProjectMemberStatus(ctx context.Context, in *pb_member.Up
 		in.GetOwnerId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
 	}
 	if rows, _ := data.RowsAffected(); rows != 1 {
@@ -328,7 +328,7 @@ func (m *member) MemberByID(ctx context.Context, in *pb_member.MemberByID_Reques
 		in.GetProjectId(),
 	).Scan(&count)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 	if count > 0 {
@@ -362,7 +362,7 @@ func (m *member) UsersByName(ctx context.Context, in *pb_member.UsersByName_Requ
 		in.Name,
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -374,7 +374,7 @@ func (m *member) UsersByName(ctx context.Context, in *pb_member.UsersByName_Requ
 			&user.Email,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		users = append(users, user)
@@ -409,7 +409,7 @@ func (m *member) UsersWithoutProject(ctx context.Context, in *pb_member.UsersWit
 		in.GetName(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -421,7 +421,7 @@ func (m *member) UsersWithoutProject(ctx context.Context, in *pb_member.UsersWit
 			&user.Email,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		users = append(users, user)
@@ -460,7 +460,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *pb_member.ListServer
 		in.GetServerId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -477,7 +477,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *pb_member.ListServer
 			&lastActivity,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		member.LastActivity = timestamppb.New(lastActivity.Time)
@@ -499,7 +499,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *pb_member.ListServer
 		in.GetServerId(),
 	).Scan(&total)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 
@@ -538,7 +538,7 @@ func (m *member) ServerMember(ctx context.Context, in *pb_member.ServerMember_Re
 			&lastActivity,
 		)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
@@ -569,7 +569,7 @@ func (m *member) AddServerMember(ctx context.Context, in *pb_member.AddServerMem
 		in.GetMemberId(),
 	).Scan(&memberID)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 	if memberID != "" {
@@ -590,7 +590,7 @@ func (m *member) AddServerMember(ctx context.Context, in *pb_member.AddServerMem
 		in.GetActive(),
 	).Scan(&memberID)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 
@@ -616,7 +616,7 @@ func (m *member) UpdateServerMember(ctx context.Context, in *pb_member.UpdateSer
 		in.GetServerId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -642,7 +642,7 @@ func (m *member) DeleteServerMember(ctx context.Context, in *pb_member.DeleteSer
 		in.GetServerId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -670,7 +670,7 @@ func (m *member) UpdateServerMemberStatus(ctx context.Context, in *pb_member.Upd
 		in.GetServerId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToDelete
 	}
 	if rows, _ := data.RowsAffected(); rows != 1 {
@@ -706,7 +706,7 @@ func (m *member) MembersWithoutServer(ctx context.Context, in *pb_member.Members
 		in.GetName(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -723,7 +723,7 @@ func (m *member) MembersWithoutServer(ctx context.Context, in *pb_member.Members
 			&member.Online,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		member.Role = pb_user.RoleUser(pb_user.RoleUser_value[role])
@@ -747,7 +747,7 @@ func (m *member) MembersWithoutServer(ctx context.Context, in *pb_member.Members
 		in.GetName(),
 	).Scan(&total)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 
@@ -778,7 +778,7 @@ func (m *member) ListProjectMembersInvite(ctx context.Context, in *pb_member.Lis
 		in.GetProjectId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -795,7 +795,7 @@ func (m *member) ListProjectMembersInvite(ctx context.Context, in *pb_member.Lis
 			&invite.Status,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		invite.Created = timestamppb.New(created.Time)
@@ -814,7 +814,7 @@ func (m *member) ListProjectMembersInvite(ctx context.Context, in *pb_member.Lis
 		in.GetProjectId(),
 	).Scan(&total)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 
@@ -840,7 +840,7 @@ func (m *member) AddProjectMemberInvite(ctx context.Context, in *pb_member.AddPr
 		in.GetEmail(),
 	).Scan(&inviteID)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 	if inviteID != "" {
@@ -868,7 +868,7 @@ func (m *member) AddProjectMemberInvite(ctx context.Context, in *pb_member.AddPr
 		uuid.New().String(),
 	).Scan(&invite)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 
@@ -894,7 +894,7 @@ func (m *member) DeleteProjectMemberInvite(ctx context.Context, in *pb_member.De
 		in.GetProjectId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -965,7 +965,7 @@ func (m *member) ProjectMemberInviteActivate(ctx context.Context, in *pb_member.
 		userID,
 	).Scan(&memberID)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 
@@ -980,7 +980,7 @@ func (m *member) ProjectMemberInviteActivate(ctx context.Context, in *pb_member.
 		in.GetInvite(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {

@@ -27,8 +27,8 @@ func (h *handler) getUpdateVersion(c *fiber.Ctx) error {
 
 	updateList, err := rClient.Update(ctx, &pb.Update_Request{})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Actual versions of components", updateList.Components)
+	return httputil.StatusOK(c, "actual versions of components", updateList.Components)
 }

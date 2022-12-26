@@ -7,7 +7,7 @@ import {
   DeleteServerMember_Request,
   UpdateServerMemberStatus_Request,
   MembersWithoutServer_Request,
-} from "@proto/member/member";
+} from "@proto/member";
 
 enum URL {
   server_members = "v1/members/server",

@@ -10,7 +10,7 @@ import {
   ListProjectMembersInvite_Request,
   AddProjectMemberInvite_Request,
   DeleteProjectMemberInvite_Request,
-} from "@proto/member/member";
+} from "@proto/member";
 
 enum URL {
   project_members = "v1/members",

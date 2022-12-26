@@ -18,7 +18,7 @@
     "jsx": "preserve",
     "paths": {
       "@/*": ["./src/*"],
-      "@proto/*": ["../api/proto/*"]
+      "@proto/*": ["./src/proto/*"]
     }
   },
   "vueCompilerOptions": {
@@ -32,9 +32,7 @@
     "src/**/*.vue",
     "src/router.ts",
     "src/main.ts",
-    "src/utils/request.js",
-    "../api/proto/**/*.ts",
-    "../api/proto/**/*.d.ts"
+    "src/utils/request.js"
   ],
   "exclude": ["node_modules", "dist", "public"]
 }

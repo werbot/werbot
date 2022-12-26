@@ -4,6 +4,8 @@ package utility;
 
 option go_package = "github.com/werbot/werbot/api/proto/utility";
 
+import "validate/validate.proto";
+
 service UtilityHandlers {
     rpc ListCountries(ListCountries.Request) returns (ListCountries.Response) {}
 }
@@ -11,7 +13,7 @@ service UtilityHandlers {
 // rpc GetInfo
 message ListCountries {
     message Request {
-        string name = 1; // @gotags: validate:"required,min=2"
+        string name = 1 [(validate.rules).string.min_len = 2];
     }
 
     message Response {

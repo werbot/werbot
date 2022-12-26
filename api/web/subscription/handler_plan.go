@@ -2,12 +2,12 @@ package subscription
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -41,14 +41,14 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 		SortBy: "id:ASC",
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 	if plans.GetTotal() == 0 {
 		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	if userParameter.IsUserAdmin() {
-		return httputil.StatusOK(c, "Tariff plans", plans)
+		return httputil.StatusOK(c, "tariff plans", plans)
 	}
 
 	// response info for ROLE_USER
@@ -70,7 +70,7 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 		planLite = append(planLite, &plan)
 	}
 
-	return httputil.StatusOK(c, "Tariff plans", pb.PlansLite{
+	return httputil.StatusOK(c, "tariff plans", pb.PlansLite{
 		Total: plans.GetTotal(),
 		Plans: planLite,
 	})
@@ -95,13 +95,13 @@ func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 		PlanId: planID,
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
 	if userParameter.IsUserAdmin() {
 		// response info for ROLE_ADMIN
-		return httputil.StatusOK(c, "Information about the tariff plan", plan)
+		return httputil.StatusOK(c, "information about the tariff plan", plan)
 	}
 
 	// response info for ROLE_USER
@@ -129,15 +129,22 @@ func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/subscriptions/plans/:plan_id [patch]
 func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
-	planID := c.Params("plan_id")
-	input := new(pb.UpdatePlan_Request)
+	request := new(pb.UpdatePlan_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	request.PlanId = c.Params("plan_id")
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.UpdatePlan_RequestMultiError) {
+			e := err.(pb.UpdatePlan_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -150,26 +157,26 @@ func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
 
 	_, err := rClient.UpdatePlan(ctx, &pb.UpdatePlan_Request{
-		PlanId:            planID,
-		Cost:              input.GetCost(),
-		Period:            input.GetPeriod(),
-		Title:             input.GetTitle(),
-		StripeId:          input.GetStripeId(),
-		AllowedSections:   input.GetAllowedSections(),
-		Benefits:          input.GetBenefits(),
-		Image:             input.GetImage(),
-		Active:            input.GetActive(),
-		Trial:             input.GetTrial(),
-		TrialPeriod:       input.GetTrialPeriod(),
-		LimitsServers:     input.GetLimitsServers(),
-		LimitsUsers:       input.GetLimitsServers(),
-		LimitsCompanies:   input.GetLimitsCompanies(),
-		LimitsConnections: input.GetLimitsConnections(),
-		Default:           input.GetDefault(),
+		PlanId:            request.GetPlanId(),
+		Cost:              request.GetCost(),
+		Period:            request.GetPeriod(),
+		Title:             request.GetTitle(),
+		StripeId:          request.GetStripeId(),
+		AllowedSections:   request.GetAllowedSections(),
+		Benefits:          request.GetBenefits(),
+		Image:             request.GetImage(),
+		Active:            request.GetActive(),
+		Trial:             request.GetTrial(),
+		TrialPeriod:       request.GetTrialPeriod(),
+		LimitsServers:     request.GetLimitsServers(),
+		LimitsUsers:       request.GetLimitsServers(),
+		LimitsCompanies:   request.GetLimitsCompanies(),
+		LimitsConnections: request.GetLimitsConnections(),
+		Default:           request.GetDefault(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Tariff plan updated successfully", nil)
+	return httputil.StatusOK(c, "tariff plan updated successfully", nil)
 }

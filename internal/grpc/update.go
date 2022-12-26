@@ -24,7 +24,7 @@ func (u *update) Update(ctx context.Context, in *pb_update.Update_Request) (*pb_
 		FROM
 			"update"`)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -42,7 +42,7 @@ func (u *update) Update(ctx context.Context, in *pb_update.Update_Request) (*pb_
 			&issuedAt,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		component.IssuedAt = timestamppb.New(issuedAt.Time)

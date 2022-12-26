@@ -5,6 +5,7 @@ package account;
 option go_package = "github.com/werbot/werbot/api/proto/account";
 
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 service AccountHandlers {
     rpc ListAccounts(ListAccounts.Request) returns (ListAccounts.Response) {}
@@ -47,7 +48,7 @@ message ListAccounts {
 // rpc Account
 message Account {
     message Request {
-       string account_id = 1;
+       string account_id = 1 [(validate.rules).string.uuid = true];
     }
 
     message Response {
@@ -67,7 +68,7 @@ message AccountIDByName {
     message Request {
         string username = 1;
         string fingerprint = 2;
-        string client_ip = 3;
+        string client_ip = 3 [(validate.rules).string.ip = true];
     }
 
     message Response {
@@ -80,7 +81,7 @@ message AccountIDByName {
 // rpc UpdateAccountStatus
 message UpdateAccountStatus {
     message Request {
-        string account_id = 1;
+        string account_id = 1 [(validate.rules).string.uuid = true];
         AccountStatus status = 2;
     }
 

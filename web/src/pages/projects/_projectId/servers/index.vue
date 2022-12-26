@@ -153,7 +153,7 @@ import { showMessage } from "@/utils/message";
 
 import { getAddressType } from "@/utils/network";
 import { getServers, updateServerStatus } from "@/api/server";
-import { UpdateServerActiveStatus_Request } from "@proto/server/server";
+import { UpdateServerActiveStatus_Request } from "@proto/server";
 
 const { proxy } = getCurrentInstance();
 const route = useRoute();

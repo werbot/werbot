@@ -96,6 +96,3 @@ rest.http
 
 /web/proto
 
-/api/proto/*/*.ts
-/api/proto/*/google/protobuf/*.ts
-/api/proto/*/*.pb.go

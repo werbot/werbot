@@ -96,10 +96,6 @@ gen_protos: ## Generating protos files
 	$(msg) "$(YELLOW)Proto-files updated$(RESET)"
 
 define _gen_protos
-	rm -f ${1}*.pb.go;\
-	rm -f ${1}*.ts;\
-	rm -f ${1}*.js;\
-	rm -rf ${1}google;\
 	pushd ${1} >/dev/null 2>&1;\
 	echo "${1}*.proto";\
 	protoc --proto_path=. \
@@ -108,10 +104,11 @@ define _gen_protos
 		--go_out=paths=source_relative:. \
 		--go-grpc_out=paths=source_relative:. \
 		--plugin=protoc-gen-ts=${ROOT_PATH}/web/node_modules/@protobuf-ts/plugin/bin/protoc-gen-ts \
-		--ts_out=. \
-		--ts_opt use_proto_field_name,ts_nocheck,long_type_string,force_optimize_code_size,force_client_none \
+    --validate_out=lang=go,paths=source_relative:. \
+		--ts_out=../../../web/src/proto \
+		--ts_opt=use_proto_field_name,ts_nocheck,long_type_string,force_optimize_code_size,force_client_none \
 		$$(basename ${1}).proto;\
-	protoc-go-inject-tag -input="$$(basename ${1}).pb.go" -remove_tag_comment;\
+  protoc-go-inject-tag -input="$$(basename ${1}).pb.go" -remove_tag_comment;\
 	popd >/dev/null 2>&1
 endef
 #############################################################################
@@ -315,10 +312,9 @@ prod_package_app:
 	@sed -i -E "s/_GIT_COMMIT_/${GIT_COMMIT}/g" ${ROOT_PATH}/bin/Dockerfile_web
 	@sed -i -E "s/_VERSION_/${VERSION}/g" ${ROOT_PATH}/bin/Dockerfile_web
 	@sed -i -E "s/_DESCRIPTION_/${DESCRIPTION}/g" ${ROOT_PATH}/bin/Dockerfile_web
-	@cp -a ${ROOT_PATH}/api/proto ${ROOT_PATH}/web/
 	docker build -f ${ROOT_PATH}/bin/Dockerfile_web -t ghcr.io/werbot/app:latest .
 	docker tag ghcr.io/werbot/app:latest ghcr.io/werbot/app:${VERSION}
-	rm -rf ${ROOT_PATH}/web/dist ${ROOT_PATH}/web/proto
+	rm -rf ${ROOT_PATH}/web/dist
 	rm ${ROOT_PATH}/bin/Dockerfile_web
 	docker image prune --filter "dangling=true" --force
 #############################################################################

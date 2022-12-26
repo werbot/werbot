@@ -29,7 +29,7 @@ func (p *subscription) ListPlans(ctx context.Context, in *pb_subscription.ListPl
 		FROM
 			"subscription_plan"` + sqlSearch + sqlFooter)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -52,7 +52,7 @@ func (p *subscription) ListPlans(ctx context.Context, in *pb_subscription.ListPl
 			&countSubscription,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 
@@ -66,7 +66,7 @@ func (p *subscription) ListPlans(ctx context.Context, in *pb_subscription.ListPl
 	var total int32
 	err = service.db.Conn.QueryRow(`SELECT COUNT (*) FROM "subscription_plan"` + sqlSearch).Scan(&total)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 
@@ -120,7 +120,7 @@ func (p *subscription) Plan(ctx context.Context, in *pb_subscription.Plan_Reques
 			&plan.Default,
 		)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 
@@ -174,7 +174,7 @@ func (p *subscription) UpdatePlan(ctx context.Context, in *pb_subscription.Updat
 		in.GetPlanId(),
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -192,7 +192,7 @@ func (p *subscription) UpdatePlan(ctx context.Context, in *pb_subscription.Updat
 			in.GetPlanId(),
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToUpdate
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {

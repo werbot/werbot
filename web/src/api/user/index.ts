@@ -6,7 +6,7 @@ import {
   UpdateUser_Request,
   UpdatePassword_Request,
   DeleteUser_Request,
-} from "@proto/user/user";
+} from "@proto/user";
 
 enum URL {
   users = "v1/users",

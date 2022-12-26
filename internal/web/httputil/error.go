@@ -39,12 +39,12 @@ func NewError(c *fiber.Ctx, status int, message string, data any) error {
 	return c.Status(status).JSON(data)
 }
 
-// ErrorGRPC is ...
-func ErrorGRPC(c *fiber.Ctx, log logger.Logger, err error) error {
+// FromGRPC is ...
+func FromGRPC(c *fiber.Ctx, log logger.Logger, err error) error {
 	if err.Error() == internal.MsgNotFound {
 		return StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	log.Error(err).CallerSkipFrame(1).Send()
+	log.FromGRPC(err).CallerSkipFrame(1).Send()
 	return InternalServerError(c, internal.MsgUnexpectedError, nil)
 }

@@ -9,7 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@proto": path.resolve(__dirname, "../api/proto"),
+      "@proto": path.resolve(__dirname, "./src/proto"),
       "@protobuf-ts": path.resolve(__dirname, "./node_modules/@protobuf-ts"),
     },
     extensions: [".js", ".ts", ".json", ".vue"],

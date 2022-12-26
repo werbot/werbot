@@ -5,7 +5,7 @@ import {
   AddProject_Request,
   UpdateProject_Request,
   DeleteProject_Request,
-} from "@proto/project/project";
+} from "@proto/project";
 
 enum URL {
   projects = "v1/projects",

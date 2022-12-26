@@ -51,8 +51,8 @@ func Test_postSignIn(t *testing.T) {
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.email`, "Email is a required field").
-				Equal(`$.result.password`, "Password is a required field").
+				Equal(`$.result.email`, "email is a required field").
+				Equal(`$.result.password`, "password is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -71,7 +71,7 @@ func Test_postSignIn(t *testing.T) {
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.password`, "Password is a required field").
+				Equal(`$.result.password`, "password is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -81,7 +81,7 @@ func Test_postSignIn(t *testing.T) {
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.email`, "Email is a required field").
+				Equal(`$.result.email`, "email is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -176,7 +176,7 @@ func Test_postRefresh(t *testing.T) {
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, "Token parsing error").
+				Equal(`$.message`, "token parsing error").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -203,7 +203,7 @@ func Test_postRefresh(t *testing.T) {
 			},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, "Token parsing error").
+				Equal(`$.message`, "token parsing error").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -230,7 +230,7 @@ func Test_postRefresh(t *testing.T) {
 			},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
-				Equal(`$.message`, "Token parsing error").
+				Equal(`$.message`, "token parsing error").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -276,7 +276,7 @@ func Test_getProfile(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "User information").
+				Equal(`$.message`, "user information").
 				Equal(`$.result.user_id`, adminInfo.UserID).
 				Equal(`$.result.user_role`, float64(3)).
 				End(),
@@ -290,7 +290,7 @@ func Test_getProfile(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "User information").
+				Equal(`$.message`, "user information").
 				Equal(`$.result.user_id`, userInfo.UserID).
 				Equal(`$.result.user_role`, float64(1)).
 				End(),

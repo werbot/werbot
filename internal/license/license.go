@@ -13,13 +13,13 @@ import (
 
 var (
 	// ErrLicenseKeyIsBroken is ...
-	ErrLicenseKeyIsBroken = errors.New("The license key has a broken")
+	ErrLicenseKeyIsBroken = errors.New("the license key has a broken")
 
 	// ErrLicenseStructureIsBroken is ...
-	ErrLicenseStructureIsBroken = errors.New("The license has a broken structure")
+	ErrLicenseStructureIsBroken = errors.New("the license has a broken structure")
 
 	// ErrFailedToOpenLicenseFile is ...
-	ErrFailedToOpenLicenseFile = errors.New("Failed to open license file")
+	ErrFailedToOpenLicenseFile = errors.New("failed to open license file")
 )
 
 // Private is ...

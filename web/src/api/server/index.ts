@@ -7,7 +7,7 @@ import {
   DeleteServer_Request,
   UpdateServerActiveStatus_Request,
   ServerNameByID_Request,
-} from "@proto/server/server";
+} from "@proto/server";
 
 enum URL {
   servers = "v1/servers",

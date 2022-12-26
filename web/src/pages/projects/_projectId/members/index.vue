@@ -79,8 +79,8 @@ import { SvgIcon, Pagination, Badge, Toggle, Tabs } from "@/components";
 import { showMessage } from "@/utils/message";
 
 import { getProjectMembers, updateProjectMemberStatus } from "@/api/member/project";
-import { UpdateProjectMemberStatus_Request } from "@proto/member/member";
-import { RoleUser } from "@proto/user/user";
+import { UpdateProjectMemberStatus_Request } from "@proto/member";
+import { RoleUser } from "@proto/user";
 
 const { proxy } = getCurrentInstance();
 const route = useRoute();

@@ -46,7 +46,7 @@ func (s *audit) AddAudit(ctx context.Context, in *pb_audit.AddAudit_Request) (*p
 		in.GetClientIp(),
 	).Scan(&auditID)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 
@@ -72,7 +72,7 @@ func (s *audit) UpdateAudit(ctx context.Context, in *pb_audit.UpdateAudit_Reques
 	query = query[:len(query)-1] + sanitizeSQL
 	data, err := service.db.Conn.Exec(query, values...)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -93,7 +93,7 @@ func (s *audit) CreateRecord(ctx context.Context, in *pb_audit.CreateRecord_Requ
 	query = query[:len(query)-1]
 	data, err := service.db.Conn.Exec(query)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {

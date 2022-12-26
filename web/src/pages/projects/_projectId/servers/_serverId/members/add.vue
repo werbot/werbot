@@ -75,7 +75,7 @@ import { SvgIcon, Toggle, BServerName, Badge, Pagination } from "@/components";
 import { showMessage } from "@/utils/message";
 
 import { getMembersWithoutServer, postServerMember } from "@/api/member/server";
-import { MembersWithoutServer_Request, AddServerMember_Request } from "@proto/member/member";
+import { MembersWithoutServer_Request, AddServerMember_Request } from "@proto/member";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});

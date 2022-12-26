@@ -33,7 +33,7 @@ func (s *subscription) GetSubscriptions(ctx context.Context, in *pb_subscription
       INNER JOIN "subscription_plan" ON "subscription"."plan_id" = "subscription_plan"."id"
       INNER JOIN "user" ON "subscription_customer"."user_id" = "user"."id"` + sqlSearch + sqlFooter)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -52,7 +52,7 @@ func (s *subscription) GetSubscriptions(ctx context.Context, in *pb_subscription
 			&subscription.StripeId,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 		subscription.StartDate = timestamppb.New(startDate.Time)
@@ -70,7 +70,7 @@ func (s *subscription) GetSubscriptions(ctx context.Context, in *pb_subscription
       INNER JOIN "user" ON "subscription"."customer_id" = "user"."id"` + sqlSearch).
 		Scan(&total)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 
@@ -105,7 +105,7 @@ func (s *subscription) DeleteSubscription(ctx context.Context, in *pb_subscripti
 		in.SubscriptionId,
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/mail"
-	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -29,14 +29,20 @@ import (
 // @Failure      400,500  {object} httputil.HTTPResponse
 // @Router       /auth/signin [post]
 func (h *handler) signIn(c *fiber.Ctx) error {
-	input := new(pb.SignIn_Request)
+	request := new(pb.SignIn_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.SignIn_RequestMultiError) {
+			e := err.(pb.SignIn_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -44,11 +50,11 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	user, err := rClient.SignIn(ctx, &pb.SignIn_Request{
-		Email:    input.GetEmail(),
-		Password: input.GetPassword(),
+		Email:    request.GetEmail(),
+		Password: request.GetPassword(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
 	sub := uuid.New().String()
@@ -60,12 +66,12 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.InternalServerError(c, "Failed to create token", nil)
+		return httputil.InternalServerError(c, "failed to create token", nil)
 	}
 
 	// We write user_id (user.user.userid) in the database, since if Access_key will not know which user to create a new one
 	if !jwt.AddToken(h.Cache, sub, user.GetUserId()) {
-		return httputil.InternalServerError(c, "Failed to set cache", nil)
+		return httputil.InternalServerError(c, "failed to set cache", nil)
 	}
 
 	return httputil.StatusOK(c, "", jwt.Tokens{
@@ -83,7 +89,7 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 func (h *handler) logout(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 	jwt.DeleteToken(h.Cache, userParameter.UserSub())
-	return httputil.StatusOK(c, "Successfully logged out", nil)
+	return httputil.StatusOK(c, "successfully logged out", nil)
 }
 
 // @Summary      Re-creation of new tokens
@@ -95,14 +101,14 @@ func (h *handler) logout(c *fiber.Ctx) error {
 // @Failure      400,404,500   {object} httputil.HTTPResponse
 // @Router       /auth/refresh [post]
 func (h *handler) refresh(c *fiber.Ctx) error {
-	input := new(jwt.Tokens)
+	request := new(jwt.Tokens)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
-	claims, err := jwt.Parse(input.Refresh)
+	claims, err := jwt.Parse(request.Refresh)
 	if err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateParams, nil)
@@ -116,7 +122,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	}
 
 	if !jwt.ValidateToken(h.Cache, sub) {
-		return httputil.StatusBadRequest(c, "Your token has been revoked", nil)
+		return httputil.StatusBadRequest(c, "your token has been revoked", nil)
 	}
 	jwt.DeleteToken(h.Cache, sub)
 
@@ -129,7 +135,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, "Failed to select user", nil)
+		return httputil.StatusBadRequest(c, "failed to select user", nil)
 	}
 
 	newToken, err := jwt.New(&pb.UserParameters{
@@ -140,7 +146,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, "Failed to create token", nil)
+		return httputil.StatusBadRequest(c, "failed to create token", nil)
 	}
 
 	jwt.AddToken(h.Cache, sub, userID)
@@ -176,8 +182,14 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 	}
 
 	request.Token = c.Params("reset_token")
-	if err := validate.Struct(request); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.ResetPassword_RequestMultiError) {
+			e := err.(pb.ResetPassword_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	// Sending an email with a verification link
@@ -214,10 +226,10 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 		mailData := map[string]string{
 			"Link": fmt.Sprintf("%s/auth/password_reset/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
 		}
-		go mail.Send(request.GetEmail(), "Reset password confirmation", "password-reset", mailData)
+		go mail.Send(request.GetEmail(), "reset password confirmation", "password-reset", mailData)
 	}
 
-	return httputil.StatusOK(c, "Password reset", response)
+	return httputil.StatusOK(c, "password reset", response)
 }
 
 // @Summary      Profile information
@@ -228,7 +240,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 // @Router       /auth/profile [get]
 func (h *handler) getProfile(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	return httputil.StatusOK(c, "User information", pb.AuthUserInfo{
+	return httputil.StatusOK(c, "user information", pb.AuthUserInfo{
 		UserId:   userParameter.UserID(""),
 		UserRole: userParameter.UserRole(),
 		Name:     "Werbot User",

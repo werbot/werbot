@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, getCurrentInstance } from "vue";
 import { serverNameByID } from "@/api/server";
-import { ServerNameByID_Request } from "@proto/server/server";
+import { ServerNameByID_Request } from "@proto/server";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});

@@ -49,7 +49,7 @@
 <script setup lang="ts">
 import { onMounted, ref, onBeforeUnmount, getCurrentInstance } from "vue";
 import { useRouter } from "vue-router";
-import { SignIn_Request } from "@proto/user/user";
+import { SignIn_Request } from "@proto/user";
 import { FormInput } from "@/components";
 
 const { proxy } = getCurrentInstance();

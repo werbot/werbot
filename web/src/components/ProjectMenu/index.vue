@@ -44,7 +44,7 @@
 import { ref, watch, onMounted, getCurrentInstance } from "vue";
 import { SvgIcon } from "@/components";
 import { getProjects } from "@/api/project";
-import { ListProjects_Request } from "@proto/project/project";
+import { ListProjects_Request } from "@proto/project";
 // @ts-ignore
 import { directive as vClickOutside } from "click-outside-vue3";
 

@@ -4,6 +4,8 @@ package firewall;
 
 option go_package = "github.com/werbot/werbot/api/proto/firewall";
 
+import "validate/validate.proto";
+
 service FirewallHandlers {
     rpc ServerFirewall(ServerFirewall.Request) returns (ServerFirewall.Response) {}
     rpc AddServerFirewall(AddServerFirewall.Request) returns (AddServerFirewall.Response) {}
@@ -58,9 +60,9 @@ message CountryCode{
 // rpc ServerFirewall
 message ServerFirewall {
     message Request {
-        string user_id = 1;    // @gotags: validate:"uuid" query:"user_id"
-        string project_id = 2; // @gotags: validate:"required,uuid" query:"project_id"
-        string server_id = 3;  // @gotags: validate:"uuid"
+        string user_id = 1    [(validate.rules).string.uuid = true]; // @gotags: query:"user_id"
+        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+        string server_id = 3  [(validate.rules).string.uuid = true];
     }
 
     message Response {
@@ -84,9 +86,9 @@ message ServerFirewall {
 // rpc AddServerFirewall
 message AddServerFirewall{
     message Request {
-        string user_id = 1;    // @gotags: validate:"uuid"
-        string project_id = 2; // @gotags: validate:"required,uuid"
-        string server_id = 3;  // @gotags: validate:"uuid"
+        string user_id = 1    [(validate.rules).string.uuid = true];
+        string project_id = 2 [(validate.rules).string.uuid = true];
+        string server_id = 3  [(validate.rules).string.uuid = true];
 
         oneof record {
             IpMask ip = 4;
@@ -104,11 +106,11 @@ message AddServerFirewall{
 // rpc DeleteServerFirewall
 message DeleteServerFirewall{
     message Request {
-        string user_id = 1;    // @gotags: validate:"uuid"
-        string project_id = 2; // @gotags: validate:"required,uuid"
-        string server_id = 3;  // @gotags: validate:"uuid"
+        string user_id = 1    [(validate.rules).string.uuid = true];
+        string project_id = 2 [(validate.rules).string.uuid = true];
+        string server_id = 3  [(validate.rules).string.uuid = true];
         Rules rule = 4;
-        string record_id = 5;  // @gotags: validate:"uuid"
+        string record_id = 5  [(validate.rules).string.uuid = true];
     }
 
     message Response {}
@@ -119,9 +121,9 @@ message DeleteServerFirewall{
 // rpc UpdateAccessPolicy
 message UpdateAccessPolicy {
     message Request {
-        string user_id = 1;    // @gotags: validate:"uuid"
-        string project_id = 2; // @gotags: validate:"required,uuid"
-        string server_id = 3;  // @gotags: validate:"uuid"
+        string user_id = 1     [(validate.rules).string.uuid = true];
+        string project_id = 2  [(validate.rules).string.uuid = true];
+        string server_id = 3   [(validate.rules).string.uuid = true];
         Rules rule = 4;
         bool status = 5;
     }

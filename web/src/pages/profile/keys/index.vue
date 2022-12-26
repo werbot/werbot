@@ -75,7 +75,7 @@ import { SvgIcon, Modal, Pagination } from "@/components";
 import { showMessage } from "@/utils/message";
 
 import { getKeys, deleteKey } from "@/api/key";
-import { DeletePublicKey_Request } from "@proto/key/key";
+import { DeletePublicKey_Request } from "@proto/key";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});

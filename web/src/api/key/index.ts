@@ -5,7 +5,7 @@ import {
   AddPublicKey_Request,
   UpdatePublicKey_Request,
   DeletePublicKey_Request,
-} from "@proto/key/key";
+} from "@proto/key";
 
 enum URL {
   keys = "v1/keys",

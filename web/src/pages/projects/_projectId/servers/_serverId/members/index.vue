@@ -102,7 +102,7 @@ import {
   updateServerMemberStatus,
   deleteServerMember,
 } from "@/api/member/server";
-import { UpdateServerMemberStatus_Request, DeleteServerMember_Request } from "@proto/member/member";
+import { UpdateServerMemberStatus_Request, DeleteServerMember_Request } from "@proto/member";
 
 const { proxy } = getCurrentInstance();
 const route = useRoute();

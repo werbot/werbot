@@ -5,6 +5,7 @@ package subscription;
 option go_package = "github.com/werbot/werbot/api/proto/subscription";
 
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 service SubscriptionHandlers {
     // Subscription section
@@ -70,6 +71,7 @@ message ListSubscriptions {
         int32 offset = 2;
         string sort_by = 3;
         string query = 4;
+        string user_id = 5 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
     }
 
     message Response {
@@ -125,7 +127,7 @@ message AddSubscription {
 // rpc UpdateSubscription
 message UpdateSubscription {
     message Request {
-        string subscription_id = 1;
+        string subscription_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"subscription_id" params:"subscription_id"
         string customer_id = 2;
         string customer_name = 3;
         string plan_id = 4;
@@ -144,7 +146,7 @@ message UpdateSubscription {
 // rpc DeleteSubscription
 message DeleteSubscription {
     message Request {
-        string subscription_id = 1;
+        string subscription_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"subscription_id" params:"subscription_id"
     }
 
     message Response {}
@@ -160,6 +162,8 @@ message ListPlans {
         int32 offset = 2;
         string sort_by = 3;
         string query = 4;
+        string user_id = 5 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
+
     }
 
     message Response {
@@ -178,7 +182,7 @@ message ListPlans {
 // rpc Plan
 message Plan {
     message Request {
-        string plan_id = 1;
+        string plan_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"plan_id" params:"plan_id"
     }
 
     message Response {
@@ -206,7 +210,7 @@ message Plan {
 // rpc UpdatePlan
 message UpdatePlan {
     message Request {
-        string plan_id = 1;
+        string plan_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"plan_id" params:"plan_id"
         int32 cost = 2;
         int32 period = 3;
         string title = 4;
@@ -248,7 +252,7 @@ message ListCustomers {
 // rpc Customer
 message Customer {
     message Request {
-        string user_id = 1;
+        string user_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
     }
 
     message Response {
@@ -288,7 +292,7 @@ message UpdateCustomer {
 // rpc DeleteCustomer
 message DeleteCustomer {
     message Request {
-        string user_id = 1;
+        string user_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
     }
 
     message Response {}

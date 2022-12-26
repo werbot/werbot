@@ -2,99 +2,99 @@ package internal
 
 const (
 	// MsgAccessIsDenied is Access is denied
-	MsgAccessIsDenied = "Access is denied"
+	MsgAccessIsDenied = "access is denied"
 
 	// MsgAccessIsDeniedUser is ..
-	MsgAccessIsDeniedUser = "Access is denied for this user"
+	MsgAccessIsDeniedUser = "access is denied for this user"
 
 	// MsgAccessIsDeniedTime is ...
-	MsgAccessIsDeniedTime = "Access is denied for this time"
+	MsgAccessIsDeniedTime = "access is denied for this time"
 
 	// MsgAccessIsDeniedCountry is ...
-	MsgAccessIsDeniedCountry = "Access is denied for this country"
+	MsgAccessIsDeniedCountry = "access is denied for this country"
 
 	// MsgAccessIsDeniedIP is ...
-	MsgAccessIsDeniedIP = "Access is denied for this ip"
+	MsgAccessIsDeniedIP = "access is denied for this ip"
 
 	// MsgObjectAlreadyExists is object already exists
-	MsgObjectAlreadyExists = "Object already exists"
+	MsgObjectAlreadyExists = "object already exists"
 
 	// MsgHavingTroubleAdding is Having trouble adding
-	MsgHavingTroubleAdding = "Having trouble adding"
+	MsgHavingTroubleAdding = "having trouble adding"
 
 	// MsgHavingTroubleEditing is Having trouble editing
-	MsgHavingTroubleEditing = "Having trouble editing"
+	MsgHavingTroubleEditing = "having trouble editing"
 
 	// MsgHavingTroubleRemoving is Having trouble removing
-	MsgHavingTroubleRemoving = "Having trouble removing"
+	MsgHavingTroubleRemoving = "having trouble removing"
 
 	// MsgBadRequest is bad request
-	MsgBadRequest = "Bad request"
+	MsgBadRequest = "bad request"
 
 	// MsgNotFound is not Found
-	MsgNotFound = "Not Found"
+	MsgNotFound = "not Found"
 
 	// MsgUnauthorized is unauthorized
-	MsgUnauthorized = "Unauthorized"
+	MsgUnauthorized = "unauthorized"
 
 	// MsgFailedToValidateStruct is ...
-	MsgFailedToValidateStruct = "Failed to validate struct"
+	MsgFailedToValidateStruct = "failed to validate struct"
 
 	// MsgFailedToValidateParams is error validating params
-	MsgFailedToValidateParams = "Failed to validate params"
+	MsgFailedToValidateParams = "failed to validate params"
 
 	// MsgFailedToValidateBody is ...
-	MsgFailedToValidateBody = "Failed to validate body params"
+	MsgFailedToValidateBody = "failed to validate body params"
 
 	// MsgFailedToValidateQuery is ...
-	MsgFailedToValidateQuery = "Failed to validate query params"
+	MsgFailedToValidateQuery = "failed to validate query params"
 
 	// MsgBadQueryParams is invalid query params
-	MsgBadQueryParams = "Invalid query params"
+	MsgBadQueryParams = "invalid query params"
 
 	// MsgUnexpectedError is Unexpected error
 	// Used in API to replace 500 error
-	MsgUnexpectedError = "Unexpected error"
+	MsgUnexpectedError = "unexpected error"
 
-	// MsgInvalidPassword is ...
-	MsgPasswordIsNotValid = "Password is not valid"
+	// MsgPasswordIsNotValid is ...
+	MsgPasswordIsNotValid = "password is not valid"
 
 	// MsgIncorrectParameters is ...
-	MsgIncorrectParameters = "Incorrect parameters"
+	MsgIncorrectParameters = "incorrect parameters"
 
 	// MsgFailedToOpenFile is ...
-	MsgFailedToOpenFile = "Failed to open file"
+	MsgFailedToOpenFile = "failed to open file"
 
 	// MsgFailedToSelect is ...
-	MsgFailedToSelect = "Failed to select"
+	MsgFailedToSelect = "failed to select"
 
 	// MsgFailedToAdd is ...
-	MsgFailedToAdd = "Failed to add"
+	MsgFailedToAdd = "failed to add"
 
 	// MsgFailedToUpdate is ...
-	MsgFailedToUpdate = "Failed to update"
+	MsgFailedToUpdate = "failed to update"
 
 	// MsgFailedToDelete is ...
-	MsgFailedToDelete = "Failed to delete"
+	MsgFailedToDelete = "failed to delete"
 
 	// MsgFailedToScan is ...
-	MsgFailedToScan = "Failed to Scan"
+	MsgFailedToScan = "failed to Scan"
 
 	// MsgInviteIsInvalid is ...
-	MsgInviteIsInvalid = "Invite is invalid"
+	MsgInviteIsInvalid = "invite is invalid"
 
 	// MsgInviteIsActivated is ...
-	MsgInviteIsActivated = "Invite is activated"
+	MsgInviteIsActivated = "invite is activated"
 
 	// MsgTransactionCommitError is ...
-	MsgTransactionCommitError = "Error commit transaction"
+	MsgTransactionCommitError = "error commit transaction"
 
 	// MsgTransactionCreateError is ...
-	MsgTransactionCreateError = "Error creating transaction"
+	MsgTransactionCreateError = "error creating transaction"
 
 	// MsgTokenIsNotValid is ...
-	MsgTokenIsNotValid = "Token is not valid"
+	MsgTokenIsNotValid = "token is not valid"
 
 	// MsgHashIsNotValid is ...
-	MsgHashIsNotValid = "Hash is not valid"
+	MsgHashIsNotValid = "hash is not valid"
 )

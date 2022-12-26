@@ -70,7 +70,7 @@ func Test_getUpdate(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Installed and actual versions of components").
+				Equal(`$.message`, "installed and actual versions of components").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -129,7 +129,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser:  adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Short information").
+				Equal(`$.message`, "short information").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -141,7 +141,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Short information").
+				Equal(`$.message`, "short information").
 				Equal(`$.result.projects`, float64(1)).
 				Equal(`$.result.servers`, float64(2)).
 				End(),
@@ -156,7 +156,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser:  userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Short information").
+				Equal(`$.message`, "short information").
 				Equal(`$.result.projects`, float64(1)).
 				Equal(`$.result.servers`, float64(2)).
 				End(),
@@ -170,7 +170,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Short information").
+				Equal(`$.message`, "short information").
 				Equal(`$.result.projects`, float64(1)).
 				Equal(`$.result.servers`, float64(2)).
 				End(),
@@ -184,7 +184,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Short information").
+				Equal(`$.message`, "short information").
 				Equal(`$.result.projects`, float64(1)).
 				Equal(`$.result.servers`, float64(2)).
 				End(),
@@ -232,7 +232,7 @@ func Test_getVersion(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Version API").
+				Equal(`$.message`, "version API").
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -244,7 +244,7 @@ func Test_getVersion(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Version API").
+				Equal(`$.message`, "version API").
 				End(),
 			RespondStatus: http.StatusOK,
 		},

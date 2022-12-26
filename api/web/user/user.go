@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/mail"
-	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
@@ -26,25 +26,31 @@ import (
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users [get]
 func (h *handler) getUser(c *fiber.Ctx) error {
-	input := new(pb.User_Request)
+	request := new(pb.User_Request)
 
-	if err := c.QueryParser(input); err != nil {
+	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.User_RequestMultiError) {
+			e := err.(pb.User_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	// show all users
-	if userParameter.IsUserAdmin() && input.GetUserId() == "" {
+	if userParameter.IsUserAdmin() && request.GetUserId() == "" {
 		pagination := httputil.GetPaginationFromCtx(c)
 		users, err := rClient.ListUsers(ctx, &pb.ListUsers_Request{
 			Limit:  pagination.GetLimit(),
@@ -52,13 +58,13 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 			SortBy: "id:ASC",
 		})
 		if err != nil {
-			return httputil.ErrorGRPC(c, h.log, err)
+			return httputil.FromGRPC(c, h.log, err)
 		}
 		if users.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
 
-		return httputil.StatusOK(c, "Users", users)
+		return httputil.StatusOK(c, "users", users)
 	}
 
 	// show information about the key
@@ -66,7 +72,7 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 		UserId: userID,
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 	// if user == nil {
 	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
@@ -74,10 +80,10 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 
 	// If RoleUser_ADMIN - show detailed information
 	if userParameter.IsUserAdmin() {
-		return httputil.StatusOK(c, "User information", user)
+		return httputil.StatusOK(c, "user information", user)
 	}
 
-	return httputil.StatusOK(c, "User information", &pb.User_Response{
+	return httputil.StatusOK(c, "user information", &pb.User_Response{
 		Fio:   user.GetFio(),
 		Name:  user.GetName(),
 		Email: user.GetEmail(),
@@ -93,14 +99,20 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users [post]
 func (h *handler) addUser(c *fiber.Ctx) error {
-	input := new(pb.AddUser_Request)
+	request := new(pb.AddUser_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.AddUser_RequestMultiError) {
+			e := err.(pb.AddUser_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -113,18 +125,18 @@ func (h *handler) addUser(c *fiber.Ctx) error {
 	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	user, err := rClient.AddUser(ctx, &pb.AddUser_Request{
-		Fio:       input.GetFio(),
-		Name:      input.GetName(),
-		Email:     input.GetEmail(),
-		Enabled:   input.GetEnabled(),
-		Confirmed: input.GetConfirmed(),
-		Password:  input.GetPassword(),
+		Fio:       request.GetFio(),
+		Name:      request.GetName(),
+		Email:     request.GetEmail(),
+		Enabled:   request.GetEnabled(),
+		Confirmed: request.GetConfirmed(),
+		Password:  request.GetPassword(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "User added successfully", user)
+	return httputil.StatusOK(c, "user added successfully", user)
 }
 
 // @Summary      Updating user information.
@@ -137,18 +149,24 @@ func (h *handler) addUser(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users [patch]
 func (h *handler) patchUser(c *fiber.Ctx) error {
-	input := new(pb.UpdateUser_Request)
+	request := new(pb.UpdateUser_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.UpdateUser_RequestMultiError) {
+			e := err.(pb.UpdateUser_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -158,29 +176,29 @@ func (h *handler) patchUser(c *fiber.Ctx) error {
 	if userParameter.IsUserAdmin() {
 		_, err := rClient.UpdateUser(ctx, &pb.UpdateUser_Request{
 			UserId:    userID,
-			Fio:       input.GetFio(),
-			Name:      input.GetName(),
-			Email:     input.GetEmail(),
-			Enabled:   input.GetEnabled(),
-			Confirmed: input.GetConfirmed(),
+			Fio:       request.GetFio(),
+			Name:      request.GetName(),
+			Email:     request.GetEmail(),
+			Enabled:   request.GetEnabled(),
+			Confirmed: request.GetConfirmed(),
 		})
 		if err != nil {
-			return httputil.ErrorGRPC(c, h.log, err)
+			return httputil.FromGRPC(c, h.log, err)
 		}
 
-		return httputil.StatusOK(c, "User data updated", nil)
+		return httputil.StatusOK(c, "user data updated", nil)
 	}
 
 	_, err := rClient.UpdateUser(ctx, &pb.UpdateUser_Request{
 		UserId: userID,
-		Fio:    input.GetFio(),
-		Email:  input.GetEmail(),
+		Fio:    request.GetFio(),
+		Email:  request.GetEmail(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "User data updated", nil)
+	return httputil.StatusOK(c, "user data updated", nil)
 }
 
 // @Summary      Deleting a user
@@ -194,45 +212,51 @@ func (h *handler) patchUser(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users [delete]
 func (h *handler) deleteUser(c *fiber.Ctx) error {
-	input := new(pb.DeleteUser_Request)
-	// c.BodyParser(input)
+	request := new(pb.DeleteUser_Request)
+	// c.BodyParser(request)
 
-	if err := protojson.Unmarshal(c.Body(), input); err != nil {
+	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		fmt.Print(err)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.DeleteUser_RequestMultiError) {
+			e := err.(pb.DeleteUser_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
 	// step 1 - send email and token
-	if input.GetPassword() != "" {
+	if request.GetPassword() != "" {
 		response, err := rClient.DeleteUser(ctx, &pb.DeleteUser_Request{
 			UserId: userID,
 			Request: &pb.DeleteUser_Request_Password{
-				Password: input.GetPassword(),
+				Password: request.GetPassword(),
 			},
 		})
 		if err != nil {
-			return httputil.ErrorGRPC(c, h.log, err)
+			return httputil.FromGRPC(c, h.log, err)
 		}
 
 		mailData := map[string]string{
 			"Name": response.GetName(),
 			"Link": fmt.Sprintf("%s/profile/delete/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
 		}
-		go mail.Send(response.GetEmail(), "Account deletion confirmation", "account-deletion-confirmation", mailData)
-		return httputil.StatusOK(c, "An email with instructions to delete your profile has been sent to your email", nil)
+		go mail.Send(response.GetEmail(), "account deletion confirmation", "account-deletion-confirmation", mailData)
+		return httputil.StatusOK(c, "an email with instructions to delete your profile has been sent to your email", nil)
 	}
 
 	// step 2 - check token and delete user
-	if input.GetToken() != "" {
+	if request.GetToken() != "" {
 		response, err := rClient.DeleteUser(ctx, &pb.DeleteUser_Request{
 			UserId: userID,
 			Request: &pb.DeleteUser_Request_Token{
@@ -240,15 +264,15 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 			},
 		})
 		if err != nil {
-			return httputil.ErrorGRPC(c, h.log, err)
+			return httputil.FromGRPC(c, h.log, err)
 		}
 
 		// send delete token to email
 		mailData := map[string]string{
 			"Name": response.GetName(),
 		}
-		go mail.Send(response.GetEmail(), "Account deletion information", "account-deletion-info", mailData)
-		return httputil.StatusOK(c, "Account deleted", nil)
+		go mail.Send(response.GetEmail(), "account deletion information", "account-deletion-info", mailData)
+		return httputil.StatusOK(c, "account deleted", nil)
 	}
 
 	return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
@@ -264,18 +288,24 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/users/password [patch]
 func (h *handler) patchPassword(c *fiber.Ctx) error {
-	input := new(pb.UpdatePassword_Request)
+	request := new(pb.UpdatePassword_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.UpdatePassword_RequestMultiError) {
+			e := err.(pb.UpdatePassword_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.GetUserId())
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -283,12 +313,12 @@ func (h *handler) patchPassword(c *fiber.Ctx) error {
 
 	msg, err := rClient.UpdatePassword(ctx, &pb.UpdatePassword_Request{
 		UserId:      userID,
-		OldPassword: input.GetOldPassword(),
-		NewPassword: input.GetNewPassword(),
+		OldPassword: request.GetOldPassword(),
+		NewPassword: request.GetNewPassword(),
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "Password updated", msg)
+	return httputil.StatusOK(c, "password updated", msg)
 }

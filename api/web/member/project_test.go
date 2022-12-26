@@ -82,7 +82,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
 				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.projectid`, "ProjectId is a required field").
+				Equal(`$.result.projectid`, "projectId is a required field").
 				End(),
 			RespondStatus: http.StatusBadRequest,
 		},
@@ -95,7 +95,7 @@ func TestHandler_getMembers(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Servers available in this project").
+				Equal(`$.message`, "servers available in this project").
 				End(),
 			RespondStatus: http.StatusOK,
 		},

@@ -5,6 +5,7 @@ package license;
 option go_package = "github.com/werbot/werbot/api/proto/license";
 
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 service LicenseHandlers {
     rpc AddLicense(AddLicense.Request) returns (AddLicense.Response) {}
@@ -38,10 +39,10 @@ message LicenseInfo {
 // rpc AddLicense
 message AddLicense{
     message Request{
-        string ip = 1;         // @gotags: validate:"required,ip"
-        string customer = 2;   // @gotags: validate:"omitempty,uuid"
-        string subscriber = 3; // @gotags: validate:"omitempty,uuid"
-        string token = 4;      // @gotags: validate:"omitempty,alphanum,len=32"
+        string ip = 1         [(validate.rules).string.ip = true];
+        string customer = 2   [(validate.rules).string = {ignore_empty: true, uuid: true}];
+        string subscriber = 3 [(validate.rules).string = {ignore_empty: true, uuid: true}];
+        string token = 4      [(validate.rules).string = {ignore_empty: true, pattern: '^[a-z0-9]+$', len: 32}];
     }
 
     message Response {
@@ -53,7 +54,9 @@ message AddLicense{
 
 // rpc License
 message License {
-    message Request {}
+    message Request {
+      string License = 1 [(validate.rules).string.pattern = '^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$']; // @gotags: query:"license" params:"license"
+    }
 
     message Response {
         LicenseInfo license = 1;

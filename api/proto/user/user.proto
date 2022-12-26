@@ -6,6 +6,7 @@ option go_package = "github.com/werbot/werbot/api/proto/user";
 
 import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 service UserHandlers {
     rpc ListUsers(ListUsers.Request) returns (ListUsers.Response) {}
@@ -72,7 +73,7 @@ message ListUsers {
 // rpc User
 message User {
     message Request {
-        string user_id = 1; // @gotags: validate:"omitempty,uuid" query:"user_id" params:"user_id"
+        string user_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
     }
 
     message Response {
@@ -94,12 +95,12 @@ message User {
 // rpc AddUser
 message AddUser {
     message Request {
-        string name = 1;     // @gotags: validate:"required,alphanum"
-        string email = 2;    // @gotags: validate:"required,email"
-        string fio = 3;      // @gotags: validate:"required,min=5"
+        string name = 1     [(validate.rules).string.pattern = '^[a-z0-9]+$'];
+        string email = 2    [(validate.rules).string.email = true];
+        string fio = 3      [(validate.rules).string.min_len = 5];
         bool enabled = 4;
         bool confirmed = 5;
-        string password = 6; // @gotags: validate:"required,min=8"
+        string password = 6 [(validate.rules).string = { min_len: 8, max_len: 32 }];
     }
 
     message Response {
@@ -112,17 +113,11 @@ message AddUser {
 // rpc UpdateUser
 message UpdateUser {
     message Request {
-        // @gotags: validate:"uuid" sql_name:"id"
-        string user_id = 1 [(sql_name) = "id"];
-        // @gotags: validate:"omitempty,alphanum" sql_name:"name"
-        string name = 2    [(sql_name) = "name"];
-        // @gotags: validate:"required,email" sql_name:"email"
-        string email = 3   [(sql_name) = "email"];
-        // @gotags: validate:"required,min=5" sql_name:"fio"
-        string fio = 4     [(sql_name) = "fio"];
-        // @gotags: sql_name:"enabled"
+        string user_id = 1 [(sql_name) = "id", (validate.rules).string = {ignore_empty: true, uuid: true}];
+        string name = 2    [(sql_name) = "name", (validate.rules).string = {ignore_empty: true, pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}];
+        string email = 3   [(sql_name) = "email", (validate.rules).string.email = true];
+        string fio = 4     [(sql_name) = "fio", (validate.rules).string.min_len = 5];
         bool enabled = 5   [(sql_name) = "enabled"];
-        // @gotags: sql_name:"confirmed"
         bool confirmed = 6 [(sql_name) = "confirmed"];
     }
 
@@ -153,8 +148,8 @@ message DeleteUser{
 // rpc SignIn
 message SignIn {
     message Request {
-        string email = 2;    // @gotags: validate:"required,email"
-        string password = 3; // @gotags: validate:"required"
+        string email = 2    [(validate.rules).string.email = true];
+        string password = 3 [(validate.rules).string = { min_len: 8, max_len: 32 }];
     }
 }
 // -----------------------------------------------------
@@ -164,10 +159,10 @@ message SignIn {
 message ResetPassword {
     message Request {
         oneof request {
-            string email = 1;    // @gotags: validate:"email"
-            string password = 2; // @gotags: validate:"min=8"
+            string email = 1    [(validate.rules).string.email = true];
+            string password = 2 [(validate.rules).string = { min_len: 8, max_len: 32 }];
         }
-        string token = 3;        // @gotags: validate:"omitempty,uuid"
+        string token = 3        [(validate.rules).string = {ignore_empty: true, uuid: true}];
     }
     message Response {
         string message = 1;

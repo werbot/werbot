@@ -6,7 +6,7 @@
 import { onMounted, getCurrentInstance } from "vue";
 import { useRouter } from "vue-router";
 import { deleteUserStep2 } from "@/api/user";
-import { DeleteUser_Request } from "@proto/user/user";
+import { DeleteUser_Request } from "@proto/user";
 import { showMessage } from "@/utils/message";
 
 const { proxy } = getCurrentInstance();

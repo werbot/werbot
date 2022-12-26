@@ -1,33 +1,38 @@
 package customer
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
-)
 
-type userReq struct {
-	UserID int32 `json:"user_id" validate:"required,numeric"`
-}
+	pb "github.com/werbot/werbot/api/proto/subscription"
+)
 
 // TODO Addition of the API method getCustomer
 // subscription information
 // request {user_id:1}
 // GET /v1/customers
 func (h *handler) getCustomer(c *fiber.Ctx) error {
-	var input userReq
+	request := new(pb.Customer_Request)
 
-	if err := c.BodyParser(&input); err != nil {
+	if err := c.BodyParser(&request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.Customer_RequestMultiError) {
+			e := err.(pb.Customer_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, "Information about the subscription", input.UserID)
+	return httputil.StatusOK(c, "information about the subscription", request.GetUserId())
 }
 
 // TODO Addition of the API method deleteCustomer
@@ -35,15 +40,21 @@ func (h *handler) getCustomer(c *fiber.Ctx) error {
 // request {user_id:1}
 // DELETE /v1/customers
 func (h *handler) deleteCustomer(c *fiber.Ctx) error {
-	var input userReq
+	request := new(pb.DeleteCustomer_Request)
 
-	if err := c.BodyParser(&input); err != nil {
+	if err := c.BodyParser(&request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.DeleteCustomer_RequestMultiError) {
+			e := err.(pb.DeleteCustomer_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, "The subscriber is deleted", input.UserID)
+	return httputil.StatusOK(c, "the subscriber is deleted", request.GetUserId())
 }

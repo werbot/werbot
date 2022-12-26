@@ -25,7 +25,7 @@ func (u *utility) ListCountries(ctx context.Context, in *pb_utility.ListCountrie
 		in.Name+"%",
 	)
 	if err != nil {
-		service.log.ErrorGRPC(err)
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToSelect
 	}
 
@@ -36,7 +36,7 @@ func (u *utility) ListCountries(ctx context.Context, in *pb_utility.ListCountrie
 			&country.Name,
 		)
 		if err != nil {
-			service.log.ErrorGRPC(err)
+			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
 

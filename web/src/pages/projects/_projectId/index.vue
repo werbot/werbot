@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, getCurrentInstance } from "vue";
 import { getProject } from "@/api/project";
-import { Project_Request } from "@proto/project/project";
+import { Project_Request } from "@proto/project";
 import { SvgIcon } from "@/components";
 
 const { proxy } = getCurrentInstance();
@@ -22,7 +22,7 @@ const props = defineProps({
   projectId: String,
 });
 
-const getData = async (routeQuery: any) => {  
+const getData = async (routeQuery: any) => {
   await getProject(routeQuery).then((res) => {
     data.value = res.data.result;
   });

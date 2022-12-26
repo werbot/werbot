@@ -64,7 +64,7 @@ import { FormInput } from "@/components";
 import { showMessage } from "@/utils/message";
 
 import { postProjectMemberInvite } from "@/api/member/project";
-import { AddProjectMemberInvite_Request } from "@proto/member/member";
+import { AddProjectMemberInvite_Request } from "@proto/member";
 
 const { proxy } = getCurrentInstance();
 const data: any = ref({});

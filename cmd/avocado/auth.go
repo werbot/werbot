@@ -51,7 +51,7 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 		rClientF := pb_firewall.NewFirewallHandlersClient(app.grpc.Client)
 		rClientA := pb_account.NewAccountHandlersClient(app.grpc.Client)
 
-		// проверка ip по глобальным настройкам фаервола
+		// IP check for global Faerwole settings
 		status, err := rClientF.CheckIPAccess(_ctx, &firewall.CheckIPAccess_Request{
 			ClientIp: actx.userAddr,
 		})
@@ -61,7 +61,7 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 			return true
 		}
 
-		// тут почему-то крашится если объединить эти две конструкции if
+		// for some reason it paint if you combine these two designs if
 		if !status.Access {
 			actx.message = "Access denied"
 			actx.authSuccess = false
@@ -70,7 +70,7 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 
 		actx.userCountry = status.Country
 
-		// проверка синтаксиса написания логина
+		// Checking the syntax of writing login
 		if !checkUsername(actx.userName) {
 			actx.message = "Violated username syntax"
 			actx.authSuccess = false

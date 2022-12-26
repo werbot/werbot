@@ -18,7 +18,7 @@ func Test_getUpdateVersion(t *testing.T) {
 			Name: "Last actual version of components",
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "Actual versions of components").
+				Equal(`$.message`, "actual versions of components").
 				End(),
 			RespondStatus: http.StatusOK,
 		},

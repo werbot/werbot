@@ -32,7 +32,7 @@
             <Badge v-if="item.status == 'send'" :name="item.status" color="yellow" />
           </td>
           <td>
-            
+
             <SvgIcon v-if="item.status == 'send'" name="delete" class="cursor-pointer text-red-500" @click="openModal(index)" />
           </td>
         </tr>
@@ -68,7 +68,7 @@ import { SvgIcon, Pagination, Tabs, Badge, Modal } from "@/components";
 import { showMessage } from "@/utils/message";
 
 import { getProjectMembersInvite, deleteProjectMemberInvite } from "@/api/member/project";
-import { ListProjectMembersInvite_Request, DeleteProjectMemberInvite_Request } from "@proto/member/member";
+import { ListProjectMembersInvite_Request, DeleteProjectMemberInvite_Request } from "@proto/member";
 
 const { proxy } = getCurrentInstance();
 const route = useRoute();

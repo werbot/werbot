@@ -2,21 +2,17 @@ package server
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/validate"
 	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 
 	pb "github.com/werbot/werbot/api/proto/server"
 )
-
-type userIDReq struct {
-	UserID string `json:"user_id,omitempty" validate:"uuid"`
-}
 
 // @Summary      List of all servers to share for user
 // @Tags         share
@@ -27,18 +23,24 @@ type userIDReq struct {
 // @Failure      400,401,500 {object} httputil.HTTPResponse
 // @Router       /v1/servers/share [get]
 func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
-	input := new(userIDReq)
+	request := new(pb.ListServersShareForUser_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(&input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.ListServersShareForUser_RequestMultiError) {
+			e := err.(pb.ListServersShareForUser_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(input.UserID)
+	userID := userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -52,27 +54,33 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 		UserId: userID,
 	})
 	if err != nil {
-		return httputil.ErrorGRPC(c, h.log, err)
+		return httputil.FromGRPC(c, h.log, err)
 	}
 	if servers.Total == 0 {
 		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, "Shared servers list", servers)
+	return httputil.StatusOK(c, "shared servers list", servers)
 }
 
 // share the selected server with the user
 // request serverReq{user_id:1, project_id:1, server:1}
 // POST /v1/servers/share
 func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
-	input := new(pb.AddServerShareForUser_Request)
+	request := new(pb.AddServerShareForUser_Request)
 
-	if err := c.BodyParser(input); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.AddServerShareForUser_RequestMultiError) {
+			e := err.(pb.AddServerShareForUser_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	return httputil.StatusOK(c, "message", pb.AddServerShareForUser_Response{})
@@ -82,13 +90,19 @@ func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
 // request serverReq{user_id:1, project_id:1, server:1}
 // PATCH /v1/servers/share
 func (h *handler) patchServerShareForUser(c *fiber.Ctx) error {
-	input := new(pb.UpdateServerShareForUser_Request)
+	request := new(pb.UpdateServerShareForUser_Request)
 
-	if err := c.BodyParser(&input); err != nil {
+	if err := c.BodyParser(&request); err != nil {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.UpdateServerShareForUser_RequestMultiError) {
+			e := err.(pb.UpdateServerShareForUser_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	return httputil.StatusOK(c, "message", pb.UpdateServerShareForUser_Response{})
@@ -98,13 +112,19 @@ func (h *handler) patchServerShareForUser(c *fiber.Ctx) error {
 // request userReq{user_id:1, project_id:1}
 // DELETE /v1/servers/share
 func (h *handler) deleteServerShareForUser(c *fiber.Ctx) error {
-	input := new(pb.DeleteServerShareForUser_Request)
+	request := new(pb.DeleteServerShareForUser_Request)
 
-	if err := c.BodyParser(&input); err != nil {
+	if err := c.BodyParser(&request); err != nil {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
-	if err := validate.Struct(input); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, err)
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(pb.DeleteServerShareForUser_RequestMultiError) {
+			e := err.(pb.DeleteServerShareForUser_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	return httputil.StatusOK(c, "message", pb.DeleteServerShareForUser_Response{})
