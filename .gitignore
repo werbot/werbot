@@ -93,6 +93,3 @@ docker/haproxy/data
 rest.http
 
 /scripts
-
-/web1
-
