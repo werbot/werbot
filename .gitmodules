@@ -4,3 +4,6 @@
 [submodule "add-on/saas"]
 	path = add-on/saas
 	url = git@github.com:werbot/werbot.saas.git
+[submodule "web"]
+	path = web
+	url = git@github.com:werbot/werbot.web.git
