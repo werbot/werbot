@@ -393,7 +393,7 @@ func (m *member) UsersWithoutProject(ctx context.Context, in *pb_member.UsersWit
 	}
 
 	users := []*pb_member.UsersWithoutProject_Response_User{}
-	rows, err := service.db.Conn.Queryx(`SELECT
+	rows, err := service.db.Conn.Query(`SELECT
 			"id",
 			"name",
 			"email"
@@ -517,7 +517,7 @@ func (m *member) ServerMember(ctx context.Context, in *pb_member.ServerMember_Re
 
 	var lastActivity pgtype.Timestamp
 	member := new(pb_member.ServerMember_Response)
-	err := service.db.Conn.QueryRowx(`SELECT
+	err := service.db.Conn.QueryRow(`SELECT
 			"user"."id",
 			"user"."name",
 			"server_member"."active",
@@ -687,7 +687,7 @@ func (m *member) MembersWithoutServer(ctx context.Context, in *pb_member.Members
 	}
 
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := service.db.Conn.Queryx(`SELECT
+	rows, err := service.db.Conn.Query(`SELECT
 			"project_member"."id",
 			"user"."name",
 			"user"."email",

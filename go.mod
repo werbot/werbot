@@ -17,7 +17,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgtype v1.13.0
 	github.com/jackc/pgx/v5 v5.2.0
-	github.com/jmoiron/sqlx v1.3.5
 	github.com/joho/godotenv v1.4.0
 	github.com/nats-io/nats.go v1.22.1
 	github.com/olekukonko/tablewriter v0.0.5

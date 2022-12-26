@@ -122,7 +122,7 @@ func (p *project) AddProject(ctx context.Context, in *pb_project.AddProject_Requ
 	//		return nil, errNotFound
 	//	}
 
-	tx, err := service.db.Conn.Beginx()
+	tx, err := service.db.Conn.Begin()
 	if err != nil {
 		service.log.FromGRPC(err).Send()
 		return nil, errTransactionCreateError
@@ -212,7 +212,7 @@ func (p *project) DeleteProject(ctx context.Context, in *pb_project.DeleteProjec
 		return nil, errNotFound
 	}
 
-	tx, err := service.db.Conn.Beginx()
+	tx, err := service.db.Conn.Begin()
 	if err != nil {
 		service.log.FromGRPC(err).Send()
 		return nil, errTransactionCreateError

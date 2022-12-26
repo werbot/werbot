@@ -1298,7 +1298,7 @@ type UpdateSubscription_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	SubscriptionId string                 `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId,proto3" json:"subscription_id,omitempty" query:"user_id" params:"user_id"`  
+	SubscriptionId string                 `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId,proto3" json:"subscription_id,omitempty" query:"subscription_id" params:"subscription_id"`  
 	CustomerId     string                 `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
 	CustomerName   string                 `protobuf:"bytes,3,opt,name=customer_name,json=customerName,proto3" json:"customer_name,omitempty"`
 	PlanId         string                 `protobuf:"bytes,4,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
@@ -1447,7 +1447,7 @@ type DeleteSubscription_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	SubscriptionId string `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId,proto3" json:"subscription_id,omitempty" query:"user_id" params:"user_id"`  
+	SubscriptionId string `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId,proto3" json:"subscription_id,omitempty" query:"subscription_id" params:"subscription_id"`  
 }
 
 func (x *DeleteSubscription_Request) Reset() {
@@ -1721,7 +1721,7 @@ type Plan_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	PlanId string `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty" query:"user_id" params:"user_id"`  
+	PlanId string `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty" query:"plan_id" params:"plan_id"`  
 }
 
 func (x *Plan_Request) Reset() {
@@ -1935,7 +1935,7 @@ type UpdatePlan_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	PlanId            string           `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty" query:"user_id" params:"user_id"`  
+	PlanId            string           `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty" query:"plan_id" params:"plan_id"`  
 	Cost              int32            `protobuf:"varint,2,opt,name=cost,proto3" json:"cost,omitempty"`
 	Period            int32            `protobuf:"varint,3,opt,name=period,proto3" json:"period,omitempty"`
 	Title             string           `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`

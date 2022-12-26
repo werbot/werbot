@@ -6164,10 +6164,32 @@ func (m *ListServersShareForUser_Request) validate(all bool) error {
 
 	// no validation rules for SortBy
 
-	// no validation rules for UserId
+	if m.GetUserId() != "" {
+
+		if err := m._validateUuid(m.GetUserId()); err != nil {
+			err = ListServersShareForUser_RequestValidationError{
+				field:  "UserId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
 
 	if len(errors) > 0 {
 		return ListServersShareForUser_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ListServersShareForUser_Request) _validateUuid(uuid string) error {
+	if matched := _server_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
 	}
 
 	return nil

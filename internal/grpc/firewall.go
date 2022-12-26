@@ -19,7 +19,7 @@ type firewall struct {
 
 func (s *firewall) getAccessList(serverID string) (*pb_firewall.AccessList, error) {
 	accessList := new(pb_firewall.AccessList)
-	err := service.db.Conn.QueryRowx(`SELECT
+	err := service.db.Conn.QueryRow(`SELECT
 			"server_access_policy"."ip",
 			"server_access_policy"."country"
 		FROM
@@ -136,7 +136,7 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *pb_firewall.AddSer
 	response := new(pb_firewall.AddServerFirewall_Response)
 	switch record := in.Record.(type) {
 	case *pb_firewall.AddServerFirewall_Request_Country:
-		err := service.db.Conn.QueryRowx(`SELECT
+		err := service.db.Conn.QueryRow(`SELECT
 				"id"
 			FROM
 				"server_security_country"
@@ -172,7 +172,7 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *pb_firewall.AddSer
 		response.Id = recordID
 
 	case *pb_firewall.AddServerFirewall_Request_Ip:
-		err := service.db.Conn.QueryRowx(`SELECT
+		err := service.db.Conn.QueryRow(`SELECT
 				"id"
 			FROM
 				"server_security_ip"

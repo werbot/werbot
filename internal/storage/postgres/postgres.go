@@ -1,10 +1,10 @@
 package postgres
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 
 	// Load jackc package
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -12,7 +12,7 @@ import (
 
 // Connect is ...
 type Connect struct {
-	Conn *sqlx.DB
+	Conn *sql.DB
 }
 
 // PgSQLConfig is ...
@@ -24,8 +24,8 @@ type PgSQLConfig struct {
 }
 
 // New is ...
-func New(conf *PgSQLConfig) (*Connect, error) {
-	db, err := sqlx.Connect("pgx", conf.DSN)
+func New(ctx context.Context, conf *PgSQLConfig) (*Connect, error) {
+	db, err := sql.Open("pgx", conf.DSN)
 	if err != nil {
 		return nil, fmt.Errorf("error, not connected to database, %w", err)
 	}
@@ -34,8 +34,11 @@ func New(conf *PgSQLConfig) (*Connect, error) {
 	db.SetMaxIdleConns(conf.MaxIdleConn)
 	db.SetConnMaxLifetime(time.Duration(conf.MaxLifetimeConn) * time.Second)
 
-	if err := db.Ping(); err != nil {
-		defer db.Close()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	err = db.PingContext(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("error, not sent ping to database, %w", err)
 	}
 

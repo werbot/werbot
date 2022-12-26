@@ -129,7 +129,7 @@ func (u *user) User(ctx context.Context, in *pb_user.User_Request) (*pb_user.Use
 
 // AddUser is adds a new user
 func (u *user) AddUser(ctx context.Context, in *pb_user.AddUser_Request) (*pb_user.AddUser_Response, error) {
-	tx, err := service.db.Conn.Beginx()
+	tx, err := service.db.Conn.Begin()
 	if err != nil {
 		service.log.FromGRPC(err).Send()
 		return nil, errTransactionCreateError
@@ -289,7 +289,7 @@ func (u *user) DeleteUser(ctx context.Context, in *pb_user.DeleteUser_Request) (
 			return nil, errTokenIsNotValid
 		}
 
-		tx, err := service.db.Conn.Beginx()
+		tx, err := service.db.Conn.Begin()
 		if err != nil {
 			service.log.FromGRPC(err).Send()
 			return nil, errTransactionCreateError
@@ -515,13 +515,13 @@ func (u *user) ResetPassword(ctx context.Context, in *pb_user.ResetPassword_Requ
 			return nil, errHashIsNotValid // HashPassword failed
 		}
 
-		tx, err := service.db.Conn.Beginx()
+		tx, err := service.db.Conn.Begin()
 		if err != nil {
 			service.log.FromGRPC(err).Send()
 			return nil, errTransactionCreateError
 		}
 
-		tx.MustExec(`UPDATE "user"
+		tx.Exec(`UPDATE "user"
 			SET
 				"password" = $1
 			WHERE
@@ -530,7 +530,7 @@ func (u *user) ResetPassword(ctx context.Context, in *pb_user.ResetPassword_Requ
 			id,
 		)
 
-		tx.MustExec(`UPDATE "user_token"
+		tx.Exec(`UPDATE "user_token"
 			SET
 				"used" = 't',
 				date_used = NOW()

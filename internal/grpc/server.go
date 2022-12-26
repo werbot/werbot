@@ -369,7 +369,7 @@ func (s *server) ServerAccess(ctx context.Context, in *pb_server.ServerAccess_Re
 
 	access := new(pb_server.ServerAccess_Response)
 	server := new(pb_server.Server_Response)
-	err := service.db.Conn.QueryRowx(`SELECT
+	err := service.db.Conn.QueryRow(`SELECT
 			"server"."password",
 			"server"."public_key",
 			"server"."private_key",
@@ -616,7 +616,7 @@ func (s *server) AddServer(ctx context.Context, in *pb_server.AddServer_Request)
 		serverTitle = fmt.Sprintf("server #%s", serverToken)
 	}
 
-	tx, err := service.db.Conn.Beginx()
+	tx, err := service.db.Conn.Begin()
 	if err != nil {
 		service.log.FromGRPC(err).Send()
 		return nil, errTransactionCreateError
