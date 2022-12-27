@@ -85,8 +85,6 @@ build/*
 docker/postgres/ca
 docker/haproxy/data
 
-!build/docker_tmpl/
-
 !LOCK
 !.gitkeep
 .sequence

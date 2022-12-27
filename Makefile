@@ -293,7 +293,7 @@ prod_package_go:
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
 	$(eval DESCRIPTION=$(shell cat ${ROOT_PATH}/cmd/${NAME}/.description))
 	@echo "Package go container" ${NAME} ${VERSION}
-	@cat ${ROOT_PATH}/build/docker/Dockerfile_go > ${ROOT_PATH}/bin/Dockerfile_${NAME}
+	@cat ${ROOT_PATH}/.docker/Dockerfile_go > ${ROOT_PATH}/bin/Dockerfile_${NAME}
 	@sed -i -E "s/_NAME_/${NAME}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
 	@sed -i -E "s/_GIT_COMMIT_/${GIT_COMMIT}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
 	@sed -i -E "s/_VERSION_/${VERSION}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
@@ -308,7 +308,7 @@ prod_package_go:
 prod_package_app:
 	$(eval DESCRIPTION=$(shell awk -F'"' '/"description": ".+"/{ print $$4; exit; }' ${ROOT_PATH}/web/package.json))
 	@echo "Package web app container" ${VERSION}
-	@cat ${ROOT_PATH}/build/docker/Dockerfile_web > ${ROOT_PATH}/bin/Dockerfile_web
+	@cat ${ROOT_PATH}/.docker/Dockerfile_web > ${ROOT_PATH}/bin/Dockerfile_web
 	@sed -i -E "s/_GIT_COMMIT_/${GIT_COMMIT}/g" ${ROOT_PATH}/bin/Dockerfile_web
 	@sed -i -E "s/_VERSION_/${VERSION}/g" ${ROOT_PATH}/bin/Dockerfile_web
 	@sed -i -E "s/_DESCRIPTION_/${DESCRIPTION}/g" ${ROOT_PATH}/bin/Dockerfile_web
