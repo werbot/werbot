@@ -62,7 +62,7 @@ func (h *handler) getSubscriptions(c *fiber.Ctx) error {
 		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, "subscriptions", subscriptions)
+	return httputil.StatusOK(c, msgSubscriptions, subscriptions)
 }
 
 // TODO Addition of the API patchSubscription method
@@ -86,7 +86,7 @@ func (h *handler) patchSubscription(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, "update", map[string]string{
+	return httputil.StatusOK(c, msgSubscriptionUpdated, map[string]string{
 		"user_id":         request.GetCustomerId(),
 		"subscription_id": request.GetSubscriptionId(),
 	})
@@ -113,7 +113,7 @@ func (h *handler) deleteSubscription(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, "deleted", map[string]string{
+	return httputil.StatusOK(c, msgSubscriptionDeleted, map[string]string{
 		"subscription_id": request.GetSubscriptionId(),
 	})
 }

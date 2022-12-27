@@ -16,8 +16,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 
-	"github.com/werbot/werbot/api/web"
-	"github.com/werbot/werbot/api/web/auth"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/storage/cache"
@@ -95,14 +93,17 @@ func InitTestServer(envPath string) *TestHandler {
 	)
 
 	authMiddleware := middleware.Auth(cacheClient).Execute()
-	webHandler := &web.Handler{
-		App:   server,
-		Grpc:  grpcClient,
-		Cache: cacheClient,
-		Auth:  authMiddleware,
-	}
 
-	auth.New(webHandler).Routes()
+	/*
+		webHandler := &web.Handler{
+			App:   server,
+			Grpc:  grpcClient,
+			Cache: cacheClient,
+			Auth:  authMiddleware,
+		}
+
+		auth.New(webHandler).Routes()
+	*/
 
 	return &TestHandler{
 		App:   server,

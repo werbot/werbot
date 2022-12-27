@@ -59,7 +59,7 @@ func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "License expired", expiredLic.Status)
+	return httputil.StatusOK(c, msgLicenseExpired, expiredLic.Status)
 }
 
 // @Summary      Creating a new license
@@ -111,5 +111,5 @@ func (h *handler) postLicense(c *fiber.Ctx) error {
 
 	licenseKey := base64.StdEncoding.EncodeToString(dataLic.License)
 
-	return httputil.StatusOK(c, "license key", licenseKey)
+	return httputil.StatusOK(c, msgLicenseKey, licenseKey)
 }

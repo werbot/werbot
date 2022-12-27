@@ -65,7 +65,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 			return httputil.FromGRPC(c, h.log, err)
 		}
 
-		return httputil.StatusOK(c, "members on server", members)
+		return httputil.StatusOK(c, msgServerMembers, members)
 	}
 
 	member, err := rClient.ServerMember(ctx, &pb.ServerMember_Request{
@@ -81,7 +81,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, "member information", member)
+	return httputil.StatusOK(c, msgMemberInfo, member)
 }
 
 // @Summary      Adding a new member on server
@@ -127,7 +127,7 @@ func (h *handler) addServerMember(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "member added", member)
+	return httputil.StatusOK(c, msgMemberAdded, member)
 }
 
 // @Summary      Updating member information on server.
@@ -173,7 +173,7 @@ func (h *handler) patchServerMember(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "member updated", nil)
+	return httputil.StatusOK(c, msgMemberUpdated, nil)
 }
 
 // @Summary      Delete member on server
@@ -221,7 +221,7 @@ func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "member deleted", nil)
+	return httputil.StatusOK(c, msgMemberDeleted, nil)
 }
 
 // @Summary      List members without server
@@ -273,7 +273,7 @@ func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "members without server", members)
+	return httputil.StatusOK(c, msgMembersWithoutServer, members)
 }
 
 // @Summary      Update member status of server
@@ -320,9 +320,9 @@ func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 	}
 
 	// message section
-	message := "member is online"
+	message := msgMemberIsOnline
 	if !request.GetStatus() {
-		message = "member is offline"
+		message = msgMemberIsOffline
 	}
 
 	return httputil.StatusOK(c, message, nil)

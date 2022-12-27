@@ -13,6 +13,7 @@ import (
 	pb_project "github.com/werbot/werbot/api/proto/project"
 	pb_user "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/api/web/auth"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -25,7 +26,13 @@ var (
 )
 
 func init() {
-	testHandler = tests.InitTestServer("../../../../.env")
+	testHandler = tests.InitTestServer("../../../.env")
+	auth.New(&web.Handler{
+		App:   testHandler.App,
+		Grpc:  testHandler.GRPC,
+		Cache: testHandler.Cache,
+		Auth:  *testHandler.Auth,
+	}).Routes()
 	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
 	webHandler := &web.Handler{
 		App:  testHandler.App,
@@ -76,7 +83,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser:  userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "projects").
+				Equal(`$.message`, msgProjects).
 				Equal(`$.result.total`, float64(1)).
 				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
 				End(),
@@ -103,7 +110,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "projects").
+				Equal(`$.message`, msgProjects).
 				Equal(`$.result.total`, float64(1)).
 				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
 				End(),
@@ -141,7 +148,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser:  adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "projects").
+				Equal(`$.message`, msgProjects).
 				Equal(`$.result.total`, float64(2)).
 				Equal(`$.result.projects[0].owner_id`, adminInfo.UserID).
 				End(),
@@ -192,7 +199,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "projects").
+				Equal(`$.message`, msgProjects).
 				Equal(`$.result.total`, float64(1)).
 				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
 				End(),
@@ -207,7 +214,7 @@ func TestHandler_getProject(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "project information").
+				Equal(`$.message`, msgProjectInfo).
 				Equal(`$.result.title`, "test_project3").
 				Equal(`$.result.login`, "testproject3").
 				End(),
@@ -296,7 +303,7 @@ func TestHandler_addProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "project added").
+				Equal(`$.message`, msgProjectAdded).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -380,7 +387,7 @@ func TestHandler_patchProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "project updated").
+				Equal(`$.message`, msgProjectUpdated).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -393,7 +400,7 @@ func TestHandler_patchProject(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "project updated").
+				Equal(`$.message`, msgProjectUpdated).
 				End(),
 			RespondStatus: http.StatusOK,
 		},

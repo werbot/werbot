@@ -47,5 +47,5 @@ func (h *handler) getCountry(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "countries list", countries)
+	return httputil.StatusOK(c, msgCountries, countries)
 }

@@ -36,5 +36,5 @@ func (h *handler) getLicenseInfo(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "license information", lic)
+	return httputil.StatusOK(c, msgLicenseInfo, lic)
 }

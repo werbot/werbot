@@ -8,6 +8,7 @@ import (
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	pb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/api/web/auth"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -20,14 +21,19 @@ var (
 )
 
 func init() {
-	testHandler = tests.InitTestServer("../../../../.env")
+	testHandler = tests.InitTestServer("../../../.env")
+	auth.New(&web.Handler{
+		App:   testHandler.App,
+		Grpc:  testHandler.GRPC,
+		Cache: testHandler.Cache,
+		Auth:  *testHandler.Auth,
+	}).Routes()
 	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
 	webHandler := &web.Handler{
 		App:  testHandler.App,
 		Grpc: testHandler.GRPC,
 		Auth: authMiddleware,
 	}
-
 	New(webHandler).Routes()    // add test module handler
 	testHandler.FinishHandler() // init finale handler for apitest
 
@@ -70,7 +76,7 @@ func Test_getUpdate(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "installed and actual versions of components").
+				Equal(`$.message`, msgCurrentVersions).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -129,7 +135,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser:  adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "short information").
+				Equal(`$.message`, msgShortInfo).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -141,7 +147,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "short information").
+				Equal(`$.message`, msgShortInfo).
 				Equal(`$.result.projects`, float64(1)).
 				Equal(`$.result.servers`, float64(2)).
 				End(),
@@ -156,7 +162,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser:  userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "short information").
+				Equal(`$.message`, msgShortInfo).
 				Equal(`$.result.projects`, float64(1)).
 				Equal(`$.result.servers`, float64(2)).
 				End(),
@@ -170,7 +176,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "short information").
+				Equal(`$.message`, msgShortInfo).
 				Equal(`$.result.projects`, float64(1)).
 				Equal(`$.result.servers`, float64(2)).
 				End(),
@@ -184,7 +190,7 @@ func Test_getInfo(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "short information").
+				Equal(`$.message`, msgShortInfo).
 				Equal(`$.result.projects`, float64(1)).
 				Equal(`$.result.servers`, float64(2)).
 				End(),
@@ -232,7 +238,7 @@ func Test_getVersion(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "version API").
+				Equal(`$.message`, msgAPIVersion).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -244,7 +250,7 @@ func Test_getVersion(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "version API").
+				Equal(`$.message`, msgAPIVersion).
 				End(),
 			RespondStatus: http.StatusOK,
 		},

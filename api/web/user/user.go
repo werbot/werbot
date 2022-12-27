@@ -64,7 +64,7 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
 
-		return httputil.StatusOK(c, "users", users)
+		return httputil.StatusOK(c, msgUsers, users)
 	}
 
 	// show information about the key
@@ -80,10 +80,10 @@ func (h *handler) getUser(c *fiber.Ctx) error {
 
 	// If RoleUser_ADMIN - show detailed information
 	if userParameter.IsUserAdmin() {
-		return httputil.StatusOK(c, "user information", user)
+		return httputil.StatusOK(c, msgUserInfo, user)
 	}
 
-	return httputil.StatusOK(c, "user information", &pb.User_Response{
+	return httputil.StatusOK(c, msgUserInfo, &pb.User_Response{
 		Fio:   user.GetFio(),
 		Name:  user.GetName(),
 		Email: user.GetEmail(),
@@ -136,7 +136,7 @@ func (h *handler) addUser(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "user added successfully", user)
+	return httputil.StatusOK(c, msgUserAdded, user)
 }
 
 // @Summary      Updating user information.
@@ -186,7 +186,7 @@ func (h *handler) patchUser(c *fiber.Ctx) error {
 			return httputil.FromGRPC(c, h.log, err)
 		}
 
-		return httputil.StatusOK(c, "user data updated", nil)
+		return httputil.StatusOK(c, msgUserUpdated, nil)
 	}
 
 	_, err := rClient.UpdateUser(ctx, &pb.UpdateUser_Request{
@@ -198,7 +198,7 @@ func (h *handler) patchUser(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "user data updated", nil)
+	return httputil.StatusOK(c, msgUserUpdated, nil)
 }
 
 // @Summary      Deleting a user
@@ -251,7 +251,7 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 			"Name": response.GetName(),
 			"Link": fmt.Sprintf("%s/profile/delete/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
 		}
-		go mail.Send(response.GetEmail(), "account deletion confirmation", "account-deletion-confirmation", mailData)
+		go mail.Send(response.GetEmail(), msgUserDeletionConfirmation, "account-deletion-confirmation", mailData)
 		return httputil.StatusOK(c, "an email with instructions to delete your profile has been sent to your email", nil)
 	}
 
@@ -271,8 +271,8 @@ func (h *handler) deleteUser(c *fiber.Ctx) error {
 		mailData := map[string]string{
 			"Name": response.GetName(),
 		}
-		go mail.Send(response.GetEmail(), "account deletion information", "account-deletion-info", mailData)
-		return httputil.StatusOK(c, "account deleted", nil)
+		go mail.Send(response.GetEmail(), msgUserDeleted, "account-deletion-info", mailData)
+		return httputil.StatusOK(c, msgUserDeleted, nil)
 	}
 
 	return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
@@ -320,5 +320,5 @@ func (h *handler) patchPassword(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "password updated", msg)
+	return httputil.StatusOK(c, msgPasswordUpdated, msg)
 }

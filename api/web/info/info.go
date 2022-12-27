@@ -37,7 +37,7 @@ func (h *handler) getUpdate(c *fiber.Ctx) error {
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.InternalServerError(c, "unable to get list of containers", nil)
+		return httputil.InternalServerError(c, msgFailedToShowContainerList, nil)
 	}
 
 	listImages, err := client.ListImages(docker.ListImagesOptions{
@@ -48,17 +48,17 @@ func (h *handler) getUpdate(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.InternalServerError(c, "unable to get list of containers", nil)
+		return httputil.InternalServerError(c, msgFailedToShowContainerList, nil)
 	}
 
 	urlVersion := fmt.Sprintf("%s/v1/update/version", internal.GetString("API_DSN", "https://api.werbot.com"))
 	getVersionInfo, err := http.Get(urlVersion)
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.InternalServerError(c, "error getting data for updates", nil)
+		return httputil.InternalServerError(c, msgFailedToGetDataForUpdates, nil)
 	}
 	if getVersionInfo.StatusCode > 200 {
-		return httputil.StatusNotFound(c, "update server not found", nil)
+		return httputil.StatusNotFound(c, msgFailedToConnectUpdateServer, nil)
 	}
 	defer getVersionInfo.Body.Close()
 
@@ -80,7 +80,7 @@ func (h *handler) getUpdate(c *fiber.Ctx) error {
 		}
 	}
 
-	return httputil.StatusOK(c, "installed and actual versions of components", updates)
+	return httputil.StatusOK(c, msgCurrentVersions, updates)
 }
 
 // @Summary      Unexpected error while getting info
@@ -124,7 +124,7 @@ func (h *handler) getInfo(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "short information", info)
+	return httputil.StatusOK(c, msgShortInfo, info)
 }
 
 // @Summary      Version API
@@ -141,5 +141,5 @@ func (h *handler) getVersion(c *fiber.Ctx) error {
 	// }
 
 	info := fmt.Sprintf("%s (%s)", internal.Version(), internal.Commit())
-	return httputil.StatusOK(c, "version API", info)
+	return httputil.StatusOK(c, msgAPIVersion, info)
 }

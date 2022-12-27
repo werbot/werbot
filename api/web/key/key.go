@@ -64,7 +64,7 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 		if keys.GetTotal() == 0 {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
-		return httputil.StatusOK(c, "user keys", keys)
+		return httputil.StatusOK(c, msgUserKeys, keys)
 	}
 
 	// show information about the key
@@ -79,7 +79,7 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	// }
 
-	return httputil.StatusOK(c, "key information", key)
+	return httputil.StatusOK(c, msgKeyInfo, key)
 }
 
 // @Summary      Adding a new key
@@ -123,7 +123,7 @@ func (h *handler) addKey(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "new key added", publicKey)
+	return httputil.StatusOK(c, msgKeyAdded, publicKey)
 }
 
 // @Summary      Updating a user key by its ID
@@ -168,7 +168,7 @@ func (h *handler) patchKey(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "user key data updated", nil)
+	return httputil.StatusOK(c, msgKeyUpdated, nil)
 }
 
 // @Summary      Deleting a user key by its ID
@@ -212,7 +212,7 @@ func (h *handler) deleteKey(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "user key removed", nil)
+	return httputil.StatusOK(c, msgKeyRemoved, nil)
 }
 
 // @Summary      Generating a New SSH Key Pair
@@ -246,7 +246,7 @@ func (h *handler) getGenerateNewKey(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "ssh key pair created", map[string]string{
+	return httputil.StatusOK(c, msgSSHKeyCreated, map[string]string{
 		"key_type": key.GetKeyType().String(),
 		"uuid":     key.GetUuid(),
 		"public":   string(key.GetPublic()),

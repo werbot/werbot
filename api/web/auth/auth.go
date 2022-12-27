@@ -66,12 +66,12 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.InternalServerError(c, "failed to create token", nil)
+		return httputil.InternalServerError(c, msgFailedToCreateToken, nil)
 	}
 
 	// We write user_id (user.user.userid) in the database, since if Access_key will not know which user to create a new one
 	if !jwt.AddToken(h.Cache, sub, user.GetUserId()) {
-		return httputil.InternalServerError(c, "failed to set cache", nil)
+		return httputil.InternalServerError(c, msgFailedToSetCache, nil)
 	}
 
 	return httputil.StatusOK(c, "", jwt.Tokens{
@@ -89,7 +89,7 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 func (h *handler) logout(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 	jwt.DeleteToken(h.Cache, userParameter.UserSub())
-	return httputil.StatusOK(c, "successfully logged out", nil)
+	return httputil.StatusOK(c, msgSuccessLoggedOut, nil)
 }
 
 // @Summary      Re-creation of new tokens
@@ -122,7 +122,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	}
 
 	if !jwt.ValidateToken(h.Cache, sub) {
-		return httputil.StatusBadRequest(c, "your token has been revoked", nil)
+		return httputil.StatusBadRequest(c, msgTokenHasBeenRevoked, nil)
 	}
 	jwt.DeleteToken(h.Cache, sub)
 
@@ -135,7 +135,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, "failed to select user", nil)
+		return httputil.StatusBadRequest(c, msgFailedToSelectUser, nil)
 	}
 
 	newToken, err := jwt.New(&pb.UserParameters{
@@ -146,7 +146,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, "failed to create token", nil)
+		return httputil.StatusBadRequest(c, msgFailedToCreateToken, nil)
 	}
 
 	jwt.AddToken(h.Cache, sub, userID)
@@ -229,7 +229,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 		go mail.Send(request.GetEmail(), "reset password confirmation", "password-reset", mailData)
 	}
 
-	return httputil.StatusOK(c, "password reset", response)
+	return httputil.StatusOK(c, msgPasswordReset, response)
 }
 
 // @Summary      Profile information
@@ -240,7 +240,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 // @Router       /auth/profile [get]
 func (h *handler) getProfile(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	return httputil.StatusOK(c, "user information", pb.AuthUserInfo{
+	return httputil.StatusOK(c, msgUserInfo, pb.AuthUserInfo{
 		UserId:   userParameter.UserID(""),
 		UserRole: userParameter.UserRole(),
 		Name:     "Werbot User",

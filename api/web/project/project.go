@@ -65,7 +65,7 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
 
-		return httputil.StatusOK(c, "projects", projects)
+		return httputil.StatusOK(c, msgProjects, projects)
 	}
 
 	// show project information
@@ -82,10 +82,10 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 
 	// If RoleUser_ADMIN - show detailed information
 	if userParameter.IsUserAdmin() {
-		return httputil.StatusOK(c, "project information", project)
+		return httputil.StatusOK(c, msgProjectInfo, project)
 	}
 
-	return httputil.StatusOK(c, "project information", &pb.Project_Response{
+	return httputil.StatusOK(c, msgProjectInfo, &pb.Project_Response{
 		Title: project.GetTitle(),
 		Login: project.GetLogin(),
 	})
@@ -132,7 +132,7 @@ func (h *handler) addProject(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "project added", project)
+	return httputil.StatusOK(c, msgProjectAdded, project)
 }
 
 // @Summary      Updating project information.
@@ -176,7 +176,7 @@ func (h *handler) patchProject(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "project updated", nil)
+	return httputil.StatusOK(c, msgProjectUpdated, nil)
 }
 
 // @Summary      Delete project
@@ -220,5 +220,5 @@ func (h *handler) deleteProject(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "project deleted", nil)
+	return httputil.StatusOK(c, msgProjectDeleted, nil)
 }

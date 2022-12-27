@@ -30,5 +30,5 @@ func (h *handler) getUpdateVersion(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "actual versions of components", updateList.Components)
+	return httputil.StatusOK(c, msgCurrentVersions, updateList.Components)
 }

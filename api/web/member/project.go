@@ -69,7 +69,7 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
 
-		return httputil.StatusOK(c, "members", members)
+		return httputil.StatusOK(c, msgMembers, members)
 	}
 
 	// show information about the member
@@ -85,7 +85,7 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 	// 	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	// }
 
-	return httputil.StatusOK(c, "member information", member)
+	return httputil.StatusOK(c, msgMemberInfo, member)
 }
 
 // @Summary      Adding a new member on project
@@ -131,7 +131,7 @@ func (h *handler) addProjectMember(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "member added", member)
+	return httputil.StatusOK(c, msgMemberAdded, member)
 }
 
 // @Summary      Updating member information on project
@@ -177,7 +177,7 @@ func (h *handler) patchProjectMember(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "member updated", nil)
+	return httputil.StatusOK(c, msgMemberUpdated, nil)
 }
 
 // @Summary      Delete member on project
@@ -223,7 +223,7 @@ func (h *handler) deleteProjectMember(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "member deleted", nil)
+	return httputil.StatusOK(c, msgMemberDeleted, nil)
 }
 
 // @Summary      List users without project
@@ -269,7 +269,7 @@ func (h *handler) getUsersWithoutProject(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "users without project", members)
+	return httputil.StatusOK(c, msgUsersWithoutProject, members)
 }
 
 // @Summary      Update member status of project
@@ -315,9 +315,9 @@ func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 	}
 
 	// message section
-	message := "member is online"
+	message := msgMemberIsOnline
 	if !request.GetStatus() {
-		message = "member is offline"
+		message = msgMemberIsOffline
 	}
 
 	return httputil.StatusOK(c, message, nil)
@@ -369,7 +369,7 @@ func (h *handler) getProjectMembersInvite(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "member invites", members)
+	return httputil.StatusOK(c, msgMemberInvites, members)
 }
 
 // @Summary      Invite a new member on project
@@ -418,9 +418,9 @@ func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	mailData := map[string]string{
 		"Link": fmt.Sprintf("%s/invite/project/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), member.GetInvite()),
 	}
-	go mail.Send(request.GetEmail(), "invitation to the project", "project-invite", mailData)
+	go mail.Send(request.GetEmail(), msgProjectInvitation, "project-invite", mailData)
 
-	return httputil.StatusOK(c, "member invited", member)
+	return httputil.StatusOK(c, msgMemberInvited, member)
 }
 
 // @Summary      Delete invite on project
@@ -466,7 +466,7 @@ func (h *handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "invite deleted", nil)
+	return httputil.StatusOK(c, msgInviteDeleted, nil)
 }
 
 // @Summary      Confirmation of the invitation to join the project
@@ -504,5 +504,5 @@ func (h *handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "invitation confirmed", project)
+	return httputil.StatusOK(c, msgInviteConfirmed, project)
 }

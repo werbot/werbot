@@ -1,4 +1,4 @@
-package auth_test
+package auth
 
 import (
 	"net/http"
@@ -7,6 +7,7 @@ import (
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	pb_user "github.com/werbot/werbot/api/proto/user"
+	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/jwt"
@@ -19,7 +20,13 @@ var (
 )
 
 func init() {
-	testHandler = tests.InitTestServer("../../../../.env")
+	testHandler = tests.InitTestServer("../../../.env")
+	New(&web.Handler{
+		App:   testHandler.App,
+		Grpc:  testHandler.GRPC,
+		Cache: testHandler.Cache,
+		Auth:  *testHandler.Auth,
+	}).Routes()
 	testHandler.FinishHandler() // init finale handler for apitest
 
 	adminInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
@@ -276,7 +283,7 @@ func Test_getProfile(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user information").
+				Equal(`$.message`, msgUserInfo).
 				Equal(`$.result.user_id`, adminInfo.UserID).
 				Equal(`$.result.user_role`, float64(3)).
 				End(),
@@ -290,7 +297,7 @@ func Test_getProfile(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user information").
+				Equal(`$.message`, msgUserInfo).
 				Equal(`$.result.user_id`, userInfo.UserID).
 				Equal(`$.result.user_role`, float64(1)).
 				End(),

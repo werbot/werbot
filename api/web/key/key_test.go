@@ -11,6 +11,7 @@ import (
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 
 	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/api/web/auth"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 	"github.com/werbot/werbot/internal/tests"
@@ -28,14 +29,19 @@ var (
 )
 
 func init() {
-	testHandler = tests.InitTestServer("../../../../.env")
+	testHandler = tests.InitTestServer("../../../.env")
+	auth.New(&web.Handler{
+		App:   testHandler.App,
+		Grpc:  testHandler.GRPC,
+		Cache: testHandler.Cache,
+		Auth:  *testHandler.Auth,
+	}).Routes()
 	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
 	webHandler := &web.Handler{
 		App:  testHandler.App,
 		Grpc: testHandler.GRPC,
 		Auth: authMiddleware,
 	}
-
 	New(webHandler).Routes()    // add test module handler
 	testHandler.FinishHandler() // init finale handler for apitest
 
@@ -112,7 +118,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser:  adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user keys").
+				Equal(`$.message`, msgUserKeys).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -124,7 +130,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user keys").
+				Equal(`$.message`, msgUserKeys).
 				Equal(`$.result.total`, float64(3)).
 				End(),
 			RespondStatus: http.StatusOK,
@@ -137,7 +143,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "key information").
+				Equal(`$.message`, msgKeyInfo).
 				Equal(`$.result.user_id`, adminInfo.UserID).
 				Equal(`$.result.title`, "test_key 1").
 				Equal(`$.result.fingerprint`, "fb:22:c9:13:5f:37:09:14:26:f0:84:9b:35:fd:a7:ba").
@@ -152,7 +158,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user keys").
+				Equal(`$.message`, msgUserKeys).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -244,7 +250,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser:  userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user keys").
+				Equal(`$.message`, msgUserKeys).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -256,7 +262,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user keys").
+				Equal(`$.message`, msgUserKeys).
 				Equal(`$.result.total`, float64(2)).
 				End(),
 			RespondStatus: http.StatusOK,
@@ -269,7 +275,7 @@ func Test_getKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user keys").
+				Equal(`$.message`, msgUserKeys).
 				Equal(`$.result.total`, float64(2)).
 				End(),
 			RespondStatus: http.StatusOK,
@@ -373,7 +379,7 @@ func Test_addKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "new key added").
+				Equal(`$.message`, msgKeyAdded).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -399,7 +405,7 @@ func Test_addKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "new key added").
+				Equal(`$.message`, msgKeyAdded).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -413,7 +419,7 @@ func Test_addKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "new key added").
+				Equal(`$.message`, msgKeyAdded).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -453,7 +459,7 @@ func Test_addKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "new key added").
+				Equal(`$.message`, msgKeyAdded).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -573,7 +579,7 @@ func Test_patchKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user key data updated").
+				Equal(`$.message`, msgKeyUpdated).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -604,7 +610,7 @@ func Test_patchKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user key data updated").
+				Equal(`$.message`, msgKeyUpdated).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -619,7 +625,7 @@ func Test_patchKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user key data updated").
+				Equal(`$.message`, msgKeyUpdated).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -714,7 +720,7 @@ func TestHandler_deleteKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user key removed").
+				Equal(`$.message`, msgKeyRemoved).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -726,7 +732,7 @@ func TestHandler_deleteKey(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user key removed").
+				Equal(`$.message`, msgKeyRemoved).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -754,7 +760,7 @@ func TestHandler_deleteKey(t *testing.T) {
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "user key removed").
+				Equal(`$.message`, msgKeyRemoved).
 				End(),
 			RespondStatus: http.StatusOK,
 		},
@@ -841,7 +847,7 @@ func TestHandler_getGenerateNewKey(t *testing.T) {
 			RequestUser:  adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "ssh key pair created").
+				Equal(`$.message`, msgSSHKeyCreated).
 				Equal(`$.result.key_type`, "KEY_TYPE_ED25519").
 				End(),
 			RespondStatus: http.StatusOK,
@@ -855,7 +861,7 @@ func TestHandler_getGenerateNewKey(t *testing.T) {
 			RequestUser:  userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "ssh key pair created").
+				Equal(`$.message`, msgSSHKeyCreated).
 				Equal(`$.result.key_type`, "KEY_TYPE_ED25519").
 				End(),
 			RespondStatus: http.StatusOK,

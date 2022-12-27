@@ -13,7 +13,7 @@ import (
 var testHandler *tests.TestHandler
 
 func init() {
-	testHandler = tests.InitTestServer("../../../../.env")
+	testHandler = tests.InitTestServer("../../../.env")
 	webHandler := &web.Handler{
 		App: testHandler.App,
 	}

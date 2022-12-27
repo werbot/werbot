@@ -69,7 +69,7 @@ func (h *handler) getServer(c *fiber.Ctx) error {
 			return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 		}
 
-		return httputil.StatusOK(c, "servers available in this project", servers)
+		return httputil.StatusOK(c, msgServers, servers)
 	}
 
 	// show information about the server
@@ -85,7 +85,7 @@ func (h *handler) getServer(c *fiber.Ctx) error {
 	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	//}
 
-	return httputil.StatusOK(c, "project information", server)
+	return httputil.StatusOK(c, msgServers, server)
 }
 
 // @Summary      Adding a new server
@@ -141,7 +141,7 @@ func (h *handler) addServer(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "server added", server)
+	return httputil.StatusOK(c, msgServerAdded, server)
 }
 
 // @Summary      Server update
@@ -212,7 +212,7 @@ func (h *handler) patchServer(c *fiber.Ctx) error {
 
 	// If the password is not indicated, skip the next step
 	if access.Auth == pb.ServerAuth_PASSWORD && access.Password == "" {
-		return httputil.StatusOK(c, "server data updated", nil)
+		return httputil.StatusOK(c, msgServerUpdated, nil)
 	}
 
 	_, err = rClient.UpdateServerAccess(ctx, &pb.UpdateServerAccess_Request{
@@ -228,7 +228,7 @@ func (h *handler) patchServer(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "server data updated", nil)
+	return httputil.StatusOK(c, msgServerUpdated, nil)
 }
 
 // @Summary      Delete server
@@ -274,7 +274,7 @@ func (h *handler) deleteServer(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "server deleted", nil)
+	return httputil.StatusOK(c, msgServerDeleted, nil)
 }
 
 // @Summary      Get server access
@@ -323,7 +323,7 @@ func (h *handler) getServerAccess(c *fiber.Ctx) error {
 	//	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	//}
 
-	return httputil.StatusOK(c, "server access", access)
+	return httputil.StatusOK(c, msgServerAccess, access)
 }
 
 // @Summary      Get server activity
@@ -372,7 +372,7 @@ func (h *handler) getServerActivity(c *fiber.Ctx) error {
 	// 	return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	// }
 
-	return httputil.StatusOK(c, "server activity", activity)
+	return httputil.StatusOK(c, msgServerActivity, activity)
 }
 
 // @Summary      Update server activity
@@ -417,7 +417,7 @@ func (h *handler) patchServerActivity(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "server activity updated", nil)
+	return httputil.StatusOK(c, msgServerActivityUpdated, nil)
 }
 
 // @Summary      Get server firewall
@@ -461,7 +461,7 @@ func (h *handler) getServerFirewall(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "server firewall data", firewall)
+	return httputil.StatusOK(c, msgServerFirewall, firewall)
 }
 
 // @Summary      Add server firewall
@@ -524,14 +524,14 @@ func (h *handler) postServerFirewall(c *fiber.Ctx) error {
 		})
 
 	default:
-		return httputil.StatusBadRequest(c, "bad rule", nil)
+		return httputil.StatusBadRequest(c, msgBadRule, nil)
 	}
 
 	if err != nil {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "firewall added", response)
+	return httputil.StatusOK(c, msgFirewallAdded, response)
 }
 
 // @Summary      Status firewall server
@@ -577,7 +577,7 @@ func (h *handler) patchAccessPolicy(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "firewall updated", nil)
+	return httputil.StatusOK(c, msgFirewallUpdated, nil)
 }
 
 // @Summary      Delete server firewall
@@ -623,7 +623,7 @@ func (h *handler) deleteServerFirewall(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "firewall deleted", nil)
+	return httputil.StatusOK(c, msgFirewallDeleted, nil)
 }
 
 // @Summary      Update server status
@@ -668,9 +668,9 @@ func (h *handler) patchServerStatus(c *fiber.Ctx) error {
 	}
 
 	// message section
-	message := "server is online"
+	message := msgServerIsOnline
 	if !request.GetStatus() {
-		message = "server is offline"
+		message = msgServerIsOffline
 	}
 
 	return httputil.StatusOK(c, message, nil)
@@ -720,5 +720,5 @@ func (h *handler) serverNameByID(c *fiber.Ctx) error {
 		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, "server name", access)
+	return httputil.StatusOK(c, msgServerName, access)
 }

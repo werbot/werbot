@@ -53,9 +53,9 @@ func (h *handler) addServiceServer(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "server key", server.KeyPublic)
+	return httputil.StatusOK(c, msgServerKey, server.KeyPublic)
 }
 
 func (h *handler) patchServiceServerStatus(c *fiber.Ctx) error {
-	return httputil.StatusOK(c, "server status", "online")
+	return httputil.StatusOK(c, msgServerStatus, "online")
 }

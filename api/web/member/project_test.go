@@ -8,6 +8,7 @@ import (
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	pb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/api/web/auth"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -20,7 +21,13 @@ var (
 )
 
 func init() {
-	testHandler = tests.InitTestServer("../../../../.env.taco")
+	testHandler = tests.InitTestServer("../../../.env")
+	auth.New(&web.Handler{
+		App:   testHandler.App,
+		Grpc:  testHandler.GRPC,
+		Cache: testHandler.Cache,
+		Auth:  *testHandler.Auth,
+	}).Routes()
 	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
 	webHandler := &web.Handler{
 		App:  testHandler.App,

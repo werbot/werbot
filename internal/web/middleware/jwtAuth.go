@@ -13,6 +13,10 @@ import (
 	"github.com/werbot/werbot/internal/web/jwt"
 )
 
+const (
+	msgTokenHasBeenRevoked = "token has been revoked"
+)
+
 // AuthMiddleware is ...
 type AuthMiddleware struct {
 	cache     cache.Cache
@@ -55,7 +59,7 @@ func (m AuthMiddleware) authSuccess(c *fiber.Ctx) error {
 
 	key := fmt.Sprintf("ref_token::%s", userInfo.UserSub())
 	if _, err := m.cache.Get(key); err != nil {
-		return httputil.StatusUnauthorized(c, "Your token has been revoked", nil)
+		return httputil.StatusUnauthorized(c, msgTokenHasBeenRevoked, nil)
 	}
 
 	return c.Next()

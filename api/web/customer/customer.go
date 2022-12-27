@@ -32,7 +32,7 @@ func (h *handler) getCustomer(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, "information about the subscription", request.GetUserId())
+	return httputil.StatusOK(c, msgSubscriptionInfo, request.GetUserId())
 }
 
 // TODO Addition of the API method deleteCustomer
@@ -56,5 +56,5 @@ func (h *handler) deleteCustomer(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, "the subscriber is deleted", request.GetUserId())
+	return httputil.StatusOK(c, msgSubscriptionRemoved, request.GetUserId())
 }

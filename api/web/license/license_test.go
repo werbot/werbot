@@ -8,6 +8,7 @@ import (
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 	pb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/api/web/auth"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -20,9 +21,13 @@ var (
 )
 
 func init() {
-	internal.LoadConfig("../../../../.env") // only for LICENSE_KEY_PUBLIC
-
-	testHandler = tests.InitTestServer("../../../../.env")
+	testHandler = tests.InitTestServer("../../../.env")
+	auth.New(&web.Handler{
+		App:   testHandler.App,
+		Grpc:  testHandler.GRPC,
+		Cache: testHandler.Cache,
+		Auth:  *testHandler.Auth,
+	}).Routes()
 	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
 	webHandler := &web.Handler{
 		App:  testHandler.App,
@@ -70,7 +75,7 @@ func TestHandler_getLicenseInfo(t *testing.T) {
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, true).
-				Equal(`$.message`, "license information").
+				Equal(`$.message`, msgLicenseInfo).
 				End(),
 			RespondStatus: http.StatusOK,
 		},

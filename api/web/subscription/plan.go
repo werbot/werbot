@@ -48,7 +48,7 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 	}
 
 	if userParameter.IsUserAdmin() {
-		return httputil.StatusOK(c, "tariff plans", plans)
+		return httputil.StatusOK(c, msgPlans, plans)
 	}
 
 	// response info for ROLE_USER
@@ -70,7 +70,7 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 		planLite = append(planLite, &plan)
 	}
 
-	return httputil.StatusOK(c, "tariff plans", pb.PlansLite{
+	return httputil.StatusOK(c, msgPlans, pb.PlansLite{
 		Total: plans.GetTotal(),
 		Plans: planLite,
 	})
@@ -101,11 +101,11 @@ func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 	if userParameter.IsUserAdmin() {
 		// response info for ROLE_ADMIN
-		return httputil.StatusOK(c, "information about the tariff plan", plan)
+		return httputil.StatusOK(c, msgPlanInfo, plan)
 	}
 
 	// response info for ROLE_USER
-	return httputil.StatusOK(c, "Information about the tariff plan", pb.PlansLite_PlanLite{
+	return httputil.StatusOK(c, msgPlanInfo, pb.PlansLite_PlanLite{
 		PlanId:            plan.GetPlanId(),
 		Cost:              plan.GetCost(),
 		Period:            plan.GetPeriod(),
@@ -178,5 +178,5 @@ func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 		return httputil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, "tariff plan updated successfully", nil)
+	return httputil.StatusOK(c, msgPlanUpdated, nil)
 }

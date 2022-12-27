@@ -60,7 +60,7 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, "shared servers list", servers)
+	return httputil.StatusOK(c, msgServers, servers)
 }
 
 // share the selected server with the user
@@ -83,7 +83,7 @@ func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, "message", pb.AddServerShareForUser_Response{})
+	return httputil.StatusOK(c, msgServerAdded, pb.AddServerShareForUser_Response{})
 }
 
 // Updating the settings to the server that they shared
@@ -105,7 +105,7 @@ func (h *handler) patchServerShareForUser(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, "message", pb.UpdateServerShareForUser_Response{})
+	return httputil.StatusOK(c, msgServerUpdated, pb.UpdateServerShareForUser_Response{})
 }
 
 // Removing from the user list available to him the server
@@ -127,5 +127,5 @@ func (h *handler) deleteServerShareForUser(c *fiber.Ctx) error {
 		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, "message", pb.DeleteServerShareForUser_Response{})
+	return httputil.StatusOK(c, msgServerDeleted, pb.DeleteServerShareForUser_Response{})
 }
