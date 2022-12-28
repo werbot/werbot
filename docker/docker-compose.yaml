@@ -267,7 +267,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-      - ./core/grpc_public.key:/grpc_public.key:ro
+      - ./core/grpc_certificate.key:/grpc_certificate.key:ro
       - ./core/grpc_private.key:/grpc_private.key:ro
       - ./core/server.key:/server.key:ro
       - ./core/license.key:/license.key:ro
@@ -293,7 +293,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-      - ./core/grpc_public.key:/grpc_public.key:ro
+      - ./core/grpc_certificate.key:/grpc_certificate.key:ro
       - ./core/grpc_private.key:/grpc_private.key:ro
       - ./core/license.key:/license.key:ro
       - ./core/GeoLite2-Country.mmdb:/etc/geoip2/GeoLite2-Country.mmdb:ro
@@ -315,7 +315,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-      - ./core/grpc_public.key:/grpc_public.key:ro
+      - ./core/grpc_certificate.key:/grpc_certificate.key:ro
       - ./core/grpc_private.key:/grpc_private.key:ro
       - ./core:/data
     networks:
@@ -341,7 +341,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./core/grpc_public.key:/grpc_public.key:ro
+      - ./core/grpc_certificate.key:/grpc_certificate.key:ro
       - ./core/grpc_private.key:/grpc_private.key:ro
       - ./core/jwt_public.key:/jwt_public.key:ro
       - ./core/jwt_private.key:/jwt_private.key:ro

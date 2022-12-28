@@ -56,7 +56,7 @@ func main() {
 	})
 
 	cert, err = tls.X509KeyPair(
-		internal.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),
+		internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key"),
 		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 	if err != nil {

@@ -67,7 +67,7 @@ func InitTestServer(envPath string) *TestHandler {
 		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
 		internal.GetString("GRPCSERVER_TOKEN", "token"),
 		internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
-		internal.GetByteFromFile("GRPCSERVER_PUBLIC_KEY", "./grpc_public.key"),
+		internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key"),
 		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 

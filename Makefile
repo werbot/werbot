@@ -151,9 +151,9 @@ gen_key_grpc: ## Generating TLS keys for gRPC
 	@openssl req -nodes -new -x509 -sha256 -days 1825 -config ${ROOT_PATH}/.vscode/tmp/.temp-openssl-config \
 			-extensions 'req_ext' \
 			-key ${ROOT_PATH}/.vscode/tmp/private_key.pem \
-			-out ${ROOT_PATH}/.vscode/tmp/public_key.pem
+			-out ${ROOT_PATH}/.vscode/tmp/certificate.pem
 	@mv ${ROOT_PATH}/.vscode/tmp/private_key.pem ${ROOT_PATH}/.vscode/core/grpc_private.key
-	@mv ${ROOT_PATH}/.vscode/tmp/public_key.pem ${ROOT_PATH}/.vscode/core/grpc_public.key
+	@mv ${ROOT_PATH}/.vscode/tmp/certificate.pem ${ROOT_PATH}/.vscode/core/grpc_certificate.key
 	@rm -rf ${ROOT_PATH}/.vscode/tmp
 
 	$(msg) "$(YELLOW)TLS keys for gRPC generated$(RESET)"
