@@ -122,7 +122,7 @@ Werbot is written in golang, runs in Docker containers, and works as microservic
 
 ... coming soon ...
 
-## 🛠&nbsp;&nbsp;Installation
+## 🏁&nbsp;&nbsp;Installation
 
 ... coming soon ...
 
@@ -144,11 +144,39 @@ We would for you to get involved with Werbot development! If you wish to help, y
 
 For security issues, view our [vulnerability policy](https://github.com/werbot/werbot/security/policy), view our [security policy](https://werbot.com/legal/security), and kindly email us at [security@werbot.com](mailto:security@werbot.com) instead of posting a public issue on GitHub.
 
-## 🛡&nbsp;&nbsp;License
+## 📜&nbsp;&nbsp;License
 
 Source code for Werbot, located in [this repository](https://github.com/werbot/werbot), is released under the [Business Source License 1.1](/LICENSE).
 
+All content that resides under the "**add-on/\*/**" directory of this repository, if that directory exists, is licensed under the license defined in "**add-on/\*/LICENSE**".
 
-## 🙏 Support
+All content that resides under the "**web/**" directory of this repository, if that directory exists, is licensed under the license defined in "**web/LICENSE**".
+
+All third party components incorporated into the Werbot Software are licensed under the original license provided by the owner of the applicable component.
+
+
+## ❓&nbsp;&nbsp;License FAQ
+
+**What is the license?**
+
+The Business Source [License](LICENSE) is identical to Apache 2.0 with the only exception being that you can't use the code to create a cloud service or, in other words, resell the product to others.
+
+BSL is adopted by MariaDB, Sentry, CockroachDB, Couchbase and many others. In most cases, it is a more permissive license than, for example, AGPL, because it allows you to make private changes to the code.
+
+In three years, the code also becomes available under Apache 2.0 license. You can learn more about BSL [here](https://mariadb.com/bsl-faq-adopting/).
+
+**Why BSL license**?
+
+We picked the license to allow users to share access to their servers, databases, app, or application access features or access monitoring features using Werbot, but forbidding other companies to create a cloud service using the code.
+
+We provide a [application access service](https://werbot.com/) ourselves in order to monetize our work and sustain development efforts.
+
+**Are you open-source?**
+
+Technically, the BSL license is classified as source-available, but we continue to use the term open-source on the basis that the source code is open.
+
+Existing SEO practices don't leave us much choice and our competitors do more or less the same.
+
+## 🙏&nbsp;&nbsp;Support
 
 Don't forget to leave a star ⭐️
