@@ -31,7 +31,7 @@ func New(module string) Logger {
 	}
 
 	return Logger{
-		log: newLogger.Timestamp().Caller().Logger(),
+		log: newLogger.Timestamp().Logger(),
 	}
 }
 
@@ -42,19 +42,19 @@ func (l *Logger) Info() *zerolog.Event {
 
 // Error is ...
 func (l *Logger) Error(err error) *zerolog.Event {
-	return l.log.Error().Err(err)
+	return l.log.Error().Caller().Err(err)
 }
 
 // Fatal is ...
 func (l *Logger) Fatal(err error) *zerolog.Event {
-	return l.log.Fatal().Err(err)
+	return l.log.Fatal().Caller().Err(err)
 }
 
 // FromGRPC is ...
 func (l *Logger) FromGRPC(err error) *zerolog.Event {
 	code := grpc.Code(err)
 	message := grpc.ErrorDesc(err)
-	return l.log.Error().
+	return l.log.Error().Caller().
 		Str("code", code.String()).
 		Interface("error", message)
 }
