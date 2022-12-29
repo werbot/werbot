@@ -5,7 +5,7 @@ import (
 	"time"
 
 	pb_account "github.com/werbot/werbot/api/proto/account"
-	"github.com/werbot/werbot/internal/utils/parse"
+	"github.com/werbot/werbot/pkg/strutil"
 )
 
 type account struct {
@@ -17,7 +17,7 @@ type account struct {
 // TODO: Enable check in Firewall
 func (s *account) AccountIDByName(ctx context.Context, in *pb_account.AccountIDByName_Request) (*pb_account.AccountIDByName_Response, error) {
 	var id string
-	nameArray := parse.Username(in.GetUsername())
+	nameArray := strutil.SplitNTrimmed(in.GetUsername(), "_", 3)
 	err := service.db.Conn.QueryRow(`SELECT
 			"user"."id"
 		FROM

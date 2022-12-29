@@ -13,7 +13,7 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
-	"github.com/werbot/werbot/internal/utils/parse"
+	"github.com/werbot/werbot/pkg/strutil"
 
 	pb_server "github.com/werbot/werbot/api/proto/server"
 )
@@ -37,7 +37,8 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 	servers := []*pb_server.Server_Response{}
 
 	if query["user_name"] != "" {
-		nameArray := parse.Username(query["user_name"])
+		nameArray := strutil.SplitNTrimmed(query["user_name"], "_", 3)
+
 		nameLen := len(nameArray)
 		query := `SELECT DISTINCT ON ("server"."id")
         "server"."id",

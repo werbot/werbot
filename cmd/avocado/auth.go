@@ -14,8 +14,8 @@ import (
 	"github.com/werbot/werbot/api/proto/account"
 	"github.com/werbot/werbot/api/proto/firewall"
 	"github.com/werbot/werbot/api/proto/server"
-	"github.com/werbot/werbot/internal/utils/convert"
-	"github.com/werbot/werbot/internal/utils/parse"
+	"github.com/werbot/werbot/pkg/netutil"
+	"github.com/werbot/werbot/pkg/strutil"
 
 	pb_account "github.com/werbot/werbot/api/proto/account"
 	pb_firewall "github.com/werbot/werbot/api/proto/firewall"
@@ -38,7 +38,7 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 	return func(ctx ssh.Context, key ssh.PublicKey) bool {
 		actx := &authContext{
 			userName:        fixUsername(ctx.User()),
-			userAddr:        parse.IP(ctx.RemoteAddr().String()),
+			userAddr:        netutil.IP(ctx.RemoteAddr().String()),
 			userFingerPrint: gossh.FingerprintLegacyMD5(key),
 			uuid:            uuid.New().String(),
 			authMethod:      "pubkey",
@@ -113,8 +113,6 @@ func checkUsername(user string) bool {
 }
 
 func fixUsername(user string) string {
-	// username := strings.SplitN(user, "_", -1)
-	username := strings.Split(user, "_")
-	username = convert.RemoveEmptyStrings(username)
+	username := strutil.SplitTrimmed(user, "_")
 	return strings.Join(username, "_")
 }

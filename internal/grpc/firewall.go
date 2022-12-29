@@ -8,7 +8,7 @@ import (
 	"github.com/oschwald/geoip2-golang"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/convert"
+	"github.com/werbot/werbot/pkg/strutil"
 
 	pb_firewall "github.com/werbot/werbot/api/proto/firewall"
 )
@@ -308,7 +308,7 @@ func (s *firewall) CheckIPAccess(ctx context.Context, in *pb_firewall.CheckIPAcc
 
 	// Verification of the country according to the global list of prohibited countries
 	countryCode, _ := countryFromIP(in.GetClientIp())
-	if convert.StringInSlice(*countryCode, internal.GetSliceString("SECURITY_BAD_COUNTRY", "")) {
+	if strutil.StringInSlice(*countryCode, internal.GetSliceString("SECURITY_BAD_COUNTRY", "")) {
 		IPAccess.Access = false
 		return IPAccess, nil
 	}

@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/utils/parse"
+	"github.com/werbot/werbot/pkg/netutil"
 
 	pb "github.com/werbot/werbot/api/proto/server"
 )
@@ -38,7 +38,7 @@ func privateKey() func(*ssh.Server) error {
 func dynamicHostKey(host *server.Server_Response) gossh.HostKeyCallback {
 	return func(hostname string, remote net.Addr, key gossh.PublicKey) error {
 		if len(host.HostKey) == 0 {
-			log.Info().Str("hostAddress", parse.IP(hostname)).Msg("Discovering host fingerprint")
+			log.Info().Str("hostAddress", netutil.IP(hostname)).Msg("Discovering host fingerprint")
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()

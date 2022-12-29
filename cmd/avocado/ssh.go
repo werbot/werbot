@@ -12,7 +12,7 @@ import (
 	"github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
-	"github.com/werbot/werbot/internal/utils/parse"
+	"github.com/werbot/werbot/pkg/strutil"
 )
 
 var authContextKey = sshportalContextKey("auth")
@@ -45,7 +45,7 @@ func (c authContext) userType() server.UserType {
 		return server.UserType_INVITE
 	}
 
-	nameArray := parse.Username(c.userName)
+	nameArray := strutil.SplitNTrimmed(c.userName, "_", 3)
 	if len(nameArray) == 3 && nameArray[2] != "" {
 		return server.UserType_BASTION
 	}

@@ -21,8 +21,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/service/ssh/auditor"
 	"github.com/werbot/werbot/internal/service/ssh/pty"
-	"github.com/werbot/werbot/internal/utils/convert"
-	"github.com/werbot/werbot/internal/utils/parse"
+	"github.com/werbot/werbot/pkg/strutil"
 
 	pb_account "github.com/werbot/werbot/api/proto/account"
 	pb_audit "github.com/werbot/werbot/api/proto/audit"
@@ -231,7 +230,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 		if len(actx.serverList) > 0 {
 			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Str("userID", actx.userID).Str("UUID", actx.uuid).Msg("Open shellconsole connection")
 
-			nameArray := parse.Username(actx.userName)
+			nameArray := strutil.SplitNTrimmed(actx.userName, "_", 3)
 			status := map[bool]string{
 				false: "\x1B[01;31m•\x1B[0m",
 				true:  "\x1B[01;32m•\x1B[0m",
@@ -253,7 +252,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 			term := term.NewTerminal(ch, "Select server or push enter to exit > ")
 			selectedServer, _ := term.ReadLine()
-			selectServer := convert.StringToInt32(selectedServer)
+			selectServer, _ := strutil.ToInt32(selectedServer)
 
 			switch {
 			case selectServer <= int32(len(actx.serverList)) && selectServer > 0:

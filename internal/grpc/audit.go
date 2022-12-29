@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/utils/convert"
+	"github.com/werbot/werbot/pkg/structs"
 
 	pb_audit "github.com/werbot/werbot/api/proto/audit"
 )
@@ -60,7 +60,7 @@ func (s *audit) UpdateAudit(ctx context.Context, in *pb_audit.UpdateAudit_Reques
 	var values []any
 	query := `UPDATE "audit" SET `
 	j := 0
-	m := convert.StructToMap(in.GetParams())
+	m, _ := structs.ToMap(in.GetParams())
 	for i := range m {
 		if v := m[i]; v != "" && v != 0 {
 			j++

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/werbot/werbot/pkg/strutil"
 )
 
 // LoadConfig reads .env file configurations into ENV
@@ -37,10 +38,9 @@ func GetString(key, fallback string) string {
 }
 
 // GetSliceString is ...
-// TODO: дописать
 func GetSliceString(key, fallback string) []string {
-	var slice []string
-	return slice
+	value := lookup(key, fallback)
+	return strutil.ToSlice(value)
 }
 
 // GetInt is ...
