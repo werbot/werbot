@@ -19,7 +19,7 @@ type PaginationQuery struct {
 
 // GetPaginationFromCtx is ...
 func GetPaginationFromCtx(c *fiber.Ctx) *PaginationQuery {
-	p := &PaginationQuery{}
+	p := new(PaginationQuery)
 	p.SetLimit(c.Query("limit"))
 	p.SetOffset(c.Query("offset"))
 	p.SetSortBy(c.Query("sort_by"))

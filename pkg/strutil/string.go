@@ -26,7 +26,7 @@ func StringInSlice(a string, list []string) bool {
 // ToInt32 is convert string to int32
 func ToInt32(s string) (int32, error) {
 	i64, err := strconv.ParseInt(strings.TrimSpace(s), 10, 0)
-	if err == nil {
+	if err != nil {
 		return 0, err
 	}
 	return int32(i64), nil
