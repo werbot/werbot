@@ -42,12 +42,12 @@ func (l *Logger) Info() *zerolog.Event {
 
 // Error is ...
 func (l *Logger) Error(err error) *zerolog.Event {
-	return l.log.Error().Caller().Err(err)
+	return l.log.Error().CallerSkipFrame(1).Caller().Err(err)
 }
 
 // Fatal is ...
 func (l *Logger) Fatal(err error) *zerolog.Event {
-	return l.log.Fatal().Caller().Err(err)
+	return l.log.Fatal().CallerSkipFrame(1).Caller().Err(err)
 }
 
 // FromGRPC is ...
