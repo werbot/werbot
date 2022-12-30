@@ -118,7 +118,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	userID, err := h.Cache.Get(fmt.Sprintf("ref_token::%s", sub))
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToSelect, nil)
+		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	if !jwt.ValidateToken(h.Cache, sub) {
