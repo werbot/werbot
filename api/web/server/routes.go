@@ -13,7 +13,7 @@ type handler struct {
 
 // New is ...
 func New(h *web.Handler) *handler {
-	log := logger.New("module/server")
+	log := logger.New("web/server")
 
 	return &handler{
 		Handler: &web.Handler{
