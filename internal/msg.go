@@ -32,7 +32,7 @@ const (
 	MsgBadRequest = "bad request"
 
 	// MsgNotFound is not Found
-	MsgNotFound = "not Found"
+	MsgNotFound = "not found"
 
 	// MsgUnauthorized is unauthorized
 	MsgUnauthorized = "unauthorized"
@@ -51,10 +51,6 @@ const (
 
 	// MsgBadQueryParams is invalid query params
 	MsgBadQueryParams = "invalid query params"
-
-	// MsgUnexpectedError is Unexpected error
-	// Used in API to replace 500 error
-	MsgUnexpectedError = "unexpected error"
 
 	// MsgPasswordIsNotValid is ...
 	MsgPasswordIsNotValid = "password is not valid"

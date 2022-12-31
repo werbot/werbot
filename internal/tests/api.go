@@ -19,9 +19,9 @@ import (
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/storage/cache"
-	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	pb "github.com/werbot/werbot/api/proto/user"
 )
@@ -125,7 +125,7 @@ func (h *TestHandler) GetUserInfo(signIn *pb.SignIn_Request) *UserInfo {
 // FinishHandler is ...
 func (h *TestHandler) FinishHandler() {
 	h.App.Use(func(c *fiber.Ctx) error {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	})
 
 	h.Handler = h.fiberToHandlerFunc()

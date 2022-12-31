@@ -8,8 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	pb "github.com/werbot/werbot/api/proto/server"
 )
@@ -19,15 +19,15 @@ import (
 // @Accept       json
 // @Produce      json
 // @Param        req         body     userIDReq
-// @Success      200         {object} httputil.HTTPResponse
-// @Failure      400,401,500 {object} httputil.HTTPResponse
+// @Success      200         {object} webutil.HTTPResponse
+// @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/share [get]
 func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 	request := new(pb.ListServersShareForUser_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -36,7 +36,7 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 			e := err.(pb.ListServersShareForUser_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -46,7 +46,7 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
-	pagination := httputil.GetPaginationFromCtx(c)
+	pagination := webutil.GetPaginationFromCtx(c)
 	servers, err := rClient.ListServersShareForUser(ctx, &pb.ListServersShareForUser_Request{
 		Limit:  pagination.GetLimit(),
 		Offset: pagination.GetOffset(),
@@ -54,13 +54,13 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 		UserId: userID,
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 	if servers.Total == 0 {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, msgServers, servers)
+	return webutil.StatusOK(c, msgServers, servers)
 }
 
 // share the selected server with the user
@@ -71,7 +71,7 @@ func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -80,10 +80,10 @@ func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
 			e := err.(pb.AddServerShareForUser_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, msgServerAdded, pb.AddServerShareForUser_Response{})
+	return webutil.StatusOK(c, msgServerAdded, pb.AddServerShareForUser_Response{})
 }
 
 // Updating the settings to the server that they shared
@@ -93,7 +93,7 @@ func (h *handler) patchServerShareForUser(c *fiber.Ctx) error {
 	request := new(pb.UpdateServerShareForUser_Request)
 
 	if err := c.BodyParser(&request); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -102,10 +102,10 @@ func (h *handler) patchServerShareForUser(c *fiber.Ctx) error {
 			e := err.(pb.UpdateServerShareForUser_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, msgServerUpdated, pb.UpdateServerShareForUser_Response{})
+	return webutil.StatusOK(c, msgServerUpdated, pb.UpdateServerShareForUser_Response{})
 }
 
 // Removing from the user list available to him the server
@@ -115,7 +115,7 @@ func (h *handler) deleteServerShareForUser(c *fiber.Ctx) error {
 	request := new(pb.DeleteServerShareForUser_Request)
 
 	if err := c.BodyParser(&request); err != nil {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -124,8 +124,8 @@ func (h *handler) deleteServerShareForUser(c *fiber.Ctx) error {
 			e := err.(pb.DeleteServerShareForUser_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	return httputil.StatusOK(c, msgServerDeleted, pb.DeleteServerShareForUser_Response{})
+	return webutil.StatusOK(c, msgServerDeleted, pb.DeleteServerShareForUser_Response{})
 }

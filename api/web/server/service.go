@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/web/httputil"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	pb "github.com/werbot/werbot/api/proto/server"
 )
@@ -18,15 +18,15 @@ import (
 // @Accept       json
 // @Produce      json
 // @Param        req         body     pb.AddServer_Request{}
-// @Success      200         {object} httputil.HTTPResponse{data=pb.AddServer_Response}
-// @Failure      400,401,500 {object} httputil.HTTPResponse
+// @Success      200         {object} webutil.HTTPResponse{data=pb.AddServer_Response}
+// @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/service/server [post]
 func (h *handler) addServiceServer(c *fiber.Ctx) error {
 	request := new(pb.AddServer_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -35,7 +35,7 @@ func (h *handler) addServiceServer(c *fiber.Ctx) error {
 			e := err.(pb.AddServer_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -50,12 +50,12 @@ func (h *handler) addServiceServer(c *fiber.Ctx) error {
 		Scheme:    pb.ServerScheme(pb.ServerAuth_KEY),
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, msgServerKey, server.KeyPublic)
+	return webutil.StatusOK(c, msgServerKey, server.KeyPublic)
 }
 
 func (h *handler) patchServiceServerStatus(c *fiber.Ctx) error {
-	return httputil.StatusOK(c, msgServerStatus, "online")
+	return webutil.StatusOK(c, msgServerStatus, "online")
 }

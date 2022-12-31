@@ -2,9 +2,10 @@ package wellknown
 
 import (
 	"github.com/gofiber/fiber/v2"
+
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/jwt"
+	"github.com/werbot/werbot/pkg/webutil"
 )
 
 // JWKSResponse is ...
@@ -27,8 +28,8 @@ func (h *handler) jwks(c *fiber.Ctx) error {
 	jwks.Keys = append(jwks.Keys, jwk)
 
 	if err != nil {
-		return httputil.StatusBadRequest(c, "", jwt.JWK{})
+		return webutil.StatusBadRequest(c, "", jwt.JWK{})
 	}
 
-	return httputil.StatusOK(c, "", jwks)
+	return webutil.StatusOK(c, "", jwks)
 }

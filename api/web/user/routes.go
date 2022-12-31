@@ -2,7 +2,7 @@ package user
 
 import (
 	"github.com/werbot/werbot/api/web"
-	"github.com/werbot/werbot/internal/logger"
+	"github.com/werbot/werbot/pkg/logger"
 )
 
 type handler struct {

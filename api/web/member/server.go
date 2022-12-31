@@ -9,8 +9,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	pb "github.com/werbot/werbot/api/proto/member"
 )
@@ -23,15 +23,15 @@ import (
 // @Param        owner_id        path     uuid false "Project owner ID"
 // @Param        server_id       path     uuid false "Server ID on project"
 // @Param        member_id       path     uuid false "Member ID. Parameter Accessible with ROLE_ADMIN rights"
-// @Success      200             {object} httputil.HTTPResponse
-// @Failure      400,401,404,500 {object} httputil.HTTPResponse
+// @Success      200             {object} webutil.HTTPResponse
+// @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/server/members [get]
 func (h *handler) getServerMember(c *fiber.Ctx) error {
 	request := new(pb.ServerMember_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -40,7 +40,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 			e := err.(pb.ServerMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -52,7 +52,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 
 	// show all member on server
 	if request.GetMemberId() == "" {
-		pagination := httputil.GetPaginationFromCtx(c)
+		pagination := webutil.GetPaginationFromCtx(c)
 		members, err := rClient.ListServerMembers(ctx, &pb.ListServerMembers_Request{
 			Limit:     pagination.GetLimit(),
 			Offset:    pagination.GetOffset(),
@@ -62,10 +62,10 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 			ServerId:  request.GetServerId(),
 		})
 		if err != nil {
-			return httputil.FromGRPC(c, h.log, err)
+			return webutil.FromGRPC(c, h.log, err)
 		}
 
-		return httputil.StatusOK(c, msgServerMembers, members)
+		return webutil.StatusOK(c, msgServerMembers, members)
 	}
 
 	member, err := rClient.ServerMember(ctx, &pb.ServerMember_Request{
@@ -75,13 +75,13 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 		MemberId:  request.GetMemberId(),
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 	if member == nil {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	return httputil.StatusOK(c, msgMemberInfo, member)
+	return webutil.StatusOK(c, msgMemberInfo, member)
 }
 
 // @Summary      Adding a new member on server
@@ -89,15 +89,15 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        req         body     pb.AddServerMember_Request{}
-// @Success      200         {object} httputil.HTTPResponse{data=pb.AddServerMember_Response}
-// @Failure      400,401,500 {object} httputil.HTTPResponse
+// @Success      200         {object} webutil.HTTPResponse{data=pb.AddServerMember_Response}
+// @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server [post]
 func (h *handler) addServerMember(c *fiber.Ctx) error {
 	request := new(pb.AddServerMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -106,7 +106,7 @@ func (h *handler) addServerMember(c *fiber.Ctx) error {
 			e := err.(pb.AddServerMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -124,10 +124,10 @@ func (h *handler) addServerMember(c *fiber.Ctx) error {
 		Active:    request.GetActive(),
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, msgMemberAdded, member)
+	return webutil.StatusOK(c, msgMemberAdded, member)
 }
 
 // @Summary      Updating member information on server.
@@ -135,15 +135,15 @@ func (h *handler) addServerMember(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        req             body     pb.UpdateServerMember_Request{}
-// @Success      200             {object} httputil.HTTPResponse{data=UpdateServerMember_Response}
-// @Failure      400,401,404,500 {object} httputil.HTTPResponse
+// @Success      200             {object} webutil.HTTPResponse{data=UpdateServerMember_Response}
+// @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server [patch]
 func (h *handler) patchServerMember(c *fiber.Ctx) error {
 	request := new(pb.UpdateServerMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -152,7 +152,7 @@ func (h *handler) patchServerMember(c *fiber.Ctx) error {
 			e := err.(pb.UpdateServerMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -170,10 +170,10 @@ func (h *handler) patchServerMember(c *fiber.Ctx) error {
 		Active:    request.GetActive(),
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, msgMemberUpdated, nil)
+	return webutil.StatusOK(c, msgMemberUpdated, nil)
 }
 
 // @Summary      Delete member on server
@@ -184,15 +184,15 @@ func (h *handler) patchServerMember(c *fiber.Ctx) error {
 // @Param        owner_id        path     uuid true "Owner ID"
 // @Param        server_id       path     uuid true "Server ID"
 // @Param        member_id       path     uuid true "Member ID"
-// @Success      200             {object} httputil.HTTPResponse
-// @Failure      400,401,404,500 {object} httputil.HTTPResponse
+// @Success      200             {object} webutil.HTTPResponse
+// @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server [delete]
 func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 	request := new(pb.DeleteServerMember_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -201,7 +201,7 @@ func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 			e := err.(pb.DeleteServerMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -218,10 +218,10 @@ func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 		MemberId:  request.GetMemberId(),
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, msgMemberDeleted, nil)
+	return webutil.StatusOK(c, msgMemberDeleted, nil)
 }
 
 // @Summary      List members without server
@@ -232,15 +232,15 @@ func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 // @Param        owner_id        path     uuid true "Owner ID"
 // @Param        server_id       path     uuid true "Server ID"
 // @Param        name            path     string true "Name"
-// @Success      200             {object} httputil.HTTPResponse
-// @Failure      400,401,404,500 {object} httputil.HTTPResponse
+// @Success      200             {object} webutil.HTTPResponse
+// @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server/search [get]
 func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	request := new(pb.MembersWithoutServer_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -249,7 +249,7 @@ func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 			e := err.(pb.MembersWithoutServer_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -259,7 +259,7 @@ func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	defer cancel()
 	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	pagination := httputil.GetPaginationFromCtx(c)
+	pagination := webutil.GetPaginationFromCtx(c)
 	members, err := rClient.MembersWithoutServer(ctx, &pb.MembersWithoutServer_Request{
 		Limit:     pagination.GetLimit(),
 		Offset:    pagination.GetOffset(),
@@ -270,10 +270,10 @@ func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 		Name:      fmt.Sprintf(`%v`, request.GetName()),
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, msgMembersWithoutServer, members)
+	return webutil.StatusOK(c, msgMembersWithoutServer, members)
 }
 
 // @Summary      Update member status of server
@@ -281,15 +281,15 @@ func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        req         body     pb.UpdateServerMemberStatus_Request{}
-// @Success      200         {object} httputil.HTTPResponse
-// @Failure      400,401,500 {object} httputil.HTTPResponse
+// @Success      200         {object} webutil.HTTPResponse
+// @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/active [patch]
 func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 	request := new(pb.UpdateServerMemberStatus_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -298,7 +298,7 @@ func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 			e := err.(pb.UpdateServerMemberStatus_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -316,7 +316,7 @@ func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 		Status:    request.GetStatus(),
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
 	// message section
@@ -325,5 +325,5 @@ func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 		message = msgMemberIsOffline
 	}
 
-	return httputil.StatusOK(c, message, nil)
+	return webutil.StatusOK(c, message, nil)
 }

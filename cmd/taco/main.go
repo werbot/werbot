@@ -16,8 +16,9 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/storage/cache"
+	"github.com/werbot/werbot/pkg/logger"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/api/web/auth"
@@ -32,7 +33,6 @@ import (
 	"github.com/werbot/werbot/api/web/user"
 	"github.com/werbot/werbot/api/web/utility"
 	"github.com/werbot/werbot/api/web/wellknown"
-	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
 )
 
@@ -115,7 +115,7 @@ func main() {
 
 	// notFoundRoute func for describe 404 Error route.
 	app.Use(func(c *fiber.Ctx) error {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	})
 
 	log.Info().Str("serverAddress", appPort).Msg("Start taco server")

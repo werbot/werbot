@@ -7,10 +7,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v3"
 
-	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/storage/cache"
-	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/jwt"
+	"github.com/werbot/werbot/pkg/logger"
+	"github.com/werbot/werbot/pkg/webutil"
 )
 
 const (
@@ -51,7 +51,7 @@ func (m AuthMiddleware) Execute() fiber.Handler {
 }
 
 func authError(c *fiber.Ctx, e error) error {
-	return httputil.StatusUnauthorized(c, "Unauthorized", nil)
+	return webutil.StatusUnauthorized(c, "Unauthorized", nil)
 }
 
 func (m AuthMiddleware) authSuccess(c *fiber.Ctx) error {
@@ -59,7 +59,7 @@ func (m AuthMiddleware) authSuccess(c *fiber.Ctx) error {
 
 	key := fmt.Sprintf("ref_token::%s", userInfo.UserSub())
 	if _, err := m.cache.Get(key); err != nil {
-		return httputil.StatusUnauthorized(c, msgTokenHasBeenRevoked, nil)
+		return webutil.StatusUnauthorized(c, msgTokenHasBeenRevoked, nil)
 	}
 
 	return c.Next()

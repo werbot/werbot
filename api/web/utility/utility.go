@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/web/httputil"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	pb "github.com/werbot/werbot/api/proto/utility"
 )
@@ -24,7 +24,7 @@ func (h *handler) getCountry(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -33,7 +33,7 @@ func (h *handler) getCountry(c *fiber.Ctx) error {
 			e := err.(pb.ListCountries_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -44,8 +44,8 @@ func (h *handler) getCountry(c *fiber.Ctx) error {
 		Name: fmt.Sprintf(`%v`, request.Name),
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, msgCountries, countries)
+	return webutil.StatusOK(c, msgCountries, countries)
 }

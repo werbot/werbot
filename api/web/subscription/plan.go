@@ -8,8 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	pb "github.com/werbot/werbot/api/proto/subscription"
 )
@@ -18,12 +18,12 @@ import (
 // @Tags         plans
 // @Accept       json
 // @Produce      json
-// @Success      200         {object} httputil.HTTPResponse
-// @Failure      400,401,500 {object} httputil.HTTPResponse
+// @Success      200         {object} webutil.HTTPResponse
+// @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/subscriptions/plans [get]
 func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	pagination := httputil.GetPaginationFromCtx(c)
+	pagination := webutil.GetPaginationFromCtx(c)
 	sqlQuery := ""
 
 	if !userParameter.IsUserAdmin() {
@@ -41,14 +41,14 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 		SortBy: "id:ASC",
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 	if plans.GetTotal() == 0 {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	if userParameter.IsUserAdmin() {
-		return httputil.StatusOK(c, msgPlans, plans)
+		return webutil.StatusOK(c, msgPlans, plans)
 	}
 
 	// response info for ROLE_USER
@@ -70,7 +70,7 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 		planLite = append(planLite, &plan)
 	}
 
-	return httputil.StatusOK(c, msgPlans, pb.PlansLite{
+	return webutil.StatusOK(c, msgPlans, pb.PlansLite{
 		Total: plans.GetTotal(),
 		Plans: planLite,
 	})
@@ -81,8 +81,8 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        plan_id     path     int true "plan_id"
-// @Success      200         {object} httputil.HTTPResponse
-// @Failure      400,401,500 {object} httputil.HTTPResponse
+// @Success      200         {object} webutil.HTTPResponse
+// @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/subscriptions/plans/:plan_id [get]
 func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 	planID := c.Params("plan_id")
@@ -95,17 +95,17 @@ func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 		PlanId: planID,
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
 	if userParameter.IsUserAdmin() {
 		// response info for ROLE_ADMIN
-		return httputil.StatusOK(c, msgPlanInfo, plan)
+		return webutil.StatusOK(c, msgPlanInfo, plan)
 	}
 
 	// response info for ROLE_USER
-	return httputil.StatusOK(c, msgPlanInfo, pb.PlansLite_PlanLite{
+	return webutil.StatusOK(c, msgPlanInfo, pb.PlansLite_PlanLite{
 		PlanId:            plan.GetPlanId(),
 		Cost:              plan.GetCost(),
 		Period:            plan.GetPeriod(),
@@ -125,15 +125,15 @@ func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 // @Produce      json
 // @Param        req         body     pb.Plan
 // @Param        key_id      path     int true "key_id"
-// @Success      200         {object} httputil.HTTPResponse
-// @Failure      400,401,500 {object} httputil.HTTPResponse
+// @Success      200         {object} webutil.HTTPResponse
+// @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/subscriptions/plans/:plan_id [patch]
 func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 	request := new(pb.UpdatePlan_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	request.PlanId = c.Params("plan_id")
@@ -144,12 +144,12 @@ func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 			e := err.(pb.UpdatePlan_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
 	if !userParameter.IsUserAdmin() {
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -175,8 +175,8 @@ func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 		Default:           request.GetDefault(),
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, msgPlanUpdated, nil)
+	return webutil.StatusOK(c, msgPlanUpdated, nil)
 }

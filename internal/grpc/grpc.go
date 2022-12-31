@@ -32,9 +32,9 @@ import (
 	pb_utility "github.com/werbot/werbot/api/proto/utility"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/storage/postgres"
+	"github.com/werbot/werbot/pkg/logger"
 )
 
 var service Service

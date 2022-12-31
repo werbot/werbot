@@ -6,7 +6,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/werbot/werbot/internal/logger"
+	"github.com/werbot/werbot/pkg/logger"
 )
 
 var log = logger.New("pkg/nats")

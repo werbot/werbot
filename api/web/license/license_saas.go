@@ -11,8 +11,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	pb "github.com/werbot/werbot/api/proto/license"
 )
@@ -22,15 +22,15 @@ import (
 // @Accept       json
 // @Produce      json
 // @Param        req         body     licenseInput
-// @Success      200         {object} httputil.HTTPResponse
-// @Failure      400,401,500 {object} httputil.HTTPResponse
+// @Success      200         {object} webutil.HTTPResponse
+// @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/license/expired [get]
 func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 	request := new(pb.License_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -39,13 +39,13 @@ func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 			e := err.(pb.License_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	licenseDec, err := base64.StdEncoding.DecodeString(request.License)
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgBadRequest, err)
+		return webutil.StatusBadRequest(c, internal.MsgBadRequest, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -56,10 +56,10 @@ func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 		License: licenseDec,
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, msgLicenseExpired, expiredLic.Status)
+	return webutil.StatusOK(c, msgLicenseExpired, expiredLic.Status)
 }
 
 // @Summary      Creating a new license
@@ -67,15 +67,15 @@ func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        req     body     pb.AddLicenseRequest
-// @Success      200     {object} httputil.HTTPResponse
-// @Failure      400,500 {object} httputil.HTTPResponse
+// @Success      200     {object} webutil.HTTPResponse
+// @Failure      400,500 {object} webutil.HTTPResponse
 // @Router       /v1/license [post]
 func (h *handler) postLicense(c *fiber.Ctx) error {
 	request := new(pb.AddLicense_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -84,7 +84,7 @@ func (h *handler) postLicense(c *fiber.Ctx) error {
 			e := err.(pb.AddLicense_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	dataLicense := &pb.AddLicense_Request{
@@ -106,10 +106,10 @@ func (h *handler) postLicense(c *fiber.Ctx) error {
 
 	dataLic, err := rClient.AddLicense(ctx, dataLicense)
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
 	licenseKey := base64.StdEncoding.EncodeToString(dataLic.License)
 
-	return httputil.StatusOK(c, msgLicenseKey, licenseKey)
+	return webutil.StatusOK(c, msgLicenseKey, licenseKey)
 }

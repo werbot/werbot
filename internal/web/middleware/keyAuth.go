@@ -10,7 +10,7 @@ import (
 	"github.com/gofiber/keyauth/v2"
 
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/web/httputil"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	pb "github.com/werbot/werbot/api/proto/project"
 )
@@ -38,7 +38,7 @@ func (m KeyMiddleware) Execute() fiber.Handler {
 }
 
 func keyError(c *fiber.Ctx, e error) error {
-	return httputil.StatusUnauthorized(c, "Invalid or expired API Key", nil)
+	return webutil.StatusUnauthorized(c, "Invalid or expired API Key", nil)
 }
 
 func keySuccess(c *fiber.Ctx) error {

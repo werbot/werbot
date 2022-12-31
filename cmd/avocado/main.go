@@ -15,8 +15,8 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/internal/storage/nats"
+	"github.com/werbot/werbot/pkg/logger"
 )
 
 var (

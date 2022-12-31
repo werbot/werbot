@@ -7,14 +7,15 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/utils"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/mail"
-	"github.com/werbot/werbot/internal/web/httputil"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	pb "github.com/werbot/werbot/api/proto/user"
 )
@@ -26,14 +27,14 @@ import (
 // @Param        email    body     pb.SignIn_Request true "Email"
 // @Param        password body     pb.SignIn_Request true "Password"
 // @Success      200      {object} jwt.Tokens
-// @Failure      400,500  {object} httputil.HTTPResponse
+// @Failure      400,500  {object} webutil.HTTPResponse
 // @Router       /auth/signin [post]
 func (h *handler) signIn(c *fiber.Ctx) error {
 	request := new(pb.SignIn_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -42,7 +43,7 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 			e := err.(pb.SignIn_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -54,7 +55,7 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 		Password: request.GetPassword(),
 	})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
 	sub := uuid.New().String()
@@ -66,15 +67,15 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.InternalServerError(c, msgFailedToCreateToken, nil)
+		return webutil.InternalServerError(c, msgFailedToCreateToken, nil)
 	}
 
 	// We write user_id (user.user.userid) in the database, since if Access_key will not know which user to create a new one
 	if !jwt.AddToken(h.Cache, sub, user.GetUserId()) {
-		return httputil.InternalServerError(c, msgFailedToSetCache, nil)
+		return webutil.InternalServerError(c, msgFailedToSetCache, nil)
 	}
 
-	return httputil.StatusOK(c, "", jwt.Tokens{
+	return webutil.StatusOK(c, "", jwt.Tokens{
 		Access:  newToken.Tokens.Access,
 		Refresh: newToken.Tokens.Refresh,
 	})
@@ -84,12 +85,12 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Success      200 {object} httputil.HTTPResponse
+// @Success      200 {object} webutil.HTTPResponse
 // @Router       /auth/logout [post]
 func (h *handler) logout(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 	jwt.DeleteToken(h.Cache, userParameter.UserSub())
-	return httputil.StatusOK(c, msgSuccessLoggedOut, nil)
+	return webutil.StatusOK(c, msgSuccessLoggedOut, nil)
 }
 
 // @Summary      Re-creation of new tokens
@@ -98,31 +99,31 @@ func (h *handler) logout(c *fiber.Ctx) error {
 // @Produce      json
 // @Param        refresh_token body     string true "Refresh token"
 // @Success      200           {object} jwt.Tokens
-// @Failure      400,404,500   {object} httputil.HTTPResponse
+// @Failure      400,404,500   {object} webutil.HTTPResponse
 // @Router       /auth/refresh [post]
 func (h *handler) refresh(c *fiber.Ctx) error {
 	request := new(jwt.Tokens)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	claims, err := jwt.Parse(request.Refresh)
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateParams, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateParams, nil)
 	}
 
 	sub := jwt.GetClaimSub(*claims)
 	userID, err := h.Cache.Get(fmt.Sprintf("ref_token::%s", sub))
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
 	if !jwt.ValidateToken(h.Cache, sub) {
-		return httputil.StatusBadRequest(c, msgTokenHasBeenRevoked, nil)
+		return webutil.StatusBadRequest(c, msgTokenHasBeenRevoked, nil)
 	}
 	jwt.DeleteToken(h.Cache, sub)
 
@@ -135,7 +136,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, msgFailedToSelectUser, nil)
+		return webutil.StatusBadRequest(c, msgFailedToSelectUser, nil)
 	}
 
 	newToken, err := jwt.New(&pb.UserParameters{
@@ -146,7 +147,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, msgFailedToCreateToken, nil)
+		return webutil.StatusBadRequest(c, msgFailedToCreateToken, nil)
 	}
 
 	jwt.AddToken(h.Cache, sub, userID)
@@ -156,7 +157,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 		Refresh: newToken.Tokens.Refresh,
 	}
 
-	return httputil.StatusOK(c, "", tokens)
+	return webutil.StatusOK(c, "", tokens)
 }
 
 // @Summary      Password reset
@@ -170,15 +171,15 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 // @Param        email       path     string true "Step1: user email"
 // @Param        reset_token path     uuid true "Step2: reset token"
 // @Param        password    path     string true "Step2: new password"
-// @Success      200         {object} httputil.HTTPResponse{data=user.ResetPassword_Response}
-// @Failure      400,500     {object} httputil.HTTPResponse
+// @Success      200         {object} webutil.HTTPResponse{data=user.ResetPassword_Response}
+// @Failure      400,500     {object} webutil.HTTPResponse
 // @Router       /auth/password_reset [post]
 func (h *handler) resetPassword(c *fiber.Ctx) error {
 	request := new(pb.ResetPassword_Request)
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		h.log.Error(err).Send()
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateParams, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateParams, nil)
 	}
 
 	request.Token = c.Params("reset_token")
@@ -189,7 +190,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 			e := err.(pb.ResetPassword_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	// Sending an email with a verification link
@@ -208,7 +209,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 	}
 
 	if request.Request == nil && request.GetToken() == "" {
-		return httputil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -218,7 +219,7 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 	response, err := rClient.ResetPassword(ctx, request)
 	if err != nil {
 		h.log.Error(err).Send()
-		return httputil.InternalServerError(c, internal.MsgUnexpectedError, nil)
+		return webutil.InternalServerError(c, strings.ToLower(utils.StatusMessage(500)), nil)
 	}
 
 	// send token to send email
@@ -229,18 +230,18 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 		go mail.Send(request.GetEmail(), "reset password confirmation", "password-reset", mailData)
 	}
 
-	return httputil.StatusOK(c, msgPasswordReset, response)
+	return webutil.StatusOK(c, msgPasswordReset, response)
 }
 
 // @Summary      Profile information
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Success      200 {object} httputil.HTTPResponse
+// @Success      200 {object} webutil.HTTPResponse
 // @Router       /auth/profile [get]
 func (h *handler) getProfile(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	return httputil.StatusOK(c, msgUserInfo, pb.AuthUserInfo{
+	return webutil.StatusOK(c, msgUserInfo, pb.AuthUserInfo{
 		UserId:   userParameter.UserID(""),
 		UserRole: userParameter.UserRole(),
 		Name:     "Werbot User",

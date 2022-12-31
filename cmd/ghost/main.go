@@ -12,8 +12,8 @@ import (
 	"github.com/robfig/cron/v3"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/logger"
 	"github.com/werbot/werbot/pkg/fsutil"
+	"github.com/werbot/werbot/pkg/logger"
 )
 
 var log = logger.New("ghost")

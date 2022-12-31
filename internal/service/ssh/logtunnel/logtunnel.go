@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/werbot/werbot/internal/logger"
+	"github.com/werbot/werbot/pkg/logger"
 	"golang.org/x/crypto/ssh"
 )
 

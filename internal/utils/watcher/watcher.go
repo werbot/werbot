@@ -2,7 +2,7 @@ package watcher
 
 import (
 	"github.com/fsnotify/fsnotify"
-	"github.com/werbot/werbot/internal/logger"
+	"github.com/werbot/werbot/pkg/logger"
 )
 
 var (

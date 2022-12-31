@@ -8,7 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/web/httputil"
+	"github.com/werbot/werbot/pkg/webutil"
 
 	pb "github.com/werbot/werbot/api/proto/update"
 )
@@ -17,8 +17,8 @@ import (
 // @Tags         info
 // @Accept       json
 // @Produce      json
-// @Success      200         {object} httputil.HTTPResponse{data=pb.Update_Response}
-// @Failure      400,401,500 {object} httputil.HTTPResponse
+// @Success      200         {object} webutil.HTTPResponse{data=pb.Update_Response}
+// @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/update/version [get]
 func (h *handler) getUpdateVersion(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -27,8 +27,8 @@ func (h *handler) getUpdateVersion(c *fiber.Ctx) error {
 
 	updateList, err := rClient.Update(ctx, &pb.Update_Request{})
 	if err != nil {
-		return httputil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	return httputil.StatusOK(c, msgCurrentVersions, updateList.Components)
+	return webutil.StatusOK(c, msgCurrentVersions, updateList.Components)
 }

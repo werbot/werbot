@@ -13,9 +13,9 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/logger"
 	cache_lib "github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/storage/postgres"
+	"github.com/werbot/werbot/pkg/logger"
 )
 
 var (

@@ -9,7 +9,7 @@ import (
 
 	"github.com/werbot/werbot/api/proto/audit"
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/logger"
+	"github.com/werbot/werbot/pkg/logger"
 
 	pb "github.com/werbot/werbot/api/proto/audit"
 )
