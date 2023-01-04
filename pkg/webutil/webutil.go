@@ -1,12 +1,7 @@
 package webutil
 
 import (
-	"strings"
-
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
-
-	"github.com/werbot/werbot/pkg/logger"
 )
 
 // HTTPResponse represents response body of API
@@ -56,15 +51,4 @@ func StatusNotFound(c *fiber.Ctx, message string, err any) error {
 // InternalServerError - HTTP error code 500
 func InternalServerError(c *fiber.Ctx, message string, err any) error {
 	return Response(c, 500, message, err)
-}
-
-// FromGRPC is ...
-func FromGRPC(c *fiber.Ctx, log logger.Logger, err error) error {
-	notFound := strings.ToLower(utils.StatusMessage(404))
-	if err.Error() == notFound {
-		return StatusNotFound(c, notFound, nil)
-	}
-
-	log.FromGRPC(err).CallerSkipFrame(1).Send()
-	return InternalServerError(c, strings.ToLower(utils.StatusMessage(500)), nil)
 }

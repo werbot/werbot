@@ -21,7 +21,7 @@ import (
 // @Success      200         {object} webutil.HTTPResponse{data=pb.AddServer_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/service/server [post]
-func (h *handler) addServiceServer(c *fiber.Ctx) error {
+func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 	request := new(pb.AddServer_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -38,17 +38,15 @@ func (h *handler) addServiceServer(c *fiber.Ctx) error {
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
+	request.Address = strings.TrimSpace(request.GetAddress())
+	request.Login = strings.TrimSpace(request.GetLogin())
+	request.Scheme = pb.ServerScheme(pb.ServerAuth_KEY)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
-	server, err := rClient.AddServer(ctx, &pb.AddServer_Request{
-		ProjectId: request.GetProjectId(),
-		Address:   strings.TrimSpace(request.GetAddress()),
-		Port:      request.GetPort(),
-		Login:     strings.TrimSpace(request.GetLogin()),
-		Scheme:    pb.ServerScheme(pb.ServerAuth_KEY),
-	})
+	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
+	server, err := rClient.AddServer(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -56,6 +54,6 @@ func (h *handler) addServiceServer(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, msgServerKey, server.KeyPublic)
 }
 
-func (h *handler) patchServiceServerStatus(c *fiber.Ctx) error {
+func (h *Handler) patchServiceServerStatus(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, msgServerStatus, "online")
 }

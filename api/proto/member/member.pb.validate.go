@@ -42,140 +42,6 @@ var (
 // define the regex for a UUID once up-front
 var _member_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
-// Validate checks the field values on Activity_Request with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// first error encountered is returned, or nil if there are no violations.
-func (m *Activity_Request) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on Activity_Request with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// Activity_RequestMultiError, or nil if none found.
-func (m *Activity_Request) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *Activity_Request) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if err := m._validateUuid(m.GetOwnerId()); err != nil {
-		err = Activity_RequestValidationError{
-			field:  "OwnerId",
-			reason: "value must be a valid UUID",
-			cause:  err,
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if err := m._validateUuid(m.GetProjectId()); err != nil {
-		err = Activity_RequestValidationError{
-			field:  "ProjectId",
-			reason: "value must be a valid UUID",
-			cause:  err,
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	// no validation rules for Name
-
-	if len(errors) > 0 {
-		return Activity_RequestMultiError(errors)
-	}
-
-	return nil
-}
-
-func (m *Activity_Request) _validateUuid(uuid string) error {
-	if matched := _member_uuidPattern.MatchString(uuid); !matched {
-		return errors.New("invalid uuid format")
-	}
-
-	return nil
-}
-
-// Activity_RequestMultiError is an error wrapping multiple validation errors
-// returned by Activity_Request.ValidateAll() if the designated constraints
-// aren't met.
-type Activity_RequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m Activity_RequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m Activity_RequestMultiError) AllErrors() []error { return m }
-
-// Activity_RequestValidationError is the validation error returned by
-// Activity_Request.Validate if the designated constraints aren't met.
-type Activity_RequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e Activity_RequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e Activity_RequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e Activity_RequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e Activity_RequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e Activity_RequestValidationError) ErrorName() string { return "Activity_RequestValidationError" }
-
-// Error satisfies the builtin error interface
-func (e Activity_RequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sActivity_Request.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = Activity_RequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = Activity_RequestValidationError{}
-
 // Validate checks the field values on ListProjectMembers with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -4013,14 +3879,42 @@ func (m *UsersWithoutProject_Request) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for OwnerId
+	if err := m._validateUuid(m.GetOwnerId()); err != nil {
+		err = UsersWithoutProject_RequestValidationError{
+			field:  "OwnerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for ProjectId
+	if err := m._validateUuid(m.GetProjectId()); err != nil {
+		err = UsersWithoutProject_RequestValidationError{
+			field:  "ProjectId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	// no validation rules for Name
 
 	if len(errors) > 0 {
 		return UsersWithoutProject_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *UsersWithoutProject_Request) _validateUuid(uuid string) error {
+	if matched := _member_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
 	}
 
 	return nil

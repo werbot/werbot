@@ -21,9 +21,8 @@ import (
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/subscriptions/plans [get]
-func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
+func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	pagination := webutil.GetPaginationFromCtx(c)
 	sqlQuery := ""
 
 	if !userParameter.IsUserAdmin() {
@@ -32,8 +31,10 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
 
+	pagination := webutil.GetPaginationFromCtx(c)
+
+	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
 	plans, err := rClient.ListPlans(ctx, &pb.ListPlans_Request{
 		Query:  sqlQuery,
 		Limit:  pagination.GetLimit(),
@@ -84,7 +85,7 @@ func (h *handler) getSubscriptionPlans(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/subscriptions/plans/:plan_id [get]
-func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
+func (h *Handler) getSubscriptionPlan(c *fiber.Ctx) error {
 	planID := c.Params("plan_id")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -128,7 +129,7 @@ func (h *handler) getSubscriptionPlan(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/subscriptions/plans/:plan_id [patch]
-func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
+func (h *Handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 	request := new(pb.UpdatePlan_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -154,26 +155,9 @@ func (h *handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.UpdatePlan(ctx, &pb.UpdatePlan_Request{
-		PlanId:            request.GetPlanId(),
-		Cost:              request.GetCost(),
-		Period:            request.GetPeriod(),
-		Title:             request.GetTitle(),
-		StripeId:          request.GetStripeId(),
-		AllowedSections:   request.GetAllowedSections(),
-		Benefits:          request.GetBenefits(),
-		Image:             request.GetImage(),
-		Active:            request.GetActive(),
-		Trial:             request.GetTrial(),
-		TrialPeriod:       request.GetTrialPeriod(),
-		LimitsServers:     request.GetLimitsServers(),
-		LimitsUsers:       request.GetLimitsServers(),
-		LimitsCompanies:   request.GetLimitsCompanies(),
-		LimitsConnections: request.GetLimitsConnections(),
-		Default:           request.GetDefault(),
-	})
+	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
+	_, err := rClient.UpdatePlan(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}

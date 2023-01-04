@@ -24,7 +24,7 @@ import (
 // @Success      200             {object} webutil.HTTPResponse{data=pb.ListProjects_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [get]
-func (h *handler) getProject(c *fiber.Ctx) error {
+func (h *Handler) getProject(c *fiber.Ctx) error {
 	request := new(pb.Project_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -42,7 +42,7 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -51,7 +51,7 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 	// show all projects
 	if request.GetProjectId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
-		sanitizeSQL, _ := sanitize.SQL(`"project"."owner_id" = $1`, userID)
+		sanitizeSQL, _ := sanitize.SQL(`"project"."owner_id" = $1`, request.OwnerId)
 		projects, err := rClient.ListProjects(ctx, &pb.ListProjects_Request{
 			Limit:  pagination.GetLimit(),
 			Offset: pagination.GetOffset(),
@@ -69,10 +69,7 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 	}
 
 	// show project information
-	project, err := rClient.Project(ctx, &pb.Project_Request{
-		OwnerId:   userID,
-		ProjectId: request.GetProjectId(),
-	})
+	project, err := rClient.Project(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -99,7 +96,7 @@ func (h *handler) getProject(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse{data=pb.AddProject_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [post]
-func (h *handler) addProject(c *fiber.Ctx) error {
+func (h *Handler) addProject(c *fiber.Ctx) error {
 	request := new(pb.AddProject_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -117,17 +114,13 @@ func (h *handler) addProject(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
 
-	project, err := rClient.AddProject(ctx, &pb.AddProject_Request{
-		OwnerId: userID,
-		Login:   request.GetLogin(),
-		Title:   request.GetTitle(),
-	})
+	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
+	project, err := rClient.AddProject(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -143,7 +136,7 @@ func (h *handler) addProject(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse{data=pb.UpdateProject_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [patch]
-func (h *handler) patchProject(c *fiber.Ctx) error {
+func (h *Handler) patchProject(c *fiber.Ctx) error {
 	request := new(pb.UpdateProject_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -161,17 +154,13 @@ func (h *handler) patchProject(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.UpdateProject(ctx, &pb.UpdateProject_Request{
-		OwnerId:   userID,
-		ProjectId: request.GetProjectId(),
-		Title:     request.GetTitle(),
-	})
+	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
+	_, err := rClient.UpdateProject(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -188,7 +177,7 @@ func (h *handler) patchProject(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [delete]
-func (h *handler) deleteProject(c *fiber.Ctx) error {
+func (h *Handler) deleteProject(c *fiber.Ctx) error {
 	request := new(pb.DeleteProject_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -206,16 +195,13 @@ func (h *handler) deleteProject(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.DeleteProject(ctx, &pb.DeleteProject_Request{
-		ProjectId: request.GetProjectId(),
-		OwnerId:   userID,
-	})
+	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
+	_, err := rClient.DeleteProject(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}

@@ -45,15 +45,6 @@ service MemberHandlers {
     rpc UsersByName(UsersByName.Request) returns (UsersByName.Response) {}
 }
 
-// -----------------------------------------------------
-// use in API in body request
-message Activity_Request {
-    string owner_id = 1    [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-    string project_id = 2  [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string name = 3;
-}
-// -----------------------------------------------------
-
 // rpc ListProjectMembers
 message ListProjectMembers {
     message Request {
@@ -171,9 +162,9 @@ message MemberByID {
 // rpc UsersWithoutProject
 message UsersWithoutProject {
     message Request {
-        string owner_id = 1;
-        string project_id = 2;
-        string name = 3;
+      string owner_id = 1    [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+      string project_id = 2  [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+      string name = 3;
     }
 
     message Response {

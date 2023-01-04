@@ -51,10 +51,14 @@ func (l *Logger) Fatal(err error) *zerolog.Event {
 }
 
 // FromGRPC is ...
-func (l *Logger) FromGRPC(err error) *zerolog.Event {
+func (l *Logger) FromGRPC(err error, frame ...int) *zerolog.Event {
 	code := grpc.Code(err)
 	message := grpc.ErrorDesc(err)
-	return l.log.Error().Caller().
+	_frame := 1
+	if len(frame) > 0 {
+		_frame = frame[0]
+	}
+	return l.log.Error().CallerSkipFrame(_frame).Caller().
 		Str("code", code.String()).
 		Interface("error", message)
 }

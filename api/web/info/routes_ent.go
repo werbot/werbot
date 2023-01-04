@@ -2,4 +2,4 @@
 
 package info
 
-func routes(h *handler) {}
+func routes(h *Handler) {}

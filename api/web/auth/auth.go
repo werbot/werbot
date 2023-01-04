@@ -29,7 +29,7 @@ import (
 // @Success      200      {object} jwt.Tokens
 // @Failure      400,500  {object} webutil.HTTPResponse
 // @Router       /auth/signin [post]
-func (h *handler) signIn(c *fiber.Ctx) error {
+func (h *Handler) signIn(c *fiber.Ctx) error {
 	request := new(pb.SignIn_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -48,12 +48,9 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
-	user, err := rClient.SignIn(ctx, &pb.SignIn_Request{
-		Email:    request.GetEmail(),
-		Password: request.GetPassword(),
-	})
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
+	user, err := rClient.SignIn(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -87,7 +84,7 @@ func (h *handler) signIn(c *fiber.Ctx) error {
 // @Produce      json
 // @Success      200 {object} webutil.HTTPResponse
 // @Router       /auth/logout [post]
-func (h *handler) logout(c *fiber.Ctx) error {
+func (h *Handler) logout(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 	jwt.DeleteToken(h.Cache, userParameter.UserSub())
 	return webutil.StatusOK(c, msgSuccessLoggedOut, nil)
@@ -101,7 +98,7 @@ func (h *handler) logout(c *fiber.Ctx) error {
 // @Success      200           {object} jwt.Tokens
 // @Failure      400,404,500   {object} webutil.HTTPResponse
 // @Router       /auth/refresh [post]
-func (h *handler) refresh(c *fiber.Ctx) error {
+func (h *Handler) refresh(c *fiber.Ctx) error {
 	request := new(jwt.Tokens)
 
 	if err := c.BodyParser(request); err != nil {
@@ -129,8 +126,8 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 	user, err := rClient.User(ctx, &pb.User_Request{
 		UserId: userID,
 	})
@@ -140,7 +137,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 	}
 
 	newToken, err := jwt.New(&pb.UserParameters{
-		UserName: "UserName",
+		UserName: "Mr Robot",
 		UserId:   user.GetUserId(),
 		Roles:    user.GetRole(),
 		Sub:      sub,
@@ -174,7 +171,7 @@ func (h *handler) refresh(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse{data=user.ResetPassword_Response}
 // @Failure      400,500     {object} webutil.HTTPResponse
 // @Router       /auth/password_reset [post]
-func (h *handler) resetPassword(c *fiber.Ctx) error {
+func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	request := new(pb.ResetPassword_Request)
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
@@ -214,8 +211,8 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 
+	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
 	response, err := rClient.ResetPassword(ctx, request)
 	if err != nil {
 		h.log.Error(err).Send()
@@ -239,11 +236,11 @@ func (h *handler) resetPassword(c *fiber.Ctx) error {
 // @Produce      json
 // @Success      200 {object} webutil.HTTPResponse
 // @Router       /auth/profile [get]
-func (h *handler) getProfile(c *fiber.Ctx) error {
+func (h *Handler) getProfile(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 	return webutil.StatusOK(c, msgUserInfo, pb.AuthUserInfo{
 		UserId:   userParameter.UserID(""),
 		UserRole: userParameter.UserRole(),
-		Name:     "Werbot User",
+		Name:     "Mr Robot",
 	})
 }

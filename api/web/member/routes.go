@@ -5,16 +5,17 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-type handler struct {
+// Handler is ...
+type Handler struct {
 	*web.Handler
 	log logger.Logger
 }
 
 // New is ...
-func New(h *web.Handler) *handler {
+func New(h *web.Handler) *Handler {
 	log := logger.New("web/member")
 
-	return &handler{
+	return &Handler{
 		Handler: &web.Handler{
 			App:  h.App,
 			Grpc: h.Grpc,
@@ -25,7 +26,7 @@ func New(h *web.Handler) *handler {
 }
 
 // Routes is ...
-func (h *handler) Routes() {
+func (h *Handler) Routes() {
 	// project invite
 	h.App.Post("/v1/members/invite/:invite", h.postProjectMembersInviteActivate)
 

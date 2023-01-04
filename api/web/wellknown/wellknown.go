@@ -20,7 +20,7 @@ type JWKSResponse struct {
 // @Produce      json
 // @Success      200 {object} JWKSResponse{}
 // @Router       /.well-known/jwks.json [get]
-func (h *handler) jwks(c *fiber.Ctx) error {
+func (h *Handler) jwks(c *fiber.Ctx) error {
 	jwks := new(JWKSResponse)
 
 	// TODO: show all keys

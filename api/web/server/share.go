@@ -22,7 +22,7 @@ import (
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/share [get]
-func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
+func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
 	request := new(pb.ListServersShareForUser_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -39,20 +39,19 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
+	pagination := webutil.GetPaginationFromCtx(c)
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetUserId())
+	request.UserId = userParameter.UserID(request.GetUserId())
+	request.Limit = pagination.GetLimit()
+	request.Offset = pagination.GetOffset()
+	request.SortBy = pagination.GetSortBy()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := pb.NewServerHandlersClient(h.Grpc.Client)
 
-	pagination := webutil.GetPaginationFromCtx(c)
-	servers, err := rClient.ListServersShareForUser(ctx, &pb.ListServersShareForUser_Request{
-		Limit:  pagination.GetLimit(),
-		Offset: pagination.GetOffset(),
-		SortBy: pagination.GetSortBy(),
-		UserId: userID,
-	})
+	servers, err := rClient.ListServersShareForUser(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -66,7 +65,7 @@ func (h *handler) getServersShareForUser(c *fiber.Ctx) error {
 // share the selected server with the user
 // request serverReq{user_id:1, project_id:1, server:1}
 // POST /v1/servers/share
-func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
+func (h *Handler) postServersShareForUser(c *fiber.Ctx) error {
 	request := new(pb.AddServerShareForUser_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -89,7 +88,7 @@ func (h *handler) postServersShareForUser(c *fiber.Ctx) error {
 // Updating the settings to the server that they shared
 // request serverReq{user_id:1, project_id:1, server:1}
 // PATCH /v1/servers/share
-func (h *handler) patchServerShareForUser(c *fiber.Ctx) error {
+func (h *Handler) patchServerShareForUser(c *fiber.Ctx) error {
 	request := new(pb.UpdateServerShareForUser_Request)
 
 	if err := c.BodyParser(&request); err != nil {
@@ -111,7 +110,7 @@ func (h *handler) patchServerShareForUser(c *fiber.Ctx) error {
 // Removing from the user list available to him the server
 // request userReq{user_id:1, project_id:1}
 // DELETE /v1/servers/share
-func (h *handler) deleteServerShareForUser(c *fiber.Ctx) error {
+func (h *Handler) deleteServerShareForUser(c *fiber.Ctx) error {
 	request := new(pb.DeleteServerShareForUser_Request)
 
 	if err := c.BodyParser(&request); err != nil {

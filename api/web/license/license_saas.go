@@ -25,7 +25,7 @@ import (
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/license/expired [get]
-func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
+func (h *Handler) getLicenseExpired(c *fiber.Ctx) error {
 	request := new(pb.License_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -50,8 +50,8 @@ func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
 
+	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
 	expiredLic, err := rClient.LicenseExpired(ctx, &pb.LicenseExpired_Request{
 		License: licenseDec,
 	})
@@ -70,7 +70,7 @@ func (h *handler) getLicenseExpired(c *fiber.Ctx) error {
 // @Success      200     {object} webutil.HTTPResponse
 // @Failure      400,500 {object} webutil.HTTPResponse
 // @Router       /v1/license [post]
-func (h *handler) postLicense(c *fiber.Ctx) error {
+func (h *Handler) postLicense(c *fiber.Ctx) error {
 	request := new(pb.AddLicense_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -87,24 +87,20 @@ func (h *handler) postLicense(c *fiber.Ctx) error {
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	dataLicense := &pb.AddLicense_Request{
-		Ip:    request.GetIp(),
-		Token: request.GetToken(),
-	}
+	request.Ip = request.GetIp()
+	request.Token = request.GetToken()
 
 	userParameter := middleware.AuthUser(c)
 	if userParameter.IsUserAdmin() {
-		dataLicense = &pb.AddLicense_Request{
-			Customer:   request.GetCustomer(),
-			Subscriber: request.GetSubscriber(),
-		}
+		request.Customer = request.GetCustomer()
+		request.Subscriber = request.GetSubscriber()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
 
-	dataLic, err := rClient.AddLicense(ctx, dataLicense)
+	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
+	dataLic, err := rClient.AddLicense(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}

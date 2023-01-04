@@ -28,7 +28,7 @@ import (
 // @Success      200             {object} webutil.HTTPResponse{data=pb.ProjectMember_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [get]
-func (h *handler) getProjectMember(c *fiber.Ctx) error {
+func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 	request := new(pb.ProjectMember_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -46,16 +46,17 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	// show all members
 	if request.GetMemberId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
-		sanitizeSQL, _ := sanitize.SQL(`owner_id = $1 AND project_id = $2`, ownerID, request.GetProjectId())
+		sanitizeSQL, _ := sanitize.SQL(`owner_id = $1 AND project_id = $2`, request.GetOwnerId(), request.GetProjectId())
 		members, err := rClient.ListProjectMembers(ctx, &pb.ListProjectMembers_Request{
 			Limit:  pagination.GetLimit(),
 			Offset: pagination.GetOffset(),
@@ -73,11 +74,7 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 	}
 
 	// show information about the member
-	member, err := rClient.ProjectMember(ctx, &pb.ProjectMember_Request{
-		OwnerId:   ownerID,
-		ProjectId: request.GetProjectId(),
-		MemberId:  request.GetMemberId(),
-	})
+	member, err := rClient.ProjectMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -96,7 +93,7 @@ func (h *handler) getProjectMember(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse{data=pb.AddProjectMember_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [post]
-func (h *handler) addProjectMember(c *fiber.Ctx) error {
+func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 	request := new(pb.AddProjectMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -114,19 +111,14 @@ func (h *handler) addProjectMember(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
+	request.Role = pb_user.RoleUser_USER // TODO directly install the role of the user
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	member, err := rClient.AddProjectMember(ctx, &pb.AddProjectMember_Request{
-		OwnerId:   userID,
-		ProjectId: request.GetProjectId(),
-		UserId:    request.GetUserId(),
-		Role:      pb_user.RoleUser_USER, // TODO directly install the role of the user
-		Active:    request.GetActive(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	member, err := rClient.AddProjectMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -142,7 +134,7 @@ func (h *handler) addProjectMember(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse{data=pb.UpdateProjectMember_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [patch]
-func (h *handler) patchProjectMember(c *fiber.Ctx) error {
+func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
 	request := new(pb.UpdateProjectMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -160,19 +152,13 @@ func (h *handler) patchProjectMember(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.UpdateProjectMember(ctx, &pb.UpdateProjectMember_Request{
-		OwnerId:   ownerID,
-		ProjectId: request.GetProjectId(),
-		MemberId:  request.GetMemberId(),
-		Role:      request.GetRole(),
-		Active:    request.GetActive(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	_, err := rClient.UpdateProjectMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -190,7 +176,7 @@ func (h *handler) patchProjectMember(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [delete]
-func (h *handler) deleteProjectMember(c *fiber.Ctx) error {
+func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 	request := new(pb.DeleteProjectMember_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -208,17 +194,13 @@ func (h *handler) deleteProjectMember(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.DeleteProjectMember(ctx, &pb.DeleteProjectMember_Request{
-		OwnerId:   ownerID,
-		ProjectId: request.GetProjectId(),
-		MemberId:  request.GetMemberId(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	_, err := rClient.DeleteProjectMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -236,8 +218,8 @@ func (h *handler) deleteProjectMember(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/search [get]
-func (h *handler) getUsersWithoutProject(c *fiber.Ctx) error {
-	request := new(pb.Activity_Request)
+func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
+	request := new(pb.UsersWithoutProject_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -246,25 +228,21 @@ func (h *handler) getUsersWithoutProject(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.Activity_RequestMultiError) {
-			e := err.(pb.Activity_RequestValidationError)
+		for _, err := range err.(pb.UsersWithoutProject_RequestMultiError) {
+			e := err.(pb.UsersWithoutProject_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	members, err := rClient.UsersWithoutProject(ctx, &pb.UsersWithoutProject_Request{
-		OwnerId:   ownerID,
-		ProjectId: request.GetProjectId(),
-		Name:      request.GetName(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	members, err := rClient.UsersWithoutProject(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -280,7 +258,7 @@ func (h *handler) getUsersWithoutProject(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/active [patch]
-func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
+func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 	request := new(pb.UpdateProjectMemberStatus_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -298,18 +276,13 @@ func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.UpdateProjectMemberStatus(ctx, &pb.UpdateProjectMemberStatus_Request{
-		OwnerId:   ownerID,
-		MemberId:  request.GetMemberId(),
-		ProjectId: request.GetProjectId(),
-		Status:    request.GetStatus(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	_, err := rClient.UpdateProjectMemberStatus(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -333,8 +306,8 @@ func (h *handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse{data=pb.ListProjectMembersInvite_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/invite [get]
-func (h *handler) getProjectMembersInvite(c *fiber.Ctx) error {
-	request := new(pb.ProjectMember_Request)
+func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
+	request := new(pb.ListProjectMembersInvite_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -343,28 +316,25 @@ func (h *handler) getProjectMembersInvite(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.ProjectMember_RequestMultiError) {
-			e := err.(pb.ProjectMember_RequestValidationError)
+		for _, err := range err.(pb.ListProjectMembersInvite_RequestMultiError) {
+			e := err.(pb.ListProjectMembersInvite_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
+	pagination := webutil.GetPaginationFromCtx(c)
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
+	request.SortBy = `"created":ASC`
+	request.Limit = pagination.GetLimit()
+	request.Offset = pagination.GetOffset()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	pagination := webutil.GetPaginationFromCtx(c)
-	members, err := rClient.ListProjectMembersInvite(ctx, &pb.ListProjectMembersInvite_Request{
-		Limit:     pagination.GetLimit(),
-		Offset:    pagination.GetOffset(),
-		SortBy:    "created:ASC",
-		OwnerId:   ownerID,
-		ProjectId: request.GetProjectId(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	members, err := rClient.ListProjectMembersInvite(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -380,7 +350,7 @@ func (h *handler) getProjectMembersInvite(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse{data=pb.AddProjectMemberInvite_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/invite [post]
-func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
+func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	request := new(pb.AddProjectMemberInvite_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -398,19 +368,13 @@ func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	member, err := rClient.AddProjectMemberInvite(ctx, &pb.AddProjectMemberInvite_Request{
-		OwnerId:     userID,
-		ProjectId:   request.GetProjectId(),
-		UserName:    request.GetUserName(),
-		UserSurname: request.GetUserSurname(),
-		Email:       request.GetEmail(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	member, err := rClient.AddProjectMemberInvite(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -433,7 +397,7 @@ func (h *handler) addProjectMemberInvite(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/invite [delete]
-func (h *handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
+func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 	request := new(pb.DeleteProjectMemberInvite_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -451,17 +415,13 @@ func (h *handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.DeleteProjectMemberInvite(ctx, &pb.DeleteProjectMemberInvite_Request{
-		OwnerId:   ownerID,
-		ProjectId: request.GetProjectId(),
-		InviteId:  request.GetInviteId(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	_, err := rClient.DeleteProjectMemberInvite(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -477,7 +437,7 @@ func (h *handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,500     {object} webutil.HTTPResponse
 // @Router       /v1/members/invite/:invite [post]
-func (h *handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
+func (h *Handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 	request := new(pb.ProjectMemberInviteActivate_Request)
 	request.Invite = c.Params("invite")
 
@@ -491,15 +451,13 @@ func (h *handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
+	request.UserId = userParameter.User.GetUserId()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	project, err := rClient.ProjectMemberInviteActivate(ctx, &pb.ProjectMemberInviteActivate_Request{
-		Invite: request.GetInvite(),
-		UserId: userParameter.User.GetUserId(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	project, err := rClient.ProjectMemberInviteActivate(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}

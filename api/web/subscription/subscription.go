@@ -23,7 +23,7 @@ import (
 // @Success      200         {object} webutil.HTTPResponse(data=GetSubscriptions_Response)
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/subscriptions [get]
-func (h *handler) getSubscriptions(c *fiber.Ctx) error {
+func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
 	request := new(pb.ListSubscriptions_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -40,21 +40,19 @@ func (h *handler) getSubscriptions(c *fiber.Ctx) error {
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
+	pagination := webutil.GetPaginationFromCtx(c)
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetUserId())
+	request.UserId = userParameter.UserID(request.GetUserId())
+	request.Limit = pagination.GetLimit()
+	request.Offset = pagination.GetOffset()
+	request.SortBy = pagination.GetSortBy()
+	request.Query, _ = sanitize.SQL(`"subscription"."customer_id" = $1`, request.UserId)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
 
-	pagination := webutil.GetPaginationFromCtx(c)
-	sanitizeSQL, _ := sanitize.SQL(`"subscription"."customer_id" = $1`, userID)
-	subscriptions, err := rClient.ListSubscriptions(ctx, &pb.ListSubscriptions_Request{
-		Limit:  pagination.GetLimit(),
-		Offset: pagination.GetOffset(),
-		SortBy: pagination.GetSortBy(),
-		Query:  sanitizeSQL,
-	})
+	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
+	subscriptions, err := rClient.ListSubscriptions(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -69,7 +67,7 @@ func (h *handler) getSubscriptions(c *fiber.Ctx) error {
 // Update user subscription
 // request {user_id:1}
 // PATCH /v1/subscriptions/:subscription_id
-func (h *handler) patchSubscription(c *fiber.Ctx) error {
+func (h *Handler) patchSubscription(c *fiber.Ctx) error {
 	request := new(pb.UpdateSubscription_Request)
 	request.SubscriptionId = c.Params("subscription_id")
 
@@ -96,7 +94,7 @@ func (h *handler) patchSubscription(c *fiber.Ctx) error {
 // Removing user subscription
 // request {user_id:1}
 // DELETE /v1/subscriptions/:subscription_id
-func (h *handler) deleteSubscription(c *fiber.Ctx) error {
+func (h *Handler) deleteSubscription(c *fiber.Ctx) error {
 	request := new(pb.DeleteSubscription_Request)
 	request.SubscriptionId = c.Params("subscription_id")
 
@@ -123,7 +121,7 @@ func (h *handler) deleteSubscription(c *fiber.Ctx) error {
 // Stop user subscription
 // request {user_id:1}
 // POST /v1/subscriptions/:subscription_id/stop
-func (h *handler) stopSubscription(c *fiber.Ctx) error {
+func (h *Handler) stopSubscription(c *fiber.Ctx) error {
 	request := new(userIDReq)
 	subscriptionID := c.Params("subscription_id")
 
@@ -144,7 +142,7 @@ func (h *handler) stopSubscription(c *fiber.Ctx) error {
 // Adding a new subscription to the user
 // request {user_id:1}
 // POST /v1/subscriptions/:subscription_id/user
-func (h *handler) addSubscriptionToUser(c *fiber.Ctx) error {
+func (h *Handler) addSubscriptionToUser(c *fiber.Ctx) error {
 	request := new(userIDReq)
 	subscriptionID := c.Params("subscription_id")
 

@@ -2,6 +2,6 @@
 
 package info
 
-func routes(h *handler) {
+func routes(h *Handler) {
 	h.App.Get("/v1/update/version", h.getUpdateVersion)
 }

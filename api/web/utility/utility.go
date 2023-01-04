@@ -2,7 +2,6 @@ package utility
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -14,12 +13,12 @@ import (
 	pb "github.com/werbot/werbot/api/proto/utility"
 )
 
-func (h *handler) getMyIP(c *fiber.Ctx) error {
+func (h *Handler) getMyIP(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/plain")
 	return c.SendString(c.IP())
 }
 
-func (h *handler) getCountry(c *fiber.Ctx) error {
+func (h *Handler) getCountry(c *fiber.Ctx) error {
 	request := new(pb.ListCountries_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -38,11 +37,9 @@ func (h *handler) getCountry(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewUtilityHandlersClient(h.Grpc.Client)
 
-	countries, err := rClient.ListCountries(ctx, &pb.ListCountries_Request{
-		Name: fmt.Sprintf(`%v`, request.Name),
-	})
+	rClient := pb.NewUtilityHandlersClient(h.Grpc.Client)
+	countries, err := rClient.ListCountries(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}

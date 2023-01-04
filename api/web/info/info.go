@@ -27,7 +27,7 @@ import (
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/update [get]
-func (h *handler) getUpdate(c *fiber.Ctx) error {
+func (h *Handler) getUpdate(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
@@ -90,7 +90,7 @@ func (h *handler) getUpdate(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse{data=pb.UserStatistics_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/info [get]
-func (h *handler) getInfo(c *fiber.Ctx) error {
+func (h *Handler) getInfo(c *fiber.Ctx) error {
 	request := new(pb.UserStatistics_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -134,7 +134,7 @@ func (h *handler) getInfo(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/version [get]
-func (h *handler) getVersion(c *fiber.Ctx) error {
+func (h *Handler) getVersion(c *fiber.Ctx) error {
 	// userParameter := middleware.GetUserParametersFromCtx(c)
 	// if userParameter.UserRole != pb_user.RoleUser_ADMIN {
 	// 	return webutil.StatusNotFound(c, internal.ErrNotFound, nil)

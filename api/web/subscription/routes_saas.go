@@ -2,7 +2,7 @@
 
 package subscription
 
-func routes(h *handler) {
+func routes(h *Handler) {
 
 	apiV1 := h.App.Group("/v1/subscriptions", h.Auth)
 	apiV1.Get("/", h.getSubscriptions)

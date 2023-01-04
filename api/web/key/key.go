@@ -24,7 +24,7 @@ import (
 // @Success      200         {object} webutil.HTTPResponse{data=pb.PublicKey_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys [get]
-func (h *handler) getKey(c *fiber.Ctx) error {
+func (h *Handler) getKey(c *fiber.Ctx) error {
 	request := new(pb.PublicKey_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -42,16 +42,17 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetUserId())
+	request.UserId = userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
 
 	// show all keys
 	if request.GetKeyId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
-		sanitizeSQL, _ := sanitize.SQL(`"user"."id" = $1`, userID)
+		sanitizeSQL, _ := sanitize.SQL(`"user"."id" = $1`, request.GetUserId())
 		keys, err := rClient.ListPublicKeys(ctx, &pb.ListPublicKeys_Request{
 			Limit:  pagination.GetLimit(),
 			Offset: pagination.GetOffset(),
@@ -68,10 +69,7 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 	}
 
 	// show information about the key
-	key, err := rClient.PublicKey(ctx, &pb.PublicKey_Request{
-		KeyId:  request.GetKeyId(),
-		UserId: userID,
-	})
+	key, err := rClient.PublicKey(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -90,7 +88,7 @@ func (h *handler) getKey(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys [post]
-func (h *handler) addKey(c *fiber.Ctx) error {
+func (h *Handler) addKey(c *fiber.Ctx) error {
 	request := new(pb.AddPublicKey_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -108,17 +106,13 @@ func (h *handler) addKey(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetUserId())
+	request.UserId = userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
 
-	publicKey, err := rClient.AddPublicKey(ctx, &pb.AddPublicKey_Request{
-		UserId: userID,
-		Title:  request.GetTitle(),
-		Key:    request.GetKey(),
-	})
+	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
+	publicKey, err := rClient.AddPublicKey(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -134,7 +128,7 @@ func (h *handler) addKey(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys [patch]
-func (h *handler) patchKey(c *fiber.Ctx) error {
+func (h *Handler) patchKey(c *fiber.Ctx) error {
 	request := new(pb.UpdatePublicKey_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -152,18 +146,13 @@ func (h *handler) patchKey(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetUserId())
+	request.UserId = userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.UpdatePublicKey(ctx, &pb.UpdatePublicKey_Request{
-		KeyId:  request.GetKeyId(),
-		UserId: userID,
-		Title:  request.GetTitle(),
-		Key:    request.GetKey(),
-	})
+	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
+	_, err := rClient.UpdatePublicKey(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -180,7 +169,7 @@ func (h *handler) patchKey(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys [delete]
-func (h *handler) deleteKey(c *fiber.Ctx) error {
+func (h *Handler) deleteKey(c *fiber.Ctx) error {
 	request := new(pb.DeletePublicKey_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -198,16 +187,13 @@ func (h *handler) deleteKey(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetUserId())
+	request.UserId = userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.DeletePublicKey(ctx, &pb.DeletePublicKey_Request{
-		KeyId:  request.GetKeyId(),
-		UserId: userID,
-	})
+	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
+	_, err := rClient.DeletePublicKey(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -223,7 +209,7 @@ func (h *handler) deleteKey(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys/generate [get]
-func (h *handler) getGenerateNewKey(c *fiber.Ctx) error {
+func (h *Handler) getGenerateNewKey(c *fiber.Ctx) error {
 	request := new(pb.GenerateSSHKey_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -237,11 +223,9 @@ func (h *handler) getGenerateNewKey(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
 
-	key, err := rClient.GenerateSSHKey(ctx, &pb.GenerateSSHKey_Request{
-		KeyType: request.GetKeyType(),
-	})
+	rClient := pb.NewKeyHandlersClient(h.Grpc.Client)
+	key, err := rClient.GenerateSSHKey(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}

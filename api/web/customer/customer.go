@@ -15,7 +15,7 @@ import (
 // subscription information
 // request {user_id:1}
 // GET /v1/customers
-func (h *handler) getCustomer(c *fiber.Ctx) error {
+func (h *Handler) getCustomer(c *fiber.Ctx) error {
 	request := new(pb.Customer_Request)
 
 	if err := c.BodyParser(&request); err != nil {
@@ -39,7 +39,7 @@ func (h *handler) getCustomer(c *fiber.Ctx) error {
 // Removing the subscriber
 // request {user_id:1}
 // DELETE /v1/customers
-func (h *handler) deleteCustomer(c *fiber.Ctx) error {
+func (h *Handler) deleteCustomer(c *fiber.Ctx) error {
 	request := new(pb.DeleteCustomer_Request)
 
 	if err := c.BodyParser(&request); err != nil {

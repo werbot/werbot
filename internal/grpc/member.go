@@ -64,7 +64,7 @@ func (m *member) ListProjectMembers(ctx context.Context, in *pb_member.ListProje
 			&created,
 			&member.ServersCount,
 		)
-		if err != nil {
+		if err != nil && err != sql.ErrNoRows {
 			service.log.FromGRPC(err).Send()
 			return nil, errFailedToScan
 		}
@@ -84,7 +84,7 @@ func (m *member) ListProjectMembers(ctx context.Context, in *pb_member.ListProje
 			INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
 			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"` + sqlSearch).
 		Scan(&total)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
@@ -131,10 +131,10 @@ func (m *member) ProjectMember(ctx context.Context, in *pb_member.ProjectMember_
 			&created,
 		)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
+		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
 
@@ -203,7 +203,7 @@ func (m *member) AddProjectMember(ctx context.Context, in *pb_member.AddProjectM
 			&projectName,
 			&userName,
 		)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
@@ -259,7 +259,7 @@ func (m *member) UpdateProjectMember(ctx context.Context, in *pb_member.UpdatePr
 		&userName,
 		&created,
 	)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
@@ -327,7 +327,7 @@ func (m *member) MemberByID(ctx context.Context, in *pb_member.MemberByID_Reques
 		in.GetUserId(),
 		in.GetProjectId(),
 	).Scan(&count)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
@@ -498,7 +498,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *pb_member.ListServer
 		in.GetProjectId(),
 		in.GetServerId(),
 	).Scan(&total)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
@@ -568,7 +568,7 @@ func (m *member) AddServerMember(ctx context.Context, in *pb_member.AddServerMem
 		in.GetServerId(),
 		in.GetMemberId(),
 	).Scan(&memberID)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
@@ -746,7 +746,7 @@ func (m *member) MembersWithoutServer(ctx context.Context, in *pb_member.Members
 		in.GetProjectId(),
 		in.GetName(),
 	).Scan(&total)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
@@ -813,7 +813,7 @@ func (m *member) ListProjectMembersInvite(ctx context.Context, in *pb_member.Lis
 			"project_invite"."project_id" = $1`,
 		in.GetProjectId(),
 	).Scan(&total)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToScan
 	}
@@ -831,6 +831,8 @@ func (m *member) AddProjectMemberInvite(ctx context.Context, in *pb_member.AddPr
 	}
 
 	var invite, inviteID string
+
+	// We check whether the user is invited with such an email to the project
 	err := service.db.Conn.QueryRow(`SELECT
 			"id"
 		FROM
@@ -839,7 +841,7 @@ func (m *member) AddProjectMemberInvite(ctx context.Context, in *pb_member.AddPr
 			"project_invite"."email" = $1`,
 		in.GetEmail(),
 	).Scan(&inviteID)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
@@ -915,9 +917,7 @@ func (m *member) ProjectMemberInviteActivate(ctx context.Context, in *pb_member.
 		WHERE
 			"project_invite"."invite" = $1`,
 		in.GetInvite(),
-	).Scan(
-		&inviteID,
-	)
+	).Scan(&inviteID)
 
 	if inviteID == "" {
 		return nil, errInviteIsInvalid

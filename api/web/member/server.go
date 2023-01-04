@@ -26,7 +26,7 @@ import (
 // @Success      200             {object} webutil.HTTPResponse
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/server/members [get]
-func (h *handler) getServerMember(c *fiber.Ctx) error {
+func (h *Handler) getServerMember(c *fiber.Ctx) error {
 	request := new(pb.ServerMember_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -44,10 +44,11 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
 	// show all member on server
@@ -57,7 +58,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 			Limit:     pagination.GetLimit(),
 			Offset:    pagination.GetOffset(),
 			SortBy:    "server_member.id:ASC",
-			OwnerId:   ownerID,
+			OwnerId:   request.GetOwnerId(),
 			ProjectId: request.GetProjectId(),
 			ServerId:  request.GetServerId(),
 		})
@@ -68,12 +69,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 		return webutil.StatusOK(c, msgServerMembers, members)
 	}
 
-	member, err := rClient.ServerMember(ctx, &pb.ServerMember_Request{
-		OwnerId:   ownerID,
-		ProjectId: request.GetProjectId(),
-		ServerId:  request.GetServerId(),
-		MemberId:  request.GetMemberId(),
-	})
+	member, err := rClient.ServerMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -92,7 +88,7 @@ func (h *handler) getServerMember(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse{data=pb.AddServerMember_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server [post]
-func (h *handler) addServerMember(c *fiber.Ctx) error {
+func (h *Handler) addServerMember(c *fiber.Ctx) error {
 	request := new(pb.AddServerMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -110,19 +106,13 @@ func (h *handler) addServerMember(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	member, err := rClient.AddServerMember(ctx, &pb.AddServerMember_Request{
-		OwnerId:   userID,
-		ProjectId: request.GetProjectId(),
-		ServerId:  request.GetServerId(),
-		MemberId:  request.GetMemberId(),
-		Active:    request.GetActive(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	member, err := rClient.AddServerMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -138,7 +128,7 @@ func (h *handler) addServerMember(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse{data=UpdateServerMember_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server [patch]
-func (h *handler) patchServerMember(c *fiber.Ctx) error {
+func (h *Handler) patchServerMember(c *fiber.Ctx) error {
 	request := new(pb.UpdateServerMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -156,19 +146,13 @@ func (h *handler) patchServerMember(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.UpdateServerMember(ctx, &pb.UpdateServerMember_Request{
-		OwnerId:   ownerID,
-		ProjectId: request.GetProjectId(),
-		ServerId:  request.GetServerId(),
-		MemberId:  request.GetMemberId(),
-		Active:    request.GetActive(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	_, err := rClient.UpdateServerMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -187,7 +171,7 @@ func (h *handler) patchServerMember(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server [delete]
-func (h *handler) deleteServerMember(c *fiber.Ctx) error {
+func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 	request := new(pb.DeleteServerMember_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -205,18 +189,13 @@ func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.DeleteServerMember(ctx, &pb.DeleteServerMember_Request{
-		OwnerId:   ownerID,
-		ProjectId: request.GetProjectId(),
-		ServerId:  request.GetServerId(),
-		MemberId:  request.GetMemberId(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	_, err := rClient.DeleteServerMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -235,7 +214,7 @@ func (h *handler) deleteServerMember(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server/search [get]
-func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
+func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	request := new(pb.MembersWithoutServer_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -252,23 +231,19 @@ func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
+	pagination := webutil.GetPaginationFromCtx(c)
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
+	request.SortBy = `"user"."name":ASC`
+	request.Name = fmt.Sprintf(`%v`, request.GetName())
+	request.Limit = pagination.GetLimit()
+	request.Offset = pagination.GetOffset()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	pagination := webutil.GetPaginationFromCtx(c)
-	members, err := rClient.MembersWithoutServer(ctx, &pb.MembersWithoutServer_Request{
-		Limit:     pagination.GetLimit(),
-		Offset:    pagination.GetOffset(),
-		SortBy:    "\"user\".\"name\":ASC",
-		OwnerId:   ownerID,
-		ProjectId: request.GetProjectId(),
-		ServerId:  request.GetServerId(),
-		Name:      fmt.Sprintf(`%v`, request.GetName()),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	members, err := rClient.MembersWithoutServer(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -284,7 +259,7 @@ func (h *handler) getMembersWithoutServer(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/active [patch]
-func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
+func (h *Handler) patchServerMemberStatus(c *fiber.Ctx) error {
 	request := new(pb.UpdateServerMemberStatus_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -302,19 +277,13 @@ func (h *handler) patchServerMemberStatus(c *fiber.Ctx) error {
 	}
 
 	userParameter := middleware.AuthUser(c)
-	ownerID := userParameter.UserID(request.GetOwnerId())
+	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
 
-	_, err := rClient.UpdateServerMemberStatus(ctx, &pb.UpdateServerMemberStatus_Request{
-		OwnerId:   ownerID,
-		MemberId:  request.GetMemberId(),
-		ProjectId: request.GetProjectId(),
-		ServerId:  request.GetServerId(),
-		Status:    request.GetStatus(),
-	})
+	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	_, err := rClient.UpdateServerMemberStatus(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}

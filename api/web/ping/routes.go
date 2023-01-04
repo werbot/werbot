@@ -4,13 +4,14 @@ import (
 	"github.com/werbot/werbot/api/web"
 )
 
-type handler struct {
+// Handler is ...
+type Handler struct {
 	*web.Handler
 }
 
 // New is ...
-func New(h *web.Handler) *handler {
-	return &handler{
+func New(h *web.Handler) *Handler {
+	return &Handler{
 		Handler: &web.Handler{
 			App: h.App,
 		},
@@ -18,6 +19,6 @@ func New(h *web.Handler) *handler {
 }
 
 // Routes is ...
-func (h *handler) Routes() {
+func (h *Handler) Routes() {
 	h.App.Get("/ping", h.getPing)
 }
