@@ -27,7 +27,7 @@ require (
 	github.com/steinfletcher/apitest-jsonpath v1.7.1
 	github.com/vanng822/go-premailer v1.20.1
 	github.com/xhit/go-simple-mail/v2 v2.13.0
-	golang.org/x/crypto v0.4.0
+	golang.org/x/crypto v0.5.0
 	golang.org/x/oauth2 v0.4.0
 	golang.org/x/term v0.4.0
 	google.golang.org/grpc v1.52.0
