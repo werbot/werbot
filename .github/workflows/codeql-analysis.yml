@@ -2,9 +2,13 @@ name: SL Scan
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - 'main'
   pull_request:
-    branches: ["main"]
+    branches:
+      - 'main'
+    paths-ignore:
+      - 'fixtures/**'
   schedule:
     - cron: "45 20 * * 6"
 
@@ -18,7 +22,7 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-  Scan-Build:
+  scan-build:
     runs-on: ubuntu-latest
     if: "!contains(github.event.commits[0].message, '[skip ci]') && !contains(github.event.commits[0].message, '[ci skip]')"
     needs: cancel-previous-runs
