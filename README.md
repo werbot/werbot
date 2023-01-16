@@ -18,13 +18,9 @@ databases or app access</h3>
     &nbsp;
     <a href="/LICENSE"><img src="https://img.shields.io/badge/license-BUSL--1.1-green.svg"></a>
     &nbsp;
-    <a href="https://app.fossa.com/projects/git%2Bgithub.com%2Fwerbot%2Fwerbot?ref=badge_shield"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2Fwerbot%2Fwerbot.svg?type=shield"></a>
-    &nbsp;
     <a href="https://goreportcard.com/report/github.com/werbot/werbot"><img src="https://goreportcard.com/badge/github.com/werbot/werbot"></a>
     &nbsp;
     <a href="https://www.codefactor.io/repository/github/werbot/werbot"><img src="https://www.codefactor.io/repository/github/werbot/werbot/badge" alt="CodeFactor" /></a>
-    &nbsp;
-    <a href="https://github.com/werbot/werbot"><img src="https://img.shields.io/badge/frontend-vue-orange.svg"></a>
     &nbsp;
     <a href="https://github.com/werbot/werbot"><img src="https://img.shields.io/badge/backend-go-orange.svg"></a>
     &nbsp;
@@ -118,6 +114,12 @@ Werbot is written in golang, runs in Docker containers, and works as microservic
 - _Containers_ - Docker, Kubernetes
 - _Databases_ - MySQL, Maria, PostgresQL, Redis, MongoDB, Elasticsearch, and other
 
+## ☝️&nbsp;&nbsp;Stability and Compatibility
+
+**Status**: The project is currently undergoing **heavy development** with frequent, breaking API changes.
+
+> **Important Note**: Current major version is zero (`v0.x.x`) to accommodate rapid development and fast iteration while getting early feedback from users (_feedback on APIs are appreciated!_). The public API could change without a major version update before `v1.0.0` release.
+
 ## 📚&nbsp;&nbsp;Documentation
 
 ... coming soon ...
@@ -153,7 +155,6 @@ All content that resides under the "**add-on/\*/**" directory of this repository
 All content that resides under the "**web/**" directory of this repository, if that directory exists, is licensed under the license defined in "**web/LICENSE**".
 
 All third party components incorporated into the Werbot Software are licensed under the original license provided by the owner of the applicable component.
-
 
 ## ❓&nbsp;&nbsp;License FAQ
 
