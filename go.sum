@@ -354,8 +354,8 @@ github.com/godbus/dbus/v5 v5.0.6/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5x
 github.com/gofiber/fiber/v2 v2.40.1/go.mod h1:Gko04sLksnHbzLSRBFWPFdzM9Ws9pRxvvIaohJK1dsk=
 github.com/gofiber/fiber/v2 v2.41.0 h1:YhNoUS/OTjEz+/WLYuQ01xI7RXgKEFnGBKMagAu5f0M=
 github.com/gofiber/fiber/v2 v2.41.0/go.mod h1:RdebcCuCRFp4W6hr3968/XxwJVg0K+jr9/Ae0PFzZ0Q=
-github.com/gofiber/helmet/v2 v2.2.22 h1:kACyVKnu3RpBmr0IomxwxwFzTLJuWllRCA5DQEminxQ=
-github.com/gofiber/helmet/v2 v2.2.22/go.mod h1:8eDCsQ6XV+Ye41c+vQKyPQdG6NW9iQhlgdnwRIvp01M=
+github.com/gofiber/helmet/v2 v2.2.23 h1:hEastMbezQwbqJgSIFvgtx/lmb51bqi6T6GW/SBhiwo=
+github.com/gofiber/helmet/v2 v2.2.23/go.mod h1:wqmrFiOYWkoOXtsf4OOdNVUABkjCvwJi9AU8xa/7SAA=
 github.com/gofiber/jwt/v3 v3.3.4 h1:x3sUJG0D/zsrjAz5QuVvbotyERy4/qN897S75tRXrfA=
 github.com/gofiber/jwt/v3 v3.3.4/go.mod h1:i8fUvsjTCPNcfdaGhvZo9etWqIjKmJajeTMYDWlFdd4=
 github.com/gofiber/keyauth/v2 v2.1.31 h1:rMZSwV75vkDgncyxrx9BeDXeNctdCAwoK2eifLgehHA=
