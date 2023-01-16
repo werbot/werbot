@@ -6,7 +6,7 @@ require (
 	github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a
 	github.com/envoyproxy/protoc-gen-validate v0.9.1
 	github.com/fsnotify/fsnotify v1.6.0
-	github.com/fsouza/go-dockerclient v1.9.1
+	github.com/fsouza/go-dockerclient v1.9.2
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.41.0
