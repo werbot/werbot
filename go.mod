@@ -11,7 +11,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.41.0
 	github.com/gofiber/helmet/v2 v2.2.23
-	github.com/gofiber/jwt/v3 v3.3.4
+	github.com/gofiber/jwt/v3 v3.3.5
 	github.com/gofiber/keyauth/v2 v2.1.31
 	github.com/golang-jwt/jwt/v4 v4.4.3
 	github.com/google/uuid v1.3.0
