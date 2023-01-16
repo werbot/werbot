@@ -4,12 +4,13 @@ import (
 	"errors"
 
 	"github.com/golang-jwt/jwt/v4"
-	pb "github.com/werbot/werbot/api/proto/user"
+
+	authpb "github.com/werbot/werbot/api/proto/auth"
 )
 
 // UserClaims  represents public and private claims for a JWT token.
 type UserClaims struct {
-	User pb.UserParameters
+	User authpb.UserParameters
 	jwt.RegisteredClaims
 }
 

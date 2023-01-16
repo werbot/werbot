@@ -27,7 +27,7 @@ type ProjectHandlersClient interface {
 	AddProject(ctx context.Context, in *AddProject_Request, opts ...grpc.CallOption) (*AddProject_Response, error)
 	UpdateProject(ctx context.Context, in *UpdateProject_Request, opts ...grpc.CallOption) (*UpdateProject_Response, error)
 	DeleteProject(ctx context.Context, in *DeleteProject_Request, opts ...grpc.CallOption) (*DeleteProject_Response, error)
-	ProjectAPIByID(ctx context.Context, in *ProjectAPIByID_Request, opts ...grpc.CallOption) (*ProjectAPIByID_Response, error)
+	Keys(ctx context.Context, in *Keys_Request, opts ...grpc.CallOption) (*Keys_Response, error)
 }
 
 type projectHandlersClient struct {
@@ -83,9 +83,9 @@ func (c *projectHandlersClient) DeleteProject(ctx context.Context, in *DeletePro
 	return out, nil
 }
 
-func (c *projectHandlersClient) ProjectAPIByID(ctx context.Context, in *ProjectAPIByID_Request, opts ...grpc.CallOption) (*ProjectAPIByID_Response, error) {
-	out := new(ProjectAPIByID_Response)
-	err := c.cc.Invoke(ctx, "/project.ProjectHandlers/ProjectAPIByID", in, out, opts...)
+func (c *projectHandlersClient) Keys(ctx context.Context, in *Keys_Request, opts ...grpc.CallOption) (*Keys_Response, error) {
+	out := new(Keys_Response)
+	err := c.cc.Invoke(ctx, "/project.ProjectHandlers/Keys", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ type ProjectHandlersServer interface {
 	AddProject(context.Context, *AddProject_Request) (*AddProject_Response, error)
 	UpdateProject(context.Context, *UpdateProject_Request) (*UpdateProject_Response, error)
 	DeleteProject(context.Context, *DeleteProject_Request) (*DeleteProject_Response, error)
-	ProjectAPIByID(context.Context, *ProjectAPIByID_Request) (*ProjectAPIByID_Response, error)
+	Keys(context.Context, *Keys_Request) (*Keys_Response, error)
 	mustEmbedUnimplementedProjectHandlersServer()
 }
 
@@ -124,8 +124,8 @@ func (UnimplementedProjectHandlersServer) UpdateProject(context.Context, *Update
 func (UnimplementedProjectHandlersServer) DeleteProject(context.Context, *DeleteProject_Request) (*DeleteProject_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteProject not implemented")
 }
-func (UnimplementedProjectHandlersServer) ProjectAPIByID(context.Context, *ProjectAPIByID_Request) (*ProjectAPIByID_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProjectAPIByID not implemented")
+func (UnimplementedProjectHandlersServer) Keys(context.Context, *Keys_Request) (*Keys_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Keys not implemented")
 }
 func (UnimplementedProjectHandlersServer) mustEmbedUnimplementedProjectHandlersServer() {}
 
@@ -230,20 +230,20 @@ func _ProjectHandlers_DeleteProject_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ProjectHandlers_ProjectAPIByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ProjectAPIByID_Request)
+func _ProjectHandlers_Keys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Keys_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ProjectHandlersServer).ProjectAPIByID(ctx, in)
+		return srv.(ProjectHandlersServer).Keys(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/project.ProjectHandlers/ProjectAPIByID",
+		FullMethod: "/project.ProjectHandlers/Keys",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProjectHandlersServer).ProjectAPIByID(ctx, req.(*ProjectAPIByID_Request))
+		return srv.(ProjectHandlersServer).Keys(ctx, req.(*Keys_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -276,8 +276,8 @@ var ProjectHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ProjectHandlers_DeleteProject_Handler,
 		},
 		{
-			MethodName: "ProjectAPIByID",
-			Handler:    _ProjectHandlers_ProjectAPIByID_Handler,
+			MethodName: "Keys",
+			Handler:    _ProjectHandlers_Keys_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

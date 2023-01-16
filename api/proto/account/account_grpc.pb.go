@@ -22,10 +22,14 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AccountHandlersClient interface {
+	// Account section
 	ListAccounts(ctx context.Context, in *ListAccounts_Request, opts ...grpc.CallOption) (*ListAccounts_Response, error)
 	Account(ctx context.Context, in *Account_Request, opts ...grpc.CallOption) (*Account_Response, error)
+	AddAccount(ctx context.Context, in *AddAccount_Request, opts ...grpc.CallOption) (*AddAccount_Response, error)
+	UpdateAccount(ctx context.Context, in *UpdateAccount_Request, opts ...grpc.CallOption) (*UpdateAccount_Response, error)
+	DeleteAccount(ctx context.Context, in *DeleteAccount_Request, opts ...grpc.CallOption) (*DeleteAccount_Response, error)
 	AccountIDByName(ctx context.Context, in *AccountIDByName_Request, opts ...grpc.CallOption) (*AccountIDByName_Response, error)
-	UpdateAccountStatus(ctx context.Context, in *UpdateAccountStatus_Request, opts ...grpc.CallOption) (*UpdateAccountStatus_Response, error)
+	UpdateStatus(ctx context.Context, in *UpdateStatus_Request, opts ...grpc.CallOption) (*UpdateStatus_Response, error)
 	SessionAccount(ctx context.Context, in *SessionAccount_Request, opts ...grpc.CallOption) (*SessionAccount_Response, error)
 	FindByTokenAccount(ctx context.Context, in *FindByTokenAccount_Request, opts ...grpc.CallOption) (*FindByTokenAccount_Response, error)
 }
@@ -56,6 +60,33 @@ func (c *accountHandlersClient) Account(ctx context.Context, in *Account_Request
 	return out, nil
 }
 
+func (c *accountHandlersClient) AddAccount(ctx context.Context, in *AddAccount_Request, opts ...grpc.CallOption) (*AddAccount_Response, error) {
+	out := new(AddAccount_Response)
+	err := c.cc.Invoke(ctx, "/account.AccountHandlers/AddAccount", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountHandlersClient) UpdateAccount(ctx context.Context, in *UpdateAccount_Request, opts ...grpc.CallOption) (*UpdateAccount_Response, error) {
+	out := new(UpdateAccount_Response)
+	err := c.cc.Invoke(ctx, "/account.AccountHandlers/UpdateAccount", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountHandlersClient) DeleteAccount(ctx context.Context, in *DeleteAccount_Request, opts ...grpc.CallOption) (*DeleteAccount_Response, error) {
+	out := new(DeleteAccount_Response)
+	err := c.cc.Invoke(ctx, "/account.AccountHandlers/DeleteAccount", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *accountHandlersClient) AccountIDByName(ctx context.Context, in *AccountIDByName_Request, opts ...grpc.CallOption) (*AccountIDByName_Response, error) {
 	out := new(AccountIDByName_Response)
 	err := c.cc.Invoke(ctx, "/account.AccountHandlers/AccountIDByName", in, out, opts...)
@@ -65,9 +96,9 @@ func (c *accountHandlersClient) AccountIDByName(ctx context.Context, in *Account
 	return out, nil
 }
 
-func (c *accountHandlersClient) UpdateAccountStatus(ctx context.Context, in *UpdateAccountStatus_Request, opts ...grpc.CallOption) (*UpdateAccountStatus_Response, error) {
-	out := new(UpdateAccountStatus_Response)
-	err := c.cc.Invoke(ctx, "/account.AccountHandlers/UpdateAccountStatus", in, out, opts...)
+func (c *accountHandlersClient) UpdateStatus(ctx context.Context, in *UpdateStatus_Request, opts ...grpc.CallOption) (*UpdateStatus_Response, error) {
+	out := new(UpdateStatus_Response)
+	err := c.cc.Invoke(ctx, "/account.AccountHandlers/UpdateStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,10 +127,14 @@ func (c *accountHandlersClient) FindByTokenAccount(ctx context.Context, in *Find
 // All implementations must embed UnimplementedAccountHandlersServer
 // for forward compatibility
 type AccountHandlersServer interface {
+	// Account section
 	ListAccounts(context.Context, *ListAccounts_Request) (*ListAccounts_Response, error)
 	Account(context.Context, *Account_Request) (*Account_Response, error)
+	AddAccount(context.Context, *AddAccount_Request) (*AddAccount_Response, error)
+	UpdateAccount(context.Context, *UpdateAccount_Request) (*UpdateAccount_Response, error)
+	DeleteAccount(context.Context, *DeleteAccount_Request) (*DeleteAccount_Response, error)
 	AccountIDByName(context.Context, *AccountIDByName_Request) (*AccountIDByName_Response, error)
-	UpdateAccountStatus(context.Context, *UpdateAccountStatus_Request) (*UpdateAccountStatus_Response, error)
+	UpdateStatus(context.Context, *UpdateStatus_Request) (*UpdateStatus_Response, error)
 	SessionAccount(context.Context, *SessionAccount_Request) (*SessionAccount_Response, error)
 	FindByTokenAccount(context.Context, *FindByTokenAccount_Request) (*FindByTokenAccount_Response, error)
 	mustEmbedUnimplementedAccountHandlersServer()
@@ -115,11 +150,20 @@ func (UnimplementedAccountHandlersServer) ListAccounts(context.Context, *ListAcc
 func (UnimplementedAccountHandlersServer) Account(context.Context, *Account_Request) (*Account_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Account not implemented")
 }
+func (UnimplementedAccountHandlersServer) AddAccount(context.Context, *AddAccount_Request) (*AddAccount_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddAccount not implemented")
+}
+func (UnimplementedAccountHandlersServer) UpdateAccount(context.Context, *UpdateAccount_Request) (*UpdateAccount_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateAccount not implemented")
+}
+func (UnimplementedAccountHandlersServer) DeleteAccount(context.Context, *DeleteAccount_Request) (*DeleteAccount_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteAccount not implemented")
+}
 func (UnimplementedAccountHandlersServer) AccountIDByName(context.Context, *AccountIDByName_Request) (*AccountIDByName_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccountIDByName not implemented")
 }
-func (UnimplementedAccountHandlersServer) UpdateAccountStatus(context.Context, *UpdateAccountStatus_Request) (*UpdateAccountStatus_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateAccountStatus not implemented")
+func (UnimplementedAccountHandlersServer) UpdateStatus(context.Context, *UpdateStatus_Request) (*UpdateStatus_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateStatus not implemented")
 }
 func (UnimplementedAccountHandlersServer) SessionAccount(context.Context, *SessionAccount_Request) (*SessionAccount_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SessionAccount not implemented")
@@ -176,6 +220,60 @@ func _AccountHandlers_Account_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AccountHandlers_AddAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddAccount_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountHandlersServer).AddAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/account.AccountHandlers/AddAccount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountHandlersServer).AddAccount(ctx, req.(*AddAccount_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountHandlers_UpdateAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAccount_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountHandlersServer).UpdateAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/account.AccountHandlers/UpdateAccount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountHandlersServer).UpdateAccount(ctx, req.(*UpdateAccount_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountHandlers_DeleteAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteAccount_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountHandlersServer).DeleteAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/account.AccountHandlers/DeleteAccount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountHandlersServer).DeleteAccount(ctx, req.(*DeleteAccount_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AccountHandlers_AccountIDByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AccountIDByName_Request)
 	if err := dec(in); err != nil {
@@ -194,20 +292,20 @@ func _AccountHandlers_AccountIDByName_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AccountHandlers_UpdateAccountStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateAccountStatus_Request)
+func _AccountHandlers_UpdateStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateStatus_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AccountHandlersServer).UpdateAccountStatus(ctx, in)
+		return srv.(AccountHandlersServer).UpdateStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/account.AccountHandlers/UpdateAccountStatus",
+		FullMethod: "/account.AccountHandlers/UpdateStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AccountHandlersServer).UpdateAccountStatus(ctx, req.(*UpdateAccountStatus_Request))
+		return srv.(AccountHandlersServer).UpdateStatus(ctx, req.(*UpdateStatus_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -264,12 +362,24 @@ var AccountHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AccountHandlers_Account_Handler,
 		},
 		{
+			MethodName: "AddAccount",
+			Handler:    _AccountHandlers_AddAccount_Handler,
+		},
+		{
+			MethodName: "UpdateAccount",
+			Handler:    _AccountHandlers_UpdateAccount_Handler,
+		},
+		{
+			MethodName: "DeleteAccount",
+			Handler:    _AccountHandlers_DeleteAccount_Handler,
+		},
+		{
 			MethodName: "AccountIDByName",
 			Handler:    _AccountHandlers_AccountIDByName_Handler,
 		},
 		{
-			MethodName: "UpdateAccountStatus",
-			Handler:    _AccountHandlers_UpdateAccountStatus_Handler,
+			MethodName: "UpdateStatus",
+			Handler:    _AccountHandlers_UpdateStatus_Handler,
 		},
 		{
 			MethodName: "SessionAccount",

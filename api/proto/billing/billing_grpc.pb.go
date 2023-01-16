@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BillingHandlersClient interface {
+	Product(ctx context.Context, in *Product_Request, opts ...grpc.CallOption) (*Product_Response, error)
 	UpdateProduct(ctx context.Context, in *UpdateProduct_Request, opts ...grpc.CallOption) (*UpdateProduct_Response, error)
 }
 
@@ -31,6 +32,15 @@ type billingHandlersClient struct {
 
 func NewBillingHandlersClient(cc grpc.ClientConnInterface) BillingHandlersClient {
 	return &billingHandlersClient{cc}
+}
+
+func (c *billingHandlersClient) Product(ctx context.Context, in *Product_Request, opts ...grpc.CallOption) (*Product_Response, error) {
+	out := new(Product_Response)
+	err := c.cc.Invoke(ctx, "/billing.BillingHandlers/Product", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *billingHandlersClient) UpdateProduct(ctx context.Context, in *UpdateProduct_Request, opts ...grpc.CallOption) (*UpdateProduct_Response, error) {
@@ -46,6 +56,7 @@ func (c *billingHandlersClient) UpdateProduct(ctx context.Context, in *UpdatePro
 // All implementations must embed UnimplementedBillingHandlersServer
 // for forward compatibility
 type BillingHandlersServer interface {
+	Product(context.Context, *Product_Request) (*Product_Response, error)
 	UpdateProduct(context.Context, *UpdateProduct_Request) (*UpdateProduct_Response, error)
 	mustEmbedUnimplementedBillingHandlersServer()
 }
@@ -54,6 +65,9 @@ type BillingHandlersServer interface {
 type UnimplementedBillingHandlersServer struct {
 }
 
+func (UnimplementedBillingHandlersServer) Product(context.Context, *Product_Request) (*Product_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Product not implemented")
+}
 func (UnimplementedBillingHandlersServer) UpdateProduct(context.Context, *UpdateProduct_Request) (*UpdateProduct_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateProduct not implemented")
 }
@@ -68,6 +82,24 @@ type UnsafeBillingHandlersServer interface {
 
 func RegisterBillingHandlersServer(s grpc.ServiceRegistrar, srv BillingHandlersServer) {
 	s.RegisterService(&BillingHandlers_ServiceDesc, srv)
+}
+
+func _BillingHandlers_Product_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Product_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingHandlersServer).Product(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/billing.BillingHandlers/Product",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingHandlersServer).Product(ctx, req.(*Product_Request))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _BillingHandlers_UpdateProduct_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -95,6 +127,10 @@ var BillingHandlers_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "billing.BillingHandlers",
 	HandlerType: (*BillingHandlersServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Product",
+			Handler:    _BillingHandlers_Product_Handler,
+		},
 		{
 			MethodName: "UpdateProduct",
 			Handler:    _BillingHandlers_UpdateProduct_Handler,

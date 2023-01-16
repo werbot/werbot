@@ -13,7 +13,7 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
-	cache_lib "github.com/werbot/werbot/internal/storage/cache"
+	storageCache "github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"
 )
@@ -50,7 +50,7 @@ func main() {
 		log.Error(err).Msg("Database connection problem")
 	}
 
-	cache := cache_lib.New(ctx, &redis.Options{
+	cache := storageCache.New(ctx, &redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})

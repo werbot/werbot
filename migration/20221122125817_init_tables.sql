@@ -195,13 +195,12 @@ CREATE TABLE "public"."server_security_ip" (
 
 CREATE TABLE "public"."session" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "account_id" uuid,
+    "member_id" uuid,
     "status" varchar(255) NOT NULL CHECK ((status)::text = ANY ((ARRAY['unknown'::character varying, 'opened'::character varying, 'closed'::character varying])::text[])),
     "created" timestamp(0) NOT NULL,
     "message" varchar(1024) NOT NULL,
-    "uuid" varchar(255) NOT NULL,
     PRIMARY KEY ("id"),
-    FOREIGN KEY ("account_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
+    FOREIGN KEY ("member_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
 );
 COMMENT ON COLUMN "public"."session"."status" IS '(DC2Type:SessionStatusType)';
 
@@ -303,7 +302,7 @@ DROP TABLE IF EXISTS "public"."project_api";
 DROP TABLE IF EXISTS "public"."limit_user_count";
 DROP TABLE IF EXISTS "public"."audit_record";
 DROP TABLE IF EXISTS "public"."audit";
-DROP TABLE IF EXISTS "public"."user_token"; 
+DROP TABLE IF EXISTS "public"."user_token";
 DROP TABLE IF EXISTS "public"."user_public_key";
 DROP TABLE IF EXISTS "public"."user_confirmation_token";
 DROP TABLE IF EXISTS "public"."session";

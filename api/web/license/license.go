@@ -6,11 +6,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	licensepb "github.com/werbot/werbot/api/proto/license"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
-
-	pb "github.com/werbot/werbot/api/proto/license"
 )
 
 // @Summary      Information about the license currently in use
@@ -30,8 +29,8 @@ func (h *Handler) getLicenseInfo(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewLicenseHandlersClient(h.Grpc.Client)
-	lic, err := rClient.License(ctx, &pb.License_Request{})
+	rClient := licensepb.NewLicenseHandlersClient(h.Grpc.Client)
+	lic, err := rClient.License(ctx, &licensepb.License_Request{})
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}

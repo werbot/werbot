@@ -11,26 +11,26 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	authpb "github.com/werbot/werbot/api/proto/auth"
+	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/mail"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
-
-	pb "github.com/werbot/werbot/api/proto/user"
 )
 
 // @Summary      Authorization in the system
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        email    body     pb.SignIn_Request true "Email"
-// @Param        password body     pb.SignIn_Request true "Password"
+// @Param        email    body     authpb.SignIn_Request true "Email"
+// @Param        password body     authpb.SignIn_Request true "Password"
 // @Success      200      {object} jwt.Tokens
 // @Failure      400,500  {object} webutil.HTTPResponse
 // @Router       /auth/signin [post]
 func (h *Handler) signIn(c *fiber.Ctx) error {
-	request := new(pb.SignIn_Request)
+	request := new(authpb.SignIn_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -39,8 +39,8 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.SignIn_RequestMultiError) {
-			e := err.(pb.SignIn_RequestValidationError)
+		for _, err := range err.(authpb.SignIn_RequestMultiError) {
+			e := err.(authpb.SignIn_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -49,14 +49,14 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
+	rClient := authpb.NewAuthHandlersClient(h.Grpc.Client)
 	user, err := rClient.SignIn(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
 
 	sub := uuid.New().String()
-	newToken, err := jwt.New(&pb.UserParameters{
+	newToken, err := jwt.New(&authpb.UserParameters{
 		UserName: "TODO",
 		UserId:   user.GetUserId(),
 		Roles:    user.GetRole(),
@@ -127,8 +127,8 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
-	user, err := rClient.User(ctx, &pb.User_Request{
+	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
+	user, err := rClient.User(ctx, &userpb.User_Request{
 		UserId: userID,
 	})
 	if err != nil {
@@ -136,7 +136,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 		return webutil.StatusBadRequest(c, msgFailedToSelectUser, nil)
 	}
 
-	newToken, err := jwt.New(&pb.UserParameters{
+	newToken, err := jwt.New(&authpb.UserParameters{
 		UserName: "Mr Robot",
 		UserId:   user.GetUserId(),
 		Roles:    user.GetRole(),
@@ -168,11 +168,11 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 // @Param        email       path     string true "Step1: user email"
 // @Param        reset_token path     uuid true "Step2: reset token"
 // @Param        password    path     string true "Step2: new password"
-// @Success      200         {object} webutil.HTTPResponse{data=user.ResetPassword_Response}
+// @Success      200         {object} webutil.HTTPResponse{data=auth.ResetPassword_Response}
 // @Failure      400,500     {object} webutil.HTTPResponse
 // @Router       /auth/password_reset [post]
 func (h *Handler) resetPassword(c *fiber.Ctx) error {
-	request := new(pb.ResetPassword_Request)
+	request := new(authpb.ResetPassword_Request)
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		h.log.Error(err).Send()
@@ -183,8 +183,8 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.ResetPassword_RequestMultiError) {
-			e := err.(pb.ResetPassword_RequestValidationError)
+		for _, err := range err.(authpb.ResetPassword_RequestMultiError) {
+			e := err.(authpb.ResetPassword_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -192,14 +192,14 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 
 	// Sending an email with a verification link
 	if request.GetEmail() != "" {
-		request.Request = &pb.ResetPassword_Request_Email{
+		request.Request = &authpb.ResetPassword_Request_Email{
 			Email: request.GetEmail(),
 		}
 	}
 
 	// Saving a new password
 	if request.GetToken() != "" && request.GetPassword() != "" {
-		request.Request = &pb.ResetPassword_Request_Password{
+		request.Request = &authpb.ResetPassword_Request_Password{
 			Password: request.GetPassword(),
 		}
 		request.Token = request.GetToken()
@@ -212,7 +212,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewUserHandlersClient(h.Grpc.Client)
+	rClient := authpb.NewAuthHandlersClient(h.Grpc.Client)
 	response, err := rClient.ResetPassword(ctx, request)
 	if err != nil {
 		h.log.Error(err).Send()
@@ -238,7 +238,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 // @Router       /auth/profile [get]
 func (h *Handler) getProfile(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	return webutil.StatusOK(c, msgUserInfo, pb.AuthUserInfo{
+	return webutil.StatusOK(c, msgUserInfo, authpb.SignIn_Response{
 		UserId:   userParameter.UserID(""),
 		UserRole: userParameter.UserRole(),
 		Name:     "Mr Robot",

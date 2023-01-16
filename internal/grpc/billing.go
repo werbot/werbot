@@ -3,14 +3,21 @@ package grpc
 import (
 	"context"
 
-	pb_billing "github.com/werbot/werbot/api/proto/billing"
+	billingpb "github.com/werbot/werbot/api/proto/billing"
 )
 
 type billing struct {
-	pb_billing.UnimplementedBillingHandlersServer
+	billingpb.UnimplementedBillingHandlersServer
+}
+
+// TODO Product is ...
+func (b *billing) Product(ctx context.Context, in *billingpb.Product_Request) (*billingpb.Product_Response, error) {
+	response := new(billingpb.Product_Response)
+	return response, nil
 }
 
 // TODO UpdateProduct is ...
-func (b *billing) UpdateProduct(ctx context.Context, in *pb_billing.UpdateProduct_Request) (*pb_billing.UpdateProduct_Response, error) {
-	return &pb_billing.UpdateProduct_Response{}, nil
+func (b *billing) UpdateProduct(ctx context.Context, in *billingpb.UpdateProduct_Request) (*billingpb.UpdateProduct_Response, error) {
+	response := new(billingpb.UpdateProduct_Response)
+	return response, nil
 }

@@ -8,10 +8,9 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/werbot/werbot/api/proto/audit"
+	auditpb "github.com/werbot/werbot/api/proto/audit"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/pkg/logger"
-
-	pb "github.com/werbot/werbot/api/proto/audit"
 )
 
 var log = logger.New("internal/auditor")
@@ -34,7 +33,7 @@ type LogChannel struct {
 func NewLogchannel(account *audit.AddAudit_Request, channel ssh.Channel, grpcSession *grpc.ClientService, recordCount int32) *LogChannel {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewAuditHandlersClient(grpcSession.Client)
+	rClient := auditpb.NewAuditHandlersClient(grpcSession.Client)
 
 	auditData, err := rClient.AddAudit(ctx, &audit.AddAudit_Request{
 		AccountId: account.AccountId,
@@ -77,12 +76,12 @@ func (l *LogChannel) Write(data []byte) (int, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewAuditHandlersClient(l.grpcSession.Client)
+	rClient := auditpb.NewAuditHandlersClient(l.grpcSession.Client)
 
 	if l.FramesCount == l.recordCount {
 		// TODO: переименовать названия на новые frame, Time, Type, Data
 		// go func() {
-		_, err := rClient.CreateRecord(ctx, &audit.CreateRecord_Request{
+		_, err := rClient.AddRecord(ctx, &audit.AddRecord_Request{
 			AuditId: l.AuditID,
 			Records: l.Frames,
 		})
@@ -106,10 +105,10 @@ func (l *LogChannel) Close() error {
 	//	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewAuditHandlersClient(l.grpcSession.Client)
+	rClient := auditpb.NewAuditHandlersClient(l.grpcSession.Client)
 
 	if l.FramesCount > 0 {
-		_, err := rClient.CreateRecord(ctx, &audit.CreateRecord_Request{
+		_, err := rClient.AddRecord(ctx, &audit.AddRecord_Request{
 			AuditId: l.AuditID,
 			Records: l.Frames,
 		})
@@ -121,10 +120,8 @@ func (l *LogChannel) Close() error {
 	}
 
 	_, err := rClient.UpdateAudit(ctx, &audit.UpdateAudit_Request{
-		AuditId: l.AuditID,
-		Params: &audit.UpdateAudit_Request_Params{
-			Duration: fmt.Sprintf("%.6f", l.Duration().Seconds()),
-		},
+		AuditId:  l.AuditID,
+		Duration: fmt.Sprintf("%.6f", l.Duration().Seconds()),
 	})
 
 	if err != nil {

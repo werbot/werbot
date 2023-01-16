@@ -25,29 +25,29 @@ var (
 // Private is ...
 type Private struct {
 	key     ed25519.PrivateKey
-	License *License
+	License License
 }
 
 // Public is ...
 type Public struct {
 	key     ed25519.PublicKey
-	License *License
+	License License
 }
 
-// License is a ...
+// License file structure
 type License struct {
 	Iss string          `json:"iss,omitempty"` // Issued By
 	Cus string          `json:"cus,omitempty"` // Customer ID
 	Sub string          `json:"sub,omitempty"` // Subscriber ID
 	Typ string          `json:"typ,omitempty"` // License Type
-	Ips string          `json:"ips,omitempty"` // Ips
+	Ips string          `json:"ips,omitempty"` // Ip's
 	Iat time.Time       `json:"iat,omitempty"` // Issued At
 	Exp time.Time       `json:"exp,omitempty"` // Expires At
 	Dat json.RawMessage `json:"dat,omitempty"` // Data
 }
 
-// New is generate new license
-func New(privateKey []byte) (*Private, error) {
+// DecodePrivateKey is decode private key from base64
+func DecodePrivateKey(privateKey []byte) (*Private, error) {
 	decodedPrivateKey, err := decodeKey(privateKey)
 	if err != nil {
 		return nil, err
@@ -58,19 +58,7 @@ func New(privateKey []byte) (*Private, error) {
 	}, nil
 }
 
-// Read and decode license
-func Read(publicKey []byte) (*Public, error) {
-	decodedPublicKey, err := decodeKey(publicKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Public{
-		key: ed25519.PublicKey(decodedPublicKey),
-	}, nil
-}
-
-// Encode is a ...
+// Encode is a generate new license
 func (l *Private) Encode() ([]byte, error) {
 	if l.key == nil {
 		return nil, errors.New("private key is not set")
@@ -93,7 +81,19 @@ func (l *Private) Encode() ([]byte, error) {
 	return pem.EncodeToMemory(block), nil
 }
 
-// Decode is a ...
+// DecodePublicKey and decode public key from base64
+func DecodePublicKey(publicKey []byte) (*Public, error) {
+	decodedPublicKey, err := decodeKey(publicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Public{
+		key: ed25519.PublicKey(decodedPublicKey),
+	}, nil
+}
+
+// Decode license file
 func (l *Public) Decode(data []byte) (*Public, error) {
 	if l.key == nil {
 		return nil, errors.New("public key is not set")
@@ -109,11 +109,11 @@ func (l *Public) Decode(data []byte) (*Public, error) {
 
 	verified := ed25519.Verify(l.key, msg, sig)
 	if !verified {
-		return nil, errors.New("Invalid signature")
+		return nil, errors.New("invalid license")
 	}
 	out := new(License)
 	err := json.Unmarshal(msg, out)
-	l.License = out
+	l.License = *out
 	return l, err
 }
 
@@ -123,7 +123,7 @@ func (l *Public) Expired() bool {
 }
 
 // Info is ...
-func (l *Public) Info() *License {
+func (l *Public) Info() License {
 	return l.License
 }
 
@@ -131,5 +131,8 @@ func decodeKey(b []byte) ([]byte, error) {
 	enc := base64.StdEncoding
 	buf := make([]byte, enc.DecodedLen(len(b)))
 	n, err := enc.Decode(buf, b)
-	return buf[:n], err
+	if err != nil {
+		return nil, errors.New("illegal base64 data")
+	}
+	return buf[:n], nil
 }

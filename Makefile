@@ -398,7 +398,7 @@ srv_migration:
 			DB_POSTFIX=${DB_POSTFIX}"_saas";\
 		elif [ "$(ARG_TYPE)" == "test" ]; then\
 			mkdir $(ROOT_PATH)/.vscode/migrate_tmp;\
-			for file_migrate in ${shell find . -path '*/migration/test/*' | sort -r}; do \
+			for file_migrate in ${shell find . -path '*/fixtures/migration/*' | sort -r}; do \
 				cp "$$file_migrate" $(ROOT_PATH)/.vscode/migrate_tmp/;\
 			done; \
 			MIGRATION_DIR=$(ROOT_PATH)/.vscode/migrate_tmp;\

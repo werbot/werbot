@@ -23,33 +23,32 @@ type authContext struct {
 	message         string
 	authMethod      string
 	authSuccess     bool
-	uuid            string
+	sessionID       string
 	userID          string
 	userName        string
 	userFingerPrint string
 	hostAddr        string
 	hostID          string
 	userAddr        string
-	userCountry     string
 	aesKey          string // TODO добавить в базу для пользователя уникальный AES ключ по которому будут шифроваться его данные
 	serverList      []*server.Server_Response
 	// serverList      map[int32]*server.Server
 }
 
-func (c authContext) userType() server.UserType {
+func (c authContext) userType() server.Type {
 	if c.userName == "healthcheck" {
-		return server.UserType_HEALTHCHECK
+		return server.Type_healthcheck
 	}
 
 	if strings.HasPrefix(c.userName, "invite_") {
-		return server.UserType_INVITE
+		return server.Type_invite
 	}
 
 	nameArray := strutil.SplitNTrimmed(c.userName, "_", 3)
 	if len(nameArray) == 3 && nameArray[2] != "" {
-		return server.UserType_BASTION
+		return server.Type_bastion
 	}
-	return server.UserType_SHELL
+	return server.Type_shell
 }
 
 func bastionClientConfig(ctx ssh.Context, host *server.Server_Response) (*gossh.ClientConfig, error) {

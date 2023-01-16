@@ -1,6 +1,15 @@
 package internal
 
 const (
+	// MsgNotFound is not Found
+	MsgNotFound = "not found"
+
+	// MsgBadRequest is bad request
+	MsgBadRequest = "bad request"
+
+	// MsgServerError is server error
+	MsgServerError = "server error"
+
 	// MsgAccessIsDenied is Access is denied
 	MsgAccessIsDenied = "access is denied"
 
@@ -27,12 +36,6 @@ const (
 
 	// MsgHavingTroubleRemoving is Having trouble removing
 	MsgHavingTroubleRemoving = "having trouble removing"
-
-	// MsgBadRequest is bad request
-	MsgBadRequest = "bad request"
-
-	// MsgNotFound is not Found
-	MsgNotFound = "not found"
 
 	// MsgUnauthorized is unauthorized
 	MsgUnauthorized = "unauthorized"
@@ -61,9 +64,6 @@ const (
 	// MsgFailedToOpenFile is ...
 	MsgFailedToOpenFile = "failed to open file"
 
-	// MsgFailedToSelect is ...
-	MsgFailedToSelect = "failed to select"
-
 	// MsgFailedToAdd is ...
 	MsgFailedToAdd = "failed to add"
 
@@ -72,9 +72,6 @@ const (
 
 	// MsgFailedToDelete is ...
 	MsgFailedToDelete = "failed to delete"
-
-	// MsgFailedToScan is ...
-	MsgFailedToScan = "failed to Scan"
 
 	// MsgInviteIsInvalid is ...
 	MsgInviteIsInvalid = "invite is invalid"

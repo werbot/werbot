@@ -28,25 +28,21 @@ type MemberHandlersClient interface {
 	AddProjectMember(ctx context.Context, in *AddProjectMember_Request, opts ...grpc.CallOption) (*AddProjectMember_Response, error)
 	UpdateProjectMember(ctx context.Context, in *UpdateProjectMember_Request, opts ...grpc.CallOption) (*UpdateProjectMember_Response, error)
 	DeleteProjectMember(ctx context.Context, in *DeleteProjectMember_Request, opts ...grpc.CallOption) (*DeleteProjectMember_Response, error)
-	UpdateProjectMemberStatus(ctx context.Context, in *UpdateProjectMemberStatus_Request, opts ...grpc.CallOption) (*UpdateProjectMemberStatus_Response, error)
 	// Used in finding and adding a new member to the project
 	UsersWithoutProject(ctx context.Context, in *UsersWithoutProject_Request, opts ...grpc.CallOption) (*UsersWithoutProject_Response, error)
-	ListProjectMembersInvite(ctx context.Context, in *ListProjectMembersInvite_Request, opts ...grpc.CallOption) (*ListProjectMembersInvite_Response, error)
-	AddProjectMemberInvite(ctx context.Context, in *AddProjectMemberInvite_Request, opts ...grpc.CallOption) (*AddProjectMemberInvite_Response, error)
-	DeleteProjectMemberInvite(ctx context.Context, in *DeleteProjectMemberInvite_Request, opts ...grpc.CallOption) (*DeleteProjectMemberInvite_Response, error)
-	ProjectMemberInviteActivate(ctx context.Context, in *ProjectMemberInviteActivate_Request, opts ...grpc.CallOption) (*ProjectMemberInviteActivate_Response, error)
+	// Invite section
+	ListMembersInvite(ctx context.Context, in *ListMembersInvite_Request, opts ...grpc.CallOption) (*ListMembersInvite_Response, error)
+	AddMemberInvite(ctx context.Context, in *AddMemberInvite_Request, opts ...grpc.CallOption) (*AddMemberInvite_Response, error)
+	DeleteMemberInvite(ctx context.Context, in *DeleteMemberInvite_Request, opts ...grpc.CallOption) (*DeleteMemberInvite_Response, error)
+	MemberInviteActivate(ctx context.Context, in *MemberInviteActivate_Request, opts ...grpc.CallOption) (*MemberInviteActivate_Response, error)
 	// Server section
 	ListServerMembers(ctx context.Context, in *ListServerMembers_Request, opts ...grpc.CallOption) (*ListServerMembers_Response, error)
 	ServerMember(ctx context.Context, in *ServerMember_Request, opts ...grpc.CallOption) (*ServerMember_Response, error)
 	AddServerMember(ctx context.Context, in *AddServerMember_Request, opts ...grpc.CallOption) (*AddServerMember_Response, error)
 	UpdateServerMember(ctx context.Context, in *UpdateServerMember_Request, opts ...grpc.CallOption) (*UpdateServerMember_Response, error)
 	DeleteServerMember(ctx context.Context, in *DeleteServerMember_Request, opts ...grpc.CallOption) (*DeleteServerMember_Response, error)
-	UpdateServerMemberStatus(ctx context.Context, in *UpdateServerMemberStatus_Request, opts ...grpc.CallOption) (*UpdateServerMemberStatus_Response, error)
+	// Used in finding and adding a new member to the server
 	MembersWithoutServer(ctx context.Context, in *MembersWithoutServer_Request, opts ...grpc.CallOption) (*MembersWithoutServer_Response, error)
-	// Search member by user id and return true if found or false
-	MemberByID(ctx context.Context, in *MemberByID_Request, opts ...grpc.CallOption) (*MemberByID_Response, error)
-	// Use for Ajax search Users from first letters of name
-	UsersByName(ctx context.Context, in *UsersByName_Request, opts ...grpc.CallOption) (*UsersByName_Response, error)
 }
 
 type memberHandlersClient struct {
@@ -102,15 +98,6 @@ func (c *memberHandlersClient) DeleteProjectMember(ctx context.Context, in *Dele
 	return out, nil
 }
 
-func (c *memberHandlersClient) UpdateProjectMemberStatus(ctx context.Context, in *UpdateProjectMemberStatus_Request, opts ...grpc.CallOption) (*UpdateProjectMemberStatus_Response, error) {
-	out := new(UpdateProjectMemberStatus_Response)
-	err := c.cc.Invoke(ctx, "/member.MemberHandlers/UpdateProjectMemberStatus", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *memberHandlersClient) UsersWithoutProject(ctx context.Context, in *UsersWithoutProject_Request, opts ...grpc.CallOption) (*UsersWithoutProject_Response, error) {
 	out := new(UsersWithoutProject_Response)
 	err := c.cc.Invoke(ctx, "/member.MemberHandlers/UsersWithoutProject", in, out, opts...)
@@ -120,36 +107,36 @@ func (c *memberHandlersClient) UsersWithoutProject(ctx context.Context, in *User
 	return out, nil
 }
 
-func (c *memberHandlersClient) ListProjectMembersInvite(ctx context.Context, in *ListProjectMembersInvite_Request, opts ...grpc.CallOption) (*ListProjectMembersInvite_Response, error) {
-	out := new(ListProjectMembersInvite_Response)
-	err := c.cc.Invoke(ctx, "/member.MemberHandlers/ListProjectMembersInvite", in, out, opts...)
+func (c *memberHandlersClient) ListMembersInvite(ctx context.Context, in *ListMembersInvite_Request, opts ...grpc.CallOption) (*ListMembersInvite_Response, error) {
+	out := new(ListMembersInvite_Response)
+	err := c.cc.Invoke(ctx, "/member.MemberHandlers/ListMembersInvite", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *memberHandlersClient) AddProjectMemberInvite(ctx context.Context, in *AddProjectMemberInvite_Request, opts ...grpc.CallOption) (*AddProjectMemberInvite_Response, error) {
-	out := new(AddProjectMemberInvite_Response)
-	err := c.cc.Invoke(ctx, "/member.MemberHandlers/AddProjectMemberInvite", in, out, opts...)
+func (c *memberHandlersClient) AddMemberInvite(ctx context.Context, in *AddMemberInvite_Request, opts ...grpc.CallOption) (*AddMemberInvite_Response, error) {
+	out := new(AddMemberInvite_Response)
+	err := c.cc.Invoke(ctx, "/member.MemberHandlers/AddMemberInvite", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *memberHandlersClient) DeleteProjectMemberInvite(ctx context.Context, in *DeleteProjectMemberInvite_Request, opts ...grpc.CallOption) (*DeleteProjectMemberInvite_Response, error) {
-	out := new(DeleteProjectMemberInvite_Response)
-	err := c.cc.Invoke(ctx, "/member.MemberHandlers/DeleteProjectMemberInvite", in, out, opts...)
+func (c *memberHandlersClient) DeleteMemberInvite(ctx context.Context, in *DeleteMemberInvite_Request, opts ...grpc.CallOption) (*DeleteMemberInvite_Response, error) {
+	out := new(DeleteMemberInvite_Response)
+	err := c.cc.Invoke(ctx, "/member.MemberHandlers/DeleteMemberInvite", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *memberHandlersClient) ProjectMemberInviteActivate(ctx context.Context, in *ProjectMemberInviteActivate_Request, opts ...grpc.CallOption) (*ProjectMemberInviteActivate_Response, error) {
-	out := new(ProjectMemberInviteActivate_Response)
-	err := c.cc.Invoke(ctx, "/member.MemberHandlers/ProjectMemberInviteActivate", in, out, opts...)
+func (c *memberHandlersClient) MemberInviteActivate(ctx context.Context, in *MemberInviteActivate_Request, opts ...grpc.CallOption) (*MemberInviteActivate_Response, error) {
+	out := new(MemberInviteActivate_Response)
+	err := c.cc.Invoke(ctx, "/member.MemberHandlers/MemberInviteActivate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -201,36 +188,9 @@ func (c *memberHandlersClient) DeleteServerMember(ctx context.Context, in *Delet
 	return out, nil
 }
 
-func (c *memberHandlersClient) UpdateServerMemberStatus(ctx context.Context, in *UpdateServerMemberStatus_Request, opts ...grpc.CallOption) (*UpdateServerMemberStatus_Response, error) {
-	out := new(UpdateServerMemberStatus_Response)
-	err := c.cc.Invoke(ctx, "/member.MemberHandlers/UpdateServerMemberStatus", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *memberHandlersClient) MembersWithoutServer(ctx context.Context, in *MembersWithoutServer_Request, opts ...grpc.CallOption) (*MembersWithoutServer_Response, error) {
 	out := new(MembersWithoutServer_Response)
 	err := c.cc.Invoke(ctx, "/member.MemberHandlers/MembersWithoutServer", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *memberHandlersClient) MemberByID(ctx context.Context, in *MemberByID_Request, opts ...grpc.CallOption) (*MemberByID_Response, error) {
-	out := new(MemberByID_Response)
-	err := c.cc.Invoke(ctx, "/member.MemberHandlers/MemberByID", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *memberHandlersClient) UsersByName(ctx context.Context, in *UsersByName_Request, opts ...grpc.CallOption) (*UsersByName_Response, error) {
-	out := new(UsersByName_Response)
-	err := c.cc.Invoke(ctx, "/member.MemberHandlers/UsersByName", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -247,25 +207,21 @@ type MemberHandlersServer interface {
 	AddProjectMember(context.Context, *AddProjectMember_Request) (*AddProjectMember_Response, error)
 	UpdateProjectMember(context.Context, *UpdateProjectMember_Request) (*UpdateProjectMember_Response, error)
 	DeleteProjectMember(context.Context, *DeleteProjectMember_Request) (*DeleteProjectMember_Response, error)
-	UpdateProjectMemberStatus(context.Context, *UpdateProjectMemberStatus_Request) (*UpdateProjectMemberStatus_Response, error)
 	// Used in finding and adding a new member to the project
 	UsersWithoutProject(context.Context, *UsersWithoutProject_Request) (*UsersWithoutProject_Response, error)
-	ListProjectMembersInvite(context.Context, *ListProjectMembersInvite_Request) (*ListProjectMembersInvite_Response, error)
-	AddProjectMemberInvite(context.Context, *AddProjectMemberInvite_Request) (*AddProjectMemberInvite_Response, error)
-	DeleteProjectMemberInvite(context.Context, *DeleteProjectMemberInvite_Request) (*DeleteProjectMemberInvite_Response, error)
-	ProjectMemberInviteActivate(context.Context, *ProjectMemberInviteActivate_Request) (*ProjectMemberInviteActivate_Response, error)
+	// Invite section
+	ListMembersInvite(context.Context, *ListMembersInvite_Request) (*ListMembersInvite_Response, error)
+	AddMemberInvite(context.Context, *AddMemberInvite_Request) (*AddMemberInvite_Response, error)
+	DeleteMemberInvite(context.Context, *DeleteMemberInvite_Request) (*DeleteMemberInvite_Response, error)
+	MemberInviteActivate(context.Context, *MemberInviteActivate_Request) (*MemberInviteActivate_Response, error)
 	// Server section
 	ListServerMembers(context.Context, *ListServerMembers_Request) (*ListServerMembers_Response, error)
 	ServerMember(context.Context, *ServerMember_Request) (*ServerMember_Response, error)
 	AddServerMember(context.Context, *AddServerMember_Request) (*AddServerMember_Response, error)
 	UpdateServerMember(context.Context, *UpdateServerMember_Request) (*UpdateServerMember_Response, error)
 	DeleteServerMember(context.Context, *DeleteServerMember_Request) (*DeleteServerMember_Response, error)
-	UpdateServerMemberStatus(context.Context, *UpdateServerMemberStatus_Request) (*UpdateServerMemberStatus_Response, error)
+	// Used in finding and adding a new member to the server
 	MembersWithoutServer(context.Context, *MembersWithoutServer_Request) (*MembersWithoutServer_Response, error)
-	// Search member by user id and return true if found or false
-	MemberByID(context.Context, *MemberByID_Request) (*MemberByID_Response, error)
-	// Use for Ajax search Users from first letters of name
-	UsersByName(context.Context, *UsersByName_Request) (*UsersByName_Response, error)
 	mustEmbedUnimplementedMemberHandlersServer()
 }
 
@@ -288,23 +244,20 @@ func (UnimplementedMemberHandlersServer) UpdateProjectMember(context.Context, *U
 func (UnimplementedMemberHandlersServer) DeleteProjectMember(context.Context, *DeleteProjectMember_Request) (*DeleteProjectMember_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteProjectMember not implemented")
 }
-func (UnimplementedMemberHandlersServer) UpdateProjectMemberStatus(context.Context, *UpdateProjectMemberStatus_Request) (*UpdateProjectMemberStatus_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateProjectMemberStatus not implemented")
-}
 func (UnimplementedMemberHandlersServer) UsersWithoutProject(context.Context, *UsersWithoutProject_Request) (*UsersWithoutProject_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UsersWithoutProject not implemented")
 }
-func (UnimplementedMemberHandlersServer) ListProjectMembersInvite(context.Context, *ListProjectMembersInvite_Request) (*ListProjectMembersInvite_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListProjectMembersInvite not implemented")
+func (UnimplementedMemberHandlersServer) ListMembersInvite(context.Context, *ListMembersInvite_Request) (*ListMembersInvite_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMembersInvite not implemented")
 }
-func (UnimplementedMemberHandlersServer) AddProjectMemberInvite(context.Context, *AddProjectMemberInvite_Request) (*AddProjectMemberInvite_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddProjectMemberInvite not implemented")
+func (UnimplementedMemberHandlersServer) AddMemberInvite(context.Context, *AddMemberInvite_Request) (*AddMemberInvite_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddMemberInvite not implemented")
 }
-func (UnimplementedMemberHandlersServer) DeleteProjectMemberInvite(context.Context, *DeleteProjectMemberInvite_Request) (*DeleteProjectMemberInvite_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteProjectMemberInvite not implemented")
+func (UnimplementedMemberHandlersServer) DeleteMemberInvite(context.Context, *DeleteMemberInvite_Request) (*DeleteMemberInvite_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteMemberInvite not implemented")
 }
-func (UnimplementedMemberHandlersServer) ProjectMemberInviteActivate(context.Context, *ProjectMemberInviteActivate_Request) (*ProjectMemberInviteActivate_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProjectMemberInviteActivate not implemented")
+func (UnimplementedMemberHandlersServer) MemberInviteActivate(context.Context, *MemberInviteActivate_Request) (*MemberInviteActivate_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MemberInviteActivate not implemented")
 }
 func (UnimplementedMemberHandlersServer) ListServerMembers(context.Context, *ListServerMembers_Request) (*ListServerMembers_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListServerMembers not implemented")
@@ -321,17 +274,8 @@ func (UnimplementedMemberHandlersServer) UpdateServerMember(context.Context, *Up
 func (UnimplementedMemberHandlersServer) DeleteServerMember(context.Context, *DeleteServerMember_Request) (*DeleteServerMember_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteServerMember not implemented")
 }
-func (UnimplementedMemberHandlersServer) UpdateServerMemberStatus(context.Context, *UpdateServerMemberStatus_Request) (*UpdateServerMemberStatus_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateServerMemberStatus not implemented")
-}
 func (UnimplementedMemberHandlersServer) MembersWithoutServer(context.Context, *MembersWithoutServer_Request) (*MembersWithoutServer_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MembersWithoutServer not implemented")
-}
-func (UnimplementedMemberHandlersServer) MemberByID(context.Context, *MemberByID_Request) (*MemberByID_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method MemberByID not implemented")
-}
-func (UnimplementedMemberHandlersServer) UsersByName(context.Context, *UsersByName_Request) (*UsersByName_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UsersByName not implemented")
 }
 func (UnimplementedMemberHandlersServer) mustEmbedUnimplementedMemberHandlersServer() {}
 
@@ -436,24 +380,6 @@ func _MemberHandlers_DeleteProjectMember_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MemberHandlers_UpdateProjectMemberStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateProjectMemberStatus_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MemberHandlersServer).UpdateProjectMemberStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/member.MemberHandlers/UpdateProjectMemberStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).UpdateProjectMemberStatus(ctx, req.(*UpdateProjectMemberStatus_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _MemberHandlers_UsersWithoutProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UsersWithoutProject_Request)
 	if err := dec(in); err != nil {
@@ -472,74 +398,74 @@ func _MemberHandlers_UsersWithoutProject_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MemberHandlers_ListProjectMembersInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListProjectMembersInvite_Request)
+func _MemberHandlers_ListMembersInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMembersInvite_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MemberHandlersServer).ListProjectMembersInvite(ctx, in)
+		return srv.(MemberHandlersServer).ListMembersInvite(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/member.MemberHandlers/ListProjectMembersInvite",
+		FullMethod: "/member.MemberHandlers/ListMembersInvite",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).ListProjectMembersInvite(ctx, req.(*ListProjectMembersInvite_Request))
+		return srv.(MemberHandlersServer).ListMembersInvite(ctx, req.(*ListMembersInvite_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MemberHandlers_AddProjectMemberInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddProjectMemberInvite_Request)
+func _MemberHandlers_AddMemberInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddMemberInvite_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MemberHandlersServer).AddProjectMemberInvite(ctx, in)
+		return srv.(MemberHandlersServer).AddMemberInvite(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/member.MemberHandlers/AddProjectMemberInvite",
+		FullMethod: "/member.MemberHandlers/AddMemberInvite",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).AddProjectMemberInvite(ctx, req.(*AddProjectMemberInvite_Request))
+		return srv.(MemberHandlersServer).AddMemberInvite(ctx, req.(*AddMemberInvite_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MemberHandlers_DeleteProjectMemberInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteProjectMemberInvite_Request)
+func _MemberHandlers_DeleteMemberInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMemberInvite_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MemberHandlersServer).DeleteProjectMemberInvite(ctx, in)
+		return srv.(MemberHandlersServer).DeleteMemberInvite(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/member.MemberHandlers/DeleteProjectMemberInvite",
+		FullMethod: "/member.MemberHandlers/DeleteMemberInvite",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).DeleteProjectMemberInvite(ctx, req.(*DeleteProjectMemberInvite_Request))
+		return srv.(MemberHandlersServer).DeleteMemberInvite(ctx, req.(*DeleteMemberInvite_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MemberHandlers_ProjectMemberInviteActivate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ProjectMemberInviteActivate_Request)
+func _MemberHandlers_MemberInviteActivate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MemberInviteActivate_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MemberHandlersServer).ProjectMemberInviteActivate(ctx, in)
+		return srv.(MemberHandlersServer).MemberInviteActivate(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/member.MemberHandlers/ProjectMemberInviteActivate",
+		FullMethod: "/member.MemberHandlers/MemberInviteActivate",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).ProjectMemberInviteActivate(ctx, req.(*ProjectMemberInviteActivate_Request))
+		return srv.(MemberHandlersServer).MemberInviteActivate(ctx, req.(*MemberInviteActivate_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -634,24 +560,6 @@ func _MemberHandlers_DeleteServerMember_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MemberHandlers_UpdateServerMemberStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateServerMemberStatus_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MemberHandlersServer).UpdateServerMemberStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/member.MemberHandlers/UpdateServerMemberStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).UpdateServerMemberStatus(ctx, req.(*UpdateServerMemberStatus_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _MemberHandlers_MembersWithoutServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MembersWithoutServer_Request)
 	if err := dec(in); err != nil {
@@ -666,42 +574,6 @@ func _MemberHandlers_MembersWithoutServer_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MemberHandlersServer).MembersWithoutServer(ctx, req.(*MembersWithoutServer_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MemberHandlers_MemberByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MemberByID_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MemberHandlersServer).MemberByID(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/member.MemberHandlers/MemberByID",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).MemberByID(ctx, req.(*MemberByID_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MemberHandlers_UsersByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UsersByName_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MemberHandlersServer).UsersByName(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/member.MemberHandlers/UsersByName",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).UsersByName(ctx, req.(*UsersByName_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -734,28 +606,24 @@ var MemberHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MemberHandlers_DeleteProjectMember_Handler,
 		},
 		{
-			MethodName: "UpdateProjectMemberStatus",
-			Handler:    _MemberHandlers_UpdateProjectMemberStatus_Handler,
-		},
-		{
 			MethodName: "UsersWithoutProject",
 			Handler:    _MemberHandlers_UsersWithoutProject_Handler,
 		},
 		{
-			MethodName: "ListProjectMembersInvite",
-			Handler:    _MemberHandlers_ListProjectMembersInvite_Handler,
+			MethodName: "ListMembersInvite",
+			Handler:    _MemberHandlers_ListMembersInvite_Handler,
 		},
 		{
-			MethodName: "AddProjectMemberInvite",
-			Handler:    _MemberHandlers_AddProjectMemberInvite_Handler,
+			MethodName: "AddMemberInvite",
+			Handler:    _MemberHandlers_AddMemberInvite_Handler,
 		},
 		{
-			MethodName: "DeleteProjectMemberInvite",
-			Handler:    _MemberHandlers_DeleteProjectMemberInvite_Handler,
+			MethodName: "DeleteMemberInvite",
+			Handler:    _MemberHandlers_DeleteMemberInvite_Handler,
 		},
 		{
-			MethodName: "ProjectMemberInviteActivate",
-			Handler:    _MemberHandlers_ProjectMemberInviteActivate_Handler,
+			MethodName: "MemberInviteActivate",
+			Handler:    _MemberHandlers_MemberInviteActivate_Handler,
 		},
 		{
 			MethodName: "ListServerMembers",
@@ -778,20 +646,8 @@ var MemberHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MemberHandlers_DeleteServerMember_Handler,
 		},
 		{
-			MethodName: "UpdateServerMemberStatus",
-			Handler:    _MemberHandlers_UpdateServerMemberStatus_Handler,
-		},
-		{
 			MethodName: "MembersWithoutServer",
 			Handler:    _MemberHandlers_MembersWithoutServer_Handler,
-		},
-		{
-			MethodName: "MemberByID",
-			Handler:    _MemberHandlers_MemberByID_Handler,
-		},
-		{
-			MethodName: "UsersByName",
-			Handler:    _MemberHandlers_UsersByName_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InfoHandlersClient interface {
-	UserStatistics(ctx context.Context, in *UserStatistics_Request, opts ...grpc.CallOption) (*UserStatistics_Response, error)
+	UserMetrics(ctx context.Context, in *UserMetrics_Request, opts ...grpc.CallOption) (*UserMetrics_Response, error)
 }
 
 type infoHandlersClient struct {
@@ -33,9 +33,9 @@ func NewInfoHandlersClient(cc grpc.ClientConnInterface) InfoHandlersClient {
 	return &infoHandlersClient{cc}
 }
 
-func (c *infoHandlersClient) UserStatistics(ctx context.Context, in *UserStatistics_Request, opts ...grpc.CallOption) (*UserStatistics_Response, error) {
-	out := new(UserStatistics_Response)
-	err := c.cc.Invoke(ctx, "/info.InfoHandlers/UserStatistics", in, out, opts...)
+func (c *infoHandlersClient) UserMetrics(ctx context.Context, in *UserMetrics_Request, opts ...grpc.CallOption) (*UserMetrics_Response, error) {
+	out := new(UserMetrics_Response)
+	err := c.cc.Invoke(ctx, "/info.InfoHandlers/UserMetrics", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (c *infoHandlersClient) UserStatistics(ctx context.Context, in *UserStatist
 // All implementations must embed UnimplementedInfoHandlersServer
 // for forward compatibility
 type InfoHandlersServer interface {
-	UserStatistics(context.Context, *UserStatistics_Request) (*UserStatistics_Response, error)
+	UserMetrics(context.Context, *UserMetrics_Request) (*UserMetrics_Response, error)
 	mustEmbedUnimplementedInfoHandlersServer()
 }
 
@@ -54,8 +54,8 @@ type InfoHandlersServer interface {
 type UnimplementedInfoHandlersServer struct {
 }
 
-func (UnimplementedInfoHandlersServer) UserStatistics(context.Context, *UserStatistics_Request) (*UserStatistics_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UserStatistics not implemented")
+func (UnimplementedInfoHandlersServer) UserMetrics(context.Context, *UserMetrics_Request) (*UserMetrics_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UserMetrics not implemented")
 }
 func (UnimplementedInfoHandlersServer) mustEmbedUnimplementedInfoHandlersServer() {}
 
@@ -70,20 +70,20 @@ func RegisterInfoHandlersServer(s grpc.ServiceRegistrar, srv InfoHandlersServer)
 	s.RegisterService(&InfoHandlers_ServiceDesc, srv)
 }
 
-func _InfoHandlers_UserStatistics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserStatistics_Request)
+func _InfoHandlers_UserMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserMetrics_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InfoHandlersServer).UserStatistics(ctx, in)
+		return srv.(InfoHandlersServer).UserMetrics(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/info.InfoHandlers/UserStatistics",
+		FullMethod: "/info.InfoHandlers/UserMetrics",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InfoHandlersServer).UserStatistics(ctx, req.(*UserStatistics_Request))
+		return srv.(InfoHandlersServer).UserMetrics(ctx, req.(*UserMetrics_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -96,8 +96,8 @@ var InfoHandlers_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*InfoHandlersServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "UserStatistics",
-			Handler:    _InfoHandlers_UserStatistics_Handler,
+			MethodName: "UserMetrics",
+			Handler:    _InfoHandlers_UserMetrics_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -7,12 +7,11 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	subscriptionpb "github.com/werbot/werbot/api/proto/subscription"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
-
-	pb "github.com/werbot/werbot/api/proto/subscription"
 )
 
 // @Summary      List of all subscriptions
@@ -24,7 +23,7 @@ import (
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/subscriptions [get]
 func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
-	request := new(pb.ListSubscriptions_Request)
+	request := new(subscriptionpb.ListSubscriptions_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -33,8 +32,8 @@ func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.ListSubscriptions_RequestMultiError) {
-			e := err.(pb.ListSubscriptions_RequestValidationError)
+		for _, err := range err.(subscriptionpb.ListSubscriptions_RequestMultiError) {
+			e := err.(subscriptionpb.ListSubscriptions_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -46,12 +45,14 @@ func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
 	request.Limit = pagination.GetLimit()
 	request.Offset = pagination.GetOffset()
 	request.SortBy = pagination.GetSortBy()
-	request.Query, _ = sanitize.SQL(`"subscription"."customer_id" = $1`, request.UserId)
+	request.Query, _ = sanitize.SQL(`"subscription"."customer_id" = $1`,
+		request.GetUserId(),
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
+	rClient := subscriptionpb.NewSubscriptionHandlersClient(h.Grpc.Client)
 	subscriptions, err := rClient.ListSubscriptions(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
@@ -68,7 +69,7 @@ func (h *Handler) getSubscriptions(c *fiber.Ctx) error {
 // request {user_id:1}
 // PATCH /v1/subscriptions/:subscription_id
 func (h *Handler) patchSubscription(c *fiber.Ctx) error {
-	request := new(pb.UpdateSubscription_Request)
+	request := new(subscriptionpb.UpdateSubscription_Request)
 	request.SubscriptionId = c.Params("subscription_id")
 
 	if err := c.BodyParser(&request); err != nil {
@@ -77,8 +78,8 @@ func (h *Handler) patchSubscription(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.ListSubscriptions_RequestMultiError) {
-			e := err.(pb.ListSubscriptions_RequestValidationError)
+		for _, err := range err.(subscriptionpb.ListSubscriptions_RequestMultiError) {
+			e := err.(subscriptionpb.ListSubscriptions_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -95,7 +96,7 @@ func (h *Handler) patchSubscription(c *fiber.Ctx) error {
 // request {user_id:1}
 // DELETE /v1/subscriptions/:subscription_id
 func (h *Handler) deleteSubscription(c *fiber.Ctx) error {
-	request := new(pb.DeleteSubscription_Request)
+	request := new(subscriptionpb.DeleteSubscription_Request)
 	request.SubscriptionId = c.Params("subscription_id")
 
 	if err := c.BodyParser(&request); err != nil {
@@ -104,8 +105,8 @@ func (h *Handler) deleteSubscription(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.DeleteSubscription_RequestMultiError) {
-			e := err.(pb.DeleteSubscription_RequestValidationError)
+		for _, err := range err.(subscriptionpb.DeleteSubscription_RequestMultiError) {
+			e := err.(subscriptionpb.DeleteSubscription_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)

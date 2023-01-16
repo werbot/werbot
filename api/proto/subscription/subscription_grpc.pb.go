@@ -38,8 +38,12 @@ type SubscriptionHandlersClient interface {
 	AddCustomer(ctx context.Context, in *AddCustomer_Request, opts ...grpc.CallOption) (*AddCustomer_Response, error)
 	UpdateCustomer(ctx context.Context, in *UpdateCustomer_Request, opts ...grpc.CallOption) (*UpdateCustomer_Response, error)
 	DeleteCustomer(ctx context.Context, in *DeleteCustomer_Request, opts ...grpc.CallOption) (*DeleteCustomer_Response, error)
-	Changes(ctx context.Context, in *Changes_Request, opts ...grpc.CallOption) (*Changes_Response, error)
-	Invoices(ctx context.Context, in *Invoices_Request, opts ...grpc.CallOption) (*Invoices_Response, error)
+	// Change section
+	ListChanges(ctx context.Context, in *ListChanges_Request, opts ...grpc.CallOption) (*ListChanges_Response, error)
+	Change(ctx context.Context, in *Change_Request, opts ...grpc.CallOption) (*Change_Response, error)
+	// Invoice invoice
+	ListInvoices(ctx context.Context, in *ListInvoices_Request, opts ...grpc.CallOption) (*ListInvoices_Response, error)
+	Invoice(ctx context.Context, in *Invoice_Request, opts ...grpc.CallOption) (*Invoice_Response, error)
 }
 
 type subscriptionHandlersClient struct {
@@ -167,18 +171,36 @@ func (c *subscriptionHandlersClient) DeleteCustomer(ctx context.Context, in *Del
 	return out, nil
 }
 
-func (c *subscriptionHandlersClient) Changes(ctx context.Context, in *Changes_Request, opts ...grpc.CallOption) (*Changes_Response, error) {
-	out := new(Changes_Response)
-	err := c.cc.Invoke(ctx, "/subscription.SubscriptionHandlers/Changes", in, out, opts...)
+func (c *subscriptionHandlersClient) ListChanges(ctx context.Context, in *ListChanges_Request, opts ...grpc.CallOption) (*ListChanges_Response, error) {
+	out := new(ListChanges_Response)
+	err := c.cc.Invoke(ctx, "/subscription.SubscriptionHandlers/ListChanges", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *subscriptionHandlersClient) Invoices(ctx context.Context, in *Invoices_Request, opts ...grpc.CallOption) (*Invoices_Response, error) {
-	out := new(Invoices_Response)
-	err := c.cc.Invoke(ctx, "/subscription.SubscriptionHandlers/Invoices", in, out, opts...)
+func (c *subscriptionHandlersClient) Change(ctx context.Context, in *Change_Request, opts ...grpc.CallOption) (*Change_Response, error) {
+	out := new(Change_Response)
+	err := c.cc.Invoke(ctx, "/subscription.SubscriptionHandlers/Change", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *subscriptionHandlersClient) ListInvoices(ctx context.Context, in *ListInvoices_Request, opts ...grpc.CallOption) (*ListInvoices_Response, error) {
+	out := new(ListInvoices_Response)
+	err := c.cc.Invoke(ctx, "/subscription.SubscriptionHandlers/ListInvoices", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *subscriptionHandlersClient) Invoice(ctx context.Context, in *Invoice_Request, opts ...grpc.CallOption) (*Invoice_Response, error) {
+	out := new(Invoice_Response)
+	err := c.cc.Invoke(ctx, "/subscription.SubscriptionHandlers/Invoice", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -205,8 +227,12 @@ type SubscriptionHandlersServer interface {
 	AddCustomer(context.Context, *AddCustomer_Request) (*AddCustomer_Response, error)
 	UpdateCustomer(context.Context, *UpdateCustomer_Request) (*UpdateCustomer_Response, error)
 	DeleteCustomer(context.Context, *DeleteCustomer_Request) (*DeleteCustomer_Response, error)
-	Changes(context.Context, *Changes_Request) (*Changes_Response, error)
-	Invoices(context.Context, *Invoices_Request) (*Invoices_Response, error)
+	// Change section
+	ListChanges(context.Context, *ListChanges_Request) (*ListChanges_Response, error)
+	Change(context.Context, *Change_Request) (*Change_Response, error)
+	// Invoice invoice
+	ListInvoices(context.Context, *ListInvoices_Request) (*ListInvoices_Response, error)
+	Invoice(context.Context, *Invoice_Request) (*Invoice_Response, error)
 	mustEmbedUnimplementedSubscriptionHandlersServer()
 }
 
@@ -253,11 +279,17 @@ func (UnimplementedSubscriptionHandlersServer) UpdateCustomer(context.Context, *
 func (UnimplementedSubscriptionHandlersServer) DeleteCustomer(context.Context, *DeleteCustomer_Request) (*DeleteCustomer_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteCustomer not implemented")
 }
-func (UnimplementedSubscriptionHandlersServer) Changes(context.Context, *Changes_Request) (*Changes_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Changes not implemented")
+func (UnimplementedSubscriptionHandlersServer) ListChanges(context.Context, *ListChanges_Request) (*ListChanges_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListChanges not implemented")
 }
-func (UnimplementedSubscriptionHandlersServer) Invoices(context.Context, *Invoices_Request) (*Invoices_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Invoices not implemented")
+func (UnimplementedSubscriptionHandlersServer) Change(context.Context, *Change_Request) (*Change_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Change not implemented")
+}
+func (UnimplementedSubscriptionHandlersServer) ListInvoices(context.Context, *ListInvoices_Request) (*ListInvoices_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListInvoices not implemented")
+}
+func (UnimplementedSubscriptionHandlersServer) Invoice(context.Context, *Invoice_Request) (*Invoice_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Invoice not implemented")
 }
 func (UnimplementedSubscriptionHandlersServer) mustEmbedUnimplementedSubscriptionHandlersServer() {}
 
@@ -506,38 +538,74 @@ func _SubscriptionHandlers_DeleteCustomer_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SubscriptionHandlers_Changes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Changes_Request)
+func _SubscriptionHandlers_ListChanges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListChanges_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SubscriptionHandlersServer).Changes(ctx, in)
+		return srv.(SubscriptionHandlersServer).ListChanges(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/subscription.SubscriptionHandlers/Changes",
+		FullMethod: "/subscription.SubscriptionHandlers/ListChanges",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SubscriptionHandlersServer).Changes(ctx, req.(*Changes_Request))
+		return srv.(SubscriptionHandlersServer).ListChanges(ctx, req.(*ListChanges_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SubscriptionHandlers_Invoices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Invoices_Request)
+func _SubscriptionHandlers_Change_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Change_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SubscriptionHandlersServer).Invoices(ctx, in)
+		return srv.(SubscriptionHandlersServer).Change(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/subscription.SubscriptionHandlers/Invoices",
+		FullMethod: "/subscription.SubscriptionHandlers/Change",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SubscriptionHandlersServer).Invoices(ctx, req.(*Invoices_Request))
+		return srv.(SubscriptionHandlersServer).Change(ctx, req.(*Change_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SubscriptionHandlers_ListInvoices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInvoices_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubscriptionHandlersServer).ListInvoices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/subscription.SubscriptionHandlers/ListInvoices",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubscriptionHandlersServer).ListInvoices(ctx, req.(*ListInvoices_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SubscriptionHandlers_Invoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Invoice_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubscriptionHandlersServer).Invoice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/subscription.SubscriptionHandlers/Invoice",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubscriptionHandlersServer).Invoice(ctx, req.(*Invoice_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -602,12 +670,20 @@ var SubscriptionHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SubscriptionHandlers_DeleteCustomer_Handler,
 		},
 		{
-			MethodName: "Changes",
-			Handler:    _SubscriptionHandlers_Changes_Handler,
+			MethodName: "ListChanges",
+			Handler:    _SubscriptionHandlers_ListChanges_Handler,
 		},
 		{
-			MethodName: "Invoices",
-			Handler:    _SubscriptionHandlers_Invoices_Handler,
+			MethodName: "Change",
+			Handler:    _SubscriptionHandlers_Change_Handler,
+		},
+		{
+			MethodName: "ListInvoices",
+			Handler:    _SubscriptionHandlers_ListInvoices_Handler,
+		},
+		{
+			MethodName: "Invoice",
+			Handler:    _SubscriptionHandlers_Invoice_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

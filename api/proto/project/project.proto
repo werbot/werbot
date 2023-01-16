@@ -8,101 +8,102 @@ import "google/protobuf/timestamp.proto";
 import "validate/validate.proto";
 
 service ProjectHandlers {
-    rpc ListProjects(ListProjects.Request) returns (ListProjects.Response) {}
-    rpc Project(Project.Request) returns (Project.Response) {}
-    rpc AddProject(AddProject.Request) returns (AddProject.Response) {}
-    rpc UpdateProject(UpdateProject.Request) returns (UpdateProject.Response) {}
-    rpc DeleteProject(DeleteProject.Request) returns (DeleteProject.Response) {}
+  rpc ListProjects(ListProjects.Request) returns (ListProjects.Response) {}
+  rpc Project(Project.Request) returns (Project.Response) {}
+  rpc AddProject(AddProject.Request) returns (AddProject.Response) {}
+  rpc UpdateProject(UpdateProject.Request) returns (UpdateProject.Response) {}
+  rpc DeleteProject(DeleteProject.Request) returns (DeleteProject.Response) {}
 
-    rpc ProjectAPIByID(ProjectAPIByID.Request) returns (ProjectAPIByID.Response) {}
+  rpc Keys(Keys.Request) returns (Keys.Response) {}
 }
 
 // rpc ListProjects
 message ListProjects {
-    message Request {
-        int32 limit = 1;
-        int32 offset = 2;
-        string sort_by = 3;
-        string query = 4;
-    }
+  message Request {
+    int32 limit = 1;
+    int32 offset = 2;
+    string sort_by = 3;
+    string query = 4;
+  }
 
-    message Response{
-        int32 total = 1;
-        repeated Project.Response projects = 2;
-    }
+  message Response{
+    int32 total = 1;
+    repeated Project.Response projects = 2;
+  }
 }
 // -----------------------------------------------------
 
 
 // rpc Project
 message Project {
-    message Request {
-        string owner_id = 1   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"owner_id" params:"owner_id"
-        string project_id = 2 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"project_id" params:"project_id"
-    }
+  message Request {
+    string owner_id = 1   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"owner_id" params:"owner_id"
+    string project_id = 2 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"project_id" params:"project_id"
+  }
 
-    message Response{
-        string project_id = 1;
-        string owner_id = 2;
-        string title = 3;
-        string login = 4;
-        int32 members_count = 5;
-        int32 servers_count = 6;
-        google.protobuf.Timestamp created = 7;
-    }
+  message Response{
+    string project_id = 1;
+    string owner_id = 2;
+    string title = 3;
+    string login = 4;
+    int32 members_count = 5;
+    int32 servers_count = 6;
+    google.protobuf.Timestamp created = 7;
+  }
 }
 // -----------------------------------------------------
 
 
 // rpc AddProject
 message AddProject {
-    message Request {
-        string owner_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}];
-        string login = 2    [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}];
-        string title = 3    [(validate.rules).string = {min_len: 3, max_len: 128}];
-    }
+  message Request {
+    string owner_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}];
+    string login = 2    [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}];
+    string title = 3    [(validate.rules).string = {min_len: 3, max_len: 128}];
+  }
 
-    message Response {
-        string project_id = 1;
-    }
+  message Response {
+    string project_id = 1;
+  }
 }
 // -----------------------------------------------------
 
 
 // rpc UpdateProject
 message UpdateProject {
-    message Request {
-        string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
-        string owner_id = 2   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"owner_id" params:"owner_id"
-        string title = 3      [(validate.rules).string = {min_len: 3, max_len: 128}]; // @gotags: query:"title" params:"title"
-    }
+  message Request {
+    string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+    string owner_id = 2   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"owner_id" params:"owner_id"
+    string title = 3      [(validate.rules).string = {min_len: 3, max_len: 128}]; // @gotags: query:"title" params:"title"
+  }
 
-    message Response {}
+  message Response {}
 }
 // -----------------------------------------------------
 
 
 // rpc DeleteProject
 message DeleteProject{
-    message Request {
-        string owner_id = 1   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"owner_id" params:"owner_id"
-        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
-    }
+  message Request {
+    string owner_id = 1   [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"owner_id" params:"owner_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+  }
 
-    message Response {}
+  message Response {}
 }
 // -----------------------------------------------------
 
-// rpc ProjectAPIByID
-message ProjectAPIByID {
-    message Request {
-        string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    }
 
-    message Response {
-        string api_key = 1;
-        string api_secret = 2;
-        bool api_online =3;
-    }
+// rpc Keys
+message Keys {
+  message Request {
+    string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+  }
+
+  message Response {
+    string api_key = 1;
+    string api_secret = 2;
+    bool api_online =3;
+  }
 }
 // -----------------------------------------------------

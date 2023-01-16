@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/gofiber/fiber/v2"
+
 	"github.com/werbot/werbot/pkg/strutil"
 )
 

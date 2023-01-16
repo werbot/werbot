@@ -4,94 +4,127 @@ package audit;
 
 option go_package = "github.com/werbot/werbot/api/proto/audit";
 
-//import "google/protobuf/timestamp.proto";
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 service AuditHandlers {
-    rpc AddAudit(AddAudit.Request) returns (AddAudit.Response) {}
-    rpc UpdateAudit(UpdateAudit.Request) returns (UpdateAudit.Response) {}
+  // Audit section
+  rpc ListAudits(ListAudits.Request) returns (ListAudits.Response) {}
+  rpc Audit(Audit.Request) returns (Audit.Response) {}
+  rpc AddAudit(AddAudit.Request) returns (AddAudit.Response) {}
+  rpc UpdateAudit(UpdateAudit.Request) returns (UpdateAudit.Response) {}
+  rpc DeleteAudit(DeleteAudit.Request) returns (DeleteAudit.Response) {}
 
-    rpc CreateRecord(CreateRecord.Request) returns (CreateRecord.Response) {}
+  // Record section
+  rpc ListRecords(ListRecords.Request) returns (ListRecords.Response) {}
+  rpc AddRecord(AddRecord.Request) returns (AddRecord.Response) {}
 }
 
+
+// rpc ListAudits
+message ListAudits {
+  message Request {
+    string server_id = 1  [(validate.rules).string.uuid = true];
+  }
+
+  message Response{}
+}
 // -----------------------------------------------------
-// global messages
-message Record {
-    string id = 1;
-    bool audit = 2;
-    string duration = 3;
-    string screen = 4;
-    string type = 5;
-}
 
-/*
+
+// rpc Audit
 message Audit {
-    string audit_id = 1;
-    string account_id = 2;
-    google.protobuf.Timestamp time_start = 3;
-    int32 version = 4;
-    int32 width = 5;
-    int32 height = 6;
-    string duration = 7;
-    string command = 8;
-    string title = 9;
-    string env_term = 10;
-    string env_shell = 11;
-    string sessionv = 12;
-    google.protobuf.Timestamp time_end = 13;
-    string client_ip = 14;
-}
+  message Request {
+    string audit_id = 1 [(validate.rules).string.uuid = true];
+  }
 
-message Records {
-    repeated Record records = 1;
+  message Response{}
 }
-*/
 // -----------------------------------------------------
 
 
 // rpc rpc AddAudit
 message AddAudit {
-    message Request {
-        string account_id = 1;
-        int32 version = 2;
-        string session = 3;
-        string client_ip = 4;
-    }
-    message Response {
-        string audit_id = 1;
-    }
+  message Request {
+    string server_id = 1  [(validate.rules).string.uuid = true];
+    string account_id = 2 [(validate.rules).string.uuid = true];
+    google.protobuf.Timestamp time_start = 3;
+    int32 version = 4;
+    string session = 5;
+    string client_ip = 6;
+    int32 width = 7;
+    int32 height = 8;
+    string command = 9;
+    string title = 10;
+    string env_term = 11;
+    string env_shell = 12;
+  }
+
+  message Response {
+    string audit_id = 1;
+  }
 }
 // -----------------------------------------------------
 
 
 // rpc UpdateAudit
 message UpdateAudit {
-    message Request {
-        string audit_id = 1;
-        message Params {
-            int32 width = 1;
-            int32 height = 2;
-            string command = 3;
-            string title = 4;
-            string env_term = 5;
-            string env_shell = 6;
-            string duration = 7;
-            string time_end = 8;
-        }
-        Params params = 2;
-    }
+  message Request {
+    string audit_id = 1;
+    int32 width = 2;
+    int32 height = 3;
+    string env_term = 4;
+    string duration = 5;
+    google.protobuf.Timestamp time_end = 6;
+  }
 
-    message Response{}
+  message Response{}
 }
 // -----------------------------------------------------
 
 
-// rpc CreateRecord
-message CreateRecord {
-    message Request {
-        string audit_id = 1;
-        repeated Record records = 2;
-    }
+// rpc DeleteAudit
+message DeleteAudit {
+  message Request {
+    string audit_id = 1 [(validate.rules).string.uuid = true];
+  }
 
-    message Response{}
+  message Response{}
+}
+// -----------------------------------------------------
+
+
+// rpc ListRecords
+message Record {
+  string id = 1;
+  bool audit = 2;
+  string duration = 3;
+  string screen = 4;
+  string type = 5;
+}
+// -----------------------------------------------------
+
+
+// rpc ListRecords
+message ListRecords {
+  message Request {
+    string audit_id = 1   [(validate.rules).string.uuid = true];
+  }
+
+  message Response{
+    repeated Record records = 1;
+  }
+}
+// -----------------------------------------------------
+
+
+// rpc AddRecord
+message AddRecord {
+  message Request {
+    string audit_id = 1          [(validate.rules).string.uuid = true];
+    repeated Record records = 2;
+  }
+
+  message Response{}
 }
 // -----------------------------------------------------

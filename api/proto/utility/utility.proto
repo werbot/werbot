@@ -7,21 +7,37 @@ option go_package = "github.com/werbot/werbot/api/proto/utility";
 import "validate/validate.proto";
 
 service UtilityHandlers {
-    rpc ListCountries(ListCountries.Request) returns (ListCountries.Response) {}
+  rpc Countries(Countries.Request) returns (Countries.Response) {}
+  rpc CountryByIP(CountryByIP.Request) returns (CountryByIP.Response) {}
 }
 
-// rpc GetInfo
-message ListCountries {
-    message Request {
-        string name = 1 [(validate.rules).string.min_len = 2];
-    }
 
-    message Response {
-        message Country {
-            string code = 1;
-            string name = 2;
-        }
-        repeated Country countries = 1;
-    }
+// rpc GetInfo
+message Countries {
+  message Request {
+    string name = 1 [(validate.rules).string.min_len = 2];
+  }
+
+  message Response {
+    repeated Country countries = 1;
+  }
+
+  message Country {
+    string code = 1;
+    string name = 2;
+}
+}
+// -----------------------------------------------------
+
+
+// rpc CountryByIP
+message CountryByIP {
+  message Request {
+    string ip = 1 [(validate.rules).string.ip = true];
+  }
+  message Response {
+    string name = 1;
+    string code = 2;
+  }
 }
 // -----------------------------------------------------

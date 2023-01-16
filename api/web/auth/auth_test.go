@@ -6,7 +6,8 @@ import (
 
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
-	pb_user "github.com/werbot/werbot/api/proto/user"
+
+	authpb "github.com/werbot/werbot/api/proto/auth"
 	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/tests"
@@ -29,12 +30,12 @@ func init() {
 	}).Routes()
 	testHandler.FinishHandler() // init finale handler for apitest
 
-	adminInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
+	adminInfo = testHandler.GetUserInfo(&authpb.SignIn_Request{
 		Email:    "test-admin@werbot.net",
 		Password: "test-admin@werbot.net",
 	})
 
-	userInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
+	userInfo = testHandler.GetUserInfo(&authpb.SignIn_Request{
 		Email:    "test-user@werbot.net",
 		Password: "test-user@werbot.net",
 	})

@@ -10,8 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
-	pb_project "github.com/werbot/werbot/api/proto/project"
-	pb_user "github.com/werbot/werbot/api/proto/user"
+
+	authpb "github.com/werbot/werbot/api/proto/auth"
+	projectpb "github.com/werbot/werbot/api/proto/project"
 	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/api/web/auth"
 	"github.com/werbot/werbot/internal"
@@ -43,12 +44,12 @@ func init() {
 	New(webHandler).Routes()    // add test module handler
 	testHandler.FinishHandler() // init finale handler for apitest
 
-	adminInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
+	adminInfo = testHandler.GetUserInfo(&authpb.SignIn_Request{
 		Email:    "test-admin@werbot.net",
 		Password: "test-admin@werbot.net",
 	})
 
-	userInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
+	userInfo = testHandler.GetUserInfo(&authpb.SignIn_Request{
 		Email:    "test-user@werbot.net",
 		Password: "test-user@werbot.net",
 	})
@@ -243,7 +244,7 @@ func TestHandler_addProject(t *testing.T) {
 		// Cases with an anonymous user
 		{
 			Name:        "ANONYMOUS_USER_addProject_01", // User not authorized
-			RequestBody: pb_project.AddProject_Request{},
+			RequestBody: projectpb.AddProject_Request{},
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -254,7 +255,7 @@ func TestHandler_addProject(t *testing.T) {
 		// Cases with an authorized user
 		{
 			Name: "ROLE_USER_addProject_01", // Error 400 when trying to pass invalid parameters
-			RequestBody: pb_project.AddProject_Request{
+			RequestBody: projectpb.AddProject_Request{
 				Title: "",
 				Login: "",
 			},
@@ -269,7 +270,7 @@ func TestHandler_addProject(t *testing.T) {
 		},
 		{
 			Name: "ROLE_USER_addProject_02", // Error 400 when trying to pass invalid parameters
-			RequestBody: pb_project.AddProject_Request{
+			RequestBody: projectpb.AddProject_Request{
 				Title: "user",
 				Login: "user999",
 			},
@@ -283,7 +284,7 @@ func TestHandler_addProject(t *testing.T) {
 		},
 		{
 			Name: "ROLE_USER_addProject_03", // Error 400 when trying to pass invalid parameters
-			RequestBody: pb_project.AddProject_Request{
+			RequestBody: projectpb.AddProject_Request{
 				Login: "user999",
 			},
 			RequestUser: userInfo,
@@ -296,7 +297,7 @@ func TestHandler_addProject(t *testing.T) {
 		},
 		{
 			Name: "ROLE_USER_addProject_04",
-			RequestBody: pb_project.AddProject_Request{
+			RequestBody: projectpb.AddProject_Request{
 				Title: "user999",
 				Login: "user999",
 			},
@@ -321,14 +322,14 @@ func TestHandler_addProject(t *testing.T) {
 				End()
 
 			// delete added project
-			data := map[string]pb_project.AddProject_Response{}
+			data := map[string]projectpb.AddProject_Response{}
 			json.NewDecoder(resp.Response.Body).Decode(&data)
 			if data["result"].ProjectId != "" {
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
-				rClient := pb_project.NewProjectHandlersClient(testHandler.GRPC.Client)
+				rClient := projectpb.NewProjectHandlersClient(testHandler.GRPC.Client)
 
-				rClient.DeleteProject(ctx, &pb_project.DeleteProject_Request{
+				rClient.DeleteProject(ctx, &projectpb.DeleteProject_Request{
 					OwnerId:   tc.RequestUser.UserID,
 					ProjectId: data["result"].ProjectId,
 				})
@@ -344,7 +345,7 @@ func TestHandler_patchProject(t *testing.T) {
 		// Cases with an anonymous user
 		{
 			Name:        "ANONYMOUS_USER_patchProject_01", // User not authorized
-			RequestBody: pb_project.UpdateProject_Request{},
+			RequestBody: projectpb.UpdateProject_Request{},
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -355,7 +356,7 @@ func TestHandler_patchProject(t *testing.T) {
 		// Cases with an authorized user
 		{
 			Name:        "ROLE_USER_patchProject_01", // Error 400 when trying to pass invalid parameters
-			RequestBody: pb_project.UpdateProject_Request{},
+			RequestBody: projectpb.UpdateProject_Request{},
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -367,7 +368,7 @@ func TestHandler_patchProject(t *testing.T) {
 		},
 		{
 			Name: "ROLE_USER_patchProject_02", // Error 400 when trying to pass invalid parameters
-			RequestBody: pb_project.UpdateProject_Request{
+			RequestBody: projectpb.UpdateProject_Request{
 				ProjectId: "d958ee44-a960-420e-9bbf-c7a35084c4aa",
 			},
 			RequestUser: userInfo,
@@ -380,7 +381,7 @@ func TestHandler_patchProject(t *testing.T) {
 		},
 		{
 			Name: "ROLE_USER_patchProject_03", // Fake status 200 (real 404), non-existent project ip
-			RequestBody: pb_project.UpdateProject_Request{
+			RequestBody: projectpb.UpdateProject_Request{
 				ProjectId: "00000000-0000-0000-0000-000000000000",
 				Title:     "user999",
 			},
@@ -393,7 +394,7 @@ func TestHandler_patchProject(t *testing.T) {
 		},
 		{
 			Name: "ROLE_USER_patchProject_04", // Successful data update
-			RequestBody: pb_project.UpdateProject_Request{
+			RequestBody: projectpb.UpdateProject_Request{
 				ProjectId: "d958ee44-a960-420e-9bbf-c7a35084c4aa",
 				Title:     "user999",
 			},
@@ -407,7 +408,7 @@ func TestHandler_patchProject(t *testing.T) {
 		// Cases with a user with ADMIN rights
 		{
 			Name:        "ROLE_ADMIN_patchProject_01",
-			RequestBody: pb_project.UpdateProject_Request{},
+			RequestBody: projectpb.UpdateProject_Request{},
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).

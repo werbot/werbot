@@ -2,27 +2,24 @@ package grpc
 
 import (
 	"context"
-	"fmt"
-	"strings"
+	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal/crypto"
-
-	pb_user "github.com/werbot/werbot/api/proto/user"
 )
 
 type user struct {
-	pb_user.UnimplementedUserHandlersServer
+	userpb.UnimplementedUserHandlersServer
 }
 
 // ListUsers is lists all users on the system
-func (u *user) ListUsers(ctx context.Context, in *pb_user.ListUsers_Request) (*pb_user.ListUsers_Response, error) {
+func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*userpb.ListUsers_Response, error) {
+	response := new(userpb.ListUsers_Response)
+
 	sqlSearch := service.db.SQLAddWhere(in.GetQuery())
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := service.db.Conn.Query(`SELECT
@@ -38,20 +35,18 @@ func (u *user) ListUsers(ctx context.Context, in *pb_user.ListUsers_Request) (*p
       (SELECT COUNT(*) FROM "project" WHERE "owner_id" = "user"."id") AS "count_project",
       (SELECT COUNT(*) FROM "user_public_key" WHERE "user_id" = "user"."id") AS "count_keys",
       (SELECT COUNT(*) FROM "project" JOIN "server" ON "project"."id"="server"."project_id" WHERE "project"."owner_id"="user"."id") AS "count_servers"
-    FROM
-      "user"` + sqlSearch + sqlFooter)
+    FROM "user"` + sqlSearch + sqlFooter)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToSelect
+		return nil, errServerError
 	}
 
-	users := []*pb_user.ListUsers_Response_UserInfo{}
 	for rows.Next() {
 		var countServers, countProjects, countKeys int32
 		var lastActive, registerDate pgtype.Timestamp
-		user := new(pb_user.User_Response)
-		err = rows.Scan(
-			&user.UserId,
+		user := new(userpb.User_Response)
+		userDetail := new(userpb.ListUsers_Response_UserInfo)
+		err = rows.Scan(&user.UserId,
 			&user.Fio,
 			&user.Name,
 			&user.Email,
@@ -65,70 +60,65 @@ func (u *user) ListUsers(ctx context.Context, in *pb_user.ListUsers_Request) (*p
 			&countServers,
 		)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, errNotFound
+			}
 			service.log.FromGRPC(err).Send()
-			return nil, errFailedToScan
+			return nil, errServerError
 		}
 		user.LastActive = timestamppb.New(lastActive.Time)
 		user.RegisterDate = timestamppb.New(registerDate.Time)
-		users = append(users, &pb_user.ListUsers_Response_UserInfo{
-			ServersCount:  countServers,
-			ProjectsCount: countProjects,
-			KeysCount:     countKeys,
-			User:          user,
-		})
+
+		userDetail.ServersCount = countServers
+		userDetail.ProjectsCount = countProjects
+		userDetail.KeysCount = countKeys
+		userDetail.User = user
+
+		response.Users = append(response.Users, userDetail)
 	}
 	defer rows.Close()
 
 	// Total count for pagination
-	var total int32
-	err = service.db.Conn.QueryRow(`SELECT COUNT (*) FROM "user"` + sqlSearch).
-		Scan(&total)
-	if err != nil {
+	err = service.db.Conn.QueryRow(`SELECT COUNT (*) FROM "user"` + sqlSearch).Scan(&response.Total)
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
+		return nil, errServerError
 	}
 
-	return &pb_user.ListUsers_Response{
-		Total: total,
-		Users: users,
-	}, nil
+	return response, nil
 }
 
 // User is displays user information
-func (u *user) User(ctx context.Context, in *pb_user.User_Request) (*pb_user.User_Response, error) {
-	user := new(pb_user.User_Response)
-	user.UserId = in.GetUserId()
+func (u *user) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_Response, error) {
+	response := new(userpb.User_Response)
+	response.UserId = in.GetUserId()
 
-	err := service.db.Conn.QueryRow(`SELECT
-      "fio",
-      "name",
-      "email",
-      "enabled",
-      "confirmed",
-      "role"
-    FROM
-      "user"
-    WHERE
-      "id" = $1`,
+	err := service.db.Conn.QueryRow(`SELECT "fio", "name", "email", "enabled", "confirmed", "role"
+    FROM "user"
+    WHERE "id" = $1`,
 		in.GetUserId(),
-	).Scan(
-		&user.Fio,
-		&user.Name,
-		&user.Email,
-		&user.Enabled,
-		&user.Confirmed,
-		&user.Role,
+	).Scan(&response.Fio,
+		&response.Name,
+		&response.Email,
+		&response.Enabled,
+		&response.Confirmed,
+		&response.Role,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errNotFound
+		}
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
+		return nil, errServerError
 	}
 
-	return user, nil
+	return response, nil
 }
 
 // AddUser is adds a new user
-func (u *user) AddUser(ctx context.Context, in *pb_user.AddUser_Request) (*pb_user.AddUser_Response, error) {
+func (u *user) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb.AddUser_Response, error) {
+	response := new(userpb.AddUser_Response)
+
 	tx, err := service.db.Conn.Begin()
 	if err != nil {
 		service.log.FromGRPC(err).Send()
@@ -136,45 +126,32 @@ func (u *user) AddUser(ctx context.Context, in *pb_user.AddUser_Request) (*pb_us
 	}
 
 	// Checking if the email address already exists
-	var id string
-	err = tx.QueryRow(`SELECT
-			"id"
-		FROM
-			"user"
-		WHERE
-			"email" = $1`,
+	err = tx.QueryRow(`SELECT "id" FROM "user" WHERE "email" = $1`,
 		in.GetEmail(),
-	).Scan(&id)
+	).Scan(&response.UserId)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errNotFound
+		}
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
+		return nil, errServerError
 	}
-	if id != "" {
+	if response.UserId != "" {
 		return nil, errObjectAlreadyExists
 	}
 
 	// Adds a new entry to the database
 	password, _ := crypto.HashPassword(in.Password)
-	err = tx.QueryRow(`INSERT
-	INTO "user" (
-		"fio",
-		"name",
-		"email",
-		"password",
-		"enabled",
-		"confirmed",
-		"register_date"
-	)
-	VALUES
-		($1, $2, $3, $4, $5, $6, NOW( ))
-	RETURNING "id"`,
+	err = tx.QueryRow(`INSERT INTO "user" ("fio", "name", "email", "password", "enabled", "confirmed", "register_date")
+    VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    RETURNING "id"`,
 		in.GetFio(),
 		in.GetName(),
 		in.GetEmail(),
 		password,
 		in.GetEnabled(),
 		in.GetConfirmed(),
-	).Scan(&id)
+	).Scan(&response.UserId)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
@@ -185,144 +162,105 @@ func (u *user) AddUser(ctx context.Context, in *pb_user.AddUser_Request) (*pb_us
 		return nil, errTransactionCommitError
 	}
 
-	return &pb_user.AddUser_Response{
-		UserId: id,
-	}, nil
+	return response, nil
 }
 
 // UpdateUser is updates user data
-func (u *user) UpdateUser(ctx context.Context, in *pb_user.UpdateUser_Request) (*pb_user.UpdateUser_Response, error) {
-	cnt := 0
-	qParts := make([]string, 0, 2)
-	args := make([]any, 0, 2)
+func (u *user) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*userpb.UpdateUser_Response, error) {
+	var err error
+	var data sql.Result
+	response := new(userpb.UpdateUser_Response)
 
-	md := in.ProtoReflect()
-	md.Range(func(fd protoreflect.FieldDescriptor, value protoreflect.Value) bool {
-		name := proto.GetExtension(fd.Options().(*descriptorpb.FieldOptions), pb_user.E_SqlName).(string)
-		if name != "id" {
-			cnt++
-			qParts = append(qParts, fmt.Sprintf(`"%s" = $%v`, name, cnt))
-			args = append(args, value)
-		}
-		return true
-	})
+	switch in.GetSetting().(type) {
+	case *userpb.UpdateUser_Request_Info:
+		data, err = service.db.Conn.Exec(`UPDATE "user"
+    SET "name" = $1,
+      "email" = $2,
+      "fio" = $3,
+      "enabled" = $4,
+      "confirmed" = $5
+    WHERE "id" = $6`,
+			in.GetInfo().GetName(),
+			in.GetInfo().GetEmail(),
+			in.GetInfo().GetFio(),
+			in.GetInfo().GetEnabled(),
+			in.GetInfo().GetConfirmed(),
+			in.GetUserId(),
+		)
 
-	cnt++
-	args = append(args, in.GetUserId())
-	query := fmt.Sprintf(`UPDATE "user" SET %s WHERE "id" = $%v`,
-		strings.Join(qParts, ", "),
-		cnt,
-	)
-	data, err := service.db.Conn.Exec(query, args...)
+	case *userpb.UpdateUser_Request_Confirmed:
+		data, err = service.db.Conn.Exec(`UPDATE "user" SET "confirmed" = $1 WHERE "id" = $2`,
+			in.GetConfirmed(),
+			in.GetUserId(),
+		)
+
+	case *userpb.UpdateUser_Request_Enabled:
+		data, err = service.db.Conn.Exec(`UPDATE "user" SET "enabled" = $1 WHERE "id" = $2`,
+			in.GetEnabled(),
+			in.GetUserId(),
+		)
+
+	default:
+		return nil, errBadRequest
+	}
+
 	if err != nil {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
+		return nil, err
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
 		return nil, errNotFound
 	}
 
-	return &pb_user.UpdateUser_Response{}, nil
+	return response, nil
 }
 
 // DeleteUser is ...
-func (u *user) DeleteUser(ctx context.Context, in *pb_user.DeleteUser_Request) (*pb_user.DeleteUser_Response, error) {
-	var name, passwordHash, email, deleteToken string
-	deleteUser := new(pb_user.DeleteUser_Response)
-	if in.GetPassword() != "" && in.GetUserId() != "" {
-		err := service.db.Conn.QueryRow(`SELECT
-				"name",
-				"password",
-				"email"
-			FROM
-				"user"
-			WHERE
-				"id" = $1`,
-			in.GetUserId(),
-		).Scan(&name, &passwordHash, &email)
-		if err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, errFailedToDelete
-		}
-		if !crypto.CheckPasswordHash(in.GetPassword(), passwordHash) {
-			return nil, errPasswordIsNotValid
-		}
+func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*userpb.DeleteUser_Response, error) {
+	var name, passwordHash, email string
+	response := new(userpb.DeleteUser_Response)
 
-		// Checking if a verification token has been sent in the last 24 hours
-		deleteToken, _ = u.getTokenByUserID(in.GetUserId(), "delete")
-		if len(deleteToken) > 0 {
-			deleteUser.Name = name
-			deleteUser.Email = email
-			deleteUser.Token = deleteToken
-			return deleteUser, nil
-		}
-
-		deleteToken = uuid.New().String()
-		data, err := service.db.Conn.Exec(`INSERT
-			INTO "user_token" (
-				"token",
-				"user_id",
-				"date_create",
-				"action"
-			)
-			VALUES
-				($1, $2, NOW(), 'delete')`,
-			deleteToken,
-			in.GetUserId(),
-		)
-		if err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, err // Create delete token failed
-		}
-		if affected, _ := data.RowsAffected(); affected == 0 {
-			return nil, errNotFound
-		}
-
-		deleteUser.Email = email
-		deleteUser.Token = deleteToken
-		return deleteUser, nil
-	}
-
-	if in.GetToken() != "" && in.GetUserId() != "" {
-		userID, _ := u.getUserIDByToken(in.GetToken())
-		if userID != in.GetUserId() {
-			return nil, errTokenIsNotValid
-		}
-
+	switch in.GetRequest().(type) {
+	case *userpb.DeleteUser_Request_Password:
 		tx, err := service.db.Conn.Begin()
 		if err != nil {
 			service.log.FromGRPC(err).Send()
 			return nil, errTransactionCreateError
 		}
 
-		data, err := tx.Exec(`UPDATE
-        "user"
-			SET
-				"enabled" = 'f'
-			WHERE
-				"id" = $1`,
+		err = tx.QueryRow(`SELECT "name", "password", "email" FROM "user" WHERE "id" = $1`,
 			in.GetUserId(),
+		).Scan(&name,
+			&passwordHash,
+			&email,
 		)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, errNotFound
+			}
 			service.log.FromGRPC(err).Send()
-			return nil, errFailedToUpdate
+			return nil, errServerError
 		}
-		if affected, _ := data.RowsAffected(); affected == 0 {
-			return nil, errNotFound
+		if !crypto.CheckPasswordHash(in.GetPassword(), passwordHash) {
+			return nil, errPasswordIsNotValid
 		}
 
-		data, err = tx.Exec(`UPDATE
-        "user_token"
-			SET
-				"used" = 't',
-				date_used = NOW()
-			WHERE
-				"token" = $1`,
-			in.GetToken(),
-		)
+		// Checking if a verification token has been sent in the last 24 hours
+		deleteToken, _ := tokenByUserID(in.GetUserId(), "delete")
+		if len(deleteToken) > 0 {
+			response.Name = name
+			response.Email = email
+			response.Token = deleteToken
+			return response, nil
+		}
+
+		deleteToken = uuid.New().String()
+		data, err := tx.Exec(`INSERT INTO "user_token" ("token", "user_id", "date_create", "action") VALUES ($1, $2, NOW(), 'delete')`,
+			deleteToken,
+			in.GetUserId())
 		if err != nil {
 			service.log.FromGRPC(err).Send()
-			return nil, errFailedToUpdate
+			return nil, err // Create delete token failed
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {
 			return nil, errNotFound
@@ -333,37 +271,82 @@ func (u *user) DeleteUser(ctx context.Context, in *pb_user.DeleteUser_Request) (
 			return nil, errTransactionCommitError
 		}
 
-		err = service.db.Conn.QueryRow(`SELECT
-				"name",
-				"email"
-			FROM
-				"user"
-			WHERE
-				"id" = $1`,
-			in.GetUserId(),
-		).Scan(&name, &email)
-		if err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, errFailedToScan
+		response.Email = email
+		response.Token = deleteToken
+		return response, nil
+
+	case *userpb.DeleteUser_Request_Token:
+		userID, _ := userIDByToken(in.GetToken())
+		if userID != in.GetUserId() {
+			return nil, errTokenIsNotValid
 		}
 
-		deleteUser.Name = name
-		deleteUser.Email = email
-		return deleteUser, nil
+		tx, err := service.db.Conn.Begin()
+		if err != nil {
+			service.log.FromGRPC(err).Send()
+			return nil, errTransactionCreateError
+		}
+
+		data, err := tx.Exec(`UPDATE "user" SET "enabled" = 'f' WHERE "id" = $1`, in.GetUserId())
+		if err != nil {
+			service.log.FromGRPC(err).Send()
+			return nil, errFailedToUpdate
+		}
+		if affected, _ := data.RowsAffected(); affected == 0 {
+			return nil, errNotFound
+		}
+
+		data, err = tx.Exec(`UPDATE "user_token" SET "used" = 't', date_used = NOW() WHERE "token" = $1`, in.GetToken())
+		if err != nil {
+			service.log.FromGRPC(err).Send()
+			return nil, errFailedToUpdate
+		}
+		if affected, _ := data.RowsAffected(); affected == 0 {
+			return nil, errNotFound
+		}
+
+		err = tx.QueryRow(`SELECT "name", "email" FROM "user" WHERE "id" = $1`,
+			in.GetUserId(),
+		).Scan(&name,
+			&email,
+		)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, errNotFound
+			}
+			service.log.FromGRPC(err).Send()
+			return nil, errServerError
+		}
+
+		if err := tx.Commit(); err != nil {
+			service.log.FromGRPC(err).Send()
+			return nil, errTransactionCommitError
+		}
+
+		response.Name = name
+		response.Email = email
+		return response, nil
 	}
 
-	return deleteUser, nil
+	return nil, errBadRequest
 }
 
 // UpdatePassword is ...
-func (u *user) UpdatePassword(ctx context.Context, in *pb_user.UpdatePassword_Request) (*pb_user.UpdatePassword_Response, error) {
+func (u *user) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_Request) (*userpb.UpdatePassword_Response, error) {
+	response := new(userpb.UpdatePassword_Response)
+
 	if len(in.GetOldPassword()) > 0 {
 		// Check for a validity of the old password
 		var currentPassword string
-		err := service.db.Conn.QueryRow(`SELECT "password" FROM "user" WHERE "id" = $1`, in.GetUserId()).Scan(&currentPassword)
+		err := service.db.Conn.QueryRow(`SELECT "password" FROM "user" WHERE "id" = $1`,
+			in.GetUserId(),
+		).Scan(&currentPassword)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, errNotFound
+			}
 			service.log.FromGRPC(err).Send()
-			return nil, errFailedToSelect
+			return nil, errServerError
 		}
 		if !crypto.CheckPasswordHash(in.GetOldPassword(), currentPassword) {
 			return nil, errPasswordIsNotValid // Old password is not valid
@@ -386,216 +369,14 @@ func (u *user) UpdatePassword(ctx context.Context, in *pb_user.UpdatePassword_Re
 		return nil, errNotFound
 	}
 
-	// return &pb_user.UpdatePassword_Response{
-	//	 Message: "Password update",
-	// }, nil
-	return &pb_user.UpdatePassword_Response{}, nil
+	return response, nil
 }
 
-// SignIn is ...
-func (u *user) SignIn(ctx context.Context, in *pb_user.SignIn_Request) (*pb_user.User_Response, error) {
-	var password string
-	user := new(pb_user.User_Response)
-	user.Email = in.GetEmail()
-	err := service.db.Conn.QueryRow(`SELECT
-			"id",
-			"fio",
-			"name",
-			"password",
-			"enabled",
-			"confirmed",
-			"role"
-		FROM
-			"user"
-		WHERE
-			"email" = $1
-			AND "enabled" = 't'
-			AND "confirmed" = 't'`,
-		in.GetEmail(),
-	).Scan(
-		&user.UserId,
-		&user.Fio,
-		&user.Name,
-		&password,
-		&user.Enabled,
-		&user.Confirmed,
-		&user.Role,
-	)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		// return nil, errNotFound
-		return nil, errFailedToScan
-	}
-
-	// Does he have access to the admin panel
-	// if user.GetRole() != pb_user.RoleUser_ADMIN && in.GetApp() == pb_user.AppType_admin {
-	//	return nil, errors.New(internal.MsgAccessIsDenied)
-	// }
-
-	if !crypto.CheckPasswordHash(in.GetPassword(), password) {
-		return nil, errPasswordIsNotValid
-	}
-
-	return user, nil
-}
-
-// ResetPassword is ...
-func (u *user) ResetPassword(ctx context.Context, in *pb_user.ResetPassword_Request) (*pb_user.ResetPassword_Response, error) {
-	var id, resetToken string
-	resetPassword := new(pb_user.ResetPassword_Response)
-
-	// Sending an email with a verification link
-	if in.GetEmail() != "" {
-		// Check if there is a user with the specified email
-		err := service.db.Conn.QueryRow(`SELECT "id" FROM "user" WHERE "email" = $1 AND "enabled" = 't'`, in.GetEmail()).Scan(&id)
-		if err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, errFailedToSelect
-		}
-		if id == "" {
-			resetPassword.Message = "Verification email has been sent"
-			return resetPassword, nil
-		}
-
-		// Checking if a verification token has been sent in the last 24 hours
-		resetToken, _ = u.getTokenByUserID(id, "reset")
-		if len(resetToken) > 0 {
-			resetPassword.Message = "Resend only after 24 hours"
-			return resetPassword, nil
-		}
-
-		resetToken = uuid.New().String()
-		data, err := service.db.Conn.Exec(`INSERT
-			INTO "user_token" (
-				"token",
-				"user_id",
-				"date_create",
-				"action"
-			)
-			VALUES
-				($1, $2, NOW(), 'reset')`,
-			resetToken,
-			id,
-		)
-		if err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, errFailedToAdd
-		}
-		if affected, _ := data.RowsAffected(); affected == 0 {
-			return nil, errNotFound
-		}
-
-		resetPassword.Message = "Verification email has been sent"
-		resetPassword.Token = resetToken
-		return resetPassword, nil
-	}
-
-	// Checking the validity of a link
-	if in.GetToken() != "" && in.GetPassword() == "" {
-		if _, err := u.getUserIDByToken(in.GetToken()); err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, err
-		}
-
-		resetPassword.Message = "Token is valid"
-		return resetPassword, nil
-	}
-
-	// Saving a new password
-	if in.GetToken() != "" && in.GetPassword() != "" {
-		id, err := u.getUserIDByToken(in.GetToken())
-		if err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, err
-		}
-
-		newPassword, err := crypto.HashPassword(in.GetPassword())
-		if err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, errHashIsNotValid // HashPassword failed
-		}
-
-		tx, err := service.db.Conn.Begin()
-		if err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, errTransactionCreateError
-		}
-
-		tx.Exec(`UPDATE "user"
-			SET
-				"password" = $1
-			WHERE
-				"id" = $2`,
-			newPassword,
-			id,
-		)
-
-		tx.Exec(`UPDATE "user_token"
-			SET
-				"used" = 't',
-				date_used = NOW()
-			WHERE
-				"token" = $1`,
-			in.GetToken(),
-		)
-
-		if err = tx.Commit(); err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, errTransactionCommitError
-		}
-
-		/*
-					   if _, err = db.Conn.Exec(`UPDATE "user" SET "password" = $1 WHERE "id" = $2`, newPassword, id); err != nil {
-			         service.log.FromGRPC(err).Send()
-					     return nil, errors.New("There was a problem updating")
-					   }
-
-					   if _, err = db.Conn.Exec(`UPDATE "user_token" SET "used" = 't' WHERE "token" = $1`, in.GetToken()); err != nil {
-			         service.log.FromGRPC(err).Send()
-					     return nil, errors.New("There was a problem updating")
-					   }
-		*/
-
-		resetPassword.Message = "New password saved"
-		return resetPassword, nil
-	}
-
-	return resetPassword, nil
-}
-
-// getUserIDByToken
-func (u *user) getUserIDByToken(token string) (string, error) {
-	var id string
-	err := service.db.Conn.QueryRow(`SELECT
-			"user_id" AS "id"
-		FROM
-			"user_token"
-		WHERE
-			"token" = $1
-			AND "used" = 'f'
-			AND "date_create" > NOW() - INTERVAL '24 hour'`,
-		token,
-	).Scan(&id)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return id, errFailedToScan
-	}
-	if id == "" {
-		return id, errTokenIsNotValid
-	}
-
-	return id, nil
-}
-
-// getTokenByUserID
-func (u *user) getTokenByUserID(userID, action string) (string, error) {
+func tokenByUserID(userID, action string) (string, error) {
 	var token string
-	err := service.db.Conn.QueryRow(`SELECT
-			"token"
-		FROM
-			"user_token"
-		WHERE
-			"user_id" = $1
+	err := service.db.Conn.QueryRow(`SELECT "token"
+		FROM "user_token"
+		WHERE "user_id" = $1
 			AND "used" = 'f'
 			AND "action" = $2
 			AND "date_create" > NOW() - INTERVAL '24 hour'`,
@@ -603,12 +384,38 @@ func (u *user) getTokenByUserID(userID, action string) (string, error) {
 		action,
 	).Scan(&token)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", errNotFound
+		}
 		service.log.FromGRPC(err).Send()
-		return token, errFailedToScan
+		return "", errServerError
 	}
 	if token == "" {
 		return token, errTokenIsNotValid
 	}
 
 	return token, nil
+}
+
+func userIDByToken(token string) (string, error) {
+	var id string
+	err := service.db.Conn.QueryRow(`SELECT "user_id" AS "id"
+		FROM "user_token"
+		WHERE "token" = $1
+			AND "used" = 'f'
+			AND "date_create" > NOW() - INTERVAL '24 hour'`,
+		token,
+	).Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", errNotFound
+		}
+		service.log.FromGRPC(err).Send()
+		return "", errServerError
+	}
+	if id == "" {
+		return id, errTokenIsNotValid
+	}
+
+	return id, nil
 }

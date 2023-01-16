@@ -7,12 +7,11 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	projectpb "github.com/werbot/werbot/api/proto/project"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
-
-	pb "github.com/werbot/werbot/api/proto/project"
 )
 
 // @Summary      Show information about project or list of all projects
@@ -21,11 +20,11 @@ import (
 // @Produce      json
 // @Param        project_id      path     uuid true  "Project ID"
 // @Param        owner_id        path     uuid false "Project owner ID. Parameter Accessible with ROLE_ADMIN rights"
-// @Success      200             {object} webutil.HTTPResponse{data=pb.ListProjects_Response}
+// @Success      200             {object} webutil.HTTPResponse{data=projectpb.ListProjects_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [get]
 func (h *Handler) getProject(c *fiber.Ctx) error {
-	request := new(pb.Project_Request)
+	request := new(projectpb.Project_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -34,8 +33,8 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.Project_RequestMultiError) {
-			e := err.(pb.Project_RequestValidationError)
+		for _, err := range err.(projectpb.Project_RequestMultiError) {
+			e := err.(projectpb.Project_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -46,13 +45,15 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
 
 	// show all projects
 	if request.GetProjectId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
-		sanitizeSQL, _ := sanitize.SQL(`"project"."owner_id" = $1`, request.OwnerId)
-		projects, err := rClient.ListProjects(ctx, &pb.ListProjects_Request{
+		sanitizeSQL, _ := sanitize.SQL(`"project"."owner_id" = $1`,
+			request.GetOwnerId(),
+		)
+		projects, err := rClient.ListProjects(ctx, &projectpb.ListProjects_Request{
 			Limit:  pagination.GetLimit(),
 			Offset: pagination.GetOffset(),
 			SortBy: "id:ASC",
@@ -77,12 +78,12 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 	// 	return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	// }
 
-	// If RoleUser_ADMIN - show detailed information
+	// If Role_admin - show detailed information
 	if userParameter.IsUserAdmin() {
 		return webutil.StatusOK(c, msgProjectInfo, project)
 	}
 
-	return webutil.StatusOK(c, msgProjectInfo, &pb.Project_Response{
+	return webutil.StatusOK(c, msgProjectInfo, &projectpb.Project_Response{
 		Title: project.GetTitle(),
 		Login: project.GetLogin(),
 	})
@@ -92,12 +93,12 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 // @Tags         projects
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.AddProject_Request{}
-// @Success      200         {object} webutil.HTTPResponse{data=pb.AddProject_Response}
+// @Param        req         body     projectpb.AddProject_Request{}
+// @Success      200         {object} webutil.HTTPResponse{data=projectpb.AddProject_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [post]
 func (h *Handler) addProject(c *fiber.Ctx) error {
-	request := new(pb.AddProject_Request)
+	request := new(projectpb.AddProject_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -106,8 +107,8 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.AddProject_RequestMultiError) {
-			e := err.(pb.AddProject_RequestValidationError)
+		for _, err := range err.(projectpb.AddProject_RequestMultiError) {
+			e := err.(projectpb.AddProject_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -119,7 +120,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
 	project, err := rClient.AddProject(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
@@ -132,12 +133,12 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 // @Tags         projects
 // @Accept       json
 // @Produce      json
-// @Param        req             body     pb.UpdateProject_Request{}
-// @Success      200             {object} webutil.HTTPResponse{data=pb.UpdateProject_Response}
+// @Param        req             body     projectpb.UpdateProject_Request{}
+// @Success      200             {object} webutil.HTTPResponse{data=projectpb.UpdateProject_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [patch]
 func (h *Handler) patchProject(c *fiber.Ctx) error {
-	request := new(pb.UpdateProject_Request)
+	request := new(projectpb.UpdateProject_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -146,8 +147,8 @@ func (h *Handler) patchProject(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.UpdateProject_RequestMultiError) {
-			e := err.(pb.UpdateProject_RequestValidationError)
+		for _, err := range err.(projectpb.UpdateProject_RequestMultiError) {
+			e := err.(projectpb.UpdateProject_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -159,7 +160,7 @@ func (h *Handler) patchProject(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
 	_, err := rClient.UpdateProject(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
@@ -178,7 +179,7 @@ func (h *Handler) patchProject(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [delete]
 func (h *Handler) deleteProject(c *fiber.Ctx) error {
-	request := new(pb.DeleteProject_Request)
+	request := new(projectpb.DeleteProject_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -187,8 +188,8 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.DeleteProject_RequestMultiError) {
-			e := err.(pb.DeleteProject_RequestValidationError)
+		for _, err := range err.(projectpb.DeleteProject_RequestMultiError) {
+			e := err.(projectpb.DeleteProject_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -200,7 +201,7 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewProjectHandlersClient(h.Grpc.Client)
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
 	_, err := rClient.DeleteProject(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)

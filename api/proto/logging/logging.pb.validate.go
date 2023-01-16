@@ -35,22 +35,25 @@ var (
 	_ = sort.Sort
 )
 
-// Validate checks the field values on AddLogRecord with the rules defined in
+// define the regex for a UUID once up-front
+var _logging_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+// Validate checks the field values on ListRecords with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *AddLogRecord) Validate() error {
+func (m *ListRecords) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AddLogRecord with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in AddLogRecordMultiError, or
+// ValidateAll checks the field values on ListRecords with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ListRecordsMultiError, or
 // nil if none found.
-func (m *AddLogRecord) ValidateAll() error {
+func (m *ListRecords) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AddLogRecord) validate(all bool) error {
+func (m *ListRecords) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -58,18 +61,18 @@ func (m *AddLogRecord) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return AddLogRecordMultiError(errors)
+		return ListRecordsMultiError(errors)
 	}
 
 	return nil
 }
 
-// AddLogRecordMultiError is an error wrapping multiple validation errors
-// returned by AddLogRecord.ValidateAll() if the designated constraints aren't met.
-type AddLogRecordMultiError []error
+// ListRecordsMultiError is an error wrapping multiple validation errors
+// returned by ListRecords.ValidateAll() if the designated constraints aren't met.
+type ListRecordsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AddLogRecordMultiError) Error() string {
+func (m ListRecordsMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -78,11 +81,11 @@ func (m AddLogRecordMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AddLogRecordMultiError) AllErrors() []error { return m }
+func (m ListRecordsMultiError) AllErrors() []error { return m }
 
-// AddLogRecordValidationError is the validation error returned by
-// AddLogRecord.Validate if the designated constraints aren't met.
-type AddLogRecordValidationError struct {
+// ListRecordsValidationError is the validation error returned by
+// ListRecords.Validate if the designated constraints aren't met.
+type ListRecordsValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -90,22 +93,22 @@ type AddLogRecordValidationError struct {
 }
 
 // Field function returns field value.
-func (e AddLogRecordValidationError) Field() string { return e.field }
+func (e ListRecordsValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AddLogRecordValidationError) Reason() string { return e.reason }
+func (e ListRecordsValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AddLogRecordValidationError) Cause() error { return e.cause }
+func (e ListRecordsValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AddLogRecordValidationError) Key() bool { return e.key }
+func (e ListRecordsValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AddLogRecordValidationError) ErrorName() string { return "AddLogRecordValidationError" }
+func (e ListRecordsValidationError) ErrorName() string { return "ListRecordsValidationError" }
 
 // Error satisfies the builtin error interface
-func (e AddLogRecordValidationError) Error() string {
+func (e ListRecordsValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -117,14 +120,14 @@ func (e AddLogRecordValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAddLogRecord.%s: %s%s",
+		"invalid %sListRecords.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AddLogRecordValidationError{}
+var _ error = ListRecordsValidationError{}
 
 var _ interface {
 	Field() string
@@ -132,50 +135,42 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AddLogRecordValidationError{}
+} = ListRecordsValidationError{}
 
-// Validate checks the field values on AddLogRecord_Request with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *AddLogRecord_Request) Validate() error {
+// Validate checks the field values on Record with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Record) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AddLogRecord_Request with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// AddLogRecord_RequestMultiError, or nil if none found.
-func (m *AddLogRecord_Request) ValidateAll() error {
+// ValidateAll checks the field values on Record with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in RecordMultiError, or nil if none found.
+func (m *Record) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AddLogRecord_Request) validate(all bool) error {
+func (m *Record) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for Logger
-
-	// no validation rules for Event
-
-	// no validation rules for Id
-
 	if len(errors) > 0 {
-		return AddLogRecord_RequestMultiError(errors)
+		return RecordMultiError(errors)
 	}
 
 	return nil
 }
 
-// AddLogRecord_RequestMultiError is an error wrapping multiple validation
-// errors returned by AddLogRecord_Request.ValidateAll() if the designated
-// constraints aren't met.
-type AddLogRecord_RequestMultiError []error
+// RecordMultiError is an error wrapping multiple validation errors returned by
+// Record.ValidateAll() if the designated constraints aren't met.
+type RecordMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AddLogRecord_RequestMultiError) Error() string {
+func (m RecordMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -184,11 +179,11 @@ func (m AddLogRecord_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AddLogRecord_RequestMultiError) AllErrors() []error { return m }
+func (m RecordMultiError) AllErrors() []error { return m }
 
-// AddLogRecord_RequestValidationError is the validation error returned by
-// AddLogRecord_Request.Validate if the designated constraints aren't met.
-type AddLogRecord_RequestValidationError struct {
+// RecordValidationError is the validation error returned by Record.Validate if
+// the designated constraints aren't met.
+type RecordValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -196,24 +191,22 @@ type AddLogRecord_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e AddLogRecord_RequestValidationError) Field() string { return e.field }
+func (e RecordValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AddLogRecord_RequestValidationError) Reason() string { return e.reason }
+func (e RecordValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AddLogRecord_RequestValidationError) Cause() error { return e.cause }
+func (e RecordValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AddLogRecord_RequestValidationError) Key() bool { return e.key }
+func (e RecordValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AddLogRecord_RequestValidationError) ErrorName() string {
-	return "AddLogRecord_RequestValidationError"
-}
+func (e RecordValidationError) ErrorName() string { return "RecordValidationError" }
 
 // Error satisfies the builtin error interface
-func (e AddLogRecord_RequestValidationError) Error() string {
+func (e RecordValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -225,14 +218,14 @@ func (e AddLogRecord_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAddLogRecord_Request.%s: %s%s",
+		"invalid %sRecord.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AddLogRecord_RequestValidationError{}
+var _ error = RecordValidationError{}
 
 var _ interface {
 	Field() string
@@ -240,24 +233,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AddLogRecord_RequestValidationError{}
+} = RecordValidationError{}
 
-// Validate checks the field values on AddLogRecord_Response with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *AddLogRecord_Response) Validate() error {
+// Validate checks the field values on AddRecord with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *AddRecord) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AddLogRecord_Response with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// AddLogRecord_ResponseMultiError, or nil if none found.
-func (m *AddLogRecord_Response) ValidateAll() error {
+// ValidateAll checks the field values on AddRecord with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in AddRecordMultiError, or nil
+// if none found.
+func (m *AddRecord) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AddLogRecord_Response) validate(all bool) error {
+func (m *AddRecord) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -265,19 +258,18 @@ func (m *AddLogRecord_Response) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return AddLogRecord_ResponseMultiError(errors)
+		return AddRecordMultiError(errors)
 	}
 
 	return nil
 }
 
-// AddLogRecord_ResponseMultiError is an error wrapping multiple validation
-// errors returned by AddLogRecord_Response.ValidateAll() if the designated
-// constraints aren't met.
-type AddLogRecord_ResponseMultiError []error
+// AddRecordMultiError is an error wrapping multiple validation errors returned
+// by AddRecord.ValidateAll() if the designated constraints aren't met.
+type AddRecordMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AddLogRecord_ResponseMultiError) Error() string {
+func (m AddRecordMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -286,11 +278,11 @@ func (m AddLogRecord_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AddLogRecord_ResponseMultiError) AllErrors() []error { return m }
+func (m AddRecordMultiError) AllErrors() []error { return m }
 
-// AddLogRecord_ResponseValidationError is the validation error returned by
-// AddLogRecord_Response.Validate if the designated constraints aren't met.
-type AddLogRecord_ResponseValidationError struct {
+// AddRecordValidationError is the validation error returned by
+// AddRecord.Validate if the designated constraints aren't met.
+type AddRecordValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -298,24 +290,22 @@ type AddLogRecord_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e AddLogRecord_ResponseValidationError) Field() string { return e.field }
+func (e AddRecordValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AddLogRecord_ResponseValidationError) Reason() string { return e.reason }
+func (e AddRecordValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AddLogRecord_ResponseValidationError) Cause() error { return e.cause }
+func (e AddRecordValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AddLogRecord_ResponseValidationError) Key() bool { return e.key }
+func (e AddRecordValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AddLogRecord_ResponseValidationError) ErrorName() string {
-	return "AddLogRecord_ResponseValidationError"
-}
+func (e AddRecordValidationError) ErrorName() string { return "AddRecordValidationError" }
 
 // Error satisfies the builtin error interface
-func (e AddLogRecord_ResponseValidationError) Error() string {
+func (e AddRecordValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -327,14 +317,14 @@ func (e AddLogRecord_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAddLogRecord_Response.%s: %s%s",
+		"invalid %sAddRecord.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AddLogRecord_ResponseValidationError{}
+var _ error = AddRecordValidationError{}
 
 var _ interface {
 	Field() string
@@ -342,4 +332,705 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AddLogRecord_ResponseValidationError{}
+} = AddRecordValidationError{}
+
+// Validate checks the field values on ListRecords_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ListRecords_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListRecords_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListRecords_RequestMultiError, or nil if none found.
+func (m *ListRecords_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListRecords_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if _, ok := Logger_name[int32(m.GetLogger())]; !ok {
+		err := ListRecords_RequestValidationError{
+			field:  "Logger",
+			reason: "value must be one of the defined enum values",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if err := m._validateUuid(m.GetId()); err != nil {
+		err = ListRecords_RequestValidationError{
+			field:  "Id",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return ListRecords_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ListRecords_Request) _validateUuid(uuid string) error {
+	if matched := _logging_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ListRecords_RequestMultiError is an error wrapping multiple validation
+// errors returned by ListRecords_Request.ValidateAll() if the designated
+// constraints aren't met.
+type ListRecords_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListRecords_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListRecords_RequestMultiError) AllErrors() []error { return m }
+
+// ListRecords_RequestValidationError is the validation error returned by
+// ListRecords_Request.Validate if the designated constraints aren't met.
+type ListRecords_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListRecords_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListRecords_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListRecords_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListRecords_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListRecords_RequestValidationError) ErrorName() string {
+	return "ListRecords_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ListRecords_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListRecords_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListRecords_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListRecords_RequestValidationError{}
+
+// Validate checks the field values on ListRecords_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ListRecords_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListRecords_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListRecords_ResponseMultiError, or nil if none found.
+func (m *ListRecords_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListRecords_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ListRecords_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// ListRecords_ResponseMultiError is an error wrapping multiple validation
+// errors returned by ListRecords_Response.ValidateAll() if the designated
+// constraints aren't met.
+type ListRecords_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListRecords_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListRecords_ResponseMultiError) AllErrors() []error { return m }
+
+// ListRecords_ResponseValidationError is the validation error returned by
+// ListRecords_Response.Validate if the designated constraints aren't met.
+type ListRecords_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListRecords_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListRecords_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListRecords_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListRecords_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListRecords_ResponseValidationError) ErrorName() string {
+	return "ListRecords_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ListRecords_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListRecords_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListRecords_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListRecords_ResponseValidationError{}
+
+// Validate checks the field values on Record_Request with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Record_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Record_Request with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in Record_RequestMultiError,
+// or nil if none found.
+func (m *Record_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Record_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetRecordId()); err != nil {
+		err = Record_RequestValidationError{
+			field:  "RecordId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return Record_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *Record_Request) _validateUuid(uuid string) error {
+	if matched := _logging_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// Record_RequestMultiError is an error wrapping multiple validation errors
+// returned by Record_Request.ValidateAll() if the designated constraints
+// aren't met.
+type Record_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m Record_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m Record_RequestMultiError) AllErrors() []error { return m }
+
+// Record_RequestValidationError is the validation error returned by
+// Record_Request.Validate if the designated constraints aren't met.
+type Record_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e Record_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e Record_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e Record_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e Record_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e Record_RequestValidationError) ErrorName() string { return "Record_RequestValidationError" }
+
+// Error satisfies the builtin error interface
+func (e Record_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRecord_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = Record_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = Record_RequestValidationError{}
+
+// Validate checks the field values on Record_Response with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *Record_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Record_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// Record_ResponseMultiError, or nil if none found.
+func (m *Record_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Record_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return Record_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// Record_ResponseMultiError is an error wrapping multiple validation errors
+// returned by Record_Response.ValidateAll() if the designated constraints
+// aren't met.
+type Record_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m Record_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m Record_ResponseMultiError) AllErrors() []error { return m }
+
+// Record_ResponseValidationError is the validation error returned by
+// Record_Response.Validate if the designated constraints aren't met.
+type Record_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e Record_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e Record_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e Record_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e Record_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e Record_ResponseValidationError) ErrorName() string { return "Record_ResponseValidationError" }
+
+// Error satisfies the builtin error interface
+func (e Record_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRecord_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = Record_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = Record_ResponseValidationError{}
+
+// Validate checks the field values on AddRecord_Request with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *AddRecord_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddRecord_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddRecord_RequestMultiError, or nil if none found.
+func (m *AddRecord_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddRecord_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if _, ok := Logger_name[int32(m.GetLogger())]; !ok {
+		err := AddRecord_RequestValidationError{
+			field:  "Logger",
+			reason: "value must be one of the defined enum values",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if _, ok := EventType_name[int32(m.GetEvent())]; !ok {
+		err := AddRecord_RequestValidationError{
+			field:  "Event",
+			reason: "value must be one of the defined enum values",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if err := m._validateUuid(m.GetId()); err != nil {
+		err = AddRecord_RequestValidationError{
+			field:  "Id",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return AddRecord_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *AddRecord_Request) _validateUuid(uuid string) error {
+	if matched := _logging_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// AddRecord_RequestMultiError is an error wrapping multiple validation errors
+// returned by AddRecord_Request.ValidateAll() if the designated constraints
+// aren't met.
+type AddRecord_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddRecord_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddRecord_RequestMultiError) AllErrors() []error { return m }
+
+// AddRecord_RequestValidationError is the validation error returned by
+// AddRecord_Request.Validate if the designated constraints aren't met.
+type AddRecord_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddRecord_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddRecord_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddRecord_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddRecord_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddRecord_RequestValidationError) ErrorName() string {
+	return "AddRecord_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AddRecord_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddRecord_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddRecord_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddRecord_RequestValidationError{}
+
+// Validate checks the field values on AddRecord_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AddRecord_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddRecord_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddRecord_ResponseMultiError, or nil if none found.
+func (m *AddRecord_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddRecord_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return AddRecord_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// AddRecord_ResponseMultiError is an error wrapping multiple validation errors
+// returned by AddRecord_Response.ValidateAll() if the designated constraints
+// aren't met.
+type AddRecord_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddRecord_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddRecord_ResponseMultiError) AllErrors() []error { return m }
+
+// AddRecord_ResponseValidationError is the validation error returned by
+// AddRecord_Response.Validate if the designated constraints aren't met.
+type AddRecord_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddRecord_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddRecord_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddRecord_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddRecord_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddRecord_ResponseValidationError) ErrorName() string {
+	return "AddRecord_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AddRecord_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddRecord_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddRecord_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddRecord_ResponseValidationError{}

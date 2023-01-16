@@ -23,3 +23,13 @@ func Download(filepath string, url string) error {
 	_, err = io.Copy(out, resp.Body)
 	return err
 }
+
+// MustReadFile read file contents, will panic on error
+func MustReadFile(filePath string) []byte {
+	bs, err := os.ReadFile(filePath)
+	if err != nil {
+		panic(err)
+	}
+
+	return bs
+}

@@ -11,15 +11,15 @@ import (
 
 	"github.com/jackc/pgtype"
 
+	serverpb "github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
+	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/pkg/strutil"
-
-	pb_server "github.com/werbot/werbot/api/proto/server"
 )
 
 type server struct {
-	pb_server.UnimplementedServerHandlersServer
+	serverpb.UnimplementedServerHandlersServer
 }
 
 // TODO: a method for updating Host FingerPrint server
@@ -28,13 +28,14 @@ type server struct {
 // GetServers is ...
 // TODO: Add a check of working hours (SERVER_ACTivity table)
 // TODO: It is necessary that the server remains in the global variable Serverlist
-func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Request) (*pb_server.ListServers_Response, error) {
+func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Request) (*serverpb.ListServers_Response, error) {
 	// TODO: checking the permitted servers available for display
 	//  log.Info().Msgf("Expired: %v", license.L.GetCustomer())
-	var count int32
+
+	response := new(serverpb.ListServers_Response)
+
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	query := service.db.QueryParse(in.GetQuery())
-	servers := []*pb_server.Server_Response{}
 
 	if query["user_name"] != "" {
 		nameArray := strutil.SplitNTrimmed(query["user_name"], "_", 3)
@@ -59,16 +60,14 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
         "server_member"."id" AS "account_id",
         "project_member"."project_id",
         "project"."login" AS "project_login"
-      FROM
-        "user"
+      FROM "user"
         JOIN "project_member" ON "user"."id" = "project_member"."user_id"
         JOIN "project" ON "project"."id" = "project_member"."project_id"
         JOIN "server" ON "project"."id" = "server"."project_id"
         JOIN "server_host_key" ON "server_host_key"."server_id" = "server"."id"
         JOIN "server_member" ON "server_member"."server_id" = "server"."id"
         AND "server_member"."member_id" = "project_member"."id"
-      WHERE
-        "user"."name" = $1
+      WHERE "user"."name" = $1
         AND "server_member"."active" = TRUE
         AND "server"."active" = TRUE`
 
@@ -77,11 +76,11 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 			rows, err := service.db.Conn.Query(query, nameArray[0])
 			if err != nil {
 				service.log.FromGRPC(err).Send()
-				return nil, errFailedToSelect
+				return nil, errServerError
 			}
 
 			for rows.Next() {
-				server := new(pb_server.Server_Response)
+				server := new(serverpb.Server_Response)
 				err = rows.Scan(&server.ServerId,
 					&server.Port,
 					&server.Address,
@@ -102,25 +101,26 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
+					if err == sql.ErrNoRows {
+						return nil, errNotFound
+					}
 					service.log.FromGRPC(err).Send()
-					return nil, errFailedToScan
+					return nil, errServerError
 				}
-				servers = append(servers, server)
+				response.Servers = append(response.Servers, server)
 			}
 			defer rows.Close()
 
 		case 2:
-			rows, err := service.db.Conn.Query(query+` AND "project"."login" = $2`,
-				nameArray[0],
-				nameArray[1],
-			)
+			rows, err := service.db.Conn.Query(query+`
+				AND "project"."login" = $2`, nameArray[0], nameArray[1])
 			if err != nil {
 				service.log.FromGRPC(err).Send()
-				return nil, errFailedToSelect
+				return nil, errServerError
 			}
 
 			for rows.Next() {
-				server := new(pb_server.Server_Response)
+				server := new(serverpb.Server_Response)
 				err = rows.Scan(&server.ServerId,
 					&server.Port,
 					&server.Address,
@@ -141,28 +141,28 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
+					if err == sql.ErrNoRows {
+						return nil, errNotFound
+					}
 					service.log.FromGRPC(err).Send()
-					return nil, errFailedToScan
+					return nil, errServerError
 				}
-				servers = append(servers, server)
+				response.Servers = append(response.Servers, server)
 			}
 			defer rows.Close()
 
 		case 3:
-			rows, err := service.db.Conn.Query(query+` AND "project"."login" = $2
+			rows, err := service.db.Conn.Query(query+`
+				AND "project"."login" = $2
 				AND "token" = $3
-				AND "project_member"."role" = 'user'`,
-				nameArray[0],
-				nameArray[1],
-				nameArray[2],
-			)
+				AND "project_member"."role" = 'user'`, nameArray[0], nameArray[1], nameArray[2])
 			if err != nil {
 				service.log.FromGRPC(err).Send()
-				return nil, errFailedToSelect
+				return nil, errServerError
 			}
 
 			for rows.Next() {
-				server := new(pb_server.Server_Response)
+				server := new(serverpb.Server_Response)
 				err = rows.Scan(&server.ServerId,
 					&server.Port,
 					&server.Address,
@@ -183,23 +183,23 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
+					if err == sql.ErrNoRows {
+						return nil, errNotFound
+					}
 					service.log.FromGRPC(err).Send()
-					return nil, errFailedToScan
+					return nil, errServerError
 				}
-				servers = append(servers, server)
+				response.Servers = append(response.Servers, server)
 			}
 			defer rows.Close()
 		}
 
-		count = int32(len(servers))
-		if count == 0 {
+		response.Total = int32(len(response.Servers))
+		if response.Total == 0 {
 			return nil, errNotFound
 		}
 
-		return &pb_server.ListServers_Response{
-			Total:   count,
-			Servers: servers,
-		}, nil
+		return response, nil
 	}
 
 	if query["project_id"] != "" && query["user_id"] != "" {
@@ -218,23 +218,21 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 				"server".scheme,
 				"server".private_description,
 				"server".public_description,
-				( SELECT COUNT ( * ) FROM "server_member" WHERE "server_id" = "server"."id"  ) AS "count_members"
-			FROM
-				"server"
+				(SELECT COUNT (*) FROM "server_member" WHERE "server_id" = "server"."id") AS "count_members"
+			FROM "server"
 				INNER JOIN "project" ON "server"."project_id" = "project"."id"
-			WHERE
-				"server"."project_id" = $1
+			WHERE "server"."project_id" = $1
 				AND "project"."owner_id" = $2`+sqlFooter,
 			query["project_id"],
 			query["user_id"],
 		)
 		if err != nil {
 			service.log.FromGRPC(err).Send()
-			return nil, errFailedToSelect
+			return nil, errServerError
 		}
 
 		for rows.Next() {
-			server := new(pb_server.Server_Response)
+			server := new(serverpb.Server_Response)
 			err = rows.Scan(&server.ServerId,
 				&server.Address,
 				&server.Port,
@@ -251,47 +249,45 @@ func (s *server) ListServers(ctx context.Context, in *pb_server.ListServers_Requ
 				&server.CountMembers,
 			)
 			if err != nil {
+				if err == sql.ErrNoRows {
+					return nil, errNotFound
+				}
 				service.log.FromGRPC(err).Send()
-				return nil, errFailedToScan
+				return nil, errServerError
 			}
-			servers = append(servers, server)
+			response.Servers = append(response.Servers, server)
 		}
 		defer rows.Close()
 
 		// Total count
-		err = service.db.Conn.QueryRow(`SELECT
-        COUNT (*)
-      FROM
-				"server"
+		err = service.db.Conn.QueryRow(`SELECT COUNT(*)
+      FROM "server"
 				INNER JOIN "project" ON "server"."project_id" = "project"."id"
-			WHERE
-				"server"."project_id" = $1
+			WHERE "server"."project_id" = $1
 				AND "project"."owner_id" = $2`,
 			query["project_id"],
 			query["user_id"],
-		).Scan(&count)
-		if err != nil {
+		).Scan(&response.Total)
+		if err != nil && err != sql.ErrNoRows {
 			service.log.FromGRPC(err).Send()
-			return nil, errFailedToScan
+			return nil, errServerError
 		}
 
-		return &pb_server.ListServers_Response{
-			Total:   count,
-			Servers: servers,
-		}, nil
+		return response, nil
 	}
 
-	return &pb_server.ListServers_Response{}, nil
+	return response, nil
 }
 
 // Server is ...
-func (s *server) Server(ctx context.Context, in *pb_server.Server_Request) (*pb_server.Server_Response, error) {
-	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
+func (s *server) Server(ctx context.Context, in *serverpb.Server_Request) (*serverpb.Server_Response, error) {
+	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
 
 	var privateDescription, publicDescription pgtype.Text
-	server := new(pb_server.Server_Response)
+	response := new(serverpb.Server_Response)
+
 	err := service.db.Conn.QueryRow(`SELECT
 			"server"."address",
 			"server"."port",
@@ -305,299 +301,58 @@ func (s *server) Server(ctx context.Context, in *pb_server.Server_Request) (*pb_
 			"server"."online",
 			"server"."auth",
 			"server"."scheme"
-		FROM
-			"server"
-		WHERE
-			"server"."id" = $1
+		FROM "server"
+		WHERE "server"."id" = $1
 			AND "server"."project_id" = $2`,
 		in.GetServerId(),
 		in.GetProjectId(),
-	).Scan(
-		&server.Address,
-		&server.Port,
-		&server.Token,
-		&server.Login,
+	).Scan(&response.Address,
+		&response.Port,
+		&response.Token,
+		&response.Login,
 		&privateDescription,
 		&publicDescription,
-		&server.Title,
-		&server.Active,
-		&server.Audit,
-		&server.Online,
-		&server.Auth,
-		&server.Scheme,
+		&response.Title,
+		&response.Active,
+		&response.Audit,
+		&response.Online,
+		&response.Auth,
+		&response.Scheme,
 	)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
-	}
-
-	server.PrivateDescription = privateDescription.String
-	server.PublicDescription = publicDescription.String
-	return server, nil
-}
-
-// DeleteServer is ...
-func (s *server) DeleteServer(ctx context.Context, in *pb_server.DeleteServer_Request) (*pb_server.DeleteServer_Response, error) {
-	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
-	}
-
-	data, err := service.db.Conn.Exec(`DELETE
-		FROM
-			"server"
-		WHERE
-			"id" = $1
-			AND "project_id" = $2`,
-		in.GetServerId(),
-		in.GetProjectId(),
-	)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, errFailedToDelete
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
-	}
-
-	return &pb_server.DeleteServer_Response{}, nil
-}
-
-// ServerAccess is ...
-func (s *server) ServerAccess(ctx context.Context, in *pb_server.ServerAccess_Request) (*pb_server.ServerAccess_Response, error) {
-	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
-	}
-
-	access := new(pb_server.ServerAccess_Response)
-	server := new(pb_server.Server_Response)
-	err := service.db.Conn.QueryRow(`SELECT
-			"server"."password",
-			"server"."public_key",
-			"server"."private_key",
-			"server"."private_key_password",
-			"server"."auth"
-		FROM
-			"server"
-			INNER JOIN "project" ON "server"."project_id" = "project". "id"
-		WHERE
-			"server"."id" = $1
-			AND "server"."project_id" = $2
-			AND "project"."owner_id" = $3`,
-		in.GetServerId(),
-		in.GetProjectId(),
-		in.GetUserId(),
-	).Scan(
-		&server.Password,
-		&server.KeyPublic,
-		&server.KeyPrivate,
-		&server.KeyPassword,
-		&server.Auth,
-	)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, errFailedToSelect
-	}
-
-	switch server.Auth {
-	case "password":
-		access.Auth = pb_server.ServerAuth_PASSWORD
-		// access.Password = data.Password
-		access.Password = ""
-	case "key":
-		access.Auth = pb_server.ServerAuth_KEY
-		access.PublicKey = server.KeyPublic
-		// access.PrivateKey = data.KeyPrivate
-		// access.PasswordKey = data.KeyPassword
-	}
-
-	return access, nil
-}
-
-// UpdateServerAccess is ...
-func (s *server) UpdateServerAccess(ctx context.Context, in *pb_server.UpdateServerAccess_Request) (*pb_server.UpdateServerAccess_Response, error) {
-	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
-	}
-
-	var err error
-	var data sql.Result
-
-	switch in.Auth {
-	case pb_server.ServerAuth_PASSWORD:
-		data, err = service.db.Conn.Exec(`UPDATE
-        "server"
-			SET
-				"password" = $3
-			WHERE
-				"id" = $1
-				AND "project_id" = $2`,
-			in.GetServerId(),
-			in.GetProjectId(),
-			in.GetPassword(),
-		)
-	case pb_server.ServerAuth_KEY:
-		privateKey, _err := service.cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
-		if _err != nil {
-			service.log.FromGRPC(err).Send()
-			return nil, errFailedToSelect
+		if err == sql.ErrNoRows {
+			return nil, errNotFound
 		}
-		service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
-
-		data, err = service.db.Conn.Exec(`UPDATE
-        "server"
-			SET
-				"public_key" = $3,
-				"private_key" = $4
-			WHERE
-				"id" = $1
-				AND "project_id" = $2`,
-			in.GetServerId(),
-			in.GetProjectId(),
-			in.GetPublicKey(),
-			privateKey,
-		)
-	}
-
-	if err != nil {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, errServerError
 	}
 
-	return &pb_server.UpdateServerAccess_Response{}, nil
-}
+	response.PrivateDescription = privateDescription.String
+	response.PublicDescription = publicDescription.String
 
-// UpdateServerOnlineStatus is ...
-func (s *server) UpdateServerOnlineStatus(ctx context.Context, in *pb_server.UpdateServerOnlineStatus_Request) (*pb_server.UpdateServerOnlineStatus_Response, error) {
-	data, err := service.db.Conn.Exec(`UPDATE
-      "server"
-		SET
-			"online" = $1
-		FROM
-			"project"
-		WHERE
-			"server"."id" = $2 AND
-			"project"."owner_id"  = $3 AND
-			"server"."project_id" = "project"."id"`,
-		in.GetStatus(),
-		in.GetServerId(),
-		in.GetUserId(),
-	)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
-	}
-
-	return &pb_server.UpdateServerOnlineStatus_Response{}, nil
-}
-
-// UpdateServerActiveStatus is ...
-func (s *server) UpdateServerActiveStatus(ctx context.Context, in *pb_server.UpdateServerActiveStatus_Request) (*pb_server.UpdateServerActiveStatus_Response, error) {
-	// TODO After turning off, turn off all users who online
-	data, err := service.db.Conn.Exec(`UPDATE
-      "server"
-		SET
-			"active" = $1
-		FROM
-			"project"
-		WHERE
-			"server"."id" = $2 AND
-			"project"."owner_id"  = $3 AND
-			"server"."project_id" = "project"."id"`,
-		in.GetStatus(),
-		in.GetServerId(),
-		in.GetUserId(),
-	)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
-	}
-
-	return &pb_server.UpdateServerActiveStatus_Response{}, nil
-}
-
-// UpdateServerHostKey is ...
-func (s *server) UpdateServerHostKey(ctx context.Context, in *pb_server.UpdateServerHostKey_Request) (*pb_server.UpdateServerHostKey_Response, error) {
-	data, err := service.db.Conn.Exec(`UPDATE
-      "server_host_key"
-		SET
-			"host_key" = $1
-		WHERE
-			"server_id" = $2`,
-		in.GetHostkey(),
-		in.GetServerId(),
-	)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
-	}
-
-	return &pb_server.UpdateServerHostKey_Response{}, nil
-}
-
-// AddServerSession is ...
-func (s *server) AddServerSession(ctx context.Context, in *pb_server.AddServerSession_Request) (*pb_server.AddServerSession_Response, error) {
-	if in.GetAccountId() == "" && in.GetUuid() == "" {
-		return nil, errBadRequest
-	}
-
-	var sessionID string
-	err := service.db.Conn.QueryRow(`INSERT
-		INTO "session" (
-			"account_id",
-			"status",
-			"created",
-			"message",
-			"uuid")
-		VALUES
-			($1, $2, $3, $4, $5)
-		RETURNING id`,
-		in.GetAccountId(),
-		strings.ToLower(in.Status.String()),
-		time.Now(),
-		in.GetMessage(),
-		in.GetUuid(),
-	).Scan(&sessionID)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
-	}
-
-	return &pb_server.AddServerSession_Response{
-		SessionId: sessionID,
-	}, nil
+	return response, nil
 }
 
 // AddServer is ...
-func (s *server) AddServer(ctx context.Context, in *pb_server.AddServer_Request) (*pb_server.AddServer_Response, error) {
-	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
+func (s *server) AddServer(ctx context.Context, in *serverpb.AddServer_Request) (*serverpb.AddServer_Response, error) {
+	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
 
 	var serverPassword string
 	var serverKeys = new(crypto.PairOfKeys)
 	var err error
+	response := new(serverpb.AddServer_Response)
 
 	switch in.GetAuth() {
-	case pb_server.ServerAuth_PASSWORD:
+	case serverpb.Auth_password:
 		serverPassword = in.GetPassword()
-	case pb_server.ServerAuth_KEY:
+	case serverpb.Auth_key:
 		if in.GetPublicKey() != "" && in.GetKeyUuid() != "" {
 			privateKey, err := service.cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
 			if err != nil {
 				service.log.FromGRPC(err).Send()
-				return nil, errFailedToSelect
+				return nil, errServerError
 			}
 			service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
 			serverKeys.PrivateKey = []byte(privateKey)
@@ -609,6 +364,7 @@ func (s *server) AddServer(ctx context.Context, in *pb_server.AddServer_Request)
 				return nil, crypto.ErrFailedCreatingSSHKey
 			}
 		}
+		response.KeyPublic = string(serverKeys.PublicKey)
 	}
 
 	serverToken := crypto.NewPassword(6, false)
@@ -625,12 +381,10 @@ func (s *server) AddServer(ctx context.Context, in *pb_server.AddServer_Request)
 
 	// TODO: This design converts the number into a line into an old format that is registered in the database,
 	// I recommend that you store numerical values in the new format in the database
-	serverAuth := strings.ToLower(pb_server.ServerAuth_name[int32(in.Auth.Number())])
-	serverScheme := strings.ToLower(pb_server.ServerScheme_name[int32(in.Scheme.Number())])
+	serverAuth := strings.ToLower(serverpb.Auth_name[int32(in.Auth.Number())])
+	serverScheme := strings.ToLower(serverpb.ServerScheme_name[int32(in.Scheme.Number())])
 
-	var serverID string
-	err = tx.QueryRow(`INSERT
-		INTO "server" (
+	err = tx.QueryRow(`INSERT INTO "server" (
 			"project_id",
 			"address",
 			"port",
@@ -648,10 +402,8 @@ func (s *server) AddServer(ctx context.Context, in *pb_server.AddServer_Request)
 			"auth",
 			"scheme",
 			"previous_state",
-			"private_key_password"
-		)
-		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, '[]', $18)
+			"private_key_password")
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, '[]', $18)
 		RETURNING "id"`,
 		in.GetProjectId(),
 		in.GetAddress(),
@@ -670,22 +422,15 @@ func (s *server) AddServer(ctx context.Context, in *pb_server.AddServer_Request)
 		serverAuth,
 		serverScheme,
 		serverKeys.Passphrase,
-	).Scan(&serverID)
+	).Scan(&response.ServerId)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
+		return nil, errFailedToAdd
 	}
 
 	// + record server_access_policy
-	data, err := tx.Exec(`INSERT
-		INTO "server_access_policy" (
-			"server_id",
-			"ip",
-			"country"
-		)
-		VALUES
-			($1, 'f', 'f')`,
-		&serverID,
+	data, err := tx.Exec(`INSERT INTO "server_access_policy" ("server_id", "ip", "country") VALUES ($1, 'f', 'f')`,
+		response.GetServerId(),
 	)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
@@ -696,22 +441,16 @@ func (s *server) AddServer(ctx context.Context, in *pb_server.AddServer_Request)
 	}
 
 	// + record server_activity
-	sqlCountDay := `INSERT
-		INTO "server_activity" (
-			"server_id",
-			"dow",
-			"time_from",
-			"time_to"
-		)
-		VALUES `
+	sqlCountDay := `INSERT INTO "server_activity" ("server_id", "dow", "time_from", "time_to") VALUES `
 	for countDay := 1; countDay < 8; countDay++ {
 		for countHour := 0; countHour < 24; countHour++ {
 			timeFrom := fmt.Sprintf("%02v:00:00", strconv.Itoa(countHour))
 			timeTo := fmt.Sprintf("%02v:59:59", strconv.Itoa(countHour))
-			sqlCountDay += fmt.Sprintf(`(%v, %v, '%v', '%v'),`, serverID, countDay, timeFrom, timeTo)
+			sqlCountDay += fmt.Sprintf(`(%v, %v, '%v', '%v'),`, response.GetServerId(), countDay, timeFrom, timeTo)
 		}
 	}
 	sqlCountDay = strings.TrimSuffix(sqlCountDay, ",")
+
 	data, err = tx.Exec(sqlCountDay)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
@@ -726,42 +465,67 @@ func (s *server) AddServer(ctx context.Context, in *pb_server.AddServer_Request)
 		return nil, errTransactionCommitError
 	}
 
-	return &pb_server.AddServer_Response{
-		ServerId:  serverID,
-		KeyPublic: string(serverKeys.PublicKey),
-	}, nil
+	return response, nil
 }
 
 // UpdateServer is ...
-func (s *server) UpdateServer(ctx context.Context, in *pb_server.UpdateServer_Request) (*pb_server.UpdateServer_Response, error) {
-	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
+func (s *server) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Request) (*serverpb.UpdateServer_Response, error) {
+	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
 
-	data, err := service.db.Conn.Exec(`UPDATE "server"
-		SET
-			"address" = $3,
-			"port" = $4,
-			"login" = $5,
-			"title" = $6,
-			"active" = $7,
-			"audit" = $8,
-			"private_description" = $9,
-			"public_description" = $10
-		WHERE
-			"id" = $1
-			AND "project_id" = $2`,
-		in.GetServerId(),
-		in.GetProjectId(),
-		in.GetAddress(),
-		in.GetPort(),
-		in.GetLogin(),
-		in.GetTitle(),
-		in.GetActive(),
-		in.GetAudit(),
-		in.GetPrivateDescription(),
-		in.GetPublicDescription(),
-	)
+	var err error
+	var data sql.Result
+	response := new(serverpb.UpdateServer_Response)
+
+	switch in.GetSetting().(type) {
+	case *serverpb.UpdateServer_Request_Info:
+		data, err = service.db.Conn.Exec(`UPDATE "server" SET
+      "address" = $3,
+      "port" = $4,
+      "login" = $5,
+      "title" = $6,
+      "active" = $7,
+      "audit" = $8,
+      "private_description" = $9,
+      "public_description" = $10
+    WHERE "id" = $1
+      AND "project_id" = $2`,
+			in.GetServerId(),
+			in.GetProjectId(),
+			in.GetInfo().GetAddress(),
+			in.GetInfo().GetPort(),
+			in.GetInfo().GetLogin(),
+			in.GetInfo().GetTitle(),
+			in.GetActive(),
+			in.GetAudit(),
+			in.GetInfo().GetPrivateDescription(),
+			in.GetInfo().GetPublicDescription(),
+		)
+
+	case *serverpb.UpdateServer_Request_Audit:
+		data, err = service.db.Conn.Exec(`UPDATE "server" SET "audit" = $1 WHERE "id" = $2`,
+			in.GetAudit(),
+			in.GetServerId(),
+		)
+
+	case *serverpb.UpdateServer_Request_Active:
+		// TODO After turning off, turn off all users who online
+		data, err = service.db.Conn.Exec(`UPDATE "server" SET "active" = $1 WHERE "id" = $2`,
+			in.GetActive(),
+			in.GetServerId(),
+		)
+
+	case *serverpb.UpdateServer_Request_Online:
+		data, err = service.db.Conn.Exec(`UPDATE "server" SET "online" = $1 WHERE "id" = $2`,
+			in.GetOnline(),
+			in.GetServerId(),
+		)
+
+	default:
+		return nil, errBadRequest
+	}
+
 	if err != nil {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
@@ -770,46 +534,175 @@ func (s *server) UpdateServer(ctx context.Context, in *pb_server.UpdateServer_Re
 		return nil, errNotFound
 	}
 
-	return &pb_server.UpdateServer_Response{}, nil
+	return response, nil
 }
 
-// ServerActivity is ...
-func (s *server) ServerActivity(ctx context.Context, in *pb_server.ServerActivity_Request) (*pb_server.ServerActivity_Response, error) {
-	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
+// DeleteServer is ...
+func (s *server) DeleteServer(ctx context.Context, in *serverpb.DeleteServer_Request) (*serverpb.DeleteServer_Response, error) {
+	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
 
-	data := []map[string]int32{}
+	response := new(serverpb.DeleteServer_Response)
+
+	data, err := service.db.Conn.Exec(`DELETE FROM "server" WHERE "id" = $1 AND "project_id" = $2`,
+		in.GetServerId(),
+		in.GetProjectId(),
+	)
+	if err != nil {
+		service.log.FromGRPC(err).Send()
+		return nil, errFailedToDelete
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
+	}
+
+	return response, nil
+}
+
+// ServerAccess is ...
+func (s *server) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Request) (*serverpb.ServerAccess_Response, error) {
+	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
+		return nil, errNotFound
+	}
+
+	response := new(serverpb.ServerAccess_Response)
+	server := new(serverpb.Server_Response)
+
+	err := service.db.Conn.QueryRow(`SELECT
+			"server"."password",
+			"server"."public_key",
+			"server"."private_key",
+			"server"."private_key_password",
+			"server"."auth"
+		FROM "server"
+			INNER JOIN "project" ON "server"."project_id" = "project". "id"
+		WHERE "server"."id" = $1
+			AND "server"."project_id" = $2
+			AND "project"."owner_id" = $3`,
+		in.GetServerId(),
+		in.GetProjectId(),
+		in.GetUserId(),
+	).Scan(&server.Password,
+		&server.KeyPublic,
+		&server.KeyPrivate,
+		&server.KeyPassword,
+		&server.Auth,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errNotFound
+		}
+		service.log.FromGRPC(err).Send()
+		return nil, errServerError
+	}
+
+	switch server.Auth {
+	case "password":
+		response.Auth = serverpb.Auth_password
+		response.Access = &serverpb.ServerAccess_Response_Password{
+			Password: "",
+		}
+	case "key":
+		response.Auth = serverpb.Auth_key
+		response.Access = &serverpb.ServerAccess_Response_Key{
+			Key: &serverpb.ServerAccess_Key{
+				Public: server.KeyPublic,
+			},
+		}
+	}
+
+	return response, nil
+}
+
+// UpdateServerAccess is ...
+func (s *server) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateServerAccess_Request) (*serverpb.UpdateServerAccess_Response, error) {
+	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
+		return nil, errNotFound
+	}
+
+	var sqlQuery string
+	response := new(serverpb.UpdateServerAccess_Response)
+
+	switch in.Auth {
+	case serverpb.Auth_password:
+		sqlQuery, _ = sanitize.SQL(`UPDATE "server" SET "password" = $3 WHERE "id" = $1 AND "project_id" = $2`,
+			in.GetServerId(),
+			in.GetProjectId(),
+			in.GetPassword(),
+		)
+	case serverpb.Auth_key:
+		privateKey, err := service.cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
+		if err != nil {
+			service.log.FromGRPC(err).Send()
+			return nil, errServerError
+		}
+		service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
+		sqlQuery, _ = sanitize.SQL(`UPDATE "server" SET "public_key" = $3, "private_key" = $4 WHERE "id" = $1 AND "project_id" = $2`,
+			in.GetServerId(),
+			in.GetProjectId(),
+			in.GetPublicKey(),
+			privateKey,
+		)
+	default:
+		return response, nil
+	}
+
+	data, err := service.db.Conn.Exec(sqlQuery)
+	if err != nil {
+		service.log.FromGRPC(err).Send()
+		return nil, errFailedToUpdate
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
+	}
+
+	return response, nil
+}
+
+// ServerActivity is ...
+func (s *server) ServerActivity(ctx context.Context, in *serverpb.ServerActivity_Request) (*serverpb.ServerActivity_Response, error) {
+	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
+		return nil, errNotFound
+	}
+
+	response := new(serverpb.ServerActivity_Response)
+	response.Monday = make([]int32, 24)
+	response.Tuesday = make([]int32, 24)
+	response.Wednesday = make([]int32, 24)
+	response.Thursday = make([]int32, 24)
+	response.Friday = make([]int32, 24)
+	response.Saturday = make([]int32, 24)
+	response.Sunday = make([]int32, 24)
+
+	day := []map[string]int32{}
 	rows, err := service.db.Conn.Query(`SELECT
 			"server_activity"."id" AS "activity_id",
 			"server_activity"."dow" AS "week",
-			EXTRACT ( HOUR FROM "server_activity"."time_from" ) AS "hour"
-		FROM
-			"server_activity"
+			EXTRACT (HOUR FROM "server_activity"."time_from") AS "hour"
+		FROM "server_activity"
 			INNER JOIN "server" ON "server_activity"."server_id" = "server"."id"
-		WHERE
-			"server_activity"."server_id" = $1
+		WHERE "server_activity"."server_id" = $1
 			AND "server"."project_id" = $2`,
 		in.GetServerId(),
 		in.GetProjectId(),
 	)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToSelect
+		return nil, errServerError
 	}
 
 	for rows.Next() {
 		var activityID, week, hour int32
-		err = rows.Scan(
-			&activityID,
-			&week,
-			&hour,
-		)
-		if err != nil {
+		if err := rows.Scan(&activityID, &week, &hour); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, errNotFound
+			}
 			service.log.FromGRPC(err).Send()
-			return nil, errFailedToScan
+			return nil, errServerError
 		}
-		data = append(data, map[string]int32{
+
+		day = append(day, map[string]int32{
 			"activity_id": activityID,
 			"week":        week,
 			"hour":        hour,
@@ -817,17 +710,7 @@ func (s *server) ServerActivity(ctx context.Context, in *pb_server.ServerActivit
 	}
 	defer rows.Close()
 
-	activity := &pb_server.ServerActivity_Response{
-		Monday:    make([]int32, 24),
-		Tuesday:   make([]int32, 24),
-		Wednesday: make([]int32, 24),
-		Thursday:  make([]int32, 24),
-		Friday:    make([]int32, 24),
-		Saturday:  make([]int32, 24),
-		Sunday:    make([]int32, 24),
-	}
-
-	for _, item := range data {
+	for _, item := range day {
 		var status int32
 		if item["activity_id"] > 0 {
 			status = 1
@@ -835,28 +718,32 @@ func (s *server) ServerActivity(ctx context.Context, in *pb_server.ServerActivit
 
 		switch item["week"] {
 		case 1:
-			activity.Monday[item["hour"]] = status
+			response.Monday[item["hour"]] = status
 		case 2:
-			activity.Tuesday[item["hour"]] = status
+			response.Tuesday[item["hour"]] = status
 		case 3:
-			activity.Wednesday[item["hour"]] = status
+			response.Wednesday[item["hour"]] = status
 		case 4:
-			activity.Thursday[item["hour"]] = status
+			response.Thursday[item["hour"]] = status
 		case 5:
-			activity.Friday[item["hour"]] = status
+			response.Friday[item["hour"]] = status
 		case 6:
-			activity.Saturday[item["hour"]] = status
+			response.Saturday[item["hour"]] = status
 		case 7:
-			activity.Sunday[item["hour"]] = status
+			response.Sunday[item["hour"]] = status
 		}
 	}
 
-	return activity, nil
+	return response, nil
 }
 
 // UpdateServerActivity
-func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateServerActivity_Request) (*pb_server.UpdateServerActivity_Response, error) {
-	var sqlDelete, sqlInsert string
+func (s *server) UpdateServerActivity(ctx context.Context, in *serverpb.UpdateServerActivity_Request) (*serverpb.UpdateServerActivity_Response, error) {
+	response := new(serverpb.UpdateServerActivity_Response)
+	sqlQuery := map[string]string{
+		"add": "",
+		"del": "",
+	}
 	week := map[int32]string{
 		1: "Monday",
 		2: "Tuesday",
@@ -867,7 +754,7 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateS
 		7: "Sunday",
 	}
 
-	oldActivity, err := s.ServerActivity(ctx, &pb_server.ServerActivity_Request{
+	oldActivity, err := s.ServerActivity(ctx, &serverpb.ServerActivity_Request{
 		UserId:    in.GetUserId(),
 		ServerId:  in.GetServerId(),
 		ProjectId: in.GetProjectId(),
@@ -890,23 +777,28 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateS
 
 			if oldDayTmp != newDayTmp {
 				if oldDayTmp > newDayTmp {
-					sqlDelete += fmt.Sprintf(` ("server_id" = %v AND "dow" = %v AND "time_from" = '%v:00:00') OR`, in.GetServerId(), index, hour)
+					sqlQuery["del"] += fmt.Sprintf(` ("server_id" = %v AND "dow" = %v AND "time_from" = '%v:00:00') OR`,
+						in.GetServerId(),
+						index,
+						hour,
+					)
 				} else {
-					sqlInsert += fmt.Sprintf(` (%v, %v, '%v:00:00', '%v:59:59'),`, in.GetServerId(), index, hour, hour)
+					sqlQuery["add"] += fmt.Sprintf(` (%v, %v, '%v:00:00', '%v:59:59'),`,
+						in.GetServerId(),
+						index,
+						hour,
+						hour,
+					)
 				}
 			}
 		}
 	}
 
-	if sqlDelete != "" {
-		sqlDelete = fmt.Sprintf(`DELETE
-			FROM
-				"server_activity"
-			WHERE
-				%s`,
-			sqlDelete[:len(sqlDelete)-2],
+	if sqlQuery["del"] != "" {
+		sqlQuery["del"] = fmt.Sprintf(`DELETE FROM "server_activity" WHERE %s`,
+			sqlQuery["del"][:len(sqlQuery["del"])-2],
 		)
-		data, err := service.db.Conn.Exec(sqlDelete)
+		data, err := service.db.Conn.Exec(sqlQuery["del"])
 		if err != nil {
 			service.log.FromGRPC(err).Send()
 			return nil, errFailedToDelete
@@ -916,19 +808,11 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateS
 		}
 	}
 
-	if sqlInsert != "" {
-		sqlInsert = fmt.Sprintf(`INSERT
-			INTO "server_activity" (
-				"server_id",
-				"dow",
-				"time_from",
-				"time_to"
-			)
-			VALUES
-				%s`,
-			sqlInsert[:len(sqlInsert)-1],
+	if sqlQuery["add"] != "" {
+		sqlQuery["add"] = fmt.Sprintf(`INSERT INTO "server_activity" ("server_id", "dow", "time_from", "time_to") VALUES %s`,
+			sqlQuery["add"][:len(sqlQuery["add"])-1],
 		)
-		data, err := service.db.Conn.Exec(sqlInsert)
+		data, err := service.db.Conn.Exec(sqlQuery["add"])
 		if err != nil {
 			service.log.FromGRPC(err).Send()
 			return nil, errFailedToAdd
@@ -938,38 +822,14 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *pb_server.UpdateS
 		}
 	}
 
-	return &pb_server.UpdateServerActivity_Response{}, nil
+	return response, nil
 }
 
-// ServerNameByID is ...
-func (s *server) ServerNameByID(ctx context.Context, in *pb_server.ServerNameByID_Request) (*pb_server.ServerNameByID_Response, error) {
-	if !checkUserIDAndProjectID(in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
-	}
+// ListShareServers is ...
+func (s *server) ListShareServers(ctx context.Context, in *serverpb.ListShareServers_Request) (*serverpb.ListShareServers_Response, error) {
+	response := new(serverpb.ListShareServers_Response)
 
-	var name string
-	err := service.db.Conn.QueryRow(`SELECT
-			"title"
-		FROM
-			"server"
-		WHERE
-			"id" = $1`,
-		in.GetServerId(),
-	).Scan(&name)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
-	}
-
-	return &pb_server.ServerNameByID_Response{
-		ServerName: name,
-	}, nil
-}
-
-// ListServersShareForUser is ...
-func (s *server) ListServersShareForUser(ctx context.Context, in *pb_server.ListServersShareForUser_Request) (*pb_server.ListServersShareForUser_Response, error) {
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	servers := []*pb_server.ListServersShareForUser_Response_SharedServer{}
 	rows, err := service.db.Conn.Query(`SELECT
 			"user"."name" AS user_login,
 			"project"."login" AS project_login,
@@ -979,25 +839,22 @@ func (s *server) ListServersShareForUser(ctx context.Context, in *pb_server.List
 			"server"."online" AS server_online,
 			"server"."title" AS server_title,
 			"server"."public_description" AS server_description
-		FROM
-			"server"
+		FROM "server"
 			INNER JOIN "project" ON "server"."project_id" = "project"."id"
 			INNER JOIN "project_member" ON "project"."id" = "project_member"."project_id"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
-		WHERE
-			"project_member"."user_id" = $1`+sqlFooter,
-		in.UserId,
+		WHERE "project_member"."user_id" = $1`+sqlFooter,
+		in.GetUserId(),
 	)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToSelect
+		return nil, errServerError
 	}
 
 	for rows.Next() {
 		var projectLogin, projectTitle string
-		server := new(pb_server.ListServersShareForUser_Response_SharedServer)
-		err = rows.Scan(
-			&server.UserLogin,
+		server := new(serverpb.ListShareServers_Response_SharedServer)
+		err = rows.Scan(&server.UserLogin,
 			&projectLogin,
 			&projectTitle,
 			&server.ServerToken,
@@ -1007,32 +864,108 @@ func (s *server) ListServersShareForUser(ctx context.Context, in *pb_server.List
 			&server.ServerDescription,
 		)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, errNotFound
+			}
 			service.log.FromGRPC(err).Send()
-			return nil, errFailedToScan
+			return nil, errServerError
 		}
 		server.ProjectLogin = projectLogin
-		servers = append(servers, server)
+
+		response.Servers = append(response.Servers, server)
 	}
 	defer rows.Close()
 
 	// Total count for pagination
-	var total int32
-	err = service.db.Conn.QueryRow(`SELECT
-      COUNT(*)
-		FROM
-			"server"
+	err = service.db.Conn.QueryRow(`SELECT COUNT(*)
+		FROM "server"
 			INNER JOIN "project_member" ON "server"."project_id" = "project_member"."project_id"
-		WHERE
-			"project_member"."user_id" = $1`,
+		WHERE "project_member"."user_id" = $1`,
 		in.GetUserId(),
-	).Scan(&total)
-	if err != nil {
+	).Scan(&response.Total)
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
+		return nil, errServerError
 	}
 
-	return &pb_server.ListServersShareForUser_Response{
-		Total:   total,
-		Servers: servers,
-	}, nil
+	return response, nil
+}
+
+// TODO AddShareServer is ...
+func (s *server) AddShareServer(ctx context.Context, in *serverpb.AddShareServer_Request) (*serverpb.AddShareServer_Response, error) {
+	response := new(serverpb.AddShareServer_Response)
+	return response, nil
+}
+
+// TODO UpdateShareServer is ...
+func (s *server) UpdateShareServer(ctx context.Context, in *serverpb.UpdateShareServer_Request) (*serverpb.UpdateShareServer_Response, error) {
+	response := new(serverpb.UpdateShareServer_Response)
+	return response, nil
+}
+
+// TODO DeleteShareServer is ...
+func (s *server) DeleteShareServer(ctx context.Context, in *serverpb.DeleteShareServer_Request) (*serverpb.DeleteShareServer_Response, error) {
+	response := new(serverpb.DeleteShareServer_Response)
+	return response, nil
+}
+
+// UpdateHostKey is ...
+func (s *server) UpdateHostKey(ctx context.Context, in *serverpb.UpdateHostKey_Request) (*serverpb.UpdateHostKey_Response, error) {
+	response := new(serverpb.UpdateHostKey_Response)
+
+	data, err := service.db.Conn.Exec(`UPDATE "server_host_key" SET "host_key" = $1 WHERE "server_id" = $2`,
+		in.GetHostkey(),
+		in.GetServerId(),
+	)
+	if err != nil {
+		service.log.FromGRPC(err).Send()
+		return nil, errFailedToUpdate
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
+	}
+
+	return response, nil
+}
+
+// AddSession is ...
+func (s *server) AddSession(ctx context.Context, in *serverpb.AddSession_Request) (*serverpb.AddSession_Response, error) {
+	response := new(serverpb.AddSession_Response)
+
+	err := service.db.Conn.QueryRow(`INSERT INTO "session" ("account_id", "status", "created", "message")
+		VALUES ($1, $2, $3, $4)
+		RETURNING id`,
+		in.GetAccountId(),
+		strings.ToLower(in.Status.String()),
+		time.Now(),
+		in.GetMessage(),
+	).Scan(&response.SessionId)
+	if err != nil {
+		service.log.FromGRPC(err).Send()
+		return nil, errFailedToAdd
+	}
+
+	return response, nil
+}
+
+// ServerNameByID is ...
+func (s *server) ServerNameByID(ctx context.Context, in *serverpb.ServerNameByID_Request) (*serverpb.ServerNameByID_Response, error) {
+	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
+		return nil, errNotFound
+	}
+
+	response := new(serverpb.ServerNameByID_Response)
+
+	err := service.db.Conn.QueryRow(`SELECT "title" FROM "server" WHERE "id" = $1`,
+		in.GetServerId(),
+	).Scan(&response.ServerName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errNotFound
+		}
+		service.log.FromGRPC(err).Send()
+		return nil, errServerError
+	}
+
+	return response, nil
 }

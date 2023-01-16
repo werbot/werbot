@@ -35,50 +35,44 @@ var (
 	_ = sort.Sort
 )
 
-// Validate checks the field values on Record with the rules defined in the
+// define the regex for a UUID once up-front
+var _audit_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+// Validate checks the field values on ListAudits with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *Record) Validate() error {
+func (m *ListAudits) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on Record with the rules defined in the
-// proto definition for this message. If any rules are violated, the result is
-// a list of violation errors wrapped in RecordMultiError, or nil if none found.
-func (m *Record) ValidateAll() error {
+// ValidateAll checks the field values on ListAudits with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ListAuditsMultiError, or
+// nil if none found.
+func (m *ListAudits) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *Record) validate(all bool) error {
+func (m *ListAudits) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for Id
-
-	// no validation rules for Audit
-
-	// no validation rules for Duration
-
-	// no validation rules for Screen
-
-	// no validation rules for Type
-
 	if len(errors) > 0 {
-		return RecordMultiError(errors)
+		return ListAuditsMultiError(errors)
 	}
 
 	return nil
 }
 
-// RecordMultiError is an error wrapping multiple validation errors returned by
-// Record.ValidateAll() if the designated constraints aren't met.
-type RecordMultiError []error
+// ListAuditsMultiError is an error wrapping multiple validation errors
+// returned by ListAudits.ValidateAll() if the designated constraints aren't met.
+type ListAuditsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m RecordMultiError) Error() string {
+func (m ListAuditsMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -87,11 +81,11 @@ func (m RecordMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m RecordMultiError) AllErrors() []error { return m }
+func (m ListAuditsMultiError) AllErrors() []error { return m }
 
-// RecordValidationError is the validation error returned by Record.Validate if
-// the designated constraints aren't met.
-type RecordValidationError struct {
+// ListAuditsValidationError is the validation error returned by
+// ListAudits.Validate if the designated constraints aren't met.
+type ListAuditsValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -99,22 +93,22 @@ type RecordValidationError struct {
 }
 
 // Field function returns field value.
-func (e RecordValidationError) Field() string { return e.field }
+func (e ListAuditsValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e RecordValidationError) Reason() string { return e.reason }
+func (e ListAuditsValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e RecordValidationError) Cause() error { return e.cause }
+func (e ListAuditsValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e RecordValidationError) Key() bool { return e.key }
+func (e ListAuditsValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e RecordValidationError) ErrorName() string { return "RecordValidationError" }
+func (e ListAuditsValidationError) ErrorName() string { return "ListAuditsValidationError" }
 
 // Error satisfies the builtin error interface
-func (e RecordValidationError) Error() string {
+func (e ListAuditsValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -126,14 +120,14 @@ func (e RecordValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sRecord.%s: %s%s",
+		"invalid %sListAudits.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = RecordValidationError{}
+var _ error = ListAuditsValidationError{}
 
 var _ interface {
 	Field() string
@@ -141,7 +135,105 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = RecordValidationError{}
+} = ListAuditsValidationError{}
+
+// Validate checks the field values on Audit with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Audit) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Audit with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in AuditMultiError, or nil if none found.
+func (m *Audit) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Audit) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return AuditMultiError(errors)
+	}
+
+	return nil
+}
+
+// AuditMultiError is an error wrapping multiple validation errors returned by
+// Audit.ValidateAll() if the designated constraints aren't met.
+type AuditMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AuditMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AuditMultiError) AllErrors() []error { return m }
+
+// AuditValidationError is the validation error returned by Audit.Validate if
+// the designated constraints aren't met.
+type AuditValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AuditValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AuditValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AuditValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AuditValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AuditValidationError) ErrorName() string { return "AuditValidationError" }
+
+// Error satisfies the builtin error interface
+func (e AuditValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAudit.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AuditValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AuditValidationError{}
 
 // Validate checks the field values on AddAudit with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
@@ -341,22 +433,22 @@ var _ interface {
 	ErrorName() string
 } = UpdateAuditValidationError{}
 
-// Validate checks the field values on CreateRecord with the rules defined in
+// Validate checks the field values on DeleteAudit with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *CreateRecord) Validate() error {
+func (m *DeleteAudit) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on CreateRecord with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in CreateRecordMultiError, or
+// ValidateAll checks the field values on DeleteAudit with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in DeleteAuditMultiError, or
 // nil if none found.
-func (m *CreateRecord) ValidateAll() error {
+func (m *DeleteAudit) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *CreateRecord) validate(all bool) error {
+func (m *DeleteAudit) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -364,18 +456,18 @@ func (m *CreateRecord) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return CreateRecordMultiError(errors)
+		return DeleteAuditMultiError(errors)
 	}
 
 	return nil
 }
 
-// CreateRecordMultiError is an error wrapping multiple validation errors
-// returned by CreateRecord.ValidateAll() if the designated constraints aren't met.
-type CreateRecordMultiError []error
+// DeleteAuditMultiError is an error wrapping multiple validation errors
+// returned by DeleteAudit.ValidateAll() if the designated constraints aren't met.
+type DeleteAuditMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m CreateRecordMultiError) Error() string {
+func (m DeleteAuditMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -384,11 +476,11 @@ func (m CreateRecordMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m CreateRecordMultiError) AllErrors() []error { return m }
+func (m DeleteAuditMultiError) AllErrors() []error { return m }
 
-// CreateRecordValidationError is the validation error returned by
-// CreateRecord.Validate if the designated constraints aren't met.
-type CreateRecordValidationError struct {
+// DeleteAuditValidationError is the validation error returned by
+// DeleteAudit.Validate if the designated constraints aren't met.
+type DeleteAuditValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -396,22 +488,22 @@ type CreateRecordValidationError struct {
 }
 
 // Field function returns field value.
-func (e CreateRecordValidationError) Field() string { return e.field }
+func (e DeleteAuditValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CreateRecordValidationError) Reason() string { return e.reason }
+func (e DeleteAuditValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CreateRecordValidationError) Cause() error { return e.cause }
+func (e DeleteAuditValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CreateRecordValidationError) Key() bool { return e.key }
+func (e DeleteAuditValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CreateRecordValidationError) ErrorName() string { return "CreateRecordValidationError" }
+func (e DeleteAuditValidationError) ErrorName() string { return "DeleteAuditValidationError" }
 
 // Error satisfies the builtin error interface
-func (e CreateRecordValidationError) Error() string {
+func (e DeleteAuditValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -423,14 +515,14 @@ func (e CreateRecordValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCreateRecord.%s: %s%s",
+		"invalid %sDeleteAudit.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CreateRecordValidationError{}
+var _ error = DeleteAuditValidationError{}
 
 var _ interface {
 	Field() string
@@ -438,7 +530,757 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CreateRecordValidationError{}
+} = DeleteAuditValidationError{}
+
+// Validate checks the field values on Record with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Record) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Record with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in RecordMultiError, or nil if none found.
+func (m *Record) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Record) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Id
+
+	// no validation rules for Audit
+
+	// no validation rules for Duration
+
+	// no validation rules for Screen
+
+	// no validation rules for Type
+
+	if len(errors) > 0 {
+		return RecordMultiError(errors)
+	}
+
+	return nil
+}
+
+// RecordMultiError is an error wrapping multiple validation errors returned by
+// Record.ValidateAll() if the designated constraints aren't met.
+type RecordMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RecordMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RecordMultiError) AllErrors() []error { return m }
+
+// RecordValidationError is the validation error returned by Record.Validate if
+// the designated constraints aren't met.
+type RecordValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RecordValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RecordValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RecordValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RecordValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RecordValidationError) ErrorName() string { return "RecordValidationError" }
+
+// Error satisfies the builtin error interface
+func (e RecordValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRecord.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RecordValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RecordValidationError{}
+
+// Validate checks the field values on ListRecords with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *ListRecords) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListRecords with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ListRecordsMultiError, or
+// nil if none found.
+func (m *ListRecords) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListRecords) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ListRecordsMultiError(errors)
+	}
+
+	return nil
+}
+
+// ListRecordsMultiError is an error wrapping multiple validation errors
+// returned by ListRecords.ValidateAll() if the designated constraints aren't met.
+type ListRecordsMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListRecordsMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListRecordsMultiError) AllErrors() []error { return m }
+
+// ListRecordsValidationError is the validation error returned by
+// ListRecords.Validate if the designated constraints aren't met.
+type ListRecordsValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListRecordsValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListRecordsValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListRecordsValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListRecordsValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListRecordsValidationError) ErrorName() string { return "ListRecordsValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ListRecordsValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListRecords.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListRecordsValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListRecordsValidationError{}
+
+// Validate checks the field values on AddRecord with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *AddRecord) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddRecord with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in AddRecordMultiError, or nil
+// if none found.
+func (m *AddRecord) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddRecord) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return AddRecordMultiError(errors)
+	}
+
+	return nil
+}
+
+// AddRecordMultiError is an error wrapping multiple validation errors returned
+// by AddRecord.ValidateAll() if the designated constraints aren't met.
+type AddRecordMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddRecordMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddRecordMultiError) AllErrors() []error { return m }
+
+// AddRecordValidationError is the validation error returned by
+// AddRecord.Validate if the designated constraints aren't met.
+type AddRecordValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddRecordValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddRecordValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddRecordValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddRecordValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddRecordValidationError) ErrorName() string { return "AddRecordValidationError" }
+
+// Error satisfies the builtin error interface
+func (e AddRecordValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddRecord.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddRecordValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddRecordValidationError{}
+
+// Validate checks the field values on ListAudits_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ListAudits_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListAudits_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListAudits_RequestMultiError, or nil if none found.
+func (m *ListAudits_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListAudits_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = ListAudits_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return ListAudits_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ListAudits_Request) _validateUuid(uuid string) error {
+	if matched := _audit_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ListAudits_RequestMultiError is an error wrapping multiple validation errors
+// returned by ListAudits_Request.ValidateAll() if the designated constraints
+// aren't met.
+type ListAudits_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListAudits_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListAudits_RequestMultiError) AllErrors() []error { return m }
+
+// ListAudits_RequestValidationError is the validation error returned by
+// ListAudits_Request.Validate if the designated constraints aren't met.
+type ListAudits_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListAudits_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListAudits_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListAudits_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListAudits_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListAudits_RequestValidationError) ErrorName() string {
+	return "ListAudits_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ListAudits_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListAudits_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListAudits_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListAudits_RequestValidationError{}
+
+// Validate checks the field values on ListAudits_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ListAudits_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListAudits_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListAudits_ResponseMultiError, or nil if none found.
+func (m *ListAudits_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListAudits_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ListAudits_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// ListAudits_ResponseMultiError is an error wrapping multiple validation
+// errors returned by ListAudits_Response.ValidateAll() if the designated
+// constraints aren't met.
+type ListAudits_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListAudits_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListAudits_ResponseMultiError) AllErrors() []error { return m }
+
+// ListAudits_ResponseValidationError is the validation error returned by
+// ListAudits_Response.Validate if the designated constraints aren't met.
+type ListAudits_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListAudits_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListAudits_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListAudits_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListAudits_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListAudits_ResponseValidationError) ErrorName() string {
+	return "ListAudits_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ListAudits_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListAudits_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListAudits_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListAudits_ResponseValidationError{}
+
+// Validate checks the field values on Audit_Request with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Audit_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Audit_Request with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in Audit_RequestMultiError, or
+// nil if none found.
+func (m *Audit_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Audit_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetAuditId()); err != nil {
+		err = Audit_RequestValidationError{
+			field:  "AuditId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return Audit_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *Audit_Request) _validateUuid(uuid string) error {
+	if matched := _audit_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// Audit_RequestMultiError is an error wrapping multiple validation errors
+// returned by Audit_Request.ValidateAll() if the designated constraints
+// aren't met.
+type Audit_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m Audit_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m Audit_RequestMultiError) AllErrors() []error { return m }
+
+// Audit_RequestValidationError is the validation error returned by
+// Audit_Request.Validate if the designated constraints aren't met.
+type Audit_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e Audit_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e Audit_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e Audit_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e Audit_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e Audit_RequestValidationError) ErrorName() string { return "Audit_RequestValidationError" }
+
+// Error satisfies the builtin error interface
+func (e Audit_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAudit_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = Audit_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = Audit_RequestValidationError{}
+
+// Validate checks the field values on Audit_Response with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Audit_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Audit_Response with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in Audit_ResponseMultiError,
+// or nil if none found.
+func (m *Audit_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Audit_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return Audit_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// Audit_ResponseMultiError is an error wrapping multiple validation errors
+// returned by Audit_Response.ValidateAll() if the designated constraints
+// aren't met.
+type Audit_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m Audit_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m Audit_ResponseMultiError) AllErrors() []error { return m }
+
+// Audit_ResponseValidationError is the validation error returned by
+// Audit_Response.Validate if the designated constraints aren't met.
+type Audit_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e Audit_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e Audit_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e Audit_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e Audit_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e Audit_ResponseValidationError) ErrorName() string { return "Audit_ResponseValidationError" }
+
+// Error satisfies the builtin error interface
+func (e Audit_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAudit_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = Audit_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = Audit_ResponseValidationError{}
 
 // Validate checks the field values on AddAudit_Request with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -462,7 +1304,58 @@ func (m *AddAudit_Request) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for AccountId
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = AddAudit_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if err := m._validateUuid(m.GetAccountId()); err != nil {
+		err = AddAudit_RequestValidationError{
+			field:  "AccountId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetTimeStart()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, AddAudit_RequestValidationError{
+					field:  "TimeStart",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, AddAudit_RequestValidationError{
+					field:  "TimeStart",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetTimeStart()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AddAudit_RequestValidationError{
+				field:  "TimeStart",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
 
 	// no validation rules for Version
 
@@ -470,8 +1363,28 @@ func (m *AddAudit_Request) validate(all bool) error {
 
 	// no validation rules for ClientIp
 
+	// no validation rules for Width
+
+	// no validation rules for Height
+
+	// no validation rules for Command
+
+	// no validation rules for Title
+
+	// no validation rules for EnvTerm
+
+	// no validation rules for EnvShell
+
 	if len(errors) > 0 {
 		return AddAudit_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *AddAudit_Request) _validateUuid(uuid string) error {
+	if matched := _audit_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
 	}
 
 	return nil
@@ -676,12 +1589,20 @@ func (m *UpdateAudit_Request) validate(all bool) error {
 
 	// no validation rules for AuditId
 
+	// no validation rules for Width
+
+	// no validation rules for Height
+
+	// no validation rules for EnvTerm
+
+	// no validation rules for Duration
+
 	if all {
-		switch v := interface{}(m.GetParams()).(type) {
+		switch v := interface{}(m.GetTimeEnd()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, UpdateAudit_RequestValidationError{
-					field:  "Params",
+					field:  "TimeEnd",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -689,16 +1610,16 @@ func (m *UpdateAudit_Request) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, UpdateAudit_RequestValidationError{
-					field:  "Params",
+					field:  "TimeEnd",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetParams()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetTimeEnd()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return UpdateAudit_RequestValidationError{
-				field:  "Params",
+				field:  "TimeEnd",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -887,58 +1808,62 @@ var _ interface {
 	ErrorName() string
 } = UpdateAudit_ResponseValidationError{}
 
-// Validate checks the field values on UpdateAudit_Request_Params with the
-// rules defined in the proto definition for this message. If any rules are
+// Validate checks the field values on DeleteAudit_Request with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateAudit_Request_Params) Validate() error {
+func (m *DeleteAudit_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UpdateAudit_Request_Params with the
-// rules defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on DeleteAudit_Request with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// UpdateAudit_Request_ParamsMultiError, or nil if none found.
-func (m *UpdateAudit_Request_Params) ValidateAll() error {
+// DeleteAudit_RequestMultiError, or nil if none found.
+func (m *DeleteAudit_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *UpdateAudit_Request_Params) validate(all bool) error {
+func (m *DeleteAudit_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for Width
-
-	// no validation rules for Height
-
-	// no validation rules for Command
-
-	// no validation rules for Title
-
-	// no validation rules for EnvTerm
-
-	// no validation rules for EnvShell
-
-	// no validation rules for Duration
-
-	// no validation rules for TimeEnd
+	if err := m._validateUuid(m.GetAuditId()); err != nil {
+		err = DeleteAudit_RequestValidationError{
+			field:  "AuditId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
-		return UpdateAudit_Request_ParamsMultiError(errors)
+		return DeleteAudit_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// UpdateAudit_Request_ParamsMultiError is an error wrapping multiple
-// validation errors returned by UpdateAudit_Request_Params.ValidateAll() if
-// the designated constraints aren't met.
-type UpdateAudit_Request_ParamsMultiError []error
+func (m *DeleteAudit_Request) _validateUuid(uuid string) error {
+	if matched := _audit_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// DeleteAudit_RequestMultiError is an error wrapping multiple validation
+// errors returned by DeleteAudit_Request.ValidateAll() if the designated
+// constraints aren't met.
+type DeleteAudit_RequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m UpdateAudit_Request_ParamsMultiError) Error() string {
+func (m DeleteAudit_RequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -947,11 +1872,11 @@ func (m UpdateAudit_Request_ParamsMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m UpdateAudit_Request_ParamsMultiError) AllErrors() []error { return m }
+func (m DeleteAudit_RequestMultiError) AllErrors() []error { return m }
 
-// UpdateAudit_Request_ParamsValidationError is the validation error returned
-// by UpdateAudit_Request_Params.Validate if the designated constraints aren't met.
-type UpdateAudit_Request_ParamsValidationError struct {
+// DeleteAudit_RequestValidationError is the validation error returned by
+// DeleteAudit_Request.Validate if the designated constraints aren't met.
+type DeleteAudit_RequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -959,24 +1884,24 @@ type UpdateAudit_Request_ParamsValidationError struct {
 }
 
 // Field function returns field value.
-func (e UpdateAudit_Request_ParamsValidationError) Field() string { return e.field }
+func (e DeleteAudit_RequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e UpdateAudit_Request_ParamsValidationError) Reason() string { return e.reason }
+func (e DeleteAudit_RequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e UpdateAudit_Request_ParamsValidationError) Cause() error { return e.cause }
+func (e DeleteAudit_RequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e UpdateAudit_Request_ParamsValidationError) Key() bool { return e.key }
+func (e DeleteAudit_RequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e UpdateAudit_Request_ParamsValidationError) ErrorName() string {
-	return "UpdateAudit_Request_ParamsValidationError"
+func (e DeleteAudit_RequestValidationError) ErrorName() string {
+	return "DeleteAudit_RequestValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e UpdateAudit_Request_ParamsValidationError) Error() string {
+func (e DeleteAudit_RequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -988,14 +1913,14 @@ func (e UpdateAudit_Request_ParamsValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sUpdateAudit_Request_Params.%s: %s%s",
+		"invalid %sDeleteAudit_Request.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = UpdateAudit_Request_ParamsValidationError{}
+var _ error = DeleteAudit_RequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -1003,31 +1928,253 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = UpdateAudit_Request_ParamsValidationError{}
+} = DeleteAudit_RequestValidationError{}
 
-// Validate checks the field values on CreateRecord_Request with the rules
+// Validate checks the field values on DeleteAudit_Response with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *CreateRecord_Request) Validate() error {
+func (m *DeleteAudit_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on CreateRecord_Request with the rules
+// ValidateAll checks the field values on DeleteAudit_Response with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// CreateRecord_RequestMultiError, or nil if none found.
-func (m *CreateRecord_Request) ValidateAll() error {
+// DeleteAudit_ResponseMultiError, or nil if none found.
+func (m *DeleteAudit_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *CreateRecord_Request) validate(all bool) error {
+func (m *DeleteAudit_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for AuditId
+	if len(errors) > 0 {
+		return DeleteAudit_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// DeleteAudit_ResponseMultiError is an error wrapping multiple validation
+// errors returned by DeleteAudit_Response.ValidateAll() if the designated
+// constraints aren't met.
+type DeleteAudit_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m DeleteAudit_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m DeleteAudit_ResponseMultiError) AllErrors() []error { return m }
+
+// DeleteAudit_ResponseValidationError is the validation error returned by
+// DeleteAudit_Response.Validate if the designated constraints aren't met.
+type DeleteAudit_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e DeleteAudit_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e DeleteAudit_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e DeleteAudit_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e DeleteAudit_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e DeleteAudit_ResponseValidationError) ErrorName() string {
+	return "DeleteAudit_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e DeleteAudit_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sDeleteAudit_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = DeleteAudit_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = DeleteAudit_ResponseValidationError{}
+
+// Validate checks the field values on ListRecords_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ListRecords_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListRecords_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListRecords_RequestMultiError, or nil if none found.
+func (m *ListRecords_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListRecords_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetAuditId()); err != nil {
+		err = ListRecords_RequestValidationError{
+			field:  "AuditId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return ListRecords_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ListRecords_Request) _validateUuid(uuid string) error {
+	if matched := _audit_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ListRecords_RequestMultiError is an error wrapping multiple validation
+// errors returned by ListRecords_Request.ValidateAll() if the designated
+// constraints aren't met.
+type ListRecords_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListRecords_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListRecords_RequestMultiError) AllErrors() []error { return m }
+
+// ListRecords_RequestValidationError is the validation error returned by
+// ListRecords_Request.Validate if the designated constraints aren't met.
+type ListRecords_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListRecords_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListRecords_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListRecords_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListRecords_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListRecords_RequestValidationError) ErrorName() string {
+	return "ListRecords_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ListRecords_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListRecords_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListRecords_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListRecords_RequestValidationError{}
+
+// Validate checks the field values on ListRecords_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ListRecords_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListRecords_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListRecords_ResponseMultiError, or nil if none found.
+func (m *ListRecords_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListRecords_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
 
 	for idx, item := range m.GetRecords() {
 		_, _ = idx, item
@@ -1036,7 +2183,7 @@ func (m *CreateRecord_Request) validate(all bool) error {
 			switch v := interface{}(item).(type) {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, CreateRecord_RequestValidationError{
+					errors = append(errors, ListRecords_ResponseValidationError{
 						field:  fmt.Sprintf("Records[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -1044,7 +2191,7 @@ func (m *CreateRecord_Request) validate(all bool) error {
 				}
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
-					errors = append(errors, CreateRecord_RequestValidationError{
+					errors = append(errors, ListRecords_ResponseValidationError{
 						field:  fmt.Sprintf("Records[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -1053,7 +2200,7 @@ func (m *CreateRecord_Request) validate(all bool) error {
 			}
 		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
-				return CreateRecord_RequestValidationError{
+				return ListRecords_ResponseValidationError{
 					field:  fmt.Sprintf("Records[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -1064,19 +2211,19 @@ func (m *CreateRecord_Request) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return CreateRecord_RequestMultiError(errors)
+		return ListRecords_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// CreateRecord_RequestMultiError is an error wrapping multiple validation
-// errors returned by CreateRecord_Request.ValidateAll() if the designated
+// ListRecords_ResponseMultiError is an error wrapping multiple validation
+// errors returned by ListRecords_Response.ValidateAll() if the designated
 // constraints aren't met.
-type CreateRecord_RequestMultiError []error
+type ListRecords_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m CreateRecord_RequestMultiError) Error() string {
+func (m ListRecords_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1085,11 +2232,11 @@ func (m CreateRecord_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m CreateRecord_RequestMultiError) AllErrors() []error { return m }
+func (m ListRecords_ResponseMultiError) AllErrors() []error { return m }
 
-// CreateRecord_RequestValidationError is the validation error returned by
-// CreateRecord_Request.Validate if the designated constraints aren't met.
-type CreateRecord_RequestValidationError struct {
+// ListRecords_ResponseValidationError is the validation error returned by
+// ListRecords_Response.Validate if the designated constraints aren't met.
+type ListRecords_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1097,24 +2244,24 @@ type CreateRecord_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e CreateRecord_RequestValidationError) Field() string { return e.field }
+func (e ListRecords_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CreateRecord_RequestValidationError) Reason() string { return e.reason }
+func (e ListRecords_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CreateRecord_RequestValidationError) Cause() error { return e.cause }
+func (e ListRecords_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CreateRecord_RequestValidationError) Key() bool { return e.key }
+func (e ListRecords_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CreateRecord_RequestValidationError) ErrorName() string {
-	return "CreateRecord_RequestValidationError"
+func (e ListRecords_ResponseValidationError) ErrorName() string {
+	return "ListRecords_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e CreateRecord_RequestValidationError) Error() string {
+func (e ListRecords_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1126,14 +2273,14 @@ func (e CreateRecord_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCreateRecord_Request.%s: %s%s",
+		"invalid %sListRecords_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CreateRecord_RequestValidationError{}
+var _ error = ListRecords_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -1141,24 +2288,180 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CreateRecord_RequestValidationError{}
+} = ListRecords_ResponseValidationError{}
 
-// Validate checks the field values on CreateRecord_Response with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *CreateRecord_Response) Validate() error {
+// Validate checks the field values on AddRecord_Request with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *AddRecord_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on CreateRecord_Response with the rules
+// ValidateAll checks the field values on AddRecord_Request with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// CreateRecord_ResponseMultiError, or nil if none found.
-func (m *CreateRecord_Response) ValidateAll() error {
+// AddRecord_RequestMultiError, or nil if none found.
+func (m *AddRecord_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *CreateRecord_Response) validate(all bool) error {
+func (m *AddRecord_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetAuditId()); err != nil {
+		err = AddRecord_RequestValidationError{
+			field:  "AuditId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	for idx, item := range m.GetRecords() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, AddRecord_RequestValidationError{
+						field:  fmt.Sprintf("Records[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, AddRecord_RequestValidationError{
+						field:  fmt.Sprintf("Records[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return AddRecord_RequestValidationError{
+					field:  fmt.Sprintf("Records[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return AddRecord_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *AddRecord_Request) _validateUuid(uuid string) error {
+	if matched := _audit_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// AddRecord_RequestMultiError is an error wrapping multiple validation errors
+// returned by AddRecord_Request.ValidateAll() if the designated constraints
+// aren't met.
+type AddRecord_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddRecord_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddRecord_RequestMultiError) AllErrors() []error { return m }
+
+// AddRecord_RequestValidationError is the validation error returned by
+// AddRecord_Request.Validate if the designated constraints aren't met.
+type AddRecord_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddRecord_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddRecord_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddRecord_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddRecord_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddRecord_RequestValidationError) ErrorName() string {
+	return "AddRecord_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AddRecord_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddRecord_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddRecord_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddRecord_RequestValidationError{}
+
+// Validate checks the field values on AddRecord_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AddRecord_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddRecord_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddRecord_ResponseMultiError, or nil if none found.
+func (m *AddRecord_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddRecord_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1166,19 +2469,19 @@ func (m *CreateRecord_Response) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return CreateRecord_ResponseMultiError(errors)
+		return AddRecord_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// CreateRecord_ResponseMultiError is an error wrapping multiple validation
-// errors returned by CreateRecord_Response.ValidateAll() if the designated
-// constraints aren't met.
-type CreateRecord_ResponseMultiError []error
+// AddRecord_ResponseMultiError is an error wrapping multiple validation errors
+// returned by AddRecord_Response.ValidateAll() if the designated constraints
+// aren't met.
+type AddRecord_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m CreateRecord_ResponseMultiError) Error() string {
+func (m AddRecord_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1187,11 +2490,11 @@ func (m CreateRecord_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m CreateRecord_ResponseMultiError) AllErrors() []error { return m }
+func (m AddRecord_ResponseMultiError) AllErrors() []error { return m }
 
-// CreateRecord_ResponseValidationError is the validation error returned by
-// CreateRecord_Response.Validate if the designated constraints aren't met.
-type CreateRecord_ResponseValidationError struct {
+// AddRecord_ResponseValidationError is the validation error returned by
+// AddRecord_Response.Validate if the designated constraints aren't met.
+type AddRecord_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1199,24 +2502,24 @@ type CreateRecord_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e CreateRecord_ResponseValidationError) Field() string { return e.field }
+func (e AddRecord_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CreateRecord_ResponseValidationError) Reason() string { return e.reason }
+func (e AddRecord_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CreateRecord_ResponseValidationError) Cause() error { return e.cause }
+func (e AddRecord_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CreateRecord_ResponseValidationError) Key() bool { return e.key }
+func (e AddRecord_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CreateRecord_ResponseValidationError) ErrorName() string {
-	return "CreateRecord_ResponseValidationError"
+func (e AddRecord_ResponseValidationError) ErrorName() string {
+	return "AddRecord_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e CreateRecord_ResponseValidationError) Error() string {
+func (e AddRecord_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1228,14 +2531,14 @@ func (e CreateRecord_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCreateRecord_Response.%s: %s%s",
+		"invalid %sAddRecord_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CreateRecord_ResponseValidationError{}
+var _ error = AddRecord_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -1243,4 +2546,4 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CreateRecord_ResponseValidationError{}
+} = AddRecord_ResponseValidationError{}

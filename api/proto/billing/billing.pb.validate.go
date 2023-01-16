@@ -35,6 +35,9 @@ var (
 	_ = sort.Sort
 )
 
+// define the regex for a UUID once up-front
+var _billing_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
 // Validate checks the field values on PackageDimensions with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
@@ -145,6 +148,104 @@ var _ interface {
 	ErrorName() string
 } = PackageDimensionsValidationError{}
 
+// Validate checks the field values on Product with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Product) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Product with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in ProductMultiError, or nil if none found.
+func (m *Product) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Product) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ProductMultiError(errors)
+	}
+
+	return nil
+}
+
+// ProductMultiError is an error wrapping multiple validation errors returned
+// by Product.ValidateAll() if the designated constraints aren't met.
+type ProductMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ProductMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ProductMultiError) AllErrors() []error { return m }
+
+// ProductValidationError is the validation error returned by Product.Validate
+// if the designated constraints aren't met.
+type ProductValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ProductValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ProductValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ProductValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ProductValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ProductValidationError) ErrorName() string { return "ProductValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ProductValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sProduct.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ProductValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ProductValidationError{}
+
 // Validate checks the field values on UpdateProduct with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -245,6 +346,289 @@ var _ interface {
 	ErrorName() string
 } = UpdateProductValidationError{}
 
+// Validate checks the field values on Product_Request with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *Product_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Product_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// Product_RequestMultiError, or nil if none found.
+func (m *Product_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Product_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetProductId()); err != nil {
+		err = Product_RequestValidationError{
+			field:  "ProductId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return Product_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *Product_Request) _validateUuid(uuid string) error {
+	if matched := _billing_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// Product_RequestMultiError is an error wrapping multiple validation errors
+// returned by Product_Request.ValidateAll() if the designated constraints
+// aren't met.
+type Product_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m Product_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m Product_RequestMultiError) AllErrors() []error { return m }
+
+// Product_RequestValidationError is the validation error returned by
+// Product_Request.Validate if the designated constraints aren't met.
+type Product_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e Product_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e Product_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e Product_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e Product_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e Product_RequestValidationError) ErrorName() string { return "Product_RequestValidationError" }
+
+// Error satisfies the builtin error interface
+func (e Product_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sProduct_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = Product_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = Product_RequestValidationError{}
+
+// Validate checks the field values on Product_Response with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *Product_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Product_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// Product_ResponseMultiError, or nil if none found.
+func (m *Product_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Product_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Active
+
+	// no validation rules for Caption
+
+	// no validation rules for Created
+
+	// no validation rules for DeactivateOn
+
+	// no validation rules for Deleted
+
+	// no validation rules for Description
+
+	// no validation rules for Id
+
+	// no validation rules for Livemode
+
+	// no validation rules for Metadata
+
+	// no validation rules for Name
+
+	// no validation rules for Object
+
+	if all {
+		switch v := interface{}(m.GetPackageDimensions()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, Product_ResponseValidationError{
+					field:  "PackageDimensions",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, Product_ResponseValidationError{
+					field:  "PackageDimensions",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetPackageDimensions()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return Product_ResponseValidationError{
+				field:  "PackageDimensions",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for Shippable
+
+	// no validation rules for StatementDescriptor
+
+	// no validation rules for Type
+
+	// no validation rules for UnitLabel
+
+	// no validation rules for Updated
+
+	// no validation rules for Url
+
+	if len(errors) > 0 {
+		return Product_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// Product_ResponseMultiError is an error wrapping multiple validation errors
+// returned by Product_Response.ValidateAll() if the designated constraints
+// aren't met.
+type Product_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m Product_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m Product_ResponseMultiError) AllErrors() []error { return m }
+
+// Product_ResponseValidationError is the validation error returned by
+// Product_Response.Validate if the designated constraints aren't met.
+type Product_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e Product_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e Product_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e Product_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e Product_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e Product_ResponseValidationError) ErrorName() string { return "Product_ResponseValidationError" }
+
+// Error satisfies the builtin error interface
+func (e Product_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sProduct_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = Product_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = Product_ResponseValidationError{}
+
 // Validate checks the field values on UpdateProduct_Request with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -266,6 +650,18 @@ func (m *UpdateProduct_Request) validate(all bool) error {
 	}
 
 	var errors []error
+
+	if err := m._validateUuid(m.GetProductId()); err != nil {
+		err = UpdateProduct_RequestValidationError{
+			field:  "ProductId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	// no validation rules for PlanName
 
@@ -322,6 +718,14 @@ func (m *UpdateProduct_Request) validate(all bool) error {
 
 	if len(errors) > 0 {
 		return UpdateProduct_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *UpdateProduct_Request) _validateUuid(uuid string) error {
+	if matched := _billing_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
 	}
 
 	return nil

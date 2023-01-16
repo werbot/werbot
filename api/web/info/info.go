@@ -13,11 +13,10 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/gofiber/fiber/v2"
 
+	infopb "github.com/werbot/werbot/api/proto/info"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
-
-	pb "github.com/werbot/werbot/api/proto/info"
 )
 
 // @Summary      Installed and actual versions of components
@@ -87,11 +86,11 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 // @Tags         info
 // @Accept       json
 // @Produce      json
-// @Success      200         {object} webutil.HTTPResponse{data=pb.UserStatistics_Response}
+// @Success      200         {object} webutil.HTTPResponse{data=infopb.UserMetrics_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/info [get]
 func (h *Handler) getInfo(c *fiber.Ctx) error {
-	request := new(pb.UserStatistics_Request)
+	request := new(infopb.UserMetrics_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -100,8 +99,8 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.UserStatistics_RequestMultiError) {
-			e := err.(pb.UserStatistics_RequestValidationError)
+		for _, err := range err.(infopb.UserMetrics_RequestMultiError) {
+			e := err.(infopb.UserMetrics_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -113,13 +112,13 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewInfoHandlersClient(h.Grpc.Client)
+	rClient := infopb.NewInfoHandlersClient(h.Grpc.Client)
 
 	if request.UserId == userParameter.OriginalUserID() {
 		request.Role = userRole
 	}
 
-	info, err := rClient.UserStatistics(ctx, request)
+	info, err := rClient.UserMetrics(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -136,7 +135,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 // @Router       /v1/version [get]
 func (h *Handler) getVersion(c *fiber.Ctx) error {
 	// userParameter := middleware.GetUserParametersFromCtx(c)
-	// if userParameter.UserRole != pb_user.RoleUser_ADMIN {
+	// if userParameter.UserRole != pb_user.Role_admin {
 	// 	return webutil.StatusNotFound(c, internal.ErrNotFound, nil)
 	// }
 

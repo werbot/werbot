@@ -22,7 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UtilityHandlersClient interface {
-	ListCountries(ctx context.Context, in *ListCountries_Request, opts ...grpc.CallOption) (*ListCountries_Response, error)
+	Countries(ctx context.Context, in *Countries_Request, opts ...grpc.CallOption) (*Countries_Response, error)
+	CountryByIP(ctx context.Context, in *CountryByIP_Request, opts ...grpc.CallOption) (*CountryByIP_Response, error)
 }
 
 type utilityHandlersClient struct {
@@ -33,9 +34,18 @@ func NewUtilityHandlersClient(cc grpc.ClientConnInterface) UtilityHandlersClient
 	return &utilityHandlersClient{cc}
 }
 
-func (c *utilityHandlersClient) ListCountries(ctx context.Context, in *ListCountries_Request, opts ...grpc.CallOption) (*ListCountries_Response, error) {
-	out := new(ListCountries_Response)
-	err := c.cc.Invoke(ctx, "/utility.UtilityHandlers/ListCountries", in, out, opts...)
+func (c *utilityHandlersClient) Countries(ctx context.Context, in *Countries_Request, opts ...grpc.CallOption) (*Countries_Response, error) {
+	out := new(Countries_Response)
+	err := c.cc.Invoke(ctx, "/utility.UtilityHandlers/Countries", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *utilityHandlersClient) CountryByIP(ctx context.Context, in *CountryByIP_Request, opts ...grpc.CallOption) (*CountryByIP_Response, error) {
+	out := new(CountryByIP_Response)
+	err := c.cc.Invoke(ctx, "/utility.UtilityHandlers/CountryByIP", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +56,8 @@ func (c *utilityHandlersClient) ListCountries(ctx context.Context, in *ListCount
 // All implementations must embed UnimplementedUtilityHandlersServer
 // for forward compatibility
 type UtilityHandlersServer interface {
-	ListCountries(context.Context, *ListCountries_Request) (*ListCountries_Response, error)
+	Countries(context.Context, *Countries_Request) (*Countries_Response, error)
+	CountryByIP(context.Context, *CountryByIP_Request) (*CountryByIP_Response, error)
 	mustEmbedUnimplementedUtilityHandlersServer()
 }
 
@@ -54,8 +65,11 @@ type UtilityHandlersServer interface {
 type UnimplementedUtilityHandlersServer struct {
 }
 
-func (UnimplementedUtilityHandlersServer) ListCountries(context.Context, *ListCountries_Request) (*ListCountries_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListCountries not implemented")
+func (UnimplementedUtilityHandlersServer) Countries(context.Context, *Countries_Request) (*Countries_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Countries not implemented")
+}
+func (UnimplementedUtilityHandlersServer) CountryByIP(context.Context, *CountryByIP_Request) (*CountryByIP_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountryByIP not implemented")
 }
 func (UnimplementedUtilityHandlersServer) mustEmbedUnimplementedUtilityHandlersServer() {}
 
@@ -70,20 +84,38 @@ func RegisterUtilityHandlersServer(s grpc.ServiceRegistrar, srv UtilityHandlersS
 	s.RegisterService(&UtilityHandlers_ServiceDesc, srv)
 }
 
-func _UtilityHandlers_ListCountries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListCountries_Request)
+func _UtilityHandlers_Countries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Countries_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UtilityHandlersServer).ListCountries(ctx, in)
+		return srv.(UtilityHandlersServer).Countries(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/utility.UtilityHandlers/ListCountries",
+		FullMethod: "/utility.UtilityHandlers/Countries",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UtilityHandlersServer).ListCountries(ctx, req.(*ListCountries_Request))
+		return srv.(UtilityHandlersServer).Countries(ctx, req.(*Countries_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UtilityHandlers_CountryByIP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountryByIP_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UtilityHandlersServer).CountryByIP(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/utility.UtilityHandlers/CountryByIP",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UtilityHandlersServer).CountryByIP(ctx, req.(*CountryByIP_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -96,8 +128,12 @@ var UtilityHandlers_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*UtilityHandlersServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ListCountries",
-			Handler:    _UtilityHandlers_ListCountries_Handler,
+			MethodName: "Countries",
+			Handler:    _UtilityHandlers_Countries_Handler,
+		},
+		{
+			MethodName: "CountryByIP",
+			Handler:    _UtilityHandlers_CountryByIP_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

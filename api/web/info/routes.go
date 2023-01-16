@@ -30,6 +30,4 @@ func (h *Handler) Routes() {
 	h.App.Get("/v1/update", h.Auth, h.getUpdate)
 	h.App.Get("/v1/info", h.Auth, h.getInfo)
 	h.App.Get("/v1/version", h.Auth, h.getVersion)
-
-	routes(h)
 }

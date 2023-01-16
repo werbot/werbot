@@ -36,28 +36,28 @@ var (
 	_ = anypb.Any{}
 	_ = sort.Sort
 
-	_ = user.RoleUser(0)
+	_ = user.Role(0)
 )
 
 // define the regex for a UUID once up-front
 var _info_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
-// Validate checks the field values on UserStatistics with the rules defined in
+// Validate checks the field values on UserMetrics with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *UserStatistics) Validate() error {
+func (m *UserMetrics) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UserStatistics with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in UserStatisticsMultiError,
-// or nil if none found.
-func (m *UserStatistics) ValidateAll() error {
+// ValidateAll checks the field values on UserMetrics with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in UserMetricsMultiError, or
+// nil if none found.
+func (m *UserMetrics) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *UserStatistics) validate(all bool) error {
+func (m *UserMetrics) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -65,19 +65,18 @@ func (m *UserStatistics) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return UserStatisticsMultiError(errors)
+		return UserMetricsMultiError(errors)
 	}
 
 	return nil
 }
 
-// UserStatisticsMultiError is an error wrapping multiple validation errors
-// returned by UserStatistics.ValidateAll() if the designated constraints
-// aren't met.
-type UserStatisticsMultiError []error
+// UserMetricsMultiError is an error wrapping multiple validation errors
+// returned by UserMetrics.ValidateAll() if the designated constraints aren't met.
+type UserMetricsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m UserStatisticsMultiError) Error() string {
+func (m UserMetricsMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -86,11 +85,11 @@ func (m UserStatisticsMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m UserStatisticsMultiError) AllErrors() []error { return m }
+func (m UserMetricsMultiError) AllErrors() []error { return m }
 
-// UserStatisticsValidationError is the validation error returned by
-// UserStatistics.Validate if the designated constraints aren't met.
-type UserStatisticsValidationError struct {
+// UserMetricsValidationError is the validation error returned by
+// UserMetrics.Validate if the designated constraints aren't met.
+type UserMetricsValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -98,22 +97,22 @@ type UserStatisticsValidationError struct {
 }
 
 // Field function returns field value.
-func (e UserStatisticsValidationError) Field() string { return e.field }
+func (e UserMetricsValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e UserStatisticsValidationError) Reason() string { return e.reason }
+func (e UserMetricsValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e UserStatisticsValidationError) Cause() error { return e.cause }
+func (e UserMetricsValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e UserStatisticsValidationError) Key() bool { return e.key }
+func (e UserMetricsValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e UserStatisticsValidationError) ErrorName() string { return "UserStatisticsValidationError" }
+func (e UserMetricsValidationError) ErrorName() string { return "UserMetricsValidationError" }
 
 // Error satisfies the builtin error interface
-func (e UserStatisticsValidationError) Error() string {
+func (e UserMetricsValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -125,14 +124,14 @@ func (e UserStatisticsValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sUserStatistics.%s: %s%s",
+		"invalid %sUserMetrics.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = UserStatisticsValidationError{}
+var _ error = UserMetricsValidationError{}
 
 var _ interface {
 	Field() string
@@ -140,24 +139,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = UserStatisticsValidationError{}
+} = UserMetricsValidationError{}
 
-// Validate checks the field values on UserStatistics_Request with the rules
+// Validate checks the field values on UserMetrics_Request with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UserStatistics_Request) Validate() error {
+func (m *UserMetrics_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UserStatistics_Request with the rules
+// ValidateAll checks the field values on UserMetrics_Request with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// UserStatistics_RequestMultiError, or nil if none found.
-func (m *UserStatistics_Request) ValidateAll() error {
+// UserMetrics_RequestMultiError, or nil if none found.
+func (m *UserMetrics_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *UserStatistics_Request) validate(all bool) error {
+func (m *UserMetrics_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -167,7 +166,7 @@ func (m *UserStatistics_Request) validate(all bool) error {
 	if m.GetUserId() != "" {
 
 		if err := m._validateUuid(m.GetUserId()); err != nil {
-			err = UserStatistics_RequestValidationError{
+			err = UserMetrics_RequestValidationError{
 				field:  "UserId",
 				reason: "value must be a valid UUID",
 				cause:  err,
@@ -183,13 +182,13 @@ func (m *UserStatistics_Request) validate(all bool) error {
 	// no validation rules for Role
 
 	if len(errors) > 0 {
-		return UserStatistics_RequestMultiError(errors)
+		return UserMetrics_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-func (m *UserStatistics_Request) _validateUuid(uuid string) error {
+func (m *UserMetrics_Request) _validateUuid(uuid string) error {
 	if matched := _info_uuidPattern.MatchString(uuid); !matched {
 		return errors.New("invalid uuid format")
 	}
@@ -197,13 +196,13 @@ func (m *UserStatistics_Request) _validateUuid(uuid string) error {
 	return nil
 }
 
-// UserStatistics_RequestMultiError is an error wrapping multiple validation
-// errors returned by UserStatistics_Request.ValidateAll() if the designated
+// UserMetrics_RequestMultiError is an error wrapping multiple validation
+// errors returned by UserMetrics_Request.ValidateAll() if the designated
 // constraints aren't met.
-type UserStatistics_RequestMultiError []error
+type UserMetrics_RequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m UserStatistics_RequestMultiError) Error() string {
+func (m UserMetrics_RequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -212,11 +211,11 @@ func (m UserStatistics_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m UserStatistics_RequestMultiError) AllErrors() []error { return m }
+func (m UserMetrics_RequestMultiError) AllErrors() []error { return m }
 
-// UserStatistics_RequestValidationError is the validation error returned by
-// UserStatistics_Request.Validate if the designated constraints aren't met.
-type UserStatistics_RequestValidationError struct {
+// UserMetrics_RequestValidationError is the validation error returned by
+// UserMetrics_Request.Validate if the designated constraints aren't met.
+type UserMetrics_RequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -224,24 +223,24 @@ type UserStatistics_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e UserStatistics_RequestValidationError) Field() string { return e.field }
+func (e UserMetrics_RequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e UserStatistics_RequestValidationError) Reason() string { return e.reason }
+func (e UserMetrics_RequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e UserStatistics_RequestValidationError) Cause() error { return e.cause }
+func (e UserMetrics_RequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e UserStatistics_RequestValidationError) Key() bool { return e.key }
+func (e UserMetrics_RequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e UserStatistics_RequestValidationError) ErrorName() string {
-	return "UserStatistics_RequestValidationError"
+func (e UserMetrics_RequestValidationError) ErrorName() string {
+	return "UserMetrics_RequestValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e UserStatistics_RequestValidationError) Error() string {
+func (e UserMetrics_RequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -253,14 +252,14 @@ func (e UserStatistics_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sUserStatistics_Request.%s: %s%s",
+		"invalid %sUserMetrics_Request.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = UserStatistics_RequestValidationError{}
+var _ error = UserMetrics_RequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -268,24 +267,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = UserStatistics_RequestValidationError{}
+} = UserMetrics_RequestValidationError{}
 
-// Validate checks the field values on UserStatistics_Response with the rules
+// Validate checks the field values on UserMetrics_Response with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UserStatistics_Response) Validate() error {
+func (m *UserMetrics_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UserStatistics_Response with the
-// rules defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on UserMetrics_Response with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// UserStatistics_ResponseMultiError, or nil if none found.
-func (m *UserStatistics_Response) ValidateAll() error {
+// UserMetrics_ResponseMultiError, or nil if none found.
+func (m *UserMetrics_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *UserStatistics_Response) validate(all bool) error {
+func (m *UserMetrics_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -299,19 +298,19 @@ func (m *UserStatistics_Response) validate(all bool) error {
 	// no validation rules for Servers
 
 	if len(errors) > 0 {
-		return UserStatistics_ResponseMultiError(errors)
+		return UserMetrics_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// UserStatistics_ResponseMultiError is an error wrapping multiple validation
-// errors returned by UserStatistics_Response.ValidateAll() if the designated
+// UserMetrics_ResponseMultiError is an error wrapping multiple validation
+// errors returned by UserMetrics_Response.ValidateAll() if the designated
 // constraints aren't met.
-type UserStatistics_ResponseMultiError []error
+type UserMetrics_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m UserStatistics_ResponseMultiError) Error() string {
+func (m UserMetrics_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -320,11 +319,11 @@ func (m UserStatistics_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m UserStatistics_ResponseMultiError) AllErrors() []error { return m }
+func (m UserMetrics_ResponseMultiError) AllErrors() []error { return m }
 
-// UserStatistics_ResponseValidationError is the validation error returned by
-// UserStatistics_Response.Validate if the designated constraints aren't met.
-type UserStatistics_ResponseValidationError struct {
+// UserMetrics_ResponseValidationError is the validation error returned by
+// UserMetrics_Response.Validate if the designated constraints aren't met.
+type UserMetrics_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -332,24 +331,24 @@ type UserStatistics_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e UserStatistics_ResponseValidationError) Field() string { return e.field }
+func (e UserMetrics_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e UserStatistics_ResponseValidationError) Reason() string { return e.reason }
+func (e UserMetrics_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e UserStatistics_ResponseValidationError) Cause() error { return e.cause }
+func (e UserMetrics_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e UserStatistics_ResponseValidationError) Key() bool { return e.key }
+func (e UserMetrics_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e UserStatistics_ResponseValidationError) ErrorName() string {
-	return "UserStatistics_ResponseValidationError"
+func (e UserMetrics_ResponseValidationError) ErrorName() string {
+	return "UserMetrics_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e UserStatistics_ResponseValidationError) Error() string {
+func (e UserMetrics_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -361,14 +360,14 @@ func (e UserStatistics_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sUserStatistics_Response.%s: %s%s",
+		"invalid %sUserMetrics_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = UserStatistics_ResponseValidationError{}
+var _ error = UserMetrics_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -376,4 +375,4 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = UserStatistics_ResponseValidationError{}
+} = UserMetrics_ResponseValidationError{}

@@ -35,22 +35,22 @@ var (
 	_ = sort.Sort
 )
 
-// Validate checks the field values on ListCountries with the rules defined in
-// the proto definition for this message. If any rules are violated, the first
+// Validate checks the field values on Countries with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *ListCountries) Validate() error {
+func (m *Countries) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ListCountries with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in ListCountriesMultiError, or
-// nil if none found.
-func (m *ListCountries) ValidateAll() error {
+// ValidateAll checks the field values on Countries with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in CountriesMultiError, or nil
+// if none found.
+func (m *Countries) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ListCountries) validate(all bool) error {
+func (m *Countries) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -58,19 +58,18 @@ func (m *ListCountries) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return ListCountriesMultiError(errors)
+		return CountriesMultiError(errors)
 	}
 
 	return nil
 }
 
-// ListCountriesMultiError is an error wrapping multiple validation errors
-// returned by ListCountries.ValidateAll() if the designated constraints
-// aren't met.
-type ListCountriesMultiError []error
+// CountriesMultiError is an error wrapping multiple validation errors returned
+// by Countries.ValidateAll() if the designated constraints aren't met.
+type CountriesMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ListCountriesMultiError) Error() string {
+func (m CountriesMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -79,11 +78,11 @@ func (m ListCountriesMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ListCountriesMultiError) AllErrors() []error { return m }
+func (m CountriesMultiError) AllErrors() []error { return m }
 
-// ListCountriesValidationError is the validation error returned by
-// ListCountries.Validate if the designated constraints aren't met.
-type ListCountriesValidationError struct {
+// CountriesValidationError is the validation error returned by
+// Countries.Validate if the designated constraints aren't met.
+type CountriesValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -91,22 +90,22 @@ type ListCountriesValidationError struct {
 }
 
 // Field function returns field value.
-func (e ListCountriesValidationError) Field() string { return e.field }
+func (e CountriesValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ListCountriesValidationError) Reason() string { return e.reason }
+func (e CountriesValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ListCountriesValidationError) Cause() error { return e.cause }
+func (e CountriesValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ListCountriesValidationError) Key() bool { return e.key }
+func (e CountriesValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ListCountriesValidationError) ErrorName() string { return "ListCountriesValidationError" }
+func (e CountriesValidationError) ErrorName() string { return "CountriesValidationError" }
 
 // Error satisfies the builtin error interface
-func (e ListCountriesValidationError) Error() string {
+func (e CountriesValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -118,14 +117,14 @@ func (e ListCountriesValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sListCountries.%s: %s%s",
+		"invalid %sCountries.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ListCountriesValidationError{}
+var _ error = CountriesValidationError{}
 
 var _ interface {
 	Field() string
@@ -133,24 +132,123 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ListCountriesValidationError{}
+} = CountriesValidationError{}
 
-// Validate checks the field values on ListCountries_Request with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *ListCountries_Request) Validate() error {
+// Validate checks the field values on CountryByIP with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *CountryByIP) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ListCountries_Request with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// ListCountries_RequestMultiError, or nil if none found.
-func (m *ListCountries_Request) ValidateAll() error {
+// ValidateAll checks the field values on CountryByIP with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in CountryByIPMultiError, or
+// nil if none found.
+func (m *CountryByIP) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ListCountries_Request) validate(all bool) error {
+func (m *CountryByIP) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return CountryByIPMultiError(errors)
+	}
+
+	return nil
+}
+
+// CountryByIPMultiError is an error wrapping multiple validation errors
+// returned by CountryByIP.ValidateAll() if the designated constraints aren't met.
+type CountryByIPMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CountryByIPMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CountryByIPMultiError) AllErrors() []error { return m }
+
+// CountryByIPValidationError is the validation error returned by
+// CountryByIP.Validate if the designated constraints aren't met.
+type CountryByIPValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CountryByIPValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CountryByIPValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CountryByIPValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CountryByIPValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CountryByIPValidationError) ErrorName() string { return "CountryByIPValidationError" }
+
+// Error satisfies the builtin error interface
+func (e CountryByIPValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCountryByIP.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CountryByIPValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CountryByIPValidationError{}
+
+// Validate checks the field values on Countries_Request with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *Countries_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Countries_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// Countries_RequestMultiError, or nil if none found.
+func (m *Countries_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Countries_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -158,7 +256,7 @@ func (m *ListCountries_Request) validate(all bool) error {
 	var errors []error
 
 	if utf8.RuneCountInString(m.GetName()) < 2 {
-		err := ListCountries_RequestValidationError{
+		err := Countries_RequestValidationError{
 			field:  "Name",
 			reason: "value length must be at least 2 runes",
 		}
@@ -169,19 +267,19 @@ func (m *ListCountries_Request) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return ListCountries_RequestMultiError(errors)
+		return Countries_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// ListCountries_RequestMultiError is an error wrapping multiple validation
-// errors returned by ListCountries_Request.ValidateAll() if the designated
-// constraints aren't met.
-type ListCountries_RequestMultiError []error
+// Countries_RequestMultiError is an error wrapping multiple validation errors
+// returned by Countries_Request.ValidateAll() if the designated constraints
+// aren't met.
+type Countries_RequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ListCountries_RequestMultiError) Error() string {
+func (m Countries_RequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -190,11 +288,11 @@ func (m ListCountries_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ListCountries_RequestMultiError) AllErrors() []error { return m }
+func (m Countries_RequestMultiError) AllErrors() []error { return m }
 
-// ListCountries_RequestValidationError is the validation error returned by
-// ListCountries_Request.Validate if the designated constraints aren't met.
-type ListCountries_RequestValidationError struct {
+// Countries_RequestValidationError is the validation error returned by
+// Countries_Request.Validate if the designated constraints aren't met.
+type Countries_RequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -202,24 +300,24 @@ type ListCountries_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e ListCountries_RequestValidationError) Field() string { return e.field }
+func (e Countries_RequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ListCountries_RequestValidationError) Reason() string { return e.reason }
+func (e Countries_RequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ListCountries_RequestValidationError) Cause() error { return e.cause }
+func (e Countries_RequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ListCountries_RequestValidationError) Key() bool { return e.key }
+func (e Countries_RequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ListCountries_RequestValidationError) ErrorName() string {
-	return "ListCountries_RequestValidationError"
+func (e Countries_RequestValidationError) ErrorName() string {
+	return "Countries_RequestValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e ListCountries_RequestValidationError) Error() string {
+func (e Countries_RequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -231,14 +329,14 @@ func (e ListCountries_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sListCountries_Request.%s: %s%s",
+		"invalid %sCountries_Request.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ListCountries_RequestValidationError{}
+var _ error = Countries_RequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -246,24 +344,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ListCountries_RequestValidationError{}
+} = Countries_RequestValidationError{}
 
-// Validate checks the field values on ListCountries_Response with the rules
+// Validate checks the field values on Countries_Response with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *ListCountries_Response) Validate() error {
+func (m *Countries_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ListCountries_Response with the rules
+// ValidateAll checks the field values on Countries_Response with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// ListCountries_ResponseMultiError, or nil if none found.
-func (m *ListCountries_Response) ValidateAll() error {
+// Countries_ResponseMultiError, or nil if none found.
+func (m *Countries_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ListCountries_Response) validate(all bool) error {
+func (m *Countries_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -277,7 +375,7 @@ func (m *ListCountries_Response) validate(all bool) error {
 			switch v := interface{}(item).(type) {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, ListCountries_ResponseValidationError{
+					errors = append(errors, Countries_ResponseValidationError{
 						field:  fmt.Sprintf("Countries[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -285,7 +383,7 @@ func (m *ListCountries_Response) validate(all bool) error {
 				}
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
-					errors = append(errors, ListCountries_ResponseValidationError{
+					errors = append(errors, Countries_ResponseValidationError{
 						field:  fmt.Sprintf("Countries[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -294,7 +392,7 @@ func (m *ListCountries_Response) validate(all bool) error {
 			}
 		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
-				return ListCountries_ResponseValidationError{
+				return Countries_ResponseValidationError{
 					field:  fmt.Sprintf("Countries[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -305,19 +403,19 @@ func (m *ListCountries_Response) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return ListCountries_ResponseMultiError(errors)
+		return Countries_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// ListCountries_ResponseMultiError is an error wrapping multiple validation
-// errors returned by ListCountries_Response.ValidateAll() if the designated
-// constraints aren't met.
-type ListCountries_ResponseMultiError []error
+// Countries_ResponseMultiError is an error wrapping multiple validation errors
+// returned by Countries_Response.ValidateAll() if the designated constraints
+// aren't met.
+type Countries_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ListCountries_ResponseMultiError) Error() string {
+func (m Countries_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -326,11 +424,11 @@ func (m ListCountries_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ListCountries_ResponseMultiError) AllErrors() []error { return m }
+func (m Countries_ResponseMultiError) AllErrors() []error { return m }
 
-// ListCountries_ResponseValidationError is the validation error returned by
-// ListCountries_Response.Validate if the designated constraints aren't met.
-type ListCountries_ResponseValidationError struct {
+// Countries_ResponseValidationError is the validation error returned by
+// Countries_Response.Validate if the designated constraints aren't met.
+type Countries_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -338,24 +436,24 @@ type ListCountries_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e ListCountries_ResponseValidationError) Field() string { return e.field }
+func (e Countries_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ListCountries_ResponseValidationError) Reason() string { return e.reason }
+func (e Countries_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ListCountries_ResponseValidationError) Cause() error { return e.cause }
+func (e Countries_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ListCountries_ResponseValidationError) Key() bool { return e.key }
+func (e Countries_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ListCountries_ResponseValidationError) ErrorName() string {
-	return "ListCountries_ResponseValidationError"
+func (e Countries_ResponseValidationError) ErrorName() string {
+	return "Countries_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e ListCountries_ResponseValidationError) Error() string {
+func (e Countries_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -367,14 +465,14 @@ func (e ListCountries_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sListCountries_Response.%s: %s%s",
+		"invalid %sCountries_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ListCountries_ResponseValidationError{}
+var _ error = Countries_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -382,24 +480,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ListCountries_ResponseValidationError{}
+} = Countries_ResponseValidationError{}
 
-// Validate checks the field values on ListCountries_Response_Country with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *ListCountries_Response_Country) Validate() error {
+// Validate checks the field values on Countries_Country with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *Countries_Country) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ListCountries_Response_Country with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the result is a list of violation errors wrapped in
-// ListCountries_Response_CountryMultiError, or nil if none found.
-func (m *ListCountries_Response_Country) ValidateAll() error {
+// ValidateAll checks the field values on Countries_Country with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// Countries_CountryMultiError, or nil if none found.
+func (m *Countries_Country) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ListCountries_Response_Country) validate(all bool) error {
+func (m *Countries_Country) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -411,19 +509,19 @@ func (m *ListCountries_Response_Country) validate(all bool) error {
 	// no validation rules for Name
 
 	if len(errors) > 0 {
-		return ListCountries_Response_CountryMultiError(errors)
+		return Countries_CountryMultiError(errors)
 	}
 
 	return nil
 }
 
-// ListCountries_Response_CountryMultiError is an error wrapping multiple
-// validation errors returned by ListCountries_Response_Country.ValidateAll()
-// if the designated constraints aren't met.
-type ListCountries_Response_CountryMultiError []error
+// Countries_CountryMultiError is an error wrapping multiple validation errors
+// returned by Countries_Country.ValidateAll() if the designated constraints
+// aren't met.
+type Countries_CountryMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ListCountries_Response_CountryMultiError) Error() string {
+func (m Countries_CountryMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -432,12 +530,11 @@ func (m ListCountries_Response_CountryMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ListCountries_Response_CountryMultiError) AllErrors() []error { return m }
+func (m Countries_CountryMultiError) AllErrors() []error { return m }
 
-// ListCountries_Response_CountryValidationError is the validation error
-// returned by ListCountries_Response_Country.Validate if the designated
-// constraints aren't met.
-type ListCountries_Response_CountryValidationError struct {
+// Countries_CountryValidationError is the validation error returned by
+// Countries_Country.Validate if the designated constraints aren't met.
+type Countries_CountryValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -445,24 +542,24 @@ type ListCountries_Response_CountryValidationError struct {
 }
 
 // Field function returns field value.
-func (e ListCountries_Response_CountryValidationError) Field() string { return e.field }
+func (e Countries_CountryValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ListCountries_Response_CountryValidationError) Reason() string { return e.reason }
+func (e Countries_CountryValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ListCountries_Response_CountryValidationError) Cause() error { return e.cause }
+func (e Countries_CountryValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ListCountries_Response_CountryValidationError) Key() bool { return e.key }
+func (e Countries_CountryValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ListCountries_Response_CountryValidationError) ErrorName() string {
-	return "ListCountries_Response_CountryValidationError"
+func (e Countries_CountryValidationError) ErrorName() string {
+	return "Countries_CountryValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e ListCountries_Response_CountryValidationError) Error() string {
+func (e Countries_CountryValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -474,14 +571,14 @@ func (e ListCountries_Response_CountryValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sListCountries_Response_Country.%s: %s%s",
+		"invalid %sCountries_Country.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ListCountries_Response_CountryValidationError{}
+var _ error = Countries_CountryValidationError{}
 
 var _ interface {
 	Field() string
@@ -489,4 +586,223 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ListCountries_Response_CountryValidationError{}
+} = Countries_CountryValidationError{}
+
+// Validate checks the field values on CountryByIP_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *CountryByIP_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CountryByIP_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// CountryByIP_RequestMultiError, or nil if none found.
+func (m *CountryByIP_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CountryByIP_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if ip := net.ParseIP(m.GetIp()); ip == nil {
+		err := CountryByIP_RequestValidationError{
+			field:  "Ip",
+			reason: "value must be a valid IP address",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return CountryByIP_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+// CountryByIP_RequestMultiError is an error wrapping multiple validation
+// errors returned by CountryByIP_Request.ValidateAll() if the designated
+// constraints aren't met.
+type CountryByIP_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CountryByIP_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CountryByIP_RequestMultiError) AllErrors() []error { return m }
+
+// CountryByIP_RequestValidationError is the validation error returned by
+// CountryByIP_Request.Validate if the designated constraints aren't met.
+type CountryByIP_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CountryByIP_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CountryByIP_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CountryByIP_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CountryByIP_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CountryByIP_RequestValidationError) ErrorName() string {
+	return "CountryByIP_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e CountryByIP_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCountryByIP_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CountryByIP_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CountryByIP_RequestValidationError{}
+
+// Validate checks the field values on CountryByIP_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *CountryByIP_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CountryByIP_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// CountryByIP_ResponseMultiError, or nil if none found.
+func (m *CountryByIP_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CountryByIP_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Name
+
+	// no validation rules for Code
+
+	if len(errors) > 0 {
+		return CountryByIP_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// CountryByIP_ResponseMultiError is an error wrapping multiple validation
+// errors returned by CountryByIP_Response.ValidateAll() if the designated
+// constraints aren't met.
+type CountryByIP_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CountryByIP_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CountryByIP_ResponseMultiError) AllErrors() []error { return m }
+
+// CountryByIP_ResponseValidationError is the validation error returned by
+// CountryByIP_Response.Validate if the designated constraints aren't met.
+type CountryByIP_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CountryByIP_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CountryByIP_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CountryByIP_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CountryByIP_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CountryByIP_ResponseValidationError) ErrorName() string {
+	return "CountryByIP_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e CountryByIP_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCountryByIP_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CountryByIP_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CountryByIP_ResponseValidationError{}

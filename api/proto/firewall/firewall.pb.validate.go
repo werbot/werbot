@@ -457,107 +457,6 @@ var _ interface {
 	ErrorName() string
 } = IpMaskValidationError{}
 
-// Validate checks the field values on CountryCode with the rules defined in
-// the proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *CountryCode) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on CountryCode with the rules defined in
-// the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in CountryCodeMultiError, or
-// nil if none found.
-func (m *CountryCode) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *CountryCode) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for Code
-
-	if len(errors) > 0 {
-		return CountryCodeMultiError(errors)
-	}
-
-	return nil
-}
-
-// CountryCodeMultiError is an error wrapping multiple validation errors
-// returned by CountryCode.ValidateAll() if the designated constraints aren't met.
-type CountryCodeMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m CountryCodeMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m CountryCodeMultiError) AllErrors() []error { return m }
-
-// CountryCodeValidationError is the validation error returned by
-// CountryCode.Validate if the designated constraints aren't met.
-type CountryCodeValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e CountryCodeValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e CountryCodeValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e CountryCodeValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e CountryCodeValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e CountryCodeValidationError) ErrorName() string { return "CountryCodeValidationError" }
-
-// Error satisfies the builtin error interface
-func (e CountryCodeValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sCountryCode.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = CountryCodeValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = CountryCodeValidationError{}
-
 // Validate checks the field values on ServerFirewall with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -964,22 +863,121 @@ var _ interface {
 	ErrorName() string
 } = UpdateAccessPolicyValidationError{}
 
-// Validate checks the field values on CheckIPAccess with the rules defined in
+// Validate checks the field values on IPAccess with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *IPAccess) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on IPAccess with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in IPAccessMultiError, or nil
+// if none found.
+func (m *IPAccess) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *IPAccess) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return IPAccessMultiError(errors)
+	}
+
+	return nil
+}
+
+// IPAccessMultiError is an error wrapping multiple validation errors returned
+// by IPAccess.ValidateAll() if the designated constraints aren't met.
+type IPAccessMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m IPAccessMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m IPAccessMultiError) AllErrors() []error { return m }
+
+// IPAccessValidationError is the validation error returned by
+// IPAccess.Validate if the designated constraints aren't met.
+type IPAccessValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e IPAccessValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e IPAccessValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e IPAccessValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e IPAccessValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e IPAccessValidationError) ErrorName() string { return "IPAccessValidationError" }
+
+// Error satisfies the builtin error interface
+func (e IPAccessValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sIPAccess.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = IPAccessValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = IPAccessValidationError{}
+
+// Validate checks the field values on ServerAccess with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *CheckIPAccess) Validate() error {
+func (m *ServerAccess) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on CheckIPAccess with the rules defined
+// ValidateAll checks the field values on ServerAccess with the rules defined
 // in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in CheckIPAccessMultiError, or
+// result is a list of violation errors wrapped in ServerAccessMultiError, or
 // nil if none found.
-func (m *CheckIPAccess) ValidateAll() error {
+func (m *ServerAccess) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *CheckIPAccess) validate(all bool) error {
+func (m *ServerAccess) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -987,19 +985,18 @@ func (m *CheckIPAccess) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return CheckIPAccessMultiError(errors)
+		return ServerAccessMultiError(errors)
 	}
 
 	return nil
 }
 
-// CheckIPAccessMultiError is an error wrapping multiple validation errors
-// returned by CheckIPAccess.ValidateAll() if the designated constraints
-// aren't met.
-type CheckIPAccessMultiError []error
+// ServerAccessMultiError is an error wrapping multiple validation errors
+// returned by ServerAccess.ValidateAll() if the designated constraints aren't met.
+type ServerAccessMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m CheckIPAccessMultiError) Error() string {
+func (m ServerAccessMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1008,11 +1005,11 @@ func (m CheckIPAccessMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m CheckIPAccessMultiError) AllErrors() []error { return m }
+func (m ServerAccessMultiError) AllErrors() []error { return m }
 
-// CheckIPAccessValidationError is the validation error returned by
-// CheckIPAccess.Validate if the designated constraints aren't met.
-type CheckIPAccessValidationError struct {
+// ServerAccessValidationError is the validation error returned by
+// ServerAccess.Validate if the designated constraints aren't met.
+type ServerAccessValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1020,22 +1017,22 @@ type CheckIPAccessValidationError struct {
 }
 
 // Field function returns field value.
-func (e CheckIPAccessValidationError) Field() string { return e.field }
+func (e ServerAccessValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CheckIPAccessValidationError) Reason() string { return e.reason }
+func (e ServerAccessValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CheckIPAccessValidationError) Cause() error { return e.cause }
+func (e ServerAccessValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CheckIPAccessValidationError) Key() bool { return e.key }
+func (e ServerAccessValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CheckIPAccessValidationError) ErrorName() string { return "CheckIPAccessValidationError" }
+func (e ServerAccessValidationError) ErrorName() string { return "ServerAccessValidationError" }
 
 // Error satisfies the builtin error interface
-func (e CheckIPAccessValidationError) Error() string {
+func (e ServerAccessValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1047,14 +1044,14 @@ func (e CheckIPAccessValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCheckIPAccess.%s: %s%s",
+		"invalid %sServerAccess.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CheckIPAccessValidationError{}
+var _ error = ServerAccessValidationError{}
 
 var _ interface {
 	Field() string
@@ -1062,24 +1059,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CheckIPAccessValidationError{}
+} = ServerAccessValidationError{}
 
-// Validate checks the field values on CheckServerAccess with the rules defined
+// Validate checks the field values on ServerAccessUser with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
-func (m *CheckServerAccess) Validate() error {
+func (m *ServerAccessUser) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on CheckServerAccess with the rules
+// ValidateAll checks the field values on ServerAccessUser with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// CheckServerAccessMultiError, or nil if none found.
-func (m *CheckServerAccess) ValidateAll() error {
+// ServerAccessUserMultiError, or nil if none found.
+func (m *ServerAccessUser) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *CheckServerAccess) validate(all bool) error {
+func (m *ServerAccessUser) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1087,19 +1084,19 @@ func (m *CheckServerAccess) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return CheckServerAccessMultiError(errors)
+		return ServerAccessUserMultiError(errors)
 	}
 
 	return nil
 }
 
-// CheckServerAccessMultiError is an error wrapping multiple validation errors
-// returned by CheckServerAccess.ValidateAll() if the designated constraints
+// ServerAccessUserMultiError is an error wrapping multiple validation errors
+// returned by ServerAccessUser.ValidateAll() if the designated constraints
 // aren't met.
-type CheckServerAccessMultiError []error
+type ServerAccessUserMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m CheckServerAccessMultiError) Error() string {
+func (m ServerAccessUserMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1108,11 +1105,11 @@ func (m CheckServerAccessMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m CheckServerAccessMultiError) AllErrors() []error { return m }
+func (m ServerAccessUserMultiError) AllErrors() []error { return m }
 
-// CheckServerAccessValidationError is the validation error returned by
-// CheckServerAccess.Validate if the designated constraints aren't met.
-type CheckServerAccessValidationError struct {
+// ServerAccessUserValidationError is the validation error returned by
+// ServerAccessUser.Validate if the designated constraints aren't met.
+type ServerAccessUserValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1120,24 +1117,22 @@ type CheckServerAccessValidationError struct {
 }
 
 // Field function returns field value.
-func (e CheckServerAccessValidationError) Field() string { return e.field }
+func (e ServerAccessUserValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CheckServerAccessValidationError) Reason() string { return e.reason }
+func (e ServerAccessUserValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CheckServerAccessValidationError) Cause() error { return e.cause }
+func (e ServerAccessUserValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CheckServerAccessValidationError) Key() bool { return e.key }
+func (e ServerAccessUserValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CheckServerAccessValidationError) ErrorName() string {
-	return "CheckServerAccessValidationError"
-}
+func (e ServerAccessUserValidationError) ErrorName() string { return "ServerAccessUserValidationError" }
 
 // Error satisfies the builtin error interface
-func (e CheckServerAccessValidationError) Error() string {
+func (e ServerAccessUserValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1149,14 +1144,14 @@ func (e CheckServerAccessValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCheckServerAccess.%s: %s%s",
+		"invalid %sServerAccessUser.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CheckServerAccessValidationError{}
+var _ error = ServerAccessUserValidationError{}
 
 var _ interface {
 	Field() string
@@ -1164,7 +1159,309 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CheckServerAccessValidationError{}
+} = ServerAccessUserValidationError{}
+
+// Validate checks the field values on ServerAccessTime with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccessTime) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccessTime with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccessTimeMultiError, or nil if none found.
+func (m *ServerAccessTime) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccessTime) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ServerAccessTimeMultiError(errors)
+	}
+
+	return nil
+}
+
+// ServerAccessTimeMultiError is an error wrapping multiple validation errors
+// returned by ServerAccessTime.ValidateAll() if the designated constraints
+// aren't met.
+type ServerAccessTimeMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccessTimeMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccessTimeMultiError) AllErrors() []error { return m }
+
+// ServerAccessTimeValidationError is the validation error returned by
+// ServerAccessTime.Validate if the designated constraints aren't met.
+type ServerAccessTimeValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccessTimeValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccessTimeValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccessTimeValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccessTimeValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccessTimeValidationError) ErrorName() string { return "ServerAccessTimeValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ServerAccessTimeValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccessTime.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccessTimeValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccessTimeValidationError{}
+
+// Validate checks the field values on ServerAccessIP with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *ServerAccessIP) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccessIP with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ServerAccessIPMultiError,
+// or nil if none found.
+func (m *ServerAccessIP) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccessIP) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ServerAccessIPMultiError(errors)
+	}
+
+	return nil
+}
+
+// ServerAccessIPMultiError is an error wrapping multiple validation errors
+// returned by ServerAccessIP.ValidateAll() if the designated constraints
+// aren't met.
+type ServerAccessIPMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccessIPMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccessIPMultiError) AllErrors() []error { return m }
+
+// ServerAccessIPValidationError is the validation error returned by
+// ServerAccessIP.Validate if the designated constraints aren't met.
+type ServerAccessIPValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccessIPValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccessIPValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccessIPValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccessIPValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccessIPValidationError) ErrorName() string { return "ServerAccessIPValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ServerAccessIPValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccessIP.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccessIPValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccessIPValidationError{}
+
+// Validate checks the field values on ServerAccessCountry with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccessCountry) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccessCountry with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccessCountryMultiError, or nil if none found.
+func (m *ServerAccessCountry) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccessCountry) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ServerAccessCountryMultiError(errors)
+	}
+
+	return nil
+}
+
+// ServerAccessCountryMultiError is an error wrapping multiple validation
+// errors returned by ServerAccessCountry.ValidateAll() if the designated
+// constraints aren't met.
+type ServerAccessCountryMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccessCountryMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccessCountryMultiError) AllErrors() []error { return m }
+
+// ServerAccessCountryValidationError is the validation error returned by
+// ServerAccessCountry.Validate if the designated constraints aren't met.
+type ServerAccessCountryValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccessCountryValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccessCountryValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccessCountryValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccessCountryValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccessCountryValidationError) ErrorName() string {
+	return "ServerAccessCountryValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ServerAccessCountryValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccessCountry.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccessCountryValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccessCountryValidationError{}
 
 // Validate checks the field values on ServerFirewall_Request with the rules
 // defined in the proto definition for this message. If any rules are
@@ -1865,36 +2162,7 @@ func (m *AddServerFirewall_Request) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
-
-		if all {
-			switch v := interface{}(m.GetCountry()).(type) {
-			case interface{ ValidateAll() error }:
-				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, AddServerFirewall_RequestValidationError{
-						field:  "Country",
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			case interface{ Validate() error }:
-				if err := v.Validate(); err != nil {
-					errors = append(errors, AddServerFirewall_RequestValidationError{
-						field:  "Country",
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			}
-		} else if v, ok := interface{}(m.GetCountry()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return AddServerFirewall_RequestValidationError{
-					field:  "Country",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
+		// no validation rules for Country
 	default:
 		_ = v // ensures v is used
 	}
@@ -2608,44 +2876,53 @@ var _ interface {
 	ErrorName() string
 } = UpdateAccessPolicy_ResponseValidationError{}
 
-// Validate checks the field values on CheckIPAccess_Request with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *CheckIPAccess_Request) Validate() error {
+// Validate checks the field values on IPAccess_Request with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *IPAccess_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on CheckIPAccess_Request with the rules
+// ValidateAll checks the field values on IPAccess_Request with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// CheckIPAccess_RequestMultiError, or nil if none found.
-func (m *CheckIPAccess_Request) ValidateAll() error {
+// IPAccess_RequestMultiError, or nil if none found.
+func (m *IPAccess_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *CheckIPAccess_Request) validate(all bool) error {
+func (m *IPAccess_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for ClientIp
+	if ip := net.ParseIP(m.GetClientIp()); ip == nil {
+		err := IPAccess_RequestValidationError{
+			field:  "ClientIp",
+			reason: "value must be a valid IP address",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
-		return CheckIPAccess_RequestMultiError(errors)
+		return IPAccess_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// CheckIPAccess_RequestMultiError is an error wrapping multiple validation
-// errors returned by CheckIPAccess_Request.ValidateAll() if the designated
-// constraints aren't met.
-type CheckIPAccess_RequestMultiError []error
+// IPAccess_RequestMultiError is an error wrapping multiple validation errors
+// returned by IPAccess_Request.ValidateAll() if the designated constraints
+// aren't met.
+type IPAccess_RequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m CheckIPAccess_RequestMultiError) Error() string {
+func (m IPAccess_RequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -2654,11 +2931,11 @@ func (m CheckIPAccess_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m CheckIPAccess_RequestMultiError) AllErrors() []error { return m }
+func (m IPAccess_RequestMultiError) AllErrors() []error { return m }
 
-// CheckIPAccess_RequestValidationError is the validation error returned by
-// CheckIPAccess_Request.Validate if the designated constraints aren't met.
-type CheckIPAccess_RequestValidationError struct {
+// IPAccess_RequestValidationError is the validation error returned by
+// IPAccess_Request.Validate if the designated constraints aren't met.
+type IPAccess_RequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -2666,24 +2943,22 @@ type CheckIPAccess_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e CheckIPAccess_RequestValidationError) Field() string { return e.field }
+func (e IPAccess_RequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CheckIPAccess_RequestValidationError) Reason() string { return e.reason }
+func (e IPAccess_RequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CheckIPAccess_RequestValidationError) Cause() error { return e.cause }
+func (e IPAccess_RequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CheckIPAccess_RequestValidationError) Key() bool { return e.key }
+func (e IPAccess_RequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CheckIPAccess_RequestValidationError) ErrorName() string {
-	return "CheckIPAccess_RequestValidationError"
-}
+func (e IPAccess_RequestValidationError) ErrorName() string { return "IPAccess_RequestValidationError" }
 
 // Error satisfies the builtin error interface
-func (e CheckIPAccess_RequestValidationError) Error() string {
+func (e IPAccess_RequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -2695,14 +2970,14 @@ func (e CheckIPAccess_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCheckIPAccess_Request.%s: %s%s",
+		"invalid %sIPAccess_Request.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CheckIPAccess_RequestValidationError{}
+var _ error = IPAccess_RequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -2710,48 +2985,44 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CheckIPAccess_RequestValidationError{}
+} = IPAccess_RequestValidationError{}
 
-// Validate checks the field values on CheckIPAccess_Response with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *CheckIPAccess_Response) Validate() error {
+// Validate checks the field values on IPAccess_Response with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *IPAccess_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on CheckIPAccess_Response with the rules
+// ValidateAll checks the field values on IPAccess_Response with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// CheckIPAccess_ResponseMultiError, or nil if none found.
-func (m *CheckIPAccess_Response) ValidateAll() error {
+// IPAccess_ResponseMultiError, or nil if none found.
+func (m *IPAccess_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *CheckIPAccess_Response) validate(all bool) error {
+func (m *IPAccess_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for Access
-
-	// no validation rules for Country
-
 	if len(errors) > 0 {
-		return CheckIPAccess_ResponseMultiError(errors)
+		return IPAccess_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// CheckIPAccess_ResponseMultiError is an error wrapping multiple validation
-// errors returned by CheckIPAccess_Response.ValidateAll() if the designated
-// constraints aren't met.
-type CheckIPAccess_ResponseMultiError []error
+// IPAccess_ResponseMultiError is an error wrapping multiple validation errors
+// returned by IPAccess_Response.ValidateAll() if the designated constraints
+// aren't met.
+type IPAccess_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m CheckIPAccess_ResponseMultiError) Error() string {
+func (m IPAccess_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -2760,11 +3031,11 @@ func (m CheckIPAccess_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m CheckIPAccess_ResponseMultiError) AllErrors() []error { return m }
+func (m IPAccess_ResponseMultiError) AllErrors() []error { return m }
 
-// CheckIPAccess_ResponseValidationError is the validation error returned by
-// CheckIPAccess_Response.Validate if the designated constraints aren't met.
-type CheckIPAccess_ResponseValidationError struct {
+// IPAccess_ResponseValidationError is the validation error returned by
+// IPAccess_Response.Validate if the designated constraints aren't met.
+type IPAccess_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -2772,24 +3043,24 @@ type CheckIPAccess_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e CheckIPAccess_ResponseValidationError) Field() string { return e.field }
+func (e IPAccess_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CheckIPAccess_ResponseValidationError) Reason() string { return e.reason }
+func (e IPAccess_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CheckIPAccess_ResponseValidationError) Cause() error { return e.cause }
+func (e IPAccess_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CheckIPAccess_ResponseValidationError) Key() bool { return e.key }
+func (e IPAccess_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CheckIPAccess_ResponseValidationError) ErrorName() string {
-	return "CheckIPAccess_ResponseValidationError"
+func (e IPAccess_ResponseValidationError) ErrorName() string {
+	return "IPAccess_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e CheckIPAccess_ResponseValidationError) Error() string {
+func (e IPAccess_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -2801,14 +3072,14 @@ func (e CheckIPAccess_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCheckIPAccess_Response.%s: %s%s",
+		"invalid %sIPAccess_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CheckIPAccess_ResponseValidationError{}
+var _ error = IPAccess_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -2816,52 +3087,425 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CheckIPAccess_ResponseValidationError{}
+} = IPAccess_ResponseValidationError{}
 
-// Validate checks the field values on CheckServerAccess_Request with the rules
+// Validate checks the field values on ServerAccess_Request with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *CheckServerAccess_Request) Validate() error {
+func (m *ServerAccess_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on CheckServerAccess_Request with the
+// ValidateAll checks the field values on ServerAccess_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccess_RequestMultiError, or nil if none found.
+func (m *ServerAccess_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccess_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetUserId()); err != nil {
+		err = ServerAccess_RequestValidationError{
+			field:  "UserId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = ServerAccess_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if ip := net.ParseIP(m.GetMemberIp()); ip == nil {
+		err := ServerAccess_RequestValidationError{
+			field:  "MemberIp",
+			reason: "value must be a valid IP address",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return ServerAccess_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ServerAccess_Request) _validateUuid(uuid string) error {
+	if matched := _firewall_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ServerAccess_RequestMultiError is an error wrapping multiple validation
+// errors returned by ServerAccess_Request.ValidateAll() if the designated
+// constraints aren't met.
+type ServerAccess_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccess_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccess_RequestMultiError) AllErrors() []error { return m }
+
+// ServerAccess_RequestValidationError is the validation error returned by
+// ServerAccess_Request.Validate if the designated constraints aren't met.
+type ServerAccess_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccess_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccess_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccess_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccess_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccess_RequestValidationError) ErrorName() string {
+	return "ServerAccess_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ServerAccess_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccess_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccess_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccess_RequestValidationError{}
+
+// Validate checks the field values on ServerAccess_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccess_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccess_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccess_ResponseMultiError, or nil if none found.
+func (m *ServerAccess_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccess_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ServerAccess_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// ServerAccess_ResponseMultiError is an error wrapping multiple validation
+// errors returned by ServerAccess_Response.ValidateAll() if the designated
+// constraints aren't met.
+type ServerAccess_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccess_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccess_ResponseMultiError) AllErrors() []error { return m }
+
+// ServerAccess_ResponseValidationError is the validation error returned by
+// ServerAccess_Response.Validate if the designated constraints aren't met.
+type ServerAccess_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccess_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccess_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccess_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccess_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccess_ResponseValidationError) ErrorName() string {
+	return "ServerAccess_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ServerAccess_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccess_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccess_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccess_ResponseValidationError{}
+
+// Validate checks the field values on ServerAccessUser_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccessUser_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccessUser_Request with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// CheckServerAccess_RequestMultiError, or nil if none found.
-func (m *CheckServerAccess_Request) ValidateAll() error {
+// ServerAccessUser_RequestMultiError, or nil if none found.
+func (m *ServerAccessUser_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *CheckServerAccess_Request) validate(all bool) error {
+func (m *ServerAccessUser_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for ClientIp
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = ServerAccessUser_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Country
-
-	// no validation rules for AccountId
-
-	// no validation rules for UserId
+	if err := m._validateUuid(m.GetUserId()); err != nil {
+		err = ServerAccessUser_RequestValidationError{
+			field:  "UserId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
-		return CheckServerAccess_RequestMultiError(errors)
+		return ServerAccessUser_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// CheckServerAccess_RequestMultiError is an error wrapping multiple validation
-// errors returned by CheckServerAccess_Request.ValidateAll() if the
+func (m *ServerAccessUser_Request) _validateUuid(uuid string) error {
+	if matched := _firewall_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ServerAccessUser_RequestMultiError is an error wrapping multiple validation
+// errors returned by ServerAccessUser_Request.ValidateAll() if the designated
+// constraints aren't met.
+type ServerAccessUser_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccessUser_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccessUser_RequestMultiError) AllErrors() []error { return m }
+
+// ServerAccessUser_RequestValidationError is the validation error returned by
+// ServerAccessUser_Request.Validate if the designated constraints aren't met.
+type ServerAccessUser_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccessUser_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccessUser_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccessUser_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccessUser_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccessUser_RequestValidationError) ErrorName() string {
+	return "ServerAccessUser_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ServerAccessUser_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccessUser_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccessUser_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccessUser_RequestValidationError{}
+
+// Validate checks the field values on ServerAccessUser_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccessUser_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccessUser_Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccessUser_ResponseMultiError, or nil if none found.
+func (m *ServerAccessUser_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccessUser_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ServerAccessUser_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// ServerAccessUser_ResponseMultiError is an error wrapping multiple validation
+// errors returned by ServerAccessUser_Response.ValidateAll() if the
 // designated constraints aren't met.
-type CheckServerAccess_RequestMultiError []error
+type ServerAccessUser_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m CheckServerAccess_RequestMultiError) Error() string {
+func (m ServerAccessUser_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -2870,11 +3514,11 @@ func (m CheckServerAccess_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m CheckServerAccess_RequestMultiError) AllErrors() []error { return m }
+func (m ServerAccessUser_ResponseMultiError) AllErrors() []error { return m }
 
-// CheckServerAccess_RequestValidationError is the validation error returned by
-// CheckServerAccess_Request.Validate if the designated constraints aren't met.
-type CheckServerAccess_RequestValidationError struct {
+// ServerAccessUser_ResponseValidationError is the validation error returned by
+// ServerAccessUser_Response.Validate if the designated constraints aren't met.
+type ServerAccessUser_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -2882,24 +3526,24 @@ type CheckServerAccess_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e CheckServerAccess_RequestValidationError) Field() string { return e.field }
+func (e ServerAccessUser_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CheckServerAccess_RequestValidationError) Reason() string { return e.reason }
+func (e ServerAccessUser_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CheckServerAccess_RequestValidationError) Cause() error { return e.cause }
+func (e ServerAccessUser_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CheckServerAccess_RequestValidationError) Key() bool { return e.key }
+func (e ServerAccessUser_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CheckServerAccess_RequestValidationError) ErrorName() string {
-	return "CheckServerAccess_RequestValidationError"
+func (e ServerAccessUser_ResponseValidationError) ErrorName() string {
+	return "ServerAccessUser_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e CheckServerAccess_RequestValidationError) Error() string {
+func (e ServerAccessUser_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -2911,14 +3555,14 @@ func (e CheckServerAccess_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCheckServerAccess_Request.%s: %s%s",
+		"invalid %sServerAccessUser_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CheckServerAccess_RequestValidationError{}
+var _ error = ServerAccessUser_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -2926,46 +3570,64 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CheckServerAccess_RequestValidationError{}
+} = ServerAccessUser_ResponseValidationError{}
 
-// Validate checks the field values on CheckServerAccess_Response with the
-// rules defined in the proto definition for this message. If any rules are
+// Validate checks the field values on ServerAccessTime_Request with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *CheckServerAccess_Response) Validate() error {
+func (m *ServerAccessTime_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on CheckServerAccess_Response with the
+// ValidateAll checks the field values on ServerAccessTime_Request with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// CheckServerAccess_ResponseMultiError, or nil if none found.
-func (m *CheckServerAccess_Response) ValidateAll() error {
+// ServerAccessTime_RequestMultiError, or nil if none found.
+func (m *ServerAccessTime_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *CheckServerAccess_Response) validate(all bool) error {
+func (m *ServerAccessTime_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for Access
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = ServerAccessTime_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
-		return CheckServerAccess_ResponseMultiError(errors)
+		return ServerAccessTime_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// CheckServerAccess_ResponseMultiError is an error wrapping multiple
-// validation errors returned by CheckServerAccess_Response.ValidateAll() if
-// the designated constraints aren't met.
-type CheckServerAccess_ResponseMultiError []error
+func (m *ServerAccessTime_Request) _validateUuid(uuid string) error {
+	if matched := _firewall_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ServerAccessTime_RequestMultiError is an error wrapping multiple validation
+// errors returned by ServerAccessTime_Request.ValidateAll() if the designated
+// constraints aren't met.
+type ServerAccessTime_RequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m CheckServerAccess_ResponseMultiError) Error() string {
+func (m ServerAccessTime_RequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -2974,11 +3636,11 @@ func (m CheckServerAccess_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m CheckServerAccess_ResponseMultiError) AllErrors() []error { return m }
+func (m ServerAccessTime_RequestMultiError) AllErrors() []error { return m }
 
-// CheckServerAccess_ResponseValidationError is the validation error returned
-// by CheckServerAccess_Response.Validate if the designated constraints aren't met.
-type CheckServerAccess_ResponseValidationError struct {
+// ServerAccessTime_RequestValidationError is the validation error returned by
+// ServerAccessTime_Request.Validate if the designated constraints aren't met.
+type ServerAccessTime_RequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -2986,24 +3648,24 @@ type CheckServerAccess_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e CheckServerAccess_ResponseValidationError) Field() string { return e.field }
+func (e ServerAccessTime_RequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CheckServerAccess_ResponseValidationError) Reason() string { return e.reason }
+func (e ServerAccessTime_RequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CheckServerAccess_ResponseValidationError) Cause() error { return e.cause }
+func (e ServerAccessTime_RequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CheckServerAccess_ResponseValidationError) Key() bool { return e.key }
+func (e ServerAccessTime_RequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CheckServerAccess_ResponseValidationError) ErrorName() string {
-	return "CheckServerAccess_ResponseValidationError"
+func (e ServerAccessTime_RequestValidationError) ErrorName() string {
+	return "ServerAccessTime_RequestValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e CheckServerAccess_ResponseValidationError) Error() string {
+func (e ServerAccessTime_RequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -3015,14 +3677,14 @@ func (e CheckServerAccess_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCheckServerAccess_Response.%s: %s%s",
+		"invalid %sServerAccessTime_Request.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CheckServerAccess_ResponseValidationError{}
+var _ error = ServerAccessTime_RequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -3030,4 +3692,578 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CheckServerAccess_ResponseValidationError{}
+} = ServerAccessTime_RequestValidationError{}
+
+// Validate checks the field values on ServerAccessTime_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccessTime_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccessTime_Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccessTime_ResponseMultiError, or nil if none found.
+func (m *ServerAccessTime_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccessTime_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ServerAccessTime_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// ServerAccessTime_ResponseMultiError is an error wrapping multiple validation
+// errors returned by ServerAccessTime_Response.ValidateAll() if the
+// designated constraints aren't met.
+type ServerAccessTime_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccessTime_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccessTime_ResponseMultiError) AllErrors() []error { return m }
+
+// ServerAccessTime_ResponseValidationError is the validation error returned by
+// ServerAccessTime_Response.Validate if the designated constraints aren't met.
+type ServerAccessTime_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccessTime_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccessTime_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccessTime_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccessTime_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccessTime_ResponseValidationError) ErrorName() string {
+	return "ServerAccessTime_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ServerAccessTime_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccessTime_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccessTime_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccessTime_ResponseValidationError{}
+
+// Validate checks the field values on ServerAccessIP_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccessIP_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccessIP_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccessIP_RequestMultiError, or nil if none found.
+func (m *ServerAccessIP_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccessIP_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = ServerAccessIP_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if ip := net.ParseIP(m.GetMemberIp()); ip == nil {
+		err := ServerAccessIP_RequestValidationError{
+			field:  "MemberIp",
+			reason: "value must be a valid IP address",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return ServerAccessIP_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ServerAccessIP_Request) _validateUuid(uuid string) error {
+	if matched := _firewall_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ServerAccessIP_RequestMultiError is an error wrapping multiple validation
+// errors returned by ServerAccessIP_Request.ValidateAll() if the designated
+// constraints aren't met.
+type ServerAccessIP_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccessIP_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccessIP_RequestMultiError) AllErrors() []error { return m }
+
+// ServerAccessIP_RequestValidationError is the validation error returned by
+// ServerAccessIP_Request.Validate if the designated constraints aren't met.
+type ServerAccessIP_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccessIP_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccessIP_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccessIP_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccessIP_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccessIP_RequestValidationError) ErrorName() string {
+	return "ServerAccessIP_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ServerAccessIP_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccessIP_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccessIP_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccessIP_RequestValidationError{}
+
+// Validate checks the field values on ServerAccessIP_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccessIP_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccessIP_Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccessIP_ResponseMultiError, or nil if none found.
+func (m *ServerAccessIP_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccessIP_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ServerAccessIP_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// ServerAccessIP_ResponseMultiError is an error wrapping multiple validation
+// errors returned by ServerAccessIP_Response.ValidateAll() if the designated
+// constraints aren't met.
+type ServerAccessIP_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccessIP_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccessIP_ResponseMultiError) AllErrors() []error { return m }
+
+// ServerAccessIP_ResponseValidationError is the validation error returned by
+// ServerAccessIP_Response.Validate if the designated constraints aren't met.
+type ServerAccessIP_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccessIP_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccessIP_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccessIP_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccessIP_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccessIP_ResponseValidationError) ErrorName() string {
+	return "ServerAccessIP_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ServerAccessIP_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccessIP_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccessIP_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccessIP_ResponseValidationError{}
+
+// Validate checks the field values on ServerAccessCountry_Request with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccessCountry_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccessCountry_Request with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccessCountry_RequestMultiError, or nil if none found.
+func (m *ServerAccessCountry_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccessCountry_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = ServerAccessCountry_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if ip := net.ParseIP(m.GetMemberIp()); ip == nil {
+		err := ServerAccessCountry_RequestValidationError{
+			field:  "MemberIp",
+			reason: "value must be a valid IP address",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return ServerAccessCountry_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ServerAccessCountry_Request) _validateUuid(uuid string) error {
+	if matched := _firewall_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ServerAccessCountry_RequestMultiError is an error wrapping multiple
+// validation errors returned by ServerAccessCountry_Request.ValidateAll() if
+// the designated constraints aren't met.
+type ServerAccessCountry_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccessCountry_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccessCountry_RequestMultiError) AllErrors() []error { return m }
+
+// ServerAccessCountry_RequestValidationError is the validation error returned
+// by ServerAccessCountry_Request.Validate if the designated constraints
+// aren't met.
+type ServerAccessCountry_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccessCountry_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccessCountry_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccessCountry_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccessCountry_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccessCountry_RequestValidationError) ErrorName() string {
+	return "ServerAccessCountry_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ServerAccessCountry_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccessCountry_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccessCountry_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccessCountry_RequestValidationError{}
+
+// Validate checks the field values on ServerAccessCountry_Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccessCountry_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccessCountry_Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccessCountry_ResponseMultiError, or nil if none found.
+func (m *ServerAccessCountry_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccessCountry_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ServerAccessCountry_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// ServerAccessCountry_ResponseMultiError is an error wrapping multiple
+// validation errors returned by ServerAccessCountry_Response.ValidateAll() if
+// the designated constraints aren't met.
+type ServerAccessCountry_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccessCountry_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccessCountry_ResponseMultiError) AllErrors() []error { return m }
+
+// ServerAccessCountry_ResponseValidationError is the validation error returned
+// by ServerAccessCountry_Response.Validate if the designated constraints
+// aren't met.
+type ServerAccessCountry_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccessCountry_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccessCountry_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccessCountry_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccessCountry_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccessCountry_ResponseValidationError) ErrorName() string {
+	return "ServerAccessCountry_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ServerAccessCountry_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccessCountry_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccessCountry_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccessCountry_ResponseValidationError{}

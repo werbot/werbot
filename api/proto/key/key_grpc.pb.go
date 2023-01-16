@@ -22,11 +22,13 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type KeyHandlersClient interface {
-	ListPublicKeys(ctx context.Context, in *ListPublicKeys_Request, opts ...grpc.CallOption) (*ListPublicKeys_Response, error)
-	PublicKey(ctx context.Context, in *PublicKey_Request, opts ...grpc.CallOption) (*PublicKey_Response, error)
-	AddPublicKey(ctx context.Context, in *AddPublicKey_Request, opts ...grpc.CallOption) (*AddPublicKey_Response, error)
-	UpdatePublicKey(ctx context.Context, in *UpdatePublicKey_Request, opts ...grpc.CallOption) (*UpdatePublicKey_Response, error)
-	DeletePublicKey(ctx context.Context, in *DeletePublicKey_Request, opts ...grpc.CallOption) (*DeletePublicKey_Response, error)
+	// Key section
+	ListKeys(ctx context.Context, in *ListKeys_Request, opts ...grpc.CallOption) (*ListKeys_Response, error)
+	Key(ctx context.Context, in *Key_Request, opts ...grpc.CallOption) (*Key_Response, error)
+	AddKey(ctx context.Context, in *AddKey_Request, opts ...grpc.CallOption) (*AddKey_Response, error)
+	UpdateKey(ctx context.Context, in *UpdateKey_Request, opts ...grpc.CallOption) (*UpdateKey_Response, error)
+	DeleteKey(ctx context.Context, in *DeleteKey_Request, opts ...grpc.CallOption) (*DeleteKey_Response, error)
+	// Generate key section
 	GenerateSSHKey(ctx context.Context, in *GenerateSSHKey_Request, opts ...grpc.CallOption) (*GenerateSSHKey_Response, error)
 }
 
@@ -38,45 +40,45 @@ func NewKeyHandlersClient(cc grpc.ClientConnInterface) KeyHandlersClient {
 	return &keyHandlersClient{cc}
 }
 
-func (c *keyHandlersClient) ListPublicKeys(ctx context.Context, in *ListPublicKeys_Request, opts ...grpc.CallOption) (*ListPublicKeys_Response, error) {
-	out := new(ListPublicKeys_Response)
-	err := c.cc.Invoke(ctx, "/key.KeyHandlers/ListPublicKeys", in, out, opts...)
+func (c *keyHandlersClient) ListKeys(ctx context.Context, in *ListKeys_Request, opts ...grpc.CallOption) (*ListKeys_Response, error) {
+	out := new(ListKeys_Response)
+	err := c.cc.Invoke(ctx, "/key.KeyHandlers/ListKeys", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *keyHandlersClient) PublicKey(ctx context.Context, in *PublicKey_Request, opts ...grpc.CallOption) (*PublicKey_Response, error) {
-	out := new(PublicKey_Response)
-	err := c.cc.Invoke(ctx, "/key.KeyHandlers/PublicKey", in, out, opts...)
+func (c *keyHandlersClient) Key(ctx context.Context, in *Key_Request, opts ...grpc.CallOption) (*Key_Response, error) {
+	out := new(Key_Response)
+	err := c.cc.Invoke(ctx, "/key.KeyHandlers/Key", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *keyHandlersClient) AddPublicKey(ctx context.Context, in *AddPublicKey_Request, opts ...grpc.CallOption) (*AddPublicKey_Response, error) {
-	out := new(AddPublicKey_Response)
-	err := c.cc.Invoke(ctx, "/key.KeyHandlers/AddPublicKey", in, out, opts...)
+func (c *keyHandlersClient) AddKey(ctx context.Context, in *AddKey_Request, opts ...grpc.CallOption) (*AddKey_Response, error) {
+	out := new(AddKey_Response)
+	err := c.cc.Invoke(ctx, "/key.KeyHandlers/AddKey", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *keyHandlersClient) UpdatePublicKey(ctx context.Context, in *UpdatePublicKey_Request, opts ...grpc.CallOption) (*UpdatePublicKey_Response, error) {
-	out := new(UpdatePublicKey_Response)
-	err := c.cc.Invoke(ctx, "/key.KeyHandlers/UpdatePublicKey", in, out, opts...)
+func (c *keyHandlersClient) UpdateKey(ctx context.Context, in *UpdateKey_Request, opts ...grpc.CallOption) (*UpdateKey_Response, error) {
+	out := new(UpdateKey_Response)
+	err := c.cc.Invoke(ctx, "/key.KeyHandlers/UpdateKey", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *keyHandlersClient) DeletePublicKey(ctx context.Context, in *DeletePublicKey_Request, opts ...grpc.CallOption) (*DeletePublicKey_Response, error) {
-	out := new(DeletePublicKey_Response)
-	err := c.cc.Invoke(ctx, "/key.KeyHandlers/DeletePublicKey", in, out, opts...)
+func (c *keyHandlersClient) DeleteKey(ctx context.Context, in *DeleteKey_Request, opts ...grpc.CallOption) (*DeleteKey_Response, error) {
+	out := new(DeleteKey_Response)
+	err := c.cc.Invoke(ctx, "/key.KeyHandlers/DeleteKey", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,11 +98,13 @@ func (c *keyHandlersClient) GenerateSSHKey(ctx context.Context, in *GenerateSSHK
 // All implementations must embed UnimplementedKeyHandlersServer
 // for forward compatibility
 type KeyHandlersServer interface {
-	ListPublicKeys(context.Context, *ListPublicKeys_Request) (*ListPublicKeys_Response, error)
-	PublicKey(context.Context, *PublicKey_Request) (*PublicKey_Response, error)
-	AddPublicKey(context.Context, *AddPublicKey_Request) (*AddPublicKey_Response, error)
-	UpdatePublicKey(context.Context, *UpdatePublicKey_Request) (*UpdatePublicKey_Response, error)
-	DeletePublicKey(context.Context, *DeletePublicKey_Request) (*DeletePublicKey_Response, error)
+	// Key section
+	ListKeys(context.Context, *ListKeys_Request) (*ListKeys_Response, error)
+	Key(context.Context, *Key_Request) (*Key_Response, error)
+	AddKey(context.Context, *AddKey_Request) (*AddKey_Response, error)
+	UpdateKey(context.Context, *UpdateKey_Request) (*UpdateKey_Response, error)
+	DeleteKey(context.Context, *DeleteKey_Request) (*DeleteKey_Response, error)
+	// Generate key section
 	GenerateSSHKey(context.Context, *GenerateSSHKey_Request) (*GenerateSSHKey_Response, error)
 	mustEmbedUnimplementedKeyHandlersServer()
 }
@@ -109,20 +113,20 @@ type KeyHandlersServer interface {
 type UnimplementedKeyHandlersServer struct {
 }
 
-func (UnimplementedKeyHandlersServer) ListPublicKeys(context.Context, *ListPublicKeys_Request) (*ListPublicKeys_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListPublicKeys not implemented")
+func (UnimplementedKeyHandlersServer) ListKeys(context.Context, *ListKeys_Request) (*ListKeys_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListKeys not implemented")
 }
-func (UnimplementedKeyHandlersServer) PublicKey(context.Context, *PublicKey_Request) (*PublicKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PublicKey not implemented")
+func (UnimplementedKeyHandlersServer) Key(context.Context, *Key_Request) (*Key_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Key not implemented")
 }
-func (UnimplementedKeyHandlersServer) AddPublicKey(context.Context, *AddPublicKey_Request) (*AddPublicKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddPublicKey not implemented")
+func (UnimplementedKeyHandlersServer) AddKey(context.Context, *AddKey_Request) (*AddKey_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddKey not implemented")
 }
-func (UnimplementedKeyHandlersServer) UpdatePublicKey(context.Context, *UpdatePublicKey_Request) (*UpdatePublicKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdatePublicKey not implemented")
+func (UnimplementedKeyHandlersServer) UpdateKey(context.Context, *UpdateKey_Request) (*UpdateKey_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateKey not implemented")
 }
-func (UnimplementedKeyHandlersServer) DeletePublicKey(context.Context, *DeletePublicKey_Request) (*DeletePublicKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeletePublicKey not implemented")
+func (UnimplementedKeyHandlersServer) DeleteKey(context.Context, *DeleteKey_Request) (*DeleteKey_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteKey not implemented")
 }
 func (UnimplementedKeyHandlersServer) GenerateSSHKey(context.Context, *GenerateSSHKey_Request) (*GenerateSSHKey_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateSSHKey not implemented")
@@ -140,92 +144,92 @@ func RegisterKeyHandlersServer(s grpc.ServiceRegistrar, srv KeyHandlersServer) {
 	s.RegisterService(&KeyHandlers_ServiceDesc, srv)
 }
 
-func _KeyHandlers_ListPublicKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListPublicKeys_Request)
+func _KeyHandlers_ListKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListKeys_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(KeyHandlersServer).ListPublicKeys(ctx, in)
+		return srv.(KeyHandlersServer).ListKeys(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/key.KeyHandlers/ListPublicKeys",
+		FullMethod: "/key.KeyHandlers/ListKeys",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(KeyHandlersServer).ListPublicKeys(ctx, req.(*ListPublicKeys_Request))
+		return srv.(KeyHandlersServer).ListKeys(ctx, req.(*ListKeys_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _KeyHandlers_PublicKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PublicKey_Request)
+func _KeyHandlers_Key_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Key_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(KeyHandlersServer).PublicKey(ctx, in)
+		return srv.(KeyHandlersServer).Key(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/key.KeyHandlers/PublicKey",
+		FullMethod: "/key.KeyHandlers/Key",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(KeyHandlersServer).PublicKey(ctx, req.(*PublicKey_Request))
+		return srv.(KeyHandlersServer).Key(ctx, req.(*Key_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _KeyHandlers_AddPublicKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddPublicKey_Request)
+func _KeyHandlers_AddKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddKey_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(KeyHandlersServer).AddPublicKey(ctx, in)
+		return srv.(KeyHandlersServer).AddKey(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/key.KeyHandlers/AddPublicKey",
+		FullMethod: "/key.KeyHandlers/AddKey",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(KeyHandlersServer).AddPublicKey(ctx, req.(*AddPublicKey_Request))
+		return srv.(KeyHandlersServer).AddKey(ctx, req.(*AddKey_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _KeyHandlers_UpdatePublicKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdatePublicKey_Request)
+func _KeyHandlers_UpdateKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateKey_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(KeyHandlersServer).UpdatePublicKey(ctx, in)
+		return srv.(KeyHandlersServer).UpdateKey(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/key.KeyHandlers/UpdatePublicKey",
+		FullMethod: "/key.KeyHandlers/UpdateKey",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(KeyHandlersServer).UpdatePublicKey(ctx, req.(*UpdatePublicKey_Request))
+		return srv.(KeyHandlersServer).UpdateKey(ctx, req.(*UpdateKey_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _KeyHandlers_DeletePublicKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeletePublicKey_Request)
+func _KeyHandlers_DeleteKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteKey_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(KeyHandlersServer).DeletePublicKey(ctx, in)
+		return srv.(KeyHandlersServer).DeleteKey(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/key.KeyHandlers/DeletePublicKey",
+		FullMethod: "/key.KeyHandlers/DeleteKey",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(KeyHandlersServer).DeletePublicKey(ctx, req.(*DeletePublicKey_Request))
+		return srv.(KeyHandlersServer).DeleteKey(ctx, req.(*DeleteKey_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -256,24 +260,24 @@ var KeyHandlers_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*KeyHandlersServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ListPublicKeys",
-			Handler:    _KeyHandlers_ListPublicKeys_Handler,
+			MethodName: "ListKeys",
+			Handler:    _KeyHandlers_ListKeys_Handler,
 		},
 		{
-			MethodName: "PublicKey",
-			Handler:    _KeyHandlers_PublicKey_Handler,
+			MethodName: "Key",
+			Handler:    _KeyHandlers_Key_Handler,
 		},
 		{
-			MethodName: "AddPublicKey",
-			Handler:    _KeyHandlers_AddPublicKey_Handler,
+			MethodName: "AddKey",
+			Handler:    _KeyHandlers_AddKey_Handler,
 		},
 		{
-			MethodName: "UpdatePublicKey",
-			Handler:    _KeyHandlers_UpdatePublicKey_Handler,
+			MethodName: "UpdateKey",
+			Handler:    _KeyHandlers_UpdateKey_Handler,
 		},
 		{
-			MethodName: "DeletePublicKey",
-			Handler:    _KeyHandlers_DeletePublicKey_Handler,
+			MethodName: "DeleteKey",
+			Handler:    _KeyHandlers_DeleteKey_Handler,
 		},
 		{
 			MethodName: "GenerateSSHKey",

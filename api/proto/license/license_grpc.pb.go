@@ -22,9 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LicenseHandlersClient interface {
-	AddLicense(ctx context.Context, in *AddLicense_Request, opts ...grpc.CallOption) (*AddLicense_Response, error)
 	License(ctx context.Context, in *License_Request, opts ...grpc.CallOption) (*License_Response, error)
-	LicenseExpired(ctx context.Context, in *LicenseExpired_Request, opts ...grpc.CallOption) (*LicenseExpired_Response, error)
 }
 
 type licenseHandlersClient struct {
@@ -33,15 +31,6 @@ type licenseHandlersClient struct {
 
 func NewLicenseHandlersClient(cc grpc.ClientConnInterface) LicenseHandlersClient {
 	return &licenseHandlersClient{cc}
-}
-
-func (c *licenseHandlersClient) AddLicense(ctx context.Context, in *AddLicense_Request, opts ...grpc.CallOption) (*AddLicense_Response, error) {
-	out := new(AddLicense_Response)
-	err := c.cc.Invoke(ctx, "/license.LicenseHandlers/AddLicense", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *licenseHandlersClient) License(ctx context.Context, in *License_Request, opts ...grpc.CallOption) (*License_Response, error) {
@@ -53,22 +42,11 @@ func (c *licenseHandlersClient) License(ctx context.Context, in *License_Request
 	return out, nil
 }
 
-func (c *licenseHandlersClient) LicenseExpired(ctx context.Context, in *LicenseExpired_Request, opts ...grpc.CallOption) (*LicenseExpired_Response, error) {
-	out := new(LicenseExpired_Response)
-	err := c.cc.Invoke(ctx, "/license.LicenseHandlers/LicenseExpired", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // LicenseHandlersServer is the server API for LicenseHandlers service.
 // All implementations must embed UnimplementedLicenseHandlersServer
 // for forward compatibility
 type LicenseHandlersServer interface {
-	AddLicense(context.Context, *AddLicense_Request) (*AddLicense_Response, error)
 	License(context.Context, *License_Request) (*License_Response, error)
-	LicenseExpired(context.Context, *LicenseExpired_Request) (*LicenseExpired_Response, error)
 	mustEmbedUnimplementedLicenseHandlersServer()
 }
 
@@ -76,14 +54,8 @@ type LicenseHandlersServer interface {
 type UnimplementedLicenseHandlersServer struct {
 }
 
-func (UnimplementedLicenseHandlersServer) AddLicense(context.Context, *AddLicense_Request) (*AddLicense_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddLicense not implemented")
-}
 func (UnimplementedLicenseHandlersServer) License(context.Context, *License_Request) (*License_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method License not implemented")
-}
-func (UnimplementedLicenseHandlersServer) LicenseExpired(context.Context, *LicenseExpired_Request) (*LicenseExpired_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LicenseExpired not implemented")
 }
 func (UnimplementedLicenseHandlersServer) mustEmbedUnimplementedLicenseHandlersServer() {}
 
@@ -96,24 +68,6 @@ type UnsafeLicenseHandlersServer interface {
 
 func RegisterLicenseHandlersServer(s grpc.ServiceRegistrar, srv LicenseHandlersServer) {
 	s.RegisterService(&LicenseHandlers_ServiceDesc, srv)
-}
-
-func _LicenseHandlers_AddLicense_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddLicense_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(LicenseHandlersServer).AddLicense(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/license.LicenseHandlers/AddLicense",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LicenseHandlersServer).AddLicense(ctx, req.(*AddLicense_Request))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _LicenseHandlers_License_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -134,24 +88,6 @@ func _LicenseHandlers_License_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _LicenseHandlers_LicenseExpired_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LicenseExpired_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(LicenseHandlersServer).LicenseExpired(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/license.LicenseHandlers/LicenseExpired",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LicenseHandlersServer).LicenseExpired(ctx, req.(*LicenseExpired_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // LicenseHandlers_ServiceDesc is the grpc.ServiceDesc for LicenseHandlers service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -160,16 +96,8 @@ var LicenseHandlers_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*LicenseHandlersServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "AddLicense",
-			Handler:    _LicenseHandlers_AddLicense_Handler,
-		},
-		{
 			MethodName: "License",
 			Handler:    _LicenseHandlers_License_Handler,
-		},
-		{
-			MethodName: "LicenseExpired",
-			Handler:    _LicenseHandlers_LicenseExpired_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

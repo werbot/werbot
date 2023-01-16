@@ -30,6 +30,4 @@ func New(h *web.Handler, publicKey string) *Handler {
 // Routes is ...
 func (h *Handler) Routes() {
 	h.App.Get("/v1/license/info", h.Auth, h.getLicenseInfo)
-
-	routes(h)
 }

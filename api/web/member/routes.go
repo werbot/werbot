@@ -28,7 +28,7 @@ func New(h *web.Handler) *Handler {
 // Routes is ...
 func (h *Handler) Routes() {
 	// project invite
-	h.App.Post("/v1/members/invite/:invite", h.postProjectMembersInviteActivate)
+	h.App.Post("/v1/members/invite/:invite", h.postMembersInviteActivate)
 
 	memberV1 := h.App.Group("/v1/members", h.Auth)
 
@@ -51,6 +51,6 @@ func (h *Handler) Routes() {
 	memberV1.Patch("/server", h.patchServerMember)
 	memberV1.Delete("/server", h.deleteServerMember)
 
-	memberV1.Patch("/server/active", h.patchServerMemberStatus)
+	memberV1.Patch("/server/active", h.patchServerMemberActive)
 	memberV1.Get("/server/search", h.getMembersWithoutServer)
 }

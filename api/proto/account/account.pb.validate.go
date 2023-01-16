@@ -235,6 +235,305 @@ var _ interface {
 	ErrorName() string
 } = AccountValidationError{}
 
+// Validate checks the field values on AddAccount with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *AddAccount) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddAccount with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in AddAccountMultiError, or
+// nil if none found.
+func (m *AddAccount) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddAccount) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return AddAccountMultiError(errors)
+	}
+
+	return nil
+}
+
+// AddAccountMultiError is an error wrapping multiple validation errors
+// returned by AddAccount.ValidateAll() if the designated constraints aren't met.
+type AddAccountMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddAccountMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddAccountMultiError) AllErrors() []error { return m }
+
+// AddAccountValidationError is the validation error returned by
+// AddAccount.Validate if the designated constraints aren't met.
+type AddAccountValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddAccountValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddAccountValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddAccountValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddAccountValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddAccountValidationError) ErrorName() string { return "AddAccountValidationError" }
+
+// Error satisfies the builtin error interface
+func (e AddAccountValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddAccount.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddAccountValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddAccountValidationError{}
+
+// Validate checks the field values on UpdateAccount with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *UpdateAccount) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UpdateAccount with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in UpdateAccountMultiError, or
+// nil if none found.
+func (m *UpdateAccount) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UpdateAccount) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return UpdateAccountMultiError(errors)
+	}
+
+	return nil
+}
+
+// UpdateAccountMultiError is an error wrapping multiple validation errors
+// returned by UpdateAccount.ValidateAll() if the designated constraints
+// aren't met.
+type UpdateAccountMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UpdateAccountMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UpdateAccountMultiError) AllErrors() []error { return m }
+
+// UpdateAccountValidationError is the validation error returned by
+// UpdateAccount.Validate if the designated constraints aren't met.
+type UpdateAccountValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdateAccountValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdateAccountValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdateAccountValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdateAccountValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdateAccountValidationError) ErrorName() string { return "UpdateAccountValidationError" }
+
+// Error satisfies the builtin error interface
+func (e UpdateAccountValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdateAccount.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdateAccountValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdateAccountValidationError{}
+
+// Validate checks the field values on DeleteAccount with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *DeleteAccount) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on DeleteAccount with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in DeleteAccountMultiError, or
+// nil if none found.
+func (m *DeleteAccount) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *DeleteAccount) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return DeleteAccountMultiError(errors)
+	}
+
+	return nil
+}
+
+// DeleteAccountMultiError is an error wrapping multiple validation errors
+// returned by DeleteAccount.ValidateAll() if the designated constraints
+// aren't met.
+type DeleteAccountMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m DeleteAccountMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m DeleteAccountMultiError) AllErrors() []error { return m }
+
+// DeleteAccountValidationError is the validation error returned by
+// DeleteAccount.Validate if the designated constraints aren't met.
+type DeleteAccountValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e DeleteAccountValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e DeleteAccountValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e DeleteAccountValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e DeleteAccountValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e DeleteAccountValidationError) ErrorName() string { return "DeleteAccountValidationError" }
+
+// Error satisfies the builtin error interface
+func (e DeleteAccountValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sDeleteAccount.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = DeleteAccountValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = DeleteAccountValidationError{}
+
 // Validate checks the field values on AccountIDByName with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
@@ -335,22 +634,22 @@ var _ interface {
 	ErrorName() string
 } = AccountIDByNameValidationError{}
 
-// Validate checks the field values on UpdateAccountStatus with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateAccountStatus) Validate() error {
+// Validate checks the field values on UpdateStatus with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *UpdateStatus) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UpdateAccountStatus with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateAccountStatusMultiError, or nil if none found.
-func (m *UpdateAccountStatus) ValidateAll() error {
+// ValidateAll checks the field values on UpdateStatus with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in UpdateStatusMultiError, or
+// nil if none found.
+func (m *UpdateStatus) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *UpdateAccountStatus) validate(all bool) error {
+func (m *UpdateStatus) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -358,19 +657,18 @@ func (m *UpdateAccountStatus) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return UpdateAccountStatusMultiError(errors)
+		return UpdateStatusMultiError(errors)
 	}
 
 	return nil
 }
 
-// UpdateAccountStatusMultiError is an error wrapping multiple validation
-// errors returned by UpdateAccountStatus.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateAccountStatusMultiError []error
+// UpdateStatusMultiError is an error wrapping multiple validation errors
+// returned by UpdateStatus.ValidateAll() if the designated constraints aren't met.
+type UpdateStatusMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m UpdateAccountStatusMultiError) Error() string {
+func (m UpdateStatusMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -379,11 +677,11 @@ func (m UpdateAccountStatusMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m UpdateAccountStatusMultiError) AllErrors() []error { return m }
+func (m UpdateStatusMultiError) AllErrors() []error { return m }
 
-// UpdateAccountStatusValidationError is the validation error returned by
-// UpdateAccountStatus.Validate if the designated constraints aren't met.
-type UpdateAccountStatusValidationError struct {
+// UpdateStatusValidationError is the validation error returned by
+// UpdateStatus.Validate if the designated constraints aren't met.
+type UpdateStatusValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -391,24 +689,22 @@ type UpdateAccountStatusValidationError struct {
 }
 
 // Field function returns field value.
-func (e UpdateAccountStatusValidationError) Field() string { return e.field }
+func (e UpdateStatusValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e UpdateAccountStatusValidationError) Reason() string { return e.reason }
+func (e UpdateStatusValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e UpdateAccountStatusValidationError) Cause() error { return e.cause }
+func (e UpdateStatusValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e UpdateAccountStatusValidationError) Key() bool { return e.key }
+func (e UpdateStatusValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e UpdateAccountStatusValidationError) ErrorName() string {
-	return "UpdateAccountStatusValidationError"
-}
+func (e UpdateStatusValidationError) ErrorName() string { return "UpdateStatusValidationError" }
 
 // Error satisfies the builtin error interface
-func (e UpdateAccountStatusValidationError) Error() string {
+func (e UpdateStatusValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -420,14 +716,14 @@ func (e UpdateAccountStatusValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sUpdateAccountStatus.%s: %s%s",
+		"invalid %sUpdateStatus.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = UpdateAccountStatusValidationError{}
+var _ error = UpdateStatusValidationError{}
 
 var _ interface {
 	Field() string
@@ -435,7 +731,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = UpdateAccountStatusValidationError{}
+} = UpdateStatusValidationError{}
 
 // Validate checks the field values on SessionAccount with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
@@ -1146,6 +1442,678 @@ var _ interface {
 	ErrorName() string
 } = Account_ResponseValidationError{}
 
+// Validate checks the field values on AddAccount_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AddAccount_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddAccount_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddAccount_RequestMultiError, or nil if none found.
+func (m *AddAccount_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddAccount_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetAccountId()); err != nil {
+		err = AddAccount_RequestValidationError{
+			field:  "AccountId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return AddAccount_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *AddAccount_Request) _validateUuid(uuid string) error {
+	if matched := _account_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// AddAccount_RequestMultiError is an error wrapping multiple validation errors
+// returned by AddAccount_Request.ValidateAll() if the designated constraints
+// aren't met.
+type AddAccount_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddAccount_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddAccount_RequestMultiError) AllErrors() []error { return m }
+
+// AddAccount_RequestValidationError is the validation error returned by
+// AddAccount_Request.Validate if the designated constraints aren't met.
+type AddAccount_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddAccount_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddAccount_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddAccount_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddAccount_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddAccount_RequestValidationError) ErrorName() string {
+	return "AddAccount_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AddAccount_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddAccount_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddAccount_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddAccount_RequestValidationError{}
+
+// Validate checks the field values on AddAccount_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AddAccount_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddAccount_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddAccount_ResponseMultiError, or nil if none found.
+func (m *AddAccount_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddAccount_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return AddAccount_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// AddAccount_ResponseMultiError is an error wrapping multiple validation
+// errors returned by AddAccount_Response.ValidateAll() if the designated
+// constraints aren't met.
+type AddAccount_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddAccount_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddAccount_ResponseMultiError) AllErrors() []error { return m }
+
+// AddAccount_ResponseValidationError is the validation error returned by
+// AddAccount_Response.Validate if the designated constraints aren't met.
+type AddAccount_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddAccount_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddAccount_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddAccount_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddAccount_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddAccount_ResponseValidationError) ErrorName() string {
+	return "AddAccount_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AddAccount_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddAccount_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddAccount_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddAccount_ResponseValidationError{}
+
+// Validate checks the field values on UpdateAccount_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UpdateAccount_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UpdateAccount_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UpdateAccount_RequestMultiError, or nil if none found.
+func (m *UpdateAccount_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UpdateAccount_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetAccountId()); err != nil {
+		err = UpdateAccount_RequestValidationError{
+			field:  "AccountId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return UpdateAccount_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *UpdateAccount_Request) _validateUuid(uuid string) error {
+	if matched := _account_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// UpdateAccount_RequestMultiError is an error wrapping multiple validation
+// errors returned by UpdateAccount_Request.ValidateAll() if the designated
+// constraints aren't met.
+type UpdateAccount_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UpdateAccount_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UpdateAccount_RequestMultiError) AllErrors() []error { return m }
+
+// UpdateAccount_RequestValidationError is the validation error returned by
+// UpdateAccount_Request.Validate if the designated constraints aren't met.
+type UpdateAccount_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdateAccount_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdateAccount_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdateAccount_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdateAccount_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdateAccount_RequestValidationError) ErrorName() string {
+	return "UpdateAccount_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UpdateAccount_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdateAccount_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdateAccount_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdateAccount_RequestValidationError{}
+
+// Validate checks the field values on UpdateAccount_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UpdateAccount_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UpdateAccount_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UpdateAccount_ResponseMultiError, or nil if none found.
+func (m *UpdateAccount_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UpdateAccount_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return UpdateAccount_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// UpdateAccount_ResponseMultiError is an error wrapping multiple validation
+// errors returned by UpdateAccount_Response.ValidateAll() if the designated
+// constraints aren't met.
+type UpdateAccount_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UpdateAccount_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UpdateAccount_ResponseMultiError) AllErrors() []error { return m }
+
+// UpdateAccount_ResponseValidationError is the validation error returned by
+// UpdateAccount_Response.Validate if the designated constraints aren't met.
+type UpdateAccount_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdateAccount_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdateAccount_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdateAccount_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdateAccount_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdateAccount_ResponseValidationError) ErrorName() string {
+	return "UpdateAccount_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UpdateAccount_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdateAccount_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdateAccount_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdateAccount_ResponseValidationError{}
+
+// Validate checks the field values on DeleteAccount_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *DeleteAccount_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on DeleteAccount_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// DeleteAccount_RequestMultiError, or nil if none found.
+func (m *DeleteAccount_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *DeleteAccount_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetAccountId()); err != nil {
+		err = DeleteAccount_RequestValidationError{
+			field:  "AccountId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return DeleteAccount_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *DeleteAccount_Request) _validateUuid(uuid string) error {
+	if matched := _account_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// DeleteAccount_RequestMultiError is an error wrapping multiple validation
+// errors returned by DeleteAccount_Request.ValidateAll() if the designated
+// constraints aren't met.
+type DeleteAccount_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m DeleteAccount_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m DeleteAccount_RequestMultiError) AllErrors() []error { return m }
+
+// DeleteAccount_RequestValidationError is the validation error returned by
+// DeleteAccount_Request.Validate if the designated constraints aren't met.
+type DeleteAccount_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e DeleteAccount_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e DeleteAccount_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e DeleteAccount_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e DeleteAccount_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e DeleteAccount_RequestValidationError) ErrorName() string {
+	return "DeleteAccount_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e DeleteAccount_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sDeleteAccount_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = DeleteAccount_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = DeleteAccount_RequestValidationError{}
+
+// Validate checks the field values on DeleteAccount_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *DeleteAccount_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on DeleteAccount_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// DeleteAccount_ResponseMultiError, or nil if none found.
+func (m *DeleteAccount_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *DeleteAccount_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return DeleteAccount_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// DeleteAccount_ResponseMultiError is an error wrapping multiple validation
+// errors returned by DeleteAccount_Response.ValidateAll() if the designated
+// constraints aren't met.
+type DeleteAccount_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m DeleteAccount_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m DeleteAccount_ResponseMultiError) AllErrors() []error { return m }
+
+// DeleteAccount_ResponseValidationError is the validation error returned by
+// DeleteAccount_Response.Validate if the designated constraints aren't met.
+type DeleteAccount_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e DeleteAccount_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e DeleteAccount_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e DeleteAccount_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e DeleteAccount_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e DeleteAccount_ResponseValidationError) ErrorName() string {
+	return "DeleteAccount_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e DeleteAccount_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sDeleteAccount_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = DeleteAccount_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = DeleteAccount_ResponseValidationError{}
+
 // Validate checks the field values on AccountIDByName_Request with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -1367,22 +2335,22 @@ var _ interface {
 	ErrorName() string
 } = AccountIDByName_ResponseValidationError{}
 
-// Validate checks the field values on UpdateAccountStatus_Request with the
-// rules defined in the proto definition for this message. If any rules are
+// Validate checks the field values on UpdateStatus_Request with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateAccountStatus_Request) Validate() error {
+func (m *UpdateStatus_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UpdateAccountStatus_Request with the
-// rules defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on UpdateStatus_Request with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// UpdateAccountStatus_RequestMultiError, or nil if none found.
-func (m *UpdateAccountStatus_Request) ValidateAll() error {
+// UpdateStatus_RequestMultiError, or nil if none found.
+func (m *UpdateStatus_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *UpdateAccountStatus_Request) validate(all bool) error {
+func (m *UpdateStatus_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1390,7 +2358,7 @@ func (m *UpdateAccountStatus_Request) validate(all bool) error {
 	var errors []error
 
 	if err := m._validateUuid(m.GetAccountId()); err != nil {
-		err = UpdateAccountStatus_RequestValidationError{
+		err = UpdateStatus_RequestValidationError{
 			field:  "AccountId",
 			reason: "value must be a valid UUID",
 			cause:  err,
@@ -1404,13 +2372,13 @@ func (m *UpdateAccountStatus_Request) validate(all bool) error {
 	// no validation rules for Status
 
 	if len(errors) > 0 {
-		return UpdateAccountStatus_RequestMultiError(errors)
+		return UpdateStatus_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-func (m *UpdateAccountStatus_Request) _validateUuid(uuid string) error {
+func (m *UpdateStatus_Request) _validateUuid(uuid string) error {
 	if matched := _account_uuidPattern.MatchString(uuid); !matched {
 		return errors.New("invalid uuid format")
 	}
@@ -1418,13 +2386,13 @@ func (m *UpdateAccountStatus_Request) _validateUuid(uuid string) error {
 	return nil
 }
 
-// UpdateAccountStatus_RequestMultiError is an error wrapping multiple
-// validation errors returned by UpdateAccountStatus_Request.ValidateAll() if
-// the designated constraints aren't met.
-type UpdateAccountStatus_RequestMultiError []error
+// UpdateStatus_RequestMultiError is an error wrapping multiple validation
+// errors returned by UpdateStatus_Request.ValidateAll() if the designated
+// constraints aren't met.
+type UpdateStatus_RequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m UpdateAccountStatus_RequestMultiError) Error() string {
+func (m UpdateStatus_RequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1433,12 +2401,11 @@ func (m UpdateAccountStatus_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m UpdateAccountStatus_RequestMultiError) AllErrors() []error { return m }
+func (m UpdateStatus_RequestMultiError) AllErrors() []error { return m }
 
-// UpdateAccountStatus_RequestValidationError is the validation error returned
-// by UpdateAccountStatus_Request.Validate if the designated constraints
-// aren't met.
-type UpdateAccountStatus_RequestValidationError struct {
+// UpdateStatus_RequestValidationError is the validation error returned by
+// UpdateStatus_Request.Validate if the designated constraints aren't met.
+type UpdateStatus_RequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1446,24 +2413,24 @@ type UpdateAccountStatus_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e UpdateAccountStatus_RequestValidationError) Field() string { return e.field }
+func (e UpdateStatus_RequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e UpdateAccountStatus_RequestValidationError) Reason() string { return e.reason }
+func (e UpdateStatus_RequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e UpdateAccountStatus_RequestValidationError) Cause() error { return e.cause }
+func (e UpdateStatus_RequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e UpdateAccountStatus_RequestValidationError) Key() bool { return e.key }
+func (e UpdateStatus_RequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e UpdateAccountStatus_RequestValidationError) ErrorName() string {
-	return "UpdateAccountStatus_RequestValidationError"
+func (e UpdateStatus_RequestValidationError) ErrorName() string {
+	return "UpdateStatus_RequestValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e UpdateAccountStatus_RequestValidationError) Error() string {
+func (e UpdateStatus_RequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1475,14 +2442,14 @@ func (e UpdateAccountStatus_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sUpdateAccountStatus_Request.%s: %s%s",
+		"invalid %sUpdateStatus_Request.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = UpdateAccountStatus_RequestValidationError{}
+var _ error = UpdateStatus_RequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -1490,24 +2457,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = UpdateAccountStatus_RequestValidationError{}
+} = UpdateStatus_RequestValidationError{}
 
-// Validate checks the field values on UpdateAccountStatus_Response with the
-// rules defined in the proto definition for this message. If any rules are
+// Validate checks the field values on UpdateStatus_Response with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateAccountStatus_Response) Validate() error {
+func (m *UpdateStatus_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UpdateAccountStatus_Response with the
-// rules defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on UpdateStatus_Response with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// UpdateAccountStatus_ResponseMultiError, or nil if none found.
-func (m *UpdateAccountStatus_Response) ValidateAll() error {
+// UpdateStatus_ResponseMultiError, or nil if none found.
+func (m *UpdateStatus_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *UpdateAccountStatus_Response) validate(all bool) error {
+func (m *UpdateStatus_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1523,7 +2490,7 @@ func (m *UpdateAccountStatus_Response) validate(all bool) error {
 			switch v := interface{}(item).(type) {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, UpdateAccountStatus_ResponseValidationError{
+					errors = append(errors, UpdateStatus_ResponseValidationError{
 						field:  fmt.Sprintf("Accounts[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -1531,7 +2498,7 @@ func (m *UpdateAccountStatus_Response) validate(all bool) error {
 				}
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
-					errors = append(errors, UpdateAccountStatus_ResponseValidationError{
+					errors = append(errors, UpdateStatus_ResponseValidationError{
 						field:  fmt.Sprintf("Accounts[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -1540,7 +2507,7 @@ func (m *UpdateAccountStatus_Response) validate(all bool) error {
 			}
 		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
-				return UpdateAccountStatus_ResponseValidationError{
+				return UpdateStatus_ResponseValidationError{
 					field:  fmt.Sprintf("Accounts[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -1551,19 +2518,19 @@ func (m *UpdateAccountStatus_Response) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return UpdateAccountStatus_ResponseMultiError(errors)
+		return UpdateStatus_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// UpdateAccountStatus_ResponseMultiError is an error wrapping multiple
-// validation errors returned by UpdateAccountStatus_Response.ValidateAll() if
-// the designated constraints aren't met.
-type UpdateAccountStatus_ResponseMultiError []error
+// UpdateStatus_ResponseMultiError is an error wrapping multiple validation
+// errors returned by UpdateStatus_Response.ValidateAll() if the designated
+// constraints aren't met.
+type UpdateStatus_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m UpdateAccountStatus_ResponseMultiError) Error() string {
+func (m UpdateStatus_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1572,12 +2539,11 @@ func (m UpdateAccountStatus_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m UpdateAccountStatus_ResponseMultiError) AllErrors() []error { return m }
+func (m UpdateStatus_ResponseMultiError) AllErrors() []error { return m }
 
-// UpdateAccountStatus_ResponseValidationError is the validation error returned
-// by UpdateAccountStatus_Response.Validate if the designated constraints
-// aren't met.
-type UpdateAccountStatus_ResponseValidationError struct {
+// UpdateStatus_ResponseValidationError is the validation error returned by
+// UpdateStatus_Response.Validate if the designated constraints aren't met.
+type UpdateStatus_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1585,24 +2551,24 @@ type UpdateAccountStatus_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e UpdateAccountStatus_ResponseValidationError) Field() string { return e.field }
+func (e UpdateStatus_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e UpdateAccountStatus_ResponseValidationError) Reason() string { return e.reason }
+func (e UpdateStatus_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e UpdateAccountStatus_ResponseValidationError) Cause() error { return e.cause }
+func (e UpdateStatus_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e UpdateAccountStatus_ResponseValidationError) Key() bool { return e.key }
+func (e UpdateStatus_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e UpdateAccountStatus_ResponseValidationError) ErrorName() string {
-	return "UpdateAccountStatus_ResponseValidationError"
+func (e UpdateStatus_ResponseValidationError) ErrorName() string {
+	return "UpdateStatus_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e UpdateAccountStatus_ResponseValidationError) Error() string {
+func (e UpdateStatus_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1614,14 +2580,14 @@ func (e UpdateAccountStatus_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sUpdateAccountStatus_Response.%s: %s%s",
+		"invalid %sUpdateStatus_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = UpdateAccountStatus_ResponseValidationError{}
+var _ error = UpdateStatus_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -1629,7 +2595,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = UpdateAccountStatus_ResponseValidationError{}
+} = UpdateStatus_ResponseValidationError{}
 
 // Validate checks the field values on SessionAccount_Request with the rules
 // defined in the proto definition for this message. If any rules are

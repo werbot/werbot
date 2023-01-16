@@ -4,16 +4,63 @@ package logging;
 
 option go_package = "github.com/werbot/werbot/api/proto/logging";
 
+import "validate/validate.proto";
+
 service LoggingHandlers {
-    rpc AddLogRecord(AddLogRecord.Request) returns (AddLogRecord.Response) {}
+    rpc ListRecords(ListRecords.Request) returns (ListRecords.Response) {}
+    rpc Record(Record.Request) returns (Record.Response) {}
+    rpc AddRecord(AddRecord.Request) returns (AddRecord.Response) {}
 }
 
-// rpc AddLogRecord
-message AddLogRecord {
+enum Logger {
+  loger_unspecified = 0;
+  profile = 1;
+  project = 2;
+  server = 3;
+}
+
+enum EventType {
+  event_unspecified = 0;
+  onOnline = 1;
+  onOffline = 2;
+  onCreate = 3;
+  onEdit = 4;
+  onRemove = 5;
+  onActive = 6;
+  onInactive = 7;
+  onChange = 8;
+}
+
+
+// rpc ListRecords
+message ListRecords {
+  message Request {
+      Logger logger = 1 [(validate.rules).enum.defined_only = true];
+      string id = 2     [(validate.rules).string.uuid = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+
+// rpc Record
+message Record {
+  message Request {
+      string record_id = 3 [(validate.rules).string.uuid = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+
+// rpc AddRecord
+message AddRecord {
     message Request {
-        Logger logger = 1;
-        EventType event = 2;
-        string id = 3;
+        Logger logger = 1   [(validate.rules).enum.defined_only = true];
+        EventType event = 2 [(validate.rules).enum.defined_only = true];
+        string id = 3       [(validate.rules).string.uuid = true];
     }
 
     message Response {}
@@ -21,21 +68,3 @@ message AddLogRecord {
 // -----------------------------------------------------
 
 
-enum Logger {
-    logger_unspecified = 0;
-    profile = 1;
-    project = 2;
-    server = 3;
-}
-
-enum EventType {
-    event_unspecified = 0;
-    onOnline = 1;
-    onOffline = 2;
-    onCreate = 3;
-    onEdit = 4;
-    onRemove = 5;
-    onActive = 6;
-    onInactive = 7;
-    onChange = 8;
-}

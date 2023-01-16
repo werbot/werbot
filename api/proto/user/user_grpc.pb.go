@@ -22,13 +22,12 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserHandlersClient interface {
+	// User section
 	ListUsers(ctx context.Context, in *ListUsers_Request, opts ...grpc.CallOption) (*ListUsers_Response, error)
 	User(ctx context.Context, in *User_Request, opts ...grpc.CallOption) (*User_Response, error)
 	AddUser(ctx context.Context, in *AddUser_Request, opts ...grpc.CallOption) (*AddUser_Response, error)
 	UpdateUser(ctx context.Context, in *UpdateUser_Request, opts ...grpc.CallOption) (*UpdateUser_Response, error)
 	DeleteUser(ctx context.Context, in *DeleteUser_Request, opts ...grpc.CallOption) (*DeleteUser_Response, error)
-	SignIn(ctx context.Context, in *SignIn_Request, opts ...grpc.CallOption) (*User_Response, error)
-	ResetPassword(ctx context.Context, in *ResetPassword_Request, opts ...grpc.CallOption) (*ResetPassword_Response, error)
 	UpdatePassword(ctx context.Context, in *UpdatePassword_Request, opts ...grpc.CallOption) (*UpdatePassword_Response, error)
 }
 
@@ -85,24 +84,6 @@ func (c *userHandlersClient) DeleteUser(ctx context.Context, in *DeleteUser_Requ
 	return out, nil
 }
 
-func (c *userHandlersClient) SignIn(ctx context.Context, in *SignIn_Request, opts ...grpc.CallOption) (*User_Response, error) {
-	out := new(User_Response)
-	err := c.cc.Invoke(ctx, "/user.UserHandlers/SignIn", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userHandlersClient) ResetPassword(ctx context.Context, in *ResetPassword_Request, opts ...grpc.CallOption) (*ResetPassword_Response, error) {
-	out := new(ResetPassword_Response)
-	err := c.cc.Invoke(ctx, "/user.UserHandlers/ResetPassword", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *userHandlersClient) UpdatePassword(ctx context.Context, in *UpdatePassword_Request, opts ...grpc.CallOption) (*UpdatePassword_Response, error) {
 	out := new(UpdatePassword_Response)
 	err := c.cc.Invoke(ctx, "/user.UserHandlers/UpdatePassword", in, out, opts...)
@@ -116,13 +97,12 @@ func (c *userHandlersClient) UpdatePassword(ctx context.Context, in *UpdatePassw
 // All implementations must embed UnimplementedUserHandlersServer
 // for forward compatibility
 type UserHandlersServer interface {
+	// User section
 	ListUsers(context.Context, *ListUsers_Request) (*ListUsers_Response, error)
 	User(context.Context, *User_Request) (*User_Response, error)
 	AddUser(context.Context, *AddUser_Request) (*AddUser_Response, error)
 	UpdateUser(context.Context, *UpdateUser_Request) (*UpdateUser_Response, error)
 	DeleteUser(context.Context, *DeleteUser_Request) (*DeleteUser_Response, error)
-	SignIn(context.Context, *SignIn_Request) (*User_Response, error)
-	ResetPassword(context.Context, *ResetPassword_Request) (*ResetPassword_Response, error)
 	UpdatePassword(context.Context, *UpdatePassword_Request) (*UpdatePassword_Response, error)
 	mustEmbedUnimplementedUserHandlersServer()
 }
@@ -145,12 +125,6 @@ func (UnimplementedUserHandlersServer) UpdateUser(context.Context, *UpdateUser_R
 }
 func (UnimplementedUserHandlersServer) DeleteUser(context.Context, *DeleteUser_Request) (*DeleteUser_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUser not implemented")
-}
-func (UnimplementedUserHandlersServer) SignIn(context.Context, *SignIn_Request) (*User_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SignIn not implemented")
-}
-func (UnimplementedUserHandlersServer) ResetPassword(context.Context, *ResetPassword_Request) (*ResetPassword_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
 }
 func (UnimplementedUserHandlersServer) UpdatePassword(context.Context, *UpdatePassword_Request) (*UpdatePassword_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdatePassword not implemented")
@@ -258,42 +232,6 @@ func _UserHandlers_DeleteUser_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserHandlers_SignIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SignIn_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserHandlersServer).SignIn(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/user.UserHandlers/SignIn",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserHandlersServer).SignIn(ctx, req.(*SignIn_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserHandlers_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResetPassword_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserHandlersServer).ResetPassword(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/user.UserHandlers/ResetPassword",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserHandlersServer).ResetPassword(ctx, req.(*ResetPassword_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _UserHandlers_UpdatePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdatePassword_Request)
 	if err := dec(in); err != nil {
@@ -338,14 +276,6 @@ var UserHandlers_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteUser",
 			Handler:    _UserHandlers_DeleteUser_Handler,
-		},
-		{
-			MethodName: "SignIn",
-			Handler:    _UserHandlers_SignIn_Handler,
-		},
-		{
-			MethodName: "ResetPassword",
-			Handler:    _UserHandlers_ResetPassword_Handler,
 		},
 		{
 			MethodName: "UpdatePassword",

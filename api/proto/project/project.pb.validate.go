@@ -534,22 +534,21 @@ var _ interface {
 	ErrorName() string
 } = DeleteProjectValidationError{}
 
-// Validate checks the field values on ProjectAPIByID with the rules defined in
-// the proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *ProjectAPIByID) Validate() error {
+// Validate checks the field values on Keys with the rules defined in the proto
+// definition for this message. If any rules are violated, the first error
+// encountered is returned, or nil if there are no violations.
+func (m *Keys) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ProjectAPIByID with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in ProjectAPIByIDMultiError,
-// or nil if none found.
-func (m *ProjectAPIByID) ValidateAll() error {
+// ValidateAll checks the field values on Keys with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in KeysMultiError, or nil if none found.
+func (m *Keys) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ProjectAPIByID) validate(all bool) error {
+func (m *Keys) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -557,19 +556,18 @@ func (m *ProjectAPIByID) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return ProjectAPIByIDMultiError(errors)
+		return KeysMultiError(errors)
 	}
 
 	return nil
 }
 
-// ProjectAPIByIDMultiError is an error wrapping multiple validation errors
-// returned by ProjectAPIByID.ValidateAll() if the designated constraints
-// aren't met.
-type ProjectAPIByIDMultiError []error
+// KeysMultiError is an error wrapping multiple validation errors returned by
+// Keys.ValidateAll() if the designated constraints aren't met.
+type KeysMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ProjectAPIByIDMultiError) Error() string {
+func (m KeysMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -578,11 +576,11 @@ func (m ProjectAPIByIDMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ProjectAPIByIDMultiError) AllErrors() []error { return m }
+func (m KeysMultiError) AllErrors() []error { return m }
 
-// ProjectAPIByIDValidationError is the validation error returned by
-// ProjectAPIByID.Validate if the designated constraints aren't met.
-type ProjectAPIByIDValidationError struct {
+// KeysValidationError is the validation error returned by Keys.Validate if the
+// designated constraints aren't met.
+type KeysValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -590,22 +588,22 @@ type ProjectAPIByIDValidationError struct {
 }
 
 // Field function returns field value.
-func (e ProjectAPIByIDValidationError) Field() string { return e.field }
+func (e KeysValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ProjectAPIByIDValidationError) Reason() string { return e.reason }
+func (e KeysValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ProjectAPIByIDValidationError) Cause() error { return e.cause }
+func (e KeysValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ProjectAPIByIDValidationError) Key() bool { return e.key }
+func (e KeysValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ProjectAPIByIDValidationError) ErrorName() string { return "ProjectAPIByIDValidationError" }
+func (e KeysValidationError) ErrorName() string { return "KeysValidationError" }
 
 // Error satisfies the builtin error interface
-func (e ProjectAPIByIDValidationError) Error() string {
+func (e KeysValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -617,14 +615,14 @@ func (e ProjectAPIByIDValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sProjectAPIByID.%s: %s%s",
+		"invalid %sKeys.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ProjectAPIByIDValidationError{}
+var _ error = KeysValidationError{}
 
 var _ interface {
 	Field() string
@@ -632,7 +630,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ProjectAPIByIDValidationError{}
+} = KeysValidationError{}
 
 // Validate checks the field values on ListProjects_Request with the rules
 // defined in the proto definition for this message. If any rules are
@@ -1919,22 +1917,22 @@ var _ interface {
 	ErrorName() string
 } = DeleteProject_ResponseValidationError{}
 
-// Validate checks the field values on ProjectAPIByID_Request with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *ProjectAPIByID_Request) Validate() error {
+// Validate checks the field values on Keys_Request with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Keys_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ProjectAPIByID_Request with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// ProjectAPIByID_RequestMultiError, or nil if none found.
-func (m *ProjectAPIByID_Request) ValidateAll() error {
+// ValidateAll checks the field values on Keys_Request with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in Keys_RequestMultiError, or
+// nil if none found.
+func (m *Keys_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ProjectAPIByID_Request) validate(all bool) error {
+func (m *Keys_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1942,7 +1940,7 @@ func (m *ProjectAPIByID_Request) validate(all bool) error {
 	var errors []error
 
 	if err := m._validateUuid(m.GetProjectId()); err != nil {
-		err = ProjectAPIByID_RequestValidationError{
+		err = Keys_RequestValidationError{
 			field:  "ProjectId",
 			reason: "value must be a valid UUID",
 			cause:  err,
@@ -1954,13 +1952,13 @@ func (m *ProjectAPIByID_Request) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return ProjectAPIByID_RequestMultiError(errors)
+		return Keys_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-func (m *ProjectAPIByID_Request) _validateUuid(uuid string) error {
+func (m *Keys_Request) _validateUuid(uuid string) error {
 	if matched := _project_uuidPattern.MatchString(uuid); !matched {
 		return errors.New("invalid uuid format")
 	}
@@ -1968,13 +1966,12 @@ func (m *ProjectAPIByID_Request) _validateUuid(uuid string) error {
 	return nil
 }
 
-// ProjectAPIByID_RequestMultiError is an error wrapping multiple validation
-// errors returned by ProjectAPIByID_Request.ValidateAll() if the designated
-// constraints aren't met.
-type ProjectAPIByID_RequestMultiError []error
+// Keys_RequestMultiError is an error wrapping multiple validation errors
+// returned by Keys_Request.ValidateAll() if the designated constraints aren't met.
+type Keys_RequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ProjectAPIByID_RequestMultiError) Error() string {
+func (m Keys_RequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1983,11 +1980,11 @@ func (m ProjectAPIByID_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ProjectAPIByID_RequestMultiError) AllErrors() []error { return m }
+func (m Keys_RequestMultiError) AllErrors() []error { return m }
 
-// ProjectAPIByID_RequestValidationError is the validation error returned by
-// ProjectAPIByID_Request.Validate if the designated constraints aren't met.
-type ProjectAPIByID_RequestValidationError struct {
+// Keys_RequestValidationError is the validation error returned by
+// Keys_Request.Validate if the designated constraints aren't met.
+type Keys_RequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1995,24 +1992,22 @@ type ProjectAPIByID_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e ProjectAPIByID_RequestValidationError) Field() string { return e.field }
+func (e Keys_RequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ProjectAPIByID_RequestValidationError) Reason() string { return e.reason }
+func (e Keys_RequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ProjectAPIByID_RequestValidationError) Cause() error { return e.cause }
+func (e Keys_RequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ProjectAPIByID_RequestValidationError) Key() bool { return e.key }
+func (e Keys_RequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ProjectAPIByID_RequestValidationError) ErrorName() string {
-	return "ProjectAPIByID_RequestValidationError"
-}
+func (e Keys_RequestValidationError) ErrorName() string { return "Keys_RequestValidationError" }
 
 // Error satisfies the builtin error interface
-func (e ProjectAPIByID_RequestValidationError) Error() string {
+func (e Keys_RequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -2024,14 +2019,14 @@ func (e ProjectAPIByID_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sProjectAPIByID_Request.%s: %s%s",
+		"invalid %sKeys_Request.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ProjectAPIByID_RequestValidationError{}
+var _ error = Keys_RequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -2039,24 +2034,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ProjectAPIByID_RequestValidationError{}
+} = Keys_RequestValidationError{}
 
-// Validate checks the field values on ProjectAPIByID_Response with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *ProjectAPIByID_Response) Validate() error {
+// Validate checks the field values on Keys_Response with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Keys_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ProjectAPIByID_Response with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// ProjectAPIByID_ResponseMultiError, or nil if none found.
-func (m *ProjectAPIByID_Response) ValidateAll() error {
+// ValidateAll checks the field values on Keys_Response with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in Keys_ResponseMultiError, or
+// nil if none found.
+func (m *Keys_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ProjectAPIByID_Response) validate(all bool) error {
+func (m *Keys_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -2070,19 +2065,19 @@ func (m *ProjectAPIByID_Response) validate(all bool) error {
 	// no validation rules for ApiOnline
 
 	if len(errors) > 0 {
-		return ProjectAPIByID_ResponseMultiError(errors)
+		return Keys_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// ProjectAPIByID_ResponseMultiError is an error wrapping multiple validation
-// errors returned by ProjectAPIByID_Response.ValidateAll() if the designated
-// constraints aren't met.
-type ProjectAPIByID_ResponseMultiError []error
+// Keys_ResponseMultiError is an error wrapping multiple validation errors
+// returned by Keys_Response.ValidateAll() if the designated constraints
+// aren't met.
+type Keys_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ProjectAPIByID_ResponseMultiError) Error() string {
+func (m Keys_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -2091,11 +2086,11 @@ func (m ProjectAPIByID_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ProjectAPIByID_ResponseMultiError) AllErrors() []error { return m }
+func (m Keys_ResponseMultiError) AllErrors() []error { return m }
 
-// ProjectAPIByID_ResponseValidationError is the validation error returned by
-// ProjectAPIByID_Response.Validate if the designated constraints aren't met.
-type ProjectAPIByID_ResponseValidationError struct {
+// Keys_ResponseValidationError is the validation error returned by
+// Keys_Response.Validate if the designated constraints aren't met.
+type Keys_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -2103,24 +2098,22 @@ type ProjectAPIByID_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e ProjectAPIByID_ResponseValidationError) Field() string { return e.field }
+func (e Keys_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ProjectAPIByID_ResponseValidationError) Reason() string { return e.reason }
+func (e Keys_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ProjectAPIByID_ResponseValidationError) Cause() error { return e.cause }
+func (e Keys_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ProjectAPIByID_ResponseValidationError) Key() bool { return e.key }
+func (e Keys_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ProjectAPIByID_ResponseValidationError) ErrorName() string {
-	return "ProjectAPIByID_ResponseValidationError"
-}
+func (e Keys_ResponseValidationError) ErrorName() string { return "Keys_ResponseValidationError" }
 
 // Error satisfies the builtin error interface
-func (e ProjectAPIByID_ResponseValidationError) Error() string {
+func (e Keys_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -2132,14 +2125,14 @@ func (e ProjectAPIByID_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sProjectAPIByID_Response.%s: %s%s",
+		"invalid %sKeys_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ProjectAPIByID_ResponseValidationError{}
+var _ error = Keys_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -2147,4 +2140,4 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ProjectAPIByID_ResponseValidationError{}
+} = Keys_ResponseValidationError{}

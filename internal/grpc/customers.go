@@ -4,104 +4,83 @@ import (
 	"context"
 	"database/sql"
 
-	pb_subscription "github.com/werbot/werbot/api/proto/subscription"
+	subscriptionpb "github.com/werbot/werbot/api/proto/subscription"
 )
 
 // ListCustomers is ...
-func (s *subscription) ListCustomers(ctx context.Context, in *pb_subscription.ListCustomers_Request) (*pb_subscription.ListCustomers_Response, error) {
+func (s *subscription) ListCustomers(ctx context.Context, in *subscriptionpb.ListCustomers_Request) (*subscriptionpb.ListCustomers_Response, error) {
+	response := new(subscriptionpb.ListCustomers_Response)
+
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := service.db.Conn.Query(`SELECT
-			"user_id",
-			"stripe_id"
-		FROM
-			"subscription_customer"` + sqlFooter)
+	rows, err := service.db.Conn.Query(`SELECT "user_id", "stripe_id" FROM "subscription_customer"` + sqlFooter)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToSelect
+		return nil, errServerError
 	}
 
-	customers := []*pb_subscription.Customer_Response{}
 	for rows.Next() {
-		customer := new(pb_subscription.Customer_Response)
-		err = rows.Scan(
-			&customer.UserId,
-			&customer.StripeId,
-		)
-		if err != nil {
+		customer := new(subscriptionpb.Customer_Response)
+		if err := rows.Scan(&customer.UserId, &customer.StripeId); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, errNotFound
+			}
 			service.log.FromGRPC(err).Send()
-			return nil, errFailedToScan
+			return nil, errServerError
 		}
-		customers = append(customers, customer)
+		response.Customers = append(response.Customers, customer)
 	}
 	defer rows.Close()
 
 	// Total count for pagination
-	var total int32
-	err = service.db.Conn.QueryRow(`SELECT
-			COUNT (*)
-		FROM
-			"subscription_customer"`).
-		Scan(&total)
-	if err != nil {
+	err = service.db.Conn.QueryRow(`SELECT COUNT (*) FROM "subscription_customer"`).Scan(&response.Total)
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
+		return nil, errServerError
 	}
 
-	return &pb_subscription.ListCustomers_Response{
-		Total:     total,
-		Customers: customers,
-	}, nil
+	return response, nil
 }
 
 // Customer is ...
-func (s *subscription) Customer(ctx context.Context, in *pb_subscription.Customer_Request) (*pb_subscription.Customer_Response, error) {
-	customer := new(pb_subscription.Customer_Response)
-	customer.UserId = in.GetUserId()
-	err := service.db.Conn.QueryRow(`SELECT
-			"stripe_id"
-		FROM
-			"subscription_customer"
-		WHERE
-			"user_id" = $1`,
+func (s *subscription) Customer(ctx context.Context, in *subscriptionpb.Customer_Request) (*subscriptionpb.Customer_Response, error) {
+	response := new(subscriptionpb.Customer_Response)
+	response.UserId = in.GetUserId()
+
+	err := service.db.Conn.QueryRow(`SELECT "stripe_id" FROM "subscription_customer" WHERE "user_id" = $1`,
 		in.GetUserId(),
-	).Scan(&customer.StripeId)
+	).Scan(&response.StripeId)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		return nil, errFailedToScan
+		service.log.FromGRPC(err).Send()
+		return nil, errServerError
 	}
 
-	return customer, nil
+	return response, nil
 }
 
 // AddCustomer is ...
-func (s *subscription) AddCustomer(ctx context.Context, in *pb_subscription.AddCustomer_Request) (*pb_subscription.AddCustomer_Response, error) {
-	var id string
-	err := service.db.Conn.QueryRow(`INSERT
-		INTO "subscription_customer" ("user_id", "stripe_id")
-		VALUES ($1, $2)`,
+func (s *subscription) AddCustomer(ctx context.Context, in *subscriptionpb.AddCustomer_Request) (*subscriptionpb.AddCustomer_Response, error) {
+	response := new(subscriptionpb.AddCustomer_Response)
+
+	err := service.db.Conn.QueryRow(`INSERT	INTO "subscription_customer" ("user_id", "stripe_id")	VALUES ($1, $2)`,
 		in.GetUserId(),
 		in.GetStripeId(),
-	).Scan(&id)
+	).Scan(&response.CustomerId)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 
-	return &pb_subscription.AddCustomer_Response{
-		CustomerId: id,
-	}, nil
+	return response, nil
 }
 
 // UpdateCustomer is ...
-func (s *subscription) UpdateCustomer(ctx context.Context, in *pb_subscription.UpdateCustomer_Request) (*pb_subscription.UpdateCustomer_Response, error) {
-	data, err := service.db.Conn.Exec(`UPDATE "subscription_customer"
-		SET
-			"stripe_id" = $1
-		WHERE
-			"user_id" = $2`,
+func (s *subscription) UpdateCustomer(ctx context.Context, in *subscriptionpb.UpdateCustomer_Request) (*subscriptionpb.UpdateCustomer_Response, error) {
+	response := new(subscriptionpb.UpdateCustomer_Response)
+
+	data, err := service.db.Conn.Exec(`UPDATE "subscription_customer" SET "stripe_id" = $1 WHERE "user_id" = $2`,
 		in.GetStripeId(),
 		in.GetUserId(),
 	)
@@ -113,16 +92,14 @@ func (s *subscription) UpdateCustomer(ctx context.Context, in *pb_subscription.U
 		return nil, errNotFound
 	}
 
-	return &pb_subscription.UpdateCustomer_Response{}, nil
+	return response, nil
 }
 
 // DeleteCustomer is ...
-func (s *subscription) DeleteCustomer(ctx context.Context, in *pb_subscription.DeleteCustomer_Request) (*pb_subscription.DeleteCustomer_Response, error) {
-	data, err := service.db.Conn.Exec(`DELETE
-		FROM
-			"subscription_customer"
-		WHERE
-			"user_id" = $1`,
+func (s *subscription) DeleteCustomer(ctx context.Context, in *subscriptionpb.DeleteCustomer_Request) (*subscriptionpb.DeleteCustomer_Response, error) {
+	response := new(subscriptionpb.DeleteCustomer_Response)
+
+	data, err := service.db.Conn.Exec(`DELETE FROM "subscription_customer" WHERE "user_id" = $1`,
 		in.GetUserId(),
 	)
 	if err != nil {
@@ -133,5 +110,5 @@ func (s *subscription) DeleteCustomer(ctx context.Context, in *pb_subscription.D
 		return nil, errNotFound
 	}
 
-	return &pb_subscription.DeleteCustomer_Response{}, nil
+	return response, nil
 }

@@ -5,10 +5,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	subscriptionpb "github.com/werbot/werbot/api/proto/subscription"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/pkg/webutil"
-
-	pb "github.com/werbot/werbot/api/proto/subscription"
 )
 
 // TODO Addition of the API method getCustomer
@@ -16,7 +15,7 @@ import (
 // request {user_id:1}
 // GET /v1/customers
 func (h *Handler) getCustomer(c *fiber.Ctx) error {
-	request := new(pb.Customer_Request)
+	request := new(subscriptionpb.Customer_Request)
 
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error(err).Send()
@@ -25,8 +24,8 @@ func (h *Handler) getCustomer(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.Customer_RequestMultiError) {
-			e := err.(pb.Customer_RequestValidationError)
+		for _, err := range err.(subscriptionpb.Customer_RequestMultiError) {
+			e := err.(subscriptionpb.Customer_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -40,7 +39,7 @@ func (h *Handler) getCustomer(c *fiber.Ctx) error {
 // request {user_id:1}
 // DELETE /v1/customers
 func (h *Handler) deleteCustomer(c *fiber.Ctx) error {
-	request := new(pb.DeleteCustomer_Request)
+	request := new(subscriptionpb.DeleteCustomer_Request)
 
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error(err).Send()
@@ -49,8 +48,8 @@ func (h *Handler) deleteCustomer(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.DeleteCustomer_RequestMultiError) {
-			e := err.(pb.DeleteCustomer_RequestValidationError)
+		for _, err := range err.(subscriptionpb.DeleteCustomer_RequestMultiError) {
+			e := err.(subscriptionpb.DeleteCustomer_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)

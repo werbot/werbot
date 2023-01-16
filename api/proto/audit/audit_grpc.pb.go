@@ -22,9 +22,15 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuditHandlersClient interface {
+	// Audit section
+	ListAudits(ctx context.Context, in *ListAudits_Request, opts ...grpc.CallOption) (*ListAudits_Response, error)
+	Audit(ctx context.Context, in *Audit_Request, opts ...grpc.CallOption) (*Audit_Response, error)
 	AddAudit(ctx context.Context, in *AddAudit_Request, opts ...grpc.CallOption) (*AddAudit_Response, error)
 	UpdateAudit(ctx context.Context, in *UpdateAudit_Request, opts ...grpc.CallOption) (*UpdateAudit_Response, error)
-	CreateRecord(ctx context.Context, in *CreateRecord_Request, opts ...grpc.CallOption) (*CreateRecord_Response, error)
+	DeleteAudit(ctx context.Context, in *DeleteAudit_Request, opts ...grpc.CallOption) (*DeleteAudit_Response, error)
+	// Record section
+	ListRecords(ctx context.Context, in *ListRecords_Request, opts ...grpc.CallOption) (*ListRecords_Response, error)
+	AddRecord(ctx context.Context, in *AddRecord_Request, opts ...grpc.CallOption) (*AddRecord_Response, error)
 }
 
 type auditHandlersClient struct {
@@ -33,6 +39,24 @@ type auditHandlersClient struct {
 
 func NewAuditHandlersClient(cc grpc.ClientConnInterface) AuditHandlersClient {
 	return &auditHandlersClient{cc}
+}
+
+func (c *auditHandlersClient) ListAudits(ctx context.Context, in *ListAudits_Request, opts ...grpc.CallOption) (*ListAudits_Response, error) {
+	out := new(ListAudits_Response)
+	err := c.cc.Invoke(ctx, "/audit.AuditHandlers/ListAudits", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auditHandlersClient) Audit(ctx context.Context, in *Audit_Request, opts ...grpc.CallOption) (*Audit_Response, error) {
+	out := new(Audit_Response)
+	err := c.cc.Invoke(ctx, "/audit.AuditHandlers/Audit", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *auditHandlersClient) AddAudit(ctx context.Context, in *AddAudit_Request, opts ...grpc.CallOption) (*AddAudit_Response, error) {
@@ -53,9 +77,27 @@ func (c *auditHandlersClient) UpdateAudit(ctx context.Context, in *UpdateAudit_R
 	return out, nil
 }
 
-func (c *auditHandlersClient) CreateRecord(ctx context.Context, in *CreateRecord_Request, opts ...grpc.CallOption) (*CreateRecord_Response, error) {
-	out := new(CreateRecord_Response)
-	err := c.cc.Invoke(ctx, "/audit.AuditHandlers/CreateRecord", in, out, opts...)
+func (c *auditHandlersClient) DeleteAudit(ctx context.Context, in *DeleteAudit_Request, opts ...grpc.CallOption) (*DeleteAudit_Response, error) {
+	out := new(DeleteAudit_Response)
+	err := c.cc.Invoke(ctx, "/audit.AuditHandlers/DeleteAudit", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auditHandlersClient) ListRecords(ctx context.Context, in *ListRecords_Request, opts ...grpc.CallOption) (*ListRecords_Response, error) {
+	out := new(ListRecords_Response)
+	err := c.cc.Invoke(ctx, "/audit.AuditHandlers/ListRecords", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auditHandlersClient) AddRecord(ctx context.Context, in *AddRecord_Request, opts ...grpc.CallOption) (*AddRecord_Response, error) {
+	out := new(AddRecord_Response)
+	err := c.cc.Invoke(ctx, "/audit.AuditHandlers/AddRecord", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,9 +108,15 @@ func (c *auditHandlersClient) CreateRecord(ctx context.Context, in *CreateRecord
 // All implementations must embed UnimplementedAuditHandlersServer
 // for forward compatibility
 type AuditHandlersServer interface {
+	// Audit section
+	ListAudits(context.Context, *ListAudits_Request) (*ListAudits_Response, error)
+	Audit(context.Context, *Audit_Request) (*Audit_Response, error)
 	AddAudit(context.Context, *AddAudit_Request) (*AddAudit_Response, error)
 	UpdateAudit(context.Context, *UpdateAudit_Request) (*UpdateAudit_Response, error)
-	CreateRecord(context.Context, *CreateRecord_Request) (*CreateRecord_Response, error)
+	DeleteAudit(context.Context, *DeleteAudit_Request) (*DeleteAudit_Response, error)
+	// Record section
+	ListRecords(context.Context, *ListRecords_Request) (*ListRecords_Response, error)
+	AddRecord(context.Context, *AddRecord_Request) (*AddRecord_Response, error)
 	mustEmbedUnimplementedAuditHandlersServer()
 }
 
@@ -76,14 +124,26 @@ type AuditHandlersServer interface {
 type UnimplementedAuditHandlersServer struct {
 }
 
+func (UnimplementedAuditHandlersServer) ListAudits(context.Context, *ListAudits_Request) (*ListAudits_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAudits not implemented")
+}
+func (UnimplementedAuditHandlersServer) Audit(context.Context, *Audit_Request) (*Audit_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Audit not implemented")
+}
 func (UnimplementedAuditHandlersServer) AddAudit(context.Context, *AddAudit_Request) (*AddAudit_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddAudit not implemented")
 }
 func (UnimplementedAuditHandlersServer) UpdateAudit(context.Context, *UpdateAudit_Request) (*UpdateAudit_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateAudit not implemented")
 }
-func (UnimplementedAuditHandlersServer) CreateRecord(context.Context, *CreateRecord_Request) (*CreateRecord_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateRecord not implemented")
+func (UnimplementedAuditHandlersServer) DeleteAudit(context.Context, *DeleteAudit_Request) (*DeleteAudit_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteAudit not implemented")
+}
+func (UnimplementedAuditHandlersServer) ListRecords(context.Context, *ListRecords_Request) (*ListRecords_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRecords not implemented")
+}
+func (UnimplementedAuditHandlersServer) AddRecord(context.Context, *AddRecord_Request) (*AddRecord_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddRecord not implemented")
 }
 func (UnimplementedAuditHandlersServer) mustEmbedUnimplementedAuditHandlersServer() {}
 
@@ -96,6 +156,42 @@ type UnsafeAuditHandlersServer interface {
 
 func RegisterAuditHandlersServer(s grpc.ServiceRegistrar, srv AuditHandlersServer) {
 	s.RegisterService(&AuditHandlers_ServiceDesc, srv)
+}
+
+func _AuditHandlers_ListAudits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAudits_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuditHandlersServer).ListAudits(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/audit.AuditHandlers/ListAudits",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuditHandlersServer).ListAudits(ctx, req.(*ListAudits_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuditHandlers_Audit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Audit_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuditHandlersServer).Audit(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/audit.AuditHandlers/Audit",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuditHandlersServer).Audit(ctx, req.(*Audit_Request))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _AuditHandlers_AddAudit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -134,20 +230,56 @@ func _AuditHandlers_UpdateAudit_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuditHandlers_CreateRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateRecord_Request)
+func _AuditHandlers_DeleteAudit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteAudit_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuditHandlersServer).CreateRecord(ctx, in)
+		return srv.(AuditHandlersServer).DeleteAudit(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/audit.AuditHandlers/CreateRecord",
+		FullMethod: "/audit.AuditHandlers/DeleteAudit",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuditHandlersServer).CreateRecord(ctx, req.(*CreateRecord_Request))
+		return srv.(AuditHandlersServer).DeleteAudit(ctx, req.(*DeleteAudit_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuditHandlers_ListRecords_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRecords_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuditHandlersServer).ListRecords(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/audit.AuditHandlers/ListRecords",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuditHandlersServer).ListRecords(ctx, req.(*ListRecords_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuditHandlers_AddRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddRecord_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuditHandlersServer).AddRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/audit.AuditHandlers/AddRecord",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuditHandlersServer).AddRecord(ctx, req.(*AddRecord_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -160,6 +292,14 @@ var AuditHandlers_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*AuditHandlersServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "ListAudits",
+			Handler:    _AuditHandlers_ListAudits_Handler,
+		},
+		{
+			MethodName: "Audit",
+			Handler:    _AuditHandlers_Audit_Handler,
+		},
+		{
 			MethodName: "AddAudit",
 			Handler:    _AuditHandlers_AddAudit_Handler,
 		},
@@ -168,8 +308,16 @@ var AuditHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuditHandlers_UpdateAudit_Handler,
 		},
 		{
-			MethodName: "CreateRecord",
-			Handler:    _AuditHandlers_CreateRecord_Handler,
+			MethodName: "DeleteAudit",
+			Handler:    _AuditHandlers_DeleteAudit_Handler,
+		},
+		{
+			MethodName: "ListRecords",
+			Handler:    _AuditHandlers_ListRecords_Handler,
+		},
+		{
+			MethodName: "AddRecord",
+			Handler:    _AuditHandlers_AddRecord_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

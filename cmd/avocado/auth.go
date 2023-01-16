@@ -8,17 +8,15 @@ import (
 	"time"
 
 	"github.com/gliderlabs/ssh"
-	"github.com/google/uuid"
 	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/werbot/werbot/api/proto/account"
+	accountpb "github.com/werbot/werbot/api/proto/account"
 	"github.com/werbot/werbot/api/proto/firewall"
+	firewallpb "github.com/werbot/werbot/api/proto/firewall"
 	"github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/pkg/netutil"
 	"github.com/werbot/werbot/pkg/strutil"
-
-	pb_account "github.com/werbot/werbot/api/proto/account"
-	pb_firewall "github.com/werbot/werbot/api/proto/firewall"
 )
 
 func passwordAuthHandler() ssh.PasswordHandler {
@@ -28,7 +26,7 @@ func passwordAuthHandler() ssh.PasswordHandler {
 			userAddr:   ctx.RemoteAddr().String(),
 			authMethod: "password",
 		}
-		actx.authSuccess = actx.userType() == server.UserType_HEALTHCHECK
+		actx.authSuccess = actx.userType() == server.Type_healthcheck
 		ctx.SetValue(authContextKey, actx)
 		return actx.authSuccess
 	}
@@ -40,7 +38,6 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 			userName:        fixUsername(ctx.User()),
 			userAddr:        netutil.IP(ctx.RemoteAddr().String()),
 			userFingerPrint: gossh.FingerprintLegacyMD5(key),
-			uuid:            uuid.New().String(),
 			authMethod:      "pubkey",
 			authSuccess:     true,
 		}
@@ -48,11 +45,11 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 
 		_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		rClientF := pb_firewall.NewFirewallHandlersClient(app.grpc.Client)
-		rClientA := pb_account.NewAccountHandlersClient(app.grpc.Client)
+		rClientF := firewallpb.NewFirewallHandlersClient(app.grpc.Client)
+		rClientA := accountpb.NewAccountHandlersClient(app.grpc.Client)
 
 		// IP check for global Faerwole settings
-		status, err := rClientF.CheckIPAccess(_ctx, &firewall.CheckIPAccess_Request{
+		_, err := rClientF.IPAccess(_ctx, &firewall.IPAccess_Request{
 			ClientIp: actx.userAddr,
 		})
 		if err != nil {
@@ -60,15 +57,6 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 			actx.authSuccess = false
 			return true
 		}
-
-		// for some reason it paint if you combine these two designs if
-		if !status.Access {
-			actx.message = "Access denied"
-			actx.authSuccess = false
-			return true
-		}
-
-		actx.userCountry = status.Country
 
 		// Checking the syntax of writing login
 		if !checkUsername(actx.userName) {
@@ -78,14 +66,14 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 		}
 
 		switch actx.userType() {
-		case server.UserType_INVITE:
+		case server.Type_invite:
 			inputToken := strings.Split(actx.userName, "_")[1]
 			if len(inputToken) > 0 {
 				fmt.Print(inputToken)
 			}
 			return true
 
-		case server.UserType_HEALTHCHECK:
+		case server.Type_healthcheck:
 			return true
 		}
 

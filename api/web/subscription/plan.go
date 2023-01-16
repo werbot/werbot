@@ -7,11 +7,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	subscriptionpb "github.com/werbot/werbot/api/proto/subscription"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
-
-	pb "github.com/werbot/werbot/api/proto/subscription"
 )
 
 // @Summary      List of all tariff plans
@@ -34,8 +33,8 @@ func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
 
 	pagination := webutil.GetPaginationFromCtx(c)
 
-	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
-	plans, err := rClient.ListPlans(ctx, &pb.ListPlans_Request{
+	rClient := subscriptionpb.NewSubscriptionHandlersClient(h.Grpc.Client)
+	plans, err := rClient.ListPlans(ctx, &subscriptionpb.ListPlans_Request{
 		Query:  sqlQuery,
 		Limit:  pagination.GetLimit(),
 		Offset: pagination.GetOffset(),
@@ -53,9 +52,9 @@ func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
 	}
 
 	// response info for ROLE_USER
-	planLite := []*pb.PlansLite_PlanLite{}
+	planLite := []*subscriptionpb.PlansLite_PlanLite{}
 	for _, s := range plans.Plans {
-		plan := pb.PlansLite_PlanLite{
+		plan := subscriptionpb.PlansLite_PlanLite{
 			PlanId:            s.Plan.GetPlanId(),
 			Cost:              s.Plan.GetCost(),
 			Period:            s.Plan.GetPeriod(),
@@ -71,7 +70,7 @@ func (h *Handler) getSubscriptionPlans(c *fiber.Ctx) error {
 		planLite = append(planLite, &plan)
 	}
 
-	return webutil.StatusOK(c, msgPlans, pb.PlansLite{
+	return webutil.StatusOK(c, msgPlans, subscriptionpb.PlansLite{
 		Total: plans.GetTotal(),
 		Plans: planLite,
 	})
@@ -90,9 +89,9 @@ func (h *Handler) getSubscriptionPlan(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
+	rClient := subscriptionpb.NewSubscriptionHandlersClient(h.Grpc.Client)
 
-	plan, err := rClient.Plan(ctx, &pb.Plan_Request{
+	plan, err := rClient.Plan(ctx, &subscriptionpb.Plan_Request{
 		PlanId: planID,
 	})
 	if err != nil {
@@ -106,7 +105,7 @@ func (h *Handler) getSubscriptionPlan(c *fiber.Ctx) error {
 	}
 
 	// response info for ROLE_USER
-	return webutil.StatusOK(c, msgPlanInfo, pb.PlansLite_PlanLite{
+	return webutil.StatusOK(c, msgPlanInfo, subscriptionpb.PlansLite_PlanLite{
 		PlanId:            plan.GetPlanId(),
 		Cost:              plan.GetCost(),
 		Period:            plan.GetPeriod(),
@@ -124,13 +123,13 @@ func (h *Handler) getSubscriptionPlan(c *fiber.Ctx) error {
 // @Tags         plans
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.Plan
+// @Param        req         body     subscriptionpb.Plan
 // @Param        key_id      path     int true "key_id"
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/subscriptions/plans/:plan_id [patch]
 func (h *Handler) patchSubscriptionPlan(c *fiber.Ctx) error {
-	request := new(pb.UpdatePlan_Request)
+	request := new(subscriptionpb.UpdatePlan_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -141,8 +140,8 @@ func (h *Handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.UpdatePlan_RequestMultiError) {
-			e := err.(pb.UpdatePlan_RequestValidationError)
+		for _, err := range err.(subscriptionpb.UpdatePlan_RequestMultiError) {
+			e := err.(subscriptionpb.UpdatePlan_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -156,7 +155,7 @@ func (h *Handler) patchSubscriptionPlan(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewSubscriptionHandlersClient(h.Grpc.Client)
+	rClient := subscriptionpb.NewSubscriptionHandlersClient(h.Grpc.Client)
 	_, err := rClient.UpdatePlan(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)

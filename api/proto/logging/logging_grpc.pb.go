@@ -22,7 +22,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LoggingHandlersClient interface {
-	AddLogRecord(ctx context.Context, in *AddLogRecord_Request, opts ...grpc.CallOption) (*AddLogRecord_Response, error)
+	ListRecords(ctx context.Context, in *ListRecords_Request, opts ...grpc.CallOption) (*ListRecords_Response, error)
+	Record(ctx context.Context, in *Record_Request, opts ...grpc.CallOption) (*Record_Response, error)
+	AddRecord(ctx context.Context, in *AddRecord_Request, opts ...grpc.CallOption) (*AddRecord_Response, error)
 }
 
 type loggingHandlersClient struct {
@@ -33,9 +35,27 @@ func NewLoggingHandlersClient(cc grpc.ClientConnInterface) LoggingHandlersClient
 	return &loggingHandlersClient{cc}
 }
 
-func (c *loggingHandlersClient) AddLogRecord(ctx context.Context, in *AddLogRecord_Request, opts ...grpc.CallOption) (*AddLogRecord_Response, error) {
-	out := new(AddLogRecord_Response)
-	err := c.cc.Invoke(ctx, "/logging.LoggingHandlers/AddLogRecord", in, out, opts...)
+func (c *loggingHandlersClient) ListRecords(ctx context.Context, in *ListRecords_Request, opts ...grpc.CallOption) (*ListRecords_Response, error) {
+	out := new(ListRecords_Response)
+	err := c.cc.Invoke(ctx, "/logging.LoggingHandlers/ListRecords", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *loggingHandlersClient) Record(ctx context.Context, in *Record_Request, opts ...grpc.CallOption) (*Record_Response, error) {
+	out := new(Record_Response)
+	err := c.cc.Invoke(ctx, "/logging.LoggingHandlers/Record", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *loggingHandlersClient) AddRecord(ctx context.Context, in *AddRecord_Request, opts ...grpc.CallOption) (*AddRecord_Response, error) {
+	out := new(AddRecord_Response)
+	err := c.cc.Invoke(ctx, "/logging.LoggingHandlers/AddRecord", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +66,9 @@ func (c *loggingHandlersClient) AddLogRecord(ctx context.Context, in *AddLogReco
 // All implementations must embed UnimplementedLoggingHandlersServer
 // for forward compatibility
 type LoggingHandlersServer interface {
-	AddLogRecord(context.Context, *AddLogRecord_Request) (*AddLogRecord_Response, error)
+	ListRecords(context.Context, *ListRecords_Request) (*ListRecords_Response, error)
+	Record(context.Context, *Record_Request) (*Record_Response, error)
+	AddRecord(context.Context, *AddRecord_Request) (*AddRecord_Response, error)
 	mustEmbedUnimplementedLoggingHandlersServer()
 }
 
@@ -54,8 +76,14 @@ type LoggingHandlersServer interface {
 type UnimplementedLoggingHandlersServer struct {
 }
 
-func (UnimplementedLoggingHandlersServer) AddLogRecord(context.Context, *AddLogRecord_Request) (*AddLogRecord_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddLogRecord not implemented")
+func (UnimplementedLoggingHandlersServer) ListRecords(context.Context, *ListRecords_Request) (*ListRecords_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRecords not implemented")
+}
+func (UnimplementedLoggingHandlersServer) Record(context.Context, *Record_Request) (*Record_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Record not implemented")
+}
+func (UnimplementedLoggingHandlersServer) AddRecord(context.Context, *AddRecord_Request) (*AddRecord_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddRecord not implemented")
 }
 func (UnimplementedLoggingHandlersServer) mustEmbedUnimplementedLoggingHandlersServer() {}
 
@@ -70,20 +98,56 @@ func RegisterLoggingHandlersServer(s grpc.ServiceRegistrar, srv LoggingHandlersS
 	s.RegisterService(&LoggingHandlers_ServiceDesc, srv)
 }
 
-func _LoggingHandlers_AddLogRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddLogRecord_Request)
+func _LoggingHandlers_ListRecords_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRecords_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(LoggingHandlersServer).AddLogRecord(ctx, in)
+		return srv.(LoggingHandlersServer).ListRecords(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/logging.LoggingHandlers/AddLogRecord",
+		FullMethod: "/logging.LoggingHandlers/ListRecords",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LoggingHandlersServer).AddLogRecord(ctx, req.(*AddLogRecord_Request))
+		return srv.(LoggingHandlersServer).ListRecords(ctx, req.(*ListRecords_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LoggingHandlers_Record_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Record_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoggingHandlersServer).Record(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/logging.LoggingHandlers/Record",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoggingHandlersServer).Record(ctx, req.(*Record_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LoggingHandlers_AddRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddRecord_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoggingHandlersServer).AddRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/logging.LoggingHandlers/AddRecord",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoggingHandlersServer).AddRecord(ctx, req.(*AddRecord_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -96,8 +160,16 @@ var LoggingHandlers_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*LoggingHandlersServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "AddLogRecord",
-			Handler:    _LoggingHandlers_AddLogRecord_Handler,
+			MethodName: "ListRecords",
+			Handler:    _LoggingHandlers_ListRecords_Handler,
+		},
+		{
+			MethodName: "Record",
+			Handler:    _LoggingHandlers_Record_Handler,
+		},
+		{
+			MethodName: "AddRecord",
+			Handler:    _LoggingHandlers_AddRecord_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

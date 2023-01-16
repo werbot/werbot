@@ -14,12 +14,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 
-	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/storage/cache"
-	"github.com/werbot/werbot/pkg/logger"
-	"github.com/werbot/werbot/pkg/webutil"
-
 	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/api/web/auth"
 	"github.com/werbot/werbot/api/web/customer"
@@ -33,7 +27,12 @@ import (
 	"github.com/werbot/werbot/api/web/user"
 	"github.com/werbot/werbot/api/web/utility"
 	"github.com/werbot/werbot/api/web/wellknown"
+	"github.com/werbot/werbot/internal"
+	"github.com/werbot/werbot/internal/grpc"
+	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/pkg/logger"
+	"github.com/werbot/werbot/pkg/webutil"
 )
 
 var (

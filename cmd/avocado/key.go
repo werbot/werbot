@@ -13,10 +13,9 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/rs/zerolog/log"
 	"github.com/werbot/werbot/api/proto/server"
+	serverpb "github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/pkg/netutil"
-
-	pb "github.com/werbot/werbot/api/proto/server"
 )
 
 func privateKey() func(*ssh.Server) error {
@@ -42,9 +41,9 @@ func dynamicHostKey(host *server.Server_Response) gossh.HostKeyCallback {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			rClient := pb.NewServerHandlersClient(app.grpc.Client)
+			rClient := serverpb.NewServerHandlersClient(app.grpc.Client)
 
-			_, err := rClient.UpdateServerHostKey(ctx, &server.UpdateServerHostKey_Request{
+			_, err := rClient.UpdateHostKey(ctx, &server.UpdateHostKey_Request{
 				ServerId: host.ServerId,
 				Hostkey:  key.Marshal(),
 			})

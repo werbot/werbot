@@ -4,62 +4,91 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/google/uuid"
+	licensepb "github.com/werbot/werbot/api/proto/license"
 	"github.com/werbot/werbot/internal"
 	license_lib "github.com/werbot/werbot/internal/license"
-
-	pb_license "github.com/werbot/werbot/api/proto/license"
 )
 
 type license struct {
-	pb_license.UnimplementedLicenseHandlersServer
+	licensepb.UnimplementedLicenseHandlersServer
 }
 
 // License is ...
-func (l *license) License(ctx context.Context, in *pb_license.License_Request) (*pb_license.License_Response, error) {
+func (l *license) License(ctx context.Context, in *licensepb.License_Request) (*licensepb.License_Response, error) {
+	licenseOpen := true
+	licensePublic := internal.GetString("LICENSE_KEY_PUBLIC", "")
+	response := new(licensepb.License_Response)
+
 	readFile, err := os.ReadFile(internal.GetString("LICENSE_FILE", "/license.key"))
 	if err != nil {
 		service.log.FromGRPC(err).Send()
-		return nil, license_lib.ErrFailedToOpenLicenseFile
+		licenseOpen = false
+		//return nil, license_lib.ErrFailedToOpenLicenseFile
 	}
 
-	licensePublic := internal.GetString("LICENSE_KEY_PUBLIC", "")
-	lic, err := license_lib.Read([]byte(licensePublic))
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, license_lib.ErrLicenseKeyIsBroken
+	if licensePublic == "" {
+		licenseOpen = false
 	}
 
-	licDecode, err := lic.Decode(readFile)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, license_lib.ErrLicenseStructureIsBroken
+	if licenseOpen {
+		lic, err := license_lib.DecodePublicKey([]byte(licensePublic))
+		if err != nil {
+			service.log.FromGRPC(err).Send()
+			return nil, license_lib.ErrLicenseKeyIsBroken
+		}
+
+		// The main information of the license
+		licDecode, err := lic.Decode(readFile)
+		if err != nil {
+			service.log.FromGRPC(err).Send()
+			return nil, license_lib.ErrLicenseStructureIsBroken
+		}
+		response.Issued = licDecode.License.Iss
+		response.Customer = licDecode.License.Cus
+		response.Subscriber = licDecode.License.Sub
+		response.Type = licDecode.License.Typ
+		response.IssuedAt = timestamppb.New(licDecode.License.Iat)
+		response.ExpiresAt = timestamppb.New(licDecode.License.Exp)
+		response.Expired = lic.Expired()
+
+		licData := map[string]any{}
+		if err := json.Unmarshal(licDecode.License.Dat, &licData); err != nil {
+			service.log.FromGRPC(err).Send()
+			return nil, license_lib.ErrLicenseStructureIsBroken
+		}
+
+		response.Limits = map[string]int32{
+			"Companies": int32(licData["companies"].(float64)),
+			"Servers":   int32(licData["servers"].(float64)),
+			"Users":     int32(licData["users"].(float64)),
+		}
+
+		for _, item := range licData["modules"].([]interface{}) {
+			response.Modules = append(response.Modules, item.(string))
+		}
+	} else {
+		now := time.Now()
+
+		response.Issued = "free"
+		response.Customer = "Mr. Robot"
+		response.Subscriber = uuid.New().String()
+		response.Type = "open source"
+		response.IssuedAt = timestamppb.New(now.UTC())
+		response.ExpiresAt = timestamppb.New(now.AddDate(0, 0, 365).UTC())
+		response.Expired = true
+
+		response.Modules = []string{"module1", "module2", "module3"}
+		response.Limits = map[string]int32{
+			"Companies": 99,
+			"Servers":   99,
+			"Users":     99,
+		}
 	}
 
-	var licData = new(pb_license.LicenseInfo_Limits)
-	err = json.Unmarshal(licDecode.License.Dat, &licData)
-	if err != nil {
-		service.log.FromGRPC(err).Send()
-		return nil, license_lib.ErrLicenseStructureIsBroken
-	}
-
-	return &pb_license.License_Response{
-		License: &pb_license.LicenseInfo{
-			Issued:     licDecode.License.Iss,
-			Customer:   licDecode.License.Cus,
-			Subscriber: licDecode.License.Sub,
-			Type:       licDecode.License.Typ,
-			IssuedAt:   timestamppb.New(licDecode.License.Iat),
-			ExpiresAt:  timestamppb.New(licDecode.License.Exp),
-			Limits: &pb_license.LicenseInfo_Limits{
-				Companies: licData.Companies,
-				Servers:   licData.Servers,
-				Users:     licData.Users,
-				Modules:   licData.Modules,
-			},
-		},
-		Expired: lic.Expired(),
-	}, nil
+	return response, nil
 }

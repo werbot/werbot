@@ -10,16 +10,14 @@ import (
 	"github.com/steinfletcher/apitest"
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 
+	authpb "github.com/werbot/werbot/api/proto/auth"
+	keypb "github.com/werbot/werbot/api/proto/key"
 	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/api/web/auth"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/middleware"
-
-	pb "github.com/werbot/werbot/api/proto/key"
-	pb_key "github.com/werbot/werbot/api/proto/key"
-	pb_user "github.com/werbot/werbot/api/proto/user"
 )
 
 var (
@@ -45,12 +43,12 @@ func init() {
 	New(webHandler).Routes()    // add test module handler
 	testHandler.FinishHandler() // init finale handler for apitest
 
-	adminInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
+	adminInfo = testHandler.GetUserInfo(&authpb.SignIn_Request{
 		Email:    "test-admin@werbot.net",
 		Password: "test-admin@werbot.net",
 	})
 
-	userInfo = testHandler.GetUserInfo(&pb_user.SignIn_Request{
+	userInfo = testHandler.GetUserInfo(&authpb.SignIn_Request{
 		Email:    "test-user@werbot.net",
 		Password: "test-user@werbot.net",
 	})
@@ -348,7 +346,7 @@ func Test_addKey(t *testing.T) {
 	testCases["ROLE_USER_UNSPECIFIED"] = []tests.TestCase{
 		{
 			Name:        "Without parameters",
-			RequestBody: pb_key.AddPublicKey_Request{},
+			RequestBody: keypb.AddKey_Request{},
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -361,7 +359,7 @@ func Test_addKey(t *testing.T) {
 	testCases["ROLE_ADMIN"] = []tests.TestCase{
 		{
 			Name:        "Without parameters",
-			RequestBody: pb_key.AddPublicKey_Request{},
+			RequestBody: keypb.AddKey_Request{},
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -371,7 +369,7 @@ func Test_addKey(t *testing.T) {
 		},
 		{
 			Name: "Add key by your user_id", // for user test-admin@werbot.net
-			RequestBody: pb_key.AddPublicKey_Request{
+			RequestBody: keypb.AddKey_Request{
 				UserId: adminInfo.UserID,
 				Key:    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFQmBo7P94hOf00dl3DKfYNcLz2Sd1WRs6SHZE6rFQlx",
 				Title:  "test1",
@@ -388,7 +386,7 @@ func Test_addKey(t *testing.T) {
 	testCases["ROLE_USER"] = []tests.TestCase{
 		{
 			Name:        "Without parameters",
-			RequestBody: pb_key.AddPublicKey_Request{},
+			RequestBody: keypb.AddKey_Request{},
 			RequestUser: userInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -398,7 +396,7 @@ func Test_addKey(t *testing.T) {
 		},
 		{
 			Name: "Adding a key to your profile",
-			RequestBody: pb_key.AddPublicKey_Request{
+			RequestBody: keypb.AddKey_Request{
 				Key:   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCPl/FmQtusakH1dqqB2jwbZ5gI0BEhjpLsSx/NfnjF+6Nmd1+lk533pyDod3KJYBzr/TjgOLp7jTLw+GcrczjqBLboUSXb564eokApOSrEBvko/MGtcIaJ5RGtenljPtHgbt3N/ldeiGXgUfImpDkYDXY9RpG5d0CN7YtgouIqIQ==",
 				Title: "test1",
 			},
@@ -411,7 +409,7 @@ func Test_addKey(t *testing.T) {
 		},
 		{
 			Name: "Add key for another user_id", // for user test-admin@werbot.net, this parameters ignoring for this roles
-			RequestBody: pb_key.AddPublicKey_Request{
+			RequestBody: keypb.AddKey_Request{
 				UserId: adminInfo.UserID,
 				Key:    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCPl/FmQtusakH1dqqB2jwbZ5gI0BEhjpLsSx/NfnjF+6Nmd1+lk533pyDod3KJYBzr/TjgOLp7jTLw+GcrczjqBLboUSXb564eokApOSrEBvko/MGtcIaJ5RGtenljPtHgbt3N/ldeiGXgUfImpDkYDXY9RpG5d0CN7YtgouIqIQ==",
 				Title:  "test1",
@@ -425,7 +423,7 @@ func Test_addKey(t *testing.T) {
 		},
 		{
 			Name: "Invalid key parameter",
-			RequestBody: pb_key.AddPublicKey_Request{
+			RequestBody: keypb.AddKey_Request{
 				Key:   "ssh-rsa AsSx/NfnjF+OSrEBveiGXgUfImpDkYDXY9RpG5d0CN7YtgouIqIQ==",
 				Title: "test1",
 			},
@@ -438,7 +436,7 @@ func Test_addKey(t *testing.T) {
 		},
 		{
 			Name: "Invalid title parameter",
-			RequestBody: pb_key.AddPublicKey_Request{
+			RequestBody: keypb.AddKey_Request{
 				Key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCPl/FmQtusakH1dqqB2jwbZ5gI0BEhjpLsSx/NfnjF+6Nmd1+lk533pyDod3KJYBzr/TjgOLp7jTLw+GcrczjqBLboUSXb564eokApOSrEBvko/MGtcIaJ5RGtenljPtHgbt3N/ldeiGXgUfImpDkYDXY9RpG5d0CN7YtgouIqIQ==",
 			},
 			RequestUser: userInfo,
@@ -451,7 +449,7 @@ func Test_addKey(t *testing.T) {
 		},
 		{
 			Name: "Use another user_id when adding a new key",
-			RequestBody: pb_key.AddPublicKey_Request{
+			RequestBody: keypb.AddKey_Request{
 				UserId: adminInfo.UserID,
 				Key:    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCPl/FmQtusakH1dqqB2jwbZ5gI0BEhjpLsSx/NfnjF+6Nmd1+lk533pyDod3KJYBzr/TjgOLp7jTLw+GcrczjqBLboUSXb564eokApOSrEBvko/MGtcIaJ5RGtenljPtHgbt3N/ldeiGXgUfImpDkYDXY9RpG5d0CN7YtgouIqIQ==",
 				Title:  "test1",
@@ -465,7 +463,7 @@ func Test_addKey(t *testing.T) {
 		},
 		{
 			Name: "Object already exists",
-			RequestBody: pb_key.AddPublicKey_Request{
+			RequestBody: keypb.AddKey_Request{
 				Key:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWl2aY8FicEWNAlrQ+DwmhonSuhU8SsXJErdO9WpPKN",
 				Title: "test1",
 			},
@@ -492,14 +490,14 @@ func Test_addKey(t *testing.T) {
 						End()
 
 					// delete added project
-					data := map[string]pb_key.AddPublicKey_Response{}
+					data := map[string]keypb.AddKey_Response{}
 					json.NewDecoder(resp.Response.Body).Decode(&data)
 					if data["result"].KeyId != "" {
 						ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 						defer cancel()
-						rClient := pb_key.NewKeyHandlersClient(testHandler.GRPC.Client)
+						rClient := keypb.NewKeyHandlersClient(testHandler.GRPC.Client)
 
-						rClient.DeletePublicKey(ctx, &pb_key.DeletePublicKey_Request{
+						rClient.DeleteKey(ctx, &keypb.DeleteKey_Request{
 							UserId: tc.RequestUser.UserID,
 							KeyId:  data["result"].KeyId,
 						})
@@ -517,7 +515,7 @@ func Test_patchKey(t *testing.T) {
 	testCases["ROLE_USER_UNSPECIFIED"] = []tests.TestCase{
 		{
 			Name:        "Without parameters",
-			RequestBody: pb_key.AddPublicKey_Request{},
+			RequestBody: keypb.AddKey_Request{},
 			RequestUser: &tests.UserInfo{},
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -530,7 +528,7 @@ func Test_patchKey(t *testing.T) {
 	testCases["ROLE_ADMIN"] = []tests.TestCase{
 		{
 			Name:        "Without parameters",
-			RequestBody: pb_key.UpdatePublicKey_Request{},
+			RequestBody: keypb.UpdateKey_Request{},
 			RequestUser: adminInfo,
 			RespondBody: jsonpath.Chain().
 				Equal(`$.success`, false).
@@ -543,7 +541,7 @@ func Test_patchKey(t *testing.T) {
 		},
 		{
 			Name: "Parameter key is filled",
-			RequestBody: pb_key.UpdatePublicKey_Request{
+			RequestBody: keypb.UpdateKey_Request{
 				KeyId: "6437da7e-c9a4-463d-8b4d-2a7d1f730875",
 				Key:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWl2aY8FicEWNAlrQ+DwmhonSuhU8SsXJErdO9WpPKN",
 			},
@@ -557,7 +555,7 @@ func Test_patchKey(t *testing.T) {
 		},
 		{
 			Name: "Key has already been added",
-			RequestBody: pb_key.UpdatePublicKey_Request{
+			RequestBody: keypb.UpdateKey_Request{
 				KeyId: "6437da7e-c9a4-463d-8b4d-2a7d1f730875",
 				Key:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWl2aY8FicEWNAlrQ+DwmhonSuhU8SsXJErdO9WpPKN",
 				Title: "new title",
@@ -571,7 +569,7 @@ func Test_patchKey(t *testing.T) {
 		},
 		{
 			Name: "Key update and description for user with user_id",
-			RequestBody: pb_key.UpdatePublicKey_Request{
+			RequestBody: keypb.UpdateKey_Request{
 				KeyId: "2511bbbe-c8d2-4e79-9e89-7e8f2b366a57",
 				Key:   newKey(),
 				Title: "new title",
@@ -585,7 +583,7 @@ func Test_patchKey(t *testing.T) {
 		},
 		{
 			Name: "The public key has a broken structure",
-			RequestBody: pb_key.UpdatePublicKey_Request{
+			RequestBody: keypb.UpdateKey_Request{
 				KeyId: "6437da7e-c9a4-463d-8b4d-2a7d1f730875",
 				Key:   "ssh-ed25519 NzaC1lZDI1NTE5Wl2aY8FicEWNAlrQSuhU8SsXJErdO9WpPKN",
 				Title: "new title",
@@ -602,7 +600,7 @@ func Test_patchKey(t *testing.T) {
 	testCases["ROLE_USER"] = []tests.TestCase{
 		{
 			Name: "Update key",
-			RequestBody: pb_key.UpdatePublicKey_Request{
+			RequestBody: keypb.UpdateKey_Request{
 				KeyId: "abe03b06-834b-4e35-a3f6-7e86df525c81",
 				Key:   newKey(),
 				Title: "new title",
@@ -616,7 +614,7 @@ func Test_patchKey(t *testing.T) {
 		},
 		{
 			Name: "Updated key and description, ignoring someone else's user_id",
-			RequestBody: pb_key.UpdatePublicKey_Request{
+			RequestBody: keypb.UpdateKey_Request{
 				UserId: "0b792872-174a-4da4-9efa-f3fac872314e",
 				KeyId:  "abe03b06-834b-4e35-a3f6-7e86df525c81",
 				Key:    newKey(),
@@ -631,7 +629,7 @@ func Test_patchKey(t *testing.T) {
 		},
 		{
 			Name: "Unsuccessful renewal of a key that did not belong to an authorized user",
-			RequestBody: pb_key.UpdatePublicKey_Request{
+			RequestBody: keypb.UpdateKey_Request{
 				KeyId: "2511bbbe-c8d2-4e79-9e89-7e8f2b366a57",
 				Key:   newKey(),
 				Title: "new title",
@@ -645,7 +643,7 @@ func Test_patchKey(t *testing.T) {
 		},
 		{
 			Name: "The public key has a broken structure",
-			RequestBody: pb_key.UpdatePublicKey_Request{
+			RequestBody: keypb.UpdateKey_Request{
 				KeyId: "abe03b06-834b-4e35-a3f6-7e86df525c81",
 				Key:   "ssh-ed25519 NzaC1lZDI1NTE5Wl2aY8FicEWNAlrQSuhU8SsXJErdO9WpPKN",
 				Title: "new title",
@@ -659,7 +657,7 @@ func Test_patchKey(t *testing.T) {
 		},
 		{
 			Name: "The wrong parameter Key_id in the request",
-			RequestBody: pb_key.UpdatePublicKey_Request{
+			RequestBody: keypb.UpdateKey_Request{
 				KeyId:  "00000000-0000",
 				UserId: "00000000-0000",
 			},
@@ -792,7 +790,7 @@ func TestHandler_deleteKey(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewKeyHandlersClient(testHandler.GRPC.Client)
+	rClient := keypb.NewKeyHandlersClient(testHandler.GRPC.Client)
 
 	for role, rtc := range testCases {
 		t.Run(role, func(t *testing.T) {
@@ -800,7 +798,7 @@ func TestHandler_deleteKey(t *testing.T) {
 				reqBody := tc.RequestParam.(map[string]string)
 
 				if reqBody["user_id"] != "" {
-					publicKey, _ := rClient.AddPublicKey(ctx, &pb.AddPublicKey_Request{
+					publicKey, _ := rClient.AddKey(ctx, &keypb.AddKey_Request{
 						UserId: reqBody["user_id"],
 						Title:  "new test title",
 						Key:    newKey(),

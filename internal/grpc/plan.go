@@ -2,14 +2,17 @@ package grpc
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/jackc/pgtype"
 
-	pb_subscription "github.com/werbot/werbot/api/proto/subscription"
+	subscriptionpb "github.com/werbot/werbot/api/proto/subscription"
 )
 
 // ListPlans is ...
-func (p *subscription) ListPlans(ctx context.Context, in *pb_subscription.ListPlans_Request) (*pb_subscription.ListPlans_Response, error) {
+func (p *subscription) ListPlans(ctx context.Context, in *subscriptionpb.ListPlans_Request) (*subscriptionpb.ListPlans_Response, error) {
+	response := new(subscriptionpb.ListPlans_Response)
+
 	sqlSearch := service.db.SQLAddWhere(in.GetQuery())
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := service.db.Conn.Query(`SELECT
@@ -25,62 +28,58 @@ func (p *subscription) ListPlans(ctx context.Context, in *pb_subscription.ListPl
 			"limits_companies",
 			"limits_connections",
 			"default",
-			(SELECT COUNT(*) FROM subscription WHERE plan_id = "subscription_plan"."id" ) AS count_subscriptions
-		FROM
-			"subscription_plan"` + sqlSearch + sqlFooter)
+			(SELECT COUNT(*) FROM "subscription" WHERE plan_id = "subscription_plan"."id" ) AS count_subscriptions
+		FROM "subscription_plan"` + sqlSearch + sqlFooter)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToSelect
+		return nil, errServerError
 	}
 
-	plans := []*pb_subscription.ListPlans_Response_PlanInfo{}
 	for rows.Next() {
 		var countSubscription int32
-		plan := new(pb_subscription.Plan_Response)
-		err = rows.Scan(&plan.PlanId,
-			&plan.Cost,
-			&plan.Period,
-			&plan.Title,
-			&plan.Active,
-			&plan.Trial,
-			&plan.TrialPeriod,
-			&plan.LimitsServers,
-			&plan.LimitsUsers,
-			&plan.LimitsCompanies,
-			&plan.LimitsConnections,
-			&plan.Default,
+		plan := new(subscriptionpb.ListPlans_PlanInfo)
+		err = rows.Scan(&plan.Plan.PlanId,
+			&plan.Plan.Cost,
+			&plan.Plan.Period,
+			&plan.Plan.Title,
+			&plan.Plan.Active,
+			&plan.Plan.Trial,
+			&plan.Plan.TrialPeriod,
+			&plan.Plan.LimitsServers,
+			&plan.Plan.LimitsUsers,
+			&plan.Plan.LimitsCompanies,
+			&plan.Plan.LimitsConnections,
+			&plan.Plan.Default,
 			&countSubscription,
 		)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, errNotFound
+			}
 			service.log.FromGRPC(err).Send()
-			return nil, errFailedToScan
+			return nil, errServerError
 		}
+		plan.SubscriptionCount = countSubscription
 
-		plans = append(plans, &pb_subscription.ListPlans_Response_PlanInfo{
-			SubscriptionCount: countSubscription,
-			Plan:              plan,
-		})
+		response.Plans = append(response.Plans, plan)
 	}
 	defer rows.Close()
 
-	var total int32
-	err = service.db.Conn.QueryRow(`SELECT COUNT (*) FROM "subscription_plan"` + sqlSearch).Scan(&total)
-	if err != nil {
+	// Total records for pagination
+	err = service.db.Conn.QueryRow(`SELECT COUNT (*) FROM "subscription_plan"` + sqlSearch).Scan(&response.Total)
+	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
+		return nil, errServerError
 	}
 
-	return &pb_subscription.ListPlans_Response{
-		Total: total,
-		Plans: plans,
-	}, nil
+	return response, nil
 }
 
 // Plan is ...
-func (p *subscription) Plan(ctx context.Context, in *pb_subscription.Plan_Request) (*pb_subscription.Plan_Response, error) {
+func (p *subscription) Plan(ctx context.Context, in *subscriptionpb.Plan_Request) (*subscriptionpb.Plan_Response, error) {
 	var allowedSections, benefits pgtype.JSON
-	plan := new(pb_subscription.Plan_Response)
-	plan.PlanId = in.GetPlanId()
+	response := new(subscriptionpb.Plan_Response)
+	response.PlanId = in.GetPlanId()
 
 	err := service.db.Conn.QueryRow(`SELECT
 			"cost",
@@ -98,47 +97,49 @@ func (p *subscription) Plan(ctx context.Context, in *pb_subscription.Plan_Reques
 			"limits_companies",
 			"limits_connections",
 			"default"
-		FROM
-			"subscription_plan"
-		WHERE
-			"id" = $1`, in.GetPlanId()).
-		Scan(
-			&plan.Cost,
-			&plan.Period,
-			&plan.Title,
-			&plan.StripeId,
-			&allowedSections,
-			&benefits,
-			&plan.Image,
-			&plan.Active,
-			&plan.Trial,
-			&plan.TrialPeriod,
-			&plan.LimitsServers,
-			&plan.LimitsUsers,
-			&plan.LimitsCompanies,
-			&plan.LimitsConnections,
-			&plan.Default,
-		)
+		FROM "subscription_plan"
+		WHERE "id" = $1`,
+		in.GetPlanId(),
+	).Scan(&response.Cost,
+		&response.Period,
+		&response.Title,
+		&response.StripeId,
+		&allowedSections,
+		&benefits,
+		&response.Image,
+		&response.Active,
+		&response.Trial,
+		&response.TrialPeriod,
+		&response.LimitsServers,
+		&response.LimitsUsers,
+		&response.LimitsCompanies,
+		&response.LimitsConnections,
+		&response.Default,
+	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errNotFound
+		}
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
+		return nil, errServerError
 	}
 
 	var jSections []string
 	allowedSections.AssignTo(&jSections)
-	plan.AllowedSections = jSections
+	response.AllowedSections = jSections
 
 	var jBenefits map[int32]string
 	benefits.AssignTo(&jBenefits)
-	plan.Benefits = jBenefits
+	response.Benefits = jBenefits
 
-	return plan, nil
+	return response, nil
 }
 
 // UpdatePlan is ...
-func (p *subscription) UpdatePlan(ctx context.Context, in *pb_subscription.UpdatePlan_Request) (*pb_subscription.UpdatePlan_Response, error) {
-	data, err := service.db.Conn.Exec(`UPDATE
-      "subscription_plan"
+func (p *subscription) UpdatePlan(ctx context.Context, in *subscriptionpb.UpdatePlan_Request) (*subscriptionpb.UpdatePlan_Response, error) {
+	response := new(subscriptionpb.UpdatePlan_Response)
+
+	data, err := service.db.Conn.Exec(`UPDATE "subscription_plan"
 		SET "cost" = $1,
 			"period" = $2,
 			"title" = $3,
@@ -154,8 +155,7 @@ func (p *subscription) UpdatePlan(ctx context.Context, in *pb_subscription.Updat
 			"limits_companies" = $13,
 			"limits_connections" = $14,
 			"default" = $15
-		WHERE
-			"id" = $16`,
+		WHERE "id" = $16`,
 		in.GetCost(),
 		in.GetPeriod(),
 		in.GetTitle(),
@@ -175,7 +175,7 @@ func (p *subscription) UpdatePlan(ctx context.Context, in *pb_subscription.Updat
 	)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
-		return nil, errFailedToScan
+		return nil, errServerError
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
 		return nil, errNotFound
@@ -183,12 +183,7 @@ func (p *subscription) UpdatePlan(ctx context.Context, in *pb_subscription.Updat
 
 	// update Starter plan
 	if in.Default {
-		data, err := service.db.Conn.Exec(`UPDATE
-      "subscription_plan"
-		SET
-			"default" = false
-		WHERE
-			"id" != $1`,
+		data, err := service.db.Conn.Exec(`UPDATE "subscription_plan" SET "default" = false WHERE "id" != $1`,
 			in.GetPlanId(),
 		)
 		if err != nil {
@@ -200,5 +195,5 @@ func (p *subscription) UpdatePlan(ctx context.Context, in *pb_subscription.Updat
 		}
 	}
 
-	return &pb_subscription.UpdatePlan_Response{}, nil
+	return response, nil
 }

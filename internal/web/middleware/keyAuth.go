@@ -9,10 +9,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/keyauth/v2"
 
+	projectpb "github.com/werbot/werbot/api/proto/project"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/pkg/webutil"
-
-	pb "github.com/werbot/werbot/api/proto/project"
 )
 
 // KeyMiddleware is ...
@@ -48,9 +47,9 @@ func keySuccess(c *fiber.Ctx) error {
 func (m KeyMiddleware) tokenCheck(c *fiber.Ctx, token string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := pb.NewProjectHandlersClient(m.Client)
+	rClient := projectpb.NewProjectHandlersClient(m.Client)
 
-	project, err := rClient.ListProjects(ctx, &pb.ListProjects_Request{
+	project, err := rClient.ListProjects(ctx, &projectpb.ListProjects_Request{
 		Query: fmt.Sprintf("api_key='%v'", token),
 	})
 	if err != nil || project.Total < 1 {

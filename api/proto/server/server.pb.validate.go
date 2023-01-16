@@ -38,167 +38,6 @@ var (
 // define the regex for a UUID once up-front
 var _server_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
-// Validate checks the field values on ActivityRequest with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// first error encountered is returned, or nil if there are no violations.
-func (m *ActivityRequest) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on ActivityRequest with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// ActivityRequestMultiError, or nil if none found.
-func (m *ActivityRequest) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *ActivityRequest) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if err := m._validateUuid(m.GetUserId()); err != nil {
-		err = ActivityRequestValidationError{
-			field:  "UserId",
-			reason: "value must be a valid UUID",
-			cause:  err,
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if err := m._validateUuid(m.GetProjectId()); err != nil {
-		err = ActivityRequestValidationError{
-			field:  "ProjectId",
-			reason: "value must be a valid UUID",
-			cause:  err,
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if all {
-		switch v := interface{}(m.GetActivity()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ActivityRequestValidationError{
-					field:  "Activity",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ActivityRequestValidationError{
-					field:  "Activity",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetActivity()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ActivityRequestValidationError{
-				field:  "Activity",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if len(errors) > 0 {
-		return ActivityRequestMultiError(errors)
-	}
-
-	return nil
-}
-
-func (m *ActivityRequest) _validateUuid(uuid string) error {
-	if matched := _server_uuidPattern.MatchString(uuid); !matched {
-		return errors.New("invalid uuid format")
-	}
-
-	return nil
-}
-
-// ActivityRequestMultiError is an error wrapping multiple validation errors
-// returned by ActivityRequest.ValidateAll() if the designated constraints
-// aren't met.
-type ActivityRequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ActivityRequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ActivityRequestMultiError) AllErrors() []error { return m }
-
-// ActivityRequestValidationError is the validation error returned by
-// ActivityRequest.Validate if the designated constraints aren't met.
-type ActivityRequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e ActivityRequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e ActivityRequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e ActivityRequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e ActivityRequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e ActivityRequestValidationError) ErrorName() string { return "ActivityRequestValidationError" }
-
-// Error satisfies the builtin error interface
-func (e ActivityRequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sActivityRequest.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = ActivityRequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = ActivityRequestValidationError{}
-
 // Validate checks the field values on ListServers with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -693,210 +532,6 @@ var _ interface {
 	ErrorName() string
 } = DeleteServerValidationError{}
 
-// Validate checks the field values on UpdateServerOnlineStatus with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateServerOnlineStatus) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerOnlineStatus with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateServerOnlineStatusMultiError, or nil if none found.
-func (m *UpdateServerOnlineStatus) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerOnlineStatus) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(errors) > 0 {
-		return UpdateServerOnlineStatusMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerOnlineStatusMultiError is an error wrapping multiple validation
-// errors returned by UpdateServerOnlineStatus.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerOnlineStatusMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerOnlineStatusMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerOnlineStatusMultiError) AllErrors() []error { return m }
-
-// UpdateServerOnlineStatusValidationError is the validation error returned by
-// UpdateServerOnlineStatus.Validate if the designated constraints aren't met.
-type UpdateServerOnlineStatusValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerOnlineStatusValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerOnlineStatusValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerOnlineStatusValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerOnlineStatusValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerOnlineStatusValidationError) ErrorName() string {
-	return "UpdateServerOnlineStatusValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerOnlineStatusValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerOnlineStatus.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerOnlineStatusValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerOnlineStatusValidationError{}
-
-// Validate checks the field values on UpdateServerActiveStatus with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateServerActiveStatus) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerActiveStatus with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateServerActiveStatusMultiError, or nil if none found.
-func (m *UpdateServerActiveStatus) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerActiveStatus) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(errors) > 0 {
-		return UpdateServerActiveStatusMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerActiveStatusMultiError is an error wrapping multiple validation
-// errors returned by UpdateServerActiveStatus.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerActiveStatusMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerActiveStatusMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerActiveStatusMultiError) AllErrors() []error { return m }
-
-// UpdateServerActiveStatusValidationError is the validation error returned by
-// UpdateServerActiveStatus.Validate if the designated constraints aren't met.
-type UpdateServerActiveStatusValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerActiveStatusValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerActiveStatusValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerActiveStatusValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerActiveStatusValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerActiveStatusValidationError) ErrorName() string {
-	return "UpdateServerActiveStatusValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerActiveStatusValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerActiveStatus.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerActiveStatusValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerActiveStatusValidationError{}
-
 // Validate checks the field values on ServerAccess with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -1300,226 +935,22 @@ var _ interface {
 	ErrorName() string
 } = UpdateServerActivityValidationError{}
 
-// Validate checks the field values on UpdateServerActive with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateServerActive) Validate() error {
+// Validate checks the field values on UpdateHostKey with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *UpdateHostKey) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UpdateServerActive with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateServerActiveMultiError, or nil if none found.
-func (m *UpdateServerActive) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerActive) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(errors) > 0 {
-		return UpdateServerActiveMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerActiveMultiError is an error wrapping multiple validation errors
-// returned by UpdateServerActive.ValidateAll() if the designated constraints
-// aren't met.
-type UpdateServerActiveMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerActiveMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerActiveMultiError) AllErrors() []error { return m }
-
-// UpdateServerActiveValidationError is the validation error returned by
-// UpdateServerActive.Validate if the designated constraints aren't met.
-type UpdateServerActiveValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerActiveValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerActiveValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerActiveValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerActiveValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerActiveValidationError) ErrorName() string {
-	return "UpdateServerActiveValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerActiveValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerActive.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerActiveValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerActiveValidationError{}
-
-// Validate checks the field values on UpdateServerHostKey with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateServerHostKey) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerHostKey with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateServerHostKeyMultiError, or nil if none found.
-func (m *UpdateServerHostKey) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerHostKey) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(errors) > 0 {
-		return UpdateServerHostKeyMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerHostKeyMultiError is an error wrapping multiple validation
-// errors returned by UpdateServerHostKey.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerHostKeyMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerHostKeyMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerHostKeyMultiError) AllErrors() []error { return m }
-
-// UpdateServerHostKeyValidationError is the validation error returned by
-// UpdateServerHostKey.Validate if the designated constraints aren't met.
-type UpdateServerHostKeyValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerHostKeyValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerHostKeyValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerHostKeyValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerHostKeyValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerHostKeyValidationError) ErrorName() string {
-	return "UpdateServerHostKeyValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerHostKeyValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerHostKey.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerHostKeyValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerHostKeyValidationError{}
-
-// Validate checks the field values on AddServerSession with the rules defined
+// ValidateAll checks the field values on UpdateHostKey with the rules defined
 // in the proto definition for this message. If any rules are violated, the
-// first error encountered is returned, or nil if there are no violations.
-func (m *AddServerSession) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on AddServerSession with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// AddServerSessionMultiError, or nil if none found.
-func (m *AddServerSession) ValidateAll() error {
+// result is a list of violation errors wrapped in UpdateHostKeyMultiError, or
+// nil if none found.
+func (m *UpdateHostKey) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AddServerSession) validate(all bool) error {
+func (m *UpdateHostKey) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1527,19 +958,19 @@ func (m *AddServerSession) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return AddServerSessionMultiError(errors)
+		return UpdateHostKeyMultiError(errors)
 	}
 
 	return nil
 }
 
-// AddServerSessionMultiError is an error wrapping multiple validation errors
-// returned by AddServerSession.ValidateAll() if the designated constraints
+// UpdateHostKeyMultiError is an error wrapping multiple validation errors
+// returned by UpdateHostKey.ValidateAll() if the designated constraints
 // aren't met.
-type AddServerSessionMultiError []error
+type UpdateHostKeyMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AddServerSessionMultiError) Error() string {
+func (m UpdateHostKeyMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1548,11 +979,11 @@ func (m AddServerSessionMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AddServerSessionMultiError) AllErrors() []error { return m }
+func (m UpdateHostKeyMultiError) AllErrors() []error { return m }
 
-// AddServerSessionValidationError is the validation error returned by
-// AddServerSession.Validate if the designated constraints aren't met.
-type AddServerSessionValidationError struct {
+// UpdateHostKeyValidationError is the validation error returned by
+// UpdateHostKey.Validate if the designated constraints aren't met.
+type UpdateHostKeyValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1560,22 +991,22 @@ type AddServerSessionValidationError struct {
 }
 
 // Field function returns field value.
-func (e AddServerSessionValidationError) Field() string { return e.field }
+func (e UpdateHostKeyValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AddServerSessionValidationError) Reason() string { return e.reason }
+func (e UpdateHostKeyValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AddServerSessionValidationError) Cause() error { return e.cause }
+func (e UpdateHostKeyValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AddServerSessionValidationError) Key() bool { return e.key }
+func (e UpdateHostKeyValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AddServerSessionValidationError) ErrorName() string { return "AddServerSessionValidationError" }
+func (e UpdateHostKeyValidationError) ErrorName() string { return "UpdateHostKeyValidationError" }
 
 // Error satisfies the builtin error interface
-func (e AddServerSessionValidationError) Error() string {
+func (e UpdateHostKeyValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1587,14 +1018,14 @@ func (e AddServerSessionValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAddServerSession.%s: %s%s",
+		"invalid %sUpdateHostKey.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AddServerSessionValidationError{}
+var _ error = UpdateHostKeyValidationError{}
 
 var _ interface {
 	Field() string
@@ -1602,7 +1033,106 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AddServerSessionValidationError{}
+} = UpdateHostKeyValidationError{}
+
+// Validate checks the field values on AddSession with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *AddSession) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddSession with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in AddSessionMultiError, or
+// nil if none found.
+func (m *AddSession) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddSession) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return AddSessionMultiError(errors)
+	}
+
+	return nil
+}
+
+// AddSessionMultiError is an error wrapping multiple validation errors
+// returned by AddSession.ValidateAll() if the designated constraints aren't met.
+type AddSessionMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddSessionMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddSessionMultiError) AllErrors() []error { return m }
+
+// AddSessionValidationError is the validation error returned by
+// AddSession.Validate if the designated constraints aren't met.
+type AddSessionValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddSessionValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddSessionValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddSessionValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddSessionValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddSessionValidationError) ErrorName() string { return "AddSessionValidationError" }
+
+// Error satisfies the builtin error interface
+func (e AddSessionValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddSession.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddSessionValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddSessionValidationError{}
 
 // Validate checks the field values on ServerNameByID with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
@@ -1704,22 +1234,22 @@ var _ interface {
 	ErrorName() string
 } = ServerNameByIDValidationError{}
 
-// Validate checks the field values on ListServersShareForUser with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *ListServersShareForUser) Validate() error {
+// Validate checks the field values on ListShareServers with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *ListShareServers) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ListServersShareForUser with the
-// rules defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on ListShareServers with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// ListServersShareForUserMultiError, or nil if none found.
-func (m *ListServersShareForUser) ValidateAll() error {
+// ListShareServersMultiError, or nil if none found.
+func (m *ListShareServers) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ListServersShareForUser) validate(all bool) error {
+func (m *ListShareServers) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1727,19 +1257,19 @@ func (m *ListServersShareForUser) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return ListServersShareForUserMultiError(errors)
+		return ListShareServersMultiError(errors)
 	}
 
 	return nil
 }
 
-// ListServersShareForUserMultiError is an error wrapping multiple validation
-// errors returned by ListServersShareForUser.ValidateAll() if the designated
-// constraints aren't met.
-type ListServersShareForUserMultiError []error
+// ListShareServersMultiError is an error wrapping multiple validation errors
+// returned by ListShareServers.ValidateAll() if the designated constraints
+// aren't met.
+type ListShareServersMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ListServersShareForUserMultiError) Error() string {
+func (m ListShareServersMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1748,11 +1278,11 @@ func (m ListServersShareForUserMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ListServersShareForUserMultiError) AllErrors() []error { return m }
+func (m ListShareServersMultiError) AllErrors() []error { return m }
 
-// ListServersShareForUserValidationError is the validation error returned by
-// ListServersShareForUser.Validate if the designated constraints aren't met.
-type ListServersShareForUserValidationError struct {
+// ListShareServersValidationError is the validation error returned by
+// ListShareServers.Validate if the designated constraints aren't met.
+type ListShareServersValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1760,24 +1290,22 @@ type ListServersShareForUserValidationError struct {
 }
 
 // Field function returns field value.
-func (e ListServersShareForUserValidationError) Field() string { return e.field }
+func (e ListShareServersValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ListServersShareForUserValidationError) Reason() string { return e.reason }
+func (e ListShareServersValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ListServersShareForUserValidationError) Cause() error { return e.cause }
+func (e ListShareServersValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ListServersShareForUserValidationError) Key() bool { return e.key }
+func (e ListShareServersValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ListServersShareForUserValidationError) ErrorName() string {
-	return "ListServersShareForUserValidationError"
-}
+func (e ListShareServersValidationError) ErrorName() string { return "ListShareServersValidationError" }
 
 // Error satisfies the builtin error interface
-func (e ListServersShareForUserValidationError) Error() string {
+func (e ListShareServersValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1789,14 +1317,14 @@ func (e ListServersShareForUserValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sListServersShareForUser.%s: %s%s",
+		"invalid %sListShareServers.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ListServersShareForUserValidationError{}
+var _ error = ListShareServersValidationError{}
 
 var _ interface {
 	Field() string
@@ -1804,24 +1332,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ListServersShareForUserValidationError{}
+} = ListShareServersValidationError{}
 
-// Validate checks the field values on AddServerShareForUser with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *AddServerShareForUser) Validate() error {
+// Validate checks the field values on AddShareServer with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *AddShareServer) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AddServerShareForUser with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// AddServerShareForUserMultiError, or nil if none found.
-func (m *AddServerShareForUser) ValidateAll() error {
+// ValidateAll checks the field values on AddShareServer with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in AddShareServerMultiError,
+// or nil if none found.
+func (m *AddShareServer) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AddServerShareForUser) validate(all bool) error {
+func (m *AddShareServer) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1829,19 +1357,19 @@ func (m *AddServerShareForUser) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return AddServerShareForUserMultiError(errors)
+		return AddShareServerMultiError(errors)
 	}
 
 	return nil
 }
 
-// AddServerShareForUserMultiError is an error wrapping multiple validation
-// errors returned by AddServerShareForUser.ValidateAll() if the designated
-// constraints aren't met.
-type AddServerShareForUserMultiError []error
+// AddShareServerMultiError is an error wrapping multiple validation errors
+// returned by AddShareServer.ValidateAll() if the designated constraints
+// aren't met.
+type AddShareServerMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AddServerShareForUserMultiError) Error() string {
+func (m AddShareServerMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1850,11 +1378,11 @@ func (m AddServerShareForUserMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AddServerShareForUserMultiError) AllErrors() []error { return m }
+func (m AddShareServerMultiError) AllErrors() []error { return m }
 
-// AddServerShareForUserValidationError is the validation error returned by
-// AddServerShareForUser.Validate if the designated constraints aren't met.
-type AddServerShareForUserValidationError struct {
+// AddShareServerValidationError is the validation error returned by
+// AddShareServer.Validate if the designated constraints aren't met.
+type AddShareServerValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1862,24 +1390,22 @@ type AddServerShareForUserValidationError struct {
 }
 
 // Field function returns field value.
-func (e AddServerShareForUserValidationError) Field() string { return e.field }
+func (e AddShareServerValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AddServerShareForUserValidationError) Reason() string { return e.reason }
+func (e AddShareServerValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AddServerShareForUserValidationError) Cause() error { return e.cause }
+func (e AddShareServerValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AddServerShareForUserValidationError) Key() bool { return e.key }
+func (e AddShareServerValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AddServerShareForUserValidationError) ErrorName() string {
-	return "AddServerShareForUserValidationError"
-}
+func (e AddShareServerValidationError) ErrorName() string { return "AddShareServerValidationError" }
 
 // Error satisfies the builtin error interface
-func (e AddServerShareForUserValidationError) Error() string {
+func (e AddShareServerValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1891,14 +1417,14 @@ func (e AddServerShareForUserValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAddServerShareForUser.%s: %s%s",
+		"invalid %sAddShareServer.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AddServerShareForUserValidationError{}
+var _ error = AddShareServerValidationError{}
 
 var _ interface {
 	Field() string
@@ -1906,24 +1432,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AddServerShareForUserValidationError{}
+} = AddShareServerValidationError{}
 
-// Validate checks the field values on UpdateServerShareForUser with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateServerShareForUser) Validate() error {
+// Validate checks the field values on UpdateShareServer with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *UpdateShareServer) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UpdateServerShareForUser with the
-// rules defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on UpdateShareServer with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// UpdateServerShareForUserMultiError, or nil if none found.
-func (m *UpdateServerShareForUser) ValidateAll() error {
+// UpdateShareServerMultiError, or nil if none found.
+func (m *UpdateShareServer) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *UpdateServerShareForUser) validate(all bool) error {
+func (m *UpdateShareServer) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1931,19 +1457,19 @@ func (m *UpdateServerShareForUser) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return UpdateServerShareForUserMultiError(errors)
+		return UpdateShareServerMultiError(errors)
 	}
 
 	return nil
 }
 
-// UpdateServerShareForUserMultiError is an error wrapping multiple validation
-// errors returned by UpdateServerShareForUser.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerShareForUserMultiError []error
+// UpdateShareServerMultiError is an error wrapping multiple validation errors
+// returned by UpdateShareServer.ValidateAll() if the designated constraints
+// aren't met.
+type UpdateShareServerMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerShareForUserMultiError) Error() string {
+func (m UpdateShareServerMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1952,11 +1478,11 @@ func (m UpdateServerShareForUserMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m UpdateServerShareForUserMultiError) AllErrors() []error { return m }
+func (m UpdateShareServerMultiError) AllErrors() []error { return m }
 
-// UpdateServerShareForUserValidationError is the validation error returned by
-// UpdateServerShareForUser.Validate if the designated constraints aren't met.
-type UpdateServerShareForUserValidationError struct {
+// UpdateShareServerValidationError is the validation error returned by
+// UpdateShareServer.Validate if the designated constraints aren't met.
+type UpdateShareServerValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1964,24 +1490,24 @@ type UpdateServerShareForUserValidationError struct {
 }
 
 // Field function returns field value.
-func (e UpdateServerShareForUserValidationError) Field() string { return e.field }
+func (e UpdateShareServerValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e UpdateServerShareForUserValidationError) Reason() string { return e.reason }
+func (e UpdateShareServerValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e UpdateServerShareForUserValidationError) Cause() error { return e.cause }
+func (e UpdateShareServerValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e UpdateServerShareForUserValidationError) Key() bool { return e.key }
+func (e UpdateShareServerValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e UpdateServerShareForUserValidationError) ErrorName() string {
-	return "UpdateServerShareForUserValidationError"
+func (e UpdateShareServerValidationError) ErrorName() string {
+	return "UpdateShareServerValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e UpdateServerShareForUserValidationError) Error() string {
+func (e UpdateShareServerValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1993,14 +1519,14 @@ func (e UpdateServerShareForUserValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sUpdateServerShareForUser.%s: %s%s",
+		"invalid %sUpdateShareServer.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = UpdateServerShareForUserValidationError{}
+var _ error = UpdateShareServerValidationError{}
 
 var _ interface {
 	Field() string
@@ -2008,24 +1534,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = UpdateServerShareForUserValidationError{}
+} = UpdateShareServerValidationError{}
 
-// Validate checks the field values on DeleteServerShareForUser with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *DeleteServerShareForUser) Validate() error {
+// Validate checks the field values on DeleteShareServer with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *DeleteShareServer) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on DeleteServerShareForUser with the
-// rules defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on DeleteShareServer with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// DeleteServerShareForUserMultiError, or nil if none found.
-func (m *DeleteServerShareForUser) ValidateAll() error {
+// DeleteShareServerMultiError, or nil if none found.
+func (m *DeleteShareServer) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *DeleteServerShareForUser) validate(all bool) error {
+func (m *DeleteShareServer) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -2033,19 +1559,19 @@ func (m *DeleteServerShareForUser) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return DeleteServerShareForUserMultiError(errors)
+		return DeleteShareServerMultiError(errors)
 	}
 
 	return nil
 }
 
-// DeleteServerShareForUserMultiError is an error wrapping multiple validation
-// errors returned by DeleteServerShareForUser.ValidateAll() if the designated
-// constraints aren't met.
-type DeleteServerShareForUserMultiError []error
+// DeleteShareServerMultiError is an error wrapping multiple validation errors
+// returned by DeleteShareServer.ValidateAll() if the designated constraints
+// aren't met.
+type DeleteShareServerMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m DeleteServerShareForUserMultiError) Error() string {
+func (m DeleteShareServerMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -2054,11 +1580,11 @@ func (m DeleteServerShareForUserMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m DeleteServerShareForUserMultiError) AllErrors() []error { return m }
+func (m DeleteShareServerMultiError) AllErrors() []error { return m }
 
-// DeleteServerShareForUserValidationError is the validation error returned by
-// DeleteServerShareForUser.Validate if the designated constraints aren't met.
-type DeleteServerShareForUserValidationError struct {
+// DeleteShareServerValidationError is the validation error returned by
+// DeleteShareServer.Validate if the designated constraints aren't met.
+type DeleteShareServerValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -2066,24 +1592,24 @@ type DeleteServerShareForUserValidationError struct {
 }
 
 // Field function returns field value.
-func (e DeleteServerShareForUserValidationError) Field() string { return e.field }
+func (e DeleteShareServerValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e DeleteServerShareForUserValidationError) Reason() string { return e.reason }
+func (e DeleteShareServerValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e DeleteServerShareForUserValidationError) Cause() error { return e.cause }
+func (e DeleteShareServerValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e DeleteServerShareForUserValidationError) Key() bool { return e.key }
+func (e DeleteShareServerValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e DeleteServerShareForUserValidationError) ErrorName() string {
-	return "DeleteServerShareForUserValidationError"
+func (e DeleteShareServerValidationError) ErrorName() string {
+	return "DeleteShareServerValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e DeleteServerShareForUserValidationError) Error() string {
+func (e DeleteShareServerValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -2095,14 +1621,14 @@ func (e DeleteServerShareForUserValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sDeleteServerShareForUser.%s: %s%s",
+		"invalid %sDeleteShareServer.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = DeleteServerShareForUserValidationError{}
+var _ error = DeleteShareServerValidationError{}
 
 var _ interface {
 	Field() string
@@ -2110,7 +1636,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = DeleteServerShareForUserValidationError{}
+} = DeleteShareServerValidationError{}
 
 // Validate checks the field values on ListServers_Request with the rules
 // defined in the proto definition for this message. If any rules are
@@ -2398,36 +1924,28 @@ func (m *Server_Request) validate(all bool) error {
 
 	}
 
-	if m.GetServerId() != "" {
-
-		if err := m._validateUuid(m.GetServerId()); err != nil {
-			err = Server_RequestValidationError{
-				field:  "ServerId",
-				reason: "value must be a valid UUID",
-				cause:  err,
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = Server_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
 		}
-
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	if m.GetProjectId() != "" {
-
-		if err := m._validateUuid(m.GetProjectId()); err != nil {
-			err = Server_RequestValidationError{
-				field:  "ProjectId",
-				reason: "value must be a valid UUID",
-				cause:  err,
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
+	if err := m._validateUuid(m.GetProjectId()); err != nil {
+		err = Server_RequestValidationError{
+			field:  "ProjectId",
+			reason: "value must be a valid UUID",
+			cause:  err,
 		}
-
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	if len(errors) > 0 {
@@ -2767,7 +2285,7 @@ func (m *AddServer_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if _, ok := ServerAuth_name[int32(m.GetAuth())]; !ok {
+	if _, ok := Auth_name[int32(m.GetAuth())]; !ok {
 		err := AddServer_RequestValidationError{
 			field:  "Auth",
 			reason: "value must be one of the defined enum values",
@@ -3067,22 +2585,6 @@ func (m *UpdateServer_Request) validate(all bool) error {
 
 	}
 
-	if m.GetServerId() != "" {
-
-		if err := m._validateUuid(m.GetServerId()); err != nil {
-			err = UpdateServer_RequestValidationError{
-				field:  "ServerId",
-				reason: "value must be a valid UUID",
-				cause:  err,
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
-		}
-
-	}
-
 	if err := m._validateUuid(m.GetProjectId()); err != nil {
 		err = UpdateServer_RequestValidationError{
 			field:  "ProjectId",
@@ -3095,103 +2597,102 @@ func (m *UpdateServer_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if err := m._validateHostname(m.GetAddress()); err != nil {
-		if ip := net.ParseIP(m.GetAddress()); ip == nil {
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = UpdateServer_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	switch v := m.Setting.(type) {
+	case *UpdateServer_Request_Info:
+		if v == nil {
 			err := UpdateServer_RequestValidationError{
-				field:  "Address",
-				reason: "value must be a valid hostname, or ip address",
+				field:  "Setting",
+				reason: "oneof value cannot be a typed-nil",
 			}
 			if !all {
 				return err
 			}
 			errors = append(errors, err)
 		}
+
+		if all {
+			switch v := interface{}(m.GetInfo()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, UpdateServer_RequestValidationError{
+						field:  "Info",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, UpdateServer_RequestValidationError{
+						field:  "Info",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetInfo()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return UpdateServer_RequestValidationError{
+					field:  "Info",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *UpdateServer_Request_Audit:
+		if v == nil {
+			err := UpdateServer_RequestValidationError{
+				field:  "Setting",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for Audit
+	case *UpdateServer_Request_Active:
+		if v == nil {
+			err := UpdateServer_RequestValidationError{
+				field:  "Setting",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for Active
+	case *UpdateServer_Request_Online:
+		if v == nil {
+			err := UpdateServer_RequestValidationError{
+				field:  "Setting",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for Online
+	default:
+		_ = v // ensures v is used
 	}
-
-	if val := m.GetPort(); val < 1 || val >= 65536 {
-		err := UpdateServer_RequestValidationError{
-			field:  "Port",
-			reason: "value must be inside range [1, 65536)",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if l := utf8.RuneCountInString(m.GetLogin()); l < 3 || l > 20 {
-		err := UpdateServer_RequestValidationError{
-			field:  "Login",
-			reason: "value length must be between 3 and 20 runes, inclusive",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if !_UpdateServer_Request_Login_Pattern.MatchString(m.GetLogin()) {
-		err := UpdateServer_RequestValidationError{
-			field:  "Login",
-			reason: "value does not match regex pattern \"^[a-z0-9]+$\"",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if l := utf8.RuneCountInString(m.GetTitle()); l < 3 || l > 128 {
-		err := UpdateServer_RequestValidationError{
-			field:  "Title",
-			reason: "value length must be between 3 and 128 runes, inclusive",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	// no validation rules for PrivateDescription
-
-	// no validation rules for PublicDescription
-
-	// no validation rules for Audit
-
-	// no validation rules for Active
 
 	if len(errors) > 0 {
 		return UpdateServer_RequestMultiError(errors)
-	}
-
-	return nil
-}
-
-func (m *UpdateServer_Request) _validateHostname(host string) error {
-	s := strings.ToLower(strings.TrimSuffix(host, "."))
-
-	if len(host) > 253 {
-		return errors.New("hostname cannot exceed 253 characters")
-	}
-
-	for _, part := range strings.Split(s, ".") {
-		if l := len(part); l == 0 || l > 63 {
-			return errors.New("hostname part must be non-empty and cannot exceed 63 characters")
-		}
-
-		if part[0] == '-' {
-			return errors.New("hostname parts cannot begin with hyphens")
-		}
-
-		if part[len(part)-1] == '-' {
-			return errors.New("hostname parts cannot end with hyphens")
-		}
-
-		for _, r := range part {
-			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
-				return fmt.Errorf("hostname parts can only contain alphanumeric characters or hyphens, got %q", string(r))
-			}
-		}
 	}
 
 	return nil
@@ -3277,8 +2778,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = UpdateServer_RequestValidationError{}
-
-var _UpdateServer_Request_Login_Pattern = regexp.MustCompile("^[a-z0-9]+$")
 
 // Validate checks the field values on UpdateServer_Response with the rules
 // defined in the proto definition for this message. If any rules are
@@ -3382,6 +2881,201 @@ var _ interface {
 	ErrorName() string
 } = UpdateServer_ResponseValidationError{}
 
+// Validate checks the field values on UpdateServer_Info with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *UpdateServer_Info) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UpdateServer_Info with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UpdateServer_InfoMultiError, or nil if none found.
+func (m *UpdateServer_Info) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UpdateServer_Info) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateHostname(m.GetAddress()); err != nil {
+		if ip := net.ParseIP(m.GetAddress()); ip == nil {
+			err := UpdateServer_InfoValidationError{
+				field:  "Address",
+				reason: "value must be a valid hostname, or ip address",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+	}
+
+	if val := m.GetPort(); val < 1 || val >= 65536 {
+		err := UpdateServer_InfoValidationError{
+			field:  "Port",
+			reason: "value must be inside range [1, 65536)",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if l := utf8.RuneCountInString(m.GetLogin()); l < 3 || l > 20 {
+		err := UpdateServer_InfoValidationError{
+			field:  "Login",
+			reason: "value length must be between 3 and 20 runes, inclusive",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if !_UpdateServer_Info_Login_Pattern.MatchString(m.GetLogin()) {
+		err := UpdateServer_InfoValidationError{
+			field:  "Login",
+			reason: "value does not match regex pattern \"^[a-z0-9]+$\"",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if l := utf8.RuneCountInString(m.GetTitle()); l < 3 || l > 128 {
+		err := UpdateServer_InfoValidationError{
+			field:  "Title",
+			reason: "value length must be between 3 and 128 runes, inclusive",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	// no validation rules for PrivateDescription
+
+	// no validation rules for PublicDescription
+
+	if len(errors) > 0 {
+		return UpdateServer_InfoMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *UpdateServer_Info) _validateHostname(host string) error {
+	s := strings.ToLower(strings.TrimSuffix(host, "."))
+
+	if len(host) > 253 {
+		return errors.New("hostname cannot exceed 253 characters")
+	}
+
+	for _, part := range strings.Split(s, ".") {
+		if l := len(part); l == 0 || l > 63 {
+			return errors.New("hostname part must be non-empty and cannot exceed 63 characters")
+		}
+
+		if part[0] == '-' {
+			return errors.New("hostname parts cannot begin with hyphens")
+		}
+
+		if part[len(part)-1] == '-' {
+			return errors.New("hostname parts cannot end with hyphens")
+		}
+
+		for _, r := range part {
+			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+				return fmt.Errorf("hostname parts can only contain alphanumeric characters or hyphens, got %q", string(r))
+			}
+		}
+	}
+
+	return nil
+}
+
+// UpdateServer_InfoMultiError is an error wrapping multiple validation errors
+// returned by UpdateServer_Info.ValidateAll() if the designated constraints
+// aren't met.
+type UpdateServer_InfoMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UpdateServer_InfoMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UpdateServer_InfoMultiError) AllErrors() []error { return m }
+
+// UpdateServer_InfoValidationError is the validation error returned by
+// UpdateServer_Info.Validate if the designated constraints aren't met.
+type UpdateServer_InfoValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdateServer_InfoValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdateServer_InfoValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdateServer_InfoValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdateServer_InfoValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdateServer_InfoValidationError) ErrorName() string {
+	return "UpdateServer_InfoValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UpdateServer_InfoValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdateServer_Info.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdateServer_InfoValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdateServer_InfoValidationError{}
+
+var _UpdateServer_Info_Login_Pattern = regexp.MustCompile("^[a-z0-9]+$")
+
 // Validate checks the field values on DeleteServer_Request with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -3432,20 +3126,16 @@ func (m *DeleteServer_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if m.GetServerId() != "" {
-
-		if err := m._validateUuid(m.GetServerId()); err != nil {
-			err = DeleteServer_RequestValidationError{
-				field:  "ServerId",
-				reason: "value must be a valid UUID",
-				cause:  err,
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = DeleteServer_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
 		}
-
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	if len(errors) > 0 {
@@ -3638,502 +3328,6 @@ var _ interface {
 	ErrorName() string
 } = DeleteServer_ResponseValidationError{}
 
-// Validate checks the field values on UpdateServerOnlineStatus_Request with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *UpdateServerOnlineStatus_Request) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerOnlineStatus_Request with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the result is a list of violation errors wrapped in
-// UpdateServerOnlineStatus_RequestMultiError, or nil if none found.
-func (m *UpdateServerOnlineStatus_Request) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerOnlineStatus_Request) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if m.GetUserId() != "" {
-
-		if err := m._validateUuid(m.GetUserId()); err != nil {
-			err = UpdateServerOnlineStatus_RequestValidationError{
-				field:  "UserId",
-				reason: "value must be a valid UUID",
-				cause:  err,
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
-		}
-
-	}
-
-	if err := m._validateUuid(m.GetServerId()); err != nil {
-		err = UpdateServerOnlineStatus_RequestValidationError{
-			field:  "ServerId",
-			reason: "value must be a valid UUID",
-			cause:  err,
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	// no validation rules for Status
-
-	if len(errors) > 0 {
-		return UpdateServerOnlineStatus_RequestMultiError(errors)
-	}
-
-	return nil
-}
-
-func (m *UpdateServerOnlineStatus_Request) _validateUuid(uuid string) error {
-	if matched := _server_uuidPattern.MatchString(uuid); !matched {
-		return errors.New("invalid uuid format")
-	}
-
-	return nil
-}
-
-// UpdateServerOnlineStatus_RequestMultiError is an error wrapping multiple
-// validation errors returned by
-// UpdateServerOnlineStatus_Request.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerOnlineStatus_RequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerOnlineStatus_RequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerOnlineStatus_RequestMultiError) AllErrors() []error { return m }
-
-// UpdateServerOnlineStatus_RequestValidationError is the validation error
-// returned by UpdateServerOnlineStatus_Request.Validate if the designated
-// constraints aren't met.
-type UpdateServerOnlineStatus_RequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerOnlineStatus_RequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerOnlineStatus_RequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerOnlineStatus_RequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerOnlineStatus_RequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerOnlineStatus_RequestValidationError) ErrorName() string {
-	return "UpdateServerOnlineStatus_RequestValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerOnlineStatus_RequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerOnlineStatus_Request.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerOnlineStatus_RequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerOnlineStatus_RequestValidationError{}
-
-// Validate checks the field values on UpdateServerOnlineStatus_Response with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *UpdateServerOnlineStatus_Response) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerOnlineStatus_Response
-// with the rules defined in the proto definition for this message. If any
-// rules are violated, the result is a list of violation errors wrapped in
-// UpdateServerOnlineStatus_ResponseMultiError, or nil if none found.
-func (m *UpdateServerOnlineStatus_Response) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerOnlineStatus_Response) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(errors) > 0 {
-		return UpdateServerOnlineStatus_ResponseMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerOnlineStatus_ResponseMultiError is an error wrapping multiple
-// validation errors returned by
-// UpdateServerOnlineStatus_Response.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerOnlineStatus_ResponseMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerOnlineStatus_ResponseMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerOnlineStatus_ResponseMultiError) AllErrors() []error { return m }
-
-// UpdateServerOnlineStatus_ResponseValidationError is the validation error
-// returned by UpdateServerOnlineStatus_Response.Validate if the designated
-// constraints aren't met.
-type UpdateServerOnlineStatus_ResponseValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerOnlineStatus_ResponseValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerOnlineStatus_ResponseValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerOnlineStatus_ResponseValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerOnlineStatus_ResponseValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerOnlineStatus_ResponseValidationError) ErrorName() string {
-	return "UpdateServerOnlineStatus_ResponseValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerOnlineStatus_ResponseValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerOnlineStatus_Response.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerOnlineStatus_ResponseValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerOnlineStatus_ResponseValidationError{}
-
-// Validate checks the field values on UpdateServerActiveStatus_Request with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *UpdateServerActiveStatus_Request) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerActiveStatus_Request with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the result is a list of violation errors wrapped in
-// UpdateServerActiveStatus_RequestMultiError, or nil if none found.
-func (m *UpdateServerActiveStatus_Request) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerActiveStatus_Request) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if m.GetUserId() != "" {
-
-		if err := m._validateUuid(m.GetUserId()); err != nil {
-			err = UpdateServerActiveStatus_RequestValidationError{
-				field:  "UserId",
-				reason: "value must be a valid UUID",
-				cause:  err,
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
-		}
-
-	}
-
-	if err := m._validateUuid(m.GetServerId()); err != nil {
-		err = UpdateServerActiveStatus_RequestValidationError{
-			field:  "ServerId",
-			reason: "value must be a valid UUID",
-			cause:  err,
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	// no validation rules for Status
-
-	if len(errors) > 0 {
-		return UpdateServerActiveStatus_RequestMultiError(errors)
-	}
-
-	return nil
-}
-
-func (m *UpdateServerActiveStatus_Request) _validateUuid(uuid string) error {
-	if matched := _server_uuidPattern.MatchString(uuid); !matched {
-		return errors.New("invalid uuid format")
-	}
-
-	return nil
-}
-
-// UpdateServerActiveStatus_RequestMultiError is an error wrapping multiple
-// validation errors returned by
-// UpdateServerActiveStatus_Request.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerActiveStatus_RequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerActiveStatus_RequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerActiveStatus_RequestMultiError) AllErrors() []error { return m }
-
-// UpdateServerActiveStatus_RequestValidationError is the validation error
-// returned by UpdateServerActiveStatus_Request.Validate if the designated
-// constraints aren't met.
-type UpdateServerActiveStatus_RequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerActiveStatus_RequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerActiveStatus_RequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerActiveStatus_RequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerActiveStatus_RequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerActiveStatus_RequestValidationError) ErrorName() string {
-	return "UpdateServerActiveStatus_RequestValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerActiveStatus_RequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerActiveStatus_Request.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerActiveStatus_RequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerActiveStatus_RequestValidationError{}
-
-// Validate checks the field values on UpdateServerActiveStatus_Response with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *UpdateServerActiveStatus_Response) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerActiveStatus_Response
-// with the rules defined in the proto definition for this message. If any
-// rules are violated, the result is a list of violation errors wrapped in
-// UpdateServerActiveStatus_ResponseMultiError, or nil if none found.
-func (m *UpdateServerActiveStatus_Response) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerActiveStatus_Response) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(errors) > 0 {
-		return UpdateServerActiveStatus_ResponseMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerActiveStatus_ResponseMultiError is an error wrapping multiple
-// validation errors returned by
-// UpdateServerActiveStatus_Response.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerActiveStatus_ResponseMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerActiveStatus_ResponseMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerActiveStatus_ResponseMultiError) AllErrors() []error { return m }
-
-// UpdateServerActiveStatus_ResponseValidationError is the validation error
-// returned by UpdateServerActiveStatus_Response.Validate if the designated
-// constraints aren't met.
-type UpdateServerActiveStatus_ResponseValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerActiveStatus_ResponseValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerActiveStatus_ResponseValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerActiveStatus_ResponseValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerActiveStatus_ResponseValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerActiveStatus_ResponseValidationError) ErrorName() string {
-	return "UpdateServerActiveStatus_ResponseValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerActiveStatus_ResponseValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerActiveStatus_Response.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerActiveStatus_ResponseValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerActiveStatus_ResponseValidationError{}
-
 // Validate checks the field values on ServerAccess_Request with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -4184,20 +3378,16 @@ func (m *ServerAccess_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if m.GetServerId() != "" {
-
-		if err := m._validateUuid(m.GetServerId()); err != nil {
-			err = ServerAccess_RequestValidationError{
-				field:  "ServerId",
-				reason: "value must be a valid UUID",
-				cause:  err,
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = ServerAccess_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
 		}
-
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	if len(errors) > 0 {
@@ -4312,15 +3502,63 @@ func (m *ServerAccess_Response) validate(all bool) error {
 
 	// no validation rules for Auth
 
-	// no validation rules for Password
+	switch v := m.Access.(type) {
+	case *ServerAccess_Response_Password:
+		if v == nil {
+			err := ServerAccess_ResponseValidationError{
+				field:  "Access",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for Password
+	case *ServerAccess_Response_Key:
+		if v == nil {
+			err := ServerAccess_ResponseValidationError{
+				field:  "Access",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
-	// no validation rules for PublicKey
+		if all {
+			switch v := interface{}(m.GetKey()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ServerAccess_ResponseValidationError{
+						field:  "Key",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ServerAccess_ResponseValidationError{
+						field:  "Key",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetKey()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ServerAccess_ResponseValidationError{
+					field:  "Key",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
 
-	// no validation rules for PrivateKey
-
-	// no validation rules for PasswordKey
-
-	// no validation rules for FingeprintKey
+	default:
+		_ = v // ensures v is used
+	}
 
 	if len(errors) > 0 {
 		return ServerAccess_ResponseMultiError(errors)
@@ -4402,6 +3640,114 @@ var _ interface {
 	ErrorName() string
 } = ServerAccess_ResponseValidationError{}
 
+// Validate checks the field values on ServerAccess_Key with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *ServerAccess_Key) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ServerAccess_Key with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerAccess_KeyMultiError, or nil if none found.
+func (m *ServerAccess_Key) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ServerAccess_Key) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Public
+
+	// no validation rules for Private
+
+	// no validation rules for Password
+
+	// no validation rules for Fingeprint
+
+	if len(errors) > 0 {
+		return ServerAccess_KeyMultiError(errors)
+	}
+
+	return nil
+}
+
+// ServerAccess_KeyMultiError is an error wrapping multiple validation errors
+// returned by ServerAccess_Key.ValidateAll() if the designated constraints
+// aren't met.
+type ServerAccess_KeyMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ServerAccess_KeyMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ServerAccess_KeyMultiError) AllErrors() []error { return m }
+
+// ServerAccess_KeyValidationError is the validation error returned by
+// ServerAccess_Key.Validate if the designated constraints aren't met.
+type ServerAccess_KeyValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServerAccess_KeyValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServerAccess_KeyValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServerAccess_KeyValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServerAccess_KeyValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServerAccess_KeyValidationError) ErrorName() string { return "ServerAccess_KeyValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ServerAccess_KeyValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServerAccess_Key.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServerAccess_KeyValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServerAccess_KeyValidationError{}
+
 // Validate checks the field values on UpdateServerAccess_Request with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -4452,20 +3798,16 @@ func (m *UpdateServerAccess_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if m.GetServerId() != "" {
-
-		if err := m._validateUuid(m.GetServerId()); err != nil {
-			err = UpdateServerAccess_RequestValidationError{
-				field:  "ServerId",
-				reason: "value must be a valid UUID",
-				cause:  err,
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = UpdateServerAccess_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
 		}
-
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	// no validation rules for Auth
@@ -4717,7 +4059,17 @@ func (m *ServerActivity_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for ServerId
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = ServerActivity_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return ServerActivity_RequestMultiError(errors)
@@ -4959,7 +4311,17 @@ func (m *UpdateServerActivity_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for ServerId
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = UpdateServerActivity_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if all {
 		switch v := interface{}(m.GetActivity()).(type) {
@@ -5182,47 +4544,257 @@ var _ interface {
 	ErrorName() string
 } = UpdateServerActivity_ResponseValidationError{}
 
-// Validate checks the field values on UpdateServerActive_Request with the
-// rules defined in the proto definition for this message. If any rules are
+// Validate checks the field values on UpdateHostKey_Request with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateServerActive_Request) Validate() error {
+func (m *UpdateHostKey_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UpdateServerActive_Request with the
-// rules defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on UpdateHostKey_Request with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// UpdateServerActive_RequestMultiError, or nil if none found.
-func (m *UpdateServerActive_Request) ValidateAll() error {
+// UpdateHostKey_RequestMultiError, or nil if none found.
+func (m *UpdateHostKey_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *UpdateServerActive_Request) validate(all bool) error {
+func (m *UpdateHostKey_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	if m.GetUserId() != "" {
-
-		if err := m._validateUuid(m.GetUserId()); err != nil {
-			err = UpdateServerActive_RequestValidationError{
-				field:  "UserId",
-				reason: "value must be a valid UUID",
-				cause:  err,
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = UpdateHostKey_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
 		}
-
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	if err := m._validateUuid(m.GetServerId()); err != nil {
-		err = UpdateServerActive_RequestValidationError{
-			field:  "ServerId",
+	// no validation rules for Hostkey
+
+	if len(errors) > 0 {
+		return UpdateHostKey_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *UpdateHostKey_Request) _validateUuid(uuid string) error {
+	if matched := _server_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// UpdateHostKey_RequestMultiError is an error wrapping multiple validation
+// errors returned by UpdateHostKey_Request.ValidateAll() if the designated
+// constraints aren't met.
+type UpdateHostKey_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UpdateHostKey_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UpdateHostKey_RequestMultiError) AllErrors() []error { return m }
+
+// UpdateHostKey_RequestValidationError is the validation error returned by
+// UpdateHostKey_Request.Validate if the designated constraints aren't met.
+type UpdateHostKey_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdateHostKey_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdateHostKey_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdateHostKey_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdateHostKey_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdateHostKey_RequestValidationError) ErrorName() string {
+	return "UpdateHostKey_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UpdateHostKey_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdateHostKey_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdateHostKey_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdateHostKey_RequestValidationError{}
+
+// Validate checks the field values on UpdateHostKey_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UpdateHostKey_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UpdateHostKey_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UpdateHostKey_ResponseMultiError, or nil if none found.
+func (m *UpdateHostKey_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UpdateHostKey_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return UpdateHostKey_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// UpdateHostKey_ResponseMultiError is an error wrapping multiple validation
+// errors returned by UpdateHostKey_Response.ValidateAll() if the designated
+// constraints aren't met.
+type UpdateHostKey_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UpdateHostKey_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UpdateHostKey_ResponseMultiError) AllErrors() []error { return m }
+
+// UpdateHostKey_ResponseValidationError is the validation error returned by
+// UpdateHostKey_Response.Validate if the designated constraints aren't met.
+type UpdateHostKey_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdateHostKey_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdateHostKey_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdateHostKey_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdateHostKey_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdateHostKey_ResponseValidationError) ErrorName() string {
+	return "UpdateHostKey_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UpdateHostKey_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdateHostKey_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdateHostKey_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdateHostKey_ResponseValidationError{}
+
+// Validate checks the field values on AddSession_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AddSession_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddSession_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddSession_RequestMultiError, or nil if none found.
+func (m *AddSession_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddSession_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetAccountId()); err != nil {
+		err = AddSession_RequestValidationError{
+			field:  "AccountId",
 			reason: "value must be a valid UUID",
 			cause:  err,
 		}
@@ -5234,438 +4806,11 @@ func (m *UpdateServerActive_Request) validate(all bool) error {
 
 	// no validation rules for Status
 
-	if len(errors) > 0 {
-		return UpdateServerActive_RequestMultiError(errors)
-	}
-
-	return nil
-}
-
-func (m *UpdateServerActive_Request) _validateUuid(uuid string) error {
-	if matched := _server_uuidPattern.MatchString(uuid); !matched {
-		return errors.New("invalid uuid format")
-	}
-
-	return nil
-}
-
-// UpdateServerActive_RequestMultiError is an error wrapping multiple
-// validation errors returned by UpdateServerActive_Request.ValidateAll() if
-// the designated constraints aren't met.
-type UpdateServerActive_RequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerActive_RequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerActive_RequestMultiError) AllErrors() []error { return m }
-
-// UpdateServerActive_RequestValidationError is the validation error returned
-// by UpdateServerActive_Request.Validate if the designated constraints aren't met.
-type UpdateServerActive_RequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerActive_RequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerActive_RequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerActive_RequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerActive_RequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerActive_RequestValidationError) ErrorName() string {
-	return "UpdateServerActive_RequestValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerActive_RequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerActive_Request.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerActive_RequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerActive_RequestValidationError{}
-
-// Validate checks the field values on UpdateServerActive_Response with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateServerActive_Response) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerActive_Response with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateServerActive_ResponseMultiError, or nil if none found.
-func (m *UpdateServerActive_Response) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerActive_Response) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(errors) > 0 {
-		return UpdateServerActive_ResponseMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerActive_ResponseMultiError is an error wrapping multiple
-// validation errors returned by UpdateServerActive_Response.ValidateAll() if
-// the designated constraints aren't met.
-type UpdateServerActive_ResponseMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerActive_ResponseMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerActive_ResponseMultiError) AllErrors() []error { return m }
-
-// UpdateServerActive_ResponseValidationError is the validation error returned
-// by UpdateServerActive_Response.Validate if the designated constraints
-// aren't met.
-type UpdateServerActive_ResponseValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerActive_ResponseValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerActive_ResponseValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerActive_ResponseValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerActive_ResponseValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerActive_ResponseValidationError) ErrorName() string {
-	return "UpdateServerActive_ResponseValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerActive_ResponseValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerActive_Response.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerActive_ResponseValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerActive_ResponseValidationError{}
-
-// Validate checks the field values on UpdateServerHostKey_Request with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateServerHostKey_Request) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerHostKey_Request with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateServerHostKey_RequestMultiError, or nil if none found.
-func (m *UpdateServerHostKey_Request) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerHostKey_Request) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for ServerId
-
-	// no validation rules for Hostkey
-
-	if len(errors) > 0 {
-		return UpdateServerHostKey_RequestMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerHostKey_RequestMultiError is an error wrapping multiple
-// validation errors returned by UpdateServerHostKey_Request.ValidateAll() if
-// the designated constraints aren't met.
-type UpdateServerHostKey_RequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerHostKey_RequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerHostKey_RequestMultiError) AllErrors() []error { return m }
-
-// UpdateServerHostKey_RequestValidationError is the validation error returned
-// by UpdateServerHostKey_Request.Validate if the designated constraints
-// aren't met.
-type UpdateServerHostKey_RequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerHostKey_RequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerHostKey_RequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerHostKey_RequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerHostKey_RequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerHostKey_RequestValidationError) ErrorName() string {
-	return "UpdateServerHostKey_RequestValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerHostKey_RequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerHostKey_Request.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerHostKey_RequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerHostKey_RequestValidationError{}
-
-// Validate checks the field values on UpdateServerHostKey_Response with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateServerHostKey_Response) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerHostKey_Response with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateServerHostKey_ResponseMultiError, or nil if none found.
-func (m *UpdateServerHostKey_Response) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerHostKey_Response) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(errors) > 0 {
-		return UpdateServerHostKey_ResponseMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerHostKey_ResponseMultiError is an error wrapping multiple
-// validation errors returned by UpdateServerHostKey_Response.ValidateAll() if
-// the designated constraints aren't met.
-type UpdateServerHostKey_ResponseMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerHostKey_ResponseMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerHostKey_ResponseMultiError) AllErrors() []error { return m }
-
-// UpdateServerHostKey_ResponseValidationError is the validation error returned
-// by UpdateServerHostKey_Response.Validate if the designated constraints
-// aren't met.
-type UpdateServerHostKey_ResponseValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerHostKey_ResponseValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerHostKey_ResponseValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerHostKey_ResponseValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerHostKey_ResponseValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerHostKey_ResponseValidationError) ErrorName() string {
-	return "UpdateServerHostKey_ResponseValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerHostKey_ResponseValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerHostKey_Response.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerHostKey_ResponseValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerHostKey_ResponseValidationError{}
-
-// Validate checks the field values on AddServerSession_Request with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *AddServerSession_Request) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on AddServerSession_Request with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// AddServerSession_RequestMultiError, or nil if none found.
-func (m *AddServerSession_Request) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *AddServerSession_Request) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for AccountId
-
-	// no validation rules for Status
-
 	if all {
 		switch v := interface{}(m.GetCreated()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, AddServerSession_RequestValidationError{
+				errors = append(errors, AddSession_RequestValidationError{
 					field:  "Created",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -5673,7 +4818,7 @@ func (m *AddServerSession_Request) validate(all bool) error {
 			}
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
-				errors = append(errors, AddServerSession_RequestValidationError{
+				errors = append(errors, AddSession_RequestValidationError{
 					field:  "Created",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -5682,7 +4827,7 @@ func (m *AddServerSession_Request) validate(all bool) error {
 		}
 	} else if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
-			return AddServerSession_RequestValidationError{
+			return AddSession_RequestValidationError{
 				field:  "Created",
 				reason: "embedded message failed validation",
 				cause:  err,
@@ -5692,22 +4837,28 @@ func (m *AddServerSession_Request) validate(all bool) error {
 
 	// no validation rules for Message
 
-	// no validation rules for Uuid
-
 	if len(errors) > 0 {
-		return AddServerSession_RequestMultiError(errors)
+		return AddSession_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// AddServerSession_RequestMultiError is an error wrapping multiple validation
-// errors returned by AddServerSession_Request.ValidateAll() if the designated
-// constraints aren't met.
-type AddServerSession_RequestMultiError []error
+func (m *AddSession_Request) _validateUuid(uuid string) error {
+	if matched := _server_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// AddSession_RequestMultiError is an error wrapping multiple validation errors
+// returned by AddSession_Request.ValidateAll() if the designated constraints
+// aren't met.
+type AddSession_RequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AddServerSession_RequestMultiError) Error() string {
+func (m AddSession_RequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -5716,11 +4867,11 @@ func (m AddServerSession_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AddServerSession_RequestMultiError) AllErrors() []error { return m }
+func (m AddSession_RequestMultiError) AllErrors() []error { return m }
 
-// AddServerSession_RequestValidationError is the validation error returned by
-// AddServerSession_Request.Validate if the designated constraints aren't met.
-type AddServerSession_RequestValidationError struct {
+// AddSession_RequestValidationError is the validation error returned by
+// AddSession_Request.Validate if the designated constraints aren't met.
+type AddSession_RequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -5728,24 +4879,24 @@ type AddServerSession_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e AddServerSession_RequestValidationError) Field() string { return e.field }
+func (e AddSession_RequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AddServerSession_RequestValidationError) Reason() string { return e.reason }
+func (e AddSession_RequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AddServerSession_RequestValidationError) Cause() error { return e.cause }
+func (e AddSession_RequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AddServerSession_RequestValidationError) Key() bool { return e.key }
+func (e AddSession_RequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AddServerSession_RequestValidationError) ErrorName() string {
-	return "AddServerSession_RequestValidationError"
+func (e AddSession_RequestValidationError) ErrorName() string {
+	return "AddSession_RequestValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e AddServerSession_RequestValidationError) Error() string {
+func (e AddSession_RequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -5757,14 +4908,14 @@ func (e AddServerSession_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAddServerSession_Request.%s: %s%s",
+		"invalid %sAddSession_Request.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AddServerSession_RequestValidationError{}
+var _ error = AddSession_RequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -5772,24 +4923,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AddServerSession_RequestValidationError{}
+} = AddSession_RequestValidationError{}
 
-// Validate checks the field values on AddServerSession_Response with the rules
+// Validate checks the field values on AddSession_Response with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *AddServerSession_Response) Validate() error {
+func (m *AddSession_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AddServerSession_Response with the
-// rules defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on AddSession_Response with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// AddServerSession_ResponseMultiError, or nil if none found.
-func (m *AddServerSession_Response) ValidateAll() error {
+// AddSession_ResponseMultiError, or nil if none found.
+func (m *AddSession_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AddServerSession_Response) validate(all bool) error {
+func (m *AddSession_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -5799,19 +4950,19 @@ func (m *AddServerSession_Response) validate(all bool) error {
 	// no validation rules for SessionId
 
 	if len(errors) > 0 {
-		return AddServerSession_ResponseMultiError(errors)
+		return AddSession_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// AddServerSession_ResponseMultiError is an error wrapping multiple validation
-// errors returned by AddServerSession_Response.ValidateAll() if the
-// designated constraints aren't met.
-type AddServerSession_ResponseMultiError []error
+// AddSession_ResponseMultiError is an error wrapping multiple validation
+// errors returned by AddSession_Response.ValidateAll() if the designated
+// constraints aren't met.
+type AddSession_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AddServerSession_ResponseMultiError) Error() string {
+func (m AddSession_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -5820,11 +4971,11 @@ func (m AddServerSession_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AddServerSession_ResponseMultiError) AllErrors() []error { return m }
+func (m AddSession_ResponseMultiError) AllErrors() []error { return m }
 
-// AddServerSession_ResponseValidationError is the validation error returned by
-// AddServerSession_Response.Validate if the designated constraints aren't met.
-type AddServerSession_ResponseValidationError struct {
+// AddSession_ResponseValidationError is the validation error returned by
+// AddSession_Response.Validate if the designated constraints aren't met.
+type AddSession_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -5832,24 +4983,24 @@ type AddServerSession_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e AddServerSession_ResponseValidationError) Field() string { return e.field }
+func (e AddSession_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AddServerSession_ResponseValidationError) Reason() string { return e.reason }
+func (e AddSession_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AddServerSession_ResponseValidationError) Cause() error { return e.cause }
+func (e AddSession_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AddServerSession_ResponseValidationError) Key() bool { return e.key }
+func (e AddSession_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AddServerSession_ResponseValidationError) ErrorName() string {
-	return "AddServerSession_ResponseValidationError"
+func (e AddSession_ResponseValidationError) ErrorName() string {
+	return "AddSession_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e AddServerSession_ResponseValidationError) Error() string {
+func (e AddSession_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -5861,14 +5012,14 @@ func (e AddServerSession_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAddServerSession_Response.%s: %s%s",
+		"invalid %sAddSession_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AddServerSession_ResponseValidationError{}
+var _ error = AddSession_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -5876,7 +5027,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AddServerSession_ResponseValidationError{}
+} = AddSession_ResponseValidationError{}
 
 // Validate checks the field values on ServerNameByID_Request with the rules
 // defined in the proto definition for this message. If any rules are
@@ -5916,6 +5067,18 @@ func (m *ServerNameByID_Request) validate(all bool) error {
 
 	}
 
+	if err := m._validateUuid(m.GetProjectId()); err != nil {
+		err = ServerNameByID_RequestValidationError{
+			field:  "ProjectId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	if err := m._validateUuid(m.GetServerId()); err != nil {
 		err = ServerNameByID_RequestValidationError{
 			field:  "ServerId",
@@ -5926,22 +5089,6 @@ func (m *ServerNameByID_Request) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-	}
-
-	if m.GetProjectId() != "" {
-
-		if err := m._validateUuid(m.GetProjectId()); err != nil {
-			err = ServerNameByID_RequestValidationError{
-				field:  "ProjectId",
-				reason: "value must be a valid UUID",
-				cause:  err,
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
-		}
-
 	}
 
 	if len(errors) > 0 {
@@ -6136,22 +5283,22 @@ var _ interface {
 	ErrorName() string
 } = ServerNameByID_ResponseValidationError{}
 
-// Validate checks the field values on ListServersShareForUser_Request with the
-// rules defined in the proto definition for this message. If any rules are
+// Validate checks the field values on ListShareServers_Request with the rules
+// defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *ListServersShareForUser_Request) Validate() error {
+func (m *ListShareServers_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ListServersShareForUser_Request with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the result is a list of violation errors wrapped in
-// ListServersShareForUser_RequestMultiError, or nil if none found.
-func (m *ListServersShareForUser_Request) ValidateAll() error {
+// ValidateAll checks the field values on ListShareServers_Request with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListShareServers_RequestMultiError, or nil if none found.
+func (m *ListShareServers_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ListServersShareForUser_Request) validate(all bool) error {
+func (m *ListShareServers_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -6167,7 +5314,7 @@ func (m *ListServersShareForUser_Request) validate(all bool) error {
 	if m.GetUserId() != "" {
 
 		if err := m._validateUuid(m.GetUserId()); err != nil {
-			err = ListServersShareForUser_RequestValidationError{
+			err = ListShareServers_RequestValidationError{
 				field:  "UserId",
 				reason: "value must be a valid UUID",
 				cause:  err,
@@ -6181,13 +5328,13 @@ func (m *ListServersShareForUser_Request) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return ListServersShareForUser_RequestMultiError(errors)
+		return ListShareServers_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-func (m *ListServersShareForUser_Request) _validateUuid(uuid string) error {
+func (m *ListShareServers_Request) _validateUuid(uuid string) error {
 	if matched := _server_uuidPattern.MatchString(uuid); !matched {
 		return errors.New("invalid uuid format")
 	}
@@ -6195,13 +5342,13 @@ func (m *ListServersShareForUser_Request) _validateUuid(uuid string) error {
 	return nil
 }
 
-// ListServersShareForUser_RequestMultiError is an error wrapping multiple
-// validation errors returned by ListServersShareForUser_Request.ValidateAll()
-// if the designated constraints aren't met.
-type ListServersShareForUser_RequestMultiError []error
+// ListShareServers_RequestMultiError is an error wrapping multiple validation
+// errors returned by ListShareServers_Request.ValidateAll() if the designated
+// constraints aren't met.
+type ListShareServers_RequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ListServersShareForUser_RequestMultiError) Error() string {
+func (m ListShareServers_RequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -6210,12 +5357,11 @@ func (m ListServersShareForUser_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ListServersShareForUser_RequestMultiError) AllErrors() []error { return m }
+func (m ListShareServers_RequestMultiError) AllErrors() []error { return m }
 
-// ListServersShareForUser_RequestValidationError is the validation error
-// returned by ListServersShareForUser_Request.Validate if the designated
-// constraints aren't met.
-type ListServersShareForUser_RequestValidationError struct {
+// ListShareServers_RequestValidationError is the validation error returned by
+// ListShareServers_Request.Validate if the designated constraints aren't met.
+type ListShareServers_RequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -6223,24 +5369,24 @@ type ListServersShareForUser_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e ListServersShareForUser_RequestValidationError) Field() string { return e.field }
+func (e ListShareServers_RequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ListServersShareForUser_RequestValidationError) Reason() string { return e.reason }
+func (e ListShareServers_RequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ListServersShareForUser_RequestValidationError) Cause() error { return e.cause }
+func (e ListShareServers_RequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ListServersShareForUser_RequestValidationError) Key() bool { return e.key }
+func (e ListShareServers_RequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ListServersShareForUser_RequestValidationError) ErrorName() string {
-	return "ListServersShareForUser_RequestValidationError"
+func (e ListShareServers_RequestValidationError) ErrorName() string {
+	return "ListShareServers_RequestValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e ListServersShareForUser_RequestValidationError) Error() string {
+func (e ListShareServers_RequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -6252,14 +5398,14 @@ func (e ListServersShareForUser_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sListServersShareForUser_Request.%s: %s%s",
+		"invalid %sListShareServers_Request.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ListServersShareForUser_RequestValidationError{}
+var _ error = ListShareServers_RequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -6267,25 +5413,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ListServersShareForUser_RequestValidationError{}
+} = ListShareServers_RequestValidationError{}
 
-// Validate checks the field values on ListServersShareForUser_Response with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *ListServersShareForUser_Response) Validate() error {
+// Validate checks the field values on ListShareServers_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ListShareServers_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ListServersShareForUser_Response with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the result is a list of violation errors wrapped in
-// ListServersShareForUser_ResponseMultiError, or nil if none found.
-func (m *ListServersShareForUser_Response) ValidateAll() error {
+// ValidateAll checks the field values on ListShareServers_Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListShareServers_ResponseMultiError, or nil if none found.
+func (m *ListShareServers_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ListServersShareForUser_Response) validate(all bool) error {
+func (m *ListShareServers_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -6301,7 +5446,7 @@ func (m *ListServersShareForUser_Response) validate(all bool) error {
 			switch v := interface{}(item).(type) {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, ListServersShareForUser_ResponseValidationError{
+					errors = append(errors, ListShareServers_ResponseValidationError{
 						field:  fmt.Sprintf("Servers[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -6309,7 +5454,7 @@ func (m *ListServersShareForUser_Response) validate(all bool) error {
 				}
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
-					errors = append(errors, ListServersShareForUser_ResponseValidationError{
+					errors = append(errors, ListShareServers_ResponseValidationError{
 						field:  fmt.Sprintf("Servers[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -6318,7 +5463,7 @@ func (m *ListServersShareForUser_Response) validate(all bool) error {
 			}
 		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
-				return ListServersShareForUser_ResponseValidationError{
+				return ListShareServers_ResponseValidationError{
 					field:  fmt.Sprintf("Servers[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -6329,20 +5474,19 @@ func (m *ListServersShareForUser_Response) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return ListServersShareForUser_ResponseMultiError(errors)
+		return ListShareServers_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// ListServersShareForUser_ResponseMultiError is an error wrapping multiple
-// validation errors returned by
-// ListServersShareForUser_Response.ValidateAll() if the designated
-// constraints aren't met.
-type ListServersShareForUser_ResponseMultiError []error
+// ListShareServers_ResponseMultiError is an error wrapping multiple validation
+// errors returned by ListShareServers_Response.ValidateAll() if the
+// designated constraints aren't met.
+type ListShareServers_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ListServersShareForUser_ResponseMultiError) Error() string {
+func (m ListShareServers_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -6351,12 +5495,11 @@ func (m ListServersShareForUser_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ListServersShareForUser_ResponseMultiError) AllErrors() []error { return m }
+func (m ListShareServers_ResponseMultiError) AllErrors() []error { return m }
 
-// ListServersShareForUser_ResponseValidationError is the validation error
-// returned by ListServersShareForUser_Response.Validate if the designated
-// constraints aren't met.
-type ListServersShareForUser_ResponseValidationError struct {
+// ListShareServers_ResponseValidationError is the validation error returned by
+// ListShareServers_Response.Validate if the designated constraints aren't met.
+type ListShareServers_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -6364,24 +5507,24 @@ type ListServersShareForUser_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e ListServersShareForUser_ResponseValidationError) Field() string { return e.field }
+func (e ListShareServers_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ListServersShareForUser_ResponseValidationError) Reason() string { return e.reason }
+func (e ListShareServers_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ListServersShareForUser_ResponseValidationError) Cause() error { return e.cause }
+func (e ListShareServers_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ListServersShareForUser_ResponseValidationError) Key() bool { return e.key }
+func (e ListShareServers_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ListServersShareForUser_ResponseValidationError) ErrorName() string {
-	return "ListServersShareForUser_ResponseValidationError"
+func (e ListShareServers_ResponseValidationError) ErrorName() string {
+	return "ListShareServers_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e ListServersShareForUser_ResponseValidationError) Error() string {
+func (e ListShareServers_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -6393,14 +5536,14 @@ func (e ListServersShareForUser_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sListServersShareForUser_Response.%s: %s%s",
+		"invalid %sListShareServers_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ListServersShareForUser_ResponseValidationError{}
+var _ error = ListShareServers_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -6408,26 +5551,26 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ListServersShareForUser_ResponseValidationError{}
+} = ListShareServers_ResponseValidationError{}
 
-// Validate checks the field values on
-// ListServersShareForUser_Response_SharedServer with the rules defined in the
-// proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *ListServersShareForUser_Response_SharedServer) Validate() error {
+// Validate checks the field values on ListShareServers_Response_SharedServer
+// with the rules defined in the proto definition for this message. If any
+// rules are violated, the first error encountered is returned, or nil if
+// there are no violations.
+func (m *ListShareServers_Response_SharedServer) Validate() error {
 	return m.validate(false)
 }
 
 // ValidateAll checks the field values on
-// ListServersShareForUser_Response_SharedServer with the rules defined in the
-// proto definition for this message. If any rules are violated, the result is
-// a list of violation errors wrapped in
-// ListServersShareForUser_Response_SharedServerMultiError, or nil if none found.
-func (m *ListServersShareForUser_Response_SharedServer) ValidateAll() error {
+// ListShareServers_Response_SharedServer with the rules defined in the proto
+// definition for this message. If any rules are violated, the result is a
+// list of violation errors wrapped in
+// ListShareServers_Response_SharedServerMultiError, or nil if none found.
+func (m *ListShareServers_Response_SharedServer) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ListServersShareForUser_Response_SharedServer) validate(all bool) error {
+func (m *ListShareServers_Response_SharedServer) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -6438,9 +5581,9 @@ func (m *ListServersShareForUser_Response_SharedServer) validate(all bool) error
 
 	// no validation rules for ProjectLogin
 
-	// no validation rules for ServerToken
-
 	// no validation rules for ServerId
+
+	// no validation rules for ServerToken
 
 	// no validation rules for ServerOnline
 
@@ -6449,35 +5592,34 @@ func (m *ListServersShareForUser_Response_SharedServer) validate(all bool) error
 	// no validation rules for ServerDescription
 
 	if len(errors) > 0 {
-		return ListServersShareForUser_Response_SharedServerMultiError(errors)
+		return ListShareServers_Response_SharedServerMultiError(errors)
 	}
 
 	return nil
 }
 
-// ListServersShareForUser_Response_SharedServerMultiError is an error wrapping
+// ListShareServers_Response_SharedServerMultiError is an error wrapping
 // multiple validation errors returned by
-// ListServersShareForUser_Response_SharedServer.ValidateAll() if the
+// ListShareServers_Response_SharedServer.ValidateAll() if the designated
+// constraints aren't met.
+type ListShareServers_Response_SharedServerMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListShareServers_Response_SharedServerMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListShareServers_Response_SharedServerMultiError) AllErrors() []error { return m }
+
+// ListShareServers_Response_SharedServerValidationError is the validation
+// error returned by ListShareServers_Response_SharedServer.Validate if the
 // designated constraints aren't met.
-type ListServersShareForUser_Response_SharedServerMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ListServersShareForUser_Response_SharedServerMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ListServersShareForUser_Response_SharedServerMultiError) AllErrors() []error { return m }
-
-// ListServersShareForUser_Response_SharedServerValidationError is the
-// validation error returned by
-// ListServersShareForUser_Response_SharedServer.Validate if the designated
-// constraints aren't met.
-type ListServersShareForUser_Response_SharedServerValidationError struct {
+type ListShareServers_Response_SharedServerValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -6485,26 +5627,24 @@ type ListServersShareForUser_Response_SharedServerValidationError struct {
 }
 
 // Field function returns field value.
-func (e ListServersShareForUser_Response_SharedServerValidationError) Field() string { return e.field }
+func (e ListShareServers_Response_SharedServerValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ListServersShareForUser_Response_SharedServerValidationError) Reason() string {
-	return e.reason
-}
+func (e ListShareServers_Response_SharedServerValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ListServersShareForUser_Response_SharedServerValidationError) Cause() error { return e.cause }
+func (e ListShareServers_Response_SharedServerValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ListServersShareForUser_Response_SharedServerValidationError) Key() bool { return e.key }
+func (e ListShareServers_Response_SharedServerValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ListServersShareForUser_Response_SharedServerValidationError) ErrorName() string {
-	return "ListServersShareForUser_Response_SharedServerValidationError"
+func (e ListShareServers_Response_SharedServerValidationError) ErrorName() string {
+	return "ListShareServers_Response_SharedServerValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e ListServersShareForUser_Response_SharedServerValidationError) Error() string {
+func (e ListShareServers_Response_SharedServerValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -6516,14 +5656,14 @@ func (e ListServersShareForUser_Response_SharedServerValidationError) Error() st
 	}
 
 	return fmt.Sprintf(
-		"invalid %sListServersShareForUser_Response_SharedServer.%s: %s%s",
+		"invalid %sListShareServers_Response_SharedServer.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ListServersShareForUser_Response_SharedServerValidationError{}
+var _ error = ListShareServers_Response_SharedServerValidationError{}
 
 var _ interface {
 	Field() string
@@ -6531,50 +5671,446 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ListServersShareForUser_Response_SharedServerValidationError{}
+} = ListShareServers_Response_SharedServerValidationError{}
 
-// Validate checks the field values on AddServerShareForUser_Request with the
+// Validate checks the field values on AddShareServer_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AddShareServer_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddShareServer_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddShareServer_RequestMultiError, or nil if none found.
+func (m *AddShareServer_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddShareServer_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.GetUserId() != "" {
+
+		if err := m._validateUuid(m.GetUserId()); err != nil {
+			err = AddShareServer_RequestValidationError{
+				field:  "UserId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if err := m._validateUuid(m.GetProjectId()); err != nil {
+		err = AddShareServer_RequestValidationError{
+			field:  "ProjectId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = AddShareServer_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return AddShareServer_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *AddShareServer_Request) _validateUuid(uuid string) error {
+	if matched := _server_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// AddShareServer_RequestMultiError is an error wrapping multiple validation
+// errors returned by AddShareServer_Request.ValidateAll() if the designated
+// constraints aren't met.
+type AddShareServer_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddShareServer_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddShareServer_RequestMultiError) AllErrors() []error { return m }
+
+// AddShareServer_RequestValidationError is the validation error returned by
+// AddShareServer_Request.Validate if the designated constraints aren't met.
+type AddShareServer_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddShareServer_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddShareServer_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddShareServer_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddShareServer_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddShareServer_RequestValidationError) ErrorName() string {
+	return "AddShareServer_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AddShareServer_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddShareServer_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddShareServer_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddShareServer_RequestValidationError{}
+
+// Validate checks the field values on AddShareServer_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AddShareServer_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddShareServer_Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddShareServer_ResponseMultiError, or nil if none found.
+func (m *AddShareServer_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddShareServer_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return AddShareServer_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// AddShareServer_ResponseMultiError is an error wrapping multiple validation
+// errors returned by AddShareServer_Response.ValidateAll() if the designated
+// constraints aren't met.
+type AddShareServer_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddShareServer_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddShareServer_ResponseMultiError) AllErrors() []error { return m }
+
+// AddShareServer_ResponseValidationError is the validation error returned by
+// AddShareServer_Response.Validate if the designated constraints aren't met.
+type AddShareServer_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddShareServer_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddShareServer_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddShareServer_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddShareServer_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddShareServer_ResponseValidationError) ErrorName() string {
+	return "AddShareServer_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AddShareServer_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddShareServer_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddShareServer_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddShareServer_ResponseValidationError{}
+
+// Validate checks the field values on UpdateShareServer_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UpdateShareServer_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UpdateShareServer_Request with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UpdateShareServer_RequestMultiError, or nil if none found.
+func (m *UpdateShareServer_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UpdateShareServer_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.GetUserId() != "" {
+
+		if err := m._validateUuid(m.GetUserId()); err != nil {
+			err = UpdateShareServer_RequestValidationError{
+				field:  "UserId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if err := m._validateUuid(m.GetProjectId()); err != nil {
+		err = UpdateShareServer_RequestValidationError{
+			field:  "ProjectId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if err := m._validateUuid(m.GetShareId()); err != nil {
+		err = UpdateShareServer_RequestValidationError{
+			field:  "ShareId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return UpdateShareServer_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *UpdateShareServer_Request) _validateUuid(uuid string) error {
+	if matched := _server_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// UpdateShareServer_RequestMultiError is an error wrapping multiple validation
+// errors returned by UpdateShareServer_Request.ValidateAll() if the
+// designated constraints aren't met.
+type UpdateShareServer_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UpdateShareServer_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UpdateShareServer_RequestMultiError) AllErrors() []error { return m }
+
+// UpdateShareServer_RequestValidationError is the validation error returned by
+// UpdateShareServer_Request.Validate if the designated constraints aren't met.
+type UpdateShareServer_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdateShareServer_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdateShareServer_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdateShareServer_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdateShareServer_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdateShareServer_RequestValidationError) ErrorName() string {
+	return "UpdateShareServer_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UpdateShareServer_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdateShareServer_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdateShareServer_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdateShareServer_RequestValidationError{}
+
+// Validate checks the field values on UpdateShareServer_Response with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *AddServerShareForUser_Request) Validate() error {
+func (m *UpdateShareServer_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AddServerShareForUser_Request with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the result is a list of violation errors wrapped in
-// AddServerShareForUser_RequestMultiError, or nil if none found.
-func (m *AddServerShareForUser_Request) ValidateAll() error {
+// ValidateAll checks the field values on UpdateShareServer_Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UpdateShareServer_ResponseMultiError, or nil if none found.
+func (m *UpdateShareServer_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AddServerShareForUser_Request) validate(all bool) error {
+func (m *UpdateShareServer_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for UserId
-
-	// no validation rules for ProjectId
-
-	// no validation rules for ServerId
-
 	if len(errors) > 0 {
-		return AddServerShareForUser_RequestMultiError(errors)
+		return UpdateShareServer_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// AddServerShareForUser_RequestMultiError is an error wrapping multiple
-// validation errors returned by AddServerShareForUser_Request.ValidateAll()
-// if the designated constraints aren't met.
-type AddServerShareForUser_RequestMultiError []error
+// UpdateShareServer_ResponseMultiError is an error wrapping multiple
+// validation errors returned by UpdateShareServer_Response.ValidateAll() if
+// the designated constraints aren't met.
+type UpdateShareServer_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AddServerShareForUser_RequestMultiError) Error() string {
+func (m UpdateShareServer_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -6583,12 +6119,11 @@ func (m AddServerShareForUser_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AddServerShareForUser_RequestMultiError) AllErrors() []error { return m }
+func (m UpdateShareServer_ResponseMultiError) AllErrors() []error { return m }
 
-// AddServerShareForUser_RequestValidationError is the validation error
-// returned by AddServerShareForUser_Request.Validate if the designated
-// constraints aren't met.
-type AddServerShareForUser_RequestValidationError struct {
+// UpdateShareServer_ResponseValidationError is the validation error returned
+// by UpdateShareServer_Response.Validate if the designated constraints aren't met.
+type UpdateShareServer_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -6596,24 +6131,24 @@ type AddServerShareForUser_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e AddServerShareForUser_RequestValidationError) Field() string { return e.field }
+func (e UpdateShareServer_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AddServerShareForUser_RequestValidationError) Reason() string { return e.reason }
+func (e UpdateShareServer_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AddServerShareForUser_RequestValidationError) Cause() error { return e.cause }
+func (e UpdateShareServer_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AddServerShareForUser_RequestValidationError) Key() bool { return e.key }
+func (e UpdateShareServer_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AddServerShareForUser_RequestValidationError) ErrorName() string {
-	return "AddServerShareForUser_RequestValidationError"
+func (e UpdateShareServer_ResponseValidationError) ErrorName() string {
+	return "UpdateShareServer_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e AddServerShareForUser_RequestValidationError) Error() string {
+func (e UpdateShareServer_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -6625,14 +6160,14 @@ func (e AddServerShareForUser_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAddServerShareForUser_Request.%s: %s%s",
+		"invalid %sUpdateShareServer_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AddServerShareForUser_RequestValidationError{}
+var _ error = UpdateShareServer_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -6640,24 +6175,174 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AddServerShareForUser_RequestValidationError{}
+} = UpdateShareServer_ResponseValidationError{}
 
-// Validate checks the field values on AddServerShareForUser_Response with the
+// Validate checks the field values on DeleteShareServer_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *DeleteShareServer_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on DeleteShareServer_Request with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// DeleteShareServer_RequestMultiError, or nil if none found.
+func (m *DeleteShareServer_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *DeleteShareServer_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.GetUserId() != "" {
+
+		if err := m._validateUuid(m.GetUserId()); err != nil {
+			err = DeleteShareServer_RequestValidationError{
+				field:  "UserId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if err := m._validateUuid(m.GetProjectId()); err != nil {
+		err = DeleteShareServer_RequestValidationError{
+			field:  "ProjectId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if err := m._validateUuid(m.GetShareId()); err != nil {
+		err = DeleteShareServer_RequestValidationError{
+			field:  "ShareId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return DeleteShareServer_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *DeleteShareServer_Request) _validateUuid(uuid string) error {
+	if matched := _server_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// DeleteShareServer_RequestMultiError is an error wrapping multiple validation
+// errors returned by DeleteShareServer_Request.ValidateAll() if the
+// designated constraints aren't met.
+type DeleteShareServer_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m DeleteShareServer_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m DeleteShareServer_RequestMultiError) AllErrors() []error { return m }
+
+// DeleteShareServer_RequestValidationError is the validation error returned by
+// DeleteShareServer_Request.Validate if the designated constraints aren't met.
+type DeleteShareServer_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e DeleteShareServer_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e DeleteShareServer_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e DeleteShareServer_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e DeleteShareServer_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e DeleteShareServer_RequestValidationError) ErrorName() string {
+	return "DeleteShareServer_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e DeleteShareServer_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sDeleteShareServer_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = DeleteShareServer_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = DeleteShareServer_RequestValidationError{}
+
+// Validate checks the field values on DeleteShareServer_Response with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *AddServerShareForUser_Response) Validate() error {
+func (m *DeleteShareServer_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AddServerShareForUser_Response with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the result is a list of violation errors wrapped in
-// AddServerShareForUser_ResponseMultiError, or nil if none found.
-func (m *AddServerShareForUser_Response) ValidateAll() error {
+// ValidateAll checks the field values on DeleteShareServer_Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// DeleteShareServer_ResponseMultiError, or nil if none found.
+func (m *DeleteShareServer_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AddServerShareForUser_Response) validate(all bool) error {
+func (m *DeleteShareServer_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -6665,19 +6350,19 @@ func (m *AddServerShareForUser_Response) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return AddServerShareForUser_ResponseMultiError(errors)
+		return DeleteShareServer_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// AddServerShareForUser_ResponseMultiError is an error wrapping multiple
-// validation errors returned by AddServerShareForUser_Response.ValidateAll()
-// if the designated constraints aren't met.
-type AddServerShareForUser_ResponseMultiError []error
+// DeleteShareServer_ResponseMultiError is an error wrapping multiple
+// validation errors returned by DeleteShareServer_Response.ValidateAll() if
+// the designated constraints aren't met.
+type DeleteShareServer_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AddServerShareForUser_ResponseMultiError) Error() string {
+func (m DeleteShareServer_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -6686,12 +6371,11 @@ func (m AddServerShareForUser_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AddServerShareForUser_ResponseMultiError) AllErrors() []error { return m }
+func (m DeleteShareServer_ResponseMultiError) AllErrors() []error { return m }
 
-// AddServerShareForUser_ResponseValidationError is the validation error
-// returned by AddServerShareForUser_Response.Validate if the designated
-// constraints aren't met.
-type AddServerShareForUser_ResponseValidationError struct {
+// DeleteShareServer_ResponseValidationError is the validation error returned
+// by DeleteShareServer_Response.Validate if the designated constraints aren't met.
+type DeleteShareServer_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -6699,24 +6383,24 @@ type AddServerShareForUser_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e AddServerShareForUser_ResponseValidationError) Field() string { return e.field }
+func (e DeleteShareServer_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AddServerShareForUser_ResponseValidationError) Reason() string { return e.reason }
+func (e DeleteShareServer_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AddServerShareForUser_ResponseValidationError) Cause() error { return e.cause }
+func (e DeleteShareServer_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AddServerShareForUser_ResponseValidationError) Key() bool { return e.key }
+func (e DeleteShareServer_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AddServerShareForUser_ResponseValidationError) ErrorName() string {
-	return "AddServerShareForUser_ResponseValidationError"
+func (e DeleteShareServer_ResponseValidationError) ErrorName() string {
+	return "DeleteShareServer_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e AddServerShareForUser_ResponseValidationError) Error() string {
+func (e DeleteShareServer_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -6728,14 +6412,14 @@ func (e AddServerShareForUser_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAddServerShareForUser_Response.%s: %s%s",
+		"invalid %sDeleteShareServer_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AddServerShareForUser_ResponseValidationError{}
+var _ error = DeleteShareServer_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -6743,436 +6427,4 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AddServerShareForUser_ResponseValidationError{}
-
-// Validate checks the field values on UpdateServerShareForUser_Request with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *UpdateServerShareForUser_Request) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerShareForUser_Request with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the result is a list of violation errors wrapped in
-// UpdateServerShareForUser_RequestMultiError, or nil if none found.
-func (m *UpdateServerShareForUser_Request) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerShareForUser_Request) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for UserId
-
-	// no validation rules for ProjectId
-
-	// no validation rules for ShareId
-
-	if len(errors) > 0 {
-		return UpdateServerShareForUser_RequestMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerShareForUser_RequestMultiError is an error wrapping multiple
-// validation errors returned by
-// UpdateServerShareForUser_Request.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerShareForUser_RequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerShareForUser_RequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerShareForUser_RequestMultiError) AllErrors() []error { return m }
-
-// UpdateServerShareForUser_RequestValidationError is the validation error
-// returned by UpdateServerShareForUser_Request.Validate if the designated
-// constraints aren't met.
-type UpdateServerShareForUser_RequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerShareForUser_RequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerShareForUser_RequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerShareForUser_RequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerShareForUser_RequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerShareForUser_RequestValidationError) ErrorName() string {
-	return "UpdateServerShareForUser_RequestValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerShareForUser_RequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerShareForUser_Request.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerShareForUser_RequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerShareForUser_RequestValidationError{}
-
-// Validate checks the field values on UpdateServerShareForUser_Response with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *UpdateServerShareForUser_Response) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerShareForUser_Response
-// with the rules defined in the proto definition for this message. If any
-// rules are violated, the result is a list of violation errors wrapped in
-// UpdateServerShareForUser_ResponseMultiError, or nil if none found.
-func (m *UpdateServerShareForUser_Response) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerShareForUser_Response) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(errors) > 0 {
-		return UpdateServerShareForUser_ResponseMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerShareForUser_ResponseMultiError is an error wrapping multiple
-// validation errors returned by
-// UpdateServerShareForUser_Response.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerShareForUser_ResponseMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerShareForUser_ResponseMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerShareForUser_ResponseMultiError) AllErrors() []error { return m }
-
-// UpdateServerShareForUser_ResponseValidationError is the validation error
-// returned by UpdateServerShareForUser_Response.Validate if the designated
-// constraints aren't met.
-type UpdateServerShareForUser_ResponseValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerShareForUser_ResponseValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerShareForUser_ResponseValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerShareForUser_ResponseValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerShareForUser_ResponseValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerShareForUser_ResponseValidationError) ErrorName() string {
-	return "UpdateServerShareForUser_ResponseValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerShareForUser_ResponseValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerShareForUser_Response.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerShareForUser_ResponseValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerShareForUser_ResponseValidationError{}
-
-// Validate checks the field values on DeleteServerShareForUser_Request with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *DeleteServerShareForUser_Request) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on DeleteServerShareForUser_Request with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the result is a list of violation errors wrapped in
-// DeleteServerShareForUser_RequestMultiError, or nil if none found.
-func (m *DeleteServerShareForUser_Request) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *DeleteServerShareForUser_Request) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for UserId
-
-	// no validation rules for ProjectId
-
-	// no validation rules for ShareId
-
-	if len(errors) > 0 {
-		return DeleteServerShareForUser_RequestMultiError(errors)
-	}
-
-	return nil
-}
-
-// DeleteServerShareForUser_RequestMultiError is an error wrapping multiple
-// validation errors returned by
-// DeleteServerShareForUser_Request.ValidateAll() if the designated
-// constraints aren't met.
-type DeleteServerShareForUser_RequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m DeleteServerShareForUser_RequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m DeleteServerShareForUser_RequestMultiError) AllErrors() []error { return m }
-
-// DeleteServerShareForUser_RequestValidationError is the validation error
-// returned by DeleteServerShareForUser_Request.Validate if the designated
-// constraints aren't met.
-type DeleteServerShareForUser_RequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e DeleteServerShareForUser_RequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e DeleteServerShareForUser_RequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e DeleteServerShareForUser_RequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e DeleteServerShareForUser_RequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e DeleteServerShareForUser_RequestValidationError) ErrorName() string {
-	return "DeleteServerShareForUser_RequestValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e DeleteServerShareForUser_RequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sDeleteServerShareForUser_Request.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = DeleteServerShareForUser_RequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = DeleteServerShareForUser_RequestValidationError{}
-
-// Validate checks the field values on DeleteServerShareForUser_Response with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *DeleteServerShareForUser_Response) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on DeleteServerShareForUser_Response
-// with the rules defined in the proto definition for this message. If any
-// rules are violated, the result is a list of violation errors wrapped in
-// DeleteServerShareForUser_ResponseMultiError, or nil if none found.
-func (m *DeleteServerShareForUser_Response) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *DeleteServerShareForUser_Response) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(errors) > 0 {
-		return DeleteServerShareForUser_ResponseMultiError(errors)
-	}
-
-	return nil
-}
-
-// DeleteServerShareForUser_ResponseMultiError is an error wrapping multiple
-// validation errors returned by
-// DeleteServerShareForUser_Response.ValidateAll() if the designated
-// constraints aren't met.
-type DeleteServerShareForUser_ResponseMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m DeleteServerShareForUser_ResponseMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m DeleteServerShareForUser_ResponseMultiError) AllErrors() []error { return m }
-
-// DeleteServerShareForUser_ResponseValidationError is the validation error
-// returned by DeleteServerShareForUser_Response.Validate if the designated
-// constraints aren't met.
-type DeleteServerShareForUser_ResponseValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e DeleteServerShareForUser_ResponseValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e DeleteServerShareForUser_ResponseValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e DeleteServerShareForUser_ResponseValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e DeleteServerShareForUser_ResponseValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e DeleteServerShareForUser_ResponseValidationError) ErrorName() string {
-	return "DeleteServerShareForUser_ResponseValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e DeleteServerShareForUser_ResponseValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sDeleteServerShareForUser_Response.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = DeleteServerShareForUser_ResponseValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = DeleteServerShareForUser_ResponseValidationError{}
+} = DeleteShareServer_ResponseValidationError{}

@@ -4,383 +4,321 @@ package member;
 
 option go_package = "github.com/werbot/werbot/api/proto/member";
 
-import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
 import "validate/validate.proto";
 import "user/user.proto";
 
 service MemberHandlers {
-    // Project section
-    rpc ListProjectMembers(ListProjectMembers.Request) returns (ListProjectMembers.Response) {}
-    rpc ProjectMember(ProjectMember.Request) returns (ProjectMember.Response) {}
-    rpc AddProjectMember(AddProjectMember.Request) returns (AddProjectMember.Response) {}
-    rpc UpdateProjectMember(UpdateProjectMember.Request) returns (UpdateProjectMember.Response) {}
-    rpc DeleteProjectMember(DeleteProjectMember.Request) returns (DeleteProjectMember.Response) {}
+  // Project section
+  rpc ListProjectMembers(ListProjectMembers.Request) returns (ListProjectMembers.Response) {}
+  rpc ProjectMember(ProjectMember.Request) returns (ProjectMember.Response) {}
+  rpc AddProjectMember(AddProjectMember.Request) returns (AddProjectMember.Response) {}
+  rpc UpdateProjectMember(UpdateProjectMember.Request) returns (UpdateProjectMember.Response) {}
+  rpc DeleteProjectMember(DeleteProjectMember.Request) returns (DeleteProjectMember.Response) {}
 
-    rpc UpdateProjectMemberStatus(UpdateProjectMemberStatus.Request) returns (UpdateProjectMemberStatus.Response) {}
+  // Used in finding and adding a new member to the project
+  rpc UsersWithoutProject(UsersWithoutProject.Request) returns (UsersWithoutProject.Response) {}
 
-    // Used in finding and adding a new member to the project
-    rpc UsersWithoutProject(UsersWithoutProject.Request) returns (UsersWithoutProject.Response) {}
+  // Invite section
+  rpc ListMembersInvite(ListMembersInvite.Request) returns (ListMembersInvite.Response) {}
+  rpc AddMemberInvite(AddMemberInvite.Request) returns (AddMemberInvite.Response) {}
+  rpc DeleteMemberInvite(DeleteMemberInvite.Request) returns (DeleteMemberInvite.Response) {}
+  rpc MemberInviteActivate(MemberInviteActivate.Request) returns (MemberInviteActivate.Response) {}
 
-    rpc ListProjectMembersInvite(ListProjectMembersInvite.Request) returns (ListProjectMembersInvite.Response) {}
-    rpc AddProjectMemberInvite(AddProjectMemberInvite.Request) returns (AddProjectMemberInvite.Response) {}
-    rpc DeleteProjectMemberInvite(DeleteProjectMemberInvite.Request) returns (DeleteProjectMemberInvite.Response) {}
-    rpc ProjectMemberInviteActivate(ProjectMemberInviteActivate.Request) returns (ProjectMemberInviteActivate.Response) {}
+  // Server section
+  rpc ListServerMembers(ListServerMembers.Request) returns (ListServerMembers.Response) {}
+  rpc ServerMember(ServerMember.Request) returns (ServerMember.Response) {}
+  rpc AddServerMember(AddServerMember.Request) returns (AddServerMember.Response) {}
+  rpc UpdateServerMember(UpdateServerMember.Request) returns (UpdateServerMember.Response) {}
+  rpc DeleteServerMember(DeleteServerMember.Request) returns (DeleteServerMember.Response) {}
 
-    // Server section
-    rpc ListServerMembers(ListServerMembers.Request) returns (ListServerMembers.Response) {}
-    rpc ServerMember(ServerMember.Request) returns (ServerMember.Response) {}
-    rpc AddServerMember(AddServerMember.Request) returns (AddServerMember.Response) {}
-    rpc UpdateServerMember(UpdateServerMember.Request) returns (UpdateServerMember.Response) {}
-    rpc DeleteServerMember(DeleteServerMember.Request) returns (DeleteServerMember.Response) {}
-
-    rpc UpdateServerMemberStatus(UpdateServerMemberStatus.Request) returns (UpdateServerMemberStatus.Response) {}
-
-    rpc MembersWithoutServer(MembersWithoutServer.Request) returns (MembersWithoutServer.Response) {}
-
-    // Search member by user id and return true if found or false
-    rpc MemberByID(MemberByID.Request) returns (MemberByID.Response) {}
-
-    // Use for Ajax search Users from first letters of name
-    rpc UsersByName(UsersByName.Request) returns (UsersByName.Response) {}
+   // Used in finding and adding a new member to the server
+  rpc MembersWithoutServer(MembersWithoutServer.Request) returns (MembersWithoutServer.Response) {}
 }
 
 // rpc ListProjectMembers
 message ListProjectMembers {
-    message Request {
-        int32 limit = 1;
-        int32 offset = 2;
-        string sort_by = 3;
-        string query = 4;
-    }
-    message Response {
-        int32 total = 1;
-        repeated ProjectMember.Response members = 2;
-    }
+  message Request {
+    int32 limit = 1;
+    int32 offset = 2;
+    string sort_by = 3;
+    string query = 4;
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated ProjectMember.Response members = 2;
+  }
 }
 // -----------------------------------------------------
 
 
 // rpc ProjectMember
 message ProjectMember {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string member_id = 3;
-    }
+  message Request {
+    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string member_id = 3  [(validate.rules).string = {ignore_empty: true, uuid: true}];
+  }
 
-    message Response {
-        string owner_id = 1;
-        string owner_name = 2;
-        string project_id = 3;
-        string project_name = 4;
-        string member_id = 5;
-        string user_id = 6;
-        string user_name = 7;
-        user.RoleUser role = 8;
-        bool active = 9;
-        bool online = 10;
-        int32 servers_count = 11;
-        google.protobuf.Timestamp created = 12;
-    }
+  message Response {
+    string owner_id = 1;
+    string owner_name = 2;
+    string project_id = 3;
+    string project_name = 4;
+    string member_id = 5;
+    string user_id = 6;
+    string user_name = 7;
+    user.Role role = 8;
+    bool active = 9;
+    bool online = 10;
+    int32 servers_count = 11;
+    google.protobuf.Timestamp created = 12;
+  }
 }
 // -----------------------------------------------------
 
 
 // rpc AddProjectMember
 message AddProjectMember {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string user_id = 3    [(validate.rules).string.uuid = true];
-        user.RoleUser role = 4;
-        bool active = 5;
-    }
+  message Request {
+    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string user_id = 3    [(validate.rules).string.uuid = true]; // @gotags: query:"user_id"
+    user.Role role = 4;
+    bool active = 5;
+  }
 
-    message Response {
-        string member_id = 1;
-    }
+  message Response {
+    string member_id = 1;
+  }
 }
 // -----------------------------------------------------
 
 
 // rpc UpdateProjectMember
 message UpdateProjectMember {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string member_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
-        user.RoleUser role = 4;
-        bool active = 5;
+  message Request {
+    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string member_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
+    oneof setting {
+      user.Role role = 4;
+      bool active = 5;
     }
+  }
 
-    message Response {}
+  message Response {}
 }
 // -----------------------------------------------------
 
 
 // rpc DeleteProjectMember
 message DeleteProjectMember {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string member_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
-    }
+  message Request {
+    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string member_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
+  }
 
-    message Response {}
-}
-// -----------------------------------------------------
-
-
-// rpc UpdateProjectMemberStatus
-message UpdateProjectMemberStatus {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string member_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
-        bool status = 4;
-    }
-
-    message Response {}
-}
-// -----------------------------------------------------
-
-
-// rpc MemberByID
-message MemberByID {
-    message Request {
-        string user_id = 1;
-        string project_id = 2;
-    }
-    message Response {
-        google.protobuf.BoolValue status = 1;
-    }
+  message Response {}
 }
 // -----------------------------------------------------
 
 
 // rpc UsersWithoutProject
 message UsersWithoutProject {
-    message Request {
-      string owner_id = 1    [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-      string project_id = 2  [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-      string name = 3;
-    }
+  message Request {
+    string owner_id = 1    [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2  [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string name = 3;
+  }
 
-    message Response {
-        message User{
-            int32 user_id = 1;
-            string name = 2;
-            string email = 3;
-        }
-        repeated User users = 1;
+  message Response {
+    message User{
+      int32 user_id = 1;
+      string name = 2;
+      string email = 3;
     }
+    repeated User users = 1;
+  }
 }
 // -----------------------------------------------------
 
 
-// rpc ListProjectMembersInvite
-message ListProjectMembersInvite {
-    message Request {
-        int32 limit = 1;
-        int32 offset = 2;
-        string sort_by = 3;
-        string owner_id = 4   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 5 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    }
-    message Response {
-        int32 total = 1;
-        repeated ListProjectMembersInvite.Invites invites = 2;
-    }
+// rpc ListMembersInvite
+message ListMembersInvite {
+  message Request {
+    int32 limit = 1;
+    int32 offset = 2;
+    string sort_by = 3;
+    string owner_id = 4   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 5 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+  }
 
-    message Invites {
-        string id = 1;
-        string name = 2;
-        string surname = 3;
-        string email = 4;
-        google.protobuf.Timestamp created = 5;
-        string status = 6;
-    }
+  message Response {
+    int32 total = 1;
+    repeated ListMembersInvite.Invites invites = 2;
+  }
+
+  message Invites {
+    string id = 1;
+    string name = 2;
+    string surname = 3;
+    string email = 4;
+    google.protobuf.Timestamp created = 5;
+    string status = 6;
+  }
 }
 // -----------------------------------------------------
 
 
-// rpc AddProjectMemberInvite
-message AddProjectMemberInvite {
-    message Request {
-        string owner_id = 1     [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 2   [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string user_name = 3    [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}]; // @gotags: query:"user_name"
-        string user_surname = 4 [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}]; // @gotags: query:"user_surname"
-        string email = 5        [(validate.rules).string.email = true]; // @gotags: query:"email"
-    }
+// rpc AddMemberInvite
+message AddMemberInvite {
+  message Request {
+    string owner_id = 1     [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2   [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string user_name = 3    [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}]; // @gotags: query:"user_name"
+    string user_surname = 4 [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}]; // @gotags: query:"user_surname"
+    string email = 5        [(validate.rules).string.email = true]; // @gotags: query:"email"
+  }
 
-    message Response {
-        string invite = 1;
-    }
+  message Response {
+    string invite = 1;
+  }
 }
 // -----------------------------------------------------
 
 
-// rpc DeleteProjectMemberInvite
-message DeleteProjectMemberInvite {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string invite_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"invite_id"
-    }
+// rpc DeleteMemberInvite
+message DeleteMemberInvite {
+  message Request {
+    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string invite_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"invite_id"
+  }
 
-    message Response {}
+  message Response {}
 }
 // -----------------------------------------------------
 
 
-// rpc ProjectMemberInviteActivate
-message ProjectMemberInviteActivate {
-    message Request {
-        string invite = 1  [(validate.rules).string.uuid = true]; // @gotags: query:"invite"
-        string user_id = 2 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
-    }
+// rpc MemberInviteActivate
+message MemberInviteActivate {
+  message Request {
+    string invite = 1  [(validate.rules).string.uuid = true];                        // @gotags: query:"invite"
+    string user_id = 2 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
+  }
 
-    message Response {
-        string project_id = 1;
-        string email = 2;
-    }
+  message Response {
+    string project_id = 1;
+    string email = 2;
+  }
 }
 // -----------------------------------------------------
 
 
 // ListServerMembers
 message ListServerMembers {
-    message Request {
-        int32 limit = 1;
-        int32 offset = 2;
-        string sort_by = 3;
-        string owner_id = 4   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 5 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string server_id = 6  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
-    }
+  message Request {
+    int32 limit = 1;
+    int32 offset = 2;
+    string sort_by = 3;
+    string owner_id = 4   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 5 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 6  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+  }
 
-    message Response {
-        int32 total = 1;
-        repeated ServerMember.Response members = 2;
-    }
+  message Response {
+    int32 total = 1;
+    repeated ServerMember.Response members = 2;
+  }
 }
 // -----------------------------------------------------
 
 // ServerMember
 message ServerMember {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string server_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
-        string member_id = 4;
-    }
+  message Request {
+    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string member_id = 4;
+  }
 
-    message Response {
-        string member_id = 1;
-        string user_id = 2;
-        string user_name = 3;
-        string email = 4;
-        user.RoleUser role = 5;
-        bool active = 6;
-        bool online = 7;
-        google.protobuf.Timestamp last_activity = 8;
-    }
+  message Response {
+    string member_id = 1;
+    string user_id = 2;
+    string user_name = 3;
+    string email = 4;
+    user.Role role = 5;
+    bool active = 6;
+    bool online = 7;
+    google.protobuf.Timestamp last_activity = 8;
+  }
 }
 // -----------------------------------------------------
 
 // AddServerMember
 message AddServerMember {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true];
-        string project_id = 2 [(validate.rules).string.uuid = true];
-        string server_id = 3  [(validate.rules).string.uuid = true];
-        string member_id = 4;
-        bool active = 5;
-    }
+  message Request {
+    string owner_id = 1   [(validate.rules).string.uuid = true];
+    string project_id = 2 [(validate.rules).string.uuid = true];
+    string server_id = 3  [(validate.rules).string.uuid = true];
+    string member_id = 4;
+    bool active = 5;
+  }
 
-    message Response {
-        string member_id = 1;
-    }
+  message Response {
+    string member_id = 1;
+  }
 }
 // -----------------------------------------------------
 
 // UpdateServerMember
 message UpdateServerMember {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true];
-        string project_id = 2 [(validate.rules).string.uuid = true];
-        string server_id = 3  [(validate.rules).string.uuid = true];
-        string member_id = 4  [(validate.rules).string.uuid = true];
-        bool active = 5;
+  message Request {
+    string owner_id = 1   [(validate.rules).string.uuid = true];
+    string project_id = 2 [(validate.rules).string.uuid = true];
+    string server_id = 3  [(validate.rules).string.uuid = true];
+    string member_id = 4  [(validate.rules).string.uuid = true];
+    oneof setting {
+      bool active = 5;
+      bool online = 6;
     }
+  }
 
-    message Response {}
+  message Response {}
 }
 // -----------------------------------------------------
 
 // DeleteServerMember
 message DeleteServerMember {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string server_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
-        string member_id = 4  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
-    }
+  message Request {
+    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string member_id = 4  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
+  }
 
-    message Response {}
+  message Response {}
 }
 // -----------------------------------------------------
 
-
-// rpc UpdateServerMemberStatus
-message UpdateServerMemberStatus {
-    message Request {
-        string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string member_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
-        string server_id = 4  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
-        bool status = 5;
-    }
-
-    message Response {}
-}
-// -----------------------------------------------------
 
 // rpc MembersWithoutServer
 message MembersWithoutServer {
-    message Request {
-        int32 limit = 1;
-        int32 offset = 2;
-        string sort_by = 3;
-        string owner_id = 4   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-        string project_id = 5 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-        string server_id = 6  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
-        string name = 7;
-    }
-    message Response {
-        int32 total = 1;
-        repeated ServerMember.Response members = 2;
-    }
+  message Request {
+    int32 limit = 1;
+    int32 offset = 2;
+    string sort_by = 3;
+    string owner_id = 4   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 5 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 6  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string name = 7;
+  }
+  message Response {
+    int32 total = 1;
+    repeated ServerMember.Response members = 2;
+  }
 }
 // -----------------------------------------------------
-
-
-// rpc UsersByName
-message UsersByName {
-    message Request {
-        string name = 1;
-    }
-    message Response {
-        message SearchUsersResult {
-            string member_id = 1;
-            string member_name = 2;
-            string email = 3;
-        }
-        repeated SearchUsersResult users = 2;
-    }
-}
-// -----------------------------------------------------
-
-

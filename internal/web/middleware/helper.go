@@ -6,13 +6,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	golang_jwt "github.com/golang-jwt/jwt/v4"
 
-	pb "github.com/werbot/werbot/api/proto/user"
+	authpb "github.com/werbot/werbot/api/proto/auth"
+	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal/web/jwt"
 )
 
 // UserParameters is ...
 type UserParameters struct {
-	User *pb.UserParameters
+	User *authpb.UserParameters
 }
 
 // AuthUser is ...
@@ -33,8 +34,8 @@ func AuthUser(c *fiber.Ctx) *UserParameters {
 	}
 
 	return &UserParameters{
-		User: &pb.UserParameters{
-			Roles: pb.RoleUser(pb.RoleUser_ROLE_USER_UNSPECIFIED),
+		User: &authpb.UserParameters{
+			Roles: userpb.Role(userpb.Role_role_unspecified),
 		},
 	}
 }
@@ -43,11 +44,11 @@ func userParameters(c *fiber.Ctx) *UserParameters {
 	user := c.Locals("user").(*golang_jwt.Token)
 
 	context := user.Claims.(golang_jwt.MapClaims)["User"].(map[string]any)
-	role := pb.RoleUser(context["roles"].(float64))
+	role := userpb.Role(context["roles"].(float64))
 	sub := user.Claims.(golang_jwt.MapClaims)["sub"].(string)
 
 	return &UserParameters{
-		User: &pb.UserParameters{
+		User: &authpb.UserParameters{
 			UserId: context["user_id"].(string),
 			Roles:  role,
 			Sub:    sub,
@@ -58,7 +59,7 @@ func userParameters(c *fiber.Ctx) *UserParameters {
 // UserID is ...
 func (u *UserParameters) UserID(input string) string {
 	userID := u.User.GetUserId()
-	if u.User.GetRoles() == pb.RoleUser_ADMIN && input != "" {
+	if u.User.GetRoles() == userpb.Role_admin && input != "" {
 		userID = input
 	}
 	return userID
@@ -70,7 +71,7 @@ func (u *UserParameters) OriginalUserID() string {
 }
 
 // UserRole is ...
-func (u *UserParameters) UserRole() pb.RoleUser {
+func (u *UserParameters) UserRole() userpb.Role {
 	return u.User.GetRoles()
 }
 
@@ -81,5 +82,5 @@ func (u *UserParameters) UserSub() string {
 
 // IsUserAdmin is ...
 func (u *UserParameters) IsUserAdmin() bool {
-	return u.User.GetRoles() == pb.RoleUser_ADMIN
+	return u.User.GetRoles() == userpb.Role_admin
 }

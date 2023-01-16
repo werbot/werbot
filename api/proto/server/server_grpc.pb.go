@@ -22,26 +22,27 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ServerHandlersClient interface {
+	// Server section
 	ListServers(ctx context.Context, in *ListServers_Request, opts ...grpc.CallOption) (*ListServers_Response, error)
 	Server(ctx context.Context, in *Server_Request, opts ...grpc.CallOption) (*Server_Response, error)
 	AddServer(ctx context.Context, in *AddServer_Request, opts ...grpc.CallOption) (*AddServer_Response, error)
 	UpdateServer(ctx context.Context, in *UpdateServer_Request, opts ...grpc.CallOption) (*UpdateServer_Response, error)
 	DeleteServer(ctx context.Context, in *DeleteServer_Request, opts ...grpc.CallOption) (*DeleteServer_Response, error)
-	// TODO: replace to UpdateServerStatus
-	UpdateServerOnlineStatus(ctx context.Context, in *UpdateServerOnlineStatus_Request, opts ...grpc.CallOption) (*UpdateServerOnlineStatus_Response, error)
-	UpdateServerActiveStatus(ctx context.Context, in *UpdateServerActiveStatus_Request, opts ...grpc.CallOption) (*UpdateServerActiveStatus_Response, error)
+	// Server Access section
 	ServerAccess(ctx context.Context, in *ServerAccess_Request, opts ...grpc.CallOption) (*ServerAccess_Response, error)
 	UpdateServerAccess(ctx context.Context, in *UpdateServerAccess_Request, opts ...grpc.CallOption) (*UpdateServerAccess_Response, error)
+	// Server Activity section
 	ServerActivity(ctx context.Context, in *ServerActivity_Request, opts ...grpc.CallOption) (*ServerActivity_Response, error)
 	UpdateServerActivity(ctx context.Context, in *UpdateServerActivity_Request, opts ...grpc.CallOption) (*UpdateServerActivity_Response, error)
-	UpdateServerHostKey(ctx context.Context, in *UpdateServerHostKey_Request, opts ...grpc.CallOption) (*UpdateServerHostKey_Response, error)
-	AddServerSession(ctx context.Context, in *AddServerSession_Request, opts ...grpc.CallOption) (*AddServerSession_Response, error)
-	ServerNameByID(ctx context.Context, in *ServerNameByID_Request, opts ...grpc.CallOption) (*ServerNameByID_Response, error)
 	// share server
-	ListServersShareForUser(ctx context.Context, in *ListServersShareForUser_Request, opts ...grpc.CallOption) (*ListServersShareForUser_Response, error)
-	AddServerShareForUser(ctx context.Context, in *AddServerShareForUser_Request, opts ...grpc.CallOption) (*AddServerShareForUser_Response, error)
-	UpdateServerShareForUser(ctx context.Context, in *UpdateServerShareForUser_Request, opts ...grpc.CallOption) (*UpdateServerShareForUser_Response, error)
-	DeleteServerShareForUser(ctx context.Context, in *DeleteServerShareForUser_Request, opts ...grpc.CallOption) (*DeleteServerShareForUser_Response, error)
+	ListShareServers(ctx context.Context, in *ListShareServers_Request, opts ...grpc.CallOption) (*ListShareServers_Response, error)
+	AddShareServer(ctx context.Context, in *AddShareServer_Request, opts ...grpc.CallOption) (*AddShareServer_Response, error)
+	UpdateShareServer(ctx context.Context, in *UpdateShareServer_Request, opts ...grpc.CallOption) (*UpdateShareServer_Response, error)
+	DeleteShareServer(ctx context.Context, in *DeleteShareServer_Request, opts ...grpc.CallOption) (*DeleteShareServer_Response, error)
+	// Other
+	UpdateHostKey(ctx context.Context, in *UpdateHostKey_Request, opts ...grpc.CallOption) (*UpdateHostKey_Response, error)
+	AddSession(ctx context.Context, in *AddSession_Request, opts ...grpc.CallOption) (*AddSession_Response, error)
+	ServerNameByID(ctx context.Context, in *ServerNameByID_Request, opts ...grpc.CallOption) (*ServerNameByID_Response, error)
 }
 
 type serverHandlersClient struct {
@@ -97,24 +98,6 @@ func (c *serverHandlersClient) DeleteServer(ctx context.Context, in *DeleteServe
 	return out, nil
 }
 
-func (c *serverHandlersClient) UpdateServerOnlineStatus(ctx context.Context, in *UpdateServerOnlineStatus_Request, opts ...grpc.CallOption) (*UpdateServerOnlineStatus_Response, error) {
-	out := new(UpdateServerOnlineStatus_Response)
-	err := c.cc.Invoke(ctx, "/server.ServerHandlers/UpdateServerOnlineStatus", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *serverHandlersClient) UpdateServerActiveStatus(ctx context.Context, in *UpdateServerActiveStatus_Request, opts ...grpc.CallOption) (*UpdateServerActiveStatus_Response, error) {
-	out := new(UpdateServerActiveStatus_Response)
-	err := c.cc.Invoke(ctx, "/server.ServerHandlers/UpdateServerActiveStatus", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *serverHandlersClient) ServerAccess(ctx context.Context, in *ServerAccess_Request, opts ...grpc.CallOption) (*ServerAccess_Response, error) {
 	out := new(ServerAccess_Response)
 	err := c.cc.Invoke(ctx, "/server.ServerHandlers/ServerAccess", in, out, opts...)
@@ -151,18 +134,54 @@ func (c *serverHandlersClient) UpdateServerActivity(ctx context.Context, in *Upd
 	return out, nil
 }
 
-func (c *serverHandlersClient) UpdateServerHostKey(ctx context.Context, in *UpdateServerHostKey_Request, opts ...grpc.CallOption) (*UpdateServerHostKey_Response, error) {
-	out := new(UpdateServerHostKey_Response)
-	err := c.cc.Invoke(ctx, "/server.ServerHandlers/UpdateServerHostKey", in, out, opts...)
+func (c *serverHandlersClient) ListShareServers(ctx context.Context, in *ListShareServers_Request, opts ...grpc.CallOption) (*ListShareServers_Response, error) {
+	out := new(ListShareServers_Response)
+	err := c.cc.Invoke(ctx, "/server.ServerHandlers/ListShareServers", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *serverHandlersClient) AddServerSession(ctx context.Context, in *AddServerSession_Request, opts ...grpc.CallOption) (*AddServerSession_Response, error) {
-	out := new(AddServerSession_Response)
-	err := c.cc.Invoke(ctx, "/server.ServerHandlers/AddServerSession", in, out, opts...)
+func (c *serverHandlersClient) AddShareServer(ctx context.Context, in *AddShareServer_Request, opts ...grpc.CallOption) (*AddShareServer_Response, error) {
+	out := new(AddShareServer_Response)
+	err := c.cc.Invoke(ctx, "/server.ServerHandlers/AddShareServer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serverHandlersClient) UpdateShareServer(ctx context.Context, in *UpdateShareServer_Request, opts ...grpc.CallOption) (*UpdateShareServer_Response, error) {
+	out := new(UpdateShareServer_Response)
+	err := c.cc.Invoke(ctx, "/server.ServerHandlers/UpdateShareServer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serverHandlersClient) DeleteShareServer(ctx context.Context, in *DeleteShareServer_Request, opts ...grpc.CallOption) (*DeleteShareServer_Response, error) {
+	out := new(DeleteShareServer_Response)
+	err := c.cc.Invoke(ctx, "/server.ServerHandlers/DeleteShareServer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serverHandlersClient) UpdateHostKey(ctx context.Context, in *UpdateHostKey_Request, opts ...grpc.CallOption) (*UpdateHostKey_Response, error) {
+	out := new(UpdateHostKey_Response)
+	err := c.cc.Invoke(ctx, "/server.ServerHandlers/UpdateHostKey", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serverHandlersClient) AddSession(ctx context.Context, in *AddSession_Request, opts ...grpc.CallOption) (*AddSession_Response, error) {
+	out := new(AddSession_Response)
+	err := c.cc.Invoke(ctx, "/server.ServerHandlers/AddSession", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -178,66 +197,31 @@ func (c *serverHandlersClient) ServerNameByID(ctx context.Context, in *ServerNam
 	return out, nil
 }
 
-func (c *serverHandlersClient) ListServersShareForUser(ctx context.Context, in *ListServersShareForUser_Request, opts ...grpc.CallOption) (*ListServersShareForUser_Response, error) {
-	out := new(ListServersShareForUser_Response)
-	err := c.cc.Invoke(ctx, "/server.ServerHandlers/ListServersShareForUser", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *serverHandlersClient) AddServerShareForUser(ctx context.Context, in *AddServerShareForUser_Request, opts ...grpc.CallOption) (*AddServerShareForUser_Response, error) {
-	out := new(AddServerShareForUser_Response)
-	err := c.cc.Invoke(ctx, "/server.ServerHandlers/AddServerShareForUser", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *serverHandlersClient) UpdateServerShareForUser(ctx context.Context, in *UpdateServerShareForUser_Request, opts ...grpc.CallOption) (*UpdateServerShareForUser_Response, error) {
-	out := new(UpdateServerShareForUser_Response)
-	err := c.cc.Invoke(ctx, "/server.ServerHandlers/UpdateServerShareForUser", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *serverHandlersClient) DeleteServerShareForUser(ctx context.Context, in *DeleteServerShareForUser_Request, opts ...grpc.CallOption) (*DeleteServerShareForUser_Response, error) {
-	out := new(DeleteServerShareForUser_Response)
-	err := c.cc.Invoke(ctx, "/server.ServerHandlers/DeleteServerShareForUser", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ServerHandlersServer is the server API for ServerHandlers service.
 // All implementations must embed UnimplementedServerHandlersServer
 // for forward compatibility
 type ServerHandlersServer interface {
+	// Server section
 	ListServers(context.Context, *ListServers_Request) (*ListServers_Response, error)
 	Server(context.Context, *Server_Request) (*Server_Response, error)
 	AddServer(context.Context, *AddServer_Request) (*AddServer_Response, error)
 	UpdateServer(context.Context, *UpdateServer_Request) (*UpdateServer_Response, error)
 	DeleteServer(context.Context, *DeleteServer_Request) (*DeleteServer_Response, error)
-	// TODO: replace to UpdateServerStatus
-	UpdateServerOnlineStatus(context.Context, *UpdateServerOnlineStatus_Request) (*UpdateServerOnlineStatus_Response, error)
-	UpdateServerActiveStatus(context.Context, *UpdateServerActiveStatus_Request) (*UpdateServerActiveStatus_Response, error)
+	// Server Access section
 	ServerAccess(context.Context, *ServerAccess_Request) (*ServerAccess_Response, error)
 	UpdateServerAccess(context.Context, *UpdateServerAccess_Request) (*UpdateServerAccess_Response, error)
+	// Server Activity section
 	ServerActivity(context.Context, *ServerActivity_Request) (*ServerActivity_Response, error)
 	UpdateServerActivity(context.Context, *UpdateServerActivity_Request) (*UpdateServerActivity_Response, error)
-	UpdateServerHostKey(context.Context, *UpdateServerHostKey_Request) (*UpdateServerHostKey_Response, error)
-	AddServerSession(context.Context, *AddServerSession_Request) (*AddServerSession_Response, error)
-	ServerNameByID(context.Context, *ServerNameByID_Request) (*ServerNameByID_Response, error)
 	// share server
-	ListServersShareForUser(context.Context, *ListServersShareForUser_Request) (*ListServersShareForUser_Response, error)
-	AddServerShareForUser(context.Context, *AddServerShareForUser_Request) (*AddServerShareForUser_Response, error)
-	UpdateServerShareForUser(context.Context, *UpdateServerShareForUser_Request) (*UpdateServerShareForUser_Response, error)
-	DeleteServerShareForUser(context.Context, *DeleteServerShareForUser_Request) (*DeleteServerShareForUser_Response, error)
+	ListShareServers(context.Context, *ListShareServers_Request) (*ListShareServers_Response, error)
+	AddShareServer(context.Context, *AddShareServer_Request) (*AddShareServer_Response, error)
+	UpdateShareServer(context.Context, *UpdateShareServer_Request) (*UpdateShareServer_Response, error)
+	DeleteShareServer(context.Context, *DeleteShareServer_Request) (*DeleteShareServer_Response, error)
+	// Other
+	UpdateHostKey(context.Context, *UpdateHostKey_Request) (*UpdateHostKey_Response, error)
+	AddSession(context.Context, *AddSession_Request) (*AddSession_Response, error)
+	ServerNameByID(context.Context, *ServerNameByID_Request) (*ServerNameByID_Response, error)
 	mustEmbedUnimplementedServerHandlersServer()
 }
 
@@ -260,12 +244,6 @@ func (UnimplementedServerHandlersServer) UpdateServer(context.Context, *UpdateSe
 func (UnimplementedServerHandlersServer) DeleteServer(context.Context, *DeleteServer_Request) (*DeleteServer_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteServer not implemented")
 }
-func (UnimplementedServerHandlersServer) UpdateServerOnlineStatus(context.Context, *UpdateServerOnlineStatus_Request) (*UpdateServerOnlineStatus_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateServerOnlineStatus not implemented")
-}
-func (UnimplementedServerHandlersServer) UpdateServerActiveStatus(context.Context, *UpdateServerActiveStatus_Request) (*UpdateServerActiveStatus_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateServerActiveStatus not implemented")
-}
 func (UnimplementedServerHandlersServer) ServerAccess(context.Context, *ServerAccess_Request) (*ServerAccess_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ServerAccess not implemented")
 }
@@ -278,26 +256,26 @@ func (UnimplementedServerHandlersServer) ServerActivity(context.Context, *Server
 func (UnimplementedServerHandlersServer) UpdateServerActivity(context.Context, *UpdateServerActivity_Request) (*UpdateServerActivity_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateServerActivity not implemented")
 }
-func (UnimplementedServerHandlersServer) UpdateServerHostKey(context.Context, *UpdateServerHostKey_Request) (*UpdateServerHostKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateServerHostKey not implemented")
+func (UnimplementedServerHandlersServer) ListShareServers(context.Context, *ListShareServers_Request) (*ListShareServers_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListShareServers not implemented")
 }
-func (UnimplementedServerHandlersServer) AddServerSession(context.Context, *AddServerSession_Request) (*AddServerSession_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddServerSession not implemented")
+func (UnimplementedServerHandlersServer) AddShareServer(context.Context, *AddShareServer_Request) (*AddShareServer_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddShareServer not implemented")
+}
+func (UnimplementedServerHandlersServer) UpdateShareServer(context.Context, *UpdateShareServer_Request) (*UpdateShareServer_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateShareServer not implemented")
+}
+func (UnimplementedServerHandlersServer) DeleteShareServer(context.Context, *DeleteShareServer_Request) (*DeleteShareServer_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteShareServer not implemented")
+}
+func (UnimplementedServerHandlersServer) UpdateHostKey(context.Context, *UpdateHostKey_Request) (*UpdateHostKey_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateHostKey not implemented")
+}
+func (UnimplementedServerHandlersServer) AddSession(context.Context, *AddSession_Request) (*AddSession_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddSession not implemented")
 }
 func (UnimplementedServerHandlersServer) ServerNameByID(context.Context, *ServerNameByID_Request) (*ServerNameByID_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ServerNameByID not implemented")
-}
-func (UnimplementedServerHandlersServer) ListServersShareForUser(context.Context, *ListServersShareForUser_Request) (*ListServersShareForUser_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListServersShareForUser not implemented")
-}
-func (UnimplementedServerHandlersServer) AddServerShareForUser(context.Context, *AddServerShareForUser_Request) (*AddServerShareForUser_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddServerShareForUser not implemented")
-}
-func (UnimplementedServerHandlersServer) UpdateServerShareForUser(context.Context, *UpdateServerShareForUser_Request) (*UpdateServerShareForUser_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateServerShareForUser not implemented")
-}
-func (UnimplementedServerHandlersServer) DeleteServerShareForUser(context.Context, *DeleteServerShareForUser_Request) (*DeleteServerShareForUser_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteServerShareForUser not implemented")
 }
 func (UnimplementedServerHandlersServer) mustEmbedUnimplementedServerHandlersServer() {}
 
@@ -402,42 +380,6 @@ func _ServerHandlers_DeleteServer_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ServerHandlers_UpdateServerOnlineStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateServerOnlineStatus_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ServerHandlersServer).UpdateServerOnlineStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/server.ServerHandlers/UpdateServerOnlineStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerHandlersServer).UpdateServerOnlineStatus(ctx, req.(*UpdateServerOnlineStatus_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ServerHandlers_UpdateServerActiveStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateServerActiveStatus_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ServerHandlersServer).UpdateServerActiveStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/server.ServerHandlers/UpdateServerActiveStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerHandlersServer).UpdateServerActiveStatus(ctx, req.(*UpdateServerActiveStatus_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _ServerHandlers_ServerAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServerAccess_Request)
 	if err := dec(in); err != nil {
@@ -510,38 +452,110 @@ func _ServerHandlers_UpdateServerActivity_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ServerHandlers_UpdateServerHostKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateServerHostKey_Request)
+func _ServerHandlers_ListShareServers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListShareServers_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ServerHandlersServer).UpdateServerHostKey(ctx, in)
+		return srv.(ServerHandlersServer).ListShareServers(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/server.ServerHandlers/UpdateServerHostKey",
+		FullMethod: "/server.ServerHandlers/ListShareServers",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerHandlersServer).UpdateServerHostKey(ctx, req.(*UpdateServerHostKey_Request))
+		return srv.(ServerHandlersServer).ListShareServers(ctx, req.(*ListShareServers_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ServerHandlers_AddServerSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddServerSession_Request)
+func _ServerHandlers_AddShareServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddShareServer_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ServerHandlersServer).AddServerSession(ctx, in)
+		return srv.(ServerHandlersServer).AddShareServer(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/server.ServerHandlers/AddServerSession",
+		FullMethod: "/server.ServerHandlers/AddShareServer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerHandlersServer).AddServerSession(ctx, req.(*AddServerSession_Request))
+		return srv.(ServerHandlersServer).AddShareServer(ctx, req.(*AddShareServer_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ServerHandlers_UpdateShareServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateShareServer_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServerHandlersServer).UpdateShareServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.ServerHandlers/UpdateShareServer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServerHandlersServer).UpdateShareServer(ctx, req.(*UpdateShareServer_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ServerHandlers_DeleteShareServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteShareServer_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServerHandlersServer).DeleteShareServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.ServerHandlers/DeleteShareServer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServerHandlersServer).DeleteShareServer(ctx, req.(*DeleteShareServer_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ServerHandlers_UpdateHostKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateHostKey_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServerHandlersServer).UpdateHostKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.ServerHandlers/UpdateHostKey",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServerHandlersServer).UpdateHostKey(ctx, req.(*UpdateHostKey_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ServerHandlers_AddSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddSession_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServerHandlersServer).AddSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.ServerHandlers/AddSession",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServerHandlersServer).AddSession(ctx, req.(*AddSession_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -560,78 +574,6 @@ func _ServerHandlers_ServerNameByID_Handler(srv interface{}, ctx context.Context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ServerHandlersServer).ServerNameByID(ctx, req.(*ServerNameByID_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ServerHandlers_ListServersShareForUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListServersShareForUser_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ServerHandlersServer).ListServersShareForUser(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/server.ServerHandlers/ListServersShareForUser",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerHandlersServer).ListServersShareForUser(ctx, req.(*ListServersShareForUser_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ServerHandlers_AddServerShareForUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddServerShareForUser_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ServerHandlersServer).AddServerShareForUser(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/server.ServerHandlers/AddServerShareForUser",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerHandlersServer).AddServerShareForUser(ctx, req.(*AddServerShareForUser_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ServerHandlers_UpdateServerShareForUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateServerShareForUser_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ServerHandlersServer).UpdateServerShareForUser(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/server.ServerHandlers/UpdateServerShareForUser",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerHandlersServer).UpdateServerShareForUser(ctx, req.(*UpdateServerShareForUser_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ServerHandlers_DeleteServerShareForUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteServerShareForUser_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ServerHandlersServer).DeleteServerShareForUser(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/server.ServerHandlers/DeleteServerShareForUser",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerHandlersServer).DeleteServerShareForUser(ctx, req.(*DeleteServerShareForUser_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -664,14 +606,6 @@ var ServerHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ServerHandlers_DeleteServer_Handler,
 		},
 		{
-			MethodName: "UpdateServerOnlineStatus",
-			Handler:    _ServerHandlers_UpdateServerOnlineStatus_Handler,
-		},
-		{
-			MethodName: "UpdateServerActiveStatus",
-			Handler:    _ServerHandlers_UpdateServerActiveStatus_Handler,
-		},
-		{
 			MethodName: "ServerAccess",
 			Handler:    _ServerHandlers_ServerAccess_Handler,
 		},
@@ -688,32 +622,32 @@ var ServerHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ServerHandlers_UpdateServerActivity_Handler,
 		},
 		{
-			MethodName: "UpdateServerHostKey",
-			Handler:    _ServerHandlers_UpdateServerHostKey_Handler,
+			MethodName: "ListShareServers",
+			Handler:    _ServerHandlers_ListShareServers_Handler,
 		},
 		{
-			MethodName: "AddServerSession",
-			Handler:    _ServerHandlers_AddServerSession_Handler,
+			MethodName: "AddShareServer",
+			Handler:    _ServerHandlers_AddShareServer_Handler,
+		},
+		{
+			MethodName: "UpdateShareServer",
+			Handler:    _ServerHandlers_UpdateShareServer_Handler,
+		},
+		{
+			MethodName: "DeleteShareServer",
+			Handler:    _ServerHandlers_DeleteShareServer_Handler,
+		},
+		{
+			MethodName: "UpdateHostKey",
+			Handler:    _ServerHandlers_UpdateHostKey_Handler,
+		},
+		{
+			MethodName: "AddSession",
+			Handler:    _ServerHandlers_AddSession_Handler,
 		},
 		{
 			MethodName: "ServerNameByID",
 			Handler:    _ServerHandlers_ServerNameByID_Handler,
-		},
-		{
-			MethodName: "ListServersShareForUser",
-			Handler:    _ServerHandlers_ListServersShareForUser_Handler,
-		},
-		{
-			MethodName: "AddServerShareForUser",
-			Handler:    _ServerHandlers_AddServerShareForUser_Handler,
-		},
-		{
-			MethodName: "UpdateServerShareForUser",
-			Handler:    _ServerHandlers_UpdateServerShareForUser_Handler,
-		},
-		{
-			MethodName: "DeleteServerShareForUser",
-			Handler:    _ServerHandlers_DeleteServerShareForUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

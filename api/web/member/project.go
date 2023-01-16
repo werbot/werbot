@@ -8,14 +8,13 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	memberpb "github.com/werbot/werbot/api/proto/member"
+	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/mail"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
-
-	pb "github.com/werbot/werbot/api/proto/member"
-	pb_user "github.com/werbot/werbot/api/proto/user"
 )
 
 // @Summary      Show information about member or list of all members on project
@@ -25,11 +24,11 @@ import (
 // @Param        project_id      path     uuid true  "Project ID"
 // @Param        owner_id        path     uuid false "Project owner ID"
 // @Param        member_id       path     uuid false "Member ID. Parameter Accessible with ROLE_ADMIN rights"
-// @Success      200             {object} webutil.HTTPResponse{data=pb.ProjectMember_Response}
+// @Success      200             {object} webutil.HTTPResponse{data=memberpb.ProjectMember_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [get]
 func (h *Handler) getProjectMember(c *fiber.Ctx) error {
-	request := new(pb.ProjectMember_Request)
+	request := new(memberpb.ProjectMember_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -38,8 +37,8 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.ProjectMember_RequestMultiError) {
-			e := err.(pb.ProjectMember_RequestValidationError)
+		for _, err := range err.(memberpb.ProjectMember_RequestMultiError) {
+			e := err.(memberpb.ProjectMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -51,13 +50,16 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
 
 	// show all members
 	if request.GetMemberId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
-		sanitizeSQL, _ := sanitize.SQL(`owner_id = $1 AND project_id = $2`, request.GetOwnerId(), request.GetProjectId())
-		members, err := rClient.ListProjectMembers(ctx, &pb.ListProjectMembers_Request{
+		sanitizeSQL, _ := sanitize.SQL(`owner_id = $1 AND project_id = $2`,
+			request.GetOwnerId(),
+			request.GetProjectId(),
+		)
+		members, err := rClient.ListProjectMembers(ctx, &memberpb.ListProjectMembers_Request{
 			Limit:  pagination.GetLimit(),
 			Offset: pagination.GetOffset(),
 			SortBy: "member_created:DESC",
@@ -89,12 +91,12 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 // @Tags         members
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.AddProject_Request{}
-// @Success      200         {object} webutil.HTTPResponse{data=pb.AddProjectMember_Response}
+// @Param        req         body     memberpb.AddProject_Request{}
+// @Success      200         {object} webutil.HTTPResponse{data=memberpb.AddProjectMember_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [post]
 func (h *Handler) addProjectMember(c *fiber.Ctx) error {
-	request := new(pb.AddProjectMember_Request)
+	request := new(memberpb.AddProjectMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -103,8 +105,8 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.AddProjectMember_RequestMultiError) {
-			e := err.(pb.AddProjectMember_RequestValidationError)
+		for _, err := range err.(memberpb.AddProjectMember_RequestMultiError) {
+			e := err.(memberpb.AddProjectMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -112,12 +114,12 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 
 	userParameter := middleware.AuthUser(c)
 	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-	request.Role = pb_user.RoleUser_USER // TODO directly install the role of the user
+	request.Role = userpb.Role_user // TODO directly install the role of the user
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
 	member, err := rClient.AddProjectMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
@@ -130,12 +132,12 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 // @Tags         members
 // @Accept       json
 // @Produce      json
-// @Param        req             body     pb.UpdateMember_Request{}
-// @Success      200             {object} webutil.HTTPResponse{data=pb.UpdateProjectMember_Response}
+// @Param        req             body     memberpb.UpdateMember_Request{}
+// @Success      200             {object} webutil.HTTPResponse{data=memberpb.UpdateProjectMember_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [patch]
 func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
-	request := new(pb.UpdateProjectMember_Request)
+	request := new(memberpb.UpdateProjectMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -144,8 +146,8 @@ func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.UpdateProjectMember_RequestMultiError) {
-			e := err.(pb.UpdateProjectMember_RequestValidationError)
+		for _, err := range err.(memberpb.UpdateProjectMember_RequestMultiError) {
+			e := err.(memberpb.UpdateProjectMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -157,7 +159,7 @@ func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
 	_, err := rClient.UpdateProjectMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
@@ -177,7 +179,7 @@ func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [delete]
 func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
-	request := new(pb.DeleteProjectMember_Request)
+	request := new(memberpb.DeleteProjectMember_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -186,8 +188,8 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.DeleteProjectMember_RequestMultiError) {
-			e := err.(pb.DeleteProjectMember_RequestValidationError)
+		for _, err := range err.(memberpb.DeleteProjectMember_RequestMultiError) {
+			e := err.(memberpb.DeleteProjectMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -199,7 +201,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
 	_, err := rClient.DeleteProjectMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
@@ -219,7 +221,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/search [get]
 func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
-	request := new(pb.UsersWithoutProject_Request)
+	request := new(memberpb.UsersWithoutProject_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -228,8 +230,8 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.UsersWithoutProject_RequestMultiError) {
-			e := err.(pb.UsersWithoutProject_RequestValidationError)
+		for _, err := range err.(memberpb.UsersWithoutProject_RequestMultiError) {
+			e := err.(memberpb.UsersWithoutProject_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -241,7 +243,7 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
 	members, err := rClient.UsersWithoutProject(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
@@ -254,12 +256,13 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 // @Tags         members
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.UpdateProjectMemberStatus_Request{}
+// @Param        req         body     memberpb.UpdateProjectMember_Request{data=memberpb.UpdateProjectMember_Request_Active}
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/active [patch]
 func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
-	request := new(pb.UpdateProjectMemberStatus_Request)
+	request := new(memberpb.UpdateProjectMember_Request)
+	request.Setting = new(memberpb.UpdateProjectMember_Request_Active)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -268,8 +271,8 @@ func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.UpdateProjectMemberStatus_RequestMultiError) {
-			e := err.(pb.UpdateProjectMemberStatus_RequestValidationError)
+		for _, err := range err.(memberpb.UpdateProjectMember_RequestMultiError) {
+			e := err.(memberpb.UpdateProjectMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -281,15 +284,15 @@ func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
-	_, err := rClient.UpdateProjectMemberStatus(ctx, request)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	_, err := rClient.UpdateProjectMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
 
 	// message section
 	message := msgMemberIsOnline
-	if !request.GetStatus() {
+	if !request.GetActive() {
 		message = msgMemberIsOffline
 	}
 
@@ -303,11 +306,11 @@ func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
 // @Param        owner_id        path     uuid false "Project owner ID"
 // @Param        project_id      path     uuid true  "Project ID"
 // @Param        member_id       path     uuid true  "Member ID"
-// @Success      200             {object} webutil.HTTPResponse{data=pb.ListProjectMembersInvite_Response}
+// @Success      200             {object} webutil.HTTPResponse{data=memberpb.ListMembersInvite_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/invite [get]
 func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
-	request := new(pb.ListProjectMembersInvite_Request)
+	request := new(memberpb.ListMembersInvite_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -316,8 +319,8 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.ListProjectMembersInvite_RequestMultiError) {
-			e := err.(pb.ListProjectMembersInvite_RequestValidationError)
+		for _, err := range err.(memberpb.ListMembersInvite_RequestMultiError) {
+			e := err.(memberpb.ListMembersInvite_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -333,8 +336,8 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
-	members, err := rClient.ListProjectMembersInvite(ctx, request)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	members, err := rClient.ListMembersInvite(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -346,12 +349,12 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 // @Tags         members
 // @Accept       json
 // @Produce      json
-// @Param        req         body     pb.AddProjectMemberInvite_Request{}
-// @Success      200         {object} webutil.HTTPResponse{data=pb.AddProjectMemberInvite_Response}
+// @Param        req         body     memberpb.AddProjectMemberInvite_Request{}
+// @Success      200         {object} webutil.HTTPResponse{data=memberpb.AddMemberInvite_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/invite [post]
 func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
-	request := new(pb.AddProjectMemberInvite_Request)
+	request := new(memberpb.AddMemberInvite_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -360,8 +363,8 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.AddProjectMemberInvite_RequestMultiError) {
-			e := err.(pb.AddProjectMemberInvite_RequestValidationError)
+		for _, err := range err.(memberpb.AddMemberInvite_RequestMultiError) {
+			e := err.(memberpb.AddMemberInvite_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -373,8 +376,8 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
-	member, err := rClient.AddProjectMemberInvite(ctx, request)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	member, err := rClient.AddMemberInvite(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -398,7 +401,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/invite [delete]
 func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
-	request := new(pb.DeleteProjectMemberInvite_Request)
+	request := new(memberpb.DeleteMemberInvite_Request)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -407,8 +410,8 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.DeleteProjectMemberInvite_RequestMultiError) {
-			e := err.(pb.DeleteProjectMemberInvite_RequestValidationError)
+		for _, err := range err.(memberpb.DeleteMemberInvite_RequestMultiError) {
+			e := err.(memberpb.DeleteMemberInvite_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -420,8 +423,8 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
-	_, err := rClient.DeleteProjectMemberInvite(ctx, request)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	_, err := rClient.DeleteMemberInvite(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -437,14 +440,14 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,500     {object} webutil.HTTPResponse
 // @Router       /v1/members/invite/:invite [post]
-func (h *Handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
-	request := new(pb.ProjectMemberInviteActivate_Request)
+func (h *Handler) postMembersInviteActivate(c *fiber.Ctx) error {
+	request := new(memberpb.MemberInviteActivate_Request)
 	request.Invite = c.Params("invite")
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(pb.ProjectMemberInviteActivate_RequestMultiError) {
-			e := err.(pb.ProjectMemberInviteActivate_RequestValidationError)
+		for _, err := range err.(memberpb.MemberInviteActivate_RequestMultiError) {
+			e := err.(memberpb.MemberInviteActivate_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -456,8 +459,8 @@ func (h *Handler) postProjectMembersInviteActivate(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := pb.NewMemberHandlersClient(h.Grpc.Client)
-	project, err := rClient.ProjectMemberInviteActivate(ctx, request)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	project, err := rClient.MemberInviteActivate(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
