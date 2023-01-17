@@ -242,8 +242,6 @@ prod_build: ## Building project in bin folder
 	@if [ ${NAME} ]; then\
 		if [ -d ${ROOT_PATH}/cmd/${NAME}/ ];then\
 			make -s prod_build_go ${NAME}; \
-		elif [ ${NAME} == "app" ]; then\
-			make -s prod_build_app;\
 		else \
 			echo "error";\
 		fi \
@@ -251,21 +249,15 @@ prod_build: ## Building project in bin folder
 		for entry in ${ROOT_PATH}/cmd/*/; do\
 			make -s prod_build_go $$(basename $${entry});\
 		done; \
-		make -s prod_build_app;\
 	fi
 
 .PHONY: prod_build_go
 prod_build_go:
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
-	@echo "Build goose_db_version" ${NAME} ${VERSION};\
+	@echo "Build" ${NAME} ${VERSION};\
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/werbot/werbot/internal/version.version=${VERSION} -X github.com/werbot/werbot/internal/version.gitCommit=${GIT_COMMIT} -X github.com/werbot/werbot/internal/version.buildDate=${BUILD_DATE}" -o ${ROOT_PATH}/bin/${NAME} ${ROOT_PATH}/cmd/${NAME};\
 	upx -1 -k bin/${NAME} >/dev/null 2>&1;\
 	rm -rf bin/${NAME}.~
-
-.PHONY: prod_build_app
-prod_build_app:
-	@echo "Build web app"
-	@cd ${ROOT_PATH}/web && yarn build
 #############################################################################
 
 
