@@ -236,14 +236,14 @@ func (s *firewall) DeleteServerFirewall(ctx context.Context, in *firewallpb.Dele
 	return response, nil
 }
 
-// UpdateAccessPolicy is ...
-func (s *firewall) UpdateAccessPolicy(ctx context.Context, in *firewallpb.UpdateAccessPolicy_Request) (*firewallpb.UpdateAccessPolicy_Response, error) {
+// UpdateServerFirewall is ...
+func (s *firewall) UpdateServerFirewall(ctx context.Context, in *firewallpb.UpdateServerFirewall_Request) (*firewallpb.UpdateServerFirewall_Response, error) {
 	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
 
 	var sql string
-	response := new(firewallpb.UpdateAccessPolicy_Response)
+	response := new(firewallpb.UpdateServerFirewall_Response)
 
 	switch in.Rule {
 	case firewallpb.Rules_country:

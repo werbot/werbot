@@ -27,7 +27,7 @@ import (
 // @Success      200         {object} webutil.HTTPResponse{data=serverpb.ListServer_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers [get]
-func (h *Handler) getServer(c *fiber.Ctx) error {
+func (h *Handler) server(c *fiber.Ctx) error {
 	request := new(serverpb.Server_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -135,7 +135,7 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers [patch]
-func (h *Handler) patchServer(c *fiber.Ctx) error {
+func (h *Handler) updateServer(c *fiber.Ctx) error {
 	request := new(serverpb.UpdateServer_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -251,7 +251,7 @@ func (h *Handler) deleteServer(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse{data=serverpb.ServerAccess_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/access [get]
-func (h *Handler) getServerAccess(c *fiber.Ctx) error {
+func (h *Handler) serverAccess(c *fiber.Ctx) error {
 	request := new(serverpb.ServerAccess_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -296,7 +296,7 @@ func (h *Handler) getServerAccess(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse{data=serverpb.ServerActivity_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/activity [get]
-func (h *Handler) getServerActivity(c *fiber.Ctx) error {
+func (h *Handler) serverActivity(c *fiber.Ctx) error {
 	request := new(serverpb.ServerActivity_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -339,7 +339,7 @@ func (h *Handler) getServerActivity(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/activity [patch]
-func (h *Handler) patchServerActivity(c *fiber.Ctx) error {
+func (h *Handler) updateServerActivity(c *fiber.Ctx) error {
 	request := new(serverpb.UpdateServerActivity_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -379,7 +379,7 @@ func (h *Handler) patchServerActivity(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse{data=firewallpb.ServerFirewallInfo_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/firewall [get]
-func (h *Handler) getServerFirewall(c *fiber.Ctx) error {
+func (h *Handler) serverFirewall(c *fiber.Ctx) error {
 	request := new(firewallpb.ServerFirewall_Request)
 
 	if err := c.QueryParser(request); err != nil {
@@ -419,7 +419,7 @@ func (h *Handler) getServerFirewall(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse{data=firewallpb.AddServerFirewall_Response}
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/firewall [post]
-func (h *Handler) postServerFirewall(c *fiber.Ctx) error {
+func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 	request := new(firewallpb.AddServerFirewall_Request)
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
@@ -472,12 +472,12 @@ func (h *Handler) postServerFirewall(c *fiber.Ctx) error {
 // @Tags         servers
 // @Accept       json
 // @Produce      json
-// @Param        req         body     firewallpb.UpdateAccessPolicy_Request{}
+// @Param        req         body     firewallpb.UpdateServerFirewall_Request{}
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/firewall [patch]
-func (h *Handler) patchAccessPolicy(c *fiber.Ctx) error {
-	request := new(firewallpb.UpdateAccessPolicy_Request)
+func (h *Handler) updateAccessPolicy(c *fiber.Ctx) error {
+	request := new(firewallpb.UpdateServerFirewall_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -486,8 +486,8 @@ func (h *Handler) patchAccessPolicy(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(firewallpb.UpdateAccessPolicy_RequestMultiError) {
-			e := err.(firewallpb.UpdateAccessPolicy_RequestValidationError)
+		for _, err := range err.(firewallpb.UpdateServerFirewall_RequestMultiError) {
+			e := err.(firewallpb.UpdateServerFirewall_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -500,7 +500,7 @@ func (h *Handler) patchAccessPolicy(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc.Client)
-	_, err := rClient.UpdateAccessPolicy(ctx, request)
+	_, err := rClient.UpdateServerFirewall(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -556,7 +556,7 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/active [patch]
-func (h *Handler) patchServerStatus(c *fiber.Ctx) error {
+func (h *Handler) updateServerStatus(c *fiber.Ctx) error {
 	request := new(serverpb.UpdateServer_Request)
 	request.Setting = new(serverpb.UpdateServer_Request_Active)
 

@@ -26,8 +26,8 @@ type FirewallHandlersClient interface {
 	// Server firewall section
 	ServerFirewall(ctx context.Context, in *ServerFirewall_Request, opts ...grpc.CallOption) (*ServerFirewall_Response, error)
 	AddServerFirewall(ctx context.Context, in *AddServerFirewall_Request, opts ...grpc.CallOption) (*AddServerFirewall_Response, error)
+	UpdateServerFirewall(ctx context.Context, in *UpdateServerFirewall_Request, opts ...grpc.CallOption) (*UpdateServerFirewall_Response, error)
 	DeleteServerFirewall(ctx context.Context, in *DeleteServerFirewall_Request, opts ...grpc.CallOption) (*DeleteServerFirewall_Response, error)
-	UpdateAccessPolicy(ctx context.Context, in *UpdateAccessPolicy_Request, opts ...grpc.CallOption) (*UpdateAccessPolicy_Response, error)
 	// Server access section
 	ServerAccess(ctx context.Context, in *ServerAccess_Request, opts ...grpc.CallOption) (*ServerAccess_Response, error)
 	ServerAccessUser(ctx context.Context, in *ServerAccessUser_Request, opts ...grpc.CallOption) (*ServerAccessUser_Response, error)
@@ -71,18 +71,18 @@ func (c *firewallHandlersClient) AddServerFirewall(ctx context.Context, in *AddS
 	return out, nil
 }
 
-func (c *firewallHandlersClient) DeleteServerFirewall(ctx context.Context, in *DeleteServerFirewall_Request, opts ...grpc.CallOption) (*DeleteServerFirewall_Response, error) {
-	out := new(DeleteServerFirewall_Response)
-	err := c.cc.Invoke(ctx, "/firewall.FirewallHandlers/DeleteServerFirewall", in, out, opts...)
+func (c *firewallHandlersClient) UpdateServerFirewall(ctx context.Context, in *UpdateServerFirewall_Request, opts ...grpc.CallOption) (*UpdateServerFirewall_Response, error) {
+	out := new(UpdateServerFirewall_Response)
+	err := c.cc.Invoke(ctx, "/firewall.FirewallHandlers/UpdateServerFirewall", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *firewallHandlersClient) UpdateAccessPolicy(ctx context.Context, in *UpdateAccessPolicy_Request, opts ...grpc.CallOption) (*UpdateAccessPolicy_Response, error) {
-	out := new(UpdateAccessPolicy_Response)
-	err := c.cc.Invoke(ctx, "/firewall.FirewallHandlers/UpdateAccessPolicy", in, out, opts...)
+func (c *firewallHandlersClient) DeleteServerFirewall(ctx context.Context, in *DeleteServerFirewall_Request, opts ...grpc.CallOption) (*DeleteServerFirewall_Response, error) {
+	out := new(DeleteServerFirewall_Response)
+	err := c.cc.Invoke(ctx, "/firewall.FirewallHandlers/DeleteServerFirewall", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -142,8 +142,8 @@ type FirewallHandlersServer interface {
 	// Server firewall section
 	ServerFirewall(context.Context, *ServerFirewall_Request) (*ServerFirewall_Response, error)
 	AddServerFirewall(context.Context, *AddServerFirewall_Request) (*AddServerFirewall_Response, error)
+	UpdateServerFirewall(context.Context, *UpdateServerFirewall_Request) (*UpdateServerFirewall_Response, error)
 	DeleteServerFirewall(context.Context, *DeleteServerFirewall_Request) (*DeleteServerFirewall_Response, error)
-	UpdateAccessPolicy(context.Context, *UpdateAccessPolicy_Request) (*UpdateAccessPolicy_Response, error)
 	// Server access section
 	ServerAccess(context.Context, *ServerAccess_Request) (*ServerAccess_Response, error)
 	ServerAccessUser(context.Context, *ServerAccessUser_Request) (*ServerAccessUser_Response, error)
@@ -166,11 +166,11 @@ func (UnimplementedFirewallHandlersServer) ServerFirewall(context.Context, *Serv
 func (UnimplementedFirewallHandlersServer) AddServerFirewall(context.Context, *AddServerFirewall_Request) (*AddServerFirewall_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddServerFirewall not implemented")
 }
+func (UnimplementedFirewallHandlersServer) UpdateServerFirewall(context.Context, *UpdateServerFirewall_Request) (*UpdateServerFirewall_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateServerFirewall not implemented")
+}
 func (UnimplementedFirewallHandlersServer) DeleteServerFirewall(context.Context, *DeleteServerFirewall_Request) (*DeleteServerFirewall_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteServerFirewall not implemented")
-}
-func (UnimplementedFirewallHandlersServer) UpdateAccessPolicy(context.Context, *UpdateAccessPolicy_Request) (*UpdateAccessPolicy_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateAccessPolicy not implemented")
 }
 func (UnimplementedFirewallHandlersServer) ServerAccess(context.Context, *ServerAccess_Request) (*ServerAccess_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ServerAccess not implemented")
@@ -254,6 +254,24 @@ func _FirewallHandlers_AddServerFirewall_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FirewallHandlers_UpdateServerFirewall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateServerFirewall_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FirewallHandlersServer).UpdateServerFirewall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/firewall.FirewallHandlers/UpdateServerFirewall",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FirewallHandlersServer).UpdateServerFirewall(ctx, req.(*UpdateServerFirewall_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FirewallHandlers_DeleteServerFirewall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteServerFirewall_Request)
 	if err := dec(in); err != nil {
@@ -268,24 +286,6 @@ func _FirewallHandlers_DeleteServerFirewall_Handler(srv interface{}, ctx context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(FirewallHandlersServer).DeleteServerFirewall(ctx, req.(*DeleteServerFirewall_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _FirewallHandlers_UpdateAccessPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateAccessPolicy_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FirewallHandlersServer).UpdateAccessPolicy(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/firewall.FirewallHandlers/UpdateAccessPolicy",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FirewallHandlersServer).UpdateAccessPolicy(ctx, req.(*UpdateAccessPolicy_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -400,12 +400,12 @@ var FirewallHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _FirewallHandlers_AddServerFirewall_Handler,
 		},
 		{
-			MethodName: "DeleteServerFirewall",
-			Handler:    _FirewallHandlers_DeleteServerFirewall_Handler,
+			MethodName: "UpdateServerFirewall",
+			Handler:    _FirewallHandlers_UpdateServerFirewall_Handler,
 		},
 		{
-			MethodName: "UpdateAccessPolicy",
-			Handler:    _FirewallHandlers_UpdateAccessPolicy_Handler,
+			MethodName: "DeleteServerFirewall",
+			Handler:    _FirewallHandlers_DeleteServerFirewall_Handler,
 		},
 		{
 			MethodName: "ServerAccess",

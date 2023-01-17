@@ -12,9 +12,8 @@ service FirewallHandlers {
   // Server firewall section
   rpc ServerFirewall(ServerFirewall.Request) returns (ServerFirewall.Response) {}
   rpc AddServerFirewall(AddServerFirewall.Request) returns (AddServerFirewall.Response) {}
+  rpc UpdateServerFirewall(UpdateServerFirewall.Request) returns (UpdateServerFirewall.Response) {}
   rpc DeleteServerFirewall(DeleteServerFirewall.Request) returns (DeleteServerFirewall.Response) {}
-
-  rpc UpdateAccessPolicy(UpdateAccessPolicy.Request) returns (UpdateAccessPolicy.Response) {}
 
   // Server access section
   rpc ServerAccess(ServerAccess.Request) returns (ServerAccess.Response) {}
@@ -93,7 +92,6 @@ message AddServerFirewall{
     string user_id = 1    [(validate.rules).string.uuid = true];
     string project_id = 2 [(validate.rules).string.uuid = true];
     string server_id = 3  [(validate.rules).string.uuid = true];
-
     oneof record {
       IpMask ip = 4;
       string country = 5;
@@ -107,6 +105,21 @@ message AddServerFirewall{
 // -----------------------------------------------------
 
 
+// rpc UpdateServerFirewall
+message UpdateServerFirewall {
+  message Request {
+    string user_id = 1    [(validate.rules).string.uuid = true];
+    string project_id = 2 [(validate.rules).string.uuid = true];
+    string server_id = 3  [(validate.rules).string.uuid = true];
+    Rules rule = 4;
+    bool status = 5;
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+
 // rpc DeleteServerFirewall
 message DeleteServerFirewall{
   message Request {
@@ -115,21 +128,6 @@ message DeleteServerFirewall{
     string server_id = 3  [(validate.rules).string.uuid = true];
     Rules rule = 4;
     string record_id = 5  [(validate.rules).string.uuid = true];
-  }
-
-  message Response {}
-}
-// -----------------------------------------------------
-
-
-// rpc UpdateAccessPolicy
-message UpdateAccessPolicy {
-  message Request {
-    string user_id = 1    [(validate.rules).string.uuid = true];
-    string project_id = 2 [(validate.rules).string.uuid = true];
-    string server_id = 3  [(validate.rules).string.uuid = true];
-    Rules rule = 4;
-    bool status = 5;
   }
 
   message Response {}

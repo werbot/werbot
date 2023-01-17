@@ -25,9 +25,7 @@ type server struct {
 // TODO: a method for updating Host FingerPrint server
 // TODO: When updating the IP address of the server, you need to update HostKey !!!!
 
-// GetServers is ...
-// TODO: Add a check of working hours (SERVER_ACTivity table)
-// TODO: It is necessary that the server remains in the global variable Serverlist
+// GetServers is displays a list of available servers
 func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Request) (*serverpb.ListServers_Response, error) {
 	// TODO: checking the permitted servers available for display
 	//  log.Info().Msgf("Expired: %v", license.L.GetCustomer())
@@ -279,7 +277,7 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 	return response, nil
 }
 
-// Server is ...
+// Server is displays data on the server
 func (s *server) Server(ctx context.Context, in *serverpb.Server_Request) (*serverpb.Server_Response, error) {
 	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
@@ -560,7 +558,7 @@ func (s *server) DeleteServer(ctx context.Context, in *serverpb.DeleteServer_Req
 	return response, nil
 }
 
-// ServerAccess is ...
+// ServerAccess is displays an affordable version of connecting to the server
 func (s *server) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Request) (*serverpb.ServerAccess_Response, error) {
 	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
@@ -615,7 +613,7 @@ func (s *server) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Req
 	return response, nil
 }
 
-// UpdateServerAccess is ...
+// UpdateServerAccess is updates an affordable option for connecting to the server
 func (s *server) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateServerAccess_Request) (*serverpb.UpdateServerAccess_Response, error) {
 	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
@@ -675,7 +673,14 @@ func (s *server) ServerActivity(ctx context.Context, in *serverpb.ServerActivity
 	response.Saturday = make([]int32, 24)
 	response.Sunday = make([]int32, 24)
 
-	day := []map[string]int32{}
+	type dayActive struct {
+		activityID string
+		week       int32
+		hour       int32
+	}
+
+	days := []dayActive{}
+
 	rows, err := service.db.Conn.Query(`SELECT
 			"server_activity"."id" AS "activity_id",
 			"server_activity"."dow" AS "week",
@@ -693,8 +698,8 @@ func (s *server) ServerActivity(ctx context.Context, in *serverpb.ServerActivity
 	}
 
 	for rows.Next() {
-		var activityID, week, hour int32
-		if err := rows.Scan(&activityID, &week, &hour); err != nil {
+		day := dayActive{}
+		if err := rows.Scan(&day.activityID, &day.week, &day.hour); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
@@ -702,35 +707,31 @@ func (s *server) ServerActivity(ctx context.Context, in *serverpb.ServerActivity
 			return nil, errServerError
 		}
 
-		day = append(day, map[string]int32{
-			"activity_id": activityID,
-			"week":        week,
-			"hour":        hour,
-		})
+		days = append(days, day)
 	}
 	defer rows.Close()
 
-	for _, item := range day {
+	for _, item := range days {
 		var status int32
-		if item["activity_id"] > 0 {
+		if item.activityID != "" {
 			status = 1
 		}
 
-		switch item["week"] {
+		switch item.week {
 		case 1:
-			response.Monday[item["hour"]] = status
+			response.Monday[item.hour] = status
 		case 2:
-			response.Tuesday[item["hour"]] = status
+			response.Tuesday[item.hour] = status
 		case 3:
-			response.Wednesday[item["hour"]] = status
+			response.Wednesday[item.hour] = status
 		case 4:
-			response.Thursday[item["hour"]] = status
+			response.Thursday[item.hour] = status
 		case 5:
-			response.Friday[item["hour"]] = status
+			response.Friday[item.hour] = status
 		case 6:
-			response.Saturday[item["hour"]] = status
+			response.Saturday[item.hour] = status
 		case 7:
-			response.Sunday[item["hour"]] = status
+			response.Sunday[item.hour] = status
 		}
 	}
 
@@ -777,13 +778,13 @@ func (s *server) UpdateServerActivity(ctx context.Context, in *serverpb.UpdateSe
 
 			if oldDayTmp != newDayTmp {
 				if oldDayTmp > newDayTmp {
-					sqlQuery["del"] += fmt.Sprintf(` ("server_id" = %v AND "dow" = %v AND "time_from" = '%v:00:00') OR`,
+					sqlQuery["del"] += fmt.Sprintf(` ("server_id" = '%s' AND "dow" = %v AND "time_from" = '%v:00:00') OR`,
 						in.GetServerId(),
 						index,
 						hour,
 					)
 				} else {
-					sqlQuery["add"] += fmt.Sprintf(` (%v, %v, '%v:00:00', '%v:59:59'),`,
+					sqlQuery["add"] += fmt.Sprintf(` ('%s', %v, '%v:00:00', '%v:59:59'),`,
 						in.GetServerId(),
 						index,
 						hour,

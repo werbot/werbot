@@ -53,6 +53,6 @@ func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, msgServerKey, server.KeyPublic)
 }
 
-func (h *Handler) patchServiceServerStatus(c *fiber.Ctx) error {
+func (h *Handler) updateServiceServerStatus(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, msgServerStatus, "online")
 }

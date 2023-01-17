@@ -120,7 +120,7 @@ message ListServers {
 message Server {
   message Request {
     string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id" params:"user_id"
-    string server_id = 2  [(validate.rules).string.uuid = true];                        // @gotags: query:"server_id" params:"server_id"
+    string server_id = 2  [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"server_id" params:"server_id"
     string project_id = 3 [(validate.rules).string.uuid = true];                        // @gotags: query:"project_id" params:"project_id"
   }
 

@@ -1924,16 +1924,20 @@ func (m *Server_Request) validate(all bool) error {
 
 	}
 
-	if err := m._validateUuid(m.GetServerId()); err != nil {
-		err = Server_RequestValidationError{
-			field:  "ServerId",
-			reason: "value must be a valid UUID",
-			cause:  err,
+	if m.GetServerId() != "" {
+
+		if err := m._validateUuid(m.GetServerId()); err != nil {
+			err = Server_RequestValidationError{
+				field:  "ServerId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
+
 	}
 
 	if err := m._validateUuid(m.GetProjectId()); err != nil {

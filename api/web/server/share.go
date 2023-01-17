@@ -21,7 +21,7 @@ import (
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/share [get]
-func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
+func (h *Handler) serversShareForUser(c *fiber.Ctx) error {
 	request := new(serverpb.ListShareServers_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -64,7 +64,7 @@ func (h *Handler) getServersShareForUser(c *fiber.Ctx) error {
 // share the selected server with the user
 // request serverReq{user_id:1, project_id:1, server:1}
 // POST /v1/servers/share
-func (h *Handler) postServersShareForUser(c *fiber.Ctx) error {
+func (h *Handler) addServersShareForUser(c *fiber.Ctx) error {
 	request := new(serverpb.AddShareServer_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -87,7 +87,7 @@ func (h *Handler) postServersShareForUser(c *fiber.Ctx) error {
 // Updating the settings to the server that they shared
 // request serverReq{user_id:1, project_id:1, server:1}
 // PATCH /v1/servers/share
-func (h *Handler) patchServerShareForUser(c *fiber.Ctx) error {
+func (h *Handler) updateServerShareForUser(c *fiber.Ctx) error {
 	request := new(serverpb.UpdateShareServer_Request)
 
 	if err := c.BodyParser(&request); err != nil {
