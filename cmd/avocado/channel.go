@@ -248,7 +248,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 			term := term.NewTerminal(ch, "Select server or push enter to exit > ")
 			selectedServer, _ := term.ReadLine()
-			selectServer, _ := strutil.ToInt32(selectedServer)
+			selectServer := strutil.ToInt32(selectedServer)
 
 			switch {
 			case selectServer <= int32(len(actx.serverList)) && selectServer > 0:
@@ -406,7 +406,8 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 		Session:   sessConfig.SessionID,
 	}
 
-	wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, int32(internal.GetInt("SSHSERVER_RECORD_COUNT", 50)))
+	recordCount := internal.GetInt32("SSHSERVER_RECORD_COUNT", 50)
+	wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, recordCount)
 	auditID := wrappedlch.AuditID
 	defer wrappedlch.Close()
 
@@ -452,7 +453,8 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 		for req := range lreqs {
 			b, err := rch.SendRequest(req.Type, req.WantReply, req.Payload)
 			if req.Type == "exec" {
-				wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, int32(internal.GetInt("SSHSERVER_RECORD_COUNT", 50)))
+				recordCount := internal.GetInt32("SSHSERVER_RECORD_COUNT", 50)
+				wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, recordCount)
 				command := append(req.Payload, []byte("\n")...)
 				if _, err := wrappedlch.Write(command); err != nil {
 					app.log.Error(err).Msg("failed to write log")

@@ -33,8 +33,7 @@ func (p *PaginationQuery) SetLimit(limitQuery string) {
 		p.Limit = defaultLimit
 		return
 	}
-	n, _ := strutil.ToInt32(limitQuery)
-	p.Limit = n
+	p.Limit = strutil.ToInt32(limitQuery)
 }
 
 // SetOffset is ...
@@ -43,8 +42,7 @@ func (p *PaginationQuery) SetOffset(pageQuery string) {
 		p.Offset = 0
 		return
 	}
-	n, _ := strutil.ToInt32(pageQuery)
-	p.Offset = n
+	p.Offset = strutil.ToInt32(pageQuery)
 }
 
 // SetSortBy is ...

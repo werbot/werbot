@@ -52,6 +52,15 @@ func GetInt(key string, fallback int) int {
 	return fallback
 }
 
+// GetInt32 is ...
+func GetInt32(key string, fallback int32) int32 {
+	value := lookup(key, "")
+	if value, err := strconv.ParseInt(value, 10, 32); err == nil {
+		return int32(value)
+	}
+	return fallback
+}
+
 // GetBool is ...
 func GetBool(key string, fallback bool) bool {
 	value := lookup(key, "")
