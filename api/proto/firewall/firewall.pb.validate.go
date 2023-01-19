@@ -1485,16 +1485,20 @@ func (m *ServerFirewall_Request) validate(all bool) error {
 
 	var errors []error
 
-	if err := m._validateUuid(m.GetUserId()); err != nil {
-		err = ServerFirewall_RequestValidationError{
-			field:  "UserId",
-			reason: "value must be a valid UUID",
-			cause:  err,
+	if m.GetUserId() != "" {
+
+		if err := m._validateUuid(m.GetUserId()); err != nil {
+			err = ServerFirewall_RequestValidationError{
+				field:  "UserId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
+
 	}
 
 	if err := m._validateUuid(m.GetProjectId()); err != nil {
@@ -2073,16 +2077,20 @@ func (m *AddServerFirewall_Request) validate(all bool) error {
 
 	var errors []error
 
-	if err := m._validateUuid(m.GetUserId()); err != nil {
-		err = AddServerFirewall_RequestValidationError{
-			field:  "UserId",
-			reason: "value must be a valid UUID",
-			cause:  err,
+	if m.GetUserId() != "" {
+
+		if err := m._validateUuid(m.GetUserId()); err != nil {
+			err = AddServerFirewall_RequestValidationError{
+				field:  "UserId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
+
 	}
 
 	if err := m._validateUuid(m.GetProjectId()); err != nil {
@@ -2151,7 +2159,7 @@ func (m *AddServerFirewall_Request) validate(all bool) error {
 			}
 		}
 
-	case *AddServerFirewall_Request_Country:
+	case *AddServerFirewall_Request_CountryCode:
 		if v == nil {
 			err := AddServerFirewall_RequestValidationError{
 				field:  "Record",
@@ -2162,7 +2170,19 @@ func (m *AddServerFirewall_Request) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
-		// no validation rules for Country
+
+		if utf8.RuneCountInString(m.GetCountryCode()) != 2 {
+			err := AddServerFirewall_RequestValidationError{
+				field:  "CountryCode",
+				reason: "value length must be 2 runes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+
+		}
+
 	default:
 		_ = v // ensures v is used
 	}
@@ -2381,16 +2401,20 @@ func (m *UpdateServerFirewall_Request) validate(all bool) error {
 
 	var errors []error
 
-	if err := m._validateUuid(m.GetUserId()); err != nil {
-		err = UpdateServerFirewall_RequestValidationError{
-			field:  "UserId",
-			reason: "value must be a valid UUID",
-			cause:  err,
+	if m.GetUserId() != "" {
+
+		if err := m._validateUuid(m.GetUserId()); err != nil {
+			err = UpdateServerFirewall_RequestValidationError{
+				field:  "UserId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
+
 	}
 
 	if err := m._validateUuid(m.GetProjectId()); err != nil {
@@ -2635,16 +2659,20 @@ func (m *DeleteServerFirewall_Request) validate(all bool) error {
 
 	var errors []error
 
-	if err := m._validateUuid(m.GetUserId()); err != nil {
-		err = DeleteServerFirewall_RequestValidationError{
-			field:  "UserId",
-			reason: "value must be a valid UUID",
-			cause:  err,
+	if m.GetUserId() != "" {
+
+		if err := m._validateUuid(m.GetUserId()); err != nil {
+			err = DeleteServerFirewall_RequestValidationError{
+				field:  "UserId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
+
 	}
 
 	if err := m._validateUuid(m.GetProjectId()); err != nil {
@@ -3112,16 +3140,20 @@ func (m *ServerAccess_Request) validate(all bool) error {
 
 	var errors []error
 
-	if err := m._validateUuid(m.GetUserId()); err != nil {
-		err = ServerAccess_RequestValidationError{
-			field:  "UserId",
-			reason: "value must be a valid UUID",
-			cause:  err,
+	if m.GetUserId() != "" {
+
+		if err := m._validateUuid(m.GetUserId()); err != nil {
+			err = ServerAccess_RequestValidationError{
+				field:  "UserId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
+
 	}
 
 	if err := m._validateUuid(m.GetServerId()); err != nil {
@@ -3359,21 +3391,25 @@ func (m *ServerAccessUser_Request) validate(all bool) error {
 
 	var errors []error
 
+	if m.GetUserId() != "" {
+
+		if err := m._validateUuid(m.GetUserId()); err != nil {
+			err = ServerAccessUser_RequestValidationError{
+				field:  "UserId",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
 	if err := m._validateUuid(m.GetServerId()); err != nil {
 		err = ServerAccessUser_RequestValidationError{
 			field:  "ServerId",
-			reason: "value must be a valid UUID",
-			cause:  err,
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if err := m._validateUuid(m.GetUserId()); err != nil {
-		err = ServerAccessUser_RequestValidationError{
-			field:  "UserId",
 			reason: "value must be a valid UUID",
 			cause:  err,
 		}

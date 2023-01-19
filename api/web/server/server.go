@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -423,7 +422,8 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 	request := new(firewallpb.AddServerFirewall_Request)
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
-		fmt.Print(err)
+		h.log.Error(err).Send()
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -443,22 +443,24 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc.Client)
 
 	var err error
-	response := new(firewallpb.AddServerFirewall_Response)
-	switch recordType := request.Record.(type) {
-	case *firewallpb.AddServerFirewall_Request_Country:
-		record := new(firewallpb.AddServerFirewall_Request_Country)
-		record.Country = recordType.Country
-
+	switch request.Record.(type) {
+	case *firewallpb.AddServerFirewall_Request_CountryCode:
+		record := new(firewallpb.AddServerFirewall_Request_CountryCode)
+		record.CountryCode = request.GetCountryCode()
 		request.Record = record
+
 	case *firewallpb.AddServerFirewall_Request_Ip:
 		record := new(firewallpb.AddServerFirewall_Request_Ip)
-		record.Ip.StartIp = recordType.Ip.StartIp
-		record.Ip.EndIp = recordType.Ip.EndIp
+		record.Ip = new(firewallpb.IpMask)
+		record.Ip.StartIp = request.GetIp().GetStartIp()
+		record.Ip.EndIp = request.GetIp().GetEndIp()
 		request.Record = record
+
 	default:
 		return webutil.StatusBadRequest(c, msgBadRule, nil)
 	}
 
+	response := new(firewallpb.AddServerFirewall_Response)
 	response, err = rClient.AddServerFirewall(ctx, request)
 
 	if err != nil {
@@ -476,7 +478,7 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/firewall [patch]
-func (h *Handler) updateAccessPolicy(c *fiber.Ctx) error {
+func (h *Handler) updateServerFirewall(c *fiber.Ctx) error {
 	request := new(firewallpb.UpdateServerFirewall_Request)
 
 	if err := c.BodyParser(request); err != nil {

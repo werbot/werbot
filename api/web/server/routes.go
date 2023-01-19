@@ -50,7 +50,7 @@ func (h *Handler) Routes() {
 	serverV1.Get("/firewall", h.serverFirewall)
 	serverV1.Post("/firewall", h.addServerFirewall)
 	serverV1.Delete("/firewall", h.deleteServerFirewall)
-	serverV1.Patch("/firewall", h.updateAccessPolicy)
+	serverV1.Patch("/firewall", h.updateServerFirewall)
 
 	serverV1.Get("/share", h.serversShareForUser)
 	serverV1.Post("/share", h.addServersShareForUser)

@@ -63,9 +63,9 @@ message IpMask{
 // rpc ServerFirewall
 message ServerFirewall {
   message Request {
-    string user_id = 1    [(validate.rules).string.uuid = true]; // @gotags: query:"user_id"
-    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string server_id = 3  [(validate.rules).string.uuid = true];
+    string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
+    string project_id = 2 [(validate.rules).string.uuid = true];                        // @gotags: query:"project_id"
+    string server_id = 3  [(validate.rules).string.uuid = true];                        // @gotags: query:"server_id"
 }
 
   message Response {
@@ -89,12 +89,12 @@ message ServerFirewall {
 // rpc AddServerFirewall
 message AddServerFirewall{
   message Request {
-    string user_id = 1    [(validate.rules).string.uuid = true];
+    string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}];
     string project_id = 2 [(validate.rules).string.uuid = true];
     string server_id = 3  [(validate.rules).string.uuid = true];
     oneof record {
       IpMask ip = 4;
-      string country = 5;
+      string country_code = 5 [(validate.rules).string.len = 2];
     }
   }
 
@@ -108,7 +108,7 @@ message AddServerFirewall{
 // rpc UpdateServerFirewall
 message UpdateServerFirewall {
   message Request {
-    string user_id = 1    [(validate.rules).string.uuid = true];
+    string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}];
     string project_id = 2 [(validate.rules).string.uuid = true];
     string server_id = 3  [(validate.rules).string.uuid = true];
     Rules rule = 4;
@@ -123,7 +123,7 @@ message UpdateServerFirewall {
 // rpc DeleteServerFirewall
 message DeleteServerFirewall{
   message Request {
-    string user_id = 1    [(validate.rules).string.uuid = true];
+    string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}];
     string project_id = 2 [(validate.rules).string.uuid = true];
     string server_id = 3  [(validate.rules).string.uuid = true];
     Rules rule = 4;
@@ -148,9 +148,9 @@ message IPAccess {
 // rpc ServerAccess
 message ServerAccess {
   message Request {
-    string user_id = 1      [(validate.rules).string.uuid = true];
-    string server_id = 2    [(validate.rules).string.uuid = true];
-    string member_ip = 3    [(validate.rules).string.ip = true];
+    string user_id = 1      [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
+    string server_id = 2    [(validate.rules).string.uuid = true];                        // @gotags: query:"server_id"
+    string member_ip = 3    [(validate.rules).string.ip = true];                          // @gotags: query:"member_ip"
   }
   message Response {}
 }
@@ -160,8 +160,8 @@ message ServerAccess {
 // rpc ServerAccessUser
 message ServerAccessUser {
   message Request {
-    string server_id = 1 [(validate.rules).string.uuid = true];
-    string user_id = 2   [(validate.rules).string.uuid = true];
+    string user_id = 1   [(validate.rules).string = {ignore_empty: true, uuid: true}];
+    string server_id = 2 [(validate.rules).string.uuid = true];
   }
   message Response {}
 }

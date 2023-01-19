@@ -69,6 +69,8 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *firewallpb.ServerFire
 	}
 
 	response := new(firewallpb.ServerFirewall_Response)
+	response.Country = new(firewallpb.ServerFirewall_Response_Countries)
+	response.Network = new(firewallpb.ServerFirewall_Response_Networks)
 
 	// get countries
 	rows, err := service.db.Conn.Query(`SELECT "server_security_country"."id", "server_security_country"."country_code", "country"."name"
@@ -147,15 +149,12 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *firewallpb.AddServ
 	response := new(firewallpb.AddServerFirewall_Response)
 
 	switch record := in.Record.(type) {
-	case *firewallpb.AddServerFirewall_Request_Country:
+	case *firewallpb.AddServerFirewall_Request_CountryCode:
 		err := service.db.Conn.QueryRow(`SELECT "id" FROM "server_security_country" WHERE "server_id" = $1 AND "country_code" = $2`,
 			in.GetServerId(),
-			record.Country,
+			record.CountryCode,
 		).Scan(&response.Id)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
+		if err != nil && err != sql.ErrNoRows {
 			service.log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
@@ -165,7 +164,7 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *firewallpb.AddServ
 
 		err = service.db.Conn.QueryRow(`INSERT INTO "server_security_country" ("server_id", "country_code") VALUES ($1, $2) RETURNING id`,
 			in.GetServerId(),
-			record.Country,
+			record.CountryCode,
 		).Scan(&response.Id)
 		if err != nil {
 			service.log.FromGRPC(err).Send()
@@ -178,10 +177,7 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *firewallpb.AddServ
 			record.Ip.StartIp,
 			record.Ip.EndIp,
 		).Scan(&response.Id)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
+		if err != nil && err != sql.ErrNoRows {
 			service.log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
