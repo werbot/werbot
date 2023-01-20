@@ -48,6 +48,7 @@ help:
 #############################################################################
 .PHONY: gen_key_aes
 gen_key_aes: ## Generating AES key
+	$(msg) "$(GREEN)Generating AES key$(RESET)"
 	@openssl enc -aes-128-cbc -k secret -P -md sha1 -pbkdf2
 #############################################################################
 
@@ -55,23 +56,22 @@ gen_key_aes: ## Generating AES key
 #############################################################################
 .PHONY: gen_key_server
 gen_key_server: ## Generating ssh server key
+	$(msg) "$(GREEN)Generating ssh server key$(RESET)"
 	@if [ -f $(ROOT_PATH)/.vscode/core/server.key ]; then \
 		rm -rf $(ROOT_PATH)/.vscode/core/server.key*; \
 	fi
 	@ssh-keygen -t rsa -b 4096 -f $(ROOT_PATH)/.vscode/core/server_key -N '' -C 'werbot@core'
 	@rm -rf $(ROOT_PATH)/.vscode/core/server_key.pub
 	@mv $(ROOT_PATH)/.vscode/core/server_key $(ROOT_PATH)/.vscode/core/server.key
-
-	$(msg) "$(YELLOW)Server key generated$(RESET)"
 #############################################################################
 
 
 #############################################################################
 .PHONY: gen_key_jwt
 gen_key_jwt: ## Generating JWT key
+	$(msg) "$(GREEN)Generating JWT key$(RESET)"
 	@openssl genrsa -out $(ROOT_PATH)/.vscode/core/jwt_private.key 2048
 	@openssl rsa -in $(ROOT_PATH)/.vscode/core/jwt_private.key -pubout -outform PEM -out $(ROOT_PATH)/.vscode/core/jwt_public.key
-	$(msg) "$(YELLOW)Server key generated$(RESET)"
 #############################################################################
 
 
@@ -81,6 +81,7 @@ gen_key_jwt: ## Generating JWT key
 # make gen_protos user - recreate protofile user from folder /api/proto/
 .PHONY: gen_protos
 gen_protos: ## Generating protos files
+	$(msg) "$(GREEN)Generating protos files$(RESET)"
 	@if [ $(filter-out $@,$(MAKECMDGOALS)) ]; then\
 		if [ -d ${ROOT_PATH}/api/proto/$(filter-out $@,$(MAKECMDGOALS))/ ];then\
 			$(call _gen_protos,${ROOT_PATH}/api/proto/$(filter-out $@,$(MAKECMDGOALS))/);\
@@ -92,8 +93,6 @@ gen_protos: ## Generating protos files
 			$(call _gen_protos,$${entry});\
 		done \
 	fi
-
-	$(msg) "$(YELLOW)Proto-files updated$(RESET)"
 
 define _gen_protos
 	pushd ${1} >/dev/null 2>&1;\
@@ -116,7 +115,8 @@ endef
 
 #############################################################################
 .PHONY: upd_protos
-upd_protos:
+upd_protos: ## Update proto tools
+	$(msg) "$(GREEN)Update proto tools$(RESET)"
 	$(eval PROTOS_LATEST=$(call get_latest_release,protocolbuffers/protobuf))
 	@case $(OS_NAME) in \
 		darwin*) \
@@ -137,14 +137,13 @@ upd_protos:
 			rm -rf ${ROOT_PATH}/.vscode/tmp;\
 			;; \
 	esac
-
-	$(msg) "$(YELLOW)Protos tools updated$(RESET)"
 #############################################################################
 
 
 #############################################################################
 .PHONY: gen_key_grpc
 gen_key_grpc: ## Generating TLS keys for gRPC
+	$(msg) "$(GREEN)Generating TLS keys for gRPC$(RESET)"
 	@$(call make_target_dir,${ROOT_PATH}/.vscode/tmp)
 	@echo "$$_gen_grpc_key_conf" > ${ROOT_PATH}/.vscode/tmp/.temp-openssl-config
 	@openssl genrsa -out ${ROOT_PATH}/.vscode/tmp/private_key.pem 2048
@@ -155,8 +154,6 @@ gen_key_grpc: ## Generating TLS keys for gRPC
 	@mv ${ROOT_PATH}/.vscode/tmp/private_key.pem ${ROOT_PATH}/.vscode/core/grpc_private.key
 	@mv ${ROOT_PATH}/.vscode/tmp/certificate.pem ${ROOT_PATH}/.vscode/core/grpc_certificate.key
 	@rm -rf ${ROOT_PATH}/.vscode/tmp
-
-	$(msg) "$(YELLOW)TLS keys for gRPC generated$(RESET)"
 
 export _gen_grpc_key_conf
 define _gen_grpc_key_conf
@@ -185,6 +182,7 @@ endef
 #############################################################################
 .PHONY: upd_geolite
 upd_geolite: ## Updating and install GeoLite database to the latest version
+	$(msg) "$(GREEN)Updating and install GeoLite database to the latest version$(RESET)"
 	@if [ ! ${GEOLITE_LICENSE} ]; then \
 		echo "GEOLITE_LICENSE no key "; \
 		return; \
@@ -197,13 +195,13 @@ upd_geolite: ## Updating and install GeoLite database to the latest version
 	@tar -zxf $(ROOT_PATH)/.vscode/tmp/country.tar.gz -C $(ROOT_PATH)/.vscode/tmp
 	@cp $$(ls -d $(ROOT_PATH)/.vscode/tmp/*/ | head -n 1)*.mmdb $(ROOT_PATH)/.vscode/core/GeoLite2-Country.mmdb
 	@rm -rf $(ROOT_PATH)/.vscode/tmp
-	$(msg) "$(YELLOW)Base GeoLite2-Country updated$(RESET)"
 #############################################################################
 
 
 #############################################################################
 .PHONY: upd_golang
 upd_golang: ## Updating and install Go to the latest version
+	$(msg) "$(GREEN)Updating and install Go to the latest version$(RESET)"
 	$(eval GO_RELEASE=$(shell wget -qO- "https://golang.org/dl/" | grep -v -E 'go[0-9\.]+(beta|rc)' | grep -E -o 'go[0-9\.]+' | grep -E -o '[0-9]\.[0-9]+(\.[0-9]+)?' | sort -V | uniq | tail -1))
 	$(eval GO_PATH="/usr/local/go")
 	@if [ ! -d $(GO_PATH) ]; then \
@@ -213,13 +211,13 @@ upd_golang: ## Updating and install Go to the latest version
 		source ~/.bashrc; \
 	fi
 	@curl --silent https://dl.google.com/go/go$(GO_RELEASE).$(OS_NAME)-$(CPU_ARCH).tar.gz | sudo tar -vxz --strip-components 1 -C $(GO_PATH) >/dev/null 2>&1
-	$(msg) "$(YELLOW)GO updated$(RESET)"
 #############################################################################
 
 
 #############################################################################
 .PHONY: new_build
 new_build: ## Building new version to git
+	$(msg) "$(GREEN)Building new version to git$(RESET)"
 	$(eval NEW_VERSION=$(shell read -p "Enter new release version (current version ${VERSION}): " enter ; echo $${enter}))
 	@if [ ${NEW_VERSION} ]; then\
 		#sed -i -e "s/\(Licensed Work:\s*Werbot\s\)v[0-9][0-9.]*/\\1v${NEW_VERSION}/" $(ROOT_PATH)/LICENSE;\
@@ -229,8 +227,6 @@ new_build: ## Building new version to git
 		git tag v${NEW_VERSION};\
 		git push origin main;\
 		git push --tags origin main;\
-	else \
-		echo "$(RED)Cloudflare ip lists updated$(RESET)";\
 	fi
 #############################################################################
 
@@ -238,6 +234,7 @@ new_build: ## Building new version to git
 #############################################################################
 .PHONY: prod_build
 prod_build: ## Building project in bin folder
+	$(msg) "$(GREEN)Building project in bin folder$(RESET)"
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
 	@if [ ${NAME} ]; then\
 		if [ -d ${ROOT_PATH}/cmd/${NAME}/ ];then\
@@ -264,12 +261,11 @@ prod_build_go:
 #############################################################################
 .PHONY: prod_package
 prod_package: ## Building a docker container
+	$(msg) "$(GREEN)Building a docker container$(RESET)"
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
 	@if [ ${NAME} ]; then \
 		if [ -d ${ROOT_PATH}/cmd/${NAME}/ ];then\
 			make -s prod_package_go ${NAME}; \
-		elif [ ${NAME} == "app" ]; then\
-			make -s prod_package_app; \
 		else \
 			echo "error";\
 		fi \
@@ -277,7 +273,6 @@ prod_package: ## Building a docker container
 		for entry in ${ROOT_PATH}/cmd/*/; do\
 			make -s prod_package_go $$(basename $${entry});\
 		done; \
-		make -s prod_package_app; \
 	fi
 
 .PHONY: prod_package_go
@@ -285,7 +280,7 @@ prod_package_go:
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
 	$(eval DESCRIPTION=$(shell cat ${ROOT_PATH}/cmd/${NAME}/.description))
 	@echo "Package go container" ${NAME} ${VERSION}
-	@cat ${ROOT_PATH}/.docker/Dockerfile_go > ${ROOT_PATH}/bin/Dockerfile_${NAME}
+	@cat ${ROOT_PATH}/.docker/Dockerfile > ${ROOT_PATH}/bin/Dockerfile_${NAME}
 	@sed -i -E "s/_NAME_/${NAME}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
 	@sed -i -E "s/_GIT_COMMIT_/${GIT_COMMIT}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
 	@sed -i -E "s/_VERSION_/${VERSION}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
@@ -295,34 +290,19 @@ prod_package_go:
 	rm -rf ${ROOT_PATH}/bin/${NAME}/
 	rm ${ROOT_PATH}/bin/Dockerfile_${NAME}
 	docker image prune --filter "dangling=true" --force
-
-.PHONY: prod_package_app
-prod_package_app:
-	$(eval DESCRIPTION=$(shell awk -F'"' '/"description": ".+"/{ print $$4; exit; }' ${ROOT_PATH}/web/package.json))
-	@echo "Package web app container" ${VERSION}
-	@cat ${ROOT_PATH}/.docker/Dockerfile_web > ${ROOT_PATH}/bin/Dockerfile_web
-	@sed -i -E "s/_GIT_COMMIT_/${GIT_COMMIT}/g" ${ROOT_PATH}/bin/Dockerfile_web
-	@sed -i -E "s/_VERSION_/${VERSION}/g" ${ROOT_PATH}/bin/Dockerfile_web
-	@sed -i -E "s/_DESCRIPTION_/${DESCRIPTION}/g" ${ROOT_PATH}/bin/Dockerfile_web
-	docker build -f ${ROOT_PATH}/bin/Dockerfile_web -t ghcr.io/werbot/app:latest .
-	docker tag ghcr.io/werbot/app:latest ghcr.io/werbot/app:${VERSION}
-	rm -rf ${ROOT_PATH}/web/dist
-	rm ${ROOT_PATH}/bin/Dockerfile_web
-	docker image prune --filter "dangling=true" --force
 #############################################################################
 
 
 #############################################################################
 .PHONY: prod_push
 prod_push: ## Submitting the project to the docker registry
+	$(msg) "$(GREEN)Submitting the project to the docker registry$(RESET)"
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
 #	@export $(shell sed 's/=.*//' $(ROOT_PATH)/.env)
 #	@echo $(GITHUB_TOKEN) | docker login ghcr.io -u USERNAME --password-stdin
 	@if [ ${NAME} ]; then \
 		if [ -d ${ROOT_PATH}/cmd/${NAME}/ ];then\
 			make -s prod_push_go ${NAME};\
-		elif [ ${NAME} == "app" ]; then\
-			make -s prod_push_app; \
 		else \
 			echo "error";\
 		fi \
@@ -330,7 +310,6 @@ prod_push: ## Submitting the project to the docker registry
 		for entry in ${ROOT_PATH}/cmd/*/; do\
 			make -s prod_push_go $$(basename $${entry});\
 		done; \
-		make -s prod_push_app; \
 	fi
 
 .PHONY: prod_push_go
@@ -339,18 +318,13 @@ prod_push_go:
 	echo "Push go package" ${NAME} ${VERSION}
 	docker push ghcr.io/werbot/${NAME}:latest
 	docker push ghcr.io/werbot/${NAME}:${VERSION}
-
-.PHONY: prod_push_app
-prod_push_app:
-	echo "Push web package"
-	docker push ghcr.io/werbot/app:latest
-	docker push ghcr.io/werbot/app:${VERSION}
 #############################################################################
 
 
 #############################################################################
 .PHONY: lint
 lint: ## Cleaning garbage and inactive containers
+	$(msg) "$(GREEN)Cleaning garbage and inactive containers$(RESET)"
 #	@REVIVE_FORCE_COLOR=1 revive -formatter friendly ./...
 	@golangci-lint run
 #############################################################################
@@ -377,7 +351,8 @@ upd_cdn_ip:
 #############################################################################
 # install latest version goose - go install github.com/pressly/goose/v3/cmd/goose@latest
 .PHONY: srv_migration
-srv_migration:
+srv_migration: # Migration sql
+	$(msg) "$(GREEN)Migration sql$(RESET)"
 	$(eval MIGRATION_DIR=${ROOT_PATH}/migration)
 	$(eval DB_POSTFIX="goose_db_version")
 	$(eval ARG_TYPE = $(filter ent saas test,$(MAKECMDGOALS)))
@@ -418,7 +393,8 @@ srv_migration:
 
 #############################################################################
 .PHONY: srv_migration_dev
-srv_migration_dev:
+srv_migration_dev: # Dev migration sql
+	$(msg) "$(GREEN)Dev migration sql$(RESET)"
 	$(eval ARG_TYPE = $(filter up down reset,$(MAKECMDGOALS)))
 	@if [ $(ARG_TYPE) ]; then \
 		if [ "$(ARG_TYPE)" == "up" ];then \
@@ -441,7 +417,8 @@ srv_migration_dev:
 
 #############################################################################
 .PHONY: env_dev
-env_dev: ## .env for dev environment
+env_dev: ## Scan new .env for dev environment
+	$(msg) "$(GREEN)Scan new .env for dev environment$(RESET)"
 	$(eval ARG_TYPE = $(filter update,$(MAKECMDGOALS)))
 	@if [ $(ARG_TYPE) ]; then\
 		ENV_FILE="${ROOT_PATH}/.env";\
@@ -496,6 +473,7 @@ upd_install:
 #############################################################################
 .PHONY: clean
 clean: ## Cleaning garbage and inactive containers
+	$(msg) "$(GREEN)leaning garbage and inactive containers$(RESET)"
 #	@(lsof -t -i :5172 | xargs kill) 2>/dev/null
 	@for pid in $$(echo $$(ps ax | grep __debug_bin | grep -v grep | awk '{print $$1}')); do \
 		printf "%.25s " "killing $$pid ..................................."; \
