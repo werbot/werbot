@@ -1164,9 +1164,11 @@ func (m *User_Response) validate(all bool) error {
 
 	// no validation rules for UserId
 
-	// no validation rules for Fio
+	// no validation rules for Login
 
 	// no validation rules for Name
+
+	// no validation rules for Surname
 
 	// no validation rules for Email
 
@@ -1336,9 +1338,20 @@ func (m *AddUser_Request) validate(all bool) error {
 
 	var errors []error
 
-	if !_AddUser_Request_Name_Pattern.MatchString(m.GetName()) {
+	if l := utf8.RuneCountInString(m.GetLogin()); l < 3 || l > 20 {
 		err := AddUser_RequestValidationError{
-			field:  "Name",
+			field:  "Login",
+			reason: "value length must be between 3 and 20 runes, inclusive",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if !_AddUser_Request_Login_Pattern.MatchString(m.GetLogin()) {
+		err := AddUser_RequestValidationError{
+			field:  "Login",
 			reason: "value does not match regex pattern \"^[a-z0-9]+$\"",
 		}
 		if !all {
@@ -1359,10 +1372,21 @@ func (m *AddUser_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if utf8.RuneCountInString(m.GetFio()) < 5 {
+	if l := utf8.RuneCountInString(m.GetName()); l < 3 || l > 128 {
 		err := AddUser_RequestValidationError{
-			field:  "Fio",
-			reason: "value length must be at least 5 runes",
+			field:  "Name",
+			reason: "value length must be between 3 and 128 runes, inclusive",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if l := utf8.RuneCountInString(m.GetSurname()); l < 3 || l > 128 {
+		err := AddUser_RequestValidationError{
+			field:  "Surname",
+			reason: "value length must be between 3 and 128 runes, inclusive",
 		}
 		if !all {
 			return err
@@ -1513,7 +1537,7 @@ var _ interface {
 	ErrorName() string
 } = AddUser_RequestValidationError{}
 
-var _AddUser_Request_Name_Pattern = regexp.MustCompile("^[a-z0-9]+$")
+var _AddUser_Request_Login_Pattern = regexp.MustCompile("^[a-z0-9]+$")
 
 // Validate checks the field values on AddUser_Response with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -1655,11 +1679,11 @@ func (m *UpdateUser_Request) validate(all bool) error {
 
 	}
 
-	switch v := m.Setting.(type) {
+	switch v := m.Request.(type) {
 	case *UpdateUser_Request_Info:
 		if v == nil {
 			err := UpdateUser_RequestValidationError{
-				field:  "Setting",
+				field:  "Request",
 				reason: "oneof value cannot be a typed-nil",
 			}
 			if !all {
@@ -1700,7 +1724,7 @@ func (m *UpdateUser_Request) validate(all bool) error {
 	case *UpdateUser_Request_Enabled:
 		if v == nil {
 			err := UpdateUser_RequestValidationError{
-				field:  "Setting",
+				field:  "Request",
 				reason: "oneof value cannot be a typed-nil",
 			}
 			if !all {
@@ -1712,7 +1736,7 @@ func (m *UpdateUser_Request) validate(all bool) error {
 	case *UpdateUser_Request_Confirmed:
 		if v == nil {
 			err := UpdateUser_RequestValidationError{
-				field:  "Setting",
+				field:  "Request",
 				reason: "oneof value cannot be a typed-nil",
 			}
 			if !all {
@@ -1937,11 +1961,11 @@ func (m *UpdateUser_Info) validate(all bool) error {
 
 	var errors []error
 
-	if m.GetName() != "" {
+	if m.GetLogin() != "" {
 
-		if l := utf8.RuneCountInString(m.GetName()); l < 3 || l > 20 {
+		if l := utf8.RuneCountInString(m.GetLogin()); l < 3 || l > 20 {
 			err := UpdateUser_InfoValidationError{
-				field:  "Name",
+				field:  "Login",
 				reason: "value length must be between 3 and 20 runes, inclusive",
 			}
 			if !all {
@@ -1950,9 +1974,9 @@ func (m *UpdateUser_Info) validate(all bool) error {
 			errors = append(errors, err)
 		}
 
-		if !_UpdateUser_Info_Name_Pattern.MatchString(m.GetName()) {
+		if !_UpdateUser_Info_Login_Pattern.MatchString(m.GetLogin()) {
 			err := UpdateUser_InfoValidationError{
-				field:  "Name",
+				field:  "Login",
 				reason: "value does not match regex pattern \"^[a-z0-9]+$\"",
 			}
 			if !all {
@@ -1975,10 +1999,10 @@ func (m *UpdateUser_Info) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if utf8.RuneCountInString(m.GetFio()) < 5 {
+	if l := utf8.RuneCountInString(m.GetName()); l < 3 || l > 128 {
 		err := UpdateUser_InfoValidationError{
-			field:  "Fio",
-			reason: "value length must be at least 5 runes",
+			field:  "Name",
+			reason: "value length must be between 3 and 128 runes, inclusive",
 		}
 		if !all {
 			return err
@@ -1986,9 +2010,16 @@ func (m *UpdateUser_Info) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for Enabled
-
-	// no validation rules for Confirmed
+	if l := utf8.RuneCountInString(m.GetSurname()); l < 3 || l > 128 {
+		err := UpdateUser_InfoValidationError{
+			field:  "Surname",
+			reason: "value length must be between 3 and 128 runes, inclusive",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return UpdateUser_InfoMultiError(errors)
@@ -2118,7 +2149,7 @@ var _ interface {
 	ErrorName() string
 } = UpdateUser_InfoValidationError{}
 
-var _UpdateUser_Info_Name_Pattern = regexp.MustCompile("^[a-z0-9]+$")
+var _UpdateUser_Info_Login_Pattern = regexp.MustCompile("^[a-z0-9]+$")
 
 // Validate checks the field values on DeleteUser_Request with the rules
 // defined in the proto definition for this message. If any rules are
@@ -2320,7 +2351,7 @@ func (m *DeleteUser_Response) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Name
+	// no validation rules for Login
 
 	// no validation rules for Email
 

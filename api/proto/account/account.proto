@@ -15,7 +15,7 @@ service AccountHandlers {
   rpc UpdateAccount(UpdateAccount.Request) returns (UpdateAccount.Response) {}
   rpc DeleteAccount(DeleteAccount.Request) returns (DeleteAccount.Response) {}
 
-  rpc AccountIDByName(AccountIDByName.Request) returns (AccountIDByName.Response) {}
+  rpc AccountIDByLogin(AccountIDByLogin.Request) returns (AccountIDByLogin.Response) {}
 
   rpc UpdateStatus(UpdateStatus.Request) returns (UpdateStatus.Response) {}
 
@@ -56,9 +56,10 @@ message Account {
     string account_id = 1;
     bool online = 2;
     bool active = 3;
-    string user_fio = 4;
-    google.protobuf.Timestamp last_activity = 5;
-    string connection_login = 6;
+    string name = 4;
+    string surname = 5;
+    google.protobuf.Timestamp last_activity = 6;
+    string connection_login = 7;
   }
 }
 // -----------------------------------------------------
@@ -97,10 +98,10 @@ message DeleteAccount {
 // -----------------------------------------------------
 
 
-// rpc AccountIDByName
-message AccountIDByName {
+// rpc AccountIDByLogin
+message AccountIDByLogin {
   message Request {
-    string username = 1;
+    string login = 1;
     string fingerprint = 2;
     string client_ip = 3 [(validate.rules).string.ip = true];
   }

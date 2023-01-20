@@ -234,7 +234,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 	request.SortBy = `"user"."name":ASC`
-	request.Name = fmt.Sprintf(`%v`, request.GetName())
+	request.Login = fmt.Sprintf(`%v`, request.GetLogin())
 	request.Limit = pagination.GetLimit()
 	request.Offset = pagination.GetOffset()
 

@@ -131,16 +131,17 @@ message UsersWithoutProject {
   message Request {
     string owner_id = 1    [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 2  [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string name = 3;
+    string login = 3;
   }
 
   message Response {
-    message User{
-      int32 user_id = 1;
-      string name = 2;
-      string email = 3;
-    }
     repeated User users = 1;
+  }
+
+  message User{
+    int32 user_id = 1;
+    string login = 2;
+    string email = 3;
   }
 }
 // -----------------------------------------------------
@@ -248,7 +249,7 @@ message ServerMember {
   message Response {
     string member_id = 1;
     string user_id = 2;
-    string user_name = 3;
+    string user_login = 3;
     string email = 4;
     user.Role role = 5;
     bool active = 6;
@@ -314,7 +315,7 @@ message MembersWithoutServer {
     string owner_id = 4   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 5 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
     string server_id = 6  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
-    string name = 7;
+    string login = 7;
   }
   message Response {
     int32 total = 1;

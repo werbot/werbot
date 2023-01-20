@@ -22,7 +22,7 @@ import (
 func passwordAuthHandler() ssh.PasswordHandler {
 	return func(ctx ssh.Context, pass string) bool {
 		actx := &authContext{
-			userName:   ctx.User(),
+			login:      ctx.User(),
 			userAddr:   ctx.RemoteAddr().String(),
 			authMethod: "password",
 		}
@@ -35,7 +35,7 @@ func passwordAuthHandler() ssh.PasswordHandler {
 func publicKeyAuthHandler() ssh.PublicKeyHandler {
 	return func(ctx ssh.Context, key ssh.PublicKey) bool {
 		actx := &authContext{
-			userName:        fixUsername(ctx.User()),
+			login:           fixLogin(ctx.User()),
 			userAddr:        netutil.IP(ctx.RemoteAddr().String()),
 			userFingerPrint: gossh.FingerprintLegacyMD5(key),
 			authMethod:      "pubkey",
@@ -48,7 +48,7 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 		rClientF := firewallpb.NewFirewallHandlersClient(app.grpc.Client)
 		rClientA := accountpb.NewAccountHandlersClient(app.grpc.Client)
 
-		// IP check for global Faerwole settings
+		// IP check for global Firewall settings
 		_, err := rClientF.IPAccess(_ctx, &firewall.IPAccess_Request{
 			ClientIp: actx.userAddr,
 		})
@@ -59,15 +59,15 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 		}
 
 		// Checking the syntax of writing login
-		if !checkUsername(actx.userName) {
-			actx.message = "Violated username syntax"
+		if !checkLogin(actx.login) {
+			actx.message = "Violated login syntax"
 			actx.authSuccess = false
 			return true
 		}
 
 		switch actx.userType() {
 		case server.Type_invite:
-			inputToken := strings.Split(actx.userName, "_")[1]
+			inputToken := strings.Split(actx.login, "_")[1]
 			if len(inputToken) > 0 {
 				fmt.Print(inputToken)
 			}
@@ -77,8 +77,8 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 			return true
 		}
 
-		userID, err := rClientA.AccountIDByName(_ctx, &account.AccountIDByName_Request{
-			Username:    actx.userName,
+		userID, err := rClientA.AccountIDByLogin(_ctx, &account.AccountIDByLogin_Request{
+			Login:       actx.login,
 			Fingerprint: actx.userFingerPrint,
 			ClientIp:    actx.userAddr,
 		})
@@ -95,12 +95,12 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 	}
 }
 
-func checkUsername(user string) bool {
+func checkLogin(login string) bool {
 	unixUserRegexp := regexp.MustCompile("^[a-z_][a-zA-Z0-9_]{0,31}$")
-	return unixUserRegexp.MatchString(user)
+	return unixUserRegexp.MatchString(login)
 }
 
-func fixUsername(user string) string {
-	username := strutil.SplitTrimmed(user, "_")
-	return strings.Join(username, "_")
+func fixLogin(login string) string {
+	_login := strutil.SplitTrimmed(login, "_")
+	return strings.Join(_login, "_")
 }

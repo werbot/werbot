@@ -235,12 +235,12 @@ func (m *member) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWith
 
 	response := new(memberpb.UsersWithoutProject_Response)
 
-	rows, err := service.db.Conn.Query(`SELECT "id", "name", "email" FROM "user"
+	rows, err := service.db.Conn.Query(`SELECT "id", "login", "email" FROM "user"
 		WHERE "id" NOT IN(SELECT "user_id" FROM "project_member" WHERE "project_id" = $1)
-			AND LOWER("name") LIKE LOWER($2 || '%')
-		ORDER BY "name" ASC LIMIT 15 OFFSET 0`,
+			AND LOWER("login") LIKE LOWER($2 || '%')
+		ORDER BY "login" ASC LIMIT 15 OFFSET 0`,
 		in.GetProjectId(),
-		in.GetName(),
+		in.GetLogin(),
 	)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
@@ -248,8 +248,8 @@ func (m *member) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWith
 	}
 
 	for rows.Next() {
-		user := new(memberpb.UsersWithoutProject_Response_User)
-		if err = rows.Scan(&user.UserId, &user.Name, &user.Email); err != nil {
+		user := new(memberpb.UsersWithoutProject_User)
+		if err = rows.Scan(&user.UserId, &user.Login, &user.Email); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
@@ -460,7 +460,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *memberpb.ListServerM
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := service.db.Conn.Query(`SELECT
 			"user"."id",
-			"user"."name",
+			"user"."login",
 			"user"."email",
 			"server_member"."id",
 			"server_member"."active",
@@ -483,7 +483,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *memberpb.ListServerM
 		var lastActivity pgtype.Timestamp
 		member := new(memberpb.ServerMember_Response)
 		err = rows.Scan(&member.UserId,
-			&member.UserName,
+			&member.UserLogin,
 			&member.Email,
 			&member.MemberId,
 			&member.Active,
@@ -531,7 +531,7 @@ func (m *member) ServerMember(ctx context.Context, in *memberpb.ServerMember_Req
 
 	err := service.db.Conn.QueryRow(`SELECT
 			"user"."id",
-			"user"."name",
+			"user"."login",
 			"server_member"."active",
 			"server_member"."online",
 			"server_member"."last_activity"
@@ -541,7 +541,7 @@ func (m *member) ServerMember(ctx context.Context, in *memberpb.ServerMember_Req
 		WHERE "server_member"."id" = $1`,
 		in.GetMemberId(),
 	).Scan(&response.UserId,
-		&response.UserName,
+		&response.UserLogin,
 		&response.Active,
 		&response.Online,
 		&lastActivity,
@@ -670,7 +670,7 @@ func (m *member) MembersWithoutServer(ctx context.Context, in *memberpb.MembersW
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := service.db.Conn.Query(`SELECT
 			"project_member"."id",
-			"user"."name",
+			"user"."login",
 			"user"."email",
 			"project_member"."role" AS "member_role",
 			"project_member"."active" AS "member_active",
@@ -679,10 +679,10 @@ func (m *member) MembersWithoutServer(ctx context.Context, in *memberpb.MembersW
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE "project_member"."id" NOT IN(SELECT "member_id" FROM "server_member" WHERE "server_id" = $1)
 			AND "project_member"."project_id" = $2
-			AND LOWER("user"."name") LIKE LOWER($3 || '%') `+sqlFooter,
+			AND LOWER("user"."login") LIKE LOWER($3 || '%') `+sqlFooter,
 		in.GetServerId(),
 		in.GetProjectId(),
-		in.GetName(),
+		in.GetLogin(),
 	)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
@@ -693,7 +693,7 @@ func (m *member) MembersWithoutServer(ctx context.Context, in *memberpb.MembersW
 		var role string
 		member := new(memberpb.ServerMember_Response)
 		err = rows.Scan(&member.MemberId,
-			&member.UserName,
+			&member.UserLogin,
 			&member.Email,
 			&role,
 			&member.Active,
@@ -717,10 +717,10 @@ func (m *member) MembersWithoutServer(ctx context.Context, in *memberpb.MembersW
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE "project_member"."id" NOT IN(SELECT "member_id" FROM "server_member" WHERE "server_id" = $1)
 			AND "project_member"."project_id" = $2
-			AND LOWER("user"."name") LIKE LOWER($3 || '%')`,
+			AND LOWER("user"."login") LIKE LOWER($3 || '%')`,
 		in.GetServerId(),
 		in.GetProjectId(),
-		in.GetName(),
+		in.GetLogin(),
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
 		service.log.FromGRPC(err).Send()

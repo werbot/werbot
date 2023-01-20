@@ -24,8 +24,9 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := service.db.Conn.Query(`SELECT
       "id",
-      "fio",
+      "login",
       "name",
+      "surname",
       "email",
       "enabled",
       "confirmed",
@@ -47,8 +48,9 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 		user := new(userpb.User_Response)
 		userDetail := new(userpb.ListUsers_Response_UserInfo)
 		err = rows.Scan(&user.UserId,
-			&user.Fio,
+			&user.Login,
 			&user.Name,
+			&user.Surname,
 			&user.Email,
 			&user.Enabled,
 			&user.Confirmed,
@@ -93,12 +95,13 @@ func (u *user) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_
 	response := new(userpb.User_Response)
 	response.UserId = in.GetUserId()
 
-	err := service.db.Conn.QueryRow(`SELECT "fio", "name", "email", "enabled", "confirmed", "role"
+	err := service.db.Conn.QueryRow(`SELECT "login", "name", "surname", "email", "enabled", "confirmed", "role"
     FROM "user"
     WHERE "id" = $1`,
 		in.GetUserId(),
-	).Scan(&response.Fio,
+	).Scan(&response.Login,
 		&response.Name,
+		&response.Surname,
 		&response.Email,
 		&response.Enabled,
 		&response.Confirmed,
@@ -142,11 +145,12 @@ func (u *user) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb
 
 	// Adds a new entry to the database
 	password, _ := crypto.HashPassword(in.Password)
-	err = tx.QueryRow(`INSERT INTO "user" ("fio", "name", "email", "password", "enabled", "confirmed", "register_date")
+	err = tx.QueryRow(`INSERT INTO "user" ("login", "name", "surname", "email", "password", "enabled", "confirmed", "register_date")
     VALUES ($1, $2, $3, $4, $5, $6, NOW())
     RETURNING "id"`,
-		in.GetFio(),
+		in.GetLogin(),
 		in.GetName(),
+		in.GetSurname(),
 		in.GetEmail(),
 		password,
 		in.GetEnabled(),
@@ -171,20 +175,18 @@ func (u *user) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*
 	var data sql.Result
 	response := new(userpb.UpdateUser_Response)
 
-	switch in.GetSetting().(type) {
+	switch in.GetRequest().(type) {
 	case *userpb.UpdateUser_Request_Info:
 		data, err = service.db.Conn.Exec(`UPDATE "user"
-    SET "name" = $1,
+    SET "login" = $1,
       "email" = $2,
-      "fio" = $3,
-      "enabled" = $4,
-      "confirmed" = $5
-    WHERE "id" = $6`,
-			in.GetInfo().GetName(),
+      "name" = $3,
+      "surname" = $4,
+    WHERE "id" = $5`,
+			in.GetInfo().GetLogin(),
 			in.GetInfo().GetEmail(),
-			in.GetInfo().GetFio(),
-			in.GetInfo().GetEnabled(),
-			in.GetInfo().GetConfirmed(),
+			in.GetInfo().GetName(),
+			in.GetInfo().GetSurname(),
 			in.GetUserId(),
 		)
 
@@ -217,7 +219,7 @@ func (u *user) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*
 
 // DeleteUser is ...
 func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*userpb.DeleteUser_Response, error) {
-	var name, passwordHash, email string
+	var login, passwordHash, email string
 	response := new(userpb.DeleteUser_Response)
 
 	switch in.GetRequest().(type) {
@@ -228,9 +230,9 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 			return nil, errTransactionCreateError
 		}
 
-		err = tx.QueryRow(`SELECT "name", "password", "email" FROM "user" WHERE "id" = $1`,
+		err = tx.QueryRow(`SELECT "login", "password", "email" FROM "user" WHERE "id" = $1`,
 			in.GetUserId(),
-		).Scan(&name,
+		).Scan(&login,
 			&passwordHash,
 			&email,
 		)
@@ -248,7 +250,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 		// Checking if a verification token has been sent in the last 24 hours
 		deleteToken, _ := tokenByUserID(in.GetUserId(), "delete")
 		if len(deleteToken) > 0 {
-			response.Name = name
+			response.Login = login
 			response.Email = email
 			response.Token = deleteToken
 			return response, nil
@@ -305,9 +307,9 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 			return nil, errNotFound
 		}
 
-		err = tx.QueryRow(`SELECT "name", "email" FROM "user" WHERE "id" = $1`,
+		err = tx.QueryRow(`SELECT "login", "email" FROM "user" WHERE "id" = $1`,
 			in.GetUserId(),
-		).Scan(&name,
+		).Scan(&login,
 			&email,
 		)
 		if err != nil {
@@ -323,7 +325,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 			return nil, errTransactionCommitError
 		}
 
-		response.Name = name
+		response.Login = login
 		response.Email = email
 		return response, nil
 	}

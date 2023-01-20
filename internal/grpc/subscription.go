@@ -23,7 +23,7 @@ func (s *subscription) ListSubscriptions(ctx context.Context, in *subscriptionpb
 	rows, err := service.db.Conn.Query(`SELECT
       "subscription"."id",
       "subscription"."customer_id",
-      "user"."name" AS "customer_name",
+      "user"."login" AS "customer_name",
       "subscription"."plan_id",
       "subscription_plan"."title" AS "plane_name",
       "subscription"."start_date",

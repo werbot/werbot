@@ -106,7 +106,7 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 			app.log.Error(err).Msg("gRPC UpdateServerOnlineStatus")
 		}
 
-		log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Str("hostID", actx.hostID).Str("userID", actx.userID).Str("UUID", actx.sessionID).Msg("Open virtual connection")
+		log.Info().Str("login", actx.login).Str("userAddress", actx.userAddr).Str("hostID", actx.hostID).Str("userID", actx.userID).Str("UUID", actx.sessionID).Msg("Open virtual connection")
 
 		sessionConfigs = append([]sessionConfig{{
 			Addr:         actx.hostAddr,
@@ -154,7 +154,7 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 			}
 
 			actx.message = "Host unavailable"
-			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Str("hostID", actx.hostID).Str("userID", actx.userID).Str("UUID", actx.sessionID).Msg("Closed virtual connection")
+			app.log.Info().Str("login", actx.login).Str("userAddress", actx.userAddr).Str("hostID", actx.hostID).Str("userID", actx.userID).Str("UUID", actx.sessionID).Msg("Closed virtual connection")
 		}()
 
 	// case "telnet":
@@ -209,7 +209,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	// case config.UserTypeShell:
 	case server.Type_shell:
 		if actx.userID == "" {
-			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg(internal.MsgAccessIsDenied)
+			app.log.Info().Str("login", actx.login).Str("userAddress", actx.userAddr).Msg(internal.MsgAccessIsDenied)
 			actx.message = "Firewall denied access"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()
@@ -219,20 +219,20 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 		sendMessageInChannel(ch, " _    _  ____  ____  ____  _____  ____ \n( \\/\\/ )( ___)(  _ \\(  _ \\(  _  )(_  _)\n \033[0;31m)    (  )__)  )   / ) _ < )(_)(   )(\033[0m  \n(__/\\__)(____)(_)\\_)(____/(_____) (__) \n"+internal.Version()+", "+internal.Commit()+", "+internal.BuildDate()+"\n\n")
 
 		serverList, _ := rClient.ListServers(_ctx, &server.ListServers_Request{
-			Query: "user_name=" + actx.userName,
+			Query: "login=" + actx.login,
 		})
 		actx.serverList = serverList.GetServers()
 
 		if len(actx.serverList) > 0 {
-			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Str("userID", actx.userID).Str("UUID", actx.sessionID).Msg("Open shellconsole connection")
+			app.log.Info().Str("login", actx.login).Str("userAddress", actx.userAddr).Str("userID", actx.userID).Str("UUID", actx.sessionID).Msg("Open shellconsole connection")
 
-			nameArray := strutil.SplitNTrimmed(actx.userName, "_", 3)
+			loginArray := strutil.SplitNTrimmed(actx.login, "_", 3)
 			status := map[bool]string{
 				false: "\x1B[01;31m•\x1B[0m",
 				true:  "\x1B[01;32m•\x1B[0m",
 			}
 
-			message := "Hello " + nameArray[0] + ", you access to next servers:\n"
+			message := "Hello " + loginArray[0] + ", you access to next servers:\n"
 			bufMsg := &strings.Builder{}
 			table := tablewriter.NewWriter(bufMsg)
 			table.SetHeader([]string{"⚡", "Name", "Login for direct access", "🚚"})
@@ -240,7 +240,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 			for i := 0; i < len(actx.serverList); i++ {
 				server := actx.serverList[int32(i)]
-				table.Append([]string{fmt.Sprintf("%v %v", status[server.Online], (i + 1)), server.Title, fmt.Sprintf("%v_%v_%v", nameArray[0], server.ProjectLogin, server.Token), server.Scheme})
+				table.Append([]string{fmt.Sprintf("%v %v", status[server.Online], (i + 1)), server.Title, fmt.Sprintf("%v_%v_%v", loginArray[0], server.ProjectLogin, server.Token), server.Scheme})
 			}
 			table.Render()
 			message += bufMsg.String()
@@ -274,7 +274,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 	case server.Type_bastion:
 		if actx.userID == "" {
-			app.log.Info().Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg("Permission denied")
+			app.log.Info().Str("login", actx.login).Str("userAddress", actx.userAddr).Msg("Permission denied")
 			actx.message = "Permission denied"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()
@@ -282,10 +282,10 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 		}
 
 		getHosts, err := rClient.ListServers(_ctx, &server.ListServers_Request{
-			Query: "user_name=" + actx.userName,
+			Query: "login=" + actx.login,
 		})
 		if err != nil {
-			app.log.Error(err).Str("userName", actx.userName).Str("userAddress", actx.userAddr).Msg("Host not found (channel)")
+			app.log.Error(err).Str("login", actx.login).Str("userAddress", actx.userAddr).Msg("Host not found (channel)")
 			actx.message = "Host not found"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()

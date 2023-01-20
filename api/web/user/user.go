@@ -83,9 +83,10 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 	}
 
 	return webutil.StatusOK(c, msgUserInfo, &userpb.User_Response{
-		Fio:   user.GetFio(),
-		Name:  user.GetName(),
-		Email: user.GetEmail(),
+		Login:   user.GetLogin(),
+		Name:    user.GetName(),
+		Surname: user.GetSurname(),
+		Email:   user.GetEmail(),
 	})
 }
 
@@ -143,7 +144,7 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 func (h *Handler) patchUser(c *fiber.Ctx) error {
 	request := new(userpb.UpdateUser_Request)
 
-	if err := c.BodyParser(request); err != nil {
+	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		h.log.Error(err).Send()
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
@@ -162,39 +163,57 @@ func (h *Handler) patchUser(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
 	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
 
-	// If Role_admin
-	if userParameter.IsUserAdmin() {
-		_, err := rClient.UpdateUser(ctx, &userpb.UpdateUser_Request{
-			UserId: request.UserId,
-			Setting: &userpb.UpdateUser_Request_Info{
-				Info: &userpb.UpdateUser_Info{
-					Name:      request.GetInfo().GetName(),
-					Email:     request.GetInfo().GetEmail(),
-					Fio:       request.GetInfo().GetFio(),
-					Enabled:   request.GetInfo().GetEnabled(),
-					Confirmed: request.GetInfo().GetConfirmed(),
-				},
-			},
-		})
-		if err != nil {
-			return webutil.FromGRPC(c, h.log, err)
-		}
+	var err error
+	switch request.Request.(type) {
+	case *userpb.UpdateUser_Request_Info:
+		setting := new(userpb.UpdateUser_Request_Info)
+		setting.Info = new(userpb.UpdateUser_Info)
+		setting.Info.Email = request.GetInfo().GetEmail()
+		setting.Info.Name = request.GetInfo().GetName()
+		setting.Info.Surname = request.GetInfo().GetSurname()
+		request.Request = setting
 
-		return webutil.StatusOK(c, msgUserUpdated, nil)
+	case *userpb.UpdateUser_Request_Enabled:
+		setting := new(userpb.UpdateUser_Request_Enabled)
+		setting.Enabled = request.GetEnabled()
+		request.Request = setting
+
+	case *userpb.UpdateUser_Request_Confirmed:
+		setting := new(userpb.UpdateUser_Request_Confirmed)
+		setting.Confirmed = request.GetConfirmed()
+		request.Request = setting
+
+	default:
+		return webutil.StatusBadRequest(c, msgBadRule, nil)
 	}
 
-	_, err := rClient.UpdateUser(ctx, &userpb.UpdateUser_Request{
-		UserId: request.UserId,
-		Setting: &userpb.UpdateUser_Request_Info{
-			Info: &userpb.UpdateUser_Info{
-				Email: request.GetInfo().GetEmail(),
-				Fio:   request.GetInfo().GetFio(),
-			},
-		},
-	})
+	/*
+		// If Role_admin
+		if userParameter.IsUserAdmin() {
+			_, err := rClient.UpdateUser(ctx, &userpb.UpdateUser_Request{
+				UserId: request.UserId,
+				Setting: &userpb.UpdateUser_Request_Info{
+					Info: &userpb.UpdateUser_Info{
+						Login:     request.GetInfo().GetLogin(),
+						Email:     request.GetInfo().GetEmail(),
+						Name:      request.GetInfo().GetName(),
+						Surname:   request.GetInfo().GetSurname(),
+						Enabled:   request.GetInfo().GetEnabled(),
+						Confirmed: request.GetInfo().GetConfirmed(),
+					},
+				},
+			})
+			if err != nil {
+				return webutil.FromGRPC(c, h.log, err)
+			}
+
+			return webutil.StatusOK(c, msgUserUpdated, nil)
+		}
+	*/
+
+	_, err = rClient.UpdateUser(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
@@ -253,8 +272,8 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 		}
 
 		mailData := map[string]string{
-			"Name": response.GetName(),
-			"Link": fmt.Sprintf("%s/profile/delete/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
+			"Login": response.GetLogin(),
+			"Link":  fmt.Sprintf("%s/profile/delete/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
 		}
 		go mail.Send(response.GetEmail(), msgUserDeletionConfirmation, "account-deletion-confirmation", mailData)
 		return webutil.StatusOK(c, "an email with instructions to delete your profile has been sent to your email", nil)
@@ -279,7 +298,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 
 		// send delete token to email
 		mailData := map[string]string{
-			"Name": response.GetName(),
+			"Login": response.GetLogin(),
 		}
 		go mail.Send(response.GetEmail(), msgUserDeleted, "account-deletion-info", mailData)
 		return webutil.StatusOK(c, msgUserDeleted, nil)

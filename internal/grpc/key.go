@@ -33,7 +33,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 	rows, err := service.db.Conn.Query(`SELECT
 			"user_public_key"."id" AS "key_id",
 			"user_public_key"."user_id",
-			"user"."name" AS "user_name",
+			"user"."login" AS "user_login",
 			"user_public_key"."title",
 			"user_public_key"."key_",
 			"user_public_key"."fingerprint",
@@ -51,7 +51,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 		publicKey := new(keypb.Key_Response)
 		err = rows.Scan(&publicKey.KeyId,
 			&publicKey.UserId,
-			&publicKey.UserName,
+			&publicKey.UserLogin,
 			&publicKey.Title,
 			&publicKey.Key,
 			&publicKey.Fingerprint,
@@ -93,7 +93,7 @@ func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_
 	err := service.db.Conn.QueryRow(`SELECT
 			"user_public_key"."id" AS "key_id",
 			"user_public_key"."user_id",
-			"user"."name" AS "user_name",
+			"user"."login" AS "user_login",
 			"user_public_key"."title",
 			"user_public_key"."key_",
 			"user_public_key"."fingerprint",
@@ -107,7 +107,7 @@ func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_
 		in.GetUserId(),
 	).Scan(&response.KeyId,
 		&response.UserId,
-		&response.UserName,
+		&response.UserLogin,
 		&response.Title,
 		&response.Key,
 		&response.Fingerprint,

@@ -8,4 +8,5 @@ const (
 	msgUserDeleted              = "user deleted"
 	msgUserDeletionConfirmation = "user deletion confirmation"
 	msgPasswordUpdated          = "password updated"
+	msgBadRule                  = "bad rule"
 )

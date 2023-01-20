@@ -21,15 +21,16 @@ func (a *auth) SignIn(ctx context.Context, in *authpb.SignIn_Request) (*userpb.U
 	response := new(userpb.User_Response)
 	response.Email = in.GetEmail()
 
-	err := service.db.Conn.QueryRow(`SELECT "id", "fio", "name", "password", "enabled", "confirmed", "role"
+	err := service.db.Conn.QueryRow(`SELECT "id", "login", "name", "surname", "password", "enabled", "confirmed", "role"
 		    FROM "user"
 		    WHERE "email" = $1
 		      AND "enabled" = 't'
 		      AND "confirmed" = 't'`,
 		in.GetEmail(),
 	).Scan(&response.UserId,
-		&response.Fio,
+		&response.Login,
 		&response.Name,
+		&response.Surname,
 		&password,
 		&response.Enabled,
 		&response.Confirmed,

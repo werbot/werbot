@@ -56,15 +56,16 @@ message User {
 
   message Response {
     string user_id = 1;
-    string fio = 2;
+    string login = 2;
     string name = 3;
-    string email = 4;
-    bool enabled = 5;
-    bool confirmed = 6;
-    Role role = 7;
-    string password =8;
-    google.protobuf.Timestamp last_active = 9;
-    google.protobuf.Timestamp register_date = 10;
+    string surname = 4;
+    string email = 5;
+    bool enabled = 6;
+    bool confirmed = 7;
+    Role role = 8;
+    string password = 9;
+    google.protobuf.Timestamp last_active = 10;
+    google.protobuf.Timestamp register_date = 11;
   }
 }
 // -----------------------------------------------------
@@ -73,12 +74,13 @@ message User {
 // rpc AddUser
 message AddUser {
   message Request {
-    string name = 1     [(validate.rules).string.pattern = '^[a-z0-9]+$'];
+    string login = 1    [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}];
     string email = 2    [(validate.rules).string.email = true];
-    string fio = 3      [(validate.rules).string.min_len = 5];
-    bool enabled = 4;
-    bool confirmed = 5;
-    string password = 6 [(validate.rules).string = { min_len: 8, max_len: 32 }];
+    string name = 3     [(validate.rules).string = {min_len: 3, max_len: 128}];
+    string surname = 4  [(validate.rules).string = {min_len: 3, max_len: 128}];
+    bool enabled = 5;
+    bool confirmed = 6;
+    string password = 7 [(validate.rules).string = { min_len: 8, max_len: 32 }];
   }
 
   message Response {
@@ -92,7 +94,7 @@ message AddUser {
 message UpdateUser {
   message Request {
     string user_id = 1 [(validate.rules).string = {ignore_empty: true, uuid: true}];
-    oneof setting {
+    oneof request {
       Info info = 2;
       bool enabled = 3;
       bool confirmed = 4;
@@ -102,11 +104,10 @@ message UpdateUser {
   message Response{}
 
   message Info {
-    string name = 2    [(validate.rules).string = {ignore_empty: true, pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}];
-    string email = 3   [(validate.rules).string.email = true];
-    string fio = 4     [(validate.rules).string.min_len = 5];
-    bool enabled = 5;
-    bool confirmed = 6;
+    string login = 1    [(validate.rules).string = {ignore_empty: true, pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}];
+    string email = 2    [(validate.rules).string.email = true];
+    string name = 3     [(validate.rules).string = {min_len: 3, max_len: 128}];
+    string surname = 4  [(validate.rules).string = {min_len: 3, max_len: 128}];
   }
 }
 
@@ -123,7 +124,7 @@ message DeleteUser{
   }
 
   message Response {
-    string name = 1;
+    string login = 1;
     string email = 2;
     string token = 3;
   }

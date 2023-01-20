@@ -1042,7 +1042,7 @@ func (m *Key_Response) validate(all bool) error {
 
 	// no validation rules for UserId
 
-	// no validation rules for UserName
+	// no validation rules for UserLogin
 
 	// no validation rules for Title
 

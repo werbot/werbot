@@ -3044,7 +3044,7 @@ func (m *UsersWithoutProject_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for Name
+	// no validation rules for Login
 
 	if len(errors) > 0 {
 		return UsersWithoutProject_RequestMultiError(errors)
@@ -3272,23 +3272,22 @@ var _ interface {
 	ErrorName() string
 } = UsersWithoutProject_ResponseValidationError{}
 
-// Validate checks the field values on UsersWithoutProject_Response_User with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *UsersWithoutProject_Response_User) Validate() error {
+// Validate checks the field values on UsersWithoutProject_User with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UsersWithoutProject_User) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on UsersWithoutProject_Response_User
-// with the rules defined in the proto definition for this message. If any
-// rules are violated, the result is a list of violation errors wrapped in
-// UsersWithoutProject_Response_UserMultiError, or nil if none found.
-func (m *UsersWithoutProject_Response_User) ValidateAll() error {
+// ValidateAll checks the field values on UsersWithoutProject_User with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UsersWithoutProject_UserMultiError, or nil if none found.
+func (m *UsersWithoutProject_User) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *UsersWithoutProject_Response_User) validate(all bool) error {
+func (m *UsersWithoutProject_User) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -3297,25 +3296,24 @@ func (m *UsersWithoutProject_Response_User) validate(all bool) error {
 
 	// no validation rules for UserId
 
-	// no validation rules for Name
+	// no validation rules for Login
 
 	// no validation rules for Email
 
 	if len(errors) > 0 {
-		return UsersWithoutProject_Response_UserMultiError(errors)
+		return UsersWithoutProject_UserMultiError(errors)
 	}
 
 	return nil
 }
 
-// UsersWithoutProject_Response_UserMultiError is an error wrapping multiple
-// validation errors returned by
-// UsersWithoutProject_Response_User.ValidateAll() if the designated
+// UsersWithoutProject_UserMultiError is an error wrapping multiple validation
+// errors returned by UsersWithoutProject_User.ValidateAll() if the designated
 // constraints aren't met.
-type UsersWithoutProject_Response_UserMultiError []error
+type UsersWithoutProject_UserMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m UsersWithoutProject_Response_UserMultiError) Error() string {
+func (m UsersWithoutProject_UserMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -3324,12 +3322,11 @@ func (m UsersWithoutProject_Response_UserMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m UsersWithoutProject_Response_UserMultiError) AllErrors() []error { return m }
+func (m UsersWithoutProject_UserMultiError) AllErrors() []error { return m }
 
-// UsersWithoutProject_Response_UserValidationError is the validation error
-// returned by UsersWithoutProject_Response_User.Validate if the designated
-// constraints aren't met.
-type UsersWithoutProject_Response_UserValidationError struct {
+// UsersWithoutProject_UserValidationError is the validation error returned by
+// UsersWithoutProject_User.Validate if the designated constraints aren't met.
+type UsersWithoutProject_UserValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -3337,24 +3334,24 @@ type UsersWithoutProject_Response_UserValidationError struct {
 }
 
 // Field function returns field value.
-func (e UsersWithoutProject_Response_UserValidationError) Field() string { return e.field }
+func (e UsersWithoutProject_UserValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e UsersWithoutProject_Response_UserValidationError) Reason() string { return e.reason }
+func (e UsersWithoutProject_UserValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e UsersWithoutProject_Response_UserValidationError) Cause() error { return e.cause }
+func (e UsersWithoutProject_UserValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e UsersWithoutProject_Response_UserValidationError) Key() bool { return e.key }
+func (e UsersWithoutProject_UserValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e UsersWithoutProject_Response_UserValidationError) ErrorName() string {
-	return "UsersWithoutProject_Response_UserValidationError"
+func (e UsersWithoutProject_UserValidationError) ErrorName() string {
+	return "UsersWithoutProject_UserValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e UsersWithoutProject_Response_UserValidationError) Error() string {
+func (e UsersWithoutProject_UserValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -3366,14 +3363,14 @@ func (e UsersWithoutProject_Response_UserValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sUsersWithoutProject_Response_User.%s: %s%s",
+		"invalid %sUsersWithoutProject_User.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = UsersWithoutProject_Response_UserValidationError{}
+var _ error = UsersWithoutProject_UserValidationError{}
 
 var _ interface {
 	Field() string
@@ -3381,7 +3378,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = UsersWithoutProject_Response_UserValidationError{}
+} = UsersWithoutProject_UserValidationError{}
 
 // Validate checks the field values on ListMembersInvite_Request with the rules
 // defined in the proto definition for this message. If any rules are
@@ -5109,7 +5106,7 @@ func (m *ServerMember_Response) validate(all bool) error {
 
 	// no validation rules for UserId
 
-	// no validation rules for UserName
+	// no validation rules for UserLogin
 
 	// no validation rules for Email
 
@@ -6097,7 +6094,7 @@ func (m *MembersWithoutServer_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for Name
+	// no validation rules for Login
 
 	if len(errors) > 0 {
 		return MembersWithoutServer_RequestMultiError(errors)

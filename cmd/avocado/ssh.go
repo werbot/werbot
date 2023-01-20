@@ -25,7 +25,7 @@ type authContext struct {
 	authSuccess     bool
 	sessionID       string
 	userID          string
-	userName        string
+	login           string
 	userFingerPrint string
 	hostAddr        string
 	hostID          string
@@ -36,15 +36,15 @@ type authContext struct {
 }
 
 func (c authContext) userType() server.Type {
-	if c.userName == "healthcheck" {
+	if c.login == "healthcheck" {
 		return server.Type_healthcheck
 	}
 
-	if strings.HasPrefix(c.userName, "invite_") {
+	if strings.HasPrefix(c.login, "invite_") {
 		return server.Type_invite
 	}
 
-	nameArray := strutil.SplitNTrimmed(c.userName, "_", 3)
+	nameArray := strutil.SplitNTrimmed(c.login, "_", 3)
 	if len(nameArray) == 3 && nameArray[2] != "" {
 		return server.Type_bastion
 	}

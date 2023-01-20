@@ -35,10 +35,10 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	query := service.db.QueryParse(in.GetQuery())
 
-	if query["user_name"] != "" {
-		nameArray := strutil.SplitNTrimmed(query["user_name"], "_", 3)
+	if query["login"] != "" {
+		loginArray := strutil.SplitNTrimmed(query["login"], "_", 3)
 
-		nameLen := len(nameArray)
+		nameLen := len(loginArray)
 		query := `SELECT DISTINCT ON ("server"."id")
         "server"."id",
         "server"."port",
@@ -65,13 +65,13 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
         JOIN "server_host_key" ON "server_host_key"."server_id" = "server"."id"
         JOIN "server_member" ON "server_member"."server_id" = "server"."id"
         AND "server_member"."member_id" = "project_member"."id"
-      WHERE "user"."name" = $1
+      WHERE "user"."login" = $1
         AND "server_member"."active" = TRUE
         AND "server"."active" = TRUE`
 
 		switch nameLen {
 		case 1:
-			rows, err := service.db.Conn.Query(query, nameArray[0])
+			rows, err := service.db.Conn.Query(query, loginArray[0])
 			if err != nil {
 				service.log.FromGRPC(err).Send()
 				return nil, errServerError
@@ -111,7 +111,7 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 
 		case 2:
 			rows, err := service.db.Conn.Query(query+`
-				AND "project"."login" = $2`, nameArray[0], nameArray[1])
+				AND "project"."login" = $2`, loginArray[0], loginArray[1])
 			if err != nil {
 				service.log.FromGRPC(err).Send()
 				return nil, errServerError
@@ -153,7 +153,7 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 			rows, err := service.db.Conn.Query(query+`
 				AND "project"."login" = $2
 				AND "token" = $3
-				AND "project_member"."role" = 'user'`, nameArray[0], nameArray[1], nameArray[2])
+				AND "project_member"."role" = 'user'`, loginArray[0], loginArray[1], loginArray[2])
 			if err != nil {
 				service.log.FromGRPC(err).Send()
 				return nil, errServerError
@@ -832,7 +832,7 @@ func (s *server) ListShareServers(ctx context.Context, in *serverpb.ListShareSer
 
 	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := service.db.Conn.Query(`SELECT
-			"user"."name" AS user_login,
+			"user"."login" AS user_login,
 			"project"."login" AS project_login,
 			"project"."title" AS project_title,
 			"server"."token" AS server_token,

@@ -4,8 +4,9 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE "public"."user" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "fio" varchar(255) NOT NULL,
+    "login" varchar(255) NOT NULL,
     "name" varchar(255) NOT NULL,
+    "surname" varchar(255) NOT NULL,
     "email" varchar(255) NOT NULL,
     "password" varchar(255) NOT NULL,
     "enabled" bool NOT NULL DEFAULT true,

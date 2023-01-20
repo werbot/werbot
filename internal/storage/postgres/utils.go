@@ -31,7 +31,7 @@ func (db *Connect) QueryParse(query string) map[string]string {
 
 // SQLAddWhere is ...
 // example query's:
-// fio LIKE '%user1%' OR name LIKE '%user1%' OR email LIKE '%user1%'
+// name LIKE '%user1%' OR name LIKE '%user1%' OR email LIKE '%user1%'
 // enable=true
 // name LIKE '%user1%'
 func (db *Connect) SQLAddWhere(query string) string {

@@ -534,22 +534,22 @@ var _ interface {
 	ErrorName() string
 } = DeleteAccountValidationError{}
 
-// Validate checks the field values on AccountIDByName with the rules defined
+// Validate checks the field values on AccountIDByLogin with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
-func (m *AccountIDByName) Validate() error {
+func (m *AccountIDByLogin) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AccountIDByName with the rules
+// ValidateAll checks the field values on AccountIDByLogin with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// AccountIDByNameMultiError, or nil if none found.
-func (m *AccountIDByName) ValidateAll() error {
+// AccountIDByLoginMultiError, or nil if none found.
+func (m *AccountIDByLogin) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AccountIDByName) validate(all bool) error {
+func (m *AccountIDByLogin) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -557,19 +557,19 @@ func (m *AccountIDByName) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return AccountIDByNameMultiError(errors)
+		return AccountIDByLoginMultiError(errors)
 	}
 
 	return nil
 }
 
-// AccountIDByNameMultiError is an error wrapping multiple validation errors
-// returned by AccountIDByName.ValidateAll() if the designated constraints
+// AccountIDByLoginMultiError is an error wrapping multiple validation errors
+// returned by AccountIDByLogin.ValidateAll() if the designated constraints
 // aren't met.
-type AccountIDByNameMultiError []error
+type AccountIDByLoginMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AccountIDByNameMultiError) Error() string {
+func (m AccountIDByLoginMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -578,11 +578,11 @@ func (m AccountIDByNameMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AccountIDByNameMultiError) AllErrors() []error { return m }
+func (m AccountIDByLoginMultiError) AllErrors() []error { return m }
 
-// AccountIDByNameValidationError is the validation error returned by
-// AccountIDByName.Validate if the designated constraints aren't met.
-type AccountIDByNameValidationError struct {
+// AccountIDByLoginValidationError is the validation error returned by
+// AccountIDByLogin.Validate if the designated constraints aren't met.
+type AccountIDByLoginValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -590,22 +590,22 @@ type AccountIDByNameValidationError struct {
 }
 
 // Field function returns field value.
-func (e AccountIDByNameValidationError) Field() string { return e.field }
+func (e AccountIDByLoginValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AccountIDByNameValidationError) Reason() string { return e.reason }
+func (e AccountIDByLoginValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AccountIDByNameValidationError) Cause() error { return e.cause }
+func (e AccountIDByLoginValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AccountIDByNameValidationError) Key() bool { return e.key }
+func (e AccountIDByLoginValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AccountIDByNameValidationError) ErrorName() string { return "AccountIDByNameValidationError" }
+func (e AccountIDByLoginValidationError) ErrorName() string { return "AccountIDByLoginValidationError" }
 
 // Error satisfies the builtin error interface
-func (e AccountIDByNameValidationError) Error() string {
+func (e AccountIDByLoginValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -617,14 +617,14 @@ func (e AccountIDByNameValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAccountIDByName.%s: %s%s",
+		"invalid %sAccountIDByLogin.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AccountIDByNameValidationError{}
+var _ error = AccountIDByLoginValidationError{}
 
 var _ interface {
 	Field() string
@@ -632,7 +632,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AccountIDByNameValidationError{}
+} = AccountIDByLoginValidationError{}
 
 // Validate checks the field values on UpdateStatus with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
@@ -1331,7 +1331,9 @@ func (m *Account_Response) validate(all bool) error {
 
 	// no validation rules for Active
 
-	// no validation rules for UserFio
+	// no validation rules for Name
+
+	// no validation rules for Surname
 
 	if all {
 		switch v := interface{}(m.GetLastActivity()).(type) {
@@ -2114,34 +2116,34 @@ var _ interface {
 	ErrorName() string
 } = DeleteAccount_ResponseValidationError{}
 
-// Validate checks the field values on AccountIDByName_Request with the rules
+// Validate checks the field values on AccountIDByLogin_Request with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *AccountIDByName_Request) Validate() error {
+func (m *AccountIDByLogin_Request) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AccountIDByName_Request with the
+// ValidateAll checks the field values on AccountIDByLogin_Request with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// AccountIDByName_RequestMultiError, or nil if none found.
-func (m *AccountIDByName_Request) ValidateAll() error {
+// AccountIDByLogin_RequestMultiError, or nil if none found.
+func (m *AccountIDByLogin_Request) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AccountIDByName_Request) validate(all bool) error {
+func (m *AccountIDByLogin_Request) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for Username
+	// no validation rules for Login
 
 	// no validation rules for Fingerprint
 
 	if ip := net.ParseIP(m.GetClientIp()); ip == nil {
-		err := AccountIDByName_RequestValidationError{
+		err := AccountIDByLogin_RequestValidationError{
 			field:  "ClientIp",
 			reason: "value must be a valid IP address",
 		}
@@ -2152,19 +2154,19 @@ func (m *AccountIDByName_Request) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return AccountIDByName_RequestMultiError(errors)
+		return AccountIDByLogin_RequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// AccountIDByName_RequestMultiError is an error wrapping multiple validation
-// errors returned by AccountIDByName_Request.ValidateAll() if the designated
+// AccountIDByLogin_RequestMultiError is an error wrapping multiple validation
+// errors returned by AccountIDByLogin_Request.ValidateAll() if the designated
 // constraints aren't met.
-type AccountIDByName_RequestMultiError []error
+type AccountIDByLogin_RequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AccountIDByName_RequestMultiError) Error() string {
+func (m AccountIDByLogin_RequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -2173,11 +2175,11 @@ func (m AccountIDByName_RequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AccountIDByName_RequestMultiError) AllErrors() []error { return m }
+func (m AccountIDByLogin_RequestMultiError) AllErrors() []error { return m }
 
-// AccountIDByName_RequestValidationError is the validation error returned by
-// AccountIDByName_Request.Validate if the designated constraints aren't met.
-type AccountIDByName_RequestValidationError struct {
+// AccountIDByLogin_RequestValidationError is the validation error returned by
+// AccountIDByLogin_Request.Validate if the designated constraints aren't met.
+type AccountIDByLogin_RequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -2185,24 +2187,24 @@ type AccountIDByName_RequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e AccountIDByName_RequestValidationError) Field() string { return e.field }
+func (e AccountIDByLogin_RequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AccountIDByName_RequestValidationError) Reason() string { return e.reason }
+func (e AccountIDByLogin_RequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AccountIDByName_RequestValidationError) Cause() error { return e.cause }
+func (e AccountIDByLogin_RequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AccountIDByName_RequestValidationError) Key() bool { return e.key }
+func (e AccountIDByLogin_RequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AccountIDByName_RequestValidationError) ErrorName() string {
-	return "AccountIDByName_RequestValidationError"
+func (e AccountIDByLogin_RequestValidationError) ErrorName() string {
+	return "AccountIDByLogin_RequestValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e AccountIDByName_RequestValidationError) Error() string {
+func (e AccountIDByLogin_RequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -2214,14 +2216,14 @@ func (e AccountIDByName_RequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAccountIDByName_Request.%s: %s%s",
+		"invalid %sAccountIDByLogin_Request.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AccountIDByName_RequestValidationError{}
+var _ error = AccountIDByLogin_RequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -2229,24 +2231,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AccountIDByName_RequestValidationError{}
+} = AccountIDByLogin_RequestValidationError{}
 
-// Validate checks the field values on AccountIDByName_Response with the rules
+// Validate checks the field values on AccountIDByLogin_Response with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *AccountIDByName_Response) Validate() error {
+func (m *AccountIDByLogin_Response) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AccountIDByName_Response with the
+// ValidateAll checks the field values on AccountIDByLogin_Response with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// AccountIDByName_ResponseMultiError, or nil if none found.
-func (m *AccountIDByName_Response) ValidateAll() error {
+// AccountIDByLogin_ResponseMultiError, or nil if none found.
+func (m *AccountIDByLogin_Response) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AccountIDByName_Response) validate(all bool) error {
+func (m *AccountIDByLogin_Response) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -2256,19 +2258,19 @@ func (m *AccountIDByName_Response) validate(all bool) error {
 	// no validation rules for UserId
 
 	if len(errors) > 0 {
-		return AccountIDByName_ResponseMultiError(errors)
+		return AccountIDByLogin_ResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// AccountIDByName_ResponseMultiError is an error wrapping multiple validation
-// errors returned by AccountIDByName_Response.ValidateAll() if the designated
-// constraints aren't met.
-type AccountIDByName_ResponseMultiError []error
+// AccountIDByLogin_ResponseMultiError is an error wrapping multiple validation
+// errors returned by AccountIDByLogin_Response.ValidateAll() if the
+// designated constraints aren't met.
+type AccountIDByLogin_ResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AccountIDByName_ResponseMultiError) Error() string {
+func (m AccountIDByLogin_ResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -2277,11 +2279,11 @@ func (m AccountIDByName_ResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AccountIDByName_ResponseMultiError) AllErrors() []error { return m }
+func (m AccountIDByLogin_ResponseMultiError) AllErrors() []error { return m }
 
-// AccountIDByName_ResponseValidationError is the validation error returned by
-// AccountIDByName_Response.Validate if the designated constraints aren't met.
-type AccountIDByName_ResponseValidationError struct {
+// AccountIDByLogin_ResponseValidationError is the validation error returned by
+// AccountIDByLogin_Response.Validate if the designated constraints aren't met.
+type AccountIDByLogin_ResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -2289,24 +2291,24 @@ type AccountIDByName_ResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e AccountIDByName_ResponseValidationError) Field() string { return e.field }
+func (e AccountIDByLogin_ResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AccountIDByName_ResponseValidationError) Reason() string { return e.reason }
+func (e AccountIDByLogin_ResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AccountIDByName_ResponseValidationError) Cause() error { return e.cause }
+func (e AccountIDByLogin_ResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AccountIDByName_ResponseValidationError) Key() bool { return e.key }
+func (e AccountIDByLogin_ResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AccountIDByName_ResponseValidationError) ErrorName() string {
-	return "AccountIDByName_ResponseValidationError"
+func (e AccountIDByLogin_ResponseValidationError) ErrorName() string {
+	return "AccountIDByLogin_ResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e AccountIDByName_ResponseValidationError) Error() string {
+func (e AccountIDByLogin_ResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -2318,14 +2320,14 @@ func (e AccountIDByName_ResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAccountIDByName_Response.%s: %s%s",
+		"invalid %sAccountIDByLogin_Response.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AccountIDByName_ResponseValidationError{}
+var _ error = AccountIDByLogin_ResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -2333,7 +2335,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AccountIDByName_ResponseValidationError{}
+} = AccountIDByLogin_ResponseValidationError{}
 
 // Validate checks the field values on UpdateStatus_Request with the rules
 // defined in the proto definition for this message. If any rules are

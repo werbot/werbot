@@ -53,7 +53,7 @@ message Key {
   message Response {
     string key_id = 1;
     string user_id = 2;
-    string user_name = 3;
+    string user_login = 3;
     string title = 4;
     string key = 5;
     string fingerprint = 6;

@@ -43,17 +43,17 @@ func (s *account) DeleteAccount(ctx context.Context, in *accountpb.DeleteAccount
 	return response, nil
 }
 
-// AccountIDByName is ...
+// AccountIDByLogin is ...
 // TODO: Check bu invite
 // TODO: Enable check in Firewall
-func (s *account) AccountIDByName(ctx context.Context, in *accountpb.AccountIDByName_Request) (*accountpb.AccountIDByName_Response, error) {
-	response := new(accountpb.AccountIDByName_Response)
-	nameArray := strutil.SplitNTrimmed(in.GetUsername(), "_", 3)
+func (s *account) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDByLogin_Request) (*accountpb.AccountIDByLogin_Response, error) {
+	response := new(accountpb.AccountIDByLogin_Response)
+	nameArray := strutil.SplitNTrimmed(in.GetLogin(), "_", 3)
 
 	err := service.db.Conn.QueryRow(`SELECT "user"."id"
 		FROM "user"
 			JOIN "user_public_key" ON "user"."id" = "user_public_key"."user_id"
-		WHERE "user"."name" = $1
+		WHERE "user"."login" = $1
 			AND "user_public_key".fingerprint = $2`,
 		nameArray[0],
 		in.GetFingerprint(),
