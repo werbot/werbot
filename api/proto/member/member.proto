@@ -250,11 +250,13 @@ message ServerMember {
     string member_id = 1;
     string user_id = 2;
     string user_login = 3;
-    string email = 4;
-    user.Role role = 5;
-    bool active = 6;
-    bool online = 7;
-    google.protobuf.Timestamp last_activity = 8;
+    string user_name = 4;
+    string user_surname = 5;
+    string email = 6;
+    user.Role role = 7;
+    bool active = 8;
+    bool online = 9;
+    google.protobuf.Timestamp last_activity = 10;
   }
 }
 // -----------------------------------------------------

@@ -5108,6 +5108,10 @@ func (m *ServerMember_Response) validate(all bool) error {
 
 	// no validation rules for UserLogin
 
+	// no validation rules for UserName
+
+	// no validation rules for UserSurname
+
 	// no validation rules for Email
 
 	// no validation rules for Role

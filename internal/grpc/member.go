@@ -461,6 +461,8 @@ func (m *member) ListServerMembers(ctx context.Context, in *memberpb.ListServerM
 	rows, err := service.db.Conn.Query(`SELECT
 			"user"."id",
 			"user"."login",
+      "user"."name",
+      "user"."surname",
 			"user"."email",
 			"server_member"."id",
 			"server_member"."active",
@@ -484,6 +486,8 @@ func (m *member) ListServerMembers(ctx context.Context, in *memberpb.ListServerM
 		member := new(memberpb.ServerMember_Response)
 		err = rows.Scan(&member.UserId,
 			&member.UserLogin,
+			&member.UserName,
+			&member.UserSurname,
 			&member.Email,
 			&member.MemberId,
 			&member.Active,
