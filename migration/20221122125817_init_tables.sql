@@ -71,33 +71,40 @@ CREATE TABLE "public"."project_member" (
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
 
-CREATE TABLE "public"."server" (
+CREATE TABLE "public"."server_access" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "project_id" uuid,
-    "address" varchar(255) NOT NULL,
-    "port" int4 NOT NULL,
-    "token" varchar(255) NOT NULL,
+    "server_id" uuid,
     "login" varchar(255) NOT NULL,
     "password" varchar(255) DEFAULT NULL::character varying,
-    "private_description" text NOT NULL,
-    "public_description" text NOT NULL,
-    "title" varchar(255) NOT NULL,
-    "active" bool NOT NULL DEFAULT false,
-    "audit" bool NOT NULL DEFAULT false,
-    "online" bool NOT NULL DEFAULT false,
-    "public_key" text NOT NULL,
-    "private_key" text NOT NULL,
+    "public_key" text DEFAULT NULL,
+    "private_key" text DEFAULT NULL,
     "private_key_password" varchar(255),
     "created" timestamp(0) NOT NULL,
     "auth" varchar(255) NOT NULL CHECK ((auth)::text = ANY ((ARRAY['key'::character varying, 'password'::character varying, 'agent'::character varying])::text[])),
+    PRIMARY KEY ("id")
+);
+COMMENT ON COLUMN "public"."server_access"."auth" IS '(DC2Type:AuthType)';
+
+CREATE TABLE "public"."server" (
+    "id" uuid DEFAULT gen_random_uuid (),
+    "project_id" uuid,
+    "access_id" uuid,
+    "address" varchar(255) NOT NULL,
+    "port" int4 NOT NULL,
+    "token" varchar(255) NOT NULL,
+    "title" varchar(255) NOT NULL,
+    "description" text NOT NULL,
+    "active" bool NOT NULL DEFAULT false,
+    "audit" bool NOT NULL DEFAULT false,
+    "online" bool NOT NULL DEFAULT false,
+    "created" timestamp(0) NOT NULL,
     "scheme" varchar(255) NOT NULL CHECK ((scheme)::text = ANY ((ARRAY['telnet'::character varying, 'ssh'::character varying])::text[])),
     "previous_state" json NOT NULL DEFAULT '{}'::json,
     PRIMARY KEY ("id"),
-    FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE
+    FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE,
+    FOREIGN KEY ("access_id") REFERENCES "public"."server_access"("id") ON DELETE CASCADE
 );
-COMMENT ON COLUMN "public"."server"."auth" IS '(DC2Type:AuthType)';
 COMMENT ON COLUMN "public"."server"."scheme" IS '(DC2Type:ProtocolSchemeType)';
-
 
 CREATE TABLE "public"."server_member" (
     "id" uuid DEFAULT gen_random_uuid (),
@@ -317,6 +324,7 @@ DROP TABLE IF EXISTS "public"."server_access_policy";
 DROP TABLE IF EXISTS "public"."server_access_token";
 DROP TABLE IF EXISTS "public"."server_member";
 DROP TABLE IF EXISTS "public"."server";
+DROP TABLE IF EXISTS "public"."server_access";
 DROP TABLE IF EXISTS "public"."project_member";
 DROP TABLE IF EXISTS "public"."project_ldap";
 DROP TABLE IF EXISTS "public"."project_invite";

@@ -90,28 +90,143 @@ INSERT INTO "public"."project_member" ("id", "project_id", "user_id", "active", 
 ('7c55a585-3a36-4cd6-ab70-adc2dbf161bc', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'e9a1f437-8f32-4463-9f89-a886a623febc', 't', 'f', 'user', NOW()),
 ('087e57cd-c281-4b7a-bb1d-8d2f1d6789ae', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'f', 't', 'user', NOW());
 
-INSERT INTO "public"."server" ("id", "project_id", "address", "port", "token", "login", "password", "private_description", "public_description", "title", "active", "audit", "online", "public_key", "private_key", "private_key_password", "created", "auth", "scheme", "previous_state") VALUES
-('c95bf4ae-811e-45f1-acf1-e71131ad7ced', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '127.0.0.1', 22, '8m0eso', 'root', '', '', '', 'Message server', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('3e52d691-4432-4906-891d-f3816112f6cc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '127.0.0.2', 2200, 'eso8m0', 'ubuntu', '', '', '', 'Cache server', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'agent', 'ssh', '[]'),
-('df2046ee-5932-437f-b825-e55399666e45', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '127.0.0.3', 2203, '1so8m3', 'ubuntu3', '', '', '', 'Mail server', 't', 't', 't', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'password', 'ssh', '[]'),
-('d7797dff-4fa6-4a16-bc5b-68e5f7deb6f8', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '127.0.0.4', 2204, '2so8m4', 'ubuntu4', '', '', '', 'Backups', 'f', 'f', 't', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'password', 'ssh', '[]'),
-('ddd084a5-7d91-4796-a133-feab4e653721', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '4f06:bbfc:a98e:7a58:b6de:93f8:4bcd:bcda', 2205, '3so8m5', 'user3', '', '', '', 'CI/CD', 't', 't', 't', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('156d8d65-cfe5-48a4-a636-198a5f509abf', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'secret.net.google.com', 2206, '4so8m6', 'ubuntu6', '', '', '', 'Git server', 'f', 'f', 't', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'password', 'ssh', '[]'),
-('62476ee0-c9ea-46a9-8541-440ac13e00ff', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '127.0.0.7', 2207, '5so8m7', 'ubuntu7', '', '', '', 'Experiments server', 'f', 't', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'password', 'ssh', '[]'),
-('893f2fd6-73e3-4f44-9de7-049a975ac181', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '9df8:5b5d:411b:b2f5:3996:25a7:b895:5ce7', 2208, '6so8m8', 'storage9', '', '', '', 'Storage server #1', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('b635a7e0-3980-4776-843a-8823600cd2bc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '127.0.0.9', 2209, '7so8m9', 'ubuntu9', '', '', '', 'Storage server #2', 'f', 'f', 't', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('c6e37277-0513-4f9c-8e71-2464ebd1a016', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '127.0.0.10', 2210, '6so810', 'ubuntu10', '', '', '', 'Develop server #1', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'password', 'ssh', '[]'),
-('0c3a8869-6fc0-4666-bf60-15475473392a', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '127.0.0.11', 2211, '7so811', 'ubuntu11', '', '', '', 'Develop server #2', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('c504c295-63c9-406b-93e1-000c5e64977e', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', '127.0.0.3', 22, '56weso', 'user', '', '', '', 'Develop server #3', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('7cf11f1d-e31b-4d78-9339-90958bd82244', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', '127.0.0.4', 2922, 'gd9gs5', 'test', '', '', '', 'Storage server backup', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'password', 'ssh', '[]'),
-('9a71be05-3907-4e9a-9c61-8caf0e7b9069', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', '127.0.0.5', 22, 'kkdj53', 'user', '', '', '', 'PostgreSQL', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('7bd860e6-df0d-45f6-a6b7-41251e73a07d', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', '127.0.0.6', 2922, 'gg9011', 'test', '', '', '', 'MySQL', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjYFMIMr95VFcRxvCVdbLmXlSJeehHh4Kho0IGnQgtw4W3r1FXXHJg5jI4qHo8L8o+DpjAoMibkl5A8dW+SLyPePvJOCmPzgsCNLcs2JGAW6NFawa+3rGWMrVw4YRSsac5wrE4a2jp9FmmDGx3N0u4gzq+IiF9UuVe6eE/Q9sj07FcwTEznYiPBuaOxz/2NaYzmJLLjbFmx0nIHtz8JBym8uW7syJhGBW9XWB1pzrsitKV6I7eDoUapDXr/lBMe0aNBAESs1w9HnrnjJLAC7eo/4SXWr0lZyM5nk6rMen7Ei9AGJkgPs7FX3y18jSiOKLTInuZHvCmaY5x/pcSeRmF werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('36b764e7-9aed-4440-b42e-753038b0c9b4', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', '192.100.0.1', 22, '1m0eso', 'root', '', '', '', 'testserver1', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQC62QKo2ITKlqL4ydFyLgUWhnjoD/0TQ/V2OtYPL1qWhT2cPik1Sdpa0zB64J5OAy2WtsZc928ug2C21ERXV+j+HU6/JtG4NmEhZdmqEohcKMHO5mJ4JQ/aJD2XgXw8N8jxK97TpEnvXq91nouW9LQtuQz7IUlk7x/6MMRv+g4E/Q== werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('2c5d8a5a-eb73-4d21-9742-3acecd702c85', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', '192.100.0.2', 2200, '1so8m0', 'ubuntu', '', '', '', 'testserver2', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCtgI/DIWukADxXCKcPyj8G2YzLRYjTgRB4XyV2SQYQsZHU0vcAbVvmo86uOduwifow2q0pesaUVnRHB2vESoeHfpTbUaXorDBHlW10hJaKVBAe7EUEOsZHcKZeQ+Z5yONEV4ETrZ32zzRvsz2tI/oCXro4kalsDqbcCEpa/wLxyQ== werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('e57b9ba7-a984-4d95-a123-0bf6d5ec2442', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', '192.100.0.3', 22, '16weso', 'user', '', '', '', 'testserver3', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDGZLvaBLWDyKPR+6AiGnxQzW6RrKbQOLuOVXq+e0W/K0qUkt7zCcS5BCph36GWYjpJrnCm2a5OYBfYNfgGuf3qcnp19pwZDInhwyOHHC4776GPshubjEqWkFscs0yizgAcJk6eKjg75NF4+/gBABpcgUfrYERKnoHwiHDkmtm5Qw== werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('40fa9a63-19a2-49fa-a219-f249cd474e41', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', '192.100.0.4', 2922, '1d9gs5', 'test', '', '', '', 'testserver4', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQC0BRRwP9d0+VN7hGaAR34pu4d1pYSsA6BT3as9EZyp4YRvAE72DcVAnEcz4nmLeKmUbqiv+W61LQPLVx91AAyMB7ug3zUCZmaGxVW7XVlxcZX50TBhIKc0h/9wtxhQwbkKeQ5URLRJwxHTvo4/MnwCTOi0u8z9TuGY8Z2bVKcZcQ== werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('5057c9c6-5ed1-4447-9dab-2792bd23d045', '6a799ffb-55ad-4932-967e-1b0dffacc827', '192.100.0.5', 22, '1kdj53', 'user', '', '', '', 'testserver5', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCdL1tEUgA3nFKU6T6kv/UBMmx7ACW2Ioys3BawHadGJTcoHlT0qUiSBn8M/2KD5iM8riaL58ztImNBf++ORkyPs9jIJD01ASPae+9oIO5iGDJWg8WmpQ5VdI4bTqOkXH44SDXoJGqGK4kruhlyIDBL4Rj1W/76SpA0KG74J3CHMw==  werbot.com', '', '', NOW(), 'key', 'ssh', '[]'),
-('bc4e9e5a-bdb9-4fb9-82f8-f4178a33429a', '6a799ffb-55ad-4932-967e-1b0dffacc827', '192.100.0.6', 2922, '1g9011', 'test', '', '', '', 'testserver6', 't', 'f', 'f', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCJDKmlA1GFyqtcnQf5yAVvcsA4d71mqTRUEMbQAsdsCOqYTt4z3YeBo/4Ibz78nU2yQzosb+XIUFaR3gCsLqHzp73QdUh6hDXfwLJTF8uCktkwAyRkHSvN6cIv/ek5IG7dn29Hr4QsXqvR7memk2c20+LanV5Q0GhTy4pxY1QZ6w== werbot.com', '', '', NOW(), 'key', 'ssh', '[]');
+INSERT INTO "public"."server_access" ("id", "server_id", "login", "password", "public_key", "private_key", "private_key_password", "created", "auth") VALUES
+('0231fc7e-a726-4dbd-a075-d53d48e8ae82', '893f2fd6-73e3-4f44-9de7-049a975ac181', 'storage9', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGS3sGctNnxhyBT2DQViha7nh4zL6R9CHhJUR5FMaU60 noname werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACBkt7BnLTZ8YcgU9g0FYoWu54eMy+kfQh4SVEeRTGlOtAAAAJBscJhcbHCY
+XAAAAAtzc2gtZWQyNTUxOQAAACBkt7BnLTZ8YcgU9g0FYoWu54eMy+kfQh4SVEeRTGlOtA
+AAAEC8PozZ+97GM/4VfhAXqp5KSBF36OvPETANm0c2IV2QE2S3sGctNnxhyBT2DQViha7n
+h4zL6R9CHhJUR5FMaU60AAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('0a17e763-6688-4b46-9e9a-dba6742a6ea8', '156d8d65-cfe5-48a4-a636-198a5f509abf', 'ubuntu6', 'ubuntu6', '', '', '', NOW(), 'password'),
+('1aacda3e-c1f4-4797-88cf-e57ed9c76bec', 'c95bf4ae-811e-45f1-acf1-e71131ad7ced', 'root', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGJGHEjtB5J6OULh6CGlEotTQdDlzO3cPGDcpgRQJsLK werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACBiRhxI7QeSejlC4eghpRKLU0HQ5czt3Dxg3KYEUCbCygAAAJADX6oTA1+q
+EwAAAAtzc2gtZWQyNTUxOQAAACBiRhxI7QeSejlC4eghpRKLU0HQ5czt3Dxg3KYEUCbCyg
+AAAEDXdJGPGgZVKcl4cak9YXPUMJvMslqjeBhbJ7ysakcM4mJGHEjtB5J6OULh6CGlEotT
+QdDlzO3cPGDcpgRQJsLKAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('1b08e87b-aec1-4e89-a2d7-e2ff3658115e', 'b635a7e0-3980-4776-843a-8823600cd2bc', 'ubuntu9', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP2tgxmtQynabj2Vz1ghThhRJYNxzeZl3OJTkGHm7lRF werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACD9rYMZrUMp2m49lc9YIU4YUSWDcc3mZdziU5Bh5u5URQAAAJCvm9pJr5va
+SQAAAAtzc2gtZWQyNTUxOQAAACD9rYMZrUMp2m49lc9YIU4YUSWDcc3mZdziU5Bh5u5URQ
+AAAEBGGq7oTtt35XmdwjM3i0j3t0Bu/48/Ucbm8DD+zNw46P2tgxmtQynabj2Vz1ghThhR
+JYNxzeZl3OJTkGHm7lRFAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('1e8fb119-15a6-48d0-8fae-03a85d3e2bbc', 'e57b9ba7-a984-4d95-a123-0bf6d5ec2442', 'user', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK47DFNqYXlI9L/O61BD0aKnyfaW33OdKpJiBQGqsuai werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABBBrmx6Lx
+QEC0U6zOKcVQycAAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIK47DFNqYXlI9L/O
+61BD0aKnyfaW33OdKpJiBQGqsuaiAAAAkHUGpjisI3zaCQBlyi9ExRciYeJ7KvkhZKURGt
+tyc0s6ZvbYBu8Ktf6rjd4cc/cmVPBJ6OGsamT2yOsgMDFWdYnoaEFapgEC8VCjUA/48D1Q
+qFzcb8GS+CJ48DWQ6Wsr7ziBYnL4fhA1iy/JRiyPsZtOF1hS525FAjcVnXLRNDWzJbgkYk
+tH2U8lmKxKsVA9Ag==
+-----END OPENSSH PRIVATE KEY-----', 'test', NOW(), 'key'),
+('1f02d56d-db5b-4a29-9ee0-611fe170da79', '7cf11f1d-e31b-4d78-9339-90958bd82244', 'test', 'test', '', '', '', NOW(), 'password'),
+('3c736eae-8c1c-414f-bac2-cb0ebb3f9e9b', '0c3a8869-6fc0-4666-bf60-15475473392a', 'ubuntu11', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB1PFvdQd6ezh0gsz33IFVoK9Hn0TUqLTtCalrN0hyuO werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABBJqQ/pVB
+2VjG/NBg5cdcxKAAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIB1PFvdQd6ezh0gs
+z33IFVoK9Hn0TUqLTtCalrN0hyuOAAAAkFj/WUfoF+FWPbyTgEw2YadKUYAi1eVkJutLHZ
+WTNygXWoifZeKys78H23MPfS9AlmvV3JxsI+x53o3LOyr+DQdzC7o85fRuVVuZalL1JfyF
+viPqRIWSZWhnZtuyZP09T1EkmYZ+Dnf2CGCi75DicQvSIw6AJqJZAYmLtQ4qqqo2edVEHW
+QlvtMIlY1TJ3Q6aw==
+-----END OPENSSH PRIVATE KEY-----', 'test', NOW(), 'key'),
+('64d835ff-f0fc-43f4-9fec-8382a64f144e', '3e52d691-4432-4906-891d-f3816112f6cc', 'ubuntu', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFXO9/AMMVwrqKMw980tkk/LuCrnZWEEZDFRqZ5jQa5/ werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACBVzvfwDDFcK6ijMPfNLZJPy7gq52VhBGQxUameY0GufwAAAJA53OBlOdzg
+ZQAAAAtzc2gtZWQyNTUxOQAAACBVzvfwDDFcK6ijMPfNLZJPy7gq52VhBGQxUameY0Gufw
+AAAEASHjc0wsfaUBKeyRYER9F+57Wbs0vHbiHaLcdwzQPBpVXO9/AMMVwrqKMw980tkk/L
+uCrnZWEEZDFRqZ5jQa5/AAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'agent'),
+('6c6dfb71-2fb6-42dd-9003-af37254e4639', 'df2046ee-5932-437f-b825-e55399666e45', 'ubuntu3', 'ubuntu3', '', '', '', NOW(), 'password'),
+('7c4c643a-7c39-44e7-a755-0d79658b6901', 'bc4e9e5a-bdb9-4fb9-82f8-f4178a33429a', 'test', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDVbvqFN3rrevc4AW4Tg4e/6gWyoFPfjpCj6QA4NqmPd werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACA1W76hTd663r3OAFuE4OHv+oFsqBT346Qo+kAODapj3QAAAJA4lpxyOJac
+cgAAAAtzc2gtZWQyNTUxOQAAACA1W76hTd663r3OAFuE4OHv+oFsqBT346Qo+kAODapj3Q
+AAAEBZr/pvXMMZOp7JvQON3QmBr1ovUTlU2VsW2RXtAxqWuTVbvqFN3rrevc4AW4Tg4e/6
+gWyoFPfjpCj6QA4NqmPdAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('810d56b6-1b3b-4c5a-9cc9-d95a52549ca4', 'd7797dff-4fa6-4a16-bc5b-68e5f7deb6f8', 'ubuntu4', 'ubuntu4', '', '', '', NOW(), 'password'),
+('901a3eb0-b198-4db0-9960-c16bdac6b942', '9a71be05-3907-4e9a-9c61-8caf0e7b9069', 'user', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMAfIp3BwRVRDEBzrzB+fI8tCHbrQd9qtFHLMY/2EE0h werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACDAHyKdwcEVUQxAc68wfnyPLQh260HfarRRyzGP9hBNIQAAAJC85WtKvOVr
+SgAAAAtzc2gtZWQyNTUxOQAAACDAHyKdwcEVUQxAc68wfnyPLQh260HfarRRyzGP9hBNIQ
+AAAEDukDI8N1+8dvVPiUWhW+eLJlcPseqkK0nxV2d7Djz/qsAfIp3BwRVRDEBzrzB+fI8t
+CHbrQd9qtFHLMY/2EE0hAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('95d5ff8a-9a62-41ad-8488-645a921f9ad4', 'c6e37277-0513-4f9c-8e71-2464ebd1a016', 'ubuntu10', 'ubuntu10', '', '', '', NOW(), 'password'),
+('a3635dd5-5706-44e8-8f9a-8d336f389861', 'c504c295-63c9-406b-93e1-000c5e64977e', 'user', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB0JO0wPjURoFQUZOSI+ZH4l1gtd98bcFqbZCmSlHeBd werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACAdCTtMD41EaBUFGTkiPmR+JdYLXffG3Bam2QpkpR3gXQAAAJDg6P3R4Oj9
+0QAAAAtzc2gtZWQyNTUxOQAAACAdCTtMD41EaBUFGTkiPmR+JdYLXffG3Bam2QpkpR3gXQ
+AAAEDURZnoX4UwWLcZY0xOpACRHlM4dJFwyKCQd/yfB/NxqB0JO0wPjURoFQUZOSI+ZH4l
+1gtd98bcFqbZCmSlHeBdAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('bd8006bf-c9fc-40cf-a43f-6111ede53435', '7bd860e6-df0d-45f6-a6b7-41251e73a07d', 'test', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKbsyPIUlwnUsD0WMqO3lIYru+kDOQN3BOlXD/OmzQTT werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACCm7MjyFJcJ1LA9FjKjt5SGK7vpAzkDdwTpVw/zps0E0wAAAJAtOSz5LTks
++QAAAAtzc2gtZWQyNTUxOQAAACCm7MjyFJcJ1LA9FjKjt5SGK7vpAzkDdwTpVw/zps0E0w
+AAAEAgnvZTmmFQEUYzUSo4qqFSrNtmUlFpPWblzDZ5vPTvCabsyPIUlwnUsD0WMqO3lIYr
+u+kDOQN3BOlXD/OmzQTTAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('c0408489-8e3b-4aa0-a35e-1708fc7ea919', '62476ee0-c9ea-46a9-8541-440ac13e00ff', 'ubuntu7', 'ubuntu7', '', '', '', NOW(), 'password'),
+('cf5693c0-fb16-421c-b38e-455c796d942d', '2c5d8a5a-eb73-4d21-9742-3acecd702c85', 'ubuntu', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPFiBbtTKrSiRbDUSqvq+xTKJDWU6PTA4sTczTt23QHB werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACDxYgW7Uyq0okWw1Eqr6vsUyiQ1lOj0wOLE3M07dt0BwQAAAJC8fU1AvH1N
+QAAAAAtzc2gtZWQyNTUxOQAAACDxYgW7Uyq0okWw1Eqr6vsUyiQ1lOj0wOLE3M07dt0BwQ
+AAAEDHB9YeLpOdg4rI3c2FHXYSCQWOWXCn5wryo9/EcXBKk/FiBbtTKrSiRbDUSqvq+xTK
+JDWU6PTA4sTczTt23QHBAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('d5ee557e-c44a-42e2-9acf-bd660f6aace9', '5057c9c6-5ed1-4447-9dab-2792bd23d045', 'user', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO7U0luezw58Ion1m1uj0u9v/iBZhoB7w6VlPWTaI6hS  werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACDu1NJbns8OfCKJ9Ztbo9Lvb/4gWYaAe8OlZT1k2iOoUgAAAJAzhnAqM4Zw
+KgAAAAtzc2gtZWQyNTUxOQAAACDu1NJbns8OfCKJ9Ztbo9Lvb/4gWYaAe8OlZT1k2iOoUg
+AAAEDJzoFOg9S0I8qE96iNzL5thL8SkfQiDbsolvT0q5tYVO7U0luezw58Ion1m1uj0u9v
+/iBZhoB7w6VlPWTaI6hSAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('dd7df855-17a7-46a3-8805-4de9c4c3a760', '40fa9a63-19a2-49fa-a219-f249cd474e41', 'test', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBkQDfMBPNzJCm/vjtgmu4csL7U0CFKc1tdHAcJ8gA0P werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACAZEA3zATzcyQpv747YJruHLC+1NAhSnNbXRwHCfIANDwAAAJBMA+zYTAPs
+2AAAAAtzc2gtZWQyNTUxOQAAACAZEA3zATzcyQpv747YJruHLC+1NAhSnNbXRwHCfIANDw
+AAAEAPNmaQrhYmYrEq+h1jGVboOUSPrOB101mDFkpXOXVvXhkQDfMBPNzJCm/vjtgmu4cs
+L7U0CFKc1tdHAcJ8gA0PAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('e72a1e40-24d1-4465-8fc0-c834e4f28c60', '36b764e7-9aed-4440-b42e-753038b0c9b4', 'root', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHM9qMU9mLi89cEn6GOVoRYc0dgIjlO+nFYbaHuLJSMb werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACBzPajFPZi4vPXBJ+hjlaEWHNHYCI5TvpxWG2h7iyUjGwAAAJAGr2q2Bq9q
+tgAAAAtzc2gtZWQyNTUxOQAAACBzPajFPZi4vPXBJ+hjlaEWHNHYCI5TvpxWG2h7iyUjGw
+AAAEDj7kLP6gcIImsKwdZMc2s9IYJa/lOSknbJKvr71nfK/3M9qMU9mLi89cEn6GOVoRYc
+0dgIjlO+nFYbaHuLJSMbAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key'),
+('f6312614-cb6d-44c6-8bd5-df74b39edb59', 'ddd084a5-7d91-4796-a133-feab4e653721', 'user3', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC7L+QVM2RILf1C8PlTZ9Ab2aqW6/LrIBWiK4ybiKLzG werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACAuy/kFTNkSC39QvD5U2fQG9mqluvy6yAVoiuMm4ii8xgAAAJB69UHfevVB
+3wAAAAtzc2gtZWQyNTUxOQAAACAuy/kFTNkSC39QvD5U2fQG9mqluvy6yAVoiuMm4ii8xg
+AAAEA1u0O/iIvR8F5ax4tkjtfmHqwD6jvyIQF4cxFx7j58PC7L+QVM2RILf1C8PlTZ9Ab2
+aqW6/LrIBWiK4ybiKLzGAAAABm5vbmFtZQECAwQFBgc=
+-----END OPENSSH PRIVATE KEY-----', '', NOW(), 'key');
+
+INSERT INTO "public"."server" ("id", "project_id", "access_id", "address", "port", "token", "title", "description", "active", "audit", "online", "created", "scheme", "previous_state") VALUES
+('0c3a8869-6fc0-4666-bf60-15475473392a', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '3c736eae-8c1c-414f-bac2-cb0ebb3f9e9b', '127.0.0.11', 2211, '7so811', 'Develop server #2', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('156d8d65-cfe5-48a4-a636-198a5f509abf', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0a17e763-6688-4b46-9e9a-dba6742a6ea8', 'secret.net.google.com', 2206, '4so8m6', 'Git server', '', 'f', 'f', 't', NOW(), 'ssh', '[]'),
+('2c5d8a5a-eb73-4d21-9742-3acecd702c85', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'cf5693c0-fb16-421c-b38e-455c796d942d', '192.100.0.2', 2200, '1so8m0', 'testserver2', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('36b764e7-9aed-4440-b42e-753038b0c9b4', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'e72a1e40-24d1-4465-8fc0-c834e4f28c60', '192.100.0.1', 22, '1m0eso', 'testserver1', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('3e52d691-4432-4906-891d-f3816112f6cc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '64d835ff-f0fc-43f4-9fec-8382a64f144e', '127.0.0.2', 2200, 'eso8m0', 'Cache server', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('40fa9a63-19a2-49fa-a219-f249cd474e41', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', 'dd7df855-17a7-46a3-8805-4de9c4c3a760', '192.100.0.4', 2922, '1d9gs5', 'testserver4', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('5057c9c6-5ed1-4447-9dab-2792bd23d045', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'd5ee557e-c44a-42e2-9acf-bd660f6aace9', '192.100.0.5', 22, '1kdj53', 'testserver5', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('62476ee0-c9ea-46a9-8541-440ac13e00ff', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c0408489-8e3b-4aa0-a35e-1708fc7ea919', '127.0.0.7', 2207, '5so8m7', 'Experiments server', '', 'f', 't', 'f', NOW(), 'ssh', '[]'),
+('7bd860e6-df0d-45f6-a6b7-41251e73a07d', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'bd8006bf-c9fc-40cf-a43f-6111ede53435', '127.0.0.6', 2922, 'gg9011', 'MySQL', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('7cf11f1d-e31b-4d78-9339-90958bd82244', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', '1f02d56d-db5b-4a29-9ee0-611fe170da79', '127.0.0.4', 2922, 'gd9gs5', 'Storage server backup', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('893f2fd6-73e3-4f44-9de7-049a975ac181', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0231fc7e-a726-4dbd-a075-d53d48e8ae82', '9df8:5b5d:411b:b2f5:3996:25a7:b895:5ce7', 2208, '6so8m8', 'Storage server #1', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('9a71be05-3907-4e9a-9c61-8caf0e7b9069', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', '901a3eb0-b198-4db0-9960-c16bdac6b942', '127.0.0.5', 22, 'kkdj53', 'PostgreSQL', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('b635a7e0-3980-4776-843a-8823600cd2bc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '1b08e87b-aec1-4e89-a2d7-e2ff3658115e', '127.0.0.9', 2209, '7so8m9', 'Storage server #2', '', 'f', 'f', 't', NOW(), 'ssh', '[]'),
+('bc4e9e5a-bdb9-4fb9-82f8-f4178a33429a', '6a799ffb-55ad-4932-967e-1b0dffacc827', '7c4c643a-7c39-44e7-a755-0d79658b6901', '192.100.0.6', 2922, '1g9011', 'testserver6', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('c504c295-63c9-406b-93e1-000c5e64977e', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', 'a3635dd5-5706-44e8-8f9a-8d336f389861', '127.0.0.3', 22, '56weso', 'Develop server #3', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('c6e37277-0513-4f9c-8e71-2464ebd1a016', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '95d5ff8a-9a62-41ad-8488-645a921f9ad4', '127.0.0.10', 2210, '6so810', 'Develop server #1', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('c95bf4ae-811e-45f1-acf1-e71131ad7ced', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '1aacda3e-c1f4-4797-88cf-e57ed9c76bec', '127.0.0.1', 22, '8m0eso', 'Message server', '', 't', 'f', 'f', NOW(), 'ssh', '[]'),
+('d7797dff-4fa6-4a16-bc5b-68e5f7deb6f8', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '810d56b6-1b3b-4c5a-9cc9-d95a52549ca4', '127.0.0.4', 2204, '2so8m4', 'Backups', '', 'f', 'f', 't', NOW(), 'ssh', '[]'),
+('ddd084a5-7d91-4796-a133-feab4e653721', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'f6312614-cb6d-44c6-8bd5-df74b39edb59', '4f06:bbfc:a98e:7a58:b6de:93f8:4bcd:bcda', 2205, '3so8m5', 'CI/CD', '', 't', 't', 't', NOW(), 'ssh', '[]'),
+('df2046ee-5932-437f-b825-e55399666e45', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '6c6dfb71-2fb6-42dd-9003-af37254e4639', '127.0.0.3', 2203, '1so8m3', 'Mail server', '', 't', 't', 't', NOW(), 'ssh', '[]'),
+('e57b9ba7-a984-4d95-a123-0bf6d5ec2442', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', '1e8fb119-15a6-48d0-8fae-03a85d3e2bbc', '192.100.0.3', 22, '16weso', 'testserver3', '', 't', 'f', 'f', NOW(), 'ssh', '[]');
 
 INSERT INTO "public"."server_access_policy" ("server_id", "ip", "country") VALUES
 ('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 'f', 'f'),
@@ -320,6 +435,7 @@ DELETE FROM "public"."project";
 DELETE FROM "public"."project_invite";
 DELETE FROM "public"."project_member";
 DELETE FROM "public"."server";
+DELETE FROM "public"."server_access";
 DELETE FROM "public"."server_access_policy";
 DELETE FROM "public"."server_member";
 DELETE FROM "public"."server_activity";
