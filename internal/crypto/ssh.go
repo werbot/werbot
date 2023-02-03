@@ -43,7 +43,7 @@ func NewSSHKey(keyType string) (*PairOfKeys, error) {
 	}
 
 	switch keyType {
-	case "KEY_TYPE_RSA":
+	case "rsa":
 		block, pubKey, err = newRSAKey()
 		if err != nil {
 			return nil, err
@@ -55,7 +55,7 @@ func NewSSHKey(keyType string) (*PairOfKeys, error) {
 		if err != nil {
 			return nil, err
 		}
-	case "KEY_TYPE_ED25519":
+	case "ed25519":
 		block, pubKey, err = newEd25519Key()
 		if err != nil {
 			return nil, err

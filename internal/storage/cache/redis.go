@@ -11,7 +11,7 @@ import (
 type Cache interface {
 	Ping() error
 	Set(key string, value any, expiration time.Duration) error
-	Get(key string) (string, error)
+	Get(key string) *redis.StringCmd
 	Delete(key string) (int64, error)
 }
 
@@ -40,8 +40,8 @@ func (c redisCache) Set(key string, value any, expiration time.Duration) error {
 }
 
 // Get is ...
-func (c redisCache) Get(key string) (string, error) {
-	return c.client.Get(c.ctx, key).Result()
+func (c redisCache) Get(key string) *redis.StringCmd {
+	return c.client.Get(c.ctx, key)
 }
 
 // Delete is ...

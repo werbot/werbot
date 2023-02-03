@@ -1051,11 +1051,11 @@ func (m *Key_Response) validate(all bool) error {
 	// no validation rules for Fingerprint
 
 	if all {
-		switch v := interface{}(m.GetLastUsed()).(type) {
+		switch v := interface{}(m.GetLastActivity()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, Key_ResponseValidationError{
-					field:  "LastUsed",
+					field:  "LastActivity",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -1063,16 +1063,16 @@ func (m *Key_Response) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, Key_ResponseValidationError{
-					field:  "LastUsed",
+					field:  "LastActivity",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetLastUsed()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetLastActivity()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return Key_ResponseValidationError{
-				field:  "LastUsed",
+				field:  "LastActivity",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -2150,3 +2150,111 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = GenerateSSHKey_ResponseValidationError{}
+
+// Validate checks the field values on GenerateSSHKey_Key with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *GenerateSSHKey_Key) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GenerateSSHKey_Key with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// GenerateSSHKey_KeyMultiError, or nil if none found.
+func (m *GenerateSSHKey_Key) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GenerateSSHKey_Key) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Public
+
+	// no validation rules for Private
+
+	// no validation rules for Password
+
+	if len(errors) > 0 {
+		return GenerateSSHKey_KeyMultiError(errors)
+	}
+
+	return nil
+}
+
+// GenerateSSHKey_KeyMultiError is an error wrapping multiple validation errors
+// returned by GenerateSSHKey_Key.ValidateAll() if the designated constraints
+// aren't met.
+type GenerateSSHKey_KeyMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GenerateSSHKey_KeyMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GenerateSSHKey_KeyMultiError) AllErrors() []error { return m }
+
+// GenerateSSHKey_KeyValidationError is the validation error returned by
+// GenerateSSHKey_Key.Validate if the designated constraints aren't met.
+type GenerateSSHKey_KeyValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GenerateSSHKey_KeyValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GenerateSSHKey_KeyValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GenerateSSHKey_KeyValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GenerateSSHKey_KeyValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GenerateSSHKey_KeyValidationError) ErrorName() string {
+	return "GenerateSSHKey_KeyValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e GenerateSSHKey_KeyValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGenerateSSHKey_Key.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GenerateSSHKey_KeyValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GenerateSSHKey_KeyValidationError{}

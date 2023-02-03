@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/werbot/werbot/api/proto/server"
+	serverpb "github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 	"github.com/werbot/werbot/pkg/strutil"
@@ -54,35 +56,57 @@ func (c authContext) userType() server.Type {
 func bastionClientConfig(ctx ssh.Context, host *server.Server_Response) (*gossh.ClientConfig, error) {
 	actx := ctx.Value(authContextKey).(*authContext)
 
-	host.Password = crypto.TextDecrypt(host.Password, actx.aesKey)
-	host.KeyPrivate = crypto.TextDecrypt(host.KeyPrivate, actx.aesKey)
-	host.KeyPassword = crypto.TextDecrypt(host.KeyPassword, actx.aesKey)
+	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	rClient := server.NewServerHandlersClient(app.grpc.Client)
 
-	clientConfig, err := clientConfig(host, dynamicHostKey(host))
+	access, _ := rClient.ServerAccess(_ctx, &server.ServerAccess_Request{
+		ProjectId: host.GetProjectId(),
+		ServerId:  host.GetServerId(),
+	})
+
+	accessDecrypt := new(server.ServerAccess_Response)
+
+	switch access.GetAccess().(type) {
+	case *server.ServerAccess_Response_Password:
+		accessDecrypt.Access = &server.ServerAccess_Response_Password{
+			Password: crypto.TextDecrypt(access.GetPassword(), actx.aesKey),
+		}
+
+	case *server.ServerAccess_Response_Key:
+		accessDecrypt.Access = &server.ServerAccess_Response_Key{
+			Key: &server.ServerAccess_Key{
+				Private:  crypto.TextDecrypt(access.GetKey().GetPrivate(), actx.aesKey),
+				Password: crypto.TextDecrypt(access.GetKey().GetPassword(), actx.aesKey),
+			},
+		}
+	}
+
+	clientConfig, err := clientConfig(host, accessDecrypt, dynamicHostKey(host))
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO сюда можно добавить проверку ACL проверку по доступности прав
+	// TODO Here you can add ACL verification verification for the accessibility of rights
 
 	return clientConfig, nil
 }
 
-func clientConfig(host *server.Server_Response, hk gossh.HostKeyCallback) (*gossh.ClientConfig, error) {
+func clientConfig(host *server.Server_Response, access *server.ServerAccess_Response, hk gossh.HostKeyCallback) (*gossh.ClientConfig, error) {
 	auth := []gossh.AuthMethod{}
 
-	if host.KeyPrivate == "" && host.Password == "" {
+	if access.GetKey().GetPrivate() == "" && access.GetPassword() == "" {
 		return nil, errors.New("empty private key and password")
 	}
 
-	if host.Auth == "key" && host.KeyPrivate != "" {
+	if host.Auth == serverpb.Auth_key && access.GetKey().GetPrivate() != "" {
 		var signer gossh.Signer
 		var err error
-		// если у ключа есть пароль, использовать его
-		if host.KeyPassword != "" {
-			signer, err = gossh.ParsePrivateKeyWithPassphrase([]byte(host.KeyPrivate), []byte(host.KeyPassword))
+		// If the key has a password, use it
+		if access.GetKey().GetPrivate() != "" {
+			signer, err = gossh.ParsePrivateKeyWithPassphrase([]byte(access.GetKey().GetPrivate()), []byte(access.GetKey().GetPassword()))
 		} else {
-			signer, err = gossh.ParsePrivateKey([]byte(host.KeyPrivate))
+			signer, err = gossh.ParsePrivateKey([]byte(access.GetKey().GetPrivate()))
 		}
 		if err != nil {
 			return nil, errors.New("unable to parse private key")
@@ -90,8 +114,8 @@ func clientConfig(host *server.Server_Response, hk gossh.HostKeyCallback) (*goss
 		auth = append(auth, gossh.PublicKeys(signer))
 	}
 
-	if host.Password != "" && host.Auth == "password" {
-		auth = append(auth, gossh.Password(host.Password))
+	if host.Auth == serverpb.Auth_password && access.GetPassword() != "" {
+		auth = append(auth, gossh.Password(access.GetPassword()))
 	}
 	if len(auth) == 0 {
 		return nil, fmt.Errorf("no valid authentication method for host %q", host.Title)

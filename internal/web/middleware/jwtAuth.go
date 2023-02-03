@@ -58,7 +58,7 @@ func (m AuthMiddleware) authSuccess(c *fiber.Ctx) error {
 	userInfo := AuthUser(c)
 
 	key := fmt.Sprintf("ref_token::%s", userInfo.UserSub())
-	if _, err := m.cache.Get(key); err != nil {
+	if _, err := m.cache.Get(key).Result(); err != nil {
 		return webutil.StatusUnauthorized(c, msgTokenHasBeenRevoked, nil)
 	}
 

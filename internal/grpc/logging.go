@@ -33,8 +33,8 @@ func (l *logging) AddLogRecord(ctx context.Context, in *loggingpb.AddRecord_Requ
 
 	switch in.GetLogger() {
 	case loggingpb.Logger_profile:
-		sqlQuery, err = sanitize.SQL(`INSERT INTO "logs_profile" ("profile_id", "date", "entity_id", "entity_name", "editor_name", "editor_role", "user_agent", "ip", "event", "data")
-      VALUES ($1, NOW(), '', '', '', '', '' '', $2, '')`,
+		sqlQuery, err = sanitize.SQL(`INSERT INTO "logs_profile" ("profile_id", "entity_id", "entity_name", "editor_name", "editor_role", "user_agent", "ip", "event", "created", "data")
+      VALUES ($1, '', '', '', '', '' '', $2, NOW(), '')`,
 			in.GetId(),
 			in.GetEvent().String(),
 		)
@@ -44,8 +44,8 @@ func (l *logging) AddLogRecord(ctx context.Context, in *loggingpb.AddRecord_Requ
 		}
 
 	case loggingpb.Logger_project:
-		sqlQuery, err = sanitize.SQL(`INSERT INTO "logs_project" ("project_id", "date", "entity_id", "entity_name", "editor_name", "editor_role", "user_agent", "ip", "event", "data")
-      VALUES ($1, NOW(), '', '', '', '', '' '', $2, '')`,
+		sqlQuery, err = sanitize.SQL(`INSERT INTO "logs_project" ("project_id", "entity_id", "entity_name", "editor_name", "editor_role", "user_agent", "ip", "event", "created", "data")
+      VALUES ($1, '', '', '', '', '' '', $2, NOW(), '')`,
 			in.GetId(),
 			in.GetEvent().String(),
 		)

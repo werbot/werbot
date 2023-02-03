@@ -164,36 +164,38 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	// access setting
-	access := new(serverpb.UpdateServerAccess_Request)
+	/*
+		// access setting
+		access := new(serverpb.UpdateServerAccess_Request)
 
-	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
-	}
-
-	if err := access.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(serverpb.UpdateServerAccess_RequestMultiError) {
-			e := err.(serverpb.UpdateServerAccess_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
+		if err := c.BodyParser(request); err != nil {
+			h.log.Error(err).Send()
+			return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
-	}
 
-	// If the password is not indicated, skip the next step
-	if access.Auth == serverpb.Auth_password && access.Password == "" {
-		return webutil.StatusOK(c, msgServerUpdated, nil)
-	}
+		if err := access.ValidateAll(); err != nil {
+			multiError := make(map[string]string)
+			for _, err := range err.(serverpb.UpdateServerAccess_RequestMultiError) {
+				e := err.(serverpb.UpdateServerAccess_RequestValidationError)
+				multiError[strings.ToLower(e.Field())] = e.Reason()
+			}
+			return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		}
 
-	access.UserId = request.GetUserId()
-	access.ServerId = request.GetServerId()
-	access.ProjectId = request.GetProjectId()
+		// If the password is not indicated, skip the next step
+		if access.Auth == serverpb.Auth_password && access.GetPassword() == "" {
+			return webutil.StatusOK(c, msgServerUpdated, nil)
+		}
 
-	_, err = rClient.UpdateServerAccess(ctx, access)
-	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
-	}
+		access.UserId = request.GetUserId()
+		access.ServerId = request.GetServerId()
+		access.ProjectId = request.GetProjectId()
+
+		_, err = rClient.UpdateServerAccess(ctx, access)
+		if err != nil {
+			return webutil.FromGRPC(c, h.log, err)
+		}
+	*/
 
 	return webutil.StatusOK(c, msgServerUpdated, nil)
 }

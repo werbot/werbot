@@ -213,11 +213,6 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 func (h *Handler) getGenerateNewKey(c *fiber.Ctx) error {
 	request := new(keypb.GenerateSSHKey_Request)
 
-	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
-	}
-
 	if request.GetKeyType() == 0 {
 		request.KeyType = keypb.KeyType_ed25519
 	}

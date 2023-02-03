@@ -1181,11 +1181,11 @@ func (m *User_Response) validate(all bool) error {
 	// no validation rules for Password
 
 	if all {
-		switch v := interface{}(m.GetLastActive()).(type) {
+		switch v := interface{}(m.GetLastActivity()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, User_ResponseValidationError{
-					field:  "LastActive",
+					field:  "LastActivity",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -1193,16 +1193,16 @@ func (m *User_Response) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, User_ResponseValidationError{
-					field:  "LastActive",
+					field:  "LastActivity",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetLastActive()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetLastActivity()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return User_ResponseValidationError{
-				field:  "LastActive",
+				field:  "LastActivity",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -1210,11 +1210,11 @@ func (m *User_Response) validate(all bool) error {
 	}
 
 	if all {
-		switch v := interface{}(m.GetRegisterDate()).(type) {
+		switch v := interface{}(m.GetCreated()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, User_ResponseValidationError{
-					field:  "RegisterDate",
+					field:  "Created",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -1222,16 +1222,16 @@ func (m *User_Response) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, User_ResponseValidationError{
-					field:  "RegisterDate",
+					field:  "Created",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetRegisterDate()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return User_ResponseValidationError{
-				field:  "RegisterDate",
+				field:  "Created",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

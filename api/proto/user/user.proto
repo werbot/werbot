@@ -64,8 +64,8 @@ message User {
     bool confirmed = 7;
     Role role = 8;
     string password = 9;
-    google.protobuf.Timestamp last_active = 10;
-    google.protobuf.Timestamp register_date = 11;
+    google.protobuf.Timestamp last_activity = 10;
+    google.protobuf.Timestamp created = 11;
   }
 }
 // -----------------------------------------------------

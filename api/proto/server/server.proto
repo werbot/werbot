@@ -17,6 +17,7 @@ service ServerHandlers {
 
   // Server Access section
   rpc ServerAccess(ServerAccess.Request) returns (ServerAccess.Response) {}
+  rpc AddServerAccess(AddServerAccess.Request) returns (AddServerAccess.Response) {}
   rpc UpdateServerAccess(UpdateServerAccess.Request) returns (UpdateServerAccess.Response) {}
 
   // Server Activity section
@@ -127,26 +128,22 @@ message Server {
   message Response {
     string server_id = 1;
     string project_id = 2;
-    string project_login = 3;
-    string address = 4;
-    int32 port = 5;
-    string token = 6;
-    string login = 7;
-    string password = 8;
+    string access_id = 3;
+    string project_login = 4;
+    string address = 5;
+    int32 port = 6;
+    string token = 7;
+    string login = 8;
     string title = 9;
     bool audit =10;
     bool online = 11;
-    string key_public = 12;
-    string key_private = 13;
-    string key_password = 14;
-    string account_id = 15;
-    string auth = 16;
-    string scheme = 17;
-    bytes host_key = 18;
-    string private_description = 19;
-    string public_description = 20;
-    bool active = 21;
-    int32 count_members = 22;
+    string account_id = 12;
+    Auth auth = 13;
+    ServerScheme scheme = 14;
+    bytes host_key = 15;
+    string description = 16;
+    bool active = 17;
+    int32 count_members = 18;
   }
 }
 // -----------------------------------------------------
@@ -159,22 +156,15 @@ message AddServer {
     string project_id = 2   [(validate.rules).string.uuid = true];
     string address = 3      [(validate.rules).string.address = true];
     int32 port = 4          [(validate.rules).int32 = {gte: 1, lt: 65536}];
-    string login = 5        [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}];
-    string title = 6        [(validate.rules).string = {min_len: 3, max_len: 128}];
-    Auth auth = 7           [(validate.rules).enum.defined_only = true];
-    ServerScheme scheme = 8 [(validate.rules).enum.defined_only = true];
-    bool audit = 9;
-    bool active = 10;
-    string private_description = 11;
-    string public_description = 12;
-    string password = 13;
-    string public_key = 14;
-    string key_uuid = 15;
+    string title = 5        [(validate.rules).string = {min_len: 3, max_len: 128}];
+    ServerScheme scheme = 6 [(validate.rules).enum.defined_only = true];
+    bool audit = 7;
+    bool active = 8;
+    string description = 9;
   }
 
   message Response {
     string server_id = 1;
-    string key_public = 2;
   }
 }
 // -----------------------------------------------------
@@ -200,8 +190,7 @@ message UpdateServer {
     int32 port = 2     [(validate.rules).int32 = {gte: 1, lt: 65536}];                                // @gotags: query:"port" params:"port"
     string login = 3   [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}]; // @gotags: query:"login" params:"login"
     string title = 4   [(validate.rules).string = {min_len: 3, max_len: 128}];                        // @gotags: query:"title" params:"title"
-    string private_description = 5;
-    string public_description = 6;
+    string description = 5;
   }
 }
 // -----------------------------------------------------
@@ -230,9 +219,10 @@ message ServerAccess {
 
   message Response {
     Auth auth = 1;
+    string login = 2;
     oneof access {
-      string password = 2;
-      Key key = 3;
+      string password = 3;
+      Key key = 4;
     }
   }
 
@@ -246,19 +236,43 @@ message ServerAccess {
 // -----------------------------------------------------
 
 
+// rpc AddServerAccess
+message AddServerAccess {
+  message Request {
+    string server_id = 1 [(validate.rules).string.uuid = true];                                         // @gotags: query:"server_id" params:"server_id"
+    string login = 2     [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}]; // @gotags: query:"login" params:"login"
+    oneof access {
+      string password = 3;
+      string key_uuid = 4;
+    }
+  }
+
+  message Response {
+    // string key_public = 1;
+    string fingeprint = 1;
+  }
+}
+// -----------------------------------------------------
+
+
 // rpc UpdateServerAccess
 message UpdateServerAccess {
   message Request {
     string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
     string project_id = 2 [(validate.rules).string.uuid = true];                        // @gotags: query:"project_id"
     string server_id = 3  [(validate.rules).string.uuid = true];                        // @gotags: query:"server_id"
-    Auth auth = 4;
-    string password = 5;
-    string public_key = 6;
-    string key_uuid = 7; // temp uuid for new generate key
+    oneof access {
+      string password = 5;
+      Key key = 6;
+    }
   }
 
   message Response {}
+
+  message Key {
+    string public_key = 1;
+    string key_uuid = 2; // temp uuid for new generate key
+  }
 }
 // -----------------------------------------------------
 

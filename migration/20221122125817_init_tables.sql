@@ -11,34 +11,36 @@ CREATE TABLE "public"."user" (
     "password" varchar(255) NOT NULL,
     "enabled" bool NOT NULL DEFAULT true,
     "confirmed" bool NOT NULL DEFAULT false,
-    "last_active" timestamp(0) DEFAULT NULL::timestamp without time zone,
-    "register_date" timestamp(0) DEFAULT NULL::timestamp without time zone,
     "role" int4 NOT NULL DEFAULT 1,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id")
 );
 
 CREATE TABLE "public"."project" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "owner_id" uuid,
+    "owner_id" uuid NOT NULL,
     "title" varchar(255) NOT NULL,
     "login" varchar(255) NOT NULL,
-    "created" timestamp(0) NOT NULL,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("owner_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."project_invite" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "project_id" uuid,
+    "project_id" uuid NOT NULL,
     "user_id" uuid,
-    "invite" uuid,
-    "name" varchar(255) DEFAULT NULL::character varying,
-    "surname" varchar(255) DEFAULT NULL::character varying,
+    "invite" uuid NOT NULL,
+    "name" varchar(255) DEFAULT NULL,
+    "surname" varchar(255) DEFAULT NULL,
     "email" varchar(255) NOT NULL,
-    "created" timestamp(0) NOT NULL,
     "status" varchar(255) NOT NULL,
     "ldap_user" bool,
-    "ldap_name" varchar(255) DEFAULT NULL::character varying,
+    "ldap_name" varchar(255) DEFAULT NULL,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE SET NULL,
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE
@@ -46,26 +48,29 @@ CREATE TABLE "public"."project_invite" (
 
 CREATE TABLE "public"."project_ldap" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "project_id" uuid,
-    "host" varchar(255) DEFAULT NULL::character varying,
-    "password" varchar(255) DEFAULT NULL::character varying,
+    "project_id" uuid NOT NULL,
+    "host" varchar(255) DEFAULT NULL,
+    "password" varchar(255) DEFAULT NULL,
     "port" int4,
-    "root_dn" varchar(255) DEFAULT NULL::character varying,
-    "query_dn" varchar(255) DEFAULT NULL::character varying,
-    "object_class" varchar(255) DEFAULT NULL::character varying,
-    "description" varchar(255) DEFAULT NULL::character varying,
+    "root_dn" varchar(255) DEFAULT NULL,
+    "query_dn" varchar(255) DEFAULT NULL,
+    "object_class" varchar(255) DEFAULT NULL,
+    "description" varchar(255) DEFAULT NULL,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."project_member" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "project_id" uuid,
-    "user_id" uuid,
+    "project_id" uuid NOT NULL,
+    "user_id" uuid NOT NULL,
     "active" bool NOT NULL DEFAULT false,
     "online" bool NOT NULL DEFAULT false,
     "role" varchar(255) NOT NULL,
-    "created" timestamp(0) NOT NULL,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE,
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
@@ -73,21 +78,21 @@ CREATE TABLE "public"."project_member" (
 
 CREATE TABLE "public"."server_access" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "server_id" uuid,
-    "login" varchar(255) NOT NULL,
-    "password" varchar(255) DEFAULT NULL::character varying,
+    "server_id" uuid NOT NULL,
+    "auth" varchar(1) NOT NULL,
+    "login" varchar(255) DEFAULT NULL,
+    "password" varchar(255) DEFAULT NULL,
     "public_key" text DEFAULT NULL,
     "private_key" text DEFAULT NULL,
     "private_key_password" varchar(255),
-    "created" timestamp(0) NOT NULL,
-    "auth" varchar(255) NOT NULL CHECK ((auth)::text = ANY ((ARRAY['key'::character varying, 'password'::character varying, 'agent'::character varying])::text[])),
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id")
 );
-COMMENT ON COLUMN "public"."server_access"."auth" IS '(DC2Type:AuthType)';
 
 CREATE TABLE "public"."server" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "project_id" uuid,
+    "project_id" uuid NOT NULL,
     "access_id" uuid,
     "address" varchar(255) NOT NULL,
     "port" int4 NOT NULL,
@@ -97,23 +102,23 @@ CREATE TABLE "public"."server" (
     "active" bool NOT NULL DEFAULT false,
     "audit" bool NOT NULL DEFAULT false,
     "online" bool NOT NULL DEFAULT false,
-    "created" timestamp(0) NOT NULL,
-    "scheme" varchar(255) NOT NULL CHECK ((scheme)::text = ANY ((ARRAY['telnet'::character varying, 'ssh'::character varying])::text[])),
-    "previous_state" json NOT NULL DEFAULT '{}'::json,
+    "scheme" varchar(1) NOT NULL,
+    "previous_state" jsonb NOT NULL DEFAULT '{}'::jsonb,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE,
     FOREIGN KEY ("access_id") REFERENCES "public"."server_access"("id") ON DELETE CASCADE
 );
-COMMENT ON COLUMN "public"."server"."scheme" IS '(DC2Type:ProtocolSchemeType)';
 
 CREATE TABLE "public"."server_member" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "server_id" uuid,
-    "member_id" uuid,
+    "server_id" uuid NOT NULL,
+    "member_id" uuid NOT NULL,
     "active" bool NOT NULL DEFAULT false,
     "online" bool NOT NULL DEFAULT false,
-    "last_activity" timestamp(0) DEFAULT NULL::timestamp without time zone,
-    "previous_state" json NOT NULL DEFAULT '{}'::json,
+    "last_activity" timestamp DEFAULT NULL,
+    "previous_state" jsonb NOT NULL DEFAULT '{}'::jsonb,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("member_id") REFERENCES "public"."project_member"("id") ON DELETE CASCADE,
     FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE CASCADE
@@ -129,18 +134,18 @@ CREATE TABLE "public"."server_access_policy" (
 
 CREATE TABLE "public"."server_access_token" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "account_id" uuid,
-    "expired" timestamp(0) NOT NULL,
+    "account_id" uuid NOT NULL,
+    "expired" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("account_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."server_activity" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "server_id" uuid,
+    "server_id" uuid NOT NULL,
     "dow" int4 NOT NULL,
-    "time_from" time(0) NOT NULL,
-    "time_to" time(0) NOT NULL,
+    "time_from" time NOT NULL,
+    "time_to" time NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE CASCADE
 );
@@ -153,8 +158,8 @@ CREATE TABLE "public"."country" (
 
 CREATE TABLE "public"."server_security_country" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "server_id" uuid,
-    "country_code" varchar(4) DEFAULT NULL::character varying,
+    "server_id" uuid NOT NULL,
+    "country_code" varchar(4) DEFAULT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("country_code") REFERENCES "public"."country"("code") ON DELETE CASCADE,
     FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE CASCADE
@@ -162,39 +167,39 @@ CREATE TABLE "public"."server_security_country" (
 
 CREATE TABLE "public"."logs_project" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "project_id" uuid,
-    "date" timestamp(0) NOT NULL,
+    "project_id" uuid NOT NULL,
     "entity_id" varchar(255) NOT NULL,
     "entity_name" varchar(255) NOT NULL,
-    "editor_name" varchar(255) DEFAULT NULL::character varying,
+    "editor_name" varchar(255) DEFAULT NULL,
     "editor_role" bpchar(32) DEFAULT NULL::bpchar,
-    "user_agent" varchar(255) NOT NULL DEFAULT ''::character varying,
+    "user_agent" varchar(255) NOT NULL DEFAULT '',
     "ip" int8,
     "event" varchar(32) NOT NULL,
-    "data" json NOT NULL,
+    "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."logs_profile" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "profile_id" uuid,
-    "date" timestamp(0) NOT NULL,
+    "profile_id" uuid NOT NULL,
     "entity_id" varchar(255) NOT NULL,
     "entity_name" varchar(255) NOT NULL,
-    "editor_name" varchar(255) DEFAULT NULL::character varying,
+    "editor_name" varchar(255) DEFAULT NULL,
     "editor_role" bpchar(32) DEFAULT NULL::bpchar,
-    "user_agent" varchar(255) NOT NULL DEFAULT ''::character varying,
+    "user_agent" varchar(255) NOT NULL DEFAULT '',
     "ip" int8,
     "event" varchar(32) NOT NULL,
-    "data" json NOT NULL,
+    "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("profile_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."server_security_ip" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "server_id" uuid,
+    "server_id" uuid NOT NULL,
     "start_ip" inet,
     "end_ip" inet,
     PRIMARY KEY ("id"),
@@ -203,10 +208,10 @@ CREATE TABLE "public"."server_security_ip" (
 
 CREATE TABLE "public"."session" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "member_id" uuid,
-    "status" varchar(255) NOT NULL CHECK ((status)::text = ANY ((ARRAY['unknown'::character varying, 'opened'::character varying, 'closed'::character varying])::text[])),
-    "created" timestamp(0) NOT NULL,
+    "member_id" uuid NOT NULL,
+    "status" varchar(255) NOT NULL CHECK ((status)::text = ANY ((ARRAY['unknown', 'opened', 'closed'])::text[])),
     "message" varchar(1024) NOT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("member_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
 );
@@ -214,23 +219,23 @@ COMMENT ON COLUMN "public"."session"."status" IS '(DC2Type:SessionStatusType)';
 
 CREATE TABLE "public"."user_confirmation_token" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "user_id" uuid,
+    "user_id" uuid NOT NULL,
     "token" varchar(255) NOT NULL,
     "type" varchar(255) NOT NULL,
-    "date_create" timestamp(0) NOT NULL,
-    "date_confirm" timestamp(0) DEFAULT NULL::timestamp without time zone,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."user_public_key" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "user_id" uuid,
+    "user_id" uuid NOT NULL,
     "title" varchar(255) NOT NULL,
     "key_" text NOT NULL,
     "fingerprint" varchar(255) NOT NULL,
-    "last_used" timestamp(0) DEFAULT NULL::timestamp without time zone,
-    "created" timestamp(0) DEFAULT NULL::timestamp without time zone,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
@@ -238,19 +243,20 @@ CREATE TABLE "public"."user_public_key" (
 CREATE TABLE "public"."user_token" (
     "token" varchar(255) NOT NULL,
     "user_id" uuid NOT NULL,
-    "date_create" timestamp(0) NOT NULL,
-    "date_used" timestamp(0),
-    "action" varchar(255) NOT NULL CHECK ((action)::text = ANY ((ARRAY['reset'::character varying, 'delete'::character varying])::text[])),
+    "date_used" timestamp DEFAULT NULL,
+    "action" varchar(255) NOT NULL CHECK ((action)::text = ANY ((ARRAY['reset', 'delete'])::text[])),
     "used" bool NOT NULL DEFAULT false,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("token","user_id"),
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."audit" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "account_id" uuid,
-    "time_start" timestamp(0) NOT NULL,
-    "time_end" timestamp(0) DEFAULT NULL::timestamp without time zone,
+    "account_id" uuid NOT NULL,
+    "time_start" timestamp NOT NULL,
+    "time_end" timestamp DEFAULT NULL,
     "version" int2 NOT NULL,
     "width" int2 NOT NULL,
     "height" int2 NOT NULL,
@@ -261,13 +267,15 @@ CREATE TABLE "public"."audit" (
     "env_shell" varchar(255) NOT NULL,
     "session" varchar(255) NOT NULL,
     "client_ip" varchar(255) NOT NULL,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("account_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."audit_record" (
     "id" uuid DEFAULT gen_random_uuid (),
-    "audit_id" uuid,
+    "audit_id" uuid NOT NULL,
     "duration" float8 NOT NULL,
     "screen" text NOT NULL,
     "type" varchar(1) NOT NULL,
@@ -285,9 +293,9 @@ CREATE TABLE "public"."limit_user_count" (
 );
 
 CREATE TABLE "public"."server_host_key" (
-  "server_id" uuid,
-  "host_key" bytea,
-  FOREIGN KEY ("server_id") REFERENCES "public"."server" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
+    "server_id" uuid NOT NULL,
+    "host_key" bytea,
+    FOREIGN KEY ("server_id") REFERENCES "public"."server" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
 );
 
 CREATE TABLE "public"."project_api" (
@@ -296,7 +304,8 @@ CREATE TABLE "public"."project_api" (
     "api_key" varchar(37) COLLATE "pg_catalog"."default" NOT NULL,
     "api_secret" varchar(37) COLLATE "pg_catalog"."default" NOT NULL,
     "online" bool NOT NULL,
-    "created" timestamp(0) NOT NULL,
+    "last_activity" timestamp DEFAULT NULL,
+    "created" timestamp NOT NULL,
     FOREIGN KEY ("project_id") REFERENCES "public"."project" ("id") ON DELETE CASCADE ON UPDATE NO ACTION,
     PRIMARY KEY ("id")
 );

@@ -80,7 +80,7 @@ func (a *auth) ResetPassword(ctx context.Context, in *authpb.ResetPassword_Reque
 		}
 
 		resetToken = uuid.New().String()
-		data, err := service.db.Conn.Exec(`INSERT INTO "user_token" ("token", "user_id", "date_create", "action") VALUES ($1, $2, NOW(), 'reset')`,
+		data, err := service.db.Conn.Exec(`INSERT INTO "user_token" ("token", "user_id", "created", "action") VALUES ($1, $2, NOW(), 'reset')`,
 			resetToken,
 			userID,
 		)

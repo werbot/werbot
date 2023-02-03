@@ -90,7 +90,7 @@ func (d *Config) createToken(expire time.Duration, accessToken bool) (string, er
 // ValidateToken is ...
 func ValidateToken(cache cache.Cache, sub string) bool {
 	key := fmt.Sprintf("ref_token::%s", sub)
-	if _, err := cache.Get(key); err != nil {
+	if _, err := cache.Get(key).Result(); err != nil {
 		return false
 	}
 	return true

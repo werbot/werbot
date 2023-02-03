@@ -12,7 +12,6 @@ import (
 	"github.com/jackc/pgtype"
 
 	serverpb "github.com/werbot/werbot/api/proto/server"
-	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/pkg/strutil"
@@ -41,23 +40,20 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 		nameLen := len(loginArray)
 		query := `SELECT DISTINCT ON ("server"."id")
         "server"."id",
+				"server"."access_id",
         "server"."port",
         "server"."address",
         "server"."token",
-        "server"."login",
-        "server"."password",
+				"server_access"."login",
         "server"."title",
         "server"."audit",
         "server"."online",
-        "server"."public_key",
-        "server"."private_key",
-        "server"."private_key_password",
-        "server"."auth",
+        "server_access"."auth",
         "server"."scheme",
         "server_host_key"."host_key",
         "server_member"."id" AS "account_id",
         "project_member"."project_id",
-        "project"."login" AS "project_login"
+        "project"."login" AS "project_login",
       FROM "user"
         JOIN "project_member" ON "user"."id" = "project_member"."user_id"
         JOIN "project" ON "project"."id" = "project_member"."project_id"
@@ -65,6 +61,7 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
         JOIN "server_host_key" ON "server_host_key"."server_id" = "server"."id"
         JOIN "server_member" ON "server_member"."server_id" = "server"."id"
         AND "server_member"."member_id" = "project_member"."id"
+				INNER JOIN "server_access" ON "server"."access_id" = "server_access"."id" 
       WHERE "user"."login" = $1
         AND "server_member"."active" = TRUE
         AND "server"."active" = TRUE`
@@ -80,17 +77,14 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 			for rows.Next() {
 				server := new(serverpb.Server_Response)
 				err = rows.Scan(&server.ServerId,
+					&server.AccessId,
 					&server.Port,
 					&server.Address,
 					&server.Token,
 					&server.Login,
-					&server.Password,
 					&server.Title,
 					&server.Audit,
 					&server.Online,
-					&server.KeyPublic,
-					&server.KeyPrivate,
-					&server.KeyPassword,
 					&server.Auth,
 					&server.Scheme,
 					&server.HostKey,
@@ -120,17 +114,14 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 			for rows.Next() {
 				server := new(serverpb.Server_Response)
 				err = rows.Scan(&server.ServerId,
+					&server.AccessId,
 					&server.Port,
 					&server.Address,
 					&server.Token,
 					&server.Login,
-					&server.Password,
 					&server.Title,
 					&server.Audit,
 					&server.Online,
-					&server.KeyPublic,
-					&server.KeyPrivate,
-					&server.KeyPassword,
 					&server.Auth,
 					&server.Scheme,
 					&server.HostKey,
@@ -162,17 +153,14 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 			for rows.Next() {
 				server := new(serverpb.Server_Response)
 				err = rows.Scan(&server.ServerId,
+					&server.AccessId,
 					&server.Port,
 					&server.Address,
 					&server.Token,
 					&server.Login,
-					&server.Password,
 					&server.Title,
 					&server.Audit,
 					&server.Online,
-					&server.KeyPublic,
-					&server.KeyPrivate,
-					&server.KeyPassword,
 					&server.Auth,
 					&server.Scheme,
 					&server.HostKey,
@@ -201,24 +189,24 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 	}
 
 	if query["project_id"] != "" && query["user_id"] != "" {
-		rows, err := service.db.Conn.Query(`SELECT
-      DISTINCT ON ("server"."id")
-				"server".id,
-				"server".address,
-				"server".port,
-				"server".token,
-				"server".login,
-				"server".title,
-				"server".audit,
-				"server".online,
-				"server".auth,
-				"server".active,
-				"server".scheme,
-				"server".private_description,
-				"server".public_description,
+		rows, err := service.db.Conn.Query(`SELECT DISTINCT ON ("server"."id")
+				"server"."id",
+				"server"."access_id",
+				"server"."address",
+				"server"."port",
+				"server"."token",
+				"server_access"."login",
+				"server"."title",
+				"server"."audit",
+				"server"."online",
+				"server_access"."auth",
+				"server"."active",
+				"server"."scheme",
+				"server"."description",
 				(SELECT COUNT (*) FROM "server_member" WHERE "server_id" = "server"."id") AS "count_members"
 			FROM "server"
 				INNER JOIN "project" ON "server"."project_id" = "project"."id"
+				INNER JOIN "server_access" ON "server"."access_id" = "server_access"."id"
 			WHERE "server"."project_id" = $1
 				AND "project"."owner_id" = $2`+sqlFooter,
 			query["project_id"],
@@ -232,6 +220,7 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 		for rows.Next() {
 			server := new(serverpb.Server_Response)
 			err = rows.Scan(&server.ServerId,
+				&server.AccessId,
 				&server.Address,
 				&server.Port,
 				&server.Token,
@@ -242,8 +231,7 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
 				&server.Auth,
 				&server.Active,
 				&server.Scheme,
-				&server.PrivateDescription,
-				&server.PublicDescription,
+				&server.Description,
 				&server.CountMembers,
 			)
 			if err != nil {
@@ -283,33 +271,34 @@ func (s *server) Server(ctx context.Context, in *serverpb.Server_Request) (*serv
 		return nil, errNotFound
 	}
 
-	var privateDescription, publicDescription pgtype.Text
+	var description pgtype.Text
 	response := new(serverpb.Server_Response)
 
 	err := service.db.Conn.QueryRow(`SELECT
+			"server"."access_id",
 			"server"."address",
 			"server"."port",
 			"server"."token",
-			"server"."login",
-			"server"."private_description",
-			"server"."public_description",
+			"server_access"."login",
+			"server"."description",
 			"server"."title",
 			"server"."active",
 			"server"."audit",
 			"server"."online",
-			"server"."auth",
+			"server_access"."auth",
 			"server"."scheme"
 		FROM "server"
+			INNER JOIN "server_access" ON "server"."access_id" = "server_access"."id"
 		WHERE "server"."id" = $1
 			AND "server"."project_id" = $2`,
 		in.GetServerId(),
 		in.GetProjectId(),
-	).Scan(&response.Address,
+	).Scan(&response.AccountId,
+		&response.Address,
 		&response.Port,
 		&response.Token,
 		&response.Login,
-		&privateDescription,
-		&publicDescription,
+		&description,
 		&response.Title,
 		&response.Active,
 		&response.Audit,
@@ -325,8 +314,7 @@ func (s *server) Server(ctx context.Context, in *serverpb.Server_Request) (*serv
 		return nil, errServerError
 	}
 
-	response.PrivateDescription = privateDescription.String
-	response.PublicDescription = publicDescription.String
+	response.Description = description.String
 
 	return response, nil
 }
@@ -337,33 +325,42 @@ func (s *server) AddServer(ctx context.Context, in *serverpb.AddServer_Request) 
 		return nil, errNotFound
 	}
 
-	var serverPassword string
-	var serverKeys = new(crypto.PairOfKeys)
 	var err error
 	response := new(serverpb.AddServer_Response)
 
-	switch in.GetAuth() {
-	case serverpb.Auth_password:
-		serverPassword = in.GetPassword()
-	case serverpb.Auth_key:
-		if in.GetPublicKey() != "" && in.GetKeyUuid() != "" {
-			privateKey, err := service.cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
-			if err != nil {
-				service.log.FromGRPC(err).Send()
-				return nil, errServerError
+	/*
+		var serverPassword string
+		var serverKeys = new(crypto.PairOfKeys)
+		var auth serverpb.Auth
+
+
+		switch in.GetAccess().(type) {
+		case *serverpb.AddServer_Request_Password:
+			auth = serverpb.Auth_password
+			serverPassword = in.GetPassword()
+
+		case *serverpb.AddServer_Request_KeyUuid:
+			auth = serverpb.Auth_key
+			if in.GetKeyUuid() != "" {
+				key := new(keypb.GenerateSSHKey_Key)
+				if err := service.cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid())).Scan(key); err != nil {
+					service.log.FromGRPC(err).Send()
+					return nil, errServerError
+				}
+
+				service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
+				serverKeys.PrivateKey = []byte(key.GetPrivate())
+				serverKeys.PublicKey = []byte(key.GetPublic())
+			} else {
+				serverKeys, err = crypto.NewSSHKey(internal.GetString("SECURITY_SSH_KEY_TYPE", "KEY_TYPE_ED25519"))
+				if err != nil {
+					service.log.FromGRPC(err).Send()
+					return nil, crypto.ErrFailedCreatingSSHKey
+				}
 			}
-			service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
-			serverKeys.PrivateKey = []byte(privateKey)
-			serverKeys.PublicKey = []byte(in.PublicKey)
-		} else {
-			serverKeys, err = crypto.NewSSHKey(internal.GetString("SECURITY_SSH_KEY_TYPE", "KEY_TYPE_ED25519"))
-			if err != nil {
-				service.log.FromGRPC(err).Send()
-				return nil, crypto.ErrFailedCreatingSSHKey
-			}
+			response.KeyPublic = string(serverKeys.PublicKey)
 		}
-		response.KeyPublic = string(serverKeys.PublicKey)
-	}
+	*/
 
 	serverToken := crypto.NewPassword(6, false)
 	serverTitle := in.GetTitle()
@@ -379,47 +376,32 @@ func (s *server) AddServer(ctx context.Context, in *serverpb.AddServer_Request) 
 
 	// TODO: This design converts the number into a line into an old format that is registered in the database,
 	// I recommend that you store numerical values in the new format in the database
-	serverAuth := strings.ToLower(serverpb.Auth_name[int32(in.Auth.Number())])
-	serverScheme := strings.ToLower(serverpb.ServerScheme_name[int32(in.Scheme.Number())])
+	//serverScheme := strings.ToLower(serverpb.ServerScheme_name[int32(in.Scheme.Number())])
 
 	err = tx.QueryRow(`INSERT INTO "server" (
 			"project_id",
 			"address",
 			"port",
 			"token",
-			"login",
-			"password",
-			"private_description",
-			"public_description",
+			"description",
 			"title",
 			"active",
 			"audit",
-			"public_key",
-			"private_key",
 			"created",
-			"auth",
 			"scheme",
-			"previous_state",
-			"private_key_password")
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, '[]', $18)
+			"previous_state"
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, '[]')
 		RETURNING "id"`,
 		in.GetProjectId(),
 		in.GetAddress(),
 		in.GetPort(),
 		serverToken,
-		in.GetLogin(),
-		serverPassword,
-		in.GetPrivateDescription(),
-		in.GetPublicDescription(),
+		in.GetDescription(),
 		serverTitle,
 		in.GetActive(),
 		in.GetAudit(),
-		string(serverKeys.PublicKey),
-		string(serverKeys.PrivateKey),
 		time.Now(),
-		serverAuth,
-		serverScheme,
-		serverKeys.Passphrase,
+		in.GetScheme().Enum(),
 	).Scan(&response.ServerId)
 	if err != nil {
 		service.log.FromGRPC(err).Send()
@@ -481,24 +463,20 @@ func (s *server) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Req
 		data, err = service.db.Conn.Exec(`UPDATE "server" SET
       "address" = $3,
       "port" = $4,
-      "login" = $5,
       "title" = $6,
       "active" = $7,
       "audit" = $8,
-      "private_description" = $9,
-      "public_description" = $10
+      "description" = $9
     WHERE "id" = $1
       AND "project_id" = $2`,
 			in.GetServerId(),
 			in.GetProjectId(),
 			in.GetInfo().GetAddress(),
 			in.GetInfo().GetPort(),
-			in.GetInfo().GetLogin(),
 			in.GetInfo().GetTitle(),
 			in.GetActive(),
 			in.GetAudit(),
-			in.GetInfo().GetPrivateDescription(),
-			in.GetInfo().GetPublicDescription(),
+			in.GetInfo().GetDescription(),
 		)
 
 	case *serverpb.UpdateServer_Request_Audit:
@@ -564,29 +542,26 @@ func (s *server) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Req
 		return nil, errNotFound
 	}
 
+	var password, publicKey, privateKey, privateKeyPassword string
 	response := new(serverpb.ServerAccess_Response)
-	server := new(serverpb.Server_Response)
 
-	err := service.db.Conn.QueryRow(`SELECT
-			"server"."password",
-			"server"."public_key",
-			"server"."private_key",
-			"server"."private_key_password",
-			"server"."auth"
-		FROM "server"
-			INNER JOIN "project" ON "server"."project_id" = "project". "id"
-		WHERE "server"."id" = $1
-			AND "server"."project_id" = $2
-			AND "project"."owner_id" = $3`,
+	err := service.db.Conn.QueryRow(`SELECT "auth",
+			"login",
+			"password",
+			"public_key",
+			"private_key",
+			"private_key_password"
+		FROM "server_access"
+		WHERE "id" = $1`,
 		in.GetServerId(),
-		in.GetProjectId(),
-		in.GetUserId(),
-	).Scan(&server.Password,
-		&server.KeyPublic,
-		&server.KeyPrivate,
-		&server.KeyPassword,
-		&server.Auth,
+	).Scan(&response.Auth,
+		&response.Login,
+		&password,
+		&publicKey,
+		&privateKey,
+		&privateKeyPassword,
 	)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
@@ -595,20 +570,26 @@ func (s *server) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Req
 		return nil, errServerError
 	}
 
-	switch server.Auth {
-	case "password":
-		response.Auth = serverpb.Auth_password
+	switch response.GetAuth() {
+	case serverpb.Auth_password: // password
 		response.Access = &serverpb.ServerAccess_Response_Password{
-			Password: "",
+			Password: password,
 		}
-	case "key":
+	case serverpb.Auth_key: // key
 		response.Auth = serverpb.Auth_key
 		response.Access = &serverpb.ServerAccess_Response_Key{
 			Key: &serverpb.ServerAccess_Key{
-				Public: server.KeyPublic,
+				Public: publicKey,
 			},
 		}
 	}
+
+	return response, nil
+}
+
+// AddServerAccess is ..
+func (s *server) AddServerAccess(ctx context.Context, in *serverpb.AddServerAccess_Request) (*serverpb.AddServerAccess_Response, error) {
+	response := new(serverpb.AddServerAccess_Response)
 
 	return response, nil
 }
@@ -622,24 +603,25 @@ func (s *server) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateServ
 	var sqlQuery string
 	response := new(serverpb.UpdateServerAccess_Response)
 
-	switch in.Auth {
-	case serverpb.Auth_password:
+	switch in.GetAccess().(type) {
+	case *serverpb.UpdateServerAccess_Request_Password:
 		sqlQuery, _ = sanitize.SQL(`UPDATE "server" SET "password" = $3 WHERE "id" = $1 AND "project_id" = $2`,
 			in.GetServerId(),
 			in.GetProjectId(),
 			in.GetPassword(),
 		)
-	case serverpb.Auth_key:
-		privateKey, err := service.cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
+	case *serverpb.UpdateServerAccess_Request_Key:
+		privateKey, err := service.cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey().GetKeyUuid())).Result()
 		if err != nil {
 			service.log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
-		service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
+
+		service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey().GetKeyUuid()))
 		sqlQuery, _ = sanitize.SQL(`UPDATE "server" SET "public_key" = $3, "private_key" = $4 WHERE "id" = $1 AND "project_id" = $2`,
 			in.GetServerId(),
 			in.GetProjectId(),
-			in.GetPublicKey(),
+			in.GetKey().GetPublicKey(),
 			privateKey,
 		)
 	default:

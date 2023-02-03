@@ -21,14 +21,16 @@ import (
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/service/server [post]
 func (h *Handler) addServiceServer(c *fiber.Ctx) error {
-	request := new(serverpb.AddServer_Request)
+	requestServer := new(serverpb.AddServer_Request)
+	requestAccess := new(serverpb.AddServerAccess_Request)
 
-	if err := c.BodyParser(request); err != nil {
+	// server setting
+	if err := c.BodyParser(requestServer); err != nil {
 		h.log.Error(err).Send()
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
-	if err := request.ValidateAll(); err != nil {
+	if err := requestServer.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
 		for _, err := range err.(serverpb.AddServer_RequestMultiError) {
 			e := err.(serverpb.AddServer_RequestValidationError)
@@ -37,20 +39,37 @@ func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
 	}
 
-	request.Address = strings.TrimSpace(request.GetAddress())
-	request.Login = strings.TrimSpace(request.GetLogin())
-	request.Scheme = serverpb.ServerScheme(serverpb.Auth_key)
+	// access setting
+	if err := c.BodyParser(requestAccess); err != nil {
+		h.log.Error(err).Send()
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
+
+	if err := requestAccess.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(serverpb.AddServerAccess_RequestMultiError) {
+			e := err.(serverpb.AddServerAccess_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
-	server, err := rClient.AddServer(ctx, request)
+	server, err := rClient.AddServer(ctx, requestServer)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	return webutil.StatusOK(c, msgServerKey, server.KeyPublic)
+	requestAccess.ServerId = server.GetServerId()
+	key, err := rClient.AddServerAccess(ctx, requestAccess)
+	if err != nil {
+		return webutil.FromGRPC(c, h.log, err)
+	}
+
+	return webutil.StatusOK(c, msgServerKey, key)
 }
 
 func (h *Handler) updateServiceServerStatus(c *fiber.Ctx) error {

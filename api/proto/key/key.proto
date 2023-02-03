@@ -24,7 +24,7 @@ enum KeyType {
   ed25519 = 1;
   ecdsa = 2;
   rsa = 3;
-}
+} 
 
 // rpc ListKeys
 message ListKeys {
@@ -57,7 +57,7 @@ message Key {
     string title = 4;
     string key = 5;
     string fingerprint = 6;
-    google.protobuf.Timestamp last_used = 7;
+    google.protobuf.Timestamp last_activity = 7;
     google.protobuf.Timestamp created = 8;
   }
 }
@@ -118,6 +118,12 @@ message GenerateSSHKey {
     //bytes private = 3;
     bytes public = 4;
     string finger_print = 5;
+  }
+
+  message Key {
+    string public = 1;
+    string private = 2;
+    string password = 3;
   }
 }
 // -----------------------------------------------------

@@ -30,8 +30,8 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
       "email",
       "enabled",
       "confirmed",
-      "last_active",
-      "register_date",
+      "last_activity",
+      "created",
       "role",
       (SELECT COUNT(*) FROM "project" WHERE "owner_id" = "user"."id") AS "count_project",
       (SELECT COUNT(*) FROM "user_public_key" WHERE "user_id" = "user"."id") AS "count_keys",
@@ -44,7 +44,7 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 
 	for rows.Next() {
 		var countServers, countProjects, countKeys int32
-		var lastActive, registerDate pgtype.Timestamp
+		var lastActivity, created pgtype.Timestamp
 		user := new(userpb.User_Response)
 		userDetail := new(userpb.ListUsers_Response_UserInfo)
 		err = rows.Scan(&user.UserId,
@@ -54,8 +54,8 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 			&user.Email,
 			&user.Enabled,
 			&user.Confirmed,
-			&lastActive,
-			&registerDate,
+			&lastActivity,
+			&created,
 			&user.Role,
 			&countProjects,
 			&countKeys,
@@ -68,8 +68,8 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 			service.log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
-		user.LastActive = timestamppb.New(lastActive.Time)
-		user.RegisterDate = timestamppb.New(registerDate.Time)
+		user.LastActivity = timestamppb.New(lastActivity.Time)
+		user.Created = timestamppb.New(created.Time)
 
 		userDetail.ServersCount = countServers
 		userDetail.ProjectsCount = countProjects
@@ -145,7 +145,7 @@ func (u *user) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb
 
 	// Adds a new entry to the database
 	password, _ := crypto.HashPassword(in.Password)
-	err = tx.QueryRow(`INSERT INTO "user" ("login", "name", "surname", "email", "password", "enabled", "confirmed", "register_date")
+	err = tx.QueryRow(`INSERT INTO "user" ("login", "name", "surname", "email", "password", "enabled", "confirmed", "created")
     VALUES ($1, $2, $3, $4, $5, $6, NOW())
     RETURNING "id"`,
 		in.GetLogin(),
@@ -257,7 +257,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 		}
 
 		deleteToken = uuid.New().String()
-		data, err := tx.Exec(`INSERT INTO "user_token" ("token", "user_id", "date_create", "action") VALUES ($1, $2, NOW(), 'delete')`,
+		data, err := tx.Exec(`INSERT INTO "user_token" ("token", "user_id", "created", "action") VALUES ($1, $2, NOW(), 'delete')`,
 			deleteToken,
 			in.GetUserId())
 		if err != nil {
@@ -381,7 +381,7 @@ func tokenByUserID(userID, action string) (string, error) {
 		WHERE "user_id" = $1
 			AND "used" = 'f'
 			AND "action" = $2
-			AND "date_create" > NOW() - INTERVAL '24 hour'`,
+			AND "created" > NOW() - INTERVAL '24 hour'`,
 		userID,
 		action,
 	).Scan(&token)
@@ -405,7 +405,7 @@ func userIDByToken(token string) (string, error) {
 		FROM "user_token"
 		WHERE "token" = $1
 			AND "used" = 'f'
-			AND "date_create" > NOW() - INTERVAL '24 hour'`,
+			AND "created" > NOW() - INTERVAL '24 hour'`,
 		token,
 	).Scan(&id)
 	if err != nil {

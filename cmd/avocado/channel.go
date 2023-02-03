@@ -65,8 +65,8 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 		return
 	}
 
-	switch host.Scheme {
-	case "ssh":
+	switch host.GetScheme() {
+	case serverpb.ServerScheme_ssh: // ssh
 		sessionConfigs := make([]sessionConfig, 0)
 		clientConfig, err := bastionClientConfig(ctx, host)
 		if err != nil {
@@ -240,7 +240,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 			for i := 0; i < len(actx.serverList); i++ {
 				server := actx.serverList[int32(i)]
-				table.Append([]string{fmt.Sprintf("%v %v", status[server.Online], (i + 1)), server.Title, fmt.Sprintf("%v_%v_%v", loginArray[0], server.ProjectLogin, server.Token), server.Scheme})
+				table.Append([]string{fmt.Sprintf("%v %v", status[server.Online], (i + 1)), server.Title, fmt.Sprintf("%v_%v_%v", loginArray[0], server.ProjectLogin, server.Token), server.GetScheme().String()})
 			}
 			table.Render()
 			message += bufMsg.String()

@@ -37,7 +37,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 			"user_public_key"."title",
 			"user_public_key"."key_",
 			"user_public_key"."fingerprint",
-			"user_public_key"."last_used",
+			"user_public_key"."last_activity",
 			"user_public_key"."created"
 		FROM "user_public_key"
 			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"` + sqlSearch + sqlFooter)
@@ -47,7 +47,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 	}
 
 	for rows.Next() {
-		var lastUsed, created pgtype.Timestamp
+		var lastActivity, created pgtype.Timestamp
 		publicKey := new(keypb.Key_Response)
 		err = rows.Scan(&publicKey.KeyId,
 			&publicKey.UserId,
@@ -55,7 +55,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 			&publicKey.Title,
 			&publicKey.Key,
 			&publicKey.Fingerprint,
-			&lastUsed,
+			&lastActivity,
 			&created,
 		)
 		if err != nil {
@@ -65,7 +65,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 			service.log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
-		publicKey.LastUsed = timestamppb.New(lastUsed.Time)
+		publicKey.LastActivity = timestamppb.New(lastActivity.Time)
 		publicKey.Created = timestamppb.New(created.Time)
 		response.PublicKeys = append(response.PublicKeys, publicKey)
 	}
@@ -86,7 +86,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 
 // PublicKey is ...
 func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Response, error) {
-	var lastUsed, created pgtype.Timestamp
+	var lastActivity, created pgtype.Timestamp
 	response := new(keypb.Key_Response)
 	response.KeyId = in.GetKeyId()
 
@@ -97,7 +97,7 @@ func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_
 			"user_public_key"."title",
 			"user_public_key"."key_",
 			"user_public_key"."fingerprint",
-			"user_public_key"."last_used",
+			"user_public_key"."last_activity",
 			"user_public_key"."created"
 		FROM "user_public_key"
 			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"
@@ -111,7 +111,7 @@ func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_
 		&response.Title,
 		&response.Key,
 		&response.Fingerprint,
-		&lastUsed,
+		&lastActivity,
 		&created,
 	)
 	if err != nil {
@@ -122,7 +122,7 @@ func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_
 		return nil, errServerError
 	}
 
-	response.LastUsed = timestamppb.New(lastUsed.Time)
+	response.LastActivity = timestamppb.New(lastActivity.Time)
 	response.Created = timestamppb.New(created.Time)
 
 	return response, nil
@@ -258,7 +258,11 @@ func (k *key) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_Reque
 	response.Passphrase = key.Passphrase
 	response.Uuid = uuid.New().String()
 
-	if err := service.cache.Set(fmt.Sprintf("tmp_key_ssh::%s", response.Uuid), key.PrivateKey, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "5m")); err != nil {
+	cacheKey := new(keypb.GenerateSSHKey_Key)
+	cacheKey.Private = string(key.PrivateKey)
+	cacheKey.Public = string(key.PublicKey)
+
+	if err := service.cache.Set(fmt.Sprintf("tmp_key_ssh::%s", response.Uuid), cacheKey, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "5m")); err != nil {
 		return nil, errIncorrectParameters
 	}
 

@@ -631,6 +631,106 @@ var _ interface {
 	ErrorName() string
 } = ServerAccessValidationError{}
 
+// Validate checks the field values on AddServerAccess with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *AddServerAccess) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddServerAccess with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddServerAccessMultiError, or nil if none found.
+func (m *AddServerAccess) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddServerAccess) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return AddServerAccessMultiError(errors)
+	}
+
+	return nil
+}
+
+// AddServerAccessMultiError is an error wrapping multiple validation errors
+// returned by AddServerAccess.ValidateAll() if the designated constraints
+// aren't met.
+type AddServerAccessMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddServerAccessMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddServerAccessMultiError) AllErrors() []error { return m }
+
+// AddServerAccessValidationError is the validation error returned by
+// AddServerAccess.Validate if the designated constraints aren't met.
+type AddServerAccessValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddServerAccessValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddServerAccessValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddServerAccessValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddServerAccessValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddServerAccessValidationError) ErrorName() string { return "AddServerAccessValidationError" }
+
+// Error satisfies the builtin error interface
+func (e AddServerAccessValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddServerAccess.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddServerAccessValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddServerAccessValidationError{}
+
 // Validate checks the field values on UpdateServerAccess with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -2064,6 +2164,8 @@ func (m *Server_Response) validate(all bool) error {
 
 	// no validation rules for ProjectId
 
+	// no validation rules for AccessId
+
 	// no validation rules for ProjectLogin
 
 	// no validation rules for Address
@@ -2074,19 +2176,11 @@ func (m *Server_Response) validate(all bool) error {
 
 	// no validation rules for Login
 
-	// no validation rules for Password
-
 	// no validation rules for Title
 
 	// no validation rules for Audit
 
 	// no validation rules for Online
-
-	// no validation rules for KeyPublic
-
-	// no validation rules for KeyPrivate
-
-	// no validation rules for KeyPassword
 
 	// no validation rules for AccountId
 
@@ -2096,9 +2190,7 @@ func (m *Server_Response) validate(all bool) error {
 
 	// no validation rules for HostKey
 
-	// no validation rules for PrivateDescription
-
-	// no validation rules for PublicDescription
+	// no validation rules for Description
 
 	// no validation rules for Active
 
@@ -2256,43 +2348,10 @@ func (m *AddServer_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if l := utf8.RuneCountInString(m.GetLogin()); l < 3 || l > 20 {
-		err := AddServer_RequestValidationError{
-			field:  "Login",
-			reason: "value length must be between 3 and 20 runes, inclusive",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if !_AddServer_Request_Login_Pattern.MatchString(m.GetLogin()) {
-		err := AddServer_RequestValidationError{
-			field:  "Login",
-			reason: "value does not match regex pattern \"^[a-z0-9]+$\"",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
 	if l := utf8.RuneCountInString(m.GetTitle()); l < 3 || l > 128 {
 		err := AddServer_RequestValidationError{
 			field:  "Title",
 			reason: "value length must be between 3 and 128 runes, inclusive",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if _, ok := Auth_name[int32(m.GetAuth())]; !ok {
-		err := AddServer_RequestValidationError{
-			field:  "Auth",
-			reason: "value must be one of the defined enum values",
 		}
 		if !all {
 			return err
@@ -2315,15 +2374,7 @@ func (m *AddServer_Request) validate(all bool) error {
 
 	// no validation rules for Active
 
-	// no validation rules for PrivateDescription
-
-	// no validation rules for PublicDescription
-
-	// no validation rules for Password
-
-	// no validation rules for PublicKey
-
-	// no validation rules for KeyUuid
+	// no validation rules for Description
 
 	if len(errors) > 0 {
 		return AddServer_RequestMultiError(errors)
@@ -2443,8 +2494,6 @@ var _ interface {
 	ErrorName() string
 } = AddServer_RequestValidationError{}
 
-var _AddServer_Request_Login_Pattern = regexp.MustCompile("^[a-z0-9]+$")
-
 // Validate checks the field values on AddServer_Response with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -2468,8 +2517,6 @@ func (m *AddServer_Response) validate(all bool) error {
 	var errors []error
 
 	// no validation rules for ServerId
-
-	// no validation rules for KeyPublic
 
 	if len(errors) > 0 {
 		return AddServer_ResponseMultiError(errors)
@@ -2964,9 +3011,7 @@ func (m *UpdateServer_Info) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for PrivateDescription
-
-	// no validation rules for PublicDescription
+	// no validation rules for Description
 
 	if len(errors) > 0 {
 		return UpdateServer_InfoMultiError(errors)
@@ -3506,6 +3551,8 @@ func (m *ServerAccess_Response) validate(all bool) error {
 
 	// no validation rules for Auth
 
+	// no validation rules for Login
+
 	switch v := m.Access.(type) {
 	case *ServerAccess_Response_Password:
 		if v == nil {
@@ -3752,6 +3799,285 @@ var _ interface {
 	ErrorName() string
 } = ServerAccess_KeyValidationError{}
 
+// Validate checks the field values on AddServerAccess_Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AddServerAccess_Request) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddServerAccess_Request with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddServerAccess_RequestMultiError, or nil if none found.
+func (m *AddServerAccess_Request) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddServerAccess_Request) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetServerId()); err != nil {
+		err = AddServerAccess_RequestValidationError{
+			field:  "ServerId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if l := utf8.RuneCountInString(m.GetLogin()); l < 3 || l > 20 {
+		err := AddServerAccess_RequestValidationError{
+			field:  "Login",
+			reason: "value length must be between 3 and 20 runes, inclusive",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if !_AddServerAccess_Request_Login_Pattern.MatchString(m.GetLogin()) {
+		err := AddServerAccess_RequestValidationError{
+			field:  "Login",
+			reason: "value does not match regex pattern \"^[a-z0-9]+$\"",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	switch v := m.Access.(type) {
+	case *AddServerAccess_Request_Password:
+		if v == nil {
+			err := AddServerAccess_RequestValidationError{
+				field:  "Access",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for Password
+	case *AddServerAccess_Request_KeyUuid:
+		if v == nil {
+			err := AddServerAccess_RequestValidationError{
+				field:  "Access",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for KeyUuid
+	default:
+		_ = v // ensures v is used
+	}
+
+	if len(errors) > 0 {
+		return AddServerAccess_RequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *AddServerAccess_Request) _validateUuid(uuid string) error {
+	if matched := _server_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// AddServerAccess_RequestMultiError is an error wrapping multiple validation
+// errors returned by AddServerAccess_Request.ValidateAll() if the designated
+// constraints aren't met.
+type AddServerAccess_RequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddServerAccess_RequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddServerAccess_RequestMultiError) AllErrors() []error { return m }
+
+// AddServerAccess_RequestValidationError is the validation error returned by
+// AddServerAccess_Request.Validate if the designated constraints aren't met.
+type AddServerAccess_RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddServerAccess_RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddServerAccess_RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddServerAccess_RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddServerAccess_RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddServerAccess_RequestValidationError) ErrorName() string {
+	return "AddServerAccess_RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AddServerAccess_RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddServerAccess_Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddServerAccess_RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddServerAccess_RequestValidationError{}
+
+var _AddServerAccess_Request_Login_Pattern = regexp.MustCompile("^[a-z0-9]+$")
+
+// Validate checks the field values on AddServerAccess_Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AddServerAccess_Response) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AddServerAccess_Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AddServerAccess_ResponseMultiError, or nil if none found.
+func (m *AddServerAccess_Response) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AddServerAccess_Response) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Fingeprint
+
+	if len(errors) > 0 {
+		return AddServerAccess_ResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// AddServerAccess_ResponseMultiError is an error wrapping multiple validation
+// errors returned by AddServerAccess_Response.ValidateAll() if the designated
+// constraints aren't met.
+type AddServerAccess_ResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AddServerAccess_ResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AddServerAccess_ResponseMultiError) AllErrors() []error { return m }
+
+// AddServerAccess_ResponseValidationError is the validation error returned by
+// AddServerAccess_Response.Validate if the designated constraints aren't met.
+type AddServerAccess_ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AddServerAccess_ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AddServerAccess_ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AddServerAccess_ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AddServerAccess_ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AddServerAccess_ResponseValidationError) ErrorName() string {
+	return "AddServerAccess_ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AddServerAccess_ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAddServerAccess_Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AddServerAccess_ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AddServerAccess_ResponseValidationError{}
+
 // Validate checks the field values on UpdateServerAccess_Request with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -3814,13 +4140,63 @@ func (m *UpdateServerAccess_Request) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for Auth
+	switch v := m.Access.(type) {
+	case *UpdateServerAccess_Request_Password:
+		if v == nil {
+			err := UpdateServerAccess_RequestValidationError{
+				field:  "Access",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for Password
+	case *UpdateServerAccess_Request_Key:
+		if v == nil {
+			err := UpdateServerAccess_RequestValidationError{
+				field:  "Access",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
-	// no validation rules for Password
+		if all {
+			switch v := interface{}(m.GetKey()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, UpdateServerAccess_RequestValidationError{
+						field:  "Key",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, UpdateServerAccess_RequestValidationError{
+						field:  "Key",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetKey()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return UpdateServerAccess_RequestValidationError{
+					field:  "Key",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
 
-	// no validation rules for PublicKey
-
-	// no validation rules for KeyUuid
+	default:
+		_ = v // ensures v is used
+	}
 
 	if len(errors) > 0 {
 		return UpdateServerAccess_RequestMultiError(errors)
@@ -4012,6 +4388,112 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = UpdateServerAccess_ResponseValidationError{}
+
+// Validate checks the field values on UpdateServerAccess_Key with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UpdateServerAccess_Key) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UpdateServerAccess_Key with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UpdateServerAccess_KeyMultiError, or nil if none found.
+func (m *UpdateServerAccess_Key) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UpdateServerAccess_Key) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for PublicKey
+
+	// no validation rules for KeyUuid
+
+	if len(errors) > 0 {
+		return UpdateServerAccess_KeyMultiError(errors)
+	}
+
+	return nil
+}
+
+// UpdateServerAccess_KeyMultiError is an error wrapping multiple validation
+// errors returned by UpdateServerAccess_Key.ValidateAll() if the designated
+// constraints aren't met.
+type UpdateServerAccess_KeyMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UpdateServerAccess_KeyMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UpdateServerAccess_KeyMultiError) AllErrors() []error { return m }
+
+// UpdateServerAccess_KeyValidationError is the validation error returned by
+// UpdateServerAccess_Key.Validate if the designated constraints aren't met.
+type UpdateServerAccess_KeyValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdateServerAccess_KeyValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdateServerAccess_KeyValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdateServerAccess_KeyValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdateServerAccess_KeyValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdateServerAccess_KeyValidationError) ErrorName() string {
+	return "UpdateServerAccess_KeyValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UpdateServerAccess_KeyValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdateServerAccess_Key.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdateServerAccess_KeyValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdateServerAccess_KeyValidationError{}
 
 // Validate checks the field values on ServerActivity_Request with the rules
 // defined in the proto definition for this message. If any rules are
