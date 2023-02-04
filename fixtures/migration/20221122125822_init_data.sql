@@ -1,232 +1,140 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO "public"."user" ("id", "login", "name", "surname", "email", "password", "enabled", "confirmed", "last_activity", "created", "role") VALUES
-('008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'admin', 'Penny', 'Hoyle', 'admin@werbot.net', '$2a$13$xXMJafmfthQDqVZSQ5HJ/u1EmQ8PqkVAGlwKrOWH.cOVZr2KfvSAK', 't', 't', NOW(), NOW(), 3),
-('c180ad5c-0c65-4cee-8725-12931cb5abb3', 'user', 'Carly', 'Bender', 'user@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', 't', 't', NOW(), NOW(), 1),
-('b3dc36e2-7f84-414b-b147-7ac850369518', 'user1', 'Harrison', 'Bowling', 'user1@werbot.net', '$2a$13$DJIAXdDTXli9vTbXbAoUl..Qs3Ns.B3CAtLzLvBb3fpHkPJxzOjxK', 't', 't', NOW(), NOW(), 1),
-('b8c3d9e4-6f4d-4e11-a3e6-72f9cb7660e0', 'user2', 'Terry', 'Henry', 'user2@werbot.net', '$2a$13$iiPNSGIY2x6O/xrDXeXHdObc0ubJPcOSVfiKMKGLreoUGcenVm.v2', 't', 't', NOW(), NOW(), 1),
-('68bf07a3-0132-4709-920b-5054f9eaa89a', 'user3', 'Carla', 'Snyder', 'user3@werbot.net', '$2a$13$s.Lwbx8YFHbGVA9b5EGyMerNjVJVrvAhmm33/PY5lWsivB86eQZke', 't', 't', NOW(), NOW(), 1),
-('395b237f-037e-49d4-b409-fd2f514242f6', 'user4', 'Clint', 'McLean', 'user4@werbot.net', '$2a$13$LBWcFi1.h8rg1WIoJCl4e.fzmCL7Buv7xfijaaNQLaR40YqAPACi6', 't', 't', NOW(), NOW(), 1),
-('8adff845-1354-4e59-8cd3-83f69fd193d3', 'user5', 'Chris', 'Burch', 'user5@werbot.net', '$2a$13$SfEnNd11n8k.b67PTpRvvO4jxXQzMhRbqv6dMoWv2XkCrbKQZc4Bq', 't', 't', NOW(), NOW(), 1),
-('0b792872-174a-4da4-9efa-f3fac872314e', 'test-admin', 'Kerry', 'Conner', 'test-admin@werbot.net', '$2a$13$jzjUNGsaie0IC7iAfM6dB..1vmuuk3/albKqJpHMF0dGeHy9EkG7q', 't', 't', NOW(), NOW(), 3),
-('e9a1f437-8f32-4463-9f89-a886a623febc', 'test-user', 'Peggy', 'Boykin', 'test-user@werbot.net', '$2a$13$gVnr3nUTGnTnhavVPvse9OmYoxAZDyzL7Crc.hH/x4zqKDtmbXxqO', 't', 't', NOW(), NOW(), 1);
+INSERT INTO "public"."user" ("id", "login", "name", "surname", "email", "password", "enabled", "confirmed", "last_update", "role") VALUES
+('008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'admin', 'Penny', 'Hoyle', 'admin@werbot.net', '$2a$13$xXMJafmfthQDqVZSQ5HJ/u1EmQ8PqkVAGlwKrOWH.cOVZr2KfvSAK', 't', 't', NOW(), 3),
+('c180ad5c-0c65-4cee-8725-12931cb5abb3', 'user', 'Carly', 'Bender', 'user@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', 't', 't', NOW(), 1),
+('b3dc36e2-7f84-414b-b147-7ac850369518', 'user1', 'Harrison', 'Bowling', 'user1@werbot.net', '$2a$13$DJIAXdDTXli9vTbXbAoUl..Qs3Ns.B3CAtLzLvBb3fpHkPJxzOjxK', 't', 't', NOW(), 1),
+('b8c3d9e4-6f4d-4e11-a3e6-72f9cb7660e0', 'user2', 'Terry', 'Henry', 'user2@werbot.net', '$2a$13$iiPNSGIY2x6O/xrDXeXHdObc0ubJPcOSVfiKMKGLreoUGcenVm.v2', 't', 't', NOW(), 1),
+('68bf07a3-0132-4709-920b-5054f9eaa89a', 'user3', 'Carla', 'Snyder', 'user3@werbot.net', '$2a$13$s.Lwbx8YFHbGVA9b5EGyMerNjVJVrvAhmm33/PY5lWsivB86eQZke', 't', 't', NOW(), 1),
+('395b237f-037e-49d4-b409-fd2f514242f6', 'user4', 'Clint', 'McLean', 'user4@werbot.net', '$2a$13$LBWcFi1.h8rg1WIoJCl4e.fzmCL7Buv7xfijaaNQLaR40YqAPACi6', 't', 't', NOW(), 1),
+('8adff845-1354-4e59-8cd3-83f69fd193d3', 'user5', 'Chris', 'Burch', 'user5@werbot.net', '$2a$13$SfEnNd11n8k.b67PTpRvvO4jxXQzMhRbqv6dMoWv2XkCrbKQZc4Bq', 't', 't', NOW(), 1),
+('0b792872-174a-4da4-9efa-f3fac872314e', 'test-admin', 'Kerry', 'Conner', 'test-admin@werbot.net', '$2a$13$jzjUNGsaie0IC7iAfM6dB..1vmuuk3/albKqJpHMF0dGeHy9EkG7q', 't', 't', NOW(), 3),
+('e9a1f437-8f32-4463-9f89-a886a623febc', 'test-user', 'Peggy', 'Boykin', 'test-user@werbot.net', '$2a$13$gVnr3nUTGnTnhavVPvse9OmYoxAZDyzL7Crc.hH/x4zqKDtmbXxqO', 't', 't', NOW(), 1);
 
-INSERT INTO "public"."user_public_key" ("id", "user_id", "title", "key_", "fingerprint", "last_activity", "created") VALUES
-('81f67bbb-79f8-47a1-863d-d9375f1626d3', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 1', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCgIocHncbDnM3nLFmxt9TssvmhF5x5WMwng/QRA5jZEKYER93Jsh5inCk5C9K8rAubijeKSe7A/Pp88MSYq2nXQ3UafqXGmHvt++fvMwmJ4rgoxiQlT2GzLwSBhvqZHcPBLeeVwLQB9T6wYf/9/mptVHOrb/Wy/FH4g4j7v5DflazQMiW9SOiwlaDM7jJDEGgOdTrHaOyJycx5CGzUgW0ZOnLg8a0m1Fdjvv9lFq3ZQ2S5NqIXH4to+F7YsklHEwgjZawYj3ic10vN+ei4f7PuC28sNLKADayHHyhDdpmA3mKZTw2lIplk/uvE61ucmLbLynEMwdc6eh/64MWxgif/', '03:99:f1:4b:2d:d3:10:aa:65:74:cf:c8:d6:ec:48:e8', NULL, NOW()),
-('22a98e3b-1da8-46f5-8962-b461685e7bd7', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 2', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7BpymrfMLaou2l3LRIMjKhPZxDDZ6e09mqq+5yC8IEgjAtsoEh2i6H9IT6xHOHFqIe7thkRuDmNpAFni4aiaOREhL7U/+kdJ0trTDRv0WatxpcM7A0g4nR1aJPoxTBSG8No5JVLaaX5PNhZZx6Z4NOqr4TzhlZgoOj6CybzpZUgA+On4T2rN5BpbVfd1bbjUnpb80hNQVhShg150kMZKiH4vkqaT4CDDax3mvRETK9/hc2d3Cy3iyat/F/DncMAzSN9VdqjuOr7pFfomTKwduJ84akd2TlTdll+SyT4YIpokhemOrfXFWWxVKYVFn4aHmJ2QrovagHxLv98mL1VsP', 'af:d3:b3:aa:3c:3b:f9:58:5a:75:e9:76:37:0e:26:8a', NULL, NOW()),
-('46d0d741-1d21-41ec-8b9b-2b456436ca48', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 3', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDDZz0EtmfSphFWOMlvfsaa4dZVVhksjAUfqS1gfb4WWN75qaDy2CZ1VCtMd3C3uVteK/cVK94EqKhk3TRQjhw2PuuDYCcZsSyGuzc+lsSKkDgdRQwOzaVLCI8t0paRiCCsiahFSvuDt28YmCSIuVbWIX21gohXMunPY1zOaGz42tb1WFLtveHb2w3cZIYzqjumrxqQKTUzglyHoV5NiQJ5kSJ+OXLa4uZ6LVpoA9/vn2gcqZMvL22w43loItzRnxVMk/hsaZKTbqQtdCo+gUbMMblqeuiNLj5RwKW64iI8ErK0uFKdnpvQ7pzurvLBe70SKakDTEZmLOrsEMwk0hqX', 'a7:f3:b8:61:55:4f:c5:4d:91:72:0f:74:f0:42:00:fe', NULL, NOW()),
-('a65abdf1-2f88-4dac-b818-1d4923c2b97e', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'public_key 4', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWl2aY8FicEWNAlrQ+DwmhonSuhU8SsXJErdO9WpPKN', 'cc:11:5d:dc:36:91:f3:b3:10:97:48:e4:ef:08:94:d1', NULL, NOW()),
-('bb9c2779-0b1a-4dcf-b79e-0f486d9c43d6', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'public_key 5', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCcqfLcl6onqLKxHouuHFAQIN22Ujs+nh0MYP8TqiXvzEfXel8H+SPPi1x1wwCPwUC6KcTeWzhRB1DNzvvGuWbJzxl5uDErF0bZ4sj9yKBVYQ2exKErZX9rj04zCPU8BwRU1G/tsI816RB0NrPkw5b53IKaGr9zQsI3KQrKrCFe7Huq/PytbDe0PYYHYbUytO/ZHGVCnwz2/TI5LcksU2H3uWkTQUlIhdkAEDB4vZueLOVypinIG8ez2jFhieHpwWzVcHf8b3a+XjRflWsB3diBliVfJ0vKcewDaj8FSE4WZ+XVzTUMrv/GtHyV9M+SXVj3Ren7+z5DZ5ETTSJHvB8f', '59:e3:58:4b:a8:2a:49:43:d5:5a:fd:c6:58:ff:af:8a', NULL, NOW()),
-('e14acff0-d1d9-4e4e-8b7e-92b224c35e51', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 9', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHaUvLp9R83NC1uO4092tl1eQUvplXcYAP+H0CjX9xLp', 'fe:3e:9e:9c:c8:8a:c8:04:93:ca:3e:4e:08:99:da:09', NULL, NOW()),
-('cb722ae3-203c-4dd0-9383-f7f5b70e9217', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 8', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICORhW35zrW+hdDXKE7jLco0uPjnEDcttthtcEpgCDZ2', '0f:5f:3a:1a:da:eb:6f:0a:c4:df:9c:11:56:9f:36:e1', NULL, NOW()),
-('852b684c-4c14-44da-a764-1b92c5f7e189', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 7', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDW5ExclPxXvynfI3cw2iomQA1x195UINPV8+Q7ojPlm', '9d:06:14:58:67:7e:ee:97:6f:d9:12:65:be:37:e9:70', NULL, NOW()),
-('9a7919a0-3308-4ac3-957e-6919870e3568', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 6', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHygIeEGZSXy6WVav1mg4+fc2rHYhWULNwn7yL16pif8', '5a:ac:ee:fb:89:a3:15:16:70:3b:25:85:c9:f6:9f:c6', NULL, NOW()),
-('1c87762f-2d0f-4b92-a636-52fef4ff53a5', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 14', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMKIhlysVKLIuxl2RvfpdGptcvghhSkWfmmum1pSVze0', 'b6:07:6a:ef:82:e3:73:47:56:69:3f:3d:c7:d7:6f:23', NULL, NOW()),
-('5c04dab5-9099-4718-893b-88d58d7763c8', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 13', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJsAA9/mgf5oS0NixfsayagA+Hk7X1xJRbmCJnbSAI9e', '9e:39:7e:69:b8:82:31:f3:a6:3d:7a:0f:bc:ec:1a:bf', NULL, NOW()),
-('85a70dba-696f-44fc-8669-11d1b937659a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 12', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHQYSGBNj5m2AVgt26VBrptwfgSC4gSvEoLdAQgluyQK', 'a1:2b:6c:10:fd:36:10:f1:06:2a:6d:e9:cf:4e:68:f0', NULL, NOW()),
-('81033c2b-a69f-4290-b26a-346d28977e6e', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 11', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJIII56btowQHAD+UpiO/LOI2nf1kuGiodSO8GHUcvPX', 'c0:69:05:53:b8:b0:90:22:f8:e8:04:56:92:f5:b2:01', NULL, NOW()),
-('74db70d8-0597-4841-aebc-57f579341ff8', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 10', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINiF7+RDhS9QzKZxVQj0ElpgQzyupViVyyHMHWH+ZgMD', 'fc:58:a8:48:d1:9f:2d:4e:38:4d:3e:ea:fc:f6:bd:a4', NULL, NOW()),
-('d8ac2125-1770-4fd5-94a8-b5d83cde47aa', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_key 1', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCqT6BvOnIkz2IUWPo8BfLfL7HC6kl4MVmuD48shaE4oLgMj4CLvlOgJfnSakw5pwipJiWwbXu8yWVXMW4vjQtylEFc+C+zP/WdINhq3x5DYKcUQESQX5aYE1Hy7k7gqpIqWnZJNME8X+F/fKHHe/ORCe+fEfPo583gn9m0lejkOQ==', 'fb:22:c9:13:5f:37:09:14:26:f0:84:9b:35:fd:a7:ba', NULL, NOW()),
-('6437da7e-c9a4-463d-8b4d-2a7d1f730875', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_key 2', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWl2aY8FicEWNAlrQ+DwmhonSuhU8SsXJErdO9WpPKN', 'cc:11:5d:dc:36:91:f3:b3:10:97:48:e4:ef:08:94:d1', NULL, NOW()),
-('2511bbbe-c8d2-4e79-9e89-7e8f2b366a57', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_key 3', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCPMLvwcrfAb6lvEO+w+qYM4QpsrJlDMxvLQFULNbl2ET4iU0h4LCZAFkCbnE+8bav/aBqytfjSnMwmL3W8QUoZcCLeU+7gClTHSUr1LDVzZ6leUHWf341YzHQJ/Ofx4E65pu+sKNuKemwHjEdykjtMNy2V4+XcURaQhgVYAEsZrQ==', 'ae:02:0b:90:d5:0b:a1:77:d5:45:35:c9:f1:ee:ce:11', NULL, NOW()),
-('1a57bee5-1dca-4965-b6c2-bc60ba5526af', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'test_key 4', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDKzIQBAFmTIJHWr5GFKLRlK9sV5fc8OE8JDrvwNB41yAYHX8xR2QUCM22kz81T6kMO9wvukv3RoIJSCGT8QRXIT0cjpmeLs5rfV6Gn6WmEPzae3WeMGLZjx/l8XGh5RBDEvsYQnitnU3ge4whUKIb0DMRk4y2mn+Q+K7UToiNevw==', 'cc:a9:9c:4e:97:5d:76:80:d2:dc:55:6d:aa:b0:e3:f3', NULL, NOW()),
-('abe03b06-834b-4e35-a3f6-7e86df525c81', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'test_key 5', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCblwZLhe6/0r/sizSuu3/4wUSMvRrKxjd45hlJsvSN2lMQWbKW5Hdafkr3TYJ3L7bE+DEKmGRajnIsVITAt36nq/P/mE/42WGQcga6bbgzme+ngaKEFPOQMa9RGVVaoHG89ZVawiEQ4wQeETs191YRpgJWhIBS1CaMfSO3E9aGBQ==', '39:fc:7a:33:09:7c:b6:62:5d:c3:43:3f:f1:4b:c7:5c', NULL, NOW());
+INSERT INTO "public"."user_public_key" ("id", "user_id", "title", "key_", "fingerprint", "last_update") VALUES
+('81f67bbb-79f8-47a1-863d-d9375f1626d3', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 1', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCgIocHncbDnM3nLFmxt9TssvmhF5x5WMwng/QRA5jZEKYER93Jsh5inCk5C9K8rAubijeKSe7A/Pp88MSYq2nXQ3UafqXGmHvt++fvMwmJ4rgoxiQlT2GzLwSBhvqZHcPBLeeVwLQB9T6wYf/9/mptVHOrb/Wy/FH4g4j7v5DflazQMiW9SOiwlaDM7jJDEGgOdTrHaOyJycx5CGzUgW0ZOnLg8a0m1Fdjvv9lFq3ZQ2S5NqIXH4to+F7YsklHEwgjZawYj3ic10vN+ei4f7PuC28sNLKADayHHyhDdpmA3mKZTw2lIplk/uvE61ucmLbLynEMwdc6eh/64MWxgif/', '03:99:f1:4b:2d:d3:10:aa:65:74:cf:c8:d6:ec:48:e8', NULL),
+('22a98e3b-1da8-46f5-8962-b461685e7bd7', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 2', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7BpymrfMLaou2l3LRIMjKhPZxDDZ6e09mqq+5yC8IEgjAtsoEh2i6H9IT6xHOHFqIe7thkRuDmNpAFni4aiaOREhL7U/+kdJ0trTDRv0WatxpcM7A0g4nR1aJPoxTBSG8No5JVLaaX5PNhZZx6Z4NOqr4TzhlZgoOj6CybzpZUgA+On4T2rN5BpbVfd1bbjUnpb80hNQVhShg150kMZKiH4vkqaT4CDDax3mvRETK9/hc2d3Cy3iyat/F/DncMAzSN9VdqjuOr7pFfomTKwduJ84akd2TlTdll+SyT4YIpokhemOrfXFWWxVKYVFn4aHmJ2QrovagHxLv98mL1VsP', 'af:d3:b3:aa:3c:3b:f9:58:5a:75:e9:76:37:0e:26:8a', NULL),
+('46d0d741-1d21-41ec-8b9b-2b456436ca48', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 3', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDDZz0EtmfSphFWOMlvfsaa4dZVVhksjAUfqS1gfb4WWN75qaDy2CZ1VCtMd3C3uVteK/cVK94EqKhk3TRQjhw2PuuDYCcZsSyGuzc+lsSKkDgdRQwOzaVLCI8t0paRiCCsiahFSvuDt28YmCSIuVbWIX21gohXMunPY1zOaGz42tb1WFLtveHb2w3cZIYzqjumrxqQKTUzglyHoV5NiQJ5kSJ+OXLa4uZ6LVpoA9/vn2gcqZMvL22w43loItzRnxVMk/hsaZKTbqQtdCo+gUbMMblqeuiNLj5RwKW64iI8ErK0uFKdnpvQ7pzurvLBe70SKakDTEZmLOrsEMwk0hqX', 'a7:f3:b8:61:55:4f:c5:4d:91:72:0f:74:f0:42:00:fe', NULL),
+('a65abdf1-2f88-4dac-b818-1d4923c2b97e', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'public_key 4', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWl2aY8FicEWNAlrQ+DwmhonSuhU8SsXJErdO9WpPKN', 'cc:11:5d:dc:36:91:f3:b3:10:97:48:e4:ef:08:94:d1', NULL),
+('bb9c2779-0b1a-4dcf-b79e-0f486d9c43d6', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'public_key 5', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCcqfLcl6onqLKxHouuHFAQIN22Ujs+nh0MYP8TqiXvzEfXel8H+SPPi1x1wwCPwUC6KcTeWzhRB1DNzvvGuWbJzxl5uDErF0bZ4sj9yKBVYQ2exKErZX9rj04zCPU8BwRU1G/tsI816RB0NrPkw5b53IKaGr9zQsI3KQrKrCFe7Huq/PytbDe0PYYHYbUytO/ZHGVCnwz2/TI5LcksU2H3uWkTQUlIhdkAEDB4vZueLOVypinIG8ez2jFhieHpwWzVcHf8b3a+XjRflWsB3diBliVfJ0vKcewDaj8FSE4WZ+XVzTUMrv/GtHyV9M+SXVj3Ren7+z5DZ5ETTSJHvB8f', '59:e3:58:4b:a8:2a:49:43:d5:5a:fd:c6:58:ff:af:8a', NULL),
+('e14acff0-d1d9-4e4e-8b7e-92b224c35e51', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 9', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHaUvLp9R83NC1uO4092tl1eQUvplXcYAP+H0CjX9xLp', 'fe:3e:9e:9c:c8:8a:c8:04:93:ca:3e:4e:08:99:da:09', NULL),
+('cb722ae3-203c-4dd0-9383-f7f5b70e9217', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 8', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICORhW35zrW+hdDXKE7jLco0uPjnEDcttthtcEpgCDZ2', '0f:5f:3a:1a:da:eb:6f:0a:c4:df:9c:11:56:9f:36:e1', NULL),
+('852b684c-4c14-44da-a764-1b92c5f7e189', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 7', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDW5ExclPxXvynfI3cw2iomQA1x195UINPV8+Q7ojPlm', '9d:06:14:58:67:7e:ee:97:6f:d9:12:65:be:37:e9:70', NULL),
+('9a7919a0-3308-4ac3-957e-6919870e3568', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 6', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHygIeEGZSXy6WVav1mg4+fc2rHYhWULNwn7yL16pif8', '5a:ac:ee:fb:89:a3:15:16:70:3b:25:85:c9:f6:9f:c6', NULL),
+('1c87762f-2d0f-4b92-a636-52fef4ff53a5', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 14', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMKIhlysVKLIuxl2RvfpdGptcvghhSkWfmmum1pSVze0', 'b6:07:6a:ef:82:e3:73:47:56:69:3f:3d:c7:d7:6f:23', NULL),
+('5c04dab5-9099-4718-893b-88d58d7763c8', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 13', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJsAA9/mgf5oS0NixfsayagA+Hk7X1xJRbmCJnbSAI9e', '9e:39:7e:69:b8:82:31:f3:a6:3d:7a:0f:bc:ec:1a:bf', NULL),
+('85a70dba-696f-44fc-8669-11d1b937659a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 12', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHQYSGBNj5m2AVgt26VBrptwfgSC4gSvEoLdAQgluyQK', 'a1:2b:6c:10:fd:36:10:f1:06:2a:6d:e9:cf:4e:68:f0', NULL),
+('81033c2b-a69f-4290-b26a-346d28977e6e', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 11', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJIII56btowQHAD+UpiO/LOI2nf1kuGiodSO8GHUcvPX', 'c0:69:05:53:b8:b0:90:22:f8:e8:04:56:92:f5:b2:01', NULL),
+('74db70d8-0597-4841-aebc-57f579341ff8', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 10', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINiF7+RDhS9QzKZxVQj0ElpgQzyupViVyyHMHWH+ZgMD', 'fc:58:a8:48:d1:9f:2d:4e:38:4d:3e:ea:fc:f6:bd:a4', NULL),
+('d8ac2125-1770-4fd5-94a8-b5d83cde47aa', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_key 1', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCqT6BvOnIkz2IUWPo8BfLfL7HC6kl4MVmuD48shaE4oLgMj4CLvlOgJfnSakw5pwipJiWwbXu8yWVXMW4vjQtylEFc+C+zP/WdINhq3x5DYKcUQESQX5aYE1Hy7k7gqpIqWnZJNME8X+F/fKHHe/ORCe+fEfPo583gn9m0lejkOQ==', 'fb:22:c9:13:5f:37:09:14:26:f0:84:9b:35:fd:a7:ba', NULL),
+('6437da7e-c9a4-463d-8b4d-2a7d1f730875', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_key 2', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWl2aY8FicEWNAlrQ+DwmhonSuhU8SsXJErdO9WpPKN', 'cc:11:5d:dc:36:91:f3:b3:10:97:48:e4:ef:08:94:d1', NULL),
+('2511bbbe-c8d2-4e79-9e89-7e8f2b366a57', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_key 3', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCPMLvwcrfAb6lvEO+w+qYM4QpsrJlDMxvLQFULNbl2ET4iU0h4LCZAFkCbnE+8bav/aBqytfjSnMwmL3W8QUoZcCLeU+7gClTHSUr1LDVzZ6leUHWf341YzHQJ/Ofx4E65pu+sKNuKemwHjEdykjtMNy2V4+XcURaQhgVYAEsZrQ==', 'ae:02:0b:90:d5:0b:a1:77:d5:45:35:c9:f1:ee:ce:11', NULL),
+('1a57bee5-1dca-4965-b6c2-bc60ba5526af', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'test_key 4', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDKzIQBAFmTIJHWr5GFKLRlK9sV5fc8OE8JDrvwNB41yAYHX8xR2QUCM22kz81T6kMO9wvukv3RoIJSCGT8QRXIT0cjpmeLs5rfV6Gn6WmEPzae3WeMGLZjx/l8XGh5RBDEvsYQnitnU3ge4whUKIb0DMRk4y2mn+Q+K7UToiNevw==', 'cc:a9:9c:4e:97:5d:76:80:d2:dc:55:6d:aa:b0:e3:f3', NULL),
+('abe03b06-834b-4e35-a3f6-7e86df525c81', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'test_key 5', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCblwZLhe6/0r/sizSuu3/4wUSMvRrKxjd45hlJsvSN2lMQWbKW5Hdafkr3TYJ3L7bE+DEKmGRajnIsVITAt36nq/P/mE/42WGQcga6bbgzme+ngaKEFPOQMa9RGVVaoHG89ZVawiEQ4wQeETs191YRpgJWhIBS1CaMfSO3E9aGBQ==', '39:fc:7a:33:09:7c:b6:62:5d:c3:43:3f:f1:4b:c7:5c', NULL);
 
-INSERT INTO "public"."project" ("id", "owner_id", "title", "login", "created") VALUES
-('2bef1080-cd6e-49e5-8042-1224cf6a3da9', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project1', 'project1', NOW()),
-('fe52ca9b-5599-4bb6-818b-1896d56e9aa2', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project2', 'project2', NOW()),
-('d958ee44-a960-420e-9bbf-c7a35084c4aa', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'project3', 'project3', NOW()),
-('e29568e6-c8f8-4555-a531-58a44554046f', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project9', 'project9', NOW()),
-('dab9c84c-9b8d-4737-ba21-ae8d2ea73d10', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project8', 'project8', NOW()),
-('26060c68-5a06-4a57-b87a-be0f1e787157', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project7', 'project7', NOW()),
-('926e432f-36df-433b-886d-f9a5b60705ad', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project6', 'project6', NOW()),
-('cb507c82-a368-4cd9-9030-557ccbd8761e', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project5', 'project5', NOW()),
-('c22bc277-36c0-4a90-86e5-44b2f607046e', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project4', 'project4', NOW()),
-('ca7e65a4-76ea-4802-9f4f-3518a3416985', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project10', 'project10', NOW()),
-('af0b3b3f-3ba1-4ad6-8f47-184e861af1f0', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project12', 'project12', NOW()),
-('cb06da23-91d5-482a-b082-86b7b4b1df8a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project11', 'project11', NOW()),
-('5d013c61-83d1-4b59-b430-1edfd5f2b8d9', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_project1', 'testproject1', NOW()),
-('6a799ffb-55ad-4932-967e-1b0dffacc827', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_project2', 'testproject2', NOW()),
-('69fbe29e-c955-41ad-b0c4-3a474cf01ea9', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'test_project3', 'testproject3', NOW());
+INSERT INTO "public"."project" ("id", "owner_id", "title", "login") VALUES
+('2bef1080-cd6e-49e5-8042-1224cf6a3da9', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project1', 'project1'),
+('fe52ca9b-5599-4bb6-818b-1896d56e9aa2', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project2', 'project2'),
+('d958ee44-a960-420e-9bbf-c7a35084c4aa', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'project3', 'project3'),
+('e29568e6-c8f8-4555-a531-58a44554046f', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project9', 'project9'),
+('dab9c84c-9b8d-4737-ba21-ae8d2ea73d10', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project8', 'project8'),
+('26060c68-5a06-4a57-b87a-be0f1e787157', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project7', 'project7'),
+('926e432f-36df-433b-886d-f9a5b60705ad', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project6', 'project6'),
+('cb507c82-a368-4cd9-9030-557ccbd8761e', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project5', 'project5'),
+('c22bc277-36c0-4a90-86e5-44b2f607046e', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project4', 'project4'),
+('ca7e65a4-76ea-4802-9f4f-3518a3416985', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project10', 'project10'),
+('af0b3b3f-3ba1-4ad6-8f47-184e861af1f0', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project12', 'project12'),
+('cb06da23-91d5-482a-b082-86b7b4b1df8a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project11', 'project11'),
+('5d013c61-83d1-4b59-b430-1edfd5f2b8d9', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_project1', 'testproject1'),
+('6a799ffb-55ad-4932-967e-1b0dffacc827', '0b792872-174a-4da4-9efa-f3fac872314e', 'test_project2', 'testproject2'),
+('69fbe29e-c955-41ad-b0c4-3a474cf01ea9', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'test_project3', 'testproject3');
 
-INSERT INTO "public"."project_api" ("id", "project_id", "api_secret", "api_key", "online", "created") VALUES
-('a1059d92-d032-427c-9444-571967d1f9a5', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'AweHj3rtANGfy0gG02ptsDzYMwYmgwnY11CC', '3GZBSPqDi7r1FDzYMUNV4l9HOJlb9y8b3ZI9', 't', NOW()),
-('5d9e8b3e-d222-426e-980f-4664e52308c8', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'U8uSEKjM5a979LIQEhEUxKcP0OGYUTLBDzYM', 'r8tKBI6C64LDzYMRqxi1fZ8zMyikOERwMv0g', 't', NOW()),
-('268def26-4efb-47c4-b699-f34903cf05f5', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', 'aDzYMy9g3mmsqXazPLvvCbj4kJAsgatxBDVW', '5tYJOkr3oLCOEvhwnB83AmDzYM7yJsJ0Sonl', 't', NOW()),
-('974c8001-4f8a-4ccc-b9db-9cf29e1405b2', 'e29568e6-c8f8-4555-a531-58a44554046f', 'aUAlDzYMEnu4p6FMj4ID6RSAjBwo9XAMXMfe', 'WSWrmtLpsurpX1BYacODzYM2eswFoZf20lm9', 't', NOW()),
-('21952d70-6ecc-4ec1-8ae1-46d27ea22b14', 'dab9c84c-9b8d-4737-ba21-ae8d2ea73d10', 'LInFiquDzYMekJ3P8BL4LZUfeaBbMJoAqWWN', 'AMXFfDc0qhyvf3zRDzYMNDzYMLeQRIpoAcer', 't', NOW()),
-('e4c33b9c-e307-4499-8300-30994027fa2a', '26060c68-5a06-4a57-b87a-be0f1e787157', 'bnMCqHjd3UenDzYMi817gix73T8CUGBbMt8c', 'qq0UDzYMzJv4BYZAEmHfPqUreCQmDQA1nkoA', 't', NOW()),
-('d2ea591a-1090-4fd2-91aa-19062befa5b4', '926e432f-36df-433b-886d-f9a5b60705ad', 'k52971tpi0DKErdhDzYMMohT7eNpdGujGUo8', 'y0TkiLHb0tBRZuhiXyvOi81jT2JBo9DzYM3s', 't', NOW()),
-('3949db18-d7cd-49a6-98c4-6631f63665d2', 'cb507c82-a368-4cd9-9030-557ccbd8761e', 'tkp7ggd4INXCl2PcozURDzYMwURIXxC6U8OE', 'DzYMa7OMXw2yGNK59zrrLTzaqruJvqVdZNOf', 't', NOW()),
-('938a5665-06e1-4989-b850-5dbcd3703118', 'c22bc277-36c0-4a90-86e5-44b2f607046e', 'SDzMr0OPVhUG1P6ff8Ub0go1DzYMQFoRo1nA', 'Gqdr0s8jpSilaDzYM166N8sxkOqjEhAgiSoE', 't', NOW()),
-('d2fa410c-749a-41ee-ba8c-c38c9c115d3b', 'ca7e65a4-76ea-4802-9f4f-3518a3416985', 'Pi4kEhZ7Tl1ehdYigafI8e3hDzYMjawVHqVd', 'hhyeLotT7iZ4UwGGObRDzYMP7stwKrIc5vc7', 't', NOW()),
-('77d2c421-1ad6-40fe-8ec7-634066aa244b', 'af0b3b3f-3ba1-4ad6-8f47-184e861af1f0', 'ulFRsDzYMR9KLt1gceq5utTeI4To9R4FUe8D', 'WrG6nflBDzYMEZdQa9xlG4gCQOqIPei9iciP', 't', NOW()),
-('c9ae4704-3e86-4385-8b49-23c012d3b8d5', 'cb06da23-91d5-482a-b082-86b7b4b1df8a', '5Gm8vYc5sxpO7DzYMR5xhGzg9W9cYgAShkTF', 'POyx1k1H6YuEAimhDzYMCU1BvMoBeg9c8KMP', 't', NOW()),
-('47a10b7e-c9ff-4abb-aa51-7d77b24960d8', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', '9BexJAnBJzpnmGk2KvDzYMRUzwvH1BsMrUQF', 'u6CONsmUaJF2ChwQqbmKmWBVQDzYMXilPPnd', 't', NOW()),
-('dd447308-7ba9-43b9-ac52-1ef402202f20', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'ATgQ3X0SCAHqnjhrzEcVQFGDzYMQQMhP2Jsg', 'H4GDzYMkgf0eeN4FGWRja3MESd7ckl8gZmN0', 't', NOW()),
-('39b8565a-7884-4994-a587-55fbe3a257e3', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', 'F5W9LMcNMhDzYMDIMeiofJsaqED2KVKoMv7V', 'yDzYMVNOhYu9BOozSB1tFyt56fm29nY1VTZi', 't', NOW());
+INSERT INTO "public"."project_api" ("id", "project_id", "api_secret", "api_key", "online") VALUES
+('a1059d92-d032-427c-9444-571967d1f9a5', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'AweHj3rtANGfy0gG02ptsDzYMwYmgwnY11CC', '3GZBSPqDi7r1FDzYMUNV4l9HOJlb9y8b3ZI9', 't'),
+('5d9e8b3e-d222-426e-980f-4664e52308c8', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'U8uSEKjM5a979LIQEhEUxKcP0OGYUTLBDzYM', 'r8tKBI6C64LDzYMRqxi1fZ8zMyikOERwMv0g', 't'),
+('268def26-4efb-47c4-b699-f34903cf05f5', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', 'aDzYMy9g3mmsqXazPLvvCbj4kJAsgatxBDVW', '5tYJOkr3oLCOEvhwnB83AmDzYM7yJsJ0Sonl', 't'),
+('974c8001-4f8a-4ccc-b9db-9cf29e1405b2', 'e29568e6-c8f8-4555-a531-58a44554046f', 'aUAlDzYMEnu4p6FMj4ID6RSAjBwo9XAMXMfe', 'WSWrmtLpsurpX1BYacODzYM2eswFoZf20lm9', 't'),
+('21952d70-6ecc-4ec1-8ae1-46d27ea22b14', 'dab9c84c-9b8d-4737-ba21-ae8d2ea73d10', 'LInFiquDzYMekJ3P8BL4LZUfeaBbMJoAqWWN', 'AMXFfDc0qhyvf3zRDzYMNDzYMLeQRIpoAcer', 't'),
+('e4c33b9c-e307-4499-8300-30994027fa2a', '26060c68-5a06-4a57-b87a-be0f1e787157', 'bnMCqHjd3UenDzYMi817gix73T8CUGBbMt8c', 'qq0UDzYMzJv4BYZAEmHfPqUreCQmDQA1nkoA', 't'),
+('d2ea591a-1090-4fd2-91aa-19062befa5b4', '926e432f-36df-433b-886d-f9a5b60705ad', 'k52971tpi0DKErdhDzYMMohT7eNpdGujGUo8', 'y0TkiLHb0tBRZuhiXyvOi81jT2JBo9DzYM3s', 't'),
+('3949db18-d7cd-49a6-98c4-6631f63665d2', 'cb507c82-a368-4cd9-9030-557ccbd8761e', 'tkp7ggd4INXCl2PcozURDzYMwURIXxC6U8OE', 'DzYMa7OMXw2yGNK59zrrLTzaqruJvqVdZNOf', 't'),
+('938a5665-06e1-4989-b850-5dbcd3703118', 'c22bc277-36c0-4a90-86e5-44b2f607046e', 'SDzMr0OPVhUG1P6ff8Ub0go1DzYMQFoRo1nA', 'Gqdr0s8jpSilaDzYM166N8sxkOqjEhAgiSoE', 't'),
+('d2fa410c-749a-41ee-ba8c-c38c9c115d3b', 'ca7e65a4-76ea-4802-9f4f-3518a3416985', 'Pi4kEhZ7Tl1ehdYigafI8e3hDzYMjawVHqVd', 'hhyeLotT7iZ4UwGGObRDzYMP7stwKrIc5vc7', 't'),
+('77d2c421-1ad6-40fe-8ec7-634066aa244b', 'af0b3b3f-3ba1-4ad6-8f47-184e861af1f0', 'ulFRsDzYMR9KLt1gceq5utTeI4To9R4FUe8D', 'WrG6nflBDzYMEZdQa9xlG4gCQOqIPei9iciP', 't'),
+('c9ae4704-3e86-4385-8b49-23c012d3b8d5', 'cb06da23-91d5-482a-b082-86b7b4b1df8a', '5Gm8vYc5sxpO7DzYMR5xhGzg9W9cYgAShkTF', 'POyx1k1H6YuEAimhDzYMCU1BvMoBeg9c8KMP', 't'),
+('47a10b7e-c9ff-4abb-aa51-7d77b24960d8', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', '9BexJAnBJzpnmGk2KvDzYMRUzwvH1BsMrUQF', 'u6CONsmUaJF2ChwQqbmKmWBVQDzYMXilPPnd', 't'),
+('dd447308-7ba9-43b9-ac52-1ef402202f20', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'ATgQ3X0SCAHqnjhrzEcVQFGDzYMQQMhP2Jsg', 'H4GDzYMkgf0eeN4FGWRja3MESd7ckl8gZmN0', 't'),
+('39b8565a-7884-4994-a587-55fbe3a257e3', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', 'F5W9LMcNMhDzYMDIMeiofJsaqED2KVKoMv7V', 'yDzYMVNOhYu9BOozSB1tFyt56fm29nY1VTZi', 't');
 
-INSERT INTO "public"."project_invite" ("id", "project_id", "user_id", "invite", "name", "surname", "email", "created", "status", "ldap_user", "ldap_name") VALUES
-('05985260-cffd-4878-9d3b-73f09e34e4d0', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', '37AEC639-DD1C-4C73-A8E7-ADD2016050F7', 'user', 'test1', 'user@werbot.net', NOW(), 'activated', 'f', ''),
-('1274340d-5976-4660-84d7-4f463f811f9e', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'B5B128D7-FF0C-479C-8216-14EEDF9265AD', 'user', 'test1', 'user@werbot.net', NOW(), 'activated', 'f', ''),
-('0f89a265-2875-414c-bdca-4c2ca9c8ba0c', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'a60b7092-660e-4d05-a5d2-7d9b23b276b1', 'test3', 'user3', 'user3@werbot.net', NOW (), 'send', 'f', ''),
-('7b1d48ca-5520-4c39-9f4f-e0ae09aed51b', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '04439feb-f981-4581-8f2c-96f21418f258', 'invite100', 'user100', 'invite100@werbot.net', NOW (), 'send', 'f', NULL),
-('8ea8005e-ed8e-4a6b-b98b-b2ec21a8f756', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '4f405197-f312-4acb-a333-3781b6d23f9f', 'invite101', 'user101', 'invite101@werbot.net', NOW (), 'send', 'f', NULL),
-('15173a6b-ab37-4374-be7b-cec44ace0e76', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'b49b830b-d0be-4757-a5ce-ec2677735cc5', 'invite102', 'user102', 'invite102@werbot.net', NOW (), 'send', 'f', NULL),
-('7060fba6-ada3-41c5-8f88-2cb7d56369d0', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'b44dc303-5857-4bf6-af24-db64f3be1540', 'invite103', 'user103', 'invite103@werbot.net', NOW (), 'send', 'f', NULL),
-('fcbd9f1e-8bea-4ebe-95b2-e24c1a1f2fb2', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '13614994-63d4-4e1d-9ccd-d80bf2356910', 'invite104', 'user104', 'invite104@werbot.net', NOW (), 'send', 'f', NULL),
-('6a326873-4139-45c9-ba2a-e8697fc0ef7c', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'f0e9381e-ed3c-431c-bca2-019f8712436f', 'invite105', 'user105', 'invite105@werbot.net', NOW (), 'send', 'f', NULL),
-('bd167cbb-1322-46fe-b26d-f2f634767873', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'dc1dc751-1cb9-43af-a4e7-30c1100909cb', 'invite106', 'user106', 'invite106@werbot.net', NOW (), 'send', 'f', NULL),
-('d0ab5a62-a9f6-4be7-93d1-8d77fb3c5053', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '1b53f991-fa1b-401b-8ff4-1fe2f2498fe6', 'invite107', 'user107', 'invite107@werbot.net', NOW (), 'send', 'f', NULL),
-('377857fe-95f9-4500-9543-fc423ae6fbb1', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '1e6fdbf6-beb3-4a0e-93f6-3fa033fc2626', 'invite108', 'user108', 'invite108@werbot.net', NOW (), 'send', 'f', NULL),
-('638e2a33-2d70-4ed6-87f3-5651da16b8dc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '4d7f9bee-94e7-4463-a62d-0b939efe6096', 'invite109', 'user109', 'invite109@werbot.net', NOW (), 'send', 'f', NULL),
-('6f8465b4-c60d-461c-8a28-6e79ee3b47f1', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '506732f3-8477-4963-af08-93e5071b381c', 'invite110', 'user110', 'invite110@werbot.net', NOW (), 'send', 'f', NULL),
-('ccabd5e7-1bf6-46de-be64-b9d66c50c144', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'AA116F59-3061-4403-8FD9-4C3795846AD4', 'test', 'test-user', 'test-user@werbot.net', NOW(), 'activated',  'f', ''),
-('34411471-2536-404a-a2c5-cd85ccee6bd4', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'E404359C-7A48-427F-A449-41754E096AE3', 'test', 'test-user', 'test-user@werbot.net', NOW(), 'activated', 'f', '');
+INSERT INTO "public"."project_invite" ("id", "project_id", "user_id", "invite", "name", "surname", "email", "status", "ldap_user", "ldap_name") VALUES
+('05985260-cffd-4878-9d3b-73f09e34e4d0', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', '37AEC639-DD1C-4C73-A8E7-ADD2016050F7', 'user', 'test1', 'user@werbot.net', 'activated', 'f', ''),
+('1274340d-5976-4660-84d7-4f463f811f9e', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'B5B128D7-FF0C-479C-8216-14EEDF9265AD', 'user', 'test1', 'user@werbot.net', 'activated', 'f', ''),
+('0f89a265-2875-414c-bdca-4c2ca9c8ba0c', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'a60b7092-660e-4d05-a5d2-7d9b23b276b1', 'test3', 'user3', 'user3@werbot.net', 'send', 'f', ''),
+('7b1d48ca-5520-4c39-9f4f-e0ae09aed51b', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '04439feb-f981-4581-8f2c-96f21418f258', 'invite100', 'user100', 'invite100@werbot.net', 'send', 'f', NULL),
+('8ea8005e-ed8e-4a6b-b98b-b2ec21a8f756', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '4f405197-f312-4acb-a333-3781b6d23f9f', 'invite101', 'user101', 'invite101@werbot.net', 'send', 'f', NULL),
+('15173a6b-ab37-4374-be7b-cec44ace0e76', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'b49b830b-d0be-4757-a5ce-ec2677735cc5', 'invite102', 'user102', 'invite102@werbot.net', 'send', 'f', NULL),
+('7060fba6-ada3-41c5-8f88-2cb7d56369d0', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'b44dc303-5857-4bf6-af24-db64f3be1540', 'invite103', 'user103', 'invite103@werbot.net', 'send', 'f', NULL),
+('fcbd9f1e-8bea-4ebe-95b2-e24c1a1f2fb2', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '13614994-63d4-4e1d-9ccd-d80bf2356910', 'invite104', 'user104', 'invite104@werbot.net', 'send', 'f', NULL),
+('6a326873-4139-45c9-ba2a-e8697fc0ef7c', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'f0e9381e-ed3c-431c-bca2-019f8712436f', 'invite105', 'user105', 'invite105@werbot.net', 'send', 'f', NULL),
+('bd167cbb-1322-46fe-b26d-f2f634767873', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, 'dc1dc751-1cb9-43af-a4e7-30c1100909cb', 'invite106', 'user106', 'invite106@werbot.net', 'send', 'f', NULL),
+('d0ab5a62-a9f6-4be7-93d1-8d77fb3c5053', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '1b53f991-fa1b-401b-8ff4-1fe2f2498fe6', 'invite107', 'user107', 'invite107@werbot.net', 'send', 'f', NULL),
+('377857fe-95f9-4500-9543-fc423ae6fbb1', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '1e6fdbf6-beb3-4a0e-93f6-3fa033fc2626', 'invite108', 'user108', 'invite108@werbot.net', 'send', 'f', NULL),
+('638e2a33-2d70-4ed6-87f3-5651da16b8dc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '4d7f9bee-94e7-4463-a62d-0b939efe6096', 'invite109', 'user109', 'invite109@werbot.net', 'send', 'f', NULL),
+('6f8465b4-c60d-461c-8a28-6e79ee3b47f1', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '506732f3-8477-4963-af08-93e5071b381c', 'invite110', 'user110', 'invite110@werbot.net', 'send', 'f', NULL),
+('ccabd5e7-1bf6-46de-be64-b9d66c50c144', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'AA116F59-3061-4403-8FD9-4C3795846AD4', 'test', 'test-user', 'test-user@werbot.net', 'activated',  'f', ''),
+('34411471-2536-404a-a2c5-cd85ccee6bd4', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'E404359C-7A48-427F-A449-41754E096AE3', 'test', 'test-user', 'test-user@werbot.net', 'activated', 'f', '');
 
-INSERT INTO "public"."project_member" ("id", "project_id", "user_id", "active", "online", "role", "created") VALUES
-('9d3f7efc-14a5-436d-a763-314441d6e0a5', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 't', 'f', 'user', NOW()),
-('c66c20e4-45ab-4442-9bd9-5e3ceef2df0c', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'f', 't', 'user', NOW()),
-('7c55a585-3a36-4cd6-ab70-adc2dbf161bc', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'e9a1f437-8f32-4463-9f89-a886a623febc', 't', 'f', 'user', NOW()),
-('087e57cd-c281-4b7a-bb1d-8d2f1d6789ae', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'f', 't', 'user', NOW());
+INSERT INTO "public"."project_member" ("id", "project_id", "user_id", "active", "online", "role") VALUES
+('9d3f7efc-14a5-436d-a763-314441d6e0a5', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 't', 'f', 'user'),
+('c66c20e4-45ab-4442-9bd9-5e3ceef2df0c', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 'f', 't', 'user'),
+('7c55a585-3a36-4cd6-ab70-adc2dbf161bc', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'e9a1f437-8f32-4463-9f89-a886a623febc', 't', 'f', 'user'),
+('087e57cd-c281-4b7a-bb1d-8d2f1d6789ae', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'e9a1f437-8f32-4463-9f89-a886a623febc', 'f', 't', 'user');
 
-INSERT INTO "public"."server_access" ("id", "server_id", "login", "password", "public_key", "private_key", "private_key_password", "created", "auth") VALUES
-('0231fc7e-a726-4dbd-a075-d53d48e8ae82', '893f2fd6-73e3-4f44-9de7-049a975ac181', 'storage9', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGS3sGctNnxhyBT2DQViha7nh4zL6R9CHhJUR5FMaU60 noname werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACBkt7BnLTZ8YcgU9g0FYoWu54eMy+kfQh4SVEeRTGlOtAAAAJBscJhcbHCY
-XAAAAAtzc2gtZWQyNTUxOQAAACBkt7BnLTZ8YcgU9g0FYoWu54eMy+kfQh4SVEeRTGlOtA
-AAAEC8PozZ+97GM/4VfhAXqp5KSBF36OvPETANm0c2IV2QE2S3sGctNnxhyBT2DQViha7n
-h4zL6R9CHhJUR5FMaU60AAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('0a17e763-6688-4b46-9e9a-dba6742a6ea8', '156d8d65-cfe5-48a4-a636-198a5f509abf', 'ubuntu6', 'ubuntu6', '', '', '', NOW(), 1),
-('1aacda3e-c1f4-4797-88cf-e57ed9c76bec', 'c95bf4ae-811e-45f1-acf1-e71131ad7ced', 'root', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGJGHEjtB5J6OULh6CGlEotTQdDlzO3cPGDcpgRQJsLK werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACBiRhxI7QeSejlC4eghpRKLU0HQ5czt3Dxg3KYEUCbCygAAAJADX6oTA1+q
-EwAAAAtzc2gtZWQyNTUxOQAAACBiRhxI7QeSejlC4eghpRKLU0HQ5czt3Dxg3KYEUCbCyg
-AAAEDXdJGPGgZVKcl4cak9YXPUMJvMslqjeBhbJ7ysakcM4mJGHEjtB5J6OULh6CGlEotT
-QdDlzO3cPGDcpgRQJsLKAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('1b08e87b-aec1-4e89-a2d7-e2ff3658115e', 'b635a7e0-3980-4776-843a-8823600cd2bc', 'ubuntu9', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP2tgxmtQynabj2Vz1ghThhRJYNxzeZl3OJTkGHm7lRF werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACD9rYMZrUMp2m49lc9YIU4YUSWDcc3mZdziU5Bh5u5URQAAAJCvm9pJr5va
-SQAAAAtzc2gtZWQyNTUxOQAAACD9rYMZrUMp2m49lc9YIU4YUSWDcc3mZdziU5Bh5u5URQ
-AAAEBGGq7oTtt35XmdwjM3i0j3t0Bu/48/Ucbm8DD+zNw46P2tgxmtQynabj2Vz1ghThhR
-JYNxzeZl3OJTkGHm7lRFAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('1e8fb119-15a6-48d0-8fae-03a85d3e2bbc', 'e57b9ba7-a984-4d95-a123-0bf6d5ec2442', 'user', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK47DFNqYXlI9L/O61BD0aKnyfaW33OdKpJiBQGqsuai werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABBBrmx6Lx
-QEC0U6zOKcVQycAAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIK47DFNqYXlI9L/O
-61BD0aKnyfaW33OdKpJiBQGqsuaiAAAAkHUGpjisI3zaCQBlyi9ExRciYeJ7KvkhZKURGt
-tyc0s6ZvbYBu8Ktf6rjd4cc/cmVPBJ6OGsamT2yOsgMDFWdYnoaEFapgEC8VCjUA/48D1Q
-qFzcb8GS+CJ48DWQ6Wsr7ziBYnL4fhA1iy/JRiyPsZtOF1hS525FAjcVnXLRNDWzJbgkYk
-tH2U8lmKxKsVA9Ag==
------END OPENSSH PRIVATE KEY-----', 'test', NOW(), 2),
-('1f02d56d-db5b-4a29-9ee0-611fe170da79', '7cf11f1d-e31b-4d78-9339-90958bd82244', 'test', 'test', '', '', '', NOW(), 1),
-('3c736eae-8c1c-414f-bac2-cb0ebb3f9e9b', '0c3a8869-6fc0-4666-bf60-15475473392a', 'ubuntu11', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB1PFvdQd6ezh0gsz33IFVoK9Hn0TUqLTtCalrN0hyuO werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABBJqQ/pVB
-2VjG/NBg5cdcxKAAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIB1PFvdQd6ezh0gs
-z33IFVoK9Hn0TUqLTtCalrN0hyuOAAAAkFj/WUfoF+FWPbyTgEw2YadKUYAi1eVkJutLHZ
-WTNygXWoifZeKys78H23MPfS9AlmvV3JxsI+x53o3LOyr+DQdzC7o85fRuVVuZalL1JfyF
-viPqRIWSZWhnZtuyZP09T1EkmYZ+Dnf2CGCi75DicQvSIw6AJqJZAYmLtQ4qqqo2edVEHW
-QlvtMIlY1TJ3Q6aw==
------END OPENSSH PRIVATE KEY-----', 'test', NOW(), 2),
-('64d835ff-f0fc-43f4-9fec-8382a64f144e', '3e52d691-4432-4906-891d-f3816112f6cc', 'ubuntu', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFXO9/AMMVwrqKMw980tkk/LuCrnZWEEZDFRqZ5jQa5/ werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACBVzvfwDDFcK6ijMPfNLZJPy7gq52VhBGQxUameY0GufwAAAJA53OBlOdzg
-ZQAAAAtzc2gtZWQyNTUxOQAAACBVzvfwDDFcK6ijMPfNLZJPy7gq52VhBGQxUameY0Gufw
-AAAEASHjc0wsfaUBKeyRYER9F+57Wbs0vHbiHaLcdwzQPBpVXO9/AMMVwrqKMw980tkk/L
-uCrnZWEEZDFRqZ5jQa5/AAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 3),
-('6c6dfb71-2fb6-42dd-9003-af37254e4639', 'df2046ee-5932-437f-b825-e55399666e45', 'ubuntu3', 'ubuntu3', '', '', '', NOW(), 1),
-('7c4c643a-7c39-44e7-a755-0d79658b6901', 'bc4e9e5a-bdb9-4fb9-82f8-f4178a33429a', 'test', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDVbvqFN3rrevc4AW4Tg4e/6gWyoFPfjpCj6QA4NqmPd werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACA1W76hTd663r3OAFuE4OHv+oFsqBT346Qo+kAODapj3QAAAJA4lpxyOJac
-cgAAAAtzc2gtZWQyNTUxOQAAACA1W76hTd663r3OAFuE4OHv+oFsqBT346Qo+kAODapj3Q
-AAAEBZr/pvXMMZOp7JvQON3QmBr1ovUTlU2VsW2RXtAxqWuTVbvqFN3rrevc4AW4Tg4e/6
-gWyoFPfjpCj6QA4NqmPdAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('810d56b6-1b3b-4c5a-9cc9-d95a52549ca4', 'd7797dff-4fa6-4a16-bc5b-68e5f7deb6f8', 'ubuntu4', 'ubuntu4', '', '', '', NOW(), 1),
-('901a3eb0-b198-4db0-9960-c16bdac6b942', '9a71be05-3907-4e9a-9c61-8caf0e7b9069', 'user', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMAfIp3BwRVRDEBzrzB+fI8tCHbrQd9qtFHLMY/2EE0h werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACDAHyKdwcEVUQxAc68wfnyPLQh260HfarRRyzGP9hBNIQAAAJC85WtKvOVr
-SgAAAAtzc2gtZWQyNTUxOQAAACDAHyKdwcEVUQxAc68wfnyPLQh260HfarRRyzGP9hBNIQ
-AAAEDukDI8N1+8dvVPiUWhW+eLJlcPseqkK0nxV2d7Djz/qsAfIp3BwRVRDEBzrzB+fI8t
-CHbrQd9qtFHLMY/2EE0hAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('95d5ff8a-9a62-41ad-8488-645a921f9ad4', 'c6e37277-0513-4f9c-8e71-2464ebd1a016', 'ubuntu10', 'ubuntu10', '', '', '', NOW(), 1),
-('a3635dd5-5706-44e8-8f9a-8d336f389861', 'c504c295-63c9-406b-93e1-000c5e64977e', 'user', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB0JO0wPjURoFQUZOSI+ZH4l1gtd98bcFqbZCmSlHeBd werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACAdCTtMD41EaBUFGTkiPmR+JdYLXffG3Bam2QpkpR3gXQAAAJDg6P3R4Oj9
-0QAAAAtzc2gtZWQyNTUxOQAAACAdCTtMD41EaBUFGTkiPmR+JdYLXffG3Bam2QpkpR3gXQ
-AAAEDURZnoX4UwWLcZY0xOpACRHlM4dJFwyKCQd/yfB/NxqB0JO0wPjURoFQUZOSI+ZH4l
-1gtd98bcFqbZCmSlHeBdAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('bd8006bf-c9fc-40cf-a43f-6111ede53435', '7bd860e6-df0d-45f6-a6b7-41251e73a07d', 'test', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKbsyPIUlwnUsD0WMqO3lIYru+kDOQN3BOlXD/OmzQTT werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACCm7MjyFJcJ1LA9FjKjt5SGK7vpAzkDdwTpVw/zps0E0wAAAJAtOSz5LTks
-+QAAAAtzc2gtZWQyNTUxOQAAACCm7MjyFJcJ1LA9FjKjt5SGK7vpAzkDdwTpVw/zps0E0w
-AAAEAgnvZTmmFQEUYzUSo4qqFSrNtmUlFpPWblzDZ5vPTvCabsyPIUlwnUsD0WMqO3lIYr
-u+kDOQN3BOlXD/OmzQTTAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('c0408489-8e3b-4aa0-a35e-1708fc7ea919', '62476ee0-c9ea-46a9-8541-440ac13e00ff', 'ubuntu7', 'ubuntu7', '', '', '', NOW(), 1),
-('cf5693c0-fb16-421c-b38e-455c796d942d', '2c5d8a5a-eb73-4d21-9742-3acecd702c85', 'ubuntu', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPFiBbtTKrSiRbDUSqvq+xTKJDWU6PTA4sTczTt23QHB werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACDxYgW7Uyq0okWw1Eqr6vsUyiQ1lOj0wOLE3M07dt0BwQAAAJC8fU1AvH1N
-QAAAAAtzc2gtZWQyNTUxOQAAACDxYgW7Uyq0okWw1Eqr6vsUyiQ1lOj0wOLE3M07dt0BwQ
-AAAEDHB9YeLpOdg4rI3c2FHXYSCQWOWXCn5wryo9/EcXBKk/FiBbtTKrSiRbDUSqvq+xTK
-JDWU6PTA4sTczTt23QHBAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('d5ee557e-c44a-42e2-9acf-bd660f6aace9', '5057c9c6-5ed1-4447-9dab-2792bd23d045', 'user', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO7U0luezw58Ion1m1uj0u9v/iBZhoB7w6VlPWTaI6hS  werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACDu1NJbns8OfCKJ9Ztbo9Lvb/4gWYaAe8OlZT1k2iOoUgAAAJAzhnAqM4Zw
-KgAAAAtzc2gtZWQyNTUxOQAAACDu1NJbns8OfCKJ9Ztbo9Lvb/4gWYaAe8OlZT1k2iOoUg
-AAAEDJzoFOg9S0I8qE96iNzL5thL8SkfQiDbsolvT0q5tYVO7U0luezw58Ion1m1uj0u9v
-/iBZhoB7w6VlPWTaI6hSAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('dd7df855-17a7-46a3-8805-4de9c4c3a760', '40fa9a63-19a2-49fa-a219-f249cd474e41', 'test', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBkQDfMBPNzJCm/vjtgmu4csL7U0CFKc1tdHAcJ8gA0P werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACAZEA3zATzcyQpv747YJruHLC+1NAhSnNbXRwHCfIANDwAAAJBMA+zYTAPs
-2AAAAAtzc2gtZWQyNTUxOQAAACAZEA3zATzcyQpv747YJruHLC+1NAhSnNbXRwHCfIANDw
-AAAEAPNmaQrhYmYrEq+h1jGVboOUSPrOB101mDFkpXOXVvXhkQDfMBPNzJCm/vjtgmu4cs
-L7U0CFKc1tdHAcJ8gA0PAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('e72a1e40-24d1-4465-8fc0-c834e4f28c60', '36b764e7-9aed-4440-b42e-753038b0c9b4', 'root', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHM9qMU9mLi89cEn6GOVoRYc0dgIjlO+nFYbaHuLJSMb werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACBzPajFPZi4vPXBJ+hjlaEWHNHYCI5TvpxWG2h7iyUjGwAAAJAGr2q2Bq9q
-tgAAAAtzc2gtZWQyNTUxOQAAACBzPajFPZi4vPXBJ+hjlaEWHNHYCI5TvpxWG2h7iyUjGw
-AAAEDj7kLP6gcIImsKwdZMc2s9IYJa/lOSknbJKvr71nfK/3M9qMU9mLi89cEn6GOVoRYc
-0dgIjlO+nFYbaHuLJSMbAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2),
-('f6312614-cb6d-44c6-8bd5-df74b39edb59', 'ddd084a5-7d91-4796-a133-feab4e653721', 'user3', '', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC7L+QVM2RILf1C8PlTZ9Ab2aqW6/LrIBWiK4ybiKLzG werbot.com', '-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACAuy/kFTNkSC39QvD5U2fQG9mqluvy6yAVoiuMm4ii8xgAAAJB69UHfevVB
-3wAAAAtzc2gtZWQyNTUxOQAAACAuy/kFTNkSC39QvD5U2fQG9mqluvy6yAVoiuMm4ii8xg
-AAAEA1u0O/iIvR8F5ax4tkjtfmHqwD6jvyIQF4cxFx7j58PC7L+QVM2RILf1C8PlTZ9Ab2
-aqW6/LrIBWiK4ybiKLzGAAAABm5vbmFtZQECAwQFBgc=
------END OPENSSH PRIVATE KEY-----', '', NOW(), 2);
+INSERT INTO "public"."server_access" ("id", "server_id", "auth", "login", "password", "key", "last_update") VALUES
+('0231fc7e-a726-4dbd-a075-d53d48e8ae82', '893f2fd6-73e3-4f44-9de7-049a975ac181', '2', 'storage9', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGS3sGctNnxhyBT2DQViha7nh4zL6R9CHhJUR5FMaU60 noname werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACBkt7BnLTZ8YcgU9g0FYoWu54eMy+kfQh4SVEeRTGlOtAAAAJBscJhcbHCY\nXAAAAAtzc2gtZWQyNTUxOQAAACBkt7BnLTZ8YcgU9g0FYoWu54eMy+kfQh4SVEeRTGlOtA\nAAAEC8PozZ+97GM/4VfhAXqp5KSBF36OvPETANm0c2IV2QE2S3sGctNnxhyBT2DQViha7n\nh4zL6R9CHhJUR5FMaU60AAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('0a17e763-6688-4b46-9e9a-dba6742a6ea8', '156d8d65-cfe5-48a4-a636-198a5f509abf', '1', 'ubuntu6', 'ubuntu6', '{}', NULL),
+('1aacda3e-c1f4-4797-88cf-e57ed9c76bec', 'c95bf4ae-811e-45f1-acf1-e71131ad7ced', '2', 'root', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGJGHEjtB5J6OULh6CGlEotTQdDlzO3cPGDcpgRQJsLK werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACBiRhxI7QeSejlC4eghpRKLU0HQ5czt3Dxg3KYEUCbCygAAAJADX6oTA1+q\nEwAAAAtzc2gtZWQyNTUxOQAAACBiRhxI7QeSejlC4eghpRKLU0HQ5czt3Dxg3KYEUCbCyg\nAAAEDXdJGPGgZVKcl4cak9YXPUMJvMslqjeBhbJ7ysakcM4mJGHEjtB5J6OULh6CGlEotT\nQdDlzO3cPGDcpgRQJsLKAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('1b08e87b-aec1-4e89-a2d7-e2ff3658115e', 'b635a7e0-3980-4776-843a-8823600cd2bc', '2', 'ubuntu9', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP2tgxmtQynabj2Vz1ghThhRJYNxzeZl3OJTkGHm7lRF werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACD9rYMZrUMp2m49lc9YIU4YUSWDcc3mZdziU5Bh5u5URQAAAJCvm9pJr5va\nSQAAAAtzc2gtZWQyNTUxOQAAACD9rYMZrUMp2m49lc9YIU4YUSWDcc3mZdziU5Bh5u5URQ\nAAAEBGGq7oTtt35XmdwjM3i0j3t0Bu/48/Ucbm8DD+zNw46P2tgxmtQynabj2Vz1ghThhR\nJYNxzeZl3OJTkGHm7lRFAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('1e8fb119-15a6-48d0-8fae-03a85d3e2bbc', 'e57b9ba7-a984-4d95-a123-0bf6d5ec2442', '2', 'user', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK47DFNqYXlI9L/O61BD0aKnyfaW33OdKpJiBQGqsuai werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABBBrmx6Lx\nQEC0U6zOKcVQycAAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIK47DFNqYXlI9L/O\n61BD0aKnyfaW33OdKpJiBQGqsuaiAAAAkHUGpjisI3zaCQBlyi9ExRciYeJ7KvkhZKURGt\ntyc0s6ZvbYBu8Ktf6rjd4cc/cmVPBJ6OGsamT2yOsgMDFWdYnoaEFapgEC8VCjUA/48D1Q\nqFzcb8GS+CJ48DWQ6Wsr7ziBYnL4fhA1iy/JRiyPsZtOF1hS525FAjcVnXLRNDWzJbgkYk\ntH2U8lmKxKsVA9Ag==\n-----END OPENSSH PRIVATE KEY-----", "password": "test"}', NULL),
+('1f02d56d-db5b-4a29-9ee0-611fe170da79', '7cf11f1d-e31b-4d78-9339-90958bd82244', '1', 'test', 'test', '{}', NULL),
+('3c736eae-8c1c-414f-bac2-cb0ebb3f9e9b', '0c3a8869-6fc0-4666-bf60-15475473392a', '2', 'ubuntu11', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB1PFvdQd6ezh0gsz33IFVoK9Hn0TUqLTtCalrN0hyuO werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABBJqQ/pVB\n2VjG/NBg5cdcxKAAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIB1PFvdQd6ezh0gs\nz33IFVoK9Hn0TUqLTtCalrN0hyuOAAAAkFj/WUfoF+FWPbyTgEw2YadKUYAi1eVkJutLHZ\nWTNygXWoifZeKys78H23MPfS9AlmvV3JxsI+x53o3LOyr+DQdzC7o85fRuVVuZalL1JfyF\nviPqRIWSZWhnZtuyZP09T1EkmYZ+Dnf2CGCi75DicQvSIw6AJqJZAYmLtQ4qqqo2edVEHW\nQlvtMIlY1TJ3Q6aw==\n-----END OPENSSH PRIVATE KEY-----", "password": "test"}', NULL),
+('64d835ff-f0fc-43f4-9fec-8382a64f144e', '3e52d691-4432-4906-891d-f3816112f6cc', '3', 'ubuntu', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFXO9/AMMVwrqKMw980tkk/LuCrnZWEEZDFRqZ5jQa5/ werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACBVzvfwDDFcK6ijMPfNLZJPy7gq52VhBGQxUameY0GufwAAAJA53OBlOdzg\nZQAAAAtzc2gtZWQyNTUxOQAAACBVzvfwDDFcK6ijMPfNLZJPy7gq52VhBGQxUameY0Gufw\nAAAEASHjc0wsfaUBKeyRYER9F+57Wbs0vHbiHaLcdwzQPBpVXO9/AMMVwrqKMw980tkk/L\nuCrnZWEEZDFRqZ5jQa5/AAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('6c6dfb71-2fb6-42dd-9003-af37254e4639', 'df2046ee-5932-437f-b825-e55399666e45', '1', 'ubuntu3', 'ubuntu3', '{}', NULL),
+('7c4c643a-7c39-44e7-a755-0d79658b6901', 'bc4e9e5a-bdb9-4fb9-82f8-f4178a33429a', '2', 'test', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDVbvqFN3rrevc4AW4Tg4e/6gWyoFPfjpCj6QA4NqmPd werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACA1W76hTd663r3OAFuE4OHv+oFsqBT346Qo+kAODapj3QAAAJA4lpxyOJac\ncgAAAAtzc2gtZWQyNTUxOQAAACA1W76hTd663r3OAFuE4OHv+oFsqBT346Qo+kAODapj3Q\nAAAEBZr/pvXMMZOp7JvQON3QmBr1ovUTlU2VsW2RXtAxqWuTVbvqFN3rrevc4AW4Tg4e/6\ngWyoFPfjpCj6QA4NqmPdAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('810d56b6-1b3b-4c5a-9cc9-d95a52549ca4', 'd7797dff-4fa6-4a16-bc5b-68e5f7deb6f8', '1', 'ubuntu4', 'ubuntu4', '{}', NULL),
+('901a3eb0-b198-4db0-9960-c16bdac6b942', '9a71be05-3907-4e9a-9c61-8caf0e7b9069', '2', 'user', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMAfIp3BwRVRDEBzrzB+fI8tCHbrQd9qtFHLMY/2EE0h werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACDAHyKdwcEVUQxAc68wfnyPLQh260HfarRRyzGP9hBNIQAAAJC85WtKvOVr\nSgAAAAtzc2gtZWQyNTUxOQAAACDAHyKdwcEVUQxAc68wfnyPLQh260HfarRRyzGP9hBNIQ\nAAAEDukDI8N1+8dvVPiUWhW+eLJlcPseqkK0nxV2d7Djz/qsAfIp3BwRVRDEBzrzB+fI8t\nCHbrQd9qtFHLMY/2EE0hAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('95d5ff8a-9a62-41ad-8488-645a921f9ad4', 'c6e37277-0513-4f9c-8e71-2464ebd1a016', '1', 'ubuntu10', 'ubuntu10', '{}', NULL),
+('a3635dd5-5706-44e8-8f9a-8d336f389861', 'c504c295-63c9-406b-93e1-000c5e64977e', '2', 'user', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB0JO0wPjURoFQUZOSI+ZH4l1gtd98bcFqbZCmSlHeBd werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACAdCTtMD41EaBUFGTkiPmR+JdYLXffG3Bam2QpkpR3gXQAAAJDg6P3R4Oj9\n0QAAAAtzc2gtZWQyNTUxOQAAACAdCTtMD41EaBUFGTkiPmR+JdYLXffG3Bam2QpkpR3gXQ\nAAAEDURZnoX4UwWLcZY0xOpACRHlM4dJFwyKCQd/yfB/NxqB0JO0wPjURoFQUZOSI+ZH4l\n1gtd98bcFqbZCmSlHeBdAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('bd8006bf-c9fc-40cf-a43f-6111ede53435', '7bd860e6-df0d-45f6-a6b7-41251e73a07d', '2', 'test', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKbsyPIUlwnUsD0WMqO3lIYru+kDOQN3BOlXD/OmzQTT werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACCm7MjyFJcJ1LA9FjKjt5SGK7vpAzkDdwTpVw/zps0E0wAAAJAtOSz5LTks\n+QAAAAtzc2gtZWQyNTUxOQAAACCm7MjyFJcJ1LA9FjKjt5SGK7vpAzkDdwTpVw/zps0E0w\nAAAEAgnvZTmmFQEUYzUSo4qqFSrNtmUlFpPWblzDZ5vPTvCabsyPIUlwnUsD0WMqO3lIYr\nu+kDOQN3BOlXD/OmzQTTAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('c0408489-8e3b-4aa0-a35e-1708fc7ea919', '62476ee0-c9ea-46a9-8541-440ac13e00ff', '1', 'ubuntu7', 'ubuntu7', '{}', NULL),
+('cf5693c0-fb16-421c-b38e-455c796d942d', '2c5d8a5a-eb73-4d21-9742-3acecd702c85', '2', 'ubuntu', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPFiBbtTKrSiRbDUSqvq+xTKJDWU6PTA4sTczTt23QHB werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACDxYgW7Uyq0okWw1Eqr6vsUyiQ1lOj0wOLE3M07dt0BwQAAAJC8fU1AvH1N\nQAAAAAtzc2gtZWQyNTUxOQAAACDxYgW7Uyq0okWw1Eqr6vsUyiQ1lOj0wOLE3M07dt0BwQ\nAAAEDHB9YeLpOdg4rI3c2FHXYSCQWOWXCn5wryo9/EcXBKk/FiBbtTKrSiRbDUSqvq+xTK\nJDWU6PTA4sTczTt23QHBAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('d5ee557e-c44a-42e2-9acf-bd660f6aace9', '5057c9c6-5ed1-4447-9dab-2792bd23d045', '2', 'user', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO7U0luezw58Ion1m1uj0u9v/iBZhoB7w6VlPWTaI6hS  werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACDu1NJbns8OfCKJ9Ztbo9Lvb/4gWYaAe8OlZT1k2iOoUgAAAJAzhnAqM4Zw\nKgAAAAtzc2gtZWQyNTUxOQAAACDu1NJbns8OfCKJ9Ztbo9Lvb/4gWYaAe8OlZT1k2iOoUg\nAAAEDJzoFOg9S0I8qE96iNzL5thL8SkfQiDbsolvT0q5tYVO7U0luezw58Ion1m1uj0u9v\n/iBZhoB7w6VlPWTaI6hSAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('dd7df855-17a7-46a3-8805-4de9c4c3a760', '40fa9a63-19a2-49fa-a219-f249cd474e41', '2', 'test', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBkQDfMBPNzJCm/vjtgmu4csL7U0CFKc1tdHAcJ8gA0P werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACAZEA3zATzcyQpv747YJruHLC+1NAhSnNbXRwHCfIANDwAAAJBMA+zYTAPs\n2AAAAAtzc2gtZWQyNTUxOQAAACAZEA3zATzcyQpv747YJruHLC+1NAhSnNbXRwHCfIANDw\nAAAEAPNmaQrhYmYrEq+h1jGVboOUSPrOB101mDFkpXOXVvXhkQDfMBPNzJCm/vjtgmu4cs\nL7U0CFKc1tdHAcJ8gA0PAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('e72a1e40-24d1-4465-8fc0-c834e4f28c60', '36b764e7-9aed-4440-b42e-753038b0c9b4', '2', 'root', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHM9qMU9mLi89cEn6GOVoRYc0dgIjlO+nFYbaHuLJSMb werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACBzPajFPZi4vPXBJ+hjlaEWHNHYCI5TvpxWG2h7iyUjGwAAAJAGr2q2Bq9q\ntgAAAAtzc2gtZWQyNTUxOQAAACBzPajFPZi4vPXBJ+hjlaEWHNHYCI5TvpxWG2h7iyUjGw\nAAAEDj7kLP6gcIImsKwdZMc2s9IYJa/lOSknbJKvr71nfK/3M9qMU9mLi89cEn6GOVoRYc\n0dgIjlO+nFYbaHuLJSMbAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL),
+('f6312614-cb6d-44c6-8bd5-df74b39edb59', 'ddd084a5-7d91-4796-a133-feab4e653721', '2', 'user3', '', '{"public": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC7L+QVM2RILf1C8PlTZ9Ab2aqW6/LrIBWiK4ybiKLzG werbot.com", "private": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACAuy/kFTNkSC39QvD5U2fQG9mqluvy6yAVoiuMm4ii8xgAAAJB69UHfevVB\n3wAAAAtzc2gtZWQyNTUxOQAAACAuy/kFTNkSC39QvD5U2fQG9mqluvy6yAVoiuMm4ii8xg\nAAAEA1u0O/iIvR8F5ax4tkjtfmHqwD6jvyIQF4cxFx7j58PC7L+QVM2RILf1C8PlTZ9Ab2\naqW6/LrIBWiK4ybiKLzGAAAABm5vbmFtZQECAwQFBgc=\n-----END OPENSSH PRIVATE KEY-----", "password": ""}', NULL);
 
-INSERT INTO "public"."server" ("id", "project_id", "access_id", "address", "port", "token", "title", "description", "active", "audit", "online", "created", "scheme", "previous_state") VALUES
-('0c3a8869-6fc0-4666-bf60-15475473392a', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '3c736eae-8c1c-414f-bac2-cb0ebb3f9e9b', '127.0.0.11', 2211, '7so811', 'Develop server #2', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('156d8d65-cfe5-48a4-a636-198a5f509abf', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0a17e763-6688-4b46-9e9a-dba6742a6ea8', 'secret.net.google.com', 2206, '4so8m6', 'Git server', '', 'f', 'f', 't', NOW(), 3, '[]'),
-('2c5d8a5a-eb73-4d21-9742-3acecd702c85', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'cf5693c0-fb16-421c-b38e-455c796d942d', '192.100.0.2', 2200, '1so8m0', 'testserver2', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('36b764e7-9aed-4440-b42e-753038b0c9b4', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'e72a1e40-24d1-4465-8fc0-c834e4f28c60', '192.100.0.1', 22, '1m0eso', 'testserver1', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('3e52d691-4432-4906-891d-f3816112f6cc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '64d835ff-f0fc-43f4-9fec-8382a64f144e', '127.0.0.2', 2200, 'eso8m0', 'Cache server', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('40fa9a63-19a2-49fa-a219-f249cd474e41', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', 'dd7df855-17a7-46a3-8805-4de9c4c3a760', '192.100.0.4', 2922, '1d9gs5', 'testserver4', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('5057c9c6-5ed1-4447-9dab-2792bd23d045', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'd5ee557e-c44a-42e2-9acf-bd660f6aace9', '192.100.0.5', 22, '1kdj53', 'testserver5', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('62476ee0-c9ea-46a9-8541-440ac13e00ff', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c0408489-8e3b-4aa0-a35e-1708fc7ea919', '127.0.0.7', 2207, '5so8m7', 'Experiments server', '', 'f', 't', 'f', NOW(), 3, '[]'),
-('7bd860e6-df0d-45f6-a6b7-41251e73a07d', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'bd8006bf-c9fc-40cf-a43f-6111ede53435', '127.0.0.6', 2922, 'gg9011', 'MySQL', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('7cf11f1d-e31b-4d78-9339-90958bd82244', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', '1f02d56d-db5b-4a29-9ee0-611fe170da79', '127.0.0.4', 2922, 'gd9gs5', 'Storage server backup', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('893f2fd6-73e3-4f44-9de7-049a975ac181', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0231fc7e-a726-4dbd-a075-d53d48e8ae82', '9df8:5b5d:411b:b2f5:3996:25a7:b895:5ce7', 2208, '6so8m8', 'Storage server #1', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('9a71be05-3907-4e9a-9c61-8caf0e7b9069', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', '901a3eb0-b198-4db0-9960-c16bdac6b942', '127.0.0.5', 22, 'kkdj53', 'PostgreSQL', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('b635a7e0-3980-4776-843a-8823600cd2bc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '1b08e87b-aec1-4e89-a2d7-e2ff3658115e', '127.0.0.9', 2209, '7so8m9', 'Storage server #2', '', 'f', 'f', 't', NOW(), 3, '[]'),
-('bc4e9e5a-bdb9-4fb9-82f8-f4178a33429a', '6a799ffb-55ad-4932-967e-1b0dffacc827', '7c4c643a-7c39-44e7-a755-0d79658b6901', '192.100.0.6', 2922, '1g9011', 'testserver6', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('c504c295-63c9-406b-93e1-000c5e64977e', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', 'a3635dd5-5706-44e8-8f9a-8d336f389861', '127.0.0.3', 22, '56weso', 'Develop server #3', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('c6e37277-0513-4f9c-8e71-2464ebd1a016', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '95d5ff8a-9a62-41ad-8488-645a921f9ad4', '127.0.0.10', 2210, '6so810', 'Develop server #1', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('c95bf4ae-811e-45f1-acf1-e71131ad7ced', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '1aacda3e-c1f4-4797-88cf-e57ed9c76bec', '127.0.0.1', 22, '8m0eso', 'Message server', '', 't', 'f', 'f', NOW(), 3, '[]'),
-('d7797dff-4fa6-4a16-bc5b-68e5f7deb6f8', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '810d56b6-1b3b-4c5a-9cc9-d95a52549ca4', '127.0.0.4', 2204, '2so8m4', 'Backups', '', 'f', 'f', 't', NOW(), 3, '[]'),
-('ddd084a5-7d91-4796-a133-feab4e653721', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'f6312614-cb6d-44c6-8bd5-df74b39edb59', '4f06:bbfc:a98e:7a58:b6de:93f8:4bcd:bcda', 2205, '3so8m5', 'CI/CD', '', 't', 't', 't', NOW(), 3, '[]'),
-('df2046ee-5932-437f-b825-e55399666e45', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '6c6dfb71-2fb6-42dd-9003-af37254e4639', '127.0.0.3', 2203, '1so8m3', 'Mail server', '', 't', 't', 't', NOW(), 3, '[]'),
-('e57b9ba7-a984-4d95-a123-0bf6d5ec2442', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', '1e8fb119-15a6-48d0-8fae-03a85d3e2bbc', '192.100.0.3', 22, '16weso', 'testserver3', '', 't', 'f', 'f', NOW(), 3, '[]');
+INSERT INTO "public"."server" ("id", "project_id", "access_id", "address", "port", "token", "title", "description", "active", "audit", "online", "scheme", "previous_state") VALUES
+('0c3a8869-6fc0-4666-bf60-15475473392a', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '3c736eae-8c1c-414f-bac2-cb0ebb3f9e9b', '127.0.0.11', 2211, '7so811', 'Develop server #2', '', 't', 'f', 'f', 3, '[]'),
+('156d8d65-cfe5-48a4-a636-198a5f509abf', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0a17e763-6688-4b46-9e9a-dba6742a6ea8', 'secret.net.google.com', 2206, '4so8m6', 'Git server', '', 'f', 'f', 't', 3, '[]'),
+('2c5d8a5a-eb73-4d21-9742-3acecd702c85', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'cf5693c0-fb16-421c-b38e-455c796d942d', '192.100.0.2', 2200, '1so8m0', 'testserver2', '', 't', 'f', 'f', 3, '[]'),
+('36b764e7-9aed-4440-b42e-753038b0c9b4', '5d013c61-83d1-4b59-b430-1edfd5f2b8d9', 'e72a1e40-24d1-4465-8fc0-c834e4f28c60', '192.100.0.1', 22, '1m0eso', 'testserver1', '', 't', 'f', 'f', 3, '[]'),
+('3e52d691-4432-4906-891d-f3816112f6cc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '64d835ff-f0fc-43f4-9fec-8382a64f144e', '127.0.0.2', 2200, 'eso8m0', 'Cache server', '', 't', 'f', 'f', 3, '[]'),
+('40fa9a63-19a2-49fa-a219-f249cd474e41', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', 'dd7df855-17a7-46a3-8805-4de9c4c3a760', '192.100.0.4', 2922, '1d9gs5', 'testserver4', '', 't', 'f', 'f', 3, '[]'),
+('5057c9c6-5ed1-4447-9dab-2792bd23d045', '6a799ffb-55ad-4932-967e-1b0dffacc827', 'd5ee557e-c44a-42e2-9acf-bd660f6aace9', '192.100.0.5', 22, '1kdj53', 'testserver5', '', 't', 'f', 'f', 3, '[]'),
+('62476ee0-c9ea-46a9-8541-440ac13e00ff', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c0408489-8e3b-4aa0-a35e-1708fc7ea919', '127.0.0.7', 2207, '5so8m7', 'Experiments server', '', 'f', 't', 'f', 3, '[]'),
+('7bd860e6-df0d-45f6-a6b7-41251e73a07d', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'bd8006bf-c9fc-40cf-a43f-6111ede53435', '127.0.0.6', 2922, 'gg9011', 'MySQL', '', 't', 'f', 'f', 3, '[]'),
+('7cf11f1d-e31b-4d78-9339-90958bd82244', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', '1f02d56d-db5b-4a29-9ee0-611fe170da79', '127.0.0.4', 2922, 'gd9gs5', 'Storage server backup', '', 't', 'f', 'f', 3, '[]'),
+('893f2fd6-73e3-4f44-9de7-049a975ac181', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0231fc7e-a726-4dbd-a075-d53d48e8ae82', '9df8:5b5d:411b:b2f5:3996:25a7:b895:5ce7', 2208, '6so8m8', 'Storage server #1', '', 't', 'f', 'f', 3, '[]'),
+('9a71be05-3907-4e9a-9c61-8caf0e7b9069', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', '901a3eb0-b198-4db0-9960-c16bdac6b942', '127.0.0.5', 22, 'kkdj53', 'PostgreSQL', '', 't', 'f', 'f', 3, '[]'),
+('b635a7e0-3980-4776-843a-8823600cd2bc', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '1b08e87b-aec1-4e89-a2d7-e2ff3658115e', '127.0.0.9', 2209, '7so8m9', 'Storage server #2', '', 'f', 'f', 't', 3, '[]'),
+('bc4e9e5a-bdb9-4fb9-82f8-f4178a33429a', '6a799ffb-55ad-4932-967e-1b0dffacc827', '7c4c643a-7c39-44e7-a755-0d79658b6901', '192.100.0.6', 2922, '1g9011', 'testserver6', '', 't', 'f', 'f', 3, '[]'),
+('c504c295-63c9-406b-93e1-000c5e64977e', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', 'a3635dd5-5706-44e8-8f9a-8d336f389861', '127.0.0.3', 22, '56weso', 'Develop server #3', '', 't', 'f', 'f', 3, '[]'),
+('c6e37277-0513-4f9c-8e71-2464ebd1a016', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '95d5ff8a-9a62-41ad-8488-645a921f9ad4', '127.0.0.10', 2210, '6so810', 'Develop server #1', '', 't', 'f', 'f', 3, '[]'),
+('c95bf4ae-811e-45f1-acf1-e71131ad7ced', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '1aacda3e-c1f4-4797-88cf-e57ed9c76bec', '127.0.0.1', 22, '8m0eso', 'Message server', '', 't', 'f', 'f', 3, '[]'),
+('d7797dff-4fa6-4a16-bc5b-68e5f7deb6f8', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '810d56b6-1b3b-4c5a-9cc9-d95a52549ca4', '127.0.0.4', 2204, '2so8m4', 'Backups', '', 'f', 'f', 't', 3, '[]'),
+('ddd084a5-7d91-4796-a133-feab4e653721', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'f6312614-cb6d-44c6-8bd5-df74b39edb59', '4f06:bbfc:a98e:7a58:b6de:93f8:4bcd:bcda', 2205, '3so8m5', 'CI/CD', '', 't', 't', 't', 3, '[]'),
+('df2046ee-5932-437f-b825-e55399666e45', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '6c6dfb71-2fb6-42dd-9003-af37254e4639', '127.0.0.3', 2203, '1so8m3', 'Mail server', '', 't', 't', 't', 3, '[]'),
+('e57b9ba7-a984-4d95-a123-0bf6d5ec2442', '69fbe29e-c955-41ad-b0c4-3a474cf01ea9', '1e8fb119-15a6-48d0-8fae-03a85d3e2bbc', '192.100.0.3', 22, '16weso', 'testserver3', '', 't', 'f', 'f', 3, '[]');
 
 INSERT INTO "public"."server_access_policy" ("server_id", "ip", "country") VALUES
 ('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 'f', 'f'),
@@ -251,8 +159,8 @@ INSERT INTO "public"."server_access_policy" ("server_id", "ip", "country") VALUE
 ('5057c9c6-5ed1-4447-9dab-2792bd23d045', 'f', 'f'),
 ('bc4e9e5a-bdb9-4fb9-82f8-f4178a33429a', 'f', 'f');
 
-INSERT INTO "public"."server_member" ("id", "server_id", "member_id", "active", "online", "last_activity", "previous_state") VALUES
-('8ca0ad93-4338-44cb-93dd-3f57272d0ffa', '156d8d65-cfe5-48a4-a636-198a5f509abf', '9d3f7efc-14a5-436d-a763-314441d6e0a5', 't', 'f', NOW(), '[]');
+INSERT INTO "public"."server_member" ("id", "server_id", "member_id", "active", "online", "previous_state") VALUES
+('8ca0ad93-4338-44cb-93dd-3f57272d0ffa', '156d8d65-cfe5-48a4-a636-198a5f509abf', '9d3f7efc-14a5-436d-a763-314441d6e0a5', 't', 'f', '[]');
 
 INSERT INTO "public"."server_activity" ("server_id", "dow", "time_from", "time_to") VALUES
 ('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '00:00:00', '00:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '01:00:00', '01:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '02:00:00', '02:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '03:00:00', '03:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '04:00:00', '04:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '05:00:00', '05:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '06:00:00', '06:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '07:00:00', '07:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '08:00:00', '08:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '09:00:00', '09:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '10:00:00', '10:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '11:00:00', '11:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '12:00:00', '12:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '13:00:00', '13:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '14:00:00', '14:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '15:00:00', '15:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '16:00:00', '16:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '17:00:00', '17:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '18:00:00', '18:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '19:00:00', '19:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '20:00:00', '20:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '21:00:00', '21:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '22:00:00', '22:59:59'),('c95bf4ae-811e-45f1-acf1-e71131ad7ced', 1, '23:00:00', '23:59:59'),
