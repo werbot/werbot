@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	memberpb "github.com/werbot/werbot/api/proto/member"
@@ -152,9 +152,9 @@ func (m *member) AddProjectMember(ctx context.Context, in *memberpb.AddProjectMe
 
 	response := new(memberpb.AddProjectMember_Response)
 
-	err := service.db.Conn.QueryRow(`INSERT INTO "project_member" ("project_id", "user_id", "role", "created", "active")
-		VALUES ($1, $2, $3, NOW(), $4)
-		RETURNING "id", "created"`,
+	err := service.db.Conn.QueryRow(`INSERT INTO "project_member" ("project_id", "user_id", "role", "active")
+		VALUES ($1, $2, $3, $4)
+		RETURNING "id"`,
 		in.GetProjectId(),
 		in.GetUserId(),
 		in.GetRole(),
@@ -180,13 +180,13 @@ func (m *member) UpdateProjectMember(ctx context.Context, in *memberpb.UpdatePro
 
 	switch in.GetSetting().(type) {
 	case *memberpb.UpdateProjectMember_Request_Role:
-		data, err = service.db.Conn.Exec(`UPDATE "project_member" SET "role" = $1 WHERE "id" = $2`,
+		data, err = service.db.Conn.Exec(`UPDATE "project_member" SET "role" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetRole(),
 			in.GetMemberId(),
 		)
 
 	case *memberpb.UpdateProjectMember_Request_Active:
-		data, err = service.db.Conn.Exec(`UPDATE "project_member" SET "active" = $1 WHERE "id" = $2`,
+		data, err = service.db.Conn.Exec(`UPDATE "project_member" SET "active" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetActive(),
 			in.GetMemberId(),
 		)
@@ -339,8 +339,8 @@ func (m *member) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInvi
 		return nil, errObjectAlreadyExists // Email in use
 	}
 
-	err = service.db.Conn.QueryRow(`INSERT INTO "project_invite" ("project_id", "email", "name", "surname", "invite", "created", "status", "ldap_user")
-		VALUES ($1, $2, $3, $4, $5, NOW(), 'send', false)
+	err = service.db.Conn.QueryRow(`INSERT INTO "project_invite" ("project_id", "email", "name", "surname", "invite", "status", "ldap_user")
+		VALUES ($1, $2, $3, $4, $5, 'send', false)
 		RETURNING "invite"`,
 		in.GetProjectId(),
 		in.GetEmail(),
@@ -418,8 +418,8 @@ func (m *member) MemberInviteActivate(ctx context.Context, in *memberpb.MemberIn
 		return nil, errTransactionCreateError
 	}
 
-	err = tx.QueryRow(`INSERT INTO "project_member" ("project_id","user_id","role","created")
-		VALUES ($1, $2, 'user', NOW())
+	err = tx.QueryRow(`INSERT INTO "project_member" ("project_id","user_id","role")
+		VALUES ($1, $2, 'user')
     RETURNING "id"`,
 		response.ProjectId,
 		userID,
@@ -429,7 +429,7 @@ func (m *member) MemberInviteActivate(ctx context.Context, in *memberpb.MemberIn
 		return nil, errFailedToAdd
 	}
 
-	data, err := tx.Exec(`UPDATE "project_invite" SET "status" = 'activated', "user_id" = $1 WHERE "invite" = $2`,
+	data, err := tx.Exec(`UPDATE "project_invite" SET "status" = 'activated', "user_id" = $1, "last_update" = NOW() WHERE "invite" = $2`,
 		in.GetUserId(),
 		in.GetInvite(),
 	)
@@ -467,7 +467,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *memberpb.ListServerM
 			"server_member"."id",
 			"server_member"."active",
 			"server_member"."online",
-			"server_member"."last_activity"
+			"server_member"."last_update"
 		FROM "server_member"
 			INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
@@ -482,7 +482,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *memberpb.ListServerM
 	}
 
 	for rows.Next() {
-		var lastActivity pgtype.Timestamp
+		var lastUpdate pgtype.Timestamp
 		member := new(memberpb.ServerMember_Response)
 		err = rows.Scan(&member.UserId,
 			&member.UserLogin,
@@ -492,7 +492,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *memberpb.ListServerM
 			&member.MemberId,
 			&member.Active,
 			&member.Online,
-			&lastActivity,
+			&lastUpdate,
 		)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -501,7 +501,7 @@ func (m *member) ListServerMembers(ctx context.Context, in *memberpb.ListServerM
 			service.log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
-		member.LastActivity = timestamppb.New(lastActivity.Time)
+		member.LastUpdate = timestamppb.New(lastUpdate.Time)
 		response.Members = append(response.Members, member)
 	}
 	defer rows.Close()
@@ -530,7 +530,7 @@ func (m *member) ServerMember(ctx context.Context, in *memberpb.ServerMember_Req
 		return nil, errNotFound
 	}
 
-	var lastActivity pgtype.Timestamp
+	var lastUpdate pgtype.Timestamp
 	response := new(memberpb.ServerMember_Response)
 
 	err := service.db.Conn.QueryRow(`SELECT
@@ -538,7 +538,7 @@ func (m *member) ServerMember(ctx context.Context, in *memberpb.ServerMember_Req
 			"user"."login",
 			"server_member"."active",
 			"server_member"."online",
-			"server_member"."last_activity"
+			"server_member"."last_update"
 		FROM "server_member"
 			INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
@@ -548,7 +548,7 @@ func (m *member) ServerMember(ctx context.Context, in *memberpb.ServerMember_Req
 		&response.UserLogin,
 		&response.Active,
 		&response.Online,
-		&lastActivity,
+		&lastUpdate,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -559,7 +559,7 @@ func (m *member) ServerMember(ctx context.Context, in *memberpb.ServerMember_Req
 	}
 
 	response.MemberId = in.GetMemberId()
-	response.LastActivity = timestamppb.New(lastActivity.Time)
+	response.LastUpdate = timestamppb.New(lastUpdate.Time)
 
 	return response, nil
 }
@@ -614,13 +614,13 @@ func (m *member) UpdateServerMember(ctx context.Context, in *memberpb.UpdateServ
 
 	switch in.GetSetting().(type) {
 	case *memberpb.UpdateServerMember_Request_Active:
-		data, err = service.db.Conn.Exec(`UPDATE "server_member" SET "active" = $1 WHERE "id" = $2 AND "server_id" = $3`,
+		data, err = service.db.Conn.Exec(`UPDATE "server_member" SET "active" = $1, "last_update" = NOW() WHERE "id" = $2 AND "server_id" = $3`,
 			in.GetActive(),
 			in.GetMemberId(),
 			in.GetServerId(),
 		)
 	case *memberpb.UpdateServerMember_Request_Online:
-		data, err = service.db.Conn.Exec(`UPDATE "server_member" SET "online" = $1 WHERE "id" = $2 AND "server_id" = $3`,
+		data, err = service.db.Conn.Exec(`UPDATE "server_member" SET "online" = $1, "last_update" = NOW() WHERE "id" = $2 AND "server_id" = $3`,
 			in.GetOnline(),
 			in.GetMemberId(),
 			in.GetServerId(),

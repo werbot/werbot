@@ -141,7 +141,7 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse(data=userpb.UpdateUser_Response)
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/users [patch]
-func (h *Handler) patchUser(c *fiber.Ctx) error {
+func (h *Handler) updateUser(c *fiber.Ctx) error {
 	request := new(userpb.UpdateUser_Request)
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
@@ -316,7 +316,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse(data=userpb.UpdatePassword_Response)
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/users/password [patch]
-func (h *Handler) patchPassword(c *fiber.Ctx) error {
+func (h *Handler) updatePassword(c *fiber.Ctx) error {
 	request := new(userpb.UpdatePassword_Request)
 
 	if err := c.BodyParser(request); err != nil {

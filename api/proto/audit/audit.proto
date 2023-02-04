@@ -27,7 +27,10 @@ message ListAudits {
     string server_id = 1  [(validate.rules).string.uuid = true];
   }
 
-  message Response{}
+  message Response{
+    int32 total = 1;
+    repeated Audit.Response accounts = 2;
+  }
 }
 // -----------------------------------------------------
 
@@ -38,7 +41,10 @@ message Audit {
     string audit_id = 1 [(validate.rules).string.uuid = true];
   }
 
-  message Response{}
+  message Response{
+    google.protobuf.Timestamp last_update = 1;
+    google.protobuf.Timestamp created = 2;
+  }
 }
 // -----------------------------------------------------
 

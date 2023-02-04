@@ -137,7 +137,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse{data=projectpb.UpdateProject_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [patch]
-func (h *Handler) patchProject(c *fiber.Ctx) error {
+func (h *Handler) updateProject(c *fiber.Ctx) error {
 	request := new(projectpb.UpdateProject_Request)
 
 	if err := c.BodyParser(request); err != nil {

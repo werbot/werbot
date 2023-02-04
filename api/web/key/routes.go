@@ -32,6 +32,6 @@ func (h *Handler) Routes() {
 
 	keyV1.Get("/", h.getKey)
 	keyV1.Post("/", h.addKey)
-	keyV1.Patch("/", h.patchKey)
+	keyV1.Patch("/", h.updateKey)
 	keyV1.Delete("/", h.deleteKey)
 }

@@ -30,8 +30,8 @@ func (h *Handler) Routes() {
 	userV1 := h.App.Group("/v1/users", h.Auth)
 	userV1.Get("/", h.getUser)
 	userV1.Post("/", h.addUser)
-	userV1.Patch("/", h.patchUser)
+	userV1.Patch("/", h.updateUser)
 	userV1.Delete("/", h.deleteUser)
 
-	userV1.Patch("/password", h.patchPassword)
+	userV1.Patch("/password", h.updatePassword)
 }

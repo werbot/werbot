@@ -16,7 +16,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 
-	authpb "github.com/werbot/werbot/api/proto/auth"
+	accountpb "github.com/werbot/werbot/api/proto/account"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/storage/cache"
@@ -113,7 +113,7 @@ func InitTestServer(envPath string) *TestHandler {
 }
 
 // GetUserInfo is ...
-func (h *TestHandler) GetUserInfo(signIn *authpb.SignIn_Request) *UserInfo {
+func (h *TestHandler) GetUserInfo(signIn *accountpb.SignIn_Request) *UserInfo {
 	tokens := h.getAuthToken(signIn)
 	return &UserInfo{
 		Tokens: *tokens,
@@ -130,7 +130,7 @@ func (h *TestHandler) FinishHandler() {
 	h.Handler = h.fiberToHandlerFunc()
 }
 
-func (h *TestHandler) getAuthToken(signIn *authpb.SignIn_Request) *jwt.Tokens {
+func (h *TestHandler) getAuthToken(signIn *accountpb.SignIn_Request) *jwt.Tokens {
 	userData, _ := json.Marshal(signIn)
 	req, err := http.NewRequest("POST", "/auth/signin", bytes.NewBuffer(userData))
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")

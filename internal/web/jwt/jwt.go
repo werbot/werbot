@@ -8,7 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/werbot/werbot/internal"
 
-	authpb "github.com/werbot/werbot/api/proto/auth"
+	accountpb "github.com/werbot/werbot/api/proto/account"
 	"github.com/werbot/werbot/internal/storage/cache"
 )
 
@@ -18,8 +18,8 @@ type Config struct {
 	PrivateKey *rsa.PrivateKey
 	PublicKey  *rsa.PublicKey
 
-	Tokens  Tokens                 `json:"tokens"`
-	Context *authpb.UserParameters `json:"context"`
+	Tokens  Tokens                    `json:"tokens"`
+	Context *accountpb.UserParameters `json:"context"`
 }
 
 // Tokens is ...
@@ -29,7 +29,7 @@ type Tokens struct {
 }
 
 // New is ...
-func New(context *authpb.UserParameters) (*Config, error) {
+func New(context *accountpb.UserParameters) (*Config, error) {
 	var err error
 	config := new(Config)
 
@@ -71,7 +71,7 @@ func (d *Config) createToken(expire time.Duration, accessToken bool) (string, er
 	}
 
 	if accessToken {
-		claims.User = authpb.UserParameters{
+		claims.User = accountpb.UserParameters{
 			UserName: d.Context.GetUserName(),
 			UserId:   d.Context.GetUserId(),
 			Roles:    d.Context.GetRoles(),

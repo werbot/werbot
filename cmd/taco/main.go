@@ -16,7 +16,6 @@ import (
 
 	"github.com/werbot/werbot/api/web"
 	"github.com/werbot/werbot/api/web/auth"
-	"github.com/werbot/werbot/api/web/customer"
 	"github.com/werbot/werbot/api/web/info"
 	"github.com/werbot/werbot/api/web/key"
 	"github.com/werbot/werbot/api/web/license"
@@ -97,7 +96,6 @@ func main() {
 	wellknown.New(webHandler).Routes()
 
 	auth.New(webHandler).Routes()
-	customer.New(webHandler).Routes()
 	info.New(webHandler).Routes()
 	key.New(webHandler).Routes()
 	member.New(webHandler).Routes()

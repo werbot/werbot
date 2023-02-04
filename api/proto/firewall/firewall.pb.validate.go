@@ -1773,23 +1773,22 @@ var _ interface {
 	ErrorName() string
 } = ServerFirewall_ResponseValidationError{}
 
-// Validate checks the field values on ServerFirewall_Response_Countries with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *ServerFirewall_Response_Countries) Validate() error {
+// Validate checks the field values on ServerFirewall_Countries with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerFirewall_Countries) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ServerFirewall_Response_Countries
-// with the rules defined in the proto definition for this message. If any
-// rules are violated, the result is a list of violation errors wrapped in
-// ServerFirewall_Response_CountriesMultiError, or nil if none found.
-func (m *ServerFirewall_Response_Countries) ValidateAll() error {
+// ValidateAll checks the field values on ServerFirewall_Countries with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerFirewall_CountriesMultiError, or nil if none found.
+func (m *ServerFirewall_Countries) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ServerFirewall_Response_Countries) validate(all bool) error {
+func (m *ServerFirewall_Countries) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1805,7 +1804,7 @@ func (m *ServerFirewall_Response_Countries) validate(all bool) error {
 			switch v := interface{}(item).(type) {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, ServerFirewall_Response_CountriesValidationError{
+					errors = append(errors, ServerFirewall_CountriesValidationError{
 						field:  fmt.Sprintf("List[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -1813,7 +1812,7 @@ func (m *ServerFirewall_Response_Countries) validate(all bool) error {
 				}
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
-					errors = append(errors, ServerFirewall_Response_CountriesValidationError{
+					errors = append(errors, ServerFirewall_CountriesValidationError{
 						field:  fmt.Sprintf("List[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -1822,7 +1821,7 @@ func (m *ServerFirewall_Response_Countries) validate(all bool) error {
 			}
 		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
-				return ServerFirewall_Response_CountriesValidationError{
+				return ServerFirewall_CountriesValidationError{
 					field:  fmt.Sprintf("List[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -1833,20 +1832,19 @@ func (m *ServerFirewall_Response_Countries) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return ServerFirewall_Response_CountriesMultiError(errors)
+		return ServerFirewall_CountriesMultiError(errors)
 	}
 
 	return nil
 }
 
-// ServerFirewall_Response_CountriesMultiError is an error wrapping multiple
-// validation errors returned by
-// ServerFirewall_Response_Countries.ValidateAll() if the designated
+// ServerFirewall_CountriesMultiError is an error wrapping multiple validation
+// errors returned by ServerFirewall_Countries.ValidateAll() if the designated
 // constraints aren't met.
-type ServerFirewall_Response_CountriesMultiError []error
+type ServerFirewall_CountriesMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ServerFirewall_Response_CountriesMultiError) Error() string {
+func (m ServerFirewall_CountriesMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1855,12 +1853,11 @@ func (m ServerFirewall_Response_CountriesMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ServerFirewall_Response_CountriesMultiError) AllErrors() []error { return m }
+func (m ServerFirewall_CountriesMultiError) AllErrors() []error { return m }
 
-// ServerFirewall_Response_CountriesValidationError is the validation error
-// returned by ServerFirewall_Response_Countries.Validate if the designated
-// constraints aren't met.
-type ServerFirewall_Response_CountriesValidationError struct {
+// ServerFirewall_CountriesValidationError is the validation error returned by
+// ServerFirewall_Countries.Validate if the designated constraints aren't met.
+type ServerFirewall_CountriesValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1868,24 +1865,24 @@ type ServerFirewall_Response_CountriesValidationError struct {
 }
 
 // Field function returns field value.
-func (e ServerFirewall_Response_CountriesValidationError) Field() string { return e.field }
+func (e ServerFirewall_CountriesValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ServerFirewall_Response_CountriesValidationError) Reason() string { return e.reason }
+func (e ServerFirewall_CountriesValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ServerFirewall_Response_CountriesValidationError) Cause() error { return e.cause }
+func (e ServerFirewall_CountriesValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ServerFirewall_Response_CountriesValidationError) Key() bool { return e.key }
+func (e ServerFirewall_CountriesValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ServerFirewall_Response_CountriesValidationError) ErrorName() string {
-	return "ServerFirewall_Response_CountriesValidationError"
+func (e ServerFirewall_CountriesValidationError) ErrorName() string {
+	return "ServerFirewall_CountriesValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e ServerFirewall_Response_CountriesValidationError) Error() string {
+func (e ServerFirewall_CountriesValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1897,14 +1894,14 @@ func (e ServerFirewall_Response_CountriesValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sServerFirewall_Response_Countries.%s: %s%s",
+		"invalid %sServerFirewall_Countries.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ServerFirewall_Response_CountriesValidationError{}
+var _ error = ServerFirewall_CountriesValidationError{}
 
 var _ interface {
 	Field() string
@@ -1912,25 +1909,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ServerFirewall_Response_CountriesValidationError{}
+} = ServerFirewall_CountriesValidationError{}
 
-// Validate checks the field values on ServerFirewall_Response_Networks with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the first error encountered is returned, or nil if there are
-// no violations.
-func (m *ServerFirewall_Response_Networks) Validate() error {
+// Validate checks the field values on ServerFirewall_Networks with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ServerFirewall_Networks) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ServerFirewall_Response_Networks with
-// the rules defined in the proto definition for this message. If any rules
-// are violated, the result is a list of violation errors wrapped in
-// ServerFirewall_Response_NetworksMultiError, or nil if none found.
-func (m *ServerFirewall_Response_Networks) ValidateAll() error {
+// ValidateAll checks the field values on ServerFirewall_Networks with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ServerFirewall_NetworksMultiError, or nil if none found.
+func (m *ServerFirewall_Networks) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ServerFirewall_Response_Networks) validate(all bool) error {
+func (m *ServerFirewall_Networks) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1946,7 +1942,7 @@ func (m *ServerFirewall_Response_Networks) validate(all bool) error {
 			switch v := interface{}(item).(type) {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, ServerFirewall_Response_NetworksValidationError{
+					errors = append(errors, ServerFirewall_NetworksValidationError{
 						field:  fmt.Sprintf("List[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -1954,7 +1950,7 @@ func (m *ServerFirewall_Response_Networks) validate(all bool) error {
 				}
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
-					errors = append(errors, ServerFirewall_Response_NetworksValidationError{
+					errors = append(errors, ServerFirewall_NetworksValidationError{
 						field:  fmt.Sprintf("List[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -1963,7 +1959,7 @@ func (m *ServerFirewall_Response_Networks) validate(all bool) error {
 			}
 		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
-				return ServerFirewall_Response_NetworksValidationError{
+				return ServerFirewall_NetworksValidationError{
 					field:  fmt.Sprintf("List[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -1974,20 +1970,19 @@ func (m *ServerFirewall_Response_Networks) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return ServerFirewall_Response_NetworksMultiError(errors)
+		return ServerFirewall_NetworksMultiError(errors)
 	}
 
 	return nil
 }
 
-// ServerFirewall_Response_NetworksMultiError is an error wrapping multiple
-// validation errors returned by
-// ServerFirewall_Response_Networks.ValidateAll() if the designated
+// ServerFirewall_NetworksMultiError is an error wrapping multiple validation
+// errors returned by ServerFirewall_Networks.ValidateAll() if the designated
 // constraints aren't met.
-type ServerFirewall_Response_NetworksMultiError []error
+type ServerFirewall_NetworksMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ServerFirewall_Response_NetworksMultiError) Error() string {
+func (m ServerFirewall_NetworksMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1996,12 +1991,11 @@ func (m ServerFirewall_Response_NetworksMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ServerFirewall_Response_NetworksMultiError) AllErrors() []error { return m }
+func (m ServerFirewall_NetworksMultiError) AllErrors() []error { return m }
 
-// ServerFirewall_Response_NetworksValidationError is the validation error
-// returned by ServerFirewall_Response_Networks.Validate if the designated
-// constraints aren't met.
-type ServerFirewall_Response_NetworksValidationError struct {
+// ServerFirewall_NetworksValidationError is the validation error returned by
+// ServerFirewall_Networks.Validate if the designated constraints aren't met.
+type ServerFirewall_NetworksValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -2009,24 +2003,24 @@ type ServerFirewall_Response_NetworksValidationError struct {
 }
 
 // Field function returns field value.
-func (e ServerFirewall_Response_NetworksValidationError) Field() string { return e.field }
+func (e ServerFirewall_NetworksValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ServerFirewall_Response_NetworksValidationError) Reason() string { return e.reason }
+func (e ServerFirewall_NetworksValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ServerFirewall_Response_NetworksValidationError) Cause() error { return e.cause }
+func (e ServerFirewall_NetworksValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ServerFirewall_Response_NetworksValidationError) Key() bool { return e.key }
+func (e ServerFirewall_NetworksValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ServerFirewall_Response_NetworksValidationError) ErrorName() string {
-	return "ServerFirewall_Response_NetworksValidationError"
+func (e ServerFirewall_NetworksValidationError) ErrorName() string {
+	return "ServerFirewall_NetworksValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e ServerFirewall_Response_NetworksValidationError) Error() string {
+func (e ServerFirewall_NetworksValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -2038,14 +2032,14 @@ func (e ServerFirewall_Response_NetworksValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sServerFirewall_Response_Networks.%s: %s%s",
+		"invalid %sServerFirewall_Networks.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ServerFirewall_Response_NetworksValidationError{}
+var _ error = ServerFirewall_NetworksValidationError{}
 
 var _ interface {
 	Field() string
@@ -2053,7 +2047,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ServerFirewall_Response_NetworksValidationError{}
+} = ServerFirewall_NetworksValidationError{}
 
 // Validate checks the field values on AddServerFirewall_Request with the rules
 // defined in the proto definition for this message. If any rules are

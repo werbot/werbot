@@ -24,7 +24,7 @@ enum KeyType {
   ed25519 = 1;
   ecdsa = 2;
   rsa = 3;
-} 
+}
 
 // rpc ListKeys
 message ListKeys {
@@ -57,7 +57,7 @@ message Key {
     string title = 4;
     string key = 5;
     string fingerprint = 6;
-    google.protobuf.Timestamp last_activity = 7;
+    google.protobuf.Timestamp last_update = 7;
     google.protobuf.Timestamp created = 8;
   }
 }

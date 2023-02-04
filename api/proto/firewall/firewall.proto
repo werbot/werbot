@@ -69,18 +69,18 @@ message ServerFirewall {
 }
 
   message Response {
-    message Countries {
-      bool wite_list = 1;
-      repeated Country list = 2;
-    }
-
-    message Networks {
-      bool wite_list = 1;
-      repeated Network list = 2;
-    }
-
     Countries country = 1;
     Networks network = 2;
+  }
+
+  message Countries {
+    bool wite_list = 1;
+    repeated Country list = 2;
+  }
+
+  message Networks {
+    bool wite_list = 1;
+    repeated Network list = 2;
   }
 }
 // -----------------------------------------------------

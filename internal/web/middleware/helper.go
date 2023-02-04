@@ -6,14 +6,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	golang_jwt "github.com/golang-jwt/jwt/v4"
 
-	authpb "github.com/werbot/werbot/api/proto/auth"
+	accountpb "github.com/werbot/werbot/api/proto/account"
 	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal/web/jwt"
 )
 
 // UserParameters is ...
 type UserParameters struct {
-	User *authpb.UserParameters
+	User *accountpb.UserParameters
 }
 
 // AuthUser is ...
@@ -34,7 +34,7 @@ func AuthUser(c *fiber.Ctx) *UserParameters {
 	}
 
 	return &UserParameters{
-		User: &authpb.UserParameters{
+		User: &accountpb.UserParameters{
 			Roles: userpb.Role(userpb.Role_role_unspecified),
 		},
 	}
@@ -48,7 +48,7 @@ func userParameters(c *fiber.Ctx) *UserParameters {
 	sub := user.Claims.(golang_jwt.MapClaims)["sub"].(string)
 
 	return &UserParameters{
-		User: &authpb.UserParameters{
+		User: &accountpb.UserParameters{
 			UserId: context["user_id"].(string),
 			Roles:  role,
 			Sub:    sub,

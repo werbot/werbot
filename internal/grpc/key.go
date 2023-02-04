@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -37,7 +37,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 			"user_public_key"."title",
 			"user_public_key"."key_",
 			"user_public_key"."fingerprint",
-			"user_public_key"."last_activity",
+			"user_public_key"."last_update",
 			"user_public_key"."created"
 		FROM "user_public_key"
 			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"` + sqlSearch + sqlFooter)
@@ -47,7 +47,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 	}
 
 	for rows.Next() {
-		var lastActivity, created pgtype.Timestamp
+		var lastUpdate, created pgtype.Timestamp
 		publicKey := new(keypb.Key_Response)
 		err = rows.Scan(&publicKey.KeyId,
 			&publicKey.UserId,
@@ -55,7 +55,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 			&publicKey.Title,
 			&publicKey.Key,
 			&publicKey.Fingerprint,
-			&lastActivity,
+			&lastUpdate,
 			&created,
 		)
 		if err != nil {
@@ -65,7 +65,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 			service.log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
-		publicKey.LastActivity = timestamppb.New(lastActivity.Time)
+		publicKey.LastUpdate = timestamppb.New(lastUpdate.Time)
 		publicKey.Created = timestamppb.New(created.Time)
 		response.PublicKeys = append(response.PublicKeys, publicKey)
 	}
@@ -86,7 +86,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 
 // PublicKey is ...
 func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Response, error) {
-	var lastActivity, created pgtype.Timestamp
+	var lastUpdate, created pgtype.Timestamp
 	response := new(keypb.Key_Response)
 	response.KeyId = in.GetKeyId()
 
@@ -97,7 +97,7 @@ func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_
 			"user_public_key"."title",
 			"user_public_key"."key_",
 			"user_public_key"."fingerprint",
-			"user_public_key"."last_activity",
+			"user_public_key"."last_update",
 			"user_public_key"."created"
 		FROM "user_public_key"
 			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"
@@ -111,7 +111,7 @@ func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_
 		&response.Title,
 		&response.Key,
 		&response.Fingerprint,
-		&lastActivity,
+		&lastUpdate,
 		&created,
 	)
 	if err != nil {
@@ -122,7 +122,7 @@ func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_
 		return nil, errServerError
 	}
 
-	response.LastActivity = timestamppb.New(lastActivity.Time)
+	response.LastUpdate = timestamppb.New(lastUpdate.Time)
 	response.Created = timestamppb.New(created.Time)
 
 	return response, nil
@@ -158,8 +158,8 @@ func (k *key) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddK
 		comment = in.GetTitle()
 	}
 
-	err = service.db.Conn.QueryRow(`INSERT INTO "user_public_key" ("user_id", "title", "key_", "fingerprint", "created")
-    VALUES ($1, $2, $3, $4, NOW()) RETURNING id`,
+	err = service.db.Conn.QueryRow(`INSERT INTO "user_public_key" ("user_id", "title", "key_", "fingerprint")
+    VALUES ($1, $2, $3, $4) RETURNING id`,
 		in.GetUserId(),
 		comment,
 		in.GetKey(),
@@ -205,7 +205,7 @@ func (k *key) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*keyp
 	}
 
 	data, err := service.db.Conn.Exec(`UPDATE "user_public_key"
-    SET "title" = $1, "key_" = $2, "fingerprint" = $3
+    SET "title" = $1, "key_" = $2, "fingerprint" = $3, "last_update" = NOW()
 		WHERE "id" = $4 AND "user_id" = $5`,
 		comment,
 		in.GetKey(),

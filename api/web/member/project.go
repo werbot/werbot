@@ -136,7 +136,7 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 // @Success      200             {object} webutil.HTTPResponse{data=memberpb.UpdateProjectMember_Response}
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [patch]
-func (h *Handler) patchProjectMember(c *fiber.Ctx) error {
+func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 	request := new(memberpb.UpdateProjectMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
@@ -260,7 +260,7 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/active [patch]
-func (h *Handler) patchProjectMemberStatus(c *fiber.Ctx) error {
+func (h *Handler) updateProjectMemberStatus(c *fiber.Ctx) error {
 	request := new(memberpb.UpdateProjectMember_Request)
 	request.Setting = new(memberpb.UpdateProjectMember_Request_Active)
 

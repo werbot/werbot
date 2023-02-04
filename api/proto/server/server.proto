@@ -144,6 +144,8 @@ message Server {
     string description = 16;
     bool active = 17;
     int32 count_members = 18;
+    google.protobuf.Timestamp last_update = 19;
+    google.protobuf.Timestamp created = 20;
   }
 }
 // -----------------------------------------------------
@@ -183,7 +185,9 @@ message UpdateServer {
     }
   }
 
-  message Response {}
+  message Response {
+    google.protobuf.Timestamp last_update = 1;
+  }
 
   message Info {
     string address = 1 [(validate.rules).string.address = true];                                      // @gotags: query:"address" params:"address"

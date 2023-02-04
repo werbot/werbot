@@ -3,8 +3,8 @@
 package main
 
 import (
+	"github.com/werbot/werbot/add-on/saas/api/web/subscription"
 	"github.com/werbot/werbot/api/web"
-	"github.com/werbot/werbot/api/web/subscription"
 )
 
 func handler(h *web.Handler) {

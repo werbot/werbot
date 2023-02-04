@@ -7,9 +7,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	serverpb "github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal/crypto"
@@ -61,7 +60,7 @@ func (s *server) ListServers(ctx context.Context, in *serverpb.ListServers_Reque
         JOIN "server_host_key" ON "server_host_key"."server_id" = "server"."id"
         JOIN "server_member" ON "server_member"."server_id" = "server"."id"
         AND "server_member"."member_id" = "project_member"."id"
-				INNER JOIN "server_access" ON "server"."access_id" = "server_access"."id" 
+				INNER JOIN "server_access" ON "server"."access_id" = "server_access"."id"
       WHERE "user"."login" = $1
         AND "server_member"."active" = TRUE
         AND "server"."active" = TRUE`
@@ -387,7 +386,6 @@ func (s *server) AddServer(ctx context.Context, in *serverpb.AddServer_Request) 
 			"title",
 			"active",
 			"audit",
-			"created",
 			"scheme",
 			"previous_state"
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, '[]')
@@ -400,7 +398,6 @@ func (s *server) AddServer(ctx context.Context, in *serverpb.AddServer_Request) 
 		serverTitle,
 		in.GetActive(),
 		in.GetAudit(),
-		time.Now(),
 		in.GetScheme().Enum(),
 	).Scan(&response.ServerId)
 	if err != nil {
@@ -460,15 +457,16 @@ func (s *server) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Req
 
 	switch in.GetSetting().(type) {
 	case *serverpb.UpdateServer_Request_Info:
-		data, err = service.db.Conn.Exec(`UPDATE "server" SET
+		data, err = service.db.Conn.Exec(`UPDATE "server"
+    SET
       "address" = $3,
       "port" = $4,
       "title" = $6,
       "active" = $7,
       "audit" = $8,
-      "description" = $9
-    WHERE "id" = $1
-      AND "project_id" = $2`,
+      "description" = $9,
+      "last_update" = NOW()
+    WHERE "id" = $1 AND "project_id" = $2`,
 			in.GetServerId(),
 			in.GetProjectId(),
 			in.GetInfo().GetAddress(),
@@ -480,20 +478,20 @@ func (s *server) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Req
 		)
 
 	case *serverpb.UpdateServer_Request_Audit:
-		data, err = service.db.Conn.Exec(`UPDATE "server" SET "audit" = $1 WHERE "id" = $2`,
+		data, err = service.db.Conn.Exec(`UPDATE "server" SET "audit" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetAudit(),
 			in.GetServerId(),
 		)
 
 	case *serverpb.UpdateServer_Request_Active:
 		// TODO After turning off, turn off all users who online
-		data, err = service.db.Conn.Exec(`UPDATE "server" SET "active" = $1 WHERE "id" = $2`,
+		data, err = service.db.Conn.Exec(`UPDATE "server" SET "active" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetActive(),
 			in.GetServerId(),
 		)
 
 	case *serverpb.UpdateServer_Request_Online:
-		data, err = service.db.Conn.Exec(`UPDATE "server" SET "online" = $1 WHERE "id" = $2`,
+		data, err = service.db.Conn.Exec(`UPDATE "server" SET "online" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetOnline(),
 			in.GetServerId(),
 		)
@@ -548,9 +546,9 @@ func (s *server) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Req
 	err := service.db.Conn.QueryRow(`SELECT "auth",
 			"login",
 			"password",
-			"public_key",
-			"private_key",
-			"private_key_password"
+      "key"->>'public',
+      "key"->>'private',
+      "key"->>'password'
 		FROM "server_access"
 		WHERE "id" = $1`,
 		in.GetServerId(),
@@ -605,7 +603,7 @@ func (s *server) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateServ
 
 	switch in.GetAccess().(type) {
 	case *serverpb.UpdateServerAccess_Request_Password:
-		sqlQuery, _ = sanitize.SQL(`UPDATE "server" SET "password" = $3 WHERE "id" = $1 AND "project_id" = $2`,
+		sqlQuery, _ = sanitize.SQL(`UPDATE "server" SET "password" = $3, "last_update" = NOW() WHERE "id" = $1 AND "project_id" = $2`,
 			in.GetServerId(),
 			in.GetProjectId(),
 			in.GetPassword(),
@@ -618,7 +616,7 @@ func (s *server) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateServ
 		}
 
 		service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey().GetKeyUuid()))
-		sqlQuery, _ = sanitize.SQL(`UPDATE "server" SET "public_key" = $3, "private_key" = $4 WHERE "id" = $1 AND "project_id" = $2`,
+		sqlQuery, _ = sanitize.SQL(`UPDATE "server" SET "public_key" = $3, "private_key" = $4, "last_update" = NOW() WHERE "id" = $1 AND "project_id" = $2`,
 			in.GetServerId(),
 			in.GetProjectId(),
 			in.GetKey().GetPublicKey(),
@@ -896,7 +894,7 @@ func (s *server) DeleteShareServer(ctx context.Context, in *serverpb.DeleteShare
 func (s *server) UpdateHostKey(ctx context.Context, in *serverpb.UpdateHostKey_Request) (*serverpb.UpdateHostKey_Response, error) {
 	response := new(serverpb.UpdateHostKey_Response)
 
-	data, err := service.db.Conn.Exec(`UPDATE "server_host_key" SET "host_key" = $1 WHERE "server_id" = $2`,
+	data, err := service.db.Conn.Exec(`UPDATE "server_host_key" SET "host_key" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
 		in.GetHostkey(),
 		in.GetServerId(),
 	)
@@ -915,12 +913,11 @@ func (s *server) UpdateHostKey(ctx context.Context, in *serverpb.UpdateHostKey_R
 func (s *server) AddSession(ctx context.Context, in *serverpb.AddSession_Request) (*serverpb.AddSession_Response, error) {
 	response := new(serverpb.AddSession_Response)
 
-	err := service.db.Conn.QueryRow(`INSERT INTO "session" ("account_id", "status", "created", "message")
-		VALUES ($1, $2, $3, $4)
+	err := service.db.Conn.QueryRow(`INSERT INTO "session" ("account_id", "status", "message")
+		VALUES ($1, $2, $3)
 		RETURNING id`,
 		in.GetAccountId(),
 		strings.ToLower(in.Status.String()),
-		time.Now(),
 		in.GetMessage(),
 	).Scan(&response.SessionId)
 	if err != nil {

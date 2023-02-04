@@ -13,8 +13,6 @@ import (
 
 	accountpb "github.com/werbot/werbot/api/proto/account"
 	auditpb "github.com/werbot/werbot/api/proto/audit"
-	authpb "github.com/werbot/werbot/api/proto/auth"
-	billingpb "github.com/werbot/werbot/api/proto/billing"
 	firewallpb "github.com/werbot/werbot/api/proto/firewall"
 	infopb "github.com/werbot/werbot/api/proto/info"
 	keypb "github.com/werbot/werbot/api/proto/key"
@@ -22,7 +20,6 @@ import (
 	memberpb "github.com/werbot/werbot/api/proto/member"
 	projectpb "github.com/werbot/werbot/api/proto/project"
 	serverpb "github.com/werbot/werbot/api/proto/server"
-	subscriptionpb "github.com/werbot/werbot/api/proto/subscription"
 	userpb "github.com/werbot/werbot/api/proto/user"
 	utilitypb "github.com/werbot/werbot/api/proto/utility"
 
@@ -62,16 +59,13 @@ func NewServer(token string, dbConn *postgres.Connect, cacheConn cache.Cache, ce
 		grpc.UnaryInterceptor(ensureValidToken),
 	)
 
-	authpb.RegisterAuthHandlersServer(grpcServer, &auth{})
 	accountpb.RegisterAccountHandlersServer(grpcServer, &account{})
 	auditpb.RegisterAuditHandlersServer(grpcServer, &audit{})
 	firewallpb.RegisterFirewallHandlersServer(grpcServer, &firewall{})
 	serverpb.RegisterServerHandlersServer(grpcServer, &server{})
 	projectpb.RegisterProjectHandlersServer(grpcServer, &project{})
 	memberpb.RegisterMemberHandlersServer(grpcServer, &member{})
-	subscriptionpb.RegisterSubscriptionHandlersServer(grpcServer, &subscription{})
 	userpb.RegisterUserHandlersServer(grpcServer, &user{})
-	billingpb.RegisterBillingHandlersServer(grpcServer, &billing{})
 	licensepb.RegisterLicenseHandlersServer(grpcServer, &license{})
 	infopb.RegisterInfoHandlersServer(grpcServer, &info{})
 	keypb.RegisterKeyHandlersServer(grpcServer, &key{})

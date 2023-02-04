@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	projectpb "github.com/werbot/werbot/api/proto/project"
@@ -124,8 +124,8 @@ func (p *project) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 		return nil, errTransactionCreateError
 	}
 
-	err = tx.QueryRow(`INSERT INTO "project" ("owner_id", "title", "login", "created")
-    VALUES ($1, $2, $3, NOW()) RETURNING "id"`,
+	err = tx.QueryRow(`INSERT INTO "project" ("owner_id", "title", "login")
+    VALUES ($1, $2, $3) RETURNING "id"`,
 		in.GetOwnerId(),
 		in.GetTitle(),
 		in.GetLogin(),
@@ -135,8 +135,8 @@ func (p *project) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 		return nil, errFailedToAdd
 	}
 
-	data, err := tx.Exec(`INSERT INTO "public"."project_api" ("project_id", "api_key", "api_secret", "online", "created")
-    VALUES ($1, $2, $3, 't', NOW())`,
+	data, err := tx.Exec(`INSERT INTO "public"."project_api" ("project_id", "api_key", "api_secret", "online")
+    VALUES ($1, $2, $3, 't')`,
 		response.ProjectId,
 		crypto.NewPassword(37, false),
 		crypto.NewPassword(37, false),
@@ -165,7 +165,7 @@ func (p *project) UpdateProject(ctx context.Context, in *projectpb.UpdateProject
 
 	response := new(projectpb.UpdateProject_Response)
 
-	data, err := service.db.Conn.Exec(`UPDATE "project" SET "title" = $1 WHERE "id" = $2 AND "owner_id" = $3`,
+	data, err := service.db.Conn.Exec(`UPDATE "project" SET "title" = $1, "last_update" = NOW() WHERE "id" = $2 AND "owner_id" = $3`,
 		in.GetTitle(),
 		in.GetProjectId(),
 		in.GetOwnerId(),
@@ -226,8 +226,26 @@ func (p *project) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
 	return response, nil
 }
 
-// TODO Keys is ...
-func (p *project) keys(ctx context.Context, in *projectpb.Keys_Request) (*projectpb.Keys_Response, error) {
-	response := new(projectpb.Keys_Response)
+// TODO Key is ...
+func (p *project) Key(ctx context.Context, in *projectpb.Key_Request) (*projectpb.Key_Response, error) {
+	response := new(projectpb.Key_Response)
+	return response, nil
+}
+
+// TODO AddKey is ...
+func (p *project) AddKey(ctx context.Context, in *projectpb.AddKey_Request) (*projectpb.AddKey_Response, error) {
+	response := new(projectpb.AddKey_Response)
+	return response, nil
+}
+
+// TODO UpdateKey is ...
+func (p *project) UpdateKey(ctx context.Context, in *projectpb.UpdateKey_Request) (*projectpb.UpdateKey_Response, error) {
+	response := new(projectpb.UpdateKey_Response)
+	return response, nil
+}
+
+// TODO DeleteKey is ...
+func (p *project) DeleteKey(ctx context.Context, in *projectpb.DeleteKey_Request) (*projectpb.DeleteKey_Response, error) {
+	response := new(projectpb.DeleteKey_Response)
 	return response, nil
 }

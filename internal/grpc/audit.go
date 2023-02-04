@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"time"
 
 	auditpb "github.com/werbot/werbot/api/proto/audit"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
@@ -33,10 +32,9 @@ func (a *audit) AddAudit(ctx context.Context, in *auditpb.AddAudit_Request) (*au
 	response := new(auditpb.AddAudit_Response)
 
 	err := service.db.Conn.QueryRow(`INSERT INTO "audit" ("account_id", "time_start", "version", "width", "height", "duration", "command", "title", "env_term", "env_shell", "session", "client_ip")
-		VALUES ($1, $2, $3, 0, 0, '0', '', $4, '', '/bin/sh', $4, $5)
+		VALUES ($1, NOW(), $3, 0, 0, 0, '', '', '', '/bin/sh', $4)
 		RETURNING "id"`,
 		in.GetAccountId(),
-		time.Now(),
 		in.GetVersion(),
 		in.GetSession(),
 		in.GetClientIp(),
@@ -53,7 +51,7 @@ func (a *audit) AddAudit(ctx context.Context, in *auditpb.AddAudit_Request) (*au
 func (a *audit) UpdateAudit(ctx context.Context, in *auditpb.UpdateAudit_Request) (*auditpb.UpdateAudit_Response, error) {
 	response := new(auditpb.UpdateAudit_Response)
 
-	data, err := service.db.Conn.Exec(`UPDATE "audit" SET "duration" = $1, "time_end" = $2 WHERE "id" = $3`,
+	data, err := service.db.Conn.Exec(`UPDATE "audit" SET "duration" = $1 WHERE "id" = $3`,
 		in.GetAuditId(),
 		in.GetDuration(),
 		in.GetTimeEnd().AsTime(),

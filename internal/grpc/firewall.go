@@ -69,8 +69,8 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *firewallpb.ServerFire
 	}
 
 	response := new(firewallpb.ServerFirewall_Response)
-	response.Country = new(firewallpb.ServerFirewall_Response_Countries)
-	response.Network = new(firewallpb.ServerFirewall_Response_Networks)
+	response.Country = new(firewallpb.ServerFirewall_Countries)
+	response.Network = new(firewallpb.ServerFirewall_Networks)
 
 	// get countries
 	rows, err := service.db.Conn.Query(`SELECT "server_security_country"."id", "server_security_country"."country_code", "country"."name"

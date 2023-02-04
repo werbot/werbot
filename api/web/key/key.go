@@ -129,7 +129,7 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys [patch]
-func (h *Handler) patchKey(c *fiber.Ctx) error {
+func (h *Handler) updateKey(c *fiber.Ctx) error {
 	request := new(keypb.UpdateKey_Request)
 
 	if err := c.BodyParser(request); err != nil {

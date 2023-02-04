@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	authpb "github.com/werbot/werbot/api/proto/auth"
+	accountpb "github.com/werbot/werbot/api/proto/account"
 	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/mail"
@@ -24,13 +24,13 @@ import (
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        email    body     authpb.SignIn_Request true "Email"
-// @Param        password body     authpb.SignIn_Request true "Password"
+// @Param        email    body     accountpb.SignIn_Request true "Email"
+// @Param        password body     accountpb.SignIn_Request true "Password"
 // @Success      200      {object} jwt.Tokens
 // @Failure      400,500  {object} webutil.HTTPResponse
 // @Router       /auth/signin [post]
 func (h *Handler) signIn(c *fiber.Ctx) error {
-	request := new(authpb.SignIn_Request)
+	request := new(accountpb.SignIn_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
@@ -39,8 +39,8 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(authpb.SignIn_RequestMultiError) {
-			e := err.(authpb.SignIn_RequestValidationError)
+		for _, err := range err.(accountpb.SignIn_RequestMultiError) {
+			e := err.(accountpb.SignIn_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -49,14 +49,14 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := authpb.NewAuthHandlersClient(h.Grpc.Client)
+	rClient := accountpb.NewAccountHandlersClient(h.Grpc.Client)
 	user, err := rClient.SignIn(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
 
 	sub := uuid.New().String()
-	newToken, err := jwt.New(&authpb.UserParameters{
+	newToken, err := jwt.New(&accountpb.UserParameters{
 		UserName: "TODO",
 		UserId:   user.GetUserId(),
 		Roles:    user.GetRole(),
@@ -136,7 +136,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 		return webutil.StatusBadRequest(c, msgFailedToSelectUser, nil)
 	}
 
-	newToken, err := jwt.New(&authpb.UserParameters{
+	newToken, err := jwt.New(&accountpb.UserParameters{
 		UserName: "Mr Robot",
 		UserId:   user.GetUserId(),
 		Roles:    user.GetRole(),
@@ -172,7 +172,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 // @Failure      400,500     {object} webutil.HTTPResponse
 // @Router       /auth/password_reset [post]
 func (h *Handler) resetPassword(c *fiber.Ctx) error {
-	request := new(authpb.ResetPassword_Request)
+	request := new(accountpb.ResetPassword_Request)
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		h.log.Error(err).Send()
@@ -183,8 +183,8 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 
 	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
-		for _, err := range err.(authpb.ResetPassword_RequestMultiError) {
-			e := err.(authpb.ResetPassword_RequestValidationError)
+		for _, err := range err.(accountpb.ResetPassword_RequestMultiError) {
+			e := err.(accountpb.ResetPassword_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -192,14 +192,14 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 
 	// Sending an email with a verification link
 	if request.GetEmail() != "" {
-		request.Request = &authpb.ResetPassword_Request_Email{
+		request.Request = &accountpb.ResetPassword_Request_Email{
 			Email: request.GetEmail(),
 		}
 	}
 
 	// Saving a new password
 	if request.GetToken() != "" && request.GetPassword() != "" {
-		request.Request = &authpb.ResetPassword_Request_Password{
+		request.Request = &accountpb.ResetPassword_Request_Password{
 			Password: request.GetPassword(),
 		}
 		request.Token = request.GetToken()
@@ -212,7 +212,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := authpb.NewAuthHandlersClient(h.Grpc.Client)
+	rClient := accountpb.NewAccountHandlersClient(h.Grpc.Client)
 	response, err := rClient.ResetPassword(ctx, request)
 	if err != nil {
 		h.log.Error(err).Send()
@@ -238,7 +238,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 // @Router       /auth/profile [get]
 func (h *Handler) getProfile(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	return webutil.StatusOK(c, msgUserInfo, authpb.SignIn_Response{
+	return webutil.StatusOK(c, msgUserInfo, accountpb.SignIn_Response{
 		UserId:   userParameter.UserID(""),
 		UserRole: userParameter.UserRole(),
 		Name:     "Mr Robot",

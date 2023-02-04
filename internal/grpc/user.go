@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	userpb "github.com/werbot/werbot/api/proto/user"
@@ -30,7 +30,8 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
       "email",
       "enabled",
       "confirmed",
-      "last_activity",
+      "last_update",
+      "last_update",
       "created",
       "role",
       (SELECT COUNT(*) FROM "project" WHERE "owner_id" = "user"."id") AS "count_project",
@@ -44,7 +45,7 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 
 	for rows.Next() {
 		var countServers, countProjects, countKeys int32
-		var lastActivity, created pgtype.Timestamp
+		var lastUpdate, created pgtype.Timestamp
 		user := new(userpb.User_Response)
 		userDetail := new(userpb.ListUsers_Response_UserInfo)
 		err = rows.Scan(&user.UserId,
@@ -54,7 +55,7 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 			&user.Email,
 			&user.Enabled,
 			&user.Confirmed,
-			&lastActivity,
+			&lastUpdate,
 			&created,
 			&user.Role,
 			&countProjects,
@@ -68,7 +69,7 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 			service.log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
-		user.LastActivity = timestamppb.New(lastActivity.Time)
+		user.LastUpdate = timestamppb.New(lastUpdate.Time)
 		user.Created = timestamppb.New(created.Time)
 
 		userDetail.ServersCount = countServers
@@ -92,10 +93,11 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 
 // User is displays user information
 func (u *user) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_Response, error) {
+	var lastUpdate, created pgtype.Timestamp
 	response := new(userpb.User_Response)
 	response.UserId = in.GetUserId()
 
-	err := service.db.Conn.QueryRow(`SELECT "login", "name", "surname", "email", "enabled", "confirmed", "role"
+	err := service.db.Conn.QueryRow(`SELECT "login", "name", "surname", "email", "enabled", "confirmed", "role", "last_update", "created"
     FROM "user"
     WHERE "id" = $1`,
 		in.GetUserId(),
@@ -106,6 +108,8 @@ func (u *user) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_
 		&response.Enabled,
 		&response.Confirmed,
 		&response.Role,
+		&lastUpdate,
+		&created,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -114,6 +118,9 @@ func (u *user) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_
 		service.log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
+
+	response.LastUpdate = timestamppb.New(lastUpdate.Time)
+	response.Created = timestamppb.New(created.Time)
 
 	return response, nil
 }
@@ -145,8 +152,8 @@ func (u *user) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb
 
 	// Adds a new entry to the database
 	password, _ := crypto.HashPassword(in.Password)
-	err = tx.QueryRow(`INSERT INTO "user" ("login", "name", "surname", "email", "password", "enabled", "confirmed", "created")
-    VALUES ($1, $2, $3, $4, $5, $6, NOW())
+	err = tx.QueryRow(`INSERT INTO "user" ("login", "name", "surname", "email", "password", "enabled", "confirmed")
+    VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING "id"`,
 		in.GetLogin(),
 		in.GetName(),
@@ -182,6 +189,7 @@ func (u *user) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*
       "email" = $2,
       "name" = $3,
       "surname" = $4,
+      "last_update" = NEW()
     WHERE "id" = $5`,
 			in.GetInfo().GetLogin(),
 			in.GetInfo().GetEmail(),
@@ -191,13 +199,13 @@ func (u *user) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*
 		)
 
 	case *userpb.UpdateUser_Request_Confirmed:
-		data, err = service.db.Conn.Exec(`UPDATE "user" SET "confirmed" = $1 WHERE "id" = $2`,
+		data, err = service.db.Conn.Exec(`UPDATE "user" SET "confirmed" = $1, "last_update" = NEW() WHERE "id" = $2`,
 			in.GetConfirmed(),
 			in.GetUserId(),
 		)
 
 	case *userpb.UpdateUser_Request_Enabled:
-		data, err = service.db.Conn.Exec(`UPDATE "user" SET "enabled" = $1 WHERE "id" = $2`,
+		data, err = service.db.Conn.Exec(`UPDATE "user" SET "enabled" = $1, "last_update" = NEW() WHERE "id" = $2`,
 			in.GetEnabled(),
 			in.GetUserId(),
 		)
@@ -257,7 +265,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 		}
 
 		deleteToken = uuid.New().String()
-		data, err := tx.Exec(`INSERT INTO "user_token" ("token", "user_id", "created", "action") VALUES ($1, $2, NOW(), 'delete')`,
+		data, err := tx.Exec(`INSERT INTO "user_token" ("token", "user_id", "action") VALUES ($1, $2, 'delete')`,
 			deleteToken,
 			in.GetUserId())
 		if err != nil {
@@ -289,7 +297,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 			return nil, errTransactionCreateError
 		}
 
-		data, err := tx.Exec(`UPDATE "user" SET "enabled" = 'f' WHERE "id" = $1`, in.GetUserId())
+		data, err := tx.Exec(`UPDATE "user" SET "enabled" = 'f', "last_update" = NEW() WHERE "id" = $1`, in.GetUserId())
 		if err != nil {
 			service.log.FromGRPC(err).Send()
 			return nil, errFailedToUpdate
@@ -298,7 +306,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 			return nil, errNotFound
 		}
 
-		data, err = tx.Exec(`UPDATE "user_token" SET "used" = 't', date_used = NOW() WHERE "token" = $1`, in.GetToken())
+		data, err = tx.Exec(`UPDATE "user_token" SET "used" = 't', "date_used" = NOW() WHERE "token" = $1`, in.GetToken())
 		if err != nil {
 			service.log.FromGRPC(err).Send()
 			return nil, errFailedToUpdate
@@ -362,7 +370,7 @@ func (u *user) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_Req
 		return nil, errHashIsNotValid // HashPassword failed
 	}
 
-	data, err := service.db.Conn.Exec(`UPDATE "user" SET "password" = $1 WHERE "id" = $2`, newPassword, in.GetUserId())
+	data, err := service.db.Conn.Exec(`UPDATE "user" SET "password" = $1, "last_update" = NEW() WHERE "id" = $2`, newPassword, in.GetUserId())
 	if err != nil {
 		service.log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate

@@ -3,7 +3,6 @@ package grpc
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	accountpb "github.com/werbot/werbot/api/proto/account"
 	"github.com/werbot/werbot/pkg/strutil"
@@ -96,12 +95,11 @@ func (s *account) UpdateStatus(ctx context.Context, in *accountpb.UpdateStatus_R
 
 	switch in.GetStatus() {
 	case 1:
-		data, err = service.db.Conn.Exec(`UPDATE "server_member" SET "online" = true, "last_activity" = $1 WHERE "id" = $2`,
-			time.Now(),
+		data, err = service.db.Conn.Exec(`UPDATE "server_member" SET "online" = true, "last_update" = NOW() WHERE "id" = $1`,
 			in.GetAccountId(),
 		)
 	case 2:
-		data, err = service.db.Conn.Exec(`UPDATE "server_member" SET "online" = false WHERE "id" = $1`,
+		data, err = service.db.Conn.Exec(`UPDATE "server_member" SET "online" = false, "last_update" = NOW() WHERE "id" = $1`,
 			in.GetAccountId(),
 		)
 	}

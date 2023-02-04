@@ -6,8 +6,13 @@ option go_package = "github.com/werbot/werbot/api/proto/account";
 
 import "google/protobuf/timestamp.proto";
 import "validate/validate.proto";
+import "user/user.proto";
 
 service AccountHandlers {
+  // Auth section
+  rpc SignIn(SignIn.Request) returns (user.User.Response) {}
+  rpc ResetPassword(ResetPassword.Request) returns (ResetPassword.Response) {}
+
   // Account section
   rpc ListAccounts(ListAccounts.Request) returns (ListAccounts.Response) {}
   rpc Account(Account.Request) returns (Account.Response) {}
@@ -25,16 +30,69 @@ service AccountHandlers {
 
 enum AccountStatus {
   unspecified = 0;
-  offLine = 1;
-  onLine = 2;
+  offline = 1;
+  online = 2;
 }
+
+// rpc SignIn
+message SignIn {
+  message Request {
+    string email = 2    [(validate.rules).string.email = true];
+    string password = 3 [(validate.rules).string = { min_len: 8, max_len: 32 }];
+  }
+
+  message Response {
+    string user_id = 1;
+    string name = 2;
+    string email = 3;
+    user.Role user_role = 4;
+  }
+}
+// -----------------------------------------------------
+
+
+// rpc ResetPassword
+message ResetPassword {
+  message Request {
+    oneof request {
+      string email = 1    [(validate.rules).string.email = true];
+      string password = 2 [(validate.rules).string = {min_len: 8, max_len: 32}];
+    }
+    string token = 3      [(validate.rules).string = {ignore_empty: true, uuid: true}];
+  }
+
+  message Response {
+    string message = 1;
+    string token = 2;
+  }
+}
+// -----------------------------------------------------
+
+
+message RefreshTokenRequest {
+  string refresh_token = 1 [(validate.rules).string.uuid = true];
+}
+
+message UserParameters {
+  string user_name = 1;
+  string user_id = 2;
+  user.Role roles = 3;
+  string sub = 4;
+}
+
+
+// -----------------------------------------------------
+
 
 // rpc ListAccounts
 message ListAccounts {
   message Request {
+    // for pagination
     int32 limit = 1;
     int32 offset = 2;
     string sort_by = 3;
+    // ---
+
     string query = 4;
   }
 
@@ -58,8 +116,9 @@ message Account {
     bool active = 3;
     string name = 4;
     string surname = 5;
-    google.protobuf.Timestamp last_activity = 6;
     string connection_login = 7;
+    google.protobuf.Timestamp last_update = 8;
+    google.protobuf.Timestamp created = 9;
   }
 }
 // -----------------------------------------------------

@@ -2107,6 +2107,35 @@ func (m *ProjectMember_Response) validate(all bool) error {
 	// no validation rules for ServersCount
 
 	if all {
+		switch v := interface{}(m.GetLastUpdate()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ProjectMember_ResponseValidationError{
+					field:  "LastUpdate",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ProjectMember_ResponseValidationError{
+					field:  "LastUpdate",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetLastUpdate()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ProjectMember_ResponseValidationError{
+				field:  "LastUpdate",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
 		switch v := interface{}(m.GetCreated()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
@@ -3688,6 +3717,37 @@ func (m *ListMembersInvite_Invites) validate(all bool) error {
 
 	// no validation rules for Email
 
+	// no validation rules for Status
+
+	if all {
+		switch v := interface{}(m.GetLastUpdate()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ListMembersInvite_InvitesValidationError{
+					field:  "LastUpdate",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ListMembersInvite_InvitesValidationError{
+					field:  "LastUpdate",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetLastUpdate()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ListMembersInvite_InvitesValidationError{
+				field:  "LastUpdate",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if all {
 		switch v := interface{}(m.GetCreated()).(type) {
 		case interface{ ValidateAll() error }:
@@ -3716,8 +3776,6 @@ func (m *ListMembersInvite_Invites) validate(all bool) error {
 			}
 		}
 	}
-
-	// no validation rules for Status
 
 	if len(errors) > 0 {
 		return ListMembersInvite_InvitesMultiError(errors)
@@ -5121,11 +5179,11 @@ func (m *ServerMember_Response) validate(all bool) error {
 	// no validation rules for Online
 
 	if all {
-		switch v := interface{}(m.GetLastActivity()).(type) {
+		switch v := interface{}(m.GetLastUpdate()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, ServerMember_ResponseValidationError{
-					field:  "LastActivity",
+					field:  "LastUpdate",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -5133,16 +5191,45 @@ func (m *ServerMember_Response) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, ServerMember_ResponseValidationError{
-					field:  "LastActivity",
+					field:  "LastUpdate",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetLastActivity()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetLastUpdate()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ServerMember_ResponseValidationError{
-				field:  "LastActivity",
+				field:  "LastUpdate",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetCreated()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ServerMember_ResponseValidationError{
+					field:  "Created",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ServerMember_ResponseValidationError{
+					field:  "Created",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ServerMember_ResponseValidationError{
+				field:  "Created",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

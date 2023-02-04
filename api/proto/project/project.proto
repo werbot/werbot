@@ -14,7 +14,11 @@ service ProjectHandlers {
   rpc UpdateProject(UpdateProject.Request) returns (UpdateProject.Response) {}
   rpc DeleteProject(DeleteProject.Request) returns (DeleteProject.Response) {}
 
-  rpc Keys(Keys.Request) returns (Keys.Response) {}
+  // API key section
+  rpc Key(Key.Request) returns (Key.Response) {}
+  rpc AddKey(AddKey.Request) returns (AddKey.Response) {}
+  rpc UpdateKey(UpdateKey.Request) returns (UpdateKey.Response) {}
+  rpc DeleteKey(DeleteKey.Request) returns (DeleteKey.Response) {}
 }
 
 // rpc ListProjects
@@ -48,7 +52,8 @@ message Project {
     string login = 4;
     int32 members_count = 5;
     int32 servers_count = 6;
-    google.protobuf.Timestamp created = 7;
+    google.protobuf.Timestamp last_update = 7;
+    google.protobuf.Timestamp created = 9;
   }
 }
 // -----------------------------------------------------
@@ -94,8 +99,8 @@ message DeleteProject{
 // -----------------------------------------------------
 
 
-// rpc Keys
-message Keys {
+// rpc Key
+message Key {
   message Request {
     string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
   }
@@ -104,6 +109,45 @@ message Keys {
     string api_key = 1;
     string api_secret = 2;
     bool api_online =3;
+    google.protobuf.Timestamp last_update = 6;
+    google.protobuf.Timestamp created = 7;
   }
+}
+// -----------------------------------------------------
+
+
+// rpc AddKey
+message AddKey {
+  message Request {
+    string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+  }
+
+  message Response {
+    Key.Response key = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UpdateKey
+message UpdateKey {
+  message Request {
+    string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string api_key = 2    [(validate.rules).string.uuid = true]; // @gotags: query:"api_key"
+  }
+
+  message Response {
+    Key.Response key = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc DeleteKey
+message DeleteKey {
+  message Request {
+    string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string api_key = 2    [(validate.rules).string.uuid = true]; // @gotags: query:"api_key"
+  }
+
+  message Response {}
 }
 // -----------------------------------------------------

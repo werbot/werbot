@@ -6,26 +6,22 @@ import (
 
 	"github.com/google/uuid"
 
-	authpb "github.com/werbot/werbot/api/proto/auth"
+	accountpb "github.com/werbot/werbot/api/proto/account"
 	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal/crypto"
 )
 
-type auth struct {
-	authpb.UnimplementedAuthHandlersServer
-}
-
 // SignIn is ...
-func (a *auth) SignIn(ctx context.Context, in *authpb.SignIn_Request) (*userpb.User_Response, error) {
+func (a *account) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*userpb.User_Response, error) {
 	var password string
 	response := new(userpb.User_Response)
 	response.Email = in.GetEmail()
 
 	err := service.db.Conn.QueryRow(`SELECT "id", "login", "name", "surname", "password", "enabled", "confirmed", "role"
-		    FROM "user"
-		    WHERE "email" = $1
-		      AND "enabled" = 't'
-		      AND "confirmed" = 't'`,
+    FROM "user"
+    WHERE "email" = $1
+      AND "enabled" = 't'
+      AND "confirmed" = 't'`,
 		in.GetEmail(),
 	).Scan(&response.UserId,
 		&response.Login,
@@ -49,9 +45,9 @@ func (a *auth) SignIn(ctx context.Context, in *authpb.SignIn_Request) (*userpb.U
 }
 
 // ResetPassword is ...
-func (a *auth) ResetPassword(ctx context.Context, in *authpb.ResetPassword_Request) (*authpb.ResetPassword_Response, error) {
+func (a *account) ResetPassword(ctx context.Context, in *accountpb.ResetPassword_Request) (*accountpb.ResetPassword_Response, error) {
 	var userID, resetToken string
-	response := new(authpb.ResetPassword_Response)
+	response := new(accountpb.ResetPassword_Response)
 
 	// Sending an email with a verification link
 	if in.GetEmail() != "" {
@@ -80,7 +76,7 @@ func (a *auth) ResetPassword(ctx context.Context, in *authpb.ResetPassword_Reque
 		}
 
 		resetToken = uuid.New().String()
-		data, err := service.db.Conn.Exec(`INSERT INTO "user_token" ("token", "user_id", "created", "action") VALUES ($1, $2, NOW(), 'reset')`,
+		data, err := service.db.Conn.Exec(`INSERT INTO "user_token" ("token", "user_id", "action") VALUES ($1, $2, 'reset')`,
 			resetToken,
 			userID,
 		)
@@ -139,12 +135,12 @@ func (a *auth) ResetPassword(ctx context.Context, in *authpb.ResetPassword_Reque
 		}
 
 		/*
-		   if _, err = db.Conn.Exec(`UPDATE "user" SET "password" = $1 WHERE "id" = $2`, newPassword, id); err != nil {
+		   if _, err = db.Conn.Exec(`UPDATE "user" SET "password" = $1, "last_update" = NOW() WHERE "id" = $2`, newPassword, id); err != nil {
 		     service.log.FromGRPC(err).Send()
 		     return nil, errors.New("There was a problem updating")
 		   }
 
-		   if _, err = db.Conn.Exec(`UPDATE "user_token" SET "used" = 't' WHERE "token" = $1`, in.GetToken()); err != nil {
+		   if _, err = db.Conn.Exec(`UPDATE "user_token" SET "used" = 't', "last_update" = NOW() WHERE "token" = $1`, in.GetToken()); err != nil {
 		     service.log.FromGRPC(err).Send()
 		     return nil, errors.New("There was a problem updating")
 		   }
