@@ -1,9 +1,8 @@
-package grpc
+package key
 
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -16,21 +15,13 @@ import (
 	"github.com/werbot/werbot/internal/crypto"
 )
 
-type key struct {
-	keypb.UnimplementedKeyHandlersServer
-}
-
-var (
-	errPublicKeyIsBroken = errors.New("the public key has a broken structure")
-)
-
 // ListKeys is ...
-func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.ListKeys_Response, error) {
+func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.ListKeys_Response, error) {
 	response := new(keypb.ListKeys_Response)
 
-	sqlSearch := service.db.SQLAddWhere(in.GetQuery())
-	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := service.db.Conn.Query(`SELECT
+	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
+	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
+	rows, err := h.DB.Conn.Query(`SELECT
 			"user_public_key"."id" AS "key_id",
 			"user_public_key"."user_id",
 			"user"."login" AS "user_login",
@@ -42,7 +33,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 		FROM "user_public_key"
 			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"` + sqlSearch + sqlFooter)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -62,7 +53,7 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 		publicKey.LastUpdate = timestamppb.New(lastUpdate.Time)
@@ -72,12 +63,12 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 	defer rows.Close()
 
 	// Total count for pagination
-	err = service.db.Conn.QueryRow(`SELECT COUNT (*)
+	err = h.DB.Conn.QueryRow(`SELECT COUNT (*)
 		FROM "user_public_key"
 			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"` + sqlSearch,
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -85,12 +76,12 @@ func (k *key) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.
 }
 
 // PublicKey is ...
-func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Response, error) {
+func (h *Handler) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Response, error) {
 	var lastUpdate, created pgtype.Timestamp
 	response := new(keypb.Key_Response)
 	response.KeyId = in.GetKeyId()
 
-	err := service.db.Conn.QueryRow(`SELECT
+	err := h.DB.Conn.QueryRow(`SELECT
 			"user_public_key"."id" AS "key_id",
 			"user_public_key"."user_id",
 			"user"."login" AS "user_login",
@@ -118,7 +109,7 @@ func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -129,25 +120,25 @@ func (k *key) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_
 }
 
 // AddKey is ...
-func (k *key) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddKey_Response, error) {
+func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddKey_Response, error) {
 	response := new(keypb.AddKey_Response)
 
 	publicKey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(in.GetKey()))
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errPublicKeyIsBroken
 	}
 	fingerprint := ssh.FingerprintLegacyMD5(publicKey)
 
 	// Check public key fingerprint
-	err = service.db.Conn.QueryRow(`SELECT "id" FROM "user_public_key" WHERE "fingerprint" = $1`,
+	err = h.DB.Conn.QueryRow(`SELECT "id" FROM "user_public_key" WHERE "fingerprint" = $1`,
 		fingerprint,
 	).Scan(&response.KeyId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 	if response.KeyId != "" {
@@ -158,7 +149,7 @@ func (k *key) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddK
 		comment = in.GetTitle()
 	}
 
-	err = service.db.Conn.QueryRow(`INSERT INTO "user_public_key" ("user_id", "title", "key_", "fingerprint")
+	err = h.DB.Conn.QueryRow(`INSERT INTO "user_public_key" ("user_id", "title", "key_", "fingerprint")
     VALUES ($1, $2, $3, $4) RETURNING id`,
 		in.GetUserId(),
 		comment,
@@ -166,7 +157,7 @@ func (k *key) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddK
 		fingerprint,
 	).Scan(&response.KeyId)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 
@@ -174,26 +165,26 @@ func (k *key) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddK
 }
 
 // UpdateKey is ...
-func (k *key) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*keypb.UpdateKey_Response, error) {
+func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*keypb.UpdateKey_Response, error) {
 	var keyID string
 	response := new(keypb.UpdateKey_Response)
 
 	publicKey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(in.GetKey()))
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errPublicKeyIsBroken
 	}
 	fingerprint := ssh.FingerprintLegacyMD5(publicKey)
 
 	// Check public key fingerprint
-	err = service.db.Conn.QueryRow(`SELECT "id" FROM "user_public_key" WHERE "fingerprint" = $1`,
+	err = h.DB.Conn.QueryRow(`SELECT "id" FROM "user_public_key" WHERE "fingerprint" = $1`,
 		fingerprint,
 	).Scan(&keyID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 	if keyID != "" {
@@ -204,7 +195,7 @@ func (k *key) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*keyp
 		comment = in.GetTitle()
 	}
 
-	data, err := service.db.Conn.Exec(`UPDATE "user_public_key"
+	data, err := h.DB.Conn.Exec(`UPDATE "user_public_key"
     SET "title" = $1, "key_" = $2, "fingerprint" = $3, "last_update" = NOW()
 		WHERE "id" = $4 AND "user_id" = $5`,
 		comment,
@@ -214,7 +205,7 @@ func (k *key) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*keyp
 		in.GetUserId(),
 	)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -225,15 +216,15 @@ func (k *key) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*keyp
 }
 
 // DeleteKey is ...
-func (k *key) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*keypb.DeleteKey_Response, error) {
+func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*keypb.DeleteKey_Response, error) {
 	response := new(keypb.DeleteKey_Response)
 
-	data, err := service.db.Conn.Exec(`DELETE FROM "user_public_key" WHERE "id" = $1 AND "user_id" = $2`,
+	data, err := h.DB.Conn.Exec(`DELETE FROM "user_public_key" WHERE "id" = $1 AND "user_id" = $2`,
 		in.GetKeyId(),
 		in.GetUserId(),
 	)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -244,13 +235,13 @@ func (k *key) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*keyp
 }
 
 // GenerateSSHKey is ...
-func (k *key) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_Request) (*keypb.GenerateSSHKey_Response, error) {
+func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_Request) (*keypb.GenerateSSHKey_Response, error) {
 	response := new(keypb.GenerateSSHKey_Response)
 	response.KeyType = in.GetKeyType()
 
 	key, err := crypto.NewSSHKey(in.GetKeyType().String())
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, crypto.ErrFailedCreatingSSHKey
 	}
 
@@ -262,7 +253,7 @@ func (k *key) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_Reque
 	cacheKey.Private = string(key.PrivateKey)
 	cacheKey.Public = string(key.PublicKey)
 
-	if err := service.cache.Set(fmt.Sprintf("tmp_key_ssh::%s", response.Uuid), cacheKey, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "5m")); err != nil {
+	if err := h.Cache.Set(fmt.Sprintf("tmp_key_ssh::%s", response.Uuid), cacheKey, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "5m")); err != nil {
 		return nil, errIncorrectParameters
 	}
 

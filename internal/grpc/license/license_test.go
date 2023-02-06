@@ -1,60 +1,25 @@
-package grpc
+package license_test
 
 import (
 	"context"
-	"log"
-	"net"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/test/bufconn"
 
 	licensepb "github.com/werbot/werbot/api/proto/license"
+	"github.com/werbot/werbot/internal/utils/test"
 	"github.com/werbot/werbot/pkg/fsutil"
 )
 
-var (
-	pubKeyOk   string
-	pubKeyErr  string
-	licenseOk  string
-	licenseErr string
-)
-
-func init() {
-	fixturePath := "../../fixtures/licenses/"
-
-	pubKeyOk = string(fsutil.MustReadFile(fixturePath + "publicKey_ok.key"))
-	pubKeyErr = string(fsutil.MustReadFile(fixturePath + "publicKey_err.key"))
-	licenseOk = fixturePath + "license_ok.key"
-	licenseErr = fixturePath + "license_err.key"
-}
-
-func dialer(t *testing.T) func(context.Context, string) (net.Conn, error) {
-	listener := bufconn.Listen(1024 * 1024)
-	server := grpc.NewServer()
-	licensepb.RegisterLicenseHandlersServer(server, &license{})
-	go func() {
-		if err := server.Serve(listener); err != nil {
-			log.Fatalf("Server exited with error: %v", err)
-		}
-	}()
-
-	return func(context.Context, string) (net.Conn, error) {
-		return listener.Dial()
-	}
-}
-
-func checkConnection(ctx context.Context, t *testing.T) *grpc.ClientConn {
-	conn, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithContextDialer(dialer(t)))
-	require.NoError(t, err)
-
-	return conn
-}
-
 func Test_license(t *testing.T) {
 	t.Parallel()
+
+	fixturePath := "../../fixtures/licenses/"
+	pubKeyOk := string(fsutil.MustReadFile(fixturePath + "publicKey_ok.key"))
+	// pubKeyErr := string(fsutil.MustReadFile(fixturePath + "publicKey_err.key"))
+	licenseOk := fixturePath + "license_ok.key"
+	licenseErr := fixturePath + "license_err.key"
 
 	testCases := []struct {
 		name      string
@@ -126,7 +91,7 @@ func Test_license(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	conn := checkConnection(ctx, t)
+	conn := test.CreateGRPC(ctx, t, nil)
 	defer conn.Close()
 
 	for _, tt := range testCases {

@@ -1,4 +1,4 @@
-package grpc
+package license
 
 import (
 	"context"
@@ -6,27 +6,23 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/google/uuid"
 	licensepb "github.com/werbot/werbot/api/proto/license"
 	"github.com/werbot/werbot/internal"
 	license_lib "github.com/werbot/werbot/internal/license"
 )
 
-type license struct {
-	licensepb.UnimplementedLicenseHandlersServer
-}
-
 // License is ...
-func (l *license) License(ctx context.Context, in *licensepb.License_Request) (*licensepb.License_Response, error) {
+func (h *Handler) License(ctx context.Context, in *licensepb.License_Request) (*licensepb.License_Response, error) {
 	licenseOpen := true
 	licensePublic := internal.GetString("LICENSE_KEY_PUBLIC", "")
 	response := new(licensepb.License_Response)
 
 	readFile, err := os.ReadFile(internal.GetString("LICENSE_FILE", "/license.key"))
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		licenseOpen = false
 		//return nil, license_lib.ErrFailedToOpenLicenseFile
 	}
@@ -38,14 +34,14 @@ func (l *license) License(ctx context.Context, in *licensepb.License_Request) (*
 	if licenseOpen {
 		lic, err := license_lib.DecodePublicKey([]byte(licensePublic))
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, license_lib.ErrLicenseKeyIsBroken
 		}
 
 		// The main information of the license
 		licDecode, err := lic.Decode(readFile)
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, license_lib.ErrLicenseStructureIsBroken
 		}
 		response.Issued = licDecode.License.Iss
@@ -58,7 +54,7 @@ func (l *license) License(ctx context.Context, in *licensepb.License_Request) (*
 
 		licData := map[string]any{}
 		if err := json.Unmarshal(licDecode.License.Dat, &licData); err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, license_lib.ErrLicenseStructureIsBroken
 		}
 

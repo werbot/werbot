@@ -1,4 +1,4 @@
-package grpc
+package info
 
 import (
 	"context"
@@ -8,12 +8,8 @@ import (
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 )
 
-type info struct {
-	infopb.UnimplementedInfoHandlersServer
-}
-
 // UserMetrics is ...
-func (i *info) UserMetrics(ctx context.Context, in *infopb.UserMetrics_Request) (*infopb.UserMetrics_Response, error) {
+func (h *Handler) UserMetrics(ctx context.Context, in *infopb.UserMetrics_Request) (*infopb.UserMetrics_Response, error) {
 	response := new(infopb.UserMetrics_Response)
 
 	sqlProjects, _ := sanitize.SQL(`WHERE "owner_id" = $1`,
@@ -24,13 +20,13 @@ func (i *info) UserMetrics(ctx context.Context, in *infopb.UserMetrics_Request) 
 	)
 
 	if in.Role == userpb.Role_admin {
-		service.db.Conn.QueryRow(`SELECT COUNT(*) AS users FROM "user"`).Scan(&response.Users)
+		h.DB.Conn.QueryRow(`SELECT COUNT(*) AS users FROM "user"`).Scan(&response.Users)
 		sqlProjects = ""
 		sqlServers = ""
 
 	}
-	service.db.Conn.QueryRow(`SELECT COUNT(*) AS projects FROM "project" ` + sqlProjects).Scan(&response.Projects)
-	service.db.Conn.QueryRow(`SELECT COUNT(*) AS servers FROM "server" ` + sqlServers).Scan(&response.Servers)
+	h.DB.Conn.QueryRow(`SELECT COUNT(*) AS projects FROM "project" ` + sqlProjects).Scan(&response.Projects)
+	h.DB.Conn.QueryRow(`SELECT COUNT(*) AS servers FROM "server" ` + sqlServers).Scan(&response.Servers)
 
 	return response, nil
 }

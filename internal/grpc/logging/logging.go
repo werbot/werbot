@@ -1,4 +1,4 @@
-package grpc
+package logging
 
 import (
 	"context"
@@ -8,24 +8,20 @@ import (
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 )
 
-type logging struct {
-	loggingpb.UnimplementedLoggingHandlersServer
-}
-
-// TODO ListRecords is ...
-func (l *logging) ListRecords(ctx context.Context, in *loggingpb.ListRecords_Request) (*loggingpb.ListRecords_Response, error) {
+// ListRecords is ...
+func (h *Handler) ListRecords(ctx context.Context, in *loggingpb.ListRecords_Request) (*loggingpb.ListRecords_Response, error) {
 	response := new(loggingpb.ListRecords_Response)
 	return response, nil
 }
 
-// TODO Record is ...
-func (l *logging) Record(ctx context.Context, in *loggingpb.Record_Request) (*loggingpb.Record_Response, error) {
+// Record is ...
+func (h *Handler) Record(ctx context.Context, in *loggingpb.Record_Request) (*loggingpb.Record_Response, error) {
 	response := new(loggingpb.Record_Response)
 	return response, nil
 }
 
 // AddLogRecord is ...
-func (l *logging) AddLogRecord(ctx context.Context, in *loggingpb.AddRecord_Request) (*loggingpb.AddRecord_Response, error) {
+func (h *Handler) AddLogRecord(ctx context.Context, in *loggingpb.AddRecord_Request) (*loggingpb.AddRecord_Response, error) {
 	var sqlQuery string
 	var data sql.Result
 	var err error
@@ -39,7 +35,7 @@ func (l *logging) AddLogRecord(ctx context.Context, in *loggingpb.AddRecord_Requ
 			in.GetEvent().String(),
 		)
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errBadRequest
 		}
 
@@ -50,13 +46,13 @@ func (l *logging) AddLogRecord(ctx context.Context, in *loggingpb.AddRecord_Requ
 			in.GetEvent().String(),
 		)
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errBadRequest
 		}
 	}
 
-	if data, err = service.db.Conn.Exec(sqlQuery); err != nil {
-		service.log.FromGRPC(err).Send()
+	if data, err = h.DB.Conn.Exec(sqlQuery); err != nil {
+		log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {

@@ -3,8 +3,10 @@ module github.com/werbot/werbot
 go 1.19
 
 require (
+	github.com/alicebob/miniredis/v2 v2.30.0
 	github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a
 	github.com/envoyproxy/protoc-gen-validate v0.9.1
+	github.com/fergusstrange/embedded-postgres v1.20.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/fsouza/go-dockerclient v1.9.3
 	github.com/gliderlabs/ssh v0.3.5
@@ -20,10 +22,9 @@ require (
 	github.com/nats-io/nats.go v1.23.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/oschwald/geoip2-golang v1.8.0
+	github.com/pressly/goose/v3 v3.9.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/zerolog v1.29.0
-	github.com/steinfletcher/apitest v1.5.14
-	github.com/steinfletcher/apitest-jsonpath v1.7.1
 	github.com/stretchr/testify v1.8.1
 	github.com/vanng822/go-premailer v1.20.1
 	github.com/xhit/go-simple-mail/v2 v2.13.0
@@ -39,9 +40,8 @@ require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect
-	github.com/PaesslerAG/gval v1.2.1 // indirect
-	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
 	github.com/PuerkitoBio/goquery v1.8.0 // indirect
+	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
@@ -60,6 +60,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/lib/pq v1.10.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
@@ -81,7 +82,6 @@ require (
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
 	github.com/savsgio/gotils v0.0.0-20230203094617-bcbc01813b4f // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/toorop/go-dkim v0.0.0-20201103131630-e1cd1a0a5208 // indirect
@@ -89,6 +89,8 @@ require (
 	github.com/valyala/fasthttp v1.44.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/vanng822/css v1.0.1 // indirect
+	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
+	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect

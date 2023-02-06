@@ -1,4 +1,4 @@
-package grpc
+package firewall
 
 import (
 	"context"
@@ -8,17 +8,15 @@ import (
 	firewallpb "github.com/werbot/werbot/api/proto/firewall"
 	utilitypb "github.com/werbot/werbot/api/proto/utility"
 	"github.com/werbot/werbot/internal"
+	"github.com/werbot/werbot/internal/grpc/project"
+	"github.com/werbot/werbot/internal/grpc/utility"
 	"github.com/werbot/werbot/pkg/strutil"
 )
-
-type firewall struct {
-	firewallpb.UnimplementedFirewallHandlersServer
-}
 
 // IPAccess is global service access check by IP
 // old version https://git.piplos.media/werbot/werbot-server/-/blob/feature/audit-record/pkg/acl/security.go
 // https://git.piplos.media/werbot/old-werbot/-/blob/master/wserver/firewall.go
-func (s *firewall) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request) (*firewallpb.IPAccess_Response, error) {
+func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request) (*firewallpb.IPAccess_Response, error) {
 	response := new(firewallpb.IPAccess_Response)
 
 	// TODO add only if debug mode
@@ -31,7 +29,7 @@ func (s *firewall) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request
 	}
 
 	// Verification of the country according to the global list of prohibited countries
-	pbUtility := new(utility)
+	pbUtility := new(utility.Handler)
 	responseC, _ := pbUtility.CountryByIP(ctx, &utilitypb.CountryByIP_Request{
 		Ip: in.GetClientIp(),
 	})
@@ -41,7 +39,7 @@ func (s *firewall) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request
 
 	// porch IP on the global list
 	var total int32
-	err := service.db.Conn.QueryRow(`SELECT COUNT(*)
+	err := h.DB.Conn.QueryRow(`SELECT COUNT(*)
 		FROM "firewall_ip"
 			INNER JOIN "firewall_list" ON "firewall_ip"."list_id" = "firewall_list"."id"
 		WHERE $1::inet >= "start_ip"
@@ -50,7 +48,7 @@ func (s *firewall) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request
 		in.GetClientIp(),
 	).Scan(&total)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -63,8 +61,8 @@ func (s *firewall) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request
 }
 
 // ServerFirewall is server firewall settings for server_id
-func (s *firewall) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirewall_Request) (*firewallpb.ServerFirewall_Response, error) {
-	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
+func (h *Handler) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirewall_Request) (*firewallpb.ServerFirewall_Response, error) {
+	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
 
@@ -73,14 +71,14 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *firewallpb.ServerFire
 	response.Network = new(firewallpb.ServerFirewall_Networks)
 
 	// get countries
-	rows, err := service.db.Conn.Query(`SELECT "server_security_country"."id", "server_security_country"."country_code", "country"."name"
+	rows, err := h.DB.Conn.Query(`SELECT "server_security_country"."id", "server_security_country"."country_code", "country"."name"
 		FROM "server_security_country"
 			INNER JOIN "country" ON "server_security_country"."country_code" = "country"."code"
 		WHERE "server_security_country"."server_id" = $1`,
 		in.GetServerId(),
 	)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -90,7 +88,7 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *firewallpb.ServerFire
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 		response.Country.List = append(response.Country.List, country)
@@ -98,14 +96,14 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *firewallpb.ServerFire
 	defer rows.Close()
 
 	// get networks
-	rows, err = service.db.Conn.Query(`SELECT "id", "start_ip", "end_ip" FROM "server_security_ip" WHERE "server_id" = $1`,
+	rows, err = h.DB.Conn.Query(`SELECT "id", "start_ip", "end_ip" FROM "server_security_ip" WHERE "server_id" = $1`,
 		in.GetServerId(),
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -115,7 +113,7 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *firewallpb.ServerFire
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 		response.Network.List = append(response.Network.List, network)
@@ -123,7 +121,7 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *firewallpb.ServerFire
 	defer rows.Close()
 
 	// get status black lists
-	err = service.db.Conn.QueryRow(`SELECT "ip", "country" FROM "server_access_policy" WHERE "server_id" = $1`,
+	err = h.DB.Conn.QueryRow(`SELECT "ip", "country" FROM "server_access_policy" WHERE "server_id" = $1`,
 		in.GetServerId(),
 	).Scan(
 		&response.Network.WiteList,
@@ -133,7 +131,7 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *firewallpb.ServerFire
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -141,8 +139,8 @@ func (s *firewall) ServerFirewall(ctx context.Context, in *firewallpb.ServerFire
 }
 
 // AddServerFirewall is adding server firewall settings for server_id
-func (s *firewall) AddServerFirewall(ctx context.Context, in *firewallpb.AddServerFirewall_Request) (*firewallpb.AddServerFirewall_Response, error) {
-	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
+func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServerFirewall_Request) (*firewallpb.AddServerFirewall_Response, error) {
+	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
 
@@ -150,48 +148,48 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *firewallpb.AddServ
 
 	switch record := in.Record.(type) {
 	case *firewallpb.AddServerFirewall_Request_CountryCode:
-		err := service.db.Conn.QueryRow(`SELECT "id" FROM "server_security_country" WHERE "server_id" = $1 AND "country_code" = $2`,
+		err := h.DB.Conn.QueryRow(`SELECT "id" FROM "server_security_country" WHERE "server_id" = $1 AND "country_code" = $2`,
 			in.GetServerId(),
 			record.CountryCode,
 		).Scan(&response.Id)
 		if err != nil && err != sql.ErrNoRows {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 		if response.Id != "" {
 			return nil, errObjectAlreadyExists
 		}
 
-		err = service.db.Conn.QueryRow(`INSERT INTO "server_security_country" ("server_id", "country_code") VALUES ($1, $2) RETURNING id`,
+		err = h.DB.Conn.QueryRow(`INSERT INTO "server_security_country" ("server_id", "country_code") VALUES ($1, $2) RETURNING id`,
 			in.GetServerId(),
 			record.CountryCode,
 		).Scan(&response.Id)
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errFailedToAdd
 		}
 
 	case *firewallpb.AddServerFirewall_Request_Ip:
-		err := service.db.Conn.QueryRow(`SELECT "id" FROM "server_security_ip" WHERE "server_id" = $1 AND "start_ip" = $2 AND "end_ip" = $3`,
+		err := h.DB.Conn.QueryRow(`SELECT "id" FROM "server_security_ip" WHERE "server_id" = $1 AND "start_ip" = $2 AND "end_ip" = $3`,
 			in.GetServerId(),
 			record.Ip.StartIp,
 			record.Ip.EndIp,
 		).Scan(&response.Id)
 		if err != nil && err != sql.ErrNoRows {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 		if response.Id != "" {
 			return nil, errObjectAlreadyExists
 		}
 
-		err = service.db.Conn.QueryRow(`INSERT INTO "server_security_ip" ("server_id", "start_ip", "end_ip") VALUES ($1, $2, $3) RETURNING id`,
+		err = h.DB.Conn.QueryRow(`INSERT INTO "server_security_ip" ("server_id", "start_ip", "end_ip") VALUES ($1, $2, $3) RETURNING id`,
 			in.GetServerId(),
 			record.Ip.StartIp,
 			record.Ip.EndIp,
 		).Scan(&response.Id)
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errFailedToAdd
 		}
 
@@ -203,8 +201,8 @@ func (s *firewall) AddServerFirewall(ctx context.Context, in *firewallpb.AddServ
 }
 
 // DeleteServerFirewall is deleting server firewall settings for server_id
-func (s *firewall) DeleteServerFirewall(ctx context.Context, in *firewallpb.DeleteServerFirewall_Request) (*firewallpb.DeleteServerFirewall_Response, error) {
-	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
+func (h *Handler) DeleteServerFirewall(ctx context.Context, in *firewallpb.DeleteServerFirewall_Request) (*firewallpb.DeleteServerFirewall_Response, error) {
+	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
 
@@ -220,9 +218,9 @@ func (s *firewall) DeleteServerFirewall(ctx context.Context, in *firewallpb.Dele
 		return response, nil
 	}
 
-	data, err := service.db.Conn.Exec(sql, in.GetRecordId())
+	data, err := h.DB.Conn.Exec(sql, in.GetRecordId())
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -233,8 +231,8 @@ func (s *firewall) DeleteServerFirewall(ctx context.Context, in *firewallpb.Dele
 }
 
 // UpdateServerFirewall is ...
-func (s *firewall) UpdateServerFirewall(ctx context.Context, in *firewallpb.UpdateServerFirewall_Request) (*firewallpb.UpdateServerFirewall_Response, error) {
-	if !isOwnerProject(in.GetProjectId(), in.GetUserId()) {
+func (h *Handler) UpdateServerFirewall(ctx context.Context, in *firewallpb.UpdateServerFirewall_Request) (*firewallpb.UpdateServerFirewall_Response, error) {
+	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
 		return nil, errNotFound
 	}
 
@@ -250,9 +248,9 @@ func (s *firewall) UpdateServerFirewall(ctx context.Context, in *firewallpb.Upda
 		return response, nil
 	}
 
-	data, err := service.db.Conn.Exec(sql, in.GetStatus(), in.GetServerId())
+	data, err := h.DB.Conn.Exec(sql, in.GetStatus(), in.GetServerId())
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -264,49 +262,49 @@ func (s *firewall) UpdateServerFirewall(ctx context.Context, in *firewallpb.Upda
 
 // ServerAccess is checks if the participant has access to the server according
 // to the server's individual firewall settings
-func (s *firewall) ServerAccess(ctx context.Context, in *firewallpb.ServerAccess_Request) (*firewallpb.ServerAccess_Response, error) {
+func (h *Handler) ServerAccess(ctx context.Context, in *firewallpb.ServerAccess_Request) (*firewallpb.ServerAccess_Response, error) {
 	response := new(firewallpb.ServerAccess_Response)
 
 	// Global service access check by IP
-	if _, err := s.IPAccess(ctx, &firewallpb.IPAccess_Request{
+	if _, err := h.IPAccess(ctx, &firewallpb.IPAccess_Request{
 		ClientIp: in.GetMemberIp(),
 	}); err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, err
 	}
 
 	// Check by user
-	if _, err := s.ServerAccessUser(ctx, &firewallpb.ServerAccessUser_Request{
+	if _, err := h.ServerAccessUser(ctx, &firewallpb.ServerAccessUser_Request{
 		ServerId: in.GetServerId(),
 		UserId:   in.GetUserId(),
 	}); err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, err
 	}
 
 	// Check by ip
-	if _, err := s.ServerAccessIP(ctx, &firewallpb.ServerAccessIP_Request{
+	if _, err := h.ServerAccessIP(ctx, &firewallpb.ServerAccessIP_Request{
 		ServerId: in.GetServerId(),
 		MemberIp: in.GetMemberIp(),
 	}); err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, err
 	}
 
 	// Check by country
-	if _, err := s.ServerAccessCountry(ctx, &firewallpb.ServerAccessCountry_Request{
+	if _, err := h.ServerAccessCountry(ctx, &firewallpb.ServerAccessCountry_Request{
 		ServerId: in.GetServerId(),
 		MemberIp: in.GetMemberIp(),
 	}); err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, err
 	}
 
 	// Check by time
-	if _, err := s.ServerAccessTime(ctx, &firewallpb.ServerAccessTime_Request{
+	if _, err := h.ServerAccessTime(ctx, &firewallpb.ServerAccessTime_Request{
 		ServerId: in.GetServerId(),
 	}); err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, err
 	}
 
@@ -314,11 +312,11 @@ func (s *firewall) ServerAccess(ctx context.Context, in *firewallpb.ServerAccess
 }
 
 // ServerAccessUser is ...
-func (s *firewall) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAccessUser_Request) (*firewallpb.ServerAccessUser_Response, error) {
+func (h *Handler) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAccessUser_Request) (*firewallpb.ServerAccessUser_Response, error) {
 	memberID := ""
 	response := new(firewallpb.ServerAccessUser_Response)
 
-	err := service.db.Conn.QueryRow(`SELECT "server_member"."id"
+	err := h.DB.Conn.QueryRow(`SELECT "server_member"."id"
 		FROM "server_member"
 			INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
 			INNER JOIN "server" ON "server_member"."server_id" = "server"."id"
@@ -334,7 +332,7 @@ func (s *firewall) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAc
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 	if memberID == "" {
@@ -345,12 +343,12 @@ func (s *firewall) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAc
 }
 
 // ServerAccessTime is checks if it is possible to connect to the server now
-func (s *firewall) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAccessTime_Request) (*firewallpb.ServerAccessTime_Response, error) {
+func (h *Handler) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAccessTime_Request) (*firewallpb.ServerAccessTime_Response, error) {
 	id := 0
 	weekDays := [...]int32{7, 1, 2, 3, 4, 5, 6}
 	response := new(firewallpb.ServerAccessTime_Response)
 
-	err := service.db.Conn.QueryRow(`SELECT "id" FROM "server_activity"
+	err := h.DB.Conn.QueryRow(`SELECT "id" FROM "server_activity"
     WHERE "server_id" = $1
       AND "dow" = $2
       AND "time_from" < $3
@@ -360,7 +358,7 @@ func (s *firewall) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAc
 		time.Now().Local().Format("15:04:05"),
 	).Scan(&id)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 	if id == 0 {
@@ -371,7 +369,7 @@ func (s *firewall) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAc
 }
 
 // ServerAccessIP is ...
-func (s *firewall) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAccessIP_Request) (*firewallpb.ServerAccessIP_Response, error) {
+func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAccessIP_Request) (*firewallpb.ServerAccessIP_Response, error) {
 	total := 0
 	response := new(firewallpb.ServerAccessIP_Response)
 
@@ -381,7 +379,7 @@ func (s *firewall) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcce
 	}
 
 	var accessListIP bool
-	err := service.db.Conn.QueryRow(`SELECT "ip" FROM "server_access_policy" WHERE "server_id" =$1`,
+	err := h.DB.Conn.QueryRow(`SELECT "ip" FROM "server_access_policy" WHERE "server_id" =$1`,
 		in.GetServerId(),
 	).Scan(
 		&accessListIP,
@@ -390,12 +388,12 @@ func (s *firewall) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcce
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
 	// We make a sample in the database with a list of IP addresses
-	err = service.db.Conn.QueryRow(`SELECT COUNT (*)
+	err = h.DB.Conn.QueryRow(`SELECT COUNT (*)
 		FROM "server_access_policy"
 			INNER JOIN "server_security_ip" ON "server_access_policy"."server_id" = "server_security_ip"."server_id"
 		WHERE "server_access_policy"."server_id" = $1
@@ -405,7 +403,7 @@ func (s *firewall) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcce
 		in.GetMemberIp(),
 	).Scan(&total)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -423,7 +421,7 @@ func (s *firewall) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcce
 }
 
 // ServerAccessCountry is ...
-func (s *firewall) ServerAccessCountry(ctx context.Context, in *firewallpb.ServerAccessCountry_Request) (*firewallpb.ServerAccessCountry_Response, error) {
+func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.ServerAccessCountry_Request) (*firewallpb.ServerAccessCountry_Response, error) {
 	total := 0
 	response := new(firewallpb.ServerAccessCountry_Response)
 
@@ -432,14 +430,14 @@ func (s *firewall) ServerAccessCountry(ctx context.Context, in *firewallpb.Serve
 		return response, nil
 	}
 
-	pbUtility := new(utility)
+	pbUtility := new(utility.Handler)
 	responseC, _ := pbUtility.CountryByIP(ctx, &utilitypb.CountryByIP_Request{
 		Ip: in.GetMemberIp(),
 	})
 	country := responseC.Code
 
 	var accessListCountry bool
-	err := service.db.Conn.QueryRow(`SELECT "country" FROM "server_access_policy" WHERE "server_id" =$1`,
+	err := h.DB.Conn.QueryRow(`SELECT "country" FROM "server_access_policy" WHERE "server_id" =$1`,
 		in.GetServerId(),
 	).Scan(
 		&accessListCountry,
@@ -448,12 +446,12 @@ func (s *firewall) ServerAccessCountry(ctx context.Context, in *firewallpb.Serve
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
 	// Sample from the table with countries
-	err = service.db.Conn.QueryRow(`SELECT COUNT (*)
+	err = h.DB.Conn.QueryRow(`SELECT COUNT (*)
 		FROM "server_access_policy"
 		  INNER JOIN "server_security_country" ON "server_access_policy"."server_id"="server_security_country"."server_id"
 		WHERE "server_access_policy"."server_id" = $1
@@ -462,7 +460,7 @@ func (s *firewall) ServerAccessCountry(ctx context.Context, in *firewallpb.Serve
 		country,
 	).Scan(&total)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 

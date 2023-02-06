@@ -1,4 +1,4 @@
-package grpc
+package user
 
 import (
 	"context"
@@ -12,17 +12,13 @@ import (
 	"github.com/werbot/werbot/internal/crypto"
 )
 
-type user struct {
-	userpb.UnimplementedUserHandlersServer
-}
-
 // ListUsers is lists all users on the system
-func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*userpb.ListUsers_Response, error) {
+func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*userpb.ListUsers_Response, error) {
 	response := new(userpb.ListUsers_Response)
 
-	sqlSearch := service.db.SQLAddWhere(in.GetQuery())
-	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := service.db.Conn.Query(`SELECT
+	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
+	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
+	rows, err := h.DB.Conn.Query(`SELECT
       "id",
       "login",
       "name",
@@ -39,7 +35,7 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
       (SELECT COUNT(*) FROM "project" JOIN "server" ON "project"."id"="server"."project_id" WHERE "project"."owner_id"="user"."id") AS "count_servers"
     FROM "user"` + sqlSearch + sqlFooter)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -66,7 +62,7 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 		user.LastUpdate = timestamppb.New(lastUpdate.Time)
@@ -82,9 +78,9 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 	defer rows.Close()
 
 	// Total count for pagination
-	err = service.db.Conn.QueryRow(`SELECT COUNT (*) FROM "user"` + sqlSearch).Scan(&response.Total)
+	err = h.DB.Conn.QueryRow(`SELECT COUNT (*) FROM "user"` + sqlSearch).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -92,12 +88,12 @@ func (u *user) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*us
 }
 
 // User is displays user information
-func (u *user) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_Response, error) {
+func (h *Handler) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_Response, error) {
 	var lastUpdate, created pgtype.Timestamp
 	response := new(userpb.User_Response)
 	response.UserId = in.GetUserId()
 
-	err := service.db.Conn.QueryRow(`SELECT "login", "name", "surname", "email", "enabled", "confirmed", "role", "last_update", "created"
+	err := h.DB.Conn.QueryRow(`SELECT "login", "name", "surname", "email", "enabled", "confirmed", "role", "last_update", "created"
     FROM "user"
     WHERE "id" = $1`,
 		in.GetUserId(),
@@ -115,7 +111,7 @@ func (u *user) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -126,12 +122,12 @@ func (u *user) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_
 }
 
 // AddUser is adds a new user
-func (u *user) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb.AddUser_Response, error) {
+func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb.AddUser_Response, error) {
 	response := new(userpb.AddUser_Response)
 
-	tx, err := service.db.Conn.Begin()
+	tx, err := h.DB.Conn.Begin()
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errTransactionCreateError
 	}
 
@@ -143,7 +139,7 @@ func (u *user) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 	if response.UserId != "" {
@@ -164,12 +160,12 @@ func (u *user) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb
 		in.GetConfirmed(),
 	).Scan(&response.UserId)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 
 	if err = tx.Commit(); err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errTransactionCommitError
 	}
 
@@ -177,14 +173,14 @@ func (u *user) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb
 }
 
 // UpdateUser is updates user data
-func (u *user) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*userpb.UpdateUser_Response, error) {
+func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*userpb.UpdateUser_Response, error) {
 	var err error
 	var data sql.Result
 	response := new(userpb.UpdateUser_Response)
 
 	switch in.GetRequest().(type) {
 	case *userpb.UpdateUser_Request_Info:
-		data, err = service.db.Conn.Exec(`UPDATE "user"
+		data, err = h.DB.Conn.Exec(`UPDATE "user"
     SET "login" = $1,
       "email" = $2,
       "name" = $3,
@@ -199,13 +195,13 @@ func (u *user) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*
 		)
 
 	case *userpb.UpdateUser_Request_Confirmed:
-		data, err = service.db.Conn.Exec(`UPDATE "user" SET "confirmed" = $1, "last_update" = NEW() WHERE "id" = $2`,
+		data, err = h.DB.Conn.Exec(`UPDATE "user" SET "confirmed" = $1, "last_update" = NEW() WHERE "id" = $2`,
 			in.GetConfirmed(),
 			in.GetUserId(),
 		)
 
 	case *userpb.UpdateUser_Request_Enabled:
-		data, err = service.db.Conn.Exec(`UPDATE "user" SET "enabled" = $1, "last_update" = NEW() WHERE "id" = $2`,
+		data, err = h.DB.Conn.Exec(`UPDATE "user" SET "enabled" = $1, "last_update" = NEW() WHERE "id" = $2`,
 			in.GetEnabled(),
 			in.GetUserId(),
 		)
@@ -215,7 +211,7 @@ func (u *user) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*
 	}
 
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, err
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -226,15 +222,15 @@ func (u *user) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*
 }
 
 // DeleteUser is ...
-func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*userpb.DeleteUser_Response, error) {
+func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*userpb.DeleteUser_Response, error) {
 	var login, passwordHash, email string
 	response := new(userpb.DeleteUser_Response)
 
 	switch in.GetRequest().(type) {
 	case *userpb.DeleteUser_Request_Password:
-		tx, err := service.db.Conn.Begin()
+		tx, err := h.DB.Conn.Begin()
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errTransactionCreateError
 		}
 
@@ -248,7 +244,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 		if !crypto.CheckPasswordHash(in.GetPassword(), passwordHash) {
@@ -256,7 +252,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 		}
 
 		// Checking if a verification token has been sent in the last 24 hours
-		deleteToken, _ := tokenByUserID(in.GetUserId(), "delete")
+		deleteToken, _ := TokenByUserID(h, in.GetUserId(), "delete")
 		if len(deleteToken) > 0 {
 			response.Login = login
 			response.Email = email
@@ -269,7 +265,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 			deleteToken,
 			in.GetUserId())
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, err // Create delete token failed
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {
@@ -277,7 +273,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 		}
 
 		if err := tx.Commit(); err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errTransactionCommitError
 		}
 
@@ -286,20 +282,20 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 		return response, nil
 
 	case *userpb.DeleteUser_Request_Token:
-		userID, _ := userIDByToken(in.GetToken())
+		userID, _ := UserIDByToken(h, in.GetToken())
 		if userID != in.GetUserId() {
 			return nil, errTokenIsNotValid
 		}
 
-		tx, err := service.db.Conn.Begin()
+		tx, err := h.DB.Conn.Begin()
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errTransactionCreateError
 		}
 
 		data, err := tx.Exec(`UPDATE "user" SET "enabled" = 'f', "last_update" = NEW() WHERE "id" = $1`, in.GetUserId())
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errFailedToUpdate
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {
@@ -308,7 +304,7 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 
 		data, err = tx.Exec(`UPDATE "user_token" SET "used" = 't', "date_used" = NOW() WHERE "token" = $1`, in.GetToken())
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errFailedToUpdate
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {
@@ -324,12 +320,12 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 
 		if err := tx.Commit(); err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errTransactionCommitError
 		}
 
@@ -342,20 +338,20 @@ func (u *user) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*
 }
 
 // UpdatePassword is ...
-func (u *user) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_Request) (*userpb.UpdatePassword_Response, error) {
+func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_Request) (*userpb.UpdatePassword_Response, error) {
 	response := new(userpb.UpdatePassword_Response)
 
 	if len(in.GetOldPassword()) > 0 {
 		// Check for a validity of the old password
 		var currentPassword string
-		err := service.db.Conn.QueryRow(`SELECT "password" FROM "user" WHERE "id" = $1`,
+		err := h.DB.Conn.QueryRow(`SELECT "password" FROM "user" WHERE "id" = $1`,
 			in.GetUserId(),
 		).Scan(&currentPassword)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 		if !crypto.CheckPasswordHash(in.GetOldPassword(), currentPassword) {
@@ -366,13 +362,13 @@ func (u *user) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_Req
 	// We change the old password for a new
 	newPassword, err := crypto.HashPassword(in.GetNewPassword())
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errHashIsNotValid // HashPassword failed
 	}
 
-	data, err := service.db.Conn.Exec(`UPDATE "user" SET "password" = $1, "last_update" = NEW() WHERE "id" = $2`, newPassword, in.GetUserId())
+	data, err := h.DB.Conn.Exec(`UPDATE "user" SET "password" = $1, "last_update" = NEW() WHERE "id" = $2`, newPassword, in.GetUserId())
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -382,9 +378,10 @@ func (u *user) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_Req
 	return response, nil
 }
 
-func tokenByUserID(userID, action string) (string, error) {
+// TokenByUserID is ...
+func TokenByUserID(h *Handler, userID, action string) (string, error) {
 	var token string
-	err := service.db.Conn.QueryRow(`SELECT "token"
+	err := h.DB.Conn.QueryRow(`SELECT "token"
 		FROM "user_token"
 		WHERE "user_id" = $1
 			AND "used" = 'f'
@@ -397,7 +394,7 @@ func tokenByUserID(userID, action string) (string, error) {
 		if err == sql.ErrNoRows {
 			return "", errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return "", errServerError
 	}
 	if token == "" {
@@ -407,9 +404,10 @@ func tokenByUserID(userID, action string) (string, error) {
 	return token, nil
 }
 
-func userIDByToken(token string) (string, error) {
+// UserIDByToken is ...
+func UserIDByToken(h *Handler, token string) (string, error) {
 	var id string
-	err := service.db.Conn.QueryRow(`SELECT "user_id" AS "id"
+	err := h.DB.Conn.QueryRow(`SELECT "user_id" AS "id"
 		FROM "user_token"
 		WHERE "token" = $1
 			AND "used" = 'f'
@@ -420,7 +418,7 @@ func userIDByToken(token string) (string, error) {
 		if err == sql.ErrNoRows {
 			return "", errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return "", errServerError
 	}
 	if id == "" {

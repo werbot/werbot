@@ -1,4 +1,4 @@
-package grpc
+package project
 
 import (
 	"context"
@@ -11,17 +11,13 @@ import (
 	"github.com/werbot/werbot/internal/crypto"
 )
 
-type project struct {
-	projectpb.UnimplementedProjectHandlersServer
-}
-
 // ListProjects is ...
-func (p *project) ListProjects(ctx context.Context, in *projectpb.ListProjects_Request) (*projectpb.ListProjects_Response, error) {
+func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_Request) (*projectpb.ListProjects_Response, error) {
 	response := new(projectpb.ListProjects_Response)
 
-	sqlSearch := service.db.SQLAddWhere(in.GetQuery())
-	sqlFooter := service.db.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := service.db.Conn.Query(`SELECT
+	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
+	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
+	rows, err := h.DB.Conn.Query(`SELECT
 			"project"."id",
 			"project"."owner_id",
 			"project"."title",
@@ -32,7 +28,7 @@ func (p *project) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 		FROM "project"
 			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch + sqlFooter)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -52,7 +48,7 @@ func (p *project) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 		project.Created = timestamppb.New(created.Time)
@@ -64,12 +60,12 @@ func (p *project) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 	defer rows.Close()
 
 	// Total count for pagination
-	err = service.db.Conn.QueryRow(`SELECT COUNT (*)
+	err = h.DB.Conn.QueryRow(`SELECT COUNT (*)
 		FROM "project"
 			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch,
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -77,12 +73,12 @@ func (p *project) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 }
 
 // Project is ...
-func (p *project) Project(ctx context.Context, in *projectpb.Project_Request) (*projectpb.Project_Response, error) {
+func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*projectpb.Project_Response, error) {
 	var countMembers, countServers int32
 	var created pgtype.Timestamp
 	response := new(projectpb.Project_Response)
 
-	err := service.db.Conn.QueryRow(`SELECT
+	err := h.DB.Conn.QueryRow(`SELECT
 			"project"."title",
 			"project"."login",
 			"project"."created",
@@ -103,7 +99,7 @@ func (p *project) Project(ctx context.Context, in *projectpb.Project_Request) (*
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -115,12 +111,12 @@ func (p *project) Project(ctx context.Context, in *projectpb.Project_Request) (*
 }
 
 // AddProject is ...
-func (p *project) AddProject(ctx context.Context, in *projectpb.AddProject_Request) (*projectpb.AddProject_Response, error) {
+func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Request) (*projectpb.AddProject_Response, error) {
 	response := new(projectpb.AddProject_Response)
 
-	tx, err := service.db.Conn.Begin()
+	tx, err := h.DB.Conn.Begin()
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errTransactionCreateError
 	}
 
@@ -131,7 +127,7 @@ func (p *project) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 		in.GetLogin(),
 	).Scan(&response.ProjectId)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 
@@ -142,7 +138,7 @@ func (p *project) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 		crypto.NewPassword(37, false),
 	)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -150,7 +146,7 @@ func (p *project) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 	}
 
 	if err = tx.Commit(); err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errTransactionCommitError
 	}
 
@@ -158,20 +154,20 @@ func (p *project) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 }
 
 // UpdateProject is ...
-func (p *project) UpdateProject(ctx context.Context, in *projectpb.UpdateProject_Request) (*projectpb.UpdateProject_Response, error) {
-	if !isOwnerProject(in.GetProjectId(), in.GetOwnerId()) {
+func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject_Request) (*projectpb.UpdateProject_Response, error) {
+	if !IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
 		return nil, errNotFound
 	}
 
 	response := new(projectpb.UpdateProject_Response)
 
-	data, err := service.db.Conn.Exec(`UPDATE "project" SET "title" = $1, "last_update" = NOW() WHERE "id" = $2 AND "owner_id" = $3`,
+	data, err := h.DB.Conn.Exec(`UPDATE "project" SET "title" = $1, "last_update" = NOW() WHERE "id" = $2 AND "owner_id" = $3`,
 		in.GetTitle(),
 		in.GetProjectId(),
 		in.GetOwnerId(),
 	)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, err
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -182,16 +178,16 @@ func (p *project) UpdateProject(ctx context.Context, in *projectpb.UpdateProject
 }
 
 // DeleteProject is ...
-func (p *project) DeleteProject(ctx context.Context, in *projectpb.DeleteProject_Request) (*projectpb.DeleteProject_Response, error) {
-	if !isOwnerProject(in.GetProjectId(), in.GetOwnerId()) {
+func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject_Request) (*projectpb.DeleteProject_Response, error) {
+	if !IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
 		return nil, errNotFound
 	}
 
 	response := new(projectpb.DeleteProject_Response)
 
-	tx, err := service.db.Conn.Begin()
+	tx, err := h.DB.Conn.Begin()
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errTransactionCreateError
 	}
 
@@ -200,7 +196,7 @@ func (p *project) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
 		in.GetOwnerId(),
 	)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToDelete
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -211,7 +207,7 @@ func (p *project) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
 		in.GetProjectId(),
 	)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, err
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -219,33 +215,33 @@ func (p *project) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
 	}
 
 	if err = tx.Commit(); err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errTransactionCommitError
 	}
 
 	return response, nil
 }
 
-// TODO Key is ...
-func (p *project) Key(ctx context.Context, in *projectpb.Key_Request) (*projectpb.Key_Response, error) {
+// Key is ...
+func (h *Handler) Key(ctx context.Context, in *projectpb.Key_Request) (*projectpb.Key_Response, error) {
 	response := new(projectpb.Key_Response)
 	return response, nil
 }
 
-// TODO AddKey is ...
-func (p *project) AddKey(ctx context.Context, in *projectpb.AddKey_Request) (*projectpb.AddKey_Response, error) {
+// AddKey is ...
+func (h *Handler) AddKey(ctx context.Context, in *projectpb.AddKey_Request) (*projectpb.AddKey_Response, error) {
 	response := new(projectpb.AddKey_Response)
 	return response, nil
 }
 
-// TODO UpdateKey is ...
-func (p *project) UpdateKey(ctx context.Context, in *projectpb.UpdateKey_Request) (*projectpb.UpdateKey_Response, error) {
+// UpdateKey is ...
+func (h *Handler) UpdateKey(ctx context.Context, in *projectpb.UpdateKey_Request) (*projectpb.UpdateKey_Response, error) {
 	response := new(projectpb.UpdateKey_Response)
 	return response, nil
 }
 
-// TODO DeleteKey is ...
-func (p *project) DeleteKey(ctx context.Context, in *projectpb.DeleteKey_Request) (*projectpb.DeleteKey_Response, error) {
+// DeleteKey is ...
+func (h *Handler) DeleteKey(ctx context.Context, in *projectpb.DeleteKey_Request) (*projectpb.DeleteKey_Response, error) {
 	response := new(projectpb.DeleteKey_Response)
 	return response, nil
 }

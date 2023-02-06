@@ -1,4 +1,4 @@
-package grpc
+package account
 
 import (
 	"context"
@@ -9,15 +9,16 @@ import (
 	accountpb "github.com/werbot/werbot/api/proto/account"
 	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal/crypto"
+	"github.com/werbot/werbot/internal/grpc/user"
 )
 
 // SignIn is ...
-func (a *account) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*userpb.User_Response, error) {
+func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*userpb.User_Response, error) {
 	var password string
 	response := new(userpb.User_Response)
 	response.Email = in.GetEmail()
 
-	err := service.db.Conn.QueryRow(`SELECT "id", "login", "name", "surname", "password", "enabled", "confirmed", "role"
+	err := h.DB.Conn.QueryRow(`SELECT "id", "login", "name", "surname", "password", "enabled", "confirmed", "role"
     FROM "user"
     WHERE "email" = $1
       AND "enabled" = 't'
@@ -33,7 +34,7 @@ func (a *account) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
 		&response.Role,
 	)
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errNotFound
 	}
 
@@ -45,21 +46,21 @@ func (a *account) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
 }
 
 // ResetPassword is ...
-func (a *account) ResetPassword(ctx context.Context, in *accountpb.ResetPassword_Request) (*accountpb.ResetPassword_Response, error) {
+func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword_Request) (*accountpb.ResetPassword_Response, error) {
 	var userID, resetToken string
 	response := new(accountpb.ResetPassword_Response)
 
 	// Sending an email with a verification link
 	if in.GetEmail() != "" {
 		// Check if there is a user with the specified email
-		err := service.db.Conn.QueryRow(`SELECT "id" FROM "user" WHERE "email" = $1 AND "enabled" = 't'`,
+		err := h.DB.Conn.QueryRow(`SELECT "id" FROM "user" WHERE "email" = $1 AND "enabled" = 't'`,
 			in.GetEmail(),
 		).Scan(&userID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, errNotFound
 			}
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 
@@ -69,19 +70,21 @@ func (a *account) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 		}
 
 		// Checking if a verification token has been sent in the last 24 hours
-		resetToken, _ = tokenByUserID(userID, "reset")
+		resetToken, _ = user.TokenByUserID(&user.Handler{
+			DB: h.DB,
+		}, userID, "reset")
 		if len(resetToken) > 0 {
 			response.Message = "Resend only after 24 hours"
 			return response, nil
 		}
 
 		resetToken = uuid.New().String()
-		data, err := service.db.Conn.Exec(`INSERT INTO "user_token" ("token", "user_id", "action") VALUES ($1, $2, 'reset')`,
+		data, err := h.DB.Conn.Exec(`INSERT INTO "user_token" ("token", "user_id", "action") VALUES ($1, $2, 'reset')`,
 			resetToken,
 			userID,
 		)
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errFailedToAdd
 		}
 		if affected, _ := data.RowsAffected(); affected == 0 {
@@ -95,8 +98,10 @@ func (a *account) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 
 	// Checking the validity of a link
 	if in.GetToken() != "" && in.GetPassword() == "" {
-		if _, err := userIDByToken(in.GetToken()); err != nil {
-			service.log.FromGRPC(err).Send()
+		if _, err := user.UserIDByToken(&user.Handler{
+			DB: h.DB,
+		}, in.GetToken()); err != nil {
+			log.FromGRPC(err).Send()
 			return nil, err
 		}
 
@@ -106,21 +111,23 @@ func (a *account) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 
 	// Saving a new password
 	if in.GetToken() != "" && in.GetPassword() != "" {
-		id, err := userIDByToken(in.GetToken())
+		id, err := user.UserIDByToken(&user.Handler{
+			DB: h.DB,
+		}, in.GetToken())
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, err
 		}
 
 		newPassword, err := crypto.HashPassword(in.GetPassword())
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errHashIsNotValid // HashPassword failed
 		}
 
-		tx, err := service.db.Conn.Begin()
+		tx, err := h.DB.Conn.Begin()
 		if err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errTransactionCreateError
 		}
 
@@ -130,7 +137,7 @@ func (a *account) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 		)
 
 		if err = tx.Commit(); err != nil {
-			service.log.FromGRPC(err).Send()
+			log.FromGRPC(err).Send()
 			return nil, errTransactionCommitError
 		}
 

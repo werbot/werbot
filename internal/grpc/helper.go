@@ -29,12 +29,3 @@ func valid(authorization []string) bool {
 	token := strings.TrimPrefix(authorization[0], "Bearer ")
 	return token == service.token
 }
-
-func isOwnerProject(projectID, userID string) bool {
-	var id string
-	service.db.Conn.QueryRow(`SELECT "id" FROM "project" WHERE "id" = $1 AND "owner_id" = $2`,
-		projectID,
-		userID,
-	).Scan(&id)
-	return id != ""
-}

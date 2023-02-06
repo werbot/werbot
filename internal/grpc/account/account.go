@@ -1,4 +1,4 @@
-package grpc
+package account
 
 import (
 	"context"
@@ -8,60 +8,56 @@ import (
 	"github.com/werbot/werbot/pkg/strutil"
 )
 
-type account struct {
-	accountpb.UnimplementedAccountHandlersServer
-}
-
-// TODO ListAccounts is ...
-func (s *account) ListAccounts(ctx context.Context, in *accountpb.ListAccounts_Request) (*accountpb.ListAccounts_Response, error) {
+// ListAccounts is ...
+func (h *Handler) ListAccounts(ctx context.Context, in *accountpb.ListAccounts_Request) (*accountpb.ListAccounts_Response, error) {
 	response := new(accountpb.ListAccounts_Response)
 	return response, nil
 }
 
-// TODO Account is ...
-func (s *account) Account(ctx context.Context, in *accountpb.Account_Request) (*accountpb.Account_Response, error) {
+// Account is ...
+func (h *Handler) Account(ctx context.Context, in *accountpb.Account_Request) (*accountpb.Account_Response, error) {
 	response := new(accountpb.Account_Response)
 	return response, nil
 }
 
-// TODO AddAccount is ...
-func (s *account) AddAccount(ctx context.Context, in *accountpb.AddAccount_Request) (*accountpb.AddAccount_Response, error) {
+// AddAccount is ...
+func (h *Handler) AddAccount(ctx context.Context, in *accountpb.AddAccount_Request) (*accountpb.AddAccount_Response, error) {
 	response := new(accountpb.AddAccount_Response)
 	return response, nil
 }
 
-// TODO UpdateAccount is ...
-func (s *account) UpdateAccount(ctx context.Context, in *accountpb.UpdateAccount_Request) (*accountpb.UpdateAccount_Response, error) {
+// UpdateAccount is ...
+func (h *Handler) UpdateAccount(ctx context.Context, in *accountpb.UpdateAccount_Request) (*accountpb.UpdateAccount_Response, error) {
 	response := new(accountpb.UpdateAccount_Response)
 	return response, nil
 }
 
-// TODO DeleteAccount is ...
-func (s *account) DeleteAccount(ctx context.Context, in *accountpb.DeleteAccount_Request) (*accountpb.DeleteAccount_Response, error) {
+// DeleteAccount is ...
+func (h *Handler) DeleteAccount(ctx context.Context, in *accountpb.DeleteAccount_Request) (*accountpb.DeleteAccount_Response, error) {
 	response := new(accountpb.DeleteAccount_Response)
 	return response, nil
 }
 
+// TODO Check bu invite and Enable check in Firewall
 // AccountIDByLogin is ...
-// TODO: Check bu invite
-// TODO: Enable check in Firewall
-func (s *account) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDByLogin_Request) (*accountpb.AccountIDByLogin_Response, error) {
+func (h *Handler) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDByLogin_Request) (*accountpb.AccountIDByLogin_Response, error) {
 	response := new(accountpb.AccountIDByLogin_Response)
 	nameArray := strutil.SplitNTrimmed(in.GetLogin(), "_", 3)
 
-	err := service.db.Conn.QueryRow(`SELECT "user"."id"
+	sqlRpw := h.DB.Conn.QueryRow(`SELECT "user"."id"
 		FROM "user"
 			JOIN "user_public_key" ON "user"."id" = "user_public_key"."user_id"
 		WHERE "user"."login" = $1
 			AND "user_public_key".fingerprint = $2`,
 		nameArray[0],
 		in.GetFingerprint(),
-	).Scan(&response.UserId)
+	)
+	err := sqlRpw.Scan(&response.UserId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errNotFound
 		}
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errServerError
 	}
 
@@ -88,24 +84,24 @@ func (s *account) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDB
 }
 
 // UpdateStatus is ...
-func (s *account) UpdateStatus(ctx context.Context, in *accountpb.UpdateStatus_Request) (*accountpb.UpdateStatus_Response, error) {
+func (h *Handler) UpdateStatus(ctx context.Context, in *accountpb.UpdateStatus_Request) (*accountpb.UpdateStatus_Response, error) {
 	var data sql.Result
 	var err error
 	response := new(accountpb.UpdateStatus_Response)
 
 	switch in.GetStatus() {
 	case 1:
-		data, err = service.db.Conn.Exec(`UPDATE "server_member" SET "online" = true, "last_update" = NOW() WHERE "id" = $1`,
+		data, err = h.DB.Conn.Exec(`UPDATE "server_member" SET "online" = true, "last_update" = NOW() WHERE "id" = $1`,
 			in.GetAccountId(),
 		)
 	case 2:
-		data, err = service.db.Conn.Exec(`UPDATE "server_member" SET "online" = false, "last_update" = NOW() WHERE "id" = $1`,
+		data, err = h.DB.Conn.Exec(`UPDATE "server_member" SET "online" = false, "last_update" = NOW() WHERE "id" = $1`,
 			in.GetAccountId(),
 		)
 	}
 
 	if err != nil {
-		service.log.FromGRPC(err).Send()
+		log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
 	}
 	if affected, _ := data.RowsAffected(); affected == 0 {
@@ -115,14 +111,14 @@ func (s *account) UpdateStatus(ctx context.Context, in *accountpb.UpdateStatus_R
 	return response, nil
 }
 
-// TODO SessionAccount is ...
-func (s *account) SessionAccount(ctx context.Context, in *accountpb.SessionAccount_Request) (*accountpb.SessionAccount_Response, error) {
+// SessionAccount is ...
+func (h *Handler) SessionAccount(ctx context.Context, in *accountpb.SessionAccount_Request) (*accountpb.SessionAccount_Response, error) {
 	response := new(accountpb.SessionAccount_Response)
 	return response, nil
 }
 
-// TODO FindByTokenAccount is ...
-func (s *account) FindByTokenAccount(ctx context.Context, in *accountpb.FindByTokenAccount_Request) (*accountpb.FindByTokenAccount_Response, error) {
+// FindByTokenAccount is ...
+func (h *Handler) FindByTokenAccount(ctx context.Context, in *accountpb.FindByTokenAccount_Request) (*accountpb.FindByTokenAccount_Response, error) {
 	response := new(accountpb.FindByTokenAccount_Response)
 	return response, nil
 }
