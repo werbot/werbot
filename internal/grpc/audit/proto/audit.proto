@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package audit;
 
-option go_package = "github.com/werbot/werbot/api/proto/audit";
+option go_package = "github.com/werbot/werbot/internal/grpc/audit/proto";
 
 import "google/protobuf/timestamp.proto";
 import "validate/validate.proto";

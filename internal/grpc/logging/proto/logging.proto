@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package logging;
 
-option go_package = "github.com/werbot/werbot/api/proto/logging";
+option go_package = "github.com/werbot/werbot/internal/grpc/logging/proto";
 
 import "validate/validate.proto";
 

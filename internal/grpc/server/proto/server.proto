@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package server;
 
-option go_package = "github.com/werbot/werbot/api/proto/server";
+option go_package = "github.com/werbot/werbot/internal/grpc/server/proto";
 
 import "google/protobuf/timestamp.proto";
 import "validate/validate.proto";

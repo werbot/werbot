@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package info;
 
-option go_package = "github.com/werbot/werbot/api/proto/info";
+option go_package = "github.com/werbot/werbot/internal/grpc/info/proto";
 
-import "user/user.proto";
 import "validate/validate.proto";
+import "internal/grpc/user/proto/user.proto";
 
 service InfoHandlers {
   rpc UserMetrics(UserMetrics.Request) returns (UserMetrics.Response) {}

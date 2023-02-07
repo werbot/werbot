@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package utility;
 
-option go_package = "github.com/werbot/werbot/api/proto/utility";
+option go_package = "github.com/werbot/werbot/internal/grpc/utility/proto";
 
 import "validate/validate.proto";
 

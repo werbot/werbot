@@ -8,7 +8,7 @@ package proto
 
 import (
 	context "context"
-	user "github.com/werbot/werbot/internal/grpc/user/proto"
+	proto "github.com/werbot/werbot/internal/grpc/user/proto"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -24,7 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AccountHandlersClient interface {
 	// Auth section
-	SignIn(ctx context.Context, in *SignIn_Request, opts ...grpc.CallOption) (*user.User_Response, error)
+	SignIn(ctx context.Context, in *SignIn_Request, opts ...grpc.CallOption) (*proto.User_Response, error)
 	ResetPassword(ctx context.Context, in *ResetPassword_Request, opts ...grpc.CallOption) (*ResetPassword_Response, error)
 	// Account section
 	ListAccounts(ctx context.Context, in *ListAccounts_Request, opts ...grpc.CallOption) (*ListAccounts_Response, error)
@@ -46,8 +46,8 @@ func NewAccountHandlersClient(cc grpc.ClientConnInterface) AccountHandlersClient
 	return &accountHandlersClient{cc}
 }
 
-func (c *accountHandlersClient) SignIn(ctx context.Context, in *SignIn_Request, opts ...grpc.CallOption) (*user.User_Response, error) {
-	out := new(user.User_Response)
+func (c *accountHandlersClient) SignIn(ctx context.Context, in *SignIn_Request, opts ...grpc.CallOption) (*proto.User_Response, error) {
+	out := new(proto.User_Response)
 	err := c.cc.Invoke(ctx, "/account.AccountHandlers/SignIn", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func (c *accountHandlersClient) FindByTokenAccount(ctx context.Context, in *Find
 // for forward compatibility
 type AccountHandlersServer interface {
 	// Auth section
-	SignIn(context.Context, *SignIn_Request) (*user.User_Response, error)
+	SignIn(context.Context, *SignIn_Request) (*proto.User_Response, error)
 	ResetPassword(context.Context, *ResetPassword_Request) (*ResetPassword_Response, error)
 	// Account section
 	ListAccounts(context.Context, *ListAccounts_Request) (*ListAccounts_Response, error)
@@ -169,7 +169,7 @@ type AccountHandlersServer interface {
 type UnimplementedAccountHandlersServer struct {
 }
 
-func (UnimplementedAccountHandlersServer) SignIn(context.Context, *SignIn_Request) (*user.User_Response, error) {
+func (UnimplementedAccountHandlersServer) SignIn(context.Context, *SignIn_Request) (*proto.User_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SignIn not implemented")
 }
 func (UnimplementedAccountHandlersServer) ResetPassword(context.Context, *ResetPassword_Request) (*ResetPassword_Response, error) {

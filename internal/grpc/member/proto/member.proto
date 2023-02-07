@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package member;
 
-option go_package = "github.com/werbot/werbot/api/proto/member";
+option go_package = "github.com/werbot/werbot/internal/grpc/member/proto";
 
 import "google/protobuf/timestamp.proto";
 import "validate/validate.proto";
-import "user/user.proto";
+import "internal/grpc/user/proto/user.proto";
 
 service MemberHandlers {
   // Project section

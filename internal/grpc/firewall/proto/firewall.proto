@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package firewall;
 
-option go_package = "github.com/werbot/werbot/api/proto/firewall";
+option go_package = "github.com/werbot/werbot/internal/grpc/firewall/proto";
 
 import "validate/validate.proto";
 

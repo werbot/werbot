@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package license;
 
-option go_package = "github.com/werbot/werbot/api/proto/license";
+option go_package = "github.com/werbot/werbot/internal/grpc/license/proto";
 
 import "google/protobuf/timestamp.proto";
 

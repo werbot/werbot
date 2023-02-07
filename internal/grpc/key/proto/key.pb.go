@@ -439,8 +439,8 @@ type Key_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	KeyId  string `protobuf:"bytes,1,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty" query:"key_id" params:"key_id"`
-	UserId string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`
+	KeyId  string `protobuf:"bytes,1,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty" query:"key_id" params:"key_id"`     
+	UserId string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`  
 }
 
 func (x *Key_Request) Reset() {
@@ -707,10 +707,10 @@ type UpdateKey_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	KeyId  string `protobuf:"bytes,1,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty" query:"key_id" params:"key_id"`
-	UserId string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`
-	Title  string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty" query:"title" params:"title"`
-	Key    string `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty" query:"key" params:"key"`
+	KeyId  string `protobuf:"bytes,1,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty" query:"key_id" params:"key_id"`     
+	UserId string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`  
+	Title  string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty" query:"title" params:"title"`                  
+	Key    string `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty" query:"key" params:"key"`                      
 }
 
 func (x *UpdateKey_Request) Reset() {
@@ -816,8 +816,8 @@ type DeleteKey_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`
-	KeyId  string `protobuf:"bytes,2,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty" query:"key_id" params:"key_id"`
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`  
+	KeyId  string `protobuf:"bytes,2,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty" query:"key_id" params:"key_id"`     
 }
 
 func (x *DeleteKey_Request) Reset() {
@@ -1212,10 +1212,11 @@ var file_key_proto_rawDesc = []byte{
 	0x12, 0x1b, 0x2e, 0x6b, 0x65, 0x79, 0x2e, 0x47, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x74, 0x65, 0x53,
 	0x53, 0x48, 0x4b, 0x65, 0x79, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1c, 0x2e,
 	0x6b, 0x65, 0x79, 0x2e, 0x47, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x74, 0x65, 0x53, 0x53, 0x48, 0x4b,
-	0x65, 0x79, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x28, 0x5a,
-	0x26, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x77, 0x65, 0x72, 0x62,
-	0x6f, 0x74, 0x2f, 0x77, 0x65, 0x72, 0x62, 0x6f, 0x74, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x2f, 0x6b, 0x65, 0x79, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x65, 0x79, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x32, 0x5a,
+	0x30, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x77, 0x65, 0x72, 0x62,
+	0x6f, 0x74, 0x2f, 0x77, 0x65, 0x72, 0x62, 0x6f, 0x74, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e,
+	0x61, 0x6c, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x6b, 0x65, 0x79, 0x2f, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (

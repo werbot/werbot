@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package account;
 
-option go_package = "github.com/werbot/werbot/api/proto/account";
+option go_package = "github.com/werbot/werbot/internal/grpc/account/proto";
 
 import "google/protobuf/timestamp.proto";
 import "validate/validate.proto";
-import "user/user.proto";
+import "internal/grpc/user/proto/user.proto";
 
 service AccountHandlers {
   // Auth section
