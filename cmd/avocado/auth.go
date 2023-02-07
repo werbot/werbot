@@ -10,11 +10,9 @@ import (
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/werbot/werbot/api/proto/account"
-	accountpb "github.com/werbot/werbot/api/proto/account"
-	"github.com/werbot/werbot/api/proto/firewall"
-	firewallpb "github.com/werbot/werbot/api/proto/firewall"
-	"github.com/werbot/werbot/api/proto/server"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
+	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
+	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/pkg/netutil"
 	"github.com/werbot/werbot/pkg/strutil"
 )
@@ -26,7 +24,7 @@ func passwordAuthHandler() ssh.PasswordHandler {
 			userAddr:   ctx.RemoteAddr().String(),
 			authMethod: "password",
 		}
-		actx.authSuccess = actx.userType() == server.Type_healthcheck
+		actx.authSuccess = actx.userType() == serverpb.Type_healthcheck
 		ctx.SetValue(authContextKey, actx)
 		return actx.authSuccess
 	}
@@ -49,7 +47,7 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 		rClientA := accountpb.NewAccountHandlersClient(app.grpc.Client)
 
 		// IP check for global Firewall settings
-		_, err := rClientF.IPAccess(_ctx, &firewall.IPAccess_Request{
+		_, err := rClientF.IPAccess(_ctx, &firewallpb.IPAccess_Request{
 			ClientIp: actx.userAddr,
 		})
 		if err != nil {
@@ -66,18 +64,18 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 		}
 
 		switch actx.userType() {
-		case server.Type_invite:
+		case serverpb.Type_invite:
 			inputToken := strings.Split(actx.login, "_")[1]
 			if len(inputToken) > 0 {
 				fmt.Print(inputToken)
 			}
 			return true
 
-		case server.Type_healthcheck:
+		case serverpb.Type_healthcheck:
 			return true
 		}
 
-		userID, err := rClientA.AccountIDByLogin(_ctx, &account.AccountIDByLogin_Request{
+		userID, err := rClientA.AccountIDByLogin(_ctx, &accountpb.AccountIDByLogin_Request{
 			Login:       actx.login,
 			Fingerprint: actx.userFingerPrint,
 			ClientIp:    actx.userAddr,

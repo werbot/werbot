@@ -16,9 +16,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 
-	accountpb "github.com/werbot/werbot/api/proto/account"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"

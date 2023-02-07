@@ -8,7 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/werbot/werbot/internal"
 
-	accountpb "github.com/werbot/werbot/api/proto/account"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/storage/cache"
 )
 

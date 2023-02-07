@@ -3,8 +3,8 @@ package audit
 import (
 	"errors"
 
-	auditpb "github.com/werbot/werbot/api/proto/audit"
 	"github.com/werbot/werbot/internal"
+	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	accountpb "github.com/werbot/werbot/api/proto/account"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/pkg/strutil"
 )
 

@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	licensepb "github.com/werbot/werbot/api/proto/license"
 	"github.com/werbot/werbot/internal"
+	licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
 	license_lib "github.com/werbot/werbot/internal/license"
 )
 

@@ -3,8 +3,8 @@ package account
 import (
 	"errors"
 
-	accountpb "github.com/werbot/werbot/api/proto/account"
 	"github.com/werbot/werbot/internal"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"
 )

@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	licensepb "github.com/werbot/werbot/api/proto/license"
+	licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
 	"github.com/werbot/werbot/internal/utils/test"
 	"github.com/werbot/werbot/pkg/fsutil"
 )

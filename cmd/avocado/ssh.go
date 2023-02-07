@@ -10,10 +10,9 @@ import (
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/werbot/werbot/api/proto/server"
-	serverpb "github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
+	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/pkg/strutil"
 )
 
@@ -33,49 +32,49 @@ type authContext struct {
 	hostID          string
 	userAddr        string
 	aesKey          string // TODO добавить в базу для пользователя уникальный AES ключ по которому будут шифроваться его данные
-	serverList      []*server.Server_Response
+	serverList      []*serverpb.Server_Response
 	// serverList      map[int32]*server.Server
 }
 
-func (c authContext) userType() server.Type {
+func (c authContext) userType() serverpb.Type {
 	if c.login == "healthcheck" {
-		return server.Type_healthcheck
+		return serverpb.Type_healthcheck
 	}
 
 	if strings.HasPrefix(c.login, "invite_") {
-		return server.Type_invite
+		return serverpb.Type_invite
 	}
 
 	nameArray := strutil.SplitNTrimmed(c.login, "_", 3)
 	if len(nameArray) == 3 && nameArray[2] != "" {
-		return server.Type_bastion
+		return serverpb.Type_bastion
 	}
-	return server.Type_shell
+	return serverpb.Type_shell
 }
 
-func bastionClientConfig(ctx ssh.Context, host *server.Server_Response) (*gossh.ClientConfig, error) {
+func bastionClientConfig(ctx ssh.Context, host *serverpb.Server_Response) (*gossh.ClientConfig, error) {
 	actx := ctx.Value(authContextKey).(*authContext)
 
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := server.NewServerHandlersClient(app.grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(app.grpc.Client)
 
-	access, _ := rClient.ServerAccess(_ctx, &server.ServerAccess_Request{
+	access, _ := rClient.ServerAccess(_ctx, &serverpb.ServerAccess_Request{
 		ProjectId: host.GetProjectId(),
 		ServerId:  host.GetServerId(),
 	})
 
-	accessDecrypt := new(server.ServerAccess_Response)
+	accessDecrypt := new(serverpb.ServerAccess_Response)
 
 	switch access.GetAccess().(type) {
-	case *server.ServerAccess_Response_Password:
-		accessDecrypt.Access = &server.ServerAccess_Response_Password{
+	case *serverpb.ServerAccess_Response_Password:
+		accessDecrypt.Access = &serverpb.ServerAccess_Response_Password{
 			Password: crypto.TextDecrypt(access.GetPassword(), actx.aesKey),
 		}
 
-	case *server.ServerAccess_Response_Key:
-		accessDecrypt.Access = &server.ServerAccess_Response_Key{
-			Key: &server.ServerAccess_Key{
+	case *serverpb.ServerAccess_Response_Key:
+		accessDecrypt.Access = &serverpb.ServerAccess_Response_Key{
+			Key: &serverpb.ServerAccess_Key{
 				Private:  crypto.TextDecrypt(access.GetKey().GetPrivate(), actx.aesKey),
 				Password: crypto.TextDecrypt(access.GetKey().GetPassword(), actx.aesKey),
 			},
@@ -92,7 +91,7 @@ func bastionClientConfig(ctx ssh.Context, host *server.Server_Response) (*gossh.
 	return clientConfig, nil
 }
 
-func clientConfig(host *server.Server_Response, access *server.ServerAccess_Response, hk gossh.HostKeyCallback) (*gossh.ClientConfig, error) {
+func clientConfig(host *serverpb.Server_Response, access *serverpb.ServerAccess_Response, hk gossh.HostKeyCallback) (*gossh.ClientConfig, error) {
 	auth := []gossh.AuthMethod{}
 
 	if access.GetKey().GetPrivate() == "" && access.GetPassword() == "" {

@@ -3,8 +3,8 @@ package server
 import (
 	"errors"
 
-	serverpb "github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
+	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"

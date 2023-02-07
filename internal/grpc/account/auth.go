@@ -6,10 +6,10 @@ import (
 
 	"github.com/google/uuid"
 
-	accountpb "github.com/werbot/werbot/api/proto/account"
-	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal/crypto"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/grpc/user"
+	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 )
 
 // SignIn is ...

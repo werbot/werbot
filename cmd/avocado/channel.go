@@ -14,15 +14,11 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 
-	"github.com/werbot/werbot/api/proto/account"
-	accountpb "github.com/werbot/werbot/api/proto/account"
-	"github.com/werbot/werbot/api/proto/audit"
-	auditpb "github.com/werbot/werbot/api/proto/audit"
-	"github.com/werbot/werbot/api/proto/firewall"
-	firewallpb "github.com/werbot/werbot/api/proto/firewall"
-	"github.com/werbot/werbot/api/proto/server"
-	serverpb "github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
+	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto"
+	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
+	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/service/ssh/auditor"
 	"github.com/werbot/werbot/internal/service/ssh/pty"
 	"github.com/werbot/werbot/pkg/strutil"
@@ -46,14 +42,14 @@ type channelTunnel struct {
 
 // TODO: combine Host and Actx with the required parameters in one
 // https://git.piplos.by/werbot/werbot-server/blob/3c833b2e6fd5a5d2914a4d9aaa640040dd605371/server.go
-func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Context, newChan gossh.NewChannel, srv *ssh.Server, conn *gossh.ServerConn, ch channelTunnel) {
+func connectToHost(host *serverpb.Server_Response, actx *authContext, ctx ssh.Context, newChan gossh.NewChannel, srv *ssh.Server, conn *gossh.ServerConn, ch channelTunnel) {
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	rClientF := firewallpb.NewFirewallHandlersClient(app.grpc.Client)
 	rClientS := serverpb.NewServerHandlersClient(app.grpc.Client)
 	rClientA := accountpb.NewAccountHandlersClient(app.grpc.Client)
 
-	_, err := rClientF.ServerAccess(_ctx, &firewall.ServerAccess_Request{
+	_, err := rClientF.ServerAccess(_ctx, &firewallpb.ServerAccess_Request{
 		ServerId: host.ServerId,
 		UserId:   actx.userID,
 		MemberIp: actx.userAddr,
@@ -78,7 +74,7 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 		}
 
 		// app.nats.AccountStatus(host.AccountId, "online")
-		_, err = rClientA.UpdateStatus(_ctx, &account.UpdateStatus_Request{
+		_, err = rClientA.UpdateStatus(_ctx, &accountpb.UpdateStatus_Request{
 			AccountId: host.AccountId,
 			Status:    2, // online
 		})
@@ -86,9 +82,9 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 			app.log.Error(err).Msg("gRPC UpdateAccountStatus")
 		}
 
-		data, err := rClientS.AddSession(_ctx, &server.AddSession_Request{
+		data, err := rClientS.AddSession(_ctx, &serverpb.AddSession_Request{
 			AccountId: host.AccountId,
-			Status:    server.SessionStatus_opened,
+			Status:    serverpb.SessionStatus_opened,
 			Message:   "",
 		})
 		if err != nil {
@@ -96,7 +92,7 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 		}
 		actx.sessionID = data.GetSessionId()
 
-		_, err = rClientS.UpdateServer(_ctx, &server.UpdateServer_Request{
+		_, err = rClientS.UpdateServer(_ctx, &serverpb.UpdateServer_Request{
 			ServerId: host.ServerId,
 			Setting: &serverpb.UpdateServer_Request_Active{
 				Active: true,
@@ -121,7 +117,7 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 			err = multiChannelHandler(srv, conn, newChan, ctx, sessionConfigs)
 			if err != nil {
 				app.log.Error(err).Msg("Multi ChannelHandler error")
-				_, err := rClientS.UpdateServer(_ctx, &server.UpdateServer_Request{
+				_, err := rClientS.UpdateServer(_ctx, &serverpb.UpdateServer_Request{
 					ServerId: host.ServerId,
 					Setting: &serverpb.UpdateServer_Request_Active{
 						Active: false,
@@ -134,9 +130,9 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 				conn.Close()
 			}
 
-			data, err = rClientS.AddSession(_ctx, &server.AddSession_Request{
+			data, err = rClientS.AddSession(_ctx, &serverpb.AddSession_Request{
 				AccountId: host.AccountId,
-				Status:    server.SessionStatus_closed,
+				Status:    serverpb.SessionStatus_closed,
 				Message:   actx.message,
 			})
 			if err != nil {
@@ -145,7 +141,7 @@ func connectToHost(host *server.Server_Response, actx *authContext, ctx ssh.Cont
 			actx.sessionID = data.GetSessionId()
 
 			// app.nats.AccountStatus(host.AccountId, "offline")
-			_, err := rClientA.UpdateStatus(_ctx, &account.UpdateStatus_Request{
+			_, err := rClientA.UpdateStatus(_ctx, &accountpb.UpdateStatus_Request{
 				AccountId: host.AccountId,
 				Status:    1, // offline
 			})
@@ -193,21 +189,21 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 	switch actx.userType() {
 	// case config.UserTypeHealthcheck:
-	case server.Type_healthcheck:
+	case serverpb.Type_healthcheck:
 		sendMessageInChannel(ch, "OK\n")
 		_ = ch.Close()
 		return
 
 	// TODO: Add disposable invites
 	// case config.UserTypeInvite:
-	case server.Type_invite:
+	case serverpb.Type_invite:
 		app.log.Info().Str("invite", actx.message).Str("userAddress", actx.userAddr).Msg(internal.MsgInviteIsInvalid)
 		sendMessageInChannel(ch, fmt.Sprintf("Invite %s is invalid.\n", actx.message))
 		_ = ch.Close()
 		return
 
 	// case config.UserTypeShell:
-	case server.Type_shell:
+	case serverpb.Type_shell:
 		if actx.userID == "" {
 			app.log.Info().Str("login", actx.login).Str("userAddress", actx.userAddr).Msg(internal.MsgAccessIsDenied)
 			actx.message = "Firewall denied access"
@@ -218,7 +214,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 		sendMessageInChannel(ch, " _    _  ____  ____  ____  _____  ____ \n( \\/\\/ )( ___)(  _ \\(  _ \\(  _  )(_  _)\n \033[0;31m)    (  )__)  )   / ) _ < )(_)(   )(\033[0m  \n(__/\\__)(____)(_)\\_)(____/(_____) (__) \n"+internal.Version()+", "+internal.Commit()+", "+internal.BuildDate()+"\n\n")
 
-		serverList, _ := rClient.ListServers(_ctx, &server.ListServers_Request{
+		serverList, _ := rClient.ListServers(_ctx, &serverpb.ListServers_Request{
 			Query: "login=" + actx.login,
 		})
 		actx.serverList = serverList.GetServers()
@@ -272,7 +268,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 		}
 		return
 
-	case server.Type_bastion:
+	case serverpb.Type_bastion:
 		if actx.userID == "" {
 			app.log.Info().Str("login", actx.login).Str("userAddress", actx.userAddr).Msg("Permission denied")
 			actx.message = "Permission denied"
@@ -281,7 +277,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 			return
 		}
 
-		getHosts, err := rClient.ListServers(_ctx, &server.ListServers_Request{
+		getHosts, err := rClient.ListServers(_ctx, &serverpb.ListServers_Request{
 			Query: "login=" + actx.login,
 		})
 		if err != nil {
@@ -400,7 +396,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 	errch := make(chan error, 1)
 	quit := make(chan string, 1)
 
-	newAudit := &audit.AddAudit_Request{
+	newAudit := &auditpb.AddAudit_Request{
 		AccountId: sessConfig.AccountID,
 		ClientIp:  sessConfig.ClientIP,
 		Session:   sessConfig.SessionID,
@@ -464,7 +460,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 			if req.Type == "pty-req" {
 				ptyReq, _ := pty.ParsePtyRequest(req.Payload)
 
-				_, err = rClient.UpdateAudit(_ctx, &audit.UpdateAudit_Request{
+				_, err = rClient.UpdateAudit(_ctx, &auditpb.UpdateAudit_Request{
 					AuditId: auditID,
 					Width:   int32(ptyReq.Width),
 					Height:  int32(ptyReq.Height),

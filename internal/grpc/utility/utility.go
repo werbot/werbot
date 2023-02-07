@@ -7,8 +7,8 @@ import (
 
 	"github.com/oschwald/geoip2-golang"
 
-	utilitypb "github.com/werbot/werbot/api/proto/utility"
 	"github.com/werbot/werbot/internal"
+	utilitypb "github.com/werbot/werbot/internal/grpc/utility/proto"
 )
 
 // Countries is searches for a country by first letters

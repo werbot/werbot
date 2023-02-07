@@ -3,8 +3,8 @@ package project
 import (
 	"errors"
 
-	projectpb "github.com/werbot/werbot/api/proto/project"
 	"github.com/werbot/werbot/internal"
+	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"
 )

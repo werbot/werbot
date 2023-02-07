@@ -7,8 +7,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	projectpb "github.com/werbot/werbot/api/proto/project"
 	"github.com/werbot/werbot/internal/crypto"
+	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
 )
 
 // ListProjects is ...

@@ -12,9 +12,8 @@ import (
 
 	"github.com/gliderlabs/ssh"
 	"github.com/rs/zerolog/log"
-	"github.com/werbot/werbot/api/proto/server"
-	serverpb "github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal"
+	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/pkg/netutil"
 )
 
@@ -34,7 +33,7 @@ func privateKey() func(*ssh.Server) error {
 	}
 }
 
-func dynamicHostKey(host *server.Server_Response) gossh.HostKeyCallback {
+func dynamicHostKey(host *serverpb.Server_Response) gossh.HostKeyCallback {
 	return func(hostname string, remote net.Addr, key gossh.PublicKey) error {
 		if len(host.HostKey) == 0 {
 			log.Info().Str("hostAddress", netutil.IP(hostname)).Msg("Discovering host fingerprint")
@@ -43,7 +42,7 @@ func dynamicHostKey(host *server.Server_Response) gossh.HostKeyCallback {
 			defer cancel()
 			rClient := serverpb.NewServerHandlersClient(app.grpc.Client)
 
-			_, err := rClient.UpdateHostKey(ctx, &server.UpdateHostKey_Request{
+			_, err := rClient.UpdateHostKey(ctx, &serverpb.UpdateHostKey_Request{
 				ServerId: host.ServerId,
 				Hostkey:  key.Marshal(),
 			})

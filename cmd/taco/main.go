@@ -14,18 +14,18 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 
-	"github.com/werbot/werbot/api/web"
-	"github.com/werbot/werbot/api/web/auth"
-	"github.com/werbot/werbot/api/web/info"
-	"github.com/werbot/werbot/api/web/key"
-	"github.com/werbot/werbot/api/web/license"
-	"github.com/werbot/werbot/api/web/member"
-	"github.com/werbot/werbot/api/web/ping"
-	"github.com/werbot/werbot/api/web/project"
-	"github.com/werbot/werbot/api/web/server"
-	"github.com/werbot/werbot/api/web/user"
-	"github.com/werbot/werbot/api/web/utility"
-	"github.com/werbot/werbot/api/web/wellknown"
+	"github.com/werbot/werbot/api"
+	"github.com/werbot/werbot/api/auth"
+	"github.com/werbot/werbot/api/info"
+	"github.com/werbot/werbot/api/key"
+	"github.com/werbot/werbot/api/license"
+	"github.com/werbot/werbot/api/member"
+	"github.com/werbot/werbot/api/ping"
+	"github.com/werbot/werbot/api/project"
+	"github.com/werbot/werbot/api/server"
+	"github.com/werbot/werbot/api/user"
+	"github.com/werbot/werbot/api/utility"
+	"github.com/werbot/werbot/api/wellknown"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/storage/cache"
@@ -85,7 +85,7 @@ func main() {
 	)
 
 	authMiddleware := middleware.Auth(cache).Execute()
-	webHandler := &web.Handler{
+	webHandler := &api.Handler{
 		App:   app,
 		Grpc:  grpcClient,
 		Cache: cache,

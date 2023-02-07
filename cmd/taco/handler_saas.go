@@ -3,10 +3,10 @@
 package main
 
 import (
-	"github.com/werbot/werbot/add-on/saas/api/web/subscription"
-	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/add-on/saas/api/subscription"
+	"github.com/werbot/werbot/api"
 )
 
-func handler(h *web.Handler) {
+func handler(h *api.Handler) {
 	subscription.New(h).Routes()
 }

@@ -10,9 +10,9 @@ import (
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	keypb "github.com/werbot/werbot/api/proto/key"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
+	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
 )
 
 // ListKeys is ...

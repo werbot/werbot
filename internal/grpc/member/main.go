@@ -3,8 +3,8 @@ package member
 import (
 	"errors"
 
-	memberpb "github.com/werbot/werbot/api/proto/member"
 	"github.com/werbot/werbot/internal"
+	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"
 )

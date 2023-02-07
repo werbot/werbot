@@ -3,8 +3,8 @@ package key
 import (
 	"errors"
 
-	keypb "github.com/werbot/werbot/api/proto/key"
 	"github.com/werbot/werbot/internal"
+	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
 	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"

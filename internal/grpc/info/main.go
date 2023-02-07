@@ -1,7 +1,7 @@
 package info
 
 import (
-	infopb "github.com/werbot/werbot/api/proto/info"
+	infopb "github.com/werbot/werbot/internal/grpc/info/proto"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"
 )

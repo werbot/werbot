@@ -8,8 +8,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal/crypto"
+	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 )
 
 // ListUsers is lists all users on the system

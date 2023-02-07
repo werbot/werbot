@@ -3,8 +3,8 @@ package logging
 import (
 	"errors"
 
-	loggingpb "github.com/werbot/werbot/api/proto/logging"
 	"github.com/werbot/werbot/internal"
+	loggingpb "github.com/werbot/werbot/internal/grpc/logging/proto"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"
 )

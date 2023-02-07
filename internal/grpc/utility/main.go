@@ -3,8 +3,8 @@ package utility
 import (
 	"errors"
 
-	utilitypb "github.com/werbot/werbot/api/proto/utility"
 	"github.com/werbot/werbot/internal"
+	utilitypb "github.com/werbot/werbot/internal/grpc/utility/proto"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"
 )

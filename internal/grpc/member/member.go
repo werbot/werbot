@@ -9,9 +9,9 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	memberpb "github.com/werbot/werbot/api/proto/member"
-	userpb "github.com/werbot/werbot/api/proto/user"
+	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
 	"github.com/werbot/werbot/internal/grpc/project"
+	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 )
 
 // ListProjectMembers is ...

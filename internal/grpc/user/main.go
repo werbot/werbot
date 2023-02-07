@@ -3,8 +3,8 @@ package user
 import (
 	"errors"
 
-	userpb "github.com/werbot/werbot/api/proto/user"
 	"github.com/werbot/werbot/internal"
+	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"
 )

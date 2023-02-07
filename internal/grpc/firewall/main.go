@@ -3,7 +3,7 @@ package firewall
 import (
 	"errors"
 
-	firewallpb "github.com/werbot/werbot/api/proto/firewall"
+	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	"github.com/werbot/werbot/pkg/logger"

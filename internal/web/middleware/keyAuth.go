@@ -9,8 +9,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/keyauth/v2"
 
-	projectpb "github.com/werbot/werbot/api/proto/project"
 	"github.com/werbot/werbot/internal/grpc"
+	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
 	"github.com/werbot/werbot/pkg/webutil"
 )
 

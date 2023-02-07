@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"time"
 
-	firewallpb "github.com/werbot/werbot/api/proto/firewall"
-	utilitypb "github.com/werbot/werbot/api/proto/utility"
 	"github.com/werbot/werbot/internal"
+	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
 	"github.com/werbot/werbot/internal/grpc/project"
 	"github.com/werbot/werbot/internal/grpc/utility"
+	utilitypb "github.com/werbot/werbot/internal/grpc/utility/proto"
 	"github.com/werbot/werbot/pkg/strutil"
 )
 

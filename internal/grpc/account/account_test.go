@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	accountpb "github.com/werbot/werbot/api/proto/account"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/utils/test"
 )
 

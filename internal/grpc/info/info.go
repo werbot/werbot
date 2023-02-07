@@ -3,8 +3,8 @@ package info
 import (
 	"context"
 
-	infopb "github.com/werbot/werbot/api/proto/info"
-	userpb "github.com/werbot/werbot/api/proto/user"
+	infopb "github.com/werbot/werbot/internal/grpc/info/proto"
+	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 )
 

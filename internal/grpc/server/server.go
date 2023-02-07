@@ -10,9 +10,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	serverpb "github.com/werbot/werbot/api/proto/server"
 	"github.com/werbot/werbot/internal/crypto"
 	"github.com/werbot/werbot/internal/grpc/project"
+	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/pkg/strutil"
 )

@@ -3,7 +3,7 @@ package audit
 import (
 	"context"
 
-	auditpb "github.com/werbot/werbot/api/proto/audit"
+	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 )
 

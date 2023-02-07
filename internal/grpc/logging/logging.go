@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	loggingpb "github.com/werbot/werbot/api/proto/logging"
+	loggingpb "github.com/werbot/werbot/internal/grpc/logging/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 )
 
