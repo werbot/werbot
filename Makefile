@@ -78,37 +78,36 @@ gen_key_jwt: ## Generating JWT key
 #############################################################################
 # run:
 # make gen_protos - recreate all protofiles
-# make gen_protos user - recreate protofile user from folder /api/proto/
+# make gen_protos user - recreate protofile user from folder /internal/grpc/
 .PHONY: gen_protos
 gen_protos: ## Generating protos files
 	$(msg) "$(GREEN)Generating protos files$(RESET)"
 	@if [ $(filter-out $@,$(MAKECMDGOALS)) ]; then\
-		if [ -d ${ROOT_PATH}/api/proto/$(filter-out $@,$(MAKECMDGOALS))/ ];then\
-			$(call _gen_protos,${ROOT_PATH}/api/proto/$(filter-out $@,$(MAKECMDGOALS))/);\
+		if [ -d ${ROOT_PATH}/internal/grpc/$(filter-out $@,$(MAKECMDGOALS))/proto/ ];then\
+			$(call _gen_protos,$(filter-out $@,$(MAKECMDGOALS)));\
 		else \
 			echo "error";\
 		fi \
 	else \
-		for entry in ${ROOT_PATH}/api/proto/*/; do\
-			$(call _gen_protos,$${entry});\
+		for entry in ${ROOT_PATH}/internal/grpc/*/; do\
+			$(call _gen_protos,$$(basename $${entry}));\
 		done \
 	fi
 
 define _gen_protos
-	pushd ${1} >/dev/null 2>&1;\
-	echo "${1}*.proto";\
+  PROTO=${ROOT_PATH}/internal/grpc/${1}/proto/;\
+	echo "$${PROTO}";\
 	protoc --proto_path=. \
 	  --proto_path=/usr/local/include/ \
-		--proto_path=${ROOT_PATH}/api/proto/ \
-		--go_out=paths=source_relative:. \
-		--go-grpc_out=paths=source_relative:. \
+		--proto_path=$${PROTO} \
+		--go_out=paths=source_relative:$${PROTO} \
+		--go-grpc_out=paths=source_relative:$${PROTO} \
 		--plugin=protoc-gen-ts=${ROOT_PATH}/web/node_modules/@protobuf-ts/plugin/bin/protoc-gen-ts \
-    --validate_out=lang=go,paths=source_relative:. \
-		--ts_out=../../../web/src/proto \
+    --validate_out=lang=go,paths=source_relative:$${PROTO} \
+		--ts_out=./web/src/proto \
 		--ts_opt=use_proto_field_name,ts_nocheck,long_type_string,force_optimize_code_size,force_client_none \
-		$$(basename ${1}).proto;\
-  protoc-go-inject-tag -input="$$(basename ${1}).pb.go" -remove_tag_comment;\
-	popd >/dev/null 2>&1
+		${1}.proto;\
+  protoc-go-inject-tag -input="$${PROTO}${1}.pb.go" -remove_tag_comment
 endef
 #############################################################################
 
