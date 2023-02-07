@@ -15,9 +15,12 @@ import (
 func Test_license(t *testing.T) {
 	t.Parallel()
 
-	fixturePath := "../../fixtures/licenses/"
+	ctx := context.Background()
+	grpc := test.CreateGRPC(ctx, t, &test.Service{DB: nil})
+	defer grpc.Close()
+
+	fixturePath := "../../../fixtures/licenses/"
 	pubKeyOk := string(fsutil.MustReadFile(fixturePath + "publicKey_ok.key"))
-	// pubKeyErr := string(fsutil.MustReadFile(fixturePath + "publicKey_err.key"))
 	licenseOk := fixturePath + "license_ok.key"
 	licenseErr := fixturePath + "license_err.key"
 
@@ -90,16 +93,12 @@ func Test_license(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
-	conn := test.CreateGRPC(ctx, t, nil)
-	defer conn.Close()
-
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			os.Setenv("LICENSE_FILE", tt.licPath)
 			os.Setenv("LICENSE_KEY_PUBLIC", tt.licPubKey)
 
-			l := licensepb.NewLicenseHandlersClient(conn)
+			l := licensepb.NewLicenseHandlersClient(grpc)
 			response, err := l.License(ctx, tt.req)
 			if err != nil {
 				require.EqualError(t, err, tt.respErr)
