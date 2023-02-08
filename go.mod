@@ -8,7 +8,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v0.9.1
 	github.com/fergusstrange/embedded-postgres v1.20.0
 	github.com/fsnotify/fsnotify v1.6.0
-	github.com/fsouza/go-dockerclient v1.9.3
+	github.com/fsouza/go-dockerclient v1.9.4
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.42.0
