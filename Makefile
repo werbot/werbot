@@ -107,7 +107,8 @@ define _gen_protos
 		--ts_out=./web/src/proto \
 		--ts_opt=use_proto_field_name,ts_nocheck,long_type_string,force_optimize_code_size,force_client_none \
 		${1}.proto;\
-  protoc-go-inject-tag -input="$${PROTO}${1}.pb.go" -remove_tag_comment
+  protoc-go-inject-tag -input="$${PROTO}${1}.pb.go" -remove_tag_comment;\
+  sed -i -e 's/\/internal\/grpc\/\([a-z]\+\)\/proto//g' ./web/src/proto/${1}.ts
 endef
 #############################################################################
 
