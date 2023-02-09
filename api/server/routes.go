@@ -37,7 +37,6 @@ func (h *Handler) Routes() {
 
 	// private
 	serverV1 := h.App.Group("/v1/servers", h.Auth)
-	serverV1.Patch("/active", h.updateServerStatus)
 
 	serverV1.Get("/", h.server)
 	serverV1.Post("/", h.addServer)
@@ -58,6 +57,7 @@ func (h *Handler) Routes() {
 	serverV1.Delete("/share", h.deleteServerShareForUser)
 
 	serverV1.Get("/access", h.serverAccess)
+	serverV1.Patch("/access", h.updateServerAccess)
 
 	serverV1.Get("/name", h.serverNameByID)
 }

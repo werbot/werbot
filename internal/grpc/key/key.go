@@ -3,6 +3,7 @@ package key
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -252,8 +253,9 @@ func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_R
 	cacheKey := new(keypb.GenerateSSHKey_Key)
 	cacheKey.Private = string(key.PrivateKey)
 	cacheKey.Public = string(key.PublicKey)
+	mapB, _ := json.Marshal(cacheKey)
 
-	if err := h.Cache.Set(fmt.Sprintf("tmp_key_ssh::%s", response.Uuid), cacheKey, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "5m")); err != nil {
+	if err := h.Cache.Set(fmt.Sprintf("tmp_key_ssh::%s", response.Uuid), mapB, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "10m")); err != nil {
 		return nil, errIncorrectParameters
 	}
 

@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"reflect"
 	"strings"
 	"time"
 
@@ -137,6 +139,29 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 func (h *Handler) updateServer(c *fiber.Ctx) error {
 	request := new(serverpb.UpdateServer_Request)
 
+	// Deciding what to update
+	if !json.Valid(c.Body()) {
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, nil)
+	}
+
+	var update map[string]map[string]any
+	json.Unmarshal(c.Body(), &update)
+	keys := reflect.ValueOf(update["setting"]).MapKeys()
+
+	switch keys[0].String() {
+	case "info":
+		request.Setting = new(serverpb.UpdateServer_Request_Info)
+	case "audit":
+		request.Setting = new(serverpb.UpdateServer_Request_Audit)
+	case "active":
+		request.Setting = new(serverpb.UpdateServer_Request_Active)
+	case "online":
+		request.Setting = new(serverpb.UpdateServer_Request_Online)
+	default:
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, nil)
+	}
+	// -----------------------
+
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
@@ -163,40 +188,6 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
-
-	/*
-		// access setting
-		access := new(serverpb.UpdateServerAccess_Request)
-
-		if err := c.BodyParser(request); err != nil {
-			h.log.Error(err).Send()
-			return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
-		}
-
-		if err := access.ValidateAll(); err != nil {
-			multiError := make(map[string]string)
-			for _, err := range err.(serverpb.UpdateServerAccess_RequestMultiError) {
-				e := err.(serverpb.UpdateServerAccess_RequestValidationError)
-				multiError[strings.ToLower(e.Field())] = e.Reason()
-			}
-			return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
-		}
-
-		// If the password is not indicated, skip the next step
-		if access.Auth == serverpb.Auth_password && access.GetPassword() == "" {
-			return webutil.StatusOK(c, msgServerUpdated, nil)
-		}
-
-		access.UserId = request.GetUserId()
-		access.ServerId = request.GetServerId()
-		access.ProjectId = request.GetProjectId()
-
-		_, err = rClient.UpdateServerAccess(ctx, access)
-		if err != nil {
-			return webutil.FromGRPC(c, h.log, err)
-		}
-	*/
-
 	return webutil.StatusOK(c, msgServerUpdated, nil)
 }
 
@@ -213,7 +204,7 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 func (h *Handler) deleteServer(c *fiber.Ctx) error {
 	request := new(serverpb.DeleteServer_Request)
 
-	if err := c.QueryParser(request); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
 	}
@@ -285,6 +276,68 @@ func (h *Handler) serverAccess(c *fiber.Ctx) error {
 	//}
 
 	return webutil.StatusOK(c, msgServerAccess, access)
+}
+
+// @Summary      Update server update
+// @Tags         servers
+// @Accept       json
+// @Produce      json
+// @Param        req         body     serverpb.UpdateServerAccess_Request{}
+// @Success      200         {object} webutil.HTTPResponse
+// @Failure      400,401,500 {object} webutil.HTTPResponse
+// @Router       /v1/servers/access [patch]
+func (h *Handler) updateServerAccess(c *fiber.Ctx) error {
+	request := new(serverpb.UpdateServerAccess_Request)
+
+	// Deciding what to access
+	if !json.Valid(c.Body()) {
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, nil)
+	}
+
+	var update map[string]map[string]any
+	json.Unmarshal(c.Body(), &update)
+	keys := reflect.ValueOf(update["access"]).MapKeys()
+
+	switch keys[0].String() {
+	case "password":
+		request.Access = new(serverpb.UpdateServerAccess_Request_Password)
+	case "key":
+		request.Access = new(serverpb.UpdateServerAccess_Request_Key)
+	default:
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, nil)
+	}
+	// -----------------------
+
+	if err := c.BodyParser(request); err != nil {
+		h.log.Error(err).Send()
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+	}
+
+	if err := request.ValidateAll(); err != nil {
+		multiError := make(map[string]string)
+		for _, err := range err.(serverpb.UpdateServerAccess_RequestMultiError) {
+			e := err.(serverpb.UpdateServerAccess_RequestValidationError)
+			multiError[strings.ToLower(e.Field())] = e.Reason()
+		}
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+	}
+
+	userParameter := middleware.AuthUser(c)
+	request.UserId = userParameter.UserID(request.GetUserId())
+	request.ServerId = request.GetServerId()
+	request.ProjectId = request.GetProjectId()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+
+	_, err := rClient.UpdateServerAccess(ctx, request)
+	if err != nil {
+		return webutil.FromGRPC(c, h.log, err)
+	}
+
+	return webutil.StatusOK(c, msgServerUpdated, nil)
 }
 
 // @Summary      Get server activity
@@ -550,53 +603,6 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 	}
 
 	return webutil.StatusOK(c, msgFirewallDeleted, nil)
-}
-
-// @Summary      Update server status
-// @Tags         servers
-// @Accept       json
-// @Produce      json
-// @Param        req         body     serverpb.UpdateServerActiveStatus_Request{}
-// @Success      200         {object} webutil.HTTPResponse
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/servers/active [patch]
-func (h *Handler) updateServerStatus(c *fiber.Ctx) error {
-	request := new(serverpb.UpdateServer_Request)
-	request.Setting = new(serverpb.UpdateServer_Request_Active)
-
-	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
-	}
-
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(serverpb.UpdateServer_RequestMultiError) {
-			e := err.(serverpb.UpdateServer_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.UserId = userParameter.UserID(request.GetUserId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
-	_, err := rClient.UpdateServer(ctx, request)
-	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
-	}
-
-	// message section
-	message := msgServerIsOnline
-	if !request.GetActive() {
-		message = msgServerIsOffline
-	}
-
-	return webutil.StatusOK(c, message, nil)
 }
 
 // @Summary      Server name by ID

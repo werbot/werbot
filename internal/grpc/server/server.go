@@ -20,7 +20,7 @@ import (
 // TODO: a method for updating Host FingerPrint server
 // TODO: When updating the IP address of the server, you need to update HostKey !!!!
 
-// GetServers is displays a list of available servers
+// ListServers is displays a list of available servers
 func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Request) (*serverpb.ListServers_Response, error) {
 	// TODO: checking the permitted servers available for display
 	//  log.Info().Msgf("Expired: %v", license.L.GetCustomer())
@@ -456,22 +456,18 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 	case *serverpb.UpdateServer_Request_Info:
 		data, err = h.DB.Conn.Exec(`UPDATE "server"
     SET
-      "address" = $3,
-      "port" = $4,
-      "title" = $6,
-      "active" = $7,
-      "audit" = $8,
-      "description" = $9,
+      "address" = $1,
+      "port" = $2,
+      "title" = $3,
+      "description" = $4,
       "last_update" = NOW()
-    WHERE "id" = $1 AND "project_id" = $2`,
-			in.GetServerId(),
-			in.GetProjectId(),
+    WHERE "id" = $5 AND "project_id" = $6`,
 			in.GetInfo().GetAddress(),
 			in.GetInfo().GetPort(),
 			in.GetInfo().GetTitle(),
-			in.GetActive(),
-			in.GetAudit(),
 			in.GetInfo().GetDescription(),
+			in.GetServerId(),
+			in.GetProjectId(),
 		)
 
 	case *serverpb.UpdateServer_Request_Audit:
@@ -537,7 +533,7 @@ func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Re
 		return nil, errNotFound
 	}
 
-	var password, publicKey, privateKey, privateKeyPassword string
+	var password, publicKey, privateKey, privateKeyPassword sql.NullString
 	response := new(serverpb.ServerAccess_Response)
 
 	err := h.DB.Conn.QueryRow(`SELECT "auth",
@@ -547,7 +543,7 @@ func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Re
       "key"->>'private',
       "key"->>'password'
 		FROM "server_access"
-		WHERE "id" = $1`,
+		WHERE "server_id" = $1`,
 		in.GetServerId(),
 	).Scan(&response.Auth,
 		&response.Login,
@@ -566,15 +562,15 @@ func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Re
 	}
 
 	switch response.GetAuth() {
-	case serverpb.Auth_password: // password
+	case serverpb.Auth_password:
 		response.Access = &serverpb.ServerAccess_Response_Password{
-			Password: password,
+			Password: password.String,
 		}
-	case serverpb.Auth_key: // key
+	case serverpb.Auth_key:
 		response.Auth = serverpb.Auth_key
 		response.Access = &serverpb.ServerAccess_Response_Key{
 			Key: &serverpb.ServerAccess_Key{
-				Public: publicKey,
+				Public: publicKey.String,
 			},
 		}
 	}
@@ -600,24 +596,21 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 
 	switch in.GetAccess().(type) {
 	case *serverpb.UpdateServerAccess_Request_Password:
-		sqlQuery, _ = sanitize.SQL(`UPDATE "server" SET "password" = $3, "last_update" = NOW() WHERE "id" = $1 AND "project_id" = $2`,
-			in.GetServerId(),
-			in.GetProjectId(),
+		sqlQuery, _ = sanitize.SQL(`UPDATE "server_access" SET "password" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
 			in.GetPassword(),
+			in.GetServerId(),
 		)
 	case *serverpb.UpdateServerAccess_Request_Key:
-		privateKey, err := h.Cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey().GetKeyUuid())).Result()
+		cacheKey, err := h.Cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey())).Result()
 		if err != nil {
 			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 
-		h.Cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey().GetKeyUuid()))
-		sqlQuery, _ = sanitize.SQL(`UPDATE "server" SET "public_key" = $3, "private_key" = $4, "last_update" = NOW() WHERE "id" = $1 AND "project_id" = $2`,
+		h.Cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey()))
+		sqlQuery, _ = sanitize.SQL(`UPDATE "server_access" SET "key" = $1, "last_update" = NOW() WHERE "server_id" = $2 `,
+			cacheKey,
 			in.GetServerId(),
-			in.GetProjectId(),
-			in.GetKey().GetPublicKey(),
-			privateKey,
 		)
 	default:
 		return response, nil

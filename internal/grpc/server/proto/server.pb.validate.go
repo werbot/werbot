@@ -4239,7 +4239,18 @@ func (m *UpdateServerAccess_Request) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
-		// no validation rules for Password
+
+		if l := utf8.RuneCountInString(m.GetPassword()); l < 8 || l > 32 {
+			err := UpdateServerAccess_RequestValidationError{
+				field:  "Password",
+				reason: "value length must be between 8 and 32 runes, inclusive",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 	case *UpdateServerAccess_Request_Key:
 		if v == nil {
 			err := UpdateServerAccess_RequestValidationError{
@@ -4252,33 +4263,20 @@ func (m *UpdateServerAccess_Request) validate(all bool) error {
 			errors = append(errors, err)
 		}
 
-		if all {
-			switch v := interface{}(m.GetKey()).(type) {
-			case interface{ ValidateAll() error }:
-				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, UpdateServerAccess_RequestValidationError{
-						field:  "Key",
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			case interface{ Validate() error }:
-				if err := v.Validate(); err != nil {
-					errors = append(errors, UpdateServerAccess_RequestValidationError{
-						field:  "Key",
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			}
-		} else if v, ok := interface{}(m.GetKey()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return UpdateServerAccess_RequestValidationError{
+		if m.GetKey() != "" {
+
+			if err := m._validateUuid(m.GetKey()); err != nil {
+				err = UpdateServerAccess_RequestValidationError{
 					field:  "Key",
-					reason: "embedded message failed validation",
+					reason: "value must be a valid UUID",
 					cause:  err,
 				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
 			}
+
 		}
 
 	default:
@@ -4475,112 +4473,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = UpdateServerAccess_ResponseValidationError{}
-
-// Validate checks the field values on UpdateServerAccess_Key with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateServerAccess_Key) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateServerAccess_Key with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateServerAccess_KeyMultiError, or nil if none found.
-func (m *UpdateServerAccess_Key) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateServerAccess_Key) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for PublicKey
-
-	// no validation rules for KeyUuid
-
-	if len(errors) > 0 {
-		return UpdateServerAccess_KeyMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateServerAccess_KeyMultiError is an error wrapping multiple validation
-// errors returned by UpdateServerAccess_Key.ValidateAll() if the designated
-// constraints aren't met.
-type UpdateServerAccess_KeyMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateServerAccess_KeyMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateServerAccess_KeyMultiError) AllErrors() []error { return m }
-
-// UpdateServerAccess_KeyValidationError is the validation error returned by
-// UpdateServerAccess_Key.Validate if the designated constraints aren't met.
-type UpdateServerAccess_KeyValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateServerAccess_KeyValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateServerAccess_KeyValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateServerAccess_KeyValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateServerAccess_KeyValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateServerAccess_KeyValidationError) ErrorName() string {
-	return "UpdateServerAccess_KeyValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateServerAccess_KeyValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateServerAccess_Key.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateServerAccess_KeyValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateServerAccess_KeyValidationError{}
 
 // Validate checks the field values on ServerActivity_Request with the rules
 // defined in the proto definition for this message. If any rules are
