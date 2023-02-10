@@ -6,4 +6,4 @@ import (
 	"github.com/werbot/werbot/api"
 )
 
-func handler(h *web.Handler) {}
+func handler(h *api.Handler) {}
