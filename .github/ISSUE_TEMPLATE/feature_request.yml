@@ -37,8 +37,8 @@ body:
     id: version
     attributes:
       label: Werbot version
-      description: 
-      placeholder: 
+      description:
+      placeholder:
     validations:
       required: true
   - type: input

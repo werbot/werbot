@@ -37,7 +37,7 @@ body:
     id: version
     attributes:
       label: Werbot version
-      description: 
+      description:
       placeholder:
     validations:
       required: true
@@ -55,8 +55,8 @@ body:
       label: Is there an existing issue for this?
       description: Please search [our issues](https://github.com/werbot/werbot/issues) to see if this bug already exists.
       options:
-      - label: I have searched the existing issues
-        required: true
+        - label: I have searched the existing issues
+          required: true
   - type: checkboxes
     id: terms
     attributes:

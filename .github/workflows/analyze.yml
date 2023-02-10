@@ -1,4 +1,4 @@
-name: "CodeQL"
+name: "analyze"
 
 on:
   push:
@@ -66,8 +66,3 @@ jobs:
       uses: github/codeql-action/analyze@v2
       with:
         category: "/language:${{matrix.language}}"
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
