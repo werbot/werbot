@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/armon/go-proxyproto"
-	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/werbot/werbot/api"
 	"github.com/werbot/werbot/api/auth"
@@ -28,7 +28,7 @@ import (
 	"github.com/werbot/werbot/api/wellknown"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/storage/cache"
+	rdb "github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -56,7 +56,7 @@ func main() {
 		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 
-	cache := cache.New(ctx, &redis.Options{
+	cache := rdb.NewClient(ctx, &redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
@@ -88,7 +88,7 @@ func main() {
 	webHandler := &api.Handler{
 		App:   app,
 		Grpc:  grpcClient,
-		Cache: cache,
+		Redis: cache,
 		Auth:  authMiddleware,
 	}
 

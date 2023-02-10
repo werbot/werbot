@@ -68,7 +68,7 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 	}
 
 	// We write user_id (user.user.userid) in the database, since if Access_key will not know which user to create a new one
-	if !jwt.AddToken(h.Cache, sub, user.GetUserId()) {
+	if !jwt.AddToken(h.Redis, sub, user.GetUserId()) {
 		return webutil.InternalServerError(c, msgFailedToSetCache, nil)
 	}
 
@@ -86,7 +86,7 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 // @Router       /auth/logout [post]
 func (h *Handler) logout(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	jwt.DeleteToken(h.Cache, userParameter.UserSub())
+	jwt.DeleteToken(h.Redis, userParameter.UserSub())
 	return webutil.StatusOK(c, msgSuccessLoggedOut, nil)
 }
 
@@ -113,16 +113,16 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 	}
 
 	sub := jwt.GetClaimSub(*claims)
-	userID, err := h.Cache.Get(fmt.Sprintf("ref_token::%s", sub)).Result()
+	userID, err := h.Redis.Get(fmt.Sprintf("ref_token::%s", sub)).Result()
 	if err != nil {
 		h.log.Error(err).Send()
 		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	}
 
-	if !jwt.ValidateToken(h.Cache, sub) {
+	if !jwt.ValidateToken(h.Redis, sub) {
 		return webutil.StatusBadRequest(c, msgTokenHasBeenRevoked, nil)
 	}
-	jwt.DeleteToken(h.Cache, sub)
+	jwt.DeleteToken(h.Redis, sub)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -147,7 +147,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 		return webutil.StatusBadRequest(c, msgFailedToCreateToken, nil)
 	}
 
-	jwt.AddToken(h.Cache, sub, userID)
+	jwt.AddToken(h.Redis, sub, userID)
 
 	tokens := &jwt.Tokens{
 		Access:  newToken.Tokens.Access,

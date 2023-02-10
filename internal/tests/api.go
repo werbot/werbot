@@ -10,16 +10,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
-	"github.com/werbot/werbot/internal/storage/cache"
+	rdb "github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -39,7 +39,7 @@ type TestCase struct {
 type TestHandler struct {
 	App     *fiber.App
 	GRPC    *grpc.ClientService
-	Cache   cache.Cache
+	Redis   rdb.Handler
 	Handler http.HandlerFunc
 	Auth    *fiber.Handler
 }
@@ -70,7 +70,7 @@ func InitTestServer(envPath string) *TestHandler {
 		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 
-	cacheClient := cache.New(context.TODO(), &redis.Options{
+	cacheClient := rdb.New(context.TODO(), &redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
@@ -107,7 +107,7 @@ func InitTestServer(envPath string) *TestHandler {
 	return &TestHandler{
 		App:   server,
 		GRPC:  grpcClient,
-		Cache: cacheClient,
+		Redis: cacheClient,
 		Auth:  &authMiddleware,
 	}
 }

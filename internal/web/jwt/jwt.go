@@ -9,7 +9,7 @@ import (
 	"github.com/werbot/werbot/internal"
 
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
-	"github.com/werbot/werbot/internal/storage/cache"
+	"github.com/werbot/werbot/internal/storage/redis"
 )
 
 // Config is ...
@@ -88,27 +88,27 @@ func (d *Config) createToken(expire time.Duration, accessToken bool) (string, er
 }
 
 // ValidateToken is ...
-func ValidateToken(cache cache.Cache, sub string) bool {
+func ValidateToken(redis redis.Handler, sub string) bool {
 	key := fmt.Sprintf("ref_token::%s", sub)
-	if _, err := cache.Get(key).Result(); err != nil {
+	if _, err := redis.Get(key).Result(); err != nil {
 		return false
 	}
 	return true
 }
 
 // AddToken is ...
-func AddToken(cache cache.Cache, sub string, data any) bool {
+func AddToken(redis redis.Handler, sub string, data any) bool {
 	key := fmt.Sprintf("ref_token::%s", sub)
-	if err := cache.Set(key, data, internal.GetDuration("REFRESH_TOKEN_DURATION", "168h")); err != nil {
+	if err := redis.Set(key, data, internal.GetDuration("REFRESH_TOKEN_DURATION", "168h")); err != nil {
 		return false
 	}
 	return true
 }
 
 // DeleteToken is ...
-func DeleteToken(cache cache.Cache, sub string) bool {
+func DeleteToken(redis redis.Handler, sub string) bool {
 	key := fmt.Sprintf("ref_token::%s", sub)
-	if _, err := cache.Delete(key); err != nil {
+	if _, err := redis.Delete(key); err != nil {
 		return false
 	}
 	return true

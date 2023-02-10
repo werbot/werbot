@@ -8,14 +8,14 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
-	"github.com/werbot/werbot/internal/storage/cache"
+	"github.com/werbot/werbot/internal/storage/redis"
 	"google.golang.org/grpc"
 )
 
 // Web is ...
 type Web struct {
 	GRPC    *grpc.ClientConn
-	Cache   cache.Cache
+	Redis   redis.Handler
 	App     *fiber.App
 	Handler http.HandlerFunc
 	t       *testing.T

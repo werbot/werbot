@@ -9,12 +9,12 @@ import (
 	"net"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
-	storageCache "github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/storage/postgres"
+	rdb "github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/pkg/logger"
 )
 
@@ -50,7 +50,7 @@ func main() {
 		log.Error(err).Msg("Database connection problem")
 	}
 
-	cache := storageCache.New(ctx, &redis.Options{
+	cache := rdb.NewClient(ctx, &redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})

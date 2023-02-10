@@ -601,13 +601,13 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 			in.GetServerId(),
 		)
 	case *serverpb.UpdateServerAccess_Request_Key:
-		cacheKey, err := h.Cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey())).Result()
+		cacheKey, err := h.Redis.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey())).Result()
 		if err != nil {
 			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 
-		h.Cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey()))
+		h.Redis.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey()))
 		sqlQuery, _ = sanitize.SQL(`UPDATE "server_access" SET "key" = $1, "last_update" = NOW() WHERE "server_id" = $2 `,
 			cacheKey,
 			in.GetServerId(),

@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/go-redis/redis/v8"
-	"github.com/werbot/werbot/internal/storage/cache"
+	"github.com/redis/go-redis/v9"
+	rdb "github.com/werbot/werbot/internal/storage/redis"
 )
 
 // NewCache is ...
-func NewCache(t *testing.T) cache.Cache {
+func NewCache(t *testing.T) rdb.Handler {
 	s := miniredis.RunT(t)
-	return cache.New(context.TODO(), &redis.Options{
+	return rdb.New(context.TODO(), &redis.Options{
 		Addr: s.Addr(),
 	})
 }

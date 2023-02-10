@@ -19,7 +19,7 @@ func New(h *api.Handler) *Handler {
 		Handler: &api.Handler{
 			App:   h.App,
 			Grpc:  h.Grpc,
-			Cache: h.Cache,
+			Redis: h.Redis,
 			Auth:  h.Auth,
 		},
 		log: log,

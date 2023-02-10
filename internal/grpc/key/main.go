@@ -5,8 +5,8 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
-	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/storage/postgres"
+	"github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/pkg/logger"
 )
 
@@ -29,7 +29,7 @@ var (
 type Handler struct {
 	keypb.UnimplementedKeyHandlersServer
 	DB    *postgres.Connect
-	Cache cache.Cache
+	Redis redis.Handler
 }
 
 func init() {

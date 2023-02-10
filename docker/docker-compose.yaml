@@ -15,7 +15,6 @@ volumes:
   grafana_data: {}
   loki_data: {}
   prometheus_data: {}
-  nats_data: {}
   postgres_data: {}
   redis_data: {}
 
@@ -68,19 +67,6 @@ services:
     environment:
       CLOKI_LOGIN: ${CLOKI_LOGIN:-admin}
       CLOKI_PASSWORD: ${CLOKI_PASSWORD:-admin}
-    networks:
-      - private
-    labels:
-      com.werbot.group: "monitoring"
-    logging: *default-logging
-
-  nats-prometheus:
-    image: natsio/prometheus-nats-exporter:0.10.0
-    container_name: monitoring.nats-prometheus
-    restart: always
-    depends_on:
-      - nats
-    command: -varz http://service.nats:8222
     networks:
       - private
     labels:
@@ -158,22 +144,6 @@ services:
     labels:
       com.werbot.group: "service"
       sh.acme.autoload.domain: ${DOMAIN:-}
-    logging: *default-logging
-
-  nats:
-    image: nats:2.9.2-alpine
-    container_name: service.nats
-    restart: always
-    ports:
-      - 4222:4222
-      #- 8222:8222
-    volumes:
-      - nats_data:/tmp/nats/jetstream
-    command: --user ${NATS_USER:-werbot} --pass ${NATS_PASSWORD:-natsPassword} --jetstream --http_port 8222
-    networks:
-      - private
-    labels:
-      com.werbot.group: "service"
     logging: *default-logging
 
   postgres:
@@ -262,7 +232,6 @@ services:
     restart: always
     environment:
       SECURITY_AES_KEY: ${SECURITY_AES_KEY:-securittAesKey}
-      NATSSERVER_DSN: nats://${NATS_USER:-werbot}:${NATS_PASSWORD:-natsPassword}@service.nats:4222
       <<: *grpc-environment
     volumes:
       - /etc/localtime:/etc/localtime:ro
@@ -271,8 +240,6 @@ services:
       - ./core/grpc_private.key:/grpc_private.key:ro
       - ./core/server.key:/server.key:ro
       - ./core/license.key:/license.key:ro
-    #depends_on:
-    #  - service.nats
     deploy:
       replicas: 1
       resources: *default-resources

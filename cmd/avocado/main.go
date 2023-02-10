@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/rand"
@@ -11,11 +12,13 @@ import (
 
 	"github.com/armon/go-proxyproto"
 	"github.com/gliderlabs/ssh"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
 	"github.com/werbot/werbot/internal"
+	"github.com/werbot/werbot/internal/broker"
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/storage/nats"
+	rdb "github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/pkg/logger"
 )
 
@@ -25,25 +28,30 @@ var (
 
 // App is ...
 type App struct {
-	nats                  *nats.Service
+	redis                 rdb.Handler
 	grpc                  *grpc.ClientService
 	defaultChannelHandler ssh.ChannelHandler
 	log                   logger.Logger
+	broker                broker.Handler
 }
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	internal.LoadConfig("../../.env")
 
 	app.log = logger.New("avocado")
 
-	natsDSN := fmt.Sprintf("nats://%s:%s@%s",
-		internal.GetString("NATS_USER", "werbot"),
-		internal.GetString("NATS_PASSWORD", "natsPassword"),
-		internal.GetString("NATS_HOST", "localhost:4222"),
-	)
-	app.nats = nats.New(natsDSN)
+	app.redis = rdb.NewClient(ctx, &redis.Options{
+		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
+		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
+	})
+
+	app.broker = broker.New(ctx, app.redis.Client())
+
 	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {}
 
 	app.grpc = grpc.NewClient(
@@ -54,7 +62,7 @@ func main() {
 		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 
-	// app.nats.WriteStatus()
+	app.broker.WriteStatus()
 
 	// create TCP listening socket
 	ln, err := net.Listen("tcp", internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022"))

@@ -34,8 +34,8 @@ import (
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/grpc/utility"
 	utilitypb "github.com/werbot/werbot/internal/grpc/utility/proto"
-	"github.com/werbot/werbot/internal/storage/cache"
 	"github.com/werbot/werbot/internal/storage/postgres"
+	"github.com/werbot/werbot/internal/storage/redis"
 )
 
 var service Service
@@ -43,13 +43,13 @@ var service Service
 // Service is ...
 type Service struct {
 	DB    *postgres.Connect
-	Cache cache.Cache
+	Redis redis.Handler
 }
 
 // CreateGRPC is ...
 func CreateGRPC(ctx context.Context, t *testing.T, s *Service) *grpc.ClientConn {
 	service.DB = s.DB
-	service.Cache = s.Cache
+	service.Redis = s.Redis
 
 	conn, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithContextDialer(serverGRPC(t)))
 	require.NoError(t, err)
@@ -65,11 +65,11 @@ func serverGRPC(t *testing.T) func(context.Context, string) (net.Conn, error) {
 	auditpb.RegisterAuditHandlersServer(tServer, &audit.Handler{DB: service.DB})
 	firewallpb.RegisterFirewallHandlersServer(tServer, &firewall.Handler{DB: service.DB})
 	infopb.RegisterInfoHandlersServer(tServer, &info.Handler{DB: service.DB})
-	keypb.RegisterKeyHandlersServer(tServer, &key.Handler{DB: service.DB, Cache: service.Cache})
+	keypb.RegisterKeyHandlersServer(tServer, &key.Handler{DB: service.DB, Redis: service.Redis})
 	licensepb.RegisterLicenseHandlersServer(tServer, &license.Handler{})
 	memberpb.RegisterMemberHandlersServer(tServer, &member.Handler{DB: service.DB})
 	projectpb.RegisterProjectHandlersServer(tServer, &project.Handler{DB: service.DB})
-	serverpb.RegisterServerHandlersServer(tServer, &server.Handler{DB: service.DB, Cache: service.Cache})
+	serverpb.RegisterServerHandlersServer(tServer, &server.Handler{DB: service.DB, Redis: service.Redis})
 	userpb.RegisterUserHandlersServer(tServer, &user.Handler{DB: service.DB})
 	utilitypb.RegisterUtilityHandlersServer(tServer, &utility.Handler{DB: service.DB})
 	loggingpb.RegisterLoggingHandlersServer(tServer, &logging.Handler{DB: service.DB})

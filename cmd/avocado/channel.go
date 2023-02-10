@@ -73,7 +73,8 @@ func connectToHost(host *serverpb.Server_Response, actx *authContext, ctx ssh.Co
 			return
 		}
 
-		// app.nats.AccountStatus(host.AccountId, "online")
+		app.broker.AccountStatus(host.AccountId, "online")
+
 		_, err = rClientA.UpdateStatus(_ctx, &accountpb.UpdateStatus_Request{
 			AccountId: host.AccountId,
 			Status:    2, // online
@@ -140,7 +141,8 @@ func connectToHost(host *serverpb.Server_Response, actx *authContext, ctx ssh.Co
 			}
 			actx.sessionID = data.GetSessionId()
 
-			// app.nats.AccountStatus(host.AccountId, "offline")
+			app.broker.AccountStatus(host.AccountId, "offline")
+
 			_, err := rClientA.UpdateStatus(_ctx, &accountpb.UpdateStatus_Request{
 				AccountId: host.AccountId,
 				Status:    1, // offline
