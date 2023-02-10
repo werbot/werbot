@@ -70,7 +70,7 @@ func InitTestServer(envPath string) *TestHandler {
 		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 
-	cacheClient := rdb.New(context.TODO(), &redis.Options{
+	cacheClient := rdb.NewClient(context.TODO(), &redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})

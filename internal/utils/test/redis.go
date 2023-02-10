@@ -12,7 +12,7 @@ import (
 // NewCache is ...
 func NewCache(t *testing.T) rdb.Handler {
 	s := miniredis.RunT(t)
-	return rdb.New(context.TODO(), &redis.Options{
+	return rdb.NewClient(context.TODO(), &redis.Options{
 		Addr: s.Addr(),
 	})
 }
