@@ -255,7 +255,7 @@ func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_R
 	cacheKey.Public = string(key.PublicKey)
 	mapB, _ := json.Marshal(cacheKey)
 
-	if err := h.Redis.Set(fmt.Sprintf("tmp_key_ssh::%s", response.Uuid), mapB, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "10m")); err != nil {
+	if err := h.Redis.Set(fmt.Sprintf("tmp_key_ssh:%s", response.Uuid), mapB, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "10m")); err != nil {
 		return nil, errIncorrectParameters
 	}
 

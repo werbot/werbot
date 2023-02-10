@@ -113,7 +113,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 	}
 
 	sub := jwt.GetClaimSub(*claims)
-	userID, err := h.Redis.Get(fmt.Sprintf("ref_token::%s", sub)).Result()
+	userID, err := h.Redis.Get(fmt.Sprintf("ref_token:%s", sub)).Result()
 	if err != nil {
 		h.log.Error(err).Send()
 		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)

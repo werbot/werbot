@@ -89,7 +89,7 @@ func (d *Config) createToken(expire time.Duration, accessToken bool) (string, er
 
 // ValidateToken is ...
 func ValidateToken(redis redis.Handler, sub string) bool {
-	key := fmt.Sprintf("ref_token::%s", sub)
+	key := fmt.Sprintf("ref_token:%s", sub)
 	if _, err := redis.Get(key).Result(); err != nil {
 		return false
 	}
@@ -98,7 +98,7 @@ func ValidateToken(redis redis.Handler, sub string) bool {
 
 // AddToken is ...
 func AddToken(redis redis.Handler, sub string, data any) bool {
-	key := fmt.Sprintf("ref_token::%s", sub)
+	key := fmt.Sprintf("ref_token:%s", sub)
 	if err := redis.Set(key, data, internal.GetDuration("REFRESH_TOKEN_DURATION", "168h")); err != nil {
 		return false
 	}
@@ -107,7 +107,7 @@ func AddToken(redis redis.Handler, sub string, data any) bool {
 
 // DeleteToken is ...
 func DeleteToken(redis redis.Handler, sub string) bool {
-	key := fmt.Sprintf("ref_token::%s", sub)
+	key := fmt.Sprintf("ref_token:%s", sub)
 	if _, err := redis.Delete(key); err != nil {
 		return false
 	}

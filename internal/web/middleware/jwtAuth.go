@@ -57,7 +57,7 @@ func authError(c *fiber.Ctx, e error) error {
 func (m AuthMiddleware) authSuccess(c *fiber.Ctx) error {
 	userInfo := AuthUser(c)
 
-	key := fmt.Sprintf("ref_token::%s", userInfo.UserSub())
+	key := fmt.Sprintf("ref_token:%s", userInfo.UserSub())
 	if _, err := m.redis.Get(key).Result(); err != nil {
 		return webutil.StatusUnauthorized(c, msgTokenHasBeenRevoked, nil)
 	}

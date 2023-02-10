@@ -339,12 +339,12 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 			auth = serverpb.Auth_key
 			if in.GetKeyUuid() != "" {
 				key := new(keypb.GenerateSSHKey_Key)
-				if err := service.cache.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid())).Scan(key); err != nil {
+				if err := service.cache.Get(fmt.Sprintf("tmp_key_ssh:%s", in.GetKeyUuid())).Scan(key); err != nil {
 					log.FromGRPC(err).Send()
 					return nil, errServerError
 				}
 
-				service.cache.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKeyUuid()))
+				service.cache.Delete(fmt.Sprintf("tmp_key_ssh:%s", in.GetKeyUuid()))
 				serverKeys.PrivateKey = []byte(key.GetPrivate())
 				serverKeys.PublicKey = []byte(key.GetPublic())
 			} else {
@@ -601,13 +601,13 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 			in.GetServerId(),
 		)
 	case *serverpb.UpdateServerAccess_Request_Key:
-		cacheKey, err := h.Redis.Get(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey())).Result()
+		cacheKey, err := h.Redis.Get(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey())).Result()
 		if err != nil {
 			log.FromGRPC(err).Send()
 			return nil, errServerError
 		}
 
-		h.Redis.Delete(fmt.Sprintf("tmp_key_ssh::%s", in.GetKey()))
+		h.Redis.Delete(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey()))
 		sqlQuery, _ = sanitize.SQL(`UPDATE "server_access" SET "key" = $1, "last_update" = NOW() WHERE "server_id" = $2 `,
 			cacheKey,
 			in.GetServerId(),
