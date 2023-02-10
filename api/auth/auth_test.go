@@ -9,7 +9,7 @@ import (
 	jsonpath "github.com/steinfletcher/apitest-jsonpath"
 
 	accountpb "github.com/werbot/werbot/api/proto/account"
-	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/api"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/tests"
 	"github.com/werbot/werbot/internal/web/jwt"

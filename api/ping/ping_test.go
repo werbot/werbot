@@ -7,7 +7,7 @@ import (
 
 	"github.com/steinfletcher/apitest"
 
-	"github.com/werbot/werbot/api/web"
+	"github.com/werbot/werbot/api"
 	"github.com/werbot/werbot/internal/tests"
 )
 

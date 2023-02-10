@@ -13,8 +13,8 @@ import (
 
 	accountpb "github.com/werbot/werbot/api/proto/account"
 	keypb "github.com/werbot/werbot/api/proto/key"
-	"github.com/werbot/werbot/api/web"
-	"github.com/werbot/werbot/api/web/auth"
+	"github.com/werbot/werbot/api"
+	"github.com/werbot/werbot/api/auth"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 	"github.com/werbot/werbot/internal/tests"
