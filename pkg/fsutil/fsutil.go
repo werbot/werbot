@@ -33,3 +33,29 @@ func MustReadFile(filePath string) []byte {
 
 	return bs
 }
+
+// PathExists reports whether the named file or directory exists.
+func PathExists(path string) bool {
+	if path == "" {
+		return false
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
+// FileExists reports whether the named file or directory exists.
+func FileExists(path string) bool {
+	if path == "" {
+		return false
+	}
+
+	if fi, err := os.Stat(path); err == nil {
+		return !fi.IsDir()
+	}
+	return false
+}
