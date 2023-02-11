@@ -1,15 +1,8 @@
-<br>
-
 <p align="center">
-    <a href="https://werbot.com" target="_blank">
-        <img width="300" src="https://github.com/werbot/.github/raw/main/img/yellow/text.svg" alt="Werbot Logo">
+    <a href="https://werbot.com" target="_blank" rel="noopener">
+        <img src="https://github.com/werbot/.github/raw/main/img/werbot.png" alt="Werbot is a single sign-on solution for easy and secure sharing of servers, databases or app access" />
     </a>
 </p>
-
-<h3 align="center">Werbot is a single sign-on solution<br>for easy and secure sharing of servers,<br>
-databases or app access</h3>
-
-<br>
 
 <p align="center">
     <a href="https://github.com/werbot/werbot/releases">
@@ -41,23 +34,35 @@ databases or app access</h3>
     <a href="https://stackoverflow.com/questions/tagged/werbot"><img height="20" src="https://github.com/werbot/.github/raw/main/img/social/stack-overflow.svg" alt="StackOverflow"></a>
 </p>
 
-## <img width="24" src="https://github.com/werbot/.github/raw/main/img/yellow/logo.svg">&nbsp;&nbsp;What is Werbot?
 
-<img src="https://github.com/werbot/.github/raw/main/img/preview/app_main_sh.png">
+---
+
+## <img width="24" src="https://github.com/werbot/.github/raw/main/img/yellow/logo.svg">&nbsp;&nbsp;What is Werbot?
 
 Werbot is an open-source solution allowing users to securely share access to servers, data bases, web applications, desktops, containers and clouds; providing full-fledged options for controlling and auditing of the work performed on them.
 
-## 🗄&nbsp;&nbsp;Contents
+> ⚠️&nbsp;&nbsp;Current major version is zero (`v0.x.x`) to accommodate rapid development and fast iteration while getting early feedback from users. Please keep in mind that Werbot is still under active development and therefore full backward compatibility is not guaranteed before reaching v1.0.0.
 
-- [Why Werbot](#why-werbot)
-- [Why did we build Werbot?](#why-did-we-build-werbot)
-- [Features](#features)
-- [Documentation](#documentation)
-- [Installation](#installation)
-- [Community](#community)
-- [Contributing](#contributing)
-- [Security](#security)
-- [License](#license)
+
+## 🏆&nbsp;&nbsp;Features
+
+- Werbot works with dedicated, VPS, and cloud servers
+- Manages servers from different providers in one account
+- Doesn’t require any additional agent to be installed on the server
+- Records every server session and collects logs
+- Provides a single sign-on
+
+Werbot is written in golang, runs in Docker containers, and works as microservices. It requires little processing power, scales easily, and can be implemented in the workflow of any company within 1 hour.
+
+**Supported technology:**
+
+- _Protocols_ - SSH, Telnet, RDP, VNC
+- _Providers_ - all providers + fast import from AWS, Google, Amazon, Azure
+- _Containers_ - Docker, Kubernetes
+- _Databases_ - MySQL, Maria, PostgresQL, Redis, MongoDB, Elasticsearch, and other
+
+
+
 
 ## 🔥&nbsp;&nbsp;Why Werbot?
 
@@ -97,28 +102,8 @@ Werbot covers 3 of the most important cybersecurity challenges:
 
 **Recently we decided to rewrite the code of the SaaS version and make it open source. We are currently working on this.**
 
-## 🏆&nbsp;&nbsp;Features
 
-- Werbot works with dedicated, VPS, and cloud servers
-- Manages servers from different providers in one account
-- Doesn’t require any additional agent to be installed on the server
-- Records every server session and collects logs
-- Provides a single sign-on
 
-Werbot is written in golang, runs in Docker containers, and works as microservices. It requires little processing power, scales easily, and can be implemented in the workflow of any company within 1 hour.
-
-**Supported technology:**
-
-- _Protocols_ - SSH, Telnet, RDP, VNC
-- _Providers_ - all providers + fast import from AWS, Google, Amazon, Azure
-- _Containers_ - Docker, Kubernetes
-- _Databases_ - MySQL, Maria, PostgresQL, Redis, MongoDB, Elasticsearch, and other
-
-## ☝️&nbsp;&nbsp;Stability and Compatibility
-
-**Status**: The project is currently undergoing **heavy development** with frequent, breaking API changes.
-
-> **Important Note**: Current major version is zero (`v0.x.x`) to accommodate rapid development and fast iteration while getting early feedback from users (_feedback on APIs are appreciated!_). The public API could change without a major version update before `v1.0.0` release.
 
 ## 📚&nbsp;&nbsp;Documentation
 
@@ -178,6 +163,3 @@ Technically, the BSL license is classified as source-available, but we continue 
 
 Existing SEO practices don't leave us much choice and our competitors do more or less the same.
 
-## 🙏&nbsp;&nbsp;Support
-
-Don't forget to leave a star ⭐️
