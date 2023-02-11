@@ -122,7 +122,7 @@ services:
     logging: *default-logging
 
   haproxy:
-    image: haproxy:2.5.9-alpine
+    image: haproxy:2.7.2-alpine
     container_name: service.haproxy
     restart: always
     ports:
@@ -147,7 +147,7 @@ services:
     logging: *default-logging
 
   postgres:
-    image: postgres:14-alpine
+    image: postgres:15-alpine
     container_name: service.postgres
     restart: always
     ports:
@@ -200,7 +200,7 @@ services:
     logging: *default-logging
 
   redis:
-    image: redis:6.2-alpine
+    image: redis:7-alpine
     container_name: service.redis
     restart: always
     ports:
