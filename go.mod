@@ -6,7 +6,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.30.0
 	github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a
 	github.com/envoyproxy/protoc-gen-validate v0.9.1
-	github.com/fergusstrange/embedded-postgres v1.20.0
+	github.com/fergusstrange/embedded-postgres v1.21.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/fsouza/go-dockerclient v1.9.5
 	github.com/gliderlabs/ssh v0.3.5
