@@ -454,7 +454,12 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 
 	switch in.GetSetting().(type) {
 	case *serverpb.UpdateServer_Request_Info:
-		data, err = h.DB.Conn.Exec(`UPDATE "server"
+		tx, err := h.DB.Conn.Begin()
+		if err != nil {
+			log.FromGRPC(err).Send()
+			return nil, errTransactionCreateError
+		}
+		data, err = tx.Exec(`UPDATE "server"
     SET
       "address" = $1,
       "port" = $2,
@@ -469,6 +474,13 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 			in.GetServerId(),
 			in.GetProjectId(),
 		)
+
+		data, err = tx.Exec(`UPDATE "server_access" SET "login" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
+			in.GetInfo().GetLogin(),
+			in.GetServerId(),
+		)
+
+		err = tx.Commit()
 
 	case *serverpb.UpdateServer_Request_Audit:
 		data, err = h.DB.Conn.Exec(`UPDATE "server" SET "audit" = $1, "last_update" = NOW() WHERE "id" = $2`,
