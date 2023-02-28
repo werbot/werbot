@@ -109,12 +109,12 @@ Here is a list of modules that are included within the `Werbot`.
 
 | Component                                        | Description                                                                                                                                                         |
 | :------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [web](https://github.com/werbot/werbot.web)     | 🖥 Werbot web interface |
+| [web](https://github.com/werbot/werbot.web)     | 🖥 Werbot web dashboard |
 | [ee](https://github.com/werbot/werbot.ee)       | 🏭 Werbot Enterprise functions |
 | [install](https://github.com/werbot/install.werbot.com) | 🚀 The script for installing Werbot |
-| [agent.windows](https://github.com/werbot/agent.windows) | Windows agent |
-| [agent.unix](https://github.com/werbot/agent.unix) | Unix agent |
-| [pam](https://github.com/werbot/pam-nix)        | PAM agent |
+| [agent.windows](https://github.com/werbot/agent.windows) | 👮‍♂️ Windows agent |
+| [agent.unix](https://github.com/werbot/agent.unix) | 👮‍♂️ Unix agent |
+| [pam](https://github.com/werbot/pam-nix)        | 🔐 Pluggable Authentication Module for native two factor authentication agents for *nix platforms |
  
 
 
@@ -143,7 +143,6 @@ We would for you to get involved with Werbot development! If you want to say **t
 1. Add a [GitHub Star](https://github.com/werbot/werbot/stargazers) to the project.
 2. Tweet about the project [on your Twitter](https://twitter.com/intent/tweet?text=Werbot%20is%20an%20%221Password%22%20for%20servers%20and%20teams%20-%20open%20source%20solution%20with%20single%20sign-on%20for%20easy%20and%20secure%20sharing%20of%20servers%2C%20databases%2C%20or%20app%20access.%20https%3A%2F%2Fgithub.com%2Fwerbot%2Fwerbot).
 3. Write a review or tutorial on [Medium](https://medium.com/), [Dev.to](https://dev.to/) or personal blog.
-4. Support the project by donating a [cup of coffee](https://buymeacoff.ee/fenny).
 
 You can learn more about how you can contribute to this project in the [contribution guide](CONTRIBUTING.md).
 
