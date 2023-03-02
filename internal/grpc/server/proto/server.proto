@@ -413,7 +413,7 @@ message DeleteShareServer {
   message Request{
     string user_id = 1    [(validate.rules).string = {ignore_empty: true, uuid: true}];
     string project_id = 2 [(validate.rules).string.uuid = true];
-    string share_id = 3   [(validate.rules).string.uuid = true];                      
+    string share_id = 3   [(validate.rules).string.uuid = true];
   }
 
   message Response {}
