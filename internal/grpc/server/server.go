@@ -349,7 +349,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 			"active",
 			"audit",
 			"scheme")
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::int)
 		RETURNING "id"`,
 		in.GetProjectId(),
 		in.GetAddress(),
@@ -359,7 +359,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 		serverTitle,
 		in.GetActive(),
 		in.GetAudit(),
-		string(in.GetScheme().Number()),
+		in.GetScheme().Number(),
 	).Scan(&response.ServerId)
 	if err != nil {
 		log.FromGRPC(err).Send()
@@ -367,11 +367,11 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 	}
 
 	// + record access
-	var sqlAccess string
+	var accessID, sqlAccess string
 	switch in.GetAccess().(type) {
 	case *serverpb.AddServer_Request_Password:
 		sqlAccess, err = sanitize.SQL(`INSERT INTO "server_access" ("server_id", "auth", "login", "password", "created")
-        VALUES ($1, '1', $2, $3, NOW())`,
+        VALUES ($1, '1', $2, $3, NOW()) RETURNING "id"`,
 			response.GetServerId(),
 			in.GetLogin(),
 			in.GetPassword(),
@@ -399,7 +399,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 
 		keyAccess := map[string]string{"public": "" + key.GetPublic() + "", "private": "" + key.GetPrivate() + "", "password": "" + key.GetPassword() + ""}
 		keyAccessJSON, _ := json.Marshal(keyAccess)
-		sqlAccess, err = sanitize.SQL(`INSERT INTO "server_access" ("server_id", "auth", "login", "key", "created") VALUES ($1, '2', $2, $3, NOW())`,
+		sqlAccess, err = sanitize.SQL(`INSERT INTO "server_access" ("server_id", "auth", "login", "key", "created") VALUES ($1, '2', $2, $3, NOW()) RETURNING "id"`,
 			response.GetServerId(),
 			in.GetLogin(),
 			string(keyAccessJSON),
@@ -418,7 +418,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 
 		keyAccess := map[string]string{"public": "" + string(key.PublicKey) + "", "private": "" + string(key.PrivateKey) + "", "password": ""}
 		keyAccessJSON, _ := json.Marshal(keyAccess)
-		sqlAccess, err = sanitize.SQL(`INSERT INTO "server_access" ("server_id", "auth", "login", "key", "created") VALUES ($1, '2', $2, $3, NOW())`,
+		sqlAccess, err = sanitize.SQL(`INSERT INTO "server_access" ("server_id", "auth", "login", "key", "created") VALUES ($1, '2', $2, $3, NOW()) RETURNING "id"`,
 			response.GetServerId(),
 			in.GetLogin(),
 			in.GetPassword(),
@@ -430,7 +430,16 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 		}
 	}
 
-	data, err := tx.Exec(sqlAccess)
+	err = tx.QueryRow(sqlAccess).Scan(&accessID)
+	if err != nil {
+		log.FromGRPC(err).Send()
+		return nil, errFailedToAdd
+	}
+
+	data, err := tx.Exec(`UPDATE "server" SET "access_id" = $1 WHERE "id" = $2`,
+		accessID,
+		response.GetServerId(),
+	)
 	if err != nil {
 		log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
@@ -650,7 +659,7 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 		}
 
 		h.Redis.Delete(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey()))
-		sqlQuery, _ = sanitize.SQL(`UPDATE "server_access" SET "key" = $1, "last_update" = NOW() WHERE "server_id" = $2 `,
+		sqlQuery, _ = sanitize.SQL(`UPDATE "server_access" SET "key" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
 			cacheKey,
 			in.GetServerId(),
 		)
