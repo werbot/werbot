@@ -17,7 +17,6 @@ service ServerHandlers {
 
   // Server Access section
   rpc ServerAccess(ServerAccess.Request) returns (ServerAccess.Response) {}
-  rpc AddServerAccess(AddServerAccess.Request) returns (AddServerAccess.Response) {}
   rpc UpdateServerAccess(UpdateServerAccess.Request) returns (UpdateServerAccess.Response) {}
 
   // Server Activity section
@@ -163,10 +162,18 @@ message AddServer {
     bool audit = 7;
     bool active = 8;
     string description = 9;
+
+    string login = 10      [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}];
+    oneof access {
+      string password = 11;
+      string key = 12; // key UUID from redis
+    }
   }
 
   message Response {
     string server_id = 1;
+    // string fingeprint = 2;
+    // string key_public = 3;
   }
 }
 // -----------------------------------------------------
@@ -235,25 +242,6 @@ message ServerAccess {
     string private = 2;
     string password = 3;
     string fingeprint = 4;
-  }
-}
-// -----------------------------------------------------
-
-
-// rpc AddServerAccess
-message AddServerAccess {
-  message Request {
-    string server_id = 1 [(validate.rules).string.uuid = true];                                         // @gotags: query:"server_id" params:"server_id"
-    string login = 2     [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}]; // @gotags: query:"login" params:"login"
-    oneof access {
-      string password = 3;
-      string key_uuid = 4;
-    }
-  }
-
-  message Response {
-    // string key_public = 1;
-    string fingeprint = 1;
   }
 }
 // -----------------------------------------------------

@@ -99,6 +99,29 @@ func (h *Handler) server(c *fiber.Ctx) error {
 func (h *Handler) addServer(c *fiber.Ctx) error {
 	request := new(serverpb.AddServer_Request)
 
+	// Deciding what to add
+	if !json.Valid(c.Body()) {
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, nil)
+	}
+
+	var _request map[string]map[string]any
+	json.Unmarshal(c.Body(), &_request)
+	keys := reflect.ValueOf(_request["access"]).MapKeys()
+
+	if len(keys) == 0 {
+		return webutil.StatusBadRequest(c, internal.MsgFailedToSelectAuth, nil)
+	}
+
+	switch keys[0].String() {
+	case "key":
+		request.Access = new(serverpb.AddServer_Request_Key)
+	case "password":
+		request.Access = new(serverpb.AddServer_Request_Password)
+	default:
+		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, nil)
+	}
+	// -----------------------
+
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
@@ -278,7 +301,7 @@ func (h *Handler) serverAccess(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, msgServerAccess, access)
 }
 
-// @Summary      Update server update
+// @Summary      Update server access
 // @Tags         servers
 // @Accept       json
 // @Produce      json

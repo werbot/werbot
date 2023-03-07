@@ -30,7 +30,6 @@ type ServerHandlersClient interface {
 	DeleteServer(ctx context.Context, in *DeleteServer_Request, opts ...grpc.CallOption) (*DeleteServer_Response, error)
 	// Server Access section
 	ServerAccess(ctx context.Context, in *ServerAccess_Request, opts ...grpc.CallOption) (*ServerAccess_Response, error)
-	AddServerAccess(ctx context.Context, in *AddServerAccess_Request, opts ...grpc.CallOption) (*AddServerAccess_Response, error)
 	UpdateServerAccess(ctx context.Context, in *UpdateServerAccess_Request, opts ...grpc.CallOption) (*UpdateServerAccess_Response, error)
 	// Server Activity section
 	ServerActivity(ctx context.Context, in *ServerActivity_Request, opts ...grpc.CallOption) (*ServerActivity_Response, error)
@@ -102,15 +101,6 @@ func (c *serverHandlersClient) DeleteServer(ctx context.Context, in *DeleteServe
 func (c *serverHandlersClient) ServerAccess(ctx context.Context, in *ServerAccess_Request, opts ...grpc.CallOption) (*ServerAccess_Response, error) {
 	out := new(ServerAccess_Response)
 	err := c.cc.Invoke(ctx, "/server.ServerHandlers/ServerAccess", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *serverHandlersClient) AddServerAccess(ctx context.Context, in *AddServerAccess_Request, opts ...grpc.CallOption) (*AddServerAccess_Response, error) {
-	out := new(AddServerAccess_Response)
-	err := c.cc.Invoke(ctx, "/server.ServerHandlers/AddServerAccess", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +209,6 @@ type ServerHandlersServer interface {
 	DeleteServer(context.Context, *DeleteServer_Request) (*DeleteServer_Response, error)
 	// Server Access section
 	ServerAccess(context.Context, *ServerAccess_Request) (*ServerAccess_Response, error)
-	AddServerAccess(context.Context, *AddServerAccess_Request) (*AddServerAccess_Response, error)
 	UpdateServerAccess(context.Context, *UpdateServerAccess_Request) (*UpdateServerAccess_Response, error)
 	// Server Activity section
 	ServerActivity(context.Context, *ServerActivity_Request) (*ServerActivity_Response, error)
@@ -257,9 +246,6 @@ func (UnimplementedServerHandlersServer) DeleteServer(context.Context, *DeleteSe
 }
 func (UnimplementedServerHandlersServer) ServerAccess(context.Context, *ServerAccess_Request) (*ServerAccess_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ServerAccess not implemented")
-}
-func (UnimplementedServerHandlersServer) AddServerAccess(context.Context, *AddServerAccess_Request) (*AddServerAccess_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddServerAccess not implemented")
 }
 func (UnimplementedServerHandlersServer) UpdateServerAccess(context.Context, *UpdateServerAccess_Request) (*UpdateServerAccess_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateServerAccess not implemented")
@@ -408,24 +394,6 @@ func _ServerHandlers_ServerAccess_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ServerHandlersServer).ServerAccess(ctx, req.(*ServerAccess_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ServerHandlers_AddServerAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddServerAccess_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ServerHandlersServer).AddServerAccess(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/server.ServerHandlers/AddServerAccess",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerHandlersServer).AddServerAccess(ctx, req.(*AddServerAccess_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -640,10 +608,6 @@ var ServerHandlers_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ServerAccess",
 			Handler:    _ServerHandlers_ServerAccess_Handler,
-		},
-		{
-			MethodName: "AddServerAccess",
-			Handler:    _ServerHandlers_AddServerAccess_Handler,
 		},
 		{
 			MethodName: "UpdateServerAccess",

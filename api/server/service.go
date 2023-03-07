@@ -21,34 +21,18 @@ import (
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/service/server [post]
 func (h *Handler) addServiceServer(c *fiber.Ctx) error {
-	requestServer := new(serverpb.AddServer_Request)
-	requestAccess := new(serverpb.AddServerAccess_Request)
+	request := new(serverpb.AddServer_Request)
 
 	// server setting
-	if err := c.BodyParser(requestServer); err != nil {
+	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
 	}
 
-	if err := requestServer.ValidateAll(); err != nil {
+	if err := request.ValidateAll(); err != nil {
 		multiError := make(map[string]string)
 		for _, err := range err.(serverpb.AddServer_RequestMultiError) {
 			e := err.(serverpb.AddServer_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
-	}
-
-	// access setting
-	if err := c.BodyParser(requestAccess); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
-	}
-
-	if err := requestAccess.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(serverpb.AddServerAccess_RequestMultiError) {
-			e := err.(serverpb.AddServerAccess_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
 		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
@@ -58,18 +42,12 @@ func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
-	server, err := rClient.AddServer(ctx, requestServer)
+	server, err := rClient.AddServer(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, h.log, err)
 	}
 
-	requestAccess.ServerId = server.GetServerId()
-	key, err := rClient.AddServerAccess(ctx, requestAccess)
-	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
-	}
-
-	return webutil.StatusOK(c, msgServerKey, key)
+	return webutil.StatusOK(c, msgServerKey, server)
 }
 
 func (h *Handler) updateServiceServerStatus(c *fiber.Ctx) error {

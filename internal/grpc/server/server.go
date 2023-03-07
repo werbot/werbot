@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -10,7 +11,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
+	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
 	"github.com/werbot/werbot/internal/grpc/project"
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
@@ -324,40 +327,6 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 	var err error
 	response := new(serverpb.AddServer_Response)
 
-	/*
-		var serverPassword string
-		var serverKeys = new(crypto.PairOfKeys)
-		var auth serverpb.Auth
-
-
-		switch in.GetAccess().(type) {
-		case *serverpb.AddServer_Request_Password:
-			auth = serverpb.Auth_password
-			serverPassword = in.GetPassword()
-
-		case *serverpb.AddServer_Request_KeyUuid:
-			auth = serverpb.Auth_key
-			if in.GetKeyUuid() != "" {
-				key := new(keypb.GenerateSSHKey_Key)
-				if err := service.cache.Get(fmt.Sprintf("tmp_key_ssh:%s", in.GetKeyUuid())).Scan(key); err != nil {
-					log.FromGRPC(err).Send()
-					return nil, errServerError
-				}
-
-				service.cache.Delete(fmt.Sprintf("tmp_key_ssh:%s", in.GetKeyUuid()))
-				serverKeys.PrivateKey = []byte(key.GetPrivate())
-				serverKeys.PublicKey = []byte(key.GetPublic())
-			} else {
-				serverKeys, err = crypto.NewSSHKey(internal.GetString("SECURITY_SSH_KEY_TYPE", "KEY_TYPE_ED25519"))
-				if err != nil {
-					log.FromGRPC(err).Send()
-					return nil, crypto.ErrFailedCreatingSSHKey
-				}
-			}
-			response.KeyPublic = string(serverKeys.PublicKey)
-		}
-	*/
-
 	serverToken := crypto.NewPassword(6, false)
 	serverTitle := in.GetTitle()
 	if in.Title == "" {
@@ -370,10 +339,6 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 		return nil, errTransactionCreateError
 	}
 
-	// TODO: This design converts the number into a line into an old format that is registered in the database,
-	// I recommend that you store numerical values in the new format in the database
-	//serverScheme := strings.ToLower(serverpb.ServerScheme_name[int32(in.Scheme.Number())])
-
 	err = tx.QueryRow(`INSERT INTO "server" (
 			"project_id",
 			"address",
@@ -383,9 +348,8 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 			"title",
 			"active",
 			"audit",
-			"scheme",
-			"previous_state"
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, '[]')
+			"scheme")
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING "id"`,
 		in.GetProjectId(),
 		in.GetAddress(),
@@ -395,15 +359,88 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 		serverTitle,
 		in.GetActive(),
 		in.GetAudit(),
-		in.GetScheme().Enum(),
+		string(in.GetScheme().Number()),
 	).Scan(&response.ServerId)
 	if err != nil {
 		log.FromGRPC(err).Send()
 		return nil, errFailedToAdd
 	}
 
+	// + record access
+	var sqlAccess string
+	switch in.GetAccess().(type) {
+	case *serverpb.AddServer_Request_Password:
+		sqlAccess, err = sanitize.SQL(`INSERT INTO "server_access" ("server_id", "auth", "login", "password", "created")
+        VALUES ($1, '1', $2, $3, NOW())`,
+			response.GetServerId(),
+			in.GetLogin(),
+			in.GetPassword(),
+		)
+		if err != nil {
+			log.FromGRPC(err).Send()
+			return nil, errServerError
+		}
+
+	case *serverpb.AddServer_Request_Key:
+		key := new(keypb.GenerateSSHKey_Key)
+		keyTmp, err := h.Redis.Get(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey())).Result()
+		if err != nil {
+			// The key is not found, create a new key
+			log.FromGRPC(err).Send()
+			return nil, errServerError
+		}
+
+		if err := json.Unmarshal([]byte(keyTmp), key); err != nil {
+			log.FromGRPC(err).Send()
+			return nil, errServerError
+		}
+
+		h.Redis.Delete(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey()))
+
+		keyAccess := map[string]string{"public": "" + key.GetPublic() + "", "private": "" + key.GetPrivate() + "", "password": "" + key.GetPassword() + ""}
+		keyAccessJSON, _ := json.Marshal(keyAccess)
+		sqlAccess, err = sanitize.SQL(`INSERT INTO "server_access" ("server_id", "auth", "login", "key", "created") VALUES ($1, '2', $2, $3, NOW())`,
+			response.GetServerId(),
+			in.GetLogin(),
+			string(keyAccessJSON),
+		)
+		if err != nil {
+			log.FromGRPC(err).Send()
+			return nil, errServerError
+		}
+
+	default:
+		key, err := crypto.NewSSHKey(internal.GetString("SECURITY_SSH_KEY_TYPE", "KEY_TYPE_ED25519"))
+		if err != nil {
+			log.FromGRPC(err).Send()
+			return nil, crypto.ErrFailedCreatingSSHKey
+		}
+
+		keyAccess := map[string]string{"public": "" + string(key.PublicKey) + "", "private": "" + string(key.PrivateKey) + "", "password": ""}
+		keyAccessJSON, _ := json.Marshal(keyAccess)
+		sqlAccess, err = sanitize.SQL(`INSERT INTO "server_access" ("server_id", "auth", "login", "key", "created") VALUES ($1, '2', $2, $3, NOW())`,
+			response.GetServerId(),
+			in.GetLogin(),
+			in.GetPassword(),
+			string(keyAccessJSON),
+		)
+		if err != nil {
+			log.FromGRPC(err).Send()
+			return nil, errServerError
+		}
+	}
+
+	data, err := tx.Exec(sqlAccess)
+	if err != nil {
+		log.FromGRPC(err).Send()
+		return nil, errFailedToAdd
+	}
+	if affected, _ := data.RowsAffected(); affected == 0 {
+		return nil, errNotFound
+	}
+
 	// + record server_access_policy
-	data, err := tx.Exec(`INSERT INTO "server_access_policy" ("server_id", "ip", "country") VALUES ($1, 'f', 'f')`,
+	data, err = tx.Exec(`INSERT INTO "server_access_policy" ("server_id", "ip", "country") VALUES ($1, 'f', 'f')`,
 		response.GetServerId(),
 	)
 	if err != nil {
@@ -420,7 +457,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 		for countHour := 0; countHour < 24; countHour++ {
 			timeFrom := fmt.Sprintf("%02v:00:00", strconv.Itoa(countHour))
 			timeTo := fmt.Sprintf("%02v:59:59", strconv.Itoa(countHour))
-			sqlCountDay += fmt.Sprintf(`(%v, %v, '%v', '%v'),`, response.GetServerId(), countDay, timeFrom, timeTo)
+			sqlCountDay += fmt.Sprintf(`('%v', %v, '%v', '%v'),`, response.GetServerId(), countDay, timeFrom, timeTo)
 		}
 	}
 	sqlCountDay = strings.TrimSuffix(sqlCountDay, ",")
@@ -586,13 +623,6 @@ func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Re
 			},
 		}
 	}
-
-	return response, nil
-}
-
-// AddServerAccess is ..
-func (h *Handler) AddServerAccess(ctx context.Context, in *serverpb.AddServerAccess_Request) (*serverpb.AddServerAccess_Response, error) {
-	response := new(serverpb.AddServerAccess_Response)
 
 	return response, nil
 }

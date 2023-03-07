@@ -43,6 +43,9 @@ const (
 	// MsgFailedToValidateStruct is ...
 	MsgFailedToValidateStruct = "failed to validate struct"
 
+	// MsgFailedToSelectAuth is ...
+	MsgFailedToSelectAuth = "the type of authorization is not chosen"
+
 	// MsgFailedToValidateParams is error validating params
 	MsgFailedToValidateParams = "failed to validate params"
 
