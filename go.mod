@@ -3,7 +3,7 @@ module github.com/werbot/werbot
 go 1.20
 
 require (
-	github.com/alicebob/miniredis/v2 v2.30.0
+	github.com/alicebob/miniredis/v2 v2.30.1
 	github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a
 	github.com/envoyproxy/protoc-gen-validate v0.9.1
 	github.com/fergusstrange/embedded-postgres v1.21.0
