@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/alicebob/miniredis/v2 v2.30.1
 	github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a
-	github.com/envoyproxy/protoc-gen-validate v0.9.1
+	github.com/envoyproxy/protoc-gen-validate v0.10.1
 	github.com/fergusstrange/embedded-postgres v1.21.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/fsouza/go-dockerclient v1.9.6
@@ -30,7 +30,7 @@ require (
 	golang.org/x/crypto v0.7.0
 	golang.org/x/oauth2 v0.6.0
 	golang.org/x/term v0.6.0
-	google.golang.org/grpc v1.53.0
+	google.golang.org/grpc v1.53.0-dev
 	google.golang.org/protobuf v1.30.0
 )
 
@@ -96,6 +96,6 @@ require (
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
+	google.golang.org/genproto v0.0.0-20230124163310-31e0e69b6fc2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
