@@ -185,7 +185,7 @@ func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request)
       "email" = $2,
       "name" = $3,
       "surname" = $4,
-      "last_update" = NEW()
+      "last_update" = NOW()
     WHERE "id" = $5`,
 			in.GetInfo().GetLogin(),
 			in.GetInfo().GetEmail(),
@@ -195,13 +195,13 @@ func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request)
 		)
 
 	case *userpb.UpdateUser_Request_Confirmed:
-		data, err = h.DB.Conn.Exec(`UPDATE "user" SET "confirmed" = $1, "last_update" = NEW() WHERE "id" = $2`,
+		data, err = h.DB.Conn.Exec(`UPDATE "user" SET "confirmed" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetConfirmed(),
 			in.GetUserId(),
 		)
 
 	case *userpb.UpdateUser_Request_Enabled:
-		data, err = h.DB.Conn.Exec(`UPDATE "user" SET "enabled" = $1, "last_update" = NEW() WHERE "id" = $2`,
+		data, err = h.DB.Conn.Exec(`UPDATE "user" SET "enabled" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetEnabled(),
 			in.GetUserId(),
 		)
@@ -293,7 +293,7 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 			return nil, errTransactionCreateError
 		}
 
-		data, err := tx.Exec(`UPDATE "user" SET "enabled" = 'f', "last_update" = NEW() WHERE "id" = $1`, in.GetUserId())
+		data, err := tx.Exec(`UPDATE "user" SET "enabled" = 'f', "last_update" = NOW() WHERE "id" = $1`, in.GetUserId())
 		if err != nil {
 			log.FromGRPC(err).Send()
 			return nil, errFailedToUpdate
@@ -366,7 +366,7 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_
 		return nil, errHashIsNotValid // HashPassword failed
 	}
 
-	data, err := h.DB.Conn.Exec(`UPDATE "user" SET "password" = $1, "last_update" = NEW() WHERE "id" = $2`, newPassword, in.GetUserId())
+	data, err := h.DB.Conn.Exec(`UPDATE "user" SET "password" = $1, "last_update" = NOW() WHERE "id" = $2`, newPassword, in.GetUserId())
 	if err != nil {
 		log.FromGRPC(err).Send()
 		return nil, errFailedToUpdate
