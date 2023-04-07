@@ -8,7 +8,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v0.10.1
 	github.com/fergusstrange/embedded-postgres v1.21.0
 	github.com/fsnotify/fsnotify v1.6.0
-	github.com/fsouza/go-dockerclient v1.9.6
+	github.com/fsouza/go-dockerclient v1.9.7
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/gofiber/fiber/v2 v2.43.0
 	github.com/gofiber/helmet/v2 v2.2.25
@@ -48,7 +48,7 @@ require (
 	github.com/containerd/containerd v1.6.19 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/docker/docker v23.0.1+incompatible // indirect
+	github.com/docker/docker v23.0.2+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
