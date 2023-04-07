@@ -13,7 +13,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.43.0
 	github.com/gofiber/helmet/v2 v2.2.25
 	github.com/gofiber/jwt/v3 v3.3.6
-	github.com/gofiber/keyauth/v2 v2.1.32
+	github.com/gofiber/keyauth/v2 v2.2.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.0
 	github.com/hibiken/asynq v0.24.0
