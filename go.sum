@@ -92,8 +92,8 @@ github.com/gofiber/helmet/v2 v2.2.25 h1:PC90SBQQ/tzcDUGJtTHAIftdLMa6ylICUCUiM6qz
 github.com/gofiber/helmet/v2 v2.2.25/go.mod h1:3cn2RTs4wU4QEjwxM8dMwHiZprgJjeIvVGntP16Et1Y=
 github.com/gofiber/jwt/v3 v3.3.6 h1:pXhEQWSAx2fgF50Ej789LY41ujYUZvG13MUJ0o+wO5w=
 github.com/gofiber/jwt/v3 v3.3.6/go.mod h1:jOjegpgD2wUxV32DLTEtBTBP1lal/aFD1oERGpDBqV8=
-github.com/gofiber/keyauth/v2 v2.1.32 h1:ExnCEUlgF4pQn8BLPa4VMVR12R78KtrJe0h4SqQAK5Q=
-github.com/gofiber/keyauth/v2 v2.1.32/go.mod h1:zeJzlvfvjMH31A1b0NaK3FkO7mCoOiK02Xl748XHHNI=
+github.com/gofiber/keyauth/v2 v2.2.0 h1:1ph50jq81uT0mAKiFystkmp78Mvoce5TIS0M5J2+Ll4=
+github.com/gofiber/keyauth/v2 v2.2.0/go.mod h1:0fdEyfitmJuh0Ww1CUQ8ZihGgi8R5RZVqnoak/3cjiM=
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
 github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
 github.com/golang-jwt/jwt/v4 v4.4.3/go.mod h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w39/MY0Ch0=
