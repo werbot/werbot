@@ -164,7 +164,7 @@ All third party components incorporated into the Werbot Software are licensed un
 
 **What is the license?**
 
-The Business Source [License](LICENSE) is identical to Apache 2.0 with the only exception being that you can't use the code to create a cloud service or, in other words, resell the product to others.
+The Business Source [License](/LICENSE) is identical to Apache 2.0 with the only exception being that you can't use the code to create a cloud service or, in other words, resell the product to others.
 
 BSL is adopted by MariaDB, Sentry, CockroachDB, Couchbase and many others. In most cases, it is a more permissive license than, for example, AGPL, because it allows you to make private changes to the code.
 
