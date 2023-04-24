@@ -11,7 +11,7 @@ require (
 	github.com/fsouza/go-dockerclient v1.9.7
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/gofiber/fiber/v2 v2.44.0
-	github.com/gofiber/helmet/v2 v2.2.25
+	github.com/gofiber/helmet/v2 v2.2.26
 	github.com/gofiber/jwt/v3 v3.3.7
 	github.com/gofiber/keyauth/v2 v2.2.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
