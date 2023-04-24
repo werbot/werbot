@@ -30,7 +30,7 @@ require (
 	golang.org/x/crypto v0.8.0
 	golang.org/x/oauth2 v0.7.0
 	golang.org/x/term v0.7.0
-	google.golang.org/grpc v1.55.0-dev
+	google.golang.org/grpc v1.56.0-dev
 	google.golang.org/protobuf v1.30.0
 )
 
