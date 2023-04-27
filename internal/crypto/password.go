@@ -39,16 +39,15 @@ func NewPassword(n int, hard bool) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
-// HashPassword is ...
+// The HashPassword function accepts a string password argument and returns a hashed password as a string and error.
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 13)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
 }
 
-// CheckPasswordHash is ...
+// CheckPasswordHash compares the given password and hash for a match.
+// It returns true if they match; otherwise, it returns false.
 func CheckPasswordHash(password, hash string) bool {
-	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); err != nil {
-		return false
-	}
-	return true
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }

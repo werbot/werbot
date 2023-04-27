@@ -68,13 +68,23 @@ func GetByPath(path string, mp map[string]any) (val any, ok bool) {
 	return item, true
 }
 
+// getBySlice is returns a value from a slice based on the provided index `k`.
+// The returned value is of the same type as the elements in the slice and a boolean value indicating success or failure.
 func getBySlice(k string, slice []any) (val any, ok bool) {
+	// Convert the index string to an int64 value
 	i, err := strconv.ParseInt(k, 10, 64)
+
+	// Return a nil value for the element and false for success if an error occurs while parsing the index string
 	if err != nil {
 		return nil, false
 	}
+
+	// Calculate the size of the slice and return a nil value for the element and false for success
+	// if the index is greater than or equal to the size of the slice
 	if size := int64(len(slice)); i >= size {
 		return nil, false
 	}
+
+	// Return the element at the given index and true for success
 	return slice[i], true
 }
