@@ -7,32 +7,20 @@ import (
 
 // IP is parse ip to string
 func IP(addr string) string {
-	ip, _, err := net.SplitHostPort(addr)
-	if err == nil {
-		return ip
+	ips, err := net.LookupIP(addr)
+	if err == nil && len(ips) > 0 {
+		return ips[0].String()
 	}
-
-	ip2 := net.ParseIP(addr)
-	if ip2 == nil {
-		return ""
-	}
-
-	return ip2.String()
+	return ""
 }
 
 // InternalIP get internal IP
 func InternalIP() string {
-	addr := netip.IPv4Unspecified()
-	if addr.IsValid() {
-		return addr.String()
+	if addr := netip.IPv4Unspecified().String(); addr != "" {
+		return addr
 	}
 
-	addr = netip.IPv6Unspecified()
-	if addr.IsValid() {
-		return addr.String()
-	}
-
-	return ""
+	return netip.IPv6Unspecified().String()
 }
 
 // InternalIPv4 get internal IPv4
