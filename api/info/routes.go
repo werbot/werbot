@@ -5,15 +5,18 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-// Handler is ...
+// Handler represents an instance of info handler.
 type Handler struct {
+	// Handler embeds api.Handler to provide access to methods like App, Grpc, Auth etc.
 	*api.Handler
+
+	// log stores an instance of Logger to log messages.
 	log logger.Logger
 }
 
-// New is ...
+// New returns a new instance of Handler.
 func New(h *api.Handler) *Handler {
-	log := logger.New("web/info")
+	log := logger.New()
 
 	return &Handler{
 		Handler: &api.Handler{
@@ -25,9 +28,9 @@ func New(h *api.Handler) *Handler {
 	}
 }
 
-// Routes is ...
-func (h *Handler) Routes() {
-	h.App.Get("/v1/update", h.Auth, h.getUpdate)
-	h.App.Get("/v1/info", h.Auth, h.getInfo)
-	h.App.Get("/v1/version", h.Auth, h.getVersion)
+// Routes sets routes for Handler.
+func (infoHandler *Handler) Routes() {
+	infoHandler.App.Get("/v1/update", infoHandler.Auth, infoHandler.getUpdate)
+	infoHandler.App.Get("/v1/info", infoHandler.Auth, infoHandler.getInfo)
+	infoHandler.App.Get("/v1/version", infoHandler.Auth, infoHandler.getVersion)
 }

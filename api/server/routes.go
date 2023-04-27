@@ -14,7 +14,7 @@ type Handler struct {
 
 // New is ...
 func New(h *api.Handler) *Handler {
-	log := logger.New("web/server")
+	log := logger.New()
 
 	return &Handler{
 		Handler: &api.Handler{

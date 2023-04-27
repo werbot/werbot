@@ -1,5 +1,6 @@
 package internal
 
+/*
 const (
 	// MsgNotFound is not Found
 	MsgNotFound = "not found"
@@ -94,3 +95,4 @@ const (
 	// MsgHashIsNotValid is ...
 	MsgHashIsNotValid = "hash is not valid"
 )
+*/

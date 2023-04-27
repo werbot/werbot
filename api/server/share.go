@@ -2,12 +2,14 @@ package server
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal"
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -26,7 +28,7 @@ func (h *Handler) serversShareForUser(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -35,7 +37,7 @@ func (h *Handler) serversShareForUser(c *fiber.Ctx) error {
 			e := err.(serverpb.ListShareServers_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	pagination := webutil.GetPaginationFromCtx(c)
@@ -52,10 +54,10 @@ func (h *Handler) serversShareForUser(c *fiber.Ctx) error {
 
 	servers, err := rClient.ListShareServers(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 	if servers.Total == 0 {
-		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 	}
 
 	return webutil.StatusOK(c, msgServers, servers)
@@ -69,7 +71,7 @@ func (h *Handler) addServersShareForUser(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -78,7 +80,7 @@ func (h *Handler) addServersShareForUser(c *fiber.Ctx) error {
 			e := err.(serverpb.AddShareServer_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	return webutil.StatusOK(c, msgServerAdded, serverpb.AddShareServer_Response{})
@@ -91,7 +93,7 @@ func (h *Handler) updateServerShareForUser(c *fiber.Ctx) error {
 	request := new(serverpb.UpdateShareServer_Request)
 
 	if err := c.BodyParser(&request); err != nil {
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -100,7 +102,7 @@ func (h *Handler) updateServerShareForUser(c *fiber.Ctx) error {
 			e := err.(serverpb.UpdateShareServer_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	return webutil.StatusOK(c, msgServerUpdated, serverpb.UpdateShareServer_Response{})
@@ -113,7 +115,7 @@ func (h *Handler) deleteServerShareForUser(c *fiber.Ctx) error {
 	request := new(serverpb.DeleteShareServer_Request)
 
 	if err := c.BodyParser(&request); err != nil {
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -122,7 +124,7 @@ func (h *Handler) deleteServerShareForUser(c *fiber.Ctx) error {
 			e := err.(serverpb.DeleteShareServer_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	return webutil.StatusOK(c, msgServerDeleted, serverpb.DeleteShareServer_Response{})

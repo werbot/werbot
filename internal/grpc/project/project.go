@@ -2,13 +2,14 @@ package project
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/werbot/werbot/internal/crypto"
 	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
+	"github.com/werbot/werbot/internal/trace"
 )
 
 // ListProjects is ...
@@ -17,7 +18,7 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 
 	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := h.DB.Conn.Query(`SELECT
+	rows, err := h.DB.Conn.QueryContext(ctx, `SELECT
 			"project"."id",
 			"project"."owner_id",
 			"project"."title",
@@ -26,10 +27,9 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 			( SELECT COUNT (*) FROM "project_member" WHERE "project_id" = "project"."id" ) AS "count_members",
 			( SELECT COUNT (*) FROM "server" WHERE "project_id" = "project"."id" ) AS "count_servers"
 		FROM "project"
-			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch + sqlFooter)
+			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"`+sqlSearch+sqlFooter)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -45,28 +45,23 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 			&countServers,
 		)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
+
 		project.Created = timestamppb.New(created.Time)
 		project.MembersCount = countMembers
 		project.ServersCount = countServers
-
 		response.Projects = append(response.Projects, project)
 	}
 	defer rows.Close()
 
 	// Total count for pagination
-	err = h.DB.Conn.QueryRow(`SELECT COUNT (*)
+	err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT (*)
 		FROM "project"
-			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"` + sqlSearch,
+			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"`+sqlSearch,
 	).Scan(&response.Total)
-	if err != nil && err != sql.ErrNoRows {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	return response, nil
@@ -78,7 +73,7 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
 	var created pgtype.Timestamp
 	response := new(projectpb.Project_Response)
 
-	err := h.DB.Conn.QueryRow(`SELECT
+	err := h.DB.Conn.QueryRowContext(ctx, `SELECT
 			"project"."title",
 			"project"."login",
 			"project"."created",
@@ -96,17 +91,12 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
 		&countServers,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	response.Created = timestamppb.New(created.Time)
 	response.MembersCount = countMembers
 	response.ServersCount = countServers
-
 	return response, nil
 }
 
@@ -114,40 +104,34 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
 func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Request) (*projectpb.AddProject_Response, error) {
 	response := new(projectpb.AddProject_Response)
 
-	tx, err := h.DB.Conn.Begin()
+	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errTransactionCreateError
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCreateError)
 	}
+	defer tx.Rollback()
 
-	err = tx.QueryRow(`INSERT INTO "project" ("owner_id", "title", "login")
+	err = tx.QueryRowContext(ctx, `INSERT INTO "project" ("owner_id", "title", "login")
     VALUES ($1, $2, $3) RETURNING "id"`,
 		in.GetOwnerId(),
 		in.GetTitle(),
 		in.GetLogin(),
 	).Scan(&response.ProjectId)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
-	data, err := tx.Exec(`INSERT INTO "public"."project_api" ("project_id", "api_key", "api_secret", "online")
+	_, err = tx.ExecContext(ctx, `INSERT INTO "public"."project_api" ("project_id", "api_key", "api_secret", "online")
     VALUES ($1, $2, $3, 't')`,
 		response.ProjectId,
 		crypto.NewPassword(37, false),
 		crypto.NewPassword(37, false),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
-	if err = tx.Commit(); err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errTransactionCommitError
+	if err := tx.Commit(); err != nil {
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil
@@ -155,23 +139,19 @@ func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 
 // UpdateProject is ...
 func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject_Request) (*projectpb.UpdateProject_Response, error) {
-	if !IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(projectpb.UpdateProject_Response)
 
-	data, err := h.DB.Conn.Exec(`UPDATE "project" SET "title" = $1, "last_update" = NOW() WHERE "id" = $2 AND "owner_id" = $3`,
+	_, err := h.DB.Conn.ExecContext(ctx, `UPDATE "project" SET "title" = $1, "last_update" = NOW() WHERE "id" = $2 AND "owner_id" = $3`,
 		in.GetTitle(),
 		in.GetProjectId(),
 		in.GetOwnerId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, err
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -179,44 +159,35 @@ func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject
 
 // DeleteProject is ...
 func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject_Request) (*projectpb.DeleteProject_Response, error) {
-	if !IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(projectpb.DeleteProject_Response)
 
-	tx, err := h.DB.Conn.Begin()
+	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errTransactionCreateError
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCreateError)
 	}
+	defer tx.Rollback()
 
-	data, err := tx.Exec(`DELETE FROM "project" WHERE "id" = $1 AND "owner_id" = $2`,
+	_, err = tx.ExecContext(ctx, `DELETE FROM "project" WHERE "id" = $1 AND "owner_id" = $2`,
 		in.GetProjectId(),
 		in.GetOwnerId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToDelete
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToDelete)
 	}
 
-	data, err = tx.Exec(`DELETE FROM "project_api" WHERE "id" = $1`,
+	_, err = tx.ExecContext(ctx, `DELETE FROM "project_api" WHERE "id" = $1`,
 		in.GetProjectId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, err
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToDelete)
 	}
 
-	if err = tx.Commit(); err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errTransactionCommitError
+	if err := tx.Commit(); err != nil {
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil

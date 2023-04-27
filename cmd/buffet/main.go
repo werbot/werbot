@@ -5,9 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"math/rand"
 	"net"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 
@@ -18,22 +16,17 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-var (
-	cert     tls.Certificate // Cert is a self signed certificate
-	certPool *x509.CertPool  // CertPool contains the self signed certificate
-)
-
-var log = logger.New("buffet")
+var log = logger.New()
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	// Load config from environment variables
+	internal.LoadConfig("../../.env")
 
+	// Create a context to control the lifetime of operations performed by this service
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	internal.LoadConfig("../../.env")
-
-	var err error
+	// Connect to PostgreSQL database via connection pool
 	pgDSN := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=require",
 		internal.GetString("POSTGRES_USER", "werbot"),
 		internal.GetString("POSTGRES_PASSWORD", "postgresPassword"),
@@ -47,17 +40,19 @@ func main() {
 		MaxLifetimeConn: internal.GetInt("PSQLSERVER_MAX_LIFETIME_CONN", 300),
 	})
 	if err != nil {
-		log.Error(err).Msg("Database connection problem")
+		log.Fatal(err).Msg("Failed to connect to database")
 	}
 
+	// Connect to Redis via Unix socket
 	cache := rdb.NewClient(ctx, &redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
 
-	cert, err = tls.X509KeyPair(
-		internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key"),
-		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
+	// Load TLS configuration from files at startup
+	cert, err := tls.LoadX509KeyPair(
+		internal.GetString("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key"),
+		internal.GetString("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 	if err != nil {
 		log.Fatal(err).Msg("Failed to parse key pair")
@@ -68,18 +63,19 @@ func main() {
 		log.Fatal(err).Msg("Failed to parse certificate")
 	}
 
-	certPool = x509.NewCertPool()
+	certPool := x509.NewCertPool()
 	certPool.AddCert(cert.Leaf)
+
+	// Initialize the GRPC server with dependencies and launch it
+	serverAddr := internal.GetString("GRPCSERVER_HOST", "0.0.0.0:50051")
+	log.Info().Str("serverAddress", serverAddr).Msg("Starting buffet server")
 
 	s := grpc.NewServer(internal.GetString("GRPCSERVER_TOKEN", "token"), db, cache, cert)
 
-	lis, err := net.Listen("tcp", internal.GetString("GRPCSERVER_HOST", "0.0.0.0:50051"))
+	lis, err := net.Listen("tcp", serverAddr)
 	if err != nil {
 		log.Fatal(err).Msg("Failed to listen")
 	}
-
-	log.Info().Str("serverAddress", lis.Addr().String()).Msg("Start buffet server")
-
 	if err := s.GRPC.Serve(lis); err != nil {
 		log.Fatal(err).Msg("Failed to serve")
 	}

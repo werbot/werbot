@@ -2,12 +2,14 @@ package project
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal"
 	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -28,7 +30,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -37,7 +39,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 			e := err.(projectpb.Project_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -60,10 +62,10 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
-			return webutil.FromGRPC(c, h.log, err)
+			return webutil.FromGRPC(c, err)
 		}
 		if projects.GetTotal() == 0 {
-			return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
+			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 		}
 
 		return webutil.StatusOK(c, msgProjects, projects)
@@ -72,7 +74,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 	// show project information
 	project, err := rClient.Project(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 	// if project == nil {
 	// 	return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
@@ -102,7 +104,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -111,7 +113,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 			e := err.(projectpb.AddProject_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -123,7 +125,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
 	project, err := rClient.AddProject(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgProjectAdded, project)
@@ -142,7 +144,7 @@ func (h *Handler) updateProject(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -151,7 +153,7 @@ func (h *Handler) updateProject(c *fiber.Ctx) error {
 			e := err.(projectpb.UpdateProject_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -163,7 +165,7 @@ func (h *Handler) updateProject(c *fiber.Ctx) error {
 	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
 	_, err := rClient.UpdateProject(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgProjectUpdated, nil)
@@ -183,7 +185,7 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -192,7 +194,7 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 			e := err.(projectpb.DeleteProject_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -204,7 +206,7 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
 	_, err := rClient.DeleteProject(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgProjectDeleted, nil)

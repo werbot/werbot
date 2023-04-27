@@ -5,26 +5,34 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
 
 	"github.com/werbot/werbot/internal/crypto"
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/grpc/user"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
+	"github.com/werbot/werbot/internal/trace"
 )
 
-// SignIn is ...
+// SignIn function is used to authenticate the user by validating their credentials
+// against the credentials stored in the database.
+// It takes context and a SignIn_Request object as input and returns a User_Response object and an error response.
 func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*userpb.User_Response, error) {
-	var password string
 	response := new(userpb.User_Response)
 	response.Email = in.GetEmail()
 
-	err := h.DB.Conn.QueryRow(`SELECT "id", "login", "name", "surname", "password", "enabled", "confirmed", "role"
+	stmt, err := h.DB.Conn.PrepareContext(ctx, `SELECT "id", "login", "name", "surname", "password", "enabled", "confirmed", "role"
     FROM "user"
     WHERE "email" = $1
       AND "enabled" = 't'
-      AND "confirmed" = 't'`,
-		in.GetEmail(),
-	).Scan(&response.UserId,
+      AND "confirmed" = 't'`)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, h.Log)
+	}
+	defer stmt.Close()
+
+	var password string
+	err = stmt.QueryRowContext(ctx, in.GetEmail()).Scan(&response.UserId,
 		&response.Login,
 		&response.Name,
 		&response.Surname,
@@ -34,12 +42,12 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
 		&response.Role,
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errNotFound
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
+	// Compare the hashed password retrieved from the database against the hashed password supplied in the request.
 	if !crypto.CheckPasswordHash(in.GetPassword(), password) {
-		return nil, errPasswordIsNotValid
+		return nil, trace.Error(codes.InvalidArgument, trace.MsgPasswordIsNotValid)
 	}
 
 	return response, nil
@@ -47,111 +55,95 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
 
 // ResetPassword is ...
 func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword_Request) (*accountpb.ResetPassword_Response, error) {
-	var userID, resetToken string
 	response := new(accountpb.ResetPassword_Response)
 
+	switch {
 	// Sending an email with a verification link
-	if in.GetEmail() != "" {
-		// Check if there is a user with the specified email
-		err := h.DB.Conn.QueryRow(`SELECT "id" FROM "user" WHERE "email" = $1 AND "enabled" = 't'`,
+	case in.GetEmail() != "":
+		var userID, resetToken sql.NullString
+		err := h.DB.Conn.QueryRowContext(ctx, `SELECT "id" FROM "user" WHERE "email" = $1 AND "enabled" = 't'`,
 			in.GetEmail(),
 		).Scan(&userID)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
 
-		if userID == "" {
-			response.Message = "Verification email has been sent"
-			return response, nil
-		}
+		//if userID.Valid {
+		//	response.Message = "Verification email has been sent"
+		//	return response, nil
+		//}
 
 		// Checking if a verification token has been sent in the last 24 hours
-		resetToken, _ = user.TokenByUserID(&user.Handler{
+		resetToken.String, _ = user.TokenByUserID(ctx, &user.Handler{
 			DB: h.DB,
-		}, userID, "reset")
-		if len(resetToken) > 0 {
+		}, userID.String, "reset")
+		if len(resetToken.String) > 0 {
 			response.Message = "Resend only after 24 hours"
 			return response, nil
 		}
 
-		resetToken = uuid.New().String()
-		data, err := h.DB.Conn.Exec(`INSERT INTO "user_token" ("token", "user_id", "action") VALUES ($1, $2, 'reset')`,
-			resetToken,
-			userID,
+		resetToken.String = uuid.New().String()
+		_, err = h.DB.Conn.ExecContext(ctx, `INSERT INTO "user_token" ("token", "user_id", "action") VALUES ($1, $2, 'reset')`,
+			resetToken.String,
+			userID.String,
 		)
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errFailedToAdd
-		}
-		if affected, _ := data.RowsAffected(); affected == 0 {
-			return nil, errNotFound
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 		}
 
 		response.Message = "Verification email has been sent"
-		response.Token = resetToken
+		response.Token = resetToken.String
 		return response, nil
-	}
 
 	// Checking the validity of a link
-	if in.GetToken() != "" && in.GetPassword() == "" {
-		if _, err := user.UserIDByToken(&user.Handler{
-			DB: h.DB,
-		}, in.GetToken()); err != nil {
-			log.FromGRPC(err).Send()
-			return nil, err
+	case in.GetToken() != "" && in.GetPassword() == "":
+		_, err := user.UserIDByToken(ctx, &user.Handler{DB: h.DB}, in.GetToken())
+		if err != nil {
+			errorInfo := trace.ParseError(err)
+			if errorInfo.Code == codes.NotFound {
+				return nil, trace.Error(codes.NotFound, errorInfo.Message)
+			}
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		response.Message = "Token is valid"
 		return response, nil
-	}
 
 	// Saving a new password
-	if in.GetToken() != "" && in.GetPassword() != "" {
-		id, err := user.UserIDByToken(&user.Handler{
-			DB: h.DB,
-		}, in.GetToken())
+	case in.GetToken() != "" && in.GetPassword() != "":
+		id, err := user.UserIDByToken(ctx, &user.Handler{DB: h.DB}, in.GetToken())
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, err
+			errorInfo := trace.ParseError(err)
+			if errorInfo.Code == codes.NotFound {
+				return nil, trace.Error(codes.NotFound, errorInfo.Message)
+			}
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		newPassword, err := crypto.HashPassword(in.GetPassword())
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errHashIsNotValid // HashPassword failed
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
-		tx, err := h.DB.Conn.Begin()
+		tx, err := h.DB.Conn.BeginTx(ctx, nil)
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errTransactionCreateError
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCreateError)
+		}
+		defer tx.Rollback()
+
+		_, err = tx.ExecContext(ctx, `UPDATE "user" SET "password" = $1, "last_update" = NOW() WHERE "id" = $2`, newPassword, id)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
-		tx.Exec(`UPDATE "user" SET "password" = $1 WHERE "id" = $2`, newPassword, id)
-		tx.Exec(`UPDATE "user_token" SET "used" = 't', date_used = NOW() WHERE "token" = $1`,
-			in.GetToken(),
-		)
-
-		if err = tx.Commit(); err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errTransactionCommitError
+		_, err = tx.ExecContext(ctx, `UPDATE "user_token" SET "used" = 't', date_used = NOW() WHERE "token" = $1`, in.GetToken())
+		if err != nil {
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
-		/*
-		   if _, err = db.Conn.Exec(`UPDATE "user" SET "password" = $1, "last_update" = NOW() WHERE "id" = $2`, newPassword, id); err != nil {
-		     service.log.FromGRPC(err).Send()
-		     return nil, errors.New("There was a problem updating")
-		   }
-
-		   if _, err = db.Conn.Exec(`UPDATE "user_token" SET "used" = 't', "last_update" = NOW() WHERE "token" = $1`, in.GetToken()); err != nil {
-		     service.log.FromGRPC(err).Send()
-		     return nil, errors.New("There was a problem updating")
-		   }
-		*/
+		if err := tx.Commit(); err != nil {
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCommitError)
+		}
 
 		response.Message = "New password saved"
 		return response, nil

@@ -14,7 +14,7 @@ type Handler struct {
 
 // New is ...
 func New(h *api.Handler, publicKey string) *Handler {
-	log := logger.New("web/license")
+	log := logger.New()
 
 	return &Handler{
 		Handler: &api.Handler{

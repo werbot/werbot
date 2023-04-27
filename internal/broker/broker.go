@@ -8,7 +8,7 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-var log = logger.New("pkg/broker")
+var log = logger.New()
 
 // Handler is ...
 type Handler struct {

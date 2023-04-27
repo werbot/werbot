@@ -18,7 +18,7 @@ func main() {
 
 	internal.LoadConfig("../../.env")
 
-	log = logger.New("ghost")
+	log = logger.New()
 
 	log.Info().Msg("Start ghost server")
 

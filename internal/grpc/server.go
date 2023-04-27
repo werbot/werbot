@@ -51,7 +51,7 @@ type ServerService struct {
 
 // NewServer is ...
 func NewServer(token string, dbConn *postgres.Connect, redisConn redis.Handler, cert tls.Certificate) *ServerService {
-	log := logger.New("internal/grpc")
+	log := logger.New()
 	service = Service{
 		log:   log,
 		token: token,
@@ -62,18 +62,18 @@ func NewServer(token string, dbConn *postgres.Connect, redisConn redis.Handler, 
 		grpc.UnaryInterceptor(ensureValidToken),
 	)
 
-	accountpb.RegisterAccountHandlersServer(grpcServer, &account.Handler{DB: dbConn})
-	auditpb.RegisterAuditHandlersServer(grpcServer, &audit.Handler{DB: dbConn})
-	firewallpb.RegisterFirewallHandlersServer(grpcServer, &firewall.Handler{DB: dbConn})
-	serverpb.RegisterServerHandlersServer(grpcServer, &server.Handler{DB: dbConn, Redis: redisConn})
-	projectpb.RegisterProjectHandlersServer(grpcServer, &project.Handler{DB: dbConn})
-	memberpb.RegisterMemberHandlersServer(grpcServer, &member.Handler{DB: dbConn})
-	userpb.RegisterUserHandlersServer(grpcServer, &user.Handler{DB: dbConn})
-	licensepb.RegisterLicenseHandlersServer(grpcServer, &license.Handler{})
-	infopb.RegisterInfoHandlersServer(grpcServer, &info.Handler{DB: dbConn})
-	keypb.RegisterKeyHandlersServer(grpcServer, &key.Handler{DB: dbConn, Redis: redisConn})
-	utilitypb.RegisterUtilityHandlersServer(grpcServer, &utility.Handler{DB: dbConn})
-	loggingpb.RegisterLoggingHandlersServer(grpcServer, &logging.Handler{DB: dbConn})
+	accountpb.RegisterAccountHandlersServer(grpcServer, &account.Handler{DB: dbConn, Log: log})
+	auditpb.RegisterAuditHandlersServer(grpcServer, &audit.Handler{DB: dbConn, Log: log})
+	firewallpb.RegisterFirewallHandlersServer(grpcServer, &firewall.Handler{DB: dbConn, Log: log})
+	serverpb.RegisterServerHandlersServer(grpcServer, &server.Handler{DB: dbConn, Redis: redisConn, Log: log})
+	projectpb.RegisterProjectHandlersServer(grpcServer, &project.Handler{DB: dbConn, Log: log})
+	memberpb.RegisterMemberHandlersServer(grpcServer, &member.Handler{DB: dbConn, Log: log})
+	userpb.RegisterUserHandlersServer(grpcServer, &user.Handler{DB: dbConn, Log: log})
+	licensepb.RegisterLicenseHandlersServer(grpcServer, &license.Handler{Log: log})
+	infopb.RegisterInfoHandlersServer(grpcServer, &info.Handler{DB: dbConn, Log: log})
+	keypb.RegisterKeyHandlersServer(grpcServer, &key.Handler{DB: dbConn, Redis: redisConn, Log: log})
+	utilitypb.RegisterUtilityHandlersServer(grpcServer, &utility.Handler{DB: dbConn, Log: log})
+	loggingpb.RegisterLoggingHandlersServer(grpcServer, &logging.Handler{DB: dbConn, Log: log})
 
 	return &ServerService{
 		GRPC: grpcServer,

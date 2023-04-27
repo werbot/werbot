@@ -4,7 +4,8 @@ import (
 	"context"
 
 	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto"
-	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
+	"github.com/werbot/werbot/internal/trace"
+	"google.golang.org/grpc/codes"
 )
 
 // ListAudits is displays the list all audits for server_id
@@ -22,12 +23,12 @@ func (h *Handler) Audit(ctx context.Context, in *auditpb.Audit_Request) (*auditp
 // AddAudit is adds a new audit for server_id
 func (h *Handler) AddAudit(ctx context.Context, in *auditpb.AddAudit_Request) (*auditpb.AddAudit_Response, error) {
 	if in.GetAccountId() == "" && in.GetVersion() == 0 && in.GetSession() == "" && in.GetClientIp() == "" {
-		return nil, errIncorrectParameters
+		return nil, trace.Error(codes.InvalidArgument)
 	}
 
 	response := new(auditpb.AddAudit_Response)
 
-	err := h.DB.Conn.QueryRow(`INSERT INTO "audit" ("account_id", "time_start", "version", "width", "height", "duration", "command", "title", "env_term", "env_shell", "session", "client_ip")
+	err := h.DB.Conn.QueryRowContext(ctx, `INSERT INTO "audit" ("account_id", "time_start", "version", "width", "height", "duration", "command", "title", "env_term", "env_shell", "session", "client_ip")
 		VALUES ($1, NOW(), $3, 0, 0, 0, '', '', '', '/bin/sh', $4)
 		RETURNING "id"`,
 		in.GetAccountId(),
@@ -36,8 +37,7 @@ func (h *Handler) AddAudit(ctx context.Context, in *auditpb.AddAudit_Request) (*
 		in.GetClientIp(),
 	).Scan(&response.AuditId)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
 	return response, nil
@@ -47,17 +47,13 @@ func (h *Handler) AddAudit(ctx context.Context, in *auditpb.AddAudit_Request) (*
 func (h *Handler) UpdateAudit(ctx context.Context, in *auditpb.UpdateAudit_Request) (*auditpb.UpdateAudit_Response, error) {
 	response := new(auditpb.UpdateAudit_Response)
 
-	data, err := h.DB.Conn.Exec(`UPDATE "audit" SET "duration" = $1 WHERE "id" = $3`,
-		in.GetAuditId(),
+	_, err := h.DB.Conn.ExecContext(ctx, `UPDATE "audit" SET "duration" = $1, "time_end" = $2 WHERE "id" = $3`,
 		in.GetDuration(),
 		in.GetTimeEnd().AsTime(),
+		in.GetAuditId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -80,25 +76,32 @@ func (h *Handler) ListRecords(ctx context.Context, in *auditpb.ListRecords_Reque
 func (h *Handler) AddRecord(ctx context.Context, in *auditpb.AddRecord_Request) (*auditpb.AddRecord_Response, error) {
 	response := new(auditpb.AddRecord_Response)
 
-	query := `INSERT INTO "audit_record" ("audit_id", "duration", "screen", "type") VALUES `
+	tx, err := h.DB.Conn.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCreateError)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `INSERT INTO "audit_record" ("audit_id", "duration", "screen", "type") VALUES ($1, $2, $3, $4)`)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
+	}
+	defer stmt.Close()
+
 	for _, param := range in.GetRecords() {
-		sanitizeSQL, _ := sanitize.SQL(`($1, $2, $3, $4),`,
+		_, err = stmt.ExecContext(ctx,
 			in.GetAuditId(),
 			param.Duration,
 			param.Screen,
 			param.Type,
 		)
-		query += sanitizeSQL
+		if err != nil {
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
+		}
 	}
-	query = query[:len(query)-1]
 
-	data, err := h.DB.Conn.Exec(query)
-	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+	if err := tx.Commit(); err != nil {
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil

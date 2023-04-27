@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -78,22 +79,23 @@ func GetDuration(key, fallback string) time.Duration {
 }
 
 // GetByteFromFile is ...
-func GetByteFromFile(key, fallback string) []byte {
+func GetByteFromFile(key, fallback string) ([]byte, error) {
 	var data []byte
 	value := lookup(key, fallback)
 
-	if data = readFile(value); data != nil {
-		return data
+	// Simplify the if condition by handling the error directly from 'readFile'
+	var err error
+	if data, err = readFile(value); err != nil {
+		return nil, fmt.Errorf("failed to read %q: %w", value, err)
 	}
 
-	return nil
+	return data, nil
 }
 
-func readFile(file string) []byte {
-	data, err := os.ReadFile(file)
+func readFile(file string) ([]byte, error) {
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		fmt.Print(err)
-		return nil
+		return nil, fmt.Errorf("failed to read file %s: %w", file, err)
 	}
-	return data
+	return data, nil
 }

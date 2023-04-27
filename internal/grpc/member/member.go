@@ -2,16 +2,16 @@ package member
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
 	"github.com/werbot/werbot/internal/grpc/project"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
+	"github.com/werbot/werbot/internal/trace"
 )
 
 // ListProjectMembers is ...
@@ -20,7 +20,7 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 
 	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := h.DB.Conn.Query(`SELECT
+	rows, err := h.DB.Conn.QueryContext(ctx, `SELECT
 			"project_member"."id" AS "member_id",
 			"project"."owner_id" AS "owner_id",
 			"owner"."name" AS "owner_name",
@@ -36,10 +36,9 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 		FROM "project_member"
 			INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
 			INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
-			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"` + sqlSearch + sqlFooter)
+			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"`+sqlSearch+sqlFooter)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -61,12 +60,9 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 			&member.ServersCount,
 		)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
+
 		member.Role = userpb.Role_user // TODO: We transfer from the old format to the new one due to PHP version of the site
 		member.Created = timestamppb.New(created.Time)
 		response.Members = append(response.Members, member)
@@ -74,15 +70,14 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 	defer rows.Close()
 
 	// Total count for pagination
-	err = h.DB.Conn.QueryRow(`SELECT COUNT (*)
+	err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT (*)
 		FROM "project_member"
 			INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
 			INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
-			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"` + sqlSearch,
+			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"`+sqlSearch,
 	).Scan(&response.Total)
-	if err != nil && err != sql.ErrNoRows {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	return response, nil
@@ -90,15 +85,15 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 
 // ProjectMember is ...
 func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_Request) (*memberpb.ProjectMember_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	var role string // TODO The old Role format used in PHP.Transfer to digital
 	var created pgtype.Timestamp
 	response := new(memberpb.ProjectMember_Response)
 
-	err := h.DB.Conn.QueryRow(`SELECT
+	err := h.DB.Conn.QueryRowContext(ctx, `SELECT
 			"owner"."name" AS "owner_name",
 			"project"."title" AS "project_name",
 			"project_member"."user_id" AS "user_id",
@@ -125,11 +120,7 @@ func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_
 		&created,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	response.Role = userpb.Role(userpb.Role_value[role]) // TODO Old Role format
@@ -143,13 +134,13 @@ func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_
 
 // AddProjectMember is ...
 func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectMember_Request) (*memberpb.AddProjectMember_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(memberpb.AddProjectMember_Response)
 
-	err := h.DB.Conn.QueryRow(`INSERT INTO "project_member" ("project_id", "user_id", "role", "active")
+	err := h.DB.Conn.QueryRowContext(ctx, `INSERT INTO "project_member" ("project_id", "user_id", "role", "active")
 		VALUES ($1, $2, $3, $4)
 		RETURNING "id"`,
 		in.GetProjectId(),
@@ -158,8 +149,7 @@ func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectM
 		in.GetActive(),
 	).Scan(&response.MemberId)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
 	return response, nil
@@ -167,36 +157,31 @@ func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectM
 
 // UpdateProjectMember is ...
 func (h *Handler) UpdateProjectMember(ctx context.Context, in *memberpb.UpdateProjectMember_Request) (*memberpb.UpdateProjectMember_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	var err error
-	var data sql.Result
 	response := new(memberpb.UpdateProjectMember_Response)
 
 	switch in.GetSetting().(type) {
 	case *memberpb.UpdateProjectMember_Request_Role:
-		data, err = h.DB.Conn.Exec(`UPDATE "project_member" SET "role" = $1, "last_update" = NOW() WHERE "id" = $2`,
+		_, err = h.DB.Conn.ExecContext(ctx, `UPDATE "project_member" SET "role" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetRole(),
 			in.GetMemberId(),
 		)
 
 	case *memberpb.UpdateProjectMember_Request_Active:
-		data, err = h.DB.Conn.Exec(`UPDATE "project_member" SET "active" = $1, "last_update" = NOW() WHERE "id" = $2`,
+		_, err = h.DB.Conn.ExecContext(ctx, `UPDATE "project_member" SET "active" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetActive(),
 			in.GetMemberId(),
 		)
 	default:
-		return nil, errBadRequest
+		return nil, trace.Error(codes.Aborted, trace.MsgInvalidArgument)
 	}
 
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -204,21 +189,17 @@ func (h *Handler) UpdateProjectMember(ctx context.Context, in *memberpb.UpdatePr
 
 // DeleteProjectMember is ...
 func (h *Handler) DeleteProjectMember(ctx context.Context, in *memberpb.DeleteProjectMember_Request) (*memberpb.DeleteProjectMember_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(memberpb.DeleteProjectMember_Response)
 
-	data, err := h.DB.Conn.Exec(`DELETE FROM "project_member" WHERE "id" = $1`,
+	_, err := h.DB.Conn.ExecContext(ctx, `DELETE FROM "project_member" WHERE "id" = $1`,
 		in.GetMemberId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToDelete
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToDelete)
 	}
 
 	return response, nil
@@ -226,13 +207,13 @@ func (h *Handler) DeleteProjectMember(ctx context.Context, in *memberpb.DeletePr
 
 // UsersWithoutProject is ...
 func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWithoutProject_Request) (*memberpb.UsersWithoutProject_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(memberpb.UsersWithoutProject_Response)
 
-	rows, err := h.DB.Conn.Query(`SELECT "id", "login", "email" FROM "user"
+	rows, err := h.DB.Conn.QueryContext(ctx, `SELECT "id", "login", "email" FROM "user"
 		WHERE "id" NOT IN(SELECT "user_id" FROM "project_member" WHERE "project_id" = $1)
 			AND LOWER("login") LIKE LOWER($2 || '%')
 		ORDER BY "login" ASC LIMIT 15 OFFSET 0`,
@@ -240,19 +221,15 @@ func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWit
 		in.GetLogin(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	for rows.Next() {
 		user := new(memberpb.UsersWithoutProject_User)
 		if err = rows.Scan(&user.UserId, &user.Login, &user.Email); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
+
 		response.Users = append(response.Users, user)
 	}
 	defer rows.Close()
@@ -262,21 +239,20 @@ func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWit
 
 // ListMembersInvite is ...
 func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMembersInvite_Request) (*memberpb.ListMembersInvite_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(memberpb.ListMembersInvite_Response)
 
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := h.DB.Conn.Query(`SELECT "id", "name", "surname", "email", "created", "status"
+	rows, err := h.DB.Conn.QueryContext(ctx, `SELECT "id", "name", "surname", "email", "created", "status"
 		FROM "project_invite"
 		WHERE "project_invite"."project_id" = $1`+sqlFooter,
 		in.GetProjectId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -290,26 +266,22 @@ func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMember
 			&invite.Status,
 		)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
+
 		invite.Created = timestamppb.New(created.Time)
 		response.Invites = append(response.Invites, invite)
 	}
 	defer rows.Close()
 
 	// Total count for pagination
-	err = h.DB.Conn.QueryRow(`SELECT COUNT (*)
+	err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT (*)
 		FROM "project_invite"
 		WHERE "project_invite"."project_id" = $1`,
 		in.GetProjectId(),
 	).Scan(&response.Total)
-	if err != nil && err != sql.ErrNoRows {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	return response, nil
@@ -317,26 +289,25 @@ func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMember
 
 // AddMemberInvite is ...
 func (h *Handler) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInvite_Request) (*memberpb.AddMemberInvite_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	var inviteID string
 	response := new(memberpb.AddMemberInvite_Response)
 
 	// We check whether the user is invited with such an email to the project
-	err := h.DB.Conn.QueryRow(`SELECT "id" FROM "project_invite" WHERE "email" = $1`,
+	err := h.DB.Conn.QueryRowContext(ctx, `SELECT "id" FROM "project_invite" WHERE "email" = $1`,
 		in.GetEmail(),
 	).Scan(&inviteID)
-	if err != nil && err != sql.ErrNoRows {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 	if inviteID != "" {
-		return nil, errObjectAlreadyExists // Email in use
+		return nil, trace.Error(codes.AlreadyExists) // Email in use
 	}
 
-	err = h.DB.Conn.QueryRow(`INSERT INTO "project_invite" ("project_id", "email", "name", "surname", "invite", "status", "ldap_user")
+	err = h.DB.Conn.QueryRowContext(ctx, `INSERT INTO "project_invite" ("project_id", "email", "name", "surname", "invite", "status", "ldap_user")
 		VALUES ($1, $2, $3, $4, $5, 'send', false)
 		RETURNING "invite"`,
 		in.GetProjectId(),
@@ -346,8 +317,7 @@ func (h *Handler) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInv
 		uuid.New().String(),
 	).Scan(&response.Invite)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
 	return response, nil
@@ -355,22 +325,18 @@ func (h *Handler) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInv
 
 // DeleteMemberInvite is ...
 func (h *Handler) DeleteMemberInvite(ctx context.Context, in *memberpb.DeleteMemberInvite_Request) (*memberpb.DeleteMemberInvite_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(memberpb.DeleteMemberInvite_Response)
 
-	data, err := h.DB.Conn.Exec(`DELETE FROM "project_invite" WHERE "id" = $1 AND "project_id" = $2 AND "status" = 'send'`,
+	_, err := h.DB.Conn.ExecContext(ctx, `DELETE FROM "project_invite" WHERE "id" = $1 AND "project_id" = $2 AND "status" = 'send'`,
 		in.GetInviteId(),
 		in.GetProjectId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToDelete
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToDelete)
 	}
 
 	return response, nil
@@ -381,7 +347,7 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
 	var userID, memberID, status string
 	response := new(memberpb.MemberInviteActivate_Response)
 
-	err := h.DB.Conn.QueryRow(`SELECT "user"."id", "project_invite"."project_id", "project_invite"."status"
+	err := h.DB.Conn.QueryRowContext(ctx, `SELECT "user"."id", "project_invite"."project_id", "project_invite"."status"
 		FROM "project_invite"
 			INNER JOIN "user" ON "project_invite"."email" = "user"."email"
 		WHERE "project_invite"."invite" = $1`, in.GetInvite(),
@@ -390,57 +356,48 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
 		&status,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
+
 	if status == "" {
-		return nil, errInviteIsInvalid
+		return nil, trace.Error(codes.NotFound, trace.MsgInviteIsInvalid)
 	}
 	if userID == "" {
-		return nil, errors.New("New user")
+		return nil, trace.Error(codes.NotFound)
 	}
 	if userID != in.GetUserId() {
-		return nil, errors.New("Wrong user")
+		return nil, trace.Error(codes.Aborted, trace.MsgAccessIsDeniedUser)
 	}
 	if status == "activated" {
-		return nil, errInviteIsActivated
+		return nil, trace.Error(codes.NotFound, trace.MsgInviteIsActivated)
 	}
 
-	tx, err := h.DB.Conn.Begin()
+	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errTransactionCreateError
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCreateError)
 	}
+	defer tx.Rollback()
 
-	err = tx.QueryRow(`INSERT INTO "project_member" ("project_id","user_id","role")
+	err = tx.QueryRowContext(ctx, `INSERT INTO "project_member" ("project_id","user_id","role")
 		VALUES ($1, $2, 'user')
     RETURNING "id"`,
 		response.ProjectId,
 		userID,
 	).Scan(&memberID)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
-	data, err := tx.Exec(`UPDATE "project_invite" SET "status" = 'activated', "user_id" = $1, "last_update" = NOW() WHERE "invite" = $2`,
+	_, err = tx.ExecContext(ctx, `UPDATE "project_invite" SET "status" = 'activated', "user_id" = $1, "last_update" = NOW() WHERE "invite" = $2`,
 		in.GetUserId(),
 		in.GetInvite(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
 	}
 
-	if err = tx.Commit(); err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errTransactionCommitError
+	if err := tx.Commit(); err != nil {
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil
@@ -448,14 +405,14 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
 
 // ListServerMembers is ...
 func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServerMembers_Request) (*memberpb.ListServerMembers_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(memberpb.ListServerMembers_Response)
 
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := h.DB.Conn.Query(`SELECT
+	rows, err := h.DB.Conn.QueryContext(ctx, `SELECT
 			"user"."id",
 			"user"."login",
       "user"."name",
@@ -474,8 +431,7 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
 		in.GetServerId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -492,19 +448,16 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
 			&lastUpdate,
 		)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
+
 		member.LastUpdate = timestamppb.New(lastUpdate.Time)
 		response.Members = append(response.Members, member)
 	}
 	defer rows.Close()
 
 	// Total members
-	err = h.DB.Conn.QueryRow(`SELECT COUNT (*)
+	err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT (*)
 		FROM "server_member"
 			INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
@@ -513,9 +466,8 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
 		in.GetProjectId(),
 		in.GetServerId(),
 	).Scan(&response.Total)
-	if err != nil && err != sql.ErrNoRows {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	return response, nil
@@ -523,14 +475,14 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
 
 // ServerMember is ...
 func (h *Handler) ServerMember(ctx context.Context, in *memberpb.ServerMember_Request) (*memberpb.ServerMember_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	var lastUpdate pgtype.Timestamp
 	response := new(memberpb.ServerMember_Response)
 
-	err := h.DB.Conn.QueryRow(`SELECT
+	err := h.DB.Conn.QueryRowContext(ctx, `SELECT
 			"user"."id",
 			"user"."login",
 			"server_member"."active",
@@ -548,11 +500,7 @@ func (h *Handler) ServerMember(ctx context.Context, in *memberpb.ServerMember_Re
 		&lastUpdate,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	response.MemberId = in.GetMemberId()
@@ -563,36 +511,34 @@ func (h *Handler) ServerMember(ctx context.Context, in *memberpb.ServerMember_Re
 
 // AddServerMember is ...
 func (h *Handler) AddServerMember(ctx context.Context, in *memberpb.AddServerMember_Request) (*memberpb.AddServerMember_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(memberpb.AddServerMember_Response)
 
-	err := h.DB.Conn.QueryRow(`SELECT "id"
+	err := h.DB.Conn.QueryRowContext(ctx, `SELECT "id"
 		FROM "server_member"
 		WHERE "server_member"."server_id" = $1
 			AND "server_member"."member_id" = $2`,
 		in.GetServerId(),
 		in.GetMemberId(),
 	).Scan(&response.MemberId)
-	if err != nil && err != sql.ErrNoRows {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 	if response.MemberId != "" {
 		return response, nil
 	}
 
-	err = h.DB.Conn.QueryRow(`INSERT INTO "server_member" ("server_id","member_id","active")
+	err = h.DB.Conn.QueryRowContext(ctx, `INSERT INTO "server_member" ("server_id","member_id","active")
 		VALUES ($1, $2, $3) RETURNING "id"`,
 		in.GetServerId(),
 		in.GetMemberId(),
 		in.GetActive(),
 	).Scan(&response.MemberId)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
 	return response, nil
@@ -600,38 +546,32 @@ func (h *Handler) AddServerMember(ctx context.Context, in *memberpb.AddServerMem
 
 // UpdateServerMember is ...
 func (h *Handler) UpdateServerMember(ctx context.Context, in *memberpb.UpdateServerMember_Request) (*memberpb.UpdateServerMember_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(memberpb.UpdateServerMember_Response)
 
 	var err error
-	var data sql.Result
-
 	switch in.GetSetting().(type) {
 	case *memberpb.UpdateServerMember_Request_Active:
-		data, err = h.DB.Conn.Exec(`UPDATE "server_member" SET "active" = $1, "last_update" = NOW() WHERE "id" = $2 AND "server_id" = $3`,
+		_, err = h.DB.Conn.ExecContext(ctx, `UPDATE "server_member" SET "active" = $1, "last_update" = NOW() WHERE "id" = $2 AND "server_id" = $3`,
 			in.GetActive(),
 			in.GetMemberId(),
 			in.GetServerId(),
 		)
 	case *memberpb.UpdateServerMember_Request_Online:
-		data, err = h.DB.Conn.Exec(`UPDATE "server_member" SET "online" = $1, "last_update" = NOW() WHERE "id" = $2 AND "server_id" = $3`,
+		_, err = h.DB.Conn.ExecContext(ctx, `UPDATE "server_member" SET "online" = $1, "last_update" = NOW() WHERE "id" = $2 AND "server_id" = $3`,
 			in.GetOnline(),
 			in.GetMemberId(),
 			in.GetServerId(),
 		)
 	default:
-		return nil, errBadRequest
+		return nil, trace.Error(codes.Aborted, trace.MsgInvalidArgument)
 	}
 
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -639,22 +579,18 @@ func (h *Handler) UpdateServerMember(ctx context.Context, in *memberpb.UpdateSer
 
 // DeleteServerMember is ...
 func (h *Handler) DeleteServerMember(ctx context.Context, in *memberpb.DeleteServerMember_Request) (*memberpb.DeleteServerMember_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(memberpb.DeleteServerMember_Response)
 
-	data, err := h.DB.Conn.Exec(`DELETE FROM "server_member" WHERE "id" = $1 AND "server_id" = $2`,
+	_, err := h.DB.Conn.ExecContext(ctx, `DELETE FROM "server_member" WHERE "id" = $1 AND "server_id" = $2`,
 		in.GetMemberId(),
 		in.GetServerId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToDelete
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToDelete)
 	}
 
 	return response, nil
@@ -662,14 +598,14 @@ func (h *Handler) DeleteServerMember(ctx context.Context, in *memberpb.DeleteSer
 
 // MembersWithoutServer is ...
 func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.MembersWithoutServer_Request) (*memberpb.MembersWithoutServer_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(memberpb.MembersWithoutServer_Response)
 
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := h.DB.Conn.Query(`SELECT
+	rows, err := h.DB.Conn.QueryContext(ctx, `SELECT
 			"project_member"."id",
 			"user"."login",
 			"user"."email",
@@ -686,8 +622,7 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
 		in.GetLogin(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -701,19 +636,16 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
 			&member.Online,
 		)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
+
 		member.Role = userpb.Role(userpb.Role_value[role])
 		response.Members = append(response.Members, member)
 	}
 	defer rows.Close()
 
 	// Total count for pagination
-	err = h.DB.Conn.QueryRow(`SELECT COUNT (*)
+	err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT (*)
 		FROM "project_member"
 			INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
 		WHERE "project_member"."id" NOT IN(SELECT "member_id" FROM "server_member" WHERE "server_id" = $1)
@@ -723,9 +655,8 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
 		in.GetProjectId(),
 		in.GetLogin(),
 	).Scan(&response.Total)
-	if err != nil && err != sql.ErrNoRows {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	return response, nil

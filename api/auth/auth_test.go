@@ -48,7 +48,7 @@ func apiTest() *apitest.APITest {
 		HandlerFunc(testHandler.Handler)
 }
 
-func Test_postSignIn(t *testing.T) {
+func Test_signIn(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string][]tests.TestCase{}
@@ -146,7 +146,7 @@ func Test_postSignIn(t *testing.T) {
 	}
 }
 
-func Test_postLogout(t *testing.T) {
+func Test_logout(t *testing.T) {
 	t.Parallel()
 
 	testCases := []tests.TestCase{
@@ -174,7 +174,7 @@ func Test_postLogout(t *testing.T) {
 	}
 }
 
-func Test_postRefresh(t *testing.T) {
+func Test_refresh(t *testing.T) {
 	t.Parallel()
 	testCases := map[string][]tests.TestCase{}
 

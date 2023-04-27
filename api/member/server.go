@@ -2,13 +2,15 @@ package member
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal"
 	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -30,7 +32,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -39,7 +41,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 			e := err.(memberpb.ServerMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -62,7 +64,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 			ServerId:  request.GetServerId(),
 		})
 		if err != nil {
-			return webutil.FromGRPC(c, h.log, err)
+			return webutil.FromGRPC(c, err)
 		}
 
 		return webutil.StatusOK(c, msgServerMembers, members)
@@ -70,10 +72,10 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 
 	member, err := rClient.ServerMember(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 	if member == nil {
-		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 	}
 
 	return webutil.StatusOK(c, msgMemberInfo, member)
@@ -92,7 +94,7 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -101,7 +103,7 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 			e := err.(memberpb.AddServerMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -113,7 +115,7 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
 	member, err := rClient.AddServerMember(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgMemberAdded, member)
@@ -132,7 +134,7 @@ func (h *Handler) updateServerMember(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -141,7 +143,7 @@ func (h *Handler) updateServerMember(c *fiber.Ctx) error {
 			e := err.(memberpb.UpdateServerMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -153,7 +155,7 @@ func (h *Handler) updateServerMember(c *fiber.Ctx) error {
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
 	_, err := rClient.UpdateServerMember(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgMemberUpdated, nil)
@@ -175,7 +177,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -184,7 +186,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 			e := err.(memberpb.DeleteServerMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -196,7 +198,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
 	_, err := rClient.DeleteServerMember(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgMemberDeleted, nil)
@@ -218,7 +220,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -227,7 +229,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 			e := err.(memberpb.MembersWithoutServer_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	pagination := webutil.GetPaginationFromCtx(c)
@@ -244,7 +246,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
 	members, err := rClient.MembersWithoutServer(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgMembersWithoutServer, members)
@@ -264,7 +266,7 @@ func (h *Handler) updateServerMemberActive(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -273,7 +275,7 @@ func (h *Handler) updateServerMemberActive(c *fiber.Ctx) error {
 			e := err.(memberpb.UpdateServerMember_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -285,7 +287,7 @@ func (h *Handler) updateServerMemberActive(c *fiber.Ctx) error {
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
 	_, err := rClient.UpdateServerMember(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	// message section

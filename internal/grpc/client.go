@@ -12,9 +12,11 @@ import (
 	"google.golang.org/grpc/credentials/oauth"
 )
 
-// ClientService is ...
+// ClientService is a struct representing a gRPC client connection and certificate pool.
 type ClientService struct {
-	Client   *grpc.ClientConn
+	// Client represents the gRPC connection to a server.
+	Client *grpc.ClientConn
+	// CertPool is a collection of X.509 certificates that can be used to verify the identity of a remote server.
 	certPool *x509.CertPool
 }
 

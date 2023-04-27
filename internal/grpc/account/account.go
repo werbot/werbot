@@ -2,9 +2,9 @@ package account
 
 import (
 	"context"
-	"database/sql"
 
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/strutil"
 )
 
@@ -39,73 +39,65 @@ func (h *Handler) DeleteAccount(ctx context.Context, in *accountpb.DeleteAccount
 }
 
 // TODO Check bu invite and Enable check in Firewall
-// AccountIDByLogin is ...
+// AccountIDByLogin is a function that takes a context and an AccountIDByLogin_Request as input,
+// and returns an AccountIDByLogin_Response and an error as output.
 func (h *Handler) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDByLogin_Request) (*accountpb.AccountIDByLogin_Response, error) {
 	response := new(accountpb.AccountIDByLogin_Response)
 	nameArray := strutil.SplitNTrimmed(in.GetLogin(), "_", 3)
 
-	sqlRpw := h.DB.Conn.QueryRow(`SELECT "user"."id"
-		FROM "user"
-			JOIN "user_public_key" ON "user"."id" = "user_public_key"."user_id"
-		WHERE "user"."login" = $1
-			AND "user_public_key".fingerprint = $2`,
-		nameArray[0],
-		in.GetFingerprint(),
-	)
-	err := sqlRpw.Scan(&response.UserId)
+	stmt, err := h.DB.Conn.PrepareContext(ctx, `SELECT "user"."id"
+    FROM "user"
+        JOIN "user_public_key" ON "user"."id" = "user_public_key"."user_id"
+    WHERE "user"."login" = $1
+        AND "user_public_key".fingerprint = $2`)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorAborted(err, h.Log)
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, nameArray[0], in.GetFingerprint()).Scan(&response.UserId)
+	if err != nil {
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	/*
-		// OLD CODE
-		if id > 0 {
-			if actx.userType() == UserTypeInvite {
-				actx.err = errors.New("invites are only supported for new SSH keys; your ssh key is already associated with the user")
-			}
-			firewall_setting := security.Setting{
-				db,
-				ctx,
-				config.Settings.ConfigPath,
-				config.Settings.FirewallWorkCountry,
-				config.Settings.FirewallBlacklistUris,
-			}
-			if !security.FirewallIpCheck(firewall_setting) {
-				return false
-			}
-		}
+	  // OLD CODE
+	  if id > 0 {
+	    if actx.userType() == UserTypeInvite {
+	      actx.err = errors.New("invites are only supported for new SSH keys; your ssh key is already associated with the user")
+	    }
+	    firewall_setting := security.Setting{
+	      db,
+	      ctx,
+	      config.Settings.ConfigPath,
+	      config.Settings.FirewallWorkCountry,
+	      config.Settings.FirewallBlacklistUris,
+	    }
+	    if !security.FirewallIpCheck(firewall_setting) {
+	      return false
+	    }
+	  }
 	*/
 
 	return response, nil
 }
 
-// UpdateStatus is ...
+// UpdateStatus is a method implemented by Handler struct which accepts
+// a context and an UpdateStatus_Request object and returns an UpdateStatus_Response object and an error
 func (h *Handler) UpdateStatus(ctx context.Context, in *accountpb.UpdateStatus_Request) (*accountpb.UpdateStatus_Response, error) {
-	var data sql.Result
-	var err error
 	response := new(accountpb.UpdateStatus_Response)
 
-	switch in.GetStatus() {
-	case 1:
-		data, err = h.DB.Conn.Exec(`UPDATE "server_member" SET "online" = true, "last_update" = NOW() WHERE "id" = $1`,
-			in.GetAccountId(),
-		)
-	case 2:
-		data, err = h.DB.Conn.Exec(`UPDATE "server_member" SET "online" = false, "last_update" = NOW() WHERE "id" = $1`,
-			in.GetAccountId(),
-		)
+	online := false
+	if in.GetStatus() == 1 {
+		online = true
 	}
 
+	_, err := h.DB.Conn.ExecContext(ctx, `UPDATE "server_member" SET "online" = $2, "last_update" = NOW() WHERE "id" = $1`,
+		in.GetAccountId(),
+		online,
+	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil

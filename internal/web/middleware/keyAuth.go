@@ -8,6 +8,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/keyauth/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal/grpc"
 	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
@@ -37,7 +39,7 @@ func (m KeyMiddleware) Execute() fiber.Handler {
 }
 
 func keyError(c *fiber.Ctx, e error) error {
-	return webutil.StatusUnauthorized(c, "Invalid or expired API Key", nil)
+	return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "Invalid or expired API Key"))
 }
 
 func keySuccess(c *fiber.Ctx) error {

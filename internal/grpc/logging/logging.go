@@ -2,10 +2,10 @@ package logging
 
 import (
 	"context"
-	"database/sql"
 
 	loggingpb "github.com/werbot/werbot/internal/grpc/logging/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
+	"github.com/werbot/werbot/internal/trace"
 )
 
 // ListRecords is ...
@@ -23,7 +23,6 @@ func (h *Handler) Record(ctx context.Context, in *loggingpb.Record_Request) (*lo
 // AddLogRecord is ...
 func (h *Handler) AddLogRecord(ctx context.Context, in *loggingpb.AddRecord_Request) (*loggingpb.AddRecord_Response, error) {
 	var sqlQuery string
-	var data sql.Result
 	var err error
 	response := new(loggingpb.AddRecord_Response)
 
@@ -35,8 +34,7 @@ func (h *Handler) AddLogRecord(ctx context.Context, in *loggingpb.AddRecord_Requ
 			in.GetEvent().String(),
 		)
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errBadRequest
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 	case loggingpb.Logger_project:
@@ -46,17 +44,13 @@ func (h *Handler) AddLogRecord(ctx context.Context, in *loggingpb.AddRecord_Requ
 			in.GetEvent().String(),
 		)
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errBadRequest
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 	}
 
-	if data, err = h.DB.Conn.Exec(sqlQuery); err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errFailedToAdd
+	_, err = h.DB.Conn.ExecContext(ctx, sqlQuery)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
 	return response, nil

@@ -12,6 +12,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
 	license_lib "github.com/werbot/werbot/internal/license"
+	"github.com/werbot/werbot/internal/trace"
 )
 
 // License is ...
@@ -22,9 +23,8 @@ func (h *Handler) License(ctx context.Context, in *licensepb.License_Request) (*
 
 	readFile, err := os.ReadFile(internal.GetString("LICENSE_FILE", "/license.key"))
 	if err != nil {
-		log.FromGRPC(err).Send()
 		licenseOpen = false
-		//return nil, license_lib.ErrFailedToOpenLicenseFile
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToOpenLicenseFile)
 	}
 
 	if licensePublic == "" {
@@ -34,15 +34,13 @@ func (h *Handler) License(ctx context.Context, in *licensepb.License_Request) (*
 	if licenseOpen {
 		lic, err := license_lib.DecodePublicKey([]byte(licensePublic))
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, license_lib.ErrLicenseKeyIsBroken
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgLicenseKeyIsBroken)
 		}
 
 		// The main information of the license
 		licDecode, err := lic.Decode(readFile)
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, license_lib.ErrLicenseStructureIsBroken
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgLicenseStructureIsBroken)
 		}
 		response.Issued = licDecode.License.Iss
 		response.Customer = licDecode.License.Cus
@@ -54,8 +52,7 @@ func (h *Handler) License(ctx context.Context, in *licensepb.License_Request) (*
 
 		licData := map[string]any{}
 		if err := json.Unmarshal(licDecode.License.Dat, &licData); err != nil {
-			log.FromGRPC(err).Send()
-			return nil, license_lib.ErrLicenseStructureIsBroken
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgStructureIsBroken)
 		}
 
 		response.Limits = map[string]int32{

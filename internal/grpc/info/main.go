@@ -6,14 +6,9 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-var log logger.Logger
-
 // Handler is ...
 type Handler struct {
 	infopb.UnimplementedInfoHandlersServer
-	DB *postgres.Connect
-}
-
-func init() {
-	log = logger.New("grpc/info")
+	DB  *postgres.Connect
+	Log logger.Logger
 }

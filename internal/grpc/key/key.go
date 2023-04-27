@@ -2,18 +2,19 @@ package key
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/ssh"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
 	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
+	"github.com/werbot/werbot/internal/trace"
 )
 
 // ListKeys is ...
@@ -22,7 +23,7 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
 
 	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := h.DB.Conn.Query(`SELECT
+	rows, err := h.DB.Conn.QueryContext(ctx, `SELECT
 			"user_public_key"."id" AS "key_id",
 			"user_public_key"."user_id",
 			"user"."login" AS "user_login",
@@ -32,10 +33,9 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
 			"user_public_key"."last_update",
 			"user_public_key"."created"
 		FROM "user_public_key"
-			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"` + sqlSearch + sqlFooter)
+			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"`+sqlSearch+sqlFooter)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -51,12 +51,9 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
 			&created,
 		)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
+
 		publicKey.LastUpdate = timestamppb.New(lastUpdate.Time)
 		publicKey.Created = timestamppb.New(created.Time)
 		response.PublicKeys = append(response.PublicKeys, publicKey)
@@ -64,13 +61,12 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
 	defer rows.Close()
 
 	// Total count for pagination
-	err = h.DB.Conn.QueryRow(`SELECT COUNT (*)
+	err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT (*)
 		FROM "user_public_key"
-			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"` + sqlSearch,
+			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"`+sqlSearch,
 	).Scan(&response.Total)
-	if err != nil && err != sql.ErrNoRows {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	return response, nil
@@ -82,7 +78,7 @@ func (h *Handler) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.
 	response := new(keypb.Key_Response)
 	response.KeyId = in.GetKeyId()
 
-	err := h.DB.Conn.QueryRow(`SELECT
+	err := h.DB.Conn.QueryRowContext(ctx, `SELECT
 			"user_public_key"."id" AS "key_id",
 			"user_public_key"."user_id",
 			"user"."login" AS "user_login",
@@ -107,16 +103,11 @@ func (h *Handler) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.
 		&created,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	response.LastUpdate = timestamppb.New(lastUpdate.Time)
 	response.Created = timestamppb.New(created.Time)
-
 	return response, nil
 }
 
@@ -126,31 +117,27 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 
 	publicKey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(in.GetKey()))
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errPublicKeyIsBroken
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgPublicKeyIsBroken)
 	}
 	fingerprint := ssh.FingerprintLegacyMD5(publicKey)
 
 	// Check public key fingerprint
-	err = h.DB.Conn.QueryRow(`SELECT "id" FROM "user_public_key" WHERE "fingerprint" = $1`,
+	err = h.DB.Conn.QueryRowContext(ctx, `SELECT "id" FROM "user_public_key" WHERE "fingerprint" = $1`,
 		fingerprint,
 	).Scan(&response.KeyId)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
+
 	if response.KeyId != "" {
-		return nil, errObjectAlreadyExists
+		return nil, trace.Error(codes.AlreadyExists)
 	}
 
 	if in.GetTitle() != "" {
 		comment = in.GetTitle()
 	}
 
-	err = h.DB.Conn.QueryRow(`INSERT INTO "user_public_key" ("user_id", "title", "key_", "fingerprint")
+	err = h.DB.Conn.QueryRowContext(ctx, `INSERT INTO "user_public_key" ("user_id", "title", "key_", "fingerprint")
     VALUES ($1, $2, $3, $4) RETURNING id`,
 		in.GetUserId(),
 		comment,
@@ -158,8 +145,7 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 		fingerprint,
 	).Scan(&response.KeyId)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
 	return response, nil
@@ -172,31 +158,27 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 
 	publicKey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(in.GetKey()))
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errPublicKeyIsBroken
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgPublicKeyIsBroken)
 	}
 	fingerprint := ssh.FingerprintLegacyMD5(publicKey)
 
 	// Check public key fingerprint
-	err = h.DB.Conn.QueryRow(`SELECT "id" FROM "user_public_key" WHERE "fingerprint" = $1`,
+	err = h.DB.Conn.QueryRowContext(ctx, `SELECT "id" FROM "user_public_key" WHERE "fingerprint" = $1`,
 		fingerprint,
 	).Scan(&keyID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
+
 	if keyID != "" {
-		return nil, errObjectAlreadyExists // This key has already been added
+		return nil, trace.Error(codes.AlreadyExists)
 	}
 
 	if in.GetTitle() != "" {
 		comment = in.GetTitle()
 	}
 
-	data, err := h.DB.Conn.Exec(`UPDATE "user_public_key"
+	_, err = h.DB.Conn.ExecContext(ctx, `UPDATE "user_public_key"
     SET "title" = $1, "key_" = $2, "fingerprint" = $3, "last_update" = NOW()
 		WHERE "id" = $4 AND "user_id" = $5`,
 		comment,
@@ -206,11 +188,7 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 		in.GetUserId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -220,16 +198,12 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*keypb.DeleteKey_Response, error) {
 	response := new(keypb.DeleteKey_Response)
 
-	data, err := h.DB.Conn.Exec(`DELETE FROM "user_public_key" WHERE "id" = $1 AND "user_id" = $2`,
+	_, err := h.DB.Conn.ExecContext(ctx, `DELETE FROM "user_public_key" WHERE "id" = $1 AND "user_id" = $2`,
 		in.GetKeyId(),
 		in.GetUserId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToDelete
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToDelete)
 	}
 
 	return response, nil
@@ -242,8 +216,7 @@ func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_R
 
 	key, err := crypto.NewSSHKey(in.GetKeyType().String())
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, crypto.ErrFailedCreatingSSHKey
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedCreatingSSHKey)
 	}
 
 	response.Public = key.PublicKey
@@ -256,7 +229,7 @@ func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_R
 	mapB, _ := json.Marshal(cacheKey)
 
 	if err := h.Redis.Set(fmt.Sprintf("tmp_key_ssh:%s", response.Uuid), mapB, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "10m")); err != nil {
-		return nil, errIncorrectParameters
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil

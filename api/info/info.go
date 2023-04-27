@@ -3,6 +3,7 @@ package info
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
 	infopb "github.com/werbot/werbot/internal/grpc/info/proto"
@@ -30,13 +33,13 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
-		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 	}
 
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.InternalServerError(c, msgFailedToShowContainerList, nil)
+		return webutil.FromGRPC(c, err, "failed to show container list")
 	}
 
 	listImages, err := client.ListImages(docker.ListImagesOptions{
@@ -47,17 +50,17 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.InternalServerError(c, msgFailedToShowContainerList, nil)
+		return webutil.FromGRPC(c, err, "failed to show container list")
 	}
 
 	urlVersion := fmt.Sprintf("%s/v1/update/version", internal.GetString("API_DSN", "https://api.werbot.com"))
 	getVersionInfo, err := http.Get(urlVersion)
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.InternalServerError(c, msgFailedToGetDataForUpdates, nil)
+		return webutil.FromGRPC(c, err, "failed to get data for updates")
 	}
 	if getVersionInfo.StatusCode > 200 {
-		return webutil.StatusNotFound(c, msgFailedToConnectUpdateServer, nil)
+		return webutil.FromGRPC(c, err, "failed to connect update server")
 	}
 	defer getVersionInfo.Body.Close()
 
@@ -94,7 +97,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -103,7 +106,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 			e := err.(infopb.UserMetrics_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -120,7 +123,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 
 	info, err := rClient.UserMetrics(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgShortInfo, info)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"math/rand"
 	"net"
 	"time"
 
@@ -36,14 +35,12 @@ type App struct {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	internal.LoadConfig("../../.env")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	internal.LoadConfig("../../.env")
-
-	app.log = logger.New("avocado")
+	app.log = logger.New()
 
 	app.redis = rdb.NewClient(ctx, &redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
@@ -54,12 +51,16 @@ func main() {
 
 	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {}
 
+	// Load TLS configuration from files at startup
+	grpc_certificate, _ := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")
+	grpc_private, _ := internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key")
+
 	app.grpc = grpc.NewClient(
 		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
 		internal.GetString("GRPCSERVER_TOKEN", "token"),
 		internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
-		internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key"),
-		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
+		grpc_certificate,
+		grpc_private,
 	)
 
 	app.broker.WriteStatus()

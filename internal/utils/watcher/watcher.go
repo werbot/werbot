@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	log = logger.New("pkg/watcher")
+	log = logger.New()
 )
 
 // Watcher is ...

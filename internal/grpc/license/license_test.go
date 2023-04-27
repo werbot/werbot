@@ -71,17 +71,8 @@ func Test_license(t *testing.T) {
 			licPath:   "/license.key",
 			licPubKey: pubKeyOk,
 			req:       &licensepb.License_Request{},
-			resp: &licensepb.License_Response{
-				Customer: "Mr. Robot",
-				Type:     "open source",
-				Modules:  []string{"module1", "module2", "module3"},
-				Limits: map[string]int32{
-					"Companies": 99,
-					"Servers":   99,
-					"Users":     99,
-				},
-				Expired: true,
-			},
+			resp:      &licensepb.License_Response{},
+			respErr:   "rpc error: code = Aborted desc = Failed to open license file",
 		},
 		{
 			name:      "License file found but is broken",
@@ -89,7 +80,7 @@ func Test_license(t *testing.T) {
 			licPubKey: pubKeyOk,
 			req:       &licensepb.License_Request{},
 			resp:      &licensepb.License_Response{},
-			respErr:   "rpc error: code = Unknown desc = the license has a broken structure",
+			respErr:   "rpc error: code = Aborted desc = The license has a broken",
 		},
 	}
 

@@ -12,7 +12,7 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-var log = logger.New("internal/auditor")
+var log = logger.New()
 
 // LogChannel is ...
 type LogChannel struct {

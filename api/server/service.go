@@ -2,12 +2,12 @@ package server
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal"
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -26,7 +26,7 @@ func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 	// server setting
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -35,7 +35,7 @@ func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 			e := err.(serverpb.AddServer_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -44,7 +44,7 @@ func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
 	server, err := rClient.AddServer(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgServerKey, server)

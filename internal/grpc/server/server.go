@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"google.golang.org/grpc/codes"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
@@ -17,6 +18,7 @@ import (
 	"github.com/werbot/werbot/internal/grpc/project"
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/strutil"
 )
 
@@ -67,10 +69,9 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 
 		switch nameLen {
 		case 1:
-			rows, err := h.DB.Conn.Query(query, loginArray[0])
+			rows, err := h.DB.Conn.QueryContext(ctx, query, loginArray[0])
 			if err != nil {
-				log.FromGRPC(err).Send()
-				return nil, errServerError
+				return nil, trace.ErrorDB(err, h.Log)
 			}
 
 			for rows.Next() {
@@ -92,22 +93,18 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
-					if err == sql.ErrNoRows {
-						return nil, errNotFound
-					}
-					log.FromGRPC(err).Send()
-					return nil, errServerError
+					return nil, trace.ErrorDB(err, h.Log)
 				}
+
 				response.Servers = append(response.Servers, server)
 			}
 			defer rows.Close()
 
 		case 2:
-			rows, err := h.DB.Conn.Query(query+`
+			rows, err := h.DB.Conn.QueryContext(ctx, query+`
 				AND "project"."login" = $2`, loginArray[0], loginArray[1])
 			if err != nil {
-				log.FromGRPC(err).Send()
-				return nil, errServerError
+				return nil, trace.ErrorDB(err, h.Log)
 			}
 
 			for rows.Next() {
@@ -129,24 +126,20 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
-					if err == sql.ErrNoRows {
-						return nil, errNotFound
-					}
-					log.FromGRPC(err).Send()
-					return nil, errServerError
+					return nil, trace.ErrorDB(err, h.Log)
 				}
+
 				response.Servers = append(response.Servers, server)
 			}
 			defer rows.Close()
 
 		case 3:
-			rows, err := h.DB.Conn.Query(query+`
+			rows, err := h.DB.Conn.QueryContext(ctx, query+`
 				AND "project"."login" = $2
 				AND "token" = $3
 				AND "project_member"."role" = 'user'`, loginArray[0], loginArray[1], loginArray[2])
 			if err != nil {
-				log.FromGRPC(err).Send()
-				return nil, errServerError
+				return nil, trace.ErrorDB(err, h.Log)
 			}
 
 			for rows.Next() {
@@ -168,12 +161,9 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
-					if err == sql.ErrNoRows {
-						return nil, errNotFound
-					}
-					log.FromGRPC(err).Send()
-					return nil, errServerError
+					return nil, trace.ErrorDB(err, h.Log)
 				}
+
 				response.Servers = append(response.Servers, server)
 			}
 			defer rows.Close()
@@ -181,14 +171,14 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 
 		response.Total = int32(len(response.Servers))
 		if response.Total == 0 {
-			return nil, errNotFound
+			return nil, trace.Error(codes.NotFound)
 		}
 
 		return response, nil
 	}
 
 	if query["project_id"] != "" && query["user_id"] != "" {
-		rows, err := h.DB.Conn.Query(`SELECT DISTINCT ON ("server"."id")
+		rows, err := h.DB.Conn.QueryContext(ctx, `SELECT DISTINCT ON ("server"."id")
 				"server"."id",
 				"server"."access_id",
 				"server"."address",
@@ -212,8 +202,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 			query["user_id"],
 		)
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
 
 		for rows.Next() {
@@ -234,18 +223,15 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 				&server.CountMembers,
 			)
 			if err != nil {
-				if err == sql.ErrNoRows {
-					return nil, errNotFound
-				}
-				log.FromGRPC(err).Send()
-				return nil, errServerError
+				return nil, trace.ErrorDB(err, h.Log)
 			}
+
 			response.Servers = append(response.Servers, server)
 		}
 		defer rows.Close()
 
 		// Total count
-		err = h.DB.Conn.QueryRow(`SELECT COUNT(*)
+		err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT(*)
       FROM "server"
 				INNER JOIN "project" ON "server"."project_id" = "project"."id"
 			WHERE "server"."project_id" = $1
@@ -253,9 +239,8 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 			query["project_id"],
 			query["user_id"],
 		).Scan(&response.Total)
-		if err != nil && err != sql.ErrNoRows {
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+		if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
+			return nil, trace.ErrorDB(err, h.Log)
 		}
 
 		return response, nil
@@ -266,14 +251,14 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 
 // Server is displays data on the server
 func (h *Handler) Server(ctx context.Context, in *serverpb.Server_Request) (*serverpb.Server_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	var description pgtype.Text
 	response := new(serverpb.Server_Response)
 
-	err := h.DB.Conn.QueryRow(`SELECT
+	err := h.DB.Conn.QueryRowContext(ctx, `SELECT
 			"server"."access_id",
 			"server"."address",
 			"server"."port",
@@ -306,22 +291,17 @@ func (h *Handler) Server(ctx context.Context, in *serverpb.Server_Request) (*ser
 		&response.Scheme,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	response.Description = description.String
-
 	return response, nil
 }
 
 // AddServer is ...
 func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request) (*serverpb.AddServer_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	var err error
@@ -333,13 +313,13 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 		serverTitle = fmt.Sprintf("server #%s", serverToken)
 	}
 
-	tx, err := h.DB.Conn.Begin()
+	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errTransactionCreateError
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCreateError)
 	}
+	defer tx.Rollback()
 
-	err = tx.QueryRow(`INSERT INTO "server" (
+	err = tx.QueryRowContext(ctx, `INSERT INTO "server" (
 			"project_id",
 			"address",
 			"port",
@@ -362,8 +342,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 		in.GetScheme().Number(),
 	).Scan(&response.ServerId)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
 	// + record access
@@ -377,22 +356,18 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 			in.GetPassword(),
 		)
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 	case *serverpb.AddServer_Request_Key:
 		key := new(keypb.GenerateSSHKey_Key)
 		keyTmp, err := h.Redis.Get(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey())).Result()
 		if err != nil {
-			// The key is not found, create a new key
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		if err := json.Unmarshal([]byte(keyTmp), key); err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgStructureIsBroken)
 		}
 
 		h.Redis.Delete(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey()))
@@ -405,15 +380,13 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 			string(keyAccessJSON),
 		)
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 	default:
 		key, err := crypto.NewSSHKey(internal.GetString("SECURITY_SSH_KEY_TYPE", "KEY_TYPE_ED25519"))
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, crypto.ErrFailedCreatingSSHKey
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedCreatingSSHKey)
 		}
 
 		keyAccess := map[string]string{"public": "" + string(key.PublicKey) + "", "private": "" + string(key.PrivateKey) + "", "password": ""}
@@ -425,39 +398,29 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 			string(keyAccessJSON),
 		)
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 	}
 
-	err = tx.QueryRow(sqlAccess).Scan(&accessID)
+	err = tx.QueryRowContext(ctx, sqlAccess).Scan(&accessID)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
-	data, err := tx.Exec(`UPDATE "server" SET "access_id" = $1 WHERE "id" = $2`,
+	_, err = tx.ExecContext(ctx, `UPDATE "server" SET "access_id" = $1 WHERE "id" = $2`,
 		accessID,
 		response.GetServerId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
 	}
 
 	// + record server_access_policy
-	data, err = tx.Exec(`INSERT INTO "server_access_policy" ("server_id", "ip", "country") VALUES ($1, 'f', 'f')`,
+	_, err = tx.ExecContext(ctx, `INSERT INTO "server_access_policy" ("server_id", "ip", "country") VALUES ($1, 'f', 'f')`,
 		response.GetServerId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
 	// + record server_activity
@@ -471,18 +434,13 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 	}
 	sqlCountDay = strings.TrimSuffix(sqlCountDay, ",")
 
-	data, err = tx.Exec(sqlCountDay)
+	_, err = tx.ExecContext(ctx, sqlCountDay)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
-	if err = tx.Commit(); err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errTransactionCommitError
+	if err := tx.Commit(); err != nil {
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil
@@ -490,22 +448,22 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 
 // UpdateServer is ...
 func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Request) (*serverpb.UpdateServer_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	var err error
-	var data sql.Result
 	response := new(serverpb.UpdateServer_Response)
 
 	switch in.GetSetting().(type) {
 	case *serverpb.UpdateServer_Request_Info:
-		tx, err := h.DB.Conn.Begin()
+		tx, err := h.DB.Conn.BeginTx(ctx, nil)
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errTransactionCreateError
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCreateError)
 		}
-		data, err = tx.Exec(`UPDATE "server"
+		defer tx.Rollback()
+
+		_, err = tx.ExecContext(ctx, `UPDATE "server"
     SET
       "address" = $1,
       "port" = $2,
@@ -520,43 +478,52 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 			in.GetServerId(),
 			in.GetProjectId(),
 		)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
+		}
 
-		data, err = tx.Exec(`UPDATE "server_access" SET "login" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
+		_, err = tx.ExecContext(ctx, `UPDATE "server_access" SET "login" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
 			in.GetInfo().GetLogin(),
 			in.GetServerId(),
 		)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
+		}
 
-		err = tx.Commit()
+		if err := tx.Commit(); err != nil {
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgTransactionCommitError)
+		}
 
 	case *serverpb.UpdateServer_Request_Audit:
-		data, err = h.DB.Conn.Exec(`UPDATE "server" SET "audit" = $1, "last_update" = NOW() WHERE "id" = $2`,
+		_, err = h.DB.Conn.ExecContext(ctx, `UPDATE "server" SET "audit" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetAudit(),
 			in.GetServerId(),
 		)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
+		}
 
 	case *serverpb.UpdateServer_Request_Active:
 		// TODO After turning off, turn off all users who online
-		data, err = h.DB.Conn.Exec(`UPDATE "server" SET "active" = $1, "last_update" = NOW() WHERE "id" = $2`,
+		_, err = h.DB.Conn.ExecContext(ctx, `UPDATE "server" SET "active" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetActive(),
 			in.GetServerId(),
 		)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
+		}
 
 	case *serverpb.UpdateServer_Request_Online:
-		data, err = h.DB.Conn.Exec(`UPDATE "server" SET "online" = $1, "last_update" = NOW() WHERE "id" = $2`,
+		_, err = h.DB.Conn.ExecContext(ctx, `UPDATE "server" SET "online" = $1, "last_update" = NOW() WHERE "id" = $2`,
 			in.GetOnline(),
 			in.GetServerId(),
 		)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
+		}
 
 	default:
-		return nil, errBadRequest
-	}
-
-	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.Error(codes.Aborted, trace.MsgInvalidArgument)
 	}
 
 	return response, nil
@@ -564,22 +531,18 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 
 // DeleteServer is ...
 func (h *Handler) DeleteServer(ctx context.Context, in *serverpb.DeleteServer_Request) (*serverpb.DeleteServer_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(serverpb.DeleteServer_Response)
 
-	data, err := h.DB.Conn.Exec(`DELETE FROM "server" WHERE "id" = $1 AND "project_id" = $2`,
+	_, err := h.DB.Conn.ExecContext(ctx, `DELETE FROM "server" WHERE "id" = $1 AND "project_id" = $2`,
 		in.GetServerId(),
 		in.GetProjectId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToDelete
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToDelete)
 	}
 
 	return response, nil
@@ -587,14 +550,14 @@ func (h *Handler) DeleteServer(ctx context.Context, in *serverpb.DeleteServer_Re
 
 // ServerAccess is displays an affordable version of connecting to the server
 func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Request) (*serverpb.ServerAccess_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	var password, publicKey, privateKey, privateKeyPassword sql.NullString
 	response := new(serverpb.ServerAccess_Response)
 
-	err := h.DB.Conn.QueryRow(`SELECT "auth",
+	err := h.DB.Conn.QueryRowContext(ctx, `SELECT "auth",
 			"login",
 			"password",
       "key"->>'public',
@@ -610,13 +573,8 @@ func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Re
 		&privateKey,
 		&privateKeyPassword,
 	)
-
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	switch response.GetAuth() {
@@ -638,42 +596,46 @@ func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Re
 
 // UpdateServerAccess is updates an affordable option for connecting to the server
 func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateServerAccess_Request) (*serverpb.UpdateServerAccess_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	var sqlQuery string
+	var err error
 	response := new(serverpb.UpdateServerAccess_Response)
 
 	switch in.GetAccess().(type) {
 	case *serverpb.UpdateServerAccess_Request_Password:
-		sqlQuery, _ = sanitize.SQL(`UPDATE "server_access" SET "password" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
+		sqlQuery, err = sanitize.SQL(`UPDATE "server_access" SET "password" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
 			in.GetPassword(),
 			in.GetServerId(),
 		)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, h.Log)
+		}
+
 	case *serverpb.UpdateServerAccess_Request_Key:
 		cacheKey, err := h.Redis.Get(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey())).Result()
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		h.Redis.Delete(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey()))
-		sqlQuery, _ = sanitize.SQL(`UPDATE "server_access" SET "key" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
+		sqlQuery, err = sanitize.SQL(`UPDATE "server_access" SET "key" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
 			cacheKey,
 			in.GetServerId(),
 		)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, h.Log)
+		}
+
 	default:
 		return response, nil
 	}
 
-	data, err := h.DB.Conn.Exec(sqlQuery)
+	_, err = h.DB.Conn.ExecContext(ctx, sqlQuery)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -681,8 +643,8 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 
 // ServerActivity is ...
 func (h *Handler) ServerActivity(ctx context.Context, in *serverpb.ServerActivity_Request) (*serverpb.ServerActivity_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(serverpb.ServerActivity_Response)
@@ -702,7 +664,7 @@ func (h *Handler) ServerActivity(ctx context.Context, in *serverpb.ServerActivit
 
 	days := []dayActive{}
 
-	rows, err := h.DB.Conn.Query(`SELECT
+	rows, err := h.DB.Conn.QueryContext(ctx, `SELECT
 			"server_activity"."id" AS "activity_id",
 			"server_activity"."dow" AS "week",
 			EXTRACT (HOUR FROM "server_activity"."time_from") AS "hour"
@@ -714,18 +676,13 @@ func (h *Handler) ServerActivity(ctx context.Context, in *serverpb.ServerActivit
 		in.GetProjectId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	for rows.Next() {
 		day := dayActive{}
 		if err := rows.Scan(&day.activityID, &day.week, &day.hour); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
 
 		days = append(days, day)
@@ -782,8 +739,11 @@ func (h *Handler) UpdateServerActivity(ctx context.Context, in *serverpb.UpdateS
 		ProjectId: in.GetProjectId(),
 	})
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, err
+		errorInfo := trace.ParseError(err)
+		if errorInfo.Code == codes.NotFound {
+			return nil, trace.Error(codes.NotFound, errorInfo.Message)
+		}
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	_oldActivity := reflect.ValueOf(oldActivity)
@@ -820,13 +780,9 @@ func (h *Handler) UpdateServerActivity(ctx context.Context, in *serverpb.UpdateS
 		sqlQuery["del"] = fmt.Sprintf(`DELETE FROM "server_activity" WHERE %s`,
 			sqlQuery["del"][:len(sqlQuery["del"])-2],
 		)
-		data, err := h.DB.Conn.Exec(sqlQuery["del"])
+		_, err := h.DB.Conn.ExecContext(ctx, sqlQuery["del"])
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errFailedToDelete
-		}
-		if affected, _ := data.RowsAffected(); affected == 0 {
-			return nil, errNotFound
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToDelete)
 		}
 	}
 
@@ -834,13 +790,9 @@ func (h *Handler) UpdateServerActivity(ctx context.Context, in *serverpb.UpdateS
 		sqlQuery["add"] = fmt.Sprintf(`INSERT INTO "server_activity" ("server_id", "dow", "time_from", "time_to") VALUES %s`,
 			sqlQuery["add"][:len(sqlQuery["add"])-1],
 		)
-		data, err := h.DB.Conn.Exec(sqlQuery["add"])
+		_, err := h.DB.Conn.ExecContext(ctx, sqlQuery["add"])
 		if err != nil {
-			log.FromGRPC(err).Send()
-			return nil, errFailedToAdd
-		}
-		if affected, _ := data.RowsAffected(); affected == 0 {
-			return nil, errNotFound
+			return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 		}
 	}
 
@@ -852,7 +804,7 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
 	response := new(serverpb.ListShareServers_Response)
 
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := h.DB.Conn.Query(`SELECT
+	rows, err := h.DB.Conn.QueryContext(ctx, `SELECT
 			"user"."login" AS user_login,
 			"project"."login" AS project_login,
 			"project"."title" AS project_title,
@@ -869,8 +821,7 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
 		in.GetUserId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -886,28 +837,23 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
 			&server.ServerDescription,
 		)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, errNotFound
-			}
-			log.FromGRPC(err).Send()
-			return nil, errServerError
+			return nil, trace.ErrorDB(err, h.Log)
 		}
-		server.ProjectLogin = projectLogin
 
+		server.ProjectLogin = projectLogin
 		response.Servers = append(response.Servers, server)
 	}
 	defer rows.Close()
 
 	// Total count for pagination
-	err = h.DB.Conn.QueryRow(`SELECT COUNT(*)
+	err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT(*)
 		FROM "server"
 			INNER JOIN "project_member" ON "server"."project_id" = "project_member"."project_id"
 		WHERE "project_member"."user_id" = $1`,
 		in.GetUserId(),
 	).Scan(&response.Total)
-	if err != nil && err != sql.ErrNoRows {
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	return response, nil
@@ -935,16 +881,12 @@ func (h *Handler) DeleteShareServer(ctx context.Context, in *serverpb.DeleteShar
 func (h *Handler) UpdateHostKey(ctx context.Context, in *serverpb.UpdateHostKey_Request) (*serverpb.UpdateHostKey_Response, error) {
 	response := new(serverpb.UpdateHostKey_Response)
 
-	data, err := h.DB.Conn.Exec(`UPDATE "server_host_key" SET "host_key" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
+	_, err := h.DB.Conn.ExecContext(ctx, `UPDATE "server_host_key" SET "host_key" = $1, "last_update" = NOW() WHERE "server_id" = $2`,
 		in.GetHostkey(),
 		in.GetServerId(),
 	)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToUpdate
-	}
-	if affected, _ := data.RowsAffected(); affected == 0 {
-		return nil, errNotFound
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -954,7 +896,7 @@ func (h *Handler) UpdateHostKey(ctx context.Context, in *serverpb.UpdateHostKey_
 func (h *Handler) AddSession(ctx context.Context, in *serverpb.AddSession_Request) (*serverpb.AddSession_Response, error) {
 	response := new(serverpb.AddSession_Response)
 
-	err := h.DB.Conn.QueryRow(`INSERT INTO "session" ("account_id", "status", "message")
+	err := h.DB.Conn.QueryRowContext(ctx, `INSERT INTO "session" ("account_id", "status", "message")
 		VALUES ($1, $2, $3)
 		RETURNING id`,
 		in.GetAccountId(),
@@ -962,8 +904,7 @@ func (h *Handler) AddSession(ctx context.Context, in *serverpb.AddSession_Reques
 		in.GetMessage(),
 	).Scan(&response.SessionId)
 	if err != nil {
-		log.FromGRPC(err).Send()
-		return nil, errFailedToAdd
+		return nil, trace.ErrorAborted(err, h.Log, trace.MsgFailedToAdd)
 	}
 
 	return response, nil
@@ -971,21 +912,17 @@ func (h *Handler) AddSession(ctx context.Context, in *serverpb.AddSession_Reques
 
 // ServerNameByID is ...
 func (h *Handler) ServerNameByID(ctx context.Context, in *serverpb.ServerNameByID_Request) (*serverpb.ServerNameByID_Response, error) {
-	if !project.IsOwnerProject(h.DB, in.GetProjectId(), in.GetUserId()) {
-		return nil, errNotFound
+	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
+		return nil, trace.Error(codes.NotFound)
 	}
 
 	response := new(serverpb.ServerNameByID_Response)
 
-	err := h.DB.Conn.QueryRow(`SELECT "title" FROM "server" WHERE "id" = $1`,
+	err := h.DB.Conn.QueryRowContext(ctx, `SELECT "title" FROM "server" WHERE "id" = $1`,
 		in.GetServerId(),
 	).Scan(&response.ServerName)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errNotFound
-		}
-		log.FromGRPC(err).Send()
-		return nil, errServerError
+		return nil, trace.ErrorDB(err, h.Log)
 	}
 
 	return response, nil

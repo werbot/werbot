@@ -2,13 +2,15 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal"
@@ -20,21 +22,22 @@ import (
 	"github.com/werbot/werbot/pkg/webutil"
 )
 
-// @Summary      Authorization in the system
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        email    body     accountpb.SignIn_Request true "Email"
-// @Param        password body     accountpb.SignIn_Request true "Password"
-// @Success      200      {object} jwt.Tokens
-// @Failure      400,500  {object} webutil.HTTPResponse
-// @Router       /auth/signin [post]
+// @Summary Sign In a user with the given credentials
+// @Description Signs in a user with the given credentials
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param request body accountpb.SignIn_Request true "Sign In Request"
+// @Success 200 {object} jwt.Tokens
+// @Failure 400 {object} webutil.ErrorResponse
+// @Failure 500 {object} webutil.ErrorResponse
+// @Router /signin [post]
 func (h *Handler) signIn(c *fiber.Ctx) error {
 	request := new(accountpb.SignIn_Request)
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -43,7 +46,7 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 			e := err.(accountpb.SignIn_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -52,7 +55,8 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 	rClient := accountpb.NewAccountHandlersClient(h.Grpc.Client)
 	user, err := rClient.SignIn(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		h.log.ErrorGRPC(err).Send()
+		return webutil.FromGRPC(c, err)
 	}
 
 	sub := uuid.New().String()
@@ -64,12 +68,12 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.InternalServerError(c, msgFailedToCreateToken, nil)
+		return webutil.FromGRPC(c, errors.New("failed to create token"))
 	}
 
 	// We write user_id (user.user.userid) in the database, since if Access_key will not know which user to create a new one
 	if !jwt.AddToken(h.Redis, sub, user.GetUserId()) {
-		return webutil.InternalServerError(c, msgFailedToSetCache, nil)
+		return webutil.FromGRPC(c, errors.New("failed to set cache"))
 	}
 
 	return webutil.StatusOK(c, "", jwt.Tokens{
@@ -103,24 +107,24 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	claims, err := jwt.Parse(request.Refresh)
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateParams, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	sub := jwt.GetClaimSub(*claims)
 	userID, err := h.Redis.Get(fmt.Sprintf("ref_token:%s", sub)).Result()
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 	}
 
 	if !jwt.ValidateToken(h.Redis, sub) {
-		return webutil.StatusBadRequest(c, msgTokenHasBeenRevoked, nil)
+		return webutil.FromGRPC(c, errors.New("token has been revoked"))
 	}
 	jwt.DeleteToken(h.Redis, sub)
 
@@ -133,7 +137,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, msgFailedToSelectUser, nil)
+		return webutil.FromGRPC(c, errors.New("failed to select user"))
 	}
 
 	newToken, err := jwt.New(&accountpb.UserParameters{
@@ -144,7 +148,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, msgFailedToCreateToken, nil)
+		return webutil.FromGRPC(c, errors.New("failed to create token"))
 	}
 
 	jwt.AddToken(h.Redis, sub, userID)
@@ -174,9 +178,11 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	request := new(accountpb.ResetPassword_Request)
 
-	if err := protojson.Unmarshal(c.Body(), request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateParams, nil)
+	if len(c.Body()) > 0 {
+		if err := protojson.Unmarshal(c.Body(), request); err != nil {
+			h.log.Error(err).Send()
+			return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		}
 	}
 
 	request.Token = c.Params("reset_token")
@@ -187,7 +193,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 			e := err.(accountpb.ResetPassword_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	// Sending an email with a verification link
@@ -206,7 +212,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	}
 
 	if request.Request == nil && request.GetToken() == "" {
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -215,16 +221,21 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	rClient := accountpb.NewAccountHandlersClient(h.Grpc.Client)
 	response, err := rClient.ResetPassword(ctx, request)
 	if err != nil {
-		h.log.Error(err).Send()
-		return webutil.InternalServerError(c, strings.ToLower(utils.StatusMessage(500)), nil)
+		h.log.ErrorGRPC(err).Send()
+		return webutil.FromGRPC(c, err)
 	}
 
 	// send token to send email
 	if response.GetToken() != "" {
-		mailData := map[string]string{
-			"Link": fmt.Sprintf("%s/auth/password_reset/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
-		}
-		go mail.Send(request.GetEmail(), "reset password confirmation", "password-reset", mailData)
+		go func() {
+			mailData := map[string]string{
+				"Link": fmt.Sprintf("%s/auth/password_reset/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
+			}
+			err := mail.Send(request.GetEmail(), "reset password confirmation", "password-reset", mailData)
+			if err != nil {
+				h.log.Error(err).Send()
+			}
+		}()
 	}
 
 	return webutil.StatusOK(c, msgPasswordReset, response)

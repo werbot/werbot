@@ -2,12 +2,14 @@ package key
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal"
 	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -28,7 +30,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -37,7 +39,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 			e := err.(keypb.Key_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -51,7 +53,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 	// show all keys
 	if request.GetKeyId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
-		sanitizeSQL, _ := sanitize.SQL(`"user"."id" = $1`,
+		sanitizeSQL, err := sanitize.SQL(`"user"."id" = $1`,
 			request.GetUserId(),
 		)
 		keys, err := rClient.ListKeys(ctx, &keypb.ListKeys_Request{
@@ -61,10 +63,10 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
-			return webutil.FromGRPC(c, h.log, err)
+			return webutil.FromGRPC(c, err)
 		}
 		if keys.GetTotal() == 0 {
-			return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
+			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 		}
 		return webutil.StatusOK(c, msgUserKeys, keys)
 	}
@@ -72,7 +74,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 	// show information about the key
 	key, err := rClient.Key(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 	// if key == nil {
 	//	return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
@@ -94,7 +96,7 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -103,7 +105,7 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 			e := err.(keypb.AddKey_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -115,7 +117,7 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
 	publicKey, err := rClient.AddKey(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgKeyAdded, publicKey)
@@ -134,7 +136,7 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateBody, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -143,7 +145,7 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 			e := err.(keypb.UpdateKey_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -155,7 +157,7 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
 	_, err := rClient.UpdateKey(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgKeyUpdated, nil)
@@ -175,7 +177,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateQuery, nil)
+		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -184,7 +186,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 			e := err.(keypb.DeleteKey_RequestValidationError)
 			multiError[strings.ToLower(e.Field())] = e.Reason()
 		}
-		return webutil.StatusBadRequest(c, internal.MsgFailedToValidateStruct, multiError)
+		return webutil.FromGRPC(c, err, multiError)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -196,7 +198,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
 	_, err := rClient.DeleteKey(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgKeyRemoved, nil)
@@ -223,7 +225,7 @@ func (h *Handler) getGenerateNewKey(c *fiber.Ctx) error {
 	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
 	key, err := rClient.GenerateSSHKey(ctx, request)
 	if err != nil {
-		return webutil.FromGRPC(c, h.log, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	return webutil.StatusOK(c, msgSSHKeyCreated, map[string]string{

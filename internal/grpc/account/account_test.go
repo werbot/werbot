@@ -44,7 +44,7 @@ func Test_account_AccountIDByLogin(t *testing.T) {
 				Fingerprint: "b6:07:6a:ef:82:e3:73:47:56:69:3f:3d:c7:d7:6f:23",
 			},
 			resp:    &accountpb.AccountIDByLogin_Response{},
-			respErr: "rpc error: code = Unknown desc = not found",
+			respErr: "rpc error: code = NotFound desc = Not found",
 		},
 	}
 

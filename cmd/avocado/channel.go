@@ -21,6 +21,7 @@ import (
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/service/ssh/auditor"
 	"github.com/werbot/werbot/internal/service/ssh/pty"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/strutil"
 )
 
@@ -199,7 +200,8 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	// TODO: Add disposable invites
 	// case config.UserTypeInvite:
 	case serverpb.Type_invite:
-		app.log.Info().Str("invite", actx.message).Str("userAddress", actx.userAddr).Msg(internal.MsgInviteIsInvalid)
+
+		app.log.Info().Str("invite", actx.message).Str("userAddress", actx.userAddr).Msg(trace.MsgInviteIsInvalid)
 		sendMessageInChannel(ch, fmt.Sprintf("Invite %s is invalid.\n", actx.message))
 		_ = ch.Close()
 		return
@@ -207,7 +209,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	// case config.UserTypeShell:
 	case serverpb.Type_shell:
 		if actx.userID == "" {
-			app.log.Info().Str("login", actx.login).Str("userAddress", actx.userAddr).Msg(internal.MsgAccessIsDenied)
+			app.log.Info().Str("login", actx.login).Str("userAddress", actx.userAddr).Msg(trace.MsgAccessIsDeniedUser)
 			actx.message = "Firewall denied access"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()

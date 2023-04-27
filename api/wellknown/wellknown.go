@@ -21,15 +21,17 @@ type JWKSResponse struct {
 // @Success      200 {object} JWKSResponse{}
 // @Router       /.well-known/jwks.json [get]
 func (h *Handler) jwks(c *fiber.Ctx) error {
-	jwks := new(JWKSResponse)
-
-	// TODO: show all keys
-	jwk, err := jwt.MarshalJWK(internal.GetByteFromFile("JWT_PUBLIC_KEY", "./jwt_public.key"))
-	jwks.Keys = append(jwks.Keys, jwk)
-
+	jwkBytes, err := internal.GetByteFromFile("JWT_PUBLIC_KEY", "./jwt_public.key")
 	if err != nil {
-		return webutil.StatusBadRequest(c, "", jwt.JWK{})
+		return webutil.FromGRPC(c, nil, jwt.JWK{})
 	}
+
+	jwk, err := jwt.MarshalJWK(jwkBytes)
+	if err != nil {
+		return webutil.FromGRPC(c, nil, jwt.JWK{})
+	}
+
+	jwks := &JWKSResponse{Keys: []jwt.JWK{jwk}}
 
 	return webutil.StatusOK(c, "", jwks)
 }

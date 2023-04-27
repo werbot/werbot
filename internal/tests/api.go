@@ -6,15 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
@@ -58,16 +58,18 @@ type Tokens struct {
 
 // InitTestServer is ...
 func InitTestServer(envPath string) *TestHandler {
-	rand.Seed(time.Now().UnixNano())
-
 	internal.LoadConfig(envPath)
+
+	// Load TLS configuration from files at startup
+	grpc_certificate, _ := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")
+	grpc_private, _ := internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key")
 
 	grpcClient := grpc.NewClient(
 		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
 		internal.GetString("GRPCSERVER_TOKEN", "token"),
 		internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
-		internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key"),
-		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
+		grpc_certificate,
+		grpc_private,
 	)
 
 	cacheClient := rdb.NewClient(context.TODO(), &redis.Options{
@@ -124,7 +126,7 @@ func (h *TestHandler) GetUserInfo(signIn *accountpb.SignIn_Request) *UserInfo {
 // FinishHandler is ...
 func (h *TestHandler) FinishHandler() {
 	h.App.Use(func(c *fiber.Ctx) error {
-		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 	})
 
 	h.Handler = h.fiberToHandlerFunc()

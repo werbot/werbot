@@ -6,15 +6,13 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v3"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/webutil"
-)
-
-const (
-	msgTokenHasBeenRevoked = "token has been revoked"
 )
 
 // AuthMiddleware is ...
@@ -26,7 +24,7 @@ type AuthMiddleware struct {
 
 // Auth is ...
 func Auth(redis redis.Handler) *AuthMiddleware {
-	log := logger.New("middleware/auth")
+	log := logger.New()
 
 	publicKey, err := jwt.PublicKey()
 	if err != nil {
@@ -51,7 +49,7 @@ func (m AuthMiddleware) Execute() fiber.Handler {
 }
 
 func authError(c *fiber.Ctx, e error) error {
-	return webutil.StatusUnauthorized(c, "Unauthorized", nil)
+	return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "Unauthorized"))
 }
 
 func (m AuthMiddleware) authSuccess(c *fiber.Ctx) error {
@@ -59,7 +57,7 @@ func (m AuthMiddleware) authSuccess(c *fiber.Ctx) error {
 
 	key := fmt.Sprintf("ref_token:%s", userInfo.UserSub())
 	if _, err := m.redis.Get(key).Result(); err != nil {
-		return webutil.StatusUnauthorized(c, msgTokenHasBeenRevoked, nil)
+		return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "Token has been revoked"))
 	}
 
 	return c.Next()

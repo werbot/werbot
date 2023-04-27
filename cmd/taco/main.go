@@ -3,9 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"net"
-	"time"
 
 	"github.com/armon/go-proxyproto"
 	"github.com/gofiber/fiber/v2"
@@ -35,25 +33,28 @@ import (
 )
 
 var (
-	log = logger.New("taco")
+	log = logger.New()
 	app *fiber.App
 )
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	internal.LoadConfig("../../.env")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	internal.LoadConfig("../../.env")
 	appPort := internal.GetString("APP_PORT", ":8088")
+
+	// Load TLS configuration from files at startup
+	grpc_certificate, _ := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")
+	grpc_private, _ := internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key")
 
 	grpcClient := grpc.NewClient(
 		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
 		internal.GetString("GRPCSERVER_TOKEN", "token"),
 		internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
-		internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key"),
-		internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
+		grpc_certificate,
+		grpc_private,
 	)
 
 	cache := rdb.NewClient(ctx, &redis.Options{
@@ -112,7 +113,7 @@ func main() {
 
 	// notFoundRoute func for describe 404 Error route.
 	app.Use(func(c *fiber.Ctx) error {
-		return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
+		return webutil.Response(c, fiber.StatusNotFound, "", nil)
 	})
 
 	log.Info().Str("serverAddress", appPort).Msg("Start taco server")

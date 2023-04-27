@@ -5,15 +5,21 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-// Handler is ...
+const (
+	authPath = "/auth"
+)
+
+// Handler represents a type that provides request handling functionality, such as logging and making requests to the application.
 type Handler struct {
+	// Handler is an embedded field of type *api.Handler which provides access to methods like App, Grpc, Auth etc.
 	*api.Handler
+	// log is an instance of logger.Logger which is used for logging messages.
 	log logger.Logger
 }
 
-// New is ...
+// New returns a new instance of Handler.
 func New(h *api.Handler) *Handler {
-	log := logger.New("web/auth")
+	log := logger.New()
 
 	return &Handler{
 		Handler: &api.Handler{
@@ -26,14 +32,12 @@ func New(h *api.Handler) *Handler {
 	}
 }
 
-// Routes is ...
+// Routes sets routes for Handler.
 func (h *Handler) Routes() {
-	g := h.App.Group("/auth")
-	g.Post("/signin", h.signIn)
-	g.Post("/refresh", h.refresh)
-	g.Post("/logout", h.Auth, h.logout)
-
-	g.Post("/password_reset/:reset_token?", h.resetPassword)
-
-	g.Get("/profile", h.Auth, h.getProfile)
+	authRoutes := h.App.Group(authPath)
+	authRoutes.Post("/signin", h.signIn)
+	authRoutes.Post("/refresh", h.refresh)
+	authRoutes.Post("/logout", h.Auth, h.logout)
+	authRoutes.Post("/password_reset/:reset_token?", h.resetPassword)
+	authRoutes.Get("/profile", h.Auth, h.getProfile)
 }

@@ -2,6 +2,9 @@ package webutil
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/utils"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // HTTPResponse represents response body of API
@@ -14,7 +17,7 @@ type HTTPResponse struct {
 // Response is ...
 func Response(c *fiber.Ctx, status int, message string, data any) error {
 	var success bool
-	if status == 200 {
+	if status == fiber.StatusOK {
 		success = true
 	}
 	if len(message) > 0 {
@@ -28,27 +31,39 @@ func Response(c *fiber.Ctx, status int, message string, data any) error {
 	return c.Status(status).JSON(data)
 }
 
+// FromGRPC is ...
+func FromGRPC(c *fiber.Ctx, err error, messages ...any) error {
+	statusCode := fiber.StatusOK
+	dataError := status.Convert(err)
+
+	switch dataError.Code() {
+	case codes.Aborted, codes.InvalidArgument, codes.Unknown: // 400 error
+		statusCode = fiber.StatusBadRequest
+	case codes.PermissionDenied, codes.Unauthenticated: // 401 error
+		statusCode = fiber.StatusUnauthorized
+	case codes.NotFound: // 404 error
+		statusCode = fiber.StatusNotFound
+	case codes.Internal: // 500 error
+		statusCode = fiber.StatusInternalServerError
+	}
+
+	var desc any
+	if len(messages) == 1 {
+		desc = messages[0]
+	} else if len(messages) > 1 {
+		desc = messages
+	} else {
+		desc = dataError.Message()
+	}
+
+	if statusCode != fiber.StatusOK {
+		return Response(c, statusCode, utils.StatusMessage(statusCode), desc)
+	}
+
+	return nil
+}
+
 // StatusOK - HTTP error code 400
 func StatusOK(c *fiber.Ctx, message string, data any) error {
 	return Response(c, 200, message, data)
-}
-
-// StatusBadRequest - HTTP error code 400
-func StatusBadRequest(c *fiber.Ctx, message string, err any) error {
-	return Response(c, 400, message, err)
-}
-
-// StatusUnauthorized  - HTTP error code 401
-func StatusUnauthorized(c *fiber.Ctx, message string, err any) error {
-	return Response(c, 401, message, err)
-}
-
-// StatusNotFound - HTTP error code 404
-func StatusNotFound(c *fiber.Ctx, message string, err any) error {
-	return Response(c, 404, message, err)
-}
-
-// InternalServerError - HTTP error code 500
-func InternalServerError(c *fiber.Ctx, message string, err any) error {
-	return Response(c, 500, message, err)
 }
