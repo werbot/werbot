@@ -42,7 +42,7 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
 		&response.Role,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	// Compare the hashed password retrieved from the database against the hashed password supplied in the request.
@@ -65,7 +65,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 			in.GetEmail(),
 		).Scan(&userID)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		//if userID.Valid {

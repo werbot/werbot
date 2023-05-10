@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
@@ -29,7 +30,7 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 		FROM "project"
 			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"`+sqlSearch+sqlFooter)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -45,7 +46,7 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 			&countServers,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		project.Created = timestamppb.New(created.Time)
@@ -60,8 +61,8 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 		FROM "project"
 			LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"`+sqlSearch,
 	).Scan(&response.Total)
-	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil
@@ -91,7 +92,7 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
 		&countServers,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	response.Created = timestamppb.New(created.Time)

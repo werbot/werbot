@@ -12,6 +12,7 @@ import (
 
 	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -47,6 +48,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
 
 	// show all projects
@@ -68,7 +70,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 		}
 
-		return webutil.StatusOK(c, msgProjects, projects)
+		return webutil.StatusOK(c, "projects", projects)
 	}
 
 	// show project information
@@ -82,10 +84,10 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 
 	// If Role_admin - show detailed information
 	if userParameter.IsUserAdmin() {
-		return webutil.StatusOK(c, msgProjectInfo, project)
+		return webutil.StatusOK(c, "project information", project)
 	}
 
-	return webutil.StatusOK(c, msgProjectInfo, &projectpb.Project_Response{
+	return webutil.StatusOK(c, "project information", &projectpb.Project_Response{
 		Title: project.GetTitle(),
 		Login: project.GetLogin(),
 	})
@@ -103,8 +105,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 	request := new(projectpb.AddProject_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -128,7 +129,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgProjectAdded, project)
+	return webutil.StatusOK(c, "project added", project)
 }
 
 // @Summary      Updating project information.
@@ -143,8 +144,7 @@ func (h *Handler) updateProject(c *fiber.Ctx) error {
 	request := new(projectpb.UpdateProject_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -168,7 +168,7 @@ func (h *Handler) updateProject(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgProjectUpdated, nil)
+	return webutil.StatusOK(c, "project updated", nil)
 }
 
 // @Summary      Delete project
@@ -209,5 +209,5 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgProjectDeleted, nil)
+	return webutil.StatusOK(c, "project deleted", nil)
 }

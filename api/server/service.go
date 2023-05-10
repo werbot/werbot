@@ -2,13 +2,14 @@ package server
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc/codes"
 
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/webutil"
 )
 
@@ -23,10 +24,8 @@ import (
 func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 	request := new(serverpb.AddServer_Request)
 
-	// server setting
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -47,9 +46,9 @@ func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgServerKey, server)
+	return webutil.StatusOK(c, "server key", server)
 }
 
 func (h *Handler) updateServiceServerStatus(c *fiber.Ctx) error {
-	return webutil.StatusOK(c, msgServerStatus, "online")
+	return webutil.StatusOK(c, "server status", "online")
 }

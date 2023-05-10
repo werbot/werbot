@@ -328,8 +328,8 @@ func TestHandler_addProject(t *testing.T) {
 			if data["result"].ProjectId != "" {
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
-				rClient := projectpb.NewProjectHandlersClient(testHandler.GRPC.Client)
 
+				rClient := projectpb.NewProjectHandlersClient(testHandler.GRPC.Client)
 				rClient.DeleteProject(ctx, &projectpb.DeleteProject_Request{
 					OwnerId:   tc.RequestUser.UserID,
 					ProjectId: data["result"].ProjectId,

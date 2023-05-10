@@ -10,13 +10,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal"
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/mail"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -36,8 +36,7 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 	request := new(accountpb.SignIn_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -55,7 +54,6 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 	rClient := accountpb.NewAccountHandlersClient(h.Grpc.Client)
 	user, err := rClient.SignIn(ctx, request)
 	if err != nil {
-		h.log.ErrorGRPC(err).Send()
 		return webutil.FromGRPC(c, err)
 	}
 
@@ -91,7 +89,7 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 func (h *Handler) logout(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 	jwt.DeleteToken(h.Redis, userParameter.UserSub())
-	return webutil.StatusOK(c, msgSuccessLoggedOut, nil)
+	return webutil.StatusOK(c, "successfully logged out", nil)
 }
 
 // @Summary      Re-creation of new tokens
@@ -106,21 +104,19 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 	request := new(jwt.Tokens)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
-
 	claims, err := jwt.Parse(request.Refresh)
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	sub := jwt.GetClaimSub(*claims)
 	userID, err := h.Redis.Get(fmt.Sprintf("ref_token:%s", sub)).Result()
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+		return webutil.FromGRPC(c, trace.Error(codes.NotFound))
 	}
 
 	if !jwt.ValidateToken(h.Redis, sub) {
@@ -136,7 +132,6 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 		UserId: userID,
 	})
 	if err != nil {
-		h.log.Error(err).Send()
 		return webutil.FromGRPC(c, errors.New("failed to select user"))
 	}
 
@@ -180,8 +175,8 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 
 	if len(c.Body()) > 0 {
 		if err := protojson.Unmarshal(c.Body(), request); err != nil {
-			h.log.Error(err).Send()
-			return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+			//h.log.Error(err).Send()
+			return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 		}
 	}
 
@@ -212,7 +207,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	}
 
 	if request.Request == nil && request.GetToken() == "" {
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -221,7 +216,6 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	rClient := accountpb.NewAccountHandlersClient(h.Grpc.Client)
 	response, err := rClient.ResetPassword(ctx, request)
 	if err != nil {
-		h.log.ErrorGRPC(err).Send()
 		return webutil.FromGRPC(c, err)
 	}
 
@@ -238,7 +232,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 		}()
 	}
 
-	return webutil.StatusOK(c, msgPasswordReset, response)
+	return webutil.StatusOK(c, "password reset", response)
 }
 
 // @Summary      Profile information
@@ -249,7 +243,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 // @Router       /auth/profile [get]
 func (h *Handler) getProfile(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	return webutil.StatusOK(c, msgUserInfo, accountpb.SignIn_Response{
+	return webutil.StatusOK(c, "user information", accountpb.SignIn_Response{
 		UserId:   userParameter.UserID(""),
 		UserRole: userParameter.UserRole(),
 		Name:     "Mr Robot",

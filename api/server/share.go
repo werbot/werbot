@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -27,8 +28,7 @@ func (h *Handler) serversShareForUser(c *fiber.Ctx) error {
 	request := new(serverpb.ListShareServers_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -51,7 +51,6 @@ func (h *Handler) serversShareForUser(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
-
 	servers, err := rClient.ListShareServers(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -60,7 +59,7 @@ func (h *Handler) serversShareForUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 	}
 
-	return webutil.StatusOK(c, msgServers, servers)
+	return webutil.StatusOK(c, "servers", servers)
 }
 
 // share the selected server with the user
@@ -70,8 +69,7 @@ func (h *Handler) addServersShareForUser(c *fiber.Ctx) error {
 	request := new(serverpb.AddShareServer_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -83,7 +81,7 @@ func (h *Handler) addServersShareForUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err, multiError)
 	}
 
-	return webutil.StatusOK(c, msgServerAdded, serverpb.AddShareServer_Response{})
+	return webutil.StatusOK(c, "server added", serverpb.AddShareServer_Response{})
 }
 
 // Updating the settings to the server that they shared
@@ -105,7 +103,7 @@ func (h *Handler) updateServerShareForUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err, multiError)
 	}
 
-	return webutil.StatusOK(c, msgServerUpdated, serverpb.UpdateShareServer_Response{})
+	return webutil.StatusOK(c, "server updated", serverpb.UpdateShareServer_Response{})
 }
 
 // Removing from the user list available to him the server
@@ -127,5 +125,5 @@ func (h *Handler) deleteServerShareForUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err, multiError)
 	}
 
-	return webutil.StatusOK(c, msgServerDeleted, serverpb.DeleteShareServer_Response{})
+	return webutil.StatusOK(c, "server deleted", serverpb.DeleteShareServer_Response{})
 }

@@ -2,6 +2,7 @@ package key
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 
@@ -35,7 +36,7 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
 		FROM "user_public_key"
 			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"`+sqlSearch+sqlFooter)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -51,7 +52,7 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
 			&created,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		publicKey.LastUpdate = timestamppb.New(lastUpdate.Time)
@@ -61,12 +62,10 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
 	defer rows.Close()
 
 	// Total count for pagination
-	err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT (*)
-		FROM "user_public_key"
-			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"`+sqlSearch,
-	).Scan(&response.Total)
-	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-		return nil, trace.ErrorDB(err, h.Log)
+	err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT (*) FROM "user_public_key"
+			INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"`+sqlSearch).Scan(&response.Total)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil
@@ -103,7 +102,7 @@ func (h *Handler) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.
 		&created,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	response.LastUpdate = timestamppb.New(lastUpdate.Time)
@@ -125,8 +124,8 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 	err = h.DB.Conn.QueryRowContext(ctx, `SELECT "id" FROM "user_public_key" WHERE "fingerprint" = $1`,
 		fingerprint,
 	).Scan(&response.KeyId)
-	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	if response.KeyId != "" {
@@ -166,8 +165,8 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 	err = h.DB.Conn.QueryRowContext(ctx, `SELECT "id" FROM "user_public_key" WHERE "fingerprint" = $1`,
 		fingerprint,
 	).Scan(&keyID)
-	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	if keyID != "" {

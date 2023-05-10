@@ -82,7 +82,7 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 		}
 	}
 
-	return webutil.StatusOK(c, msgCurrentVersions, updates)
+	return webutil.StatusOK(c, "current versions", updates)
 }
 
 // @Summary      Unexpected error while getting info
@@ -113,20 +113,20 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 	request.UserId = userParameter.UserID(request.GetUserId())
 	userRole := userParameter.UserRole()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	rClient := infopb.NewInfoHandlersClient(h.Grpc.Client)
-
 	if request.UserId == userParameter.OriginalUserID() {
 		request.Role = userRole
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	rClient := infopb.NewInfoHandlersClient(h.Grpc.Client)
 	info, err := rClient.UserMetrics(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgShortInfo, info)
+	return webutil.StatusOK(c, "short information", info)
 }
 
 // @Summary      Version API
@@ -143,5 +143,5 @@ func (h *Handler) getVersion(c *fiber.Ctx) error {
 	// }
 
 	info := fmt.Sprintf("%s (%s)", internal.Version(), internal.Commit())
-	return webutil.StatusOK(c, msgAPIVersion, info)
+	return webutil.StatusOK(c, "API version", info)
 }

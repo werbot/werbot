@@ -2,6 +2,7 @@ package member
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -38,7 +39,7 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 			INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
 			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"`+sqlSearch+sqlFooter)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -60,7 +61,7 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 			&member.ServersCount,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		member.Role = userpb.Role_user // TODO: We transfer from the old format to the new one due to PHP version of the site
@@ -76,8 +77,8 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 			INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
 			INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"`+sqlSearch,
 	).Scan(&response.Total)
-	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil
@@ -120,7 +121,7 @@ func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_
 		&created,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	response.Role = userpb.Role(userpb.Role_value[role]) // TODO Old Role format
@@ -221,13 +222,13 @@ func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWit
 		in.GetLogin(),
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
 		user := new(memberpb.UsersWithoutProject_User)
 		if err = rows.Scan(&user.UserId, &user.Login, &user.Email); err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		response.Users = append(response.Users, user)
@@ -252,7 +253,7 @@ func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMember
 		in.GetProjectId(),
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -266,7 +267,7 @@ func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMember
 			&invite.Status,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		invite.Created = timestamppb.New(created.Time)
@@ -280,8 +281,8 @@ func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMember
 		WHERE "project_invite"."project_id" = $1`,
 		in.GetProjectId(),
 	).Scan(&response.Total)
-	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil
@@ -300,9 +301,10 @@ func (h *Handler) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInv
 	err := h.DB.Conn.QueryRowContext(ctx, `SELECT "id" FROM "project_invite" WHERE "email" = $1`,
 		in.GetEmail(),
 	).Scan(&inviteID)
-	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
+
 	if inviteID != "" {
 		return nil, trace.Error(codes.AlreadyExists) // Email in use
 	}
@@ -356,7 +358,7 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
 		&status,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	if status == "" {
@@ -431,7 +433,7 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
 		in.GetServerId(),
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -448,7 +450,7 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
 			&lastUpdate,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		member.LastUpdate = timestamppb.New(lastUpdate.Time)
@@ -466,8 +468,8 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
 		in.GetProjectId(),
 		in.GetServerId(),
 	).Scan(&response.Total)
-	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil
@@ -500,7 +502,7 @@ func (h *Handler) ServerMember(ctx context.Context, in *memberpb.ServerMember_Re
 		&lastUpdate,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	response.MemberId = in.GetMemberId()
@@ -524,8 +526,8 @@ func (h *Handler) AddServerMember(ctx context.Context, in *memberpb.AddServerMem
 		in.GetServerId(),
 		in.GetMemberId(),
 	).Scan(&response.MemberId)
-	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 	if response.MemberId != "" {
 		return response, nil
@@ -622,7 +624,7 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
 		in.GetLogin(),
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -636,7 +638,7 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
 			&member.Online,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		member.Role = userpb.Role(userpb.Role_value[role])
@@ -655,8 +657,8 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
 		in.GetProjectId(),
 		in.GetLogin(),
 	).Scan(&response.Total)
-	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil

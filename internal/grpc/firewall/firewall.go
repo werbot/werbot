@@ -2,6 +2,7 @@ package firewall
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/werbot/werbot/internal"
@@ -50,7 +51,7 @@ func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request)
 		in.GetClientIp(),
 	).Scan(&total)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	// Black list, IP found in the list
@@ -78,13 +79,13 @@ func (h *Handler) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirew
 		WHERE "server_security_country"."server_id" = $1`, in.GetServerId(),
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
 		country := new(firewallpb.Country)
 		if err := rows.Scan(&country.Id, &country.CountryCode, &country.CountryName); err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 		response.Country.List = append(response.Country.List, country)
 	}
@@ -93,13 +94,13 @@ func (h *Handler) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirew
 	// get networks
 	rows, err = h.DB.Conn.QueryContext(ctx, `SELECT "id", "start_ip", "end_ip" FROM "server_security_ip" WHERE "server_id" = $1`, in.GetServerId())
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
 		network := new(firewallpb.Network)
 		if err := rows.Scan(&network.Id, &network.StartIp, &network.EndIp); err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 		response.Network.List = append(response.Network.List, network)
 	}
@@ -113,7 +114,7 @@ func (h *Handler) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirew
 		&response.Country.WiteList,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil
@@ -133,8 +134,8 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
 			in.GetServerId(),
 			record.CountryCode,
 		).Scan(&response.Id)
-		if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-			return nil, trace.ErrorDB(err, h.Log)
+		if err != nil && err != sql.ErrNoRows {
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 		if response.Id != "" {
 			return nil, trace.Error(codes.AlreadyExists)
@@ -154,8 +155,8 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
 			record.Ip.StartIp,
 			record.Ip.EndIp,
 		).Scan(&response.Id)
-		if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-			return nil, trace.ErrorDB(err, h.Log)
+		if err != nil && err != sql.ErrNoRows {
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 		if response.Id != "" {
 			return nil, trace.Error(codes.AlreadyExists)
@@ -309,7 +310,7 @@ func (h *Handler) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAcc
 		in.GetUserId(),
 	).Scan(&memberID)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	if memberID == "" {
@@ -335,7 +336,7 @@ func (h *Handler) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAcc
 		time.Now().Local().Format("15:04:05"),
 	).Scan(&id)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 	if id == 0 {
 		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedTime)
@@ -359,7 +360,7 @@ func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcces
 		in.GetServerId(),
 	).Scan(&accessListIP)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	// We make a sample in the database with a list of IP addresses
@@ -373,7 +374,7 @@ func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcces
 		in.GetMemberIp(),
 	).Scan(&total)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	// Black list, IP found in the list
@@ -413,7 +414,7 @@ func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.Server
 		&accessListCountry,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	// Sample from the table with countries
@@ -426,7 +427,7 @@ func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.Server
 		country,
 	).Scan(&total)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	// Black list, the country is found in the list:

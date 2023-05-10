@@ -49,7 +49,7 @@ func (h *Handler) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDB
     FROM "user"
         JOIN "user_public_key" ON "user"."id" = "user_public_key"."user_id"
     WHERE "user"."login" = $1
-        AND "user_public_key".fingerprint = $2`)
+        AND "user_public_key"."fingerprint" = $2`)
 	if err != nil {
 		return nil, trace.ErrorAborted(err, h.Log)
 	}
@@ -57,7 +57,7 @@ func (h *Handler) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDB
 
 	err = stmt.QueryRowContext(ctx, nameArray[0], in.GetFingerprint()).Scan(&response.UserId)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	/*

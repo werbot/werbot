@@ -16,6 +16,7 @@ import (
 	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -75,7 +76,7 @@ func (h *Handler) server(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 		}
 
-		return webutil.StatusOK(c, msgServers, servers)
+		return webutil.StatusOK(c, "servers", servers)
 	}
 
 	// show information about the server
@@ -87,7 +88,7 @@ func (h *Handler) server(c *fiber.Ctx) error {
 	//	return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	//}
 
-	return webutil.StatusOK(c, msgServers, server)
+	return webutil.StatusOK(c, "servers", server)
 }
 
 // @Summary      Adding a new server
@@ -125,8 +126,7 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 	// -----------------------
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -150,7 +150,7 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgServerAdded, server)
+	return webutil.StatusOK(c, "server added", server)
 }
 
 // @Summary      Server update
@@ -188,8 +188,7 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 	// -----------------------
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -208,12 +207,12 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
-
 	_, err := rClient.UpdateServer(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
-	return webutil.StatusOK(c, msgServerUpdated, nil)
+
+	return webutil.StatusOK(c, "server updated", nil)
 }
 
 // @Summary      Delete server
@@ -230,8 +229,7 @@ func (h *Handler) deleteServer(c *fiber.Ctx) error {
 	request := new(serverpb.DeleteServer_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -255,7 +253,7 @@ func (h *Handler) deleteServer(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgServerDeleted, nil)
+	return webutil.StatusOK(c, "server deleted", nil)
 }
 
 // @Summary      Get server access
@@ -300,7 +298,7 @@ func (h *Handler) serverAccess(c *fiber.Ctx) error {
 	//	return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	//}
 
-	return webutil.StatusOK(c, msgServerAccess, access)
+	return webutil.StatusOK(c, "server access", access)
 }
 
 // @Summary      Update server access
@@ -334,8 +332,7 @@ func (h *Handler) updateServerAccess(c *fiber.Ctx) error {
 	// -----------------------
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters")) // MsgFailedToValidateBody
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -356,13 +353,12 @@ func (h *Handler) updateServerAccess(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
-
 	_, err := rClient.UpdateServerAccess(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgServerUpdated, nil)
+	return webutil.StatusOK(c, "server updated", nil)
 }
 
 // @Summary      Get server activity
@@ -407,7 +403,7 @@ func (h *Handler) serverActivity(c *fiber.Ctx) error {
 	// 	return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	// }
 
-	return webutil.StatusOK(c, msgServerActivity, activity)
+	return webutil.StatusOK(c, "server activity", activity)
 }
 
 // @Summary      Update server activity
@@ -422,8 +418,7 @@ func (h *Handler) updateServerActivity(c *fiber.Ctx) error {
 	request := new(serverpb.UpdateServerActivity_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -447,7 +442,7 @@ func (h *Handler) updateServerActivity(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgServerActivityUpdated, nil)
+	return webutil.StatusOK(c, "server activity updated", nil)
 }
 
 // @Summary      Get server firewall
@@ -487,7 +482,7 @@ func (h *Handler) serverFirewall(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgServerFirewall, firewall)
+	return webutil.StatusOK(c, "server firewall", firewall)
 }
 
 // @Summary      Add server firewall
@@ -520,6 +515,7 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc.Client)
 
 	var err error
@@ -547,7 +543,7 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgFirewallAdded, response)
+	return webutil.StatusOK(c, "firewall added", response)
 }
 
 // @Summary      Status firewall server
@@ -562,8 +558,7 @@ func (h *Handler) updateServerFirewall(c *fiber.Ctx) error {
 	request := new(firewallpb.UpdateServerFirewall_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -587,7 +582,7 @@ func (h *Handler) updateServerFirewall(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgFirewallUpdated, nil)
+	return webutil.StatusOK(c, "firewall updated", nil)
 }
 
 // @Summary      Delete server firewall
@@ -602,8 +597,7 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 	request := new(firewallpb.DeleteServerFirewall_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -627,7 +621,7 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgFirewallDeleted, nil)
+	return webutil.StatusOK(c, "firewall deleted", nil)
 }
 
 // @Summary      Server name by ID
@@ -670,5 +664,5 @@ func (h *Handler) serverNameByID(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 	}
 
-	return webutil.StatusOK(c, msgServerName, access)
+	return webutil.StatusOK(c, "server name", access)
 }

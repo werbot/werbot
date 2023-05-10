@@ -32,15 +32,14 @@ type LogChannel struct {
 func NewLogchannel(account *auditpb.AddAudit_Request, channel ssh.Channel, grpcSession *grpc.ClientService, recordCount int32) *LogChannel {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := auditpb.NewAuditHandlersClient(grpcSession.Client)
 
+	rClient := auditpb.NewAuditHandlersClient(grpcSession.Client)
 	auditData, err := rClient.AddAudit(ctx, &auditpb.AddAudit_Request{
 		AccountId: account.AccountId,
 		Version:   2,
 		ClientIp:  account.ClientIp,
 		Session:   account.Session,
 	})
-
 	if err != nil {
 		log.Error(err).Msg("Log channel create new channel failed")
 		return nil
@@ -75,6 +74,7 @@ func (l *LogChannel) Write(data []byte) (int, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := auditpb.NewAuditHandlersClient(l.grpcSession.Client)
 
 	if l.FramesCount == l.recordCount {
@@ -104,6 +104,7 @@ func (l *LogChannel) Close() error {
 	//	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := auditpb.NewAuditHandlersClient(l.grpcSession.Client)
 
 	if l.FramesCount > 0 {
@@ -122,10 +123,10 @@ func (l *LogChannel) Close() error {
 		AuditId:  l.AuditID,
 		Duration: fmt.Sprintf("%.6f", l.Duration().Seconds()),
 	})
-
 	if err != nil {
 		log.Error(err).Msg("Logchannel close error")
 	}
+
 	return l.Channel.Close()
 }
 

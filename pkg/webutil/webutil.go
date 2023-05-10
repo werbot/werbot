@@ -14,7 +14,7 @@ type HTTPResponse struct {
 	Result  any    `json:"result,omitempty"`
 }
 
-// Response is ...
+// Response is a takes in a Fiber context object, an HTTP status code, a message string and some data.
 func Response(c *fiber.Ctx, status int, message string, data any) error {
 	var success bool
 	if status == fiber.StatusOK {
@@ -31,13 +31,13 @@ func Response(c *fiber.Ctx, status int, message string, data any) error {
 	return c.Status(status).JSON(data)
 }
 
-// FromGRPC is ...
+// FromGRPC is converts gRPC errors into HTTP errors and returns an error response.
 func FromGRPC(c *fiber.Ctx, err error, messages ...any) error {
 	statusCode := fiber.StatusOK
 	dataError := status.Convert(err)
 
 	switch dataError.Code() {
-	case codes.Aborted, codes.InvalidArgument, codes.Unknown: // 400 error
+	case codes.AlreadyExists, codes.Aborted, codes.InvalidArgument, codes.Unknown: // 400 error
 		statusCode = fiber.StatusBadRequest
 	case codes.PermissionDenied, codes.Unauthenticated: // 401 error
 		statusCode = fiber.StatusUnauthorized
@@ -55,6 +55,8 @@ func FromGRPC(c *fiber.Ctx, err error, messages ...any) error {
 	} else {
 		desc = dataError.Message()
 	}
+
+	// h.log.Error(err).Send()
 
 	if statusCode != fiber.StatusOK {
 		return Response(c, statusCode, utils.StatusMessage(statusCode), desc)

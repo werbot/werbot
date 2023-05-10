@@ -15,6 +15,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/mail"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -49,6 +50,7 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
 
 	// show all users
@@ -66,7 +68,7 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 		}
 
-		return webutil.StatusOK(c, msgUsers, users)
+		return webutil.StatusOK(c, "users", users)
 	}
 
 	// show information about the key
@@ -82,10 +84,10 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 
 	// If Role_admin - show detailed information
 	if userParameter.IsUserAdmin() {
-		return webutil.StatusOK(c, msgUserInfo, user)
+		return webutil.StatusOK(c, "user information", user)
 	}
 
-	return webutil.StatusOK(c, msgUserInfo, &userpb.User_Response{
+	return webutil.StatusOK(c, "user information", &userpb.User_Response{
 		Login:   user.GetLogin(),
 		Name:    user.GetName(),
 		Surname: user.GetSurname(),
@@ -105,8 +107,7 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 	request := new(userpb.AddUser_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -132,7 +133,7 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgUserAdded, user)
+	return webutil.StatusOK(c, "user added", user)
 }
 
 // @Summary      Updating user information.
@@ -166,6 +167,7 @@ func (h *Handler) updateUser(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
 
 	var err error
@@ -221,7 +223,7 @@ func (h *Handler) updateUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgUserUpdated, nil)
+	return webutil.StatusOK(c, "user updated", nil)
 }
 
 // @Summary      Deleting a user
@@ -278,7 +280,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 			"Login": response.GetLogin(),
 			"Link":  fmt.Sprintf("%s/profile/delete/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
 		}
-		go mail.Send(response.GetEmail(), msgUserDeletionConfirmation, "account-deletion-confirmation", mailData)
+		go mail.Send(response.GetEmail(), "user deletion confirmation", "account-deletion-confirmation", mailData)
 		return webutil.StatusOK(c, "an email with instructions to delete your profile has been sent to your email", nil)
 	}
 
@@ -303,8 +305,8 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 		mailData := map[string]string{
 			"Login": response.GetLogin(),
 		}
-		go mail.Send(response.GetEmail(), msgUserDeleted, "account-deletion-info", mailData)
-		return webutil.StatusOK(c, msgUserDeleted, nil)
+		go mail.Send(response.GetEmail(), "user deleted", "account-deletion-info", mailData)
+		return webutil.StatusOK(c, "user deleted", nil)
 	}
 
 	return webutil.FromGRPC(c, errors.New("incorrect parameters"))
@@ -323,8 +325,7 @@ func (h *Handler) updatePassword(c *fiber.Ctx) error {
 	request := new(userpb.UpdatePassword_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -348,5 +349,5 @@ func (h *Handler) updatePassword(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgPasswordUpdated, msg)
+	return webutil.StatusOK(c, "password updated", msg)
 }

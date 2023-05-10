@@ -496,8 +496,8 @@ func Test_addKey(t *testing.T) {
 					if data["result"].KeyId != "" {
 						ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 						defer cancel()
-						rClient := keypb.NewKeyHandlersClient(testHandler.GRPC.Client)
 
+						rClient := keypb.NewKeyHandlersClient(testHandler.GRPC.Client)
 						rClient.DeleteKey(ctx, &keypb.DeleteKey_Request{
 							UserId: tc.RequestUser.UserID,
 							KeyId:  data["result"].KeyId,
@@ -791,8 +791,8 @@ func TestHandler_deleteKey(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := keypb.NewKeyHandlersClient(testHandler.GRPC.Client)
 
+	rClient := keypb.NewKeyHandlersClient(testHandler.GRPC.Client)
 	for role, rtc := range testCases {
 		t.Run(role, func(t *testing.T) {
 			for _, tc := range rtc {

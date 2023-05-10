@@ -16,6 +16,7 @@ import (
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/mail"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -75,7 +76,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 		}
 
-		return webutil.StatusOK(c, msgMembers, members)
+		return webutil.StatusOK(c, "members", members)
 	}
 
 	// show information about the member
@@ -87,7 +88,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 	// 	return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	// }
 
-	return webutil.StatusOK(c, msgMemberInfo, member)
+	return webutil.StatusOK(c, "member information", member)
 }
 
 // @Summary      Adding a new member on project
@@ -102,8 +103,7 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 	request := new(memberpb.AddProjectMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -128,7 +128,7 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgMemberAdded, member)
+	return webutil.StatusOK(c, "member added", member)
 }
 
 // @Summary      Updating member information on project
@@ -143,8 +143,7 @@ func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 	request := new(memberpb.UpdateProjectMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -168,7 +167,7 @@ func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgMemberUpdated, nil)
+	return webutil.StatusOK(c, "member updated", nil)
 }
 
 // @Summary      Delete member on project
@@ -210,7 +209,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgMemberDeleted, nil)
+	return webutil.StatusOK(c, "member deleted", nil)
 }
 
 // @Summary      List users without project
@@ -252,7 +251,7 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgUsersWithoutProject, members)
+	return webutil.StatusOK(c, "users without project", members)
 }
 
 // @Summary      Update member status of project
@@ -268,8 +267,7 @@ func (h *Handler) updateProjectMemberStatus(c *fiber.Ctx) error {
 	request.Setting = new(memberpb.UpdateProjectMember_Request_Active)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -294,9 +292,9 @@ func (h *Handler) updateProjectMemberStatus(c *fiber.Ctx) error {
 	}
 
 	// message section
-	message := msgMemberIsOnline
+	message := "member is online"
 	if !request.GetActive() {
-		message = msgMemberIsOffline
+		message = "member is offline"
 	}
 
 	return webutil.StatusOK(c, message, nil)
@@ -345,7 +343,7 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgMemberInvites, members)
+	return webutil.StatusOK(c, "member invites", members)
 }
 
 // @Summary      Invite a new member on project
@@ -360,8 +358,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	request := new(memberpb.AddMemberInvite_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -388,9 +385,9 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	mailData := map[string]string{
 		"Link": fmt.Sprintf("%s/invite/project/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), member.GetInvite()),
 	}
-	go mail.Send(request.GetEmail(), msgProjectInvitation, "project-invite", mailData)
+	go mail.Send(request.GetEmail(), "project invitation", "project-invite", mailData)
 
-	return webutil.StatusOK(c, msgMemberInvited, member)
+	return webutil.StatusOK(c, "member invited", member)
 }
 
 // @Summary      Delete invite on project
@@ -432,7 +429,7 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgInviteDeleted, nil)
+	return webutil.StatusOK(c, "invite deleted", nil)
 }
 
 // @Summary      Confirmation of the invitation to join the project
@@ -468,5 +465,5 @@ func (h *Handler) postMembersInviteActivate(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgInviteConfirmed, project)
+	return webutil.StatusOK(c, "invite confirmed", project)
 }

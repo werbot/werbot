@@ -22,7 +22,7 @@ func (h *Handler) Countries(ctx context.Context, in *utilitypb.Countries_Request
 		in.GetName()+"%",
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -32,7 +32,7 @@ func (h *Handler) Countries(ctx context.Context, in *utilitypb.Countries_Request
 			&country.Name,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		response.Countries = append(response.Countries, country)

@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -67,7 +68,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, err)
 		}
 
-		return webutil.StatusOK(c, msgServerMembers, members)
+		return webutil.StatusOK(c, "server members", members)
 	}
 
 	member, err := rClient.ServerMember(ctx, request)
@@ -78,7 +79,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 	}
 
-	return webutil.StatusOK(c, msgMemberInfo, member)
+	return webutil.StatusOK(c, "member information", member)
 }
 
 // @Summary      Adding a new member on server
@@ -93,8 +94,7 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 	request := new(memberpb.AddServerMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -118,7 +118,7 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgMemberAdded, member)
+	return webutil.StatusOK(c, "member added", member)
 }
 
 // @Summary      Updating member information on server.
@@ -133,8 +133,7 @@ func (h *Handler) updateServerMember(c *fiber.Ctx) error {
 	request := new(memberpb.UpdateServerMember_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -158,7 +157,7 @@ func (h *Handler) updateServerMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgMemberUpdated, nil)
+	return webutil.StatusOK(c, "member updated", nil)
 }
 
 // @Summary      Delete member on server
@@ -201,7 +200,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgMemberDeleted, nil)
+	return webutil.StatusOK(c, "member deleted", nil)
 }
 
 // @Summary      List members without server
@@ -249,7 +248,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgMembersWithoutServer, members)
+	return webutil.StatusOK(c, "members without server", members)
 }
 
 // @Summary      Update member status of server
@@ -265,8 +264,7 @@ func (h *Handler) updateServerMemberActive(c *fiber.Ctx) error {
 	request.Setting = new(memberpb.UpdateServerMember_Request_Active)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -291,9 +289,9 @@ func (h *Handler) updateServerMemberActive(c *fiber.Ctx) error {
 	}
 
 	// message section
-	message := msgMemberIsOnline
+	message := "member is online"
 	if !request.GetActive() {
-		message = msgMemberIsOffline
+		message = "member is offline"
 	}
 
 	return webutil.StatusOK(c, message, nil)

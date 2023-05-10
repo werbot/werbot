@@ -37,7 +37,7 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
       (SELECT COUNT(*) FROM "project" JOIN "server" ON "project"."id"="server"."project_id" WHERE "project"."owner_id"="user"."id") AS "count_servers"
     FROM "user"`+sqlSearch+sqlFooter)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -60,7 +60,7 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
 			&countServers,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		user.LastUpdate = timestamppb.New(lastUpdate.Time)
@@ -77,8 +77,8 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
 
 	// Total count for pagination
 	err = h.DB.Conn.QueryRowContext(ctx, `SELECT COUNT (*) FROM "user"`+sqlSearch).Scan(&response.Total)
-	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil
@@ -105,7 +105,7 @@ func (h *Handler) User(ctx context.Context, in *userpb.User_Request) (*userpb.Us
 		&created,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	response.LastUpdate = timestamppb.New(lastUpdate.Time)
@@ -128,8 +128,8 @@ func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*use
 	err = tx.QueryRowContext(ctx, `SELECT "id" FROM "user" WHERE "email" = $1`,
 		in.GetEmail(),
 	).Scan(&response.UserId)
-	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	if response.UserId != "" {
@@ -221,7 +221,7 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 			&email,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		if !crypto.CheckPasswordHash(in.GetPassword(), passwordHash) {
@@ -281,7 +281,7 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 			&email,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		if err := tx.Commit(); err != nil {
@@ -307,7 +307,7 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_
 			in.GetUserId(),
 		).Scan(&currentPassword)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		if !crypto.CheckPasswordHash(in.GetOldPassword(), currentPassword) {

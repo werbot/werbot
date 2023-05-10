@@ -49,8 +49,8 @@ func keySuccess(c *fiber.Ctx) error {
 func (m KeyMiddleware) tokenCheck(c *fiber.Ctx, token string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClient := projectpb.NewProjectHandlersClient(m.Client)
 
+	rClient := projectpb.NewProjectHandlersClient(m.Client)
 	project, err := rClient.ListProjects(ctx, &projectpb.ListProjects_Request{
 		Query: fmt.Sprintf("api_key='%v'", token),
 	})

@@ -71,7 +71,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 		case 1:
 			rows, err := h.DB.Conn.QueryContext(ctx, query, loginArray[0])
 			if err != nil {
-				return nil, trace.ErrorDB(err, h.Log)
+				return nil, trace.ErrorAborted(err, h.Log)
 			}
 
 			for rows.Next() {
@@ -93,7 +93,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
-					return nil, trace.ErrorDB(err, h.Log)
+					return nil, trace.ErrorAborted(err, h.Log)
 				}
 
 				response.Servers = append(response.Servers, server)
@@ -104,7 +104,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 			rows, err := h.DB.Conn.QueryContext(ctx, query+`
 				AND "project"."login" = $2`, loginArray[0], loginArray[1])
 			if err != nil {
-				return nil, trace.ErrorDB(err, h.Log)
+				return nil, trace.ErrorAborted(err, h.Log)
 			}
 
 			for rows.Next() {
@@ -126,7 +126,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
-					return nil, trace.ErrorDB(err, h.Log)
+					return nil, trace.ErrorAborted(err, h.Log)
 				}
 
 				response.Servers = append(response.Servers, server)
@@ -139,7 +139,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 				AND "token" = $3
 				AND "project_member"."role" = 'user'`, loginArray[0], loginArray[1], loginArray[2])
 			if err != nil {
-				return nil, trace.ErrorDB(err, h.Log)
+				return nil, trace.ErrorAborted(err, h.Log)
 			}
 
 			for rows.Next() {
@@ -161,7 +161,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
-					return nil, trace.ErrorDB(err, h.Log)
+					return nil, trace.ErrorAborted(err, h.Log)
 				}
 
 				response.Servers = append(response.Servers, server)
@@ -202,7 +202,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 			query["user_id"],
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		for rows.Next() {
@@ -223,7 +223,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 				&server.CountMembers,
 			)
 			if err != nil {
-				return nil, trace.ErrorDB(err, h.Log)
+				return nil, trace.ErrorAborted(err, h.Log)
 			}
 
 			response.Servers = append(response.Servers, server)
@@ -239,8 +239,8 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 			query["project_id"],
 			query["user_id"],
 		).Scan(&response.Total)
-		if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-			return nil, trace.ErrorDB(err, h.Log)
+		if err != nil && err != sql.ErrNoRows {
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		return response, nil
@@ -291,7 +291,7 @@ func (h *Handler) Server(ctx context.Context, in *serverpb.Server_Request) (*ser
 		&response.Scheme,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	response.Description = description.String
@@ -574,7 +574,7 @@ func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Re
 		&privateKeyPassword,
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	switch response.GetAuth() {
@@ -676,13 +676,13 @@ func (h *Handler) ServerActivity(ctx context.Context, in *serverpb.ServerActivit
 		in.GetProjectId(),
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
 		day := dayActive{}
 		if err := rows.Scan(&day.activityID, &day.week, &day.hour); err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		days = append(days, day)
@@ -821,7 +821,7 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
 		in.GetUserId(),
 	)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	for rows.Next() {
@@ -837,7 +837,7 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
 			&server.ServerDescription,
 		)
 		if err != nil {
-			return nil, trace.ErrorDB(err, h.Log)
+			return nil, trace.ErrorAborted(err, h.Log)
 		}
 
 		server.ProjectLogin = projectLogin
@@ -852,8 +852,8 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
 		WHERE "project_member"."user_id" = $1`,
 		in.GetUserId(),
 	).Scan(&response.Total)
-	if err != nil { // old version - err! = nil && err! = sql.ErrNoRows
-		return nil, trace.ErrorDB(err, h.Log)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil
@@ -922,7 +922,7 @@ func (h *Handler) ServerNameByID(ctx context.Context, in *serverpb.ServerNameByI
 		in.GetServerId(),
 	).Scan(&response.ServerName)
 	if err != nil {
-		return nil, trace.ErrorDB(err, h.Log)
+		return nil, trace.ErrorAborted(err, h.Log)
 	}
 
 	return response, nil

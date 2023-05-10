@@ -12,6 +12,7 @@ import (
 
 	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -68,7 +69,8 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 		if keys.GetTotal() == 0 {
 			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
 		}
-		return webutil.StatusOK(c, msgUserKeys, keys)
+
+		return webutil.StatusOK(c, "user keys", keys)
 	}
 
 	// show information about the key
@@ -80,7 +82,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 	//	return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
 	// }
 
-	return webutil.StatusOK(c, msgKeyInfo, key)
+	return webutil.StatusOK(c, "key information", key)
 }
 
 // @Summary      Adding a new key
@@ -95,8 +97,7 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 	request := new(keypb.AddKey_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -120,7 +121,7 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgKeyAdded, publicKey)
+	return webutil.StatusOK(c, "key added", publicKey)
 }
 
 // @Summary      Updating a user key by its ID
@@ -135,8 +136,7 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 	request := new(keypb.UpdateKey_Request)
 
 	if err := c.BodyParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -160,7 +160,7 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgKeyUpdated, nil)
+	return webutil.StatusOK(c, "key updated", nil)
 }
 
 // @Summary      Deleting a user key by its ID
@@ -201,7 +201,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgKeyRemoved, nil)
+	return webutil.StatusOK(c, "key removed", nil)
 }
 
 // @Summary      Generating a New SSH Key Pair
@@ -228,7 +228,7 @@ func (h *Handler) getGenerateNewKey(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, msgSSHKeyCreated, map[string]string{
+	return webutil.StatusOK(c, "ssh key created", map[string]string{
 		"key_type": key.GetKeyType().String(),
 		"uuid":     key.GetUuid(),
 		"public":   string(key.GetPublic()),
