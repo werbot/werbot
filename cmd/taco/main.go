@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 
 	"github.com/armon/go-proxyproto"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/werbot/werbot/api"
@@ -38,7 +40,7 @@ var (
 )
 
 func main() {
-	internal.LoadConfig("../../.env")
+	godotenv.Load(".env", "/etc/werbot/.env")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -46,8 +48,17 @@ func main() {
 	appPort := internal.GetString("APP_PORT", ":8088")
 
 	// Load TLS configuration from files at startup
-	grpc_certificate, _ := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")
-	grpc_private, _ := internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key")
+	grpc_certificate, err := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")
+	if err != nil {
+		log.Fatal().Msg("Failed to open grpc_certificate.key")
+		os.Exit(1)
+	}
+
+	grpc_private, err := internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key")
+	if err != nil {
+		log.Fatal().Msg("Failed to open grpc_private.key")
+		os.Exit(1)
+	}
 
 	grpcClient := grpc.NewClient(
 		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
@@ -64,7 +75,7 @@ func main() {
 
 	ln, err := net.Listen("tcp", appPort)
 	if err != nil {
-		log.Fatal(err).Msg("Error server")
+		log.Fatal(err).Send()
 	}
 	proxyListener := &proxyproto.Listener{Listener: ln}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -58,7 +59,7 @@ type Tokens struct {
 
 // InitTestServer is ...
 func InitTestServer(envPath string) *TestHandler {
-	internal.LoadConfig(envPath)
+	godotenv.Load(envPath)
 
 	// Load TLS configuration from files at startup
 	grpc_certificate, _ := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")

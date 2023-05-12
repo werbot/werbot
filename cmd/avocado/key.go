@@ -40,8 +40,8 @@ func dynamicHostKey(host *serverpb.Server_Response) gossh.HostKeyCallback {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			rClient := serverpb.NewServerHandlersClient(app.grpc.Client)
 
+			rClient := serverpb.NewServerHandlersClient(app.grpc.Client)
 			_, err := rClient.UpdateHostKey(ctx, &serverpb.UpdateHostKey_Request{
 				ServerId: host.ServerId,
 				Hostkey:  key.Marshal(),
@@ -49,12 +49,14 @@ func dynamicHostKey(host *serverpb.Server_Response) gossh.HostKeyCallback {
 			if err != nil {
 				app.log.Error(err).Msg("gRPC UpdateServerHostKey")
 			}
+
 			return nil
 		}
 
 		if !bytes.Equal(host.HostKey, key.Marshal()) {
 			return errors.New("SSH host key mismatch")
 		}
+
 		return nil
 	}
 }

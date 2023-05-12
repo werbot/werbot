@@ -40,6 +40,10 @@ func (l *Logger) Error(err error) *zerolog.Event {
 }
 
 // Fatal is ...
-func (l *Logger) Fatal(err error) *zerolog.Event {
-	return l.log.Fatal().CallerSkipFrame(1).Caller().Err(err)
+func (l *Logger) Fatal(err ...error) *zerolog.Event {
+	msg := l.log.Fatal()
+	if len(err) > 0 {
+		return msg.CallerSkipFrame(1).Caller().Err(err[0])
+	}
+	return msg
 }

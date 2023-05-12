@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/hibiken/asynq"
+	"github.com/joho/godotenv"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/pkg/fsutil"
 	"github.com/werbot/werbot/pkg/logger"
@@ -14,9 +14,7 @@ import (
 var log logger.Logger
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-
-	internal.LoadConfig("../../.env")
+	godotenv.Load(".env", "/etc/werbot/.env")
 
 	log = logger.New()
 

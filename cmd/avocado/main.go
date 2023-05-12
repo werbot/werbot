@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"os"
 	"time"
 
 	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/armon/go-proxyproto"
 	"github.com/gliderlabs/ssh"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
@@ -35,7 +37,7 @@ type App struct {
 }
 
 func main() {
-	internal.LoadConfig("../../.env")
+	godotenv.Load(".env", "/etc/werbot/.env")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -52,8 +54,17 @@ func main() {
 	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {}
 
 	// Load TLS configuration from files at startup
-	grpc_certificate, _ := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")
-	grpc_private, _ := internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key")
+	grpc_certificate, err := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")
+	if err != nil {
+		log.Fatal().Msg("Failed to open grpc_certificate.key")
+		os.Exit(1)
+	}
+
+	grpc_private, err := internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key")
+	if err != nil {
+		log.Fatal().Msg("Failed to open grpc_private.key")
+		os.Exit(1)
+	}
 
 	app.grpc = grpc.NewClient(
 		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
@@ -63,7 +74,7 @@ func main() {
 		grpc_private,
 	)
 
-	app.broker.WriteStatus()
+	go app.broker.WriteStatus()
 
 	// create TCP listening socket
 	ln, err := net.Listen("tcp", internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022"))

@@ -6,7 +6,9 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/werbot/werbot/internal"
@@ -20,7 +22,7 @@ var log = logger.New()
 
 func main() {
 	// Load config from environment variables
-	internal.LoadConfig("../../.env")
+	godotenv.Load(".env", "/etc/werbot/.env")
 
 	// Create a context to control the lifetime of operations performed by this service
 	ctx, cancel := context.WithCancel(context.Background())
@@ -55,7 +57,8 @@ func main() {
 		internal.GetString("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 	if err != nil {
-		log.Fatal(err).Msg("Failed to parse key pair")
+		log.Fatal().Msg("Failed to parse GRPC keys pair")
+		os.Exit(1)
 	}
 
 	cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])

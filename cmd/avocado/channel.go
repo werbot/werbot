@@ -188,6 +188,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := serverpb.NewServerHandlersClient(app.grpc.Client)
 
 	switch actx.userType() {
@@ -447,6 +448,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	rClient := auditpb.NewAuditHandlersClient(app.grpc.Client)
 
 	go func(quit chan string) {

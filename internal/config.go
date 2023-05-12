@@ -2,29 +2,12 @@ package internal
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/werbot/werbot/pkg/strutil"
 )
-
-// LoadConfig reads .env file configurations into ENV
-func LoadConfig(path string) error {
-	path, err := filepath.Abs(path)
-	if err != nil {
-		return err
-	}
-
-	if err := godotenv.Load(path); err != nil {
-		return err
-	}
-
-	return nil
-}
 
 func lookup(key string, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
@@ -93,7 +76,7 @@ func GetByteFromFile(key, fallback string) ([]byte, error) {
 }
 
 func readFile(file string) ([]byte, error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s: %w", file, err)
 	}
