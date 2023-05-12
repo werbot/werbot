@@ -1,0 +1,3 @@
+FROM scratch
+ENTRYPOINT ["/ghost"]
+COPY werbot_ghost_Linux_amd64 /ghost

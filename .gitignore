@@ -91,3 +91,5 @@ docker/haproxy/data
 rest.http
 
 /scripts
+
+dist/

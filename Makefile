@@ -215,8 +215,8 @@ upd_golang: ## Updating and install Go to the latest version
 
 
 #############################################################################
-.PHONY: new_build
-new_build: ## Building new version to git
+.PHONY: release
+release: ## Building new release
 	$(msg) "$(GREEN)Building new version to git$(RESET)"
 	$(eval NEW_VERSION=$(shell read -p "Enter new release version (current version ${VERSION}): " enter ; echo $${enter}))
 	@if [ ${NEW_VERSION} ]; then\
@@ -232,92 +232,29 @@ new_build: ## Building new version to git
 
 
 #############################################################################
-.PHONY: prod_build
-prod_build: ## Building project in bin folder
+.PHONY: build
+build: ## Building project in bin folder
 	$(msg) "$(GREEN)Building project in bin folder$(RESET)"
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
 	@if [ ${NAME} ]; then\
 		if [ -d ${ROOT_PATH}/cmd/${NAME}/ ];then\
-			make -s prod_build_go ${NAME}; \
+			make -s build_go ${NAME}; \
 		else \
 			echo "error";\
 		fi \
 	else \
 		for entry in ${ROOT_PATH}/cmd/*/; do\
-			make -s prod_build_go $$(basename $${entry});\
+			make -s build_go $$(basename $${entry});\
 		done; \
 	fi
 
-.PHONY: prod_build_go
-prod_build_go:
+.PHONY: build_go
+build_go:
 	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
 	@echo "Build" ${NAME} ${VERSION};\
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/werbot/werbot/internal/version.version=${VERSION} -X github.com/werbot/werbot/internal/version.gitCommit=${GIT_COMMIT} -X github.com/werbot/werbot/internal/version.buildDate=${BUILD_DATE}" -o ${ROOT_PATH}/bin/${NAME} ${ROOT_PATH}/cmd/${NAME};\
 	upx -1 -k bin/${NAME} >/dev/null 2>&1;\
 	rm -rf bin/${NAME}.~
-#############################################################################
-
-
-#############################################################################
-.PHONY: prod_package
-prod_package: ## Building a docker container
-	$(msg) "$(GREEN)Building a docker container$(RESET)"
-	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
-	@if [ ${NAME} ]; then \
-		if [ -d ${ROOT_PATH}/cmd/${NAME}/ ];then\
-			make -s prod_package_go ${NAME}; \
-		else \
-			echo "error";\
-		fi \
-	else \
-		for entry in ${ROOT_PATH}/cmd/*/; do\
-			make -s prod_package_go $$(basename $${entry});\
-		done; \
-	fi
-
-.PHONY: prod_package_go
-prod_package_go:
-	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
-	$(eval DESCRIPTION=$(shell cat ${ROOT_PATH}/cmd/${NAME}/.description))
-	@echo "Package go container" ${NAME} ${VERSION}
-	@cat ${ROOT_PATH}/.docker/Dockerfile > ${ROOT_PATH}/bin/Dockerfile_${NAME}
-	@sed -i -E "s/_NAME_/${NAME}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
-	@sed -i -E "s/_GIT_COMMIT_/${GIT_COMMIT}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
-	@sed -i -E "s/_VERSION_/${VERSION}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
-	@sed -i -E "s/_DESCRIPTION_/${DESCRIPTION}/g" ${ROOT_PATH}/bin/Dockerfile_${NAME}
-	docker build -f ${ROOT_PATH}/bin/Dockerfile_${NAME} -t ghcr.io/werbot/${NAME}:latest .
-	docker tag ghcr.io/werbot/${NAME}:latest ghcr.io/werbot/${NAME}:${VERSION}
-	rm -rf ${ROOT_PATH}/bin/${NAME}/
-	rm ${ROOT_PATH}/bin/Dockerfile_${NAME}
-	docker image prune --filter "dangling=true" --force
-#############################################################################
-
-
-#############################################################################
-.PHONY: prod_push
-prod_push: ## Submitting the project to the docker registry
-	$(msg) "$(GREEN)Submitting the project to the docker registry$(RESET)"
-	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
-#	@export $(shell sed 's/=.*//' $(ROOT_PATH)/.env)
-#	@echo $(GITHUB_TOKEN) | docker login ghcr.io -u USERNAME --password-stdin
-	@if [ ${NAME} ]; then \
-		if [ -d ${ROOT_PATH}/cmd/${NAME}/ ];then\
-			make -s prod_push_go ${NAME};\
-		else \
-			echo "error";\
-		fi \
-	else \
-		for entry in ${ROOT_PATH}/cmd/*/; do\
-			make -s prod_push_go $$(basename $${entry});\
-		done; \
-	fi
-
-.PHONY: prod_push_go
-prod_push_go:
-	$(eval NAME=$(filter-out $@,$(MAKECMDGOALS)))
-	echo "Push go package" ${NAME} ${VERSION}
-	docker push ghcr.io/werbot/${NAME}:latest
-	docker push ghcr.io/werbot/${NAME}:${VERSION}
 #############################################################################
 
 
@@ -485,7 +422,7 @@ clean: ## Cleaning garbage and inactive containers
 			rm -rf $(ROOT_PATH)/web/dist; \
 	fi
 
-	@rm -rf $(ROOT_PATH)/bin/*
+	@rm -rf $(ROOT_PATH)/bin/* $(ROOT_PATH)/dist/
 	@docker system prune --all --volumes --force
 	@docker image prune --filter "dangling=true" --force
 #############################################################################

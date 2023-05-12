@@ -1,0 +1,3 @@
+FROM scratch
+ENTRYPOINT ["/buffet"]
+COPY werbot_buffet_Linux_amd64 /buffet

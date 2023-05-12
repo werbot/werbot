@@ -1,0 +1,3 @@
+FROM scratch
+ENTRYPOINT ["/taco"]
+COPY werbot_taco_Linux_amd64 /taco
