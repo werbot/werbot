@@ -3,7 +3,6 @@ env:
 
 before:
   hooks:
-    - go mod tidy
     - go mod download
 
 snapshot:
@@ -77,8 +76,8 @@ dockers:
   - ids: [avocado]
     dockerfile: .goreleaser/Dockerfile.avocado
     image_templates:
-      - "gcr.io/werbot/avocado:latest"
-      - "gcr.io/werbot/avocado:{{ .Tag }}"
+      - "ghcr.io/werbot/avocado:latest"
+      - "ghcr.io/werbot/avocado:{{ .Tag }}"
     build_flag_templates:
       - --pull
       - --label=org.opencontainers.image.created={{.Date}}
@@ -95,8 +94,8 @@ dockers:
   - ids: [buffet]
     dockerfile: .goreleaser/Dockerfile.buffet
     image_templates:
-      - "gcr.io/werbot/buffet:latest"
-      - "gcr.io/werbot/buffet:{{ .Tag }}"
+      - "ghcr.io/werbot/buffet:latest"
+      - "ghcr.io/werbot/buffet:{{ .Tag }}"
     build_flag_templates:
       - --pull
       - --label=org.opencontainers.image.created={{.Date}}
@@ -113,8 +112,8 @@ dockers:
   - ids: [ghost]
     dockerfile: .goreleaser/Dockerfile.ghost
     image_templates:
-      - "gcr.io/werbot/ghost:latest"
-      - "gcr.io/werbot/ghost:{{ .Tag }}"
+      - "ghcr.io/werbot/ghost:latest"
+      - "ghcr.io/werbot/ghost:{{ .Tag }}"
     build_flag_templates:
       - --pull
       - --label=org.opencontainers.image.created={{.Date}}
@@ -131,8 +130,8 @@ dockers:
   - ids: [taco]
     dockerfile: .goreleaser/Dockerfile.taco
     image_templates:
-      - "gcr.io/werbot/taco:latest"
-      - "gcr.io/werbot/taco:{{ .Tag }}"
+      - "ghcr.io/werbot/taco:latest"
+      - "ghcr.io/werbot/taco:{{ .Tag }}"
     build_flag_templates:
       - --pull
       - --label=org.opencontainers.image.created={{.Date}}
@@ -148,7 +147,7 @@ dockers:
       - --label=org.opencontainers.image.source={{replace .GitURL ".git" "" }}
 
 upx:
-  - enabled: false
+  - enabled: true
 
 checksum:
   name_template: "checksums.txt"
@@ -160,8 +159,15 @@ changelog:
       - init
       - "^.*?ci:"
       - "^.*?test:"
+      - "^.*?build(deps):"
+      - "^.*?build:"
       - "README"
+      - "Up"
       - "merge conflict"
+      - Bump
+      - Small fix
+      - Update
+      - Updating
       - Merge pull request
       - Merge remote-tracking branch
       - Merge branch
