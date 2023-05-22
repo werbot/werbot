@@ -12,7 +12,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/gofiber/fiber/v2 v2.45.0
 	github.com/gofiber/helmet/v2 v2.2.26
-	github.com/gofiber/jwt/v3 v3.3.9
+	github.com/gofiber/jwt/v3 v3.3.10
 	github.com/gofiber/keyauth/v2 v2.2.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.0
