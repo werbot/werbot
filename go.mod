@@ -10,7 +10,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/fsouza/go-dockerclient v1.9.7
 	github.com/gliderlabs/ssh v0.3.5
-	github.com/gofiber/fiber/v2 v2.45.0
+	github.com/gofiber/fiber/v2 v2.46.0
 	github.com/gofiber/helmet/v2 v2.2.26
 	github.com/gofiber/jwt/v3 v3.3.9
 	github.com/gofiber/keyauth/v2 v2.2.1
