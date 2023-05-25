@@ -90,6 +90,4 @@ docker/haproxy/data
 .sequence
 rest.http
 
-/scripts
-
 dist/

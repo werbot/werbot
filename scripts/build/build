@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source ${ROOT_PATH}/scripts/helper
+
+build() {
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/werbot/werbot/internal/version.version=${VERSION} -X github.com/werbot/werbot/internal/version.gitCommit=${GIT_COMMIT} -X github.com/werbot/werbot/internal/version.buildDate=${BUILD_DATE}" -o ${ROOT_PATH}/bin/${1} ${ROOT_PATH}/cmd/${1}
+  upx -1 -k ${ROOT_PATH}/bin/${1} >/dev/null 2>&1
+  rm -rf ${ROOT_PATH}/bin/${1}.~
+}
+
+if [[ $# -gt 0 ]]; then
+  print_header "Building $1 in bin folder"
+  if [ -d ${ROOT_PATH}/cmd/$1/ ]; then
+    build $1
+    print_answer "SUCCESS" green
+  else
+    print_answer "ERROR" red
+    echo $1 "not found"
+  fi
+else
+  for entry in ${ROOT_PATH}/cmd/*/; do
+    name=$(basename "${entry}")
+    print_header "Building $name in bin folder"
+    build $name
+    print_answer "SUCCESS" green
+  done
+fi

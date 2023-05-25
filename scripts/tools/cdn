@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source ${ROOT_PATH}/scripts/helper
+
+print_header "Cloudflare ip lists updated"
+
+## Cloudflare ip lists from https://www.cloudflare.com/en-gb/ips/
+echo -n >${ROOT_PATH}/docker/haproxy/cloudflare-ips.txt
+
+for i in $(curl -s https://www.cloudflare.com/ips-v4); do
+  echo $i >>${ROOT_PATH}/docker/haproxy/cloudflare-ips.txt
+done
+
+for i in $(curl -s https://www.cloudflare.com/ips-v6); do
+  echo $i >>${ROOT_PATH}/docker/haproxy/cloudflare-ips.txt
+done
+
+print_answer "SUCCESS" green

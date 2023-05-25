@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source ${ROOT_PATH}/scripts/helper
+
+#	sudo apt-get update && sudo apt-get -y upgrade && sudo apt-get dist-upgrade -y && sudo apt-get -y autoremove && sudo apt-get -y autoclean  && sudo apt-get -y clean && sudo apt-get install mc htop rand make -y(lsof -t -i :5172 | xargs kill) 2>/dev/null
+for pid in $(echo $(ps ax | grep __debug_bin | grep -v grep | awk '{print $1}')); do
+  print_header "Killing develop process $pid"
+  kill $pid
+  print_answer "SUCCESS" green
+done
+
+print_header "Leaning garbage and inactive containers"
+if [ -d ${ROOT_PATH}/web/dist ]; then
+  rm -rf ${ROOT_PATH}/web/dist
+fi
+
+rm -rf ${ROOT_PATH}/bin/* ${ROOT_PATH}/dist/
+command_exists docker system prune --all --volumes --force
+command_exists docker image prune --filter "dangling=true" --force
+print_answer "SUCCESS" green

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source ${ROOT_PATH}/scripts/helper
+source ${ROOT_PATH}/.env
+
+print_header "Install/Update GeoLite database"
+
+if [ ! ${GEOLITE_LICENSE} ]; then
+  print_answer "ERROR" red
+  echo "GEOLITE_LICENSE no key "
+  exit
+fi
+
+if [ -f ${ROOT_PATH}/.vscode/core/GeoLite2-Country.mmdb ]; then
+  rm -rf ${ROOT_PATH}/.vscode/core/GeoLite2-Country.mmdb
+fi
+
+if ! [ -d ${ROOT_PATH}/.vscode/tmp ]; then
+  mkdir ${ROOT_PATH}/.vscode/tmp
+fi
+
+wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=${GEOLITE_LICENSE}&suffix=tar.gz" -4 -q -O ${ROOT_PATH}/.vscode/tmp/country.tar.gz
+tar -zxf ${ROOT_PATH}/.vscode/tmp/country.tar.gz -C ${ROOT_PATH}/.vscode/tmp
+cp $(ls -d ${ROOT_PATH}/.vscode/tmp/*/ | head -n 1)*.mmdb ${ROOT_PATH}/.vscode/core/GeoLite2-Country.mmdb
+rm -rf ${ROOT_PATH}/.vscode/tmp
+
+print_answer "SUCCESS" green

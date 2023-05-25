@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source ${ROOT_PATH}/scripts/helper
+
+update_env_files() {
+  NAME=$(basename ${1})
+  PARAMETERS=()
+  HEADER=FALSE
+  ENV_FILE="${ROOT_PATH}/.env"
+  print_header "Scan $NAME $VERSION parameters"
+  for file in ${ROOT_PATH}/cmd/$NAME/*.go; do
+    test -f "$file" || continue
+    PARAMETERS+="$(awk '{while (match($0, /(config.[a-zA-Z]+\("([_A-Z]+)[, "]+(?|[a-zA-Z0-9_:.\/]+|)(?|"\)|\)))/, result)){print result[2] "=" result[3];$0 = sub($0, "")}}' $file) "
+  done
+  for i in $(printf "%s\n" $PARAMETERS | sort -u); do
+    PARAMETER_NAME=$(echo $i | cut -d= -f 1)
+    PARAMETER_ARGUMENT=$(echo $i | cut -d= -f 2)
+    if [[ ! $(grep $PARAMETER_NAME $ENV_FILE) ]]; then
+      if [ $HEADER == FALSE ]; then
+        echo -e "\n\n\n# New parameters from project files:" >>$ENV_FILE
+        HEADER=TRUE
+      fi
+      echo -e "$PARAMETER_NAME=$PARAMETER_ARGUMENT" >>$ENV_FILE
+    fi
+  done
+  print_answer "SUCCESS" green
+}
+
+arr_type=(update)
+if [[ " ${arr_type[@]} " =~ " $1 " ]]; then
+  ENV_FILE="${ROOT_PATH}/.env"
+  if [ "$1" == "update" ]; then
+    for entry in ${ROOT_PATH}/cmd/*/; do
+      name=$(basename "${entry}")
+      update_env_files ${name}
+    done
+  fi
+else
+  print_header "Scan new .env for dev environment"
+  print_answer "ERROR" red
+  echo "Parameters not passed"
+fi

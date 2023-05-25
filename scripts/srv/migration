@@ -1,0 +1,66 @@
+#!/bin/bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source ${ROOT_PATH}/scripts/helper
+
+arr_type=(ent saas test)
+if [[ " ${arr_type[@]} " =~ " $1 " ]]; then
+  print_header "Migrations sql $1:$2"
+
+  MIGRATION_DIR=${ROOT_PATH}/migration
+  DB_POSTFIX="goose_db_version"
+  if [ "$1" == "saas" ]; then
+    MIGRATION_DIR=${ROOT_PATH}/add-on/saas/migration
+    DB_POSTFIX=${DB_POSTFIX}"_saas"
+  elif [ "$1" == "test" ]; then
+    mkdir ${ROOT_PATH}/.vscode/migrate_tmp
+    for file_migrate in $(find ${ROOT_PATH} -path '*/fixtures/migration/*' | sort -r); do
+      cp "$file_migrate" ${ROOT_PATH}/.vscode/migrate_tmp/
+    done
+    MIGRATION_DIR=${ROOT_PATH}/.vscode/migrate_tmp
+    DB_POSTFIX=${DB_POSTFIX}"_test"
+  fi
+
+  arr_goose=(create up up1 down down1 redo status)
+  if [[ " ${arr_goose[@]} " =~ " $2 " ]]; then
+    source ${ROOT_PATH}/.env
+    GOOSE_CMD="goose -dir $MIGRATION_DIR -table $DB_POSTFIX postgres "postgres://${POSTGRES_USER:-werbot}:${POSTGRES_PASSWORD:-postgresPassword}@${POSTGRES_HOST:-localhost:5432}/${POSTGRES_DB:-werbot}?sslmode=require""
+    if [ $2 == "create" ]; then command_exists $GOOSE_CMD create migration_name sql; fi
+    if [ $2 == "up" ]; then command_exists $GOOSE_CMD up; fi
+    if [ $2 == "up1" ]; then command_exists $GOOSE_CMD up-by-one; fi
+    if [ $2 == "down" ]; then command_exists $GOOSE_CMD reset; fi
+    if [ $2 == "down1" ]; then command_exists $GOOSE_CMD down; fi
+    if [ $2 == "redo" ]; then command_exists $GOOSE_CMD redo; fi
+    if [ $2 == "status" ]; then command_exists $GOOSE_CMD status; fi
+    rm -rf ${ROOT_PATH}/.vscode/migrate_tmp
+  else
+    print_answer "ERROR" red
+    echo "Parameters not passed"
+    exit
+  fi
+  print_answer "SUCCESS" green
+elif [[ $1 == "dev" ]]; then
+  arr_goose=(up down)
+  if [[ " ${arr_goose[@]} " =~ " $2 " ]]; then
+    SOURCE=${BASH_SOURCE[0]}
+    if [ $2 == "up" ]; then
+      $SOURCE ent up
+      $SOURCE saas up
+      $SOURCE test up
+    elif [ $2 == "down" ]; then
+      $SOURCE test down
+      $SOURCE saas down
+      $SOURCE ent down
+    fi
+  else
+    print_answer "ERROR" red
+    echo "Parameters not passed"
+    exit
+  fi
+else
+  print_answer "ERROR" red
+  echo "Parameters not passed"
+  exit
+fi

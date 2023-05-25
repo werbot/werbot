@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source ${ROOT_PATH}/scripts/helper
+
+protogen() {
+  PROTO=${ROOT_PATH}/internal/grpc/${1}/proto/
+  protoc --proto_path=$ROOT_PATH \
+    --proto_path=/usr/local/include/ \
+    --proto_path=$PROTO \
+    --go_out=paths=source_relative:$PROTO \
+    --go-grpc_out=paths=source_relative:$PROTO \
+    --plugin=protoc-gen-ts=${ROOT_PATH}/web/node_modules/@protobuf-ts/plugin/bin/protoc-gen-ts \
+    --validate_out=lang=go,paths=source_relative:$PROTO \
+    --ts_out=${ROOT_PATH}/web/src/proto \
+    --ts_opt=use_proto_field_name,ts_nocheck,long_type_string,force_optimize_code_size,force_client_none \
+    ${1}.proto
+  protoc-go-inject-tag -input="$PROTO${1}.pb.go" -remove_tag_comment
+  sed -i -e 's/\/internal\/grpc\/\([a-z]\+\)\/proto//g' ${ROOT_PATH}/web/src/proto/${1}.ts
+}
+
+if [[ $# -gt 0 ]]; then
+  print_header "Generating $1 protos files"
+  if [ -d ${ROOT_PATH}/internal/grpc/$1/proto/ ]; then
+    protogen $1
+    print_answer "SUCCESS" green
+  else
+    print_answer "ERROR" red
+    echo $1 "not found"
+  fi
+else
+  for entry in ${ROOT_PATH}/internal/grpc/*/; do
+    name=$(basename "${entry}")
+    print_header "Generating $name protos files"
+    protogen $name
+    print_answer "SUCCESS" green
+  done
+fi

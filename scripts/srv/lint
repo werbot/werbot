@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source ${ROOT_PATH}/scripts/helper
+
+print_header "Linter work"
+echo -e "\n"
+#	REVIVE_FORCE_COLOR=1 revive -formatter friendly $ROOT_PATH/...
+golangci-lint run $ROOT_PATH/...
