@@ -15,7 +15,7 @@ builds:
     ldflags:
       - -s -w
       - -X github.com/werbot/werbot/internal/version.version={{.Version}}
-      - -X github.com/werbot/werbot/internal/version.gitCommit={{.Commit}}
+      - -X github.com/werbot/werbot/internal/version.gitCommit={{.ShortCommit}}
       - -X github.com/werbot/werbot/internal/version.buildDate={{.Date}}
     goos: [linux]
     goarch: [amd64]
@@ -26,7 +26,7 @@ builds:
     ldflags:
       - -s -w
       - -X github.com/werbot/werbot/internal/version.version={{.Version}}
-      - -X github.com/werbot/werbot/internal/version.gitCommit={{.Commit}}
+      - -X github.com/werbot/werbot/internal/version.gitCommit={{.ShortCommit}}
       - -X github.com/werbot/werbot/internal/version.buildDate={{.Date}}
     goos: [linux]
     goarch: [amd64]
@@ -37,7 +37,7 @@ builds:
     ldflags:
       - -s -w
       - -X github.com/werbot/werbot/internal/version.version={{.Version}}
-      - -X github.com/werbot/werbot/internal/version.gitCommit={{.Commit}}
+      - -X github.com/werbot/werbot/internal/version.gitCommit={{.ShortCommit}}
       - -X github.com/werbot/werbot/internal/version.buildDate={{.Date}}
     goos: [linux]
     goarch: [amd64]
@@ -48,7 +48,7 @@ builds:
     ldflags:
       - -s -w
       - -X github.com/werbot/werbot/internal/version.version={{.Version}}
-      - -X github.com/werbot/werbot/internal/version.gitCommit={{.Commit}}
+      - -X github.com/werbot/werbot/internal/version.gitCommit={{.ShortCommit}}
       - -X github.com/werbot/werbot/internal/version.buildDate={{.Date}}
     goos: [linux]
     goarch: [amd64]
@@ -81,9 +81,9 @@ dockers:
     build_flag_templates:
       - --pull
       - --label=org.opencontainers.image.created={{.Date}}
-      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.revision={{.ShortCommit}}
       - --label=org.opencontainers.image.version={{.Version}}
-      - --label=org.opencontainers.image.title=Werbot avocado
+      - --label=org.opencontainers.image.title=avocado
       - --label=org.opencontainers.image.description=🥑 avocado - worker server
       - --label=org.opencontainers.image.vendor=Werbot, Inc.
       - --label=org.opencontainers.image.authors=info@werbot.com
@@ -99,9 +99,9 @@ dockers:
     build_flag_templates:
       - --pull
       - --label=org.opencontainers.image.created={{.Date}}
-      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.revision={{.ShortCommit}}
       - --label=org.opencontainers.image.version={{.Version}}
-      - --label=org.opencontainers.image.title=Werbot buffet
+      - --label=org.opencontainers.image.title=buffet
       - --label=org.opencontainers.image.description=🍱 buffet - gRPC server
       - --label=org.opencontainers.image.vendor=Werbot, Inc.
       - --label=org.opencontainers.image.authors=info@werbot.com
@@ -117,9 +117,9 @@ dockers:
     build_flag_templates:
       - --pull
       - --label=org.opencontainers.image.created={{.Date}}
-      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.revision={{.ShortCommit}}
       - --label=org.opencontainers.image.version={{.Version}}
-      - --label=org.opencontainers.image.title=Werbot ghost
+      - --label=org.opencontainers.image.title=ghost
       - --label=org.opencontainers.image.description=👻 ghost - master microservice
       - --label=org.opencontainers.image.vendor=Werbot, Inc.
       - --label=org.opencontainers.image.authors=info@werbot.com
@@ -135,9 +135,9 @@ dockers:
     build_flag_templates:
       - --pull
       - --label=org.opencontainers.image.created={{.Date}}
-      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.revision={{.ShortCommit}}
       - --label=org.opencontainers.image.version={{.Version}}
-      - --label=org.opencontainers.image.title=Werbot taco
+      - --label=org.opencontainers.image.title=taco
       - --label=org.opencontainers.image.description=🌮 taco - public API server
       - --label=org.opencontainers.image.vendor=Werbot, Inc.
       - --label=org.opencontainers.image.authors=info@werbot.com
