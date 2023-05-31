@@ -1,3 +1,7 @@
+FROM golang:alpine AS build
+RUN apk add --no-cache ca-certificates && update-ca-certificates 2>/dev/null || true
+
 FROM scratch
 ENTRYPOINT ["/taco"]
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY werbot_taco_Linux_amd64 /taco
