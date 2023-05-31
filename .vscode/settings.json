@@ -63,9 +63,6 @@
     "editor.defaultFormatter": "Vue.volar"
   },
 
-  "protoc": {
-    "options": ["--proto_path=${workspaceFolder}/api/proto/"]
-  },
   "vue.features.codeActions.enable": false,
 
   // "go.lintTool": "golangci-lint",

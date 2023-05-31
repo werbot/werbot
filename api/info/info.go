@@ -2,12 +2,8 @@ package info
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -33,56 +29,55 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
 	}
 
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, err, "failed to show container list")
+		return webutil.FromGRPC(c, err, "Failed connect to docker")
 	}
 
-	listImages, err := client.ListImages(docker.ListImagesOptions{
+	listContainers, err := client.ListContainers(docker.ListContainersOptions{
 		All: false,
 		Filters: map[string][]string{
-			"label": {"com.werbot.version"},
+			"label": {"org.opencontainers.image.version"},
 		},
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, err, "failed to show container list")
+		return webutil.FromGRPC(c, err, "Failed to show container list")
 	}
 
-	urlVersion := fmt.Sprintf("%s/v1/update/version", internal.GetString("API_DSN", "https://api.werbot.com"))
-	getVersionInfo, err := http.Get(urlVersion)
+	coreRelease, err := webutil.GetLatestRelease("https://api.github.com/repos/werbot/werbot/releases/latest")
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, err, "failed to get data for updates")
+		return webutil.FromGRPC(c, err, "Failed to get latest version for werbot")
 	}
-	if getVersionInfo.StatusCode > 200 {
-		return webutil.FromGRPC(c, err, "failed to connect update server")
+
+	webRelease, err := webutil.GetLatestRelease("https://api.github.com/repos/werbot/werbot/releases/latest")
+	if err != nil {
+		h.log.Error(err).Send()
+		return webutil.FromGRPC(c, err, "Failed to get latest version for web app")
 	}
-	defer getVersionInfo.Body.Close()
-
-	data, _ := io.ReadAll(getVersionInfo.Body)
-	updateList := webutil.HTTPResponse{}
-	json.Unmarshal(data, &updateList)
-
-	updateComponent := updateList.Result.(map[string]any)
 
 	updates := make(map[string]map[string]any)
-	var regService = regexp.MustCompile(".*/(.*):.*")
-	for _, image := range listImages {
-		service := regService.FindStringSubmatch(image.RepoTags[0])
-		if service != nil {
-			updates[service[1]] = map[string]any{
-				"version": image.Labels["com.werbot.version"],
-				"update":  updateComponent[service[1]],
+	for _, image := range listContainers {
+		service := image.Labels["org.opencontainers.image.title"]
+		if service == "werbot.web" {
+			updates["web"] = map[string]any{
+				"installed": image.Labels["org.opencontainers.image.version"],
+				"actual":    webRelease[1:],
+			}
+		} else {
+			updates[service] = map[string]any{
+				"installed": image.Labels["org.opencontainers.image.version"],
+				"actual":    coreRelease[1:],
 			}
 		}
 	}
 
-	return webutil.StatusOK(c, "current versions", updates)
+	return webutil.StatusOK(c, "Updates", updates)
 }
 
 // @Summary      Unexpected error while getting info
@@ -97,7 +92,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.FromGRPC(c, errors.New("Incorrect parameters"))
 	}
 
 	if err := request.ValidateAll(); err != nil {
@@ -126,7 +121,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "short information", info)
+	return webutil.StatusOK(c, "Short information", info)
 }
 
 // @Summary      Version API
@@ -142,6 +137,8 @@ func (h *Handler) getVersion(c *fiber.Ctx) error {
 	// 	return webutil.StatusNotFound(c, internal.ErrNotFound, nil)
 	// }
 
-	info := fmt.Sprintf("%s (%s)", internal.Version(), internal.Commit())
-	return webutil.StatusOK(c, "API version", info)
+	versions := make(map[string]string)
+	versions["api"] = fmt.Sprintf("%s (%s)", internal.Version(), internal.Commit())
+
+	return webutil.StatusOK(c, "Apps version", versions)
 }

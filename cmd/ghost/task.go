@@ -15,11 +15,6 @@ const (
 	typeDownloadLicense = "license:download"
 )
 
-func testTask(ctx context.Context, t *asynq.Task) error {
-	log.Info().Msg("test")
-	return nil
-}
-
 func updateMMDBTask(ctx context.Context, t *asynq.Task) error {
 	log.Info().Msg("download mmdb database")
 	err := fsutil.Download(
@@ -49,10 +44,10 @@ func updateHAProxyLists(ctx context.Context, t *asynq.Task) error {
 }
 
 func downloadLicense(ctx context.Context, t *asynq.Task) error {
-	log.Info().Msg("download license")
+	log.Info().Msg("Download license")
 	err := fsutil.Download(
 		fmt.Sprintf("%s/license.key", internal.GetString("GHOST_DATA", "/data")),
-		"https://api.werbot.com/", // TODO: down license
+		"https://api.werbot.com/", // TODO: download license
 	)
 	if err != nil {
 		log.Error(err).Send()
