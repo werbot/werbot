@@ -2,14 +2,13 @@ syntax = "proto3";
 
 package license;
 
-option go_package = "github.com/werbot/werbot/internal/grpc/license/proto";
-
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/werbot/werbot/internal/grpc/license/proto";
 
 service LicenseHandlers {
   rpc License(License.Request) returns (License.Response) {}
 }
-
 
 // rpc License
 message License {

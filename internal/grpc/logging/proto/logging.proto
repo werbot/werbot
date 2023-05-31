@@ -2,14 +2,14 @@ syntax = "proto3";
 
 package logging;
 
-option go_package = "github.com/werbot/werbot/internal/grpc/logging/proto";
-
 import "validate/validate.proto";
 
+option go_package = "github.com/werbot/werbot/internal/grpc/logging/proto";
+
 service LoggingHandlers {
-    rpc ListRecords(ListRecords.Request) returns (ListRecords.Response) {}
-    rpc Record(Record.Request) returns (Record.Response) {}
-    rpc AddRecord(AddRecord.Request) returns (AddRecord.Response) {}
+  rpc ListRecords(ListRecords.Request) returns (ListRecords.Response) {}
+  rpc Record(Record.Request) returns (Record.Response) {}
+  rpc AddRecord(AddRecord.Request) returns (AddRecord.Response) {}
 }
 
 enum Logger {
@@ -31,40 +31,35 @@ enum EventType {
   onChange = 8;
 }
 
-
 // rpc ListRecords
 message ListRecords {
   message Request {
-      Logger logger = 1 [(validate.rules).enum.defined_only = true];
-      string id = 2     [(validate.rules).string.uuid = true];
+    Logger logger = 1 [(validate.rules).enum.defined_only = true];
+    string id = 2 [(validate.rules).string.uuid = true];
   }
 
   message Response {}
 }
 // -----------------------------------------------------
-
 
 // rpc Record
 message Record {
   message Request {
-      string record_id = 3 [(validate.rules).string.uuid = true];
+    string record_id = 3 [(validate.rules).string.uuid = true];
   }
 
   message Response {}
 }
 // -----------------------------------------------------
 
-
 // rpc AddRecord
 message AddRecord {
-    message Request {
-        Logger logger = 1   [(validate.rules).enum.defined_only = true];
-        EventType event = 2 [(validate.rules).enum.defined_only = true];
-        string id = 3       [(validate.rules).string.uuid = true];
-    }
+  message Request {
+    Logger logger = 1 [(validate.rules).enum.defined_only = true];
+    EventType event = 2 [(validate.rules).enum.defined_only = true];
+    string id = 3 [(validate.rules).string.uuid = true];
+  }
 
-    message Response {}
+  message Response {}
 }
 // -----------------------------------------------------
-
-

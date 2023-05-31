@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package audit;
 
-option go_package = "github.com/werbot/werbot/internal/grpc/audit/proto";
-
 import "google/protobuf/timestamp.proto";
 import "validate/validate.proto";
+
+option go_package = "github.com/werbot/werbot/internal/grpc/audit/proto";
 
 service AuditHandlers {
   // Audit section
@@ -20,20 +20,18 @@ service AuditHandlers {
   rpc AddRecord(AddRecord.Request) returns (AddRecord.Response) {}
 }
 
-
 // rpc ListAudits
 message ListAudits {
   message Request {
-    string server_id = 1  [(validate.rules).string.uuid = true];
+    string server_id = 1 [(validate.rules).string.uuid = true];
   }
 
-  message Response{
+  message Response {
     int32 total = 1;
     repeated Audit.Response accounts = 2;
   }
 }
 // -----------------------------------------------------
-
 
 // rpc Audit
 message Audit {
@@ -41,18 +39,17 @@ message Audit {
     string audit_id = 1 [(validate.rules).string.uuid = true];
   }
 
-  message Response{
+  message Response {
     google.protobuf.Timestamp last_update = 1;
     google.protobuf.Timestamp created = 2;
   }
 }
 // -----------------------------------------------------
 
-
 // rpc rpc AddAudit
 message AddAudit {
   message Request {
-    string server_id = 1  [(validate.rules).string.uuid = true];
+    string server_id = 1 [(validate.rules).string.uuid = true];
     string account_id = 2 [(validate.rules).string.uuid = true];
     google.protobuf.Timestamp time_start = 3;
     int32 version = 4;
@@ -72,7 +69,6 @@ message AddAudit {
 }
 // -----------------------------------------------------
 
-
 // rpc UpdateAudit
 message UpdateAudit {
   message Request {
@@ -84,10 +80,9 @@ message UpdateAudit {
     google.protobuf.Timestamp time_end = 6;
   }
 
-  message Response{}
+  message Response {}
 }
 // -----------------------------------------------------
-
 
 // rpc DeleteAudit
 message DeleteAudit {
@@ -95,10 +90,9 @@ message DeleteAudit {
     string audit_id = 1 [(validate.rules).string.uuid = true];
   }
 
-  message Response{}
+  message Response {}
 }
 // -----------------------------------------------------
-
 
 // rpc ListRecords
 message Record {
@@ -110,27 +104,25 @@ message Record {
 }
 // -----------------------------------------------------
 
-
 // rpc ListRecords
 message ListRecords {
   message Request {
-    string audit_id = 1   [(validate.rules).string.uuid = true];
+    string audit_id = 1 [(validate.rules).string.uuid = true];
   }
 
-  message Response{
+  message Response {
     repeated Record records = 1;
   }
 }
 // -----------------------------------------------------
 
-
 // rpc AddRecord
 message AddRecord {
   message Request {
-    string audit_id = 1          [(validate.rules).string.uuid = true];
+    string audit_id = 1 [(validate.rules).string.uuid = true];
     repeated Record records = 2;
   }
 
-  message Response{}
+  message Response {}
 }
 // -----------------------------------------------------

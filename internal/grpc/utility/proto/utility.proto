@@ -2,15 +2,14 @@ syntax = "proto3";
 
 package utility;
 
-option go_package = "github.com/werbot/werbot/internal/grpc/utility/proto";
-
 import "validate/validate.proto";
+
+option go_package = "github.com/werbot/werbot/internal/grpc/utility/proto";
 
 service UtilityHandlers {
   rpc Countries(Countries.Request) returns (Countries.Response) {}
   rpc CountryByIP(CountryByIP.Request) returns (CountryByIP.Response) {}
 }
-
 
 // rpc GetInfo
 message Countries {
@@ -25,10 +24,9 @@ message Countries {
   message Country {
     string code = 1;
     string name = 2;
-}
+  }
 }
 // -----------------------------------------------------
-
 
 // rpc CountryByIP
 message CountryByIP {

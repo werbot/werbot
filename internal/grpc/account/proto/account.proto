@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package account;
 
-option go_package = "github.com/werbot/werbot/internal/grpc/account/proto";
-
 import "google/protobuf/timestamp.proto";
-import "validate/validate.proto";
 import "internal/grpc/user/proto/user.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/werbot/werbot/internal/grpc/account/proto";
 
 service AccountHandlers {
   // Auth section
@@ -37,8 +37,11 @@ enum AccountStatus {
 // rpc SignIn
 message SignIn {
   message Request {
-    string email = 2    [(validate.rules).string.email = true];
-    string password = 3 [(validate.rules).string = { min_len: 8, max_len: 32 }];
+    string email = 2 [(validate.rules).string.email = true];
+    string password = 3 [(validate.rules).string = {
+      min_len: 8,
+      max_len: 32
+    }];
   }
 
   message Response {
@@ -50,15 +53,20 @@ message SignIn {
 }
 // -----------------------------------------------------
 
-
 // rpc ResetPassword
 message ResetPassword {
   message Request {
     oneof request {
-      string email = 1    [(validate.rules).string.email = true];
-      string password = 2 [(validate.rules).string = {min_len: 8, max_len: 32}];
+      string email = 1 [(validate.rules).string.email = true];
+      string password = 2 [(validate.rules).string = {
+        min_len: 8,
+        max_len: 32
+      }];
     }
-    string token = 3      [(validate.rules).string = {ignore_empty: true, uuid: true}];
+    string token = 3 [(validate.rules).string = {
+      ignore_empty: true,
+      uuid: true
+    }];
   }
 
   message Response {
@@ -67,7 +75,6 @@ message ResetPassword {
   }
 }
 // -----------------------------------------------------
-
 
 message RefreshTokenRequest {
   string refresh_token = 1 [(validate.rules).string.uuid = true];
@@ -80,9 +87,7 @@ message UserParameters {
   string sub = 4;
 }
 
-
 // -----------------------------------------------------
-
 
 // rpc ListAccounts
 message ListAccounts {
@@ -96,13 +101,12 @@ message ListAccounts {
     string query = 4;
   }
 
-  message Response{
+  message Response {
     int32 total = 1;
     repeated Account.Response accounts = 2;
   }
 }
 // -----------------------------------------------------
-
 
 // rpc Account
 message Account {
@@ -123,7 +127,6 @@ message Account {
 }
 // -----------------------------------------------------
 
-
 // rpc AddAccount
 message AddAccount {
   message Request {
@@ -133,7 +136,6 @@ message AddAccount {
   message Response {}
 }
 // -----------------------------------------------------
-
 
 // rpc UpdateAccount
 message UpdateAccount {
@@ -145,7 +147,6 @@ message UpdateAccount {
 }
 // -----------------------------------------------------
 
-
 // rpc DeleteAccount
 message DeleteAccount {
   message Request {
@@ -155,7 +156,6 @@ message DeleteAccount {
   message Response {}
 }
 // -----------------------------------------------------
-
 
 // rpc AccountIDByLogin
 message AccountIDByLogin {
@@ -171,7 +171,6 @@ message AccountIDByLogin {
 }
 // -----------------------------------------------------
 
-
 // rpc UpdateStatus
 message UpdateStatus {
   message Request {
@@ -186,7 +185,6 @@ message UpdateStatus {
 }
 // -----------------------------------------------------
 
-
 // rpc SessionAccount
 message SessionAccount {
   message Request {
@@ -199,7 +197,6 @@ message SessionAccount {
   }
 }
 // -----------------------------------------------------
-
 
 // rpc SessionAccount
 message FindByTokenAccount {

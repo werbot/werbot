@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package member;
 
-option go_package = "github.com/werbot/werbot/internal/grpc/member/proto";
-
 import "google/protobuf/timestamp.proto";
-import "validate/validate.proto";
 import "internal/grpc/user/proto/user.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/werbot/werbot/internal/grpc/member/proto";
 
 service MemberHandlers {
   // Project section
@@ -32,7 +32,7 @@ service MemberHandlers {
   rpc UpdateServerMember(UpdateServerMember.Request) returns (UpdateServerMember.Response) {}
   rpc DeleteServerMember(DeleteServerMember.Request) returns (DeleteServerMember.Response) {}
 
-   // Used in finding and adding a new member to the server
+  // Used in finding and adding a new member to the server
   rpc MembersWithoutServer(MembersWithoutServer.Request) returns (MembersWithoutServer.Response) {}
 }
 
@@ -52,13 +52,15 @@ message ListProjectMembers {
 }
 // -----------------------------------------------------
 
-
 // rpc ProjectMember
 message ProjectMember {
   message Request {
-    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string owner_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string member_id = 3  [(validate.rules).string = {ignore_empty: true, uuid: true}];
+    string member_id = 3 [(validate.rules).string = {
+      ignore_empty: true,
+      uuid: true
+    }];
   }
 
   message Response {
@@ -79,13 +81,12 @@ message ProjectMember {
 }
 // -----------------------------------------------------
 
-
 // rpc AddProjectMember
 message AddProjectMember {
   message Request {
-    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string owner_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string user_id = 3    [(validate.rules).string.uuid = true]; // @gotags: query:"user_id"
+    string user_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"user_id"
     user.Role role = 4;
     bool active = 5;
   }
@@ -96,13 +97,12 @@ message AddProjectMember {
 }
 // -----------------------------------------------------
 
-
 // rpc UpdateProjectMember
 message UpdateProjectMember {
   message Request {
-    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string owner_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string member_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
+    string member_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
     oneof setting {
       user.Role role = 4;
       bool active = 5;
@@ -113,25 +113,23 @@ message UpdateProjectMember {
 }
 // -----------------------------------------------------
 
-
 // rpc DeleteProjectMember
 message DeleteProjectMember {
   message Request {
-    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string owner_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string member_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
+    string member_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
   }
 
   message Response {}
 }
 // -----------------------------------------------------
 
-
 // rpc UsersWithoutProject
 message UsersWithoutProject {
   message Request {
-    string owner_id = 1    [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-    string project_id = 2  [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string owner_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
     string login = 3;
   }
 
@@ -139,7 +137,7 @@ message UsersWithoutProject {
     repeated User users = 1;
   }
 
-  message User{
+  message User {
     int32 user_id = 1;
     string login = 2;
     string email = 3;
@@ -147,14 +145,13 @@ message UsersWithoutProject {
 }
 // -----------------------------------------------------
 
-
 // rpc ListMembersInvite
 message ListMembersInvite {
   message Request {
     int32 limit = 1;
     int32 offset = 2;
     string sort_by = 3;
-    string owner_id = 4   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string owner_id = 4 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 5 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
   }
 
@@ -175,15 +172,22 @@ message ListMembersInvite {
 }
 // -----------------------------------------------------
 
-
 // rpc AddMemberInvite
 message AddMemberInvite {
   message Request {
-    string owner_id = 1     [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
-    string project_id = 2   [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string user_name = 3    [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}]; // @gotags: query:"user_name"
-    string user_surname = 4 [(validate.rules).string = {pattern: '^[a-z0-9]+$', min_len: 3, max_len: 20}]; // @gotags: query:"user_surname"
-    string email = 5        [(validate.rules).string.email = true]; // @gotags: query:"email"
+    string owner_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string user_name = 3 [(validate.rules).string = {
+      pattern: '^[a-z0-9]+$',
+      min_len: 3,
+      max_len: 20
+    }]; // @gotags: query:"user_name"
+    string user_surname = 4 [(validate.rules).string = {
+      pattern: '^[a-z0-9]+$',
+      min_len: 3,
+      max_len: 20
+    }]; // @gotags: query:"user_surname"
+    string email = 5 [(validate.rules).string.email = true]; // @gotags: query:"email"
   }
 
   message Response {
@@ -192,25 +196,26 @@ message AddMemberInvite {
 }
 // -----------------------------------------------------
 
-
 // rpc DeleteMemberInvite
 message DeleteMemberInvite {
   message Request {
-    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string owner_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string invite_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"invite_id"
+    string invite_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"invite_id"
   }
 
   message Response {}
 }
 // -----------------------------------------------------
 
-
 // rpc MemberInviteActivate
 message MemberInviteActivate {
   message Request {
-    string invite = 1  [(validate.rules).string.uuid = true];                        // @gotags: query:"invite"
-    string user_id = 2 [(validate.rules).string = {ignore_empty: true, uuid: true}]; // @gotags: query:"user_id"
+    string invite = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"invite"
+    string user_id = 2 [(validate.rules).string = {
+      ignore_empty: true,
+      uuid: true
+    }]; // @gotags: query:"user_id"
   }
 
   message Response {
@@ -220,16 +225,15 @@ message MemberInviteActivate {
 }
 // -----------------------------------------------------
 
-
 // ListServerMembers
 message ListServerMembers {
   message Request {
     int32 limit = 1;
     int32 offset = 2;
     string sort_by = 3;
-    string owner_id = 4   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string owner_id = 4 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 5 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string server_id = 6  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string server_id = 6 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
   }
 
   message Response {
@@ -242,9 +246,9 @@ message ListServerMembers {
 // ServerMember
 message ServerMember {
   message Request {
-    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string owner_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string server_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string server_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
     string member_id = 4;
   }
 
@@ -267,9 +271,9 @@ message ServerMember {
 // AddServerMember
 message AddServerMember {
   message Request {
-    string owner_id = 1   [(validate.rules).string.uuid = true];
+    string owner_id = 1 [(validate.rules).string.uuid = true];
     string project_id = 2 [(validate.rules).string.uuid = true];
-    string server_id = 3  [(validate.rules).string.uuid = true];
+    string server_id = 3 [(validate.rules).string.uuid = true];
     string member_id = 4;
     bool active = 5;
   }
@@ -283,10 +287,10 @@ message AddServerMember {
 // UpdateServerMember
 message UpdateServerMember {
   message Request {
-    string owner_id = 1   [(validate.rules).string.uuid = true];
+    string owner_id = 1 [(validate.rules).string.uuid = true];
     string project_id = 2 [(validate.rules).string.uuid = true];
-    string server_id = 3  [(validate.rules).string.uuid = true];
-    string member_id = 4  [(validate.rules).string.uuid = true];
+    string server_id = 3 [(validate.rules).string.uuid = true];
+    string member_id = 4 [(validate.rules).string.uuid = true];
     oneof setting {
       bool active = 5;
       bool online = 6;
@@ -300,16 +304,15 @@ message UpdateServerMember {
 // DeleteServerMember
 message DeleteServerMember {
   message Request {
-    string owner_id = 1   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string owner_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string server_id = 3  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
-    string member_id = 4  [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
+    string server_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string member_id = 4 [(validate.rules).string.uuid = true]; // @gotags: query:"member_id"
   }
 
   message Response {}
 }
 // -----------------------------------------------------
-
 
 // rpc MembersWithoutServer
 message MembersWithoutServer {
@@ -317,9 +320,9 @@ message MembersWithoutServer {
     int32 limit = 1;
     int32 offset = 2;
     string sort_by = 3;
-    string owner_id = 4   [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
+    string owner_id = 4 [(validate.rules).string.uuid = true]; // @gotags: query:"owner_id"
     string project_id = 5 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string server_id = 6  [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string server_id = 6 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
     string login = 7;
   }
   message Response {

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package ghost;
+
+option go_package = "github.com/werbot/werbot/internal/grpc/ghost/proto";
+
+service GhostHandlers {
+  rpc Containers (Containers.Request) returns (Containers.Response) {}
+}
+
+// rpc Containers
+message Containers {
+  message Request {}
+
+  message Response {}
+}
+// -----------------------------------------------------
