@@ -278,7 +278,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 
 		mailData := map[string]string{
 			"Login": response.GetLogin(),
-			"Link":  fmt.Sprintf("%s/profile/delete/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
+			"Link":  fmt.Sprintf("%s/profile/delete/%s", internal.GetString("APP_DSN", "http://localhost:5173"), response.GetToken()),
 		}
 		go mail.Send(response.GetEmail(), "user deletion confirmation", "account-deletion-confirmation", mailData)
 		return webutil.StatusOK(c, "an email with instructions to delete your profile has been sent to your email", nil)

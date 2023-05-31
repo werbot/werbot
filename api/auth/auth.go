@@ -223,7 +223,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	if response.GetToken() != "" {
 		go func() {
 			mailData := map[string]string{
-				"Link": fmt.Sprintf("%s/auth/password_reset/%s", internal.GetString("APP_DSN", "https://app.werbot.com"), response.GetToken()),
+				"Link": fmt.Sprintf("%s/auth/password_reset/%s", internal.GetString("APP_DSN", "http://localhost:5173"), response.GetToken()),
 			}
 			err := mail.Send(request.GetEmail(), "reset password confirmation", "password-reset", mailData)
 			if err != nil {

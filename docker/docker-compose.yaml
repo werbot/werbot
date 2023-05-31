@@ -12,9 +12,6 @@ networks:
           gateway: 10.16.0.1
 
 volumes:
-  grafana_data: {}
-  loki_data: {}
-  prometheus_data: {}
   postgres_data: {}
   redis_data: {}
 
@@ -35,72 +32,6 @@ x-environment: &grpc-environment
   GRPCSERVER_TOKEN: ${GRPCSERVER_TOKEN:-grpcServerToken}
 
 services:
-  grafana:
-    image: grafana/grafana:9.1.7
-    container_name: monitoring.grafana
-    restart: always
-    ports:
-      - 3000:3000
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./grafana/datasources:/etc/grafana/provisioning/datasources
-      - grafana_data:/var/lib/grafana
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    networks:
-      - private
-    labels:
-      com.werbot.group: "monitoring"
-    logging: *default-logging
-
-  loki:
-    image: grafana/loki:2.6.1
-    container_name: monitoring.loki
-    restart: always
-    volumes:
-      - ./loki/config.yml:/etc/loki/local-config.yaml:ro
-      - loki_data:/var/lib/loki
-    environment:
-      CLOKI_LOGIN: ${CLOKI_LOGIN:-admin}
-      CLOKI_PASSWORD: ${CLOKI_PASSWORD:-admin}
-    networks:
-      - private
-    labels:
-      com.werbot.group: "monitoring"
-    logging: *default-logging
-
-  prometheus:
-    image: prom/prometheus:v2.39.0
-    container_name: monitoring.prometheus
-    restart: always
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
-      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    networks:
-      - private
-    labels:
-      com.werbot.group: "monitoring"
-    logging: *default-logging
-
-  promtail:
-    image: grafana/promtail:2.6.1
-    container_name: monitoring.promtail
-    restart: always
-    volumes:
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./promtail/config.yml:/etc/promtail/config.yml:ro
-    networks:
-      - private
-    labels:
-      com.werbot.group: "monitoring"
-    logging: *default-logging
-
   acme:
     image: neilpang/acme.sh:latest
     container_name: service.acmesh
@@ -122,11 +53,11 @@ services:
     logging: *default-logging
 
   haproxy:
-    image: haproxy:2.7.2-alpine
+    image: haproxy:2.7-alpine
     container_name: service.haproxy
     restart: always
     ports:
-      #- "8404:8404"
+      - "8404:8404"
       - "80:80"
       - "443:443"
       - "22:22"
@@ -174,31 +105,6 @@ services:
       com.werbot.group: "service"
     logging: *default-logging
 
-  postgres-backup:
-    image: ghcr.io/werbot/postgres-backup:latest
-    container_name: service.postgres-backup
-    restart: always
-    environment:
-      SCHEDULE: "@hourly"
-      S3_REGION: ${S3_REGION:-region}
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-key}
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-secret}
-      S3_BUCKET: ${S3_BUCKET:-bucket}
-      S3_PREFIX: ${S3_PREFIX:-backup}
-      POSTGRES_HOST: service.postgres
-      POSTGRES_DATABASE: ${POSTGRES_DB:-werbot}
-      POSTGRES_USER: ${POSTGRES_USER:-werbot}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgresPassword}
-      POSTGRES_EXTRA_OPTS: "--schema=public --blobs"
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
-    networks:
-      - private
-    labels:
-      com.werbot.group: "service"
-    logging: *default-logging
-
   redis:
     image: redis:7-alpine
     container_name: service.redis
@@ -216,7 +122,7 @@ services:
     logging: *default-logging
 
   app:
-    image: ghcr.io/werbot/app:latest
+    image: ghcr.io/werbot/werbot.web:latest
     restart: always
     deploy:
       replicas: 1
@@ -256,7 +162,10 @@ services:
       SECURITY_AES_KEY: ${SECURITY_AES_KEY:-securittAesKey}
       GRPCSERVER_TOKEN: ${GRPCSERVER_TOKEN:-grpcServerToken}
       LICENSE_KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
-      PSQLSERVER_DSN: postgres://${POSTGRES_USER:-werbot}:${POSTGRES_PASSWORD:-postgresPassword}@postgres:5432/${POSTGRES_DB:-werbot}?sslmode=require
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-werbot}
+      POSTGRES_DB: ${POSTGRES_DB:-werbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgresPassword}
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -294,15 +203,15 @@ services:
   taco:
     image: ghcr.io/werbot/taco:latest
     restart: always
-    user: root
     environment:
       APP_TOKEN: ${APP_TOKEN:-werbot}
       REDIS_ADDR: service.redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redisPassword}
       ACCESS_TOKEN_DURATION: ${ACCESS_TOKEN_DURATION:-15m}
+      # REFRESH_TOKEN_DURATION: ${ACCESS_TOKEN_DURATION:-168h}
       LICENSE_KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
       LICENSE_KEY_PRIVATE: ${LICENSE_KEY_PRIVATE:-}
-      API_DSN: https://api.werbot.net
+      API_DSN: ${API_DSN:-localhost:8088}
       <<: *grpc-environment
     volumes:
       - /etc/localtime:/etc/localtime:ro
