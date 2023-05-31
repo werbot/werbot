@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
@@ -19,12 +19,8 @@ if ! [ -d ${ROOT_PATH}/scripts/install/cfg/haproxy ]; then
   mkdir ${ROOT_PATH}/scripts/install/cfg/haproxy
 fi
 
-cp -a ${ROOT_PATH}/docker/grafana ${ROOT_PATH}/scripts/install/cfg/
 cp -a ${ROOT_PATH}/docker/haproxy/*.txt ${ROOT_PATH}/scripts/install/cfg/haproxy/
 cp -a ${ROOT_PATH}/docker/haproxy/config.cfg ${ROOT_PATH}/scripts/install/cfg/haproxy/
-cp -a ${ROOT_PATH}/docker/loki ${ROOT_PATH}/scripts/install/cfg/
-cp -a ${ROOT_PATH}/docker/prometheus ${ROOT_PATH}/scripts/install/cfg/
-cp -a ${ROOT_PATH}/docker/promtail ${ROOT_PATH}/scripts/install/cfg/
 cp -a ${ROOT_PATH}/docker/docker-compose.yaml ${ROOT_PATH}/scripts/install/cfg/
 
 print_answer "SUCCESS" green

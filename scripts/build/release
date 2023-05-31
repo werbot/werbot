@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
@@ -16,7 +16,7 @@ if [ ${NEW_VERSION} ]; then
   #sed -i -e "s/\(Licensed Work:\s*Werbot\s\)v[0-9][0-9.]*/\\1v${NEW_VERSION}/" $(ROOT_PATH)/LICENSE
   sed -i -e "s/\(Change Date:\s*\)[-0-9]\+/\\1$(date +'%Y-%m-%d' -d '4 years')/" $(ROOT_PATH)/LICENSE
   git add .
-  git commit -a -m "meta: Create release"
+  git commit -a -m "🔧 build: Create release"
   git tag v${NEW_VERSION}
   git push origin main
   git push --tags origin main

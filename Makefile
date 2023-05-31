@@ -42,7 +42,7 @@ gen_protos: ## Generating protos files
 #############################################################################
 .PHONY: upd_tools
 upd_tools: ## Install/Update tools and mods
-	@scripts/tools/mods
+	@scripts/tools/apps
 #############################################################################
 
 
@@ -91,7 +91,7 @@ lint: ## Cleaning garbage and inactive containers
 #############################################################################
 .PHONY: upd_cdn_ip
 upd_cdn_ip:
-	@scripts/tools/cdn
+	@scripts/tools/haproxy cdn $(wordlist 1,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #############################################################################
 
 

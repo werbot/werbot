@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
@@ -8,7 +8,6 @@ source ${ROOT_PATH}/scripts/helper
 protogen() {
   PROTO=${ROOT_PATH}/internal/grpc/${1}/proto/
   protoc --proto_path=$ROOT_PATH \
-    --proto_path=/usr/local/include/ \
     --proto_path=$PROTO \
     --go_out=paths=source_relative:$PROTO \
     --go-grpc_out=paths=source_relative:$PROTO \
