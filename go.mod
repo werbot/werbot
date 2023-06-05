@@ -24,7 +24,7 @@ require (
 	github.com/pressly/goose/v3 v3.11.2
 	github.com/redis/go-redis/v9 v9.0.4
 	github.com/rs/zerolog v1.29.1
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	github.com/vanng822/go-premailer v1.20.2
 	github.com/xhit/go-simple-mail/v2 v2.13.0
 	golang.org/x/crypto v0.9.0
