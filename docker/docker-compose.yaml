@@ -124,6 +124,8 @@ services:
   app:
     image: ghcr.io/werbot/werbot.web:latest
     restart: always
+    environment:
+      API_DSN: ${API_DSN:-localhost:8088}
     deploy:
       replicas: 1
       resources: *default-resources
