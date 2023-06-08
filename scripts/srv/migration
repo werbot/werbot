@@ -5,62 +5,99 @@ set -e
 ROOT_PATH="$(git rev-parse --show-toplevel)"
 source ${ROOT_PATH}/scripts/helper
 
-arr_type=(ent saas test)
-if [[ " ${arr_type[@]} " =~ " $1 " ]]; then
-  print_header "Migrations sql $1:$2"
+MIGRATION_DIR=${ROOT_PATH}/migration
+DB_POSTFIX="goose_db_version"
+MIGRATION=$1
+GOOSE_ACTION=$2
 
-  MIGRATION_DIR=${ROOT_PATH}/migration
-  DB_POSTFIX="goose_db_version"
-  if [ "$1" == "saas" ]; then
+run_goose() {
+  arr_goose=(create up up1 down down1 redo status)
+  if [[ " ${arr_goose[@]} " =~ " $1 " ]]; then
+    source ${ROOT_PATH}/.env
+    GOOSE_CMD="goose -dir $MIGRATION_DIR -table $DB_POSTFIX postgres "postgres://${POSTGRES_USER:-werbot}:${POSTGRES_PASSWORD:-postgresPassword}@${POSTGRES_HOST:-localhost:5432}/${POSTGRES_DB:-werbot}?sslmode=require""
+    if [ $1 == "create" ]; then OTPUT=$($GOOSE_CMD create migration_name sql 2>&1); fi
+    if [ $1 == "up" ]; then OTPUT=$($GOOSE_CMD up 2>&1); fi
+    if [ $1 == "up1" ]; then OTPUT=$($GOOSE_CMD up-by-one 2>&1); fi
+    if [ $1 == "down" ]; then OTPUT=$($GOOSE_CMD reset 2>&1); fi
+    if [ $1 == "down1" ]; then OTPUT=$($GOOSE_CMD down 2>&1); fi
+    if [ $1 == "redo" ]; then OTPUT=$($GOOSE_CMD redo 2>&1); fi
+    if [ $1 == "status" ]; then OTPUT=$($GOOSE_CMD status 2>&1); fi
+    rm -rf ${ROOT_PATH}/.vscode/migrate_tmp
+
+    print_answer "SUCCESS" green
+    if [ -n "${OTPUT}" ]; then
+      echo "${OTPUT}"
+      echo
+    fi
+  else
+    if [ -d ${ROOT_PATH}/.vscode/migrate_tmp ]; then
+      rm -rf ${ROOT_PATH}/.vscode/migrate_tmp
+    fi
+    print_answer "ERROR" red
+    echo "Parameters not passed"
+    echo
+    echo "migration <migration> <action>"
+    echo
+    echo "<migration>:"
+    print_help "<empty>" "Core version"
+    print_help ent "Enterprise version"
+    print_help saas "SaaS version"
+    print_help test "Test version"
+    print_help dev "Development fixtures"
+    echo
+    echo "<action>:"
+    print_help create "Core version"
+    print_help up "Migrate the DB to the most recent version available"
+    print_help up1 "Migrate the DB up by 1"
+    print_help down "Roll back all migrations"
+    print_help down1 "Roll back the version by 1"
+    print_help redo "Re-run the latest migration"
+    print_help status "Dump the migration status for the current DB"
+  fi
+}
+
+arr_type=(ent saas test)
+if [[ " ${arr_type[@]} " =~ " $MIGRATION " ]]; then
+  print_header "Migrations sql $MIGRATION:$GOOSE_ACTION"
+
+  if [ "$MIGRATION" == "saas" ]; then
     MIGRATION_DIR=${ROOT_PATH}/add-on/saas/migration
     DB_POSTFIX=${DB_POSTFIX}"_saas"
-  elif [ "$1" == "test" ]; then
-    mkdir ${ROOT_PATH}/.vscode/migrate_tmp
+  elif [ "$MIGRATION" == "test" ]; then
+    if ! [ -d ${ROOT_PATH}/.vscode/migrate_tmp ]; then
+      mkdir ${ROOT_PATH}/.vscode/migrate_tmp
+    fi
     for file_migrate in $(find ${ROOT_PATH} -path '*/fixtures/migration/*' | sort -r); do
       cp "$file_migrate" ${ROOT_PATH}/.vscode/migrate_tmp/
     done
     MIGRATION_DIR=${ROOT_PATH}/.vscode/migrate_tmp
     DB_POSTFIX=${DB_POSTFIX}"_test"
   fi
-
-  arr_goose=(create up up1 down down1 redo status)
-  if [[ " ${arr_goose[@]} " =~ " $2 " ]]; then
-    source ${ROOT_PATH}/.env
-    GOOSE_CMD="goose -dir $MIGRATION_DIR -table $DB_POSTFIX postgres "postgres://${POSTGRES_USER:-werbot}:${POSTGRES_PASSWORD:-postgresPassword}@${POSTGRES_HOST:-localhost:5432}/${POSTGRES_DB:-werbot}?sslmode=require""
-    if [ $2 == "create" ]; then command_exists $GOOSE_CMD create migration_name sql; fi
-    if [ $2 == "up" ]; then command_exists $GOOSE_CMD up; fi
-    if [ $2 == "up1" ]; then command_exists $GOOSE_CMD up-by-one; fi
-    if [ $2 == "down" ]; then command_exists $GOOSE_CMD reset; fi
-    if [ $2 == "down1" ]; then command_exists $GOOSE_CMD down; fi
-    if [ $2 == "redo" ]; then command_exists $GOOSE_CMD redo; fi
-    if [ $2 == "status" ]; then command_exists $GOOSE_CMD status; fi
-    rm -rf ${ROOT_PATH}/.vscode/migrate_tmp
-  else
-    print_answer "ERROR" red
-    echo "Parameters not passed"
-    exit
-  fi
-  print_answer "SUCCESS" green
-elif [[ $1 == "dev" ]]; then
+  run_goose $GOOSE_ACTION
+elif [[ $MIGRATION == "dev" ]]; then
   arr_goose=(up down)
-  if [[ " ${arr_goose[@]} " =~ " $2 " ]]; then
+  if [[ " ${arr_goose[@]} " =~ " $GOOSE_ACTION " ]]; then
     SOURCE=${BASH_SOURCE[0]}
-    if [ $2 == "up" ]; then
+    if [ $GOOSE_ACTION == "up" ]; then
       $SOURCE ent up
       $SOURCE saas up
       $SOURCE test up
-    elif [ $2 == "down" ]; then
+    elif [ $GOOSE_ACTION == "down" ]; then
       $SOURCE test down
       $SOURCE saas down
       $SOURCE ent down
     fi
   else
+    print_header "Migrations sql"
     print_answer "ERROR" red
     echo "Parameters not passed"
+    echo
+    echo "Use next command:"
+    print_help up "Run all available migrations"
+    print_help down "Delete all migrations from database"
     exit
   fi
 else
-  print_answer "ERROR" red
-  echo "Parameters not passed"
-  exit
+  print_header "Migrations sql"
+  run_goose $MIGRATION
 fi
