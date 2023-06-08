@@ -3,11 +3,11 @@ package utility
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 
+	"github.com/werbot/werbot/internal/grpc"
 	utilitypb "github.com/werbot/werbot/internal/grpc/utility/proto"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -25,13 +25,8 @@ func (h *Handler) getCountry(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(utilitypb.Countries_RequestMultiError) {
-			e := err.(utilitypb.Countries_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

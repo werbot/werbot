@@ -3,13 +3,13 @@ package project
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/werbot/werbot/internal/grpc"
 	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/trace"
@@ -34,13 +34,8 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(projectpb.Project_RequestMultiError) {
-			e := err.(projectpb.Project_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -108,13 +103,8 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(projectpb.AddProject_RequestMultiError) {
-			e := err.(projectpb.AddProject_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -147,13 +137,8 @@ func (h *Handler) updateProject(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(projectpb.UpdateProject_RequestMultiError) {
-			e := err.(projectpb.UpdateProject_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -163,8 +148,7 @@ func (h *Handler) updateProject(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
-	_, err := rClient.UpdateProject(ctx, request)
-	if err != nil {
+	if _, err := rClient.UpdateProject(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
@@ -188,13 +172,8 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(projectpb.DeleteProject_RequestMultiError) {
-			e := err.(projectpb.DeleteProject_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -204,8 +183,7 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
-	_, err := rClient.DeleteProject(ctx, request)
-	if err != nil {
+	if _, err := rClient.DeleteProject(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 

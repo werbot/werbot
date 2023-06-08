@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package logging;
 
-import "validate/validate.proto";
+import "buf/validate/validate.proto";
 
 option go_package = "github.com/werbot/werbot/internal/grpc/logging/proto";
 
@@ -34,8 +34,8 @@ enum EventType {
 // rpc ListRecords
 message ListRecords {
   message Request {
-    Logger logger = 1 [(validate.rules).enum.defined_only = true];
-    string id = 2 [(validate.rules).string.uuid = true];
+    Logger logger = 1 [(buf.validate.field).enum.defined_only = true];
+    string id = 2 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {}
@@ -45,7 +45,7 @@ message ListRecords {
 // rpc Record
 message Record {
   message Request {
-    string record_id = 3 [(validate.rules).string.uuid = true];
+    string record_id = 3 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {}
@@ -55,9 +55,9 @@ message Record {
 // rpc AddRecord
 message AddRecord {
   message Request {
-    Logger logger = 1 [(validate.rules).enum.defined_only = true];
-    EventType event = 2 [(validate.rules).enum.defined_only = true];
-    string id = 3 [(validate.rules).string.uuid = true];
+    Logger logger = 1 [(buf.validate.field).enum.defined_only = true];
+    EventType event = 2 [(buf.validate.field).enum.defined_only = true];
+    string id = 3 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {}

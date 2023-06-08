@@ -3,13 +3,13 @@ package server
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/werbot/werbot/internal/grpc"
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -31,13 +31,8 @@ func (h *Handler) serversShareForUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(serverpb.ListShareServers_RequestMultiError) {
-			e := err.(serverpb.ListShareServers_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	pagination := webutil.GetPaginationFromCtx(c)
@@ -72,13 +67,8 @@ func (h *Handler) addServersShareForUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(serverpb.AddShareServer_RequestMultiError) {
-			e := err.(serverpb.AddShareServer_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	return webutil.StatusOK(c, "server added", serverpb.AddShareServer_Response{})
@@ -94,13 +84,8 @@ func (h *Handler) updateServerShareForUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(serverpb.UpdateShareServer_RequestMultiError) {
-			e := err.(serverpb.UpdateShareServer_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	return webutil.StatusOK(c, "server updated", serverpb.UpdateShareServer_Response{})
@@ -116,13 +101,8 @@ func (h *Handler) deleteServerShareForUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(serverpb.DeleteShareServer_RequestMultiError) {
-			e := err.(serverpb.DeleteShareServer_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	return webutil.StatusOK(c, "server deleted", serverpb.DeleteShareServer_Response{})

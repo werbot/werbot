@@ -29,18 +29,15 @@ Linux)
   unzip -o ${ROOT_PATH}/.vscode/tmp/protoc.zip -d $HOME/.local >/dev/null 2>&1
   print_answer "SUCCESS" green
 
-  print_header "Install/Update protoc-gen-validate"
-  VALIDATE_LATEST=$(get_latest_release "bufbuild/protoc-gen-validate")
-  wget "https://github.com/bufbuild/protoc-gen-validate/releases/download/${VALIDATE_LATEST}/protoc-gen-validate_${VALIDATE_LATEST#*v}_linux_amd64.tar.gz" -4 -q -O ${ROOT_PATH}/.vscode/tmp/protoc-gen-validate.tar.gz
-  tar --no-same-owner -xzf ${ROOT_PATH}/.vscode/tmp/protoc-gen-validate.tar.gz -C ${ROOT_PATH}/.vscode/tmp
-  install "${ROOT_PATH}/.vscode/tmp/protoc-gen-validate" "$HOME/.local/bin"
-  install "${ROOT_PATH}/.vscode/tmp/protoc-gen-validate-go" "$HOME/.local/bin"
-  if ! [ -d ${ROOT_PATH}/.vscode/tmp/protoc-gen-validate-git ]; then
-    mkdir ${ROOT_PATH}/.vscode/tmp/protoc-gen-validate-git
-    git clone https://github.com/bufbuild/protoc-gen-validate.git ${ROOT_PATH}/.vscode/tmp/protoc-gen-validate-git >/dev/null 2>&1
+  print_header "Install/Update protovalidate"
+  if ! [ -d ${ROOT_PATH}/.vscode/tmp/protovalidate ]; then
+    mkdir ${ROOT_PATH}/.vscode/tmp/protovalidate
+    git clone https://github.com/bufbuild/protovalidate.git ${ROOT_PATH}/.vscode/tmp/protovalidate >/dev/null 2>&1
   fi
-  rm -rf $HOME/.local/include/validate
-  cp -a ${ROOT_PATH}/.vscode/tmp/protoc-gen-validate-git/validate $HOME/.local/include
+  if [ -d $HOME/.local/include/buf/validate ]; then
+    rm -rf $HOME/.local/include/buf/validate
+  fi
+  cp -a ${ROOT_PATH}/.vscode/tmp/protovalidate/proto/protovalidate/buf $HOME/.local/include
   print_answer "SUCCESS" green
 
   print_header "Install/Update protoc-gen-go"

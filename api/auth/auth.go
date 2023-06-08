@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,6 +12,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal"
+	"github.com/werbot/werbot/internal/grpc"
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/mail"
@@ -39,13 +39,8 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(accountpb.SignIn_RequestMultiError) {
-			e := err.(accountpb.SignIn_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -182,13 +177,8 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 
 	request.Token = c.Params("reset_token")
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(accountpb.ResetPassword_RequestMultiError) {
-			e := err.(accountpb.ResetPassword_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	// Sending an email with a verification link

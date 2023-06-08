@@ -38,8 +38,8 @@ var service Service
 
 // Service is ...
 type Service struct {
-	db    *postgres.Connect
-	redis redis.Handler
+	// db    *postgres.Connect
+	// redis redis.Handler
 	log   logger.Logger
 	token string
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,6 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
+	"github.com/werbot/werbot/internal/grpc"
 	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/mail"
@@ -39,13 +39,8 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(memberpb.ProjectMember_RequestMultiError) {
-			e := err.(memberpb.ProjectMember_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -106,13 +101,8 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(memberpb.AddProjectMember_RequestMultiError) {
-			e := err.(memberpb.AddProjectMember_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -146,13 +136,8 @@ func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(memberpb.UpdateProjectMember_RequestMultiError) {
-			e := err.(memberpb.UpdateProjectMember_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -162,8 +147,7 @@ func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
-	_, err := rClient.UpdateProjectMember(ctx, request)
-	if err != nil {
+	if _, err := rClient.UpdateProjectMember(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
@@ -188,13 +172,8 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(memberpb.DeleteProjectMember_RequestMultiError) {
-			e := err.(memberpb.DeleteProjectMember_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -204,8 +183,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
-	_, err := rClient.DeleteProjectMember(ctx, request)
-	if err != nil {
+	if _, err := rClient.DeleteProjectMember(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
@@ -230,13 +208,8 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(memberpb.UsersWithoutProject_RequestMultiError) {
-			e := err.(memberpb.UsersWithoutProject_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -270,13 +243,8 @@ func (h *Handler) updateProjectMemberStatus(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(memberpb.UpdateProjectMember_RequestMultiError) {
-			e := err.(memberpb.UpdateProjectMember_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -286,8 +254,7 @@ func (h *Handler) updateProjectMemberStatus(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
-	_, err := rClient.UpdateProjectMember(ctx, request)
-	if err != nil {
+	if _, err := rClient.UpdateProjectMember(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
@@ -318,13 +285,8 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(memberpb.ListMembersInvite_RequestMultiError) {
-			e := err.(memberpb.ListMembersInvite_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	pagination := webutil.GetPaginationFromCtx(c)
@@ -361,13 +323,8 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(memberpb.AddMemberInvite_RequestMultiError) {
-			e := err.(memberpb.AddMemberInvite_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -408,13 +365,8 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(memberpb.DeleteMemberInvite_RequestMultiError) {
-			e := err.(memberpb.DeleteMemberInvite_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -424,8 +376,7 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
-	_, err := rClient.DeleteMemberInvite(ctx, request)
-	if err != nil {
+	if _, err := rClient.DeleteMemberInvite(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
@@ -444,13 +395,8 @@ func (h *Handler) postMembersInviteActivate(c *fiber.Ctx) error {
 	request := new(memberpb.MemberInviteActivate_Request)
 	request.Invite = c.Params("invite")
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(memberpb.MemberInviteActivate_RequestMultiError) {
-			e := err.(memberpb.MemberInviteActivate_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

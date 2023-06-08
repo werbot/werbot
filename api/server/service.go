@@ -2,12 +2,12 @@ package server
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc/codes"
 
+	"github.com/werbot/werbot/internal/grpc"
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -28,13 +28,8 @@ func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(serverpb.AddServer_RequestMultiError) {
-			e := err.(serverpb.AddServer_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

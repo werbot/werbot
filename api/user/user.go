@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,6 +12,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal"
+	"github.com/werbot/werbot/internal/grpc"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/mail"
 	"github.com/werbot/werbot/internal/trace"
@@ -36,13 +36,8 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(userpb.User_RequestMultiError) {
-			e := err.(userpb.User_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -110,13 +105,8 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(userpb.AddUser_RequestMultiError) {
-			e := err.(userpb.AddUser_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -153,13 +143,8 @@ func (h *Handler) updateUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(userpb.UpdateUser_RequestMultiError) {
-			e := err.(userpb.UpdateUser_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -170,7 +155,6 @@ func (h *Handler) updateUser(c *fiber.Ctx) error {
 
 	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
 
-	var err error
 	switch request.Request.(type) {
 	case *userpb.UpdateUser_Request_Info:
 		setting := new(userpb.UpdateUser_Request_Info)
@@ -218,8 +202,7 @@ func (h *Handler) updateUser(c *fiber.Ctx) error {
 		}
 	*/
 
-	_, err = rClient.UpdateUser(ctx, request)
-	if err != nil {
+	if _, err := rClient.UpdateUser(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
@@ -244,13 +227,8 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 		fmt.Print(err)
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(userpb.DeleteUser_RequestMultiError) {
-			e := err.(userpb.DeleteUser_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -328,13 +306,8 @@ func (h *Handler) updatePassword(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(userpb.UpdatePassword_RequestMultiError) {
-			e := err.(userpb.UpdatePassword_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

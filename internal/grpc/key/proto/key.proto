@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package key;
 
+import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
-import "validate/validate.proto";
 
 option go_package = "github.com/werbot/werbot/internal/grpc/key/proto";
 
@@ -45,14 +45,14 @@ message ListKeys {
 // rpc Key
 message Key {
   message Request {
-    string key_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"key_id" params:"key_id"
-    string user_id = 2 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id" params:"user_id"
+    string key_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"key_id" params:"key_id"
+    string user_id = 2 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id" params:"user_id"
   }
 
   message Response {
@@ -71,15 +71,15 @@ message Key {
 // rpc AddKey
 message AddKey {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
-    string title = 2 [(validate.rules).string = {
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string title = 2 [(buf.validate.field).string = {
       min_len: 3,
       max_len: 128
     }];
-    string key = 3 [(validate.rules).string = {min_len: 128}];
+    string key = 3 [(buf.validate.field).string = {min_len: 128}];
   }
 
   message Response {
@@ -91,16 +91,16 @@ message AddKey {
 // rpc UpdateKey
 message UpdateKey {
   message Request {
-    string key_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"key_id" params:"key_id"
-    string user_id = 2 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id" params:"user_id"
-    string title = 3 [(validate.rules).string = {
+    string key_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"key_id" params:"key_id"
+    string user_id = 2 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id" params:"user_id"
+    string title = 3 [(buf.validate.field).string = {
       min_len: 3,
       max_len: 128
     }]; // @gotags: query:"title" params:"title";
-    string key = 4 [(validate.rules).string = {min_len: 128}]; // @gotags: query:"key" params:"key";
+    string key = 4 [(buf.validate.field).string = {min_len: 128}]; // @gotags: query:"key" params:"key";
   }
 
   message Response {}
@@ -110,11 +110,11 @@ message UpdateKey {
 // rpc DeleteKey
 message DeleteKey {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id" params:"user_id"
-    string key_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"key_id" params:"key_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id" params:"user_id"
+    string key_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"key_id" params:"key_id"
   }
 
   message Response {}

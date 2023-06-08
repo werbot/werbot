@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package project;
 
+import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
-import "validate/validate.proto";
 
 option go_package = "github.com/werbot/werbot/internal/grpc/project/proto";
 
@@ -40,14 +40,14 @@ message ListProjects {
 // rpc Project
 message Project {
   message Request {
-    string owner_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"owner_id" params:"owner_id"
-    string project_id = 2 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"project_id" params:"project_id"
+    string owner_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"owner_id" params:"owner_id"
+    string project_id = 2 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"project_id" params:"project_id"
   }
 
   message Response {
@@ -66,16 +66,16 @@ message Project {
 // rpc AddProject
 message AddProject {
   message Request {
-    string owner_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
-    string login = 2 [(validate.rules).string = {
+    string owner_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string login = 2 [(buf.validate.field).string = {
       pattern: '^[a-z0-9]+$',
       min_len: 3,
       max_len: 20
     }];
-    string title = 3 [(validate.rules).string = {
+    string title = 3 [(buf.validate.field).string = {
       min_len: 3,
       max_len: 128
     }];
@@ -90,12 +90,12 @@ message AddProject {
 // rpc UpdateProject
 message UpdateProject {
   message Request {
-    string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
-    string owner_id = 2 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"owner_id" params:"owner_id"
-    string title = 3 [(validate.rules).string = {
+    string project_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+    string owner_id = 2 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"owner_id" params:"owner_id"
+    string title = 3 [(buf.validate.field).string = {
       min_len: 3,
       max_len: 128
     }]; // @gotags: query:"title" params:"title"
@@ -108,11 +108,11 @@ message UpdateProject {
 // rpc DeleteProject
 message DeleteProject {
   message Request {
-    string owner_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"owner_id" params:"owner_id"
-    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+    string owner_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"owner_id" params:"owner_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
   }
 
   message Response {}
@@ -122,7 +122,7 @@ message DeleteProject {
 // rpc Key
 message Key {
   message Request {
-    string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string project_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
   }
 
   message Response {
@@ -138,7 +138,7 @@ message Key {
 // rpc AddKey
 message AddKey {
   message Request {
-    string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
+    string project_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
   }
 
   message Response {
@@ -150,8 +150,8 @@ message AddKey {
 // rpc UpdateKey
 message UpdateKey {
   message Request {
-    string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string api_key = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"api_key"
+    string project_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string api_key = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"api_key"
   }
 
   message Response {
@@ -163,8 +163,8 @@ message UpdateKey {
 // rpc DeleteKey
 message DeleteKey {
   message Request {
-    string project_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string api_key = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"api_key"
+    string project_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string api_key = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"api_key"
   }
 
   message Response {}

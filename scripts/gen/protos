@@ -5,27 +5,47 @@ set -e
 ROOT_PATH="$(git rev-parse --show-toplevel)"
 source ${ROOT_PATH}/scripts/helper
 
+arr_addons=(ee saas)
+
 protogen() {
-  PROTO=${ROOT_PATH}/internal/grpc/${1}/proto/
+  PROTO_PATH=""
+  WEB_PATH=""
+  if [ -z "$2" ]; then
+    PROTO_PATH=${ROOT_PATH}/internal/grpc/${1}/proto
+    WEB_PATH=${ROOT_PATH}/web/src/proto
+  else
+    PROTO_PATH=${ROOT_PATH}/add-on/${2}/internal/grpc/${1}/proto
+    WEB_PATH=${ROOT_PATH}/add-on/${2}/web/proto
+  fi
+
   protoc --proto_path=$ROOT_PATH \
-    --proto_path=$PROTO \
-    --go_out=paths=source_relative:$PROTO \
-    --go-grpc_out=paths=source_relative:$PROTO \
+    --proto_path=$PROTO_PATH \
+    --go_out=paths=source_relative:$PROTO_PATH \
+    --go-grpc_out=paths=source_relative:$PROTO_PATH \
     --plugin=protoc-gen-ts=${ROOT_PATH}/web/node_modules/@protobuf-ts/plugin/bin/protoc-gen-ts \
-    --validate_out=lang=go,paths=source_relative:$PROTO \
-    --ts_out=${ROOT_PATH}/web/src/proto \
+    --ts_out=$WEB_PATH \
     --ts_opt=use_proto_field_name,ts_nocheck,long_type_string,force_optimize_code_size,force_client_none \
     ${1}.proto
-  protoc-go-inject-tag -input="$PROTO${1}.pb.go" -remove_tag_comment
-  sed -i -e 's/\/internal\/grpc\/\([a-z]\+\)\/proto//g' ${ROOT_PATH}/web/src/proto/${1}.ts
+  protoc-go-inject-tag -input="$PROTO_PATH/${1}.pb.go" -remove_tag_comment
+  sed -i -e 's/\/internal\/grpc\/\([a-z]\+\)\/proto//g' $WEB_PATH/${1}.ts
 }
 
 if [[ $# -gt 0 ]]; then
-  print_header "Generating $1 protos files"
   if [ -d ${ROOT_PATH}/internal/grpc/$1/proto/ ]; then
+    print_header "Generating $1 protos files"
     protogen $1
     print_answer "SUCCESS" green
   else
+    for addon in "${arr_addons[@]}"; do
+      if [ -d ${ROOT_PATH}/add-on/$addon/internal/grpc/$1/proto/ ]; then
+        print_header "Generating $addon:$1 protos files"
+        protogen $1 $addon
+        print_answer "SUCCESS" green
+        exit
+      fi
+    done
+
+    print_header "Generating $1 protos files"
     print_answer "ERROR" red
     echo $1 "not found"
   fi
@@ -35,5 +55,18 @@ else
     print_header "Generating $name protos files"
     protogen $name
     print_answer "SUCCESS" green
+  done
+
+  for addon in "${arr_addons[@]}"; do
+    if [ -d ${ROOT_PATH}/add-on/$addon ]; then
+      for entry in ${ROOT_PATH}/add-on/$addon/internal/grpc/*/; do
+        name=$(basename "${entry}")
+        if [[ $name != "*" ]]; then
+          print_header "Generating $addon:$name protos files"
+          protogen $name $addon
+          print_answer "SUCCESS" green
+        fi
+      done
+    fi
   done
 fi

@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package server;
 
+import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
-import "validate/validate.proto";
 
 option go_package = "github.com/werbot/werbot/internal/grpc/server/proto";
 
@@ -117,15 +117,15 @@ message ListServers {
 // rpc Server
 message Server {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id" params:"user_id"
-    string server_id = 2 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"server_id" params:"server_id"
-    string project_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id" params:"user_id"
+    string server_id = 2 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"server_id" params:"server_id"
+    string project_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
   }
 
   message Response {
@@ -156,26 +156,26 @@ message Server {
 // rpc AddServer
 message AddServer {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
-    string project_id = 2 [(validate.rules).string.uuid = true];
-    string address = 3 [(validate.rules).string.address = true];
-    int32 port = 4 [(validate.rules).int32 = {
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string project_id = 2 [(buf.validate.field).string.uuid = true];
+    string address = 3 [(buf.validate.field).string.address = true];
+    int32 port = 4 [(buf.validate.field).int32 = {
       gte: 1,
       lt: 65536
     }];
-    string title = 5 [(validate.rules).string = {
+    string title = 5 [(buf.validate.field).string = {
       min_len: 3,
       max_len: 128
     }];
-    ServerScheme scheme = 6 [(validate.rules).enum.defined_only = true];
+    ServerScheme scheme = 6 [(buf.validate.field).enum.defined_only = true];
     bool audit = 7;
     bool active = 8;
     string description = 9;
 
-    string login = 10 [(validate.rules).string = {
+    string login = 10 [(buf.validate.field).string = {
       pattern: '^[a-z0-9]+$',
       min_len: 3,
       max_len: 20
@@ -197,12 +197,12 @@ message AddServer {
 // rpc UpdateServer
 message UpdateServer {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
-    string project_id = 2 [(validate.rules).string.uuid = true];
-    string server_id = 3 [(validate.rules).string.uuid = true];
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string project_id = 2 [(buf.validate.field).string.uuid = true];
+    string server_id = 3 [(buf.validate.field).string.uuid = true];
     oneof setting {
       Info info = 4;
       bool audit = 5;
@@ -216,17 +216,17 @@ message UpdateServer {
   }
 
   message Info {
-    string address = 1 [(validate.rules).string.address = true]; // @gotags: query:"address"
-    int32 port = 2 [(validate.rules).int32 = {
+    string address = 1 [(buf.validate.field).string.address = true]; // @gotags: query:"address"
+    int32 port = 2 [(buf.validate.field).int32 = {
       gte: 1,
       lt: 65536
     }]; // @gotags: query:"port"
-    string login = 3 [(validate.rules).string = {
+    string login = 3 [(buf.validate.field).string = {
       pattern: '^[a-z0-9]+$',
       min_len: 3,
       max_len: 20
     }]; // @gotags: query:"login"
-    string title = 4 [(validate.rules).string = {
+    string title = 4 [(buf.validate.field).string = {
       min_len: 3,
       max_len: 128
     }]; // @gotags: query:"title"
@@ -238,12 +238,12 @@ message UpdateServer {
 // rpc DeleteServer
 message DeleteServer {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id"
-    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string server_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id"
   }
 
   message Response {}
@@ -253,12 +253,12 @@ message DeleteServer {
 // rpc ServerAccess
 message ServerAccess {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id"
-    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string server_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id"
   }
 
   message Response {
@@ -282,21 +282,21 @@ message ServerAccess {
 // rpc UpdateServerAccess
 message UpdateServerAccess {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
-    string project_id = 2 [(validate.rules).string.uuid = true];
-    string server_id = 3 [(validate.rules).string.uuid = true];
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string project_id = 2 [(buf.validate.field).string.uuid = true];
+    string server_id = 3 [(buf.validate.field).string.uuid = true];
     oneof access {
-      string password = 5 [(validate.rules).string = {
+      string password = 5 [(buf.validate.field).string = {
         min_len: 8,
         max_len: 32
       }];
-      string key = 6 [(validate.rules).string = {
-        ignore_empty: true,
-        uuid: true
-      }];
+      string key = 6 [
+        (buf.validate.field).string.uuid = true,
+        (buf.validate.field).ignore_empty = true
+      ];
     }
   }
 
@@ -307,12 +307,12 @@ message UpdateServerAccess {
 // rpc ServerActivity
 message ServerActivity {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id"
-    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string server_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id"
   }
 
   message Response {
@@ -330,12 +330,12 @@ message ServerActivity {
 // rpc UpdateServerActivity
 message UpdateServerActivity {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id"
-    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string server_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id"
     ServerActivity.Response activity = 4;
   }
 
@@ -346,7 +346,7 @@ message UpdateServerActivity {
 // rpc UpdateHostKey
 message UpdateHostKey {
   message Request {
-    string server_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string server_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id"
     bytes hostkey = 2;
   }
 
@@ -357,7 +357,7 @@ message UpdateHostKey {
 // rpc AddSession
 message AddSession {
   message Request {
-    string account_id = 1 [(validate.rules).string.uuid = true]; // @gotags: query:"account_id"
+    string account_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"account_id"
     SessionStatus status = 2;
     google.protobuf.Timestamp created = 3;
     string message = 4;
@@ -372,12 +372,12 @@ message AddSession {
 // rpc ServerNameByID
 message ServerNameByID {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id" params:"user_id"
-    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
-    string server_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id" params:"server_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id" params:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id" params:"server_id"
   }
 
   message Response {
@@ -392,10 +392,10 @@ message ListShareServers {
     int32 limit = 1;
     int32 offset = 2;
     string sort_by = 3;
-    string user_id = 4 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id" params:"user_id"
+    string user_id = 4 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id" params:"user_id"
   }
 
   message Response {
@@ -418,12 +418,12 @@ message ListShareServers {
 // rpc AddShareServer
 message AddShareServer {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id" params:"user_id"
-    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
-    string server_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id" params:"server_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id" params:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id" params:"server_id"
   }
 
   message Response {}
@@ -433,12 +433,12 @@ message AddShareServer {
 // rpc UpdateShareServer
 message UpdateShareServer {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id" params:"user_id"
-    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
-    string share_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"share_id" params:"share_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id" params:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+    string share_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"share_id" params:"share_id"
   }
 
   message Response {}
@@ -448,12 +448,12 @@ message UpdateShareServer {
 // rpc DeleteShareServer
 message DeleteShareServer {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
-    string project_id = 2 [(validate.rules).string.uuid = true];
-    string share_id = 3 [(validate.rules).string.uuid = true];
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string project_id = 2 [(buf.validate.field).string.uuid = true];
+    string share_id = 3 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {}

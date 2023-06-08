@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package utility;
 
-import "validate/validate.proto";
+import "buf/validate/validate.proto";
 
 option go_package = "github.com/werbot/werbot/internal/grpc/utility/proto";
 
@@ -14,7 +14,7 @@ service UtilityHandlers {
 // rpc GetInfo
 message Countries {
   message Request {
-    string name = 1 [(validate.rules).string.min_len = 2];
+    string name = 1 [(buf.validate.field).string.min_len = 2];
   }
 
   message Response {
@@ -31,7 +31,7 @@ message Countries {
 // rpc CountryByIP
 message CountryByIP {
   message Request {
-    string ip = 1 [(validate.rules).string.ip = true];
+    string ip = 1 [(buf.validate.field).string.ip = true];
   }
   message Response {
     string name = 1;

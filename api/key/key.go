@@ -3,13 +3,13 @@ package key
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/werbot/werbot/internal/grpc"
 	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/trace"
@@ -34,13 +34,8 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(keypb.Key_RequestMultiError) {
-			e := err.(keypb.Key_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -100,13 +95,8 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(keypb.AddKey_RequestMultiError) {
-			e := err.(keypb.AddKey_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -139,13 +129,8 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(keypb.UpdateKey_RequestMultiError) {
-			e := err.(keypb.UpdateKey_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -155,8 +140,7 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
-	_, err := rClient.UpdateKey(ctx, request)
-	if err != nil {
+	if _, err := rClient.UpdateKey(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
@@ -180,13 +164,8 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(keypb.DeleteKey_RequestMultiError) {
-			e := err.(keypb.DeleteKey_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -196,8 +175,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 	defer cancel()
 
 	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
-	_, err := rClient.DeleteKey(ctx, request)
-	if err != nil {
+	if _, err := rClient.DeleteKey(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 

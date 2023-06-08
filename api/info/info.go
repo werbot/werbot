@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -13,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
+	"github.com/werbot/werbot/internal/grpc"
 	infopb "github.com/werbot/werbot/internal/grpc/info/proto"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -95,13 +95,8 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("Incorrect parameters"))
 	}
 
-	if err := request.ValidateAll(); err != nil {
-		multiError := make(map[string]string)
-		for _, err := range err.(infopb.UserMetrics_RequestMultiError) {
-			e := err.(infopb.UserMetrics_RequestValidationError)
-			multiError[strings.ToLower(e.Field())] = e.Reason()
-		}
-		return webutil.FromGRPC(c, err, multiError)
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.FromGRPC(c, err, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package firewall;
 
-import "validate/validate.proto";
+import "buf/validate/validate.proto";
 
 option go_package = "github.com/werbot/werbot/internal/grpc/firewall/proto";
 
@@ -62,12 +62,12 @@ message IpMask {
 // rpc ServerFirewall
 message ServerFirewall {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id"
-    string project_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"project_id"
-    string server_id = 3 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id"
   }
 
   message Response {
@@ -90,15 +90,15 @@ message ServerFirewall {
 // rpc AddServerFirewall
 message AddServerFirewall {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
-    string project_id = 2 [(validate.rules).string.uuid = true];
-    string server_id = 3 [(validate.rules).string.uuid = true];
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string project_id = 2 [(buf.validate.field).string.uuid = true];
+    string server_id = 3 [(buf.validate.field).string.uuid = true];
     oneof record {
       IpMask ip = 4;
-      string country_code = 5 [(validate.rules).string.len = 2];
+      string country_code = 5 [(buf.validate.field).string.len = 2];
     }
   }
 
@@ -111,12 +111,12 @@ message AddServerFirewall {
 // rpc UpdateServerFirewall
 message UpdateServerFirewall {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
-    string project_id = 2 [(validate.rules).string.uuid = true];
-    string server_id = 3 [(validate.rules).string.uuid = true];
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string project_id = 2 [(buf.validate.field).string.uuid = true];
+    string server_id = 3 [(buf.validate.field).string.uuid = true];
     Rules rule = 4;
     bool status = 5;
   }
@@ -128,14 +128,14 @@ message UpdateServerFirewall {
 // rpc DeleteServerFirewall
 message DeleteServerFirewall {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
-    string project_id = 2 [(validate.rules).string.uuid = true];
-    string server_id = 3 [(validate.rules).string.uuid = true];
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string project_id = 2 [(buf.validate.field).string.uuid = true];
+    string server_id = 3 [(buf.validate.field).string.uuid = true];
     Rules rule = 4;
-    string record_id = 5 [(validate.rules).string.uuid = true];
+    string record_id = 5 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {}
@@ -145,7 +145,7 @@ message DeleteServerFirewall {
 // rpc IPAccess
 message IPAccess {
   message Request {
-    string client_ip = 1 [(validate.rules).string.ip = true];
+    string client_ip = 1 [(buf.validate.field).string.ip = true];
   }
   message Response {}
 }
@@ -154,12 +154,12 @@ message IPAccess {
 // rpc ServerAccess
 message ServerAccess {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id"
-    string server_id = 2 [(validate.rules).string.uuid = true]; // @gotags: query:"server_id"
-    string member_ip = 3 [(validate.rules).string.ip = true]; // @gotags: query:"member_ip"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id"
+    string server_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id"
+    string member_ip = 3 [(buf.validate.field).string.ip = true]; // @gotags: query:"member_ip"
   }
   message Response {}
 }
@@ -168,11 +168,11 @@ message ServerAccess {
 // rpc ServerAccessUser
 message ServerAccessUser {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
-    string server_id = 2 [(validate.rules).string.uuid = true];
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string server_id = 2 [(buf.validate.field).string.uuid = true];
   }
   message Response {}
 }
@@ -181,7 +181,7 @@ message ServerAccessUser {
 // rpc ServerAccessTime
 message ServerAccessTime {
   message Request {
-    string server_id = 1 [(validate.rules).string.uuid = true];
+    string server_id = 1 [(buf.validate.field).string.uuid = true];
   }
   message Response {}
 }
@@ -190,8 +190,8 @@ message ServerAccessTime {
 // rpc ServerAccessIP
 message ServerAccessIP {
   message Request {
-    string server_id = 1 [(validate.rules).string.uuid = true];
-    string member_ip = 2 [(validate.rules).string.ip = true];
+    string server_id = 1 [(buf.validate.field).string.uuid = true];
+    string member_ip = 2 [(buf.validate.field).string.ip = true];
   }
   message Response {}
 }
@@ -200,8 +200,8 @@ message ServerAccessIP {
 // rpc ServerAccessCountry
 message ServerAccessCountry {
   message Request {
-    string server_id = 1 [(validate.rules).string.uuid = true];
-    string member_ip = 2 [(validate.rules).string.ip = true];
+    string server_id = 1 [(buf.validate.field).string.uuid = true];
+    string member_ip = 2 [(buf.validate.field).string.ip = true];
   }
   message Response {}
 }

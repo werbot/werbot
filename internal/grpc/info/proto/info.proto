@@ -3,7 +3,7 @@ syntax = "proto3";
 package info;
 
 import "internal/grpc/user/proto/user.proto";
-import "validate/validate.proto";
+import "buf/validate/validate.proto";
 
 option go_package = "github.com/werbot/werbot/internal/grpc/info/proto";
 
@@ -14,10 +14,10 @@ service InfoHandlers {
 // rpc UserMetrics
 message UserMetrics {
   message Request {
-    string user_id = 1 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }]; // @gotags: query:"user_id" params:"user_id"
+    string user_id = 1 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ]; // @gotags: query:"user_id" params:"user_id"
     user.Role role = 2;
   }
 

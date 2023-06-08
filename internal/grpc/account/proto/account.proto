@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package account;
 
+import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 import "internal/grpc/user/proto/user.proto";
-import "validate/validate.proto";
 
 option go_package = "github.com/werbot/werbot/internal/grpc/account/proto";
 
@@ -37,8 +37,12 @@ enum AccountStatus {
 // rpc SignIn
 message SignIn {
   message Request {
-    string email = 2 [(validate.rules).string.email = true];
-    string password = 3 [(validate.rules).string = {
+    string email = 1 [(buf.validate.field).cel = {
+      id: "request.email",
+      message: "value must be a valid email address",
+      expression: "this.isEmail()"
+    }];
+    string password = 2 [(buf.validate.field).string = {
       min_len: 8,
       max_len: 32
     }];
@@ -57,16 +61,16 @@ message SignIn {
 message ResetPassword {
   message Request {
     oneof request {
-      string email = 1 [(validate.rules).string.email = true];
-      string password = 2 [(validate.rules).string = {
+      string email = 1 [(buf.validate.field).string.email = true];
+      string password = 2 [(buf.validate.field).string = {
         min_len: 8,
         max_len: 32
       }];
     }
-    string token = 3 [(validate.rules).string = {
-      ignore_empty: true,
-      uuid: true
-    }];
+    string token = 3 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
   }
 
   message Response {
@@ -77,7 +81,7 @@ message ResetPassword {
 // -----------------------------------------------------
 
 message RefreshTokenRequest {
-  string refresh_token = 1 [(validate.rules).string.uuid = true];
+  string refresh_token = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message UserParameters {
@@ -111,7 +115,7 @@ message ListAccounts {
 // rpc Account
 message Account {
   message Request {
-    string account_id = 1 [(validate.rules).string.uuid = true];
+    string account_id = 1 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {
@@ -130,7 +134,7 @@ message Account {
 // rpc AddAccount
 message AddAccount {
   message Request {
-    string account_id = 1 [(validate.rules).string.uuid = true];
+    string account_id = 1 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {}
@@ -140,7 +144,7 @@ message AddAccount {
 // rpc UpdateAccount
 message UpdateAccount {
   message Request {
-    string account_id = 1 [(validate.rules).string.uuid = true];
+    string account_id = 1 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {}
@@ -150,7 +154,7 @@ message UpdateAccount {
 // rpc DeleteAccount
 message DeleteAccount {
   message Request {
-    string account_id = 1 [(validate.rules).string.uuid = true];
+    string account_id = 1 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {}
@@ -162,7 +166,7 @@ message AccountIDByLogin {
   message Request {
     string login = 1;
     string fingerprint = 2;
-    string client_ip = 3 [(validate.rules).string.ip = true];
+    string client_ip = 3 [(buf.validate.field).string.ip = true];
   }
 
   message Response {
@@ -174,7 +178,7 @@ message AccountIDByLogin {
 // rpc UpdateStatus
 message UpdateStatus {
   message Request {
-    string account_id = 1 [(validate.rules).string.uuid = true];
+    string account_id = 1 [(buf.validate.field).string.uuid = true];
     AccountStatus status = 2;
   }
 

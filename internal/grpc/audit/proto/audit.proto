@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package audit;
 
+import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
-import "validate/validate.proto";
 
 option go_package = "github.com/werbot/werbot/internal/grpc/audit/proto";
 
@@ -23,7 +23,7 @@ service AuditHandlers {
 // rpc ListAudits
 message ListAudits {
   message Request {
-    string server_id = 1 [(validate.rules).string.uuid = true];
+    string server_id = 1 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {
@@ -36,7 +36,7 @@ message ListAudits {
 // rpc Audit
 message Audit {
   message Request {
-    string audit_id = 1 [(validate.rules).string.uuid = true];
+    string audit_id = 1 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {
@@ -49,8 +49,8 @@ message Audit {
 // rpc rpc AddAudit
 message AddAudit {
   message Request {
-    string server_id = 1 [(validate.rules).string.uuid = true];
-    string account_id = 2 [(validate.rules).string.uuid = true];
+    string server_id = 1 [(buf.validate.field).string.uuid = true];
+    string account_id = 2 [(buf.validate.field).string.uuid = true];
     google.protobuf.Timestamp time_start = 3;
     int32 version = 4;
     string session = 5;
@@ -87,7 +87,7 @@ message UpdateAudit {
 // rpc DeleteAudit
 message DeleteAudit {
   message Request {
-    string audit_id = 1 [(validate.rules).string.uuid = true];
+    string audit_id = 1 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {}
@@ -107,7 +107,7 @@ message Record {
 // rpc ListRecords
 message ListRecords {
   message Request {
-    string audit_id = 1 [(validate.rules).string.uuid = true];
+    string audit_id = 1 [(buf.validate.field).string.uuid = true];
   }
 
   message Response {
@@ -119,7 +119,7 @@ message ListRecords {
 // rpc AddRecord
 message AddRecord {
   message Request {
-    string audit_id = 1 [(validate.rules).string.uuid = true];
+    string audit_id = 1 [(buf.validate.field).string.uuid = true];
     repeated Record records = 2;
   }
 
