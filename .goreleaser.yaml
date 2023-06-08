@@ -145,6 +145,8 @@ dockers:
       - --label=org.opencontainers.image.url={{.GitURL}}
       - --label=org.opencontainers.image.documentation={{.GitURL}}
       - --label=org.opencontainers.image.source={{replace .GitURL ".git" "" }}
+    extra_files:
+      - cmd/taco/templates
 
 upx:
   - enabled: true

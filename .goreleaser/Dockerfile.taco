@@ -4,4 +4,5 @@ RUN apk add --no-cache ca-certificates && update-ca-certificates 2>/dev/null || 
 FROM scratch
 ENTRYPOINT ["/taco"]
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+ADD cmd/taco/templates/ /templates/
 COPY werbot_taco_Linux_amd64 /taco
