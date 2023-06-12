@@ -3,7 +3,7 @@ module github.com/werbot/werbot
 go 1.20
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.30.0-20230530223247-ca37dc8895db.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.30.0-20230609233005-3757a25ff0b9.1
 	github.com/alicebob/miniredis/v2 v2.30.3
 	github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a
 	github.com/bufbuild/protovalidate-go v0.1.1
