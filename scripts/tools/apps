@@ -41,19 +41,19 @@ Linux)
   print_answer "SUCCESS" green
 
   print_header "Install/Update protoc-gen-go"
-  go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+  go install google.golang.org/protobuf/cmd/protoc-gen-go@latest >/dev/null 2>&1
   print_answer "SUCCESS" green
 
   print_header "Install/Update protoc-gen-go-grpc"
-  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest >/dev/null 2>&1
   print_answer "SUCCESS" green
 
   print_header "Install/Update protoc-go-inject-tag"
-  go install github.com/favadi/protoc-go-inject-tag@latest
+  go install github.com/favadi/protoc-go-inject-tag@latest >/dev/null 2>&1
   print_answer "SUCCESS" green
 
   print_header "Install/Update goose"
-  go install github.com/pressly/goose/v3/cmd/goose@latest
+  go install github.com/pressly/goose/v3/cmd/goose@latest >/dev/null 2>&1
   print_answer "SUCCESS" green
 
   print_header "Install/Update yq"
