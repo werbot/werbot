@@ -7,11 +7,10 @@ source ${ROOT_PATH}/scripts/helper
 
 arr_process=(__debug_bin vite)
 for process in "${arr_process[@]}"; do
-  for pid in $(echo $(ps ax | grep $process | grep -v grep | awk '{print $1}')); do
-    print_header "Killing $process process $pid"
-    kill $pid
+  if pkill -f "$process" >/dev/null; then
+    print_header "Killing $process process"
     print_answer "SUCCESS" green
-  done
+  fi
 done
 
 print_header "Leaning garbage and inactive containers"
@@ -23,3 +22,9 @@ rm -rf ${ROOT_PATH}/bin/* ${ROOT_PATH}/dist/
 docker system prune --all --volumes --force >/dev/null 2>&1
 docker image prune --filter "dangling=true" --force >/dev/null 2>&1
 print_answer "SUCCESS" green
+
+if pgrep -f "postgres.*9876" >/dev/null; then
+  print_header "Killing embedded postgres"
+  kill $(pgrep -f "postgres.*9876")
+  print_answer "SUCCESS" green
+fi
