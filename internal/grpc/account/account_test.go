@@ -5,21 +5,40 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/utils/test"
 )
 
-func Test_account_AccountIDByLogin(t *testing.T) {
-	t.Parallel()
+type testSetup struct {
+	ctx  context.Context
+	grpc *grpc.ClientConn
+}
 
+func setupTest(t *testing.T) (testSetup, func(t *testing.T)) {
 	ctx := context.Background()
 
-	postgres, _ := test.CreateDB(t, "../../../migration", "../../../fixtures/migration")
-	defer postgres.Stop(t)
-
+	postgres, err := test.CreateDB(t, "../../../migration", "../../../fixtures/migration")
 	grpc := test.CreateGRPC(ctx, t, &test.Service{DB: postgres.Conn})
-	defer grpc.Close()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	return testSetup{
+			ctx:  ctx,
+			grpc: grpc,
+		}, func(t *testing.T) {
+			postgres.Stop(t)
+			grpc.Close()
+		}
+}
+
+func Test_account_AccountIDByLogin(t *testing.T) {
+	//t.Parallel()
+	setup, teardownTestCase := setupTest(t)
+	defer teardownTestCase(t)
 
 	testCases := []struct {
 		name    string
@@ -50,8 +69,8 @@ func Test_account_AccountIDByLogin(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			a := accountpb.NewAccountHandlersClient(grpc)
-			response, err := a.AccountIDByLogin(ctx, tt.req)
+			a := accountpb.NewAccountHandlersClient(setup.grpc)
+			response, err := a.AccountIDByLogin(setup.ctx, tt.req)
 			if err != nil {
 				require.EqualError(t, err, tt.respErr)
 				return
