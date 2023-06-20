@@ -164,36 +164,46 @@ CREATE TABLE "public"."server_security_country" (
     FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE CASCADE
 );
 
-CREATE TABLE "public"."logs_project" (
-    "id" uuid DEFAULT gen_random_uuid (),
-    "project_id" uuid NOT NULL,
-    "entity_id" varchar(255) NOT NULL,
-    "entity_name" varchar(255) NOT NULL,
-    "editor_name" varchar(255) DEFAULT NULL,
-    "editor_role" bpchar(32) DEFAULT NULL::bpchar,
-    "user_agent" varchar(255) NOT NULL DEFAULT '',
-    "ip" int8,
-    "event" varchar(32) NOT NULL,
-    "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
-    "created" timestamp DEFAULT now(),
-    PRIMARY KEY ("id"),
-    FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE
-);
-
 CREATE TABLE "public"."logs_profile" (
     "id" uuid DEFAULT gen_random_uuid (),
     "profile_id" uuid NOT NULL,
-    "entity_id" varchar(255) NOT NULL,
-    "entity_name" varchar(255) NOT NULL,
-    "editor_name" varchar(255) DEFAULT NULL,
-    "editor_role" bpchar(32) DEFAULT NULL::bpchar,
+    "user_id" uuid NOT NULL,
     "user_agent" varchar(255) NOT NULL DEFAULT '',
-    "ip" int8,
-    "event" varchar(32) NOT NULL,
+    "ip" inet,
+    "event" int2 NOT NULL,
     "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
     "created" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
-    FOREIGN KEY ("profile_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
+    FOREIGN KEY ("profile_id") REFERENCES "public"."user"("id") ON DELETE CASCADE,
+    FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
+);
+
+CREATE TABLE "public"."logs_project" (
+    "id" uuid DEFAULT gen_random_uuid (),
+    "project_id" uuid NOT NULL,
+    "user_id" uuid NOT NULL,
+    "user_agent" varchar(255) NOT NULL DEFAULT '',
+    "ip" inet,
+    "event" int2 NOT NULL,
+    "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
+    "created" timestamp DEFAULT now(),
+    PRIMARY KEY ("id"),
+    FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE,
+    FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
+);
+
+CREATE TABLE "public"."logs_server" (
+    "id" uuid DEFAULT gen_random_uuid (),
+    "server_id" uuid NOT NULL,
+    "user_id" uuid NOT NULL,
+    "user_agent" varchar(255) NOT NULL DEFAULT '',
+    "ip" inet,
+    "event" int2 NOT NULL,
+    "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
+    "created" timestamp DEFAULT now(),
+    PRIMARY KEY ("id"),
+    FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE CASCADE,
+    FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "public"."server_security_ip" (
@@ -311,6 +321,7 @@ DROP TABLE IF EXISTS "public"."user_public_key";
 DROP TABLE IF EXISTS "public"."session";
 DROP TABLE IF EXISTS "public"."server_security_ip";
 DROP TABLE IF EXISTS "public"."logs_profile";
+DROP TABLE IF EXISTS "public"."logs_server";
 DROP TABLE IF EXISTS "public"."logs_project";
 DROP TABLE IF EXISTS "public"."server_security_country";
 DROP TABLE IF EXISTS "public"."country";

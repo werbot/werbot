@@ -1,6 +1,8 @@
 package trace
 
 import (
+	"database/sql"
+
 	"github.com/werbot/werbot/pkg/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -34,5 +36,10 @@ func Error(code codes.Code, message ...string) error {
 // sequencer check failures, transaction aborts, etc.
 func ErrorAborted(err error, log logger.Logger, message ...string) error {
 	log.ErrorGRPC(status.Error(codes.Aborted, err.Error()), 2).Send()
+
+	if err == sql.ErrNoRows {
+		return Error(codes.NotFound, message...)
+	}
+
 	return Error(codes.Aborted, message...)
 }

@@ -15,7 +15,7 @@ func Test_account_AccountIDByLogin(t *testing.T) {
 
 	ctx := context.Background()
 
-	postgres := test.CreateDB(t, "../../../migration", "../../../fixtures/migration")
+	postgres, _ := test.CreateDB(t, "../../../migration", "../../../fixtures/migration")
 	defer postgres.Stop(t)
 
 	grpc := test.CreateGRPC(ctx, t, &test.Service{DB: postgres.Conn})

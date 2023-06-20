@@ -3,7 +3,6 @@ package test
 import (
 	"bytes"
 	"context"
-	"log"
 	"testing"
 
 	ep "github.com/fergusstrange/embedded-postgres"
@@ -18,7 +17,7 @@ type DB struct {
 }
 
 // CreateDB is ...
-func CreateDB(t *testing.T, dirs ...string) *DB {
+func CreateDB(t *testing.T, dirs ...string) (*DB, error) {
 	db := new(DB)
 
 	db.Server = ep.NewDatabase(ep.DefaultConfig().
@@ -26,30 +25,33 @@ func CreateDB(t *testing.T, dirs ...string) *DB {
 		Logger(&bytes.Buffer{}).
 		Port(9876))
 
-	err := db.Server.Start()
-	if err != nil {
-		log.Fatalf("Server postgres exited with error: %v", err)
+	if err := db.Server.Start(); err != nil {
+		return nil, err
 	}
 
 	// connect to postgres
-	db.Conn, _ = postgres.New(context.Background(), &postgres.PgSQLConfig{
+	conn, err := postgres.New(context.Background(), &postgres.PgSQLConfig{
 		DSN: "postgres://postgres:postgres@localhost:9876/postgres?sslmode=disable",
 	})
+	if err != nil {
+		return nil, err
+	}
+	db.Conn = conn
 
 	// migration to postgres
 	for _, opt := range dirs {
 		if err := goose.Up(db.Conn.Conn, opt); err != nil {
-			log.Fatalf("Migration exited with error: %v", err)
+			//log.Fatalf("Migration exited with error: %v", err)
+			return nil, err
 		}
 	}
 
-	return db
+	return db, nil
 }
 
 // Stop is ...
 func (d *DB) Stop(t *testing.T) {
-	err := d.Server.Stop()
-	if err != nil {
+	if err := d.Server.Stop(); err != nil {
 		t.Error(err)
 	}
 }
