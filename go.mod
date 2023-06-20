@@ -11,17 +11,17 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/fsouza/go-dockerclient v1.9.7
 	github.com/gliderlabs/ssh v0.3.5
-	github.com/gofiber/fiber/v2 v2.46.0
+	github.com/gofiber/fiber/v2 v2.47.0
 	github.com/gofiber/helmet/v2 v2.2.26
 	github.com/gofiber/jwt/v3 v3.3.10
 	github.com/gofiber/keyauth/v2 v2.2.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.0
 	github.com/hibiken/asynq v0.24.1
-	github.com/jackc/pgx/v5 v5.4.0
+	github.com/jackc/pgx/v5 v5.4.1
 	github.com/joho/godotenv v1.5.1
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/oschwald/geoip2-golang v1.8.0
+	github.com/oschwald/geoip2-golang v1.9.0
 	github.com/pressly/goose/v3 v3.11.2
 	github.com/redis/go-redis/v9 v9.0.5
 	github.com/rs/zerolog v1.29.1
@@ -72,7 +72,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc3 // indirect
 	github.com/opencontainers/runc v1.1.7 // indirect
-	github.com/oschwald/maxminddb-golang v1.10.0 // indirect
+	github.com/oschwald/maxminddb-golang v1.11.0 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -86,7 +86,7 @@ require (
 	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/toorop/go-dkim v0.0.0-20201103131630-e1cd1a0a5208 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.47.0 // indirect
+	github.com/valyala/fasthttp v1.48.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/vanng822/css v1.0.1 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
