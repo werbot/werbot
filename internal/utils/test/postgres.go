@@ -10,22 +10,25 @@ import (
 	"github.com/werbot/werbot/internal/storage/postgres"
 )
 
-// DB is ...
-type DB struct {
+// PostgresService is ...
+type PostgresService struct {
 	Server *ep.EmbeddedPostgres
 	Conn   *postgres.Connect
+	test   *testing.T
 }
 
-// CreateDB is ...
-func CreateDB(t *testing.T, dirs ...string) (*DB, error) {
-	db := new(DB)
+// Postgres is ...
+func Postgres(t *testing.T, dirs ...string) (*PostgresService, error) {
+	service := &PostgresService{
+		test: t,
+	}
 
-	db.Server = ep.NewDatabase(ep.DefaultConfig().
+	service.Server = ep.NewDatabase(ep.DefaultConfig().
 		Version(ep.V15).
 		Logger(&bytes.Buffer{}).
 		Port(9876))
 
-	if err := db.Server.Start(); err != nil {
+	if err := service.Server.Start(); err != nil {
 		return nil, err
 	}
 
@@ -36,22 +39,21 @@ func CreateDB(t *testing.T, dirs ...string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.Conn = conn
+	service.Conn = conn
 
 	// migration to postgres
 	for _, opt := range dirs {
-		if err := goose.Up(db.Conn.Conn, opt); err != nil {
-			//log.Fatalf("Migration exited with error: %v", err)
+		if err := goose.Up(service.Conn.Conn, opt); err != nil {
 			return nil, err
 		}
 	}
 
-	return db, nil
+	return service, nil
 }
 
-// Stop is ...
-func (d *DB) Stop(t *testing.T) {
+// Close is ...
+func (d *PostgresService) Close() {
 	if err := d.Server.Stop(); err != nil {
-		t.Error(err)
+		d.test.Error(err)
 	}
 }

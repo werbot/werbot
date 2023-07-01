@@ -6,7 +6,6 @@ import (
 	"net"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 
@@ -38,49 +37,61 @@ import (
 	"github.com/werbot/werbot/internal/storage/redis"
 )
 
-var service Service
+type GRPCService struct {
+	*grpc.ClientConn
 
-// Service is ...
-type Service struct {
-	DB    *postgres.Connect
-	Redis redis.Handler
+	test  *testing.T
+	db    *postgres.Connect
+	redis redis.Handler
 }
 
-// CreateGRPC is ...
-func CreateGRPC(ctx context.Context, t *testing.T, s *Service) *grpc.ClientConn {
-	service.DB = s.DB
-	service.Redis = s.Redis
+// GRPC is ...
+func GRPC(ctx context.Context, t *testing.T, db *postgres.Connect, redis redis.Handler) (*GRPCService, error) {
+	service := &GRPCService{
+		test:  t,
+		db:    db,
+		redis: redis,
+	}
+	conn, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithContextDialer(service.serverGRPC()))
+	if err != nil {
+		return nil, err
+	}
+	service.ClientConn = conn
 
-	conn, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithContextDialer(serverGRPC(t)))
-	require.NoError(t, err)
-
-	return conn
+	return service, nil
 }
 
-func serverGRPC(t *testing.T) func(context.Context, string) (net.Conn, error) {
+func (s *GRPCService) serverGRPC() func(context.Context, string) (net.Conn, error) {
 	listener := bufconn.Listen(1024 * 1024)
-	tServer := grpc.NewServer()
+	newServer := grpc.NewServer()
 
-	accountpb.RegisterAccountHandlersServer(tServer, &account.Handler{DB: service.DB})
-	auditpb.RegisterAuditHandlersServer(tServer, &audit.Handler{DB: service.DB})
-	firewallpb.RegisterFirewallHandlersServer(tServer, &firewall.Handler{DB: service.DB})
-	infopb.RegisterInfoHandlersServer(tServer, &info.Handler{DB: service.DB})
-	keypb.RegisterKeyHandlersServer(tServer, &key.Handler{DB: service.DB, Redis: service.Redis})
-	licensepb.RegisterLicenseHandlersServer(tServer, &license.Handler{})
-	memberpb.RegisterMemberHandlersServer(tServer, &member.Handler{DB: service.DB})
-	projectpb.RegisterProjectHandlersServer(tServer, &project.Handler{DB: service.DB})
-	serverpb.RegisterServerHandlersServer(tServer, &server.Handler{DB: service.DB, Redis: service.Redis})
-	userpb.RegisterUserHandlersServer(tServer, &user.Handler{DB: service.DB})
-	utilitypb.RegisterUtilityHandlersServer(tServer, &utility.Handler{DB: service.DB})
-	loggingpb.RegisterLoggingHandlersServer(tServer, &logging.Handler{DB: service.DB})
+	accountpb.RegisterAccountHandlersServer(newServer, &account.Handler{DB: s.db})
+	auditpb.RegisterAuditHandlersServer(newServer, &audit.Handler{DB: s.db})
+	firewallpb.RegisterFirewallHandlersServer(newServer, &firewall.Handler{DB: s.db})
+	infopb.RegisterInfoHandlersServer(newServer, &info.Handler{DB: s.db})
+	keypb.RegisterKeyHandlersServer(newServer, &key.Handler{DB: s.db, Redis: s.redis})
+	licensepb.RegisterLicenseHandlersServer(newServer, &license.Handler{})
+	memberpb.RegisterMemberHandlersServer(newServer, &member.Handler{DB: s.db})
+	projectpb.RegisterProjectHandlersServer(newServer, &project.Handler{DB: s.db})
+	serverpb.RegisterServerHandlersServer(newServer, &server.Handler{DB: s.db, Redis: s.redis})
+	userpb.RegisterUserHandlersServer(newServer, &user.Handler{DB: s.db})
+	utilitypb.RegisterUtilityHandlersServer(newServer, &utility.Handler{DB: s.db})
+	loggingpb.RegisterLoggingHandlersServer(newServer, &logging.Handler{DB: s.db})
 
 	go func() {
-		if err := tServer.Serve(listener); err != nil {
+		if err := newServer.Serve(listener); err != nil {
 			log.Fatalf("Server GRPC exited with error: %v", err)
 		}
 	}()
 
 	return func(context.Context, string) (net.Conn, error) {
 		return listener.Dial()
+	}
+}
+
+// Close is ...
+func (s *GRPCService) Close() {
+	if err := s.ClientConn.Close(); err != nil {
+		s.test.Error(err)
 	}
 }
