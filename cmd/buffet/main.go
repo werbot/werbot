@@ -46,10 +46,10 @@ func main() {
 	}
 
 	// Connect to Redis via Unix socket
-	cache := rdb.NewClient(ctx, &redis.Options{
+	cache := rdb.NewClient(ctx, redis.NewClient(&redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
-	})
+	}))
 
 	// Load TLS configuration from files at startup
 	cert, err := tls.LoadX509KeyPair(

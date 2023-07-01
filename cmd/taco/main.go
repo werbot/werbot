@@ -68,10 +68,10 @@ func main() {
 		grpc_private,
 	)
 
-	cache := rdb.NewClient(ctx, &redis.Options{
+	cache := rdb.NewClient(ctx, redis.NewClient(&redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
-	})
+	}))
 
 	ln, err := net.Listen("tcp", appPort)
 	if err != nil {

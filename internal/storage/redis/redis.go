@@ -25,10 +25,10 @@ type rdb struct {
 }
 
 // NewClient creates a new Handler backed by Redis using the given options.
-func NewClient(ctx context.Context, opts *redis.Options) Handler {
+func NewClient(ctx context.Context, client *redis.Client) Handler {
 	return &rdb{
 		ctx:    ctx,
-		client: redis.NewClient(opts),
+		client: client,
 	}
 }
 
@@ -45,7 +45,8 @@ func (c rdb) Ping() error {
 
 // Set is provides a way to set values in Redis.
 func (c rdb) Set(key string, value any, expiration time.Duration) error {
-	return c.client.Set(c.ctx, key, value, expiration).Err()
+	err := c.client.Set(c.ctx, key, value, expiration).Err()
+	return err
 }
 
 // Get is provides a way to retrieve values from Redis.

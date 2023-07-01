@@ -44,10 +44,10 @@ func main() {
 
 	app.log = logger.New()
 
-	app.redis = rdb.NewClient(ctx, &redis.Options{
+	app.redis = rdb.NewClient(ctx, redis.NewClient(&redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
-	})
+	}))
 
 	app.broker = broker.New(ctx, app.redis.Client())
 
