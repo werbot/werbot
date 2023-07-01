@@ -16,7 +16,7 @@ func Test_license(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	grpc := test.CreateGRPC(ctx, t, &test.Service{DB: nil})
+	grpc, _ := test.GRPC(ctx, t, nil, nil)
 	defer grpc.Close()
 
 	fixturePath := "../../../fixtures/licenses/"

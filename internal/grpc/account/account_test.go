@@ -19,8 +19,8 @@ type testSetup struct {
 func setupTest(t *testing.T) (testSetup, func(t *testing.T)) {
 	ctx := context.Background()
 
-	postgres, err := test.CreateDB(t, "../../../migration", "../../../fixtures/migration")
-	grpc := test.CreateGRPC(ctx, t, &test.Service{DB: postgres.Conn})
+	postgres, err := test.Postgres(t, "../../../migration", "../../../fixtures/migration")
+	grpc, _ := test.GRPC(ctx, t, postgres.Conn, nil)
 
 	if err != nil {
 		t.Error(err)
@@ -28,9 +28,9 @@ func setupTest(t *testing.T) (testSetup, func(t *testing.T)) {
 
 	return testSetup{
 			ctx:  ctx,
-			grpc: grpc,
+			grpc: grpc.ClientConn,
 		}, func(t *testing.T) {
-			postgres.Stop(t)
+			postgres.Close()
 			grpc.Close()
 		}
 }
