@@ -7,7 +7,7 @@ source ${ROOT_PATH}/scripts/helper
 
 print_header "Generating $1 key"
 
-arr_type=(aes server jwt grpc)
+arr_type=(aes server jwt grpc postgres)
 if [[ " ${arr_type[@]} " =~ " $1 " ]]; then
   if [ "$1" == "aes" ]; then
     print_answer "SUCCESS" green
@@ -58,6 +58,22 @@ EOF
     mv ${ROOT_PATH}/.vscode/tmp/private_key.pem ${ROOT_PATH}/.vscode/core/grpc_private.key
     mv ${ROOT_PATH}/.vscode/tmp/certificate.pem ${ROOT_PATH}/.vscode/core/grpc_certificate.key
     rm -rf ${ROOT_PATH}/.vscode/tmp
+
+    print_answer "SUCCESS" green
+  elif [ "$1" == "postgres" ]; then
+    if ! [ -d ${ROOT_PATH}/docker/postgres/ca ]; then
+      mkdir ${ROOT_PATH}/docker/postgres/ca
+    else
+      sudo rm -rf ${ROOT_PATH}/docker/postgres/ca/*
+    fi
+
+    openssl req -new -x509 -days 1825 -nodes -text \
+      -subj "/CN=localhost" \
+      -out ${ROOT_PATH}/docker/postgres/ca/server.crt \
+      -keyout ${ROOT_PATH}/docker/postgres/ca/server.key >/dev/null 2>&1
+
+    sudo chown 70 ${ROOT_PATH}/docker/postgres/ca/server.key
+    sudo chmod 600 ${ROOT_PATH}/docker/postgres/ca/server.key
 
     print_answer "SUCCESS" green
   fi

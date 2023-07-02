@@ -36,16 +36,16 @@ run_goose() {
     print_answer "ERROR" red
     echo "Parameters not passed"
     echo
-    echo "migration <migration> <action>"
+    echo "$0 <command> [option...]"
     echo
-    echo "<migration>:"
+    echo "command:"
     print_help "<empty>" "Core version"
     print_help ent "Enterprise version"
     print_help saas "SaaS version"
     print_help test "Test version"
     print_help dev "Development fixtures"
     echo
-    echo "<action>:"
+    echo "option:"
     print_help create "Core version"
     print_help up "Migrate the DB to the most recent version available"
     print_help up1 "Migrate the DB up by 1"
@@ -79,6 +79,7 @@ elif [[ $MIGRATION == "dev" ]]; then
   if [[ " ${arr_goose[@]} " =~ " $GOOSE_ACTION " ]]; then
     SOURCE=${BASH_SOURCE[0]}
     if [ $GOOSE_ACTION == "up" ]; then
+      $SOURCE up
       $SOURCE ent up
       $SOURCE saas up
       $SOURCE test up
@@ -86,6 +87,7 @@ elif [[ $MIGRATION == "dev" ]]; then
       $SOURCE test down
       $SOURCE saas down
       $SOURCE ent down
+      $SOURCE down
     fi
   else
     print_header "Migrations sql"
