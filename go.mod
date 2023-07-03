@@ -22,7 +22,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/oschwald/geoip2-golang v1.9.0
-	github.com/pressly/goose/v3 v3.11.2
+	github.com/pressly/goose/v3 v3.13.1
 	github.com/redis/go-redis/v9 v9.0.5
 	github.com/rs/zerolog v1.29.1
 	github.com/stretchr/testify v1.8.4
