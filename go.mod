@@ -3,7 +3,7 @@ module github.com/werbot/werbot
 go 1.20
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.30.0-20230609233005-3757a25ff0b9.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.31.0-20230609233005-3757a25ff0b9.1
 	github.com/alicebob/miniredis/v2 v2.30.3
 	github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a
 	github.com/bufbuild/protovalidate-go v0.1.1
@@ -32,7 +32,7 @@ require (
 	golang.org/x/oauth2 v0.9.0
 	golang.org/x/term v0.9.0
 	google.golang.org/grpc v1.57.0-dev
-	google.golang.org/protobuf v1.30.0
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
