@@ -65,7 +65,17 @@ func FromGRPC(c *fiber.Ctx, err error, messages ...any) error {
 	return nil
 }
 
-// StatusOK - HTTP error code 400
+// StatusOK is ...
 func StatusOK(c *fiber.Ctx, message string, data any) error {
-	return Response(c, 200, message, data)
+	return Response(c, fiber.StatusOK, message, data)
+}
+
+// StatusNotFound is ...
+func StatusNotFound(c *fiber.Ctx) error {
+	return Response(c, fiber.StatusNotFound, "Not Found", "Not found")
+}
+
+// StatusInvalidArgument is ...
+func StatusInvalidArgument(c *fiber.Ctx) error {
+	return Response(c, fiber.StatusBadRequest, "Bad Request", "Invalid argument")
 }
