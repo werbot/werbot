@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package event;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/werbot/werbot/internal/grpc/event/proto";
+
+service EventHandlers {
+  rpc Events(Events.Request) returns (Events.Response) {}
+  rpc Event(Event.Request) returns (Event.Response) {}
+  rpc AddEvent(AddEvent.Request) returns (AddEvent.Response) {}
+}
+
+enum Type {
+  event_unspecified = 0;
+  onOnline = 1;
+  onOffline = 2;
+  onCreate = 3;
+  onEdit = 4;
+  onRemove = 5;
+  onActive = 6;
+  onInactive = 7;
+  onChange = 8;
+}
+
+// rpc Events
+message Events {
+  message Request {
+    oneof id {
+      string profile_id = 1 [(buf.validate.field).string.uuid = true];
+      string project_id = 2 [(buf.validate.field).string.uuid = true];
+      string server_id = 3 [(buf.validate.field).string.uuid = true];
+    }
+    string user_id = 4 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    int32 limit = 5;
+    int32 offset = 6;
+    string sort_by = 7;
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated Event.Response records = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc Event
+message Event {
+  message Request {
+    oneof id {
+      option (buf.validate.oneof).required = true;
+      string profile_id = 1 [(buf.validate.field).string.uuid = true];
+      string project_id = 2 [(buf.validate.field).string.uuid = true];
+      string server_id = 3 [(buf.validate.field).string.uuid = true];
+    }
+    string user_id = 4 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+  }
+
+  message Response {
+    string id = 1; // profile_id, project_id, server_id
+    string user_id = 2;
+    string user_agent = 3;
+    string ip = 4;
+    Type event = 5;
+    bytes meta_data = 6;
+    google.protobuf.Timestamp created = 7;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddEvent
+message AddEvent {
+  message Request {
+    oneof id {
+      string profile_id = 1 [(buf.validate.field).string.uuid = true];
+      string project_id = 2 [(buf.validate.field).string.uuid = true];
+      string server_id = 3 [(buf.validate.field).string.uuid = true];
+    }
+    string user_id = 4 [
+      (buf.validate.field).string.uuid = true,
+      (buf.validate.field).ignore_empty = true
+    ];
+    string user_agent = 5;
+    string ip = 6 [(buf.validate.field).string.ip = true];
+    Type event = 7 [(buf.validate.field).enum.defined_only = true];
+    bytes meta_data = 8;
+  }
+
+  message Response {
+    string record_id = 1;
+  }
+}
+// -----------------------------------------------------

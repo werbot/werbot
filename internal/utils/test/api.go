@@ -20,6 +20,27 @@ import (
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/pkg/webutil"
+)
+
+var (
+	BodyUnauthorized = map[string]any{
+		"success": false,
+		"message": "Unauthorized",
+		"result":  "Unauthorized",
+	}
+
+	BodyNotFound = map[string]any{
+		"success": false,
+		"message": "Not Found",
+		"result":  "Not found",
+	}
+
+	BodyInvalidArgument = map[string]any{
+		"success": false,
+		"message": "Bad Request",
+		"result":  "Invalid argument",
+	}
 )
 
 // TestCase is ...
@@ -142,4 +163,10 @@ func (h *TestHandler) getAuthUserID(accessToken string) string {
 	info := map[string]map[string]string{}
 	json.NewDecoder(res.Body).Decode(&info)
 	return info["result"]["user_id"]
+}
+
+func (h *TestHandler) AddRoute404() {
+	h.App.Use(func(c *fiber.Ctx) error {
+		return webutil.StatusNotFound(c)
+	})
 }

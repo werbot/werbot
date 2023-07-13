@@ -16,6 +16,7 @@ import (
 
 	"github.com/werbot/werbot/api"
 	"github.com/werbot/werbot/api/auth"
+	"github.com/werbot/werbot/api/event"
 	"github.com/werbot/werbot/api/info"
 	"github.com/werbot/werbot/api/key"
 	"github.com/werbot/werbot/api/license"
@@ -115,6 +116,7 @@ func main() {
 	server.New(webHandler).Routes()
 	user.New(webHandler).Routes()
 	utility.New(webHandler).Routes()
+	event.New(webHandler).Routes()
 
 	// license server
 	license.New(webHandler, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes()
@@ -124,7 +126,7 @@ func main() {
 
 	// notFoundRoute func for describe 404 Error route.
 	app.Use(func(c *fiber.Ctx) error {
-		return webutil.Response(c, fiber.StatusNotFound, "", nil)
+		return webutil.StatusNotFound(c)
 	})
 
 	log.Info().Str("serverAddress", appPort).Msg("Start taco server")

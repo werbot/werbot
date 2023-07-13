@@ -7,6 +7,8 @@ import (
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/grpc/audit"
 	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto"
+	"github.com/werbot/werbot/internal/grpc/event"
+	eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
 	"github.com/werbot/werbot/internal/grpc/firewall"
 	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
 	"github.com/werbot/werbot/internal/grpc/info"
@@ -15,8 +17,6 @@ import (
 	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
 	"github.com/werbot/werbot/internal/grpc/license"
 	licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
-	"github.com/werbot/werbot/internal/grpc/logging"
-	loggingpb "github.com/werbot/werbot/internal/grpc/logging/proto"
 	"github.com/werbot/werbot/internal/grpc/member"
 	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
 	"github.com/werbot/werbot/internal/grpc/project"
@@ -73,7 +73,7 @@ func NewServer(token string, dbConn *postgres.Connect, redisConn redis.Handler, 
 	infopb.RegisterInfoHandlersServer(grpcServer, &info.Handler{DB: dbConn, Log: log})
 	keypb.RegisterKeyHandlersServer(grpcServer, &key.Handler{DB: dbConn, Redis: redisConn, Log: log})
 	utilitypb.RegisterUtilityHandlersServer(grpcServer, &utility.Handler{DB: dbConn, Log: log})
-	loggingpb.RegisterLoggingHandlersServer(grpcServer, &logging.Handler{DB: dbConn, Log: log})
+	eventpb.RegisterEventHandlersServer(grpcServer, &event.Handler{DB: dbConn, Log: log})
 
 	return &ServerService{
 		GRPC: grpcServer,

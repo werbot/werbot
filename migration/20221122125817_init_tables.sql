@@ -164,7 +164,7 @@ CREATE TABLE "public"."server_security_country" (
     FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE CASCADE
 );
 
-CREATE TABLE "public"."logs_profile" (
+CREATE TABLE "public"."event_profile" (
     "id" uuid DEFAULT gen_random_uuid (),
     "profile_id" uuid NOT NULL,
     "user_id" uuid NOT NULL,
@@ -178,7 +178,7 @@ CREATE TABLE "public"."logs_profile" (
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
 
-CREATE TABLE "public"."logs_project" (
+CREATE TABLE "public"."event_project" (
     "id" uuid DEFAULT gen_random_uuid (),
     "project_id" uuid NOT NULL,
     "user_id" uuid NOT NULL,
@@ -192,7 +192,7 @@ CREATE TABLE "public"."logs_project" (
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
 
-CREATE TABLE "public"."logs_server" (
+CREATE TABLE "public"."event_server" (
     "id" uuid DEFAULT gen_random_uuid (),
     "server_id" uuid NOT NULL,
     "user_id" uuid NOT NULL,
@@ -320,9 +320,9 @@ DROP TABLE IF EXISTS "public"."user_token";
 DROP TABLE IF EXISTS "public"."user_public_key";
 DROP TABLE IF EXISTS "public"."session";
 DROP TABLE IF EXISTS "public"."server_security_ip";
-DROP TABLE IF EXISTS "public"."logs_profile";
-DROP TABLE IF EXISTS "public"."logs_server";
-DROP TABLE IF EXISTS "public"."logs_project";
+DROP TABLE IF EXISTS "public"."event_profile";
+DROP TABLE IF EXISTS "public"."event_server";
+DROP TABLE IF EXISTS "public"."event_project";
 DROP TABLE IF EXISTS "public"."server_security_country";
 DROP TABLE IF EXISTS "public"."country";
 DROP TABLE IF EXISTS "public"."server_activity";

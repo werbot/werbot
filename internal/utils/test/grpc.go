@@ -13,6 +13,8 @@ import (
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/grpc/audit"
 	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto"
+	"github.com/werbot/werbot/internal/grpc/event"
+	eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
 	"github.com/werbot/werbot/internal/grpc/firewall"
 	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
 	"github.com/werbot/werbot/internal/grpc/info"
@@ -21,8 +23,6 @@ import (
 	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
 	"github.com/werbot/werbot/internal/grpc/license"
 	licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
-	"github.com/werbot/werbot/internal/grpc/logging"
-	loggingpb "github.com/werbot/werbot/internal/grpc/logging/proto"
 	"github.com/werbot/werbot/internal/grpc/member"
 	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
 	"github.com/werbot/werbot/internal/grpc/project"
@@ -76,7 +76,7 @@ func (s *GRPCService) serverGRPC() func(context.Context, string) (net.Conn, erro
 	serverpb.RegisterServerHandlersServer(newServer, &server.Handler{DB: s.db, Redis: s.redis})
 	userpb.RegisterUserHandlersServer(newServer, &user.Handler{DB: s.db})
 	utilitypb.RegisterUtilityHandlersServer(newServer, &utility.Handler{DB: s.db})
-	loggingpb.RegisterLoggingHandlersServer(newServer, &logging.Handler{DB: s.db})
+	eventpb.RegisterEventHandlersServer(newServer, &event.Handler{DB: s.db})
 
 	go func() {
 		if err := newServer.Serve(listener); err != nil {
