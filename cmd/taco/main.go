@@ -129,7 +129,7 @@ func main() {
 		return webutil.StatusNotFound(c)
 	})
 
-	log.Info().Str("serverAddress", appPort).Msg("Start taco server")
+	log.Info().Str("serverAddress", appPort).Str("version", internal.Version()).Msg("Start taco server")
 	if err := app.Listener(proxyListener); err != nil {
 		log.Fatal(err).Msg("Create server")
 	}

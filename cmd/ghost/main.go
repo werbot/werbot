@@ -18,7 +18,7 @@ func main() {
 
 	log = logger.New()
 
-	log.Info().Msg("Start ghost server")
+	log.Info().Str("version", internal.Version()).Msg("Start ghost server")
 
 	asyncRedisConfig := asynq.RedisClientOpt{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
