@@ -15,7 +15,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/fsouza/go-dockerclient v1.9.7
 	github.com/gliderlabs/ssh v0.3.5
-	github.com/gofiber/fiber/v2 v2.47.0
+	github.com/gofiber/fiber/v2 v2.48.0
 	github.com/gofiber/helmet/v2 v2.2.26
 	github.com/gofiber/jwt/v3 v3.3.10
 	github.com/gofiber/keyauth/v2 v2.2.1
@@ -76,17 +76,13 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
 	github.com/opencontainers/runc v1.1.7 // indirect
 	github.com/oschwald/maxminddb-golang v1.11.0 // indirect
-	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
-	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
-	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/toorop/go-dkim v0.0.0-20201103131630-e1cd1a0a5208 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.48.0 // indirect
