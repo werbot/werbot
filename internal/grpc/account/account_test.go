@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
@@ -72,11 +72,11 @@ func Test_account_AccountIDByLogin(t *testing.T) {
 			a := accountpb.NewAccountHandlersClient(setup.grpc)
 			response, err := a.AccountIDByLogin(setup.ctx, tt.req)
 			if err != nil {
-				require.EqualError(t, err, tt.respErr)
+				assert.EqualError(t, err, tt.respErr)
 				return
 			}
-			require.NoError(t, err)
-			require.Equal(t, tt.resp.UserId, response.UserId)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.resp.UserId, response.UserId)
 		})
 	}
 

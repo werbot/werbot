@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -51,7 +50,7 @@ func (h *Handler) serversShareForUser(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 	if servers.Total == 0 {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
 	}
 
 	return webutil.StatusOK(c, "servers", servers)
@@ -81,7 +80,7 @@ func (h *Handler) updateServerShareForUser(c *fiber.Ctx) error {
 	request := new(serverpb.UpdateShareServer_Request)
 
 	if err := c.BodyParser(&request); err != nil {
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -98,7 +97,7 @@ func (h *Handler) deleteServerShareForUser(c *fiber.Ctx) error {
 	request := new(serverpb.DeleteShareServer_Request)
 
 	if err := c.BodyParser(&request); err != nil {
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {

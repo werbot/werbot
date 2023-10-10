@@ -2,7 +2,6 @@ package info
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -92,7 +91,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("Incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 
 	licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
 	"github.com/werbot/werbot/internal/utils/test"
@@ -92,16 +92,16 @@ func Test_license(t *testing.T) {
 			l := licensepb.NewLicenseHandlersClient(grpc)
 			response, err := l.License(ctx, tt.req)
 			if err != nil {
-				require.EqualError(t, err, tt.respErr)
+				assert.EqualError(t, err, tt.respErr)
 				return
 			}
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
-			require.Equal(t, tt.resp.Customer, response.Customer)
-			require.Equal(t, tt.resp.Type, response.Type)
-			require.Equal(t, tt.resp.Expired, response.Expired)
-			require.Equal(t, tt.resp.Modules, response.Modules)
-			require.Equal(t, tt.resp.Limits, response.Limits)
+			assert.Equal(t, tt.resp.Customer, response.Customer)
+			assert.Equal(t, tt.resp.Type, response.Type)
+			assert.Equal(t, tt.resp.Expired, response.Expired)
+			assert.Equal(t, tt.resp.Modules, response.Modules)
+			assert.Equal(t, tt.resp.Limits, response.Limits)
 		})
 	}
 }

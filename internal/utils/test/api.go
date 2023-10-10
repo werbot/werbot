@@ -18,6 +18,7 @@ import (
 	"github.com/werbot/werbot/api/auth"
 	"github.com/werbot/werbot/internal/grpc"
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
+	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -39,7 +40,7 @@ var (
 	BodyInvalidArgument = map[string]any{
 		"success": false,
 		"message": "Bad Request",
-		"result":  "Invalid argument",
+		"result":  trace.MsgInvalidArgument,
 	}
 )
 

@@ -72,7 +72,7 @@ Temporary Items
 .env*
 !.env*.example
 bin/*
-__debug_bin
+__debug_bin*
 node_modules
 build/*
 

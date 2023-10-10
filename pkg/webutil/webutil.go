@@ -3,6 +3,7 @@ package webutil
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
+	"github.com/werbot/werbot/internal/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -72,10 +73,10 @@ func StatusOK(c *fiber.Ctx, message string, data any) error {
 
 // StatusNotFound is ...
 func StatusNotFound(c *fiber.Ctx) error {
-	return Response(c, fiber.StatusNotFound, "Not Found", "Not found")
+	return Response(c, fiber.StatusNotFound, "Not Found", trace.MsgNotFound)
 }
 
 // StatusInvalidArgument is ...
 func StatusInvalidArgument(c *fiber.Ctx) error {
-	return Response(c, fiber.StatusBadRequest, "Bad Request", "Invalid argument")
+	return Response(c, fiber.StatusBadRequest, "Bad Request", trace.MsgInvalidArgument)
 }

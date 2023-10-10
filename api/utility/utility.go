@@ -2,7 +2,6 @@ package utility
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,7 +21,7 @@ func (h *Handler) getCountry(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {

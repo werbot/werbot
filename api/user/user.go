@@ -33,7 +33,7 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -60,7 +60,7 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, err)
 		}
 		if users.GetTotal() == 0 {
-			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+			return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
 		}
 
 		return webutil.StatusOK(c, "users", users)
@@ -111,7 +111,7 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 
 	userParameter := middleware.AuthUser(c)
 	if !userParameter.IsUserAdmin() {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -140,7 +140,7 @@ func (h *Handler) updateUser(c *fiber.Ctx) error {
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -287,7 +287,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 		return webutil.StatusOK(c, "user deleted", nil)
 	}
 
-	return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+	return webutil.StatusInvalidArgument(c)
 }
 
 // @Summary      Password update for a user.

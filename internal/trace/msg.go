@@ -47,5 +47,5 @@ const (
 	// Other error messages
 	MsgFailedToOpenFile  = "Failed to open file"
 	MsgStructureIsBroken = "Structure is broken"
-	MsgIncorrectParams   = "Incorrect parameters"
+	// MsgIncorrectParams   = "Incorrect parameters"
 )

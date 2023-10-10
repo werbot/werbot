@@ -2,7 +2,6 @@ package member
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -36,7 +35,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -68,7 +67,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, err)
 		}
 		if members.GetTotal() == 0 {
-			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+			return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
 		}
 
 		return webutil.StatusOK(c, "members", members)
@@ -169,7 +168,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -205,7 +204,7 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -282,7 +281,7 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -362,7 +361,7 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {

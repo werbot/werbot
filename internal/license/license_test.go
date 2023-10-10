@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	"github.com/werbot/werbot/pkg/fsutil"
 )
 
@@ -53,10 +53,10 @@ func TestDecodePrivateKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := DecodePrivateKey(tt.privateKey)
 			if err != nil {
-				require.EqualError(t, err, tt.respErr)
+				assert.EqualError(t, err, tt.respErr)
 				return
 			}
-			require.NoError(t, err)
+			assert.NoError(t, err)
 		})
 	}
 }
@@ -97,31 +97,31 @@ func TestLicenseCreate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			forDecode, err := DecodePrivateKey(tt.privateKey) // for generate license
 			if err != nil {
-				require.EqualError(t, err, tt.respErr)
+				assert.EqualError(t, err, tt.respErr)
 				return
 			}
 			forDecode.License = tt.license
 
 			forEncode, err := DecodePublicKey(tt.publicKey) // for test read generated license
 			if err != nil {
-				require.EqualError(t, err, tt.respErr)
+				assert.EqualError(t, err, tt.respErr)
 				return
 			}
 
 			license, err := forDecode.Encode()
 			if err != nil {
-				require.EqualError(t, err, tt.respErr)
+				assert.EqualError(t, err, tt.respErr)
 				return
 			}
 
 			data, err := forEncode.Decode(license)
 			if err != nil {
-				require.EqualError(t, err, tt.respErr)
+				assert.EqualError(t, err, tt.respErr)
 				return
 			}
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
-			require.Equal(t, tt.license, data.License)
+			assert.Equal(t, tt.license, data.License)
 		})
 	}
 }
@@ -180,19 +180,19 @@ func TestLicenseRead(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			forEncode, err := DecodePublicKey(tt.publicKey)
 			if err != nil {
-				require.EqualError(t, err, tt.respErr)
+				assert.EqualError(t, err, tt.respErr)
 				return
 			}
 
 			data, err := forEncode.Decode(tt.license)
 			if err != nil {
-				require.EqualError(t, err, tt.respErr)
+				assert.EqualError(t, err, tt.respErr)
 				return
 			}
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
-			require.Equal(t, tt.response, data.Info())
-			require.Equal(t, tt.expired, data.Expired())
+			assert.Equal(t, tt.response, data.Info())
+			assert.Equal(t, tt.expired, data.Expired())
 		})
 	}
 }

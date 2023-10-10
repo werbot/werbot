@@ -2,7 +2,6 @@ package member
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -33,7 +32,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -71,7 +70,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 	if member == nil {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
 	}
 
 	return webutil.StatusOK(c, "member information", member)
@@ -160,7 +159,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -197,7 +196,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {

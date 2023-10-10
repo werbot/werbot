@@ -24,7 +24,7 @@ func (h *Handler) getLicenseInfo(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

@@ -2,7 +2,6 @@ package key
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -31,7 +30,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -62,7 +61,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, err)
 		}
 		if keys.GetTotal() == 0 {
-			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+			return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
 		}
 
 		return webutil.StatusOK(c, "user keys", keys)
@@ -161,7 +160,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {

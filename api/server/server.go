@@ -36,7 +36,7 @@ func (h *Handler) server(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -68,7 +68,7 @@ func (h *Handler) server(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, err)
 		}
 		if servers.GetTotal() == 0 {
-			return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+			return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
 		}
 
 		return webutil.StatusOK(c, "servers", servers)
@@ -99,7 +99,7 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 
 	// Deciding what to add
 	if !json.Valid(c.Body()) {
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	var _request map[string]map[string]any
@@ -156,7 +156,7 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 
 	// Deciding what to update
 	if !json.Valid(c.Body()) {
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	var update map[string]map[string]any
@@ -173,7 +173,7 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 	case "online":
 		request.Setting = new(serverpb.UpdateServer_Request_Online)
 	default:
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 	// -----------------------
 
@@ -249,7 +249,7 @@ func (h *Handler) serverAccess(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -287,7 +287,7 @@ func (h *Handler) updateServerAccess(c *fiber.Ctx) error {
 
 	// Deciding what to access
 	if !json.Valid(c.Body()) {
-		return webutil.FromGRPC(c, errors.New("incorrect parameters")) // MsgFailedToValidateStruct
+		return webutil.StatusInvalidArgument(c) // MsgFailedToValidateStruct
 	}
 
 	var update map[string]map[string]any
@@ -300,7 +300,7 @@ func (h *Handler) updateServerAccess(c *fiber.Ctx) error {
 	case "key":
 		request.Access = new(serverpb.UpdateServerAccess_Request_Key)
 	default:
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 	// -----------------------
 
@@ -343,7 +343,7 @@ func (h *Handler) serverActivity(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -414,7 +414,7 @@ func (h *Handler) serverFirewall(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -449,7 +449,7 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -569,7 +569,7 @@ func (h *Handler) serverNameByID(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("incorrect parameters"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -588,7 +588,7 @@ func (h *Handler) serverNameByID(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 	if access == nil {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "not found"))
+		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
 	}
 
 	return webutil.StatusOK(c, "server name", access)

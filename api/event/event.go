@@ -2,7 +2,6 @@ package event
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -28,7 +27,7 @@ func (h *Handler) events(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("Invalid argument"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	switch c.Params("name") {
@@ -51,7 +50,7 @@ func (h *Handler) events(c *fiber.Ctx) error {
 		}
 		request.SortBy = `"event_server"."created":ASC`
 	default:
-		return webutil.FromGRPC(c, errors.New("Invalid argument"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -90,7 +89,7 @@ func (h *Handler) event(c *fiber.Ctx) error {
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("Invalid argument"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	switch c.Params("name") {
@@ -110,7 +109,7 @@ func (h *Handler) event(c *fiber.Ctx) error {
 			ServerId: c.Params("event_id"),
 		}
 	default:
-		return webutil.FromGRPC(c, errors.New("Invalid argument"))
+		return webutil.StatusInvalidArgument(c)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
