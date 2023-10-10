@@ -1,67 +1,78 @@
-name: Bug report
-description: File a bug report
-title: "Bug: "
-labels: ["bug", "triage"]
-assignees:
-  - octocat
+name: "\U0001F41B Bug Report"
+title: "\U0001F41B [Bug]: "
+description: Create a bug report to help us fix it.
+labels: ["☢️ Bug"]
+
 body:
   - type: markdown
+    id: notice
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        ### Notice
+        - If you have a suggestion for a werbot feature you would like to see, open the issue with the **✏️ Feature Request** template.
+        - Write your issue with clear and understandable English.
   - type: textarea
-    id: what
+    id: description
     attributes:
-      label: Describe the bug
-      description: What exactly is going wrong?
-      placeholder: A short description of what the bug is.
+      label: "Bug Description"
+      description: "A clear and detailed description of what the bug is."
+      placeholder: "Explain your problem clearly and in detail."
     validations:
       required: true
   - type: textarea
-    id: steps
+    id: how-to-reproduce
     attributes:
-      label: Steps to reproduce
-      description: What are the steps necessary to reproduce this bug?
-      placeholder: Detail the steps taken to reproduce the behaviour.
+      label: How to Reproduce
+      description: "Steps to reproduce the behavior and what should be observed in the end."
+      placeholder: "Tell us step by step how we can replicate your problem and what we should see in the end."
+      value: |
+          Steps to reproduce the behavior:
+          1. Go to '....'
+          2. Click on '....'
+          3. Do '....'
+          4. See '....'
     validations:
       required: true
   - type: textarea
-    id: expected
+    id: expected-behavior
     attributes:
-      label: Expected behaviour
-      description: What is the behaviour that you would expect to see?
-      placeholder: A clear and concise description of what you expected to happen.
+      label: Expected Behavior
+      description: "A clear and detailed description of what you think should happen."
+      placeholder: "Tell us what werbot should normally do."
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: Werbot version
-      description:
-      placeholder:
+      label: "werbot Version"
+      description: "Some bugs may be fixed in future werbot releases, so we have to know your werbot version."
+      placeholder: "Write your werbot version. (v0.0.1, v0.1.1...)"
     validations:
       required: true
-  - type: input
-    id: contact
+  - type: textarea
+    id: snippet
     attributes:
-      label: Contact Details
-      description: How can we get in touch with you if we need more info?
-      placeholder: email@example.com
-    validations:
-      required: false
-  - type: checkboxes
-    id: check
-    attributes:
-      label: Is there an existing issue for this?
-      description: Please search [our issues](https://github.com/werbot/werbot/issues) to see if this bug already exists.
-      options:
-        - label: I have searched the existing issues
-          required: true
+      label: "Code Snippet (optional)"
+      description: "For some issues, we need to know some parts of your code."
+      placeholder: "Share a code snippet that you think is related to the issue."
+      render: go
+      value: |
+        package main
+
+        import "fmt"
+
+        func main() {
+          fmt.Print("hello word")
+        }
   - type: checkboxes
     id: terms
     attributes:
-      label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/werbot/.github/blob/main/CODE_OF_CONDUCT.md)
+      label: "Checklist:"
+      description: "By submitting this issue, you confirm that:"
       options:
-        - label: I agree to follow this project's Code of Conduct
+        - label: "I agree to follow werbot's [Code of Conduct](https://github.com/werbot/.github/blob/main/CODE_OF_CONDUCT.md)."
+          required: true
+        - label: "I have checked for existing issues that describe my problem prior to opening this one."
+          required: true
+        - label: "I understand that improperly formatted bug reports may be closed without explanation."
           required: true
