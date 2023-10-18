@@ -3,7 +3,7 @@
 set -e
 
 ROOT_PATH="$(git rev-parse --show-toplevel)"
-source ${ROOT_PATH}/scripts/helper
+source ${ROOT_PATH}/scripts/_helper
 
 MIGRATION_DIR=${ROOT_PATH}/migration
 DB_POSTFIX="goose_db_version"
@@ -12,16 +12,20 @@ GOOSE_ACTION=$2
 
 run_goose() {
   arr_goose=(create up up1 down down1 redo status)
-  if [[ " ${arr_goose[@]} " =~ " $1 " ]]; then
+  if [[ " ${arr_goose[*]} " =~ " $1 " ]]; then
     source ${ROOT_PATH}/.env
     GOOSE_CMD="goose -dir $MIGRATION_DIR -table $DB_POSTFIX postgres "postgres://${POSTGRES_USER:-werbot}:${POSTGRES_PASSWORD:-postgresPassword}@${POSTGRES_HOST:-localhost:5432}/${POSTGRES_DB:-werbot}?sslmode=require""
-    if [ $1 == "create" ]; then OTPUT=$($GOOSE_CMD create migration_name sql 2>&1); fi
-    if [ $1 == "up" ]; then OTPUT=$($GOOSE_CMD up 2>&1); fi
-    if [ $1 == "up1" ]; then OTPUT=$($GOOSE_CMD up-by-one 2>&1); fi
-    if [ $1 == "down" ]; then OTPUT=$($GOOSE_CMD reset 2>&1); fi
-    if [ $1 == "down1" ]; then OTPUT=$($GOOSE_CMD down 2>&1); fi
-    if [ $1 == "redo" ]; then OTPUT=$($GOOSE_CMD redo 2>&1); fi
-    if [ $1 == "status" ]; then OTPUT=$($GOOSE_CMD status 2>&1); fi
+
+    case "$1" in
+    "create") OTPUT=$($GOOSE_CMD create migration_name sql 2>&1) ;;
+    "up") OTPUT=$($GOOSE_CMD up 2>&1) ;;
+    "up1") OTPUT=$($GOOSE_CMD up-by-one 2>&1) ;;
+    "down") OTPUT=$($GOOSE_CMD reset 2>&1) ;;
+    "down1") OTPUT=$($GOOSE_CMD down 2>&1) ;;
+    "redo") OTPUT=$($GOOSE_CMD redo 2>&1) ;;
+    "status") OTPUT=$($GOOSE_CMD status 2>&1) ;;
+    esac
+
     rm -rf ${ROOT_PATH}/.vscode/migrate_tmp
 
     print_answer "SUCCESS" green
@@ -57,7 +61,7 @@ run_goose() {
 }
 
 arr_type=(ent saas test)
-if [[ " ${arr_type[@]} " =~ " $MIGRATION " ]]; then
+if [[ " ${arr_type[*]} " =~ " $MIGRATION " ]]; then
   print_header "Migrations sql $MIGRATION:$GOOSE_ACTION"
 
   if [ "$MIGRATION" == "saas" ]; then
@@ -76,19 +80,22 @@ if [[ " ${arr_type[@]} " =~ " $MIGRATION " ]]; then
   run_goose $GOOSE_ACTION
 elif [[ $MIGRATION == "dev" ]]; then
   arr_goose=(up down)
-  if [[ " ${arr_goose[@]} " =~ " $GOOSE_ACTION " ]]; then
+  if [[ " ${arr_goose[*]} " =~ " $GOOSE_ACTION " ]]; then
     SOURCE=${BASH_SOURCE[0]}
-    if [ $GOOSE_ACTION == "up" ]; then
+    case $GOOSE_ACTION in
+    up)
       $SOURCE up
       $SOURCE ent up
       $SOURCE saas up
       $SOURCE test up
-    elif [ $GOOSE_ACTION == "down" ]; then
+      ;;
+    down)
       $SOURCE test down
       $SOURCE saas down
       $SOURCE ent down
       $SOURCE down
-    fi
+      ;;
+    esac
   else
     print_header "Migrations sql"
     print_answer "ERROR" red

@@ -3,9 +3,9 @@
 set -e
 
 ROOT_PATH="$(git rev-parse --show-toplevel)"
-source ${ROOT_PATH}/scripts/helper
+source ${ROOT_PATH}/scripts/_helper
 
-arr_addons=(ee saas)
+addons=(ee saas)
 
 protogen() {
   PROTO_PATH=""
@@ -36,7 +36,7 @@ if [[ $# -gt 0 ]]; then
     protogen $1
     print_answer "SUCCESS" green
   else
-    for addon in "${arr_addons[@]}"; do
+    for addon in "${addons[@]}"; do
       if [ -d ${ROOT_PATH}/add-on/$addon/internal/grpc/$1/proto/ ]; then
         print_header "Generating $addon:$1 protos files"
         protogen $1 $addon
@@ -57,7 +57,7 @@ else
     print_answer "SUCCESS" green
   done
 
-  for addon in "${arr_addons[@]}"; do
+  for addon in "${addons[@]}"; do
     if [ -d ${ROOT_PATH}/add-on/$addon ]; then
       for entry in ${ROOT_PATH}/add-on/$addon/internal/grpc/*/; do
         name=$(basename "${entry}")

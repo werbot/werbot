@@ -3,9 +3,10 @@
 set -e
 
 ROOT_PATH="$(git rev-parse --show-toplevel)"
-source "${ROOT_PATH}/scripts/helper"
+source "${ROOT_PATH}/scripts/_helper"
 
-if [[ $1 == "cfg" ]]; then
+case "$1" in
+cfg)
   app_type=(app avocado buffet ghost taco)
   for app in "${app_type[@]}"; do
     replicas=$(yq .services."$app".deploy.replicas "${ROOT_PATH}/docker/docker-compose.yaml")
@@ -16,15 +17,17 @@ if [[ $1 == "cfg" ]]; then
       print_answer "SUCCESS" green
     fi
   done
+  ;;
 
-  if [[ $2 == "restart" ]]; then
-    print_header "Recreate docker containers"
-    docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" up -d >/dev/null 2>&1
-    docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" up -d --force-recreate haproxy >/dev/null 2>&1
-    print_answer "SUCCESS" green
-  fi
-elif [[ $1 == "cdn" ]]; then
-  print_header "Cloudflare ip lists updated"
+recreate)
+  print_header "Recreate Haproxy docker"
+  #docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" up -d >/dev/null 2>&1
+  docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" up -d --force-recreate haproxy >/dev/null 2>&1
+  print_answer "SUCCESS" green
+  ;;
+
+ip)
+  print_header "Update cloudflare ip's"
   ## Cloudflare ip lists from https://www.cloudflare.com/en-gb/ips/
   echo -n >${ROOT_PATH}/docker/haproxy/cloudflare-ips.txt
   for i in $(curl -s https://www.cloudflare.com/ips-v4); do
@@ -34,7 +37,16 @@ elif [[ $1 == "cdn" ]]; then
     echo $i >>${ROOT_PATH}/docker/haproxy/cloudflare-ips.txt
   done
   print_answer "SUCCESS" green
-else
+  ;;
+
+*)
   echo "Parameters not passed"
-  exit
-fi
+  echo
+  echo "$0 <command>"
+  echo
+  echo "command:"
+  print_help cfg "Update haproxy config"
+  print_help recreate "Recreate Haproxy docker"
+  print_help ip "Update cloudflare ip's"
+  ;;
+esac

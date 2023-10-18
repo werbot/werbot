@@ -3,7 +3,7 @@
 set -e
 
 ROOT_PATH="$(git rev-parse --show-toplevel)"
-source ${ROOT_PATH}/scripts/helper
+source ${ROOT_PATH}/scripts/_helper
 
 update_env_files() {
   NAME=$(basename ${1})
@@ -29,17 +29,23 @@ update_env_files() {
   print_answer "SUCCESS" green
 }
 
-arr_type=(update)
-if [[ " ${arr_type[@]} " =~ " $1 " ]]; then
+
+case "$1" in
+update)
   ENV_FILE="${ROOT_PATH}/.env"
-  if [ "$1" == "update" ]; then
     for entry in ${ROOT_PATH}/cmd/*/; do
       name=$(basename "${entry}")
       update_env_files ${name}
     done
-  fi
-else
-  print_header "Scan new .env for dev environment"
-  print_answer "ERROR" red
+
+  ;;
+
+*)
   echo "Parameters not passed"
-fi
+  echo
+  echo "$0 <command>"
+  echo
+  echo "command:"
+  print_help update "Search for new parameters env "
+  ;;
+esac

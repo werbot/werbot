@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright (c) 2022 Werbot, Inc.
+# Copyright (c) 2023 Werbot, Inc.
 
 set -o errexit
 set -o pipefail

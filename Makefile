@@ -9,125 +9,76 @@ help:
 
 
 #############################################################################
-.PHONY: gen_key_aes
-gen_key_aes: ## Generating AES key
-	@scripts/gen/key aes
-#############################################################################
-
-
-#############################################################################
-.PHONY: gen_key_server
-gen_key_server: ## Generating ssh server key
-	@scripts/gen/key server
-#############################################################################
-
-
-#############################################################################
-.PHONY: gen_key_jwt
-gen_key_jwt: ## Generating JWT key
-	@scripts/gen/key jwt
+.PHONY: key
+key: ## Generating key
+	@scripts/key $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #############################################################################
 
 
 #############################################################################
 # run:
-# make gen_protos - recreate all protofiles
-# make gen_protos user - recreate protofile user from folder /internal/grpc/
-.PHONY: gen_protos
-gen_protos: ## Generating protos files
-	@scripts/gen/protos $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+# make protos - recreate all protofiles
+# make protos user - recreate protofile user from folder /internal/grpc/
+.PHONY: protos
+protos: ## Generating protos files
+	@scripts/proto $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #############################################################################
 
 
 #############################################################################
-.PHONY: upd_tools
-upd_tools: ## Install/Update tools and mods
-	@scripts/tools/apps
+.PHONY: tools
+tools: ## Install/Update tools and mods
+	@scripts/tools $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #############################################################################
 
 
 #############################################################################
-.PHONY: gen_key_grpc
-gen_key_grpc: ## Generating TLS keys for gRPC
-	@scripts/gen/key grpc
-#############################################################################
-
-
-#############################################################################
-.PHONY: upd_geolite
-upd_geolite: ## Updating and install GeoLite database to the latest version
-	@scripts/tools/geolite
-#############################################################################
-
-
-#############################################################################
-.PHONY: upd_golang
-upd_golang: ## Updating and install Go to the latest version
-	@scripts/tools/golang
+.PHONY: geolite
+geolite: ## Updating and install GeoLite database to the latest version
+	@scripts/geolite
 #############################################################################
 
 
 #############################################################################
 .PHONY: release
-release: ## Building new release
-	@scripts/build/release $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+release:
+	@scripts/release $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #############################################################################
 
 
 #############################################################################
 .PHONY: build
 build: ## Building project in bin folder
-	@scripts/build/build $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+	@scripts/build $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #############################################################################
 
 
 #############################################################################
-.PHONY: lint
-lint: ## Cleaning garbage and inactive containers
-	@scripts/srv/lint
-#############################################################################
-
-
-#############################################################################
-.PHONY: upd_cdn_ip
-upd_cdn_ip:
-	@scripts/tools/haproxy cdn $(wordlist 1,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+.PHONY: haproxy
+haproxy:
+	@scripts/haproxy $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #############################################################################
 
 
 #############################################################################
 # install latest version goose - go install github.com/pressly/goose/v3/cmd/goose@latest
-.PHONY: srv_migration
-srv_migration: # Migration sql
-	@scripts/srv/migration $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+.PHONY: migration
+migration: # Migration sql
+	@scripts/migration $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #############################################################################
 
 
 #############################################################################
-.PHONY: srv_migration_dev
-srv_migration_dev: # Dev migration sql
-	@scripts/srv/migration dev $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-#############################################################################
-
-
-#############################################################################
-.PHONY: env_dev
-env_dev: ## Scan new .env for dev environment
-	@scripts/tools/env_scan update
-#############################################################################
-
-
-#############################################################################
-.PHONY: upd_install
-upd_install:
-	@scripts/build/install
+.PHONY: env_tools
+env_tools: ## Tools for .env
+	@scripts/env_tools $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #############################################################################
 
 
 #############################################################################
 .PHONY: clean
 clean: ## Cleaning garbage and inactive containers
-	@scripts/srv/clean
+	@scripts/clean
 #############################################################################
 
 
