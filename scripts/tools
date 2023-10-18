@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+
+#set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source ${ROOT_PATH}/scripts/_helper
+
+case "$1" in
+app)
+  case "$OS" in
+  Darwin)
+    brew install protobuf protoc-gen-go protoc-gen-go-grpc goose golangci-lint yq
+    ;;
+
+  Linux)
+    mkdir -p ${ROOT_PATH}/.vscode/tmp
+
+    print_header "Install/Update golangci-lint"
+    GOLINTER_LATEST=$(get_latest_release "golangci/golangci-lint")
+    wget "https://github.com/golangci/golangci-lint/releases/download/${GOLINTER_LATEST}/golangci-lint-${GOLINTER_LATEST#*v}-linux-amd64.tar.gz" -4 -q -O ${ROOT_PATH}/.vscode/tmp/golangci-lint.tar.gz
+    tar --no-same-owner -xzf ${ROOT_PATH}/.vscode/tmp/golangci-lint.tar.gz -C ${ROOT_PATH}/.vscode/tmp
+    install "${ROOT_PATH}/.vscode/tmp/golangci-lint-${GOLINTER_LATEST#*v}-linux-amd64/golangci-lint" "$HOME/.local/bin"
+    print_answer "SUCCESS" green
+
+    print_header "Install/Update protobuf"
+    PROTOS_LATEST=$(get_latest_release "protocolbuffers/protobuf")
+    wget "https://github.com/protocolbuffers/protobuf/releases/download/${PROTOS_LATEST}/protoc-${PROTOS_LATEST#*v}-linux-x86_64.zip" -4 -q -O ${ROOT_PATH}/.vscode/tmp/protoc.zip
+    unzip -o ${ROOT_PATH}/.vscode/tmp/protoc.zip -d $HOME/.local >/dev/null 2>&1
+    print_answer "SUCCESS" green
+
+    print_header "Install/Update protovalidate"
+    if ! [ -d ${ROOT_PATH}/.vscode/tmp/protovalidate ]; then
+      mkdir ${ROOT_PATH}/.vscode/tmp/protovalidate
+      git clone https://github.com/bufbuild/protovalidate.git ${ROOT_PATH}/.vscode/tmp/protovalidate >/dev/null 2>&1
+    fi
+    if [ -d $HOME/.local/include/buf/validate ]; then
+      rm -rf $HOME/.local/include/buf/validate
+    fi
+    cp -a ${ROOT_PATH}/.vscode/tmp/protovalidate/proto/protovalidate/buf $HOME/.local/include
+    print_answer "SUCCESS" green
+
+    print_header "Install/Update protoc-gen-go"
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest >/dev/null 2>&1
+    print_answer "SUCCESS" green
+
+    print_header "Install/Update protoc-gen-go-grpc"
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest >/dev/null 2>&1
+    print_answer "SUCCESS" green
+
+    print_header "Install/Update protoc-go-inject-tag"
+    go install github.com/favadi/protoc-go-inject-tag@latest >/dev/null 2>&1
+    print_answer "SUCCESS" green
+
+    print_header "Install/Update goose"
+    go install github.com/pressly/goose/v3/cmd/goose@latest >/dev/null 2>&1
+    print_answer "SUCCESS" green
+
+    print_header "Install/Update yq"
+    wget "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" -4 -q -O ${ROOT_PATH}/.vscode/tmp/yq
+    install "${ROOT_PATH}/.vscode/tmp/yq" "$HOME/.local/bin"
+    print_answer "SUCCESS" green
+
+    rm -rf ${ROOT_PATH}/.vscode/tmp
+    source ~/.profile
+    ;;
+
+  *)
+    print_header "Install/Update tools"
+    print_answer "ERROR" red
+    echo "Unsupported OS: $OS"
+    exit
+    ;;
+  esac
+  ;;
+
+golang)
+  print_header "Install/Update Golang"
+  get_latest_go_version() {
+    wget -qO- "https://golang.org/dl/" | grep -v -E 'go[0-9\.]+(beta|rc)' | grep -E -o 'go[0-9\.]+' | grep -E -o '[0-9]\.[0-9]+(\.[0-9]+)?' | sort -V | uniq | tail -1
+  }
+
+  case "$OS" in
+  Darwin*)
+    brew install go
+    ;;
+
+  Linux*)
+    support_arch
+    GO_RELEASE=$(get_latest_go_version)
+    GO_PATH="$HOME/go"
+    maybe_sudo mkdir -p $GO_PATH
+    echo -e "\nexport PATH=\$PATH:${GO_PATH}/bin\nexport PATH=\$PATH:\$HOME/go/bin\n" >>~/.bashrc
+    source ~/.bashrc
+    curl --silent https://dl.google.com/go/go${GO_RELEASE}.linux-amd64.tar.gz | sudo tar -vxz --strip-components 1 -C ${GO_PATH} >/dev/null 2>&1
+    ;;
+
+  *)
+    print_answer "ERROR" red
+    echo "Unsupported OS: $OS"
+    exit
+    ;;
+  esac
+
+  print_answer "SUCCESS" green
+  ;;
+
+*)
+  echo "Parameters not passed"
+  echo
+  echo "$0 <command>"
+  echo
+  echo "command:"
+  print_help app "Install or Update app"
+  print_help golabg "Install or Update golang"
+  ;;
+esac
