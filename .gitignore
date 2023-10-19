@@ -76,14 +76,10 @@ __debug_bin*
 node_modules
 build/*
 
-
-!.vscode/core
-.vscode/core/*.key
-.vscode/core/*.mmdb
-
-!docker/
-docker/postgres/ca
+docker/core
 docker/haproxy/data
+docker/haproxy/*.txt
+docker/_*
 
 !LOCK
 !.gitkeep

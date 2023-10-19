@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source "${ROOT_PATH}/scripts/_helper"
+
+ENV_FILE="${ROOT_PATH}/docker/.env"
+
+case "$1" in
+init)
+  echo "${COLOR_YELLOW}To continue, you need to add a domain on Cloudflare and it should point to the current server."
+  echo ""
+  echo "Create the following entries:"
+  echo "api.domain.com. A $(get_ip)"
+  echo "app.domain.com. A $(get_ip)"
+  echo ""
+  echo "Also, it is necessary to add variables DNS_CLOUDFLARE_EMAIL and DNS_CLOUDFLARE_API_KEY."
+  echo "This is necessary for obtaining an SSL certificate."
+  echo "${COLOR_RESET}"
+
+  read -p "Have you set up DNS entries for your domain and have CloudFlare API key? (y/n) " USER_ANSWER
+  case "$USER_ANSWER" in
+  "y" | "Y") echo "" ;;
+  *) exit ;;
+  esac
+
+  cf_email_regex='(^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$)'
+  if [[ -z "$(echo $DNS_CLOUDFLARE_EMAIL | grep -P $cf_email_regex)" ]]; then
+    read -rp "Cloudflare email: " -e -i "${DNS_CLOUDFLARE_EMAIL}" DNS_CLOUDFLARE_EMAIL
+    if [[ -z "$(echo $DNS_CLOUDFLARE_EMAIL | grep -P $cf_email_regex)" ]]; then
+      echo "${COLOR_RED}$DNS_CLOUDFLARE_EMAIL${COLOR_RESET} - is not validate email"
+      exit 1
+    fi
+  fi
+
+  cf_api_key_regex='(^.{37}$)'
+  if [[ -z "$(echo $DNS_CLOUDFLARE_API_KEY | grep -P $cf_api_key_regex)" ]]; then
+    read -rp "Cloudflare API key: " -e -i "${DNS_CLOUDFLARE_API_KEY}" DNS_CLOUDFLARE_API_KEY
+    if [[ -z "$(echo $DNS_CLOUDFLARE_API_KEY | grep -P $cf_api_key_regex)" ]]; then
+      echo "${COLOR_RED}$DNS_CLOUDFLARE_API_KEY${COLOR_RESET} - is not validate API key"
+      exit 1
+    fi
+  fi
+
+  domain_regex='(?=^.{1,254}$)(^(?>(?!\d+\.)[a-zA-Z0-9_\-]{1,63}\.?)+(?:[a-zA-Z]{2,})$)'
+  if [[ -z "$(echo $DOMAIN | grep -P $domain_regex)" ]]; then
+    read -rp "Domain name: " -e -i "$DOMAIN" DOMAIN
+    if [[ -z "$(echo $DOMAIN | grep -P $domain_regex)" ]]; then
+      echo "${COLOR_RED}$DOMAIN${COLOR_RESET} - is not validate domain"
+      exit 1
+    fi
+  fi
+
+  #read -p "CloudFlare email: " DNS_CLOUDFLARE_EMAIL
+  #read -p "CloudFlare API Key: " DNS_CLOUDFLARE_API_KEY
+  #read -p "Your domain: " DOMAIN
+
+  if [ ${DNS_CLOUDFLARE_EMAIL} ] && [ ${DNS_CLOUDFLARE_API_KEY} ] && [ ${DOMAIN} ]; then
+    cp -a ${ROOT_PATH}/.env.example $ENV_FILE
+    echo "" >>$ENV_FILE
+    echo "# Docker Compose section" >>$ENV_FILE
+    echo "# -------------------------" >>$ENV_FILE
+    echo "DOMAIN=*.${DOMAIN}" >>$ENV_FILE
+    echo "DNS_CLOUDFLARE_EMAIL=${DNS_CLOUDFLARE_EMAIL}" >>$ENV_FILE
+    echo "DNS_CLOUDFLARE_API_KEY=${DNS_CLOUDFLARE_API_KEY}" >>$ENV_FILE
+
+    sed -i -E "s/(#\sPOSTGRES_PASSWORD.*)/POSTGRES_PASSWORD=\`$(generate_password)\`/g" $ENV_FILE
+    sed -i -E "s/(#\sPOSTGRES_USER.*)/POSTGRES_USER=werbot/g" $ENV_FILE
+    sed -i -E "s/(#\sPOSTGRES_DB.*)/POSTGRES_DB=werbot/g" $ENV_FILE
+    sed -i -E "s/(#\sREDIS_PASSWORD.*)/REDIS_PASSWORD=\`$(generate_password)\`/g" $ENV_FILE
+    sed -i -E "s/(#\sAPI_DSN.*)/API_DSN=https:\/\/api.${DOMAIN}/g" $ENV_FILE
+    sed -i -E "s/(#\sAPP_DSN.*)/APP_DSN=https:\/\/app.${DOMAIN}/g" $ENV_FILE
+    sed -i -E "s/(#\sSECURITY_AES_KEY.*)/SECURITY_AES_KEY=$(${ROOT_PATH}/scripts/key aes)/g" $ENV_FILE
+    sed -i -E "s/(#\sGRPCSERVER_TOKEN.*)/GRPCSERVER_TOKEN=$(${ROOT_PATH}/scripts/key aes)/g" $ENV_FILE
+
+    # sed -i -E "s/(#\sLICENSE_KEY_PUBLIC.*)/LICENSE_KEY_PUBLIC=/g" $ENV_FILE
+    # sed -i -E "s/(#\sLICENSE_KEY_PRIVATE.*)/LICENSE_KEY_PRIVATE=/g" $ENV_FILE
+
+    mkdir -p ${ROOT_PATH}/docker/core
+
+    # keys generate
+    ${ROOT_PATH}/scripts/key ssh
+    ${ROOT_PATH}/scripts/key jwt
+    ${ROOT_PATH}/scripts/key grpc
+    ${ROOT_PATH}/scripts/key postgres
+    ${ROOT_PATH}/scripts/key license
+
+    # download geolite2-country database
+    ${ROOT_PATH}/scripts/geolite
+
+    # download lists for haproxy
+    ${ROOT_PATH}/scripts/haproxy cloudflare_ip
+    ${ROOT_PATH}/scripts/haproxy blacklist_agent
+
+    # create SSL sertificates for damain
+    print_header "ACME account registration"
+    docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --register-account -m ${DNS_CLOUDFLARE_EMAIL} >/dev/null 2>&1
+    print_answer "SUCCESS" green
+
+    print_header "Issuing an SSL certificate"
+    docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --issue -d *.${DOMAIN} --dns dns_cf --dnssleep 10 >/dev/null 2>&1
+    print_answer "SUCCESS" green
+
+    print_header "Adding of SSL certificate"
+    docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --deploy -d *.werbot.net --deploy-hook haproxy >/dev/null 2>&1
+    print_answer "SUCCESS" green
+
+    # run database migration
+    print_header "Database migration"
+    ${ROOT_PATH}/scripts/migration up >/dev/null 2>&1
+    print_answer "SUCCESS" green
+
+    echo "" >>$ENV_FILE
+    echo "${COLOR_GREEN}The environment was set up.${COLOR_RESET}"
+  fi
+  ;;
+
+*)
+  echo "Parameters not passed"
+  echo
+  echo "$0 <command>"
+  echo
+  echo "command:"
+  print_help init "Init docker workspace"
+  ;;
+esac

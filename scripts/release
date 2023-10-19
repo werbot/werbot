@@ -7,10 +7,7 @@ source ${ROOT_PATH}/scripts/_helper
 
 case "$1" in
 tag)
-  NEW_VERSION=$(
-    read -p "Enter new release version (current version ${VERSION}): " enter
-    echo ${enter}
-  )
+  read -p "Enter new release version (current version ${VERSION}): " NEW_VERSION
 
   if [ ${NEW_VERSION} ]; then
     print_header "Add new version to git"
@@ -23,15 +20,6 @@ tag)
     git push --tags origin main 2>&1
     print_answer "SUCCESS" green
   fi
-  ;;
-
-docker)
-  print_header "Create docker update"
-  mkdir -p ${ROOT_PATH}/scripts/install/cfg/haproxy
-  cp -a ${ROOT_PATH}/docker/haproxy/*.txt ${ROOT_PATH}/scripts/install/cfg/haproxy/
-  cp -a ${ROOT_PATH}/docker/haproxy/config.cfg ${ROOT_PATH}/scripts/install/cfg/haproxy/
-  cp -a ${ROOT_PATH}/docker/docker-compose.yaml ${ROOT_PATH}/scripts/install/cfg/
-  print_answer "SUCCESS" green
   ;;
 
 *)
