@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-set -e
+#set -e
 
 ROOT_PATH="$(git rev-parse --show-toplevel)"
 source "${ROOT_PATH}/scripts/_helper"
 
 case "$1" in
-cfg)
+replicas)
   app_type=(app avocado buffet ghost taco)
   for app in "${app_type[@]}"; do
     replicas=$(yq .services."$app".deploy.replicas "${ROOT_PATH}/docker/docker-compose.yaml")
@@ -26,8 +26,8 @@ recreate)
   print_answer "SUCCESS" green
   ;;
 
-ip)
-  print_header "Update cloudflare ip's"
+cloudflare_ip)
+  print_header "Download cloudflare ip list"
   ## Cloudflare ip lists from https://www.cloudflare.com/en-gb/ips/
   echo -n >${ROOT_PATH}/docker/haproxy/cloudflare-ips.txt
   for i in $(curl -s https://www.cloudflare.com/ips-v4); do
@@ -39,14 +39,24 @@ ip)
   print_answer "SUCCESS" green
   ;;
 
+blacklist_agent)
+  print_header "Download blacklist agents"
+  echo -n >${ROOT_PATH}/docker/haproxy/blacklist-agent.txt
+  for i in $(curl -s https://raw.githubusercontent.com/mitchellkrogza/nginx-ultimate-bad-bot-blocker/master/_generator_lists/bad-user-agents.list); do
+    echo $i >>${ROOT_PATH}/docker/haproxy/blacklist-agent.txt
+  done
+  print_answer "SUCCESS" green
+  ;;
+
 *)
   echo "Parameters not passed"
   echo
   echo "$0 <command>"
   echo
   echo "command:"
-  print_help cfg "Update haproxy config"
+  print_help replicas "Update haproxy config"
   print_help recreate "Recreate Haproxy docker"
-  print_help ip "Update cloudflare ip's"
+  print_help cloudflare_ip "Update cloudflare ip list"
+  print_help blacklist_agent "Update blacklist agents"
   ;;
 esac

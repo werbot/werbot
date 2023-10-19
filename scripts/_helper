@@ -46,7 +46,7 @@ support_arch() {
 }
 
 generate_password() {
-  tr -cd 'a-zA-Z0-9!#$%&()*+?@[]^_' </dev/urandom |
+  tr -cd 'a-zA-Z0-9!()*+?@[]' </dev/urandom |
     fold -w 32 |
     head -n 1
 }
@@ -56,6 +56,15 @@ get_latest_release() {
   echo $(curl --silent "https://api.github.com/repos/$1/releases/latest" |
     grep '"tag_name":' |
     sed -E 's/.*"([^"]+)".*/\1/')
+}
+
+get_ip() {
+  local IP=$(ip addr |
+    egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' |
+    egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." |
+    head -n 1) >/dev/null 2>&1
+  [ -z ${IP} ] && IP=$(curl -s ${API_CDN}/ip)
+  echo ${IP}
 }
 
 command_exists() {
@@ -80,7 +89,7 @@ print_header() {
 }
 
 print_help() {
-  printf "%.20s " "${COLOR_GREEN}$1${COLOR_RESET}                       "
+  printf "%.26s " "${COLOR_GREEN}$1${COLOR_RESET}                       "
   echo "$2" >&2
 }
 
