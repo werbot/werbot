@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# Copyright (c) 2023 Werbot, Inc.
+
+set -o errexit
+set -o pipefail
+
+if readlink /proc/$$/exe | grep -q "dash"; then
+  echo 'This cli needs to be run with "bash", not "sh".'
+  exit
+fi
+
+case "$(uname -s)" in
+"Windows")
+  echo "This script does not support the OS/Distribution on this machine."
+  echo "If you feel that this is an error contact support@werbot.com"
+  exit 1
+  ;;
+esac
+
+CORE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+if [ -f $CORE_PATH/.env ]; then
+  source $CORE_PATH/.env
+fi
+
+# Global setting
+COLOR_GREY=$(tput setaf 0)
+COLOR_RED=$(tput setaf 1)
+COLOR_GREEN=$(tput setaf 2)
+COLOR_YELLOW=$(tput setaf 3)
+COLOR_RESET=$(tput sgr0)
+
+command_exists() {
+  command -v "$@" >/dev/null 2>&1
+}
+
+generate_password() {
+  tr -cd 'a-zA-Z0-9!#$%&()*+?@[]^_' </dev/urandom |
+    fold -w 32 |
+    head -n 1
+}
+
+print_answer() {
+  local COLOR="$COLOR_RESET"
+  for flag in "$@"; do
+    case $flag in
+    grey) COLOR=$COLOR_GREY ;;
+    green) COLOR=$COLOR_GREEN ;;
+    yellow) COLOR=$COLOR_YELLOW ;;
+    red) COLOR=$COLOR_RED ;;
+    esac
+  done
+  echo "${COLOR}$1${COLOR_RESET}" >&2
+}
+
+print_header() {
+  printf "%.45s " "$@ ........................................"
+}
+
+print_help() {
+  printf "   %.25s " "${COLOR_GREEN}$1${COLOR_RESET}                       "
+  echo "$2" >&2
+}
+
+###############################################################
+
+gen() {
+  print_header "$@"
+  print_answer "SUCCESS" green
+}
+
+## Generating AES key
+gen_key_aes() {
+  openssl enc -aes-128-cbc -k secret -P -md sha1 -pbkdf2
+}
+
+gen_help() {
+  echo
+  echo "Usage: $0 gen {key_aes|key_server|key_jwt}" >&2
+  echo
+  print_help key_aes "new AES key"
+  print_help key_server "new server key"
+  print_help key_jwt "new JWT key"
+  echo
+  exit 1
+}
+
+###############################################################
+
+help() {
+  echo
+  echo "Usage: $0 [option...]" >&2
+  echo
+  print_help gen "generating functions"
+  echo
+  exit 1
+}
+
+###############################################################
+
+service=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+operation=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+
+case $service in
+gen)
+  #array=(key_aes)
+  #if (printf '%s\n' "${array[@]}" | grep -xq "$operation"); then
+  #  echo yes
+  #else
+  #  echo no
+  #fi
+
+  case "$operation" in
+  key_aes)
+    gen_key_aes
+    exit
+    ;;
+  stop)
+    gen "stop"
+    exit
+    ;;
+  *)
+    gen_help
+    exit
+    ;;
+  esac
+  ;;
+*)
+  help
+  ;;
+esac

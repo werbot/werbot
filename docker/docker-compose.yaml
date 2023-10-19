@@ -90,8 +90,8 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-      - ./core/postgres_server.crt:/var/lib/postgresql/server.crt:ro
-      - ./core/postgres_server.key:/var/lib/postgresql/server.key:ro
+      - ./postgres/ca/server.crt:/var/lib/postgresql/server.crt:ro
+      - ./postgres/ca/server.key:/var/lib/postgresql/server.key:ro
       - postgres_data:/var/lib/postgresql/data
     command: -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key
     healthcheck:
@@ -113,6 +113,7 @@ services:
       - 6379:6379
     volumes:
       - redis_data:/data
+    #  - ./redis/config.cfg:/usr/local/etc/redis/redis.conf
     command: redis-server --requirepass ${REDIS_PASSWORD:-redisPassword}
     networks:
       - private
@@ -162,8 +163,8 @@ services:
     environment:
       SECURITY_AES_KEY: ${SECURITY_AES_KEY:-securittAesKey}
       GRPCSERVER_TOKEN: ${GRPCSERVER_TOKEN:-grpcServerToken}
-      LICENSE_KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-} # check it
-      POSTGRES_HOST: service.postgres:5432
+      LICENSE_KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
       POSTGRES_USER: ${POSTGRES_USER:-werbot}
       POSTGRES_DB: ${POSTGRES_DB:-werbot}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgresPassword}
@@ -205,12 +206,13 @@ services:
     image: ghcr.io/werbot/taco:latest
     restart: always
     environment:
+      APP_TOKEN: ${APP_TOKEN:-werbot}
       REDIS_ADDR: service.redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redisPassword}
       ACCESS_TOKEN_DURATION: ${ACCESS_TOKEN_DURATION:-15m}
       # REFRESH_TOKEN_DURATION: ${ACCESS_TOKEN_DURATION:-168h}
-      LICENSE_KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-} # check it
-      LICENSE_KEY_PRIVATE: ${LICENSE_KEY_PRIVATE:-} # check it
+      LICENSE_KEY_PUBLIC: ${LICENSE_KEY_PUBLIC:-}
+      LICENSE_KEY_PRIVATE: ${LICENSE_KEY_PRIVATE:-}
       API_DSN: ${API_DSN:-localhost:8088}
       <<: *grpc-environment
     volumes:

@@ -6,12 +6,7 @@ ROOT_PATH="$(git rev-parse --show-toplevel)"
 source ${ROOT_PATH}/scripts/_helper
 source ${ROOT_PATH}/.env
 
-CORE_DIR="${ROOT_PATH}/docker/core"
-TMP_DIR="${ROOT_PATH}/.vscode/tmp"
-
-mkdir -p "${CORE_DIR}"
-
-print_header "Download GeoLite database"
+print_header "Install/Update GeoLite database"
 
 if [ ! ${GEOLITE_LICENSE} ]; then
   print_answer "ERROR" red
@@ -19,12 +14,14 @@ if [ ! ${GEOLITE_LICENSE} ]; then
   exit
 fi
 
-rm -rf ${CORE_DIR}/GeoLite2-Country.mmdb
+if [ -f ${ROOT_PATH}/.vscode/core/GeoLite2-Country.mmdb ]; then
+  rm -rf ${ROOT_PATH}/.vscode/core/GeoLite2-Country.mmdb
+fi
 
-mkdir -p ${TMP_DIR}
-wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=${GEOLITE_LICENSE}&suffix=tar.gz" -4 -q -O ${TMP_DIR}/country.tar.gz
-tar -zxf ${TMP_DIR}/country.tar.gz -C ${TMP_DIR}
-cp $(ls -d ${TMP_DIR}/*/ | head -n 1)*.mmdb ${CORE_DIR}/GeoLite2-Country.mmdb
-rm -rf ${TMP_DIR}
+mkdir -p ${ROOT_PATH}/.vscode/tmp
+wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=${GEOLITE_LICENSE}&suffix=tar.gz" -4 -q -O ${ROOT_PATH}/.vscode/tmp/country.tar.gz
+tar -zxf ${ROOT_PATH}/.vscode/tmp/country.tar.gz -C ${ROOT_PATH}/.vscode/tmp
+cp $(ls -d ${ROOT_PATH}/.vscode/tmp/*/ | head -n 1)*.mmdb ${ROOT_PATH}/.vscode/core/GeoLite2-Country.mmdb
+rm -rf ${ROOT_PATH}/.vscode/tmp
 
 print_answer "SUCCESS" green
