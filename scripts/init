@@ -143,4 +143,10 @@ ${ROOT_PATH}/scripts/migration up >/dev/null 2>&1
 docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" down >/dev/null 2>&1
 print_answer "SUCCESS" green
 
+# config haproxy
+print_header "Configuration HAPROXY"
+cp ${ROOT_PATH}/docker/haproxy/config.cfg.example ${ROOT_PATH}/docker/haproxy/config.cfg
+sed -i -E "s/__DONAIN__/$DOMAIN/g" ${ROOT_PATH}/docker/haproxy/config.cfg
+print_answer "SUCCESS" green
+
 echo "${COLOR_GREEN}The environment was set up.${COLOR_RESET}"

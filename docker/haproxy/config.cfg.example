@@ -42,7 +42,7 @@ resolvers docker
 frontend http_https
     mode http
     bind *:80
-    bind *:443 ssl crt /usr/local/etc/haproxy/certs/*.werbot.net.pem alpn h2,http/1.1
+    bind *:443 ssl crt /usr/local/etc/haproxy/certs/*.__DONAIN__.pem alpn h2,http/1.1
 
     acl is_blacklist_agent hdr_sub(user-agent) -i -f /usr/local/etc/haproxy/blacklist-agent.txt
     http-request deny if is_blacklist_agent
@@ -53,8 +53,8 @@ frontend http_https
 
     option forwardfor header X-Real-IP
     http-request redirect prefix https://%[hdr(host),regsub(^www\.,,i)] code 301 if { hdr_beg(host) -i www. }
-    use_backend app_back if { hdr(host) -i app.werbot.net }
-    use_backend taco_back if { hdr(host) -i api.werbot.net }
+    use_backend app_back if { hdr(host) -i app.__DONAIN__ }
+    use_backend taco_back if { hdr(host) -i api.__DONAIN__ }
 
 backend app_back
     mode http

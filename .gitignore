@@ -79,6 +79,7 @@ build/*
 docker/core
 docker/haproxy/data
 docker/haproxy/*.txt
+docker/haproxy/config.cfg
 docker/_*
 
 !LOCK
