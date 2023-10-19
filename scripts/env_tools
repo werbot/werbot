@@ -29,7 +29,6 @@ update_env_files() {
   print_answer "SUCCESS" green
 }
 
-
 case "$1" in
 update)
   ENV_FILE="${ROOT_PATH}/.env"
@@ -37,7 +36,6 @@ update)
       name=$(basename "${entry}")
       update_env_files ${name}
     done
-
   ;;
 
 *)

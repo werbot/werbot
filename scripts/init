@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source "${ROOT_PATH}/scripts/_helper"
+
+MAIN_ENV_FILE="${ROOT_PATH}/.env"
+DOCKER_ENV_FILE="${ROOT_PATH}/docker/.env"
+
+echo "1. To continue, you need to add a domain on Cloudflare and it should point to the current server."
+echo "${COLOR_YELLOW}api.domain.com. A $(get_ip)"
+echo "app.domain.com. A $(get_ip)${COLOR_RESET}"
+echo ""
+echo "2. Make a copy of the .env.example file and rename it to .env in the project's root folder, then modify the required parameters."
+echo "You need to uncomment the following fields and write new values:"
+echo "${COLOR_YELLOW}GEOLITE_LICENSE${COLOR_RESET} - Geolite key for downloading the latest geolite database."
+echo "${COLOR_YELLOW}DOMAIN${COLOR_RESET} - Second-level domain, in the format *.domain.com"
+echo "${COLOR_YELLOW}DNS_CLOUDFLARE_EMAIL${COLOR_RESET} - Your email on the CloudFlare website"
+echo "${COLOR_YELLOW}DNS_CLOUDFLARE_API_KEY${COLOR_RESET} - Secret API key on the CloudFlare website"
+echo ""
+
+read -p "Have you configured DNS records for your domain and set the required parameters in the .env file? (y/n) " USER_ANSWER
+case "$USER_ANSWER" in
+"y" | "Y") echo "" ;;
+*) exit ;;
+esac
+
+required_variables=("GEOLITE_LICENSE" "DOMAIN" "DNS_CLOUDFLARE_EMAIL" "DNS_CLOUDFLARE_API_KEY")
+for variable in "${required_variables[@]}"; do
+  value=$(grep "^$variable=" $MAIN_ENV_FILE | awk -F '=' '{print $2}')
+  if [ -z "$value" ]; then
+    echo "${COLOR_RED}[ERROR]${COLOR_RESET} You did not uncomment and edit the value of $variable"
+    exit
+  fi
+done
+
+rm -rf $DOCKER_ENV_FILE
+
+POSTGRES_PASSWORD=$(grep "^POSTGRES_PASSWORD=" $MAIN_ENV_FILE | awk -F '=' '{print $2}')
+if [ -z "$POSTGRES_PASSWORD" ]; then
+  POSTGRES_PASSWORD=$(generate_password)
+  sed -i "s/#\s\?\(POSTGRES_PASSWORD=\)\(.*\)/\1${POSTGRES_PASSWORD}/" $MAIN_ENV_FILE
+fi
+echo -e "# Postgres section
+# -------------------------
+POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+" >>$DOCKER_ENV_FILE
+
+# docker .env file
+REDIS_PASSWORD=$(grep "^REDIS_PASSWORD=" $MAIN_ENV_FILE | awk -F '=' '{print $2}')
+if [ -z "$REDIS_PASSWORD" ]; then
+  REDIS_PASSWORD=$(generate_password)
+  sed -i "s/#\s\?\(REDIS_PASSWORD=\)\(.*\)/\1${REDIS_PASSWORD}/" $MAIN_ENV_FILE
+fi
+echo -e "# Redis section
+# -------------------------
+REDIS_PASSWORD=$REDIS_PASSWORD
+" >>$DOCKER_ENV_FILE
+
+GRPCSERVER_TOKEN=$(grep "^GRPCSERVER_TOKEN=" $MAIN_ENV_FILE | awk -F '=' '{print $2}')
+if [ -z "$GRPCSERVER_TOKEN" ]; then
+  GRPCSERVER_TOKEN=$(${ROOT_PATH}/scripts/key aes)
+  sed -i "s/#\s\?\(GRPCSERVER_TOKEN=\)\(.*\)/\1${GRPCSERVER_TOKEN}/" $MAIN_ENV_FILE
+fi
+echo -e "# GRPC section
+# -------------------------
+GRPCSERVER_TOKEN=$GRPCSERVER_TOKEN
+" >>$DOCKER_ENV_FILE
+
+SECURITY_AES_KEY=$(grep "^SECURITY_AES_KEY=" $MAIN_ENV_FILE | awk -F '=' '{print $2}')
+if [ -z "$SECURITY_AES_KEY" ]; then
+  SECURITY_AES_KEY=$(${ROOT_PATH}/scripts/key aes)
+  sed -i "s/#\s\?\(SECURITY_AES_KEY=\)\(.*\)/\1${SECURITY_AES_KEY}/" $MAIN_ENV_FILE
+fi
+echo -e "# Security section
+# -------------------------
+SECURITY_AES_KEY=$SECURITY_AES_KEY
+" >>$DOCKER_ENV_FILE
+
+DOMAIN=$(grep "^DOMAIN=" $MAIN_ENV_FILE | awk -F '=' '{print $2}')
+echo -e "# Web section
+# -------------------------
+API_DSN=https://api.$DOMAIN
+APP_DSN=https://app.$DOMAIN
+" >>$DOCKER_ENV_FILE
+
+DNS_CLOUDFLARE_EMAIL=$(grep "^DNS_CLOUDFLARE_EMAIL=" $MAIN_ENV_FILE | awk -F '=' '{print $2}')
+DNS_CLOUDFLARE_API_KEY=$(grep "^DNS_CLOUDFLARE_API_KEY=" $MAIN_ENV_FILE | awk -F '=' '{print $2}')
+echo -e "# Docker Compose section
+# -------------------------
+DOMAIN=$DOMAIN
+DNS_CLOUDFLARE_EMAIL=$DNS_CLOUDFLARE_EMAIL
+DNS_CLOUDFLARE_API_KEY=$DNS_CLOUDFLARE_API_KEY
+" >>$DOCKER_ENV_FILE
+
+# update main .env file
+sed -i "s/#\s\?\(DEV_MODE=\)\(.*\)/\1true/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(GRPCSERVER_CERTIFICATE=\)\(.*\)/\1..\/..\/docker\/core\/grpc_certificate.key/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(GRPCSERVER_PRIVATE_KEY=\)\(.*\)/\1..\/..\/docker\/core\/grpc_private.key/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(SECURITY_GEOIP2=\)\(.*\)/\1..\/..\/docker\/core\/GeoLite2-Country.mmdb/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(JWT_PRIVATE_KEY=\)\(.*\)/\1..\/..\/docker\/core\/jwt_private.key/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(JWT_PUBLIC_KEY=\)\(.*\)/\1..\/..\/docker\/core\/jwt_public.key/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(ACCESS_TOKEN_DURATION=\)\(.*\)/\11m/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(LICENSE_FILE=\)\(.*\)/\1..\/..\/docker\/core\/license.key/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(SSHSERVER_BIND_ADDRESS=\)\(.*\)/\1:3023/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(SSHSERVER_PIPER_KEY_FILE=\)\(.*\)/\1..\/..\/docker\/core\/server.key/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(API_DSN=\)\(.*\)/\1http:\/\/localhost:5175/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(GHOST_DATA=\)\(.*\)/\1..\/..\/docker\/core/" $MAIN_ENV_FILE
+
+# keys generate
+${ROOT_PATH}/scripts/key ssh
+${ROOT_PATH}/scripts/key jwt
+${ROOT_PATH}/scripts/key grpc
+${ROOT_PATH}/scripts/key postgres
+${ROOT_PATH}/scripts/key license
+
+# download geolite2-country database
+${ROOT_PATH}/scripts/geolite
+
+# download lists for haproxy
+${ROOT_PATH}/scripts/haproxy cloudflare_ip
+${ROOT_PATH}/scripts/haproxy blacklist_agent
+
+# create SSL sertificates for damain
+print_header "ACME account registration"
+docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --register-account -m ${DNS_CLOUDFLARE_EMAIL} >/dev/null 2>&1
+print_answer "SUCCESS" green
+
+print_header "Issuing an SSL certificate"
+docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --issue -d *.${DOMAIN} --dns dns_cf --dnssleep 10 >/dev/null 2>&1
+print_answer "SUCCESS" green
+
+print_header "Adding of SSL certificate"
+docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --deploy -d *.werbot.net --deploy-hook haproxy >/dev/null 2>&1
+print_answer "SUCCESS" green
+
+# run database migration
+print_header "Database migration"
+docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" up postgres -d >/dev/null 2>&1
+sleep 3
+${ROOT_PATH}/scripts/migration up >/dev/null 2>&1
+docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" down >/dev/null 2>&1
+print_answer "SUCCESS" green
+
+echo "${COLOR_GREEN}The environment was set up.${COLOR_RESET}"

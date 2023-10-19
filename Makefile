@@ -61,9 +61,9 @@ haproxy:
 
 
 #############################################################################
-.PHONY: docker
-docker: ## Docker tools
-	@scripts/docker $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+.PHONY: init
+init: ## Initialization develop environment
+	@scripts/init
 #############################################################################
 
 

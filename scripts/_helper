@@ -46,7 +46,7 @@ support_arch() {
 }
 
 generate_password() {
-  tr -cd 'a-zA-Z0-9!()*+?@[]' </dev/urandom |
+  tr -cd 'a-zA-Z0-9!*' </dev/urandom |
     fold -w 32 |
     head -n 1
 }
