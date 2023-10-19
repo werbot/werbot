@@ -10,13 +10,7 @@ mkdir -p "${CORE_DIR}"
 
 case "$1" in
 aes)
-  print_header "Generate AES key"
-  if OTPUT=$(hexdump -vn16 -e'4/4 "%08X" 1 "\n"' /dev/urandom); then
-    print_answer "SUCCESS" green
-    echo "${OTPUT}"
-  else
-    print_answer "ERROR" red
-  fi
+  echo $(hexdump -vn16 -e'4/4 "%08X" 1 "\n"' /dev/urandom)
   ;;
 
 ssh)
@@ -58,7 +52,7 @@ subjectAltName         = @alt_names
 [ alt_names ]
 DNS.1                  = werbot.com
 EOF
-  openssl genrsa -out "${TMP_DIR}/private_key.pem" 2048
+  openssl genrsa -out "${CORE_DIR}/grpc_private.key" 2048
   openssl req -nodes -new -x509 -days 1825 -sha256 -config "${TMP_DIR}/.temp-openssl-config" \
     -extensions 'req_ext' \
     -key "${CORE_DIR}/grpc_private.key" \
@@ -82,6 +76,17 @@ license)
   print_header "Generate License keys"
 	openssl genpkey -algorithm ed25519 -out "${CORE_DIR}/license_private.key"
 	openssl pkey -in "${CORE_DIR}/license_private.key" -pubout -out "${CORE_DIR}/license_public.key"
+  # TODO add generate license key - license.key
+  cat <<EOF >"${CORE_DIR}/license.key"
+-----BEGIN LICENSE KEY-----
+9i9YqvMXfzVApxFES84T+DmanfAGird5GD9f9xILe7ctBXwOZUNc6WTJjKZihp0V
+NAxWHinPrYBpdiR7ZeNnC3siY3VzIjoid2VyYm90IiwidHlwIjoiZW50ZXJwcmlz
+ZSIsImlhdCI6IjIwMjItMDItMTZUMjA6NTI6MzUuNzgxNDU1Nzg5WiIsImV4cCI6
+IjIwMjItMDMtMTZUMjA6NTI6MzUuNzgxNDU1Nzg5WiIsImRhdCI6eyJzZXJ2ZXJz
+IjoyMCwiY29tcGFuaWVzIjoxMCwidXNlcnMiOjEwMCwibW9kdWxlcyI6WyJzdWNj
+ZXNzIiwiZXJyb3IiLCJ3YXJuaW5nIl19fQ==
+-----END LICENSE KEY-----
+EOF
   print_answer "SUCCESS" green
   ;;
 

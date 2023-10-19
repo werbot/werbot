@@ -61,6 +61,13 @@ haproxy:
 
 
 #############################################################################
+.PHONY: docker
+docker: ## Docker tools
+	@scripts/docker $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+#############################################################################
+
+
+#############################################################################
 # install latest version goose - go install github.com/pressly/goose/v3/cmd/goose@latest
 .PHONY: migration
 migration: # Migration sql
