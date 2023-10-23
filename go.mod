@@ -12,7 +12,7 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.31.0-20231017183020-0de7443d03cf.1
 	github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a
 	github.com/bufbuild/protovalidate-go v0.3.3
-	github.com/fsnotify/fsnotify v1.6.0
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/fsouza/go-dockerclient v1.10.0
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/gofiber/fiber/v2 v2.50.0
