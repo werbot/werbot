@@ -22,7 +22,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.1
 	github.com/hibiken/asynq v0.24.1
-	github.com/jackc/pgx/v5 v5.4.3
+	github.com/jackc/pgx/v5 v5.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/oschwald/geoip2-golang v1.9.0
@@ -63,6 +63,7 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/klauspost/compress v1.17.1 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -93,6 +94,7 @@ require (
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sync v0.4.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
