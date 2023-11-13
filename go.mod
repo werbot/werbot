@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/alicebob/miniredis/v2 v2.31.0
-	github.com/fergusstrange/embedded-postgres v1.24.0
+	github.com/fergusstrange/embedded-postgres v1.25.0
 	github.com/pressly/goose/v3 v3.15.1
 )
 
