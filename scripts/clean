@@ -13,11 +13,20 @@ for process in "${arr_process[@]}"; do
   fi
 done
 
-print_header "Leaning garbage and inactive containers"
+print_header "Remove old bin and dist files"
+for entry in ${ROOT_PATH}/cmd/*/; do
+  name=$(basename "${entry}")
+  rm -rf ${ROOT_PATH}/cmd/${name}/__debug_bin*
+done
 rm -rf ${ROOT_PATH}/web/dist ${ROOT_PATH}/bin/* ${ROOT_PATH}/dist/
-docker system prune --all --volumes --force >/dev/null 2>&1
-docker image prune --filter "dangling=true" --force >/dev/null 2>&1
 print_answer "SUCCESS" green
+
+if [[ "$1" == 'docker' ]]; then
+  print_header "Leaning garbage and inactive containers"
+  docker system prune --all --volumes --force >/dev/null 2>&1
+  docker image prune --filter "dangling=true" --force >/dev/null 2>&1
+  print_answer "SUCCESS" green
+fi
 
 if pgrep -f "postgres.*9876" >/dev/null; then
   print_header "Killing embedded postgres"

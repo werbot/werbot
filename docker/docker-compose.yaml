@@ -78,7 +78,7 @@ services:
     logging: *default-logging
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: service.postgres
     restart: always
     ports:

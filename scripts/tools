@@ -75,9 +75,6 @@ app)
 
 golang)
   print_header "Install/Update Golang"
-  get_latest_go_version() {
-    wget -qO- "https://golang.org/dl/" | grep -v -E 'go[0-9\.]+(beta|rc)' | grep -E -o 'go[0-9\.]+' | grep -E -o '[0-9]\.[0-9]+(\.[0-9]+)?' | sort -V | uniq | tail -1
-  }
 
   case "$OS" in
   Darwin*)
@@ -86,7 +83,7 @@ golang)
 
   Linux*)
     support_arch
-    GO_RELEASE=$(get_latest_go_version)
+    GO_RELEASE=$(wget -qO- "https://golang.org/dl/" | grep -v -E 'go[0-9\.]+(beta|rc)' | grep -E -o 'go[0-9\.]+' | grep -E -o '[0-9]\.[0-9]+(\.[0-9]+)?' | sort -V | uniq | tail -1)
     GO_PATH="$HOME/go"
     maybe_sudo mkdir -p $GO_PATH
     echo -e "\nexport PATH=\$PATH:${GO_PATH}/bin\nexport PATH=\$PATH:\$HOME/go/bin\n" >>~/.bashrc
@@ -111,6 +108,6 @@ golang)
   echo
   echo "command:"
   print_help app "Install or Update app"
-  print_help golabg "Install or Update golang"
+  print_help golang "Install or Update golang"
   ;;
 esac
