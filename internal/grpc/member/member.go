@@ -611,6 +611,8 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
 			"project_member"."id",
 			"user"."login",
 			"user"."email",
+      "user"."name",
+      "user"."surname",
 			"project_member"."role" AS "member_role",
 			"project_member"."active" AS "member_active",
 			"project_member"."online" AS "member_online"
@@ -633,6 +635,8 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
 		err = rows.Scan(&member.MemberId,
 			&member.UserLogin,
 			&member.Email,
+			&member.UserName,
+			&member.UserSurname,
 			&role,
 			&member.Active,
 			&member.Online,
