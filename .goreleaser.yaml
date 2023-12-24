@@ -13,9 +13,10 @@ builds:
     id: avocado
     binary: werbot_avocado_{{- title .Os }}_amd64
     ldflags:
-      - -s -w -X github.com/werbot/werbot/internal/version={{.Version}}
-      - -s -w -X github.com/werbot/werbot/internal/gitCommit={{.ShortCommit}}
-      - -s -w -X github.com/werbot/werbot/internal/buildDate={{.Date}}
+      - -s -w
+      - -X github.com/werbot/werbot/internal/version/version={{.Version}}
+      - -X github.com/werbot/werbot/internal/version/gitCommit={{.ShortCommit}}
+      - -X github.com/werbot/werbot/internal/version/buildDate={{.Date}}
     goos: [linux]
     goarch: [amd64]
     no_unique_dist_dir: true
@@ -23,9 +24,10 @@ builds:
     id: buffet
     binary: werbot_buffet_{{- title .Os }}_amd64
     ldflags:
-      - -s -w -X github.com/werbot/werbot/internal/version={{.Version}}
-      - -s -w -X github.com/werbot/werbot/internal/gitCommit={{.ShortCommit}}
-      - -s -w -X github.com/werbot/werbot/internal/buildDate={{.Date}}
+      - -s -w
+      - -X github.com/werbot/werbot/internal/version/version={{.Version}}
+      - -X github.com/werbot/werbot/internal/version/gitCommit={{.ShortCommit}}
+      - -X github.com/werbot/werbot/internal/version/buildDate={{.Date}}
     goos: [linux]
     goarch: [amd64]
     no_unique_dist_dir: true
@@ -33,9 +35,10 @@ builds:
     id: ghost
     binary: werbot_ghost_{{- title .Os }}_amd64
     ldflags:
-      - -s -w -X github.com/werbot/werbot/internal/version={{.Version}}
-      - -s -w -X github.com/werbot/werbot/internal/gitCommit={{.ShortCommit}}
-      - -s -w -X github.com/werbot/werbot/internal/buildDate={{.Date}}
+      - -s -w
+      - -X github.com/werbot/werbot/internal/version/version={{.Version}}
+      - -X github.com/werbot/werbot/internal/version/gitCommit={{.ShortCommit}}
+      - -X github.com/werbot/werbot/internal/version/buildDate={{.Date}}
     goos: [linux]
     goarch: [amd64]
     no_unique_dist_dir: true
@@ -43,9 +46,10 @@ builds:
     id: taco
     binary: werbot_taco_{{- title .Os }}_amd64
     ldflags:
-      - -s -w -X github.com/werbot/werbot/internal/version.version={{.Version}}
-      - -s -w -X github.com/werbot/werbot/internal/version.gitCommit={{.ShortCommit}}
-      - -s -w -X github.com/werbot/werbot/internal/version.buildDate={{.Date}}
+      - -s -w
+      - -X github.com/werbot/werbot/internal/version/version.version={{.Version}}
+      - -X github.com/werbot/werbot/internal/version/version.gitCommit={{.ShortCommit}}
+      - -X github.com/werbot/werbot/internal/version/version.buildDate={{.Date}}
     goos: [linux]
     goarch: [amd64]
     no_unique_dist_dir: true

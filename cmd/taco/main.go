@@ -30,6 +30,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	rdb "github.com/werbot/werbot/internal/storage/redis"
+	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -82,7 +83,7 @@ func main() {
 
 	app = fiber.New(fiber.Config{
 		DisableStartupMessage: true,
-		ServerHeader:          fmt.Sprintf("[werbot] %s-%s", "taco", internal.Version()),
+		ServerHeader:          fmt.Sprintf("[werbot] %s-%s", "taco", version.Version()),
 	})
 
 	app.Use(
@@ -129,7 +130,7 @@ func main() {
 		return webutil.StatusNotFound(c)
 	})
 
-	log.Info().Str("serverAddress", appPort).Str("version", internal.Version()).Msg("Start taco server")
+	log.Info().Str("serverAddress", appPort).Str("version", version.Version()).Msg("Start taco server")
 	if err := app.Listener(proxyListener); err != nil {
 		log.Fatal(err).Msg("Create server")
 	}

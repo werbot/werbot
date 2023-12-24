@@ -15,6 +15,7 @@ import (
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/storage/postgres"
 	rdb "github.com/werbot/werbot/internal/storage/redis"
+	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/logger"
 )
 
@@ -71,7 +72,7 @@ func main() {
 
 	// Initialize the GRPC server with dependencies and launch it
 	serverAddr := internal.GetString("GRPCSERVER_HOST", "0.0.0.0:50051")
-	log.Info().Str("serverAddress", serverAddr).Str("version", internal.Version()).Msg("Starting buffet server")
+	log.Info().Str("serverAddress", serverAddr).Str("version", version.Version()).Msg("Starting buffet server")
 
 	s := grpc.NewServer(internal.GetString("GRPCSERVER_TOKEN", "token"), db, cache, cert)
 

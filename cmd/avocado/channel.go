@@ -22,6 +22,7 @@ import (
 	"github.com/werbot/werbot/internal/service/ssh/auditor"
 	"github.com/werbot/werbot/internal/service/ssh/pty"
 	"github.com/werbot/werbot/internal/trace"
+	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/strutil"
 )
 
@@ -217,7 +218,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 			return
 		}
 
-		sendMessageInChannel(ch, " _    _  ____  ____  ____  _____  ____ \n( \\/\\/ )( ___)(  _ \\(  _ \\(  _  )(_  _)\n \033[0;31m)    (  )__)  )   / ) _ < )(_)(   )(\033[0m  \n(__/\\__)(____)(_)\\_)(____/(_____) (__) \n"+internal.Version()+", "+internal.Commit()+", "+internal.BuildDate()+"\n\n")
+		sendMessageInChannel(ch, " _    _  ____  ____  ____  _____  ____ \n( \\/\\/ )( ___)(  _ \\(  _ \\(  _  )(_  _)\n \033[0;31m)    (  )__)  )   / ) _ < )(_)(   )(\033[0m  \n(__/\\__)(____)(_)\\_)(____/(_____) (__) \n"+version.Version()+", "+version.Commit()+", "+version.BuildDate()+"\n\n")
 
 		serverList, _ := rClient.ListServers(_ctx, &serverpb.ListServers_Request{
 			Query: "login=" + actx.login,

@@ -10,9 +10,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	infopb "github.com/werbot/werbot/internal/grpc/info/proto"
+	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -132,7 +132,7 @@ func (h *Handler) getVersion(c *fiber.Ctx) error {
 	// }
 
 	versions := make(map[string]string)
-	versions["api"] = fmt.Sprintf("%s (%s)", internal.Version(), internal.Commit())
+	versions["api"] = fmt.Sprintf("%s (%s)", version.Version(), version.Commit())
 
 	return webutil.StatusOK(c, "Apps version", versions)
 }

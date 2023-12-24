@@ -20,12 +20,11 @@ import (
 	"github.com/werbot/werbot/internal/broker"
 	"github.com/werbot/werbot/internal/grpc"
 	rdb "github.com/werbot/werbot/internal/storage/redis"
+	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-var (
-	app = App{}
-)
+var app = App{}
 
 // App is ...
 type App struct {
@@ -86,7 +85,7 @@ func main() {
 	// configure server
 	srv := &ssh.Server{
 		Addr:    internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022"),
-		Version: fmt.Sprintf("[werbot] avocado-%s", internal.Version()),
+		Version: fmt.Sprintf("[werbot] avocado-%s", version.Version()),
 		ChannelHandlers: map[string]ssh.ChannelHandler{
 			"default": channelHandler,
 		},
@@ -120,7 +119,7 @@ func main() {
 		}
 	}
 
-	log.Info().Str("serverAddress", internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022")).Dur("idleTimout", time.Duration(internal.GetInt("SSHSERVER_IDLE_TIMEOUT", 300))*time.Second).Str("version", internal.Version()).Msg("SSH Server accepting connections")
+	log.Info().Str("serverAddress", internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022")).Dur("idleTimout", time.Duration(internal.GetInt("SSHSERVER_IDLE_TIMEOUT", 300))*time.Second).Str("version", version.Version()).Msg("SSH Server accepting connections")
 	if err := srv.Serve(proxyListener); err != nil {
 		app.log.Fatal(err).Msg("Create server")
 	}

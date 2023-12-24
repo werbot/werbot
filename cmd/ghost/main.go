@@ -7,6 +7,7 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
 	"github.com/werbot/werbot/internal"
+	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/fsutil"
 	"github.com/werbot/werbot/pkg/logger"
 )
@@ -18,7 +19,7 @@ func main() {
 
 	log = logger.New()
 
-	log.Info().Str("version", internal.Version()).Msg("Start ghost server")
+	log.Info().Str("version", version.Version()).Msg("Start ghost server")
 
 	asyncRedisConfig := asynq.RedisClientOpt{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
