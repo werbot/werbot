@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/werbot/werbot/internal"
 )
 
@@ -19,7 +19,6 @@ var (
 // The loadKeys function reads the public and private key files, parses them into appropriate data types and stores them in their respective variables.
 // It returns an error if there's any issue with reading file, parsing keys or storing them.
 func loadKeys() error {
-
 	// Read content of JWT_PUBLIC_KEY file into a byte array.
 	pubBytes, err := internal.GetByteFromFile("JWT_PUBLIC_KEY", "./jwt_public.key")
 	if err != nil {

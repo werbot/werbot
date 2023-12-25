@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	golang_jwt "github.com/golang-jwt/jwt/v4"
+	golang_jwt "github.com/golang-jwt/jwt/v5"
 
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"

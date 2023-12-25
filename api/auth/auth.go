@@ -107,8 +107,11 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	sub := jwt.GetClaimSub(*claims)
-	userID, err := h.Redis.Get(fmt.Sprintf("ref_token:%s", sub)).Result()
+	userID, err := h.Redis.GetCtx(ctx, fmt.Sprintf("ref_token:%s", sub)).Result()
 	if err != nil {
 		h.log.Error(err).Send()
 		return webutil.FromGRPC(c, trace.Error(codes.NotFound))
@@ -118,9 +121,6 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("token has been revoked"))
 	}
 	jwt.DeleteToken(h.Redis, sub)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
 	user, err := rClient.User(ctx, &userpb.User_Request{
@@ -170,7 +170,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 
 	if len(c.Body()) > 0 {
 		if err := protojson.Unmarshal(c.Body(), request); err != nil {
-			//h.log.Error(err).Send()
+			// h.log.Error(err).Send()
 			return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
 		}
 	}

@@ -4,8 +4,8 @@ import (
 	"crypto/rsa"
 	"fmt"
 
+	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
-	jwtware "github.com/gofiber/jwt/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -43,8 +43,12 @@ func (m AuthMiddleware) Execute() fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SuccessHandler: m.authSuccess,
 		ErrorHandler:   authError,
-		SigningKey:     m.publicKey,
-		SigningMethod:  "RS256",
+		SigningKey: jwtware.SigningKey{
+			JWTAlg: jwtware.RS256,
+			Key:    m.publicKey,
+		},
+		// SigningKey:     m.publicKey,
+		// SigningMethod:  "RS256",
 	})
 }
 

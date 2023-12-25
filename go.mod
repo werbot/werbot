@@ -3,17 +3,23 @@ module github.com/werbot/werbot
 go 1.21.5
 
 require (
+	github.com/alicebob/miniredis/v2 v2.31.0
+	github.com/fergusstrange/embedded-postgres v1.25.0
+	github.com/pressly/goose/v3 v3.17.0
+)
+
+require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.32.0-20231115204500-e097f827e652.1
 	github.com/armon/go-proxyproto v0.1.0
 	github.com/bufbuild/protovalidate-go v0.4.3
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/fsouza/go-dockerclient v1.10.1
 	github.com/gliderlabs/ssh v0.3.6
+	github.com/gofiber/contrib/jwt v1.0.8
 	github.com/gofiber/fiber/v2 v2.51.0
 	github.com/gofiber/helmet/v2 v2.2.26
-	github.com/gofiber/jwt/v3 v3.3.10
 	github.com/gofiber/keyauth/v2 v2.2.1
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/google/uuid v1.5.0
 	github.com/hibiken/asynq v0.24.1
 	github.com/jackc/pgx/v5 v5.5.1
@@ -33,15 +39,10 @@ require (
 )
 
 require (
-	github.com/alicebob/miniredis/v2 v2.31.0
-	github.com/fergusstrange/embedded-postgres v1.25.0
-	github.com/pressly/goose/v3 v3.17.0
-)
-
-require (
 	cloud.google.com/go/compute v1.23.3 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
+	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect

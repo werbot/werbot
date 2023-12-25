@@ -3,7 +3,7 @@ package jwt
 import (
 	"errors"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 )
