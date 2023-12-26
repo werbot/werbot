@@ -74,13 +74,13 @@ func main() {
 	serverAddr := internal.GetString("GRPCSERVER_HOST", "0.0.0.0:50051")
 	log.Info().Str("serverAddress", serverAddr).Str("version", version.Version()).Msg("Starting buffet server")
 
-	s := grpc.NewServer(internal.GetString("GRPCSERVER_TOKEN", "token"), db, cache, cert)
+	s := grpc.NewServer(db, cache, cert)
 
 	lis, err := net.Listen("tcp", serverAddr)
 	if err != nil {
 		log.Fatal(err).Msg("Failed to listen")
 	}
-	if err := s.GRPC.Serve(lis); err != nil {
+	if err := s.Serve(lis); err != nil {
 		log.Fatal(err).Msg("Failed to serve")
 	}
 }

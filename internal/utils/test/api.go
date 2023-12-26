@@ -16,7 +16,6 @@ import (
 
 	"github.com/werbot/werbot/api"
 	"github.com/werbot/werbot/api/auth"
-	"github.com/werbot/werbot/internal/grpc"
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/jwt"
@@ -106,10 +105,8 @@ func API(t *testing.T) (*TestHandler, func(t *testing.T)) {
 	)
 
 	webHandler := &api.Handler{
-		App: appTest,
-		Grpc: &grpc.ClientService{
-			Client: grpcTest.ClientConn,
-		},
+		App:   appTest,
+		Grpc:  grpcTest.ClientConn,
 		Redis: redisTest.Handler,
 		Auth:  middleware.Auth(redisTest.Handler).Execute(),
 	}

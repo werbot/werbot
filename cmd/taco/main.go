@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
 
 	"github.com/armon/go-proxyproto"
 	"github.com/gofiber/fiber/v2"
@@ -49,26 +48,10 @@ func main() {
 
 	appPort := internal.GetString("APP_PORT", ":8088")
 
-	// Load TLS configuration from files at startup
-	grpc_certificate, err := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")
+	grpcClient, err := grpc.NewClient()
 	if err != nil {
-		log.Fatal().Msg("Failed to open grpc_certificate.key")
-		os.Exit(1)
+		log.Fatal(err).Send()
 	}
-
-	grpc_private, err := internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key")
-	if err != nil {
-		log.Fatal().Msg("Failed to open grpc_private.key")
-		os.Exit(1)
-	}
-
-	grpcClient := grpc.NewClient(
-		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
-		internal.GetString("GRPCSERVER_TOKEN", "token"),
-		internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
-		grpc_certificate,
-		grpc_private,
-	)
 
 	cache := rdb.NewClient(ctx, redis.NewClient(&redis.Options{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),

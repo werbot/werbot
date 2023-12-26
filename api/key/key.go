@@ -43,7 +43,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
+	rClient := keypb.NewKeyHandlersClient(h.Grpc)
 
 	// show all keys
 	if request.GetKeyId() == "" {
@@ -104,7 +104,7 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
+	rClient := keypb.NewKeyHandlersClient(h.Grpc)
 	publicKey, err := rClient.AddKey(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -138,7 +138,7 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
+	rClient := keypb.NewKeyHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateKey(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -173,7 +173,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
+	rClient := keypb.NewKeyHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteKey(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -199,7 +199,7 @@ func (h *Handler) getGenerateNewKey(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := keypb.NewKeyHandlersClient(h.Grpc.Client)
+	rClient := keypb.NewKeyHandlersClient(h.Grpc)
 	key, err := rClient.GenerateSSHKey(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

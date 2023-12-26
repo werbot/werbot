@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/ssh"
+	"google.golang.org/grpc"
 
-	"github.com/werbot/werbot/internal/grpc"
 	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto"
 	"github.com/werbot/werbot/pkg/logger"
 )
@@ -24,16 +24,16 @@ type LogChannel struct {
 	Frames      []*auditpb.Record
 	fullTime    time.Time
 
-	grpcSession *grpc.ClientService
+	grpcSession *grpc.ClientConn
 	recordCount int32
 }
 
 // NewLogchannel is ...
-func NewLogchannel(account *auditpb.AddAudit_Request, channel ssh.Channel, grpcSession *grpc.ClientService, recordCount int32) *LogChannel {
+func NewLogchannel(account *auditpb.AddAudit_Request, channel ssh.Channel, grpcSession *grpc.ClientConn, recordCount int32) *LogChannel {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := auditpb.NewAuditHandlersClient(grpcSession.Client)
+	rClient := auditpb.NewAuditHandlersClient(grpcSession)
 	auditData, err := rClient.AddAudit(ctx, &auditpb.AddAudit_Request{
 		AccountId: account.AccountId,
 		Version:   2,
@@ -75,7 +75,7 @@ func (l *LogChannel) Write(data []byte) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := auditpb.NewAuditHandlersClient(l.grpcSession.Client)
+	rClient := auditpb.NewAuditHandlersClient(l.grpcSession)
 
 	if l.FramesCount == l.recordCount {
 		// TODO: переименовать названия на новые frame, Time, Type, Data
@@ -105,7 +105,7 @@ func (l *LogChannel) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := auditpb.NewAuditHandlersClient(l.grpcSession.Client)
+	rClient := auditpb.NewAuditHandlersClient(l.grpcSession)
 
 	if l.FramesCount > 0 {
 		_, err := rClient.AddRecord(ctx, &auditpb.AddRecord_Request{

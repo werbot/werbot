@@ -58,7 +58,7 @@ func bastionClientConfig(ctx ssh.Context, host *serverpb.Server_Response) (*goss
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(app.grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(app.grpc)
 	access, _ := rClient.ServerAccess(_ctx, &serverpb.ServerAccess_Request{
 		ProjectId: host.GetProjectId(),
 		ServerId:  host.GetServerId(),

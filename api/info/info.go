@@ -109,7 +109,7 @@ func (h *Handler) getInfo(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := infopb.NewInfoHandlersClient(h.Grpc.Client)
+	rClient := infopb.NewInfoHandlersClient(h.Grpc)
 	info, err := rClient.UserMetrics(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

@@ -35,7 +35,7 @@ func (h *Handler) addServiceServer(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(h.Grpc)
 	server, err := rClient.AddServer(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

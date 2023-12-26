@@ -45,7 +45,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 
 	// show all member on server
 	if request.GetMemberId() == "" {
@@ -101,7 +101,7 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	member, err := rClient.AddServerMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -135,7 +135,7 @@ func (h *Handler) updateServerMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateServerMember(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -172,7 +172,7 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteServerMember(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -214,7 +214,7 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	members, err := rClient.MembersWithoutServer(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -249,7 +249,7 @@ func (h *Handler) updateServerMemberActive(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateServerMember(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}

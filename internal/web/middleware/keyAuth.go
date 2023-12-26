@@ -8,23 +8,23 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/keyauth/v2"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal/grpc"
 	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
 	"github.com/werbot/werbot/pkg/webutil"
 )
 
 // KeyMiddleware is ...
 type KeyMiddleware struct {
-	*grpc.ClientService
+	*grpc.ClientConn
 }
 
 // Key is ...
-func Key(grpc *grpc.ClientService) *KeyMiddleware {
+func Key(grpc *grpc.ClientConn) *KeyMiddleware {
 	return &KeyMiddleware{
-		ClientService: grpc,
+		grpc,
 	}
 }
 
@@ -50,7 +50,7 @@ func (m KeyMiddleware) tokenCheck(c *fiber.Ctx, token string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := projectpb.NewProjectHandlersClient(m.Client)
+	rClient := projectpb.NewProjectHandlersClient(m)
 	project, err := rClient.ListProjects(ctx, &projectpb.ListProjects_Request{
 		Query: fmt.Sprintf("api_key='%v'", token),
 	})

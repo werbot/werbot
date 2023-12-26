@@ -43,8 +43,8 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 
 		_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		rClientF := firewallpb.NewFirewallHandlersClient(app.grpc.Client)
-		rClientA := accountpb.NewAccountHandlersClient(app.grpc.Client)
+		rClientF := firewallpb.NewFirewallHandlersClient(app.grpc)
+		rClientA := accountpb.NewAccountHandlersClient(app.grpc)
 
 		// IP check for global Firewall settings
 		_, err := rClientF.IPAccess(_ctx, &firewallpb.IPAccess_Request{

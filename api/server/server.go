@@ -49,7 +49,7 @@ func (h *Handler) server(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(h.Grpc)
 
 	// show all project
 	if request.GetServerId() == "" {
@@ -134,7 +134,7 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(h.Grpc)
 	server, err := rClient.AddServer(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -191,7 +191,7 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateServer(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -226,7 +226,7 @@ func (h *Handler) deleteServer(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteServer(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -262,7 +262,7 @@ func (h *Handler) serverAccess(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(h.Grpc)
 	access, err := rClient.ServerAccess(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -320,7 +320,7 @@ func (h *Handler) updateServerAccess(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateServerAccess(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -356,7 +356,7 @@ func (h *Handler) serverActivity(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(h.Grpc)
 	activity, err := rClient.ServerActivity(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -393,7 +393,7 @@ func (h *Handler) updateServerActivity(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateServerActivity(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -427,7 +427,7 @@ func (h *Handler) serverFirewall(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc.Client)
+	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc)
 	firewall, err := rClient.ServerFirewall(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -462,7 +462,7 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc.Client)
+	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc)
 
 	switch request.Record.(type) {
 	case *firewallpb.AddServerFirewall_Request_CountryCode:
@@ -515,7 +515,7 @@ func (h *Handler) updateServerFirewall(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc.Client)
+	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateServerFirewall(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -548,7 +548,7 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc.Client)
+	rClient := firewallpb.NewFirewallHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteServerFirewall(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -582,7 +582,7 @@ func (h *Handler) serverNameByID(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(h.Grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(h.Grpc)
 	access, err := rClient.ServerNameByID(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

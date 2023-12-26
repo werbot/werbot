@@ -64,7 +64,7 @@ func (h *Handler) events(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := eventpb.NewEventHandlersClient(h.Grpc.Client)
+	rClient := eventpb.NewEventHandlersClient(h.Grpc)
 	keys, err := rClient.Events(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -119,7 +119,7 @@ func (h *Handler) event(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := eventpb.NewEventHandlersClient(h.Grpc.Client)
+	rClient := eventpb.NewEventHandlersClient(h.Grpc)
 	key, err := rClient.Event(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

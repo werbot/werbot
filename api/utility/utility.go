@@ -31,7 +31,7 @@ func (h *Handler) getCountry(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := utilitypb.NewUtilityHandlersClient(h.Grpc.Client)
+	rClient := utilitypb.NewUtilityHandlersClient(h.Grpc)
 	countries, err := rClient.Countries(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

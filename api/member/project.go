@@ -48,7 +48,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 
 	// show all members
 	if request.GetMemberId() == "" {
@@ -111,7 +111,7 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	member, err := rClient.AddProjectMember(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -145,7 +145,7 @@ func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateProjectMember(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -181,7 +181,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteProjectMember(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -217,7 +217,7 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	members, err := rClient.UsersWithoutProject(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -252,7 +252,7 @@ func (h *Handler) updateProjectMemberStatus(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateProjectMember(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -298,7 +298,7 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	members, err := rClient.ListMembersInvite(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -332,7 +332,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	member, err := rClient.AddMemberInvite(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -374,7 +374,7 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteMemberInvite(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -404,7 +404,7 @@ func (h *Handler) postMembersInviteActivate(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc.Client)
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
 	project, err := rClient.MemberInviteActivate(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

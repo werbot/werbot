@@ -46,7 +46,7 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := accountpb.NewAccountHandlersClient(h.Grpc.Client)
+	rClient := accountpb.NewAccountHandlersClient(h.Grpc)
 	user, err := rClient.SignIn(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -122,7 +122,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 	}
 	jwt.DeleteToken(h.Redis, sub)
 
-	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
+	rClient := userpb.NewUserHandlersClient(h.Grpc)
 	user, err := rClient.User(ctx, &userpb.User_Request{
 		UserId: userID,
 	})
@@ -203,7 +203,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := accountpb.NewAccountHandlersClient(h.Grpc.Client)
+	rClient := accountpb.NewAccountHandlersClient(h.Grpc)
 	response, err := rClient.ResetPassword(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

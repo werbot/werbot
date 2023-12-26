@@ -47,9 +47,9 @@ type channelTunnel struct {
 func connectToHost(host *serverpb.Server_Response, actx *authContext, ctx ssh.Context, newChan gossh.NewChannel, srv *ssh.Server, conn *gossh.ServerConn, ch channelTunnel) {
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	rClientF := firewallpb.NewFirewallHandlersClient(app.grpc.Client)
-	rClientS := serverpb.NewServerHandlersClient(app.grpc.Client)
-	rClientA := accountpb.NewAccountHandlersClient(app.grpc.Client)
+	rClientF := firewallpb.NewFirewallHandlersClient(app.grpc)
+	rClientS := serverpb.NewServerHandlersClient(app.grpc)
+	rClientA := accountpb.NewAccountHandlersClient(app.grpc)
 
 	_, err := rClientF.ServerAccess(_ctx, &firewallpb.ServerAccess_Request{
 		ServerId: host.ServerId,
@@ -190,7 +190,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := serverpb.NewServerHandlersClient(app.grpc.Client)
+	rClient := serverpb.NewServerHandlersClient(app.grpc)
 
 	switch actx.userType() {
 	// case config.UserTypeHealthcheck:
@@ -450,7 +450,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := auditpb.NewAuditHandlersClient(app.grpc.Client)
+	rClient := auditpb.NewAuditHandlersClient(app.grpc)
 
 	go func(quit chan string) {
 		for req := range lreqs {

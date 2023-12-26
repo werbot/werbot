@@ -30,7 +30,7 @@ func (h *Handler) getLicenseInfo(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := licensepb.NewLicenseHandlersClient(h.Grpc.Client)
+	rClient := licensepb.NewLicenseHandlersClient(h.Grpc)
 	lic, err := rClient.License(ctx, &licensepb.License_Request{})
 	if err != nil {
 		return webutil.FromGRPC(c, err)

@@ -3,6 +3,8 @@
   "scss.lint.unknownAtRules": "ignore",
 
   "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
 
   "search.exclude": {
     "**/node_modules": true,

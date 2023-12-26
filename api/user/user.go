@@ -46,7 +46,7 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
+	rClient := userpb.NewUserHandlersClient(h.Grpc)
 
 	// show all users
 	if userParameter.IsUserAdmin() && request.GetUserId() == "" {
@@ -117,7 +117,7 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
+	rClient := userpb.NewUserHandlersClient(h.Grpc)
 	user, err := rClient.AddUser(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -153,7 +153,7 @@ func (h *Handler) updateUser(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
+	rClient := userpb.NewUserHandlersClient(h.Grpc)
 
 	switch request.Request.(type) {
 	case *userpb.UpdateUser_Request_Info:
@@ -237,11 +237,15 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
+	rClient := userpb.NewUserHandlersClient(h.Grpc)
 
 	// step 1 - send email and token
 	if request.GetPassword() != "" {
 		response, err := rClient.DeleteUser(ctx, request)
+		if err != nil {
+			return webutil.FromGRPC(c, err)
+		}
+
 		/*
 			response, err := rClient.DeleteUser(ctx, &userpb.DeleteUser_Request{
 				UserId: userID,
@@ -250,9 +254,6 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 				},
 			})
 		*/
-		if err != nil {
-			return webutil.FromGRPC(c, err)
-		}
 
 		mailData := map[string]string{
 			"Login": response.GetLogin(),
@@ -267,6 +268,10 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 		token := new(userpb.DeleteUser_Request_Token)
 		token.Token = c.Params("delete_token")
 		response, err := rClient.DeleteUser(ctx, request)
+		if err != nil {
+			return webutil.FromGRPC(c, err)
+		}
+
 		/*
 			response, err := rClient.DeleteUser(ctx, &userpb.DeleteUser_Request{
 				UserId: userID,
@@ -275,9 +280,6 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 				},
 			})
 		*/
-		if err != nil {
-			return webutil.FromGRPC(c, err)
-		}
 
 		// send delete token to email
 		mailData := map[string]string{
@@ -316,7 +318,7 @@ func (h *Handler) updatePassword(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := userpb.NewUserHandlersClient(h.Grpc.Client)
+	rClient := userpb.NewUserHandlersClient(h.Grpc)
 	msg, err := rClient.UpdatePassword(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

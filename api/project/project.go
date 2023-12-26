@@ -43,7 +43,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
 
 	// show all projects
 	if request.GetProjectId() == "" {
@@ -112,7 +112,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
 	project, err := rClient.AddProject(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -146,7 +146,7 @@ func (h *Handler) updateProject(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateProject(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -181,7 +181,7 @@ func (h *Handler) deleteProject(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := projectpb.NewProjectHandlersClient(h.Grpc.Client)
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteProject(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}

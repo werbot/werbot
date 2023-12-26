@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"os"
 	"time"
 
 	gossh "golang.org/x/crypto/ssh"
@@ -15,10 +14,11 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/broker"
-	"github.com/werbot/werbot/internal/grpc"
+	grpcInt "github.com/werbot/werbot/internal/grpc"
 	rdb "github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/logger"
@@ -29,13 +29,14 @@ var app = App{}
 // App is ...
 type App struct {
 	redis                 rdb.Handler
-	grpc                  *grpc.ClientService
+	grpc                  *grpc.ClientConn
 	defaultChannelHandler ssh.ChannelHandler
 	log                   logger.Logger
 	broker                broker.Handler
 }
 
 func main() {
+	var err error
 	godotenv.Load(".env", "/etc/werbot/.env")
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -53,25 +54,10 @@ func main() {
 	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {}
 
 	// Load TLS configuration from files at startup
-	grpc_certificate, err := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")
+	app.grpc, err = grpcInt.NewClient()
 	if err != nil {
-		log.Fatal().Msg("Failed to open grpc_certificate.key")
-		os.Exit(1)
+		app.log.Fatal(err).Send()
 	}
-
-	grpc_private, err := internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key")
-	if err != nil {
-		log.Fatal().Msg("Failed to open grpc_private.key")
-		os.Exit(1)
-	}
-
-	app.grpc = grpc.NewClient(
-		internal.GetString("GRPCSERVER_HOST", "localhost:50051"),
-		internal.GetString("GRPCSERVER_TOKEN", "token"),
-		internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com"),
-		grpc_certificate,
-		grpc_private,
-	)
 
 	go app.broker.WriteStatus()
 

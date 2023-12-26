@@ -41,7 +41,7 @@ func dynamicHostKey(host *serverpb.Server_Response) gossh.HostKeyCallback {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			rClient := serverpb.NewServerHandlersClient(app.grpc.Client)
+			rClient := serverpb.NewServerHandlersClient(app.grpc)
 			_, err := rClient.UpdateHostKey(ctx, &serverpb.UpdateHostKey_Request{
 				ServerId: host.ServerId,
 				Hostkey:  key.Marshal(),

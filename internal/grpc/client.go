@@ -1,59 +1,64 @@
 package grpc
 
 import (
-	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"time"
+  "context"
+  "crypto/tls"
+  "crypto/x509"
+  "time"
 
-	"golang.org/x/oauth2"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/oauth"
+  "github.com/werbot/werbot/internal"
+  "golang.org/x/oauth2"
+  "google.golang.org/grpc"
+  "google.golang.org/grpc/credentials"
+  "google.golang.org/grpc/credentials/oauth"
 )
 
-// ClientService is a struct representing a gRPC client connection and certificate pool.
-type ClientService struct {
-	// Client represents the gRPC connection to a server.
-	Client *grpc.ClientConn
-	// CertPool is a collection of X.509 certificates that can be used to verify the identity of a remote server.
-	certPool *x509.CertPool
-}
-
 // NewClient is ...
-func NewClient(dsn, token, nameOverride string, certPEM, keyPem []byte) *ClientService {
-	// init certificate setting
-	cert, err := tls.X509KeyPair(certPEM, keyPem)
-	if err != nil {
-		service.log.Fatal(err).Msg("Failed to parse key pair")
-	}
-	cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
-	if err != nil {
-		service.log.Fatal(err).Msg("Failed to parse certificate")
-	}
+func NewClient() (*grpc.ClientConn, error) {
+  dsn := internal.GetString("GRPCSERVER_HOST", "localhost:50051")
+  token := internal.GetString("GRPCSERVER_TOKEN", "token")
+  nameOverride := internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com")
 
-	cfg := &ClientService{
-		certPool: x509.NewCertPool(),
-	}
-	cfg.certPool.AddCert(cert.Leaf)
+  // init certificate setting
+  certPEM, err := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")
+  if err != nil {
+    return nil, err // Failed to open grpc_certificate.key
+  }
 
-	// init grpc
-	perRPC := oauth.NewOauthAccess(&oauth2.Token{
-		AccessToken: token,
-	})
+  keyPem, err := internal.GetByteFromFile("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key")
+  if err != nil {
+    return nil, err // Failed to open grpc_private.key
+  }
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+  cert, err := tls.X509KeyPair(certPEM, keyPem)
+  if err != nil {
+    return nil, err // Failed to parse key pair
+  }
+  cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
+  if err != nil {
+    return nil, err // Failed to parse certificate
+  }
 
-	conn, err := grpc.DialContext(ctx, dsn,
-		grpc.WithPerRPCCredentials(perRPC),
-		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(cfg.certPool, nameOverride)),
-	)
-	if err != nil {
-		service.log.Error(err).Msg("Failed to dial server")
-	}
-	// defer conn.Close()
+  certPool := x509.NewCertPool()
+  certPool.AddCert(cert.Leaf)
 
-	cfg.Client = conn
-	return cfg
+  perRPC := oauth.TokenSource{
+    TokenSource: oauth2.StaticTokenSource(&oauth2.Token{
+      AccessToken: token,
+    }),
+  }
+
+  ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+  defer cancel()
+
+  conn, err := grpc.DialContext(ctx, dsn,
+    grpc.WithPerRPCCredentials(perRPC),
+    grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(certPool, nameOverride)),
+  )
+  if err != nil {
+    return nil, err // Failed to dial server
+  }
+  // defer conn.Close()
+
+  return conn, nil
 }
