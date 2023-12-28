@@ -99,6 +99,10 @@ message UpdateProject {
       min_len: 3,
       max_len: 128
     }]; // @gotags: query:"title" params:"title"
+    string login = 4 [(buf.validate.field).string = {
+      min_len: 3,
+      max_len: 128
+    }]; // @gotags: query:"login" params:"login"
   }
 
   message Response {}
