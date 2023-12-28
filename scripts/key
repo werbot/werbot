@@ -31,30 +31,10 @@ jwt)
 
 grpc)
   print_header "Generate GRPC keys"
-  mkdir -p "${TMP_DIR}"
-  cat <<EOF >"${TMP_DIR}/.temp-openssl-config"
-[ req ]
-prompt                 = no
-req_extensions         = req_ext
-distinguished_name     = req_distinguished_name
-
-[ req_distinguished_name ]
-countryName            = US
-stateOrProvinceName    = Delaware
-localityName           = Middletown
-organizationName       = Werbot, Inc.
-organizationalUnitName = werbot
-commonName             = werbot.com
-
-[ req_ext ]
-subjectAltName         = @alt_names
-
-[ alt_names ]
-DNS.1                  = werbot.com
-EOF
   openssl genrsa -out "${CORE_DIR}/grpc_private.key" 2048
-  openssl req -nodes -new -x509 -days 1825 -sha256 -config "${TMP_DIR}/.temp-openssl-config" \
-    -extensions 'req_ext' \
+  openssl req -nodes -new -x509 -days 1825 -sha256 \
+    -subj "/C=US/ST=Delaware/L=Middletown/O=Werbot, Inc./OU=werbot/CN=werbot.com" \
+    -addext "subjectAltName=DNS:werbot.com" \
     -key "${CORE_DIR}/grpc_private.key" \
     -out "${CORE_DIR}/grpc_certificate.key"
   rm -rf "${TMP_DIR}"
@@ -63,12 +43,14 @@ EOF
 
 postgres)
   print_header "Generate PostgresQL keys"
-  openssl req -nodes -new -x509 -days 1825 -text \
-    -subj "/CN=localhost" \
-    -out "${CORE_DIR}/postgres_server.crt" \
-    -keyout "${CORE_DIR}/postgres_server.key" >/dev/null 2>&1
-  sudo chown 70 "${CORE_DIR}/postgres_server.key"
-  sudo chmod 600 "${CORE_DIR}/postgres_server.key"
+  openssl genrsa -out "${CORE_DIR}/postgres_private.key" 2048
+  openssl req -nodes -new -x509 -days 1825 -sha256 \
+    -subj "/C=US/ST=Delaware/L=Middletown/O=Werbot, Inc./OU=werbot/CN=werbot.com" \
+    -addext "subjectAltName=DNS:werbot.com" \
+    -key "${CORE_DIR}/postgres_private.key" \
+    -out "${CORE_DIR}/postgres_certificate.key"
+  sudo chown 70 "${CORE_DIR}/postgres_private.key"
+  sudo chmod 600 "${CORE_DIR}/postgres_private.key"
   print_answer "SUCCESS" green
   ;;
 
