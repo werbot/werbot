@@ -3,7 +3,7 @@ module github.com/werbot/werbot
 go 1.21.5
 
 require (
-	github.com/alicebob/miniredis/v2 v2.31.0
+	github.com/alicebob/miniredis/v2 v2.31.1
 	github.com/fergusstrange/embedded-postgres v1.25.0
 	github.com/pressly/goose/v3 v3.17.0
 )
