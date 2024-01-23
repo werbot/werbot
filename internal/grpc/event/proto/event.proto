@@ -71,7 +71,7 @@ message Event {
     string ip = 4;
     Type event = 5;
     bytes meta_data = 6;
-    google.protobuf.Timestamp created = 7;
+    google.protobuf.Timestamp created_at = 7;
   }
 }
 // -----------------------------------------------------

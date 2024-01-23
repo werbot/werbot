@@ -79,7 +79,7 @@ if [[ " ${arr_type[*]} " =~ " $MIGRATION " ]]; then
   fi
   run_goose $GOOSE_ACTION
 elif [[ $MIGRATION == "dev" ]]; then
-  arr_goose=(up down)
+  arr_goose=(up down reset)
   if [[ " ${arr_goose[*]} " =~ " $GOOSE_ACTION " ]]; then
     SOURCE=${BASH_SOURCE[0]}
     case $GOOSE_ACTION in
@@ -95,6 +95,10 @@ elif [[ $MIGRATION == "dev" ]]; then
       $SOURCE ent down
       $SOURCE down
       ;;
+    reset)
+      $SOURCE dev down
+      $SOURCE dev up
+      ;;
     esac
   else
     print_header "Migrations sql"
@@ -104,6 +108,7 @@ elif [[ $MIGRATION == "dev" ]]; then
     echo "Use next command:"
     print_help up "Run all available migrations"
     print_help down "Delete all migrations from database"
+    print_help reset "Reset all migrations"
     exit
   fi
 else

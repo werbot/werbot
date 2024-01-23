@@ -147,8 +147,10 @@ message Server {
     string description = 16;
     bool active = 17;
     int32 count_members = 18;
-    google.protobuf.Timestamp last_update = 19;
-    google.protobuf.Timestamp created = 20;
+    google.protobuf.Timestamp locked_at = 19;
+    google.protobuf.Timestamp archived_at = 20;
+    google.protobuf.Timestamp updated_at = 21;
+    google.protobuf.Timestamp created_at = 22;
   }
 }
 // -----------------------------------------------------
@@ -212,7 +214,7 @@ message UpdateServer {
   }
 
   message Response {
-    google.protobuf.Timestamp last_update = 1;
+    google.protobuf.Timestamp updated_at = 1;
   }
 
   message Info {
@@ -359,7 +361,7 @@ message AddSession {
   message Request {
     string account_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"account_id"
     SessionStatus status = 2;
-    google.protobuf.Timestamp created = 3;
+    google.protobuf.Timestamp created_at = 3;
     string message = 4;
   }
 

@@ -5,6 +5,8 @@ CREATE TABLE "public"."firewall_list" (
   "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
   "active" bool NOT NULL,
   "path" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+  "updated_at" timestamp DEFAULT now(),
+  "created_at" timestamp DEFAULT now(),
   PRIMARY KEY ("id")
 );
 

@@ -291,7 +291,7 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 	pagination := webutil.GetPaginationFromCtx(c)
 	userParameter := middleware.AuthUser(c)
 	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-	request.SortBy = `"created":ASC`
+	request.SortBy = `"project_invite"."status":ASC,"project_invite"."created_at":DESC`
 	request.Limit = pagination.GetLimit()
 	request.Offset = pagination.GetOffset()
 
@@ -338,12 +338,16 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	mailData := map[string]string{
-		"Link": fmt.Sprintf("%s/invite/project/%s", internal.GetString("APP_DSN", "http://localhost:5173"), member.GetInvite()),
-	}
-	go mail.Send(request.GetEmail(), "project invitation", "project-invite", mailData)
+	if member.Status == "activated" {
+		mailData := map[string]string{
+			"Link": fmt.Sprintf("%s/invite/project/%s", internal.GetString("APP_DSN", "http://localhost:5173"), member.GetInvite()),
+		}
+		go mail.Send(request.GetEmail(), "project invitation", "project-invite", mailData)
 
-	return webutil.StatusOK(c, "member invited", member)
+		return webutil.StatusOK(c, "member invited", member)
+	}
+
+	return webutil.StatusOK(c, "member invited", "already active")
 }
 
 // @Summary      Delete invite on project

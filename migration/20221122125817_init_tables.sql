@@ -12,21 +12,29 @@ CREATE TABLE "public"."user" (
     "enabled" bool NOT NULL DEFAULT true,
     "confirmed" bool NOT NULL DEFAULT false,
     "role" int4 NOT NULL DEFAULT 1,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "locked_at" timestamp DEFAULT NULL,
+    "archived_at" timestamp DEFAULT NULL,
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id")
 );
+CREATE UNIQUE INDEX "user_on_login" ON "public"."user" USING BTREE ("login");
+CREATE UNIQUE INDEX "user_on_email" ON "public"."user" USING BTREE ("email");
+CREATE UNIQUE INDEX "user_uniqueness" ON "public"."user" USING BTREE ("id","login","role","enabled","confirmed");
 
 CREATE TABLE "public"."project" (
     "id" uuid DEFAULT gen_random_uuid (),
     "owner_id" uuid NOT NULL,
     "title" varchar(255) NOT NULL,
     "login" varchar(255) NOT NULL,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "locked_at" timestamp DEFAULT NULL,
+    "archived_at" timestamp DEFAULT NULL,
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("owner_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX "project_uniqueness" ON "public"."project" USING BTREE ("id","owner_id","login");
 
 CREATE TABLE "public"."project_invite" (
     "id" uuid DEFAULT gen_random_uuid (),
@@ -39,8 +47,8 @@ CREATE TABLE "public"."project_invite" (
     "status" varchar(255) NOT NULL,
     "ldap_user" bool,
     "ldap_name" varchar(255) DEFAULT NULL,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE SET NULL,
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE
@@ -56,8 +64,8 @@ CREATE TABLE "public"."project_ldap" (
     "query_dn" varchar(255) DEFAULT NULL,
     "object_class" varchar(255) DEFAULT NULL,
     "description" varchar(255) DEFAULT NULL,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE
 );
@@ -69,12 +77,16 @@ CREATE TABLE "public"."project_member" (
     "active" bool NOT NULL DEFAULT false,
     "online" bool NOT NULL DEFAULT false,
     "role" varchar(255) NOT NULL,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "locked_at" timestamp DEFAULT NULL,
+    "archived_at" timestamp DEFAULT NULL,
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE,
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX "project_member_on_login" ON "public"."project_member" USING BTREE ("id", "active", "online");
+CREATE UNIQUE INDEX "project_member_uniqueness" ON "public"."project_member" USING BTREE ("id","project_id","user_id");
 
 CREATE TABLE "public"."server_access" (
     "id" uuid DEFAULT gen_random_uuid (),
@@ -83,8 +95,8 @@ CREATE TABLE "public"."server_access" (
     "login" varchar(255) DEFAULT NULL,
     "password" varchar(255) DEFAULT NULL,
     "key" jsonb NOT NULL DEFAULT '{}'::jsonb,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id")
 );
 
@@ -102,12 +114,15 @@ CREATE TABLE "public"."server" (
     "online" bool NOT NULL DEFAULT false,
     "scheme" varchar(1) NOT NULL,
     "previous_state" jsonb NOT NULL DEFAULT '{}'::jsonb,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "locked_at" timestamp DEFAULT NULL,
+    "archived_at" timestamp DEFAULT NULL,
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE,
     FOREIGN KEY ("access_id") REFERENCES "public"."server_access"("id") ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX "server_uniqueness" ON "public"."server" USING BTREE ("id","project_id","access_id");
 
 CREATE TABLE "public"."server_member" (
     "id" uuid DEFAULT gen_random_uuid (),
@@ -116,17 +131,21 @@ CREATE TABLE "public"."server_member" (
     "active" bool NOT NULL DEFAULT false,
     "online" bool NOT NULL DEFAULT false,
     "previous_state" jsonb NOT NULL DEFAULT '{}'::jsonb,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "locked_at" timestamp DEFAULT NULL,
+    "archived_at" timestamp DEFAULT NULL,
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("member_id") REFERENCES "public"."project_member"("id") ON DELETE CASCADE,
     FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX "server_member_uniqueness" ON "public"."server_member" USING BTREE ("id","member_id","server_id");
 
 CREATE TABLE "public"."server_access_policy" (
     "server_id" uuid NOT NULL,
     "ip" bool NOT NULL,
     "country" bool NOT NULL,
+    "updated_at" timestamp DEFAULT now(),
     PRIMARY KEY ("server_id"),
     FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE CASCADE
 );
@@ -135,6 +154,7 @@ CREATE TABLE "public"."server_access_token" (
     "id" uuid DEFAULT gen_random_uuid (),
     "account_id" uuid NOT NULL,
     "expired" timestamp NOT NULL,
+    "updated_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("account_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
 );
@@ -172,7 +192,7 @@ CREATE TABLE "public"."event_profile" (
     "ip" inet,
     "event" int2 NOT NULL,
     "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
-    "created" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("profile_id") REFERENCES "public"."user"("id") ON DELETE CASCADE,
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
@@ -186,7 +206,7 @@ CREATE TABLE "public"."event_project" (
     "ip" inet,
     "event" int2 NOT NULL,
     "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
-    "created" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE CASCADE,
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
@@ -200,7 +220,7 @@ CREATE TABLE "public"."event_server" (
     "ip" inet,
     "event" int2 NOT NULL,
     "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
-    "created" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("server_id") REFERENCES "public"."server"("id") ON DELETE CASCADE,
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
@@ -220,7 +240,7 @@ CREATE TABLE "public"."session" (
     "member_id" uuid NOT NULL,
     "status" varchar(255) NOT NULL CHECK ((status)::text = ANY ((ARRAY['unknown', 'opened', 'closed'])::text[])),
     "message" varchar(1024) NOT NULL,
-    "created" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("member_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
 );
@@ -232,11 +252,14 @@ CREATE TABLE "public"."user_public_key" (
     "title" varchar(255) NOT NULL,
     "key_" text NOT NULL,
     "fingerprint" varchar(255) NOT NULL,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "locked_at" timestamp DEFAULT NULL,
+    "archived_at" timestamp DEFAULT NULL,
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX "user_public_key_uniqueness" ON "public"."user_public_key" USING BTREE ("id","user_id","key_");
 
 CREATE TABLE "public"."user_token" (
     "token" varchar(255) NOT NULL,
@@ -244,8 +267,8 @@ CREATE TABLE "public"."user_token" (
     "date_used" timestamp DEFAULT NULL,
     "action" varchar(255) NOT NULL CHECK ((action)::text = ANY ((ARRAY['reset', 'delete'])::text[])),
     "used" bool NOT NULL DEFAULT false,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("token","user_id"),
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE
 );
@@ -265,6 +288,7 @@ CREATE TABLE "public"."audit" (
     "env_shell" varchar(255) NOT NULL,
     "session" varchar(255) NOT NULL,
     "client_ip" varchar(255) NOT NULL,
+    "created_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("account_id") REFERENCES "public"."server_member"("id") ON DELETE CASCADE
 );
@@ -291,7 +315,7 @@ CREATE TABLE "public"."limit_user_count" (
 CREATE TABLE "public"."server_host_key" (
     "server_id" uuid NOT NULL,
     "host_key" bytea,
-    "last_update" timestamp DEFAULT NULL,
+    "updated_at" timestamp DEFAULT now(),
     FOREIGN KEY ("server_id") REFERENCES "public"."server" ("id") ON DELETE CASCADE ON UPDATE NO ACTION
 );
 
@@ -301,8 +325,10 @@ CREATE TABLE "public"."project_api" (
     "api_key" varchar(37) COLLATE "pg_catalog"."default" NOT NULL,
     "api_secret" varchar(37) COLLATE "pg_catalog"."default" NOT NULL,
     "online" bool NOT NULL,
-    "last_update" timestamp DEFAULT NULL,
-    "created" timestamp DEFAULT now(),
+    "locked_at" timestamp DEFAULT NULL,
+    "archived_at" timestamp DEFAULT NULL,
+    "updated_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     FOREIGN KEY ("project_id") REFERENCES "public"."project" ("id") ON DELETE CASCADE ON UPDATE NO ACTION,
     PRIMARY KEY ("id")
 );

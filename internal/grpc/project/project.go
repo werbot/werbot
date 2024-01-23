@@ -5,7 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/werbot/werbot/internal/crypto"
@@ -25,7 +24,7 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
       "project"."owner_id",
       "project"."title",
       "project"."login",
-      "project"."created",
+      "project"."created_at",
       (
         SELECT
           COUNT(*)
@@ -52,13 +51,13 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 
 	for rows.Next() {
 		var countMembers, countServers int32
-		var created pgtype.Timestamp
+		var createdAt pgtype.Timestamp
 		project := new(projectpb.Project_Response)
 		err = rows.Scan(&project.ProjectId,
 			&project.OwnerId,
 			&project.Title,
 			&project.Login,
-			&created,
+			&createdAt,
 			&countMembers,
 			&countServers,
 		)
@@ -66,7 +65,7 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 			return nil, trace.ErrorAborted(err, log)
 		}
 
-		project.Created = timestamppb.New(created.Time)
+		project.CreatedAt = timestamppb.New(createdAt.Time)
 		project.MembersCount = countMembers
 		project.ServersCount = countServers
 		response.Projects = append(response.Projects, project)
@@ -92,14 +91,14 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 // Project is ...
 func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*projectpb.Project_Response, error) {
 	var countMembers, countServers int32
-	var created pgtype.Timestamp
+	var createdAt pgtype.Timestamp
 	response := new(projectpb.Project_Response)
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "project"."title",
       "project"."login",
-      "project"."created",
+      "project"."created_at",
       (
         SELECT
           COUNT(*)
@@ -125,7 +124,7 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
   `, in.GetOwnerId(), in.GetProjectId(),
 	).Scan(&response.Title,
 		&response.Login,
-		&created,
+		&createdAt,
 		&countMembers,
 		&countServers,
 	)
@@ -133,7 +132,7 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
 		return nil, trace.ErrorAborted(err, log)
 	}
 
-	response.Created = timestamppb.New(created.Time)
+	response.CreatedAt = timestamppb.New(createdAt.Time)
 	response.MembersCount = countMembers
 	response.ServersCount = countServers
 	return response, nil
@@ -181,18 +180,11 @@ func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 
 // UpdateProject is ...
 func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject_Request) (*projectpb.UpdateProject_Response, error) {
-	if !IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
-	}
-
-	response := new(projectpb.UpdateProject_Response)
-
 	_, err := h.DB.Conn.ExecContext(ctx, `
     UPDATE "project"
     SET
       "title" = $1,
-      "login" = $2,
-      "last_update" = NOW()
+      "login" = $2
     WHERE
       "id" = $3
       AND "owner_id" = $4
@@ -203,20 +195,17 @@ func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject
 		in.GetOwnerId(),
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		if err != sql.ErrNoRows {
+			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		}
+		return nil, trace.ErrorAborted(err, log)
 	}
 
-	return response, nil
+	return &projectpb.UpdateProject_Response{}, nil
 }
 
 // DeleteProject is ...
 func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject_Request) (*projectpb.DeleteProject_Response, error) {
-	if !IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
-	}
-
-	response := new(projectpb.DeleteProject_Response)
-
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
@@ -230,7 +219,10 @@ func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
       AND "owner_id" = $2
   `, in.GetProjectId(), in.GetOwnerId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+		if err != sql.ErrNoRows {
+			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+		}
+		return nil, trace.ErrorAborted(err, log)
 	}
 
 	_, err = tx.ExecContext(ctx, `
@@ -246,7 +238,7 @@ func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
 		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
 	}
 
-	return response, nil
+	return &projectpb.DeleteProject_Response{}, nil
 }
 
 // Key is ...

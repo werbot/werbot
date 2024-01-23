@@ -57,8 +57,10 @@ message Project {
     string login = 4;
     int32 members_count = 5;
     int32 servers_count = 6;
-    google.protobuf.Timestamp last_update = 7;
-    google.protobuf.Timestamp created = 9;
+    google.protobuf.Timestamp locked_at = 7;
+    google.protobuf.Timestamp archived_at = 8;
+    google.protobuf.Timestamp updated_at = 9;
+    google.protobuf.Timestamp created_at = 10;
   }
 }
 // -----------------------------------------------------
@@ -133,8 +135,10 @@ message Key {
     string api_key = 1;
     string api_secret = 2;
     bool api_online = 3;
-    google.protobuf.Timestamp last_update = 6;
-    google.protobuf.Timestamp created = 7;
+    google.protobuf.Timestamp locked_at = 4;
+    google.protobuf.Timestamp archived_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
+    google.protobuf.Timestamp created_at = 7;
   }
 }
 // -----------------------------------------------------

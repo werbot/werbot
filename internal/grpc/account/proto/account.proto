@@ -125,8 +125,8 @@ message Account {
     string name = 4;
     string surname = 5;
     string connection_login = 7;
-    google.protobuf.Timestamp last_update = 8;
-    google.protobuf.Timestamp created = 9;
+    google.protobuf.Timestamp updated_at = 8;
+    google.protobuf.Timestamp created_at = 9;
   }
 }
 // -----------------------------------------------------

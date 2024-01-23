@@ -44,21 +44,28 @@ func (db *Connect) SQLAddWhere(query string) string {
 // SQLPagination is ...
 // example query's for sortBy - id:DESC or id:ASC
 func (db *Connect) SQLPagination(limit, offset int32, sortBy string) string {
-	showLimit := 30
-	showOffset := 0
+	if offset < 0 {
+		offset = 0
+	}
+
+	if limit <= 0 {
+		limit = 30
+	}
+
 	showSortBy := ""
+	if len(sortBy) > 0 {
+		showSortBy = "ORDER BY "
 
-	if offset > 0 {
-		showOffset = int(offset)
-	}
-	if limit > 0 {
-		showLimit = int(limit)
+		var orderParts []string
+		sorts := strings.Split(sortBy, ",")
+		for _, sort := range sorts {
+			parts := strings.SplitN(sort, ":", 2)
+			if len(parts) == 2 {
+				orderParts = append(orderParts, fmt.Sprintf("%s %s", parts[0], parts[1]))
+			}
+		}
+		showSortBy = showSortBy + strings.Join(orderParts, ", ")
 	}
 
-	if sortBy != "" {
-		sortBy := strings.SplitN(sortBy, ":", 2)
-		showSortBy = fmt.Sprintf("ORDER BY %s %s", sortBy[0], sortBy[1])
-	}
-
-	return fmt.Sprintf(" %s LIMIT %v OFFSET %v", showSortBy, showLimit, showOffset)
+	return fmt.Sprintf(" %s LIMIT %d OFFSET %d", showSortBy, limit, offset)
 }

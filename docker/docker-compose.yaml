@@ -80,7 +80,6 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: service.postgres
-    
     restart: always
     ports:
       - 5432:5432

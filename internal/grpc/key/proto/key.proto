@@ -62,8 +62,10 @@ message Key {
     string title = 4;
     string key = 5;
     string fingerprint = 6;
-    google.protobuf.Timestamp last_update = 7;
-    google.protobuf.Timestamp created = 8;
+    google.protobuf.Timestamp locked_at = 7;
+    google.protobuf.Timestamp archived_at = 8;
+    google.protobuf.Timestamp updated_at = 9;
+    google.protobuf.Timestamp created_at = 10;
   }
 }
 // -----------------------------------------------------

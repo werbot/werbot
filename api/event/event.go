@@ -36,19 +36,19 @@ func (h *Handler) events(c *fiber.Ctx) error {
 		request.Id = &eventpb.Events_Request_ProfileId{
 			ProfileId: request.UserId,
 		}
-		request.SortBy = `"created":ASC`
+		request.SortBy = `"created_at":ASC`
 	case "project":
 		request.UserId = userParameter.UserID(request.GetUserId())
 		request.Id = &eventpb.Events_Request_ProjectId{
 			ProjectId: c.Params("name_id"),
 		}
-		request.SortBy = `"event_project"."created":ASC`
+		request.SortBy = `"event_project"."created_at":ASC`
 	case "server":
 		request.UserId = userParameter.UserID(request.GetUserId())
 		request.Id = &eventpb.Events_Request_ServerId{
 			ServerId: c.Params("name_id"),
 		}
-		request.SortBy = `"event_server"."created":ASC`
+		request.SortBy = `"event_server"."created_at":ASC`
 	default:
 		return webutil.StatusInvalidArgument(c)
 	}

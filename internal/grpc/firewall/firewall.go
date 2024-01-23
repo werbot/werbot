@@ -7,7 +7,6 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
-	"github.com/werbot/werbot/internal/grpc/project"
 	"github.com/werbot/werbot/internal/grpc/utility"
 	utilitypb "github.com/werbot/werbot/internal/grpc/utility/proto"
 	"github.com/werbot/werbot/internal/trace"
@@ -19,30 +18,30 @@ import (
 // old version https://git.piplos.media/werbot/werbot-server/-/blob/feature/audit-record/pkg/acl/security.go
 // https://git.piplos.media/werbot/old-werbot/-/blob/master/wserver/firewall.go
 func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request) (*firewallpb.IPAccess_Response, error) {
-  response := new(firewallpb.IPAccess_Response)
+	response := new(firewallpb.IPAccess_Response)
 
-  // debug mode
-  if devMode {
-    return response, nil
-  }
-  // -----
+	// debug mode
+	if devMode {
+		return response, nil
+	}
+	// -----
 
-  if in.GetClientIp() == "" {
-    return nil, trace.Error(codes.InvalidArgument)
-  }
+	if in.GetClientIp() == "" {
+		return nil, trace.Error(codes.InvalidArgument)
+	}
 
-  // Verification of the country according to the global list of prohibited countries
-  pbUtility := new(utility.Handler)
-  responseC, _ := pbUtility.CountryByIP(ctx, &utilitypb.CountryByIP_Request{
-    Ip: in.GetClientIp(),
-  })
-  if strutil.StringInSlice(responseC.GetName(), internal.GetSliceString("SECURITY_BAD_COUNTRY", "")) {
-    return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
-  }
+	// Verification of the country according to the global list of prohibited countries
+	pbUtility := new(utility.Handler)
+	responseC, _ := pbUtility.CountryByIP(ctx, &utilitypb.CountryByIP_Request{
+		Ip: in.GetClientIp(),
+	})
+	if strutil.StringInSlice(responseC.GetName(), internal.GetSliceString("SECURITY_BAD_COUNTRY", "")) {
+		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+	}
 
-  // porch IP on the global list
-  var total int32
-  err := h.DB.Conn.QueryRowContext(ctx, `
+	// porch IP on the global list
+	var total int32
+	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       COUNT(*)
     FROM
@@ -53,128 +52,151 @@ func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request)
       AND $1::inet <= "end_ip"
       AND "firewall_list"."active" = TRUE
   `, in.GetClientIp(),
-  ).Scan(&total)
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log)
-  }
+	).Scan(&total)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  // Black list, IP found in the list
-  if total > 0 {
-    return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
-  }
+	// Black list, IP found in the list
+	if total > 0 {
+		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
+	}
 
-  return response, nil
+	return response, nil
 }
 
 // ServerFirewall is server firewall settings for server_id
 func (h *Handler) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirewall_Request) (*firewallpb.ServerFirewall_Response, error) {
-  if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
-    return nil, trace.Error(codes.NotFound)
-  }
+	response := new(firewallpb.ServerFirewall_Response)
+	response.Country = new(firewallpb.ServerFirewall_Countries)
+	response.Network = new(firewallpb.ServerFirewall_Networks)
 
-  response := new(firewallpb.ServerFirewall_Response)
-  response.Country = new(firewallpb.ServerFirewall_Countries)
-  response.Network = new(firewallpb.ServerFirewall_Networks)
-
-  // get countries
-  rows, err := h.DB.Conn.QueryContext(ctx, `
+	// get countries
+	rows, err := h.DB.Conn.QueryContext(ctx, `
     SELECT
       "server_security_country"."id",
       "server_security_country"."country_code",
       "country"."name"
     FROM
-      "server_security_country"
+      "server"
+      INNER JOIN "server_security_country" ON "server"."id" = "server_security_country"."server_id"
       INNER JOIN "country" ON "server_security_country"."country_code" = "country"."code"
+      INNER JOIN "project" ON "server"."project_id" = "project"."id"
     WHERE
-      "server_security_country"."server_id" = $1
-  `, in.GetServerId(),
-  )
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log)
-  }
+      "server"."id" = $1
+      AND "project"."id" = $2
+      AND "project"."owner_id" = $3
+  `, in.GetServerId(), in.GetProjectId(), in.GetUserId(),
+	)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return nil, trace.Error(codes.NotFound)
+		}
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  for rows.Next() {
-    country := new(firewallpb.Country)
-    if err := rows.Scan(&country.Id, &country.CountryCode, &country.CountryName); err != nil {
-      return nil, trace.ErrorAborted(err, log)
-    }
-    response.Country.List = append(response.Country.List, country)
-  }
-  defer rows.Close()
+	for rows.Next() {
+		country := new(firewallpb.Country)
+		if err := rows.Scan(&country.Id, &country.CountryCode, &country.CountryName); err != nil {
+			return nil, trace.ErrorAborted(err, log)
+		}
+		response.Country.List = append(response.Country.List, country)
+	}
+	defer rows.Close()
 
-  // get networks
-  rows, err = h.DB.Conn.QueryContext(ctx, `
+	// get networks
+	rows, err = h.DB.Conn.QueryContext(ctx, `
     SELECT
-      "id",
-      "start_ip",
-      "end_ip"
+      "server_security_ip"."id",
+      "server_security_ip"."start_ip",
+      "server_security_ip"."end_ip"
     FROM
-      "server_security_ip"
+      "server"
+      INNER JOIN "server_security_ip" ON "server"."id" = "server_security_ip"."server_id"
+      INNER JOIN "project" ON "server"."project_id" = "project"."id"
     WHERE
-      "server_id" = $1
-  `, in.GetServerId())
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log)
-  }
+      "server"."id" = $1
+      AND "project"."id" = $2
+      AND "project"."owner_id" = $3
+  `, in.GetServerId(), in.GetProjectId(), in.GetUserId(),
+	)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return nil, trace.Error(codes.NotFound)
+		}
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  for rows.Next() {
-    network := new(firewallpb.Network)
-    if err := rows.Scan(&network.Id, &network.StartIp, &network.EndIp); err != nil {
-      return nil, trace.ErrorAborted(err, log)
-    }
-    response.Network.List = append(response.Network.List, network)
-  }
-  defer rows.Close()
+	for rows.Next() {
+		network := new(firewallpb.Network)
+		if err := rows.Scan(&network.Id, &network.StartIp, &network.EndIp); err != nil {
+			return nil, trace.ErrorAborted(err, log)
+		}
+		response.Network.List = append(response.Network.List, network)
+	}
+	defer rows.Close()
 
-  // get status black lists
-  err = h.DB.Conn.QueryRowContext(ctx, `
+	// get status black lists
+	err = h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "ip",
       "country"
     FROM
-      "server_access_policy"
+      "server"
+      INNER JOIN "server_access_policy" ON "server"."id" = "server_access_policy"."server_id"
+      INNER JOIN "project" ON "server"."project_id" = "project"."id"
     WHERE
-      "server_id" = $1
-  `, in.GetServerId(),
-  ).Scan(
-    &response.Network.WiteList,
-    &response.Country.WiteList,
-  )
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log)
-  }
+      "server"."id" = $1
+      AND "project"."id" = $2
+      AND "project"."owner_id" = $3
+  `, in.GetServerId(), in.GetProjectId(), in.GetUserId(),
+	).Scan(
+		&response.Network.WiteList,
+		&response.Country.WiteList,
+	)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  return response, nil
+	return response, nil
 }
 
 // AddServerFirewall is adding server firewall settings for server_id
 func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServerFirewall_Request) (*firewallpb.AddServerFirewall_Response, error) {
-  if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
-    return nil, trace.Error(codes.NotFound)
-  }
+	var exists bool
+	response := new(firewallpb.AddServerFirewall_Response)
 
-  response := new(firewallpb.AddServerFirewall_Response)
-
-  switch record := in.Record.(type) {
-  case *firewallpb.AddServerFirewall_Request_CountryCode:
-    err := h.DB.Conn.QueryRowContext(ctx, `
+	switch record := in.Record.(type) {
+	case *firewallpb.AddServerFirewall_Request_CountryCode:
+		err := h.DB.Conn.QueryRowContext(ctx, `
       SELECT
-        "id"
-      FROM
-        "server_security_country"
-      WHERE
-        "server_id" = $1
-        AND "country_code" = $2
-    `, in.GetServerId(), record.CountryCode,
-    ).Scan(&response.Id)
-    if err != nil && err != sql.ErrNoRows {
-      return nil, trace.ErrorAborted(err, log)
-    }
-    if response.Id != "" {
-      return nil, trace.Error(codes.AlreadyExists)
-    }
+        EXISTS (
+          SELECT
+            1
+          FROM
+            "server"
+            INNER JOIN "server_security_country" ON "server"."id" = "server_security_country"."server_id"
+            INNER JOIN "project" ON "server"."project_id" = "project"."id"
+          WHERE
+            "server"."id" = $1
+            AND "project"."id" = $2
+            AND "project"."owner_id" = $3
+            AND "server_security_country"."country_code" = $4
+        )
+    `,
+			in.GetServerId(),
+			in.GetProjectId(),
+			in.GetUserId(),
+			record.CountryCode,
+		).Scan(&response.Id)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, log)
+		}
+		if !exists {
+			return nil, trace.Error(codes.AlreadyExists)
+		}
 
-    err = h.DB.Conn.QueryRowContext(ctx, `
+		err = h.DB.Conn.QueryRowContext(ctx, `
       INSERT INTO
         "server_security_country" ("server_id", "country_code")
       VALUES
@@ -182,31 +204,43 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
       RETURNING
         id
     `, in.GetServerId(), record.CountryCode,
-    ).Scan(&response.Id)
-    if err != nil {
-      return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
-    }
+		).Scan(&response.Id)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		}
 
-  case *firewallpb.AddServerFirewall_Request_Ip:
-    err := h.DB.Conn.QueryRowContext(ctx, `
+	case *firewallpb.AddServerFirewall_Request_Ip:
+		err := h.DB.Conn.QueryRowContext(ctx, `
       SELECT
-        "id"
-      FROM
-        "server_security_ip"
-      WHERE
-        "server_id" = $1
-        AND "start_ip" = $2
-        AND "end_ip" = $3
-    `, in.GetServerId(), record.Ip.StartIp, record.Ip.EndIp,
-    ).Scan(&response.Id)
-    if err != nil && err != sql.ErrNoRows {
-      return nil, trace.ErrorAborted(err, log)
-    }
-    if response.Id != "" {
-      return nil, trace.Error(codes.AlreadyExists)
-    }
+        EXISTS (
+          SELECT
+            1
+          FROM
+            "server"
+            INNER JOIN "server_security_ip" ON "server"."id" = "server_security_ip"."server_id"
+            INNER JOIN "project" ON "server"."project_id" = "project"."id"
+          WHERE
+            "server"."id" = $1
+            AND "project"."id" = $2
+            AND "project"."owner_id" = $3
+            AND "start_ip" = $4
+            AND "end_ip" = $5
+        )
+    `,
+			in.GetServerId(),
+			in.GetProjectId(),
+			in.GetUserId(),
+			record.Ip.StartIp,
+			record.Ip.EndIp,
+		).Scan(&response.Id)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, log)
+		}
+		if !exists {
+			return nil, trace.Error(codes.AlreadyExists)
+		}
 
-    err = h.DB.Conn.QueryRowContext(ctx, `
+		err = h.DB.Conn.QueryRowContext(ctx, `
       INSERT INTO
         "server_security_ip" ("server_id", "start_ip", "end_ip")
       VALUES
@@ -214,158 +248,175 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
       RETURNING
         id
     `, in.GetServerId(), record.Ip.StartIp, record.Ip.EndIp,
-    ).Scan(&response.Id)
-    if err != nil {
-      return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
-    }
+		).Scan(&response.Id)
+		if err != nil {
+			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		}
 
-  default:
-    return response, nil
-  }
+	default:
+		return response, nil
+	}
 
-  return response, nil
+	return response, nil
 }
 
 // DeleteServerFirewall is deleting server firewall settings for server_id
 func (h *Handler) DeleteServerFirewall(ctx context.Context, in *firewallpb.DeleteServerFirewall_Request) (*firewallpb.DeleteServerFirewall_Response, error) {
-  if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
-    return nil, trace.Error(codes.NotFound)
-  }
-
-  var sql string
-  response := new(firewallpb.DeleteServerFirewall_Response)
-
-  switch in.Rule {
-  case firewallpb.Rules_country:
-    sql = `
+	var sql string
+	switch in.Rule {
+	case firewallpb.Rules_country:
+		sql = `
       DELETE FROM "server_security_country"
+      USING "server", "project"
       WHERE
-        "id" = $1
+        "server"."project_id" = "project"."id"
+        AND "server"."id" = $1
+        AND "project"."id" = $2
+        AND "project"."owner_id" = $3
+        AND "server_security_country"."id" = $4
     `
-  case firewallpb.Rules_ip:
-    sql = `
+	case firewallpb.Rules_ip:
+		sql = `
       DELETE FROM "server_security_ip"
+      USING "server", "project"
       WHERE
-        "id" = $1
+        "server"."project_id" = "project"."id"
+        AND "server"."id" = $1
+        AND "project"."id" = $2
+        AND "project"."owner_id" = $3
+        AND "server_security_ip"."id" = $4
     `
-  default:
-    return response, nil
-  }
+	default:
+		return nil, nil
+	}
 
-  _, err := h.DB.Conn.ExecContext(ctx, sql, in.GetRecordId())
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
-  }
+	_, err := h.DB.Conn.ExecContext(ctx, sql,
+		in.GetServerId(),
+		in.GetProjectId(),
+		in.GetUserId(),
+		in.GetRecordId())
+	if err != nil {
+		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+	}
 
-  return response, nil
+	return &firewallpb.DeleteServerFirewall_Response{}, nil
 }
 
 // UpdateServerFirewall is ...
 func (h *Handler) UpdateServerFirewall(ctx context.Context, in *firewallpb.UpdateServerFirewall_Request) (*firewallpb.UpdateServerFirewall_Response, error) {
-  if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetUserId()) {
-    return nil, trace.Error(codes.NotFound)
-  }
-
-  var sql string
-  response := new(firewallpb.UpdateServerFirewall_Response)
-
-  switch in.Rule {
-  case firewallpb.Rules_country:
-    sql = `
+	var sql string
+	switch in.Rule {
+	case firewallpb.Rules_country:
+		sql = `
       UPDATE "server_access_policy"
       SET
-        "country" = $1
+        "country" = $4
+      FROM "server"
+        INNER JOIN "project" ON "server"."project_id" = "project"."id"
       WHERE
-        "server_id" = $2
+        "server_access_policy"."server_id" = "server"."id"
+        AND "server"."id" = $1
+        AND "project"."id" = $2
+        AND "project"."owner_id" = $3
     `
-  case firewallpb.Rules_ip:
-    sql = `
-      UPDATE "server_access_policy"
-      SET
-        "ip" = $1
-      WHERE
-        "server_id" = $2
+	case firewallpb.Rules_ip:
+		sql = `
+    UPDATE "server_access_policy"
+    SET
+      "ip" = $4
+    FROM "server"
+      INNER JOIN "project" ON "server"."project_id" = "project"."id"
+    WHERE
+      "server_access_policy"."server_id" = "server"."id"
+      AND "server"."id" = $1
+      AND "project"."id" = $2
+      AND "project"."owner_id" = $3
     `
-  default:
-    return response, nil
-  }
+	default:
+		return nil, nil
+	}
 
-  _, err := h.DB.Conn.ExecContext(ctx, sql, in.GetStatus(), in.GetServerId())
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
-  }
+	_, err := h.DB.Conn.ExecContext(ctx, sql,
+		in.GetServerId(),
+		in.GetProjectId(),
+		in.GetUserId(),
+		in.GetStatus(),
+	)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+	}
 
-  return response, nil
+	return &firewallpb.UpdateServerFirewall_Response{}, nil
 }
 
 // ServerAccess is checks if the participant has access to the server according
 // to the server's individual firewall settings
 func (h *Handler) ServerAccess(ctx context.Context, in *firewallpb.ServerAccess_Request) (*firewallpb.ServerAccess_Response, error) {
-  response := new(firewallpb.ServerAccess_Response)
+	response := new(firewallpb.ServerAccess_Response)
 
-  // Global service access check by IP
-  if _, err := h.IPAccess(ctx, &firewallpb.IPAccess_Request{
-    ClientIp: in.GetMemberIp(),
-  }); err != nil {
-    errorInfo := trace.ParseError(err)
-    if errorInfo.Code == codes.PermissionDenied {
-      return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
-    }
-    return nil, trace.ErrorAborted(err, log)
-  }
+	// Global service access check by IP
+	if _, err := h.IPAccess(ctx, &firewallpb.IPAccess_Request{
+		ClientIp: in.GetMemberIp(),
+	}); err != nil {
+		errorInfo := trace.ParseError(err)
+		if errorInfo.Code == codes.PermissionDenied {
+			return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
+		}
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  // Check by user
-  if _, err := h.ServerAccessUser(ctx, &firewallpb.ServerAccessUser_Request{
-    ServerId: in.GetServerId(),
-    UserId:   in.GetUserId(),
-  }); err != nil {
-    errorInfo := trace.ParseError(err)
-    if errorInfo.Code == codes.PermissionDenied {
-      return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
-    }
-    return nil, trace.ErrorAborted(err, log)
-  }
+	// Check by user
+	if _, err := h.ServerAccessUser(ctx, &firewallpb.ServerAccessUser_Request{
+		ServerId: in.GetServerId(),
+		UserId:   in.GetUserId(),
+	}); err != nil {
+		errorInfo := trace.ParseError(err)
+		if errorInfo.Code == codes.PermissionDenied {
+			return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
+		}
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  // Check by ip
-  if _, err := h.ServerAccessIP(ctx, &firewallpb.ServerAccessIP_Request{
-    ServerId: in.GetServerId(),
-    MemberIp: in.GetMemberIp(),
-  }); err != nil {
-    errorInfo := trace.ParseError(err)
-    if errorInfo.Code == codes.PermissionDenied {
-      return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
-    }
-    return nil, trace.ErrorAborted(err, log)
-  }
+	// Check by ip
+	if _, err := h.ServerAccessIP(ctx, &firewallpb.ServerAccessIP_Request{
+		ServerId: in.GetServerId(),
+		MemberIp: in.GetMemberIp(),
+	}); err != nil {
+		errorInfo := trace.ParseError(err)
+		if errorInfo.Code == codes.PermissionDenied {
+			return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
+		}
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  // Check by country
-  if _, err := h.ServerAccessCountry(ctx, &firewallpb.ServerAccessCountry_Request{
-    ServerId: in.GetServerId(),
-    MemberIp: in.GetMemberIp(),
-  }); err != nil {
-    errorInfo := trace.ParseError(err)
-    if errorInfo.Code == codes.PermissionDenied {
-      return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
-    }
-    return nil, trace.ErrorAborted(err, log)
-  }
+	// Check by country
+	if _, err := h.ServerAccessCountry(ctx, &firewallpb.ServerAccessCountry_Request{
+		ServerId: in.GetServerId(),
+		MemberIp: in.GetMemberIp(),
+	}); err != nil {
+		errorInfo := trace.ParseError(err)
+		if errorInfo.Code == codes.PermissionDenied {
+			return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
+		}
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  // Check by time
-  if _, err := h.ServerAccessTime(ctx, &firewallpb.ServerAccessTime_Request{
-    ServerId: in.GetServerId(),
-  }); err != nil {
-    return nil, err
-  }
+	// Check by time
+	if _, err := h.ServerAccessTime(ctx, &firewallpb.ServerAccessTime_Request{
+		ServerId: in.GetServerId(),
+	}); err != nil {
+		return nil, err
+	}
 
-  return response, nil
+	return response, nil
 }
 
 // ServerAccessUser is ...
 func (h *Handler) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAccessUser_Request) (*firewallpb.ServerAccessUser_Response, error) {
-  memberID := ""
-  response := new(firewallpb.ServerAccessUser_Response)
+	memberID := ""
+	response := new(firewallpb.ServerAccessUser_Response)
 
-  err := h.DB.Conn.QueryRowContext(ctx, `
+	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "server_member"."id"
     FROM
@@ -379,25 +430,25 @@ func (h *Handler) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAcc
       AND "server_member"."active" = TRUE
       AND "server"."active" = TRUE
   `, in.GetServerId(), in.GetUserId(),
-  ).Scan(&memberID)
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log)
-  }
+	).Scan(&memberID)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  if memberID == "" {
-    return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedUser)
-  }
+	if memberID == "" {
+		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedUser)
+	}
 
-  return response, nil
+	return response, nil
 }
 
 // ServerAccessTime is checks if it is possible to connect to the server now
 func (h *Handler) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAccessTime_Request) (*firewallpb.ServerAccessTime_Response, error) {
-  id := 0
-  weekDays := [...]int32{7, 1, 2, 3, 4, 5, 6}
-  response := new(firewallpb.ServerAccessTime_Response)
+	id := 0
+	weekDays := [...]int32{7, 1, 2, 3, 4, 5, 6}
+	response := new(firewallpb.ServerAccessTime_Response)
 
-  err := h.DB.Conn.QueryRowContext(ctx, `
+	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "id"
     FROM
@@ -408,29 +459,29 @@ func (h *Handler) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAcc
       AND "time_from" < $3
       AND "time_to" > $3
   `, in.GetServerId(), weekDays[time.Now().Weekday()], time.Now().Local().Format("15:04:05"),
-  ).Scan(&id)
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log)
-  }
-  if id == 0 {
-    return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedTime)
-  }
+	).Scan(&id)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, log)
+	}
+	if id == 0 {
+		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedTime)
+	}
 
-  return response, nil
+	return response, nil
 }
 
 // ServerAccessIP is ...
 func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAccessIP_Request) (*firewallpb.ServerAccessIP_Response, error) {
-  total := 0
-  response := new(firewallpb.ServerAccessIP_Response)
+	total := 0
+	response := new(firewallpb.ServerAccessIP_Response)
 
-  // TODO add only if debug mode
-  if in.GetMemberIp() == "127.0.0.1" {
-    return response, nil
-  }
+	// TODO add only if debug mode
+	if in.GetMemberIp() == "127.0.0.1" {
+		return response, nil
+	}
 
-  var accessListIP bool
-  err := h.DB.Conn.QueryRowContext(ctx, `
+	var accessListIP bool
+	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "ip"
     FROM
@@ -438,13 +489,13 @@ func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcces
     WHERE
       "server_id" = $1
   `, in.GetServerId(),
-  ).Scan(&accessListIP)
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log)
-  }
+	).Scan(&accessListIP)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  // We make a sample in the database with a list of IP addresses
-  err = h.DB.Conn.QueryRowContext(ctx, `
+	// We make a sample in the database with a list of IP addresses
+	err = h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       COUNT(*)
     FROM
@@ -455,43 +506,43 @@ func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcces
       AND $2::inet >= "server_security_ip"."start_ip"
       AND $2::inet <= "server_security_ip"."end_ip"
   `, in.GetServerId(), in.GetMemberIp(),
-  ).Scan(&total)
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log)
-  }
+	).Scan(&total)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  // Black list, IP found in the list
-  if !accessListIP && total > 0 {
-    return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
-  }
+	// Black list, IP found in the list
+	if !accessListIP && total > 0 {
+		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
+	}
 
-  // White list, IP was not found on the list
-  if accessListIP && total == 0 {
-    return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
-  }
+	// White list, IP was not found on the list
+	if accessListIP && total == 0 {
+		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
+	}
 
-  return response, nil
+	return response, nil
 }
 
 // ServerAccessCountry is ...
 func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.ServerAccessCountry_Request) (*firewallpb.ServerAccessCountry_Response, error) {
-  total := 0
-  response := new(firewallpb.ServerAccessCountry_Response)
+	total := 0
+	response := new(firewallpb.ServerAccessCountry_Response)
 
-  // debug mode
-  if devMode {
-    return response, nil
-  }
-  // -----
+	// debug mode
+	if devMode {
+		return response, nil
+	}
+	// -----
 
-  pbUtility := new(utility.Handler)
-  responseC, _ := pbUtility.CountryByIP(ctx, &utilitypb.CountryByIP_Request{
-    Ip: in.GetMemberIp(),
-  })
-  country := responseC.Code
+	pbUtility := new(utility.Handler)
+	responseC, _ := pbUtility.CountryByIP(ctx, &utilitypb.CountryByIP_Request{
+		Ip: in.GetMemberIp(),
+	})
+	country := responseC.Code
 
-  var accessListCountry bool
-  err := h.DB.Conn.QueryRowContext(ctx, `
+	var accessListCountry bool
+	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "country"
     FROM
@@ -499,13 +550,13 @@ func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.Server
     WHERE
       "server_id" = $1
   `, in.GetServerId(),
-  ).Scan(&accessListCountry)
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log)
-  }
+	).Scan(&accessListCountry)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  // Sample from the table with countries
-  err = h.DB.Conn.QueryRowContext(ctx, `
+	// Sample from the table with countries
+	err = h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       COUNT(*)
     FROM
@@ -515,20 +566,20 @@ func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.Server
       "server_access_policy"."server_id" = $1
       AND "server_security_country"."country_code" = $2
   `, in.GetServerId(), country,
-  ).Scan(&total)
-  if err != nil {
-    return nil, trace.ErrorAborted(err, log)
-  }
+	).Scan(&total)
+	if err != nil {
+		return nil, trace.ErrorAborted(err, log)
+	}
 
-  // Black list, the country is found in the list:
-  if !accessListCountry && total > 0 {
-    return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
-  }
+	// Black list, the country is found in the list:
+	if !accessListCountry && total > 0 {
+		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+	}
 
-  // White list, the country was not found on the list
-  if accessListCountry && total == 0 {
-    return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
-  }
+	// White list, the country was not found on the list
+	if accessListCountry && total == 0 {
+		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+	}
 
-  return response, nil
+	return response, nil
 }
