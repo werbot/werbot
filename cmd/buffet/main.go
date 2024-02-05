@@ -9,12 +9,11 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/redis/go-redis/v9"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	"github.com/werbot/werbot/internal/storage/postgres"
-	rdb "github.com/werbot/werbot/internal/storage/redis"
+	"github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/logger"
 )
@@ -47,10 +46,10 @@ func main() {
 	}
 
 	// Connect to Redis via Unix socket
-	cache := rdb.NewClient(ctx, redis.NewClient(&redis.Options{
+	cache := redis.New(ctx, &redis.RedisConfig{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
-	}))
+	})
 
 	// Load TLS configuration from files at startup
 	cert, err := tls.LoadX509KeyPair(

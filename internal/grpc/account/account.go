@@ -10,31 +10,31 @@ import (
 
 // ListAccounts is ...
 func (h *Handler) ListAccounts(ctx context.Context, in *accountpb.ListAccounts_Request) (*accountpb.ListAccounts_Response, error) {
-	response := new(accountpb.ListAccounts_Response)
+	response := &accountpb.ListAccounts_Response{}
 	return response, nil
 }
 
 // Account is ...
 func (h *Handler) Account(ctx context.Context, in *accountpb.Account_Request) (*accountpb.Account_Response, error) {
-	response := new(accountpb.Account_Response)
+	response := &accountpb.Account_Response{}
 	return response, nil
 }
 
 // AddAccount is ...
 func (h *Handler) AddAccount(ctx context.Context, in *accountpb.AddAccount_Request) (*accountpb.AddAccount_Response, error) {
-	response := new(accountpb.AddAccount_Response)
+	response := &accountpb.AddAccount_Response{}
 	return response, nil
 }
 
 // UpdateAccount is ...
 func (h *Handler) UpdateAccount(ctx context.Context, in *accountpb.UpdateAccount_Request) (*accountpb.UpdateAccount_Response, error) {
-	response := new(accountpb.UpdateAccount_Response)
+	response := &accountpb.UpdateAccount_Response{}
 	return response, nil
 }
 
 // DeleteAccount is ...
 func (h *Handler) DeleteAccount(ctx context.Context, in *accountpb.DeleteAccount_Request) (*accountpb.DeleteAccount_Response, error) {
-	response := new(accountpb.DeleteAccount_Response)
+	response := &accountpb.DeleteAccount_Response{}
 	return response, nil
 }
 
@@ -42,7 +42,7 @@ func (h *Handler) DeleteAccount(ctx context.Context, in *accountpb.DeleteAccount
 // AccountIDByLogin is a function that takes a context and an AccountIDByLogin_Request as input,
 // and returns an AccountIDByLogin_Response and an error as output.
 func (h *Handler) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDByLogin_Request) (*accountpb.AccountIDByLogin_Response, error) {
-	response := new(accountpb.AccountIDByLogin_Response)
+	response := &accountpb.AccountIDByLogin_Response{}
 	nameArray := strutil.SplitNTrimmed(in.GetLogin(), "_", 3)
 
 	stmt, err := h.DB.Conn.PrepareContext(ctx, `
@@ -56,13 +56,13 @@ func (h *Handler) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDB
       AND "user_public_key"."fingerprint" = $2
   `)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 	defer stmt.Close()
 
 	err = stmt.QueryRowContext(ctx, nameArray[0], in.GetFingerprint()).Scan(&response.UserId)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	/*
@@ -90,7 +90,7 @@ func (h *Handler) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDB
 // UpdateStatus is a method implemented by Handler struct which accepts
 // a context and an UpdateStatus_Request object and returns an UpdateStatus_Response object and an error
 func (h *Handler) UpdateStatus(ctx context.Context, in *accountpb.UpdateStatus_Request) (*accountpb.UpdateStatus_Response, error) {
-	response := new(accountpb.UpdateStatus_Response)
+	response := &accountpb.UpdateStatus_Response{}
 
 	online := false
 	if in.GetStatus() == 1 {
@@ -105,7 +105,7 @@ func (h *Handler) UpdateStatus(ctx context.Context, in *accountpb.UpdateStatus_R
       "id" = $1
   `, in.GetAccountId(), online)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -113,12 +113,12 @@ func (h *Handler) UpdateStatus(ctx context.Context, in *accountpb.UpdateStatus_R
 
 // SessionAccount is ...
 func (h *Handler) SessionAccount(ctx context.Context, in *accountpb.SessionAccount_Request) (*accountpb.SessionAccount_Response, error) {
-	response := new(accountpb.SessionAccount_Response)
+	response := &accountpb.SessionAccount_Response{}
 	return response, nil
 }
 
 // FindByTokenAccount is ...
 func (h *Handler) FindByTokenAccount(ctx context.Context, in *accountpb.FindByTokenAccount_Request) (*accountpb.FindByTokenAccount_Response, error) {
-	response := new(accountpb.FindByTokenAccount_Response)
+	response := &accountpb.FindByTokenAccount_Response{}
 	return response, nil
 }

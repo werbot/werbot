@@ -2,17 +2,21 @@ package trace
 
 const (
 	// Default error messages
-	MsgInvalidArgument  = "Invalid argument"
-	MsgNotFound         = "Not found"
-	MsgAlreadyExists    = "Already exists"
-	MsgPermissionDenied = "Permission denied"
-	MsgAborted          = "Aborted due to internal error"
-	MsgUnknownError     = "Unknown error"
+	MsgInvalidArgument     = "Invalid argument"
+	MsgNotFound            = "Not found"
+	MsgAlreadyExists       = "Already exists"
+	MsgPermissionDenied    = "Permission denied"
+	MsgAborted             = "Aborted due to internal error"
+	MsgUnknownError        = "Unknown error"
+	MsgBadRequest          = "Bad request"
+	MsgUnauthorized        = "Unauthorized"
+	MsgInternalServerError = "Internal server error"
 
 	// Auth error messages
 	MsgPasswordIsNotValid = "Password is not valid"
 	MsgInviteIsInvalid    = "Invite is invalid"
 	MsgInviteIsActivated  = "Invite is activated"
+	MsgUserNotFound       = "User not found"
 
 	// Action error messages
 	MsgFailedToAdd    = "Failed to add"

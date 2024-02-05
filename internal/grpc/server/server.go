@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/crypto"
@@ -29,7 +30,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 	// TODO: checking the permitted servers available for display
 	//  log.Info().Msgf("Expired: %v", license.L.GetCustomer())
 
-	response := new(serverpb.ListServers_Response)
+	response := &serverpb.ListServers_Response{}
 
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	query := h.DB.QueryParse(in.GetQuery())
@@ -74,11 +75,11 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 		case 1:
 			rows, err := h.DB.Conn.QueryContext(ctx, query, loginArray[0])
 			if err != nil {
-				return nil, trace.ErrorAborted(err, log)
+				return nil, trace.Error(err, log, nil)
 			}
 
 			for rows.Next() {
-				server := new(serverpb.Server_Response)
+				server := &serverpb.Server_Response{}
 				err = rows.Scan(&server.ServerId,
 					&server.AccessId,
 					&server.Port,
@@ -96,7 +97,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
-					return nil, trace.ErrorAborted(err, log)
+					return nil, trace.Error(err, log, nil)
 				}
 
 				response.Servers = append(response.Servers, server)
@@ -107,11 +108,11 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 			rows, err := h.DB.Conn.QueryContext(ctx, query+`
         AND "project"."login" = $2`, loginArray[0], loginArray[1])
 			if err != nil {
-				return nil, trace.ErrorAborted(err, log)
+				return nil, trace.Error(err, log, nil)
 			}
 
 			for rows.Next() {
-				server := new(serverpb.Server_Response)
+				server := &serverpb.Server_Response{}
 				err = rows.Scan(&server.ServerId,
 					&server.AccessId,
 					&server.Port,
@@ -129,7 +130,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
-					return nil, trace.ErrorAborted(err, log)
+					return nil, trace.Error(err, log, nil)
 				}
 
 				response.Servers = append(response.Servers, server)
@@ -142,11 +143,11 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
         AND "token" = $3
         AND "project_member"."role" = 'user'`, loginArray[0], loginArray[1], loginArray[2])
 			if err != nil {
-				return nil, trace.ErrorAborted(err, log)
+				return nil, trace.Error(err, log, nil)
 			}
 
 			for rows.Next() {
-				server := new(serverpb.Server_Response)
+				server := &serverpb.Server_Response{}
 				err = rows.Scan(&server.ServerId,
 					&server.AccessId,
 					&server.Port,
@@ -164,7 +165,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 					&server.ProjectLogin,
 				)
 				if err != nil {
-					return nil, trace.ErrorAborted(err, log)
+					return nil, trace.Error(err, log, nil)
 				}
 
 				response.Servers = append(response.Servers, server)
@@ -174,7 +175,8 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 
 		response.Total = int32(len(response.Servers))
 		if response.Total == 0 {
-			return nil, trace.Error(codes.NotFound)
+			errGRPC := status.Error(codes.NotFound, "")
+			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 		return response, nil
@@ -214,11 +216,11 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
     `+sqlFooter, query["project_id"], query["user_id"],
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		for rows.Next() {
-			server := new(serverpb.Server_Response)
+			server := &serverpb.Server_Response{}
 			err = rows.Scan(&server.ServerId,
 				&server.AccessId,
 				&server.Address,
@@ -235,7 +237,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 				&server.CountMembers,
 			)
 			if err != nil {
-				return nil, trace.ErrorAborted(err, log)
+				return nil, trace.Error(err, log, nil)
 			}
 
 			response.Servers = append(response.Servers, server)
@@ -255,7 +257,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
     `, query["project_id"], query["user_id"],
 		).Scan(&response.Total)
 		if err != nil && err != sql.ErrNoRows {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		return response, nil
@@ -267,7 +269,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 // Server is displays data on the server
 func (h *Handler) Server(ctx context.Context, in *serverpb.Server_Request) (*serverpb.Server_Response, error) {
 	var description pgtype.Text
-	response := new(serverpb.Server_Response)
+	response := &serverpb.Server_Response{}
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "server"."access_id",
@@ -305,10 +307,7 @@ func (h *Handler) Server(ctx context.Context, in *serverpb.Server_Request) (*ser
 		&response.Scheme,
 	)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, trace.Error(codes.NotFound)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	response.Description = description.String
@@ -318,7 +317,7 @@ func (h *Handler) Server(ctx context.Context, in *serverpb.Server_Request) (*ser
 // AddServer is ...
 func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request) (*serverpb.AddServer_Response, error) {
 	var err error
-	response := new(serverpb.AddServer_Response)
+	response := &serverpb.AddServer_Response{}
 
 	serverToken := crypto.NewPassword(6, false)
 	serverTitle := in.GetTitle()
@@ -328,7 +327,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 	}
 	defer tx.Rollback()
 
@@ -347,10 +346,11 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
   `, in.GetProjectId(), in.GetUserId(),
 	).Scan(&exists)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 	if !exists {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	err = tx.QueryRowContext(ctx, `
@@ -382,7 +382,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 		in.GetScheme().Number(),
 	).Scan(&response.ServerId)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	// + record access
@@ -404,21 +404,21 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
     `, response.GetServerId(), in.GetLogin(), in.GetPassword(),
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 	case *serverpb.AddServer_Request_Key:
-		key := new(keypb.GenerateSSHKey_Key)
-		keyTmp, err := h.Redis.Get(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey())).Result()
+		key := &keypb.GenerateSSHKey_Key{}
+		keyTmp, err := h.Redis.Client.Get(ctx, fmt.Sprintf("tmp_key_ssh:%s", in.GetKey())).Result()
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		if err := json.Unmarshal([]byte(keyTmp), key); err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgStructureIsBroken)
+			return nil, trace.Error(err, log, trace.MsgStructureIsBroken)
 		}
 
-		h.Redis.Delete(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey()))
+		h.Redis.Client.Del(ctx, fmt.Sprintf("tmp_key_ssh:%s", in.GetKey()))
 
 		keyAccess := map[string]string{"public": "" + key.GetPublic() + "", "private": "" + key.GetPrivate() + "", "password": "" + key.GetPassword() + ""}
 		keyAccessJSON, _ := json.Marshal(keyAccess)
@@ -431,13 +431,13 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
         "id"
     `, response.GetServerId(), in.GetLogin(), string(keyAccessJSON))
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 	default:
 		key, err := crypto.NewSSHKey(internal.GetString("SECURITY_SSH_KEY_TYPE", "KEY_TYPE_ED25519"))
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedCreatingSSHKey)
+			return nil, trace.Error(err, log, trace.MsgFailedCreatingSSHKey)
 		}
 
 		keyAccess := map[string]string{"public": "" + string(key.PublicKey) + "", "private": "" + string(key.PrivateKey) + "", "password": ""}
@@ -456,13 +456,13 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 			string(keyAccessJSON),
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 	}
 
 	err = tx.QueryRowContext(ctx, sqlAccess).Scan(&accessID)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	_, err = tx.ExecContext(ctx, `
@@ -473,7 +473,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
       "id" = $2
   `, accessID, response.GetServerId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	// + record server_access_policy
@@ -484,7 +484,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
       ($1, 'f', 'f')
   `, response.GetServerId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	// + record server_activity
@@ -504,11 +504,11 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 
 	_, err = tx.ExecContext(ctx, sqlCountDay)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil
@@ -520,7 +520,7 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 	case *serverpb.UpdateServer_Request_Info:
 		tx, err := h.DB.Conn.BeginTx(ctx, nil)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+			return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 		}
 		defer tx.Rollback()
 
@@ -548,10 +548,7 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 			in.GetUserId(),
 		)
 		if err != nil {
-			if err != sql.ErrNoRows {
-				return nil, trace.Error(codes.NotFound)
-			}
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 		}
 
 		_, err = tx.ExecContext(ctx, `
@@ -573,14 +570,11 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 			in.GetUserId(),
 		)
 		if err != nil {
-			if err != sql.ErrNoRows {
-				return nil, trace.Error(codes.NotFound)
-			}
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 		}
 
 		if err := tx.Commit(); err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+			return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 		}
 
 	case *serverpb.UpdateServer_Request_Audit:
@@ -602,10 +596,7 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 			in.GetUserId(),
 		)
 		if err != nil {
-			if err != sql.ErrNoRows {
-				return nil, trace.Error(codes.NotFound)
-			}
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 		}
 
 	case *serverpb.UpdateServer_Request_Active:
@@ -628,10 +619,7 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 			in.GetUserId(),
 		)
 		if err != nil {
-			if err != sql.ErrNoRows {
-				return nil, trace.Error(codes.NotFound)
-			}
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 		}
 
 	case *serverpb.UpdateServer_Request_Online:
@@ -653,13 +641,11 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 			in.GetUserId(),
 		)
 		if err != nil {
-			if err != sql.ErrNoRows {
-				return nil, trace.Error(codes.NotFound)
-			}
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 		}
 	default:
-		return nil, trace.Error(codes.Aborted, trace.MsgInvalidArgument)
+		errGRPC := status.Error(codes.Aborted, trace.MsgInvalidArgument)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 	return &serverpb.UpdateServer_Response{}, nil
 }
@@ -676,10 +662,7 @@ func (h *Handler) DeleteServer(ctx context.Context, in *serverpb.DeleteServer_Re
       AND "project"."owner_id" = $3
   `, in.GetServerId(), in.GetProjectId(), in.GetUserId())
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, trace.Error(codes.NotFound)
-		}
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}
 	return &serverpb.DeleteServer_Response{}, nil
 }
@@ -687,7 +670,7 @@ func (h *Handler) DeleteServer(ctx context.Context, in *serverpb.DeleteServer_Re
 // ServerAccess is displays an affordable version of connecting to the server
 func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Request) (*serverpb.ServerAccess_Response, error) {
 	var password, publicKey, privateKey, privateKeyPassword sql.NullString
-	response := new(serverpb.ServerAccess_Response)
+	response := &serverpb.ServerAccess_Response{}
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "server_access"."auth",
@@ -713,10 +696,7 @@ func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Re
 		&privateKeyPassword,
 	)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, trace.Error(codes.NotFound)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	switch response.GetAuth() {
@@ -740,7 +720,7 @@ func (h *Handler) ServerAccess(ctx context.Context, in *serverpb.ServerAccess_Re
 func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateServerAccess_Request) (*serverpb.UpdateServerAccess_Response, error) {
 	var sqlQuery string
 	var err error
-	response := new(serverpb.UpdateServerAccess_Response)
+	response := &serverpb.UpdateServerAccess_Response{}
 
 	switch in.GetAccess().(type) {
 	case *serverpb.UpdateServerAccess_Request_Password:
@@ -763,19 +743,16 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 			in.GetUserId(),
 		)
 		if err != nil {
-			if err != sql.ErrNoRows {
-				return nil, trace.Error(codes.NotFound)
-			}
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 	case *serverpb.UpdateServerAccess_Request_Key:
-		cacheKey, err := h.Redis.Get(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey())).Result()
+		cacheKey, err := h.Redis.Client.Get(ctx, fmt.Sprintf("tmp_key_ssh:%s", in.GetKey())).Result()
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
-		h.Redis.Delete(fmt.Sprintf("tmp_key_ssh:%s", in.GetKey()))
+		h.Redis.Client.Del(ctx, fmt.Sprintf("tmp_key_ssh:%s", in.GetKey()))
 		sqlQuery, err = sanitize.SQL(`
       UPDATE "server_access"
       SET
@@ -795,10 +772,7 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 			in.GetUserId(),
 		)
 		if err != nil {
-			if err != sql.ErrNoRows {
-				return nil, trace.Error(codes.NotFound)
-			}
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 	default:
@@ -807,7 +781,7 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 
 	_, err = h.DB.Conn.ExecContext(ctx, sqlQuery)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -815,7 +789,7 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 
 // ServerActivity is ...
 func (h *Handler) ServerActivity(ctx context.Context, in *serverpb.ServerActivity_Request) (*serverpb.ServerActivity_Response, error) {
-	response := new(serverpb.ServerActivity_Response)
+	response := &serverpb.ServerActivity_Response{}
 	response.Monday = make([]int32, 24)
 	response.Tuesday = make([]int32, 24)
 	response.Wednesday = make([]int32, 24)
@@ -850,16 +824,13 @@ func (h *Handler) ServerActivity(ctx context.Context, in *serverpb.ServerActivit
       AND "project"."owner_id" = $3
   `, in.GetServerId(), in.GetProjectId(), in.GetUserId())
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, trace.Error(codes.NotFound)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
 		day := dayActive{}
 		if err := rows.Scan(&day.activityID, &day.week, &day.hour); err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 		days = append(days, day)
 	}
@@ -894,7 +865,7 @@ func (h *Handler) ServerActivity(ctx context.Context, in *serverpb.ServerActivit
 
 // UpdateServerActivity is ...
 func (h *Handler) UpdateServerActivity(ctx context.Context, in *serverpb.UpdateServerActivity_Request) (*serverpb.UpdateServerActivity_Response, error) {
-	response := new(serverpb.UpdateServerActivity_Response)
+	response := &serverpb.UpdateServerActivity_Response{}
 	sqlQuery := map[string]string{
 		"add": "",
 		"del": "",
@@ -917,9 +888,10 @@ func (h *Handler) UpdateServerActivity(ctx context.Context, in *serverpb.UpdateS
 	if err != nil {
 		errorInfo := trace.ParseError(err)
 		if errorInfo.Code == codes.NotFound {
-			return nil, trace.Error(codes.NotFound, errorInfo.Message)
+			errGRPC := status.Error(codes.NotFound, errorInfo.Message)
+			return nil, trace.Error(errGRPC, log, nil)
 		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	_oldActivity := reflect.ValueOf(oldActivity)
@@ -957,7 +929,7 @@ func (h *Handler) UpdateServerActivity(ctx context.Context, in *serverpb.UpdateS
 		)
 		_, err := h.DB.Conn.ExecContext(ctx, sqlQuery["del"])
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+			return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 		}
 	}
 
@@ -967,7 +939,7 @@ func (h *Handler) UpdateServerActivity(ctx context.Context, in *serverpb.UpdateS
     `, sqlQuery["add"][:len(sqlQuery["add"])-1])
 		_, err := h.DB.Conn.ExecContext(ctx, sqlQuery["add"])
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+			return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 		}
 	}
 
@@ -976,7 +948,7 @@ func (h *Handler) UpdateServerActivity(ctx context.Context, in *serverpb.UpdateS
 
 // ListShareServers is ...
 func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareServers_Request) (*serverpb.ListShareServers_Response, error) {
-	response := new(serverpb.ListShareServers_Response)
+	response := &serverpb.ListShareServers_Response{}
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := h.DB.Conn.QueryContext(ctx, `
     SELECT
@@ -997,12 +969,12 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
       "project_member"."user_id" = $1
     `+sqlFooter, in.GetUserId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
 		var projectLogin, projectTitle string
-		server := new(serverpb.ListShareServers_Response_SharedServer)
+		server := &serverpb.ListShareServers_Response_SharedServer{}
 		err = rows.Scan(&server.UserLogin,
 			&projectLogin,
 			&projectTitle,
@@ -1013,7 +985,7 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
 			&server.ServerDescription,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		server.ProjectLogin = projectLogin
@@ -1033,7 +1005,7 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
   `, in.GetUserId(),
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	return response, nil
@@ -1051,7 +1023,7 @@ func (h *Handler) UpdateShareServer(ctx context.Context, in *serverpb.UpdateShar
 
 // DeleteShareServer is ...
 func (h *Handler) DeleteShareServer(ctx context.Context, in *serverpb.DeleteShareServer_Request) (*serverpb.DeleteShareServer_Response, error) {
-	response := new(serverpb.DeleteShareServer_Response)
+	response := &serverpb.DeleteShareServer_Response{}
 	return response, nil
 }
 
@@ -1065,7 +1037,7 @@ func (h *Handler) UpdateHostKey(ctx context.Context, in *serverpb.UpdateHostKey_
       "server_id" = $2
   `, in.GetHostkey(), in.GetServerId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	return &serverpb.UpdateHostKey_Response{}, nil
@@ -1073,7 +1045,7 @@ func (h *Handler) UpdateHostKey(ctx context.Context, in *serverpb.UpdateHostKey_
 
 // AddSession is ...
 func (h *Handler) AddSession(ctx context.Context, in *serverpb.AddSession_Request) (*serverpb.AddSession_Response, error) {
-	response := new(serverpb.AddSession_Response)
+	response := &serverpb.AddSession_Response{}
 	err := h.DB.Conn.QueryRowContext(ctx, `
     INSERT INTO
       "session" ("account_id", "status", "message")
@@ -1084,7 +1056,7 @@ func (h *Handler) AddSession(ctx context.Context, in *serverpb.AddSession_Reques
   `, in.GetAccountId(), strings.ToLower(in.Status.String()), in.GetMessage(),
 	).Scan(&response.SessionId)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	return response, nil
@@ -1092,7 +1064,7 @@ func (h *Handler) AddSession(ctx context.Context, in *serverpb.AddSession_Reques
 
 // ServerNameByID is ...
 func (h *Handler) ServerNameByID(ctx context.Context, in *serverpb.ServerNameByID_Request) (*serverpb.ServerNameByID_Response, error) {
-	response := new(serverpb.ServerNameByID_Response)
+	response := &serverpb.ServerNameByID_Response{}
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "server"."title"
@@ -1107,10 +1079,7 @@ func (h *Handler) ServerNameByID(ctx context.Context, in *serverpb.ServerNameByI
   `, in.GetServerId(), in.GetProjectId(), in.GetUserId(),
 	).Scan(&response.ServerName)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, trace.Error(codes.NotFound)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 	return response, nil
 }

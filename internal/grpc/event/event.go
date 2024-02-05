@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
@@ -16,7 +17,7 @@ import (
 func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*eventpb.Events_Response, error) {
 	var sqlQuery, sqlQueryTotal string
 	var args []any
-	response := new(eventpb.Events_Response)
+	response := &eventpb.Events_Response{}
 
 	switch in.GetId().(type) {
 	// setting for profile events
@@ -34,10 +35,10 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
       SELECT
         "id",
         "user_id",
-        "user_agent",
         "ip",
         "event",
-        "data"
+        "section",
+        "created_at"
       FROM
         "event_profile"
       WHERE
@@ -49,7 +50,7 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 		// setting for project events
 		// use profile_id and user_id
 		if in.GetUserId() == "" {
-			return nil, trace.Error(codes.InvalidArgument)
+			return nil, status.Error(codes.InvalidArgument, trace.MsgInvalidArgument)
 		}
 
 		sqlQueryTotal = `
@@ -66,10 +67,10 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
       SELECT
         "event_project"."id",
         "event_project"."user_id",
-        "event_project"."user_agent",
         "event_project"."ip",
         "event_project"."event",
-        "event_project"."data"
+        "event_project"."section",
+        "event_project"."created_at"
       FROM
         "event_project"
         INNER JOIN "project" ON "event_project"."project_id" = "project"."id"
@@ -83,7 +84,7 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 		// setting for server events
 		// use server_id and user_id
 		if in.GetUserId() == "" {
-			return nil, trace.Error(codes.InvalidArgument)
+			return nil, status.Error(codes.InvalidArgument, trace.MsgInvalidArgument)
 		}
 
 		sqlQueryTotal = `
@@ -101,10 +102,10 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
       SELECT
         "event_server"."id",
         "event_server"."user_id",
-        "event_server"."user_agent",
         "event_server"."ip",
         "event_server"."event",
-        "event_server"."data"
+        "event_server"."section",
+        "event_server"."created_at"
       FROM
         "event_server"
         INNER JOIN "server" ON "event_server"."server_id" = "server"."id"
@@ -115,13 +116,13 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
     `
 		args = append(args, in.GetServerId(), in.GetUserId())
 	default:
-		return nil, trace.Error(codes.InvalidArgument)
+		return nil, status.Error(codes.InvalidArgument, trace.MsgInvalidArgument)
 	}
 
 	// Total count for pagination
 	err := h.DB.Conn.QueryRowContext(ctx, sqlQueryTotal, args...).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 	if response.Total == 0 {
 		return response, nil
@@ -131,22 +132,23 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := h.DB.Conn.QueryContext(ctx, sqlQuery+sqlFooter, args...)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
 		var createdAt pgtype.Timestamp
-		record := new(eventpb.Event_Response)
+		record := &eventpb.Event_Response{}
 
-		err = rows.Scan(&record.Id,
+		err = rows.Scan(
+			&record.Id,
 			&record.UserId,
-			&record.UserAgent,
 			&record.Ip,
 			&record.Event,
-			&record.MetaData,
+			&record.Section,
+			&createdAt,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		record.CreatedAt = timestamppb.New(createdAt.Time)
@@ -161,23 +163,23 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventpb.Event_Response, error) {
 	var sqlQuery string
 	var args []any
-	var createdAt pgtype.Timestamp
-	response := new(eventpb.Event_Response)
 
 	if in.GetUserId() == "" {
-		return nil, trace.Error(codes.InvalidArgument)
+		return nil, status.Error(codes.InvalidArgument, trace.MsgInvalidArgument)
 	}
 
 	switch in.GetId().(type) {
 	case *eventpb.Event_Request_ProfileId:
 		sqlQuery = `
       SELECT
-        "profile_id",
+        "id",
         "user_id",
         "user_agent",
         "ip",
         "event",
-        "data"
+        "section",
+        "data",
+        "created_at"
       FROM
         "event_profile"
       WHERE
@@ -194,7 +196,9 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
         "event_project"."user_agent",
         "event_project"."ip",
         "event_project"."event",
-        "event_project"."data"
+        "event_project"."section",
+        "event_project"."data",
+        "event_project"."created_at"
       FROM
         "event_project"
         INNER JOIN "project" ON "event_project"."project_id" = "project"."id"
@@ -212,7 +216,9 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
         "event_server"."user_agent",
         "event_server"."ip",
         "event_server"."event",
-        "event_server"."data"
+        "event_server"."section",
+        "event_server"."data",
+        "event_server"."created_at"
       FROM
         "event_server"
         INNER JOIN "server" ON "event_server"."server_id" = "server"."id"
@@ -223,18 +229,25 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
     `
 		args = append(args, in.GetServerId(), in.GetUserId())
 	default:
-		return nil, trace.Error(codes.InvalidArgument)
+		return nil, status.Error(codes.InvalidArgument, trace.MsgInvalidArgument)
 	}
 
-	err := h.DB.Conn.QueryRowContext(ctx, sqlQuery, args...).Scan(&response.Id,
+	var createdAt pgtype.Timestamp
+
+	response := &eventpb.Event_Response{}
+
+	err := h.DB.Conn.QueryRowContext(ctx, sqlQuery, args...).Scan(
+		&response.Id,
 		&response.UserId,
 		&response.UserAgent,
 		&response.Ip,
 		&response.Event,
+		&response.Section,
 		&response.MetaData,
+		&createdAt,
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	response.CreatedAt = timestamppb.New(createdAt.Time)
@@ -244,10 +257,11 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 // AddEvent is ...
 func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*eventpb.AddEvent_Response, error) {
 	var sqlQuery, id, user_id string
-	response := new(eventpb.AddEvent_Response)
+	var section int32
+	response := &eventpb.AddEvent_Response{}
 
-	switch in.Id.(type) {
-	case *eventpb.AddEvent_Request_ProfileId:
+	switch in.Section.(type) {
+	case *eventpb.AddEvent_Request_Profile:
 		sqlQuery = `
       INSERT INTO
         "event_profile" (
@@ -256,19 +270,21 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
           "user_agent",
           "ip",
           "event",
+          "section",
           "data"
         )
       VALUES
-        ($1, $2, $3, $4, $5, $6)
+        ($1, $2, $3, $4, $5, $6, $7)
       RETURNING
         id
     `
-		id = in.GetProfileId()
+		section = int32(in.GetProfile().GetSection())
+		id = in.GetProfile().Id
 		user_id = id
 
-	case *eventpb.AddEvent_Request_ProjectId:
+	case *eventpb.AddEvent_Request_Project:
 		if in.GetUserId() == "" {
-			return nil, trace.Error(codes.InvalidArgument)
+			return nil, status.Error(codes.InvalidArgument, trace.MsgInvalidArgument)
 		}
 		sqlQuery = `
       INSERT INTO
@@ -278,19 +294,21 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
           "user_agent",
           "ip",
           "event",
+          "section",
           "data"
         )
       VALUES
-        ($1, $2, $3, $4, $5, $6)
+        ($1, $2, $3, $4, $5, $6, $7)
       RETURNING
         id
     `
-		id = in.GetProjectId()
+		section = int32(in.GetProject().Section)
+		id = in.GetProject().Id
 		user_id = in.GetUserId()
 
-	case *eventpb.AddEvent_Request_ServerId:
+	case *eventpb.AddEvent_Request_Server:
 		if in.GetUserId() == "" {
-			return nil, trace.Error(codes.InvalidArgument)
+			return nil, status.Error(codes.InvalidArgument, trace.MsgInvalidArgument)
 		}
 		sqlQuery = `
       INSERT INTO
@@ -300,23 +318,25 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
           "user_agent",
           "ip",
           "event",
+          "section",
           "data"
         )
       VALUES
-        ($1, $2, $3, $4, $5, $6)
+        ($1, $2, $3, $4, $5, $6, $7)
       RETURNING
         id
     `
-		id = in.GetServerId()
+		section = int32(in.GetServer().Section)
+		id = in.GetServer().Id
 		user_id = in.GetUserId()
 
 	default:
-		return nil, trace.Error(codes.InvalidArgument)
+		return nil, status.Error(codes.InvalidArgument, trace.MsgInvalidArgument)
 	}
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 	}
 	defer tx.Rollback()
 
@@ -331,14 +351,15 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
 		in.GetUserAgent(),
 		in.GetIp(),
 		in.GetEvent(),
+		section,
 		json,
 	).Scan(&response.RecordId)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil

@@ -28,8 +28,14 @@ if [[ "$1" == 'docker' ]]; then
   print_answer "SUCCESS" green
 fi
 
-if pgrep -f "postgres.*9876" >/dev/null; then
-  print_header "Killing embedded postgres"
-  kill $(pgrep -f "postgres.*9876")
-  print_answer "SUCCESS" green
+pids=$(pgrep -f "postgres.*9")
+if [ -n "$pids" ]; then
+  for process in $pids; do
+    print_header "Killing $process process"
+    if sudo kill "$process" >/dev/null; then # add sudo if need
+      print_answer "SUCCESS" green
+    else
+      print_answer "ERROR" red
+    fi
+  done
 fi

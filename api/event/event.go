@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal/grpc"
 	eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
@@ -21,13 +19,13 @@ import (
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/event/:name<alpha>/:name_id<guid> [get]
 func (h *Handler) events(c *fiber.Ctx) error {
-	request := new(eventpb.Events_Request)
+	request := &eventpb.Events_Request{}
 
 	userParameter := middleware.AuthUser(c)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	switch c.Params("name") {
@@ -36,30 +34,30 @@ func (h *Handler) events(c *fiber.Ctx) error {
 		request.Id = &eventpb.Events_Request_ProfileId{
 			ProfileId: request.UserId,
 		}
-		request.SortBy = `"created_at":ASC`
+		request.SortBy = `"created_at":DESC`
 	case "project":
 		request.UserId = userParameter.UserID(request.GetUserId())
 		request.Id = &eventpb.Events_Request_ProjectId{
 			ProjectId: c.Params("name_id"),
 		}
-		request.SortBy = `"event_project"."created_at":ASC`
+		request.SortBy = `"event_project"."created_at":DESC`
 	case "server":
 		request.UserId = userParameter.UserID(request.GetUserId())
 		request.Id = &eventpb.Events_Request_ServerId{
 			ServerId: c.Params("name_id"),
 		}
-		request.SortBy = `"event_server"."created_at":ASC`
+		request.SortBy = `"event_server"."created_at":DESC`
 	default:
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	pagination := webutil.GetPaginationFromCtx(c)
-	request.Limit = pagination.GetLimit()
-	request.Offset = pagination.GetOffset()
+	request.Limit = pagination.Limit
+	request.Offset = pagination.Offset
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -70,7 +68,7 @@ func (h *Handler) events(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 	if keys.GetTotal() == 0 {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+		return webutil.StatusNotFound(c, nil)
 	}
 
 	return webutil.StatusOK(c, "event records", keys)
@@ -83,13 +81,13 @@ func (h *Handler) events(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/event/:name<alpha>/:name_id<guid>/:event_id<guid> [get]
 func (h *Handler) event(c *fiber.Ctx) error {
-	request := new(eventpb.Event_Request)
+	request := &eventpb.Event_Request{}
 
 	userParameter := middleware.AuthUser(c)
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	switch c.Params("name") {
@@ -109,11 +107,11 @@ func (h *Handler) event(c *fiber.Ctx) error {
 			ServerId: c.Params("event_id"),
 		}
 	default:
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -125,7 +123,7 @@ func (h *Handler) event(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 	if key == nil {
-		return webutil.StatusNotFound(c)
+		return webutil.StatusNotFound(c, nil)
 	}
 
 	return webutil.StatusOK(c, "event", key)

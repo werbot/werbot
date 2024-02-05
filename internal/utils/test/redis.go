@@ -5,13 +5,12 @@ import (
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
-	rdb "github.com/werbot/werbot/internal/storage/redis"
+	"github.com/werbot/werbot/internal/storage/redis"
 )
 
 // RedisService is ...
 type RedisService struct {
-	rdb.Handler
+	conn *redis.Connect
 	test *testing.T
 }
 
@@ -19,16 +18,16 @@ type RedisService struct {
 func Redis(ctx context.Context, t *testing.T) *RedisService {
 	s := miniredis.RunT(t)
 	return &RedisService{
-		Handler: rdb.NewClient(ctx, redis.NewClient(&redis.Options{
+		conn: redis.New(ctx, &redis.RedisConfig{
 			Addr: s.Addr(),
-		})),
+		}),
 		test: t,
 	}
 }
 
 // Close is ...
 func (d *RedisService) Close() {
-	if err := d.Handler.Close(); err != nil {
+	if err := d.conn.Client.Close(); err != nil {
 		d.test.Error(err)
 	}
 }

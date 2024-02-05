@@ -17,13 +17,13 @@ import (
 
 // AuthMiddleware is ...
 type AuthMiddleware struct {
-	redis     redis.Handler
+	redis     *redis.Connect
 	publicKey *rsa.PublicKey
 	log       logger.Logger
 }
 
 // Auth is ...
-func Auth(redis redis.Handler) *AuthMiddleware {
+func Auth(redis *redis.Connect) *AuthMiddleware {
 	log := logger.New()
 
 	publicKey, err := jwt.PublicKey()
@@ -58,8 +58,8 @@ func authError(c *fiber.Ctx, e error) error {
 
 func (m AuthMiddleware) authSuccess(c *fiber.Ctx) error {
 	userInfo := AuthUser(c)
-	key := fmt.Sprintf("ref_token:%s", userInfo.UserSub())
-	if _, err := m.redis.Get(key).Result(); err != nil {
+	key := fmt.Sprintf("refresh_token:%s", userInfo.UserSub())
+	if _, err := m.redis.Client.HGetAll(m.redis.Ctx, key).Result(); err != nil {
 		return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "Token has been revoked"))
 	}
 

@@ -5,13 +5,11 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal/grpc"
+	eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
 	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -26,15 +24,15 @@ import (
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys [get]
 func (h *Handler) getKey(c *fiber.Ctx) error {
-	request := new(keypb.Key_Request)
+	request := &keypb.Key_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -52,8 +50,8 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 			request.GetUserId(),
 		)
 		keys, err := rClient.ListKeys(ctx, &keypb.ListKeys_Request{
-			Limit:  pagination.GetLimit(),
-			Offset: pagination.GetOffset(),
+			Limit:  pagination.Limit,
+			Offset: pagination.Offset,
 			SortBy: `"user_public_key"."id":ASC`,
 			Query:  sanitizeSQL,
 		})
@@ -61,7 +59,7 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, err)
 		}
 		if keys.GetTotal() == 0 {
-			return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+			return webutil.StatusNotFound(c, nil)
 		}
 
 		return webutil.StatusOK(c, "user keys", keys)
@@ -88,14 +86,14 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys [post]
 func (h *Handler) addKey(c *fiber.Ctx) error {
-	request := new(keypb.AddKey_Request)
+	request := &keypb.AddKey_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -110,6 +108,24 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
+	// add event in log
+	rClientEvent := eventpb.NewEventHandlersClient(h.Grpc)
+	_, err = rClientEvent.AddEvent(ctx, &eventpb.AddEvent_Request{
+		Section: &eventpb.AddEvent_Request_Profile{
+			Profile: &eventpb.Profile{
+				Id:      request.UserId,
+				Section: eventpb.Profile_ssh_key,
+			},
+		},
+		UserAgent: string(c.Request().Header.UserAgent()),
+		Ip:        c.IP(),
+		Event:     eventpb.EventType_onCreate,
+		MetaData:  []byte(`{"action":"key added"}`),
+	})
+	if err != nil {
+		h.log.Error(err).Send()
+	}
+
 	return webutil.StatusOK(c, "key added", publicKey)
 }
 
@@ -122,14 +138,14 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys [patch]
 func (h *Handler) updateKey(c *fiber.Ctx) error {
-	request := new(keypb.UpdateKey_Request)
+	request := &keypb.UpdateKey_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -141,6 +157,23 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 	rClient := keypb.NewKeyHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateKey(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
+	}
+
+	// add event in log
+	rClientEvent := eventpb.NewEventHandlersClient(h.Grpc)
+	_, err := rClientEvent.AddEvent(ctx, &eventpb.AddEvent_Request{
+		Section: &eventpb.AddEvent_Request_Profile{
+			Profile: &eventpb.Profile{
+				Id:      request.UserId,
+				Section: eventpb.Profile_ssh_key,
+			},
+		},
+		UserAgent: string(c.Request().Header.UserAgent()),
+		Ip:        c.IP(),
+		Event:     eventpb.EventType_onEdit,
+	})
+	if err != nil {
+		h.log.Error(err).Send()
 	}
 
 	return webutil.StatusOK(c, "key updated", nil)
@@ -156,15 +189,15 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys [delete]
 func (h *Handler) deleteKey(c *fiber.Ctx) error {
-	request := new(keypb.DeleteKey_Request)
+	request := &keypb.DeleteKey_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -176,6 +209,24 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 	rClient := keypb.NewKeyHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteKey(ctx, request); err != nil {
 		return webutil.FromGRPC(c, err)
+	}
+
+	// add event in log
+	rClientEvent := eventpb.NewEventHandlersClient(h.Grpc)
+	_, err := rClientEvent.AddEvent(ctx, &eventpb.AddEvent_Request{
+		Section: &eventpb.AddEvent_Request_Profile{
+			Profile: &eventpb.Profile{
+				Id:      request.UserId,
+				Section: eventpb.Profile_ssh_key,
+			},
+		},
+		UserAgent: string(c.Request().Header.UserAgent()),
+		Ip:        c.IP(),
+		Event:     eventpb.EventType_onRemove,
+		MetaData:  []byte(`{"action":"key removed"}`),
+	})
+	if err != nil {
+		h.log.Error(err).Send()
 	}
 
 	return webutil.StatusOK(c, "key removed", nil)
@@ -190,7 +241,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/keys/generate [get]
 func (h *Handler) getGenerateNewKey(c *fiber.Ctx) error {
-	request := new(keypb.GenerateSSHKey_Request)
+	request := &keypb.GenerateSSHKey_Request{}
 
 	if request.GetKeyType() == 0 {
 		request.KeyType = keypb.KeyType_ed25519

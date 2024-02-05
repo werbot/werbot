@@ -52,18 +52,18 @@ func loadKeys() error {
 
 // PublicKey is a function that returns a pointer to an rsa.PublicKey and an error.
 func PublicKey() (*rsa.PublicKey, error) {
-	once.Do(func() { _ = loadKeys() }) // Will invoke the loadKeys function only once in the application lifecycle.
-	if publicKey == nil {              // Check if the public key is empty or null.
+	once.Do(func() { _ = loadKeys() })
+	if publicKey == nil {
 		return nil, fmt.Errorf("public key not loaded")
 	}
-	return publicKey, nil // If publicKey is not nil, return it.
+	return publicKey, nil
 }
 
 // PrivateKey is a function that returns a pointer to an rsa.PrivateKey and an error.
 func PrivateKey() (*rsa.PrivateKey, error) {
-	once.Do(func() { _ = loadKeys() }) // Will invoke the loadKeys function only once in the application lifecycle.
-	if privateKey == nil {             // Check if the private key is empty or null.
+	once.Do(func() { _ = loadKeys() })
+	if privateKey == nil {
 		return nil, fmt.Errorf("private key not loaded")
 	}
-	return privateKey, nil // If privateKey is not nil, return it.
+	return privateKey, nil
 }

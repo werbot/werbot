@@ -19,12 +19,12 @@ import (
 func (h *Handler) License(ctx context.Context, in *licensepb.License_Request) (*licensepb.License_Response, error) {
   licenseOpen := true
   licensePublic := internal.GetString("LICENSE_KEY_PUBLIC", "")
-  response := new(licensepb.License_Response)
+  response := &licensepb.License_Response{}
 
   readFile, err := os.ReadFile(internal.GetString("LICENSE_FILE", "/license.key"))
   if err != nil {
     licenseOpen = false
-    return nil, trace.ErrorAborted(err, log, trace.MsgFailedToOpenLicenseFile)
+    return nil, trace.Error(err, log, trace.MsgFailedToOpenLicenseFile)
   }
 
   if licensePublic == "" {
@@ -34,13 +34,13 @@ func (h *Handler) License(ctx context.Context, in *licensepb.License_Request) (*
   if licenseOpen {
     lic, err := license_lib.DecodePublicKey([]byte(licensePublic))
     if err != nil {
-      return nil, trace.ErrorAborted(err, log, trace.MsgLicenseKeyIsBroken)
+      return nil, trace.Error(err, log, trace.MsgLicenseKeyIsBroken)
     }
 
     // The main information of the license
     licDecode, err := lic.Decode(readFile)
     if err != nil {
-      return nil, trace.ErrorAborted(err, log, trace.MsgLicenseStructureIsBroken)
+      return nil, trace.Error(err, log, trace.MsgLicenseStructureIsBroken)
     }
     response.Issued = licDecode.License.Iss
     response.Customer = licDecode.License.Cus
@@ -52,7 +52,7 @@ func (h *Handler) License(ctx context.Context, in *licensepb.License_Request) (*
 
     licData := map[string]any{}
     if err := json.Unmarshal(licDecode.License.Dat, &licData); err != nil {
-      return nil, trace.ErrorAborted(err, log, trace.MsgStructureIsBroken)
+      return nil, trace.Error(err, log, trace.MsgStructureIsBroken)
     }
 
     response.Limits = map[string]int32{

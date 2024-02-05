@@ -11,6 +11,6 @@ import (
 type Handler struct {
 	App   *fiber.App
 	Grpc  *grpc.ClientConn
-	Redis redis.Handler
+	Redis *redis.Connect
 	Auth  fiber.Handler
 }

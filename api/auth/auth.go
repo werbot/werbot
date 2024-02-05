@@ -2,21 +2,19 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
+	eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/mail"
-	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -33,14 +31,14 @@ import (
 // @Failure 500 {object} webutil.ErrorResponse
 // @Router /signin [post]
 func (h *Handler) signIn(c *fiber.Ctx) error {
-	request := new(accountpb.SignIn_Request)
+	request := &accountpb.SignIn_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -52,26 +50,52 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	sub := uuid.New().String()
-	newToken, err := jwt.New(&accountpb.UserParameters{
-		UserName: "TODO",
+	idSession := uuid.New().String()
+	jwtConfig, err := jwt.New(&accountpb.UserParameters{
+		UserName: user.GetName(),
 		UserId:   user.GetUserId(),
 		Roles:    user.GetRole(),
-		Sub:      sub,
+		Sub:      idSession,
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("failed to create token"))
+		return webutil.StatusInternalServerError(c, "JWT configuration issue")
+	}
+
+	newToken, err := jwtConfig.PairTokens()
+	if err != nil {
+		h.log.Error(err).Send()
+		return webutil.StatusInternalServerError(c, "Failed to create token")
 	}
 
 	// We write user_id (user.user.userid) in the database, since if Access_key will not know which user to create a new one
-	if !jwt.AddToken(h.Redis, sub, user.GetUserId()) {
-		return webutil.FromGRPC(c, errors.New("failed to set cache"))
+	cacheData := jwt.SessionInfo{
+		UserID: user.GetUserId(),
 	}
 
-	return webutil.StatusOK(c, "", jwt.Tokens{
-		Access:  newToken.Tokens.Access,
-		Refresh: newToken.Tokens.Refresh,
+	// add event in log
+	rClientEvent := eventpb.NewEventHandlersClient(h.Grpc)
+	_, err = rClientEvent.AddEvent(ctx, &eventpb.AddEvent_Request{
+		Section: &eventpb.AddEvent_Request_Profile{
+			Profile: &eventpb.Profile{
+				Id:      user.GetUserId(),
+				Section: eventpb.Profile_profile,
+			},
+		},
+		UserAgent: string(c.Request().Header.UserAgent()),
+		Ip:        c.IP(),
+		Event:     eventpb.EventType_onLogin,
+	})
+	if err != nil {
+		h.log.Error(err).Send()
+	}
+
+	jwt.CacheAdd(h.Redis, "access_token", idSession, cacheData)
+	jwt.CacheAdd(h.Redis, "refresh_token", idSession, cacheData)
+
+	return webutil.StatusOK(c, "Tokens", jwt.Tokens{
+		Access:  newToken.Access,
+		Refresh: newToken.Refresh,
 	})
 }
 
@@ -83,8 +107,29 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 // @Router       /auth/logout [post]
 func (h *Handler) logout(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
-	jwt.DeleteToken(h.Redis, userParameter.UserSub())
-	return webutil.StatusOK(c, "successfully logged out", nil)
+	jwt.CacheDelete(h.Redis, "access_token", userParameter.UserSub())
+	jwt.CacheDelete(h.Redis, "refresh_token", userParameter.UserSub())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	rClientEvent := eventpb.NewEventHandlersClient(h.Grpc)
+	_, err := rClientEvent.AddEvent(ctx, &eventpb.AddEvent_Request{
+		Section: &eventpb.AddEvent_Request_Profile{
+			Profile: &eventpb.Profile{
+				Id:      userParameter.User.UserId,
+				Section: eventpb.Profile_profile,
+			},
+		},
+		UserAgent: string(c.Request().Header.UserAgent()),
+		Ip:        c.IP(),
+		Event:     eventpb.EventType_onLogoff,
+	})
+	if err != nil {
+		h.log.Error(err).Send()
+	}
+
+	return webutil.StatusOK(c, "Successful logout", nil)
 }
 
 // @Summary      Re-creation of new tokens
@@ -96,59 +141,71 @@ func (h *Handler) logout(c *fiber.Ctx) error {
 // @Failure      400,404,500   {object} webutil.HTTPResponse
 // @Router       /auth/refresh [post]
 func (h *Handler) refresh(c *fiber.Ctx) error {
-	request := new(jwt.Tokens)
+	request := &jwt.Tokens{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
-	claims, err := jwt.Parse(request.Refresh)
+
+	claimsRefresh, err := jwt.Parse(request.Refresh)
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusInternalServerError(c, "Impossible to parse the key")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sub := jwt.GetClaimSub(*claims)
-	userID, err := h.Redis.GetCtx(ctx, fmt.Sprintf("ref_token:%s", sub)).Result()
+	idSession, err := claimsRefresh.GetSubject()
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, trace.Error(codes.NotFound))
+		return webutil.StatusInternalServerError(c, "Impossible to read the key")
 	}
 
-	if !jwt.ValidateToken(h.Redis, sub) {
-		return webutil.FromGRPC(c, errors.New("token has been revoked"))
+	sessionData, err := jwt.CacheGet(h.Redis, "refresh_token", idSession)
+	if err != nil {
+		h.log.Error(err).Send()
+		return webutil.StatusUnauthorized(c, "The token has been revoked")
 	}
-	jwt.DeleteToken(h.Redis, sub)
 
 	rClient := userpb.NewUserHandlersClient(h.Grpc)
 	user, err := rClient.User(ctx, &userpb.User_Request{
-		UserId: userID,
+		UserId: sessionData.UserID,
 	})
 	if err != nil {
-		return webutil.FromGRPC(c, errors.New("failed to select user"))
+		return webutil.StatusInternalServerError(c, "Failed to select user")
 	}
 
-	newToken, err := jwt.New(&accountpb.UserParameters{
-		UserName: "Mr Robot",
+	jwtConfig, err := jwt.New(&accountpb.UserParameters{
+		UserName: user.GetName(),
 		UserId:   user.GetUserId(),
 		Roles:    user.GetRole(),
-		Sub:      sub,
+		Sub:      idSession,
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, errors.New("failed to create token"))
+		return webutil.StatusInternalServerError(c, "Failed to create token")
 	}
 
-	jwt.AddToken(h.Redis, sub, userID)
+	cacheData := jwt.SessionInfo{
+		UserID: sessionData.UserID,
+	}
+	jwt.CacheAdd(h.Redis, "access_token", idSession, cacheData)
 
-	tokens := &jwt.Tokens{
-		Access:  newToken.Tokens.Access,
-		Refresh: newToken.Tokens.Refresh,
+	newToken, _ := jwtConfig.PairTokens()
+	tokens := jwt.Tokens{
+		Access: newToken.Access,
 	}
 
-	return webutil.StatusOK(c, "", tokens)
+	// Reissue the token if its lifetime is less than 60 minutes.
+	exp, _ := claimsRefresh.GetExpirationTime()
+	timeLeft := (exp.Unix() - time.Now().Unix()) / 60 // minuts
+	if timeLeft < 60 {
+		tokens.Refresh = newToken.Refresh
+		jwt.CacheAdd(h.Redis, "refresh_token", idSession, cacheData)
+	}
+
+	return webutil.StatusOK(c, "Tokens", tokens)
 }
 
 // @Summary      Password reset
@@ -166,19 +223,17 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 // @Failure      400,500     {object} webutil.HTTPResponse
 // @Router       /auth/password_reset [post]
 func (h *Handler) resetPassword(c *fiber.Ctx) error {
-	request := new(accountpb.ResetPassword_Request)
+	request := &accountpb.ResetPassword_Request{}
 
 	if len(c.Body()) > 0 {
 		if err := protojson.Unmarshal(c.Body(), request); err != nil {
-			// h.log.Error(err).Send()
-			return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+			return webutil.StatusBadRequest(c, "The body of the request is damaged")
 		}
 	}
 
-	request.Token = c.Params("reset_token")
-
+	request.Token = c.Params("res_token")
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.FromGRPC(c, err)
 	}
 
 	// Sending an email with a verification link
@@ -197,7 +252,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	}
 
 	if request.Request == nil && request.GetToken() == "" {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -223,19 +278,4 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	}
 
 	return webutil.StatusOK(c, "password reset", response)
-}
-
-// @Summary      Profile information
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Success      200 {object} webutil.HTTPResponse
-// @Router       /auth/profile [get]
-func (h *Handler) getProfile(c *fiber.Ctx) error {
-	userParameter := middleware.AuthUser(c)
-	return webutil.StatusOK(c, "user information", accountpb.SignIn_Response{
-		UserId:   userParameter.UserID(""),
-		UserRole: userParameter.UserRole(),
-		Name:     "Mr Robot",
-	})
 }

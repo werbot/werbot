@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
 	"github.com/werbot/werbot/internal/web/middleware"
@@ -24,7 +22,7 @@ func (h *Handler) getLicenseInfo(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+		return webutil.StatusNotFound(c, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

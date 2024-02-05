@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/werbot/werbot/internal"
@@ -20,7 +21,7 @@ import (
 
 // ListKeys is ...
 func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.ListKeys_Response, error) {
-	response := new(keypb.ListKeys_Response)
+	response := &keypb.ListKeys_Response{}
 
 	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
@@ -39,12 +40,12 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
       INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"
   `+sqlSearch+sqlFooter)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
 		var updateAt, createdAt pgtype.Timestamp
-		publicKey := new(keypb.Key_Response)
+		publicKey := &keypb.Key_Response{}
 		err = rows.Scan(&publicKey.KeyId,
 			&publicKey.UserId,
 			&publicKey.UserLogin,
@@ -55,7 +56,7 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
 			&createdAt,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		publicKey.UpdatedAt = timestamppb.New(updateAt.Time)
@@ -74,7 +75,7 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
   `+sqlSearch,
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	return response, nil
@@ -83,7 +84,7 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
 // PublicKey is ...
 func (h *Handler) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Response, error) {
 	var updateAt, createdAt pgtype.Timestamp
-	response := new(keypb.Key_Response)
+	response := &keypb.Key_Response{}
 	response.KeyId = in.GetKeyId()
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
@@ -113,7 +114,7 @@ func (h *Handler) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.
 		&createdAt,
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	response.UpdatedAt = timestamppb.New(updateAt.Time)
@@ -123,11 +124,11 @@ func (h *Handler) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.
 
 // AddKey is ...
 func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddKey_Response, error) {
-	response := new(keypb.AddKey_Response)
+	response := &keypb.AddKey_Response{}
 
 	publicKey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(in.GetKey()))
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgPublicKeyIsBroken)
+		return nil, trace.Error(err, log, trace.MsgPublicKeyIsBroken)
 	}
 	fingerprint := ssh.FingerprintLegacyMD5(publicKey)
 
@@ -142,11 +143,12 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
   `, fingerprint,
 	).Scan(&response.KeyId)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	if response.KeyId != "" {
-		return nil, trace.Error(codes.AlreadyExists)
+		errGRPC := status.Error(codes.AlreadyExists, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	if in.GetTitle() != "" {
@@ -167,7 +169,7 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 		fingerprint,
 	).Scan(&response.KeyId)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	return response, nil
@@ -176,11 +178,11 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 // UpdateKey is ...
 func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*keypb.UpdateKey_Response, error) {
 	var keyID string
-	response := new(keypb.UpdateKey_Response)
+	response := &keypb.UpdateKey_Response{}
 
 	publicKey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(in.GetKey()))
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgPublicKeyIsBroken)
+		return nil, trace.Error(err, log, trace.MsgPublicKeyIsBroken)
 	}
 	fingerprint := ssh.FingerprintLegacyMD5(publicKey)
 
@@ -195,11 +197,12 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
   `, fingerprint,
 	).Scan(&keyID)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	if keyID != "" {
-		return nil, trace.Error(codes.AlreadyExists)
+		errGRPC := status.Error(codes.AlreadyExists, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	if in.GetTitle() != "" {
@@ -223,7 +226,7 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 		in.GetUserId(),
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -231,7 +234,7 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 
 // DeleteKey is ...
 func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*keypb.DeleteKey_Response, error) {
-	response := new(keypb.DeleteKey_Response)
+	response := &keypb.DeleteKey_Response{}
 
 	_, err := h.DB.Conn.ExecContext(ctx, `
     DELETE FROM "user_public_key"
@@ -241,7 +244,7 @@ func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*
   `, in.GetKeyId(), in.GetUserId(),
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}
 
 	return response, nil
@@ -249,25 +252,25 @@ func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*
 
 // GenerateSSHKey is ...
 func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_Request) (*keypb.GenerateSSHKey_Response, error) {
-	response := new(keypb.GenerateSSHKey_Response)
+	response := &keypb.GenerateSSHKey_Response{}
 	response.KeyType = in.GetKeyType()
 
 	key, err := crypto.NewSSHKey(in.GetKeyType().String())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedCreatingSSHKey)
+		return nil, trace.Error(err, log, trace.MsgFailedCreatingSSHKey)
 	}
 
 	response.Public = key.PublicKey
 	response.Passphrase = key.Passphrase
 	response.Uuid = uuid.New().String()
 
-	cacheKey := new(keypb.GenerateSSHKey_Key)
+	cacheKey := &keypb.GenerateSSHKey_Key{}
 	cacheKey.Private = string(key.PrivateKey)
 	cacheKey.Public = string(key.PublicKey)
 	mapB, _ := json.Marshal(cacheKey)
 
-	if err := h.Redis.Set(fmt.Sprintf("tmp_key_ssh:%s", response.Uuid), mapB, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "10m")); err != nil {
-		return nil, trace.ErrorAborted(err, log)
+	if err := h.Redis.Client.Set(ctx, fmt.Sprintf("tmp_key_ssh:%s", response.Uuid), mapB, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "10m")); err != nil {
+		return nil, trace.Error(err.Err(), log, nil)
 	}
 
 	return response, nil

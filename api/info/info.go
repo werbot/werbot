@@ -7,8 +7,6 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal/grpc"
 	infopb "github.com/werbot/werbot/internal/grpc/info/proto"
@@ -28,13 +26,13 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 	userParameter := middleware.AuthUser(c)
 
 	if !userParameter.IsUserAdmin() {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+		return webutil.StatusNotFound(c, nil)
 	}
 
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, err, "Failed connect to docker")
+		return webutil.StatusInternalServerError(c, "Failed connect to docker")
 	}
 
 	listContainers, err := client.ListContainers(docker.ListContainersOptions{
@@ -45,19 +43,19 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, err, "Failed to show container list")
+		return webutil.StatusInternalServerError(c, "Failed to show container list")
 	}
 
 	coreRelease, err := webutil.GetLatestRelease("https://api.github.com/repos/werbot/werbot/releases/latest")
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, err, "Failed to get latest version for werbot")
+		return webutil.StatusInternalServerError(c, "Failed to get latest version for werbot")
 	}
 
 	webRelease, err := webutil.GetLatestRelease("https://api.github.com/repos/werbot/werbot/releases/latest")
 	if err != nil {
 		h.log.Error(err).Send()
-		return webutil.FromGRPC(c, err, "Failed to get latest version for web app")
+		return webutil.StatusInternalServerError(c, "Failed to get latest version for web app")
 	}
 
 	updates := make(map[string]map[string]any)
@@ -87,15 +85,15 @@ func (h *Handler) getUpdate(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/info [get]
 func (h *Handler) getInfo(c *fiber.Ctx) error {
-	request := new(infopb.UserMetrics_Request)
+	request := &infopb.UserMetrics_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

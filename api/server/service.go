@@ -5,11 +5,9 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/codes"
 
 	"github.com/werbot/werbot/internal/grpc"
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
-	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/webutil"
 )
 
@@ -22,14 +20,14 @@ import (
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/service/server [post]
 func (h *Handler) addServiceServer(c *fiber.Ctx) error {
-	request := new(serverpb.AddServer_Request)
+	request := &serverpb.AddServer_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

@@ -8,38 +8,44 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Error is takes in a code of the type codes.Code and a variadic parameter message of type string.
-func Error(code codes.Code, message ...string) error {
-	errorMessage := MsgUnknownError
-
-	switch code {
-	case codes.InvalidArgument:
-		errorMessage = MsgInvalidArgument
-	case codes.NotFound:
-		errorMessage = MsgNotFound
-	case codes.AlreadyExists:
-		errorMessage = MsgAlreadyExists
-	case codes.PermissionDenied:
-		errorMessage = MsgPermissionDenied
-	case codes.Aborted:
-		errorMessage = MsgAborted
+// Error is ...
+func Error(err error, log logger.Logger, message any) error {
+	if err == sql.ErrNoRows {
+		return status.Error(codes.NotFound, MsgNotFound)
 	}
 
-	if len(message) > 0 {
-		errorMessage = message[0]
+	dataError := status.Convert(err)
+	codeError := dataError.Code()
+	msgError := dataError.Message()
+
+	if codeError == codes.Unknown || codeError == codes.Aborted || codeError == codes.Internal {
+		log.ErrorGRPC(err, 2).Send()
+		msgError = ""
 	}
 
-	return status.Error(code, errorMessage)
+	if msg, ok := message.(string); ok && message != nil {
+		msgError = msg
+	}
+
+	return status.Error(codeError, msgError)
 }
 
-// Aborted indicates the operation was aborted, typically due to a concurrency issue like
-// sequencer check failures, transaction aborts, etc.
-func ErrorAborted(err error, log logger.Logger, message ...string) error {
-	log.ErrorGRPC(status.Error(codes.Aborted, err.Error()), 2).Send()
+// The following code defines a struct named ErrorInfo.
+// This struct contains two fields, Code and Message, both of type string.
+type ErrorInfo struct {
+	Code    codes.Code
+	Message string
+}
 
-	if err == sql.ErrNoRows {
-		return Error(codes.NotFound, message...)
+// ParseError converts an error into an ErrorInfo struct.
+// If the error is nil, it returns nil.
+func ParseError(err error) *ErrorInfo {
+	if err == nil {
+		return nil
 	}
-
-	return Error(codes.Aborted, message...)
+	dataError := status.Convert(err)
+	return &ErrorInfo{
+		Code:    dataError.Code(),
+		Message: dataError.Message(),
+	}
 }

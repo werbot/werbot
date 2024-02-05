@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal/crypto"
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
@@ -18,7 +19,7 @@ import (
 // against the credentials stored in the database.
 // It takes context and a SignIn_Request object as input and returns a User_Response object and an error response.
 func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*userpb.User_Response, error) {
-	response := new(userpb.User_Response)
+	response := &userpb.User_Response{}
 	response.Email = in.GetEmail()
 
 	stmt, err := h.DB.Conn.PrepareContext(ctx, `
@@ -39,7 +40,7 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
       AND "confirmed" = 't'
   `)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 	defer stmt.Close()
 
@@ -54,12 +55,13 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
 		&response.Role,
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// Compare the hashed password retrieved from the database against the hashed password supplied in the request.
 	if !crypto.CheckPasswordHash(in.GetPassword(), password) {
-		return nil, trace.Error(codes.InvalidArgument, trace.MsgPasswordIsNotValid)
+		errGRPC := status.Error(codes.NotFound, trace.MsgUserNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	return response, nil
@@ -67,7 +69,7 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
 
 // ResetPassword is ...
 func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword_Request) (*accountpb.ResetPassword_Response, error) {
-	response := new(accountpb.ResetPassword_Response)
+	response := &accountpb.ResetPassword_Response{}
 
 	switch {
 	// Sending an email with a verification link
@@ -83,7 +85,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
         AND "enabled" = 't'
     `, in.GetEmail()).Scan(&userID)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		//if userID.Valid {
@@ -108,7 +110,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
         ($1, $2, 'reset')
     `, resetToken.String, userID.String)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+			return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 		}
 
 		response.Message = "Verification email has been sent"
@@ -119,11 +121,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 	case in.GetToken() != "" && in.GetPassword() == "":
 		_, err := user.UserIDByToken(ctx, &user.Handler{DB: h.DB}, in.GetToken())
 		if err != nil {
-			errorInfo := trace.ParseError(err)
-			if errorInfo.Code == codes.NotFound {
-				return nil, trace.Error(codes.NotFound, errorInfo.Message)
-			}
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		response.Message = "Token is valid"
@@ -133,21 +131,17 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 	case in.GetToken() != "" && in.GetPassword() != "":
 		id, err := user.UserIDByToken(ctx, &user.Handler{DB: h.DB}, in.GetToken())
 		if err != nil {
-			errorInfo := trace.ParseError(err)
-			if errorInfo.Code == codes.NotFound {
-				return nil, trace.Error(codes.NotFound, errorInfo.Message)
-			}
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		newPassword, err := crypto.HashPassword(in.GetPassword())
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		tx, err := h.DB.Conn.BeginTx(ctx, nil)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+			return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 		}
 		defer tx.Rollback()
 
@@ -159,7 +153,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
         "id" = $2
     `, newPassword, id)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		_, err = tx.ExecContext(ctx, `
@@ -171,11 +165,11 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
         "token" = $1
     `, in.GetToken())
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		if err := tx.Commit(); err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+			return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 		}
 
 		response.Message = "New password saved"

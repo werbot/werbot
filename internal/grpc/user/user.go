@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/werbot/werbot/internal/crypto"
@@ -16,7 +17,7 @@ import (
 
 // ListUsers is lists all users on the system
 func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*userpb.ListUsers_Response, error) {
-	response := new(userpb.ListUsers_Response)
+	response := &userpb.ListUsers_Response{}
 
 	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
@@ -61,14 +62,14 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
       "user"
   `+sqlSearch+sqlFooter)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
 		var countServers, countProjects, countKeys int32
 		var updateAt, createdAt pgtype.Timestamp
-		user := new(userpb.User_Response)
-		userDetail := new(userpb.ListUsers_Response_UserInfo)
+		user := &userpb.User_Response{}
+		userDetail := &userpb.ListUsers_Response_UserInfo{}
 		err = rows.Scan(&user.UserId,
 			&user.Login,
 			&user.Name,
@@ -84,7 +85,7 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
 			&countServers,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		user.UpdatedAt = timestamppb.New(updateAt.Time)
@@ -107,7 +108,7 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
       "user"
   `+sqlSearch).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	return response, nil
@@ -116,7 +117,7 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
 // User is displays user information
 func (h *Handler) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_Response, error) {
 	var updateAt, createdAt pgtype.Timestamp
-	response := new(userpb.User_Response)
+	response := &userpb.User_Response{}
 	response.UserId = in.GetUserId()
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
@@ -146,7 +147,7 @@ func (h *Handler) User(ctx context.Context, in *userpb.User_Request) (*userpb.Us
 		&createdAt,
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	response.UpdatedAt = timestamppb.New(updateAt.Time)
@@ -157,11 +158,11 @@ func (h *Handler) User(ctx context.Context, in *userpb.User_Request) (*userpb.Us
 
 // AddUser is adds a new user
 func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb.AddUser_Response, error) {
-	response := new(userpb.AddUser_Response)
+	response := &userpb.AddUser_Response{}
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 	}
 	defer tx.Rollback()
 
@@ -176,11 +177,12 @@ func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*use
   `, in.GetEmail(),
 	).Scan(&response.UserId)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	if response.UserId != "" {
-		return nil, trace.Error(codes.AlreadyExists)
+		errGRPC := status.Error(codes.AlreadyExists, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	// Adds a new entry to the database
@@ -210,11 +212,11 @@ func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*use
 		in.GetConfirmed(),
 	).Scan(&response.UserId)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil
@@ -223,7 +225,7 @@ func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*use
 // UpdateUser is updates user data
 func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*userpb.UpdateUser_Response, error) {
 	var err error
-	response := new(userpb.UpdateUser_Response)
+	response := &userpb.UpdateUser_Response{}
 
 	switch in.GetRequest().(type) {
 	case *userpb.UpdateUser_Request_Info:
@@ -260,11 +262,12 @@ func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request)
         "id" = $2
     `, in.GetEnabled(), in.GetUserId())
 	default:
-		return nil, trace.Error(codes.InvalidArgument)
+		errGRPC := status.Error(codes.InvalidArgument, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -273,13 +276,13 @@ func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request)
 // DeleteUser is ...
 func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*userpb.DeleteUser_Response, error) {
 	var login, passwordHash, email string
-	response := new(userpb.DeleteUser_Response)
+	response := &userpb.DeleteUser_Response{}
 
 	switch in.GetRequest().(type) {
 	case *userpb.DeleteUser_Request_Password:
 		tx, err := h.DB.Conn.BeginTx(ctx, nil)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+			return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 		}
 		defer tx.Rollback()
 
@@ -298,11 +301,12 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 			&email,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		if !crypto.CheckPasswordHash(in.GetPassword(), passwordHash) {
-			return nil, trace.Error(codes.InvalidArgument, trace.MsgPasswordIsNotValid)
+			errGRPC := status.Error(codes.InvalidArgument, trace.MsgPasswordIsNotValid)
+			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 		// Checking if a verification token has been sent in the last 24 hours
@@ -322,11 +326,11 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
         ($1, $2, 'delete')
     `, deleteToken, in.GetUserId())
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+			return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 		}
 
 		if err := tx.Commit(); err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+			return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 		}
 
 		response.Email = email
@@ -336,12 +340,13 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 	case *userpb.DeleteUser_Request_Token:
 		userID, _ := UserIDByToken(ctx, h, in.GetToken())
 		if userID != in.GetUserId() {
-			return nil, trace.Error(codes.InvalidArgument, trace.MsgInviteIsInvalid)
+			errGRPC := status.Error(codes.InvalidArgument, trace.MsgInviteIsInvalid)
+			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 		tx, err := h.DB.Conn.BeginTx(ctx, nil)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+			return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 		}
 		defer tx.Rollback()
 
@@ -353,7 +358,7 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
         "id" = $1
     `, in.GetUserId())
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 		}
 
 		_, err = tx.ExecContext(ctx, `
@@ -365,7 +370,7 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
         "token" = $1
     `, in.GetToken())
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 		}
 
 		err = tx.QueryRowContext(ctx, `
@@ -380,11 +385,11 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 			&email,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		if err := tx.Commit(); err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+			return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 		}
 
 		response.Login = login
@@ -392,12 +397,13 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 		return response, nil
 	}
 
-	return nil, trace.Error(codes.InvalidArgument)
+	errGRPC := status.Error(codes.InvalidArgument, "")
+	return nil, trace.Error(errGRPC, log, nil)
 }
 
 // UpdatePassword is ...
 func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_Request) (*userpb.UpdatePassword_Response, error) {
-	response := new(userpb.UpdatePassword_Response)
+	response := &userpb.UpdatePassword_Response{}
 
 	if len(in.GetOldPassword()) > 0 {
 		// Check for a validity of the old password
@@ -412,18 +418,20 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_
     `, in.GetUserId(),
 		).Scan(&currentPassword)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		if !crypto.CheckPasswordHash(in.GetOldPassword(), currentPassword) {
-			return nil, trace.Error(codes.InvalidArgument, trace.MsgPasswordIsNotValid)
+			errGRPC := status.Error(codes.InvalidArgument, trace.MsgPasswordIsNotValid)
+			return nil, trace.Error(errGRPC, log, nil)
 		}
 	}
 
 	// We change the old password for a new
 	newPassword, err := crypto.HashPassword(in.GetNewPassword())
 	if err != nil {
-		trace.Error(codes.InvalidArgument, trace.MsgPasswordIsNotValid)
+		errGRPC := status.Error(codes.InvalidArgument, trace.MsgPasswordIsNotValid)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	_, err = h.DB.Conn.ExecContext(ctx, `
@@ -434,7 +442,7 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_
       "id" = $2
   `, newPassword, in.GetUserId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	return response, nil
@@ -456,14 +464,12 @@ func TokenByUserID(ctx context.Context, h *Handler, userID, action string) (stri
   `, userID, action,
 	).Scan(&token)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return "", trace.Error(codes.NotFound, trace.MsgInviteIsInvalid)
-		}
-		return "", trace.ErrorAborted(err, log)
+		return "", trace.Error(err, log, nil)
 	}
 
 	if token == "" {
-		return token, trace.Error(codes.InvalidArgument, trace.MsgInviteIsInvalid)
+		errGRPC := status.Error(codes.InvalidArgument, trace.MsgInviteIsInvalid)
+		return token, trace.Error(errGRPC, log, nil)
 	}
 
 	return token, nil
@@ -484,14 +490,12 @@ func UserIDByToken(ctx context.Context, h *Handler, token string) (string, error
   `, token,
 	).Scan(&id)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return "", trace.Error(codes.NotFound, trace.MsgInviteIsInvalid)
-		}
-		return "", trace.ErrorAborted(err, log)
+		return "", trace.Error(err, log, nil)
 	}
 
 	if id == "" {
-		return id, trace.Error(codes.InvalidArgument, trace.MsgInviteIsInvalid)
+		errGRPC := status.Error(codes.InvalidArgument, trace.MsgInviteIsInvalid)
+		return id, trace.Error(errGRPC, log, nil)
 	}
 
 	return id, nil

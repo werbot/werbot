@@ -6,12 +6,9 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal/grpc"
 	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
-	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -28,15 +25,15 @@ import (
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/server/members [get]
 func (h *Handler) getServerMember(c *fiber.Ctx) error {
-	request := new(memberpb.ServerMember_Request)
+	request := &memberpb.ServerMember_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -51,8 +48,8 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 	if request.GetMemberId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
 		members, err := rClient.ListServerMembers(ctx, &memberpb.ListServerMembers_Request{
-			Limit:     pagination.GetLimit(),
-			Offset:    pagination.GetOffset(),
+			Limit:     pagination.Limit,
+			Offset:    pagination.Offset,
 			SortBy:    "server_member.id:ASC",
 			OwnerId:   request.GetOwnerId(),
 			ProjectId: request.GetProjectId(),
@@ -70,7 +67,7 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 	if member == nil {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+		return webutil.StatusNotFound(c, nil)
 	}
 
 	return webutil.StatusOK(c, "member information", member)
@@ -85,14 +82,14 @@ func (h *Handler) getServerMember(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server [post]
 func (h *Handler) addServerMember(c *fiber.Ctx) error {
-	request := new(memberpb.AddServerMember_Request)
+	request := &memberpb.AddServerMember_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -119,14 +116,14 @@ func (h *Handler) addServerMember(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server [patch]
 func (h *Handler) updateServerMember(c *fiber.Ctx) error {
-	request := new(memberpb.UpdateServerMember_Request)
+	request := &memberpb.UpdateServerMember_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -155,15 +152,15 @@ func (h *Handler) updateServerMember(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server [delete]
 func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
-	request := new(memberpb.DeleteServerMember_Request)
+	request := &memberpb.DeleteServerMember_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -192,15 +189,15 @@ func (h *Handler) deleteServerMember(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/server/search [get]
 func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
-	request := new(memberpb.MembersWithoutServer_Request)
+	request := &memberpb.MembersWithoutServer_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	pagination := webutil.GetPaginationFromCtx(c)
@@ -208,8 +205,8 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 	request.SortBy = `"user"."name":ASC`
 	request.Login = fmt.Sprintf(`%v`, request.GetLogin())
-	request.Limit = pagination.GetLimit()
-	request.Offset = pagination.GetOffset()
+	request.Limit = pagination.Limit
+	request.Offset = pagination.Offset
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -232,15 +229,15 @@ func (h *Handler) getMembersWithoutServer(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/active [patch]
 func (h *Handler) updateServerMemberActive(c *fiber.Ctx) error {
-	request := new(memberpb.UpdateServerMember_Request)
-	request.Setting = new(memberpb.UpdateServerMember_Request_Active)
+	request := &memberpb.UpdateServerMember_Request{}
+	request.Setting = &memberpb.UpdateServerMember_Request_Active{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

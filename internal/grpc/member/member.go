@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
@@ -17,7 +18,7 @@ import (
 
 // ListProjectMembers is ...
 func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProjectMembers_Request) (*memberpb.ListProjectMembers_Response, error) {
-	response := new(memberpb.ListProjectMembers_Response)
+	response := &memberpb.ListProjectMembers_Response{}
 
 	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
@@ -49,13 +50,13 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
       INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"
   `+sqlSearch+sqlFooter)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
 		var role string
 		var createdAt pgtype.Timestamp
-		member := new(memberpb.ProjectMember_Response)
+		member := &memberpb.ProjectMember_Response{}
 		err = rows.Scan(
 			&member.MemberId,
 			&member.OwnerId,
@@ -71,7 +72,7 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 			&member.ServersCount,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		member.Role = userpb.Role_user // TODO: We transfer from the old format to the new one due to PHP version of the site
@@ -92,7 +93,7 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
   `+sqlSearch,
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	return response, nil
@@ -102,7 +103,7 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_Request) (*memberpb.ProjectMember_Response, error) {
 	var role string // TODO The old Role format used in PHP.Transfer to digital
 	var createdAt pgtype.Timestamp
-	response := new(memberpb.ProjectMember_Response)
+	response := &memberpb.ProjectMember_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -132,10 +133,7 @@ func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_
 		&createdAt,
 	)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, trace.Error(codes.NotFound)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	response.Role = userpb.Role(userpb.Role_value[role]) // TODO Old Role format
@@ -151,7 +149,7 @@ func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_
 func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectMember_Request) (*memberpb.AddProjectMember_Response, error) {
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 	}
 	defer tx.Rollback()
 
@@ -170,13 +168,14 @@ func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectM
   `, in.GetProjectId(), in.GetOwnerId(),
 	).Scan(&exists)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 	if !exists {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := new(memberpb.AddProjectMember_Response)
+	response := &memberpb.AddProjectMember_Response{}
 	err = tx.QueryRowContext(ctx, `
     INSERT INTO
       "project_member" ("project_id", "user_id", "role", "active")
@@ -191,11 +190,11 @@ func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectM
 		in.GetActive(),
 	).Scan(&response.MemberId)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil
@@ -242,11 +241,12 @@ func (h *Handler) UpdateProjectMember(ctx context.Context, in *memberpb.UpdatePr
 			in.GetActive(),
 		)
 	default:
-		return nil, trace.Error(codes.Aborted, trace.MsgInvalidArgument)
+		errGRPC := status.Error(codes.Aborted, trace.MsgInvalidArgument)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	return &memberpb.UpdateProjectMember_Response{}, nil
@@ -263,7 +263,7 @@ func (h *Handler) DeleteProjectMember(ctx context.Context, in *memberpb.DeletePr
       AND "project"."owner_id" = $2
   `, in.GetProjectId(), in.GetOwnerId(), in.GetMemberId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}
 
 	return &memberpb.DeleteProjectMember_Response{}, nil
@@ -272,10 +272,11 @@ func (h *Handler) DeleteProjectMember(ctx context.Context, in *memberpb.DeletePr
 // UsersWithoutProject is ...
 func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWithoutProject_Request) (*memberpb.UsersWithoutProject_Response, error) {
 	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := new(memberpb.UsersWithoutProject_Response)
+	response := &memberpb.UsersWithoutProject_Response{}
 	rows, err := h.DB.Conn.QueryContext(ctx, `
     SELECT
       "id",
@@ -298,13 +299,13 @@ func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWit
     OFFSET 0
   `, in.GetProjectId(), in.GetLogin())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
-		user := new(memberpb.UsersWithoutProject_User)
+		user := &memberpb.UsersWithoutProject_User{}
 		if err = rows.Scan(&user.UserId, &user.Login, &user.Email); err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		response.Users = append(response.Users, user)
@@ -316,7 +317,7 @@ func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWit
 
 // ListMembersInvite is ...
 func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMembersInvite_Request) (*memberpb.ListMembersInvite_Response, error) {
-	response := new(memberpb.ListMembersInvite_Response)
+	response := &memberpb.ListMembersInvite_Response{}
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := h.DB.Conn.QueryContext(ctx, `
     SELECT
@@ -335,12 +336,12 @@ func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMember
   `+sqlFooter, in.GetProjectId(), in.GetOwnerId(),
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
 		var createdAt pgtype.Timestamp
-		invite := new(memberpb.ListMembersInvite_Invites)
+		invite := &memberpb.ListMembersInvite_Invites{}
 		err = rows.Scan(&invite.Id,
 			&invite.Name,
 			&invite.Surname,
@@ -349,7 +350,7 @@ func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMember
 			&invite.Status,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		invite.CreatedAt = timestamppb.New(createdAt.Time)
@@ -368,7 +369,7 @@ func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMember
   `, in.GetProjectId(),
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	return response, nil
@@ -377,15 +378,16 @@ func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMember
 // AddMemberInvite is ...
 func (h *Handler) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInvite_Request) (*memberpb.AddMemberInvite_Response, error) {
 	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	// var inviteID string
-	response := new(memberpb.AddMemberInvite_Response)
+	response := &memberpb.AddMemberInvite_Response{}
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 	}
 	defer tx.Rollback()
 
@@ -404,7 +406,7 @@ func (h *Handler) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInv
   `, in.GetProjectId(), in.GetOwnerId(), in.GetEmail(),
 	).Scan(&response.Invite, &response.Status)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	if response.Invite == "" {
@@ -433,12 +435,12 @@ func (h *Handler) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInv
 			response.Status,
 		).Scan(&response.Invite)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+			return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil
@@ -447,7 +449,8 @@ func (h *Handler) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInv
 // DeleteMemberInvite is ...
 func (h *Handler) DeleteMemberInvite(ctx context.Context, in *memberpb.DeleteMemberInvite_Request) (*memberpb.DeleteMemberInvite_Response, error) {
 	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	_, err := h.DB.Conn.ExecContext(ctx, `
@@ -458,7 +461,7 @@ func (h *Handler) DeleteMemberInvite(ctx context.Context, in *memberpb.DeleteMem
       AND "status" = 'send'
   `, in.GetInviteId(), in.GetProjectId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}
 
 	return &memberpb.DeleteMemberInvite_Response{}, nil
@@ -466,8 +469,8 @@ func (h *Handler) DeleteMemberInvite(ctx context.Context, in *memberpb.DeleteMem
 
 // MemberInviteActivate is ...
 func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberInviteActivate_Request) (*memberpb.MemberInviteActivate_Response, error) {
-	var userID, memberID, status string
-	response := new(memberpb.MemberInviteActivate_Response)
+	var userID, memberID, memberStatus string
+	response := &memberpb.MemberInviteActivate_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -482,28 +485,32 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
   `, in.GetInvite(),
 	).Scan(&userID,
 		&response.ProjectId,
-		&status,
+		&memberStatus,
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
-	if status == "" {
-		return nil, trace.Error(codes.NotFound, trace.MsgInviteIsInvalid)
+	if memberStatus == "" {
+		errGRPC := status.Error(codes.NotFound, trace.MsgInviteIsInvalid)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 	if userID == "" {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 	if userID != in.GetUserId() {
-		return nil, trace.Error(codes.Aborted, trace.MsgAccessIsDeniedUser)
+		errGRPC := status.Error(codes.Aborted, trace.MsgAccessIsDeniedUser)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
-	if status == "activated" {
-		return nil, trace.Error(codes.NotFound, trace.MsgInviteIsActivated)
+	if memberStatus == "activated" {
+		errGRPC := status.Error(codes.NotFound, trace.MsgInviteIsActivated)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 	}
 	defer tx.Rollback()
 
@@ -517,7 +524,7 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
   `, response.ProjectId, userID,
 	).Scan(&memberID)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	_, err = tx.ExecContext(ctx, `
@@ -529,11 +536,11 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
       "invite" = $2
   `, in.GetUserId(), in.GetInvite())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil
@@ -542,10 +549,11 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
 // ListServerMembers is ...
 func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServerMembers_Request) (*memberpb.ListServerMembers_Response, error) {
 	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := new(memberpb.ListServerMembers_Response)
+	response := &memberpb.ListServerMembers_Response{}
 
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := h.DB.Conn.QueryContext(ctx, `
@@ -568,12 +576,12 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
       AND "server_member"."server_id" = $2
   `+sqlFooter, in.GetProjectId(), in.GetServerId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
 		var updateAt pgtype.Timestamp
-		member := new(memberpb.ServerMember_Response)
+		member := &memberpb.ServerMember_Response{}
 		err = rows.Scan(&member.UserId,
 			&member.UserLogin,
 			&member.UserName,
@@ -585,7 +593,7 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
 			&updateAt,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		member.UpdatedAt = timestamppb.New(updateAt.Time)
@@ -607,7 +615,7 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
   `, in.GetProjectId(), in.GetServerId(),
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	return response, nil
@@ -616,11 +624,12 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
 // ServerMember is ...
 func (h *Handler) ServerMember(ctx context.Context, in *memberpb.ServerMember_Request) (*memberpb.ServerMember_Response, error) {
 	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	var updateAt pgtype.Timestamp
-	response := new(memberpb.ServerMember_Response)
+	response := &memberpb.ServerMember_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -643,7 +652,7 @@ func (h *Handler) ServerMember(ctx context.Context, in *memberpb.ServerMember_Re
 		&updateAt,
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	response.MemberId = in.GetMemberId()
@@ -655,10 +664,11 @@ func (h *Handler) ServerMember(ctx context.Context, in *memberpb.ServerMember_Re
 // AddServerMember is ...
 func (h *Handler) AddServerMember(ctx context.Context, in *memberpb.AddServerMember_Request) (*memberpb.AddServerMember_Response, error) {
 	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := new(memberpb.AddServerMember_Response)
+	response := &memberpb.AddServerMember_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -671,7 +681,7 @@ func (h *Handler) AddServerMember(ctx context.Context, in *memberpb.AddServerMem
   `, in.GetServerId(), in.GetMemberId(),
 	).Scan(&response.MemberId)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 	if response.MemberId != "" {
 		return response, nil
@@ -687,7 +697,7 @@ func (h *Handler) AddServerMember(ctx context.Context, in *memberpb.AddServerMem
   `, in.GetServerId(), in.GetMemberId(), in.GetActive(),
 	).Scan(&response.MemberId)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	return response, nil
@@ -696,7 +706,8 @@ func (h *Handler) AddServerMember(ctx context.Context, in *memberpb.AddServerMem
 // UpdateServerMember is ...
 func (h *Handler) UpdateServerMember(ctx context.Context, in *memberpb.UpdateServerMember_Request) (*memberpb.UpdateServerMember_Response, error) {
 	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	var err error
@@ -720,11 +731,12 @@ func (h *Handler) UpdateServerMember(ctx context.Context, in *memberpb.UpdateSer
         AND "server_id" = $3
     `, in.GetOnline(), in.GetMemberId(), in.GetServerId())
 	default:
-		return nil, trace.Error(codes.Aborted, trace.MsgInvalidArgument)
+		errGRPC := status.Error(codes.Aborted, trace.MsgInvalidArgument)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	return &memberpb.UpdateServerMember_Response{}, nil
@@ -733,7 +745,8 @@ func (h *Handler) UpdateServerMember(ctx context.Context, in *memberpb.UpdateSer
 // DeleteServerMember is ...
 func (h *Handler) DeleteServerMember(ctx context.Context, in *memberpb.DeleteServerMember_Request) (*memberpb.DeleteServerMember_Response, error) {
 	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	_, err := h.DB.Conn.ExecContext(ctx, `
@@ -743,7 +756,7 @@ func (h *Handler) DeleteServerMember(ctx context.Context, in *memberpb.DeleteSer
       AND "server_id" = $2
   `, in.GetMemberId(), in.GetServerId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}
 
 	return &memberpb.DeleteServerMember_Response{}, nil
@@ -752,10 +765,11 @@ func (h *Handler) DeleteServerMember(ctx context.Context, in *memberpb.DeleteSer
 // MembersWithoutServer is ...
 func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.MembersWithoutServer_Request) (*memberpb.MembersWithoutServer_Response, error) {
 	if !project.IsOwnerProject(ctx, h.DB, in.GetProjectId(), in.GetOwnerId()) {
-		return nil, trace.Error(codes.NotFound)
+		errGRPC := status.Error(codes.NotFound, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := new(memberpb.MembersWithoutServer_Response)
+	response := &memberpb.MembersWithoutServer_Response{}
 
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := h.DB.Conn.QueryContext(ctx, `
@@ -784,12 +798,12 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
       AND LOWER("user"."login") LIKE LOWER($3 || '%')
   `+sqlFooter, in.GetServerId(), in.GetProjectId(), in.GetLogin())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
 		var role string
-		member := new(memberpb.ServerMember_Response)
+		member := &memberpb.ServerMember_Response{}
 		err = rows.Scan(&member.MemberId,
 			&member.UserLogin,
 			&member.Email,
@@ -800,7 +814,7 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
 			&member.Online,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		member.Role = userpb.Role(userpb.Role_value[role])
@@ -829,7 +843,7 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
   `, in.GetServerId(), in.GetProjectId(), in.GetLogin(),
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	return response, nil

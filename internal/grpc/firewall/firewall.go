@@ -2,7 +2,6 @@ package firewall
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/werbot/werbot/internal"
@@ -12,13 +11,14 @@ import (
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/strutil"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // IPAccess is global service access check by IP
 // old version https://git.piplos.media/werbot/werbot-server/-/blob/feature/audit-record/pkg/acl/security.go
 // https://git.piplos.media/werbot/old-werbot/-/blob/master/wserver/firewall.go
 func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request) (*firewallpb.IPAccess_Response, error) {
-	response := new(firewallpb.IPAccess_Response)
+	response := &firewallpb.IPAccess_Response{}
 
 	// debug mode
 	if devMode {
@@ -27,16 +27,18 @@ func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request)
 	// -----
 
 	if in.GetClientIp() == "" {
-		return nil, trace.Error(codes.InvalidArgument)
+		errGRPC := status.Error(codes.InvalidArgument, "")
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	// Verification of the country according to the global list of prohibited countries
-	pbUtility := new(utility.Handler)
+	pbUtility := &utility.Handler{}
 	responseC, _ := pbUtility.CountryByIP(ctx, &utilitypb.CountryByIP_Request{
 		Ip: in.GetClientIp(),
 	})
 	if strutil.StringInSlice(responseC.GetName(), internal.GetSliceString("SECURITY_BAD_COUNTRY", "")) {
-		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	// porch IP on the global list
@@ -54,12 +56,13 @@ func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request)
   `, in.GetClientIp(),
 	).Scan(&total)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// Black list, IP found in the list
 	if total > 0 {
-		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	return response, nil
@@ -67,9 +70,9 @@ func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request)
 
 // ServerFirewall is server firewall settings for server_id
 func (h *Handler) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirewall_Request) (*firewallpb.ServerFirewall_Response, error) {
-	response := new(firewallpb.ServerFirewall_Response)
-	response.Country = new(firewallpb.ServerFirewall_Countries)
-	response.Network = new(firewallpb.ServerFirewall_Networks)
+	response := &firewallpb.ServerFirewall_Response{}
+	response.Country = &firewallpb.ServerFirewall_Countries{}
+	response.Network = &firewallpb.ServerFirewall_Networks{}
 
 	// get countries
 	rows, err := h.DB.Conn.QueryContext(ctx, `
@@ -89,16 +92,13 @@ func (h *Handler) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirew
   `, in.GetServerId(), in.GetProjectId(), in.GetUserId(),
 	)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, trace.Error(codes.NotFound)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
-		country := new(firewallpb.Country)
+		country := &firewallpb.Country{}
 		if err := rows.Scan(&country.Id, &country.CountryCode, &country.CountryName); err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 		response.Country.List = append(response.Country.List, country)
 	}
@@ -121,16 +121,13 @@ func (h *Handler) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirew
   `, in.GetServerId(), in.GetProjectId(), in.GetUserId(),
 	)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, trace.Error(codes.NotFound)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
-		network := new(firewallpb.Network)
+		network := &firewallpb.Network{}
 		if err := rows.Scan(&network.Id, &network.StartIp, &network.EndIp); err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 		response.Network.List = append(response.Network.List, network)
 	}
@@ -155,7 +152,7 @@ func (h *Handler) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirew
 		&response.Country.WiteList,
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	return response, nil
@@ -164,7 +161,7 @@ func (h *Handler) ServerFirewall(ctx context.Context, in *firewallpb.ServerFirew
 // AddServerFirewall is adding server firewall settings for server_id
 func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServerFirewall_Request) (*firewallpb.AddServerFirewall_Response, error) {
 	var exists bool
-	response := new(firewallpb.AddServerFirewall_Response)
+	response := &firewallpb.AddServerFirewall_Response{}
 
 	switch record := in.Record.(type) {
 	case *firewallpb.AddServerFirewall_Request_CountryCode:
@@ -190,10 +187,11 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
 			record.CountryCode,
 		).Scan(&response.Id)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 		if !exists {
-			return nil, trace.Error(codes.AlreadyExists)
+			errGRPC := status.Error(codes.AlreadyExists, "")
+			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 		err = h.DB.Conn.QueryRowContext(ctx, `
@@ -206,7 +204,7 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
     `, in.GetServerId(), record.CountryCode,
 		).Scan(&response.Id)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+			return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 		}
 
 	case *firewallpb.AddServerFirewall_Request_Ip:
@@ -234,10 +232,11 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
 			record.Ip.EndIp,
 		).Scan(&response.Id)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 		if !exists {
-			return nil, trace.Error(codes.AlreadyExists)
+			errGRPC := status.Error(codes.AlreadyExists, "")
+			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 		err = h.DB.Conn.QueryRowContext(ctx, `
@@ -250,7 +249,7 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
     `, in.GetServerId(), record.Ip.StartIp, record.Ip.EndIp,
 		).Scan(&response.Id)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+			return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 		}
 
 	default:
@@ -296,7 +295,7 @@ func (h *Handler) DeleteServerFirewall(ctx context.Context, in *firewallpb.Delet
 		in.GetUserId(),
 		in.GetRecordId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}
 
 	return &firewallpb.DeleteServerFirewall_Response{}, nil
@@ -343,7 +342,7 @@ func (h *Handler) UpdateServerFirewall(ctx context.Context, in *firewallpb.Updat
 		in.GetStatus(),
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	return &firewallpb.UpdateServerFirewall_Response{}, nil
@@ -352,17 +351,13 @@ func (h *Handler) UpdateServerFirewall(ctx context.Context, in *firewallpb.Updat
 // ServerAccess is checks if the participant has access to the server according
 // to the server's individual firewall settings
 func (h *Handler) ServerAccess(ctx context.Context, in *firewallpb.ServerAccess_Request) (*firewallpb.ServerAccess_Response, error) {
-	response := new(firewallpb.ServerAccess_Response)
+	response := &firewallpb.ServerAccess_Response{}
 
 	// Global service access check by IP
 	if _, err := h.IPAccess(ctx, &firewallpb.IPAccess_Request{
 		ClientIp: in.GetMemberIp(),
 	}); err != nil {
-		errorInfo := trace.ParseError(err)
-		if errorInfo.Code == codes.PermissionDenied {
-			return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// Check by user
@@ -370,11 +365,7 @@ func (h *Handler) ServerAccess(ctx context.Context, in *firewallpb.ServerAccess_
 		ServerId: in.GetServerId(),
 		UserId:   in.GetUserId(),
 	}); err != nil {
-		errorInfo := trace.ParseError(err)
-		if errorInfo.Code == codes.PermissionDenied {
-			return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// Check by ip
@@ -382,11 +373,7 @@ func (h *Handler) ServerAccess(ctx context.Context, in *firewallpb.ServerAccess_
 		ServerId: in.GetServerId(),
 		MemberIp: in.GetMemberIp(),
 	}); err != nil {
-		errorInfo := trace.ParseError(err)
-		if errorInfo.Code == codes.PermissionDenied {
-			return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// Check by country
@@ -394,11 +381,7 @@ func (h *Handler) ServerAccess(ctx context.Context, in *firewallpb.ServerAccess_
 		ServerId: in.GetServerId(),
 		MemberIp: in.GetMemberIp(),
 	}); err != nil {
-		errorInfo := trace.ParseError(err)
-		if errorInfo.Code == codes.PermissionDenied {
-			return nil, trace.Error(codes.PermissionDenied, errorInfo.Message)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// Check by time
@@ -414,7 +397,7 @@ func (h *Handler) ServerAccess(ctx context.Context, in *firewallpb.ServerAccess_
 // ServerAccessUser is ...
 func (h *Handler) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAccessUser_Request) (*firewallpb.ServerAccessUser_Response, error) {
 	memberID := ""
-	response := new(firewallpb.ServerAccessUser_Response)
+	response := &firewallpb.ServerAccessUser_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -432,11 +415,12 @@ func (h *Handler) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAcc
   `, in.GetServerId(), in.GetUserId(),
 	).Scan(&memberID)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	if memberID == "" {
-		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedUser)
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedUser)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	return response, nil
@@ -446,7 +430,7 @@ func (h *Handler) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAcc
 func (h *Handler) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAccessTime_Request) (*firewallpb.ServerAccessTime_Response, error) {
 	id := 0
 	weekDays := [...]int32{7, 1, 2, 3, 4, 5, 6}
-	response := new(firewallpb.ServerAccessTime_Response)
+	response := &firewallpb.ServerAccessTime_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -461,10 +445,11 @@ func (h *Handler) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAcc
   `, in.GetServerId(), weekDays[time.Now().Weekday()], time.Now().Local().Format("15:04:05"),
 	).Scan(&id)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 	if id == 0 {
-		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedTime)
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedTime)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	return response, nil
@@ -473,7 +458,7 @@ func (h *Handler) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAcc
 // ServerAccessIP is ...
 func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAccessIP_Request) (*firewallpb.ServerAccessIP_Response, error) {
 	total := 0
-	response := new(firewallpb.ServerAccessIP_Response)
+	response := &firewallpb.ServerAccessIP_Response{}
 
 	// TODO add only if debug mode
 	if in.GetMemberIp() == "127.0.0.1" {
@@ -491,7 +476,7 @@ func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcces
   `, in.GetServerId(),
 	).Scan(&accessListIP)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// We make a sample in the database with a list of IP addresses
@@ -508,17 +493,19 @@ func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcces
   `, in.GetServerId(), in.GetMemberIp(),
 	).Scan(&total)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// Black list, IP found in the list
 	if !accessListIP && total > 0 {
-		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	// White list, IP was not found on the list
 	if accessListIP && total == 0 {
-		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedIP)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	return response, nil
@@ -527,7 +514,7 @@ func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcces
 // ServerAccessCountry is ...
 func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.ServerAccessCountry_Request) (*firewallpb.ServerAccessCountry_Response, error) {
 	total := 0
-	response := new(firewallpb.ServerAccessCountry_Response)
+	response := &firewallpb.ServerAccessCountry_Response{}
 
 	// debug mode
 	if devMode {
@@ -535,7 +522,7 @@ func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.Server
 	}
 	// -----
 
-	pbUtility := new(utility.Handler)
+	pbUtility := &utility.Handler{}
 	responseC, _ := pbUtility.CountryByIP(ctx, &utilitypb.CountryByIP_Request{
 		Ip: in.GetMemberIp(),
 	})
@@ -552,7 +539,7 @@ func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.Server
   `, in.GetServerId(),
 	).Scan(&accessListCountry)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// Sample from the table with countries
@@ -568,17 +555,19 @@ func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.Server
   `, in.GetServerId(), country,
 	).Scan(&total)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// Black list, the country is found in the list:
 	if !accessListCountry && total > 0 {
-		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	// White list, the country was not found on the list
 	if accessListCountry && total == 0 {
-		return nil, trace.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	return response, nil

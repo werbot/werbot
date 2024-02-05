@@ -260,26 +260,26 @@ INSERT INTO "public"."server_host_key" ("server_id", "host_key") VALUES
 ('9a71be05-3907-4e9a-9c61-8caf0e7b9069', NULL),
 ('7bd860e6-df0d-45f6-a6b7-41251e73a07d', NULL);
 
-INSERT INTO "public"."event_profile" ("id", "profile_id", "user_id", "user_agent", "ip", "event", "data") VALUES
-('59fab0fa-8f0a-4065-8863-0dae40166015', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:35.0) Gecko/20100101 Firefox/35.', '2001:0db8:85a3:0000:0000:8a2e:0370:7334', 1, '{}'),
-('7c1bd7f9-2ef4-44c8-9756-0e85156ca58f', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 AppleWebKit/999.0 (KHTML, like Gecko) Chrome/99.0 Safari/999.0', '192.168.1.1', 2, '{}');
+INSERT INTO "public"."event_profile" ("id", "profile_id", "user_id", "user_agent", "ip", "event", "section", "data") VALUES
+('59fab0fa-8f0a-4065-8863-0dae40166015', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:35.0) Gecko/20100101 Firefox/35.', '2001:0db8:85a3:0000:0000:8a2e:0370:7334', 9, 1, '{}'),
+('7c1bd7f9-2ef4-44c8-9756-0e85156ca58f', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 AppleWebKit/999.0 (KHTML, like Gecko) Chrome/99.0 Safari/999.0', '192.168.1.1', 10, 1, '{}');
 
-INSERT INTO "public"."event_project" ("id", "project_id", "user_id", "user_agent", "ip", "event", "data") VALUES
-('163dee10-2a74-4436-9507-65a97a711ba8', '26060c68-5a06-4a57-b87a-be0f1e787157', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Linux; U; Android 4.0.4; en-us; KFJWI Build/IMM76D) AppleWebKit/537.36 (KHTML, like Gecko) Silk/3.68 like Chrome/39.0.2171.93 Safari/537.36', '192.168.0.1', 1, '{}'),
-('9758b5ee-367d-4a70-965b-14a129cca4d7', '26060c68-5a06-4a57-b87a-be0f1e787157', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:39.0) Gecko/20100101 Firefox/39.0', '2001:0db8:85a3:0000:0000:8a2e:0370:7334', 2, '{}');
+INSERT INTO "public"."event_project" ("id", "project_id", "user_id", "user_agent", "ip", "event", "section", "data") VALUES
+('163dee10-2a74-4436-9507-65a97a711ba8', '26060c68-5a06-4a57-b87a-be0f1e787157', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Linux; U; Android 4.0.4; en-us; KFJWI Build/IMM76D) AppleWebKit/537.36 (KHTML, like Gecko) Silk/3.68 like Chrome/39.0.2171.93 Safari/537.36', '192.168.0.1', 1, 1, '{}'),
+('9758b5ee-367d-4a70-965b-14a129cca4d7', '26060c68-5a06-4a57-b87a-be0f1e787157', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:39.0) Gecko/20100101 Firefox/39.0', '2001:0db8:85a3:0000:0000:8a2e:0370:7334', 2, 1, '{}');
 
-INSERT INTO "public"."event_server" ("id", "server_id", "user_id", "user_agent", "ip", "event", "data") VALUES
-('dea438b3-ca64-45ad-80a6-51275730f078', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; Touch; LCJB; rv:11.0) like Gecko', '192.168.1.1', 1, '{}'),
-('a2ef053e-4124-487b-9e90-b8f249d49807', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36', '2001:0db8:85a3:0000:0000:8a2e:0370:7334', 2, '{}'),
-('fafa6e1f-1b13-47de-bc6a-df2458c29ff8', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (iPad; CPU OS 8_0_2 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12A405 Safari/600.1.4', '192.168.1.1', 3, '{}'),
-('ac79f9c0-7bce-4179-ba3c-ed9ea4ecb14f', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Windows NT 6.1; rv:38.0) Gecko/20100101 Firefox/38.0', '2001:0db8:0a0b:12f0:0000:0000:0000:0001', 4, '{}'),
-('39c7c278-cccb-4353-8df0-991a87df343f', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0', '192.168.1.1', 5, '{}'),
-('e20a3310-20df-457d-8122-ecfab36fd8c5', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:39.0) Gecko/20100101 Firefox/39.0', '2001:db8:a0b:12f0::1', 6, '{}'),
-('5aedee8e-5e18-451a-9b71-c65c99697364', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; Touch; MDDCJS; rv:11.0) like Gecko', '192.168.1.2', 7, '{}'),
-('0b1df8d7-c0cd-4a48-bcfc-248b2abe0c93', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (iPhone; CPU iPhone OS 7_1_2 like Mac OS X) AppleWebKit/537.51.2 (KHTML, like Gecko) Version/7.0 Mobile/11D257 Safari/9537.53', '2001:db8:a0b:12f0::0:0:1', 8, '{}'),
-('d1ce2bb8-d3d4-4406-9951-01ffa63d3c7f', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (iPad; CPU OS 7_0_2 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) Version/7.0 Mobile/11A501 Safari/9537.53', '192.168.1.3', 1, '{}'),
-('c4ab0740-b38f-40f6-9de1-00d54412b491', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0', '192.168.1.4', 2, '{}'),
-('30d3a040-57c7-4613-b500-23197ffa600e', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/33.0.0.0 Safari/534.24', '192.168.1.5', 1, '{}');
+INSERT INTO "public"."event_server" ("id", "server_id", "user_id", "user_agent", "ip", "event", "section", "data") VALUES
+('dea438b3-ca64-45ad-80a6-51275730f078', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; Touch; LCJB; rv:11.0) like Gecko', '192.168.1.1', 1, 1, '{}'),
+('a2ef053e-4124-487b-9e90-b8f249d49807', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36', '2001:0db8:85a3:0000:0000:8a2e:0370:7334', 2, 1, '{}'),
+('fafa6e1f-1b13-47de-bc6a-df2458c29ff8', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (iPad; CPU OS 8_0_2 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12A405 Safari/600.1.4', '192.168.1.1', 3, 1, '{}'),
+('ac79f9c0-7bce-4179-ba3c-ed9ea4ecb14f', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Windows NT 6.1; rv:38.0) Gecko/20100101 Firefox/38.0', '2001:0db8:0a0b:12f0:0000:0000:0000:0001', 4, 1, '{}'),
+('39c7c278-cccb-4353-8df0-991a87df343f', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0', '192.168.1.1', 5, 1, '{}'),
+('e20a3310-20df-457d-8122-ecfab36fd8c5', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:39.0) Gecko/20100101 Firefox/39.0', '2001:db8:a0b:12f0::1', 6, 1, '{}'),
+('5aedee8e-5e18-451a-9b71-c65c99697364', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; Touch; MDDCJS; rv:11.0) like Gecko', '192.168.1.2', 7, 1, '{}'),
+('0b1df8d7-c0cd-4a48-bcfc-248b2abe0c93', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (iPhone; CPU iPhone OS 7_1_2 like Mac OS X) AppleWebKit/537.51.2 (KHTML, like Gecko) Version/7.0 Mobile/11D257 Safari/9537.53', '2001:db8:a0b:12f0::0:0:1', 8, 1, '{}'),
+('d1ce2bb8-d3d4-4406-9951-01ffa63d3c7f', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (iPad; CPU OS 7_0_2 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) Version/7.0 Mobile/11A501 Safari/9537.53', '192.168.1.3', 1, 1, '{}'),
+('c4ab0740-b38f-40f6-9de1-00d54412b491', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0', '192.168.1.4', 2, 1, '{}'),
+('30d3a040-57c7-4613-b500-23197ffa600e', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/33.0.0.0 Safari/534.24', '192.168.1.5', 1, 1, '{}');
 
 UPDATE "public"."server_access_policy" SET "ip" = 't' WHERE "server_id" = '0c3a8869-6fc0-4666-bf60-15475473392a';
 -- +goose StatementEnd

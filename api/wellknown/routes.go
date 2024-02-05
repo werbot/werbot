@@ -13,13 +13,9 @@ type Handler struct {
 
 // New is ...
 func New(h *api.Handler) *Handler {
-	log := logger.New()
-
 	return &Handler{
-		Handler: &api.Handler{
-			App: h.App,
-		},
-		log: log,
+		Handler: h,
+		log:     logger.New(),
 	}
 }
 

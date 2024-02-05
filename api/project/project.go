@@ -5,13 +5,10 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal/grpc"
 	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -26,15 +23,15 @@ import (
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [get]
 func (h *Handler) getProject(c *fiber.Ctx) error {
-	request := new(projectpb.Project_Request)
+	request := &projectpb.Project_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -52,8 +49,8 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 			request.GetOwnerId(),
 		)
 		projects, err := rClient.ListProjects(ctx, &projectpb.ListProjects_Request{
-			Limit:  pagination.GetLimit(),
-			Offset: pagination.GetOffset(),
+			Limit:  pagination.Limit,
+			Offset: pagination.Offset,
 			SortBy: "id:ASC",
 			Query:  sanitizeSQL,
 		})
@@ -61,7 +58,7 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, err)
 		}
 		if projects.GetTotal() == 0 {
-			return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+			return webutil.StatusNotFound(c, nil)
 		}
 
 		return webutil.StatusOK(c, "projects", projects)
@@ -96,14 +93,14 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [post]
 func (h *Handler) addProject(c *fiber.Ctx) error {
-	request := new(projectpb.AddProject_Request)
+	request := &projectpb.AddProject_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -130,14 +127,14 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [patch]
 func (h *Handler) updateProject(c *fiber.Ctx) error {
-	request := new(projectpb.UpdateProject_Request)
+	request := &projectpb.UpdateProject_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -164,15 +161,15 @@ func (h *Handler) updateProject(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/projects [delete]
 func (h *Handler) deleteProject(c *fiber.Ctx) error {
-	request := new(projectpb.DeleteProject_Request)
+	request := &projectpb.DeleteProject_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

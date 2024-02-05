@@ -8,15 +8,12 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal/grpc"
 	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -32,15 +29,15 @@ import (
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers [get]
 func (h *Handler) server(c *fiber.Ctx) error {
-	request := new(serverpb.Server_Request)
+	request := &serverpb.Server_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -59,16 +56,16 @@ func (h *Handler) server(c *fiber.Ctx) error {
 			request.GetUserId(),
 		)
 		servers, err := rClient.ListServers(ctx, &serverpb.ListServers_Request{
-			Limit:  pagination.GetLimit(),
-			Offset: pagination.GetOffset(),
-			SortBy: pagination.GetSortBy(),
+			Limit:  pagination.Limit,
+			Offset: pagination.Offset,
+			SortBy: pagination.SortBy,
 			Query:  sanitizeSQL,
 		})
 		if err != nil {
 			return webutil.FromGRPC(c, err)
 		}
 		if servers.GetTotal() == 0 {
-			return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+			return webutil.StatusNotFound(c, nil)
 		}
 
 		return webutil.StatusOK(c, "servers", servers)
@@ -95,11 +92,11 @@ func (h *Handler) server(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers [post]
 func (h *Handler) addServer(c *fiber.Ctx) error {
-	request := new(serverpb.AddServer_Request)
+	request := &serverpb.AddServer_Request{}
 
 	// Deciding what to add
 	if !json.Valid(c.Body()) {
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	var _request map[string]map[string]any
@@ -107,25 +104,31 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 	keys := reflect.ValueOf(_request["access"]).MapKeys()
 
 	if len(keys) == 0 {
-		return webutil.FromGRPC(c, errors.New("the type of authorization is not chosen"))
+		authErr := map[string]string{
+			"auth": "the type of authorization is not chosen",
+		}
+		return webutil.StatusBadRequest(c, authErr)
 	}
 
 	switch keys[0].String() {
 	case "key":
-		request.Access = new(serverpb.AddServer_Request_Key)
+		request.Access = &serverpb.AddServer_Request_Key{}
 	case "password":
-		request.Access = new(serverpb.AddServer_Request_Password)
+		request.Access = &serverpb.AddServer_Request_Password{}
 	default:
-		return webutil.FromGRPC(c, errors.New("failed to validate struct")) // MsgFailedToValidateStruct
+		authErr := map[string]string{
+			"auth": "failed to validate struct",
+		}
+		return webutil.StatusBadRequest(c, authErr) // MsgFailedToValidateStruct
 	}
 	// -----------------------
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -152,11 +155,11 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers [patch]
 func (h *Handler) updateServer(c *fiber.Ctx) error {
-	request := new(serverpb.UpdateServer_Request)
+	request := &serverpb.UpdateServer_Request{}
 
 	// Deciding what to update
 	if !json.Valid(c.Body()) {
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	var update map[string]map[string]any
@@ -165,24 +168,24 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 
 	switch keys[0].String() {
 	case "info":
-		request.Setting = new(serverpb.UpdateServer_Request_Info)
+		request.Setting = &serverpb.UpdateServer_Request_Info{}
 	case "audit":
-		request.Setting = new(serverpb.UpdateServer_Request_Audit)
+		request.Setting = &serverpb.UpdateServer_Request_Audit{}
 	case "active":
-		request.Setting = new(serverpb.UpdateServer_Request_Active)
+		request.Setting = &serverpb.UpdateServer_Request_Active{}
 	case "online":
-		request.Setting = new(serverpb.UpdateServer_Request_Online)
+		request.Setting = &serverpb.UpdateServer_Request_Online{}
 	default:
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 	// -----------------------
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -210,14 +213,14 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers [delete]
 func (h *Handler) deleteServer(c *fiber.Ctx) error {
-	request := new(serverpb.DeleteServer_Request)
+	request := &serverpb.DeleteServer_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -245,15 +248,15 @@ func (h *Handler) deleteServer(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/access [get]
 func (h *Handler) serverAccess(c *fiber.Ctx) error {
-	request := new(serverpb.ServerAccess_Request)
+	request := &serverpb.ServerAccess_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -283,11 +286,11 @@ func (h *Handler) serverAccess(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/access [patch]
 func (h *Handler) updateServerAccess(c *fiber.Ctx) error {
-	request := new(serverpb.UpdateServerAccess_Request)
+	request := &serverpb.UpdateServerAccess_Request{}
 
 	// Deciding what to access
 	if !json.Valid(c.Body()) {
-		return webutil.StatusInvalidArgument(c) // MsgFailedToValidateStruct
+		return webutil.StatusBadRequest(c, nil) // MsgFailedToValidateStruct
 	}
 
 	var update map[string]map[string]any
@@ -296,20 +299,20 @@ func (h *Handler) updateServerAccess(c *fiber.Ctx) error {
 
 	switch keys[0].String() {
 	case "password":
-		request.Access = new(serverpb.UpdateServerAccess_Request_Password)
+		request.Access = &serverpb.UpdateServerAccess_Request_Password{}
 	case "key":
-		request.Access = new(serverpb.UpdateServerAccess_Request_Key)
+		request.Access = &serverpb.UpdateServerAccess_Request_Key{}
 	default:
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 	// -----------------------
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -339,15 +342,15 @@ func (h *Handler) updateServerAccess(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/activity [get]
 func (h *Handler) serverActivity(c *fiber.Ctx) error {
-	request := new(serverpb.ServerActivity_Request)
+	request := &serverpb.ServerActivity_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -377,14 +380,14 @@ func (h *Handler) serverActivity(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/activity [patch]
 func (h *Handler) updateServerActivity(c *fiber.Ctx) error {
-	request := new(serverpb.UpdateServerActivity_Request)
+	request := &serverpb.UpdateServerActivity_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -410,15 +413,15 @@ func (h *Handler) updateServerActivity(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/firewall [get]
 func (h *Handler) serverFirewall(c *fiber.Ctx) error {
-	request := new(firewallpb.ServerFirewall_Request)
+	request := &firewallpb.ServerFirewall_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -445,15 +448,15 @@ func (h *Handler) serverFirewall(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/firewall [post]
 func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
-	request := new(firewallpb.AddServerFirewall_Request)
+	request := &firewallpb.AddServerFirewall_Request{}
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -466,13 +469,13 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 
 	switch request.Record.(type) {
 	case *firewallpb.AddServerFirewall_Request_CountryCode:
-		record := new(firewallpb.AddServerFirewall_Request_CountryCode)
+		record := &firewallpb.AddServerFirewall_Request_CountryCode{}
 		record.CountryCode = request.GetCountryCode()
 		request.Record = record
 
 	case *firewallpb.AddServerFirewall_Request_Ip:
-		record := new(firewallpb.AddServerFirewall_Request_Ip)
-		record.Ip = new(firewallpb.IpMask)
+		record := &firewallpb.AddServerFirewall_Request_Ip{}
+		record.Ip = &firewallpb.IpMask{}
 		record.Ip.StartIp = request.GetIp().GetStartIp()
 		record.Ip.EndIp = request.GetIp().GetEndIp()
 		request.Record = record
@@ -481,7 +484,7 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("bad rule"))
 	}
 
-	response := new(firewallpb.AddServerFirewall_Response)
+	response := &firewallpb.AddServerFirewall_Response{}
 	response, err := rClient.AddServerFirewall(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -499,14 +502,14 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/firewall [patch]
 func (h *Handler) updateServerFirewall(c *fiber.Ctx) error {
-	request := new(firewallpb.UpdateServerFirewall_Request)
+	request := &firewallpb.UpdateServerFirewall_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -532,14 +535,14 @@ func (h *Handler) updateServerFirewall(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/firewall [delete]
 func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
-	request := new(firewallpb.DeleteServerFirewall_Request)
+	request := &firewallpb.DeleteServerFirewall_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -565,15 +568,15 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/name [get]
 func (h *Handler) serverNameByID(c *fiber.Ctx) error {
-	request := new(serverpb.ServerNameByID_Request)
+	request := &serverpb.ServerNameByID_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -588,7 +591,7 @@ func (h *Handler) serverNameByID(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 	if access == nil {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+		return webutil.StatusNotFound(c, nil)
 	}
 
 	return webutil.StatusOK(c, "server name", access)

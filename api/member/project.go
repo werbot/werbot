@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
@@ -15,7 +13,6 @@ import (
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/mail"
 	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
-	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -31,15 +28,15 @@ import (
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [get]
 func (h *Handler) getProjectMember(c *fiber.Ctx) error {
-	request := new(memberpb.ProjectMember_Request)
+	request := &memberpb.ProjectMember_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -58,8 +55,8 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 			request.GetProjectId(),
 		)
 		members, err := rClient.ListProjectMembers(ctx, &memberpb.ListProjectMembers_Request{
-			Limit:  pagination.GetLimit(),
-			Offset: pagination.GetOffset(),
+			Limit:  pagination.Limit,
+			Offset: pagination.Offset,
 			SortBy: "member_created:DESC",
 			Query:  sanitizeSQL,
 		})
@@ -67,7 +64,7 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, err)
 		}
 		if members.GetTotal() == 0 {
-			return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+			return webutil.StatusNotFound(c, nil)
 		}
 
 		return webutil.StatusOK(c, "members", members)
@@ -94,14 +91,14 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [post]
 func (h *Handler) addProjectMember(c *fiber.Ctx) error {
-	request := new(memberpb.AddProjectMember_Request)
+	request := &memberpb.AddProjectMember_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -129,14 +126,14 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [patch]
 func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
-	request := new(memberpb.UpdateProjectMember_Request)
+	request := &memberpb.UpdateProjectMember_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -164,15 +161,15 @@ func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members [delete]
 func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
-	request := new(memberpb.DeleteProjectMember_Request)
+	request := &memberpb.DeleteProjectMember_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -200,15 +197,15 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/search [get]
 func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
-	request := new(memberpb.UsersWithoutProject_Request)
+	request := &memberpb.UsersWithoutProject_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -235,15 +232,15 @@ func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/active [patch]
 func (h *Handler) updateProjectMemberStatus(c *fiber.Ctx) error {
-	request := new(memberpb.UpdateProjectMember_Request)
-	request.Setting = new(memberpb.UpdateProjectMember_Request_Active)
+	request := &memberpb.UpdateProjectMember_Request{}
+	request.Setting = &memberpb.UpdateProjectMember_Request_Active{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -277,23 +274,23 @@ func (h *Handler) updateProjectMemberStatus(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/invite [get]
 func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
-	request := new(memberpb.ListMembersInvite_Request)
+	request := &memberpb.ListMembersInvite_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	pagination := webutil.GetPaginationFromCtx(c)
 	userParameter := middleware.AuthUser(c)
 	request.OwnerId = userParameter.UserID(request.GetOwnerId())
 	request.SortBy = `"project_invite"."status":ASC,"project_invite"."created_at":DESC`
-	request.Limit = pagination.GetLimit()
-	request.Offset = pagination.GetOffset()
+	request.Limit = pagination.Limit
+	request.Offset = pagination.Offset
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -316,14 +313,14 @@ func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/invite [post]
 func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
-	request := new(memberpb.AddMemberInvite_Request)
+	request := &memberpb.AddMemberInvite_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -361,15 +358,15 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 // @Failure      400,401,404,500 {object} webutil.HTTPResponse
 // @Router       /v1/members/invite [delete]
 func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
-	request := new(memberpb.DeleteMemberInvite_Request)
+	request := &memberpb.DeleteMemberInvite_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -395,11 +392,11 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 // @Failure      400,500     {object} webutil.HTTPResponse
 // @Router       /v1/members/invite/:invite [post]
 func (h *Handler) postMembersInviteActivate(c *fiber.Ctx) error {
-	request := new(memberpb.MemberInviteActivate_Request)
+	request := &memberpb.MemberInviteActivate_Request{}
 	request.Invite = c.Params("invite")
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

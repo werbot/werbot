@@ -12,9 +12,7 @@ type Handler struct {
 // New is ...
 func New(h *api.Handler) *Handler {
 	return &Handler{
-		Handler: &api.Handler{
-			App: h.App,
-		},
+		Handler: h,
 	}
 }
 

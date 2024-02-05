@@ -13,15 +13,9 @@ type Handler struct {
 
 // New is ...
 func New(h *api.Handler) *Handler {
-	log := logger.New()
-
 	return &Handler{
-		Handler: &api.Handler{
-			App:  h.App,
-			Grpc: h.Grpc,
-			Auth: h.Auth,
-		},
-		log: log,
+		Handler: h,
+		log:     logger.New(),
 	}
 }
 

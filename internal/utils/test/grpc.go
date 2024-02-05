@@ -42,11 +42,11 @@ type GRPCService struct {
 
 	test  *testing.T
 	db    *postgres.Connect
-	redis redis.Handler
+	redis *redis.Connect
 }
 
 // GRPC is ...
-func GRPC(ctx context.Context, t *testing.T, db *postgres.Connect, redis redis.Handler) (*GRPCService, error) {
+func GRPC(ctx context.Context, t *testing.T, db *postgres.Connect, redis *redis.Connect) (*GRPCService, error) {
 	service := &GRPCService{
 		test:  t,
 		db:    db,

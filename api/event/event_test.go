@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,11 +13,6 @@ import (
 	"github.com/werbot/werbot/internal/utils/test"
 	"github.com/werbot/werbot/pkg/maputil"
 )
-
-func init() {
-	os.Setenv("JWT_PRIVATE_KEY", "../../fixtures/keys/jwt/jwt_private.key")
-	os.Setenv("JWT_PUBLIC_KEY", "../../fixtures/keys/jwt/jwt_public.key")
-}
 
 func TestHandler_getEvent(t *testing.T) {
 	app, teardownTestCase := test.API(t)
@@ -66,7 +60,6 @@ func TestHandler_getEvent(t *testing.T) {
 				`Authorization`: `Bearer ` + adminInfo.Tokens.Access,
 			},
 		},
-
 		{
 			name:       "admin: error displaying list events with fake name",
 			method:     http.MethodGet,
@@ -104,7 +97,7 @@ func TestHandler_getEvent(t *testing.T) {
 			path:       "/v1/event/profile/008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			statusCode: 200,
 			body: map[string]any{
-				"success":             true,
+				"code":                float64(200),
 				"result.total":        float64(2),
 				"result.records.0.id": "59fab0fa-8f0a-4065-8863-0dae40166015",
 				"result.records.1.id": "7c1bd7f9-2ef4-44c8-9756-0e85156ca58f",
@@ -119,7 +112,7 @@ func TestHandler_getEvent(t *testing.T) {
 			path:       "/v1/event/profile/008feb1d-12f2-4bc3-97ff-c8d7fb9f7686?limit=1",
 			statusCode: 200,
 			body: map[string]any{
-				"success":             true,
+				"code":                float64(200),
 				"result.total":        float64(2),
 				"result.records.0.id": "59fab0fa-8f0a-4065-8863-0dae40166015",
 				"result.records.1.id": nil,
@@ -134,7 +127,7 @@ func TestHandler_getEvent(t *testing.T) {
 			path:       "/v1/event/profile/008feb1d-12f2-4bc3-97ff-c8d7fb9f7686/59fab0fa-8f0a-4065-8863-0dae40166015",
 			statusCode: 200,
 			body: map[string]any{
-				"success":          true,
+				"code":             float64(200),
 				"result.ip":        "2001:db8:85a3::8a2e:370:7334",
 				"result.event":     float64(1),
 				"result.meta_data": "e30=",
@@ -180,7 +173,7 @@ func TestHandler_getEvent(t *testing.T) {
 			path:       "/v1/event/project/26060c68-5a06-4a57-b87a-be0f1e787157",
 			statusCode: 200,
 			body: map[string]any{
-				"success":             true,
+				"code":                float64(200),
 				"result.total":        float64(2),
 				"result.records.0.id": "163dee10-2a74-4436-9507-65a97a711ba8",
 				"result.records.1.id": "9758b5ee-367d-4a70-965b-14a129cca4d7",
@@ -195,7 +188,7 @@ func TestHandler_getEvent(t *testing.T) {
 			path:       "/v1/event/project/26060c68-5a06-4a57-b87a-be0f1e787157?limit=1",
 			statusCode: 200,
 			body: map[string]any{
-				"success":             true,
+				"code":                float64(200),
 				"result.total":        float64(2),
 				"result.records.0.id": "163dee10-2a74-4436-9507-65a97a711ba8",
 				"result.records.1.id": nil,
@@ -210,7 +203,7 @@ func TestHandler_getEvent(t *testing.T) {
 			path:       "/v1/event/project/26060c68-5a06-4a57-b87a-be0f1e787157/163dee10-2a74-4436-9507-65a97a711ba8",
 			statusCode: 200,
 			body: map[string]any{
-				"success":          true,
+				"code":             float64(200),
 				"result.ip":        "192.168.0.1",
 				"result.event":     float64(1),
 				"result.meta_data": "e30=",
@@ -256,7 +249,7 @@ func TestHandler_getEvent(t *testing.T) {
 			path:       "/v1/event/server/0c3a8869-6fc0-4666-bf60-15475473392a",
 			statusCode: 200,
 			body: map[string]any{
-				"success":             true,
+				"code":                float64(200),
 				"result.total":        float64(11),
 				"result.records.0.id": "dea438b3-ca64-45ad-80a6-51275730f078",
 				"result.records.1.id": "a2ef053e-4124-487b-9e90-b8f249d49807",
@@ -271,7 +264,7 @@ func TestHandler_getEvent(t *testing.T) {
 			path:       "/v1/event/server/0c3a8869-6fc0-4666-bf60-15475473392a?limit=1",
 			statusCode: 200,
 			body: map[string]any{
-				"success":             true,
+				"code":                float64(200),
 				"result.total":        float64(11),
 				"result.records.0.id": "dea438b3-ca64-45ad-80a6-51275730f078",
 				"result.records.1.id": nil,
@@ -286,7 +279,7 @@ func TestHandler_getEvent(t *testing.T) {
 			path:       "/v1/event/server/0c3a8869-6fc0-4666-bf60-15475473392a/dea438b3-ca64-45ad-80a6-51275730f078",
 			statusCode: 200,
 			body: map[string]any{
-				"success":          true,
+				"code":             float64(200),
 				"result.ip":        "192.168.1.1",
 				"result.event":     float64(1),
 				"result.meta_data": "e30=",

@@ -70,7 +70,7 @@ func (l *Private) Encode() ([]byte, error) {
 	}
 
 	sig := ed25519.Sign(l.key, msg)
-	buf := new(bytes.Buffer)
+	buf := &bytes.Buffer{}
 	buf.Write(sig)
 	buf.Write(msg)
 
@@ -111,7 +111,7 @@ func (l *Public) Decode(data []byte) (*Public, error) {
 	if !verified {
 		return nil, errors.New("invalid license")
 	}
-	out := new(License)
+	out := &License{}
 	err := json.Unmarshal(msg, out)
 	l.License = *out
 	return l, err

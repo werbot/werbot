@@ -42,6 +42,13 @@ enum Auth {
   agent = 3;
 }
 
+enum Address {
+  address_unspecified = 0;
+  IPv4 = 1;
+  IPv6 = 2;
+  Hostname = 3;
+}
+
 enum ServerScheme {
   server_unspecified = 0;
   tcp = 1;

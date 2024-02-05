@@ -23,12 +23,12 @@ type JWKSResponse struct {
 func (h *Handler) jwks(c *fiber.Ctx) error {
 	jwkBytes, err := internal.GetByteFromFile("JWT_PUBLIC_KEY", "./jwt_public.key")
 	if err != nil {
-		return webutil.FromGRPC(c, nil, jwt.JWK{})
+		return webutil.StatusInternalServerError(c, "Failed to open the public key")
 	}
 
 	jwk, err := jwt.MarshalJWK(jwkBytes)
 	if err != nil {
-		return webutil.FromGRPC(c, nil, jwt.JWK{})
+		return webutil.StatusInternalServerError(c, "Failed to read the public key")
 	}
 
 	jwks := &JWKSResponse{Keys: []jwt.JWK{jwk}}

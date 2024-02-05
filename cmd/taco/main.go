@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/armon/go-proxyproto"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/helmet/v2"
 	"github.com/joho/godotenv"
-	"github.com/redis/go-redis/v9"
 
 	"github.com/werbot/werbot/api"
 	"github.com/werbot/werbot/api/auth"
@@ -25,10 +23,11 @@ import (
 	"github.com/werbot/werbot/api/server"
 	"github.com/werbot/werbot/api/user"
 	"github.com/werbot/werbot/api/utility"
+	"github.com/werbot/werbot/api/websocket"
 	"github.com/werbot/werbot/api/wellknown"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
-	rdb "github.com/werbot/werbot/internal/storage/redis"
+	"github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/logger"
@@ -53,18 +52,13 @@ func main() {
 		log.Fatal(err).Send()
 	}
 
-	cache := rdb.NewClient(ctx, redis.NewClient(&redis.Options{
+	redis := redis.New(ctx, &redis.RedisConfig{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
-	}))
-
-	ln, err := net.Listen("tcp", appPort)
-	if err != nil {
-		log.Fatal(err).Send()
-	}
-	proxyListener := &proxyproto.Listener{Listener: ln}
+	})
 
 	app = fiber.New(fiber.Config{
+		// ProxyHeader:           fiber.HeaderXForwardedFor,
 		DisableStartupMessage: true,
 		ServerHeader:          fmt.Sprintf("[werbot] %s-%s", "taco", version.Version()),
 	})
@@ -81,11 +75,11 @@ func main() {
 		etag.New(),
 	)
 
-	authMiddleware := middleware.Auth(cache).Execute()
+	authMiddleware := middleware.Auth(redis).Execute()
 	webHandler := &api.Handler{
 		App:   app,
 		Grpc:  grpcClient,
-		Redis: cache,
+		Redis: redis,
 		Auth:  authMiddleware,
 	}
 
@@ -102,6 +96,8 @@ func main() {
 	utility.New(webHandler).Routes()
 	event.New(webHandler).Routes()
 
+	websocket.New(webHandler).Routes()
+
 	// license server
 	license.New(webHandler, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes()
 
@@ -110,11 +106,16 @@ func main() {
 
 	// notFoundRoute func for describe 404 Error route.
 	app.Use(func(c *fiber.Ctx) error {
-		return webutil.StatusNotFound(c)
+		return webutil.StatusNotFound(c, nil)
 	})
 
 	log.Info().Str("serverAddress", appPort).Str("version", version.Version()).Msg("Start taco server")
-	if err := app.Listener(proxyListener); err != nil {
-		log.Fatal(err).Msg("Create server")
+
+	ln, err := net.Listen("tcp", appPort)
+	if err != nil {
+		log.Fatal(err).Msg("Failed to listen on port")
+	}
+	if err := app.Listener(ln); err != nil {
+		log.Fatal(err).Msg("Failed to create server")
 	}
 }

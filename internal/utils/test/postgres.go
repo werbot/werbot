@@ -3,6 +3,8 @@ package test
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 
 	ep "github.com/fergusstrange/embedded-postgres"
@@ -12,8 +14,8 @@ import (
 
 // PostgresService is ...
 type PostgresService struct {
-	Server *ep.EmbeddedPostgres
-	Conn   *postgres.Connect
+	server *ep.EmbeddedPostgres
+	conn   *postgres.Connect
 	test   *testing.T
 }
 
@@ -23,27 +25,31 @@ func Postgres(t *testing.T, dirs ...string) (*PostgresService, error) {
 		test: t,
 	}
 
-	service.Server = ep.NewDatabase(ep.DefaultConfig().
+	min := 9500
+	max := 9900
+	portPG := rand.Intn(max-min) + min
+
+	service.server = ep.NewDatabase(ep.DefaultConfig().
 		Version(ep.V15).
 		Logger(&bytes.Buffer{}).
-		Port(9876))
+		Port(uint32(portPG)))
 
-	if err := service.Server.Start(); err != nil {
+	if err := service.server.Start(); err != nil {
 		return nil, err
 	}
 
 	// connect to postgres
 	conn, err := postgres.New(context.Background(), &postgres.PgSQLConfig{
-		DSN: "postgres://postgres:postgres@localhost:9876/postgres?sslmode=disable",
+		DSN: fmt.Sprintf("postgres://postgres:postgres@localhost:%v/postgres?sslmode=disable", portPG),
 	})
 	if err != nil {
 		return nil, err
 	}
-	service.Conn = conn
+	service.conn = conn
 
 	// migration to postgres
 	for _, opt := range dirs {
-		if err := goose.Up(service.Conn.Conn, opt); err != nil {
+		if err := goose.Up(service.conn.Conn, opt); err != nil {
 			return nil, err
 		}
 	}
@@ -51,9 +57,14 @@ func Postgres(t *testing.T, dirs ...string) (*PostgresService, error) {
 	return service, nil
 }
 
+// Conn is ...
+func (d *PostgresService) Conn() *postgres.Connect {
+	return d.conn
+}
+
 // Close is ...
 func (d *PostgresService) Close() {
-	if err := d.Server.Stop(); err != nil {
+	if err := d.server.Stop(); err != nil {
 		d.test.Error(err)
 	}
 }

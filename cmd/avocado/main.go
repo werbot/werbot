@@ -12,14 +12,13 @@ import (
 	"github.com/armon/go-proxyproto"
 	"github.com/gliderlabs/ssh"
 	"github.com/joho/godotenv"
-	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/broker"
 	grpcInt "github.com/werbot/werbot/internal/grpc"
-	rdb "github.com/werbot/werbot/internal/storage/redis"
+	"github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/logger"
 )
@@ -28,7 +27,7 @@ var app = App{}
 
 // App is ...
 type App struct {
-	redis                 rdb.Handler
+	redis                 *redis.Connect
 	grpc                  *grpc.ClientConn
 	defaultChannelHandler ssh.ChannelHandler
 	log                   logger.Logger
@@ -44,12 +43,12 @@ func main() {
 
 	app.log = logger.New()
 
-	app.redis = rdb.NewClient(ctx, redis.NewClient(&redis.Options{
+	app.redis = redis.New(ctx, &redis.RedisConfig{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
-	}))
+	})
 
-	app.broker = broker.New(ctx, app.redis.Client())
+	app.broker = broker.New(ctx, app.redis.Client)
 
 	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {}
 

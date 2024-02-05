@@ -7,15 +7,12 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/mail"
-	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -29,15 +26,15 @@ import (
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/users [get]
 func (h *Handler) getUser(c *fiber.Ctx) error {
-	request := new(userpb.User_Request)
+	request := &userpb.User_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -52,15 +49,15 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 	if userParameter.IsUserAdmin() && request.GetUserId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
 		users, err := rClient.ListUsers(ctx, &userpb.ListUsers_Request{
-			Limit:  pagination.GetLimit(),
-			Offset: pagination.GetOffset(),
+			Limit:  pagination.Limit,
+			Offset: pagination.Offset,
 			SortBy: "id:ASC",
 		})
 		if err != nil {
 			return webutil.FromGRPC(c, err)
 		}
 		if users.GetTotal() == 0 {
-			return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+			return webutil.StatusNotFound(c, nil)
 		}
 
 		return webutil.StatusOK(c, "users", users)
@@ -99,19 +96,19 @@ func (h *Handler) getUser(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/users [post]
 func (h *Handler) addUser(c *fiber.Ctx) error {
-	request := new(userpb.AddUser_Request)
+	request := &userpb.AddUser_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
 	if !userParameter.IsUserAdmin() {
-		return webutil.FromGRPC(c, status.Error(codes.NotFound, "Not found"))
+		return webutil.StatusNotFound(c, nil)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -136,15 +133,15 @@ func (h *Handler) addUser(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/users [patch]
 func (h *Handler) updateUser(c *fiber.Ctx) error {
-	request := new(userpb.UpdateUser_Request)
+	request := &userpb.UpdateUser_Request{}
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -157,20 +154,20 @@ func (h *Handler) updateUser(c *fiber.Ctx) error {
 
 	switch request.Request.(type) {
 	case *userpb.UpdateUser_Request_Info:
-		setting := new(userpb.UpdateUser_Request_Info)
-		setting.Info = new(userpb.UpdateUser_Info)
+		setting := &userpb.UpdateUser_Request_Info{}
+		setting.Info = &userpb.UpdateUser_Info{}
 		setting.Info.Email = request.GetInfo().GetEmail()
 		setting.Info.Name = request.GetInfo().GetName()
 		setting.Info.Surname = request.GetInfo().GetSurname()
 		request.Request = setting
 
 	case *userpb.UpdateUser_Request_Enabled:
-		setting := new(userpb.UpdateUser_Request_Enabled)
+		setting := &userpb.UpdateUser_Request_Enabled{}
 		setting.Enabled = request.GetEnabled()
 		request.Request = setting
 
 	case *userpb.UpdateUser_Request_Confirmed:
-		setting := new(userpb.UpdateUser_Request_Confirmed)
+		setting := &userpb.UpdateUser_Request_Confirmed{}
 		setting.Confirmed = request.GetConfirmed()
 		request.Request = setting
 
@@ -220,7 +217,7 @@ func (h *Handler) updateUser(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/users [delete]
 func (h *Handler) deleteUser(c *fiber.Ctx) error {
-	request := new(userpb.DeleteUser_Request)
+	request := &userpb.DeleteUser_Request{}
 	// c.BodyParser(request)
 
 	if err := protojson.Unmarshal(c.Body(), request); err != nil {
@@ -228,7 +225,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)
@@ -265,7 +262,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 
 	// step 2 - check token and delete user
 	if request.GetToken() != "" {
-		token := new(userpb.DeleteUser_Request_Token)
+		token := &userpb.DeleteUser_Request_Token{}
 		token.Token = c.Params("delete_token")
 		response, err := rClient.DeleteUser(ctx, request)
 		if err != nil {
@@ -289,7 +286,7 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 		return webutil.StatusOK(c, "user deleted", nil)
 	}
 
-	return webutil.StatusInvalidArgument(c)
+	return webutil.StatusBadRequest(c, nil)
 }
 
 // @Summary      Password update for a user.
@@ -302,14 +299,14 @@ func (h *Handler) deleteUser(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/users/password [patch]
 func (h *Handler) updatePassword(c *fiber.Ctx) error {
-	request := new(userpb.UpdatePassword_Request)
+	request := &userpb.UpdatePassword_Request{}
 
 	if err := c.BodyParser(request); err != nil {
-		return webutil.FromGRPC(c, trace.Error(codes.InvalidArgument))
+		return webutil.StatusBadRequest(c, "The body of the request is damaged")
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	userParameter := middleware.AuthUser(c)

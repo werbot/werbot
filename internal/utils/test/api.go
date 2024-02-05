@@ -17,7 +17,6 @@ import (
 	"github.com/werbot/werbot/api"
 	"github.com/werbot/werbot/api/auth"
 	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
-	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
@@ -25,21 +24,21 @@ import (
 
 var (
 	BodyUnauthorized = map[string]any{
-		"success": false,
+		"code":    float64(401),
 		"message": "Unauthorized",
-		"result":  "Unauthorized",
+		//"result":  "Unauthorized",
 	}
 
 	BodyNotFound = map[string]any{
-		"success": false,
+		"code":    float64(404),
 		"message": "Not Found",
-		"result":  "Not found",
+		//"result":  "Not found",
 	}
 
 	BodyInvalidArgument = map[string]any{
-		"success": false,
+		"code":    float64(400),
 		"message": "Bad Request",
-		"result":  trace.MsgInvalidArgument,
+		//"result":  trace.MsgInvalidArgument,
 	}
 )
 
@@ -74,16 +73,18 @@ type Tokens struct {
 
 // API is ...
 func API(t *testing.T) (*TestHandler, func(t *testing.T)) {
-	ctx := context.Background()
+	t.Setenv("JWT_PUBLIC_KEY", "../../fixtures/keys/jwt/jwt_public.key")
+	t.Setenv("JWT_PRIVATE_KEY", "../../fixtures/keys/jwt/jwt_private.key")
 
 	pgTest, err := Postgres(t, "../../migration", "../../fixtures/migration")
 	if err != nil {
 		t.Error(err)
 	}
 
+	ctx := context.Background()
 	redisTest := Redis(ctx, t)
 
-	grpcTest, err := GRPC(ctx, t, pgTest.Conn, redisTest.Handler)
+	grpcTest, err := GRPC(ctx, t, pgTest.conn, redisTest.conn)
 	if err != nil {
 		t.Error(err)
 	}
@@ -107,8 +108,8 @@ func API(t *testing.T) (*TestHandler, func(t *testing.T)) {
 	webHandler := &api.Handler{
 		App:   appTest,
 		Grpc:  grpcTest.ClientConn,
-		Redis: redisTest.Handler,
-		Auth:  middleware.Auth(redisTest.Handler).Execute(),
+		Redis: redisTest.conn,
+		Auth:  middleware.Auth(redisTest.conn).Execute(),
 	}
 
 	auth.New(webHandler).Routes()
@@ -146,7 +147,10 @@ func (h *TestHandler) getAuthToken(signIn *accountpb.SignIn_Request) *jwt.Tokens
 	defer res.Body.Close()
 
 	tokens := &jwt.Tokens{}
-	json.NewDecoder(res.Body).Decode(tokens)
+	body := &webutil.HTTPResponse{
+		Result: tokens,
+	}
+	json.NewDecoder(res.Body).Decode(body)
 	return tokens
 }
 
@@ -165,6 +169,6 @@ func (h *TestHandler) getAuthUserID(accessToken string) string {
 
 func (h *TestHandler) AddRoute404() {
 	h.App.Use(func(c *fiber.Ctx) error {
-		return webutil.StatusNotFound(c)
+		return webutil.StatusNotFound(c, nil)
 	})
 }

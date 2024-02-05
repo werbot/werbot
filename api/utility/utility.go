@@ -17,15 +17,15 @@ func (h *Handler) getMyIP(c *fiber.Ctx) error {
 }
 
 func (h *Handler) getCountry(c *fiber.Ctx) error {
-	request := new(utilitypb.Countries_Request)
+	request := &utilitypb.Countries_Request{}
 
 	if err := c.QueryParser(request); err != nil {
 		h.log.Error(err).Send()
-		return webutil.StatusInvalidArgument(c)
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err, err)
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

@@ -81,7 +81,7 @@ message AddKey {
       min_len: 3,
       max_len: 128
     }];
-    string key = 3 [(buf.validate.field).string = {min_len: 128}];
+    string key = 3 [(buf.validate.field).string = {min_len: 70}];
   }
 
   message Response {

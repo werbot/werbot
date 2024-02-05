@@ -14,7 +14,7 @@ import (
 
 // ListProjects is ...
 func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_Request) (*projectpb.ListProjects_Response, error) {
-	response := new(projectpb.ListProjects_Response)
+	response := &projectpb.ListProjects_Response{}
 
 	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
@@ -46,13 +46,13 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
       LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"
   `+sqlSearch+sqlFooter)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	for rows.Next() {
 		var countMembers, countServers int32
 		var createdAt pgtype.Timestamp
-		project := new(projectpb.Project_Response)
+		project := &projectpb.Project_Response{}
 		err = rows.Scan(&project.ProjectId,
 			&project.OwnerId,
 			&project.Title,
@@ -62,7 +62,7 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 			&countServers,
 		)
 		if err != nil {
-			return nil, trace.ErrorAborted(err, log)
+			return nil, trace.Error(err, log, nil)
 		}
 
 		project.CreatedAt = timestamppb.New(createdAt.Time)
@@ -82,7 +82,7 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
   `+sqlSearch,
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	return response, nil
@@ -92,7 +92,7 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*projectpb.Project_Response, error) {
 	var countMembers, countServers int32
 	var createdAt pgtype.Timestamp
-	response := new(projectpb.Project_Response)
+	response := &projectpb.Project_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -129,7 +129,7 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
 		&countServers,
 	)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, nil)
 	}
 
 	response.CreatedAt = timestamppb.New(createdAt.Time)
@@ -140,11 +140,11 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
 
 // AddProject is ...
 func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Request) (*projectpb.AddProject_Response, error) {
-	response := new(projectpb.AddProject_Response)
+	response := &projectpb.AddProject_Response{}
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 	}
 	defer tx.Rollback()
 
@@ -158,7 +158,7 @@ func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
   `, in.GetOwnerId(), in.GetTitle(), in.GetLogin(),
 	).Scan(&response.ProjectId)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	_, err = tx.ExecContext(ctx, `
@@ -168,11 +168,11 @@ func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
       ($1, $2, $3, 't')
   `, response.ProjectId, crypto.NewPassword(37, false), crypto.NewPassword(37, false))
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToAdd)
+		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil
@@ -195,10 +195,7 @@ func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject
 		in.GetOwnerId(),
 	)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToUpdate)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
 	return &projectpb.UpdateProject_Response{}, nil
@@ -208,7 +205,7 @@ func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject
 func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject_Request) (*projectpb.DeleteProject_Response, error) {
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCreateError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
 	}
 	defer tx.Rollback()
 
@@ -219,10 +216,7 @@ func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
       AND "owner_id" = $2
   `, in.GetProjectId(), in.GetOwnerId())
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
-		}
-		return nil, trace.ErrorAborted(err, log)
+		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}
 
 	_, err = tx.ExecContext(ctx, `
@@ -231,11 +225,11 @@ func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
       "id" = $1
   `, in.GetProjectId())
 	if err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgFailedToDelete)
+		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, trace.ErrorAborted(err, log, trace.MsgTransactionCommitError)
+		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	return &projectpb.DeleteProject_Response{}, nil
@@ -243,24 +237,24 @@ func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
 
 // Key is ...
 func (h *Handler) Key(ctx context.Context, in *projectpb.Key_Request) (*projectpb.Key_Response, error) {
-	response := new(projectpb.Key_Response)
+	response := &projectpb.Key_Response{}
 	return response, nil
 }
 
 // AddKey is ...
 func (h *Handler) AddKey(ctx context.Context, in *projectpb.AddKey_Request) (*projectpb.AddKey_Response, error) {
-	response := new(projectpb.AddKey_Response)
+	response := &projectpb.AddKey_Response{}
 	return response, nil
 }
 
 // UpdateKey is ...
 func (h *Handler) UpdateKey(ctx context.Context, in *projectpb.UpdateKey_Request) (*projectpb.UpdateKey_Response, error) {
-	response := new(projectpb.UpdateKey_Response)
+	response := &projectpb.UpdateKey_Response{}
 	return response, nil
 }
 
 // DeleteKey is ...
 func (h *Handler) DeleteKey(ctx context.Context, in *projectpb.DeleteKey_Request) (*projectpb.DeleteKey_Response, error) {
-	response := new(projectpb.DeleteKey_Response)
+	response := &projectpb.DeleteKey_Response{}
 	return response, nil
 }

@@ -64,7 +64,7 @@ func bastionClientConfig(ctx ssh.Context, host *serverpb.Server_Response) (*goss
 		ServerId:  host.GetServerId(),
 	})
 
-	accessDecrypt := new(serverpb.ServerAccess_Response)
+	accessDecrypt := &serverpb.ServerAccess_Response{}
 
 	switch access.GetAccess().(type) {
 	case *serverpb.ServerAccess_Response_Password:

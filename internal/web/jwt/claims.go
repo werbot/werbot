@@ -15,21 +15,16 @@ type UserClaims struct {
 }
 
 // Parse is ...
-func Parse(token string) (*jwt.MapClaims, error) {
-	t, err := jwt.Parse(token, VerifyToken)
+func Parse(token string) (jwt.MapClaims, error) {
+	t, err := jwt.Parse(token, verifyToken)
 	if err != nil {
-		return nil, errors.New("Token parsing error")
+		return nil, err
 	}
 
 	claims, ok := t.Claims.(jwt.MapClaims)
 	if ok && t.Valid {
-		return &claims, nil
+		return claims, nil
 	}
 
 	return nil, errors.New("Token expired")
-}
-
-// GetClaimSub is ...
-func GetClaimSub(claim jwt.MapClaims) string {
-	return claim["sub"].(string)
 }
