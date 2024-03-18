@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/alicebob/miniredis/v2 v2.31.1
 	github.com/fergusstrange/embedded-postgres v1.26.0
-	github.com/pressly/goose/v3 v3.18.0
+	github.com/pressly/goose/v3 v3.19.2
 )
 
 require (
@@ -23,7 +23,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/hibiken/asynq v0.24.1
-	github.com/jackc/pgx/v5 v5.5.4
+	github.com/jackc/pgx/v5 v5.5.5
 	github.com/joho/godotenv v1.5.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/oschwald/geoip2-golang v1.9.0
