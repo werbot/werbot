@@ -14,7 +14,7 @@ require (
 	github.com/bufbuild/protovalidate-go v0.6.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/fsouza/go-dockerclient v1.10.2
-	github.com/gliderlabs/ssh v0.3.6
+	github.com/gliderlabs/ssh v0.3.7
 	github.com/gofiber/contrib/jwt v1.0.8
 	github.com/gofiber/contrib/websocket v1.3.0
 	github.com/gofiber/fiber/v2 v2.52.2
