@@ -65,11 +65,11 @@ func main() {
 
 	app.Use(
 		cors.New(cors.Config{
-			AllowOrigins:     "*",
-			AllowMethods:     "GET,POST,HEAD,OPTIONS,PUT,DELETE,PATCH",
-			AllowHeaders:     "Origin, Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Requested-With",
-			ExposeHeaders:    "Origin",
-			AllowCredentials: true,
+			AllowOrigins:  "*",
+			AllowMethods:  "GET,POST,HEAD,OPTIONS,PUT,DELETE,PATCH",
+			AllowHeaders:  "Origin, Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Requested-With",
+			ExposeHeaders: "Origin",
+			// AllowCredentials: true,
 		}),
 		helmet.New(),
 		etag.New(),
