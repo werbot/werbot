@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/alicebob/miniredis/v2 v2.32.1
 	github.com/fergusstrange/embedded-postgres v1.27.0
-	github.com/pressly/goose/v3 v3.20.0
+	github.com/pressly/goose/v3 v3.21.1
 )
 
 require (
