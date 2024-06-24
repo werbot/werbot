@@ -9,7 +9,7 @@ require (
 )
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.1-20240508200655-46a4cf4ba109.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240508200655-46a4cf4ba109.2
 	github.com/armon/go-proxyproto v0.1.0
 	github.com/bufbuild/protovalidate-go v0.6.2
 	github.com/fsnotify/fsnotify v1.7.0
@@ -36,7 +36,7 @@ require (
 	golang.org/x/oauth2 v0.20.0
 	golang.org/x/term v0.20.0
 	google.golang.org/grpc v1.64.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.2
 )
 
 require (
