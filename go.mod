@@ -17,7 +17,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.7
 	github.com/gofiber/contrib/jwt v1.0.9
 	github.com/gofiber/contrib/websocket v1.3.1
-	github.com/gofiber/fiber/v2 v2.52.4
+	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/gofiber/helmet/v2 v2.2.26
 	github.com/gofiber/keyauth/v2 v2.2.1
 	github.com/golang-jwt/jwt/v5 v5.2.1
