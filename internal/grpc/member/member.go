@@ -36,12 +36,9 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
       "project_member"."online"     AS "member_online",
       "project_member"."created_at" AS "member_created",
       (
-        SELECT
-          COUNT(*)
-        FROM
-          "server_member"
-        WHERE
-          "member_id" = "project_member"."id"
+        SELECT COUNT(*)
+        FROM "server_member"
+        WHERE "member_id" = "project_member"."id"
       ) AS "count_servers"
     FROM
       "project_member"
@@ -83,8 +80,7 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
 
 	// Total count for pagination
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
+    SELECT COUNT(*)
     FROM
       "project_member"
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
@@ -157,10 +153,8 @@ func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectM
 	err = tx.QueryRowContext(ctx, `
     SELECT
       EXISTS (
-        SELECT
-          1
-        FROM
-          "project"
+        SELECT 1
+        FROM "project"
         WHERE
           "id" = $1
           AND "owner_id" = $2
@@ -177,12 +171,9 @@ func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectM
 
 	response := &memberpb.AddProjectMember_Response{}
 	err = tx.QueryRowContext(ctx, `
-    INSERT INTO
-      "project_member" ("project_id", "user_id", "role", "active")
-    VALUES
-      ($1, $2, $3, $4)
-    RETURNING
-      "id"
+    INSERT INTO "project_member" ("project_id", "user_id", "role", "active")
+    VALUES ($1, $2, $3, $4)
+    RETURNING "id"
   `,
 		in.GetProjectId(),
 		in.GetUserId(),
@@ -207,10 +198,8 @@ func (h *Handler) UpdateProjectMember(ctx context.Context, in *memberpb.UpdatePr
 	case *memberpb.UpdateProjectMember_Request_Role:
 		_, err = h.DB.Conn.ExecContext(ctx, `
       UPDATE "project_member"
-      SET
-        "role" = $4
-      FROM
-        "project"
+      SET "role" = $4
+      FROM "project"
       WHERE
         "project_member"."project_id" = "project"."id"
         AND "project_member"."id" = $3
@@ -225,10 +214,8 @@ func (h *Handler) UpdateProjectMember(ctx context.Context, in *memberpb.UpdatePr
 	case *memberpb.UpdateProjectMember_Request_Active:
 		_, err = h.DB.Conn.ExecContext(ctx, `
       UPDATE "project_member"
-      SET
-        "active" = $4
-      FROM
-        "project"
+      SET "active" = $4
+      FROM "project"
       WHERE
         "project_member"."project_id" = "project"."id"
         AND "project_member"."id" = $3
@@ -282,16 +269,12 @@ func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWit
       "id",
       "login",
       "email"
-    FROM
-      "user"
+    FROM "user"
     WHERE
       "id" NOT IN (
-        SELECT
-          "user_id"
-        FROM
-          "project_member"
-        WHERE
-          "project_id" = $1
+        SELECT "user_id"
+        FROM "project_member"
+        WHERE "project_id" = $1
       )
       AND LOWER("login") LIKE LOWER($2 || '%')
     ORDER BY "login" ASC
@@ -360,12 +343,9 @@ func (h *Handler) ListMembersInvite(ctx context.Context, in *memberpb.ListMember
 
 	// Total count for pagination
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
-    FROM
-      "project_invite"
-    WHERE
-      "project_invite"."project_id" = $1
+    SELECT COUNT(*)
+    FROM "project_invite"
+    WHERE "project_invite"."project_id" = $1
   `, in.GetProjectId(),
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
@@ -422,10 +402,8 @@ func (h *Handler) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInv
           "status",
           "ldap_user"
         )
-      VALUES
-        ($1, $2, $3, $4, $5, $6, FALSE)
-      RETURNING
-        "invite"
+      VALUES ($1, $2, $3, $4, $5, $6, FALSE)
+      RETURNING "invite"
     `,
 			in.GetProjectId(),
 			in.GetEmail(),
@@ -480,8 +458,7 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
     FROM
       "project_invite"
       INNER JOIN "user" ON "project_invite"."email" = "user"."email"
-    WHERE
-      "project_invite"."invite" = $1
+    WHERE "project_invite"."invite" = $1
   `, in.GetInvite(),
 	).Scan(&userID,
 		&response.ProjectId,
@@ -515,12 +492,9 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
 	defer tx.Rollback()
 
 	err = tx.QueryRowContext(ctx, `
-    INSERT INTO
-      "project_member" ("project_id", "user_id", "role")
-    VALUES
-      ($1, $2, 'user')
-    RETURNING
-      "id"
+    INSERT INTO "project_member" ("project_id", "user_id", "role")
+    VALUES ($1, $2, 'user')
+    RETURNING "id"
   `, response.ProjectId, userID,
 	).Scan(&memberID)
 	if err != nil {
@@ -532,8 +506,7 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
     SET
       "status" = 'activated',
       "user_id" = $1
-    WHERE
-      "invite" = $2
+    WHERE "invite" = $2
   `, in.GetUserId(), in.GetInvite())
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
@@ -603,8 +576,7 @@ func (h *Handler) ListServerMembers(ctx context.Context, in *memberpb.ListServer
 
 	// Total members
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
+    SELECT COUNT(*)
     FROM
       "server_member"
       INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
@@ -671,10 +643,8 @@ func (h *Handler) AddServerMember(ctx context.Context, in *memberpb.AddServerMem
 	response := &memberpb.AddServerMember_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "id"
-    FROM
-      "server_member"
+    SELECT "id"
+    FROM "server_member"
     WHERE
       "server_member"."server_id" = $1
       AND "server_member"."member_id" = $2
@@ -688,12 +658,9 @@ func (h *Handler) AddServerMember(ctx context.Context, in *memberpb.AddServerMem
 	}
 
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    INSERT INTO
-      "server_member" ("server_id", "member_id", "active")
-    VALUES
-      ($1, $2, $3)
-    RETURNING
-      "id"
+    INSERT INTO "server_member" ("server_id", "member_id", "active")
+    VALUES ($1, $2, $3)
+    RETURNING "id"
   `, in.GetServerId(), in.GetMemberId(), in.GetActive(),
 	).Scan(&response.MemberId)
 	if err != nil {
@@ -715,8 +682,7 @@ func (h *Handler) UpdateServerMember(ctx context.Context, in *memberpb.UpdateSer
 	case *memberpb.UpdateServerMember_Request_Active:
 		_, err = h.DB.Conn.ExecContext(ctx, `
       UPDATE "server_member"
-      SET
-        "active" = $1
+      SET "active" = $1
       WHERE
         "id" = $2
         AND "server_id" = $3
@@ -724,8 +690,7 @@ func (h *Handler) UpdateServerMember(ctx context.Context, in *memberpb.UpdateSer
 	case *memberpb.UpdateServerMember_Request_Online:
 		_, err = h.DB.Conn.ExecContext(ctx, `
       UPDATE "server_member"
-      SET
-        "online" = $1
+      SET "online" = $1
       WHERE
         "id" = $2
         AND "server_id" = $3
@@ -787,12 +752,9 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
       INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
     WHERE
       "project_member"."id" NOT IN (
-        SELECT
-          "member_id"
-        FROM
-          "server_member"
-        WHERE
-          "server_id" = $1
+        SELECT "member_id"
+        FROM "server_member"
+        WHERE "server_id" = $1
       )
       AND "project_member"."project_id" = $2
       AND LOWER("user"."login") LIKE LOWER($3 || '%')
@@ -824,19 +786,15 @@ func (h *Handler) MembersWithoutServer(ctx context.Context, in *memberpb.Members
 
 	// Total count for pagination
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
+    SELECT COUNT(*)
     FROM
       "project_member"
       INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
     WHERE
       "project_member"."id" NOT IN (
-        SELECT
-          "member_id"
-        FROM
-          "server_member"
-        WHERE
-          "server_id" = $1
+        SELECT "member_id"
+        FROM "server_member"
+        WHERE "server_id" = $1
       )
       AND "project_member"."project_id" = $2
       AND LOWER("user"."login") LIKE LOWER($3 || '%')

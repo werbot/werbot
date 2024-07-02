@@ -256,7 +256,7 @@ func (h *Handler) getGenerateNewKey(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "ssh key created", map[string]string{
+	return webutil.StatusOK(c, "New ssh key", map[string]string{
 		"key_type": key.GetKeyType().String(),
 		"uuid":     key.GetUuid(),
 		"public":   string(key.GetPublic()),

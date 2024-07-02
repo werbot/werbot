@@ -26,20 +26,14 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
       "project"."login",
       "project"."created_at",
       (
-        SELECT
-          COUNT(*)
-        FROM
-          "project_member"
-        WHERE
-          "project_id" = "project"."id"
+        SELECT COUNT(*)
+        FROM "project_member"
+        WHERE "project_id" = "project"."id"
       ) AS "count_members",
       (
-        SELECT
-          COUNT(*)
-        FROM
-          "server"
-        WHERE
-          "project_id" = "project"."id"
+        SELECT COUNT(*)
+        FROM "server"
+        WHERE "project_id" = "project"."id"
       ) AS "count_servers"
     FROM
       "project"
@@ -74,8 +68,7 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 
 	// Total count for pagination
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
+    SELECT COUNT(*)
     FROM
       "project"
       LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"
@@ -100,20 +93,14 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
       "project"."login",
       "project"."created_at",
       (
-        SELECT
-          COUNT(*)
-        FROM
-          "project_member"
-        WHERE
-          "project_id" = "project"."id"
+        SELECT COUNT(*)
+        FROM "project_member"
+        WHERE "project_id" = "project"."id"
       ) AS "count_members",
       (
-        SELECT
-          COUNT(*)
-        FROM
-          "server"
-        WHERE
-          "project_id" = "project"."id"
+        SELECT COUNT(*)
+        FROM "server"
+        WHERE "project_id" = "project"."id"
       ) AS "count_servers"
     FROM
       "project"
@@ -149,12 +136,9 @@ func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 	defer tx.Rollback()
 
 	err = tx.QueryRowContext(ctx, `
-    INSERT INTO
-      "project" ("owner_id", "title", "login")
-    VALUES
-      ($1, $2, $3)
-    RETURNING
-      "id"
+    INSERT INTO "project" ("owner_id", "title", "login")
+    VALUES ($1, $2, $3)
+    RETURNING "id"
   `, in.GetOwnerId(), in.GetTitle(), in.GetLogin(),
 	).Scan(&response.ProjectId)
 	if err != nil {
@@ -162,10 +146,8 @@ func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 	}
 
 	_, err = tx.ExecContext(ctx, `
-    INSERT INTO
-      "public"."project_api" ("project_id", "api_key", "api_secret", "online")
-    VALUES
-      ($1, $2, $3, 't')
+    INSERT INTO "public"."project_api" ("project_id", "api_key", "api_secret", "online")
+    VALUES ($1, $2, $3, 't')
   `, response.ProjectId, crypto.NewPassword(37, false), crypto.NewPassword(37, false))
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
@@ -221,8 +203,7 @@ func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
 
 	_, err = tx.ExecContext(ctx, `
     DELETE FROM "project_api"
-    WHERE
-      "id" = $1
+    WHERE "id" = $1
   `, in.GetProjectId())
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToDelete)

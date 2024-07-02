@@ -29,5 +29,6 @@ func (h *Handler) Routes() {
 	authRoutes.Post("/signin", h.signIn)
 	authRoutes.Post("/refresh", h.refresh)
 	authRoutes.Post("/logout", h.Auth, h.logout)
+	authRoutes.Get("/password_reset/:reset_token", h.checkResetToken)
 	authRoutes.Post("/password_reset/:reset_token?", h.resetPassword)
 }

@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -67,8 +66,7 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
 
 	// Total count for pagination
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
+    SELECT COUNT(*)
     FROM
       "user_public_key"
       INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"
@@ -126,47 +124,41 @@ func (h *Handler) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.
 func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddKey_Response, error) {
 	response := &keypb.AddKey_Response{}
 
-	publicKey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(in.GetKey()))
+	sshKey, err := crypto.ParseSSHKey([]byte(in.GetKey()))
 	if err != nil {
-		return nil, trace.Error(err, log, trace.MsgPublicKeyIsBroken)
+		errGRPC := status.Error(codes.InvalidArgument, err.Error())
+		return nil, trace.Error(errGRPC, log, trace.MsgPublicKeyIsBroken)
 	}
-	fingerprint := ssh.FingerprintLegacyMD5(publicKey)
 
 	// Check public key fingerprint
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "id"
-    FROM
-      "user_public_key"
-    WHERE
-      "fingerprint" = $1
-  `, fingerprint,
+    SELECT "id"
+    FROM "user_public_key"
+    WHERE "fingerprint" = $1
+  `, sshKey.Fingerprint,
 	).Scan(&response.KeyId)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, trace.Error(err, log, nil)
 	}
 
-	if response.KeyId != "" {
+	if response.GetKeyId() != "" {
 		errGRPC := status.Error(codes.AlreadyExists, "")
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	if in.GetTitle() != "" {
-		comment = in.GetTitle()
+		sshKey.Comment = in.GetTitle()
 	}
 
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    INSERT INTO
-      "user_public_key" ("user_id", "title", "key_", "fingerprint")
-    VALUES
-      ($1, $2, $3, $4)
-    RETURNING
-      id
+    INSERT INTO "user_public_key" ("user_id", "title", "key_", "fingerprint")
+    VALUES ($1, $2, $3, $4)
+    RETURNING "id"
   `,
 		in.GetUserId(),
-		comment,
+		sshKey.Comment,
 		in.GetKey(),
-		fingerprint,
+		sshKey.Fingerprint,
 	).Scan(&response.KeyId)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
@@ -180,21 +172,18 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 	var keyID string
 	response := &keypb.UpdateKey_Response{}
 
-	publicKey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(in.GetKey()))
+	sshKey, err := crypto.ParseSSHKey([]byte(in.GetKey()))
 	if err != nil {
-		return nil, trace.Error(err, log, trace.MsgPublicKeyIsBroken)
+		errGRPC := status.Error(codes.InvalidArgument, err.Error())
+		return nil, trace.Error(errGRPC, log, trace.MsgPublicKeyIsBroken)
 	}
-	fingerprint := ssh.FingerprintLegacyMD5(publicKey)
 
 	// Check public key fingerprint
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "id"
-    FROM
-      "user_public_key"
-    WHERE
-      "fingerprint" = $1
-  `, fingerprint,
+    SELECT "id"
+    FROM "user_public_key"
+    WHERE "fingerprint" = $1
+  `, sshKey.Fingerprint,
 	).Scan(&keyID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, trace.Error(err, log, nil)
@@ -206,7 +195,7 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 	}
 
 	if in.GetTitle() != "" {
-		comment = in.GetTitle()
+		sshKey.Comment = in.GetTitle()
 	}
 
 	_, err = h.DB.Conn.ExecContext(ctx, `
@@ -219,9 +208,9 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
       "id" = $4
       AND "user_id" = $5
   `,
-		comment,
+		sshKey.Comment,
 		in.GetKey(),
-		fingerprint,
+		sshKey.Fingerprint,
 		in.GetKeyId(),
 		in.GetUserId(),
 	)
@@ -252,25 +241,36 @@ func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*
 
 // GenerateSSHKey is ...
 func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_Request) (*keypb.GenerateSSHKey_Response, error) {
-	response := &keypb.GenerateSSHKey_Response{}
-	response.KeyType = in.GetKeyType()
+	response := &keypb.GenerateSSHKey_Response{
+		KeyType: in.GetKeyType(),
+	}
 
+	// Generate SSH key
 	key, err := crypto.NewSSHKey(in.GetKeyType().String())
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedCreatingSSHKey)
 	}
 
+	// Populate response fields
 	response.Public = key.PublicKey
 	response.Passphrase = key.Passphrase
 	response.Uuid = uuid.New().String()
 
-	cacheKey := &keypb.GenerateSSHKey_Key{}
-	cacheKey.Private = string(key.PrivateKey)
-	cacheKey.Public = string(key.PublicKey)
-	mapB, _ := json.Marshal(cacheKey)
+	// Prepare cache key
+	cacheKey := &keypb.GenerateSSHKey_Key{
+		Private: string(key.PrivateKey),
+		Public:  string(key.PublicKey),
+	}
+	mapB, err := json.Marshal(cacheKey)
+	if err != nil {
+		return nil, trace.Error(err, log, "Failed to marshal cache key")
+	}
 
-	if err := h.Redis.Client.Set(ctx, fmt.Sprintf("tmp_key_ssh:%s", response.Uuid), mapB, internal.GetDuration("SSH_KEY_REFRESH_DURATION", "10m")); err != nil {
-		return nil, trace.Error(err.Err(), log, nil)
+	// Set cache with expiration duration
+	cacheKeyStr := fmt.Sprintf("tmp_key_ssh:%s", response.Uuid)
+	expiration := internal.GetDuration("SSH_KEY_REFRESH_DURATION", "10m")
+	if rStatus := h.Redis.Client.Set(ctx, cacheKeyStr, mapB, expiration); rStatus.Err() != nil {
+		return nil, trace.Error(rStatus.Err(), log, nil)
 	}
 
 	return response, nil

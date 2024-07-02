@@ -20,8 +20,7 @@ func (h *Handler) UserMetrics(ctx context.Context, in *infopb.UserMetrics_Reques
 
 	sqlServers, err := sanitize.SQL(`
     INNER JOIN "project" ON "server"."project_id" = "project"."id"
-    WHERE
-      "project"."owner_id" = $1
+    WHERE "project"."owner_id" = $1
   `, in.GetUserId())
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
@@ -29,10 +28,8 @@ func (h *Handler) UserMetrics(ctx context.Context, in *infopb.UserMetrics_Reques
 
 	if in.Role == userpb.Role_admin {
 		err := h.DB.Conn.QueryRowContext(ctx, `
-      SELECT
-        COUNT(*) AS users
-      FROM
-        "user"
+      SELECT COUNT(*) AS users
+      FROM "user"
     `).Scan(&response.Users)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
@@ -41,10 +38,8 @@ func (h *Handler) UserMetrics(ctx context.Context, in *infopb.UserMetrics_Reques
 		sqlServers = ""
 	}
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*) AS "projects"
-    FROM
-      "project"
+    SELECT COUNT(*) AS "projects"
+    FROM "project"
   `+sqlProjects,
 	).Scan(&response.Projects)
 	if err != nil {
@@ -52,10 +47,8 @@ func (h *Handler) UserMetrics(ctx context.Context, in *infopb.UserMetrics_Reques
 	}
 
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*) AS "servers"
-    FROM
-      "server"
+    SELECT COUNT(*) AS "servers"
+    FROM "server"
   `+sqlServers,
 	).Scan(&response.Servers)
 	if err != nil {

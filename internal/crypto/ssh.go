@@ -12,14 +12,13 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/werbot/werbot/internal/trace"
 	"golang.org/x/crypto/ssh"
 )
 
 var (
-	// MsgFailedCreatingSSHKey is ...
 	MsgFailedCreatingSSHKey = "failed to creating SSH key"
 
-	// ErrFailedCreatingSSHKey is ...
 	ErrFailedCreatingSSHKey = errors.New(MsgFailedCreatingSSHKey)
 )
 
@@ -202,4 +201,24 @@ func MarshalED25519PrivateKey(key ed25519.PrivateKey) []byte {
 	magic = append(magic, ssh.Marshal(w)...)
 
 	return magic
+}
+
+// SSHKey is ...
+type SSHKey struct {
+	PublicKey   ssh.PublicKey
+	Comment     string
+	Fingerprint string
+}
+
+// ParseSSHKey is ...
+func ParseSSHKey(bytes []byte) (*SSHKey, error) {
+	sshKey := SSHKey{}
+	var err error
+
+	if sshKey.PublicKey, sshKey.Comment, _, _, err = ssh.ParseAuthorizedKey(bytes); err != nil {
+		return nil, errors.New(trace.MsgPublicKeyIsBroken)
+	}
+
+	sshKey.Fingerprint = ssh.FingerprintLegacyMD5(sshKey.PublicKey)
+	return &sshKey, nil
 }

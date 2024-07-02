@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "golang.go",
+    "Vue.volar",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "dbaeumer.vscode-eslint",
+  ]
+}

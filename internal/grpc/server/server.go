@@ -31,12 +31,10 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 	//  log.Info().Msgf("Expired: %v", license.L.GetCustomer())
 
 	response := &serverpb.ListServers_Response{}
-
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	query := h.DB.QueryParse(in.GetQuery())
 
-	if query["login"] != "" {
-		loginArray := strutil.SplitNTrimmed(query["login"], "_", 3)
+	if in.GetLogin() != "" {
+		loginArray := strutil.SplitNTrimmed(in.GetLogin(), "_", 3)
 
 		nameLen := len(loginArray)
 		query := `
@@ -182,7 +180,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 		return response, nil
 	}
 
-	if query["project_id"] != "" && query["user_id"] != "" {
+	if in.GetProjectId() != "" && in.GetUserId() != "" {
 		rows, err := h.DB.Conn.QueryContext(ctx, `
       SELECT DISTINCT
         ON ("server"."id") "server"."id",
@@ -199,12 +197,9 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
         "server"."scheme",
         "server"."description",
         (
-          SELECT
-            COUNT(*)
-          FROM
-            "server_member"
-          WHERE
-            "server_id" = "server"."id"
+          SELECT COUNT(*)
+          FROM "server_member"
+          WHERE "server_id" = "server"."id"
         ) AS "count_members"
       FROM
         "server"
@@ -213,7 +208,7 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
       WHERE
         "server"."project_id" = $1
         AND "project"."owner_id" = $2
-    `+sqlFooter, query["project_id"], query["user_id"],
+    `+sqlFooter, in.GetProjectId(), in.GetUserId(),
 		)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
@@ -246,15 +241,14 @@ func (h *Handler) ListServers(ctx context.Context, in *serverpb.ListServers_Requ
 
 		// Total count
 		err = h.DB.Conn.QueryRowContext(ctx, `
-      SELECT
-        COUNT(*)
+      SELECT COUNT(*)
       FROM
         "server"
         INNER JOIN "project" ON "server"."project_id" = "project"."id"
       WHERE
         "server"."project_id" = $1
         AND "project"."owner_id" = $2
-    `, query["project_id"], query["user_id"],
+    `, in.GetProjectId(), in.GetUserId(),
 		).Scan(&response.Total)
 		if err != nil && err != sql.ErrNoRows {
 			return nil, trace.Error(err, log, nil)
@@ -335,10 +329,8 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 	err = tx.QueryRowContext(ctx, `
     SELECT
       EXISTS (
-        SELECT
-          1
-        FROM
-          "project"
+        SELECT 1
+        FROM "project"
         WHERE
           "id" = $1
           AND "owner_id" = $2
@@ -366,10 +358,8 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
         "audit",
         "scheme"
       )
-    VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8, $9::INT)
-    RETURNING
-      "id"
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::INT)
+    RETURNING "id"
   `,
 		in.GetProjectId(),
 		in.GetAddress(),
@@ -397,10 +387,8 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
           "login",
           "password"
         )
-      VALUES
-        ($1, '1', $2, $3)
-      RETURNING
-        "id"
+      VALUES ($1, '1', $2, $3)
+      RETURNING "id"
     `, response.GetServerId(), in.GetLogin(), in.GetPassword(),
 		)
 		if err != nil {
@@ -423,12 +411,9 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 		keyAccess := map[string]string{"public": "" + key.GetPublic() + "", "private": "" + key.GetPrivate() + "", "password": "" + key.GetPassword() + ""}
 		keyAccessJSON, _ := json.Marshal(keyAccess)
 		sqlAccess, err = sanitize.SQL(`
-      INSERT INTO
-        "server_access" ("server_id", "auth", "login", "key")
-      VALUES
-        ($1, '2', $2, $3)
-      RETURNING
-        "id"
+      INSERT INTO "server_access" ("server_id", "auth", "login", "key")
+      VALUES ($1, '2', $2, $3)
+      RETURNING "id"
     `, response.GetServerId(), in.GetLogin(), string(keyAccessJSON))
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
@@ -443,12 +428,9 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 		keyAccess := map[string]string{"public": "" + string(key.PublicKey) + "", "private": "" + string(key.PrivateKey) + "", "password": ""}
 		keyAccessJSON, _ := json.Marshal(keyAccess)
 		sqlAccess, err = sanitize.SQL(`
-      INSERT INTO
-        "server_access" ("server_id", "auth", "login", "key")
-      VALUES
-        ($1, '2', $2, $3)
-      RETURNING
-        "id"
+      INSERT INTO "server_access" ("server_id", "auth", "login", "key")
+      VALUES ($1, '2', $2, $3)
+      RETURNING "id"
     `,
 			response.GetServerId(),
 			in.GetLogin(),
@@ -467,10 +449,8 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 
 	_, err = tx.ExecContext(ctx, `
     UPDATE "server"
-    SET
-      "access_id" = $1
-    WHERE
-      "id" = $2
+    SET "access_id" = $1
+    WHERE "id" = $2
   `, accessID, response.GetServerId())
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
@@ -478,10 +458,8 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 
 	// + record server_access_policy
 	_, err = tx.ExecContext(ctx, `
-    INSERT INTO
-      "server_access_policy" ("server_id", "ip", "country")
-    VALUES
-      ($1, 'f', 'f')
+    INSERT INTO "server_access_policy" ("server_id", "ip", "country")
+    VALUES ($1, 'f', 'f')
   `, response.GetServerId())
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
@@ -489,8 +467,7 @@ func (h *Handler) AddServer(ctx context.Context, in *serverpb.AddServer_Request)
 
 	// + record server_activity
 	sqlCountDay := `
-    INSERT INTO
-      "server_activity" ("server_id", "dow", "time_from", "time_to")
+    INSERT INTO "server_activity" ("server_id", "dow", "time_from", "time_to")
     VALUES
   `
 	for countDay := 1; countDay < 8; countDay++ {
@@ -531,8 +508,7 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
         "port" = $2,
         "title" = $3,
         "description" = $4
-      FROM
-        "project"
+      FROM "project"
       WHERE
         "server"."project_id" = "project"."id"
         AND "server"."id" = $5
@@ -553,8 +529,7 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 
 		_, err = tx.ExecContext(ctx, `
       UPDATE "server_access"
-      SET
-        "login" = $1
+      SET "login" = $1
       FROM
         "server"
         INNER JOIN "project" ON "server"."project_id" = "project"."id"
@@ -580,10 +555,8 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 	case *serverpb.UpdateServer_Request_Audit:
 		_, err := h.DB.Conn.ExecContext(ctx, `
       UPDATE "server"
-      SET
-        "audit" = $1
-      FROM
-        "project"
+      SET "audit" = $1
+      FROM "project"
       WHERE
         "server"."project_id" = "project"."id"
         AND "server"."id" = $2
@@ -603,10 +576,8 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 		// TODO After turning off, turn off all users who online
 		_, err := h.DB.Conn.ExecContext(ctx, `
       UPDATE "server"
-      SET
-        "active" = $1
-      FROM
-        "project"
+      SET "active" = $1
+      FROM "project"
       WHERE
         "server"."project_id" = "project"."id"
         AND "server"."id" = $2
@@ -625,10 +596,8 @@ func (h *Handler) UpdateServer(ctx context.Context, in *serverpb.UpdateServer_Re
 	case *serverpb.UpdateServer_Request_Online:
 		_, err := h.DB.Conn.ExecContext(ctx, `
       UPDATE "server"
-      SET
-        "online" = $1
-      FROM
-        "project"
+      SET "online" = $1
+      FROM "project"
       WHERE
         "server"."project_id" = "project"."id"
         AND "server"."id" = $2
@@ -726,8 +695,7 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 	case *serverpb.UpdateServerAccess_Request_Password:
 		sqlQuery, err = sanitize.SQL(`
       UPDATE "server_access"
-      SET
-        "password" = $1
+      SET "password" = $1
       FROM
         "server"
         INNER JOIN "project" ON "server"."project_id" = "project"."id"
@@ -755,8 +723,7 @@ func (h *Handler) UpdateServerAccess(ctx context.Context, in *serverpb.UpdateSer
 		h.Redis.Client.Del(ctx, fmt.Sprintf("tmp_key_ssh:%s", in.GetKey()))
 		sqlQuery, err = sanitize.SQL(`
       UPDATE "server_access"
-      SET
-        "key" = $1
+      SET "key" = $1
       FROM
         "server"
         INNER JOIN "project" ON "server"."project_id" = "project"."id"
@@ -965,8 +932,7 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
       INNER JOIN "project" ON "server"."project_id" = "project"."id"
       INNER JOIN "project_member" ON "project"."id" = "project_member"."project_id"
       INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
-    WHERE
-      "project_member"."user_id" = $1
+    WHERE "project_member"."user_id" = $1
     `+sqlFooter, in.GetUserId())
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
@@ -995,13 +961,11 @@ func (h *Handler) ListShareServers(ctx context.Context, in *serverpb.ListShareSe
 
 	// Total count for pagination
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
+    SELECT COUNT(*)
     FROM
       "server"
       INNER JOIN "project_member" ON "server"."project_id" = "project_member"."project_id"
-    WHERE
-      "project_member"."user_id" = $1
+    WHERE "project_member"."user_id" = $1
   `, in.GetUserId(),
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
@@ -1031,10 +995,8 @@ func (h *Handler) DeleteShareServer(ctx context.Context, in *serverpb.DeleteShar
 func (h *Handler) UpdateHostKey(ctx context.Context, in *serverpb.UpdateHostKey_Request) (*serverpb.UpdateHostKey_Response, error) {
 	_, err := h.DB.Conn.ExecContext(ctx, `
     UPDATE "server_host_key"
-    SET
-      "host_key" = $1
-    WHERE
-      "server_id" = $2
+    SET "host_key" = $1
+    WHERE "server_id" = $2
   `, in.GetHostkey(), in.GetServerId())
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
@@ -1047,12 +1009,9 @@ func (h *Handler) UpdateHostKey(ctx context.Context, in *serverpb.UpdateHostKey_
 func (h *Handler) AddSession(ctx context.Context, in *serverpb.AddSession_Request) (*serverpb.AddSession_Response, error) {
 	response := &serverpb.AddSession_Response{}
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    INSERT INTO
-      "session" ("account_id", "status", "message")
-    VALUES
-      ($1, $2, $3)
-    RETURNING
-      id
+    INSERT INTO "session" ("account_id", "status", "message")
+    VALUES ($1, $2, $3)
+    RETURNING "id"
   `, in.GetAccountId(), strings.ToLower(in.Status.String()), in.GetMessage(),
 	).Scan(&response.SessionId)
 	if err != nil {
@@ -1066,8 +1025,7 @@ func (h *Handler) AddSession(ctx context.Context, in *serverpb.AddSession_Reques
 func (h *Handler) ServerNameByID(ctx context.Context, in *serverpb.ServerNameByID_Request) (*serverpb.ServerNameByID_Response, error) {
 	response := &serverpb.ServerNameByID_Response{}
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "server"."title"
+    SELECT "server"."title"
     FROM
       "server"
       INNER JOIN "server_access" ON "server"."access_id" = "server_access"."id"

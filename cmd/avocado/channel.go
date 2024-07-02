@@ -221,7 +221,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 		sendMessageInChannel(ch, " _    _  ____  ____  ____  _____  ____ \n( \\/\\/ )( ___)(  _ \\(  _ \\(  _  )(_  _)\n \033[0;31m)    (  )__)  )   / ) _ < )(_)(   )(\033[0m  \n(__/\\__)(____)(_)\\_)(____/(_____) (__) \n"+version.Version()+", "+version.Commit()+", "+version.BuildDate()+"\n\n")
 
 		serverList, _ := rClient.ListServers(_ctx, &serverpb.ListServers_Request{
-			Query: "login=" + actx.login,
+			Login: actx.login,
 		})
 		actx.serverList = serverList.GetServers()
 
@@ -284,7 +284,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 		}
 
 		getHosts, err := rClient.ListServers(_ctx, &serverpb.ListServers_Request{
-			Query: "login=" + actx.login,
+			Login: actx.login,
 		})
 		if err != nil {
 			app.log.Error(err).Str("login", actx.login).Str("userAddress", actx.userAddr).Msg("Host not found (channel)")

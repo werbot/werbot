@@ -38,14 +38,14 @@ enum AccountStatus {
 message SignIn {
   message Request {
     string email = 1 [(buf.validate.field).cel = {
-      id: "request.email",
-      message: "value must be a valid email address",
+      id: "request.email"
+      message: "value must be a valid email address"
       expression: "this.isEmail()"
-    }];
+    }]; // @gotags: query:"email"
     string password = 2 [(buf.validate.field).string = {
-      min_len: 8,
+      min_len: 8
       max_len: 32
-    }];
+    }]; // @gotags: query:"password"
   }
 
   message Response {
@@ -62,20 +62,22 @@ message ResetPassword {
   message Request {
     oneof request {
       string email = 1 [(buf.validate.field).string.email = true];
-      string password = 2 [(buf.validate.field).string = {
-        min_len: 8,
-        max_len: 32
-      }];
+      string token = 2 [(buf.validate.field).string.uuid = true];
+      Password password = 3;
     }
-    string token = 3 [
-      (buf.validate.field).string.uuid = true,
-      (buf.validate.field).ignore_empty = true
-    ];
   }
 
   message Response {
     string message = 1;
     string token = 2;
+  }
+
+  message Password {
+    string password = 1 [(buf.validate.field).string = {
+      min_len: 8
+      max_len: 32
+    }];
+    string token = 2 [(buf.validate.field).string.uuid = true];
   }
 }
 // -----------------------------------------------------

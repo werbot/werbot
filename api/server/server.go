@@ -13,7 +13,6 @@ import (
 	"github.com/werbot/werbot/internal/grpc"
 	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
 	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
-	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -51,15 +50,12 @@ func (h *Handler) server(c *fiber.Ctx) error {
 	// show all project
 	if request.GetServerId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
-		sanitizeSQL, _ := sanitize.SQL(`project_id = $1 AND user_id = $2`,
-			request.GetProjectId(),
-			request.GetUserId(),
-		)
 		servers, err := rClient.ListServers(ctx, &serverpb.ListServers_Request{
-			Limit:  pagination.Limit,
-			Offset: pagination.Offset,
-			SortBy: pagination.SortBy,
-			Query:  sanitizeSQL,
+			ProjectId: request.GetProjectId(),
+			UserId:    request.GetUserId(),
+			Limit:     pagination.Limit,
+			Offset:    pagination.Offset,
+			SortBy:    pagination.SortBy,
 		})
 		if err != nil {
 			return webutil.FromGRPC(c, err)
@@ -94,6 +90,7 @@ func (h *Handler) server(c *fiber.Ctx) error {
 func (h *Handler) addServer(c *fiber.Ctx) error {
 	request := &serverpb.AddServer_Request{}
 
+	// TODO this very old code, see example updateServer
 	// Deciding what to add
 	if !json.Valid(c.Body()) {
 		return webutil.StatusBadRequest(c, nil)
@@ -157,39 +154,16 @@ func (h *Handler) addServer(c *fiber.Ctx) error {
 func (h *Handler) updateServer(c *fiber.Ctx) error {
 	request := &serverpb.UpdateServer_Request{}
 
-	// Deciding what to update
-	if !json.Valid(c.Body()) {
+	if err := protojson.Unmarshal(c.Body(), request); err != nil {
+		h.log.Error(err).Send()
 		return webutil.StatusBadRequest(c, nil)
 	}
 
-	var update map[string]map[string]any
-	json.Unmarshal(c.Body(), &update)
-	keys := reflect.ValueOf(update["setting"]).MapKeys()
-
-	switch keys[0].String() {
-	case "info":
-		request.Setting = &serverpb.UpdateServer_Request_Info{}
-	case "audit":
-		request.Setting = &serverpb.UpdateServer_Request_Audit{}
-	case "active":
-		request.Setting = &serverpb.UpdateServer_Request_Active{}
-	case "online":
-		request.Setting = &serverpb.UpdateServer_Request_Online{}
-	default:
-		return webutil.StatusBadRequest(c, nil)
-	}
-	// -----------------------
-
-	if err := c.BodyParser(request); err != nil {
-		return webutil.StatusBadRequest(c, "The body of the request is damaged")
-	}
+	request.UserId = middleware.AuthUser(c).UserID(request.GetUserId())
 
 	if err := grpc.ValidateRequest(request); err != nil {
 		return webutil.StatusBadRequest(c, err)
 	}
-
-	userParameter := middleware.AuthUser(c)
-	request.UserId = userParameter.UserID(request.GetUserId())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -215,8 +189,9 @@ func (h *Handler) updateServer(c *fiber.Ctx) error {
 func (h *Handler) deleteServer(c *fiber.Ctx) error {
 	request := &serverpb.DeleteServer_Request{}
 
-	if err := c.BodyParser(request); err != nil {
-		return webutil.StatusBadRequest(c, "The body of the request is damaged")
+	if err := c.QueryParser(request); err != nil {
+		h.log.Error(err).Send()
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -484,13 +459,12 @@ func (h *Handler) addServerFirewall(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, errors.New("bad rule"))
 	}
 
-	response := &firewallpb.AddServerFirewall_Response{}
 	response, err := rClient.AddServerFirewall(ctx, request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "firewall added", response)
+	return webutil.StatusOK(c, "record added", response)
 }
 
 // @Summary      Status firewall server
@@ -523,22 +497,23 @@ func (h *Handler) updateServerFirewall(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "firewall updated", nil)
+	return webutil.StatusOK(c, "record updated", nil)
 }
 
 // @Summary      Delete server firewall
 // @Tags         servers
 // @Accept       json
 // @Produce      json
-// @Param        req         body     firewallpb.ServerFirewallInfo_Request{}
+// @Param        req         body     firewallpb.DeleteServerFirewall_Request{}
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/servers/firewall [delete]
 func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 	request := &firewallpb.DeleteServerFirewall_Request{}
 
-	if err := c.BodyParser(request); err != nil {
-		return webutil.StatusBadRequest(c, "The body of the request is damaged")
+	if err := c.QueryParser(request); err != nil {
+		h.log.Error(err).Send()
+		return webutil.StatusBadRequest(c, nil)
 	}
 
 	if err := grpc.ValidateRequest(request); err != nil {
@@ -556,7 +531,7 @@ func (h *Handler) deleteServerFirewall(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "firewall deleted", nil)
+	return webutil.StatusOK(c, "record deleted", nil)
 }
 
 // @Summary      Server name by ID

@@ -32,8 +32,7 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
       "enabled",
       "confirmed",
       "role"
-    FROM
-      "user"
+    FROM "user"
     WHERE
       "email" = $1
       AND "enabled" = 't'
@@ -71,15 +70,12 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
 func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword_Request) (*accountpb.ResetPassword_Response, error) {
 	response := &accountpb.ResetPassword_Response{}
 
-	switch {
-	// Sending an email with a verification link
-	case in.GetEmail() != "":
+	switch in.GetRequest().(type) {
+	case *accountpb.ResetPassword_Request_Email: // Sending an email with a verification link
 		var userID, resetToken sql.NullString
 		err := h.DB.Conn.QueryRowContext(ctx, `
-      SELECT
-        "id"
-      FROM
-        "user"
+      SELECT "id"
+      FROM "user"
       WHERE
         "email" = $1
         AND "enabled" = 't'
@@ -87,11 +83,6 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
-
-		//if userID.Valid {
-		//	response.Message = "Verification email has been sent"
-		//	return response, nil
-		//}
 
 		// Checking if a verification token has been sent in the last 24 hours
 		resetToken.String, _ = user.TokenByUserID(ctx, &user.Handler{
@@ -104,10 +95,8 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 
 		resetToken.String = uuid.New().String()
 		_, err = h.DB.Conn.ExecContext(ctx, `
-      INSERT INTO
-        "user_token" ("token", "user_id", "action")
-      VALUES
-        ($1, $2, 'reset')
+      INSERT INTO "user_token" ("token", "user_id", "action")
+      VALUES ($1, $2, 'reset')
     `, resetToken.String, userID.String)
 		if err != nil {
 			return nil, trace.Error(err, log, trace.MsgFailedToAdd)
@@ -117,8 +106,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 		response.Token = resetToken.String
 		return response, nil
 
-	// Checking the validity of a link
-	case in.GetToken() != "" && in.GetPassword() == "":
+	case *accountpb.ResetPassword_Request_Token: // Verify token
 		_, err := user.UserIDByToken(ctx, &user.Handler{DB: h.DB}, in.GetToken())
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
@@ -127,14 +115,13 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 		response.Message = "Token is valid"
 		return response, nil
 
-	// Saving a new password
-	case in.GetToken() != "" && in.GetPassword() != "":
-		id, err := user.UserIDByToken(ctx, &user.Handler{DB: h.DB}, in.GetToken())
+	case *accountpb.ResetPassword_Request_Password: // Saving a new password
+		id, err := user.UserIDByToken(ctx, &user.Handler{DB: h.DB}, in.GetPassword().GetToken())
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
 
-		newPassword, err := crypto.HashPassword(in.GetPassword())
+		newPassword, err := crypto.HashPassword(in.GetPassword().GetPassword())
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
@@ -147,10 +134,8 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 
 		_, err = tx.ExecContext(ctx, `
       UPDATE "user"
-      SET
-        "password" = $1
-      WHERE
-        "id" = $2
+      SET "password" = $1
+      WHERE "id" = $2
     `, newPassword, id)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
@@ -161,9 +146,8 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
       SET
         "used" = 't',
         date_used = NOW()
-      WHERE
-        "token" = $1
-    `, in.GetToken())
+      WHERE "token" = $1
+    `, in.GetPassword().GetToken())
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
@@ -174,6 +158,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 
 		response.Message = "New password saved"
 		return response, nil
+
 	}
 
 	return response, nil

@@ -3,9 +3,10 @@ package trace
 import (
 	"database/sql"
 
-	"github.com/werbot/werbot/pkg/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/werbot/werbot/pkg/logger"
 )
 
 // Error is ...

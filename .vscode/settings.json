@@ -1,72 +1,23 @@
 {
   "go.buildFlags": ["-tags=saas"],
   "scss.lint.unknownAtRules": "ignore",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
 
-  "editor.tabSize": 2,
-  "editor.insertSpaces": true,
-  "editor.detectIndentation": false,
-
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/*.log": true,
-    "**/*.log*": true,
-    "**/bower_components": true,
-    "**/dist": true,
-    "**/elehukouben": true,
-    "**/.git": true,
-    "**/.gitignore": true,
-    "**/.svn": true,
-    "**/.DS_Store": true,
-    "**/.idea": true,
-    "**/.vscode": false,
-    "**/yarn.lock": true,
-    "**/tmp": true,
-    "out": true,
-    "dist": true,
-    "node_modules": true,
-    "CHANGELOG.md": true,
-    "examples": true,
-    "res": true,
-    "screenshots": true,
-    "yarn-error.log": true,
-    "**/.yarn": true
-  },
-
-  "files.exclude": {
-    "**/.cache": true,
-    "**/.editorconfig": true,
-    "**/.eslintcache": true,
-    "**/bower_components": true,
-    "**/.idea": true,
-    "**/tmp": true,
-    "**/.git": true,
-    "**/.svn": true,
-    "**/.hg": true,
-    "**/CVS": true,
-    "**/.DS_Store": true
-  },
-
-  "files.watcherExclude": {
-    "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true,
-    "**/.vscode/**": true,
-    "**/node_modules/**": true,
-    "**/tmp/**": true,
-    "**/bower_components/**": true,
-    "**/dist/**": true,
-    "**/yarn.lock": true
-  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "vue"
+  ],
 
   "[vue]": {
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit",
-      "source.fixAll.stylelint": "explicit"
-    },
-    "editor.defaultFormatter": "Vue.volar"
+    //"editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "Vue.volar",
+    "editor.formatOnSave": true
   },
-
-  "vue.features.codeActions.enable": false,
-
-  // "go.lintTool": "golangci-lint",
-  // "go.lintFlags": ["--fast"]
+  "[javascript]": {
+    "editor.formatOnSave": true
+  },
+  "[typescript]": {
+    "editor.formatOnSave": true
+  }
 }

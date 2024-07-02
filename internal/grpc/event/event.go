@@ -24,12 +24,9 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 	// use only profile_id
 	case *eventpb.Events_Request_ProfileId:
 		sqlQueryTotal = `
-      SELECT
-        COUNT("id")
-      FROM
-        "event_profile"
-      WHERE
-        "profile_id" = $1
+      SELECT COUNT("id")
+      FROM "event_profile"
+      WHERE "profile_id" = $1
     `
 		sqlQuery = `
       SELECT
@@ -39,10 +36,8 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
         "event",
         "section",
         "created_at"
-      FROM
-        "event_profile"
-      WHERE
-        "profile_id" = $1
+      FROM "event_profile"
+      WHERE "profile_id" = $1
     `
 		args = append(args, in.GetProfileId())
 
@@ -54,8 +49,7 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 		}
 
 		sqlQueryTotal = `
-      SELECT
-        COUNT("event_project"."id")
+      SELECT COUNT("event_project"."id")
       FROM
         "event_project"
         INNER JOIN "project" ON "event_project"."project_id" = "project"."id"
@@ -88,8 +82,7 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 		}
 
 		sqlQueryTotal = `
-      SELECT
-        COUNT("event_server"."id")
+      SELECT COUNT("event_server"."id")
       FROM
         "event_server"
         INNER JOIN "server" ON "event_server"."server_id" = "server"."id"
@@ -180,8 +173,7 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
         "section",
         "data",
         "created_at"
-      FROM
-        "event_profile"
+      FROM "event_profile"
       WHERE
         "id" = $1
         AND "user_id" = $2
@@ -273,10 +265,8 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
           "section",
           "data"
         )
-      VALUES
-        ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING
-        id
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING "id"
     `
 		section = int32(in.GetProfile().GetSection())
 		id = in.GetProfile().Id
@@ -297,10 +287,8 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
           "section",
           "data"
         )
-      VALUES
-        ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING
-        id
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING "id"
     `
 		section = int32(in.GetProject().Section)
 		id = in.GetProject().Id
@@ -321,10 +309,8 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
           "section",
           "data"
         )
-      VALUES
-        ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING
-        id
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING "id"
     `
 		section = int32(in.GetServer().Section)
 		id = in.GetServer().Id

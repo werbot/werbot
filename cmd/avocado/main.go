@@ -57,6 +57,7 @@ func main() {
 	if err != nil {
 		app.log.Fatal(err).Send()
 	}
+	defer app.grpc.Close()
 
 	go app.broker.WriteStatus()
 

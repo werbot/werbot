@@ -21,16 +21,11 @@ func (h *Handler) Countries(ctx context.Context, in *utilitypb.Countries_Request
     SELECT
       "code",
       "name"
-    FROM
-      "country"
-    WHERE
-      LOWER("name") LIKE LOWER($1)
-    ORDER BY
-      "name" ASC
-    LIMIT
-      15
-    OFFSET
-      0
+    FROM "country"
+    WHERE LOWER("name") LIKE LOWER($1)
+    ORDER BY "name" ASC
+    LIMIT 15
+    OFFSET 0
   `, in.GetName()+"%")
 	if err != nil {
 		return nil, trace.Error(err, log, nil)

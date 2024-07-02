@@ -2,6 +2,7 @@ package firewall
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/werbot/werbot/internal"
@@ -44,8 +45,7 @@ func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request)
 	// porch IP on the global list
 	var total int32
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
+    SELECT COUNT(*)
     FROM
       "firewall_ip"
       INNER JOIN "firewall_list" ON "firewall_ip"."list_id" = "firewall_list"."id"
@@ -168,8 +168,7 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
 		err := h.DB.Conn.QueryRowContext(ctx, `
       SELECT
         EXISTS (
-          SELECT
-            1
+          SELECT 1
           FROM
             "server"
             INNER JOIN "server_security_country" ON "server"."id" = "server_security_country"."server_id"
@@ -189,18 +188,16 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
-		if !exists {
-			errGRPC := status.Error(codes.AlreadyExists, "")
+		fmt.Print(exists)
+		if exists {
+			errGRPC := status.Error(codes.AlreadyExists, "already exists")
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 		err = h.DB.Conn.QueryRowContext(ctx, `
-      INSERT INTO
-        "server_security_country" ("server_id", "country_code")
-      VALUES
-        ($1, $2)
-      RETURNING
-        id
+      INSERT INTO "server_security_country" ("server_id", "country_code")
+      VALUES ($1, $2)
+      RETURNING "id"
     `, in.GetServerId(), record.CountryCode,
 		).Scan(&response.Id)
 		if err != nil {
@@ -211,8 +208,7 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
 		err := h.DB.Conn.QueryRowContext(ctx, `
       SELECT
         EXISTS (
-          SELECT
-            1
+          SELECT 1
           FROM
             "server"
             INNER JOIN "server_security_ip" ON "server"."id" = "server_security_ip"."server_id"
@@ -234,18 +230,15 @@ func (h *Handler) AddServerFirewall(ctx context.Context, in *firewallpb.AddServe
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
-		if !exists {
-			errGRPC := status.Error(codes.AlreadyExists, "")
+		if exists {
+			errGRPC := status.Error(codes.AlreadyExists, "already exists")
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 		err = h.DB.Conn.QueryRowContext(ctx, `
-      INSERT INTO
-        "server_security_ip" ("server_id", "start_ip", "end_ip")
-      VALUES
-        ($1, $2, $3)
-      RETURNING
-        id
+      INSERT INTO "server_security_ip" ("server_id", "start_ip", "end_ip")
+      VALUES ($1, $2, $3)
+      RETURNING "id"
     `, in.GetServerId(), record.Ip.StartIp, record.Ip.EndIp,
 		).Scan(&response.Id)
 		if err != nil {
@@ -308,9 +301,9 @@ func (h *Handler) UpdateServerFirewall(ctx context.Context, in *firewallpb.Updat
 	case firewallpb.Rules_country:
 		sql = `
       UPDATE "server_access_policy"
-      SET
-        "country" = $4
-      FROM "server"
+      SET "country" = $4
+      FROM
+        "server"
         INNER JOIN "project" ON "server"."project_id" = "project"."id"
       WHERE
         "server_access_policy"."server_id" = "server"."id"
@@ -321,9 +314,9 @@ func (h *Handler) UpdateServerFirewall(ctx context.Context, in *firewallpb.Updat
 	case firewallpb.Rules_ip:
 		sql = `
     UPDATE "server_access_policy"
-    SET
-      "ip" = $4
-    FROM "server"
+    SET "ip" = $4
+    FROM
+      "server"
       INNER JOIN "project" ON "server"."project_id" = "project"."id"
     WHERE
       "server_access_policy"."server_id" = "server"."id"
@@ -400,8 +393,7 @@ func (h *Handler) ServerAccessUser(ctx context.Context, in *firewallpb.ServerAcc
 	response := &firewallpb.ServerAccessUser_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "server_member"."id"
+    SELECT "server_member"."id"
     FROM
       "server_member"
       INNER JOIN "project_member" ON "server_member"."member_id" = "project_member"."id"
@@ -433,10 +425,8 @@ func (h *Handler) ServerAccessTime(ctx context.Context, in *firewallpb.ServerAcc
 	response := &firewallpb.ServerAccessTime_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "id"
-    FROM
-      "server_activity"
+    SELECT "id"
+    FROM "server_activity"
     WHERE
       "server_id" = $1
       AND "dow" = $2
@@ -467,12 +457,9 @@ func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcces
 
 	var accessListIP bool
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "ip"
-    FROM
-      "server_access_policy"
-    WHERE
-      "server_id" = $1
+    SELECT "ip"
+    FROM "server_access_policy"
+    WHERE "server_id" = $1
   `, in.GetServerId(),
 	).Scan(&accessListIP)
 	if err != nil {
@@ -481,8 +468,7 @@ func (h *Handler) ServerAccessIP(ctx context.Context, in *firewallpb.ServerAcces
 
 	// We make a sample in the database with a list of IP addresses
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
+    SELECT COUNT(*)
     FROM
       "server_access_policy"
       INNER JOIN "server_security_ip" ON "server_access_policy"."server_id" = "server_security_ip"."server_id"
@@ -530,12 +516,9 @@ func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.Server
 
 	var accessListCountry bool
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "country"
-    FROM
-      "server_access_policy"
-    WHERE
-      "server_id" = $1
+    SELECT "country"
+    FROM "server_access_policy"
+    WHERE "server_id" = $1
   `, in.GetServerId(),
 	).Scan(&accessListCountry)
 	if err != nil {
@@ -544,8 +527,7 @@ func (h *Handler) ServerAccessCountry(ctx context.Context, in *firewallpb.Server
 
 	// Sample from the table with countries
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
+    SELECT COUNT(*)
     FROM
       "server_access_policy"
       INNER JOIN "server_security_country" ON "server_access_policy"."server_id" = "server_security_country"."server_id"

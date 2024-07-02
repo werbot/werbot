@@ -46,10 +46,8 @@ func (h *Handler) AddAudit(ctx context.Context, in *auditpb.AddAudit_Request) (*
         "session",
         "client_ip"
       )
-    VALUES
-      ($1, NOW(), $3, 0, 0, 0, '', '', '', '/bin/sh', $4)
-    RETURNING
-      "id"
+    VALUES ($1, NOW(), $3, 0, 0, 0, '', '', '', '/bin/sh', $4)
+    RETURNING "id"
   `,
 		in.GetAccountId(),
 		in.GetVersion(),
@@ -72,8 +70,7 @@ func (h *Handler) UpdateAudit(ctx context.Context, in *auditpb.UpdateAudit_Reque
     SET
       "duration" = $1,
       "time_end" = $2
-    WHERE
-      "id" = $3
+    WHERE "id" = $3
   `,
 		in.GetDuration(),
 		in.GetTimeEnd().AsTime(),
@@ -110,10 +107,8 @@ func (h *Handler) AddRecord(ctx context.Context, in *auditpb.AddRecord_Request) 
 	defer tx.Rollback()
 
 	stmt, err := tx.PrepareContext(ctx, `
-    INSERT INTO
-      "audit_record" ("audit_id", "duration", "screen", "type")
-    VALUES
-      ($1, $2, $3, $4)
+    INSERT INTO "audit_record" ("audit_id", "duration", "screen", "type")
+    VALUES ($1, $2, $3, $4)
   `)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToAdd)

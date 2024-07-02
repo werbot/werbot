@@ -46,8 +46,7 @@ func (h *Handler) AccountIDByLogin(ctx context.Context, in *accountpb.AccountIDB
 	nameArray := strutil.SplitNTrimmed(in.GetLogin(), "_", 3)
 
 	stmt, err := h.DB.Conn.PrepareContext(ctx, `
-    SELECT
-      "user"."id"
+    SELECT "user"."id"
     FROM
       "user"
       JOIN "user_public_key" ON "user"."id" = "user_public_key"."user_id"
@@ -99,10 +98,8 @@ func (h *Handler) UpdateStatus(ctx context.Context, in *accountpb.UpdateStatus_R
 
 	_, err := h.DB.Conn.ExecContext(ctx, `
     UPDATE "server_member"
-    SET
-      "online" = $2
-    WHERE
-      "id" = $1
+    SET "online" = $2
+    WHERE "id" = $1
   `, in.GetAccountId(), online)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)

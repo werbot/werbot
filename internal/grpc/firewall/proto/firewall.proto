@@ -131,11 +131,11 @@ message DeleteServerFirewall {
     string user_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ];
-    string project_id = 2 [(buf.validate.field).string.uuid = true];
-    string server_id = 3 [(buf.validate.field).string.uuid = true];
+    ]; // @gotags: query:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id"
     Rules rule = 4;
-    string record_id = 5 [(buf.validate.field).string.uuid = true];
+    string record_id = 5 [(buf.validate.field).string.uuid = true]; // @gotags: query:"record_id"
   }
 
   message Response {}

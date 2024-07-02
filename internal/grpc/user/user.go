@@ -34,32 +34,23 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
       "created_at",
       "role",
       (
-        SELECT
-          COUNT(*)
-        FROM
-          "project"
-        WHERE
-          "owner_id" = "user"."id"
+        SELECT COUNT(*)
+        FROM "project"
+        WHERE "owner_id" = "user"."id"
       ) AS "count_project",
       (
-        SELECT
-          COUNT(*)
-        FROM
-          "user_public_key"
-        WHERE
-          "user_id" = "user"."id"
+        SELECT COUNT(*)
+        FROM "user_public_key"
+        WHERE "user_id" = "user"."id"
       ) AS "count_keys",
       (
-        SELECT
-          COUNT(*)
+        SELECT COUNT(*)
         FROM
           "project"
           JOIN "server" ON "project"."id" = "server"."project_id"
-        WHERE
-          "project"."owner_id" = "user"."id"
+        WHERE "project"."owner_id" = "user"."id"
       ) AS "count_servers"
-    FROM
-      "user"
+    FROM "user"
   `+sqlSearch+sqlFooter)
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
@@ -102,10 +93,8 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
 
 	// Total count for pagination
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      COUNT(*)
-    FROM
-      "user"
+    SELECT COUNT(*)
+    FROM "user"
   `+sqlSearch).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, trace.Error(err, log, nil)
@@ -131,10 +120,8 @@ func (h *Handler) User(ctx context.Context, in *userpb.User_Request) (*userpb.Us
       "role",
       "updated_at",
       "created_at"
-    FROM
-      "user"
-    WHERE
-      "id" = $1
+    FROM "user"
+    WHERE "id" = $1
   `, in.GetUserId(),
 	).Scan(&response.Login,
 		&response.Name,
@@ -168,12 +155,9 @@ func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*use
 
 	// Checking if the email address already exists
 	err = tx.QueryRowContext(ctx, `
-    SELECT
-      "id"
-    FROM
-      "user"
-    WHERE
-      "email" = $1
+    SELECT "id"
+    FROM "user"
+    WHERE "email" = $1
   `, in.GetEmail(),
 	).Scan(&response.UserId)
 	if err != nil && err != sql.ErrNoRows {
@@ -198,10 +182,8 @@ func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*use
         "enabled",
         "confirmed"
       )
-    VALUES
-      ($1, $2, $3, $4, $5, $6)
-    RETURNING
-      "id"
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING "id"
   `,
 		in.GetLogin(),
 		in.GetName(),
@@ -236,8 +218,7 @@ func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request)
         "email" = $2,
         "name" = $3,
         "surname" = $4
-      WHERE
-        "id" = $5
+      WHERE "id" = $5
     `,
 			in.GetInfo().GetLogin(),
 			in.GetInfo().GetEmail(),
@@ -248,18 +229,14 @@ func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request)
 	case *userpb.UpdateUser_Request_Confirmed:
 		_, err = h.DB.Conn.ExecContext(ctx, `
       UPDATE "user"
-      SET
-        "confirmed" = $1
-      WHERE
-        "id" = $2
+      SET "confirmed" = $1
+      WHERE "id" = $2
     `, in.GetConfirmed(), in.GetUserId())
 	case *userpb.UpdateUser_Request_Enabled:
 		_, err = h.DB.Conn.ExecContext(ctx, `
       UPDATE "user"
-      SET
-        "enabled" = $1
-      WHERE
-        "id" = $2
+      SET "enabled" = $1
+      WHERE "id" = $2
     `, in.GetEnabled(), in.GetUserId())
 	default:
 		errGRPC := status.Error(codes.InvalidArgument, "")
@@ -291,10 +268,8 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
         "login",
         "password",
         "email"
-      FROM
-        "user"
-      WHERE
-        "id" = $1
+      FROM "user"
+      WHERE "id" = $1
     `, in.GetUserId(),
 		).Scan(&login,
 			&passwordHash,
@@ -320,10 +295,8 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 
 		deleteToken = uuid.New().String()
 		_, err = tx.ExecContext(ctx, `
-      INSERT INTO
-        "user_token" ("token", "user_id", "action")
-      VALUES
-        ($1, $2, 'delete')
+      INSERT INTO "user_token" ("token", "user_id", "action")
+      VALUES ($1, $2, 'delete')
     `, deleteToken, in.GetUserId())
 		if err != nil {
 			return nil, trace.Error(err, log, trace.MsgFailedToAdd)
@@ -352,10 +325,8 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 
 		_, err = tx.ExecContext(ctx, `
       UPDATE "user"
-      SET
-        "enabled" = 'f'
-      WHERE
-        "id" = $1
+      SET "enabled" = 'f'
+      WHERE "id" = $1
     `, in.GetUserId())
 		if err != nil {
 			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
@@ -366,8 +337,7 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
       SET
         "used" = 't',
         "date_used" = NOW()
-      WHERE
-        "token" = $1
+      WHERE "token" = $1
     `, in.GetToken())
 		if err != nil {
 			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
@@ -377,10 +347,8 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
       SELECT
         "login",
         "email"
-      FROM
-        "user"
-      WHERE
-        "id" = $1
+      FROM "user"
+      WHERE "id" = $1
     `, in.GetUserId()).Scan(&login,
 			&email,
 		)
@@ -409,12 +377,9 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_
 		// Check for a validity of the old password
 		var currentPassword string
 		err := h.DB.Conn.QueryRowContext(ctx, `
-      SELECT
-        "password"
-      FROM
-        "user"
-      WHERE
-        "id" = $1
+      SELECT "password"
+      FROM "user"
+      WHERE "id" = $1
     `, in.GetUserId(),
 		).Scan(&currentPassword)
 		if err != nil {
@@ -436,10 +401,8 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_
 
 	_, err = h.DB.Conn.ExecContext(ctx, `
     UPDATE "user"
-    SET
-      "password" = $1
-    WHERE
-      "id" = $2
+    SET "password" = $1
+    WHERE "id" = $2
   `, newPassword, in.GetUserId())
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
@@ -452,10 +415,8 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_
 func TokenByUserID(ctx context.Context, h *Handler, userID, action string) (string, error) {
 	var token string
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "token"
-    FROM
-      "user_token"
+    SELECT "token"
+    FROM "user_token"
     WHERE
       "user_id" = $1
       AND "used" = 'f'
@@ -479,10 +440,8 @@ func TokenByUserID(ctx context.Context, h *Handler, userID, action string) (stri
 func UserIDByToken(ctx context.Context, h *Handler, token string) (string, error) {
 	var id string
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "user_id" AS "id"
-    FROM
-      "user_token"
+    SELECT "user_id" AS "id"
+    FROM "user_token"
     WHERE
       "token" = $1
       AND "used" = 'f'

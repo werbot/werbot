@@ -217,7 +217,6 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        email       path     string true "Step1: user email"
-// @Param        reset_token path     uuid true "Step2: reset token"
 // @Param        password    path     string true "Step2: new password"
 // @Success      200         {object} webutil.HTTPResponse{data=auth.ResetPassword_Response}
 // @Failure      400,500     {object} webutil.HTTPResponse
@@ -225,34 +224,33 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	request := &accountpb.ResetPassword_Request{}
 
-	if len(c.Body()) > 0 {
-		if err := protojson.Unmarshal(c.Body(), request); err != nil {
-			return webutil.StatusBadRequest(c, "The body of the request is damaged")
-		}
+	if err := protojson.Unmarshal(c.Body(), request); err != nil {
+		h.log.Error(err).Send()
+		return webutil.StatusBadRequest(c, nil)
 	}
 
-	request.Token = c.Params("res_token")
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.FromGRPC(c, err)
-	}
-
-	// Sending an email with a verification link
-	if request.GetEmail() != "" {
+	switch request.GetRequest().(type) {
+	case *accountpb.ResetPassword_Request_Email: // Sending an email with a verification link
 		request.Request = &accountpb.ResetPassword_Request_Email{
 			Email: request.GetEmail(),
 		}
-	}
 
-	// Saving a new password
-	if request.GetToken() != "" && request.GetPassword() != "" {
+	case *accountpb.ResetPassword_Request_Password: // Saving a new password
 		request.Request = &accountpb.ResetPassword_Request_Password{
-			Password: request.GetPassword(),
+			Password: &accountpb.ResetPassword_Password{
+				Password: request.GetPassword().GetPassword(),
+				Token:    request.GetPassword().GetToken(),
+			},
 		}
-		request.Token = request.GetToken()
+
+	default:
+		request.Request = &accountpb.ResetPassword_Request_Email{
+			Email: "",
+		}
 	}
 
-	if request.Request == nil && request.GetToken() == "" {
-		return webutil.StatusBadRequest(c, "The body of the request is damaged")
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.StatusBadRequest(c, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -277,5 +275,36 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 		}()
 	}
 
-	return webutil.StatusOK(c, "password reset", response)
+	return webutil.StatusOK(c, "Password reset", response)
+}
+
+// @Summary      Check reset token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        reset_token path     uuid true "Reset token"
+// @Success      200         {object} webutil.HTTPResponse
+// @Failure      400,500     {object} webutil.HTTPResponse
+// @Router       /auth/password_reset/:reset_token [get]
+func (h *Handler) checkResetToken(c *fiber.Ctx) error {
+	request := &accountpb.ResetPassword_Request{
+		Request: &accountpb.ResetPassword_Request_Token{
+			Token: c.Params("reset_token"),
+		},
+	}
+
+	if err := grpc.ValidateRequest(request); err != nil {
+		return webutil.StatusBadRequest(c, err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	rClient := accountpb.NewAccountHandlersClient(h.Grpc)
+	response, err := rClient.ResetPassword(ctx, request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "Check token", response)
 }

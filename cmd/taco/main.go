@@ -51,6 +51,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err).Send()
 	}
+	defer grpcClient.Close()
 
 	redis := redis.New(ctx, &redis.RedisConfig{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),

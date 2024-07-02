@@ -31,16 +31,16 @@ func Response(c *fiber.Ctx, code int, message string, data any) error {
 func CodeFromErrorGRPC(err error) int {
 	codeMap := map[codes.Code]int{
 		codes.OK:                 fiber.StatusOK,
-		codes.Canceled:           fiber.StatusBadRequest,
+		codes.Canceled:           fiber.StatusBadRequest, // ????
 		codes.Unknown:            fiber.StatusInternalServerError,
 		codes.InvalidArgument:    fiber.StatusBadRequest,
 		codes.DeadlineExceeded:   fiber.StatusGatewayTimeout,
 		codes.NotFound:           fiber.StatusNotFound,
-		codes.AlreadyExists:      fiber.StatusBadRequest,
+		codes.AlreadyExists:      fiber.StatusConflict,
 		codes.PermissionDenied:   fiber.StatusForbidden,
 		codes.ResourceExhausted:  fiber.StatusTooManyRequests,
 		codes.FailedPrecondition: fiber.StatusBadRequest,
-		codes.Aborted:            fiber.StatusBadRequest,
+		codes.Aborted:            fiber.StatusConflict,
 		codes.OutOfRange:         fiber.StatusBadRequest,
 		codes.Unimplemented:      fiber.StatusNotImplemented,
 		codes.Internal:           fiber.StatusInternalServerError,
