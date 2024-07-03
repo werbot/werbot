@@ -3,15 +3,11 @@
   "scss.lint.unknownAtRules": "ignore",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
 
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "vue"
-  ],
+  "eslint.validate": ["javascript", "typescript", "vue"],
 
   "[vue]": {
     //"editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.defaultFormatter": "Vue.volar",
+    //"editor.defaultFormatter": "Vue.volar",
     "editor.formatOnSave": true
   },
   "[javascript]": {
