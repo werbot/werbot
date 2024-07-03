@@ -6,14 +6,15 @@
   "eslint.validate": ["javascript", "typescript", "vue"],
 
   "[vue]": {
-    //"editor.defaultFormatter": "esbenp.prettier-vscode",
-    //"editor.defaultFormatter": "Vue.volar",
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
     "editor.formatOnSave": true
   },
   "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
     "editor.formatOnSave": true
   },
   "[typescript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
     "editor.formatOnSave": true
   }
 }
