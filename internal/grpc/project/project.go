@@ -62,6 +62,11 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
 		project.CreatedAt = timestamppb.New(createdAt.Time)
 		project.MembersCount = countMembers
 		project.ServersCount = countServers
+		project.DatabasesCount = 0
+		project.ApplicationsCount = 0
+		project.DesktopsCount = 0
+		project.ContainersCount = 0
+		project.CloudsCount = 0
 		response.Projects = append(response.Projects, project)
 	}
 	defer rows.Close()
@@ -122,6 +127,11 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
 	response.CreatedAt = timestamppb.New(createdAt.Time)
 	response.MembersCount = countMembers
 	response.ServersCount = countServers
+	response.DatabasesCount = 0
+	response.ApplicationsCount = 0
+	response.DesktopsCount = 0
+	response.ContainersCount = 0
+	response.CloudsCount = 0
 	return response, nil
 }
 

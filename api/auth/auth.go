@@ -199,7 +199,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 
 	// Reissue the token if its lifetime is less than 60 minutes.
 	exp, _ := claimsRefresh.GetExpirationTime()
-	timeLeft := (exp.Unix() - time.Now().Unix()) / 60 // minuts
+	timeLeft := (exp.Unix() - time.Now().Unix()) / 60 // minutes
 	if timeLeft < 60 {
 		tokens.Refresh = newToken.Refresh
 		jwt.CacheAdd(h.Redis, "refresh_token", idSession, cacheData)

@@ -55,12 +55,17 @@ message Project {
     string owner_id = 2;
     string title = 3;
     string login = 4;
-    int32 members_count = 5;
     int32 servers_count = 6;
-    google.protobuf.Timestamp locked_at = 7;
-    google.protobuf.Timestamp archived_at = 8;
-    google.protobuf.Timestamp updated_at = 9;
-    google.protobuf.Timestamp created_at = 10;
+    int32 databases_count = 7;
+    int32 applications_count = 8;
+    int32 desktops_count = 9;
+    int32 containers_count = 10;
+    int32 clouds_count = 11;
+    int32 members_count = 12;
+    google.protobuf.Timestamp locked_at = 13;
+    google.protobuf.Timestamp archived_at = 14;
+    google.protobuf.Timestamp updated_at = 15;
+    google.protobuf.Timestamp created_at = 16;
   }
 }
 // -----------------------------------------------------
