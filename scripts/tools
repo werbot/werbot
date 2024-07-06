@@ -5,60 +5,183 @@
 ROOT_PATH="$(git rev-parse --show-toplevel)"
 source ${ROOT_PATH}/scripts/_helper
 
+support_arch
+
+GO_INSTALL=false
+GO_PATH="$HOME/go"
+if command -v go &>/dev/null; then
+  GO_INSTALL=true
+  GO_PATH=$(go env GOROOT)
+fi
+
+check_and_install_go_package() {
+  local tool_name=$1
+  local go_package=$2
+
+  print_header "Check $tool_name"
+  if $GO_INSTALL; then
+    ACTION="INSTALL"
+    if command -v "$tool_name" &>/dev/null; then
+      ACTION="UPDATE"
+    fi
+    go install "$go_package@latest" >/dev/null 2>&1
+    print_answer "$ACTION" green
+  else
+    print_answer SKIP yellow
+  fi
+}
+
+install_or_update_using_brew() {
+  local tool_name=$1
+  local command_name=$2
+
+  print_header "Check $tool_name"
+  ACTION="INSTALL"
+  if command -v $command_name &>/dev/null; then
+    brew upgrade $tool_name >/dev/null 2>&1
+    ACTION="UPDATE"
+  else
+    brew install $tool_name >/dev/null 2>&1
+  fi
+  print_answer "$ACTION" green
+}
+
 case "$1" in
 app)
   case "$OS" in
   Darwin)
-    brew install protobuf protoc-gen-go protoc-gen-go-grpc goose golangci-lint yq
-    ;;
+    if ! $GO_INSTALL; then
+      echo -e "${COLOR_RED}ALARM!${COLOR_RESET}\nYour system does not have golang detected, which is necessary for some packages and development."
+      echo -e "To install the latest version of golang, you can run the command: ${COLOR_GREEN}./scripts/tools golang${COLOR_RESET}\n"
+    fi
 
-  Linux)
     mkdir -p ${ROOT_PATH}/.vscode/tmp
 
-    print_header "Install/Update golangci-lint"
-    GOLINTER_LATEST=$(get_latest_release "golangci/golangci-lint")
-    wget "https://github.com/golangci/golangci-lint/releases/download/${GOLINTER_LATEST}/golangci-lint-${GOLINTER_LATEST#*v}-linux-amd64.tar.gz" -4 -q -O ${ROOT_PATH}/.vscode/tmp/golangci-lint.tar.gz
-    tar --no-same-owner -xzf ${ROOT_PATH}/.vscode/tmp/golangci-lint.tar.gz -C ${ROOT_PATH}/.vscode/tmp
-    install "${ROOT_PATH}/.vscode/tmp/golangci-lint-${GOLINTER_LATEST#*v}-linux-amd64/golangci-lint" "$HOME/.local/bin"
-    print_answer "SUCCESS" green
+    # Install or update golangci-lint (https://golangci-lint.run)
+    install_or_update_using_brew "golangci-lint" "golangci-lint"
 
-    print_header "Install/Update protobuf"
-    PROTOS_LATEST=$(get_latest_release "protocolbuffers/protobuf")
-    wget "https://github.com/protocolbuffers/protobuf/releases/download/${PROTOS_LATEST}/protoc-${PROTOS_LATEST#*v}-linux-x86_64.zip" -4 -q -O ${ROOT_PATH}/.vscode/tmp/protoc.zip
-    unzip -o ${ROOT_PATH}/.vscode/tmp/protoc.zip -d $HOME/.local >/dev/null 2>&1
-    print_answer "SUCCESS" green
+    # Install or update protobuf (https://protobuf.dev)
+    install_or_update_using_brew "protobuf" "protoc"
 
-    print_header "Install/Update protovalidate"
+    # Install or update protovalidate (https://buf.build/bufbuild/protovalidate)
+    print_header "Check protovalidate"
+    ACTION="INSTALL"
+    if [ -d $HOME/.local/include/buf/validate ]; then
+      ACTION="UPDATE"
+      rm -rf $HOME/.local/include/buf/validate
+    fi
     if ! [ -d ${ROOT_PATH}/.vscode/tmp/protovalidate ]; then
       mkdir ${ROOT_PATH}/.vscode/tmp/protovalidate
       git clone https://github.com/bufbuild/protovalidate.git ${ROOT_PATH}/.vscode/tmp/protovalidate >/dev/null 2>&1
     fi
+    cp -a ${ROOT_PATH}/.vscode/tmp/protovalidate/proto/protovalidate/buf $HOME/.local/include
+    print_answer "$ACTION" green
+
+    # Install or update protoc-gen-go (https://google.golang.org/protobuf/cmd/protoc-gen-go)
+    install_or_update_using_brew "protoc-gen-go" "protoc-gen-go"
+
+    # Install or update protoc-gen-go-grpc (https://google.golang.org/grpc/cmd/protoc-gen-go-grpc)
+    install_or_update_using_brew "protoc-gen-go-grpc" "protoc-gen-go-grpc"
+
+    # Install or update protoc-go-inject-tag (https://github.com/favadi/protoc-go-inject-tag)
+    check_and_install_go_package "protoc-go-inject-tag" "github.com/favadi/protoc-go-inject-tag"
+
+    # Install or update goose (http://pressly.github.io/goose/)
+    install_or_update_using_brew "goose" "goose"
+
+    # Install or update yq (https://mikefarah.gitbook.io/yq)
+    install_or_update_using_brew "yq" "yq"
+
+    # Install or update bun (https://bun.sh)
+    print_header "Check bun"
+    if command -v bun &>/dev/null; then
+      bun upgrade &>/dev/null
+      print_answer "UPDATE" green
+    else
+      curl -fsSL https://bun.sh/install &>/dev/null
+      print_answer "INSTALL" green
+    fi
+
+    rm -rf ${ROOT_PATH}/.vscode/tmp
+    source ~/.profile
+    ;;
+
+  Linux)
+    if ! $GO_INSTALL; then
+      echo -e "${COLOR_RED}ALARM!${COLOR_RESET}\nYour system does not have golang detected, which is necessary for some packages and development."
+      echo -e "To install the latest version of golang, you can run the command: ${COLOR_GREEN}./scripts/tools golang${COLOR_RESET}\n"
+    fi
+
+    mkdir -p ${ROOT_PATH}/.vscode/tmp
+
+    # Install or update golangci-lint (https://golangci-lint.run)
+    print_header "Check golangci-lint"
+    ACTION="INSTALL"
+    if command -v golangci-lint &>/dev/null; then
+      ACTION="UPDATE"
+    fi
+    GOLINTER_LATEST=$(get_latest_release "golangci/golangci-lint")
+    wget "https://github.com/golangci/golangci-lint/releases/download/${GOLINTER_LATEST}/golangci-lint-${GOLINTER_LATEST#*v}-linux-amd64.tar.gz" -4 -q -O ${ROOT_PATH}/.vscode/tmp/golangci-lint.tar.gz
+    tar --no-same-owner -xzf ${ROOT_PATH}/.vscode/tmp/golangci-lint.tar.gz -C ${ROOT_PATH}/.vscode/tmp
+    install "${ROOT_PATH}/.vscode/tmp/golangci-lint-${GOLINTER_LATEST#*v}-linux-amd64/golangci-lint" "$HOME/.local/bin"
+    print_answer "$ACTION" green
+
+    # Install or update protobuf (https://protobuf.dev)
+    print_header "Check protobuf"
+    ACTION="INSTALL"
+    if command -v protoc &>/dev/null; then
+      ACTION="UPDATE"
+    fi
+    PROTOS_LATEST=$(get_latest_release "protocolbuffers/protobuf")
+    wget "https://github.com/protocolbuffers/protobuf/releases/download/${PROTOS_LATEST}/protoc-${PROTOS_LATEST#*v}-linux-x86_64.zip" -4 -q -O ${ROOT_PATH}/.vscode/tmp/protoc.zip
+    unzip -o ${ROOT_PATH}/.vscode/tmp/protoc.zip -d $HOME/.local >/dev/null 2>&1
+    print_answer "$ACTION" green
+
+    # Install or update protovalidate (https://buf.build/bufbuild/protovalidate)
+    print_header "Check protovalidate"
+    ACTION="INSTALL"
     if [ -d $HOME/.local/include/buf/validate ]; then
+      ACTION="UPDATE"
       rm -rf $HOME/.local/include/buf/validate
     fi
+    if ! [ -d ${ROOT_PATH}/.vscode/tmp/protovalidate ]; then
+      mkdir ${ROOT_PATH}/.vscode/tmp/protovalidate
+      git clone https://github.com/bufbuild/protovalidate.git ${ROOT_PATH}/.vscode/tmp/protovalidate >/dev/null 2>&1
+    fi
     cp -a ${ROOT_PATH}/.vscode/tmp/protovalidate/proto/protovalidate/buf $HOME/.local/include
-    print_answer "SUCCESS" green
+    print_answer "$ACTION" green
 
-    print_header "Install/Update protoc-gen-go"
-    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest >/dev/null 2>&1
-    print_answer "SUCCESS" green
+    # Install or update protoc-gen-go (https://google.golang.org/protobuf/cmd/protoc-gen-go)
+    check_and_install_go_package "protoc-gen-go" "google.golang.org/protobuf/cmd/protoc-gen-go"
 
-    print_header "Install/Update protoc-gen-go-grpc"
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest >/dev/null 2>&1
-    print_answer "SUCCESS" green
+    # Install or update protoc-gen-go-grpc (https://google.golang.org/grpc/cmd/protoc-gen-go-grpc)
+    check_and_install_go_package "protoc-gen-go-grpc" "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
 
-    print_header "Install/Update protoc-go-inject-tag"
-    go install github.com/favadi/protoc-go-inject-tag@latest >/dev/null 2>&1
-    print_answer "SUCCESS" green
+    # Install or update protoc-go-inject-tag (https://github.com/favadi/protoc-go-inject-tag)
+    check_and_install_go_package "protoc-go-inject-tag" "github.com/favadi/protoc-go-inject-tag"
 
-    print_header "Install/Update goose"
-    go install github.com/pressly/goose/v3/cmd/goose@latest >/dev/null 2>&1
-    print_answer "SUCCESS" green
+    # Install or update goose (http://pressly.github.io/goose/)
+    check_and_install_go_package "goose" "github.com/pressly/goose/v3/cmd/goose"
 
-    print_header "Install/Update yq"
-    wget "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" -4 -q -O ${ROOT_PATH}/.vscode/tmp/yq
+    # Install or update yq (https://mikefarah.gitbook.io/yq)
+    print_header "Check yq"
+    ACTION="INSTALL"
+    if command -v yq &>/dev/null; then
+      ACTION="UPDATE"
+    fi
+    wget "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" -4 -q -O "${ROOT_PATH}/.vscode/tmp/yq"
     install "${ROOT_PATH}/.vscode/tmp/yq" "$HOME/.local/bin"
-    print_answer "SUCCESS" green
+    print_answer "$ACTION" green
+
+    # Install or update bun (https://bun.sh)
+    print_header "Check bun"
+    if command -v bun &>/dev/null; then
+      bun upgrade &>/dev/null
+      print_answer "UPDATE" green
+    else
+      curl -fsSL https://bun.sh/install &>/dev/null
+      print_answer "INSTALL" green
+    fi
 
     rm -rf ${ROOT_PATH}/.vscode/tmp
     source ~/.profile
@@ -74,34 +197,64 @@ app)
   ;;
 
 golang)
-  print_header "Install/Update Golang"
-
   case "$OS" in
   Darwin*)
-    brew install go
+    if [ "$2" == "reset" ]; then
+      print_header "Remove golang"
+      brew remove go >/dev/null 2>&1
+      GO_INSTALL=false
+      print_answer DONE green
+    fi
+
+    print_header "Check golang"
+    ACTION="INSTALL"
+    if $GO_INSTALL; then
+      brew upgrade go >/dev/null 2>&1
+      ACTION="UPDATE"
+    else
+      brew install go >/dev/null 2>&1
+      ACTION="UPDATE"
+    fi
+    print_answer "$ACTION" green
     ;;
 
   Linux*)
-    support_arch
+    if [ "$2" == "reset" ]; then
+      print_header "Remove golang"
+      sudo rm -rf $GO_PATH
+      sed -i '/# golang/d' ~/.bashrc
+      sed -i '/export GOROOT="\$HOME\/go"/d' ~/.bashrc
+      sed -i '/export GOPATH="\$HOME\/go\/packages"/d' ~/.bashrc
+      sed -i '/export PATH=\$PATH:\$GOROOT\/bin:\$GOPATH\/bin/d' ~/.bashrc
+      GO_INSTALL=false
+      print_answer DONE green
+    fi
+
+    print_header "Check golang"
+    ACTION="INSTALL"
+    if $GO_INSTALL; then
+      ACTION="UPDATE"
+    else
+      mkdir -p $GO_PATH
+      echo -e "\n# golang" >>~/.bashrc
+      echo -e "export GOROOT=\"\$HOME/go\"" >>~/.bashrc
+      echo -e "export GOPATH=\"\$HOME/go/packages\"" >>~/.bashrc
+      echo -e "export PATH=\$PATH:\$GOROOT/bin:\$GOPATH/bin" >>~/.bashrc
+      source ~/.bashrc
+    fi
+
     GO_RELEASE=$(wget -qO- "https://golang.org/dl/" | grep -v -E 'go[0-9\.]+(beta|rc)' | grep -E -o 'go[0-9\.]+' | grep -E -o '[0-9]\.[0-9]+(\.[0-9]+)?' | sort -V | uniq | tail -1)
-    GO_PATH="$HOME/go"
-    #rm -rf $GO_PATH
-    mkdir -p $GO_PATH
-    #echo -e "export GOROOT=\"\$HOME/go\"" >>~/.bashrc
-    #echo -e "export GOPATH=\"\$HOME/go/packages\"" >>~/.bashrc
-    #echo -e "export PATH=\$PATH:\$GOROOT/bin:\$GOPATH/bin" >>~/.bashrc
-    source ~/.bashrc
     curl --silent https://dl.google.com/go/go${GO_RELEASE}.linux-amd64.tar.gz | tar -vxz --strip-components 1 -C ${GO_PATH} >/dev/null 2>&1
+    print_answer "$ACTION" green
     ;;
 
   *)
+    print_header "Install/Update golang"
     print_answer "ERROR" red
     echo "Unsupported OS: $OS"
     exit
     ;;
   esac
-
-  print_answer "SUCCESS" green
   ;;
 
 *)

@@ -19,9 +19,6 @@ COLOR_GREEN=$(tput setaf 2)
 COLOR_YELLOW=$(tput setaf 3)
 COLOR_RESET=$(tput sgr0)
 
-GOPATH=$(go env GOPATH)
-GOBIN=$(go env GOPATH)/bin
-
 DATE=$(date '+%Y-%m-%d-%H:%M:%S')
 GIT_COMMIT=$(git rev-parse --short HEAD)
 GIT_DIRTY=$(test -n "$(git status --porcelain)" && echo "+CHANGES" || true)
@@ -92,4 +89,3 @@ print_help() {
   printf "%.26s " "${COLOR_GREEN}$1${COLOR_RESET}                       "
   echo "$2" >&2
 }
-
