@@ -9,10 +9,10 @@ arr_process=("__debug_bin" "vite")
 for process_name in "${arr_process[@]}"; do
   pids=$(pgrep -f "$process_name")
   for pid in $pids; do
-    exe_path=$(readlink -f /proc/$pid/exe)
-    if [[ -n $exe_path && $exe_path == $ROOT_PATH/* ]]; then
-      echo "Killed process $pid"
-      kill $pid
+    exe_path=$(ps -p $pid -o args=)
+    if [[ -n $exe_path && $exe_path == *"$ROOT_PATH"* ]]; then
+      print_header "Killed process ${pid}"
+      kill -9 $pid
       print_answer "SUCCESS" green
     fi
   done
