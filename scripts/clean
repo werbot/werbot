@@ -5,21 +5,37 @@
 ROOT_PATH="$(git rev-parse --show-toplevel)"
 source ${ROOT_PATH}/scripts/_helper
 
-arr_process=(__debug_bin vite)
-for process in "${arr_process[@]}"; do
-  if pkill -f "$process" >/dev/null; then
-    print_header "Killing $process process"
+arr_process=("__debug_bin" "vite")
+for process_name in "${arr_process[@]}"; do
+  pids=$(pgrep -f "$process_name")
+  for pid in $pids; do
+    exe_path=$(readlink -f /proc/$pid/exe)
+    if [[ -n $exe_path && $exe_path == $ROOT_PATH/* ]]; then
+      echo "Killed process $pid"
+      kill $pid
+      print_answer "SUCCESS" green
+    fi
+  done
+done
+
+for entry in "${ROOT_PATH}/cmd/"*/; do
+  file_name="${entry}__debug_bin*"
+  if compgen -G "$file_name" >/dev/null; then
+    name=$(basename "${entry}")
+    print_header "Deleting bin file for ${name}"
+    rm -rf ${file_name}
     print_answer "SUCCESS" green
   fi
 done
 
-print_header "Remove old bin and dist files"
-for entry in ${ROOT_PATH}/cmd/*/; do
-  name=$(basename "${entry}")
-  rm -rf ${ROOT_PATH}/cmd/${name}/__debug_bin*
+arr_folders=("${ROOT_PATH}/web/dist" "${ROOT_PATH}/bin/*" "${ROOT_PATH}/dist")
+for folder in "${arr_folders[@]}"; do
+  if [ -e "$folder" ]; then
+    print_header "Deleting ${folder}"
+    rm -rf "$folder"
+    print_answer "SUCCESS" green
+  fi
 done
-rm -rf ${ROOT_PATH}/web/dist ${ROOT_PATH}/bin/* ${ROOT_PATH}/dist/
-print_answer "SUCCESS" green
 
 if [[ "$1" == 'docker' ]]; then
   print_header "Leaning garbage and inactive containers"

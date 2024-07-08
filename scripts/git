@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+set -e
+
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source ${ROOT_PATH}/scripts/_helper
+
+is_valid_version() {
+  [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+}
+
+case "$1" in
+tag)
+  if [ "$2" = "auto" ]; then
+    IFS='.' read -r -a version_parts <<<"$VERSION"
+    version_parts[-1]=$((version_parts[-1] + 1))
+    NEW_VERSION="${version_parts[*]}"
+    NEW_VERSION="${NEW_VERSION// /.}"
+  else
+    NEW_VERSION=${2:-$(read -p "Enter new release version (current version ${VERSION}): " && echo $REPLY)}
+  fi
+
+  echo $VERSION
+  echo $NEW_VERSION
+
+  if is_valid_version "${NEW_VERSION}"; then
+    print_header "Add new version to git"
+    #sed -i -e "s/\(Licensed Work:\s*Werbot\s\)v[0-9][0-9.]*/\\1v${NEW_VERSION}/" ${ROOT_PATH}/LICENSE 2>&1
+    sed -i -e "s/\(Change Date:\s*\)[-0-9]\+/\\1$(date +'%Y-%m-%d' -d '4 years')/" ${ROOT_PATH}/LICENSE 2>&1
+    git add . 2>&1
+    git commit -a -m "🔧 build: Creating a new release" 2>&1
+    git tag v${NEW_VERSION} 2>&1
+    git push origin main 2>&1
+    git push --tags origin main 2>&1
+    print_answer "SUCCESS" green
+  else
+    echo "Invalid version format. Please use the format X.Y.Z where X, Y, and Z are numbers."
+  fi
+  ;;
+
+*)
+  echo "Parameters not passed"
+  echo
+  echo "$0 <command>"
+  echo
+  echo "command:"
+  print_help tag "Add new version to git"
+  ;;
+esac
