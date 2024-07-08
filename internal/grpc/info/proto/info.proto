@@ -17,7 +17,7 @@ message UserMetrics {
     string user_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"user_id" params:"user_id"
+    ]; // @gotags: query:"user_id" 
     user.Role role = 2;
   }
 

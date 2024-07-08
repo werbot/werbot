@@ -1142,7 +1142,7 @@ type ListServers_Request struct {
 	Login     string `protobuf:"bytes,3,opt,name=login,proto3" json:"login,omitempty"`
 	Limit     int32  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset    int32  `protobuf:"varint,5,opt,name=offset,proto3" json:"offset,omitempty"`
-	SortBy    string `protobuf:"bytes,6,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"` //string query = 4;
+	SortBy    string `protobuf:"bytes,6,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 }
 
 func (x *ListServers_Request) Reset() {
@@ -1279,9 +1279,9 @@ type Server_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserId    string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`           
-	ServerId  string `protobuf:"bytes,2,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty" query:"server_id" params:"server_id"`     
-	ProjectId string `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty" query:"project_id" params:"project_id"`  
+	UserId    string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id"`           
+	ServerId  string `protobuf:"bytes,2,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty" query:"server_id"`     
+	ProjectId string `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty" query:"project_id"`  
 }
 
 func (x *Server_Request) Reset() {
@@ -2977,9 +2977,9 @@ type ServerNameByID_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserId    string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`           
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty" query:"project_id" params:"project_id"`  
-	ServerId  string `protobuf:"bytes,3,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty" query:"server_id" params:"server_id"`     
+	UserId    string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id"`           
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty" query:"project_id"`  
+	ServerId  string `protobuf:"bytes,3,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty" query:"server_id"`     
 }
 
 func (x *ServerNameByID_Request) Reset() {
@@ -3090,7 +3090,7 @@ type ListShareServers_Request struct {
 	Limit  int32  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset int32  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	SortBy string `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
-	UserId string `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`  
+	UserId string `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id"`  
 }
 
 func (x *ListShareServers_Request) Reset() {
@@ -3308,9 +3308,9 @@ type AddShareServer_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserId    string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`           
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty" query:"project_id" params:"project_id"`  
-	ServerId  string `protobuf:"bytes,3,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty" query:"server_id" params:"server_id"`     
+	UserId    string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id"`           
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty" query:"project_id"`  
+	ServerId  string `protobuf:"bytes,3,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty" query:"server_id"`     
 }
 
 func (x *AddShareServer_Request) Reset() {
@@ -3409,9 +3409,9 @@ type UpdateShareServer_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserId    string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`           
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty" query:"project_id" params:"project_id"`  
-	ShareId   string `protobuf:"bytes,3,opt,name=share_id,json=shareId,proto3" json:"share_id,omitempty" query:"share_id" params:"share_id"`        
+	UserId    string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id"`           
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty" query:"project_id"`  
+	ShareId   string `protobuf:"bytes,3,opt,name=share_id,json=shareId,proto3" json:"share_id,omitempty" query:"share_id"`        
 }
 
 func (x *UpdateShareServer_Request) Reset() {

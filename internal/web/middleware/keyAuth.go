@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -51,13 +50,14 @@ func (m KeyMiddleware) tokenCheck(c *fiber.Ctx, token string) (bool, error) {
 	defer cancel()
 
 	rClient := projectpb.NewProjectHandlersClient(m)
-	project, err := rClient.ListProjects(ctx, &projectpb.ListProjects_Request{
-		Query: fmt.Sprintf("api_key='%v'", token),
+
+	project, err := rClient.ProjectByKey(ctx, &projectpb.ProjectByKey_Request{
+		Key: token,
 	})
-	if err != nil || project.Total < 1 {
+	if err != nil {
 		return false, err
 	}
 
-	c.Set("Project-Id", project.Projects[0].ProjectId)
+	c.Set("Project-Id", project.ProjectId)
 	return true, nil
 }

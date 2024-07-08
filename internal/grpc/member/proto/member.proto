@@ -39,10 +39,11 @@ service MemberHandlers {
 // rpc ListProjectMembers
 message ListProjectMembers {
   message Request {
-    int32 limit = 1;
-    int32 offset = 2;
-    string sort_by = 3;
-    string query = 4;
+    string owner_id = 1;
+    string project_id =2;
+    int32 limit = 3;
+    int32 offset = 4;
+    string sort_by = 5;
   }
 
   message Response {

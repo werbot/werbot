@@ -98,13 +98,9 @@ message UserParameters {
 // rpc ListAccounts
 message ListAccounts {
   message Request {
-    // for pagination
     int32 limit = 1;
     int32 offset = 2;
     string sort_by = 3;
-    // ---
-
-    string query = 4;
   }
 
   message Response {

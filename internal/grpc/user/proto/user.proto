@@ -32,7 +32,6 @@ message ListUsers {
     int32 limit = 1;
     int32 offset = 2;
     string sort_by = 3;
-    string query = 4;
   }
 
   message Response {
@@ -53,7 +52,7 @@ message User {
     string user_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"user_id" params:"user_id"
+    ]; // @gotags: query:"user_id" 
   }
 
   message Response {

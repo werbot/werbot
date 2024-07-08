@@ -25,12 +25,14 @@ const (
 	ProjectHandlers_AddKey_FullMethodName        = "/project.ProjectHandlers/AddKey"
 	ProjectHandlers_UpdateKey_FullMethodName     = "/project.ProjectHandlers/UpdateKey"
 	ProjectHandlers_DeleteKey_FullMethodName     = "/project.ProjectHandlers/DeleteKey"
+	ProjectHandlers_ProjectByKey_FullMethodName  = "/project.ProjectHandlers/ProjectByKey"
 )
 
 // ProjectHandlersClient is the client API for ProjectHandlers service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ProjectHandlersClient interface {
+	// Project section
 	ListProjects(ctx context.Context, in *ListProjects_Request, opts ...grpc.CallOption) (*ListProjects_Response, error)
 	Project(ctx context.Context, in *Project_Request, opts ...grpc.CallOption) (*Project_Response, error)
 	AddProject(ctx context.Context, in *AddProject_Request, opts ...grpc.CallOption) (*AddProject_Response, error)
@@ -41,6 +43,7 @@ type ProjectHandlersClient interface {
 	AddKey(ctx context.Context, in *AddKey_Request, opts ...grpc.CallOption) (*AddKey_Response, error)
 	UpdateKey(ctx context.Context, in *UpdateKey_Request, opts ...grpc.CallOption) (*UpdateKey_Response, error)
 	DeleteKey(ctx context.Context, in *DeleteKey_Request, opts ...grpc.CallOption) (*DeleteKey_Response, error)
+	ProjectByKey(ctx context.Context, in *ProjectByKey_Request, opts ...grpc.CallOption) (*ProjectByKey_Response, error)
 }
 
 type projectHandlersClient struct {
@@ -141,10 +144,21 @@ func (c *projectHandlersClient) DeleteKey(ctx context.Context, in *DeleteKey_Req
 	return out, nil
 }
 
+func (c *projectHandlersClient) ProjectByKey(ctx context.Context, in *ProjectByKey_Request, opts ...grpc.CallOption) (*ProjectByKey_Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProjectByKey_Response)
+	err := c.cc.Invoke(ctx, ProjectHandlers_ProjectByKey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProjectHandlersServer is the server API for ProjectHandlers service.
 // All implementations must embed UnimplementedProjectHandlersServer
 // for forward compatibility
 type ProjectHandlersServer interface {
+	// Project section
 	ListProjects(context.Context, *ListProjects_Request) (*ListProjects_Response, error)
 	Project(context.Context, *Project_Request) (*Project_Response, error)
 	AddProject(context.Context, *AddProject_Request) (*AddProject_Response, error)
@@ -155,6 +169,7 @@ type ProjectHandlersServer interface {
 	AddKey(context.Context, *AddKey_Request) (*AddKey_Response, error)
 	UpdateKey(context.Context, *UpdateKey_Request) (*UpdateKey_Response, error)
 	DeleteKey(context.Context, *DeleteKey_Request) (*DeleteKey_Response, error)
+	ProjectByKey(context.Context, *ProjectByKey_Request) (*ProjectByKey_Response, error)
 	mustEmbedUnimplementedProjectHandlersServer()
 }
 
@@ -188,6 +203,9 @@ func (UnimplementedProjectHandlersServer) UpdateKey(context.Context, *UpdateKey_
 }
 func (UnimplementedProjectHandlersServer) DeleteKey(context.Context, *DeleteKey_Request) (*DeleteKey_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteKey not implemented")
+}
+func (UnimplementedProjectHandlersServer) ProjectByKey(context.Context, *ProjectByKey_Request) (*ProjectByKey_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProjectByKey not implemented")
 }
 func (UnimplementedProjectHandlersServer) mustEmbedUnimplementedProjectHandlersServer() {}
 
@@ -364,6 +382,24 @@ func _ProjectHandlers_DeleteKey_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProjectHandlers_ProjectByKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProjectByKey_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProjectHandlersServer).ProjectByKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProjectHandlers_ProjectByKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProjectHandlersServer).ProjectByKey(ctx, req.(*ProjectByKey_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProjectHandlers_ServiceDesc is the grpc.ServiceDesc for ProjectHandlers service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -406,6 +442,10 @@ var ProjectHandlers_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteKey",
 			Handler:    _ProjectHandlers_DeleteKey_Handler,
+		},
+		{
+			MethodName: "ProjectByKey",
+			Handler:    _ProjectHandlers_ProjectByKey_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

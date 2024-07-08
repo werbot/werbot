@@ -114,7 +114,6 @@ message ListServers {
     int32 limit = 4;
     int32 offset = 5;
     string sort_by = 6;
-    //string query = 4;
   }
 
   message Response {
@@ -130,12 +129,12 @@ message Server {
     string user_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"user_id" params:"user_id"
+    ]; // @gotags: query:"user_id"
     string server_id = 2 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"server_id" params:"server_id"
-    string project_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+    ]; // @gotags: query:"server_id"
+    string project_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
   }
 
   message Response {
@@ -393,9 +392,9 @@ message ServerNameByID {
     string user_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"user_id" params:"user_id"
-    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
-    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id" params:"server_id"
+    ]; // @gotags: query:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id"
   }
 
   message Response {
@@ -413,7 +412,7 @@ message ListShareServers {
     string user_id = 4 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"user_id" params:"user_id"
+    ]; // @gotags: query:"user_id"
   }
 
   message Response {
@@ -439,9 +438,9 @@ message AddShareServer {
     string user_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"user_id" params:"user_id"
-    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
-    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id" params:"server_id"
+    ]; // @gotags: query:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string server_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"server_id"
   }
 
   message Response {}
@@ -454,9 +453,9 @@ message UpdateShareServer {
     string user_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"user_id" params:"user_id"
-    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
-    string share_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"share_id" params:"share_id"
+    ]; // @gotags: query:"user_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
+    string share_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: query:"share_id" 
   }
 
   message Response {}

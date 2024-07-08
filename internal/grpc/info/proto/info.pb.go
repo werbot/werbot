@@ -63,7 +63,7 @@ type UserMetrics_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserId string     `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id" params:"user_id"`  
+	UserId string     `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" query:"user_id"`  
 	Role   proto.Role `protobuf:"varint,2,opt,name=role,proto3,enum=user.Role" json:"role,omitempty"`
 }
 

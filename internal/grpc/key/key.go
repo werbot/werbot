@@ -22,7 +22,6 @@ import (
 func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.ListKeys_Response, error) {
 	response := &keypb.ListKeys_Response{}
 
-	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := h.DB.Conn.QueryContext(ctx, `
     SELECT
@@ -37,7 +36,8 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
     FROM
       "user_public_key"
       INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"
-  `+sqlSearch+sqlFooter)
+    WHERE "user"."id" = $1
+  `+sqlFooter, in.GetUserId())
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}
@@ -70,7 +70,8 @@ func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*ke
     FROM
       "user_public_key"
       INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"
-  `+sqlSearch,
+    WHERE "user"."id" = $1
+  `, in.GetUserId(),
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, trace.Error(err, log, nil)

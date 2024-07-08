@@ -16,7 +16,6 @@ import (
 func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_Request) (*projectpb.ListProjects_Response, error) {
 	response := &projectpb.ListProjects_Response{}
 
-	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := h.DB.Conn.QueryContext(ctx, `
     SELECT
@@ -38,7 +37,8 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
     FROM
       "project"
       LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"
-  `+sqlSearch+sqlFooter)
+    WHERE "project"."owner_id" = $1
+  `+sqlFooter, in.GetUserId())
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}
@@ -77,7 +77,8 @@ func (h *Handler) ListProjects(ctx context.Context, in *projectpb.ListProjects_R
     FROM
       "project"
       LEFT JOIN "project_api" ON "project"."id" = "project_api"."project_id"
-  `+sqlSearch,
+    WHERE "project"."owner_id" = $1
+  `, in.GetUserId(),
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, trace.Error(err, log, nil)
@@ -247,5 +248,25 @@ func (h *Handler) UpdateKey(ctx context.Context, in *projectpb.UpdateKey_Request
 // DeleteKey is ...
 func (h *Handler) DeleteKey(ctx context.Context, in *projectpb.DeleteKey_Request) (*projectpb.DeleteKey_Response, error) {
 	response := &projectpb.DeleteKey_Response{}
+	return response, nil
+}
+
+// ProjectByKey is ...
+func (h *Handler) ProjectByKey(ctx context.Context, in *projectpb.ProjectByKey_Request) (*projectpb.ProjectByKey_Response, error) {
+	response := &projectpb.ProjectByKey_Response{}
+
+	err := h.DB.Conn.QueryRowContext(ctx, `
+    SELECT
+      "project_id"
+    FROM "project_api"
+    WHERE
+    "api_key" = $1
+    AND "online" = TRUE
+  `, in.GetKey(),
+	).Scan(&response.ProjectId)
+	if err != nil {
+		return nil, trace.Error(err, log, nil)
+	}
+
 	return response, nil
 }

@@ -20,7 +20,6 @@ import (
 func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProjectMembers_Request) (*memberpb.ListProjectMembers_Response, error) {
 	response := &memberpb.ListProjectMembers_Response{}
 
-	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := h.DB.Conn.QueryContext(ctx, `
     SELECT
@@ -45,7 +44,11 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
       INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
       INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"
-  `+sqlSearch+sqlFooter)
+    WHERE
+      "owner"."id" = $1
+      AND "project"."id" = $2
+  `+sqlFooter, in.GetOwnerId(), in.GetProjectId(),
+	)
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}
@@ -86,7 +89,10 @@ func (h *Handler) ListProjectMembers(ctx context.Context, in *memberpb.ListProje
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
       INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
       INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"
-  `+sqlSearch,
+    WHERE
+      "owner"."id" = $1
+      AND "project"."id" = $2
+  `, in.GetOwnerId(), in.GetProjectId(),
 	).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, trace.Error(err, log, nil)

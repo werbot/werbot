@@ -8,7 +8,6 @@ import (
 
 	"github.com/werbot/werbot/internal/grpc"
 	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
-	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -45,14 +44,15 @@ func (h *Handler) getProject(c *fiber.Ctx) error {
 	// show all projects
 	if request.GetProjectId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
-		sanitizeSQL, _ := sanitize.SQL(`"project"."owner_id" = $1`,
-			request.GetOwnerId(),
-		)
+		//sanitizeSQL, _ := sanitize.SQL(`"project"."owner_id" = $1`,
+		//	request.GetOwnerId(),
+		//)
 		projects, err := rClient.ListProjects(ctx, &projectpb.ListProjects_Request{
+			UserId: request.GetOwnerId(),
 			Limit:  pagination.Limit,
 			Offset: pagination.Offset,
 			SortBy: "id:ASC",
-			Query:  sanitizeSQL,
+			// Query:  sanitizeSQL,
 		})
 		if err != nil {
 			return webutil.FromGRPC(c, err)

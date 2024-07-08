@@ -19,7 +19,6 @@ import (
 func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (*userpb.ListUsers_Response, error) {
 	response := &userpb.ListUsers_Response{}
 
-	sqlSearch := h.DB.SQLAddWhere(in.GetQuery())
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	rows, err := h.DB.Conn.QueryContext(ctx, `
     SELECT
@@ -51,7 +50,7 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
         WHERE "project"."owner_id" = "user"."id"
       ) AS "count_servers"
     FROM "user"
-  `+sqlSearch+sqlFooter)
+  `+sqlFooter)
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}
@@ -95,7 +94,7 @@ func (h *Handler) ListUsers(ctx context.Context, in *userpb.ListUsers_Request) (
 	err = h.DB.Conn.QueryRowContext(ctx, `
     SELECT COUNT(*)
     FROM "user"
-  `+sqlSearch).Scan(&response.Total)
+  `).Scan(&response.Total)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, trace.Error(err, log, nil)
 	}

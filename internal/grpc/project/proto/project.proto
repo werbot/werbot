@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 option go_package = "github.com/werbot/werbot/internal/grpc/project/proto";
 
 service ProjectHandlers {
+  // Project section
   rpc ListProjects(ListProjects.Request) returns (ListProjects.Response) {}
   rpc Project(Project.Request) returns (Project.Response) {}
   rpc AddProject(AddProject.Request) returns (AddProject.Response) {}
@@ -19,15 +20,17 @@ service ProjectHandlers {
   rpc AddKey(AddKey.Request) returns (AddKey.Response) {}
   rpc UpdateKey(UpdateKey.Request) returns (UpdateKey.Response) {}
   rpc DeleteKey(DeleteKey.Request) returns (DeleteKey.Response) {}
+
+  rpc ProjectByKey(ProjectByKey.Request) returns (ProjectByKey.Response) {}
 }
 
 // rpc ListProjects
 message ListProjects {
   message Request {
-    int32 limit = 1;
-    int32 offset = 2;
-    string sort_by = 3;
-    string query = 4;
+    string user_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
+    string sort_by = 4;
   }
 
   message Response {
@@ -43,11 +46,11 @@ message Project {
     string owner_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"owner_id" params:"owner_id"
+    ]; // @gotags: query:"owner_id"
     string project_id = 2 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"project_id" params:"project_id"
+    ]; // @gotags: query:"project_id"
   }
 
   message Response {
@@ -97,19 +100,19 @@ message AddProject {
 // rpc UpdateProject
 message UpdateProject {
   message Request {
-    string project_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+    string project_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
     string owner_id = 2 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"owner_id" params:"owner_id"
+    ]; // @gotags: query:"owner_id"
     string title = 3 [(buf.validate.field).string = {
       min_len: 3,
       max_len: 128
-    }]; // @gotags: query:"title" params:"title"
+    }]; // @gotags: query:"title"
     string login = 4 [(buf.validate.field).string = {
       min_len: 3,
       max_len: 128
-    }]; // @gotags: query:"login" params:"login"
+    }]; // @gotags: query:"login"
   }
 
   message Response {}
@@ -122,8 +125,8 @@ message DeleteProject {
     string owner_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"owner_id" params:"owner_id"
-    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id" params:"project_id"
+    ]; // @gotags: query:"owner_id"
+    string project_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"project_id"
   }
 
   message Response {}
@@ -181,5 +184,18 @@ message DeleteKey {
   }
 
   message Response {}
+}
+// -----------------------------------------------------
+
+// rpc ProjectByKey
+message ProjectByKey {
+  message Request {
+    string key = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"key"
+  }
+
+  message Response {
+    string project_id = 1;
+    bool online = 2;
+  }
 }
 // -----------------------------------------------------

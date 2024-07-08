@@ -12,7 +12,6 @@ import (
 	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
 	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
 	"github.com/werbot/werbot/internal/mail"
-	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -50,15 +49,12 @@ func (h *Handler) getProjectMember(c *fiber.Ctx) error {
 	// show all members
 	if request.GetMemberId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
-		sanitizeSQL, _ := sanitize.SQL(`owner_id = $1 AND project_id = $2`,
-			request.GetOwnerId(),
-			request.GetProjectId(),
-		)
 		members, err := rClient.ListProjectMembers(ctx, &memberpb.ListProjectMembers_Request{
-			Limit:  pagination.Limit,
-			Offset: pagination.Offset,
-			SortBy: "member_created:DESC",
-			Query:  sanitizeSQL,
+			OwnerId:   request.GetOwnerId(),
+			ProjectId: request.GetProjectId(),
+			Limit:     pagination.Limit,
+			Offset:    pagination.Offset,
+			SortBy:    "member_created:DESC",
 		})
 		if err != nil {
 			return webutil.FromGRPC(c, err)

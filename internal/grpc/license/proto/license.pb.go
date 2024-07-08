@@ -63,7 +63,7 @@ type License_Request struct {
 	unknownFields protoimpl.UnknownFields
 
 	 
-	License []byte `protobuf:"bytes,1,opt,name=license,proto3" json:"license,omitempty" query:"license" params:"license"`
+	License []byte `protobuf:"bytes,1,opt,name=license,proto3" json:"license,omitempty" query:"license"`
 }
 
 func (x *License_Request) Reset() {

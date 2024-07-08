@@ -9,7 +9,6 @@ import (
 	"github.com/werbot/werbot/internal/grpc"
 	eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
 	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
-	"github.com/werbot/werbot/internal/storage/postgres/sanitize"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/webutil"
 )
@@ -46,14 +45,11 @@ func (h *Handler) getKey(c *fiber.Ctx) error {
 	// show all keys
 	if request.GetKeyId() == "" {
 		pagination := webutil.GetPaginationFromCtx(c)
-		sanitizeSQL, err := sanitize.SQL(`"user"."id" = $1`,
-			request.GetUserId(),
-		)
 		keys, err := rClient.ListKeys(ctx, &keypb.ListKeys_Request{
+			UserId: request.GetUserId(),
 			Limit:  pagination.Limit,
 			Offset: pagination.Offset,
 			SortBy: `"user_public_key"."id":ASC`,
-			Query:  sanitizeSQL,
 		})
 		if err != nil {
 			return webutil.FromGRPC(c, err)

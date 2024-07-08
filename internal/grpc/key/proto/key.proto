@@ -29,10 +29,10 @@ enum KeyType {
 // rpc ListKeys
 message ListKeys {
   message Request {
-    int32 limit = 1;
-    int32 offset = 2;
-    string sort_by = 3;
-    string query = 4;
+    string user_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
+    string sort_by = 4;
   }
 
   message Response {
@@ -48,11 +48,11 @@ message Key {
     string key_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"key_id" params:"key_id"
+    ]; // @gotags: query:"key_id"
     string user_id = 2 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"user_id" params:"user_id"
+    ]; // @gotags: query:"user_id"
   }
 
   message Response {
@@ -93,16 +93,16 @@ message AddKey {
 // rpc UpdateKey
 message UpdateKey {
   message Request {
-    string key_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"key_id" params:"key_id"
+    string key_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: query:"key_id"
     string user_id = 2 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"user_id" params:"user_id"
+    ]; // @gotags: query:"user_id"
     string title = 3 [(buf.validate.field).string = {
       min_len: 3,
       max_len: 128
-    }]; // @gotags: query:"title" params:"title";
-    string key = 4 [(buf.validate.field).string = {min_len: 128}]; // @gotags: query:"key" params:"key";
+    }]; // @gotags: query:"title"
+    string key = 4 [(buf.validate.field).string = {min_len: 128}]; // @gotags: query:"key"
   }
 
   message Response {}
@@ -115,8 +115,8 @@ message DeleteKey {
     string user_id = 1 [
       (buf.validate.field).string.uuid = true,
       (buf.validate.field).ignore_empty = true
-    ]; // @gotags: query:"user_id" params:"user_id"
-    string key_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"key_id" params:"key_id"
+    ]; // @gotags: query:"user_id"
+    string key_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: query:"key_id"
   }
 
   message Response {}
