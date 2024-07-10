@@ -22,16 +22,26 @@ for entry in "${ROOT_PATH}/cmd/"*/; do
   file_name="${entry}__debug_bin*"
   if compgen -G "$file_name" >/dev/null; then
     name=$(basename "${entry}")
-    print_header "Deleting bin file for ${name}"
+    print_header "Deleting debug bin file for ${name}"
     rm -rf ${file_name}
     print_answer "SUCCESS" green
   fi
 done
 
-arr_folders=("${ROOT_PATH}/web/dist" "${ROOT_PATH}/bin/*" "${ROOT_PATH}/dist")
+for entry in "${ROOT_PATH}/bin/"*; do
+  name=$(basename "${entry}")
+  if [[ $name != .* && $name != '*' ]]; then
+    print_header "Deleting bin file for ${name}"
+    rm -rf ${entry}
+    print_answer "SUCCESS" green
+  fi
+done
+
+arr_folders=("${ROOT_PATH}/web/dist" "${ROOT_PATH}/dist")
 for folder in "${arr_folders[@]}"; do
   if [ -e "$folder" ]; then
-    print_header "Deleting ${folder}"
+    name=$(basename "${entry}")
+    print_header "Deleting ${name}"
     rm -rf "$folder"
     print_answer "SUCCESS" green
   fi
