@@ -1,4 +1,7 @@
 {
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": ["--fast"],
+
   "go.buildFlags": ["-tags=saas"],
   "scss.lint.unknownAtRules": "ignore",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
