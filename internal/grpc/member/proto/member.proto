@@ -183,12 +183,12 @@ message AddMemberInvite {
     string user_name = 3 [(buf.validate.field).cel = {
       id: "valid_user_name",
       message: "required field (3 to 30 characters)",
-      expression: "this.matches('^[a-z0-9]{3,20}$')"
+      expression: "this.matches('^[A-Za-z0-9]{3,20}$')"
     }]; // @gotags: query:"user_name"
     string user_surname = 4 [(buf.validate.field).cel = {
       id: "valid_user_surname",
       message: "required field (3 to 30 characters)",
-      expression: "this.matches('^[a-z0-9]{3,20}$')"
+      expression: "this.matches('^[A-Za-z0-9]{3,20}$')"
     }]; // @gotags: query:"user_surname"
     string email = 5 [(buf.validate.field).cel = {
       id: "valid_email",
