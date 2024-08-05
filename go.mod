@@ -13,7 +13,7 @@ require (
 	github.com/armon/go-proxyproto v0.1.0
 	github.com/bufbuild/protovalidate-go v0.6.3
 	github.com/fsnotify/fsnotify v1.7.0
-	github.com/fsouza/go-dockerclient v1.11.0
+	github.com/fsouza/go-dockerclient v1.11.2
 	github.com/gliderlabs/ssh v0.3.7
 	github.com/gofiber/contrib/jwt v1.0.10
 	github.com/gofiber/contrib/websocket v1.3.2
@@ -55,7 +55,7 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/docker/docker v27.0.3+incompatible // indirect
+	github.com/docker/docker v27.1.1+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/fasthttp/websocket v1.5.10 // indirect
