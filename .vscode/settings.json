@@ -1,8 +1,11 @@
 {
   "go.lintTool": "golangci-lint",
   "go.lintFlags": ["--fast"],
-
+  "go.testFlags": ["-timeout=2m", "-count=1"],
   "go.buildFlags": ["-tags=saas"],
+
+  "testing.automaticallyOpenPeekView": "never",
+
   "scss.lint.unknownAtRules": "ignore",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
 
@@ -25,5 +28,31 @@
   "[shellscript]": {
     "editor.defaultFormatter": "foxundermoon.shell-format",
     "editor.formatOnSave": true
+  },
+
+  "files.exclude": {
+    "**/.DS_Store": true,
+    "**/.git": true,
+    "**/__debug_bin": true,
+    "**/node_modules": true,
+    "**/grpc/**/proto/src/*.pb.go": false,
+    "web/src/proto": false
+  },
+
+  "protoc": {
+    "compile_on_save": false,
+    "options": ["--proto_path=${workspaceRoot}/**/proto/src"]
+  },
+
+  "clang-format.style": "{ Language: Proto, IndentWidth: 2, BasedOnStyle: Google,  ColumnLimit: 0, SpacesBeforeTrailingComments: 1, AlignTrailingComments:  off}",
+
+  "[proto3]": {
+    "editor.defaultFormatter": "zxh404.vscode-proto3"
+  },
+  "testing.coverageBarThresholds": {
+
+    "red": 0,
+    "yellow": 60,
+    "green": 90
   }
 }
