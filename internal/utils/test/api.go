@@ -5,86 +5,102 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
-	"github.com/gofiber/helmet/v2"
+	"github.com/gofiber/fiber/v2/middleware/helmet"
 
 	"github.com/werbot/werbot/api"
-	"github.com/werbot/werbot/api/auth"
-	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto/account"
+	userpb "github.com/werbot/werbot/internal/grpc/user/proto/user"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
-	"github.com/werbot/werbot/pkg/webutil"
+	"github.com/werbot/werbot/pkg/utils/webutil"
 )
+
+type HeadersTable map[string]string
 
 var (
-	BodyUnauthorized = map[string]any{
-		"code":    float64(401),
-		"message": "Unauthorized",
-		//"result":  "Unauthorized",
-	}
-
-	BodyNotFound = map[string]any{
-		"code":    float64(404),
-		"message": "Not Found",
-		//"result":  "Not found",
-	}
-
-	BodyInvalidArgument = map[string]any{
+	BodyInvalidArgument = BodyTable{
 		"code":    float64(400),
 		"message": "Bad Request",
-		//"result":  trace.MsgInvalidArgument,
+	}
+
+	BodyUnauthorized = BodyTable{
+		"code":    float64(401),
+		"message": "Unauthorized",
+	}
+
+	BodyNotFound = BodyTable{
+		"code":    float64(404),
+		"message": "Not Found",
+	}
+
+	BodyInternalServerError = BodyTable{
+		"code":    float64(500),
+		"message": "Internal Server Error",
 	}
 )
 
-// TestCase is ...
-type TestCase struct {
-	Name          string
-	RequestParam  any
-	RequestBody   any
-	RequestUser   *UserInfo
-	RespondBody   func(*http.Response, *http.Request) error
-	RespondStatus int
+// ApiTable represents a test case structure
+type APITable struct {
+	Name           string       // The name of the test
+	PreWorkHook    func()       // A hook function to be executed before the test
+	Method         string       // The HTTP method to use in our call
+	Path           string       // The URL path that is being requested
+	StatusCode     int          // The expected response status code
+	Body           BodyTable    // The expected response body
+	RequestBody    BodyTable    // The request body to sent with the request
+	RequestHeaders HeadersTable // The headers that are being set for the request
+	Headers        HeadersTable // The response headers we want to test on
 }
 
-// TestHandler is ...
-type TestHandler struct {
+// ApiHandler holds the API handler and services for testing
+type APIHandler struct {
 	*api.Handler
 
 	Postgres *PostgresService
 }
 
-// UserInfo is ...
+// UserInfo holds user information including tokens
 type UserInfo struct {
-	Tokens jwt.Tokens
-	UserID string `json:"user_id"`
+	Tokens    *accountpb.Token_Response
+	UserID    string `json:"user_id"`
+	Role      userpb.Role
+	SessionID string
 }
 
-// Tokens is ...
+// Tokens holds admin and user tokens
 type Tokens struct {
-	Admin *jwt.Tokens `json:"admin_tokens"`
-	User  *jwt.Tokens `json:"user_tokens"`
+	Admin *accountpb.Token_Response `json:"admin_tokens"`
+	User  *accountpb.Token_Response `json:"user_tokens"`
 }
 
-// API is ...
-func API(t *testing.T) (*TestHandler, func(t *testing.T)) {
+// API sets up the test environment and returns a TestHandler and teardown function
+func API(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
+	t.Setenv("ENV_MODE", "test")
+	t.Setenv("SECURITY_AES_KEY", "3D6A619811A17396E45D514695DCDA3A") // example key for tests, don't change
 	t.Setenv("JWT_PUBLIC_KEY", "../../fixtures/keys/jwt/jwt_public.key")
 	t.Setenv("JWT_PRIVATE_KEY", "../../fixtures/keys/jwt/jwt_private.key")
 
-	pgTest, err := Postgres(t, "../../migration", "../../fixtures/migration")
-	if err != nil {
-		t.Error(err)
+	migrationsDirs := []string{"../../migration"}
+	fixturesDirs := []string{"../../fixtures/migration"}
+	if len(addonDirs) > 0 {
+		for _, dir := range addonDirs {
+			migrationsDirs = append(migrationsDirs, dir+"migration")
+			fixturesDirs = append(migrationsDirs, dir+"fixtures/migration")
+		}
 	}
 
-	ctx := context.Background()
-	redisTest := Redis(ctx, t)
+	migrations := append(migrationsDirs, fixturesDirs...)
+	pgTest := ServerPostgres(t, migrations...)
 
-	grpcTest, err := GRPC(ctx, t, pgTest.conn, redisTest.conn)
+	redisTest := ServerRedis(context.Background(), t)
+
+	grpcTest, err := ServerGRPC(context.Background(), t, pgTest, redisTest)
 	if err != nil {
 		t.Error(err)
 	}
@@ -106,37 +122,41 @@ func API(t *testing.T) (*TestHandler, func(t *testing.T)) {
 	)
 
 	webHandler := &api.Handler{
-		App:   appTest,
-		Grpc:  grpcTest.ClientConn,
-		Redis: redisTest.conn,
-		Auth:  middleware.Auth(redisTest.conn).Execute(),
+		App:     appTest,
+		Grpc:    grpcTest.ClientConn,
+		Redis:   redisTest.conn,
+		Auth:    middleware.Auth(redisTest.conn).Execute(),
+		EnvMode: "test",
 	}
 
-	auth.New(webHandler).Routes()
-
-	return &TestHandler{
+	return &APIHandler{
 			Handler:  webHandler,
 			Postgres: pgTest,
-		}, func(t *testing.T) {
-			pgTest.Close()
+		}, func(_ *testing.T) {
 			redisTest.Close()
 			grpcTest.Close()
 		}
 }
 
-// GetUserInfo is ...
-func (h *TestHandler) GetUserInfo(email, password string) *UserInfo {
+// GetUserAuth retrieves user authentication info
+func (h *APIHandler) GetUserAuth(email, password string) *UserInfo {
 	tokens := h.getAuthToken(&accountpb.SignIn_Request{
 		Email:    email,
 		Password: password,
 	})
+
+	sessionData, _ := jwt.Parse(tokens.Access)
+	context := sessionData["User"].(map[string]any)
+
 	return &UserInfo{
-		Tokens: *tokens,
-		UserID: h.getAuthUserID(tokens.Access),
+		Tokens:    tokens,
+		UserID:    context["user_id"].(string),
+		Role:      userpb.Role(context["roles"].(float64)),
+		SessionID: sessionData["sub"].(string),
 	}
 }
 
-func (h *TestHandler) getAuthToken(signIn *accountpb.SignIn_Request) *jwt.Tokens {
+func (h *APIHandler) getAuthToken(signIn *accountpb.SignIn_Request) *accountpb.Token_Response {
 	bodyReader, _ := json.Marshal(signIn)
 	req := httptest.NewRequest("POST", "/auth/signin", bytes.NewBuffer(bodyReader))
 	req.Header.Set("Content-Type", "application/json")
@@ -146,7 +166,7 @@ func (h *TestHandler) getAuthToken(signIn *accountpb.SignIn_Request) *jwt.Tokens
 	}
 	defer res.Body.Close()
 
-	tokens := &jwt.Tokens{}
+	tokens := &accountpb.Token_Response{}
 	body := &webutil.HTTPResponse{
 		Result: tokens,
 	}
@@ -154,21 +174,19 @@ func (h *TestHandler) getAuthToken(signIn *accountpb.SignIn_Request) *jwt.Tokens
 	return tokens
 }
 
-func (h *TestHandler) getAuthUserID(accessToken string) string {
-	req, err := http.NewRequest("GET", "/auth/profile", nil)
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	if err != nil {
-		fmt.Println("Failure : ", err)
-	}
-
-	res, _ := h.App.Test(req)
-	info := map[string]map[string]string{}
-	json.NewDecoder(res.Body).Decode(&info)
-	return info["result"]["user_id"]
-}
-
-func (h *TestHandler) AddRoute404() {
+func (h *APIHandler) AddRoute404() {
 	h.App.Use(func(c *fiber.Ctx) error {
 		return webutil.StatusNotFound(c, nil)
 	})
+}
+
+// TestUserAuth is ...
+func (h *APIHandler) TestUserAuth() (adminHeader map[string]string, userHeader map[string]string) {
+	adminAuth := h.GetUserAuth("admin@werbot.net", "admin@werbot.net")
+	adminHeader = map[string]string{"Authorization": "Bearer " + adminAuth.Tokens.Access}
+
+	userAuth := h.GetUserAuth("user@werbot.net", "user@werbot.net")
+	userHeader = map[string]string{"Authorization": "Bearer " + userAuth.Tokens.Access}
+
+	return adminHeader, userHeader
 }

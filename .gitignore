@@ -73,6 +73,7 @@ Temporary Items
 !.env*.example
 bin/*
 __debug_bin*
+debug.test*
 node_modules
 build/*
 

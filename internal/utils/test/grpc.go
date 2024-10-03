@@ -2,96 +2,78 @@ package test
 
 import (
 	"context"
-	"log"
-	"net"
+	"encoding/json"
 	"testing"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/test/bufconn"
-
-	"github.com/werbot/werbot/internal/grpc/account"
-	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
-	"github.com/werbot/werbot/internal/grpc/audit"
-	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto"
-	"github.com/werbot/werbot/internal/grpc/event"
-	eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
-	"github.com/werbot/werbot/internal/grpc/firewall"
-	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
-	"github.com/werbot/werbot/internal/grpc/info"
-	infopb "github.com/werbot/werbot/internal/grpc/info/proto"
-	"github.com/werbot/werbot/internal/grpc/key"
-	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
-	"github.com/werbot/werbot/internal/grpc/license"
-	licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
-	"github.com/werbot/werbot/internal/grpc/member"
-	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
-	"github.com/werbot/werbot/internal/grpc/project"
-	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
-	"github.com/werbot/werbot/internal/grpc/server"
-	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
-	"github.com/werbot/werbot/internal/grpc/user"
-	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
-	"github.com/werbot/werbot/internal/grpc/utility"
-	utilitypb "github.com/werbot/werbot/internal/grpc/utility/proto"
-	"github.com/werbot/werbot/internal/storage/postgres"
-	"github.com/werbot/werbot/internal/storage/redis"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
-type GRPCService struct {
-	*grpc.ClientConn
+// GRPCTable is ...
+type GRPCTable struct {
+	Debug       bool
+	Name        string       // The name of the test
+	PreWorkHook func()       // A hook function to be executed before the test
+	Request     ProtoMessage // The request payload for the test case
+	Response    BodyTable    // The expected response payload for the test case
+	Error       ErrGRPC      // The expected error message, if any, for the test case
+}
 
-	test  *testing.T
-	db    *postgres.Connect
-	redis *redis.Connect
+// ErrGRPC  is ...
+type ErrGRPC struct {
+	Code    codes.Code
+	Message any
+}
+
+// GRPCHandler is ...
+type GRPCHandler struct {
+	*grpc.ClientConn
 }
 
 // GRPC is ...
-func GRPC(ctx context.Context, t *testing.T, db *postgres.Connect, redis *redis.Connect) (*GRPCService, error) {
-	service := &GRPCService{
-		test:  t,
-		db:    db,
-		redis: redis,
-	}
-	conn, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithContextDialer(service.serverGRPC()))
-	if err != nil {
-		return nil, err
-	}
-	service.ClientConn = conn
+func GRPC(t *testing.T, addonDirs ...string) (*GRPCHandler, func(t *testing.T)) {
+	t.Setenv("ENV_MODE", "test")
 
-	return service, nil
-}
-
-func (s *GRPCService) serverGRPC() func(context.Context, string) (net.Conn, error) {
-	listener := bufconn.Listen(1024 * 1024)
-	newServer := grpc.NewServer()
-
-	accountpb.RegisterAccountHandlersServer(newServer, &account.Handler{DB: s.db})
-	auditpb.RegisterAuditHandlersServer(newServer, &audit.Handler{DB: s.db})
-	firewallpb.RegisterFirewallHandlersServer(newServer, &firewall.Handler{DB: s.db})
-	infopb.RegisterInfoHandlersServer(newServer, &info.Handler{DB: s.db})
-	keypb.RegisterKeyHandlersServer(newServer, &key.Handler{DB: s.db, Redis: s.redis})
-	licensepb.RegisterLicenseHandlersServer(newServer, &license.Handler{})
-	memberpb.RegisterMemberHandlersServer(newServer, &member.Handler{DB: s.db})
-	projectpb.RegisterProjectHandlersServer(newServer, &project.Handler{DB: s.db})
-	serverpb.RegisterServerHandlersServer(newServer, &server.Handler{DB: s.db, Redis: s.redis})
-	userpb.RegisterUserHandlersServer(newServer, &user.Handler{DB: s.db})
-	utilitypb.RegisterUtilityHandlersServer(newServer, &utility.Handler{DB: s.db})
-	eventpb.RegisterEventHandlersServer(newServer, &event.Handler{DB: s.db})
-
-	go func() {
-		if err := newServer.Serve(listener); err != nil {
-			log.Fatalf("Server GRPC exited with error: %v", err)
+	migrationsDirs := []string{"../../../migration"}
+	fixturesDirs := []string{"../../../fixtures/migration"}
+	if len(addonDirs) > 0 {
+		for _, dir := range addonDirs {
+			migrationsDirs = append(migrationsDirs, dir+"migration")
+			fixturesDirs = append(migrationsDirs, dir+"fixtures/migration")
 		}
-	}()
-
-	return func(context.Context, string) (net.Conn, error) {
-		return listener.Dial()
 	}
+
+	migrations := append(migrationsDirs, fixturesDirs...)
+	pgTest := ServerPostgres(t, migrations...)
+
+	redisTest := ServerRedis(context.Background(), t)
+
+	grpcTest, err := ServerGRPC(context.Background(), t, pgTest, redisTest)
+	if err != nil {
+		t.Error(err)
+	}
+
+	return &GRPCHandler{
+			grpcTest.ClientConn,
+		}, func(_ *testing.T) {
+			grpcTest.Close()
+			redisTest.Close()
+		}
 }
 
-// Close is ...
-func (s *GRPCService) Close() {
-	if err := s.ClientConn.Close(); err != nil {
-		s.test.Error(err)
+func convertProtoToBodyTable(proto ProtoMessage) (BodyTable, error) {
+	testResponse, err := protojson.MarshalOptions{
+		UseEnumNumbers: true,
+		UseProtoNames:  true,
+		Multiline:      true,
+	}.Marshal(proto)
+	if err != nil {
+		return BodyTable{}, err
 	}
+	var resp BodyTable
+	if err := json.Unmarshal(testResponse, &resp); err != nil {
+		return BodyTable{}, err
+	}
+	return resp, nil
 }
