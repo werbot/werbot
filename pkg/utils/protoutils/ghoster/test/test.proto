@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package ghoster;
+
+import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/wrappers.proto";
+
+option go_package = "github.com/werbot/werbot/pkgutils/protoutils/ghoster/proto/test";
+
+message MessageTest {
+  string proto_string = 1 [(ghoster.secret) = true];
+  int32 proto_int32 = 2 [(ghoster.secret) = true];
+  int64 proto_int64 = 3 [(ghoster.secret) = true];
+  uint32 proto_uint32 = 4 [(ghoster.secret) = true];
+  uint64 proto_uint64 = 5 [(ghoster.secret) = true];
+  float proto_float = 6 [(ghoster.secret) = true];
+  double proto_double = 7 [(ghoster.secret) = true];
+  bool proto_bool = 8 [(ghoster.secret) = true];
+  bytes proto_bytes = 9 [(ghoster.secret) = true];
+
+  google.protobuf.Timestamp google_timestamp = 20 [(ghoster.secret) = true];
+  google.protobuf.Duration google_duration = 21 [(ghoster.secret) = true];
+  google.protobuf.DoubleValue google_double = 22 [(ghoster.secret) = true];
+  google.protobuf.FloatValue google_float = 23 [(ghoster.secret) = true];
+  google.protobuf.Int64Value google_int64 = 24 [(ghoster.secret) = true];
+  google.protobuf.UInt64Value google_uint64 = 25 [(ghoster.secret) = true];
+  google.protobuf.Int32Value google_int32 = 26 [(ghoster.secret) = true];
+  google.protobuf.UInt32Value google_uint32 = 27 [(ghoster.secret) = true];
+  google.protobuf.BoolValue google_bool = 28 [(ghoster.secret) = true];
+  google.protobuf.StringValue google_string = 29 [(ghoster.secret) = true];
+  google.protobuf.BytesValue google_bytes = 30 [(ghoster.secret) = true];
+}

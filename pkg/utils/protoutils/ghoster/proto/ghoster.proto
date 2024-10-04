@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package ghoster;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/werbot/werbot/pkg/utils/protoutils/ghoster/proto";
+
+extend google.protobuf.FieldOptions {
+  bool secret = 50001;
+}
