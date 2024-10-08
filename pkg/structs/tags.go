@@ -1,6 +1,6 @@
 package structs
 
-import "github.com/werbot/werbot/pkg/strutil"
+import "github.com/werbot/werbot/pkg/utils/strutil"
 
 // ParseTagValueDefault parse like json tag value.
 func ParseTagValueDefault(field, tagVal string) (mp SMap, err error) {

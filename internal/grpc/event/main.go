@@ -1,19 +1,19 @@
 package event
 
 import (
-  eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
-  "github.com/werbot/werbot/internal/storage/postgres"
-  "github.com/werbot/werbot/pkg/logger"
+	eventpb "github.com/werbot/werbot/internal/grpc/event/proto/event"
+	"github.com/werbot/werbot/pkg/logger"
+	"github.com/werbot/werbot/pkg/storage/postgres"
 )
 
 var log logger.Logger
 
 // Handler is ...
 type Handler struct {
-  eventpb.UnimplementedEventHandlersServer
-  DB *postgres.Connect
+	eventpb.UnimplementedEventHandlersServer
+	DB *postgres.Connect
 }
 
 func init() {
-  log = logger.New()
+	log = logger.New()
 }

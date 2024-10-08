@@ -6,11 +6,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto"
+	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto/audit"
 	"github.com/werbot/werbot/internal/trace"
 )
 
-// ListAudits is displays the list all audits for server_id
+// ListAudits is displays the list all audits for scheme_id
 func (h *Handler) ListAudits(ctx context.Context, in *auditpb.ListAudits_Request) (*auditpb.ListAudits_Response, error) {
 	response := &auditpb.ListAudits_Response{}
 	return response, nil
@@ -22,8 +22,9 @@ func (h *Handler) Audit(ctx context.Context, in *auditpb.Audit_Request) (*auditp
 	return response, nil
 }
 
-// AddAudit is adds a new audit for server_id
+// AddAudit is adds a new audit for scheme_id
 func (h *Handler) AddAudit(ctx context.Context, in *auditpb.AddAudit_Request) (*auditpb.AddAudit_Response, error) {
+  
 	if in.GetAccountId() == "" && in.GetVersion() == 0 && in.GetSession() == "" && in.GetClientIp() == "" {
 		return nil, status.Error(codes.InvalidArgument, trace.MsgInvalidArgument)
 	}
@@ -61,11 +62,11 @@ func (h *Handler) AddAudit(ctx context.Context, in *auditpb.AddAudit_Request) (*
 	return response, nil
 }
 
-// UpdateAudit is update audit for server_id
+// UpdateAudit is update audit for scheme_id
 func (h *Handler) UpdateAudit(ctx context.Context, in *auditpb.UpdateAudit_Request) (*auditpb.UpdateAudit_Response, error) {
 	response := &auditpb.UpdateAudit_Response{}
 
-	_, err := h.DB.Conn.ExecContext(ctx, `
+	res, err := h.DB.Conn.ExecContext(ctx, `
     UPDATE "audit"
     SET
       "duration" = $1,
@@ -80,10 +81,15 @@ func (h *Handler) UpdateAudit(ctx context.Context, in *auditpb.UpdateAudit_Reque
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
+	if rows, _ := res.RowsAffected(); rows == 0 {
+		errGRPC := status.Error(codes.NotFound, trace.MsgAuditNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
+
 	return response, nil
 }
 
-// DeleteAudit is delete audit for server_id
+// DeleteAudit is delete audit for scheme_id
 func (h *Handler) DeleteAudit(ctx context.Context, in *auditpb.DeleteAudit_Request) (*auditpb.DeleteAudit_Response, error) {
 	response := &auditpb.DeleteAudit_Response{}
 	return response, nil

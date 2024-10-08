@@ -5,13 +5,13 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-// Handler is ...
+// Handler handles user-related routes.
 type Handler struct {
 	*api.Handler
 	log logger.Logger
 }
 
-// New is ...
+// New creates a new user handler.
 func New(h *api.Handler) *Handler {
 	return &Handler{
 		Handler: h,
@@ -19,13 +19,14 @@ func New(h *api.Handler) *Handler {
 	}
 }
 
-// Routes is ...
+// Routes sets up the user-related routes.
 func (h *Handler) Routes() {
-	userV1 := h.App.Group("/v1/users", h.Auth)
-	userV1.Get("/", h.getUser)
-	userV1.Post("/", h.addUser)
-	userV1.Patch("/", h.updateUser)
-	userV1.Delete("/", h.deleteUser)
-
-	userV1.Patch("/password", h.updatePassword)
+	apiV1 := h.App.Group("/v1/users", h.Auth)
+	apiV1.Get("/list", h.users)
+	apiV1.Get("/", h.user)
+	apiV1.Post("/", h.addUser)
+	apiV1.Patch("/", h.updateUser)
+	apiV1.Patch("/password", h.updatePassword)
+	apiV1.Post("/delete", h.deleteUser)
+	apiV1.Delete("/delete/:token<guid>", h.deleteUser)
 }

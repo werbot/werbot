@@ -1,384 +1,348 @@
 package member
 
 import (
-	"context"
-	"fmt"
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/grpc"
-	memberpb "github.com/werbot/werbot/internal/grpc/member/proto"
-	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
-	"github.com/werbot/werbot/internal/mail"
-	"github.com/werbot/werbot/internal/web/middleware"
-	"github.com/werbot/werbot/pkg/webutil"
+	"github.com/werbot/werbot/internal/event"
+	memberpb "github.com/werbot/werbot/internal/grpc/member/proto/member"
+	userpb "github.com/werbot/werbot/internal/grpc/user/proto/user"
+	"github.com/werbot/werbot/internal/web/session"
+	"github.com/werbot/werbot/pkg/utils/protoutils"
+	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
+	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
-// @Summary      Show information about member or list of all members on project
-// @Tags         members
-// @Accept       json
-// @Produce      json
-// @Param        project_id      path     uuid true  "Project ID"
-// @Param        owner_id        path     uuid false "Project owner ID"
-// @Param        member_id       path     uuid false "Member ID. Parameter Accessible with ROLE_ADMIN rights"
-// @Success      200             {object} webutil.HTTPResponse{data=memberpb.ProjectMember_Response}
-// @Failure      400,401,404,500 {object} webutil.HTTPResponse
-// @Router       /v1/members [get]
-func (h *Handler) getProjectMember(c *fiber.Ctx) error {
-	request := &memberpb.ProjectMember_Request{}
+// @Summary Retrieve project members
+// @Description Get a list of members for a given project UUID with pagination and sorting options
+// @Tags members
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "Project UUID"
+// @Param addon path string false "Search users without project for admin"
+// @Param limit query int false "Limit for pagination"
+// @Param offset query int false "Offset for pagination"
+// @Param sort_by query string false "Sort by for pagination"
+// @Success 200 {object} webutil.HTTPResponse{result1=memberpb.ProjectMembers_Response,result2=memberpb.AddProjectMember_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/members/project/{project_id} [get]
+func (h *Handler) projectMembers(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	pagination := webutil.GetPaginationFromCtx(c)
 
-	if err := c.QueryParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, nil)
-	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-
-	// show all members
-	if request.GetMemberId() == "" {
-		pagination := webutil.GetPaginationFromCtx(c)
-		members, err := rClient.ListProjectMembers(ctx, &memberpb.ListProjectMembers_Request{
-			OwnerId:   request.GetOwnerId(),
-			ProjectId: request.GetProjectId(),
-			Limit:     pagination.Limit,
-			Offset:    pagination.Offset,
-			SortBy:    "member_created:DESC",
-		})
-		if err != nil {
-			return webutil.FromGRPC(c, err)
-		}
-		if members.GetTotal() == 0 {
+	// search users without project, access only for admin
+	if c.Params("addon") == "search" {
+		if !sessionData.IsUserAdmin() {
 			return webutil.StatusNotFound(c, nil)
 		}
 
-		return webutil.StatusOK(c, "members", members)
-	}
-
-	// show information about the member
-	member, err := rClient.ProjectMember(ctx, request)
-	if err != nil {
-		return webutil.FromGRPC(c, err)
-	}
-	// if member == nil {
-	// 	return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
-	// }
-
-	return webutil.StatusOK(c, "member information", member)
-}
-
-// @Summary      Adding a new member on project
-// @Tags         members
-// @Accept       json
-// @Produce      json
-// @Param        req         body     memberpb.AddProject_Request{}
-// @Success      200         {object} webutil.HTTPResponse{data=memberpb.AddProjectMember_Response}
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/members [post]
-func (h *Handler) addProjectMember(c *fiber.Ctx) error {
-	request := &memberpb.AddProjectMember_Request{}
-
-	if err := c.BodyParser(request); err != nil {
-		return webutil.StatusBadRequest(c, "The body of the request is damaged")
-	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-	request.Role = userpb.Role_user // TODO directly install the role of the user
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-	member, err := rClient.AddProjectMember(ctx, request)
-	if err != nil {
-		return webutil.FromGRPC(c, err)
-	}
-
-	return webutil.StatusOK(c, "member added", member)
-}
-
-// @Summary      Updating member information on project
-// @Tags         members
-// @Accept       json
-// @Produce      json
-// @Param        req             body     memberpb.UpdateMember_Request{}
-// @Success      200             {object} webutil.HTTPResponse{data=memberpb.UpdateProjectMember_Response}
-// @Failure      400,401,404,500 {object} webutil.HTTPResponse
-// @Router       /v1/members [patch]
-func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
-	request := &memberpb.UpdateProjectMember_Request{}
-
-	if err := c.BodyParser(request); err != nil {
-		return webutil.StatusBadRequest(c, "The body of the request is damaged")
-	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-	if _, err := rClient.UpdateProjectMember(ctx, request); err != nil {
-		return webutil.FromGRPC(c, err)
-	}
-
-	return webutil.StatusOK(c, "member updated", nil)
-}
-
-// @Summary      Delete member on project
-// @Tags         members
-// @Accept       json
-// @Produce      json
-// @Param        project_id      path     uuid true "Project ID"
-// @Param        owner_id        path     uuid true "Owner ID"
-// @Param        member_id       path     uuid true "Member ID"
-// @Success      200             {object} webutil.HTTPResponse
-// @Failure      400,401,404,500 {object} webutil.HTTPResponse
-// @Router       /v1/members [delete]
-func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
-	request := &memberpb.DeleteProjectMember_Request{}
-
-	if err := c.QueryParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, nil)
-	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-	if _, err := rClient.DeleteProjectMember(ctx, request); err != nil {
-		return webutil.FromGRPC(c, err)
-	}
-
-	return webutil.StatusOK(c, "member deleted", nil)
-}
-
-// @Summary      List users without project
-// @Tags         members
-// @Accept       json
-// @Produce      json
-// @Param        project_id      path     uuid true "Project ID"
-// @Param        owner_id        path     uuid true "Owner ID"
-// @Param        name            path     string true "Name"
-// @Success      200             {object} webutil.HTTPResponse
-// @Failure      400,401,404,500 {object} webutil.HTTPResponse
-// @Router       /v1/members/search [get]
-func (h *Handler) getUsersWithoutProject(c *fiber.Ctx) error {
-	request := &memberpb.UsersWithoutProject_Request{}
-
-	if err := c.QueryParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, nil)
-	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-	members, err := rClient.UsersWithoutProject(ctx, request)
-	if err != nil {
-		return webutil.FromGRPC(c, err)
-	}
-
-	return webutil.StatusOK(c, "users without project", members)
-}
-
-// @Summary      Update member status of project
-// @Tags         members
-// @Accept       json
-// @Produce      json
-// @Param        req         body     memberpb.UpdateProjectMember_Request{data=memberpb.UpdateProjectMember_Request_Active}
-// @Success      200         {object} webutil.HTTPResponse
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/members/active [patch]
-func (h *Handler) updateProjectMemberStatus(c *fiber.Ctx) error {
-	request := &memberpb.UpdateProjectMember_Request{}
-	request.Setting = &memberpb.UpdateProjectMember_Request_Active{}
-
-	if err := c.BodyParser(request); err != nil {
-		return webutil.StatusBadRequest(c, "The body of the request is damaged")
-	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-	if _, err := rClient.UpdateProjectMember(ctx, request); err != nil {
-		return webutil.FromGRPC(c, err)
-	}
-
-	// message section
-	message := "member is online"
-	if !request.GetActive() {
-		message = "member is offline"
-	}
-
-	return webutil.StatusOK(c, message, nil)
-}
-
-// @Summary      Show invites on project
-// @Tags         members
-// @Accept       json
-// @Produce      json
-// @Param        owner_id        path     uuid false "Project owner ID"
-// @Param        project_id      path     uuid true  "Project ID"
-// @Param        member_id       path     uuid true  "Member ID"
-// @Success      200             {object} webutil.HTTPResponse{data=memberpb.ListMembersInvite_Response}
-// @Failure      400,401,404,500 {object} webutil.HTTPResponse
-// @Router       /v1/members/invite [get]
-func (h *Handler) getProjectMembersInvite(c *fiber.Ctx) error {
-	request := &memberpb.ListMembersInvite_Request{}
-
-	if err := c.QueryParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, nil)
-	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	pagination := webutil.GetPaginationFromCtx(c)
-	userParameter := middleware.AuthUser(c)
-	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-	request.SortBy = `"project_invite"."status":ASC,"project_invite"."created_at":DESC`
-	request.Limit = pagination.Limit
-	request.Offset = pagination.Offset
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-	members, err := rClient.ListMembersInvite(ctx, request)
-	if err != nil {
-		return webutil.FromGRPC(c, err)
-	}
-
-	return webutil.StatusOK(c, "member invites", members)
-}
-
-// @Summary      Invite a new member on project
-// @Tags         members
-// @Accept       json
-// @Produce      json
-// @Param        req         body     memberpb.AddProjectMemberInvite_Request{}
-// @Success      200         {object} webutil.HTTPResponse{data=memberpb.AddMemberInvite_Response}
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/members/invite [post]
-func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
-	request := &memberpb.AddMemberInvite_Request{}
-
-	if err := c.BodyParser(request); err != nil {
-		return webutil.StatusBadRequest(c, "The body of the request is damaged")
-	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-	member, err := rClient.AddMemberInvite(ctx, request)
-	if err != nil {
-		return webutil.FromGRPC(c, err)
-	}
-
-	if member.Status == "activated" {
-		mailData := map[string]string{
-			"Link": fmt.Sprintf("%s/invite/project/%s", internal.GetString("APP_DSN", "http://localhost:5173"), member.GetInvite()),
+		request := &memberpb.UsersWithoutProject_Request{
+			ProjectId: c.Params("project_id"),
+			Limit:     pagination.Limit,
+			Offset:    pagination.Offset,
+			SortBy:    `"user"."alias":ASC`,
 		}
-		go mail.Send(request.GetEmail(), "project invitation", "project-invite", mailData)
 
-		return webutil.StatusOK(c, "member invited", member)
+		_ = webutil.Parse(c, request).Query()
+
+		rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+		members, err := rClient.UsersWithoutProject(c.UserContext(), request)
+		if err != nil {
+			return webutil.FromGRPC(c, err)
+		}
+
+		result, err := protoutils.ConvertProtoMessageToMap(members)
+		if err != nil {
+			return webutil.FromGRPC(c, err)
+		}
+
+		return webutil.StatusOK(c, "Users without project", result)
 	}
 
-	return webutil.StatusOK(c, "member invited", "already active")
-}
-
-// @Summary      Delete invite on project
-// @Tags         members
-// @Accept       json
-// @Produce      json
-// @Param        project_id      path     uuid true "Project ID"
-// @Param        owner_id        path     uuid true "Owner ID"
-// @Param        invite_id       path     uuid true "Invite ID"
-// @Success      200             {object} webutil.HTTPResponse
-// @Failure      400,401,404,500 {object} webutil.HTTPResponse
-// @Router       /v1/members/invite [delete]
-func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
-	request := &memberpb.DeleteMemberInvite_Request{}
-
-	if err := c.QueryParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, nil)
+	// default show
+	request := &memberpb.ProjectMembers_Request{
+		IsAdmin:   sessionData.IsUserAdmin(),
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+		Limit:     pagination.Limit,
+		Offset:    pagination.Offset,
+		SortBy:    `"project_member"."created_at":DESC`,
 	}
 
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.OwnerId = userParameter.UserID(request.GetOwnerId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	_ = webutil.Parse(c, request).Query()
 
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-	if _, err := rClient.DeleteMemberInvite(ctx, request); err != nil {
+	members, err := rClient.ProjectMembers(c.UserContext(), request)
+	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "invite deleted", nil)
+	result, err := protoutils.ConvertProtoMessageToMap(members)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "Members", result)
 }
 
+// @Summary Retrieve project member information
+// @Description Get details of a specific member within a given project by project UUID and member UUID
+// @Tags members
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "Project UUID"
+// @Param member_id path string true "Member UUID"
+// @Success 200 {object} webutil.HTTPResponse{result=memberpb.ProjectMember_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/members/project/{project_id}/{member_id} [get]
+func (h *Handler) projectMember(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	request := &memberpb.ProjectMember_Request{
+		IsAdmin:   sessionData.IsUserAdmin(),
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+		MemberId:  c.Params("member_id"),
+	}
+
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	member, err := rClient.ProjectMember(c.UserContext(), request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	result, err := protoutils.ConvertProtoMessageToMap(member)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "Member", result)
+}
+
+// @Summary Add Project Member, access only for admin
+// @Description Adds a new member to the specified project with a given role
+// @Tags members
+// @Accept json
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "UUID of the project"
+// @Param body body memberpb.AddProjectMember_Request true "Adds a new member Request Body"
+// @Success 200 {object} webutil.HTTPResponse{result=memberpb.AddProjectMember_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/members/project/{project_id} [post]
+func (h *Handler) addProjectMember(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	request := &memberpb.AddProjectMember_Request{
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+		Role:      userpb.Role_user,
+	}
+
+	_ = webutil.Parse(c, request).Body()
+
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	member, err := rClient.AddProjectMember(c.UserContext(), request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	result, err := protoutils.ConvertProtoMessageToMap(member)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	// Log the event
+	ghoster.Secrets(request, false)
+	go event.New(h.Grpc).Web(c, sessionData).Project(request.GetOwnerId(), event.ProjectMember, event.OnCreate, request)
+
+	return webutil.StatusOK(c, "Member added", result)
+}
+
+// @Summary Update Project Member
+// @Description Updates the role or status of an existing project member
+// @Tags members
+// @Accept json
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "UUID of the project"
+// @Param member_id path string true "UUID of the member to be updated"
+// @Param body body memberpb.UpdateProjectMember_Request true "Updates the role or status Request Body"
+// @Success 200 {object} webutil.HTTPResponse
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/members/project/{project_id}/{member_id} [put]
+func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	request := &memberpb.UpdateProjectMember_Request{
+		IsAdmin:   sessionData.IsUserAdmin(),
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+		MemberId:  c.Params("member_id"),
+	}
+
+	_ = webutil.Parse(c, request).Body(true)
+
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	if _, err := rClient.UpdateProjectMember(c.UserContext(), request); err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	// Log the event
+	var eventType event.EventType
+	switch request.GetSetting().(type) {
+	case *memberpb.UpdateProjectMember_Request_Role:
+		eventType = event.OnUpdate
+	case *memberpb.UpdateProjectMember_Request_Active:
+		if request.GetActive() {
+			eventType = event.OnOffline
+		} else {
+			eventType = event.OnOnline
+		}
+	}
+
+	// Log the event
+	ghoster.Secrets(request, false)
+	go event.New(h.Grpc).Web(c, sessionData).Project(request.GetOwnerId(), event.ProjectMember, eventType, request)
+
+	return webutil.StatusOK(c, "Member updated", nil)
+}
+
+// @Summary Delete Project Member
+// @Description Deletes an existing project member
+// @Tags members
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "UUID of the project"
+// @Param member_id path string true "UUID of the member to be deleted"
+// @Success 200 {object} webutil.HTTPResponse
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/members/project/{project_id}/{member_id} [delete]
+func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	request := &memberpb.DeleteProjectMember_Request{
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+		MemberId:  c.Params("member_id"),
+	}
+
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	if _, err := rClient.DeleteProjectMember(c.UserContext(), request); err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	// Log the event
+	ghoster.Secrets(request, false)
+	go event.New(h.Grpc).Web(c, sessionData).Project(request.GetOwnerId(), event.ProjectMember, event.OnRemove, request)
+
+	return webutil.StatusOK(c, "Member deleted", nil)
+}
+
+// @Summary Invite members to a project
+// @Description This endpoint allows an authenticated user to invite members to a specified project
+// @Tags members
+// @Accept json
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "Project UUID"
+// @Param limit query int false "Limit for pagination"
+// @Param offset query int false "Offset for pagination"
+// @Param sort_by query string false "Sort by for pagination"
+// @Success 200 {object} webutil.HTTPResponse{result=memberpb.MembersInvite_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/members/invite/project/{project_id} [get]
+func (h *Handler) projectMembersInvite(c *fiber.Ctx) error {
+	pagination := webutil.GetPaginationFromCtx(c)
+	sessionData := session.AuthUser(c)
+	request := &memberpb.MembersInvite_Request{
+		IsAdmin:   sessionData.IsUserAdmin(),
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+		Limit:     pagination.Limit,
+		Offset:    pagination.Offset,
+		SortBy:    `"project_invite"."status":DESC,"project_invite"."updated_at":DESC`,
+	}
+
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	members, err := rClient.MembersInvite(c.UserContext(), request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	result, err := protoutils.ConvertProtoMessageToMap(members)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "Member invites", result)
+}
+
+// @Summary Invite a new member to a project
+// @Description This endpoint allows an authenticated user to invite a new member to a specific project
+// @Tags members
+// @Accept json
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "Project UUID"
+// @Param body body memberpb.AddMemberInvite_Request true "Request body for adding a member invite"
+// @Success 200 {object} webutil.HTTPResponse{result=memberpb.AddMemberInvite_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/members/invite/project/{project_id} [post]
+func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	request := &memberpb.AddMemberInvite_Request{
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+	}
+
+	_ = webutil.Parse(c, request).Body()
+
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	member, err := rClient.AddMemberInvite(c.UserContext(), request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	result, err := protoutils.ConvertProtoMessageToMap(member)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	// Log the event
+	ghoster.Secrets(request, false)
+	go event.New(h.Grpc).Web(c, sessionData).Project(request.GetOwnerId(), event.ProjectMember, event.OnMessage, request)
+
+	return webutil.StatusOK(c, "Member invited", result)
+}
+
+// @Summary Delete Project Member Invite
+// @Description Deletes an invite for a project member based on the provided user, project, and token UUIDs
+// @Tags members
+// @Accept json
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "Project UUID"
+// @Param invite path string true "Invite UUID"
+// @Success 200 {object} webutil.HTTPResponse{}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/members/invite/project/{project_id}/{token} [delete]
+func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	request := &memberpb.DeleteMemberInvite_Request{
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+		Token:     c.Params("token"),
+	}
+
+	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	if _, err := rClient.DeleteMemberInvite(c.UserContext(), request); err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	// Log the event
+	ghoster.Secrets(request, false)
+	go event.New(h.Grpc).Web(c, sessionData).Project(request.GetOwnerId(), event.ProjectMember, event.OnRemove, request)
+
+	return webutil.StatusOK(c, "Invite deleted", nil)
+}
+
+// TODO
 // @Summary      Confirmation of the invitation to join the project
 // @Tags         members
 // @Accept       json
@@ -386,26 +350,26 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 // @Param        invite      path     uuid true "Invite"
 // @Success      200         {object} webutil.HTTPResponse
 // @Failure      400,500     {object} webutil.HTTPResponse
-// @Router       /v1/members/invite/:invite [post]
-func (h *Handler) postMembersInviteActivate(c *fiber.Ctx) error {
-	request := &memberpb.MemberInviteActivate_Request{}
-	request.Invite = c.Params("invite")
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
+// @Router       /v1/members/invite/:token [get]
+func (h *Handler) membersInviteActivate(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	request := &memberpb.MemberInviteActivate_Request{
+		UserId: sessionData.UserID(c.Query("owner_id")),
+		Token:  c.Params("token"),
 	}
 
-	userParameter := middleware.AuthUser(c)
-	request.UserId = userParameter.User.GetUserId()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-	project, err := rClient.MemberInviteActivate(ctx, request)
+	project, err := rClient.MemberInviteActivate(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "invite confirmed", project)
+	result, err := protoutils.ConvertProtoMessageToMap(project)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	// TODO depending on the response, redirect to the registration page, authorization or display a message about successful activation
+
+	return webutil.StatusOK(c, "Invite confirmed", result)
 }

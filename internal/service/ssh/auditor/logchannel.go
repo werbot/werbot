@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc"
 
-	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto"
+	auditpb "github.com/werbot/werbot/internal/grpc/audit/proto/audit"
 	"github.com/werbot/werbot/pkg/logger"
 )
 

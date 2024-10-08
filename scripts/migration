@@ -44,7 +44,7 @@ run_goose() {
     echo
     echo "command:"
     print_help "<empty>" "Core version"
-    print_help ent "Enterprise version"
+    print_help ee "Enterprise version"
     print_help saas "SaaS version"
     print_help test "Test version"
     print_help dev "Development fixtures"
@@ -60,11 +60,14 @@ run_goose() {
   fi
 }
 
-arr_type=(ent saas test)
+arr_type=(ee saas test)
 if [[ " ${arr_type[*]} " =~ " $MIGRATION " ]]; then
   print_header "Migrations sql $MIGRATION:$GOOSE_ACTION"
 
-  if [ "$MIGRATION" == "saas" ]; then
+  if [ "$MIGRATION" == "ee" ]; then
+    MIGRATION_DIR=${ROOT_PATH}/add-on/ee/migration
+    DB_POSTFIX=${DB_POSTFIX}"_ee"
+  elif [ "$MIGRATION" == "saas" ]; then
     MIGRATION_DIR=${ROOT_PATH}/add-on/saas/migration
     DB_POSTFIX=${DB_POSTFIX}"_saas"
   elif [ "$MIGRATION" == "test" ]; then
@@ -85,14 +88,14 @@ elif [[ $MIGRATION == "dev" ]]; then
     case $GOOSE_ACTION in
     up)
       $SOURCE up
-      $SOURCE ent up
+      $SOURCE ee up
       $SOURCE saas up
       $SOURCE test up
       ;;
     down)
       $SOURCE test down
       $SOURCE saas down
-      $SOURCE ent down
+      $SOURCE ee down
       $SOURCE down
       ;;
     reset)

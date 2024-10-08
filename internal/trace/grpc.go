@@ -2,6 +2,7 @@ package trace
 
 import (
 	"database/sql"
+	"errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -9,22 +10,24 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-// Error is ...
+// Error handles errors and logs specific cases.
 func Error(err error, log logger.Logger, message any) error {
-	if err == sql.ErrNoRows {
-		return status.Error(codes.NotFound, MsgNotFound)
+	if errors.Is(err, sql.ErrNoRows) {
+		msgError := MsgNotFound
+		return status.Error(codes.NotFound, msgError)
 	}
 
 	dataError := status.Convert(err)
 	codeError := dataError.Code()
 	msgError := dataError.Message()
 
-	if codeError == codes.Unknown || codeError == codes.Aborted || codeError == codes.Internal {
+	switch codeError {
+	case codes.Unknown, codes.Aborted, codes.Internal:
 		log.ErrorGRPC(err, 2).Send()
 		msgError = ""
 	}
 
-	if msg, ok := message.(string); ok && message != nil {
+	if msg, ok := message.(string); ok && msg != "" {
 		msgError = msg
 	}
 
@@ -44,6 +47,7 @@ func ParseError(err error) *ErrorInfo {
 	if err == nil {
 		return nil
 	}
+
 	dataError := status.Convert(err)
 	return &ErrorInfo{
 		Code:    dataError.Code(),

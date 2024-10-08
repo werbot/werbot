@@ -9,13 +9,13 @@ const (
 	authPath = "/auth"
 )
 
-// Handler represents a type that provides request handling functionality, such as logging and making requests to the application.
+// Handler handles auth-related routes.
 type Handler struct {
 	*api.Handler
 	log logger.Logger
 }
 
-// New returns a new instance of Handler.
+// New creates a new auth handler.
 func New(h *api.Handler) *Handler {
 	return &Handler{
 		Handler: h,
@@ -23,7 +23,7 @@ func New(h *api.Handler) *Handler {
 	}
 }
 
-// Routes sets routes for Handler.
+// Routes sets up the auth-related routes.
 func (h *Handler) Routes() {
 	authRoutes := h.App.Group(authPath)
 	authRoutes.Post("/signin", h.signIn)

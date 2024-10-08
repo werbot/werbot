@@ -1,325 +1,260 @@
 package user
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"time"
-
 	"github.com/gofiber/fiber/v2"
-	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/grpc"
-	userpb "github.com/werbot/werbot/internal/grpc/user/proto"
-	"github.com/werbot/werbot/internal/mail"
-	"github.com/werbot/werbot/internal/web/middleware"
-	"github.com/werbot/werbot/pkg/webutil"
+	"github.com/werbot/werbot/internal/event"
+	userpb "github.com/werbot/werbot/internal/grpc/user/proto/user"
+	"github.com/werbot/werbot/internal/web/session"
+	"github.com/werbot/werbot/pkg/utils/protoutils"
+	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
+	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
-// @Summary      Show information about user or list of all users
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        user_id     path     uuid false "User ID. Parameter Accessible with ROLE_ADMIN rights"
-// @Success      200         {object} webutil.HTTPResponse{data=userpb.ListUsersResponse}
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/users [get]
-func (h *Handler) getUser(c *fiber.Ctx) error {
-	request := &userpb.User_Request{}
+// @Summary Retrieve users
+// @Description Retrieves a list of users with pagination and sorting options. Access restricted to admin users.
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param limit query int false "Limit for pagination"
+// @Param offset query int false "Offset for pagination"
+// @Param sort_by query string false "Sort by for pagination"
+// @Success 200 {object} webutil.HTTPResponse{result=userpb.Users_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/users/list [get]
+func (h *Handler) users(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
 
-	if err := c.QueryParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, nil)
-	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	userID := userParameter.UserID(request.GetUserId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := userpb.NewUserHandlersClient(h.Grpc)
-
-	// show all users
-	if userParameter.IsUserAdmin() && request.GetUserId() == "" {
-		pagination := webutil.GetPaginationFromCtx(c)
-		users, err := rClient.ListUsers(ctx, &userpb.ListUsers_Request{
-			Limit:  pagination.Limit,
-			Offset: pagination.Offset,
-			SortBy: "id:ASC",
-		})
-		if err != nil {
-			return webutil.FromGRPC(c, err)
-		}
-		if users.GetTotal() == 0 {
-			return webutil.StatusNotFound(c, nil)
-		}
-
-		return webutil.StatusOK(c, "users", users)
-	}
-
-	// show information about the key
-	user, err := rClient.User(ctx, &userpb.User_Request{
-		UserId: userID,
-	})
-	if err != nil {
-		return webutil.FromGRPC(c, err)
-	}
-	// if user == nil {
-	//	return webutil.StatusNotFound(c, internal.MsgNotFound, nil)
-	//}
-
-	// If Role_admin - show detailed information
-	if userParameter.IsUserAdmin() {
-		return webutil.StatusOK(c, "user information", user)
-	}
-
-	return webutil.StatusOK(c, "user information", &userpb.User_Response{
-		Login:   user.GetLogin(),
-		Name:    user.GetName(),
-		Surname: user.GetSurname(),
-		Email:   user.GetEmail(),
-	})
-}
-
-// @Summary      Adding a new user (Only an administrator can added a new user).
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        req         body     userpb.AddUser_Request{}
-// @Success      200         {object} webutil.HTTPResponse{data=userpb.AddUser_Response}
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/users [post]
-func (h *Handler) addUser(c *fiber.Ctx) error {
-	request := &userpb.AddUser_Request{}
-
-	if err := c.BodyParser(request); err != nil {
-		return webutil.StatusBadRequest(c, "The body of the request is damaged")
-	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	if !userParameter.IsUserAdmin() {
+	// access only for admin
+	if !sessionData.IsUserAdmin() {
 		return webutil.StatusNotFound(c, nil)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	pagination := webutil.GetPaginationFromCtx(c)
+	request := &userpb.Users_Request{
+		IsAdmin: sessionData.IsUserAdmin(),
+		Limit:   pagination.Limit,
+		Offset:  pagination.Offset,
+		SortBy:  `"user"."created_at":ASC`,
+	}
 
 	rClient := userpb.NewUserHandlersClient(h.Grpc)
-	user, err := rClient.AddUser(ctx, request)
+	users, err := rClient.Users(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "user added", user)
+	result, err := protoutils.ConvertProtoMessageToMap(users)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "Users", result)
 }
 
-// @Summary      Updating user information.
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        user_id     path     int true "user_id"
-// @Param        req         body     userpb.UpdateUser_Request{}
-// @Success      200         {object} webutil.HTTPResponse(data=userpb.UpdateUser_Response)
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/users [patch]
+// @Summary Retrieve user
+// @Description Retrieves details of a specific user by user ID. Access level depends on whether the requester is an admin.
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Success 200 {object} webutil.HTTPResponse{result=userpb.User_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/users [get]
+func (h *Handler) user(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	request := &userpb.User_Request{
+		IsAdmin: sessionData.IsUserAdmin(),
+		UserId:  sessionData.UserID(c.Query("user_id")),
+	}
+
+	rClient := userpb.NewUserHandlersClient(h.Grpc)
+	user, err := rClient.User(c.UserContext(), request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	result, err := protoutils.ConvertProtoMessageToMap(user)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "User", result)
+}
+
+// @Summary Add a new user
+// @Description Adds a new user to the system. Only accessible by admin users.
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user body userpb.AddUser_Request true "Add User Request"
+// @Success 200 {object} webutil.HTTPResponse{result=userpb.AddUser_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/users [post]
+func (h *Handler) addUser(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+
+	// access only for admin
+	if !sessionData.IsUserAdmin() {
+		return webutil.StatusNotFound(c, nil)
+	}
+
+	request := &userpb.AddUser_Request{
+		IsAdmin: sessionData.IsUserAdmin(),
+	}
+
+	_ = webutil.Parse(c, request).Body(false)
+
+	rClient := userpb.NewUserHandlersClient(h.Grpc)
+	user, err := rClient.AddUser(c.UserContext(), request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	result, err := protoutils.ConvertProtoMessageToMap(user)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	// Log the event
+	ghoster.Secrets(request, false)
+	go event.New(h.Grpc).Web(c, sessionData).Profile(sessionData.User.GetUserId(), event.ProfileProfile, event.OnCreate, request)
+
+	return webutil.StatusOK(c, "User added", result)
+}
+
+// @Summary Update user information
+// @Description Updates the user's details based on the provided request data.
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param body body userpb.UpdateUser_Request true
+// @Success 200 {object} webutil.HTTPResponse
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/users [put]
 func (h *Handler) updateUser(c *fiber.Ctx) error {
-	request := &userpb.UpdateUser_Request{}
-
-	if err := protojson.Unmarshal(c.Body(), request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, nil)
+	sessionData := session.AuthUser(c)
+	request := &userpb.UpdateUser_Request{
+		IsAdmin: sessionData.IsUserAdmin(),
+		UserId:  sessionData.UserID(c.Query("user_id")),
 	}
 
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.UserId = userParameter.UserID(request.GetUserId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	_ = webutil.Parse(c, request).Body(true)
 
 	rClient := userpb.NewUserHandlersClient(h.Grpc)
-
-	switch request.Request.(type) {
-	case *userpb.UpdateUser_Request_Info:
-		setting := &userpb.UpdateUser_Request_Info{}
-		setting.Info = &userpb.UpdateUser_Info{}
-		setting.Info.Email = request.GetInfo().GetEmail()
-		setting.Info.Name = request.GetInfo().GetName()
-		setting.Info.Surname = request.GetInfo().GetSurname()
-		request.Request = setting
-
-	case *userpb.UpdateUser_Request_Enabled:
-		setting := &userpb.UpdateUser_Request_Enabled{}
-		setting.Enabled = request.GetEnabled()
-		request.Request = setting
-
-	case *userpb.UpdateUser_Request_Confirmed:
-		setting := &userpb.UpdateUser_Request_Confirmed{}
-		setting.Confirmed = request.GetConfirmed()
-		request.Request = setting
-
-	default:
-		return webutil.FromGRPC(c, errors.New("bad rule")) // msgBadRule
-	}
-
-	/*
-		// If Role_admin
-		if userParameter.IsUserAdmin() {
-			_, err := rClient.UpdateUser(ctx, &userpb.UpdateUser_Request{
-				UserId: request.UserId,
-				Setting: &userpb.UpdateUser_Request_Info{
-					Info: &userpb.UpdateUser_Info{
-						Login:     request.GetInfo().GetLogin(),
-						Email:     request.GetInfo().GetEmail(),
-						Name:      request.GetInfo().GetName(),
-						Surname:   request.GetInfo().GetSurname(),
-						Enabled:   request.GetInfo().GetEnabled(),
-						Confirmed: request.GetInfo().GetConfirmed(),
-					},
-				},
-			})
-			if err != nil {
-				return webutil.FromGRPC(c, err)
-			}
-
-			return webutil.StatusOK(c, msgUserUpdated, nil)
-		}
-	*/
-
-	if _, err := rClient.UpdateUser(ctx, request); err != nil {
+	if _, err := rClient.UpdateUser(c.UserContext(), request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "user updated", nil)
+	// Log the event
+	var eventType event.EventType
+	switch request.GetSetting().(type) {
+	case *userpb.UpdateUser_Request_Alias, *userpb.UpdateUser_Request_Email, *userpb.UpdateUser_Request_Name, *userpb.UpdateUser_Request_Surname:
+		eventType = event.OnUpdate
+	case *userpb.UpdateUser_Request_Active, *userpb.UpdateUser_Request_Confirmed:
+		if request.GetActive() || request.GetConfirmed() {
+			eventType = event.OnOffline
+		} else {
+			eventType = event.OnOnline
+		}
+	}
+
+	// Log the event
+	ghoster.Secrets(request, false)
+	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetUserId(), event.ProfileProfile, eventType, request)
+
+	return webutil.StatusOK(c, "User updated", nil)
 }
 
-// @Summary      Deleting a user
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        user_id     path     uuid true "user_id"
-// @Param        token       path     uuid true "token"
-// @Param        req         body     userpb.DeleteUser_Request{}
-// @Success      200         {object} webutil.HTTPResponse
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/users [delete]
+// @Summary Delete User
+// @Description Deletes a user either by sending an email with a token (step 1) or by verifying the token and deleting the user (step 2).
+// @Tags user2
+// @Accept json
+// @Produce json
+// @Param user_id query string true "User ID"
+// @Param token path string false "Token"
+// @Success 200 {object} webutil.HTTPResponse
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/users/delete [post, delete]
 func (h *Handler) deleteUser(c *fiber.Ctx) error {
-	request := &userpb.DeleteUser_Request{}
-	// c.BodyParser(request)
-
-	if err := protojson.Unmarshal(c.Body(), request); err != nil {
-		fmt.Print(err)
+	sessionData := session.AuthUser(c)
+	request := &userpb.DeleteUser_Request{
+		UserId: sessionData.UserID(c.Query("user_id")),
 	}
 
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
+	// using on step 1
+	if c.Method() == "POST" {
+		_ = webutil.Parse(c, request).Body(true)
 	}
 
-	userParameter := middleware.AuthUser(c)
-	request.UserId = userParameter.UserID(request.GetUserId())
+	// using on step 2
+	if c.Method() == "DELETE" {
+		request.Request = &userpb.DeleteUser_Request_Token{
+			Token: c.Params("token"),
+		}
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	var message, description string
+	var eventType event.EventType
+	var metaData map[string]any
+
+	switch request.GetRequest().(type) {
+	case *userpb.DeleteUser_Request_Password: // step 1 - send email and token
+		message = "Request for delete"
+		description = "An email with instructions to delete your profile has been sent to your email"
+		eventType = event.OnMessage
+		metaData = event.Metadata{
+			"subject": "user deletion confirmation",
+		}
+	case *userpb.DeleteUser_Request_Token: // step 2 - check token and delete user
+		message = "User deleted"
+		eventType = event.OnInactive
+		metaData = event.Metadata{
+			"subject": "user deleted",
+		}
+	default:
+		return webutil.StatusBadRequest(c, map[string]string{
+			"request": "exactly one field is required in oneof",
+		})
+	}
 
 	rClient := userpb.NewUserHandlersClient(h.Grpc)
-
-	// step 1 - send email and token
-	if request.GetPassword() != "" {
-		response, err := rClient.DeleteUser(ctx, request)
-		if err != nil {
-			return webutil.FromGRPC(c, err)
-		}
-
-		/*
-			response, err := rClient.DeleteUser(ctx, &userpb.DeleteUser_Request{
-				UserId: userID,
-				Request: &userpb.DeleteUser_Request_Password{
-					Password: request.GetPassword(),
-				},
-			})
-		*/
-
-		mailData := map[string]string{
-			"Login": response.GetLogin(),
-			"Link":  fmt.Sprintf("%s/profile/delete/%s", internal.GetString("APP_DSN", "http://localhost:5173"), response.GetToken()),
-		}
-		go mail.Send(response.GetEmail(), "user deletion confirmation", "account-deletion-confirmation", mailData)
-		return webutil.StatusOK(c, "an email with instructions to delete your profile has been sent to your email", nil)
+	if _, err := rClient.DeleteUser(c.UserContext(), request); err != nil {
+		return webutil.FromGRPC(c, err)
 	}
 
-	// step 2 - check token and delete user
-	if request.GetToken() != "" {
-		token := &userpb.DeleteUser_Request_Token{}
-		token.Token = c.Params("delete_token")
-		response, err := rClient.DeleteUser(ctx, request)
-		if err != nil {
-			return webutil.FromGRPC(c, err)
-		}
+	// Log the event
+	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetUserId(), event.ProfileProfile, eventType, metaData)
 
-		/*
-			response, err := rClient.DeleteUser(ctx, &userpb.DeleteUser_Request{
-				UserId: userID,
-				Request: &userpb.DeleteUser_Request_Token{
-					Token: c.Params("delete_token"),
-				},
-			})
-		*/
-
-		// send delete token to email
-		mailData := map[string]string{
-			"Login": response.GetLogin(),
-		}
-		go mail.Send(response.GetEmail(), "user deleted", "account-deletion-info", mailData)
-		return webutil.StatusOK(c, "user deleted", nil)
-	}
-
-	return webutil.StatusBadRequest(c, nil)
+	return webutil.StatusOK(c, message, description)
 }
 
-// @Summary      Password update for a user.
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        req         body     userpb.UpdatePassword_Request{}
-// @Param        user_id     path     int true "user_id"
-// @Success      200         {object} webutil.HTTPResponse(data=userpb.UpdatePassword_Response)
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/users/password [patch]
+// @Summary Update user password
+// @Description Updates the password for a given user ID.
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param body body userpb.UpdatePassword_Request true "Update Password Request"
+// @Success 200 {object} webutil.HTTPResponse
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/users/password [patch]
 func (h *Handler) updatePassword(c *fiber.Ctx) error {
-	request := &userpb.UpdatePassword_Request{}
-
-	if err := c.BodyParser(request); err != nil {
-		return webutil.StatusBadRequest(c, "The body of the request is damaged")
+	sessionData := session.AuthUser(c)
+	request := &userpb.UpdatePassword_Request{
+		UserId: sessionData.User.GetUserId(),
 	}
 
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	userParameter := middleware.AuthUser(c)
-	request.UserId = userParameter.UserID(request.GetUserId())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	_ = webutil.Parse(c, request).Body()
 
 	rClient := userpb.NewUserHandlersClient(h.Grpc)
-	msg, err := rClient.UpdatePassword(ctx, request)
+	msg, err := rClient.UpdatePassword(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "password updated", msg)
+	ghoster.Secrets(msg, false)
+	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetUserId(), event.ProfileProfile, event.OnUpdate, msg)
+
+	return webutil.StatusOK(c, "Password updated", msg)
 }

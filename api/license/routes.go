@@ -5,14 +5,14 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-// Handler is ...
+// Handler handles license-related routes.
 type Handler struct {
 	*api.Handler
 	publicKey string
 	log       logger.Logger
 }
 
-// New is ...
+// New creates a new license handler.
 func New(h *api.Handler, publicKey string) *Handler {
 	return &Handler{
 		Handler:   h,
@@ -21,7 +21,8 @@ func New(h *api.Handler, publicKey string) *Handler {
 	}
 }
 
-// Routes is ...
+// Routes sets up the license-related routes.
 func (h *Handler) Routes() {
-	h.App.Get("/v1/license/info", h.Auth, h.getLicenseInfo)
+	apiV1 := h.App.Group("/v1/license", h.Auth)
+	apiV1.Get("/info", h.licenseInfo)
 }

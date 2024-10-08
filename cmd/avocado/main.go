@@ -16,11 +16,11 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/broker"
 	grpcInt "github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/storage/redis"
+	"github.com/werbot/werbot/internal/utils/broker"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/logger"
+	"github.com/werbot/werbot/pkg/storage/redis"
 )
 
 var app = App{}
@@ -43,7 +43,7 @@ func main() {
 
 	app.log = logger.New()
 
-	app.redis = redis.New(ctx, &redis.RedisConfig{
+	app.redis = redis.New(ctx, &redis.Config{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})

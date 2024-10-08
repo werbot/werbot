@@ -12,11 +12,16 @@ const (
 	MsgUnauthorized        = "Unauthorized"
 	MsgInternalServerError = "Internal server error"
 
+	MsgSettingNotFound = "Setting not found"
+
 	// Auth error messages
-	MsgPasswordIsNotValid = "Password is not valid"
-	MsgInviteIsInvalid    = "Invite is invalid"
-	MsgInviteIsActivated  = "Invite is activated"
-	MsgUserNotFound       = "User not found"
+	MsgPasswordIsNotValid      = "Password is not valid"
+	MsgInviteIsInvalid         = "Invite is invalid"
+	MsgInviteIsActivated       = "Invite is activated"
+	MsgInviteNotFound          = "Invite not found"
+	MsgUserNotFound            = "User not found"
+	MsgAuthMethodDoesNotMatch  = "The authentication method does not match"
+	MsgPPasswordHashingProblem = "Password hashing problem"
 
 	// Action error messages
 	MsgFailedToAdd    = "Failed to add"
@@ -39,6 +44,7 @@ const (
 	MsgAccessIsDeniedIP      = "Access is denied for this ip"
 
 	// Key error messages
+	MsgKeyNotFound          = "Key not found"
 	MsgPublicKeyIsBroken    = "The public key has a broken"
 	MsgPrivateKeyIsBroken   = "The private key has a broken"
 	MsgFailedCreatingSSHKey = "Failed to creating SSH key"
@@ -52,4 +58,41 @@ const (
 	MsgFailedToOpenFile  = "Failed to open file"
 	MsgStructureIsBroken = "Structure is broken"
 	// MsgIncorrectParams   = "Incorrect parameters"
+
+	// Member error messages
+	MsgMemberNotFound = "Member not found"
+	MsgOwnerNotFound  = "Owner not found"
+
+	// Consumer error messages
+	MsgConsumerNotFound = "Consumer not found"
+
+	// Subscription error messages
+	MsgSubscriptionPlanNotFound = "Subscription plan not found"
+
+	// Account error messages
+	MsgAccountNotFound = "Account not found"
+
+	// Audit error messages
+	MsgAuditNotFound = "Audit not found"
+
+	// Firewall error messages
+	MsgFirewallNotFound     = "Firewall not found"
+	MsgCountryNotFound      = "Country not found"
+	MsgNetworkNotFound      = "Network not found"
+	MsgFirewallListNotFound = "Firewall list not found"
+
+	// Project error messages
+	MsgProfileNotFound = "Profile not found"
+
+	// Project error messages
+	MsgProjectNotFound = "Project not found"
+
+	// Scheme error messages
+	MsgSchemeNotFound        = "Scheme not found"
+	MsgSchemeSettingNotFound = "Scheme setting not found"
+	MsgSchemeDiffers         = "Schemes differs"
+	MsgInvalidAuthType       = "Invalid authorization type"
+
+	// Agent section
+	MsgTokenNotFound = "Token not found"
 )

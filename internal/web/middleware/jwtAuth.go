@@ -9,20 +9,21 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/internal/web/jwt"
+	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/logger"
-	"github.com/werbot/werbot/pkg/webutil"
+	"github.com/werbot/werbot/pkg/storage/redis"
+	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
-// AuthMiddleware is ...
+// AuthMiddleware handles authentication middleware.
 type AuthMiddleware struct {
 	redis     *redis.Connect
 	publicKey *rsa.PublicKey
 	log       logger.Logger
 }
 
-// Auth is ...
+// Auth initializes the AuthMiddleware with necessary dependencies.
 func Auth(redis *redis.Connect) *AuthMiddleware {
 	log := logger.New()
 
@@ -52,15 +53,17 @@ func (m AuthMiddleware) Execute() fiber.Handler {
 	})
 }
 
+// authError handles authentication errors.
 func authError(c *fiber.Ctx, e error) error {
-	return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "Unauthorized"))
+	return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "unauthorized"))
 }
 
-func (m AuthMiddleware) authSuccess(c *fiber.Ctx) error {
-	userInfo := AuthUser(c)
-	key := fmt.Sprintf("refresh_token:%s", userInfo.UserSub())
+// authSuccess handles successful authentication.
+func (m *AuthMiddleware) authSuccess(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	key := fmt.Sprintf("refresh_token:%s", sessionData.SessionId())
 	if _, err := m.redis.Client.HGetAll(m.redis.Ctx, key).Result(); err != nil {
-		return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "Token has been revoked"))
+		return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "token has been revoked"))
 	}
 
 	return c.Next()

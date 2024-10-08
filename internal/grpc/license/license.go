@@ -1,87 +1,96 @@
 package license
 
 import (
-  "context"
-  "encoding/json"
-  "os"
-  "time"
+	"context"
+	"encoding/json"
+	"os"
+	"time"
 
-  "github.com/google/uuid"
-  "google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
-  "github.com/werbot/werbot/internal"
-  licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
-  license_lib "github.com/werbot/werbot/internal/license"
-  "github.com/werbot/werbot/internal/trace"
+	"github.com/werbot/werbot/internal"
+	licensepb "github.com/werbot/werbot/internal/grpc/license/proto/license"
+	"github.com/werbot/werbot/internal/trace"
+	license_lib "github.com/werbot/werbot/pkg/license"
+	"github.com/werbot/werbot/pkg/uuid"
 )
 
 // License is ...
-func (h *Handler) License(ctx context.Context, in *licensepb.License_Request) (*licensepb.License_Response, error) {
-  licenseOpen := true
-  licensePublic := internal.GetString("LICENSE_KEY_PUBLIC", "")
-  response := &licensepb.License_Response{}
+func (h *Handler) License(_ context.Context, in *licensepb.License_Request) (*licensepb.License_Response, error) {
+	licenseFilePath := internal.GetString("LICENSE_FILE", "/license.key")
+	licensePublicKey := internal.GetString("LICENSE_KEY_PUBLIC", "")
 
-  readFile, err := os.ReadFile(internal.GetString("LICENSE_FILE", "/license.key"))
-  if err != nil {
-    licenseOpen = false
-    return nil, trace.Error(err, log, trace.MsgFailedToOpenLicenseFile)
-  }
+	licByte := in.GetLicense()
+	if licByte == nil {
+		var err error
+		licByte, err = os.ReadFile(licenseFilePath)
+		if err != nil || licensePublicKey == "" {
+			return osLicense(), nil
+		}
+	}
 
-  if licensePublic == "" {
-    licenseOpen = false
-  }
+	return eeLicense(licByte, licensePublicKey)
+}
 
-  if licenseOpen {
-    lic, err := license_lib.DecodePublicKey([]byte(licensePublic))
-    if err != nil {
-      return nil, trace.Error(err, log, trace.MsgLicenseKeyIsBroken)
-    }
+func osLicense() *licensepb.License_Response {
+	now := time.Now().UTC()
 
-    // The main information of the license
-    licDecode, err := lic.Decode(readFile)
-    if err != nil {
-      return nil, trace.Error(err, log, trace.MsgLicenseStructureIsBroken)
-    }
-    response.Issued = licDecode.License.Iss
-    response.Customer = licDecode.License.Cus
-    response.Subscriber = licDecode.License.Sub
-    response.Type = licDecode.License.Typ
-    response.IssuedAt = timestamppb.New(licDecode.License.Iat)
-    response.ExpiresAt = timestamppb.New(licDecode.License.Exp)
-    response.Expired = lic.Expired()
+	return &licensepb.License_Response{
+		Issued:     "free",
+		Customer:   "Mr. Robot",
+		Subscriber: uuid.New(),
+		Type:       "open source",
+		IssuedAt:   timestamppb.New(now),
+		ExpiresAt:  timestamppb.New(now.AddDate(1, 0, 0)),
+		Expired:    true,
+		Modules:    []string{"module1", "module2", "module3"},
+		Limits: map[string]int32{
+			"Companies": 99,
+			"Servers":   99,
+			"Users":     99,
+		},
+	}
+}
 
-    licData := map[string]any{}
-    if err := json.Unmarshal(licDecode.License.Dat, &licData); err != nil {
-      return nil, trace.Error(err, log, trace.MsgStructureIsBroken)
-    }
+func eeLicense(licByte []byte, publicKey string) (*licensepb.License_Response, error) {
+	lic, err := license_lib.DecodePublicKey([]byte(publicKey))
+	if err != nil {
+		errGRPC := status.Error(codes.NotFound, trace.MsgLicenseKeyIsBroken)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
-    response.Limits = map[string]int32{
-      "Companies": int32(licData["companies"].(float64)),
-      "Servers":   int32(licData["servers"].(float64)),
-      "Users":     int32(licData["users"].(float64)),
-    }
+	licDecode, err := lic.Decode(licByte)
+	if err != nil {
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgLicenseStructureIsBroken)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
-    for _, item := range licData["modules"].([]interface{}) {
-      response.Modules = append(response.Modules, item.(string))
-    }
-  } else {
-    now := time.Now()
+	response := &licensepb.License_Response{
+		Issued:     licDecode.License.Iss,
+		Customer:   licDecode.License.Cus,
+		Subscriber: licDecode.License.Sub,
+		Type:       licDecode.License.Typ,
+		IssuedAt:   timestamppb.New(licDecode.License.Iat),
+		ExpiresAt:  timestamppb.New(licDecode.License.Exp),
+		Expired:    lic.Expired(),
+	}
 
-    response.Issued = "free"
-    response.Customer = "Mr. Robot"
-    response.Subscriber = uuid.New().String()
-    response.Type = "open source"
-    response.IssuedAt = timestamppb.New(now.UTC())
-    response.ExpiresAt = timestamppb.New(now.AddDate(0, 0, 365).UTC())
-    response.Expired = true
+	licData := map[string]any{}
+	if err := json.Unmarshal(licDecode.License.Dat, &licData); err != nil {
+		return nil, trace.Error(err, log, trace.MsgStructureIsBroken)
+	}
 
-    response.Modules = []string{"module1", "module2", "module3"}
-    response.Limits = map[string]int32{
-      "Companies": 99,
-      "Servers":   99,
-      "Users":     99,
-    }
-  }
+	response.Limits = map[string]int32{
+		"Companies": int32(licData["companies"].(float64)),
+		"Servers":   int32(licData["servers"].(float64)),
+		"Users":     int32(licData["users"].(float64)),
+	}
 
-  return response, nil
+	for _, item := range licData["modules"].([]interface{}) {
+		response.Modules = append(response.Modules, item.(string))
+	}
+
+	return response, nil
 }

@@ -9,8 +9,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/werbot/werbot/internal"
-	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
-	"github.com/werbot/werbot/internal/storage/redis"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto/account"
+	"github.com/werbot/werbot/pkg/storage/redis"
 )
 
 // Config holds the configuration for JWT token generation
@@ -18,12 +18,6 @@ type Config struct {
 	PrivateKey *rsa.PrivateKey
 	PublicKey  *rsa.PublicKey
 	Context    *accountpb.UserParameters
-}
-
-// Tokens holds access and refresh tokens
-type Tokens struct {
-	Access  string `json:"access_token,omitempty"`
-	Refresh string `json:"refresh_token,omitempty" form:"refresh_token"`
 }
 
 // New creates a new instance of Config with initialized keys
@@ -46,7 +40,7 @@ func New(context *accountpb.UserParameters) (*Config, error) {
 }
 
 // PairTokens generates both an access token and a refresh token.
-func (d *Config) PairTokens() (*Tokens, error) {
+func (d *Config) PairTokens() (*accountpb.Token_Response, error) {
 	accessToken, err := d.createToken(internal.GetDuration("ACCESS_TOKEN_DURATION", "15m"), true)
 	if err != nil {
 		return nil, err
@@ -57,7 +51,7 @@ func (d *Config) PairTokens() (*Tokens, error) {
 		return nil, err
 	}
 
-	return &Tokens{Access: accessToken, Refresh: refreshToken}, nil
+	return &accountpb.Token_Response{Access: accessToken, Refresh: refreshToken}, nil
 }
 
 // createToken generates a JWT token with the given expiry duration and type (access or refresh).
@@ -67,7 +61,7 @@ func (d *Config) createToken(expire time.Duration, accessToken bool) (string, er
 
 	claims := UserClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   d.Context.GetSub(),
+			Subject:   d.Context.GetSessionId(),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(exp),
@@ -91,8 +85,8 @@ type SessionInfo struct {
 }
 
 // CacheFind search the entry with the specified key prefix and UUID from the cache.
-func CacheGet(redis *redis.Connect, keyPrefix, idSession string) (*SessionInfo, error) {
-	key := keyPrefix + ":" + idSession
+func CacheGet(redis *redis.Connect, keyPrefix, sessionID string) (*SessionInfo, error) {
+	key := keyPrefix + ":" + sessionID
 
 	var data SessionInfo
 	redis.Client.HGetAll(redis.Ctx, key).Scan(&data)
@@ -110,9 +104,9 @@ func CacheGet(redis *redis.Connect, keyPrefix, idSession string) (*SessionInfo, 
 }
 
 // CacheAdd adds the given data to the cache with the specified key prefix and UUID.
-func CacheAdd(redis *redis.Connect, keyPrefix, idSession string, data any) {
+func CacheAdd(redis *redis.Connect, keyPrefix, sessionID string, data any) {
 	duration := internal.GetDuration(strings.ToUpper(keyPrefix)+"_DURATION", "168h")
-	key := keyPrefix + ":" + idSession
+	key := keyPrefix + ":" + sessionID
 
 	redis.Client.HSet(redis.Ctx, key, data)
 	redis.Client.Expire(redis.Ctx, key, duration)
@@ -123,10 +117,9 @@ func CacheAdd(redis *redis.Connect, keyPrefix, idSession string, data any) {
 }
 
 // CacheDelete removes the entry with the specified key prefix and UUID from the cache.
-func CacheDelete(redis *redis.Connect, keyPrefix, idSession string) bool {
-	key := keyPrefix + ":" + idSession
-	err := redis.Client.Del(redis.Ctx, key)
-	return err == nil
+func CacheDelete(redis *redis.Connect, keyPrefix, sessionID string) bool {
+	key := keyPrefix + ":" + sessionID
+	return redis.Client.Del(redis.Ctx, key) == nil
 }
 
 // -----------

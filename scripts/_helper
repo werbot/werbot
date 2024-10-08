@@ -17,6 +17,10 @@ COLOR_GREY=$(tput setaf 0)
 COLOR_RED=$(tput setaf 1)
 COLOR_GREEN=$(tput setaf 2)
 COLOR_YELLOW=$(tput setaf 3)
+COLOR_BLUE=$(tput setaf 4)
+COLOR_MAGENTA=$(tput setaf 5)
+COLOR_CYAN=$(tput setaf 6)
+COLOR_WHITE=$(tput setaf 7)
 COLOR_RESET=$(tput sgr0)
 
 DATE=$(date '+%Y-%m-%d-%H:%M:%S')
@@ -76,6 +80,10 @@ print_answer() {
     green) COLOR=$COLOR_GREEN ;;
     yellow) COLOR=$COLOR_YELLOW ;;
     red) COLOR=$COLOR_RED ;;
+    blue) COLOR=$COLOR_BLUE ;;
+    magenta) COLOR=$COLOR_MAGENTA ;;
+    cyan) COLOR=$COLOR_CYAN ;;
+    white) COLOR=$COLOR_WHITE ;;
     esac
   done
   echo "${COLOR}$1${COLOR_RESET}" >&2

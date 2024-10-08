@@ -2,44 +2,33 @@ package logger
 
 import (
 	"os"
-	"sync"
 
 	"github.com/rs/zerolog"
 )
 
-// Logger is ...
+// Logger wraps zerolog.Logger to provide custom logging methods.
 type Logger struct {
 	log zerolog.Logger
 }
 
-// New returns a configured logger instance
+// New returns a configured Logger instance.
 func New() Logger {
-	var logger *zerolog.Logger
-	var getLoggerMutex sync.Mutex
-
-	if logger == nil {
-		getLoggerMutex.Lock()
-		defer getLoggerMutex.Unlock()
-		newLogger := zerolog.New(os.Stderr)
-		logger = &newLogger
-	}
-
 	return Logger{
-		log: logger.With().Timestamp().Logger(),
+		log: zerolog.New(os.Stderr).With().Timestamp().Logger(),
 	}
 }
 
-// Info is ...
+// Info logs an informational message.
 func (l *Logger) Info() *zerolog.Event {
 	return l.log.Info()
 }
 
-// Error is ...
+// Error logs an error message with caller information.
 func (l *Logger) Error(err error) *zerolog.Event {
 	return l.log.Error().CallerSkipFrame(1).Caller().Err(err)
 }
 
-// Fatal is ...
+// Fatal logs a fatal error message with optional error details and caller information.
 func (l *Logger) Fatal(err ...error) *zerolog.Event {
 	msg := l.log.Fatal()
 	if len(err) > 0 {

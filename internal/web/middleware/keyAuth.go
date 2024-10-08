@@ -1,63 +1,62 @@
 package middleware
 
 import (
-	"context"
-	"strings"
-	"time"
-
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/keyauth/v2"
+	"github.com/gofiber/fiber/v2/middleware/keyauth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	projectpb "github.com/werbot/werbot/internal/grpc/project/proto"
-	"github.com/werbot/werbot/pkg/webutil"
+	projectpb "github.com/werbot/werbot/internal/grpc/project/proto/project"
+	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
-// KeyMiddleware is ...
+// KeyMiddleware handles API key authentication.
 type KeyMiddleware struct {
-	*grpc.ClientConn
+	grpcClient *grpc.ClientConn
 }
 
-// Key is ...
-func Key(grpc *grpc.ClientConn) *KeyMiddleware {
+// Key initializes the KeyMiddleware with a gRPC client connection.
+func Key(grpcClient *grpc.ClientConn) *KeyMiddleware {
 	return &KeyMiddleware{
-		grpc,
+		grpcClient: grpcClient,
 	}
 }
 
-// Execute is ...
+// Execute protects routes using KeyAuth middleware.
 func (m KeyMiddleware) Execute() fiber.Handler {
 	return keyauth.New(keyauth.Config{
 		SuccessHandler: keySuccess,
 		ErrorHandler:   keyError,
-		KeyLookup:      strings.Join([]string{"header", "Token"}, ":"),
+		KeyLookup:      "header:x-api-key",
 		Validator:      m.tokenCheck,
 	})
 }
 
-func keyError(c *fiber.Ctx, e error) error {
-	return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "Invalid or expired API Key"))
+// keyError handles key authentication errors.
+func keyError(c *fiber.Ctx, _ error) error {
+	return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "Invalid API key"))
 }
 
+// keySuccess handles successful key authentication.
 func keySuccess(c *fiber.Ctx) error {
 	return c.Next()
 }
 
+// tokenCheck validates the provided token by checking it against the gRPC service.
 func (m KeyMiddleware) tokenCheck(c *fiber.Ctx, token string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := projectpb.NewProjectHandlersClient(m)
-
-	project, err := rClient.ProjectByKey(ctx, &projectpb.ProjectByKey_Request{
-		Key: token,
+	rClient := projectpb.NewProjectHandlersClient(m.grpcClient)
+	project, err := rClient.ProjectKey(c.UserContext(), &projectpb.ProjectKey_Request{
+		Type: &projectpb.ProjectKey_Request_Public{
+			Public: &projectpb.ProjectKey_Public{
+				Key: token,
+			},
+		},
 	})
 	if err != nil {
 		return false, err
 	}
 
-	c.Set("Project-Id", project.ProjectId)
+	c.Set("project-id", project.ProjectId)
 	return true, nil
 }

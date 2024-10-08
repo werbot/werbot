@@ -95,7 +95,7 @@ DNS_CLOUDFLARE_API_KEY=$DNS_CLOUDFLARE_API_KEY
 " >>$DOCKER_ENV_FILE
 
 # update main .env file
-sed -i "s/#\s\?\(DEV_MODE=\)\(.*\)/\1true/" $MAIN_ENV_FILE
+sed -i "s/#\s\?\(ENV_MODE=\)\(.*\)/\1true/" $MAIN_ENV_FILE
 sed -i "s/#\s\?\(GRPCSERVER_CERTIFICATE=\)\(.*\)/\1..\/..\/docker\/core\/grpc_certificate.key/" $MAIN_ENV_FILE
 sed -i "s/#\s\?\(GRPCSERVER_PRIVATE_KEY=\)\(.*\)/\1..\/..\/docker\/core\/grpc_private.key/" $MAIN_ENV_FILE
 sed -i "s/#\s\?\(SECURITY_GEOIP2=\)\(.*\)/\1..\/..\/docker\/core\/GeoLite2-Country.mmdb/" $MAIN_ENV_FILE

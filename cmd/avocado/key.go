@@ -13,27 +13,27 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/rs/zerolog/log"
 	"github.com/werbot/werbot/internal"
-	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
-	"github.com/werbot/werbot/pkg/netutil"
+	schemepb "github.com/werbot/werbot/internal/grpc/scheme/proto/scheme"
+	"github.com/werbot/werbot/pkg/utils/netutil"
 )
 
 func privateKey() func(*ssh.Server) error {
 	return func(srv *ssh.Server) error {
 		privateBytes, err := os.ReadFile(internal.GetString("SSHSERVER_PIPER_KEY_FILE", "/server.key"))
 		if err != nil {
-			app.log.Error(err).Msg("Don't open piper key file")
+			app.log.Error(err).Msg("Failed to open piper key file")
 		}
 
 		private, err := gossh.ParsePrivateKey(privateBytes)
 		if err != nil {
-			app.log.Error(err).Msg("Don't parse piper key file")
+			app.log.Error(err).Msg("Failed to parse piper key file")
 		}
 		srv.AddHostKey(private)
 		return nil
 	}
 }
 
-func dynamicHostKey(host *serverpb.Server_Response) gossh.HostKeyCallback {
+func dynamicHostKey(host *schemepb.Scheme_Response) gossh.HostKeyCallback {
 	return func(hostname string, remote net.Addr, key gossh.PublicKey) error {
 		if len(host.HostKey) == 0 {
 			log.Info().Str("hostAddress", netutil.IP(hostname)).Msg("Discovering host fingerprint")
@@ -41,9 +41,9 @@ func dynamicHostKey(host *serverpb.Server_Response) gossh.HostKeyCallback {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			rClient := serverpb.NewServerHandlersClient(app.grpc)
-			_, err := rClient.UpdateHostKey(ctx, &serverpb.UpdateHostKey_Request{
-				ServerId: host.ServerId,
+			rClient := schemepb.NewSchemeHandlersClient(app.grpc)
+			_, err := rClient.UpdateHostKey(ctx, &schemepb.UpdateHostKey_Request{
+				SchemeId: host.SchemeId,
 				Hostkey:  key.Marshal(),
 			})
 			if err != nil {

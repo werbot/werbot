@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package protoutils;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/werbot/werbot/pkg/utils/protoutils";
+
+message MessageTest {
+  google.protobuf.Timestamp timestamp = 1;
+  google.protobuf.Timestamp locked_at = 2;
+  google.protobuf.Timestamp archived_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
