@@ -4,11 +4,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 
-	"github.com/werbot/werbot/internal"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
+
+	"github.com/werbot/werbot/internal"
 )
 
 // NewClient is ...
@@ -45,9 +46,6 @@ func NewClient() (*grpc.ClientConn, error) {
 			AccessToken: token,
 		}),
 	}
-
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	// defer cancel()
 
 	conn, err := grpc.NewClient(dsn,
 		grpc.WithPerRPCCredentials(perRPC),

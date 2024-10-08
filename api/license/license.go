@@ -1,38 +1,37 @@
 package license
 
 import (
-	"context"
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 
-	licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
-	"github.com/werbot/werbot/internal/web/middleware"
-	"github.com/werbot/werbot/pkg/webutil"
+	licensepb "github.com/werbot/werbot/internal/grpc/license/proto/license"
+	"github.com/werbot/werbot/internal/web/session"
+	"github.com/werbot/werbot/pkg/utils/protoutils"
+	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
-// @Summary      Information about the license currently in use
-// @Tags         license
-// @Accept       json
-// @Produce      json
-// @Success      200         {object} webutil.HTTPResponse
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/license/info [get]
-func (h *Handler) getLicenseInfo(c *fiber.Ctx) error {
-	userParameter := middleware.AuthUser(c)
-
-	if !userParameter.IsUserAdmin() {
+// @Summary Get License Information
+// @Description Retrieve the license information for the authenticated user
+// @Tags license
+// @Produce json
+// @Success 200 {object} webutil.HTTPResponse{result=licensepb.License_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/license/info  [get]
+func (h *Handler) licenseInfo(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	if !sessionData.IsUserAdmin() {
 		return webutil.StatusNotFound(c, nil)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	rClient := licensepb.NewLicenseHandlersClient(h.Grpc)
-	lic, err := rClient.License(ctx, &licensepb.License_Request{})
+	lic, err := rClient.License(c.UserContext(), &licensepb.License_Request{})
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "license information", lic)
+	result, err := protoutils.ConvertProtoMessageToMap(lic)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "License", result)
 }

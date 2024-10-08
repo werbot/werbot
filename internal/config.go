@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/werbot/werbot/pkg/strutil"
+	"github.com/werbot/werbot/pkg/utils/strutil"
 )
 
 func lookup(key string, fallback string) string {
@@ -16,62 +16,53 @@ func lookup(key string, fallback string) string {
 	return fallback
 }
 
-// GetString is ...
+// GetString returns the environment variable value as a string or the fallback if not set.
 func GetString(key, fallback string) string {
 	return lookup(key, fallback)
 }
 
-// GetSliceString is ...
+// GetSliceString returns the environment variable value as a slice of strings or the fallback if not set.
 func GetSliceString(key, fallback string) []string {
-	value := lookup(key, fallback)
-	return strutil.ToSlice(value)
+	return strutil.ToSlice(lookup(key, fallback))
 }
 
-// GetInt is ...
+// GetInt returns the environment variable value as an int or the fallback if not set.
 func GetInt(key string, fallback int) int {
-	value := lookup(key, "")
-	if value, err := strconv.Atoi(value); err == nil {
+	if value, err := strconv.Atoi(lookup(key, "")); err == nil {
 		return value
 	}
 	return fallback
 }
 
-// GetInt32 is ...
+// GetInt32 returns the environment variable value as an int32 or the fallback if not set.
 func GetInt32(key string, fallback int32) int32 {
-	value := lookup(key, "")
-	if value, err := strconv.ParseInt(value, 10, 32); err == nil {
+	if value, err := strconv.ParseInt(lookup(key, ""), 10, 32); err == nil {
 		return int32(value)
 	}
 	return fallback
 }
 
-// GetBool is ...
+// GetBool returns the environment variable value as a bool or the fallback if not set.
 func GetBool(key string, fallback bool) bool {
-	value := lookup(key, "")
-	if value, err := strconv.ParseBool(value); err == nil {
+	if value, err := strconv.ParseBool(lookup(key, "")); err == nil {
 		return value
 	}
 	return fallback
 }
 
-// GetDuration is ...
+// GetDuration returns the environment variable value as a time.Duration or the fallback if not set.
 func GetDuration(key, fallback string) time.Duration {
-	value := lookup(key, fallback)
-	duration, _ := time.ParseDuration(value)
+	duration, _ := time.ParseDuration(lookup(key, fallback))
 	return duration
 }
 
-// GetByteFromFile is ...
+// GetByteFromFile returns the content of the file specified in the environment variable or fallback if not set.
 func GetByteFromFile(key, fallback string) ([]byte, error) {
-	var data []byte
 	value := lookup(key, fallback)
-
-	// Simplify the if condition by handling the error directly from 'readFile'
-	var err error
-	if data, err = readFile(value); err != nil {
+	data, err := readFile(value)
+	if err != nil {
 		return nil, fmt.Errorf("failed to read %q: %w", value, err)
 	}
-
 	return data, nil
 }
 

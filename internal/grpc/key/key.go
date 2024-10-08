@@ -4,162 +4,212 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/crypto"
-	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
+	keypb "github.com/werbot/werbot/internal/grpc/key/proto/key"
 	"github.com/werbot/werbot/internal/trace"
+	"github.com/werbot/werbot/pkg/crypto"
+	"github.com/werbot/werbot/pkg/storage/postgres"
+	"github.com/werbot/werbot/pkg/utils/protoutils"
+	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
+	"github.com/werbot/werbot/pkg/uuid"
 )
 
-// ListKeys is ...
-func (h *Handler) ListKeys(ctx context.Context, in *keypb.ListKeys_Request) (*keypb.ListKeys_Response, error) {
-	response := &keypb.ListKeys_Response{}
+// Keys fetches a list of keys based on the request parameters.
+func (h *Handler) Keys(ctx context.Context, in *keypb.Keys_Request) (*keypb.Keys_Response, error) {
+	if err := protoutils.ValidateRequest(in); err != nil {
+		errGRPC := status.Error(codes.InvalidArgument, err.Error())
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
+	response := &keypb.Keys_Response{}
+	sqlUserLimit := postgres.SQLColumnsNull(in.GetIsAdmin(), true, []string{`"locked_at"`}) // if not admin
+
+	// Total count for pagination
+	baseQuery := postgres.SQLGluing(`
+    SELECT COUNT(*)
+    FROM "user_public_key"
+    WHERE "user_id" = $1
+  `, sqlUserLimit)
+	err := h.DB.Conn.QueryRowContext(ctx, baseQuery, in.GetUserId()).Scan(&response.Total)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, trace.Error(err, log, nil)
+	}
+	if response.Total == 0 {
+		errGRPC := status.Error(codes.NotFound, trace.MsgProjectNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
+
+	// List records
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
-	rows, err := h.DB.Conn.QueryContext(ctx, `
+	baseQuery = postgres.SQLGluing(`
     SELECT
-      "user_public_key"."id"          AS "key_id",
-      "user_public_key"."user_id",
-      "user"."login"                  AS "user_login",
-      "user_public_key"."title",
-      "user_public_key"."key_",
-      "user_public_key"."fingerprint",
-      "user_public_key"."updated_at",
-      "user_public_key"."created_at"
-    FROM
-      "user_public_key"
-      INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"
-    WHERE "user"."id" = $1
-  `+sqlFooter, in.GetUserId())
+      "id",
+      "user_id",
+      "title",
+      "key",
+      "fingerprint",
+      "locked_at",
+      "archived_at",
+      "updated_at",
+      "created_at"
+    FROM "user_public_key"
+    WHERE "user_id" = $1
+  `, sqlUserLimit, sqlFooter)
+	rows, err := h.DB.Conn.QueryContext(ctx, baseQuery, in.GetUserId())
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}
+	defer rows.Close()
 
 	for rows.Next() {
-		var updateAt, createdAt pgtype.Timestamp
+		var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
 		publicKey := &keypb.Key_Response{}
-		err = rows.Scan(&publicKey.KeyId,
+		err = rows.Scan(
+			&publicKey.KeyId,
 			&publicKey.UserId,
-			&publicKey.UserLogin,
 			&publicKey.Title,
 			&publicKey.Key,
 			&publicKey.Fingerprint,
-			&updateAt,
+			&lockedAt,
+			&archivedAt,
+			&updatedAt,
 			&createdAt,
 		)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
 
-		publicKey.UpdatedAt = timestamppb.New(updateAt.Time)
-		publicKey.CreatedAt = timestamppb.New(createdAt.Time)
-		response.PublicKeys = append(response.PublicKeys, publicKey)
-	}
-	defer rows.Close()
+		protoutils.SetPgtypeTimestamps(publicKey, map[string]pgtype.Timestamp{
+			"locked_at":   lockedAt,
+			"archived_at": archivedAt,
+			"updated_at":  updatedAt,
+			"created_at":  createdAt,
+		})
 
-	// Total count for pagination
-	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT COUNT(*)
-    FROM
-      "user_public_key"
-      INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"
-    WHERE "user"."id" = $1
-  `, in.GetUserId(),
-	).Scan(&response.Total)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.Error(err, log, nil)
+		if !in.GetIsAdmin() {
+			ghoster.Secrets(publicKey, true)
+		}
+
+		response.PublicKeys = append(response.PublicKeys, publicKey)
 	}
 
 	return response, nil
 }
 
-// PublicKey is ...
-func (h *Handler) PublicKey(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Response, error) {
-	var updateAt, createdAt pgtype.Timestamp
-	response := &keypb.Key_Response{}
-	response.KeyId = in.GetKeyId()
+// Key fetches a single key based on the request parameters.
+func (h *Handler) Key(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Response, error) {
+	if err := protoutils.ValidateRequest(in); err != nil {
+		errGRPC := status.Error(codes.InvalidArgument, err.Error())
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
-	err := h.DB.Conn.QueryRowContext(ctx, `
+	response := &keypb.Key_Response{
+		KeyId: in.GetKeyId(),
+	}
+	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
+
+	sqlHook := postgres.SQLColumnsNull(in.GetIsAdmin(), true, []string{`"locked_at"`}) // if not admin
+	baseQuery := postgres.SQLGluing(`
     SELECT
-      "user_public_key"."id"          AS "key_id",
-      "user_public_key"."user_id",
-      "user"."login"                  AS "user_login",
-      "user_public_key"."title",
-      "user_public_key"."key_",
-      "user_public_key"."fingerprint",
-      "user_public_key"."updated_at",
-      "user_public_key"."created_at"
-    FROM
-      "user_public_key"
-      INNER JOIN "user" ON "user_public_key"."user_id" = "user"."id"
-    WHERE
-      "user_public_key"."id" = $1
-      AND "user_public_key"."user_id" = $2
-  `, in.GetKeyId(), in.GetUserId(),
-	).Scan(&response.KeyId,
+      "id",
+      "user_id",
+      "title",
+      "key",
+      "fingerprint",
+      "locked_at",
+      "archived_at",
+      "updated_at",
+      "created_at"
+    FROM "user_public_key"
+    WHERE "id" = $1 AND "user_id" = $2
+  `, sqlHook)
+	err := h.DB.Conn.QueryRowContext(ctx, baseQuery, in.GetKeyId(), in.GetUserId()).Scan(
+		&response.KeyId,
 		&response.UserId,
-		&response.UserLogin,
 		&response.Title,
 		&response.Key,
 		&response.Fingerprint,
-		&updateAt,
+		&lockedAt,
+		&archivedAt,
+		&updatedAt,
 		&createdAt,
 	)
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}
 
-	response.UpdatedAt = timestamppb.New(updateAt.Time)
-	response.CreatedAt = timestamppb.New(createdAt.Time)
+	protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
+		"locked_at":   lockedAt,
+		"archived_at": archivedAt,
+		"updated_at":  updatedAt,
+		"created_at":  createdAt,
+	})
+
+	if !in.GetIsAdmin() {
+		ghoster.Secrets(response, true)
+	}
+
 	return response, nil
 }
 
-// AddKey is ...
+// AddKey adds a new key to the database.
 func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddKey_Response, error) {
-	response := &keypb.AddKey_Response{}
+	if err := protoutils.ValidateRequest(in); err != nil {
+		errGRPC := status.Error(codes.InvalidArgument, err.Error())
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
 	sshKey, err := crypto.ParseSSHKey([]byte(in.GetKey()))
 	if err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, trace.MsgPublicKeyIsBroken)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, trace.MsgPublicKeyIsBroken)
+	}
+
+	response := &keypb.AddKey_Response{
+		Fingerprint: sshKey.Fingerprint,
 	}
 
 	// Check public key fingerprint
 	err = h.DB.Conn.QueryRowContext(ctx, `
     SELECT "id"
     FROM "user_public_key"
-    WHERE "fingerprint" = $1
-  `, sshKey.Fingerprint,
+    WHERE
+      "fingerprint" = $1
+      AND "user_id" = $2
+      AND "archived_at" IS NULL
+  `,
+		response.GetFingerprint(),
+		in.GetUserId(),
 	).Scan(&response.KeyId)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, trace.Error(err, log, nil)
 	}
 
 	if response.GetKeyId() != "" {
-		errGRPC := status.Error(codes.AlreadyExists, "")
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.AlreadyExists, ""), log, nil)
 	}
 
+	// Set key comment if title is provided
 	if in.GetTitle() != "" {
 		sshKey.Comment = in.GetTitle()
 	}
 
+	// Insert new public key
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    INSERT INTO "user_public_key" ("user_id", "title", "key_", "fingerprint")
+    INSERT INTO "user_public_key" ("user_id", "title", "key", "fingerprint")
     VALUES ($1, $2, $3, $4)
     RETURNING "id"
   `,
 		in.GetUserId(),
 		sshKey.Comment,
 		in.GetKey(),
-		sshKey.Fingerprint,
+		response.GetFingerprint(),
 	).Scan(&response.KeyId)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
@@ -170,48 +220,19 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 
 // UpdateKey is ...
 func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*keypb.UpdateKey_Response, error) {
-	var keyID string
-	response := &keypb.UpdateKey_Response{}
-
-	sshKey, err := crypto.ParseSSHKey([]byte(in.GetKey()))
-	if err != nil {
+	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, trace.MsgPublicKeyIsBroken)
-	}
-
-	// Check public key fingerprint
-	err = h.DB.Conn.QueryRowContext(ctx, `
-    SELECT "id"
-    FROM "user_public_key"
-    WHERE "fingerprint" = $1
-  `, sshKey.Fingerprint,
-	).Scan(&keyID)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, trace.Error(err, log, nil)
-	}
-
-	if keyID != "" {
-		errGRPC := status.Error(codes.AlreadyExists, "")
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	if in.GetTitle() != "" {
-		sshKey.Comment = in.GetTitle()
-	}
+	response := &keypb.UpdateKey_Response{}
 
-	_, err = h.DB.Conn.ExecContext(ctx, `
+	result, err := h.DB.Conn.ExecContext(ctx, `
     UPDATE "user_public_key"
-    SET
-      "title" = $1,
-      "key_" = $2,
-      "fingerprint" = $3
-    WHERE
-      "id" = $4
-      AND "user_id" = $5
+    SET "title" = $1
+    WHERE "id" = $2 AND "user_id" = $3
   `,
-		sshKey.Comment,
-		in.GetKey(),
-		sshKey.Fingerprint,
+		in.GetTitle(),
 		in.GetKeyId(),
 		in.GetUserId(),
 	)
@@ -219,22 +240,38 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
 
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		errGRPC := status.Error(codes.NotFound, trace.MsgKeyNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
+
 	return response, nil
 }
 
 // DeleteKey is ...
 func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*keypb.DeleteKey_Response, error) {
+	if err := protoutils.ValidateRequest(in); err != nil {
+		errGRPC := status.Error(codes.InvalidArgument, err.Error())
+		return nil, trace.Error(errGRPC, log, nil)
+	}
+
 	response := &keypb.DeleteKey_Response{}
 
-	_, err := h.DB.Conn.ExecContext(ctx, `
-    DELETE FROM "user_public_key"
-    WHERE
-      "id" = $1
-      AND "user_id" = $2
-  `, in.GetKeyId(), in.GetUserId(),
+	result, err := h.DB.Conn.ExecContext(ctx, `
+    UPDATE "user_public_key"
+    SET "archived_at" = NOW()
+    WHERE "id" = $1 AND "user_id" = $2
+  `,
+		in.GetKeyId(),
+		in.GetUserId(),
 	)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
+	}
+
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		errGRPC := status.Error(codes.NotFound, trace.MsgUserNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	return response, nil
@@ -242,8 +279,9 @@ func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*
 
 // GenerateSSHKey is ...
 func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_Request) (*keypb.GenerateSSHKey_Response, error) {
-	response := &keypb.GenerateSSHKey_Response{
-		KeyType: in.GetKeyType(),
+	if err := protoutils.ValidateRequest(in); err != nil {
+		errGRPC := status.Error(codes.InvalidArgument, err.Error())
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	// Generate SSH key
@@ -253,14 +291,20 @@ func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_R
 	}
 
 	// Populate response fields
-	response.Public = key.PublicKey
-	response.Passphrase = key.Passphrase
-	response.Uuid = uuid.New().String()
+	response := &keypb.GenerateSSHKey_Response{
+		KeyType:     in.GetKeyType(),
+		Public:      string(key.PublicKey),
+		Passphrase:  key.Passphrase,
+		Uuid:        uuid.New(),
+		FingerPrint: key.FingerPrint,
+	}
 
 	// Prepare cache key
-	cacheKey := &keypb.GenerateSSHKey_Key{
-		Private: string(key.PrivateKey),
-		Public:  string(key.PublicKey),
+	cacheKey := &keypb.SchemeKey{
+		Private:     string(key.PrivateKey),
+		Public:      string(key.PublicKey),
+		Passphrase:  key.Passphrase,
+		FingerPrint: key.FingerPrint,
 	}
 	mapB, err := json.Marshal(cacheKey)
 	if err != nil {
@@ -270,8 +314,8 @@ func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_R
 	// Set cache with expiration duration
 	cacheKeyStr := fmt.Sprintf("tmp_key_ssh:%s", response.Uuid)
 	expiration := internal.GetDuration("SSH_KEY_REFRESH_DURATION", "10m")
-	if rStatus := h.Redis.Client.Set(ctx, cacheKeyStr, mapB, expiration); rStatus.Err() != nil {
-		return nil, trace.Error(rStatus.Err(), log, nil)
+	if err := h.Redis.Client.Set(ctx, cacheKeyStr, mapB, expiration).Err(); err != nil {
+		return nil, trace.Error(err, log, nil)
 	}
 
 	return response, nil

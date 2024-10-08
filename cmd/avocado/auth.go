@@ -3,28 +3,27 @@ package main
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
 
-	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
-	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto"
-	serverpb "github.com/werbot/werbot/internal/grpc/server/proto"
-	"github.com/werbot/werbot/pkg/netutil"
-	"github.com/werbot/werbot/pkg/strutil"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto/account"
+	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto/firewall"
+	schemepb "github.com/werbot/werbot/internal/grpc/scheme/proto/scheme"
+	"github.com/werbot/werbot/internal/utils/alias"
+	"github.com/werbot/werbot/pkg/utils/netutil"
 )
 
 func passwordAuthHandler() ssh.PasswordHandler {
 	return func(ctx ssh.Context, pass string) bool {
 		actx := &authContext{
-			login:      ctx.User(),
+			alias:      ctx.User(),
 			userAddr:   ctx.RemoteAddr().String(),
 			authMethod: "password",
 		}
-		actx.authSuccess = actx.userType() == serverpb.Type_healthcheck
+		actx.authSuccess = actx.userType() == schemepb.Type_healthcheck
 		ctx.SetValue(authContextKey, actx)
 		return actx.authSuccess
 	}
@@ -33,7 +32,7 @@ func passwordAuthHandler() ssh.PasswordHandler {
 func publicKeyAuthHandler() ssh.PublicKeyHandler {
 	return func(ctx ssh.Context, key ssh.PublicKey) bool {
 		actx := &authContext{
-			login:           fixLogin(ctx.User()),
+			alias:           alias.FixAlias(ctx.User()),
 			userAddr:        netutil.IP(ctx.RemoteAddr().String()),
 			userFingerPrint: gossh.FingerprintLegacyMD5(key),
 			authMethod:      "pubkey",
@@ -43,6 +42,7 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 
 		_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+
 		rClientF := firewallpb.NewFirewallHandlersClient(app.grpc)
 		rClientA := accountpb.NewAccountHandlersClient(app.grpc)
 
@@ -57,26 +57,26 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 		}
 
 		// Checking the syntax of writing login
-		if !checkLogin(actx.login) {
-			actx.message = "Violated login syntax"
+		if !alias.CheckAlias(actx.alias) {
+			actx.message = "Violated alias syntax"
 			actx.authSuccess = false
 			return true
 		}
 
 		switch actx.userType() {
-		case serverpb.Type_invite:
-			inputToken := strings.Split(actx.login, "_")[1]
+		case schemepb.Type_invite:
+			inputToken := strings.Split(actx.alias, "_")[1]
 			if len(inputToken) > 0 {
 				fmt.Print(inputToken)
 			}
 			return true
 
-		case serverpb.Type_healthcheck:
+		case schemepb.Type_healthcheck:
 			return true
 		}
 
 		userID, err := rClientA.AccountIDByLogin(_ctx, &accountpb.AccountIDByLogin_Request{
-			Login:       actx.login,
+			Login:       actx.alias,
 			Fingerprint: actx.userFingerPrint,
 			ClientIp:    actx.userAddr,
 		})
@@ -91,14 +91,4 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 
 		return true
 	}
-}
-
-func checkLogin(login string) bool {
-	unixUserRegexp := regexp.MustCompile("^[a-z_][a-zA-Z0-9_]{0,31}$")
-	return unixUserRegexp.MatchString(login)
-}
-
-func fixLogin(login string) string {
-	_login := strutil.SplitTrimmed(login, "_")
-	return strings.Join(_login, "_")
 }

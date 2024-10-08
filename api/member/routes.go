@@ -5,13 +5,13 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-// Handler is ...
+// Handler handles member-related routes.
 type Handler struct {
 	*api.Handler
 	log logger.Logger
 }
 
-// New is ...
+// New creates a new member handler.
 func New(h *api.Handler) *Handler {
 	return &Handler{
 		Handler: h,
@@ -19,32 +19,36 @@ func New(h *api.Handler) *Handler {
 	}
 }
 
-// Routes is ...
+// Routes sets up the member-related routes.
 func (h *Handler) Routes() {
-	// project invite
-	h.App.Post("/v1/members/invite/:invite", h.postMembersInviteActivate)
+	apiV1 := h.App.Group("/v1/members")
 
-	memberV1 := h.App.Group("/v1/members", h.Auth)
+	// TODO: Move all invites to a separate component
+	// invite section (public)
+	apiV1.Get("/invite/:token<guid>", h.membersInviteActivate)
 
-	// Project section
-	memberV1.Get("/", h.getProjectMember)
-	memberV1.Post("/", h.addProjectMember)
-	memberV1.Patch("/", h.updateProjectMember)
-	memberV1.Delete("/", h.deleteProjectMember)
+	// invite section (private)
+	// url - /v1/members/invite/project/:project_id<guid>
+	apiV1invite := apiV1.Group("/invite/project/:project_id<guid>", h.Auth)
+	apiV1invite.Get("/", h.projectMembersInvite)
+	apiV1invite.Post("/", h.addProjectMemberInvite)
+	apiV1invite.Delete("/:token<guid>", h.deleteProjectMemberInvite)
 
-	memberV1.Patch("/active", h.updateProjectMemberStatus)
-	memberV1.Get("/search", h.getUsersWithoutProject)
+	// Project section (private)
+	// url - /v1/members/project/:project_id<guid>
+	apiV1project := apiV1.Group("/project/:project_id<guid>", h.Auth)
+	apiV1project.Get("/:addon<regex(search)>?", h.projectMembers)
+	apiV1project.Get("/:member_id<guid>", h.projectMember)
+	apiV1project.Post("/", h.addProjectMember)
+	apiV1project.Patch("/:member_id<guid>", h.updateProjectMember)
+	apiV1project.Delete("/:member_id<guid>", h.deleteProjectMember)
 
-	memberV1.Get("/invite", h.getProjectMembersInvite)
-	memberV1.Post("/invite", h.addProjectMemberInvite)
-	memberV1.Delete("/invite", h.deleteProjectMemberInvite)
-
-	// Server section
-	memberV1.Get("/server", h.getServerMember)
-	memberV1.Post("/server", h.addServerMember)
-	memberV1.Patch("/server", h.updateServerMember)
-	memberV1.Delete("/server", h.deleteServerMember)
-
-	memberV1.Patch("/server/active", h.updateServerMemberActive)
-	memberV1.Get("/server/search", h.getMembersWithoutServer)
+	// Scheme section (private)
+	// url - /v1/members/scheme/:scheme_id<guid>
+	apiV1scheme := apiV1.Group("/scheme/:scheme_id<guid>", h.Auth)
+	apiV1scheme.Get("/:addon<regex(search)>?", h.schemeMembers)
+	apiV1scheme.Get("/:scheme_member_id<guid>", h.schemeMember)
+	apiV1scheme.Post("/", h.addSchemeMember)
+	apiV1scheme.Patch("/:scheme_member_id<guid>", h.updateSchemeMember)
+	apiV1scheme.Delete("/:scheme_member_id<guid>", h.deleteSchemeMember)
 }

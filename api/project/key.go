@@ -1,0 +1,165 @@
+package project
+
+import (
+	"github.com/gofiber/fiber/v2"
+
+	"github.com/werbot/werbot/internal/event"
+	projectpb "github.com/werbot/werbot/internal/grpc/project/proto/project"
+	"github.com/werbot/werbot/internal/web/session"
+	"github.com/werbot/werbot/pkg/utils/protoutils"
+	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
+	"github.com/werbot/werbot/pkg/utils/webutil"
+)
+
+// @Summary Get project keys
+// @Description Retrieves keys associated with a specific project based on the provided project UUID and owner UUID.
+// @Tags projects
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "Project UUID"
+// @Param limit query int false "Limit for pagination"
+// @Param offset query int false "Offset for pagination"
+// @Param sort_by query string false "Sort by for pagination"
+// @Success 200 {object} webutil.HTTPResponse{result=projectpb.ProjectKeys_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/projects/{project_id}/keys [get]
+func (h *Handler) projectKeys(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	pagination := webutil.GetPaginationFromCtx(c)
+	request := &projectpb.ProjectKeys_Request{
+		IsAdmin:   sessionData.IsUserAdmin(),
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+		Limit:     pagination.Limit,
+		Offset:    pagination.Offset,
+		SortBy:    "id:ASC",
+	}
+
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
+	projects, err := rClient.ProjectKeys(c.UserContext(), request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	result, err := protoutils.ConvertProtoMessageToMap(projects)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "Project keys", result)
+}
+
+// @Summary Get project key
+// @Description Retrieves detailed information about a specific key associated with a project based on the provided project UUID and key UUID.
+// @Tags projects
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "Project UUID"
+// @Param key_id path string true "Key UUID"
+// @Success 200 {object} webutil.HTTPResponse{result=projectpb.ProjectKey_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/projects/{project_id}/keys/{key_id} [get]
+func (h *Handler) projectKey(c *fiber.Ctx) error {
+	request := &projectpb.ProjectKey_Request{}
+
+	key := c.Params("key")
+	if key != "" { // without authorizations, using in agent
+		request.Type = &projectpb.ProjectKey_Request_Public{
+			Public: &projectpb.ProjectKey_Public{
+				Key: key,
+			},
+		}
+	} else {
+		sessionData := session.AuthUser(c)
+		request.Type = &projectpb.ProjectKey_Request_Private{
+			Private: &projectpb.ProjectKey_Private{
+				IsAdmin:   sessionData.IsUserAdmin(),
+				OwnerId:   sessionData.UserID(c.Query("owner_id")),
+				ProjectId: c.Params("project_id"),
+				KeyId:     c.Params("key_id"),
+			},
+		}
+	}
+
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
+	project, err := rClient.ProjectKey(c.UserContext(), request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	result, err := protoutils.ConvertProtoMessageToMap(project)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "Project key", result)
+}
+
+// @Summary Add project key
+// @Description Adds a new key to a specified project based on the provided project UUID and owner UUID.
+// @Tags projects
+// @Accept json
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "Project UUID"
+// @Success 200 {object} webutil.HTTPResponse{result=projectpb.AddProjectKey_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/projects/{project_id}/keys [post]
+func (h *Handler) addProjectKey(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	request := &projectpb.AddProjectKey_Request{
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+	}
+
+	_ = webutil.Parse(c, request).Body()
+
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
+	project, err := rClient.AddProjectKey(c.UserContext(), request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	result, err := protoutils.ConvertProtoMessageToMap(project)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	// Log the event
+	ghoster.Secrets(request, false)
+	go event.New(h.Grpc).Web(c, sessionData).Project(request.GetOwnerId(), event.ProjectSetting, event.OnCreate, request)
+
+	return webutil.StatusOK(c, "Project added", result)
+}
+
+// @Summary Delete project key
+// @Description Deletes an existing key from a specified project based on the provided project UUID, owner UUID, and key UUID.
+// @Tags projects
+// @Accept json
+// @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param project_id path string true "Project UUID"
+// @Param key_id path string true "Key UUID"
+// @Param project_id path string true "Project UUID"
+// @Success 200 {object} webutil.HTTPResponse
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/projects/{project_id}/keys/{key_id} [delete]
+func (h *Handler) deleteProjectKey(c *fiber.Ctx) error {
+	sessionData := session.AuthUser(c)
+	request := &projectpb.DeleteProjectKey_Request{
+		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		ProjectId: c.Params("project_id"),
+		KeyId:     c.Params("key_id"),
+	}
+
+	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
+	if _, err := rClient.DeleteProjectKey(c.UserContext(), request); err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	// Log the event
+	ghoster.Secrets(request, false)
+	go event.New(h.Grpc).Web(c, sessionData).Project(request.GetOwnerId(), event.ProjectSetting, event.OnRemove, request)
+
+	return webutil.StatusOK(c, "Project key deleted", nil)
+}

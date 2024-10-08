@@ -1,130 +1,104 @@
 package event
 
 import (
-	"context"
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/werbot/werbot/internal/grpc"
-	eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
-	"github.com/werbot/werbot/internal/web/middleware"
-	"github.com/werbot/werbot/pkg/webutil"
+	eventpb "github.com/werbot/werbot/internal/grpc/event/proto/event"
+	"github.com/werbot/werbot/internal/web/session"
+	"github.com/werbot/werbot/pkg/utils/protoutils"
+	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
-// @Summary      Show events records
-// @Tags         event
-// @Accept       json
-// @Produce      json
-// @Failure      400,401,404,500 {object} webutil.HTTPResponse
-// @Router       /v1/event/:name<alpha>/:name_id<guid> [get]
+// @Summary Retrieve event records
+// @Description Retrieves event records based on the provided category (profile, project, or scheme) and query parameters
+// @Tags event
+// @Produce json
+// @Param user_id query string false "User UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param category path string true "Category name (profile, project, scheme)"
+// @Param category_id path string true "Name UUID"
+// @Param limit query int false "Limit for pagination"
+// @Param offset query int false "Offset for pagination"
+// @Param sort_by query string false "Sort by for pagination"
+// @Success 200 {object} webutil.HTTPResponse{result=eventpb.Events_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/event/{category}/{category_id} [get]
 func (h *Handler) events(c *fiber.Ctx) error {
-	request := &eventpb.Events_Request{}
-
-	userParameter := middleware.AuthUser(c)
-
-	if err := c.QueryParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, nil)
+	pagination := webutil.GetPaginationFromCtx(c)
+	sessionData := session.AuthUser(c)
+	request := &eventpb.Events_Request{
+		IsAdmin: sessionData.IsUserAdmin(),
+		UserId:  sessionData.UserID(c.Query("user_id")),
+		Limit:   pagination.Limit,
+		Offset:  pagination.Offset,
 	}
 
-	switch c.Params("name") {
+	_ = webutil.Parse(c, request).Query()
+
+	switch c.Params("category") {
 	case "profile":
-		request.UserId = userParameter.UserID(c.Params("name_id"))
-		request.Id = &eventpb.Events_Request_ProfileId{
-			ProfileId: request.UserId,
-		}
+		request.Id = &eventpb.Events_Request_ProfileId{ProfileId: c.Params("category_id")}
 		request.SortBy = `"created_at":DESC`
 	case "project":
-		request.UserId = userParameter.UserID(request.GetUserId())
-		request.Id = &eventpb.Events_Request_ProjectId{
-			ProjectId: c.Params("name_id"),
-		}
+		request.Id = &eventpb.Events_Request_ProjectId{ProjectId: c.Params("category_id")}
 		request.SortBy = `"event_project"."created_at":DESC`
-	case "server":
-		request.UserId = userParameter.UserID(request.GetUserId())
-		request.Id = &eventpb.Events_Request_ServerId{
-			ServerId: c.Params("name_id"),
-		}
-		request.SortBy = `"event_server"."created_at":DESC`
-	default:
-		return webutil.StatusBadRequest(c, nil)
+	case "scheme":
+		request.Id = &eventpb.Events_Request_SchemeId{SchemeId: c.Params("category_id")}
+		request.SortBy = `"event_scheme"."created_at":DESC`
 	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	pagination := webutil.GetPaginationFromCtx(c)
-	request.Limit = pagination.Limit
-	request.Offset = pagination.Offset
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	rClient := eventpb.NewEventHandlersClient(h.Grpc)
-	keys, err := rClient.Events(ctx, request)
+	events, err := rClient.Events(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
-	if keys.GetTotal() == 0 {
+	if events.GetTotal() == 0 {
 		return webutil.StatusNotFound(c, nil)
 	}
 
-	return webutil.StatusOK(c, "event records", keys)
+	result, err := protoutils.ConvertProtoMessageToMap(events)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "Events", result)
 }
 
-// @Summary      Show event info
-// @Tags         event
-// @Accept       json
-// @Produce      json
-// @Failure      400,401,404,500 {object} webutil.HTTPResponse
-// @Router       /v1/event/:name<alpha>/:name_id<guid>/:event_id<guid> [get]
+// @Summary Retrieve a single event record
+// @Description Retrieves a single event record based on the provided category (profile, project, or scheme) and query parameters
+// @Tags event
+// @Produce json
+// @Param category path string true "Category name (profile, project, scheme)"
+// @Param category_id path string true "Name UUID"
+// @Param event_id path string true "Event UUID"
+// @Success 200 {object} webutil.HTTPResponse{result=eventpb.Event_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/event/{category}/{category_id}/{event_id} [get]
 func (h *Handler) event(c *fiber.Ctx) error {
-	request := &eventpb.Event_Request{}
-
-	userParameter := middleware.AuthUser(c)
-
-	if err := c.QueryParser(request); err != nil {
-		h.log.Error(err).Send()
-		return webutil.StatusBadRequest(c, nil)
+	sessionData := session.AuthUser(c)
+	request := &eventpb.Event_Request{
+		IsAdmin: sessionData.IsUserAdmin(),
+		UserId:  sessionData.UserID(c.Query("user_id")),
 	}
 
-	switch c.Params("name") {
+	switch c.Params("category") {
 	case "profile":
-		request.UserId = userParameter.UserID(c.Params("name_id"))
-		request.Id = &eventpb.Event_Request_ProfileId{
-			ProfileId: c.Params("event_id"),
-		}
+		request.Id = &eventpb.Event_Request_ProfileId{ProfileId: c.Params("event_id")}
 	case "project":
-		request.UserId = userParameter.UserID(request.GetUserId())
-		request.Id = &eventpb.Event_Request_ProjectId{
-			ProjectId: c.Params("event_id"),
-		}
-	case "server":
-		request.UserId = userParameter.UserID(request.GetUserId())
-		request.Id = &eventpb.Event_Request_ServerId{
-			ServerId: c.Params("event_id"),
-		}
-	default:
-		return webutil.StatusBadRequest(c, nil)
+		request.Id = &eventpb.Event_Request_ProjectId{ProjectId: c.Params("event_id")}
+	case "scheme":
+		request.Id = &eventpb.Event_Request_SchemeId{SchemeId: c.Params("event_id")}
 	}
-
-	if err := grpc.ValidateRequest(request); err != nil {
-		return webutil.StatusBadRequest(c, err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	rClient := eventpb.NewEventHandlersClient(h.Grpc)
-	key, err := rClient.Event(ctx, request)
+	event, err := rClient.Event(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
-	if key == nil {
-		return webutil.StatusNotFound(c, nil)
+
+	result, err := protoutils.ConvertProtoMessageToMap(event)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "event", key)
+	return webutil.StatusOK(c, "Event", result)
 }

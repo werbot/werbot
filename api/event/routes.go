@@ -5,13 +5,13 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-// Handler is ...
+// Handler handles event-related routes.
 type Handler struct {
 	*api.Handler
 	log logger.Logger
 }
 
-// New is ...
+// New creates a new event handler.
 func New(h *api.Handler) *Handler {
 	return &Handler{
 		Handler: h,
@@ -19,9 +19,9 @@ func New(h *api.Handler) *Handler {
 	}
 }
 
-// Routes is ...
+// Routes sets up the event-related routes.
 func (h *Handler) Routes() {
-	eventV1 := h.App.Group("/v1/event", h.Auth)
-	eventV1.Get("/:name<alpha>/:name_id<guid>", h.events)
-	eventV1.Get("/:name<alpha>/:name_id<guid>/:event_id<guid>", h.event)
+	apiV1 := h.App.Group("/v1/event/:category<regex(profile|project|scheme)>/:category_id<guid>", h.Auth)
+	apiV1.Get("/", h.events)
+	apiV1.Get("/:event_id<guid>", h.event)
 }

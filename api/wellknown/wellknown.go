@@ -5,7 +5,7 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/web/jwt"
-	"github.com/werbot/werbot/pkg/webutil"
+	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
 // JWKSResponse is ...

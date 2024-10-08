@@ -37,5 +37,15 @@
       "envFile": "${workspaceFolder}/.env",
       "args": [""]
     }
-  ]
+  ],
+  "compounds": [
+    {
+      "name": "🤯 launch app bundle",
+      "configurations": [
+        "🍱 gRPC (Buffet)",
+        "🌮 api (Taco)",
+        "👻 master (Ghost)"
+      ]
+    }
+  ],
 }

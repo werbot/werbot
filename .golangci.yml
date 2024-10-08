@@ -14,12 +14,6 @@ issues:
   max-issues-per-linter: 0
 
 linters-settings:
-  depguard:
-    list-type: denylist
-    include-go-root: true
-    packages-with-error-message:
-      - io/ioutil: 'use "io" or "os" packages instead'
-      - github.com/golang/protobuf: 'use "google.golang.org/protobuf"'
   goconst:
     min-len: 5
     min-occurrences: 4
@@ -29,12 +23,16 @@ linters-settings:
     allow-unused: true # Enabled because of conditional builds / build tags.
     require-explanation: true
     require-specific: true
+  gosec:
+    excludes:
+      - G202 # SQL string concatenation
+      - G401 # Detect the usage of DES, RC4, MD5 or SHA1
+      - G501 # Detect the usage of DES, RC4, MD5 or SHA1
 
 linters:
   disable-all: true
   enable:
     - bodyclose
-    - depguard
     # - dupl
     - goimports
     - gosimple
@@ -55,10 +53,3 @@ linters:
     - goconst
     - gocritic
 
-run:
-  deadline: 5m
-  tests: false
-  skip-files:
-    - ".*\\.pb\\.go"
-    - ".*\\.gen\\.go"
-  go: "1.22"

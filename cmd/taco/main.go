@@ -8,30 +8,30 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
-	"github.com/gofiber/helmet/v2"
+	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/joho/godotenv"
 
 	"github.com/werbot/werbot/api"
+	"github.com/werbot/werbot/api/agent"
 	"github.com/werbot/werbot/api/auth"
 	"github.com/werbot/werbot/api/event"
-	"github.com/werbot/werbot/api/info"
 	"github.com/werbot/werbot/api/key"
 	"github.com/werbot/werbot/api/license"
 	"github.com/werbot/werbot/api/member"
 	"github.com/werbot/werbot/api/ping"
 	"github.com/werbot/werbot/api/project"
-	"github.com/werbot/werbot/api/server"
+	"github.com/werbot/werbot/api/scheme"
+	"github.com/werbot/werbot/api/system"
 	"github.com/werbot/werbot/api/user"
-	"github.com/werbot/werbot/api/utility"
 	"github.com/werbot/werbot/api/websocket"
 	"github.com/werbot/werbot/api/wellknown"
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/grpc"
-	"github.com/werbot/werbot/internal/storage/redis"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/logger"
-	"github.com/werbot/werbot/pkg/webutil"
+	"github.com/werbot/werbot/pkg/storage/redis"
+	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
 var (
@@ -53,7 +53,7 @@ func main() {
 	}
 	defer grpcClient.Close()
 
-	redis := redis.New(ctx, &redis.RedisConfig{
+	redis := redis.New(ctx, &redis.Config{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
 	})
@@ -78,23 +78,24 @@ func main() {
 
 	authMiddleware := middleware.Auth(redis).Execute()
 	webHandler := &api.Handler{
-		App:   app,
-		Grpc:  grpcClient,
-		Redis: redis,
-		Auth:  authMiddleware,
+		App:     app,
+		Grpc:    grpcClient,
+		Redis:   redis,
+		Auth:    authMiddleware,
+		EnvMode: internal.GetString("ENV_MODE", "prod"),
 	}
 
 	ping.New(webHandler).Routes()
 	wellknown.New(webHandler).Routes()
 
+	agent.New(webHandler).Routes()
 	auth.New(webHandler).Routes()
-	info.New(webHandler).Routes()
 	key.New(webHandler).Routes()
 	member.New(webHandler).Routes()
 	project.New(webHandler).Routes()
-	server.New(webHandler).Routes()
+	scheme.New(webHandler).Routes()
 	user.New(webHandler).Routes()
-	utility.New(webHandler).Routes()
+	system.New(webHandler).Routes()
 	event.New(webHandler).Routes()
 
 	websocket.New(webHandler).Routes()

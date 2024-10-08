@@ -1,10 +1,10 @@
 package key
 
 import (
-	keypb "github.com/werbot/werbot/internal/grpc/key/proto"
-	"github.com/werbot/werbot/internal/storage/postgres"
-	"github.com/werbot/werbot/internal/storage/redis"
+	keypb "github.com/werbot/werbot/internal/grpc/key/proto/key"
 	"github.com/werbot/werbot/pkg/logger"
+	"github.com/werbot/werbot/pkg/storage/postgres"
+	"github.com/werbot/werbot/pkg/storage/redis"
 )
 
 var log logger.Logger
