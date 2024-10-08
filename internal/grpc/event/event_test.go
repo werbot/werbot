@@ -4,449 +4,519 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
-
-	eventpb "github.com/werbot/werbot/internal/grpc/event/proto"
+	eventpb "github.com/werbot/werbot/internal/grpc/event/proto/event"
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/pkg/uuid"
+	"google.golang.org/grpc/codes"
 )
 
-type testSetup struct {
-	ctx  context.Context
-	grpc *grpc.ClientConn
-}
-
-func setupTest(t *testing.T) (testSetup, func(t *testing.T)) {
-	ctx := context.Background()
-
-	postgres, err := test.Postgres(t, "../../../migration", "../../../fixtures/migration")
-	if err != nil {
-		t.Error(err)
-	}
-
-	grpc, err := test.GRPC(ctx, t, postgres.Conn(), nil)
-	if err != nil {
-		t.Error(err)
-	}
-
-	return testSetup{
-			ctx:  ctx,
-			grpc: grpc.ClientConn,
-		}, func(t *testing.T) {
-			postgres.Close()
-			grpc.Close()
-		}
-}
-
 func Test_Events(t *testing.T) {
-	// t.Parallel()
-	setup, teardownTestCase := setupTest(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
-	testCases := []struct {
-		name    string
-		req     *eventpb.Events_Request
-		resp    *eventpb.Events_Response
-		respErr string
-	}{
+	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
+		a := eventpb.NewEventHandlersClient(setup)
+		return a.Events(ctx, req.(*eventpb.Events_Request))
+	}
+
+	testTable := []test.GRPCTable{
+		{ // request without parameters
+			Name:    "test0_01",
+			Request: &eventpb.Events_Request{},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"user_id": "value is required",
+					"id":      "exactly one field is required in oneof",
+				},
+			},
+		},
 		{
-			name:    "request without parameters",
-			req:     &eventpb.Events_Request{},
-			respErr: "rpc error: code = InvalidArgument desc = Invalid argument",
+			Name: "test0_02",
+			Request: &eventpb.Events_Request{
+				Id: &eventpb.Events_Request_ProfileId{
+					ProfileId: test.ConstUserID,
+				},
+			},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"user_id": "value is required",
+				},
+			},
+		},
+		{
+			Name: "test0_03",
+			Request: &eventpb.Events_Request{
+				UserId: test.ConstAdminID,
+				Id: &eventpb.Events_Request_ProfileId{
+					ProfileId: "test",
+				},
+			},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"profile_id": "value must be a valid UUID",
+				},
+			},
 		},
 
-		// profile events
-		{
-			name: "profile has no events",
-			req: &eventpb.Events_Request{
+		{ // list of all admin profile events
+			Name: "test0_04",
+			Request: &eventpb.Events_Request{
+				UserId: test.ConstAdminID,
 				Id: &eventpb.Events_Request_ProfileId{
-					ProfileId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+					ProfileId: test.ConstAdminID,
 				},
 			},
-			resp: &eventpb.Events_Response{
-				Total: 0,
+			Response: test.BodyTable{
+				"total":     float64(2),
+				"records.0": "*",
+				"records.1": "*",
+				"records.2": nil,
 			},
 		},
-		{
-			name: "list of all profile events",
-			req: &eventpb.Events_Request{
+		{ // list of all profile events with limit
+			Name: "test0_05",
+			Request: &eventpb.Events_Request{
+				UserId: test.ConstAdminID,
 				Id: &eventpb.Events_Request_ProfileId{
-					ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
-				},
-			},
-			resp: &eventpb.Events_Response{
-				Total: 2,
-			},
-		},
-		{
-			name: "list of all profile events with limit",
-			req: &eventpb.Events_Request{
-				Id: &eventpb.Events_Request_ProfileId{
-					ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+					ProfileId: test.ConstAdminID,
 				},
 				Limit: 1,
 			},
-			resp: &eventpb.Events_Response{
-				Total: 2,
+			Response: test.BodyTable{
+				"total":     float64(2),
+				"records.0": "*",
+				"records.1": nil,
 			},
 		},
-		{
-			name: "non-existent profile UUID",
-			req: &eventpb.Events_Request{
+
+		{ // "non-existent profile UUID"
+			Name: "test0_06",
+			Request: &eventpb.Events_Request{
+				UserId: test.ConstAdminID,
 				Id: &eventpb.Events_Request_ProfileId{
 					ProfileId: "00000000-0000-0000-0000-000000000000",
 				},
 			},
-			resp: &eventpb.Events_Response{},
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Profile not found",
+			},
 		},
 
 		// project events
-		{
-			name: "owner: project has no events",
-			req: &eventpb.Events_Request{
+		{ // "owner: project has no events"
+			Name: "test0_07",
+			Request: &eventpb.Events_Request{
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "ca7e65a4-76ea-4802-9f4f-3518a3416985",
 				},
 				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			resp: &eventpb.Events_Response{
-				Total: 0,
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Project not found",
 			},
 		},
-		{
-			name: "guest: project has no events",
-			req: &eventpb.Events_Request{
+
+		{ // guest: project has no events
+			Name: "test0_08",
+			Request: &eventpb.Events_Request{
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "ca7e65a4-76ea-4802-9f4f-3518a3416985",
 				},
 				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
 			},
-			resp: &eventpb.Events_Response{
-				Total: 0,
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Project not found",
 			},
 		},
-		{
-			name: "owner: list of all project events",
-			req: &eventpb.Events_Request{
+		{ // owner: list of all project events
+			Name: "test0_09",
+			Request: &eventpb.Events_Request{
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "26060c68-5a06-4a57-b87a-be0f1e787157",
 				},
 				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			resp: &eventpb.Events_Response{
-				Total: 2,
+			Response: test.BodyTable{
+				"total":     float64(2),
+				"records.0": "*",
+				"records.1": "*",
+				"records.2": nil,
 			},
 		},
-		{
-			name: "guest: list of all project events",
-			req: &eventpb.Events_Request{
+		{ // guest: list of all project events
+			Name: "test0_10",
+			Request: &eventpb.Events_Request{
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "26060c68-5a06-4a57-b87a-be0f1e787157",
 				},
 				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
 			},
-			resp: &eventpb.Events_Response{
-				Total: 0,
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Project not found",
 			},
 		},
-		{
-			name: "owner: list of all project events with limit",
-			req: &eventpb.Events_Request{
+		{ // owner: list of all project events with limit
+			Name: "test0_11",
+			Request: &eventpb.Events_Request{
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "26060c68-5a06-4a57-b87a-be0f1e787157",
 				},
 				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 				Limit:  1,
 			},
-			resp: &eventpb.Events_Response{
-				Total: 2,
+			Response: test.BodyTable{
+				"total":     float64(2),
+				"records.0": "*",
+				"records.1": nil,
 			},
 		},
-		{
-			name: "non-existent project UUID",
-			req: &eventpb.Events_Request{
+		{ // non-existent project UUID
+			Name: "test0_12",
+			Request: &eventpb.Events_Request{
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "00000000-0000-0000-0000-000000000000",
 				},
 				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			resp: &eventpb.Events_Response{},
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Project not found",
+			},
 		},
-		{
-			name: "project events no custom UUID passed",
-			req: &eventpb.Events_Request{
+		{ // project events no custom UUID passed
+			Name: "test0_13",
+			Request: &eventpb.Events_Request{
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "00000000-0000-0000-0000-000000000000",
 				},
 			},
-			resp:    &eventpb.Events_Response{},
-			respErr: "rpc error: code = InvalidArgument desc = Invalid argument",
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"user_id": "value is required",
+				},
+			},
 		},
 
 		// server events
-		{
-			name: "owner: server has no events",
-			req: &eventpb.Events_Request{
-				Id: &eventpb.Events_Request_ServerId{
-					ServerId: "ddd084a5-7d91-4796-a133-feab4e653721",
+		{ // owner: server has no events
+			Name: "test0_14",
+			Request: &eventpb.Events_Request{
+				Id: &eventpb.Events_Request_SchemeId{
+					SchemeId: "ddd084a5-7d91-4796-a133-feab4e653721",
 				},
 				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			resp: &eventpb.Events_Response{
-				Total: 0,
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Scheme not found",
 			},
 		},
-		{
-			name: "guest: server has no events",
-			req: &eventpb.Events_Request{
-				Id: &eventpb.Events_Request_ServerId{
-					ServerId: "ca7e65a4-76ea-4802-9f4f-3518a3416985",
+		{ // guest: server has no events
+			Name: "test0_15",
+			Request: &eventpb.Events_Request{
+				Id: &eventpb.Events_Request_SchemeId{
+					SchemeId: "ca7e65a4-76ea-4802-9f4f-3518a3416985",
 				},
 				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
 			},
-			resp: &eventpb.Events_Response{
-				Total: 0,
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Scheme not found",
 			},
 		},
-		{
-			name: "owner: list of all server events",
-			req: &eventpb.Events_Request{
-				Id: &eventpb.Events_Request_ServerId{
-					ServerId: "0c3a8869-6fc0-4666-bf60-15475473392a",
+		{ // owner: list of all server events
+			Name: "test0_16",
+			Request: &eventpb.Events_Request{
+				Id: &eventpb.Events_Request_SchemeId{
+					SchemeId: "0c3a8869-6fc0-4666-bf60-15475473392a",
 				},
 				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			resp: &eventpb.Events_Response{
-				Total: 11,
+			Response: test.BodyTable{
+				"total": float64(11),
 			},
 		},
-		{
-			name: "guest: list of all server events",
-			req: &eventpb.Events_Request{
-				Id: &eventpb.Events_Request_ServerId{
-					ServerId: "0c3a8869-6fc0-4666-bf60-15475473392a",
+		{ // guest: list of all server events
+			Name: "test0_17",
+			Request: &eventpb.Events_Request{
+				Id: &eventpb.Events_Request_SchemeId{
+					SchemeId: "0c3a8869-6fc0-4666-bf60-15475473392a",
 				},
 				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
 			},
-			resp: &eventpb.Events_Response{
-				Total: 0,
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Scheme not found",
 			},
 		},
-		{
-			name: "owner: list of all server events with limit",
-			req: &eventpb.Events_Request{
-				Id: &eventpb.Events_Request_ServerId{
-					ServerId: "0c3a8869-6fc0-4666-bf60-15475473392a",
+		{ // owner: list of all server events with limit
+			Name: "test0_18",
+			Request: &eventpb.Events_Request{
+				Id: &eventpb.Events_Request_SchemeId{
+					SchemeId: "0c3a8869-6fc0-4666-bf60-15475473392a",
 				},
 				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 				Limit:  1,
 			},
-			resp: &eventpb.Events_Response{
-				Total: 11,
+			Response: test.BodyTable{
+				"total":     float64(11),
+				"records.0": "*",
+				"records.1": nil,
 			},
 		},
-		{
-			name: "non-existent server UUID",
-			req: &eventpb.Events_Request{
-				Id: &eventpb.Events_Request_ServerId{
-					ServerId: "00000000-0000-0000-0000-000000000000",
+		{ // non-existent server UUID
+			Name: "test0_19",
+			Request: &eventpb.Events_Request{
+				Id: &eventpb.Events_Request_SchemeId{
+					SchemeId: "00000000-0000-0000-0000-000000000000",
 				},
 				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			resp: &eventpb.Events_Response{},
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Scheme not found",
+			},
 		},
-		{
-			name: "server event no custom UUID passed",
-			req: &eventpb.Events_Request{
-				Id: &eventpb.Events_Request_ServerId{
-					ServerId: "00000000-0000-0000-0000-000000000000",
+		{ // server event no custom UUID passed
+			Name: "test0_20",
+			Request: &eventpb.Events_Request{
+				Id: &eventpb.Events_Request_SchemeId{
+					SchemeId: "00000000-0000-0000-0000-000000000000",
 				},
 			},
-			resp:    &eventpb.Events_Response{},
-			respErr: "rpc error: code = InvalidArgument desc = Invalid argument",
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"user_id": "value is required",
+				},
+			},
 		},
 	}
 
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			a := eventpb.NewEventHandlersClient(setup.grpc)
-			response, err := a.Events(setup.ctx, tt.req)
-			if err != nil {
-				assert.EqualError(t, err, tt.respErr)
-				return
-			}
-			assert.NoError(t, err)
-			assert.Equal(t, tt.resp.GetTotal(), response.GetTotal())
-		})
-	}
+	test.RunCaseGRPCTests(t, handler, testTable)
 }
 
 func Test_Event(t *testing.T) {
-	// t.Parallel()
-	setup, teardownTestCase := setupTest(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
-	testCases := []struct {
-		name    string
-		req     *eventpb.Event_Request
-		resp    *eventpb.Event_Response
-		respErr string
-	}{
+	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
+		a := eventpb.NewEventHandlersClient(setup)
+		return a.Event(ctx, req.(*eventpb.Event_Request))
+	}
+
+	testTable := []test.GRPCTable{
 		{
-			name:    "request without parameters",
-			req:     &eventpb.Event_Request{},
-			respErr: "rpc error: code = InvalidArgument desc = Invalid argument",
+			Name:    "test0_01",
+			Request: &eventpb.Event_Request{},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"user_id": "value is required",
+					"id":      "exactly one field is required in oneof",
+				},
+			},
+		},
+		{
+			Name: "test0_02",
+			Request: &eventpb.Event_Request{
+				UserId: test.ConstFakeID,
+			},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"id": "exactly one field is required in oneof",
+				},
+			},
+		},
+		{
+			Name: "test0_03",
+			Request: &eventpb.Event_Request{
+				UserId: test.ConstFakeID,
+				Id: &eventpb.Event_Request_ProfileId{
+					ProfileId: test.ConstFakeID,
+				},
+			},
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Not found",
+			},
 		},
 
 		// profile event
 		{
-			name: "owner: show profile event by UUID",
-			req: &eventpb.Event_Request{
+			Name: "test1_01",
+			Request: &eventpb.Event_Request{
+				UserId: test.ConstAdminID,
 				Id: &eventpb.Event_Request_ProfileId{
-					ProfileId: "59fab0fa-8f0a-4065-8863-0dae40166015",
+					ProfileId: test.ConstFakeID,
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			resp: &eventpb.Event_Response{
-				Ip:       "2001:db8:85a3::8a2e:370:7334",
-				Event:    9,
-				MetaData: []byte("{}"),
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Not found",
 			},
 		},
 		{
-			name: "owner: show profile event by fake UUID",
-			req: &eventpb.Event_Request{
+			Name: "test1_02",
+			Request: &eventpb.Event_Request{
+				UserId: test.ConstAdminID,
 				Id: &eventpb.Event_Request_ProfileId{
-					ProfileId: "00000000-0000-0000-0000-000000000000",
+					ProfileId: test.ConstAdminProfileEventID,
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			respErr: "rpc error: code = NotFound desc = Not found",
-		},
-		{
-			name: "guest: show profile event by UUID",
-			req: &eventpb.Event_Request{
-				Id: &eventpb.Event_Request_ProfileId{
-					ProfileId: "59fab0fa-8f0a-4065-8863-0dae40166015",
-				},
-				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+			Response: test.BodyTable{
+				"profile_id": test.ConstAdminProfileEventID,
+				"session_id": "98e3ddfc-dab0-4d4e-b48e-ab1717acae8b",
+				"user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:35.0) Gecko/20100101 Firefox/35.",
+				"ip":         "2001:db8:85a3::8a2e:370:7334",
+				"event":      float64(9),
+				"section":    float64(1),
+				"meta_data":  "e30=",
+				"created_at": "*",
 			},
-			respErr: "rpc error: code = NotFound desc = Not found",
 		},
 
 		// project event
 		{
-			name: "owner: show project event by UUID",
-			req: &eventpb.Event_Request{
+			Name: "test2_01",
+			Request: &eventpb.Event_Request{
+				UserId: test.ConstAdminID,
 				Id: &eventpb.Event_Request_ProjectId{
-					ProjectId: "163dee10-2a74-4436-9507-65a97a711ba8",
+					ProjectId: test.ConstFakeID,
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			resp: &eventpb.Event_Response{
-				Ip:       "192.168.0.1",
-				Event:    1,
-				MetaData: []byte("{}"),
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Not found",
 			},
 		},
 		{
-			name: "owner: show project event by fake UUID",
-			req: &eventpb.Event_Request{
+			Name: "test2_02",
+			Request: &eventpb.Event_Request{
+				UserId: test.ConstAdminID,
 				Id: &eventpb.Event_Request_ProjectId{
-					ProjectId: "00000000-0000-0000-0000-000000000000",
+					ProjectId: test.ConstAdminProjectEventID,
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			respErr: "rpc error: code = NotFound desc = Not found",
-		},
-		{
-			name: "guest: show project event by UUID",
-			req: &eventpb.Event_Request{
-				Id: &eventpb.Event_Request_ProjectId{
-					ProjectId: "163dee10-2a74-4436-9507-65a97a711ba8",
-				},
-				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+			Response: test.BodyTable{
+				"project_id": test.ConstAdminEventProjectID,
+				"session_id": "98e3ddfc-dab0-4d4e-b48e-ab1717acae8b",
+				"user_agent": "Mozilla/5.0 (Linux; U; Android 4.0.4; en-us; KFJWI Build/IMM76D) AppleWebKit/537.36 (KHTML, like Gecko) Silk/3.68 like Chrome/39.0.2171.93 Safari/537.36",
+				"ip":         "192.168.0.1",
+				"event":      float64(1),
+				"section":    float64(1),
+				"meta_data":  "e30=",
+				"created_at": "*",
 			},
-			respErr: "rpc error: code = NotFound desc = Not found",
 		},
 
-		// server event
+		// scheme event
 		{
-			name: "owner: show server event by UUID",
-			req: &eventpb.Event_Request{
-				Id: &eventpb.Event_Request_ServerId{
-					ServerId: "0b1df8d7-c0cd-4a48-bcfc-248b2abe0c93",
+			Name: "test3_01",
+			Request: &eventpb.Event_Request{
+				UserId: test.ConstAdminID,
+				Id: &eventpb.Event_Request_SchemeId{
+					SchemeId: test.ConstFakeID,
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			resp: &eventpb.Event_Response{
-				Ip:       "2001:db8:a0b:12f0::1",
-				Event:    8,
-				MetaData: []byte("{}"),
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Not found",
 			},
 		},
 		{
-			name: "owner: show server event by fake UUID",
-			req: &eventpb.Event_Request{
-				Id: &eventpb.Event_Request_ServerId{
-					ServerId: "00000000-0000-0000-0000-000000000000",
+			Name: "test3_02",
+			Request: &eventpb.Event_Request{
+				UserId: test.ConstAdminID,
+				Id: &eventpb.Event_Request_SchemeId{
+					SchemeId: test.ConstAdminSchemeEventID,
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
-			respErr: "rpc error: code = NotFound desc = Not found",
-		},
-		{
-			name: "guest: show server event by UUID",
-			req: &eventpb.Event_Request{
-				Id: &eventpb.Event_Request_ServerId{
-					ServerId: "0b1df8d7-c0cd-4a48-bcfc-248b2abe0c93",
-				},
-				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+			Response: test.BodyTable{
+				"scheme_id":  test.ConstAdminEventSchemeID,
+				"session_id": "98e3ddfc-dab0-4d4e-b48e-ab1717acae8b",
+				"user_agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; Touch; LCJB; rv:11.0) like Gecko",
+				"ip":         "192.168.1.1",
+				"event":      float64(1),
+				"section":    float64(1),
+				"meta_data":  "e30=",
+				"created_at": "*",
 			},
-			respErr: "rpc error: code = NotFound desc = Not found",
 		},
 	}
 
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			a := eventpb.NewEventHandlersClient(setup.grpc)
-			response, err := a.Event(setup.ctx, tt.req)
-			if err != nil {
-				assert.EqualError(t, err, tt.respErr)
-				return
-			}
-			assert.NoError(t, err)
-			assert.Equal(t, tt.resp.GetIp(), response.GetIp())
-			assert.Equal(t, tt.resp.GetEvent(), response.GetEvent())
-			assert.Equal(t, tt.resp.GetMetaData(), response.GetMetaData())
-		})
-	}
+	test.RunCaseGRPCTests(t, handler, testTable)
 }
 
 func Test_AddEvent(t *testing.T) {
-	// t.Parallel()
-	setup, teardownTestCase := setupTest(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
-	testCases := []struct {
-		name    string
-		req     *eventpb.AddEvent_Request
-		respErr string
-	}{
-		{
-			name:    "request without parameters",
-			req:     &eventpb.AddEvent_Request{},
-			respErr: "rpc error: code = InvalidArgument desc = Invalid argument",
-		},
+	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
+		a := eventpb.NewEventHandlersClient(setup)
+		return a.AddEvent(ctx, req.(*eventpb.AddEvent_Request))
+	}
 
-		// profile
+	testTable := []test.GRPCTable{
 		{
-			name: "add profile event",
-			req: &eventpb.AddEvent_Request{
+			Name:    "test0_01",
+			Request: &eventpb.AddEvent_Request{},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"user_id":    "value is required",
+					"section":    "exactly one field is required in oneof",
+					"session_id": "value is required",
+					"ip":         "value is required",
+					"event":      "value is required",
+				},
+			},
+		},
+		{
+			Name: "test0_02",
+			Request: &eventpb.AddEvent_Request{
+				UserId:    "test",
+				SessionId: "test",
 				Section: &eventpb.AddEvent_Request_Profile{
 					Profile: &eventpb.Profile{
-						Id:      "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+						Id:      "test",
+						Section: eventpb.Profile_profile,
+					},
+				},
+				UserAgent: "test",
+				Ip:        "test",
+				Event:     eventpb.EventType_onActive,
+				MetaData:  []byte("test"),
+			},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"user_id":    "value must be a valid UUID",
+					"session_id": "value must be a valid UUID",
+					"profile.id": "value must be a valid UUID",
+					"ip":         "value must be a valid IP address",
+				},
+			},
+		},
+
+		// profile section
+		{
+			Name: "test1_01",
+			Request: &eventpb.AddEvent_Request{
+				UserId:    test.ConstAdminID,
+				SessionId: uuid.New(),
+				Section: &eventpb.AddEvent_Request_Profile{
+					Profile: &eventpb.Profile{
+						Id:      test.ConstAdminID,
 						Section: eventpb.Profile_profile,
 					},
 				},
@@ -457,213 +527,176 @@ func Test_AddEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "add profile event with the fake profile UUID",
-			req: &eventpb.AddEvent_Request{
+			Name: "test1_02",
+			Request: &eventpb.AddEvent_Request{
+				UserId:    test.ConstFakeID,
+				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Profile{
 					Profile: &eventpb.Profile{
-						Id:      "00000000-0000-0000-0000-000000000000",
+						Id:      test.ConstFakeID,
 						Section: eventpb.Profile_profile,
 					},
 				},
 				UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41",
 				Ip:        "192.168.1.1",
 				Event:     eventpb.EventType_onActive,
+				MetaData:  []byte("{\"test\":1}"),
 			},
-			respErr: "rpc error: code = Unknown desc = Failed to add",
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Not found",
+			},
 		},
-
 		{
-			name: "error add profile log with incorrect profile UUID",
-			req: &eventpb.AddEvent_Request{
+			Name: "test1_03",
+			Request: &eventpb.AddEvent_Request{
+				UserId:    test.ConstFakeID,
+				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Profile{
 					Profile: &eventpb.Profile{
-						Id:      "abc",
+						Id:      "test",
 						Section: eventpb.Profile_profile,
 					},
 				},
 				UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41",
 				Ip:        "192.168.1.1",
 				Event:     eventpb.EventType_onActive,
+				MetaData:  []byte("{\"test\":1}"),
 			},
-			respErr: "rpc error: code = Unknown desc = Failed to add",
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"profile.id": "value must be a valid UUID",
+				},
+			},
 		},
 
-		// project
+		// project section
 		{
-			name: "add project event",
-			req: &eventpb.AddEvent_Request{
+			Name: "test2_01",
+			Request: &eventpb.AddEvent_Request{
+				UserId:    test.ConstAdminID,
+				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Project{
 					Project: &eventpb.Project{
-						Id:      "26060c68-5a06-4a57-b87a-be0f1e787157",
-						Section: eventpb.Project_project,
+						Id:      test.ConstAdminEventProjectID,
+						Section: eventpb.Project_setting,
 					},
 				},
-				UserId:    "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 				UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41",
 				Ip:        "192.168.1.1",
-				Event:     eventpb.EventType_onCreate,
-				MetaData:  []byte("{}"),
+				Event:     eventpb.EventType_onActive,
+				MetaData:  []byte("{\"test\":1}"),
 			},
 		},
 		{
-			name: "add profile event with out user UUID",
-			req: &eventpb.AddEvent_Request{
+			Name: "test2_02",
+			Request: &eventpb.AddEvent_Request{
+				UserId:    test.ConstFakeID,
+				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Project{
 					Project: &eventpb.Project{
-						Id:      "26060c68-5a06-4a57-b87a-be0f1e787157",
-						Section: eventpb.Project_project,
+						Id:      test.ConstFakeID,
+						Section: eventpb.Project_setting,
 					},
 				},
-				Ip:       "192.168.1.1",
-				Event:    eventpb.EventType_onCreate,
-				MetaData: []byte("{}"),
+				UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41",
+				Ip:        "192.168.1.1",
+				Event:     eventpb.EventType_onActive,
+				MetaData:  []byte("{\"test\":1}"),
 			},
-			respErr: "rpc error: code = InvalidArgument desc = Invalid argument",
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Not found",
+			},
 		},
 		{
-			name: "add profile event with the fake profile UUID",
-			req: &eventpb.AddEvent_Request{
+			Name: "test2_03",
+			Request: &eventpb.AddEvent_Request{
+				UserId:    test.ConstFakeID,
+				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Project{
 					Project: &eventpb.Project{
-						Id:      "00000000-0000-0000-0000-000000000000",
-						Section: eventpb.Project_project,
+						Id:      "test",
+						Section: eventpb.Project_setting,
 					},
 				},
-				UserId:   "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
-				Ip:       "192.168.1.1",
-				Event:    eventpb.EventType_onCreate,
-				MetaData: []byte("{}"),
+				UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41",
+				Ip:        "192.168.1.1",
+				Event:     eventpb.EventType_onActive,
+				MetaData:  []byte("{\"test\":1}"),
 			},
-			respErr: "rpc error: code = Unknown desc = Failed to add",
-		},
-		{
-			name: "add profile event with the incorrect profile UUID",
-			req: &eventpb.AddEvent_Request{
-				Section: &eventpb.AddEvent_Request_Project{
-					Project: &eventpb.Project{
-						Id:      "abc",
-						Section: eventpb.Project_project,
-					},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"project.id": "value must be a valid UUID",
 				},
-				UserId:   "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
-				Ip:       "192.168.1.1",
-				Event:    eventpb.EventType_onCreate,
-				MetaData: []byte("{}"),
 			},
-			respErr: "rpc error: code = Unknown desc = Failed to add",
-		},
-		{
-			name: "add profile event with the fake user UUID",
-			req: &eventpb.AddEvent_Request{
-				Section: &eventpb.AddEvent_Request_Project{
-					Project: &eventpb.Project{
-						Id:      "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
-						Section: eventpb.Project_project,
-					},
-				},
-				UserId:   "00000000-0000-0000-0000-000000000000",
-				Ip:       "192.168.1.1",
-				Event:    eventpb.EventType_onCreate,
-				MetaData: []byte("{}"),
-			},
-			respErr: "rpc error: code = Unknown desc = Failed to add",
 		},
 
-		// server
+		// scheme section
 		{
-			name: "add server event",
-			req: &eventpb.AddEvent_Request{
-				Section: &eventpb.AddEvent_Request_Server{
-					Server: &eventpb.Server{
-						Id:      "0c3a8869-6fc0-4666-bf60-15475473392a",
-						Section: eventpb.Server_server,
+			Name: "test3_01",
+			Request: &eventpb.AddEvent_Request{
+				UserId:    test.ConstAdminID,
+				SessionId: uuid.New(),
+				Section: &eventpb.AddEvent_Request_Scheme{
+					Scheme: &eventpb.Scheme{
+						Id:      test.ConstAdminEventSchemeID,
+						Section: eventpb.Scheme_setting,
 					},
 				},
-				UserId:    "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 				UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41",
 				Ip:        "192.168.1.1",
-				Event:     eventpb.EventType_onCreate,
-				MetaData:  []byte("{}"),
+				Event:     eventpb.EventType_onActive,
+				// MetaData:  []byte("{\"test\":1}"),
 			},
 		},
 		{
-			name: "add server event with out user UUID",
-			req: &eventpb.AddEvent_Request{
-				Section: &eventpb.AddEvent_Request_Server{
-					Server: &eventpb.Server{
-						Id:      "0c3a8869-6fc0-4666-bf60-15475473392a",
-						Section: eventpb.Server_server,
+			Name: "test3_02",
+			Request: &eventpb.AddEvent_Request{
+				UserId:    test.ConstFakeID,
+				SessionId: uuid.New(),
+				Section: &eventpb.AddEvent_Request_Scheme{
+					Scheme: &eventpb.Scheme{
+						Id:      test.ConstFakeID,
+						Section: eventpb.Scheme_setting,
 					},
 				},
-				Ip:       "192.168.1.1",
-				Event:    eventpb.EventType_onCreate,
-				MetaData: []byte("{}"),
+				UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41",
+				Ip:        "192.168.1.1",
+				Event:     eventpb.EventType_onActive,
+				MetaData:  []byte("{\"test\":1}"),
 			},
-			respErr: "rpc error: code = InvalidArgument desc = Invalid argument",
+			Error: test.ErrGRPC{
+				Code:    codes.NotFound,
+				Message: "Not found",
+			},
 		},
 		{
-			name: "add server event with the fake server UUID",
-			req: &eventpb.AddEvent_Request{
-				Section: &eventpb.AddEvent_Request_Server{
-					Server: &eventpb.Server{
-						Id:      "00000000-0000-0000-0000-000000000000",
-						Section: eventpb.Server_server,
+			Name: "test3_03",
+			Request: &eventpb.AddEvent_Request{
+				UserId:    test.ConstFakeID,
+				SessionId: uuid.New(),
+				Section: &eventpb.AddEvent_Request_Scheme{
+					Scheme: &eventpb.Scheme{
+						Id:      "test",
+						Section: eventpb.Scheme_setting,
 					},
 				},
-				UserId:   "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
-				Ip:       "192.168.1.1",
-				Event:    eventpb.EventType_onCreate,
-				MetaData: []byte("{}"),
+				UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41",
+				Ip:        "192.168.1.1",
+				Event:     eventpb.EventType_onActive,
+				MetaData:  []byte("{\"test\":1}"),
 			},
-			respErr: "rpc error: code = Unknown desc = Failed to add",
-		},
-		{
-			name: "add profile event with the incorrect profile UUID",
-			req: &eventpb.AddEvent_Request{
-				Section: &eventpb.AddEvent_Request_Server{
-					Server: &eventpb.Server{
-						Id:      "abc",
-						Section: eventpb.Server_server,
-					},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"scheme.id": "value must be a valid UUID",
 				},
-				UserId:   "0c3a8869-6fc0-4666-bf60-15475473392a",
-				Ip:       "192.168.1.1",
-				Event:    eventpb.EventType_onCreate,
-				MetaData: []byte("{}"),
 			},
-			respErr: "rpc error: code = Unknown desc = Failed to add",
-		},
-		{
-			name: "add profile event with the fake user id UUID",
-			req: &eventpb.AddEvent_Request{
-				Section: &eventpb.AddEvent_Request_Server{
-					Server: &eventpb.Server{
-						Id:      "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
-						Section: eventpb.Server_server,
-					},
-				},
-				UserId:   "00000000-0000-0000-0000-000000000000",
-				Ip:       "192.168.1.1",
-				Event:    eventpb.EventType_onCreate,
-				MetaData: []byte("{}"),
-			},
-			respErr: "rpc error: code = Unknown desc = Failed to add",
 		},
 	}
 
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			a := eventpb.NewEventHandlersClient(setup.grpc)
-			response, err := a.AddEvent(setup.ctx, tt.req)
-			if err != nil {
-				assert.EqualError(t, err, tt.respErr)
-				return
-			}
-
-			assert.NoError(t, err)
-			if _, err := uuid.Parse(response.GetRecordId()); err != nil {
-				assert.Error(t, err)
-			}
-		})
-	}
+	test.RunCaseGRPCTests(t, handler, testTable)
 }

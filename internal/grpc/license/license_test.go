@@ -6,17 +6,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	licensepb "github.com/werbot/werbot/internal/grpc/license/proto"
+	licensepb "github.com/werbot/werbot/internal/grpc/license/proto/license"
 	"github.com/werbot/werbot/internal/utils/test"
-	"github.com/werbot/werbot/pkg/fsutil"
+	"github.com/werbot/werbot/pkg/utils/fsutil"
 )
 
 func Test_license(t *testing.T) {
-	// t.Parallel()
-
 	ctx := context.Background()
-	grpc, _ := test.GRPC(ctx, t, nil, nil)
-	defer grpc.Close()
+
+	setup, teardownTestCase := test.GRPC(t)
+	defer teardownTestCase(t)
 
 	fixturePath := "../../../fixtures/licenses/"
 	pubKeyOk := string(fsutil.MustReadFile(fixturePath + "publicKey_ok.key"))
@@ -31,8 +30,8 @@ func Test_license(t *testing.T) {
 		resp      *licensepb.License_Response
 		respErr   string
 	}{
-		{
-			name:      "License file found",
+		{ // License file found
+			name:      "test0_01",
 			licPath:   licenseOk,
 			licPubKey: pubKeyOk,
 			req:       &licensepb.License_Request{},
@@ -48,8 +47,8 @@ func Test_license(t *testing.T) {
 				Expired: false,
 			},
 		},
-		{
-			name:      "License file found and no public key",
+		{ // License file found and no public key (gen os lic)
+			name:      "test0_02",
 			licPath:   licenseOk,
 			licPubKey: "",
 			req:       &licensepb.License_Request{},
@@ -65,21 +64,30 @@ func Test_license(t *testing.T) {
 				Expired: true,
 			},
 		},
-		{
-			name:      "License file not found",
+		{ // License file not found (gen os lic)
+			name:      "test0_03",
 			licPath:   "/license.key",
 			licPubKey: pubKeyOk,
 			req:       &licensepb.License_Request{},
-			resp:      &licensepb.License_Response{},
-			respErr:   "rpc error: code = Unknown desc = Failed to open license file",
+			resp: &licensepb.License_Response{
+				Customer: "Mr. Robot",
+				Type:     "open source",
+				Modules:  []string{"module1", "module2", "module3"},
+				Limits: map[string]int32{
+					"Companies": 99,
+					"Servers":   99,
+					"Users":     99,
+				},
+				Expired: true,
+			},
 		},
-		{
-			name:      "License file found but is broken",
+		{ // License file found but is broken
+			name:      "test0_04",
 			licPath:   licenseErr,
 			licPubKey: pubKeyOk,
 			req:       &licensepb.License_Request{},
 			resp:      &licensepb.License_Response{},
-			respErr:   "rpc error: code = Unknown desc = The license has a broken",
+			respErr:   "rpc error: code = PermissionDenied desc = The license has a broken",
 		},
 	}
 
@@ -88,7 +96,7 @@ func Test_license(t *testing.T) {
 			t.Setenv("LICENSE_FILE", tt.licPath)
 			t.Setenv("LICENSE_KEY_PUBLIC", tt.licPubKey)
 
-			l := licensepb.NewLicenseHandlersClient(grpc)
+			l := licensepb.NewLicenseHandlersClient(setup)
 			response, err := l.License(ctx, tt.req)
 			if err != nil {
 				assert.EqualError(t, err, tt.respErr)
