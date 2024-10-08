@@ -1,109 +1,118 @@
 package license
 
-/*
 import (
 	"net/http"
 	"testing"
 
-	"github.com/steinfletcher/apitest"
-	jsonpath "github.com/steinfletcher/apitest-jsonpath"
-
-	accountpb "github.com/werbot/werbot/api/proto/account"
-	"github.com/werbot/werbot/api"
-	"github.com/werbot/werbot/api/auth"
-	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/tests"
-	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/pkg/utils/fsutil"
 )
 
-var (
-	testHandler *tests.TestHandler
-	adminInfo   *tests.UserInfo
-	userInfo    *tests.UserInfo
-)
+func TestHandler_licenseInfo(t *testing.T) {
+	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	defer teardownTestCase(t)
 
-func init() {
-	testHandler = tests.InitTestServer("../../../.env")
-	auth.New(&web.Handler{
-		App:   testHandler.App,
-		Grpc:  testHandler.GRPC,
-		Cache: testHandler.Cache,
-		Auth:  *testHandler.Auth,
-	}).Routes()
-	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
-	webHandler := &web.Handler{
-		App:  testHandler.App,
-		Grpc: testHandler.GRPC,
-		Auth: authMiddleware,
-	}
-
-	New(webHandler, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes() // add test module handler
-	testHandler.FinishHandler()                                            // init finale handler for apitest
-
-	adminInfo = testHandler.GetUserInfo(&accountpb.SignIn_Request{
-		Email:    "test-admin@werbot.net",
-		Password: "test-admin@werbot.net",
-	})
-
-	adminInfo = testHandler.GetUserInfo(&accountpb.SignIn_Request{
-		Email:    "test-user@werbot.net",
-		Password: "test-user@werbot.net",
-	})
-}
-
-func apiTest() *apitest.APITest {
-	return apitest.New().
-		//Debug().
-		HandlerFunc(testHandler.Handler)
-}
-
-func TestHandler_getLicenseInfo(t *testing.T) {
-	t.Parallel()
-
-	testCases := []tests.TestCase{
-		// Unauthorized user
-		{
-			Name:        "getLicenseInfo_01",
-			RequestUser: &tests.UserInfo{},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgUnauthorized).
-				End(),
-			RespondStatus: http.StatusUnauthorized,
+	testTable := []test.APITable{
+		{ // unauthorized request
+			Name:       "test0_01",
+			Method:     http.MethodGet,
+			Path:       pathLicenseInfo,
+			StatusCode: 401,
+			Body:       test.BodyUnauthorized,
 		},
-		// ROLE_ADMIN - Authorized admin
-		{
-			Name:        "ROLE_ADMIN_getLicenseInfo_01",
-			RequestUser: adminInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgLicenseInfo).
-				End(),
-			RespondStatus: http.StatusOK,
+		{ // ADMIN: license info
+			Name:       "test1_01",
+			Method:     http.MethodGet,
+			Path:       pathLicenseInfo,
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":                    float64(200),
+				"message":                 "License",
+				"result.customer":         "Mr. Robot",
+				"result.expired":          true,
+				"result.expires_at":       "*",
+				"result.issued":           "free",
+				"result.issued_at":        "*",
+				"result.limits.Companies": float64(99),
+				"result.limits.Servers":   float64(99),
+				"result.limits.Users":     float64(99),
+				"result.modules.0":        "module1",
+				"result.modules.1":        "module2",
+				"result.modules.2":        "module3",
+			},
+			RequestHeaders: adminHeader,
 		},
-		// ROLE_USER - Authorized user
-		{
-			Name:        "ROLE_USER_getLicenseInfo_01",
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgNotFound).
-				End(),
-			RespondStatus: http.StatusNotFound,
+		{ // USER: license info
+			Name:           "test2_01",
+			Method:         http.MethodGet,
+			Path:           pathLicenseInfo,
+			StatusCode:     404,
+			Body:           test.BodyNotFound,
+			RequestHeaders: userHeader,
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			apiTest().
-				HandlerFunc(testHandler.Handler).
-				Get("/v1/license/info").
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
-				Expect(t).
-				Assert(tc.RespondBody).
-				Status(tc.RespondStatus).
-				End()
-		})
-	}
+	test.RunCaseAPITests(t, app, testTable)
 }
-*/
+
+func TestHandler_licenseInfo_ee(t *testing.T) {
+	app, teardownTestCase, adminHeader, _ := setupTest(t)
+	defer teardownTestCase(t)
+
+	pubKeyOk := string(fsutil.MustReadFile("../../fixtures/licenses/publicKey_ok.key"))
+	t.Setenv("LICENSE_KEY_PUBLIC", pubKeyOk)
+	t.Setenv("LICENSE_FILE", "../../fixtures/licenses/license_ok.key")
+
+	testTable := []test.APITable{
+		{ // ADMIN: EE license info
+			Name:       "test1_01",
+			Method:     http.MethodGet,
+			Path:       pathLicenseInfo,
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":                    float64(200),
+				"message":                 "License",
+				"result.customer":         "8ED96811-1804-4A13-9CE7-05874869A1CF",
+				"result.expires_at":       "*",
+				"result.issued":           "Werbot, Inc.",
+				"result.issued_at":        "*",
+				"result.subscriber":       "EED1CA19-4DC5-4376-83F5-61077B501961",
+				"result.type":             "Enterprise",
+				"result.limits.Companies": float64(99),
+				"result.limits.Servers":   float64(99),
+				"result.limits.Users":     float64(99),
+				"result.modules.0":        "module1",
+				"result.modules.1":        "module2",
+				"result.modules.2":        "module3",
+			},
+			RequestHeaders: adminHeader,
+		},
+	}
+
+	test.RunCaseAPITests(t, app, testTable)
+}
+
+func TestHandler_licenseInfo_ee_broken(t *testing.T) {
+	app, teardownTestCase, adminHeader, _ := setupTest(t)
+	defer teardownTestCase(t)
+
+	t.Setenv("LICENSE_FILE", "../../fixtures/licenses/license_exp.key")
+	t.Setenv("LICENSE_KEY_PUBLIC", "../../fixtures/licenses/publicKey_ok.key")
+
+	testTable := []test.APITable{
+		{ // ADMIN: license info
+			Name:       "test1_01",
+			Method:     http.MethodGet,
+			Path:       pathLicenseInfo,
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "The license key has a broken",
+			},
+			RequestHeaders: adminHeader,
+		},
+	}
+
+	test.RunCaseAPITests(t, app, testTable)
+}

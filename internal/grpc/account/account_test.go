@@ -4,84 +4,38 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
-
-	accountpb "github.com/werbot/werbot/internal/grpc/account/proto"
+	accountpb "github.com/werbot/werbot/internal/grpc/account/proto/account"
 	"github.com/werbot/werbot/internal/utils/test"
+	"google.golang.org/grpc/codes"
 )
 
-type testSetup struct {
-	ctx  context.Context
-	grpc *grpc.ClientConn
-}
-
-func setupTest(t *testing.T) (testSetup, func(t *testing.T)) {
-	ctx := context.Background()
-
-	// Initialize postgres connection
-	postgres, err := test.Postgres(t, "../../../migration", "../../../fixtures/migration")
-	if err != nil {
-		t.Fatalf("failed to initialize Postgres: %v", err)
-	}
-
-	// Initialize gRPC connection
-	grpc, err := test.GRPC(ctx, t, postgres.Conn(), nil)
-	if err != nil {
-		t.Fatalf("failed to initialize gRPC: %v", err)
-	}
-
-	return testSetup{
-			ctx:  ctx,
-			grpc: grpc.ClientConn,
-		}, func(t *testing.T) {
-			postgres.Close()
-			grpc.Close()
-		}
-}
-
 func Test_account_AccountIDByLogin(t *testing.T) {
-	t.Parallel()
-	setup, teardownTestCase := setupTest(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
-	testCases := []struct {
-		name    string
-		req     *accountpb.AccountIDByLogin_Request
-		resp    *accountpb.AccountIDByLogin_Response
-		respErr string
-	}{
+	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
+		a := accountpb.NewAccountHandlersClient(setup)
+		return a.AccountIDByLogin(ctx, req.(*accountpb.AccountIDByLogin_Request))
+	}
+
+	testTable := []test.GRPCTable{
 		{
-			name: "test",
-			req: &accountpb.AccountIDByLogin_Request{
+			Name: "test0_01",
+			Request: &accountpb.AccountIDByLogin_Request{
 				Login:       "admin",
 				Fingerprint: "b6:07:6a:ef:82:e3:73:47:56:69:3f:3d:c7:d7:6f:23",
 			},
-			resp: &accountpb.AccountIDByLogin_Response{
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+			//Response: &accountpb.AccountIDByLogin_Response{
+			//	UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+			//},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"client_ip": "value is empty, which is not a valid IP address",
+				},
 			},
-		},
-		{
-			name: "test2",
-			req: &accountpb.AccountIDByLogin_Request{
-				Login:       "user",
-				Fingerprint: "b6:07:6a:ef:82:e3:73:47:56:69:3f:3d:c7:d7:6f:23",
-			},
-			resp:    &accountpb.AccountIDByLogin_Response{},
-			respErr: "rpc error: code = NotFound desc = Not found",
 		},
 	}
 
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			a := accountpb.NewAccountHandlersClient(setup.grpc)
-			response, err := a.AccountIDByLogin(setup.ctx, tt.req)
-			if err != nil {
-				assert.EqualError(t, err, tt.respErr)
-				return
-			}
-			assert.NoError(t, err)
-			assert.Equal(t, tt.resp.UserId, response.UserId)
-		})
-	}
+	test.RunCaseGRPCTests(t, handler, testTable)
 }

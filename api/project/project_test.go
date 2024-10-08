@@ -1,434 +1,855 @@
 package project
 
-/*
 import (
-	"context"
-	"encoding/json"
 	"net/http"
 	"testing"
-	"time"
 
-	"github.com/google/uuid"
-	"github.com/steinfletcher/apitest"
-	jsonpath "github.com/steinfletcher/apitest-jsonpath"
-
-	accountpb "github.com/werbot/werbot/api/proto/account"
-	projectpb "github.com/werbot/werbot/api/proto/project"
-	"github.com/werbot/werbot/api"
-	"github.com/werbot/werbot/api/auth"
-	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/tests"
-	"github.com/werbot/werbot/internal/web/middleware"
+	"github.com/werbot/werbot/internal/utils/test"
 )
 
-var (
-	testHandler *tests.TestHandler
-	adminInfo   *tests.UserInfo
-	userInfo    *tests.UserInfo
-)
+func TestHandler_projects(t *testing.T) {
+	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	defer teardownTestCase(t)
 
-func init() {
-	testHandler = tests.InitTestServer("../../../.env")
-	auth.New(&web.Handler{
-		App:   testHandler.App,
-		Grpc:  testHandler.GRPC,
-		Cache: testHandler.Cache,
-		Auth:  *testHandler.Auth,
-	}).Routes()
-	authMiddleware := middleware.Auth(testHandler.Cache).Execute()
-	webHandler := &web.Handler{
-		App:  testHandler.App,
-		Grpc: testHandler.GRPC,
-		Auth: authMiddleware,
+	testTable := []test.APITable{
+		{ // unauthorized request
+			Name:       "test0_01",
+			Method:     http.MethodGet,
+			Path:       pathProjects,
+			StatusCode: 401,
+			Body:       test.BodyUnauthorized,
+		},
+		{ // ADMIN: request with user UUID
+			Name:       "test1_01",
+			Method:     http.MethodGet,
+			Path:       pathProjects + "?owner_id=" + test.ConstUserID,
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":         float64(200),
+				"message":      "Projects",
+				"result.total": float64(3),
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN: request with fake user UUID
+			Name:           "test1_02",
+			Method:         http.MethodGet,
+			Path:           pathProjects + "?owner_id=" + test.ConstFakeID,
+			StatusCode:     404,
+			Body:           test.BodyNotFound,
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN: request without parameters
+			Name:       "test1_03",
+			Method:     http.MethodGet,
+			Path:       pathProjects,
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":                                 float64(200),
+				"message":                              "Projects",
+				"result.total":                         float64(11),
+				"result.projects.0.alias":              "68rwRW",
+				"result.projects.0.owner_id":           "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				"result.projects.0.project_id":         "26060c68-5a06-4a57-b87a-be0f1e787157",
+				"result.projects.0.title":              "project7",
+				"result.projects.0.servers_count":      nil,
+				"result.projects.0.databases_count":    nil,
+				"result.projects.0.applications_count": nil,
+				"result.projects.0.desktops_count":     nil,
+				"result.projects.0.containers_count":   nil,
+				"result.projects.0.clouds_count":       nil,
+				"result.projects.0.locked_at":          nil,
+				"result.projects.0.archived_at":        nil,
+				"result.projects.0.updated_at":         nil,
+				"result.projects.0.created_at":         "*",
+				// --
+				"result.projects.11.alias": nil,
+			},
+			RequestHeaders: adminHeader,
+		},
+
+		{ // USER: request without parameters
+			Name:       "test2_01",
+			Method:     http.MethodGet,
+			Path:       pathProjects,
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":         float64(200),
+				"message":      "Projects",
+				"result.total": float64(3),
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER: request with user UUID
+			Name:       "test2_02",
+			Method:     http.MethodGet,
+			Path:       pathProjects + "?owner_id=" + test.ConstAdminID,
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":                                 float64(200),
+				"message":                              "Projects",
+				"result.total":                         float64(3),
+				"result.projects.0.alias":              "9Yyz9Z",
+				"result.projects.0.owner_id":           nil,
+				"result.projects.0.project_id":         "83d401e4-fda4-404e-8c2a-da58b03919c1",
+				"result.projects.0.title":              "project13",
+				"result.projects.0.servers_count":      nil,
+				"result.projects.0.databases_count":    nil,
+				"result.projects.0.applications_count": nil,
+				"result.projects.0.desktops_count":     nil,
+				"result.projects.0.containers_count":   nil,
+				"result.projects.0.clouds_count":       nil,
+				"result.projects.0.locked_at":          nil,
+				"result.projects.0.archived_at":        nil,
+				"result.projects.0.updated_at":         nil,
+				"result.projects.0.created_at":         "*",
+				// --
+				"result.projects.3.alias": nil,
+			},
+			RequestHeaders: userHeader,
+		},
 	}
 
-	New(webHandler).Routes()    // add test module handler
-	testHandler.FinishHandler() // init finale handler for apitest
-
-	adminInfo = testHandler.GetUserInfo(&accountpb.SignIn_Request{
-		Email:    "test-admin@werbot.net",
-		Password: "test-admin@werbot.net",
-	})
-
-	userInfo = testHandler.GetUserInfo(&accountpb.SignIn_Request{
-		Email:    "test-user@werbot.net",
-		Password: "test-user@werbot.net",
-	})
-
+	test.RunCaseAPITests(t, app, testTable)
 }
 
-func apiTest() *apitest.APITest {
-	return apitest.New().
-		Debug().
-		HandlerFunc(testHandler.Handler)
-}
+func TestHandler_project(t *testing.T) {
+	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	defer teardownTestCase(t)
 
-func TestHandler_getProject(t *testing.T) {
-	t.Parallel()
+	testTable := []test.APITable{
+		{ // unauthorized request
+			Name:       "test0_01",
+			Method:     http.MethodGet,
+			Path:       pathProjects,
+			StatusCode: 401,
+			Body:       test.BodyUnauthorized,
+		},
+		{ // ADMIN:
+			Name:       "test1_01",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathProjects, test.ConstFakeID),
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Not found",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN: request without parameters
+			Name:       "test1_02",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID),
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":                      float64(200),
+				"message":                   "Project",
+				"result.alias":              "Y93iyI",
+				"result.title":              "project1",
+				"result.servers_count":      nil,
+				"result.databases_count":    nil,
+				"result.applications_count": nil,
+				"result.desktops_count":     nil,
+				"result.containers_count":   nil,
+				"result.clouds_count":       nil,
+				"result.locked_at":          nil,
+				"result.archived_at":        nil,
+				"result.updated_at":         nil,
+				"result.created_at":         "*",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_03",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID),
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Not found",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_04",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID) + "?owner_id=" + test.ConstFakeID,
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Not found",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_05",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID) + "?owner_id=" + test.ConstUserID,
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":                      float64(200),
+				"message":                   "Project",
+				"result.alias":              "C8cXx0",
+				"result.title":              "project3",
+				"result.servers_count":      nil,
+				"result.databases_count":    nil,
+				"result.applications_count": nil,
+				"result.desktops_count":     nil,
+				"result.containers_count":   nil,
+				"result.clouds_count":       nil,
+				"result.locked_at":          nil,
+				"result.archived_at":        nil,
+				"result.updated_at":         nil,
+				"result.created_at":         "*",
+			},
+			RequestHeaders: adminHeader,
+		},
 
-	testCases := []tests.TestCase{
-		// Cases with an anonymous user
-		{
-			Name:         "ANONYMOUS_USER_getProject_01", // User not authorized
-			RequestParam: map[string]string{},
-			RequestUser:  &tests.UserInfo{},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgUnauthorized).
-				End(),
-			RespondStatus: http.StatusUnauthorized,
-		},
-		// Cases with an authorized user
-		{
-			Name:         "ROLE_USER_getProject_01", // List of all projects of user
-			RequestParam: map[string]string{},
-			RequestUser:  userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgProjects).
-				Equal(`$.result.total`, float64(1)).
-				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
-				End(),
-			RespondStatus: http.StatusOK,
-		},
-		{
-			Name: "ROLE_USER_getProject_02", // Error 404 on invalid input
-			RequestParam: map[string]string{
-				"owner_id":   uuid.New().String(),
-				"project_id": uuid.New().String(),
+		{ // USER:
+			Name:       "test2_01",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathProjects, test.ConstFakeID),
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Not found",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgNotFound).
-				End(),
-			RespondStatus: http.StatusNotFound,
+			RequestHeaders: userHeader,
 		},
-		{
-			Name: "ROLE_USER_getProject_03", // Owner_id parameters are not checked
-			RequestParam: map[string]string{
-				"owner_id": uuid.New().String(),
+		{ // USER: request without parameters
+			Name:       "test2_02",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID),
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":                      float64(200),
+				"message":                   "Project",
+				"result.alias":              "C8cXx0",
+				"result.title":              "project3",
+				"result.servers_count":      nil,
+				"result.databases_count":    nil,
+				"result.applications_count": nil,
+				"result.desktops_count":     nil,
+				"result.containers_count":   nil,
+				"result.clouds_count":       nil,
+				"result.locked_at":          nil,
+				"result.archived_at":        nil,
+				"result.updated_at":         nil,
+				"result.created_at":         "*",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgProjects).
-				Equal(`$.result.total`, float64(1)).
-				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
-				End(),
-			RespondStatus: http.StatusOK,
+			RequestHeaders: userHeader,
 		},
-		{
-			Name: "ROLE_USER_getProject_04", // Error 404 when trying to display a non-existent project
-			RequestParam: map[string]string{
-				"project_id": uuid.New().String(),
+		{ // USER:
+			Name:       "test3_03",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID),
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Not found",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgNotFound).
-				End(),
-			RespondStatus: http.StatusNotFound,
+			RequestHeaders: userHeader,
 		},
-		{
-			Name: "ROLE_USER_getProject_05", // Error 400 when trying to pass invalid parameters
-			RequestParam: map[string]string{
-				"project_id": "123",
+		{ // USER:
+			Name:       "test2_04",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID) + "?owner_id=" + test.ConstFakeID,
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Not found",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.projectid`, "projectId must be a valid UUID").
-				End(),
-			RespondStatus: http.StatusBadRequest,
+			RequestHeaders: userHeader,
 		},
-		// Cases with a user with ADMIN rights
-		{
-			Name:         "ROLE_ADMIN_getProject_01", // List of all projects of user
-			RequestParam: map[string]string{},
-			RequestUser:  adminInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgProjects).
-				Equal(`$.result.total`, float64(2)).
-				Equal(`$.result.projects[0].owner_id`, adminInfo.UserID).
-				End(),
-			RespondStatus: http.StatusOK,
-		},
-		{
-			Name: "ROLE_ADMIN_getProject_02", // Error 404 on invalid input
-			RequestParam: map[string]string{
-				"owner_id":   uuid.New().String(),
-				"project_id": uuid.New().String(),
+		{ // USER:
+			Name:       "test2_05",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID) + "?owner_id=" + test.ConstAdminID,
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Not found",
 			},
-			RequestUser: adminInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgNotFound).
-				End(),
-			RespondStatus: http.StatusNotFound,
-		},
-		{
-			Name: "ROLE_ADMIN_getProject_03", // Error 404 when invalid owner ID
-			RequestParam: map[string]string{
-				"owner_id": uuid.New().String(),
-			},
-			RequestUser: adminInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgNotFound).
-				End(),
-			RespondStatus: http.StatusNotFound,
-		},
-		{
-			Name: "ROLE_ADMIN_getProject_04", // Error 404 when project of test-user@werbot.net, but not use owner_id
-			RequestParam: map[string]string{
-				"project_id": "69fbe29e-c955-41ad-b0c4-3a474cf01ea9",
-			},
-			RequestUser: adminInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgNotFound).
-				End(),
-			RespondStatus: http.StatusNotFound,
-		},
-		{
-			Name: "ROLE_ADMIN_getProject_05", // Shows all projects of another user (test-user@werbot.net)
-			RequestParam: map[string]string{
-				"owner_id": userInfo.UserID,
-			},
-			RequestUser: adminInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgProjects).
-				Equal(`$.result.total`, float64(1)).
-				Equal(`$.result.projects[0].owner_id`, userInfo.UserID).
-				End(),
-			RespondStatus: http.StatusOK,
-		},
-		{
-			Name: "ROLE_ADMIN_getProject_06", // Information about another user's project (test-user@werbot.net)
-			RequestParam: map[string]string{
-				"owner_id":   userInfo.UserID,
-				"project_id": "69fbe29e-c955-41ad-b0c4-3a474cf01ea9",
-			},
-			RequestUser: adminInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgProjectInfo).
-				Equal(`$.result.title`, "test_project3").
-				Equal(`$.result.login`, "testproject3").
-				End(),
-			RespondStatus: http.StatusOK,
+			RequestHeaders: userHeader,
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			apiTest().
-				Get("/v1/projects").
-				QueryParams(tc.RequestParam.(map[string]string)).
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
-				Expect(t).
-				Assert(tc.RespondBody).
-				Status(tc.RespondStatus).
-				End()
-		})
-	}
+	test.RunCaseAPITests(t, app, testTable)
 }
 
 func TestHandler_addProject(t *testing.T) {
-	t.Parallel()
+	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	defer teardownTestCase(t)
 
-	testCases := []tests.TestCase{
-		// Cases with an anonymous user
-		{
-			Name:        "ANONYMOUS_USER_addProject_01", // User not authorized
-			RequestBody: projectpb.AddProject_Request{},
-			RequestUser: &tests.UserInfo{},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgUnauthorized).
-				End(),
-			RespondStatus: http.StatusUnauthorized,
+	testTable := []test.APITable{
+		{ // unauthorized request
+			Name:       "test0_01",
+			Method:     http.MethodPost,
+			Path:       pathProjects,
+			StatusCode: 401,
+			Body:       test.BodyUnauthorized,
 		},
-		// Cases with an authorized user
-		{
-			Name: "ROLE_USER_addProject_01", // Error 400 when trying to pass invalid parameters
-			RequestBody: projectpb.AddProject_Request{
-				Title: "",
-				Login: "",
+		{ // ADMIN: request without parameters
+			Name:       "test1_01",
+			Method:     http.MethodPost,
+			Path:       pathProjects,
+			StatusCode: 400,
+			Body: test.BodyTable{
+				"code":         float64(400),
+				"message":      "Bad Request",
+				"result.alias": "value is required",
+				"result.title": "value is required",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.login`, "login is a required field").
-				Equal(`$.result.title`, "title is a required field").
-				End(),
-			RespondStatus: http.StatusBadRequest,
+			RequestHeaders: adminHeader,
 		},
-		{
-			Name: "ROLE_USER_addProject_02", // Error 400 when trying to pass invalid parameters
-			RequestBody: projectpb.AddProject_Request{
-				Title: "user",
-				Login: "user999",
+		{ // ADMIN: request without parameters
+			Name:       "test1_02",
+			Method:     http.MethodPost,
+			Path:       pathProjects,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"alias": "ABC",
+				"title": "12",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.title`, "title must be at least 5 characters in length").
-				End(),
-			RespondStatus: http.StatusBadRequest,
+			Body: test.BodyTable{
+				"code":         float64(400),
+				"message":      "Bad Request",
+				"result.alias": "value does not match regex pattern `^[a-z0-9]+$`",
+				"result.title": "value length must be at least 3 characters",
+			},
+			RequestHeaders: adminHeader,
 		},
-		{
-			Name: "ROLE_USER_addProject_03", // Error 400 when trying to pass invalid parameters
-			RequestBody: projectpb.AddProject_Request{
-				Login: "user999",
+		{ // ADMIN:
+			Name:       "test1_03",
+			Method:     http.MethodPost,
+			Path:       pathProjects,
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"alias": "a1b2c3",
+				"title": "Title",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.title`, "title is a required field").
-				End(),
-			RespondStatus: http.StatusBadRequest,
+			Body: test.BodyTable{
+				"code":              float64(200),
+				"message":           "Project added",
+				"result.project_id": "*",
+			},
+			RequestHeaders: adminHeader,
 		},
-		{
-			Name: "ROLE_USER_addProject_04",
-			RequestBody: projectpb.AddProject_Request{
-				Title: "user999",
-				Login: "user999",
+		{ // ADMIN:
+			Name:       "test1_04",
+			Method:     http.MethodPost,
+			Path:       pathProjects + "?owner_id=" + test.ConstFakeID,
+			StatusCode: 404,
+			RequestBody: test.BodyTable{
+				"alias": "a1b2c3",
+				"title": "Title",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgProjectAdded).
-				End(),
-			RespondStatus: http.StatusOK,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Not found",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_05",
+			Method:     http.MethodPost,
+			Path:       pathProjects + "?owner_id=" + test.ConstUserID,
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"alias": "a1b2c3",
+				"title": "Title",
+			},
+			Body: test.BodyTable{
+				"code":              float64(200),
+				"message":           "Project added",
+				"result.project_id": "*",
+			},
+			RequestHeaders: adminHeader,
+		},
+
+		{ // USER: request without parameters
+			Name:       "test2_01",
+			Method:     http.MethodPost,
+			Path:       pathProjects,
+			StatusCode: 400,
+			Body: test.BodyTable{
+				"code":         float64(400),
+				"message":      "Bad Request",
+				"result.alias": "value is required",
+				"result.title": "value is required",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER: request without parameters
+			Name:       "test2_02",
+			Method:     http.MethodPost,
+			Path:       pathProjects,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"alias": "ABC",
+				"title": "12",
+			},
+			Body: test.BodyTable{
+				"code":         float64(400),
+				"message":      "Bad Request",
+				"result.alias": "value does not match regex pattern `^[a-z0-9]+$`",
+				"result.title": "value length must be at least 3 characters",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER:
+			Name:       "test2_03",
+			Method:     http.MethodPost,
+			Path:       pathProjects,
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"alias": "a1b2c3",
+				"title": "Title",
+			},
+			Body: test.BodyTable{
+				"code":              float64(200),
+				"message":           "Project added",
+				"result.project_id": "*",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER: ignored owner_id
+			Name:       "test2_04",
+			Method:     http.MethodPost,
+			Path:       pathProjects + "?owner_id=" + test.ConstFakeID,
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"alias": "a1b2c3",
+				"title": "Title",
+			},
+			Body: test.BodyTable{
+				"code":              float64(200),
+				"message":           "Project added",
+				"result.project_id": "*",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER: ignored owner_id
+			Name:       "test2_05",
+			Method:     http.MethodPost,
+			Path:       pathProjects + "?owner_id=" + test.ConstAdminID,
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"alias": "a1b2c3",
+				"title": "Title",
+			},
+			Body: test.BodyTable{
+				"code":              float64(200),
+				"message":           "Project added",
+				"result.project_id": "*",
+			},
+			RequestHeaders: userHeader,
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			resp := apiTest().
-				Post("/v1/projects").
-				JSON(tc.RequestBody).
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
-				Expect(t).
-				Assert(tc.RespondBody).
-				Status(tc.RespondStatus).
-				End()
-
-			// delete added project
-			data := map[string]projectpb.AddProject_Response{}
-			json.NewDecoder(resp.Response.Body).Decode(&data)
-			if data["result"].ProjectId != "" {
-				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-				defer cancel()
-
-				rClient := projectpb.NewProjectHandlersClient(testHandler.GRPC.Client)
-				rClient.DeleteProject(ctx, &projectpb.DeleteProject_Request{
-					OwnerId:   tc.RequestUser.UserID,
-					ProjectId: data["result"].ProjectId,
-				})
-			}
-		})
-	}
+	test.RunCaseAPITests(t, app, testTable)
 }
 
-func TestHandler_patchProject(t *testing.T) {
-	t.Parallel()
+func TestHandler_updateProject(t *testing.T) {
+	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	defer teardownTestCase(t)
 
-	testCases := []tests.TestCase{
-		// Cases with an anonymous user
-		{
-			Name:        "ANONYMOUS_USER_patchProject_01", // User not authorized
-			RequestBody: projectpb.UpdateProject_Request{},
-			RequestUser: &tests.UserInfo{},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgUnauthorized).
-				End(),
-			RespondStatus: http.StatusUnauthorized,
+	testTable := []test.APITable{
+		{ // unauthorized request
+			Name:       "test0_01",
+			Method:     http.MethodPatch,
+			Path:       pathProjects,
+			StatusCode: 401,
+			Body:       test.BodyUnauthorized,
 		},
-		// Cases with an authorized user
-		{
-			Name:        "ROLE_USER_patchProject_01", // Error 400 when trying to pass invalid parameters
-			RequestBody: projectpb.UpdateProject_Request{},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.projectid`, "projectId is a required field").
-				Equal(`$.result.title`, "title is a required field").
-				End(),
-			RespondStatus: http.StatusBadRequest,
-		},
-		{
-			Name: "ROLE_USER_patchProject_02", // Error 400 when trying to pass invalid parameters
-			RequestBody: projectpb.UpdateProject_Request{
-				ProjectId: "d958ee44-a960-420e-9bbf-c7a35084c4aa",
+		{ // ADMIN: request without parameters
+			Name:       "test1_01",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID),
+			StatusCode: 400,
+			Body: test.BodyTable{
+				"code":           float64(400),
+				"message":        "Bad Request",
+				"result.setting": "exactly one field is required in oneof",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.title`, "title is a required field").
-				End(),
-			RespondStatus: http.StatusBadRequest,
+			RequestHeaders: adminHeader,
 		},
-		{
-			Name: "ROLE_USER_patchProject_03", // Fake status 200 (real 404), non-existent project ip
-			RequestBody: projectpb.UpdateProject_Request{
-				ProjectId: "00000000-0000-0000-0000-000000000000",
-				Title:     "user999",
+		{ // ADMIN: request without parameters
+			Name:       "test1_02",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID),
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"alias": "ABC",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgProjectUpdated).
-				End(),
-			RespondStatus: http.StatusOK,
-		},
-		{
-			Name: "ROLE_USER_patchProject_04", // Successful data update
-			RequestBody: projectpb.UpdateProject_Request{
-				ProjectId: "d958ee44-a960-420e-9bbf-c7a35084c4aa",
-				Title:     "user999",
+			Body: test.BodyTable{
+				"code":         float64(400),
+				"message":      "Bad Request",
+				"result.alias": "value does not match regex pattern `^[a-z0-9]+$`",
 			},
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgProjectUpdated).
-				End(),
-			RespondStatus: http.StatusOK,
+			RequestHeaders: adminHeader,
 		},
-		// Cases with a user with ADMIN rights
-		{
-			Name:        "ROLE_ADMIN_patchProject_01",
-			RequestBody: projectpb.UpdateProject_Request{},
-			RequestUser: adminInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				End(),
-			RespondStatus: http.StatusBadRequest,
+		{ // ADMIN: request without parameters
+			Name:       "test1_03",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID),
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"title": "12",
+			},
+			Body: test.BodyTable{
+				"code":         float64(400),
+				"message":      "Bad Request",
+				"result.title": "value length must be at least 3 characters",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_05",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID),
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"alias": "a1s2d3",
+			},
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Project updated",
+				"result":  nil,
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_06",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID),
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"title": "title",
+			},
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Project updated",
+				"result":  nil,
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_07",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID),
+			StatusCode: 404,
+			RequestBody: test.BodyTable{
+				"title": "title",
+			},
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Project not found",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_08",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID) + "?owner_id=" + test.ConstFakeID,
+			StatusCode: 404,
+			RequestBody: test.BodyTable{
+				"title": "title",
+			},
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Project not found",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_09",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID) + "?owner_id=" + test.ConstUserID,
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"title": "title",
+			},
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Project updated",
+				"result":  nil,
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_10",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID) + "?owner_id=" + test.ConstUserID,
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"alias": "q1w2e3",
+			},
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Project updated",
+				"result":  nil,
+			},
+			RequestHeaders: adminHeader,
+		},
+
+		{ // USER: request without parameters
+			Name:       "test2_01",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID),
+			StatusCode: 400,
+			Body: test.BodyTable{
+				"code":           float64(400),
+				"message":        "Bad Request",
+				"result.setting": "exactly one field is required in oneof",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER: request without parameters
+			Name:       "test2_02",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID),
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"alias": "ABC",
+			},
+			Body: test.BodyTable{
+				"code":         float64(400),
+				"message":      "Bad Request",
+				"result.alias": "value does not match regex pattern `^[a-z0-9]+$`",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER: request without parameters
+			Name:       "test2_03",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID),
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"title": "12",
+			},
+			Body: test.BodyTable{
+				"code":         float64(400),
+				"message":      "Bad Request",
+				"result.title": "value length must be at least 3 characters",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER:
+			Name:       "test2_05",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID),
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"alias": "a1s2d3",
+			},
+			Body: test.BodyTable{
+				"code":           float64(400),
+				"message":        "Bad Request",
+				"result.setting": "exactly one field is required in oneof",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER:
+			Name:       "test2_06",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID),
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"title": "title",
+			},
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Project updated",
+				"result":  nil,
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER:
+			Name:       "test2_07",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID),
+			StatusCode: 404,
+			RequestBody: test.BodyTable{
+				"title": "title",
+			},
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Project not found",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER:
+			Name:       "test2_08",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID) + "?owner_id=" + test.ConstFakeID,
+			StatusCode: 404,
+			RequestBody: test.BodyTable{
+				"title": "title",
+			},
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Project not found",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER:
+			Name:       "test2_09",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID) + "?owner_id=" + test.ConstAdminID,
+			StatusCode: 404,
+			RequestBody: test.BodyTable{
+				"title": "title",
+			},
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Project not found",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER:
+			Name:       "test2_10",
+			Method:     http.MethodPatch,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID) + "?owner_id=" + test.ConstAdminID,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"alias": "q1w2e3",
+			},
+			Body: test.BodyTable{
+				"code":           float64(400),
+				"message":        "Bad Request",
+				"result.setting": "exactly one field is required in oneof",
+			},
+			RequestHeaders: userHeader,
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			apiTest().
-				Patch("/v1/projects").
-				JSON(tc.RequestBody).
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
-				Expect(t).
-				Assert(tc.RespondBody).
-				Status(tc.RespondStatus).
-				End()
-		})
-	}
+	test.RunCaseAPITests(t, app, testTable)
 }
-*/
+
+func TestHandler_deleteProject(t *testing.T) {
+	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	defer teardownTestCase(t)
+
+	testTable := []test.APITable{
+		{ // unauthorized request
+			Name:       "test0_01",
+			Method:     http.MethodDelete,
+			Path:       pathProjects,
+			StatusCode: 401,
+			Body:       test.BodyUnauthorized,
+		},
+		{ // ADMIN:
+			Name:       "test1_01",
+			Method:     http.MethodDelete,
+			Path:       test.PathGluing(pathProjects, test.ConstFakeID),
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Project not found",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN: request without parameters
+			Name:       "test1_02",
+			Method:     http.MethodDelete,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID),
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Project deleted",
+				"result":  nil,
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_03",
+			Method:     http.MethodDelete,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID) + "?owner_id=" + test.ConstFakeID,
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Project not found",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN:
+			Name:       "test1_04",
+			Method:     http.MethodDelete,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID) + "?owner_id=" + test.ConstUserID,
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Project deleted",
+				"result":  nil,
+			},
+			RequestHeaders: adminHeader,
+		},
+
+		{ // USER:
+			Name:       "test2_01",
+			Method:     http.MethodDelete,
+			Path:       test.PathGluing(pathProjects, test.ConstFakeID),
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Project not found",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER: request without parameters
+			Name:       "test2_02",
+			Method:     http.MethodDelete,
+			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID),
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Project deleted",
+				"result":  nil,
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER:
+			Name:       "test2_03",
+			Method:     http.MethodDelete,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID) + "?owner_id=" + test.ConstFakeID,
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Project not found",
+			},
+			RequestHeaders: userHeader,
+		},
+		{ // USER:
+			Name:       "test2_04",
+			Method:     http.MethodDelete,
+			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID) + "?owner_id=" + test.ConstAdminID,
+			StatusCode: 404,
+			Body: test.BodyTable{
+				"code":    float64(404),
+				"message": "Not Found",
+				"result":  "Project not found",
+			},
+			RequestHeaders: userHeader,
+		},
+	}
+
+	test.RunCaseAPITests(t, app, testTable)
+}

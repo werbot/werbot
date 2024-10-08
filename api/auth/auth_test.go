@@ -1,326 +1,282 @@
 package auth
 
-/*
 import (
 	"net/http"
 	"testing"
 
-	"github.com/steinfletcher/apitest"
-	jsonpath "github.com/steinfletcher/apitest-jsonpath"
-
-	accountpb "github.com/werbot/werbot/api/proto/account"
-	"github.com/werbot/werbot/api"
-	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/tests"
-	"github.com/werbot/werbot/internal/web/jwt"
+	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/pkg/crypto"
+	"github.com/werbot/werbot/pkg/utils/fsutil"
 )
 
-var (
-	testHandler *tests.TestHandler
-	adminInfo   *tests.UserInfo
-	userInfo    *tests.UserInfo
-)
+func TestHandler_signin(t *testing.T) {
+	app, teardownTestCase := setupTest(t)
+	defer teardownTestCase(t)
 
-func init() {
-	testHandler = tests.InitTestServer("../../../.env")
-	New(&web.Handler{
-		App:   testHandler.App,
-		Grpc:  testHandler.GRPC,
-		Cache: testHandler.Cache,
-		Auth:  *testHandler.Auth,
-	}).Routes()
-	testHandler.FinishHandler() // init finale handler for apitest
-
-	adminInfo = testHandler.GetUserInfo(&accountpb.SignIn_Request{
-		Email:    "test-admin@werbot.net",
-		Password: "test-admin@werbot.net",
-	})
-
-	userInfo = testHandler.GetUserInfo(&accountpb.SignIn_Request{
-		Email:    "test-user@werbot.net",
-		Password: "test-user@werbot.net",
-	})
-}
-
-func apiTest() *apitest.APITest {
-	return apitest.New().
-		//Debug().
-		HandlerFunc(testHandler.Handler)
-}
-
-func Test_signIn(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string][]tests.TestCase{}
-
-	testCases["ROLE_USER_UNSPECIFIED"] = []tests.TestCase{
-		{
-			Name:        "Without parameters",
-			RequestBody: map[string]string{},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.email`, "email is a required field").
-				Equal(`$.result.password`, "password is a required field").
-				End(),
-			RespondStatus: http.StatusBadRequest,
+	testTable := []test.APITable{
+		{ // incorrect method
+			Name:       "test0_01",
+			Method:     http.MethodGet,
+			Path:       pathAuthSignIn,
+			StatusCode: 404,
+			Body:       test.BodyNotFound,
 		},
-		{
-			Name:        "Error getting params",
-			RequestBody: []map[string]string{{"zz": "xx"}, {"xx": "zz"}},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				End(),
-			RespondStatus: http.StatusBadRequest,
-		},
-		{
-			Name:        "Password is blank",
-			RequestBody: map[string]string{"email": "test-admin@werbot.net"},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.password`, "password is a required field").
-				End(),
-			RespondStatus: http.StatusBadRequest,
-		},
-		{
-			Name:        "Email is blank",
-			RequestBody: map[string]string{"password": "test-admin@werbot.net"},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgFailedToValidateBody).
-				Equal(`$.result.email`, "email is a required field").
-				End(),
-			RespondStatus: http.StatusBadRequest,
-		},
-		{
-			Name:        "Invalid password",
-			RequestBody: map[string]string{"email": "test-admin@werbot.net", "password": "user@werbot.net"},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgPasswordIsNotValid).
-				End(),
-			RespondStatus: http.StatusBadRequest,
-		},
-	}
-
-	testCases["ROLE_ADMIN"] = []tests.TestCase{
-		{
-			Name:        "Valid admin login and password",
-			RequestBody: map[string]string{"email": "test-admin@werbot.net", "password": "test-admin@werbot.net"},
-			RespondBody: jsonpath.Chain().
-				Present(`access_token`).
-				Present(`refresh_token`).
-				End(),
-			RespondStatus: http.StatusOK,
-		},
-	}
-
-	testCases["ROLE_USER"] = []tests.TestCase{
-		{
-			Name:        "Valid user login and password",
-			RequestBody: map[string]string{"email": "test-user@werbot.net", "password": "test-user@werbot.net"},
-			RespondBody: jsonpath.Chain().
-				Present(`access_token`).
-				Present(`refresh_token`).
-				End(),
-			RespondStatus: http.StatusOK,
-		},
-	}
-
-	for role, rtc := range testCases {
-		t.Run(role, func(t *testing.T) {
-			for _, tc := range rtc {
-				t.Run(tc.Name, func(t *testing.T) {
-					apiTest().
-						Post("/auth/signin").
-						JSON(tc.RequestBody).
-						Expect(t).
-						Assert(tc.RespondBody).
-						Status(tc.RespondStatus).
-						End()
-				})
-			}
-		})
-	}
-}
-
-func Test_logout(t *testing.T) {
-	t.Parallel()
-
-	testCases := []tests.TestCase{
-		{
-			Name:          "Authorized user logout",
-			RequestUser:   adminInfo,
-			RespondStatus: http.StatusOK,
-		},
-		{
-			Name:          "No authorized user logout",
-			RequestUser:   &tests.UserInfo{},
-			RespondStatus: http.StatusUnauthorized,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			apiTest().
-				Post("/auth/logout").
-				Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
-				Expect(t).
-				Status(tc.RespondStatus).
-				End()
-		})
-	}
-}
-
-func Test_refresh(t *testing.T) {
-	t.Parallel()
-	testCases := map[string][]tests.TestCase{}
-
-	testCases["ROLE_USER_UNSPECIFIED"] = []tests.TestCase{
-		{
-			Name:        "Without parameters",
-			RequestBody: jwt.Tokens{},
-			RequestUser: &tests.UserInfo{},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, "token parsing error").
-				End(),
-			RespondStatus: http.StatusBadRequest,
-		},
-	}
-
-	testCases["ROLE_ADMIN"] = []tests.TestCase{
-		{
-			Name:        "Authorized user refresh",
-			RequestUser: adminInfo,
-			RequestBody: jwt.Tokens{
-				Refresh: adminInfo.Tokens.Refresh,
+		{ // clear request
+			Name:       "test0_02",
+			Method:     http.MethodPost,
+			Path:       pathAuthSignIn,
+			StatusCode: 400,
+			Body: test.BodyTable{
+				"code": float64(400),
 			},
-			RespondBody: jsonpath.Chain().
-				Present(`access_token`).
-				Present(`refresh_token`).
-				End(),
-			RespondStatus: http.StatusOK,
 		},
-		{
-			Name:        "Bad token error",
-			RequestUser: adminInfo,
-			RequestBody: jwt.Tokens{
-				Refresh: adminInfo.Tokens.Refresh + "error",
+		{ // clear body request
+			Name:        "test0_03",
+			Method:      http.MethodPost,
+			Path:        pathAuthSignIn,
+			StatusCode:  400,
+			RequestBody: test.BodyTable{},
+			Body: test.BodyTable{
+				"code":            float64(400),
+				"result.email":    "value is required",
+				"result.password": "value is required",
 			},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, "token parsing error").
-				End(),
-			RespondStatus: http.StatusBadRequest,
+		},
+		{ // clear body request
+			Name:       "test0_04",
+			Method:     http.MethodPost,
+			Path:       pathAuthSignIn,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"email":    "email",
+				"password": "123",
+			},
+			Body: test.BodyTable{
+				"code":            float64(400),
+				"result.email":    "value must be a valid email address",
+				"result.password": "value length must be at least 8 characters",
+			},
+		},
+		{ // email requests only
+			Name:       "test0_05",
+			Method:     http.MethodPost,
+			Path:       pathAuthSignIn,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"email": test.ConstAdminEmail,
+			},
+			Body: test.BodyTable{
+				"code":            float64(400),
+				"result.password": "value is required",
+			},
+		},
+		{ // password request only
+			Name:       "test0_06",
+			Method:     http.MethodPost,
+			Path:       pathAuthSignIn,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"password": test.ConstAdminEmail,
+			},
+			Body: test.BodyTable{
+				"code":         float64(400),
+				"result.email": "value is required",
+			},
+		},
+		{ // incorrect login
+			Name:       "test0_07",
+			Method:     http.MethodPost,
+			Path:       pathAuthSignIn,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"email":    test.ConstAdminEmail,
+				"password": crypto.NewPassword(1, false),
+			},
+			Body: test.BodyTable{
+				"code":            float64(400),
+				"result.password": "value length must be at least 8 characters",
+			},
+		},
+		{ // incorrect login or password
+			Name:       "test0_08",
+			Method:     http.MethodPost,
+			Path:       pathAuthSignIn,
+			StatusCode: 404,
+			RequestBody: test.BodyTable{
+				"email":    test.ConstUnknownEmail,
+				"password": test.ConstUnknownPassword,
+			},
+			Body: test.BodyNotFound,
+		},
+		{ // ADMIN: authorization
+			Name:       "test1_01",
+			Method:     http.MethodPost,
+			Path:       pathAuthSignIn,
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"email":    test.ConstAdminEmail,
+				"password": test.ConstAdminPassword,
+			},
+			Body: test.BodyTable{
+				"code":                 float64(200),
+				"message":              "Tokens",
+				"result.access_token":  "*",
+				"result.refresh_token": "*",
+			},
 		},
 	}
 
-	testCases["ROLE_USER"] = []tests.TestCase{
-		{
-			Name:        "Authorized user refresh",
-			RequestUser: userInfo,
-			RequestBody: jwt.Tokens{
-				Refresh: userInfo.Tokens.Refresh,
-			},
-			RespondBody: jsonpath.Chain().
-				Present(`access_token`).
-				Present(`refresh_token`).
-				End(),
-			RespondStatus: http.StatusOK,
-		},
-		{
-			Name:        "Bad token error",
-			RequestUser: userInfo,
-			RequestBody: jwt.Tokens{
-				Refresh: userInfo.Tokens.Refresh + "error",
-			},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, "token parsing error").
-				End(),
-			RespondStatus: http.StatusBadRequest,
-		},
-	}
-
-	for role, rtc := range testCases {
-		t.Run(role, func(t *testing.T) {
-			for _, tc := range rtc {
-				t.Run(tc.Name, func(t *testing.T) {
-					apiTest().
-						Post("/auth/refresh").
-						JSON(tc.RequestBody).
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
-						Expect(t).
-						Assert(tc.RespondBody).
-						Status(tc.RespondStatus).
-						End()
-				})
-			}
-		})
-	}
+	test.RunCaseAPITests(t, app, testTable)
 }
 
-func Test_getProfile(t *testing.T) {
-	t.Parallel()
-	testCases := map[string][]tests.TestCase{}
+func TestHandler_logout(t *testing.T) {
+	app, teardownTestCase := setupTest(t)
+	defer teardownTestCase(t)
 
-	testCases["ROLE_USER_UNSPECIFIED"] = []tests.TestCase{
-		{
-			Name:        "Without parameters",
-			RequestUser: &tests.UserInfo{},
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, false).
-				Equal(`$.message`, internal.MsgUnauthorized).
-				End(),
-			RespondStatus: http.StatusUnauthorized,
+	adminAuth := app.GetUserAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	adminHeader := test.HeadersTable{"Authorization": "Bearer " + adminAuth.Tokens.Access}
+
+	userAuth := app.GetUserAuth(test.ConstUserEmail, test.ConstUserPassword)
+	userHeader := test.HeadersTable{"Authorization": "Bearer " + userAuth.Tokens.Access}
+
+	testTable := []test.APITable{
+		{ // incorrect method
+			Name:       "test0_01",
+			Method:     http.MethodGet,
+			Path:       pathAuthLogout,
+			StatusCode: 404,
+			Body:       test.BodyNotFound,
 		},
-	}
-
-	testCases["ROLE_ADMIN"] = []tests.TestCase{
-		{
-			Name:        "Retrieval of user data",
-			RequestUser: adminInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgUserInfo).
-				Equal(`$.result.user_id`, adminInfo.UserID).
-				Equal(`$.result.user_role`, float64(3)).
-				End(),
-			RespondStatus: http.StatusOK,
+		{ // unauthorized request
+			Name:       "test0_02",
+			Method:     http.MethodPost,
+			Path:       pathAuthLogout,
+			StatusCode: 401,
+			Body:       test.BodyUnauthorized,
 		},
-	}
-
-	testCases["ROLE_USER"] = []tests.TestCase{
-		{
-			Name:        "Retrieval of user data",
-			RequestUser: userInfo,
-			RespondBody: jsonpath.Chain().
-				Equal(`$.success`, true).
-				Equal(`$.message`, msgUserInfo).
-				Equal(`$.result.user_id`, userInfo.UserID).
-				Equal(`$.result.user_role`, float64(1)).
-				End(),
-			RespondStatus: http.StatusOK,
+		{ // ADMIN: authorized request
+			Name:       "test1_01",
+			Method:     http.MethodPost,
+			Path:       pathAuthLogout,
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Successful logout",
+			},
+			RequestHeaders: adminHeader,
 		},
+		{ // USER: authorized request
+			Name:       "test2_01",
+			Method:     http.MethodPost,
+			Path:       pathAuthLogout,
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Successful logout",
+			},
+			RequestHeaders: userHeader,
+		},
+		// TODO add other test cases to logout
 	}
 
-	for role, rtc := range testCases {
-		t.Run(role, func(t *testing.T) {
-			for _, tc := range rtc {
-				t.Run(tc.Name, func(t *testing.T) {
-					apiTest().
-						Get("/auth/profile").
-						Header("Authorization", "Bearer "+tc.RequestUser.Tokens.Access).
-						Expect(t).
-						Assert(tc.RespondBody).
-						Status(tc.RespondStatus).
-						End()
-				})
-			}
-		})
-	}
+	test.RunCaseAPITests(t, app, testTable)
 }
-*/
+
+func TestHandler_refresh(t *testing.T) {
+	app, teardownTestCase := setupTest(t)
+	defer teardownTestCase(t)
+
+	adminAuth := app.GetUserAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	adminHeader := test.HeadersTable{"Authorization": "Bearer " + adminAuth.Tokens.Access}
+
+	testTable := []test.APITable{
+		{ // incorrect method
+			Name:       "test0_01",
+			Method:     http.MethodGet,
+			Path:       pathAuthRefresh,
+			StatusCode: 404,
+			Body:       test.BodyNotFound,
+		},
+		{ // unauthorized request
+			Name:           "test0_02",
+			Method:         http.MethodPost,
+			Path:           pathAuthRefresh,
+			StatusCode:     400,
+			Body:           test.BodyInvalidArgument,
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN: request without parameters
+			Name:        "test1_01",
+			Method:      http.MethodPost,
+			Path:        pathAuthRefresh,
+			StatusCode:  400,
+			RequestBody: test.BodyTable{},
+			Body: test.BodyTable{
+				"code":    float64(400),
+				"message": "Bad Request",
+				"result":  "Impossible to parse the key",
+			},
+			RequestHeaders: adminHeader,
+		},
+
+		{ // ADMIN: request with empty token
+			Name:       "test1_02",
+			Method:     http.MethodPost,
+			Path:       pathAuthRefresh,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"refresh_token": "",
+			},
+			Body: test.BodyTable{
+				"code":    float64(400),
+				"message": "Bad Request",
+				"result":  "Impossible to parse the key",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN: request with broken token
+			Name:       "test1_03",
+			Method:     http.MethodPost,
+			Path:       pathAuthRefresh,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"refresh": crypto.NewPassword(3, false),
+			},
+			Body: test.BodyTable{
+				"code":   float64(400),
+				"result": "Impossible to parse the key",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN: request
+			Name:       "test1_04",
+			Method:     http.MethodPost,
+			Path:       pathAuthRefresh,
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"refresh": adminAuth.Tokens.Refresh,
+			},
+			Body: test.BodyTable{
+				"code":                 float64(200),
+				"message":              "Tokens",
+				"result.access_token":  "*",
+				"result.refresh_token": "*",
+			},
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN: request with an expired token
+			Name:       "test1_05",
+			Method:     http.MethodPost,
+			Path:       pathAuthRefresh,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"refresh": fsutil.RemoveByteLineBreak(fsutil.MustReadFile("../../fixtures/auth/admin/expired_refresh_token")),
+			},
+			Body:           test.BodyInvalidArgument,
+			RequestHeaders: adminHeader,
+		},
+		// TODO add other test cases to refresh token
+	}
+
+	test.RunCaseAPITests(t, app, testTable)
+}
