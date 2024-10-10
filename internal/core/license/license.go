@@ -48,7 +48,7 @@ func osLicense() *licensepb.License_Response {
 		Modules:    []string{"module1", "module2", "module3"},
 		Limits: map[string]int32{
 			"Companies": 99,
-			"Servers":   99,
+			"Schemes":   99,
 			"Users":     99,
 		},
 	}
@@ -84,7 +84,7 @@ func eeLicense(licByte []byte, publicKey string) (*licensepb.License_Response, e
 
 	response.Limits = map[string]int32{
 		"Companies": int32(licData["companies"].(float64)),
-		"Servers":   int32(licData["servers"].(float64)),
+		"Schemes":   int32(licData["schemes"].(float64)),
 		"Users":     int32(licData["users"].(float64)),
 	}
 

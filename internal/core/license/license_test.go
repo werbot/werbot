@@ -41,7 +41,7 @@ func Test_license(t *testing.T) {
 				Modules:  []string{"module1", "module2", "module3"},
 				Limits: map[string]int32{
 					"Companies": 99,
-					"Servers":   99,
+					"Schemes":   99,
 					"Users":     99,
 				},
 				Expired: false,
@@ -58,7 +58,7 @@ func Test_license(t *testing.T) {
 				Modules:  []string{"module1", "module2", "module3"},
 				Limits: map[string]int32{
 					"Companies": 99,
-					"Servers":   99,
+					"Schemes":   99,
 					"Users":     99,
 				},
 				Expired: true,
@@ -75,7 +75,7 @@ func Test_license(t *testing.T) {
 				Modules:  []string{"module1", "module2", "module3"},
 				Limits: map[string]int32{
 					"Companies": 99,
-					"Servers":   99,
+					"Schemes":   99,
 					"Users":     99,
 				},
 				Expired: true,
