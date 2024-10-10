@@ -8,7 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	eventpb "github.com/werbot/werbot/internal/core/event/proto/event"
 	"github.com/werbot/werbot/internal/trace"
@@ -174,7 +173,9 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 			}
 		}
 
-		record.CreatedAt = timestamppb.New(createdAt.Time)
+		protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
+			"created_at": createdAt,
+		})
 
 		// Clearing certain fields if the user is not an administrator
 		if !in.IsAdmin {
@@ -299,7 +300,9 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 		}
 	}
 
-	response.CreatedAt = timestamppb.New(createdAt.Time)
+	protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
+		"created_at": createdAt,
+	})
 
 	// Clearing certain fields if the user is not an administrator
 	if !in.IsAdmin {

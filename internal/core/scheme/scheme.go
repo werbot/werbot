@@ -11,7 +11,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/jackc/pgx/v5/pgtype"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/werbot/werbot/pkg/utils/mathutil"
 	"github.com/werbot/werbot/pkg/utils/netutil"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
+	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
 )
 
 // TODO When updating the IP address of the scheme, you need to update HostKey !!!!
@@ -116,7 +116,9 @@ func (h *Handler) Schemes(ctx context.Context, in *schemepb.Schemes_Request) (*s
 		for rows.Next() {
 			var address, alias sql.NullString
 			var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-			scheme := &schemepb.Scheme_Response{}
+			scheme := &schemepb.Scheme_Response{
+				ProjectId: in.GetProjectId(),
+			}
 			err = rows.Scan(
 				&scheme.SchemeId,
 				&address,
@@ -138,16 +140,23 @@ func (h *Handler) Schemes(ctx context.Context, in *schemepb.Schemes_Request) (*s
 				return nil, trace.Error(err, log, nil)
 			}
 
-			scheme.Address = address.String
-			scheme.Alias = alias.String
+			if address.Valid {
+				scheme.Address = address.String
+			}
 
-			scheme.CreatedAt = timestamppb.New(createdAt.Time)
+			if alias.Valid {
+				scheme.Alias = alias.String
+			}
 
-			if in.GetIsAdmin() {
-				scheme.ProjectId = in.GetProjectId()
-				scheme.LockedAt = timestamppb.New(lockedAt.Time)
-				scheme.ArchivedAt = timestamppb.New(archivedAt.Time)
-				scheme.UpdatedAt = timestamppb.New(updatedAt.Time)
+			protoutils.SetPgtypeTimestamps(scheme, map[string]pgtype.Timestamp{
+				"locked_at":   lockedAt,
+				"archived_at": archivedAt,
+				"updated_at":  updatedAt,
+				"created_at":  createdAt,
+			})
+
+			if !in.GetIsAdmin() {
+				ghoster.Secrets(scheme, true)
 			}
 
 			response.Schemes = append(response.Schemes, scheme)
@@ -165,7 +174,9 @@ func (h *Handler) Scheme(ctx context.Context, in *schemepb.Scheme_Request) (*sch
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-	response := &schemepb.Scheme_Response{}
+	response := &schemepb.Scheme_Response{
+		ProjectId: in.GetProjectId(),
+	}
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "scheme"."access"->>'address' AS address,
@@ -217,13 +228,15 @@ func (h *Handler) Scheme(ctx context.Context, in *schemepb.Scheme_Request) (*sch
 		return nil, trace.Error(err, log, nil)
 	}
 
-	response.CreatedAt = timestamppb.New(createdAt.Time)
+	protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
+		"locked_at":   lockedAt,
+		"archived_at": archivedAt,
+		"updated_at":  updatedAt,
+		"created_at":  createdAt,
+	})
 
-	if in.GetIsAdmin() {
-		response.ProjectId = in.GetProjectId()
-		response.LockedAt = timestamppb.New(lockedAt.Time)
-		response.ArchivedAt = timestamppb.New(archivedAt.Time)
-		response.UpdatedAt = timestamppb.New(updatedAt.Time)
+	if !in.GetIsAdmin() {
+		ghoster.Secrets(response, true)
 	}
 
 	return response, nil
