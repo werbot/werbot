@@ -71,7 +71,8 @@ func RunCaseAPITests(t *testing.T, app *APIHandler, testTable []APITable) {
 				request.Header.Add(k, v)
 			}
 
-			response, _ := app.App.Test(request)
+			// set 5s for timeout
+			response, _ := app.App.Test(request, 5000)
 			defer response.Body.Close()
 
 			assert.Equal(t, tc.StatusCode, response.StatusCode)

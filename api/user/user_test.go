@@ -196,6 +196,8 @@ func TestHandler_user(t *testing.T) {
 }
 
 func TestHandler_addUser(t *testing.T) {
+	t.Setenv("PASSWORD_HASH_COST", "1")
+
 	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
 	defer teardownTestCase(t)
 
@@ -841,8 +843,6 @@ func TestHandler_deleteUser(t *testing.T) {
 }
 
 func TestHandler_updatePassword(t *testing.T) {
-	t.Setenv("PASSWORD_HASH_COST", "1")
-
 	app, teardownTestCase, adminHeader, _ := setupTest(t)
 	defer teardownTestCase(t)
 

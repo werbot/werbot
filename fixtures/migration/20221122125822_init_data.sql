@@ -1,30 +1,30 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO "user" ("id", "alias", "name", "surname", "email", "password", "active", "confirmed", "role") VALUES
-('008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'admin', 'Penny', 'Hoyle', 'admin@werbot.net', '$2a$13$xXMJafmfthQDqVZSQ5HJ/u1EmQ8PqkVAGlwKrOWH.cOVZr2KfvSAK', true, true, 3),
-('c180ad5c-0c65-4cee-8725-12931cb5abb3', 'user', 'Carly', 'Bender', 'user@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', true, true, 1),
-('b3dc36e2-7f84-414b-b147-7ac850369518', 'user1', 'Harrison', 'Bowling', 'user1@werbot.net', '$2a$13$DJIAXdDTXli9vTbXbAoUl..Qs3Ns.B3CAtLzLvBb3fpHkPJxzOjxK', true, true, 1),
-('b8c3d9e4-6f4d-4e11-a3e6-72f9cb7660e0', 'user2', 'Terry', 'Henry', 'user2@werbot.net', '$2a$13$iiPNSGIY2x6O/xrDXeXHdObc0ubJPcOSVfiKMKGLreoUGcenVm.v2', true, true, 1),
-('68bf07a3-0132-4709-920b-5054f9eaa89a', 'user3', 'Carla', 'Snyder', 'user3@werbot.net', '$2a$13$s.Lwbx8YFHbGVA9b5EGyMerNjVJVrvAhmm33/PY5lWsivB86eQZke', true, true, 1),
-('395b237f-037e-49d4-b409-fd2f514242f6', 'user4', 'Clint', 'McLean', 'user4@werbot.net', '$2a$13$LBWcFi1.h8rg1WIoJCl4e.fzmCL7Buv7xfijaaNQLaR40YqAPACi6', true, true, 1),
-('8adff845-1354-4e59-8cd3-83f69fd193d3', 'user5', 'Chris', 'Burch', 'user5@werbot.net', '$2a$13$SfEnNd11n8k.b67PTpRvvO4jxXQzMhRbqv6dMoWv2XkCrbKQZc4Bq', true, true, 1),
-('9355d59b-430a-4904-b970-80b4b3a61677', 'user6', 'Justine', 'Wolfson', 'user6@werbot.net', '$2a$13$AvrM5ue0Fgg09EX/tcBEN./wMNXqmnB6cJyeydgiF/PyHPNrFLxBu', true, true, 1),
-('41570b56-9930-4e2b-8b24-a72232508cfd', 'user7', 'Lori', 'Henry', 'user7@werbot.net', '$2a$13$agZjEwUkh7lcMwGGHbMFi.FGNHigcYD0i7Rv/wdf3lAxw7UHWkmiy', true, true, 1),
-('c50fba0b-cd65-4bdd-b653-23bbc6a5c43b', 'user8', 'Kendrick', 'Hall', 'user8@werbot.net', '$2a$13$Zqa/F8Q8HHhjNF4s91ToyuDdteJt1rPBnsUHdwK0GtgXVwx4wAxmO', true, true, 1),
-('4de9448b-1024-470c-a6eb-593b59db21bb', 'user9', 'Brock', 'Solomon', 'user9@werbot.net', '$2a$13$r9po6fH8biLGLoDAMgWGyepxWtq13EriaxPMDmVpYnXSSVxyDJfI2', true, true, 1),
-('c30e1974-d6ac-4a9e-b091-456d3f98b24c', 'user10', 'Clinton', 'Proctor', 'user10@werbot.net', '$2a$13$tOfgFR0H09/85hpi9INdneFVFwI4rG2w9dJJr.Bq1Memvax4s8cy6', true, true, 1),
-('4cd386a5-9ad1-42cf-8a9c-7d2c03833467', 'user11', 'Noel', 'Terrell', 'user11@werbot.net', '$2a$13$Rm.4Z9QLyBulcU6ujWjjy.yhaNrE11EDSeJyyt34AZlgqkK6MntAS', true, true, 1),
-('b549bc5c-cbb5-4695-bd8f-87c61f6e84a1', 'user12', 'Zachariah', 'Woods', 'user12@werbot.net', '$2a$13$Lah47ZkB05TRUIQJaKQm4e/8JbKFkJOa8a2Lr8ZXwdVG/e.v/Pk/W', true, true, 1),
-('751b9b21-b397-4228-9f96-1e339374dfea', 'user13', 'Bonnie', 'Hoyle', 'user13@werbot.net', '$2a$13$IKaakp6JlUcMAq8fqZo3OOmphRmhIJv0g0URashWU22kb/LaQjngm', true, true, 1),
-('f975f12f-7b63-40df-a825-9817b821b7ab', 'user14', 'Allyson', 'Griffin', 'user14@werbot.net', '$2a$13$MiW4Pzw5IBfbGQLOwgzVuOZGbJ5d8.D0HvuIltcJDii8DAZBBdImi', true, true, 1),
-('2dcc93dd-88f0-4e52-bb5c-79a6425cf177', 'user15', 'Sadie', 'McClure', 'user15@werbot.net', '$2a$13$DkNj9fC383qby.SIyRe5/ufyEL1cgp.SePFiTkupUjgwJXV2ju.kO', true, true, 1),
-('dae49c41-6727-4925-803b-8cc4b1352c50', 'user16', 'Javon', 'Lloyd', 'user16@werbot.net', '$2a$13$0Le9wKh3QIwgryJBHAFNIuy1Rwt9QRfMVUaPW9dKFC3T1uciSYhm.', true, true, 1),
-('b889a039-616f-4002-a3fa-99f5c96c93a1', 'user17', 'Davion', 'Connolly', 'user17@werbot.net', '$2a$13$RmgPJg0qxclGIWkNQFKzauVV6KhKiS6bi3wSLaExMA.n6C62fmqga', true, true, 1),
-('465878d0-e80a-443c-ac26-d019cd2f0777', 'user18', 'Quinn', 'Baker', 'user18@werbot.net', '$2a$13$oTs9c8Vp5X9mHsesmwKiaulAfBcmpEKNwjpdG013DT74oNP.T9AZ.', true, true, 1),
-('4808e401-826e-453d-b5e6-6a618bb2fa90', 'user19', 'Abel', 'Griffin', 'user19@werbot.net', '$2a$13$P6Jp0YiZHpMOrCpYcBS7Au3gO1HhZQ7auqB7.u7RGRhfDxnqbWjtC', true, true, 1),
-('51c12bb6-2da6-491d-8003-b024f54a1491', 'user20', 'Kyleigh', 'Steele', 'user20@werbot.net', '$2a$13$VoyU1e6Zfmza9ytImcytGe64lT1mBKAVBKzAzmuQoUhUROrSG0CpO', true, true, 1);
+INSERT INTO "user" ("id", "alias", "name", "surname", "email", "password", "active", "confirmed", "role", "created_at") VALUES
+('008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'admin', 'Penny', 'Hoyle', 'admin@werbot.net', '$2a$13$xXMJafmfthQDqVZSQ5HJ/u1EmQ8PqkVAGlwKrOWH.cOVZr2KfvSAK', true, true, 3, CURRENT_TIMESTAMP - INTERVAL '24 hour'),
+('c180ad5c-0c65-4cee-8725-12931cb5abb3', 'user', 'Carly', 'Bender', 'user@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '23 hour'),
+('b3dc36e2-7f84-414b-b147-7ac850369518', 'user1', 'Harrison', 'Bowling', 'user1@werbot.net', '$2a$13$DJIAXdDTXli9vTbXbAoUl..Qs3Ns.B3CAtLzLvBb3fpHkPJxzOjxK', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '22 hour'),
+('b8c3d9e4-6f4d-4e11-a3e6-72f9cb7660e0', 'user2', 'Terry', 'Henry', 'user2@werbot.net', '$2a$13$iiPNSGIY2x6O/xrDXeXHdObc0ubJPcOSVfiKMKGLreoUGcenVm.v2', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '21 hour'),
+('68bf07a3-0132-4709-920b-5054f9eaa89a', 'user3', 'Carla', 'Snyder', 'user3@werbot.net', '$2a$13$s.Lwbx8YFHbGVA9b5EGyMerNjVJVrvAhmm33/PY5lWsivB86eQZke', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '20 hour'),
+('395b237f-037e-49d4-b409-fd2f514242f6', 'user4', 'Clint', 'McLean', 'user4@werbot.net', '$2a$13$LBWcFi1.h8rg1WIoJCl4e.fzmCL7Buv7xfijaaNQLaR40YqAPACi6', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '19 hour'),
+('8adff845-1354-4e59-8cd3-83f69fd193d3', 'user5', 'Chris', 'Burch', 'user5@werbot.net', '$2a$13$SfEnNd11n8k.b67PTpRvvO4jxXQzMhRbqv6dMoWv2XkCrbKQZc4Bq', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '18 hour'),
+('9355d59b-430a-4904-b970-80b4b3a61677', 'user6', 'Justine', 'Wolfson', 'user6@werbot.net', '$2a$13$AvrM5ue0Fgg09EX/tcBEN./wMNXqmnB6cJyeydgiF/PyHPNrFLxBu', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '17 hour'),
+('41570b56-9930-4e2b-8b24-a72232508cfd', 'user7', 'Lori', 'Henry', 'user7@werbot.net', '$2a$13$agZjEwUkh7lcMwGGHbMFi.FGNHigcYD0i7Rv/wdf3lAxw7UHWkmiy', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '16 hour'),
+('c50fba0b-cd65-4bdd-b653-23bbc6a5c43b', 'user8', 'Kendrick', 'Hall', 'user8@werbot.net', '$2a$13$Zqa/F8Q8HHhjNF4s91ToyuDdteJt1rPBnsUHdwK0GtgXVwx4wAxmO', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '15 hour'),
+('4de9448b-1024-470c-a6eb-593b59db21bb', 'user9', 'Brock', 'Solomon', 'user9@werbot.net', '$2a$13$r9po6fH8biLGLoDAMgWGyepxWtq13EriaxPMDmVpYnXSSVxyDJfI2', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '14 hour'),
+('c30e1974-d6ac-4a9e-b091-456d3f98b24c', 'user10', 'Clinton', 'Proctor', 'user10@werbot.net', '$2a$13$tOfgFR0H09/85hpi9INdneFVFwI4rG2w9dJJr.Bq1Memvax4s8cy6', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '13 hour'),
+('4cd386a5-9ad1-42cf-8a9c-7d2c03833467', 'user11', 'Noel', 'Terrell', 'user11@werbot.net', '$2a$13$Rm.4Z9QLyBulcU6ujWjjy.yhaNrE11EDSeJyyt34AZlgqkK6MntAS', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '12 hour'),
+('b549bc5c-cbb5-4695-bd8f-87c61f6e84a1', 'user12', 'Zachariah', 'Woods', 'user12@werbot.net', '$2a$13$Lah47ZkB05TRUIQJaKQm4e/8JbKFkJOa8a2Lr8ZXwdVG/e.v/Pk/W', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '11 hour'),
+('751b9b21-b397-4228-9f96-1e339374dfea', 'user13', 'Bonnie', 'Hoyle', 'user13@werbot.net', '$2a$13$IKaakp6JlUcMAq8fqZo3OOmphRmhIJv0g0URashWU22kb/LaQjngm', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '10 hour'),
+('f975f12f-7b63-40df-a825-9817b821b7ab', 'user14', 'Allyson', 'Griffin', 'user14@werbot.net', '$2a$13$MiW4Pzw5IBfbGQLOwgzVuOZGbJ5d8.D0HvuIltcJDii8DAZBBdImi', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '9 hour'),
+('2dcc93dd-88f0-4e52-bb5c-79a6425cf177', 'user15', 'Sadie', 'McClure', 'user15@werbot.net', '$2a$13$DkNj9fC383qby.SIyRe5/ufyEL1cgp.SePFiTkupUjgwJXV2ju.kO', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '8 hour'),
+('dae49c41-6727-4925-803b-8cc4b1352c50', 'user16', 'Javon', 'Lloyd', 'user16@werbot.net', '$2a$13$0Le9wKh3QIwgryJBHAFNIuy1Rwt9QRfMVUaPW9dKFC3T1uciSYhm.', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '7 hour'),
+('b889a039-616f-4002-a3fa-99f5c96c93a1', 'user17', 'Davion', 'Connolly', 'user17@werbot.net', '$2a$13$RmgPJg0qxclGIWkNQFKzauVV6KhKiS6bi3wSLaExMA.n6C62fmqga', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '6 hour'),
+('465878d0-e80a-443c-ac26-d019cd2f0777', 'user18', 'Quinn', 'Baker', 'user18@werbot.net', '$2a$13$oTs9c8Vp5X9mHsesmwKiaulAfBcmpEKNwjpdG013DT74oNP.T9AZ.', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '5 hour'),
+('4808e401-826e-453d-b5e6-6a618bb2fa90', 'user19', 'Abel', 'Griffin', 'user19@werbot.net', '$2a$13$P6Jp0YiZHpMOrCpYcBS7Au3gO1HhZQ7auqB7.u7RGRhfDxnqbWjtC', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '4 hour'),
+('51c12bb6-2da6-491d-8003-b024f54a1491', 'user20', 'Kyleigh', 'Steele', 'user20@werbot.net', '$2a$13$VoyU1e6Zfmza9ytImcytGe64lT1mBKAVBKzAzmuQoUhUROrSG0CpO', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '3 hour');
 
-UPDATE "user" SET "created_at" = NOW() - INTERVAL '48 hour' WHERE "id" = '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686';
+UPDATE "user" SET "created_at" = CURRENT_TIMESTAMP - INTERVAL '48 hour' WHERE "id" = '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686';
 
 INSERT INTO "user_token" ("token", "user_id", "action", "created_at") VALUES
 ('3c818d7c-72f3-4518-8eaa-755585192f21', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 5, CURRENT_TIMESTAMP - INTERVAL '5 hour'), -- for admin test
