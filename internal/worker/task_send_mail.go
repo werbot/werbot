@@ -6,7 +6,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
-	"github.com/werbot/werbot/internal/notification/mail"
+	"github.com/werbot/werbot/internal/core/notification/providers/mail"
 	"github.com/werbot/werbot/pkg/worker"
 )
 
