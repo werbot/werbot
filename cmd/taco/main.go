@@ -26,7 +26,7 @@ import (
 	"github.com/werbot/werbot/api/websocket"
 	"github.com/werbot/werbot/api/wellknown"
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/grpc"
+	grpc "github.com/werbot/werbot/internal/core"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/logger"

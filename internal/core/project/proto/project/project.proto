@@ -1,0 +1,200 @@
+syntax = "proto3";
+
+package project;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/project/proto/project";
+
+service ProjectHandlers {
+  // Project section
+  rpc Projects(Projects.Request) returns (Projects.Response) {}
+  rpc Project(Project.Request) returns (Project.Response) {}
+  rpc AddProject(AddProject.Request) returns (AddProject.Response) {}
+  rpc UpdateProject(UpdateProject.Request) returns (UpdateProject.Response) {}
+  rpc DeleteProject(DeleteProject.Request) returns (DeleteProject.Response) {}
+
+  // Project key section
+  rpc ProjectKeys(ProjectKeys.Request) returns (ProjectKeys.Response) {}
+  rpc ProjectKey(ProjectKey.Request) returns (ProjectKey.Response) {}
+  rpc AddProjectKey(AddProjectKey.Request) returns (AddProjectKey.Response) {}
+  rpc DeleteProjectKey(DeleteProjectKey.Request) returns (DeleteProjectKey.Response) {}
+}
+
+// rpc Projects
+message Projects {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    int32 limit = 4;
+    int32 offset = 5;
+    string sort_by = 6; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated Project.Response projects = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc Project
+message Project {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    string project_id = 1;
+    string owner_id = 2 [(ghoster.secret) = true];
+    string title = 3;
+    string alias = 4;
+    int32 servers_count = 6;
+    int32 databases_count = 7;
+    int32 applications_count = 8;
+    int32 desktops_count = 9;
+    int32 containers_count = 10;
+    int32 clouds_count = 11;
+    int32 members_count = 12;
+    google.protobuf.Timestamp locked_at = 13 [(ghoster.secret) = true];
+    google.protobuf.Timestamp archived_at = 14 [(ghoster.secret) = true];
+    google.protobuf.Timestamp updated_at = 15 [(ghoster.secret) = true];
+    google.protobuf.Timestamp created_at = 16;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddProject
+message AddProject {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string alias = 2 [(buf.validate.field).string = { pattern: '^[a-z0-9]+$' min_len: 3 max_len: 32 }, (buf.validate.field).required = true];
+    string title = 3 [(buf.validate.field).string = { min_len: 3 max_len: 128 }, (buf.validate.field).required = true];
+  }
+
+  message Response {
+    string project_id = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UpdateProject
+message UpdateProject {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    oneof setting {
+      option (buf.validate.oneof).required = true;
+      string alias = 4 [(buf.validate.field).string = { pattern: '^[a-z0-9]+$' min_len: 3 max_len: 32 }];
+      string title = 5 [(buf.validate.field).string = { min_len: 3 max_len: 128 }];
+    }
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc DeleteProject
+message DeleteProject {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc ProjectKeys
+message ProjectKeys {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    int32 limit = 4;
+    int32 offset = 5;
+    string sort_by = 6; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated ProjectKey.Response keys = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc ProjectKey
+message ProjectKey {
+  message Request {
+    oneof type {
+      option (buf.validate.oneof).required = true;
+      Public public = 3;
+      Private private = 4;
+    }
+  }
+
+  message Public {
+    string key = 1 [(buf.validate.field).string.len = 37];
+  }
+
+  message Private {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+
+    string project_id = 3 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    string key_id = 4 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    string project_id = 1;
+    string key_id = 2;
+    string key = 3;
+    string secret = 4;
+    bool online = 5;
+    google.protobuf.Timestamp locked_at = 6 [(ghoster.secret) = true];
+    google.protobuf.Timestamp archived_at = 7 [(ghoster.secret) = true];
+    google.protobuf.Timestamp updated_at = 8 [(ghoster.secret) = true];
+    google.protobuf.Timestamp created_at = 9;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddProjectKey
+message AddProjectKey {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    string key_id = 1;
+    string key = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc DeleteProjectKey
+message DeleteProjectKey {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string key_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------

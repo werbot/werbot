@@ -3,7 +3,7 @@ package agent
 import (
 	"github.com/gofiber/fiber/v2"
 
-	agentpb "github.com/werbot/werbot/internal/grpc/agent/proto/agent"
+	agentpb "github.com/werbot/werbot/internal/core/agent/proto/agent"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )

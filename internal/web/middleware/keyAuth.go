@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	projectpb "github.com/werbot/werbot/internal/grpc/project/proto/project"
+	projectpb "github.com/werbot/werbot/internal/core/project/proto/project"
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 

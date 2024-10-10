@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/werbot/werbot/internal"
-	grpcInt "github.com/werbot/werbot/internal/grpc"
+	grpcInt "github.com/werbot/werbot/internal/core"
 	"github.com/werbot/werbot/internal/utils/broker"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/logger"

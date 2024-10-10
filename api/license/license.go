@@ -3,7 +3,7 @@ package license
 import (
 	"github.com/gofiber/fiber/v2"
 
-	licensepb "github.com/werbot/werbot/internal/grpc/license/proto/license"
+	licensepb "github.com/werbot/werbot/internal/core/license/proto/license"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/webutil"

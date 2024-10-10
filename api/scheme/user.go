@@ -3,8 +3,8 @@ package scheme
 import (
 	"github.com/gofiber/fiber/v2"
 
-	schemeaccesspb "github.com/werbot/werbot/internal/grpc/scheme/proto/access"
-	schemepb "github.com/werbot/werbot/internal/grpc/scheme/proto/scheme"
+	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
+	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/webutil"

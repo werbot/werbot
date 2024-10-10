@@ -9,9 +9,9 @@ import (
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
 
-	accountpb "github.com/werbot/werbot/internal/grpc/account/proto/account"
-	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto/firewall"
-	schemepb "github.com/werbot/werbot/internal/grpc/scheme/proto/scheme"
+	accountpb "github.com/werbot/werbot/internal/core/account/proto/account"
+	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
+	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/utils/alias"
 	"github.com/werbot/werbot/pkg/utils/netutil"
 )

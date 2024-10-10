@@ -1,0 +1,217 @@
+syntax = "proto3";
+
+package account;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "internal/core/user/proto/user/user.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/account/proto/account";
+
+service AccountHandlers {
+  // Auth section
+  rpc SignIn(SignIn.Request) returns (user.User.Response) {}
+  rpc ResetPassword(ResetPassword.Request) returns (ResetPassword.Response) {}
+
+  // Account section
+  rpc ListAccounts(ListAccounts.Request) returns (ListAccounts.Response) {}
+  rpc Account(Account.Request) returns (Account.Response) {}
+  rpc AddAccount(AddAccount.Request) returns (AddAccount.Response) {}
+  rpc UpdateAccount(UpdateAccount.Request) returns (UpdateAccount.Response) {}
+  rpc DeleteAccount(DeleteAccount.Request) returns (DeleteAccount.Response) {}
+
+  rpc AccountIDByLogin(AccountIDByLogin.Request) returns (AccountIDByLogin.Response) {}
+
+  // ----
+  rpc UpdateStatus(UpdateStatus.Request) returns (UpdateStatus.Response) {}
+
+  rpc SessionAccount(SessionAccount.Request) returns (SessionAccount.Response) {}
+  rpc FindByTokenAccount(FindByTokenAccount.Request) returns (FindByTokenAccount.Response) {}
+}
+
+enum AccountStatus {
+  unspecified = 0;
+  offline = 1;
+  online = 2;
+}
+
+message UserParameters {
+  string user_name = 1;
+  string user_id = 2;
+  user.Role roles = 3;
+  string session_id = 4;
+}
+// -----------------------------------------------------
+
+// rpc SignIn
+message SignIn {
+  message Request {
+    string email = 1 [
+      (buf.validate.field).cel = {
+        id: "request.email"
+        message: "value must be a valid email address"
+        expression: "this.isEmail()"
+      },
+      (buf.validate.field).required = true
+    ];
+    string password = 2 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (buf.validate.field).required = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc Token
+message Token {
+  message Request {
+    string refresh = 1 [(buf.validate.field).required = true];
+  }
+
+  message Response {
+    string access = 1; // @gotags: json:"access_token,omitempty"
+    string refresh = 2; // @gotags: json:"refresh_token,omitempty"
+  }
+}
+// -----------------------------------------------------
+
+// rpc ResetPassword
+message ResetPassword {
+  message Request {
+    oneof request {
+      string email = 1 [
+        (buf.validate.field).cel = {
+          id: "valid_email"
+          message: "must be a valid email"
+          expression: "this.isEmail()"
+        }
+      ];
+      string token = 2 [(buf.validate.field).string.uuid = true];
+      Password password = 3;
+    }
+  }
+
+  message Response {
+    string user_id = 1;
+  }
+
+  message Password {
+    string password = 1 [(buf.validate.field).string = { min_len: 8 max_len: 32 }];
+    string token = 2 [(buf.validate.field).string.uuid = true];
+  }
+}
+// -----------------------------------------------------
+
+// rpc ListAccounts
+message ListAccounts {
+  message Request {
+    int32 limit = 1;
+    int32 offset = 2;
+    string sort_by = 3;
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated Account.Response accounts = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc Account
+message Account {
+  message Request {
+    string account_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    string account_id = 1;
+    bool online = 2;
+    bool active = 3;
+    string name = 4;
+    string surname = 5;
+    string connection_login = 7;
+    google.protobuf.Timestamp updated_at = 8;
+    google.protobuf.Timestamp created_at = 9;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddAccount
+message AddAccount {
+  message Request {
+    string account_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc UpdateAccount
+message UpdateAccount {
+  message Request {
+    string account_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc DeleteAccount
+message DeleteAccount {
+  message Request {
+    string account_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc AccountIDByLogin
+message AccountIDByLogin {
+  message Request {
+    string login = 1;
+    string fingerprint = 2;
+    string client_ip = 3 [(buf.validate.field).string.ip = true];
+  }
+
+  message Response {
+    string user_id = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UpdateStatus
+message UpdateStatus {
+  message Request {
+    string account_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    AccountStatus status = 2;
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated Account.Response accounts = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc SessionAccount
+message SessionAccount {
+  message Request {
+    string name = 1;
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated Account.Response accounts = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc SessionAccount
+message FindByTokenAccount {
+  message Request {
+    string name = 1;
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------

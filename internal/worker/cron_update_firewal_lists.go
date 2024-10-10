@@ -5,7 +5,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	firewallpb "github.com/werbot/werbot/internal/grpc/firewall/proto/firewall"
+	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
 	"github.com/werbot/werbot/pkg/worker"
 )
 

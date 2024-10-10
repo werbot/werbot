@@ -7,9 +7,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
+	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/event"
-	schemeaccesspb "github.com/werbot/werbot/internal/grpc/scheme/proto/access"
-	schemepb "github.com/werbot/werbot/internal/grpc/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/mathutil"
 	"github.com/werbot/werbot/pkg/utils/protoutils"

@@ -9,11 +9,11 @@ protogen() {
   local PROTO_PATH=""
   local WEB_PATH=""
   if [ -z "$3" ]; then
-    PROTO_PATH=${ROOT_PATH}/internal/grpc/${1}/proto
+    PROTO_PATH=${ROOT_PATH}/internal/core/${1}/proto
     #WEB_PATH=${ROOT_PATH}/web/src/proto/${1}
     WEB_PATH=${ROOT_PATH}/web/src/proto
   else
-    PROTO_PATH=${ROOT_PATH}/add-on/${3}/internal/grpc/${1}/proto
+    PROTO_PATH=${ROOT_PATH}/add-on/${3}/internal/core/${1}/proto
     #WEB_PATH=${ROOT_PATH}/add-on/${3}/web/proto/${1}
     WEB_PATH=${ROOT_PATH}/add-on/${3}/web/proto
   fi
@@ -88,19 +88,19 @@ generate_protos() {
 addons=(ee saas)
 
 if [[ $# -gt 0 ]]; then
-  target_path="${ROOT_PATH}/internal/grpc/$1/proto"
+  target_path="${ROOT_PATH}/internal/core/$1/proto"
   if [ -d "$target_path" ]; then
     generate_protos "$target_path" "$1"
   else
     for addon in "${addons[@]}"; do
-      target_path="${ROOT_PATH}/add-on/$addon/internal/grpc/$1/proto"
+      target_path="${ROOT_PATH}/add-on/$addon/internal/core/$1/proto"
       if [ -d "$target_path" ]; then
         generate_protos "$target_path" "$1" "$addon"
       fi
     done
   fi
 else
-  target_path="${ROOT_PATH}/internal/grpc"
+  target_path="${ROOT_PATH}/internal/core"
   for entry in ${target_path}/*/; do
     name=$(basename "${entry}")
     generate_protos "${target_path}/$name/proto" "$name"
@@ -109,10 +109,10 @@ else
   for addon in "${addons[@]}"; do
     target_path="${ROOT_PATH}/add-on/${addon}"
     if [ -d "$target_path" ]; then
-      for entry in ${target_path}/internal/grpc/*/; do
+      for entry in ${target_path}/internal/core/*/; do
         name=$(basename "${entry}")
         if [[ $name != "*" ]]; then
-          generate_protos "${target_path}/internal/grpc/$name/proto" "$name" $addon
+          generate_protos "${target_path}/internal/core/$name/proto" "$name" $addon
         fi
       done
     fi

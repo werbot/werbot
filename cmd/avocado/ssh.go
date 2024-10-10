@@ -11,7 +11,7 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/werbot/werbot/internal"
-	schemepb "github.com/werbot/werbot/internal/grpc/scheme/proto/scheme"
+	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/utils/strutil"
 )

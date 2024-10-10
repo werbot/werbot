@@ -4,8 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/werbot/werbot/internal/event"
-	accountpb "github.com/werbot/werbot/internal/grpc/account/proto/account"
-	userpb "github.com/werbot/werbot/internal/grpc/user/proto/user"
+	accountpb "github.com/werbot/werbot/internal/core/account/proto/account"
+	userpb "github.com/werbot/werbot/internal/core/user/proto/user"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"

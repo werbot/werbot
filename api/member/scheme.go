@@ -3,8 +3,8 @@ package member
 import (
 	"github.com/gofiber/fiber/v2"
 
+	memberpb "github.com/werbot/werbot/internal/core/member/proto/member"
 	"github.com/werbot/werbot/internal/event"
-	memberpb "github.com/werbot/werbot/internal/grpc/member/proto/member"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"

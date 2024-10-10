@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package audit;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/audit/proto/audit";
+
+service AuditHandlers {
+  // Audit section
+  rpc ListAudits(ListAudits.Request) returns (ListAudits.Response) {}
+  rpc Audit(Audit.Request) returns (Audit.Response) {}
+  rpc AddAudit(AddAudit.Request) returns (AddAudit.Response) {}
+  rpc UpdateAudit(UpdateAudit.Request) returns (UpdateAudit.Response) {}
+  rpc DeleteAudit(DeleteAudit.Request) returns (DeleteAudit.Response) {}
+
+  // Record section
+  rpc ListRecords(ListRecords.Request) returns (ListRecords.Response) {}
+  rpc AddRecord(AddRecord.Request) returns (AddRecord.Response) {}
+}
+
+// rpc ListAudits
+message ListAudits {
+  message Request {
+    string server_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated Audit.Response accounts = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc Audit
+message Audit {
+  message Request {
+    string audit_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    google.protobuf.Timestamp updated_at = 1;
+    google.protobuf.Timestamp created_at = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc rpc AddAudit
+message AddAudit {
+  message Request {
+    string server_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string account_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    google.protobuf.Timestamp time_start = 3;
+    int32 version = 4 [(buf.validate.field).required = true];
+    string session = 5 [(buf.validate.field).required = true];
+    string client_ip = 6 [(buf.validate.field).required = true];
+    int32 width = 7;
+    int32 height = 8;
+    string command = 9;
+    string title = 10;
+    string env_term = 11;
+    string env_shell = 12;
+  }
+
+  message Response {
+    string audit_id = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UpdateAudit
+message UpdateAudit {
+  message Request {
+    string audit_id = 1; // @gotags: json:"-"
+    int32 width = 2;
+    int32 height = 3;
+    string env_term = 4;
+    string duration = 5;
+    google.protobuf.Timestamp time_end = 6;
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc DeleteAudit
+message DeleteAudit {
+  message Request {
+    string audit_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc ListRecords
+message Record {
+  string id = 1; // @gotags: json:"-"
+  bool audit = 2;
+  string duration = 3;
+  string screen = 4;
+  string type = 5;
+}
+// -----------------------------------------------------
+
+// rpc ListRecords
+message ListRecords {
+  message Request {
+    string audit_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    repeated Record records = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddRecord
+message AddRecord {
+  message Request {
+    string audit_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    repeated Record records = 2;
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------

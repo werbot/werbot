@@ -11,7 +11,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/werbot/werbot/internal"
-	"github.com/werbot/werbot/internal/grpc"
+	grpc "github.com/werbot/werbot/internal/core"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/storage/postgres"

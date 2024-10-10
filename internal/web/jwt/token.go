@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/werbot/werbot/internal"
-	accountpb "github.com/werbot/werbot/internal/grpc/account/proto/account"
+	accountpb "github.com/werbot/werbot/internal/core/account/proto/account"
 	"github.com/werbot/werbot/pkg/storage/redis"
 )
 

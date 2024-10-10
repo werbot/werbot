@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/werbot/werbot/internal"
-	eventpb "github.com/werbot/werbot/internal/grpc/event/proto/event"
+	eventpb "github.com/werbot/werbot/internal/core/event/proto/event"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/logger"
 )

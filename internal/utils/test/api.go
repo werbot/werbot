@@ -14,8 +14,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 
 	"github.com/werbot/werbot/api"
-	accountpb "github.com/werbot/werbot/internal/grpc/account/proto/account"
-	userpb "github.com/werbot/werbot/internal/grpc/user/proto/user"
+	accountpb "github.com/werbot/werbot/internal/core/account/proto/account"
+	userpb "github.com/werbot/werbot/internal/core/user/proto/user"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/utils/webutil"

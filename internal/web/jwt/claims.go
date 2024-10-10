@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	accountpb "github.com/werbot/werbot/internal/grpc/account/proto/account"
+	accountpb "github.com/werbot/werbot/internal/core/account/proto/account"
 )
 
 // UserClaims represents public and private claims for a JWT token.

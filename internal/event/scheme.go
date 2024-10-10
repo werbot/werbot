@@ -1,7 +1,7 @@
 package event
 
 import (
-	eventpb "github.com/werbot/werbot/internal/grpc/event/proto/event"
+	eventpb "github.com/werbot/werbot/internal/core/event/proto/event"
 )
 
 // SchemeSection represents a section within a scheme.

@@ -6,7 +6,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/gofiber/fiber/v2"
 
-	systempb "github.com/werbot/werbot/internal/grpc/system/proto/system"
+	systempb "github.com/werbot/werbot/internal/core/system/proto/system"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"

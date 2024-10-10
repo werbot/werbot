@@ -18,7 +18,7 @@ key: ## Generating key
 #############################################################################
 # run:
 # make protos - recreate all protofiles
-# make protos user - recreate protofile user from folder /internal/grpc/
+# make protos user - recreate protofile user from folder /internal/core/
 .PHONY: protos
 protos: ## Generating protos files
 	@scripts/proto $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))

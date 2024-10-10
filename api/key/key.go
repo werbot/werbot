@@ -3,8 +3,8 @@ package key
 import (
 	"github.com/gofiber/fiber/v2"
 
+	keypb "github.com/werbot/werbot/internal/core/key/proto/key"
 	"github.com/werbot/werbot/internal/event"
-	keypb "github.com/werbot/werbot/internal/grpc/key/proto/key"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/webutil"

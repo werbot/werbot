@@ -3,8 +3,8 @@ package user
 import (
 	"github.com/gofiber/fiber/v2"
 
+	userpb "github.com/werbot/werbot/internal/core/user/proto/user"
 	"github.com/werbot/werbot/internal/event"
-	userpb "github.com/werbot/werbot/internal/grpc/user/proto/user"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"

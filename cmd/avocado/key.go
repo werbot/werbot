@@ -13,7 +13,7 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/rs/zerolog/log"
 	"github.com/werbot/werbot/internal"
-	schemepb "github.com/werbot/werbot/internal/grpc/scheme/proto/scheme"
+	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/pkg/utils/netutil"
 )
 

@@ -1,0 +1,269 @@
+syntax = "proto3";
+
+package access;
+
+import "buf/validate/validate.proto";
+import "internal/core/scheme/proto/auth/auth.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/scheme/proto/access";
+
+// -----------------------------------
+// scheme description section
+enum SchemeType {
+  scheme_unspecified = 0;
+
+  server = 100;
+  server_tcp = 101;
+  server_udp = 102;
+  server_ssh = 103;
+  server_telnet = 104;
+
+  database = 200;
+  database_mysql = 201;
+  database_postgres = 202;
+  database_redis = 203;
+  database_mongodb = 204;
+  database_elastic = 205;
+  database_dynamodb = 206;
+  database_cassandra = 207;
+  database_sqlserver = 208;
+  database_snowflake = 209;
+
+  desktop = 300;
+  desktop_rdp = 301;
+  desktop_vnc = 302;
+
+  container = 400;
+  container_docker = 401;
+  container_k8s = 402;
+
+  cloud = 500;
+  cloud_aws = 501;
+  cloud_gcp = 502;
+  cloud_azure = 503;
+  cloud_do = 504;
+  cloud_hetzner = 505;
+
+  application = 600;
+  application_site = 601;
+}
+// -----------------------------------
+
+// -----------------------------------
+message AccessScheme {
+  oneof access {
+    option (buf.validate.oneof).required = true;
+
+    Server.TCP server_tcp = 100;
+    Server.UDP server_udp = 101;
+    Server.SSH server_ssh = 102;
+    Server.Telnet server_telnet = 103;
+
+    Database.MySQL database_mysql = 110;
+    Database.Postgres database_postgres = 111;
+    Database.Redis database_redis = 112;
+    Database.MongoDB database_mongodb = 113;
+    Database.Elastic database_elastic = 114;
+    Database.DynamoDB database_dynamodb = 115;
+    Database.Cassandra database_cassandra = 116;
+    Database.SQLServer database_sqlserver = 117;
+    Database.Snowflake database_snowflake = 118;
+
+    Desktop.RDP desktop_rdp = 130;
+    Desktop.VNC desktop_vnc = 131;
+
+    Container.Docker container_docker = 140;
+    Container.K8S container_k8s = 141;
+
+    Cloud.AWS cloud_aws = 150;
+    Cloud.GCP cloud_gcp = 151;
+    Cloud.Azure cloud_azure = 152;
+    Cloud.DO cloud_do = 153;
+    Cloud.Hetzner cloud_hetzner = 154;
+
+    Application.Site application_site = 170;
+  }
+
+  message Server {
+    message TCP {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+    }
+
+    message UDP {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+    }
+
+    message SSH {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      oneof access {
+        auth.Auth.Password password = 4;
+        auth.Auth.Key key = 5;
+        auth.Auth.Agent agent = 6;
+      }
+    }
+
+    message Telnet {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      auth.Auth.Password access = 4;
+    }
+  }
+
+  message Database {
+    message MySQL {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string database_name = 4;
+      auth.Auth.Password access = 5;
+      auth.Auth.MTLS mtls = 6;
+    }
+
+    message Postgres {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string database_name = 4;
+      auth.Auth.Password access = 5;
+      auth.Auth.MTLS mtls = 6;
+      string server_name_mtls = 7;
+    }
+
+    message Redis {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      auth.Auth.Password access = 4;
+      bool tls_required = 5;
+    }
+
+    message MongoDB {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string database_name = 4;
+      auth.Auth.Password access = 5;
+      bool tls_required = 6;
+      bool replica_connect = 7;
+    }
+
+    message Elastic {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      auth.Auth.Password access = 4;
+      bool tls_required = 5;
+    }
+
+    message DynamoDB {
+      string alias = 1; // @gotags: json:"-"
+      // string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      // int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string region = 4;
+      auth.Auth.API api = 5;
+    }
+
+    message Cassandra {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      auth.Auth.Password access = 4;
+      bool tls_required = 5;
+    }
+
+    message SQLServer {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      auth.Auth.Password access = 4;
+      string schema = 5;
+      bool default_database = 6;
+    }
+
+    message Snowflake {
+      string alias = 1; // @gotags: json:"-"
+      string region = 2;
+      auth.Auth.Password access = 3;
+      string schema = 4;
+    }
+  }
+
+  message Desktop {
+    message RDP {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      auth.Auth.Password access = 4;
+    }
+
+    message VNC {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      auth.Auth.Password access = 4;
+    }
+  }
+
+  message Container {
+    message Docker {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      auth.Auth.MTLS mtls = 4;
+    }
+
+    message K8S {
+      string alias = 1; // @gotags: json:"-"
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      auth.Auth.MTLS mtls = 4;
+      string healthcheck_namespace = 5;
+    }
+  }
+
+  message Cloud {
+    message AWS {
+      string alias = 1; // @gotags: json:"-"
+      auth.Auth.API access = 2;
+      string healthcheck_region = 3;
+    }
+
+    message GCP {
+      string alias = 1; // @gotags: json:"-"
+      string service_account_keyfile = 2;
+      string scopes = 3;
+    }
+
+    message Azure {
+      string alias = 1; // @gotags: json:"-"
+      string app_id = 2;
+      string tenant = 3;
+      string password = 4 [(buf.validate.field).string = { min_len: 8 max_len: 32 }];
+      string certificate = 5;
+    }
+
+    message DO {
+      string alias = 1; // @gotags: json:"-"
+      auth.Auth.API access = 2;
+    }
+
+    message Hetzner {
+      string alias = 1; // @gotags: json:"-"
+      auth.Auth.API access = 2;
+    }
+  }
+
+  message Application {
+    message Site {
+      string alias = 1; // @gotags: json:"-"
+    }
+  }
+}
+// -----------------------------------

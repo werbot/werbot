@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
-	igrpc "github.com/werbot/werbot/internal/grpc"
+	igrpc "github.com/werbot/werbot/internal/core"
 )
 
 // GRPCService holds the gRPC client connection and dependencies.
