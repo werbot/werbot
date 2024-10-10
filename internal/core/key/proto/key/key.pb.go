@@ -85,11 +85,9 @@ type SchemeKey struct {
 
 func (x *SchemeKey) Reset() {
 	*x = SchemeKey{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SchemeKey) String() string {
@@ -100,7 +98,7 @@ func (*SchemeKey) ProtoMessage() {}
 
 func (x *SchemeKey) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -152,11 +150,9 @@ type Keys struct {
 
 func (x *Keys) Reset() {
 	*x = Keys{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Keys) String() string {
@@ -167,7 +163,7 @@ func (*Keys) ProtoMessage() {}
 
 func (x *Keys) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -191,11 +187,9 @@ type Key struct {
 
 func (x *Key) Reset() {
 	*x = Key{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Key) String() string {
@@ -206,7 +200,7 @@ func (*Key) ProtoMessage() {}
 
 func (x *Key) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -230,11 +224,9 @@ type AddKey struct {
 
 func (x *AddKey) Reset() {
 	*x = AddKey{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddKey) String() string {
@@ -245,7 +237,7 @@ func (*AddKey) ProtoMessage() {}
 
 func (x *AddKey) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -269,11 +261,9 @@ type UpdateKey struct {
 
 func (x *UpdateKey) Reset() {
 	*x = UpdateKey{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateKey) String() string {
@@ -284,7 +274,7 @@ func (*UpdateKey) ProtoMessage() {}
 
 func (x *UpdateKey) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -308,11 +298,9 @@ type DeleteKey struct {
 
 func (x *DeleteKey) Reset() {
 	*x = DeleteKey{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteKey) String() string {
@@ -323,7 +311,7 @@ func (*DeleteKey) ProtoMessage() {}
 
 func (x *DeleteKey) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -347,11 +335,9 @@ type GenerateSSHKey struct {
 
 func (x *GenerateSSHKey) Reset() {
 	*x = GenerateSSHKey{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GenerateSSHKey) String() string {
@@ -362,7 +348,7 @@ func (*GenerateSSHKey) ProtoMessage() {}
 
 func (x *GenerateSSHKey) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -391,11 +377,9 @@ type Keys_Request struct {
 
 func (x *Keys_Request) Reset() {
 	*x = Keys_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Keys_Request) String() string {
@@ -406,7 +390,7 @@ func (*Keys_Request) ProtoMessage() {}
 
 func (x *Keys_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -467,11 +451,9 @@ type Keys_Response struct {
 
 func (x *Keys_Response) Reset() {
 	*x = Keys_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Keys_Response) String() string {
@@ -482,7 +464,7 @@ func (*Keys_Response) ProtoMessage() {}
 
 func (x *Keys_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -523,11 +505,9 @@ type Key_Request struct {
 
 func (x *Key_Request) Reset() {
 	*x = Key_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Key_Request) String() string {
@@ -538,7 +518,7 @@ func (*Key_Request) ProtoMessage() {}
 
 func (x *Key_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -592,11 +572,9 @@ type Key_Response struct {
 
 func (x *Key_Response) Reset() {
 	*x = Key_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[10]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Key_Response) String() string {
@@ -607,7 +585,7 @@ func (*Key_Response) ProtoMessage() {}
 
 func (x *Key_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[10]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -697,11 +675,9 @@ type AddKey_Request struct {
 
 func (x *AddKey_Request) Reset() {
 	*x = AddKey_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[11]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddKey_Request) String() string {
@@ -712,7 +688,7 @@ func (*AddKey_Request) ProtoMessage() {}
 
 func (x *AddKey_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[11]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -759,11 +735,9 @@ type AddKey_Response struct {
 
 func (x *AddKey_Response) Reset() {
 	*x = AddKey_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[12]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddKey_Response) String() string {
@@ -774,7 +748,7 @@ func (*AddKey_Response) ProtoMessage() {}
 
 func (x *AddKey_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[12]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -815,11 +789,9 @@ type UpdateKey_Request struct {
 
 func (x *UpdateKey_Request) Reset() {
 	*x = UpdateKey_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[13]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateKey_Request) String() string {
@@ -830,7 +802,7 @@ func (*UpdateKey_Request) ProtoMessage() {}
 
 func (x *UpdateKey_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[13]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -874,11 +846,9 @@ type UpdateKey_Response struct {
 
 func (x *UpdateKey_Response) Reset() {
 	*x = UpdateKey_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[14]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateKey_Response) String() string {
@@ -889,7 +859,7 @@ func (*UpdateKey_Response) ProtoMessage() {}
 
 func (x *UpdateKey_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[14]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -915,11 +885,9 @@ type DeleteKey_Request struct {
 
 func (x *DeleteKey_Request) Reset() {
 	*x = DeleteKey_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[15]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteKey_Request) String() string {
@@ -930,7 +898,7 @@ func (*DeleteKey_Request) ProtoMessage() {}
 
 func (x *DeleteKey_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[15]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -967,11 +935,9 @@ type DeleteKey_Response struct {
 
 func (x *DeleteKey_Response) Reset() {
 	*x = DeleteKey_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[16]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteKey_Response) String() string {
@@ -982,7 +948,7 @@ func (*DeleteKey_Response) ProtoMessage() {}
 
 func (x *DeleteKey_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[16]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1007,11 +973,9 @@ type GenerateSSHKey_Request struct {
 
 func (x *GenerateSSHKey_Request) Reset() {
 	*x = GenerateSSHKey_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[17]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GenerateSSHKey_Request) String() string {
@@ -1022,7 +986,7 @@ func (*GenerateSSHKey_Request) ProtoMessage() {}
 
 func (x *GenerateSSHKey_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[17]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1059,11 +1023,9 @@ type GenerateSSHKey_Response struct {
 
 func (x *GenerateSSHKey_Response) Reset() {
 	*x = GenerateSSHKey_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_key_proto_msgTypes[18]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_key_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GenerateSSHKey_Response) String() string {
@@ -1074,7 +1036,7 @@ func (*GenerateSSHKey_Response) ProtoMessage() {}
 
 func (x *GenerateSSHKey_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_key_proto_msgTypes[18]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1337,236 +1299,6 @@ func init() { file_key_proto_init() }
 func file_key_proto_init() {
 	if File_key_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_key_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*SchemeKey); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*Keys); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*Key); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*AddKey); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateKey); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteKey); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[6].Exporter = func(v any, i int) any {
-			switch v := v.(*GenerateSSHKey); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[7].Exporter = func(v any, i int) any {
-			switch v := v.(*Keys_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[8].Exporter = func(v any, i int) any {
-			switch v := v.(*Keys_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[9].Exporter = func(v any, i int) any {
-			switch v := v.(*Key_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[10].Exporter = func(v any, i int) any {
-			switch v := v.(*Key_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[11].Exporter = func(v any, i int) any {
-			switch v := v.(*AddKey_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[12].Exporter = func(v any, i int) any {
-			switch v := v.(*AddKey_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[13].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateKey_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[14].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateKey_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[15].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteKey_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[16].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteKey_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[17].Exporter = func(v any, i int) any {
-			switch v := v.(*GenerateSSHKey_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_key_proto_msgTypes[18].Exporter = func(v any, i int) any {
-			switch v := v.(*GenerateSSHKey_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

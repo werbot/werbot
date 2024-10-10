@@ -80,11 +80,9 @@ type AccessPolicy struct {
 
 func (x *AccessPolicy) Reset() {
 	*x = AccessPolicy{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_firewall_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_firewall_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessPolicy) String() string {
@@ -95,7 +93,7 @@ func (*AccessPolicy) ProtoMessage() {}
 
 func (x *AccessPolicy) ProtoReflect() protoreflect.Message {
 	mi := &file_firewall_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -137,11 +135,9 @@ type Country struct {
 
 func (x *Country) Reset() {
 	*x = Country{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_firewall_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_firewall_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Country) String() string {
@@ -152,7 +148,7 @@ func (*Country) ProtoMessage() {}
 
 func (x *Country) ProtoReflect() protoreflect.Message {
 	mi := &file_firewall_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -207,11 +203,9 @@ type Network struct {
 
 func (x *Network) Reset() {
 	*x = Network{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_firewall_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_firewall_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Network) String() string {
@@ -222,7 +216,7 @@ func (*Network) ProtoMessage() {}
 
 func (x *Network) ProtoReflect() protoreflect.Message {
 	mi := &file_firewall_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -267,11 +261,9 @@ type IPAccess struct {
 
 func (x *IPAccess) Reset() {
 	*x = IPAccess{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_firewall_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_firewall_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *IPAccess) String() string {
@@ -282,7 +274,7 @@ func (*IPAccess) ProtoMessage() {}
 
 func (x *IPAccess) ProtoReflect() protoreflect.Message {
 	mi := &file_firewall_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -306,11 +298,9 @@ type UpdateFirewallListData struct {
 
 func (x *UpdateFirewallListData) Reset() {
 	*x = UpdateFirewallListData{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_firewall_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_firewall_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateFirewallListData) String() string {
@@ -321,7 +311,7 @@ func (*UpdateFirewallListData) ProtoMessage() {}
 
 func (x *UpdateFirewallListData) ProtoReflect() protoreflect.Message {
 	mi := &file_firewall_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -346,11 +336,9 @@ type IPAccess_Request struct {
 
 func (x *IPAccess_Request) Reset() {
 	*x = IPAccess_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_firewall_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_firewall_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *IPAccess_Request) String() string {
@@ -361,7 +349,7 @@ func (*IPAccess_Request) ProtoMessage() {}
 
 func (x *IPAccess_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_firewall_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -394,11 +382,9 @@ type IPAccess_Response struct {
 
 func (x *IPAccess_Response) Reset() {
 	*x = IPAccess_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_firewall_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_firewall_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *IPAccess_Response) String() string {
@@ -409,7 +395,7 @@ func (*IPAccess_Response) ProtoMessage() {}
 
 func (x *IPAccess_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_firewall_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -446,11 +432,9 @@ type UpdateFirewallListData_Request struct {
 
 func (x *UpdateFirewallListData_Request) Reset() {
 	*x = UpdateFirewallListData_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_firewall_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_firewall_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateFirewallListData_Request) String() string {
@@ -461,7 +445,7 @@ func (*UpdateFirewallListData_Request) ProtoMessage() {}
 
 func (x *UpdateFirewallListData_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_firewall_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -484,11 +468,9 @@ type UpdateFirewallListData_Response struct {
 
 func (x *UpdateFirewallListData_Response) Reset() {
 	*x = UpdateFirewallListData_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_firewall_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_firewall_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateFirewallListData_Response) String() string {
@@ -499,7 +481,7 @@ func (*UpdateFirewallListData_Response) ProtoMessage() {}
 
 func (x *UpdateFirewallListData_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_firewall_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -622,116 +604,6 @@ func init() { file_firewall_proto_init() }
 func file_firewall_proto_init() {
 	if File_firewall_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_firewall_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessPolicy); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_firewall_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*Country); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_firewall_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*Network); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_firewall_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*IPAccess); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_firewall_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateFirewallListData); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_firewall_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*IPAccess_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_firewall_proto_msgTypes[6].Exporter = func(v any, i int) any {
-			switch v := v.(*IPAccess_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_firewall_proto_msgTypes[7].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateFirewallListData_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_firewall_proto_msgTypes[8].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateFirewallListData_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

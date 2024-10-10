@@ -187,11 +187,9 @@ type AccessScheme struct {
 
 func (x *AccessScheme) Reset() {
 	*x = AccessScheme{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme) String() string {
@@ -202,7 +200,7 @@ func (*AccessScheme) ProtoMessage() {}
 
 func (x *AccessScheme) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -535,11 +533,9 @@ type AccessScheme_Server struct {
 
 func (x *AccessScheme_Server) Reset() {
 	*x = AccessScheme_Server{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Server) String() string {
@@ -550,7 +546,7 @@ func (*AccessScheme_Server) ProtoMessage() {}
 
 func (x *AccessScheme_Server) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -573,11 +569,9 @@ type AccessScheme_Database struct {
 
 func (x *AccessScheme_Database) Reset() {
 	*x = AccessScheme_Database{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Database) String() string {
@@ -588,7 +582,7 @@ func (*AccessScheme_Database) ProtoMessage() {}
 
 func (x *AccessScheme_Database) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -611,11 +605,9 @@ type AccessScheme_Desktop struct {
 
 func (x *AccessScheme_Desktop) Reset() {
 	*x = AccessScheme_Desktop{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Desktop) String() string {
@@ -626,7 +618,7 @@ func (*AccessScheme_Desktop) ProtoMessage() {}
 
 func (x *AccessScheme_Desktop) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -649,11 +641,9 @@ type AccessScheme_Container struct {
 
 func (x *AccessScheme_Container) Reset() {
 	*x = AccessScheme_Container{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Container) String() string {
@@ -664,7 +654,7 @@ func (*AccessScheme_Container) ProtoMessage() {}
 
 func (x *AccessScheme_Container) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -687,11 +677,9 @@ type AccessScheme_Cloud struct {
 
 func (x *AccessScheme_Cloud) Reset() {
 	*x = AccessScheme_Cloud{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Cloud) String() string {
@@ -702,7 +690,7 @@ func (*AccessScheme_Cloud) ProtoMessage() {}
 
 func (x *AccessScheme_Cloud) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -725,11 +713,9 @@ type AccessScheme_Application struct {
 
 func (x *AccessScheme_Application) Reset() {
 	*x = AccessScheme_Application{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Application) String() string {
@@ -740,7 +726,7 @@ func (*AccessScheme_Application) ProtoMessage() {}
 
 func (x *AccessScheme_Application) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -767,11 +753,9 @@ type AccessScheme_Server_TCP struct {
 
 func (x *AccessScheme_Server_TCP) Reset() {
 	*x = AccessScheme_Server_TCP{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Server_TCP) String() string {
@@ -782,7 +766,7 @@ func (*AccessScheme_Server_TCP) ProtoMessage() {}
 
 func (x *AccessScheme_Server_TCP) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -830,11 +814,9 @@ type AccessScheme_Server_UDP struct {
 
 func (x *AccessScheme_Server_UDP) Reset() {
 	*x = AccessScheme_Server_UDP{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Server_UDP) String() string {
@@ -845,7 +827,7 @@ func (*AccessScheme_Server_UDP) ProtoMessage() {}
 
 func (x *AccessScheme_Server_UDP) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -899,11 +881,9 @@ type AccessScheme_Server_SSH struct {
 
 func (x *AccessScheme_Server_SSH) Reset() {
 	*x = AccessScheme_Server_SSH{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Server_SSH) String() string {
@@ -914,7 +894,7 @@ func (*AccessScheme_Server_SSH) ProtoMessage() {}
 
 func (x *AccessScheme_Server_SSH) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1013,11 +993,9 @@ type AccessScheme_Server_Telnet struct {
 
 func (x *AccessScheme_Server_Telnet) Reset() {
 	*x = AccessScheme_Server_Telnet{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[10]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Server_Telnet) String() string {
@@ -1028,7 +1006,7 @@ func (*AccessScheme_Server_Telnet) ProtoMessage() {}
 
 func (x *AccessScheme_Server_Telnet) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[10]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1086,11 +1064,9 @@ type AccessScheme_Database_MySQL struct {
 
 func (x *AccessScheme_Database_MySQL) Reset() {
 	*x = AccessScheme_Database_MySQL{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[11]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Database_MySQL) String() string {
@@ -1101,7 +1077,7 @@ func (*AccessScheme_Database_MySQL) ProtoMessage() {}
 
 func (x *AccessScheme_Database_MySQL) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[11]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1174,11 +1150,9 @@ type AccessScheme_Database_Postgres struct {
 
 func (x *AccessScheme_Database_Postgres) Reset() {
 	*x = AccessScheme_Database_Postgres{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[12]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Database_Postgres) String() string {
@@ -1189,7 +1163,7 @@ func (*AccessScheme_Database_Postgres) ProtoMessage() {}
 
 func (x *AccessScheme_Database_Postgres) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[12]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1267,11 +1241,9 @@ type AccessScheme_Database_Redis struct {
 
 func (x *AccessScheme_Database_Redis) Reset() {
 	*x = AccessScheme_Database_Redis{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[13]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Database_Redis) String() string {
@@ -1282,7 +1254,7 @@ func (*AccessScheme_Database_Redis) ProtoMessage() {}
 
 func (x *AccessScheme_Database_Redis) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[13]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1348,11 +1320,9 @@ type AccessScheme_Database_MongoDB struct {
 
 func (x *AccessScheme_Database_MongoDB) Reset() {
 	*x = AccessScheme_Database_MongoDB{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[14]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Database_MongoDB) String() string {
@@ -1363,7 +1333,7 @@ func (*AccessScheme_Database_MongoDB) ProtoMessage() {}
 
 func (x *AccessScheme_Database_MongoDB) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[14]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1441,11 +1411,9 @@ type AccessScheme_Database_Elastic struct {
 
 func (x *AccessScheme_Database_Elastic) Reset() {
 	*x = AccessScheme_Database_Elastic{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[15]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Database_Elastic) String() string {
@@ -1456,7 +1424,7 @@ func (*AccessScheme_Database_Elastic) ProtoMessage() {}
 
 func (x *AccessScheme_Database_Elastic) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[15]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1520,11 +1488,9 @@ type AccessScheme_Database_DynamoDB struct {
 
 func (x *AccessScheme_Database_DynamoDB) Reset() {
 	*x = AccessScheme_Database_DynamoDB{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[16]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Database_DynamoDB) String() string {
@@ -1535,7 +1501,7 @@ func (*AccessScheme_Database_DynamoDB) ProtoMessage() {}
 
 func (x *AccessScheme_Database_DynamoDB) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[16]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1585,11 +1551,9 @@ type AccessScheme_Database_Cassandra struct {
 
 func (x *AccessScheme_Database_Cassandra) Reset() {
 	*x = AccessScheme_Database_Cassandra{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[17]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Database_Cassandra) String() string {
@@ -1600,7 +1564,7 @@ func (*AccessScheme_Database_Cassandra) ProtoMessage() {}
 
 func (x *AccessScheme_Database_Cassandra) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[17]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1665,11 +1629,9 @@ type AccessScheme_Database_SQLServer struct {
 
 func (x *AccessScheme_Database_SQLServer) Reset() {
 	*x = AccessScheme_Database_SQLServer{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[18]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Database_SQLServer) String() string {
@@ -1680,7 +1642,7 @@ func (*AccessScheme_Database_SQLServer) ProtoMessage() {}
 
 func (x *AccessScheme_Database_SQLServer) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[18]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1750,11 +1712,9 @@ type AccessScheme_Database_Snowflake struct {
 
 func (x *AccessScheme_Database_Snowflake) Reset() {
 	*x = AccessScheme_Database_Snowflake{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[19]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Database_Snowflake) String() string {
@@ -1765,7 +1725,7 @@ func (*AccessScheme_Database_Snowflake) ProtoMessage() {}
 
 func (x *AccessScheme_Database_Snowflake) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[19]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1821,11 +1781,9 @@ type AccessScheme_Desktop_RDP struct {
 
 func (x *AccessScheme_Desktop_RDP) Reset() {
 	*x = AccessScheme_Desktop_RDP{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[20]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Desktop_RDP) String() string {
@@ -1836,7 +1794,7 @@ func (*AccessScheme_Desktop_RDP) ProtoMessage() {}
 
 func (x *AccessScheme_Desktop_RDP) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[20]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1892,11 +1850,9 @@ type AccessScheme_Desktop_VNC struct {
 
 func (x *AccessScheme_Desktop_VNC) Reset() {
 	*x = AccessScheme_Desktop_VNC{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[21]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Desktop_VNC) String() string {
@@ -1907,7 +1863,7 @@ func (*AccessScheme_Desktop_VNC) ProtoMessage() {}
 
 func (x *AccessScheme_Desktop_VNC) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[21]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1963,11 +1919,9 @@ type AccessScheme_Container_Docker struct {
 
 func (x *AccessScheme_Container_Docker) Reset() {
 	*x = AccessScheme_Container_Docker{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[22]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Container_Docker) String() string {
@@ -1978,7 +1932,7 @@ func (*AccessScheme_Container_Docker) ProtoMessage() {}
 
 func (x *AccessScheme_Container_Docker) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[22]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -2035,11 +1989,9 @@ type AccessScheme_Container_K8S struct {
 
 func (x *AccessScheme_Container_K8S) Reset() {
 	*x = AccessScheme_Container_K8S{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[23]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Container_K8S) String() string {
@@ -2050,7 +2002,7 @@ func (*AccessScheme_Container_K8S) ProtoMessage() {}
 
 func (x *AccessScheme_Container_K8S) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[23]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -2112,11 +2064,9 @@ type AccessScheme_Cloud_AWS struct {
 
 func (x *AccessScheme_Cloud_AWS) Reset() {
 	*x = AccessScheme_Cloud_AWS{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[24]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Cloud_AWS) String() string {
@@ -2127,7 +2077,7 @@ func (*AccessScheme_Cloud_AWS) ProtoMessage() {}
 
 func (x *AccessScheme_Cloud_AWS) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[24]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -2175,11 +2125,9 @@ type AccessScheme_Cloud_GCP struct {
 
 func (x *AccessScheme_Cloud_GCP) Reset() {
 	*x = AccessScheme_Cloud_GCP{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[25]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Cloud_GCP) String() string {
@@ -2190,7 +2138,7 @@ func (*AccessScheme_Cloud_GCP) ProtoMessage() {}
 
 func (x *AccessScheme_Cloud_GCP) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[25]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -2240,11 +2188,9 @@ type AccessScheme_Cloud_Azure struct {
 
 func (x *AccessScheme_Cloud_Azure) Reset() {
 	*x = AccessScheme_Cloud_Azure{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[26]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Cloud_Azure) String() string {
@@ -2255,7 +2201,7 @@ func (*AccessScheme_Cloud_Azure) ProtoMessage() {}
 
 func (x *AccessScheme_Cloud_Azure) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[26]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -2316,11 +2262,9 @@ type AccessScheme_Cloud_DO struct {
 
 func (x *AccessScheme_Cloud_DO) Reset() {
 	*x = AccessScheme_Cloud_DO{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[27]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Cloud_DO) String() string {
@@ -2331,7 +2275,7 @@ func (*AccessScheme_Cloud_DO) ProtoMessage() {}
 
 func (x *AccessScheme_Cloud_DO) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[27]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -2371,11 +2315,9 @@ type AccessScheme_Cloud_Hetzner struct {
 
 func (x *AccessScheme_Cloud_Hetzner) Reset() {
 	*x = AccessScheme_Cloud_Hetzner{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[28]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Cloud_Hetzner) String() string {
@@ -2386,7 +2328,7 @@ func (*AccessScheme_Cloud_Hetzner) ProtoMessage() {}
 
 func (x *AccessScheme_Cloud_Hetzner) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[28]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -2425,11 +2367,9 @@ type AccessScheme_Application_Site struct {
 
 func (x *AccessScheme_Application_Site) Reset() {
 	*x = AccessScheme_Application_Site{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_access_proto_msgTypes[29]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_access_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AccessScheme_Application_Site) String() string {
@@ -2440,7 +2380,7 @@ func (*AccessScheme_Application_Site) ProtoMessage() {}
 
 func (x *AccessScheme_Application_Site) ProtoReflect() protoreflect.Message {
 	mi := &file_access_proto_msgTypes[29]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -2964,368 +2904,6 @@ func init() { file_access_proto_init() }
 func file_access_proto_init() {
 	if File_access_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_access_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Server); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Database); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Desktop); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Container); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Cloud); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[6].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Application); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[7].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Server_TCP); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[8].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Server_UDP); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[9].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Server_SSH); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[10].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Server_Telnet); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[11].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Database_MySQL); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[12].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Database_Postgres); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[13].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Database_Redis); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[14].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Database_MongoDB); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[15].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Database_Elastic); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[16].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Database_DynamoDB); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[17].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Database_Cassandra); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[18].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Database_SQLServer); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[19].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Database_Snowflake); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[20].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Desktop_RDP); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[21].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Desktop_VNC); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[22].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Container_Docker); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[23].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Container_K8S); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[24].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Cloud_AWS); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[25].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Cloud_GCP); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[26].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Cloud_Azure); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[27].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Cloud_DO); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[28].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Cloud_Hetzner); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_access_proto_msgTypes[29].Exporter = func(v any, i int) any {
-			switch v := v.(*AccessScheme_Application_Site); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	file_access_proto_msgTypes[0].OneofWrappers = []any{
 		(*AccessScheme_ServerTcp)(nil),

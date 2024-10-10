@@ -81,11 +81,9 @@ type SendMail struct {
 
 func (x *SendMail) Reset() {
 	*x = SendMail{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_notification_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_notification_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SendMail) String() string {
@@ -96,7 +94,7 @@ func (*SendMail) ProtoMessage() {}
 
 func (x *SendMail) ProtoReflect() protoreflect.Message {
 	mi := &file_notification_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -124,11 +122,9 @@ type SendMail_Request struct {
 
 func (x *SendMail_Request) Reset() {
 	*x = SendMail_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_notification_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_notification_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SendMail_Request) String() string {
@@ -139,7 +135,7 @@ func (*SendMail_Request) ProtoMessage() {}
 
 func (x *SendMail_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_notification_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -190,11 +186,9 @@ type SendMail_Response struct {
 
 func (x *SendMail_Response) Reset() {
 	*x = SendMail_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_notification_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_notification_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SendMail_Response) String() string {
@@ -205,7 +199,7 @@ func (*SendMail_Response) ProtoMessage() {}
 
 func (x *SendMail_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_notification_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -301,44 +295,6 @@ func init() { file_notification_proto_init() }
 func file_notification_proto_init() {
 	if File_notification_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_notification_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*SendMail); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_notification_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*SendMail_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_notification_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*SendMail_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

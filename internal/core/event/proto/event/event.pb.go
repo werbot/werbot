@@ -361,11 +361,9 @@ type Profile struct {
 
 func (x *Profile) Reset() {
 	*x = Profile{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Profile) String() string {
@@ -376,7 +374,7 @@ func (*Profile) ProtoMessage() {}
 
 func (x *Profile) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -417,11 +415,9 @@ type Project struct {
 
 func (x *Project) Reset() {
 	*x = Project{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Project) String() string {
@@ -432,7 +428,7 @@ func (*Project) ProtoMessage() {}
 
 func (x *Project) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -473,11 +469,9 @@ type Scheme struct {
 
 func (x *Scheme) Reset() {
 	*x = Scheme{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Scheme) String() string {
@@ -488,7 +482,7 @@ func (*Scheme) ProtoMessage() {}
 
 func (x *Scheme) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -526,11 +520,9 @@ type Events struct {
 
 func (x *Events) Reset() {
 	*x = Events{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Events) String() string {
@@ -541,7 +533,7 @@ func (*Events) ProtoMessage() {}
 
 func (x *Events) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -565,11 +557,9 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Event) String() string {
@@ -580,7 +570,7 @@ func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -604,11 +594,9 @@ type AddEvent struct {
 
 func (x *AddEvent) Reset() {
 	*x = AddEvent{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddEvent) String() string {
@@ -619,7 +607,7 @@ func (*AddEvent) ProtoMessage() {}
 
 func (x *AddEvent) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -654,11 +642,9 @@ type Events_Request struct {
 
 func (x *Events_Request) Reset() {
 	*x = Events_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Events_Request) String() string {
@@ -669,7 +655,7 @@ func (*Events_Request) ProtoMessage() {}
 
 func (x *Events_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -780,11 +766,9 @@ type Events_Response struct {
 
 func (x *Events_Response) Reset() {
 	*x = Events_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Events_Response) String() string {
@@ -795,7 +779,7 @@ func (*Events_Response) ProtoMessage() {}
 
 func (x *Events_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -842,11 +826,9 @@ type Event_Request struct {
 
 func (x *Event_Request) Reset() {
 	*x = Event_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Event_Request) String() string {
@@ -857,7 +839,7 @@ func (*Event_Request) ProtoMessage() {}
 
 func (x *Event_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -966,11 +948,9 @@ type Event_Response struct {
 
 func (x *Event_Response) Reset() {
 	*x = Event_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Event_Response) String() string {
@@ -981,7 +961,7 @@ func (*Event_Response) ProtoMessage() {}
 
 func (x *Event_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1123,11 +1103,9 @@ type AddEvent_Request struct {
 
 func (x *AddEvent_Request) Reset() {
 	*x = AddEvent_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[10]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddEvent_Request) String() string {
@@ -1138,7 +1116,7 @@ func (*AddEvent_Request) ProtoMessage() {}
 
 func (x *AddEvent_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[10]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1255,11 +1233,9 @@ type AddEvent_Response struct {
 
 func (x *AddEvent_Response) Reset() {
 	*x = AddEvent_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_event_proto_msgTypes[11]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_event_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddEvent_Response) String() string {
@@ -1270,7 +1246,7 @@ func (*AddEvent_Response) ProtoMessage() {}
 
 func (x *AddEvent_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_event_proto_msgTypes[11]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1539,152 +1515,6 @@ func init() { file_event_proto_init() }
 func file_event_proto_init() {
 	if File_event_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_event_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*Profile); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*Project); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*Scheme); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*Events); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*Event); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*AddEvent); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[6].Exporter = func(v any, i int) any {
-			switch v := v.(*Events_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[7].Exporter = func(v any, i int) any {
-			switch v := v.(*Events_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[8].Exporter = func(v any, i int) any {
-			switch v := v.(*Event_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[9].Exporter = func(v any, i int) any {
-			switch v := v.(*Event_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[10].Exporter = func(v any, i int) any {
-			switch v := v.(*AddEvent_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_event_proto_msgTypes[11].Exporter = func(v any, i int) any {
-			switch v := v.(*AddEvent_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	file_event_proto_msgTypes[6].OneofWrappers = []any{
 		(*Events_Request_ProfileId)(nil),

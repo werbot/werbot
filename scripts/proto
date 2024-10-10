@@ -70,10 +70,10 @@ generate_protos() {
   for entry in "${path}"/*/; do
     name=$(basename "${entry}")
     if [[ -z "$addon" ]]; then
-      print_header "Proto ${COLOR_YELLOW}${prefix}${COLOR_RESET}:${COLOR_BLUE}${name}${COLOR_RESET}"
+      print_header "${COLOR_YELLOW}${prefix}${COLOR_RESET}:${COLOR_BLUE}${name}${COLOR_RESET}"
       OTPUT=$(protogen "$prefix" "$name")
     else
-      print_header "Proto {$addon}::${COLOR_YELLOW}${prefix}${COLOR_RESET}:${COLOR_BLUE}${name}${COLOR_RESET}"
+      print_header "{$addon}::${COLOR_YELLOW}${prefix}${COLOR_RESET}:${COLOR_BLUE}${name}${COLOR_RESET}"
       OTPUT=$(protogen "$prefix" "$name" "$addon")
     fi
 

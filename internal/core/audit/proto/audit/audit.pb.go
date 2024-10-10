@@ -28,11 +28,9 @@ type ListAudits struct {
 
 func (x *ListAudits) Reset() {
 	*x = ListAudits{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ListAudits) String() string {
@@ -43,7 +41,7 @@ func (*ListAudits) ProtoMessage() {}
 
 func (x *ListAudits) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -67,11 +65,9 @@ type Audit struct {
 
 func (x *Audit) Reset() {
 	*x = Audit{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Audit) String() string {
@@ -82,7 +78,7 @@ func (*Audit) ProtoMessage() {}
 
 func (x *Audit) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -106,11 +102,9 @@ type AddAudit struct {
 
 func (x *AddAudit) Reset() {
 	*x = AddAudit{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddAudit) String() string {
@@ -121,7 +115,7 @@ func (*AddAudit) ProtoMessage() {}
 
 func (x *AddAudit) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -145,11 +139,9 @@ type UpdateAudit struct {
 
 func (x *UpdateAudit) Reset() {
 	*x = UpdateAudit{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateAudit) String() string {
@@ -160,7 +152,7 @@ func (*UpdateAudit) ProtoMessage() {}
 
 func (x *UpdateAudit) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -184,11 +176,9 @@ type DeleteAudit struct {
 
 func (x *DeleteAudit) Reset() {
 	*x = DeleteAudit{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteAudit) String() string {
@@ -199,7 +189,7 @@ func (*DeleteAudit) ProtoMessage() {}
 
 func (x *DeleteAudit) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -229,11 +219,9 @@ type Record struct {
 
 func (x *Record) Reset() {
 	*x = Record{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Record) String() string {
@@ -244,7 +232,7 @@ func (*Record) ProtoMessage() {}
 
 func (x *Record) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -303,11 +291,9 @@ type ListRecords struct {
 
 func (x *ListRecords) Reset() {
 	*x = ListRecords{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ListRecords) String() string {
@@ -318,7 +304,7 @@ func (*ListRecords) ProtoMessage() {}
 
 func (x *ListRecords) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -342,11 +328,9 @@ type AddRecord struct {
 
 func (x *AddRecord) Reset() {
 	*x = AddRecord{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddRecord) String() string {
@@ -357,7 +341,7 @@ func (*AddRecord) ProtoMessage() {}
 
 func (x *AddRecord) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -382,11 +366,9 @@ type ListAudits_Request struct {
 
 func (x *ListAudits_Request) Reset() {
 	*x = ListAudits_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ListAudits_Request) String() string {
@@ -397,7 +379,7 @@ func (*ListAudits_Request) ProtoMessage() {}
 
 func (x *ListAudits_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -430,11 +412,9 @@ type ListAudits_Response struct {
 
 func (x *ListAudits_Response) Reset() {
 	*x = ListAudits_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ListAudits_Response) String() string {
@@ -445,7 +425,7 @@ func (*ListAudits_Response) ProtoMessage() {}
 
 func (x *ListAudits_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -484,11 +464,9 @@ type Audit_Request struct {
 
 func (x *Audit_Request) Reset() {
 	*x = Audit_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[10]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Audit_Request) String() string {
@@ -499,7 +477,7 @@ func (*Audit_Request) ProtoMessage() {}
 
 func (x *Audit_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[10]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -532,11 +510,9 @@ type Audit_Response struct {
 
 func (x *Audit_Response) Reset() {
 	*x = Audit_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[11]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Audit_Response) String() string {
@@ -547,7 +523,7 @@ func (*Audit_Response) ProtoMessage() {}
 
 func (x *Audit_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[11]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -597,11 +573,9 @@ type AddAudit_Request struct {
 
 func (x *AddAudit_Request) Reset() {
 	*x = AddAudit_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[12]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddAudit_Request) String() string {
@@ -612,7 +586,7 @@ func (*AddAudit_Request) ProtoMessage() {}
 
 func (x *AddAudit_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[12]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -721,11 +695,9 @@ type AddAudit_Response struct {
 
 func (x *AddAudit_Response) Reset() {
 	*x = AddAudit_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[13]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddAudit_Response) String() string {
@@ -736,7 +708,7 @@ func (*AddAudit_Response) ProtoMessage() {}
 
 func (x *AddAudit_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[13]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -773,11 +745,9 @@ type UpdateAudit_Request struct {
 
 func (x *UpdateAudit_Request) Reset() {
 	*x = UpdateAudit_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[14]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateAudit_Request) String() string {
@@ -788,7 +758,7 @@ func (*UpdateAudit_Request) ProtoMessage() {}
 
 func (x *UpdateAudit_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[14]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -853,11 +823,9 @@ type UpdateAudit_Response struct {
 
 func (x *UpdateAudit_Response) Reset() {
 	*x = UpdateAudit_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[15]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateAudit_Response) String() string {
@@ -868,7 +836,7 @@ func (*UpdateAudit_Response) ProtoMessage() {}
 
 func (x *UpdateAudit_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[15]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -893,11 +861,9 @@ type DeleteAudit_Request struct {
 
 func (x *DeleteAudit_Request) Reset() {
 	*x = DeleteAudit_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[16]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteAudit_Request) String() string {
@@ -908,7 +874,7 @@ func (*DeleteAudit_Request) ProtoMessage() {}
 
 func (x *DeleteAudit_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[16]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -938,11 +904,9 @@ type DeleteAudit_Response struct {
 
 func (x *DeleteAudit_Response) Reset() {
 	*x = DeleteAudit_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[17]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteAudit_Response) String() string {
@@ -953,7 +917,7 @@ func (*DeleteAudit_Response) ProtoMessage() {}
 
 func (x *DeleteAudit_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[17]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -978,11 +942,9 @@ type ListRecords_Request struct {
 
 func (x *ListRecords_Request) Reset() {
 	*x = ListRecords_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[18]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ListRecords_Request) String() string {
@@ -993,7 +955,7 @@ func (*ListRecords_Request) ProtoMessage() {}
 
 func (x *ListRecords_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[18]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1025,11 +987,9 @@ type ListRecords_Response struct {
 
 func (x *ListRecords_Response) Reset() {
 	*x = ListRecords_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[19]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ListRecords_Response) String() string {
@@ -1040,7 +1000,7 @@ func (*ListRecords_Response) ProtoMessage() {}
 
 func (x *ListRecords_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[19]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1073,11 +1033,9 @@ type AddRecord_Request struct {
 
 func (x *AddRecord_Request) Reset() {
 	*x = AddRecord_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[20]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddRecord_Request) String() string {
@@ -1088,7 +1046,7 @@ func (*AddRecord_Request) ProtoMessage() {}
 
 func (x *AddRecord_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[20]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1125,11 +1083,9 @@ type AddRecord_Response struct {
 
 func (x *AddRecord_Response) Reset() {
 	*x = AddRecord_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_audit_proto_msgTypes[21]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_audit_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddRecord_Response) String() string {
@@ -1140,7 +1096,7 @@ func (*AddRecord_Response) ProtoMessage() {}
 
 func (x *AddRecord_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_audit_proto_msgTypes[21]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1363,272 +1319,6 @@ func init() { file_audit_proto_init() }
 func file_audit_proto_init() {
 	if File_audit_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_audit_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*ListAudits); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*Audit); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*AddAudit); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateAudit); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteAudit); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*Record); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[6].Exporter = func(v any, i int) any {
-			switch v := v.(*ListRecords); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[7].Exporter = func(v any, i int) any {
-			switch v := v.(*AddRecord); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[8].Exporter = func(v any, i int) any {
-			switch v := v.(*ListAudits_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[9].Exporter = func(v any, i int) any {
-			switch v := v.(*ListAudits_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[10].Exporter = func(v any, i int) any {
-			switch v := v.(*Audit_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[11].Exporter = func(v any, i int) any {
-			switch v := v.(*Audit_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[12].Exporter = func(v any, i int) any {
-			switch v := v.(*AddAudit_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[13].Exporter = func(v any, i int) any {
-			switch v := v.(*AddAudit_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[14].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateAudit_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[15].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateAudit_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[16].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteAudit_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[17].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteAudit_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[18].Exporter = func(v any, i int) any {
-			switch v := v.(*ListRecords_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[19].Exporter = func(v any, i int) any {
-			switch v := v.(*ListRecords_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[20].Exporter = func(v any, i int) any {
-			switch v := v.(*AddRecord_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_audit_proto_msgTypes[21].Exporter = func(v any, i int) any {
-			switch v := v.(*AddRecord_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

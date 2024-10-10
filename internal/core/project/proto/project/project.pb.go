@@ -29,11 +29,9 @@ type Projects struct {
 
 func (x *Projects) Reset() {
 	*x = Projects{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Projects) String() string {
@@ -44,7 +42,7 @@ func (*Projects) ProtoMessage() {}
 
 func (x *Projects) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -68,11 +66,9 @@ type Project struct {
 
 func (x *Project) Reset() {
 	*x = Project{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Project) String() string {
@@ -83,7 +79,7 @@ func (*Project) ProtoMessage() {}
 
 func (x *Project) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -107,11 +103,9 @@ type AddProject struct {
 
 func (x *AddProject) Reset() {
 	*x = AddProject{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddProject) String() string {
@@ -122,7 +116,7 @@ func (*AddProject) ProtoMessage() {}
 
 func (x *AddProject) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -146,11 +140,9 @@ type UpdateProject struct {
 
 func (x *UpdateProject) Reset() {
 	*x = UpdateProject{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateProject) String() string {
@@ -161,7 +153,7 @@ func (*UpdateProject) ProtoMessage() {}
 
 func (x *UpdateProject) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -185,11 +177,9 @@ type DeleteProject struct {
 
 func (x *DeleteProject) Reset() {
 	*x = DeleteProject{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteProject) String() string {
@@ -200,7 +190,7 @@ func (*DeleteProject) ProtoMessage() {}
 
 func (x *DeleteProject) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -224,11 +214,9 @@ type ProjectKeys struct {
 
 func (x *ProjectKeys) Reset() {
 	*x = ProjectKeys{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ProjectKeys) String() string {
@@ -239,7 +227,7 @@ func (*ProjectKeys) ProtoMessage() {}
 
 func (x *ProjectKeys) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -263,11 +251,9 @@ type ProjectKey struct {
 
 func (x *ProjectKey) Reset() {
 	*x = ProjectKey{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ProjectKey) String() string {
@@ -278,7 +264,7 @@ func (*ProjectKey) ProtoMessage() {}
 
 func (x *ProjectKey) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -302,11 +288,9 @@ type AddProjectKey struct {
 
 func (x *AddProjectKey) Reset() {
 	*x = AddProjectKey{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddProjectKey) String() string {
@@ -317,7 +301,7 @@ func (*AddProjectKey) ProtoMessage() {}
 
 func (x *AddProjectKey) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -341,11 +325,9 @@ type DeleteProjectKey struct {
 
 func (x *DeleteProjectKey) Reset() {
 	*x = DeleteProjectKey{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteProjectKey) String() string {
@@ -356,7 +338,7 @@ func (*DeleteProjectKey) ProtoMessage() {}
 
 func (x *DeleteProjectKey) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -385,11 +367,9 @@ type Projects_Request struct {
 
 func (x *Projects_Request) Reset() {
 	*x = Projects_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Projects_Request) String() string {
@@ -400,7 +380,7 @@ func (*Projects_Request) ProtoMessage() {}
 
 func (x *Projects_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -461,11 +441,9 @@ type Projects_Response struct {
 
 func (x *Projects_Response) Reset() {
 	*x = Projects_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[10]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Projects_Response) String() string {
@@ -476,7 +454,7 @@ func (*Projects_Response) ProtoMessage() {}
 
 func (x *Projects_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[10]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -517,11 +495,9 @@ type Project_Request struct {
 
 func (x *Project_Request) Reset() {
 	*x = Project_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[11]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Project_Request) String() string {
@@ -532,7 +508,7 @@ func (*Project_Request) ProtoMessage() {}
 
 func (x *Project_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[11]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -592,11 +568,9 @@ type Project_Response struct {
 
 func (x *Project_Response) Reset() {
 	*x = Project_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[12]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Project_Response) String() string {
@@ -607,7 +581,7 @@ func (*Project_Response) ProtoMessage() {}
 
 func (x *Project_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[12]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -739,11 +713,9 @@ type AddProject_Request struct {
 
 func (x *AddProject_Request) Reset() {
 	*x = AddProject_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[13]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddProject_Request) String() string {
@@ -754,7 +726,7 @@ func (*AddProject_Request) ProtoMessage() {}
 
 func (x *AddProject_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[13]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -800,11 +772,9 @@ type AddProject_Response struct {
 
 func (x *AddProject_Response) Reset() {
 	*x = AddProject_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[14]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddProject_Response) String() string {
@@ -815,7 +785,7 @@ func (*AddProject_Response) ProtoMessage() {}
 
 func (x *AddProject_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[14]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -854,11 +824,9 @@ type UpdateProject_Request struct {
 
 func (x *UpdateProject_Request) Reset() {
 	*x = UpdateProject_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[15]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateProject_Request) String() string {
@@ -869,7 +837,7 @@ func (*UpdateProject_Request) ProtoMessage() {}
 
 func (x *UpdateProject_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[15]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -950,11 +918,9 @@ type UpdateProject_Response struct {
 
 func (x *UpdateProject_Response) Reset() {
 	*x = UpdateProject_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[16]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UpdateProject_Response) String() string {
@@ -965,7 +931,7 @@ func (*UpdateProject_Response) ProtoMessage() {}
 
 func (x *UpdateProject_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[16]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -991,11 +957,9 @@ type DeleteProject_Request struct {
 
 func (x *DeleteProject_Request) Reset() {
 	*x = DeleteProject_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[17]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteProject_Request) String() string {
@@ -1006,7 +970,7 @@ func (*DeleteProject_Request) ProtoMessage() {}
 
 func (x *DeleteProject_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[17]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1043,11 +1007,9 @@ type DeleteProject_Response struct {
 
 func (x *DeleteProject_Response) Reset() {
 	*x = DeleteProject_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[18]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteProject_Response) String() string {
@@ -1058,7 +1020,7 @@ func (*DeleteProject_Response) ProtoMessage() {}
 
 func (x *DeleteProject_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[18]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1088,11 +1050,9 @@ type ProjectKeys_Request struct {
 
 func (x *ProjectKeys_Request) Reset() {
 	*x = ProjectKeys_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[19]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ProjectKeys_Request) String() string {
@@ -1103,7 +1063,7 @@ func (*ProjectKeys_Request) ProtoMessage() {}
 
 func (x *ProjectKeys_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[19]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1171,11 +1131,9 @@ type ProjectKeys_Response struct {
 
 func (x *ProjectKeys_Response) Reset() {
 	*x = ProjectKeys_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[20]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ProjectKeys_Response) String() string {
@@ -1186,7 +1144,7 @@ func (*ProjectKeys_Response) ProtoMessage() {}
 
 func (x *ProjectKeys_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[20]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1229,11 +1187,9 @@ type ProjectKey_Request struct {
 
 func (x *ProjectKey_Request) Reset() {
 	*x = ProjectKey_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[21]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ProjectKey_Request) String() string {
@@ -1244,7 +1200,7 @@ func (*ProjectKey_Request) ProtoMessage() {}
 
 func (x *ProjectKey_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[21]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1306,11 +1262,9 @@ type ProjectKey_Public struct {
 
 func (x *ProjectKey_Public) Reset() {
 	*x = ProjectKey_Public{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[22]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ProjectKey_Public) String() string {
@@ -1321,7 +1275,7 @@ func (*ProjectKey_Public) ProtoMessage() {}
 
 func (x *ProjectKey_Public) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[22]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1356,11 +1310,9 @@ type ProjectKey_Private struct {
 
 func (x *ProjectKey_Private) Reset() {
 	*x = ProjectKey_Private{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[23]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ProjectKey_Private) String() string {
@@ -1371,7 +1323,7 @@ func (*ProjectKey_Private) ProtoMessage() {}
 
 func (x *ProjectKey_Private) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[23]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1432,11 +1384,9 @@ type ProjectKey_Response struct {
 
 func (x *ProjectKey_Response) Reset() {
 	*x = ProjectKey_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[24]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ProjectKey_Response) String() string {
@@ -1447,7 +1397,7 @@ func (*ProjectKey_Response) ProtoMessage() {}
 
 func (x *ProjectKey_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[24]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1536,11 +1486,9 @@ type AddProjectKey_Request struct {
 
 func (x *AddProjectKey_Request) Reset() {
 	*x = AddProjectKey_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[25]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddProjectKey_Request) String() string {
@@ -1551,7 +1499,7 @@ func (*AddProjectKey_Request) ProtoMessage() {}
 
 func (x *AddProjectKey_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[25]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1591,11 +1539,9 @@ type AddProjectKey_Response struct {
 
 func (x *AddProjectKey_Response) Reset() {
 	*x = AddProjectKey_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[26]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddProjectKey_Response) String() string {
@@ -1606,7 +1552,7 @@ func (*AddProjectKey_Response) ProtoMessage() {}
 
 func (x *AddProjectKey_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[26]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1647,11 +1593,9 @@ type DeleteProjectKey_Request struct {
 
 func (x *DeleteProjectKey_Request) Reset() {
 	*x = DeleteProjectKey_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[27]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteProjectKey_Request) String() string {
@@ -1662,7 +1606,7 @@ func (*DeleteProjectKey_Request) ProtoMessage() {}
 
 func (x *DeleteProjectKey_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[27]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1706,11 +1650,9 @@ type DeleteProjectKey_Response struct {
 
 func (x *DeleteProjectKey_Response) Reset() {
 	*x = DeleteProjectKey_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_project_proto_msgTypes[28]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_project_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DeleteProjectKey_Response) String() string {
@@ -1721,7 +1663,7 @@ func (*DeleteProjectKey_Response) ProtoMessage() {}
 
 func (x *DeleteProjectKey_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_project_proto_msgTypes[28]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -2072,356 +2014,6 @@ func init() { file_project_proto_init() }
 func file_project_proto_init() {
 	if File_project_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_project_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*Projects); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*Project); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*AddProject); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateProject); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteProject); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*ProjectKeys); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[6].Exporter = func(v any, i int) any {
-			switch v := v.(*ProjectKey); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[7].Exporter = func(v any, i int) any {
-			switch v := v.(*AddProjectKey); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[8].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteProjectKey); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[9].Exporter = func(v any, i int) any {
-			switch v := v.(*Projects_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[10].Exporter = func(v any, i int) any {
-			switch v := v.(*Projects_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[11].Exporter = func(v any, i int) any {
-			switch v := v.(*Project_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[12].Exporter = func(v any, i int) any {
-			switch v := v.(*Project_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[13].Exporter = func(v any, i int) any {
-			switch v := v.(*AddProject_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[14].Exporter = func(v any, i int) any {
-			switch v := v.(*AddProject_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[15].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateProject_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[16].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateProject_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[17].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteProject_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[18].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteProject_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[19].Exporter = func(v any, i int) any {
-			switch v := v.(*ProjectKeys_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[20].Exporter = func(v any, i int) any {
-			switch v := v.(*ProjectKeys_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[21].Exporter = func(v any, i int) any {
-			switch v := v.(*ProjectKey_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[22].Exporter = func(v any, i int) any {
-			switch v := v.(*ProjectKey_Public); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[23].Exporter = func(v any, i int) any {
-			switch v := v.(*ProjectKey_Private); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[24].Exporter = func(v any, i int) any {
-			switch v := v.(*ProjectKey_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[25].Exporter = func(v any, i int) any {
-			switch v := v.(*AddProjectKey_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[26].Exporter = func(v any, i int) any {
-			switch v := v.(*AddProjectKey_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[27].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteProjectKey_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_project_proto_msgTypes[28].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteProjectKey_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	file_project_proto_msgTypes[15].OneofWrappers = []any{
 		(*UpdateProject_Request_Alias)(nil),

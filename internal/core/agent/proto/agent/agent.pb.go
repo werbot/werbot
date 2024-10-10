@@ -27,11 +27,9 @@ type Auth struct {
 
 func (x *Auth) Reset() {
 	*x = Auth{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_agent_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_agent_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Auth) String() string {
@@ -42,7 +40,7 @@ func (*Auth) ProtoMessage() {}
 
 func (x *Auth) ProtoReflect() protoreflect.Message {
 	mi := &file_agent_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -66,11 +64,9 @@ type AddScheme struct {
 
 func (x *AddScheme) Reset() {
 	*x = AddScheme{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_agent_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_agent_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddScheme) String() string {
@@ -81,7 +77,7 @@ func (*AddScheme) ProtoMessage() {}
 
 func (x *AddScheme) ProtoReflect() protoreflect.Message {
 	mi := &file_agent_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -106,11 +102,9 @@ type Auth_Request struct {
 
 func (x *Auth_Request) Reset() {
 	*x = Auth_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_agent_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_agent_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Auth_Request) String() string {
@@ -121,7 +115,7 @@ func (*Auth_Request) ProtoMessage() {}
 
 func (x *Auth_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_agent_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -155,11 +149,9 @@ type Auth_Response struct {
 
 func (x *Auth_Response) Reset() {
 	*x = Auth_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_agent_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_agent_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Auth_Response) String() string {
@@ -170,7 +162,7 @@ func (*Auth_Response) ProtoMessage() {}
 
 func (x *Auth_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_agent_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -220,11 +212,9 @@ type AddScheme_Request struct {
 
 func (x *AddScheme_Request) Reset() {
 	*x = AddScheme_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_agent_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_agent_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddScheme_Request) String() string {
@@ -235,7 +225,7 @@ func (*AddScheme_Request) ProtoMessage() {}
 
 func (x *AddScheme_Request) ProtoReflect() protoreflect.Message {
 	mi := &file_agent_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -296,11 +286,9 @@ type AddScheme_Response struct {
 
 func (x *AddScheme_Response) Reset() {
 	*x = AddScheme_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_agent_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_agent_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddScheme_Response) String() string {
@@ -311,7 +299,7 @@ func (*AddScheme_Response) ProtoMessage() {}
 
 func (x *AddScheme_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_agent_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -433,80 +421,6 @@ func init() { file_agent_proto_init() }
 func file_agent_proto_init() {
 	if File_agent_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_agent_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*Auth); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_agent_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*AddScheme); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_agent_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*Auth_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_agent_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*Auth_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_agent_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*AddScheme_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_agent_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*AddScheme_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

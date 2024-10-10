@@ -4,6 +4,7 @@ package account;
 
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
+import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
 import "internal/core/user/proto/user/user.proto";
 
 option go_package = "github.com/werbot/werbot/internal/core/account/proto/account";
@@ -54,7 +55,7 @@ message SignIn {
       },
       (buf.validate.field).required = true
     ];
-    string password = 2 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (buf.validate.field).required = true];
+    string password = 2 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (buf.validate.field).required = true, (ghoster.secret) = true];
   }
 
   message Response {}
@@ -95,7 +96,7 @@ message ResetPassword {
   }
 
   message Password {
-    string password = 1 [(buf.validate.field).string = { min_len: 8 max_len: 32 }];
+    string password = 1 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (ghoster.secret) = true];
     string token = 2 [(buf.validate.field).string.uuid = true];
   }
 }

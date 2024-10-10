@@ -253,6 +253,7 @@ func (h *Handler) updatePassword(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
+	// Log the event
 	ghoster.Secrets(msg, false)
 	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetUserId(), event.ProfileProfile, event.OnUpdate, msg)
 

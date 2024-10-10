@@ -7,6 +7,7 @@ import (
 	"github.com/werbot/werbot/internal/event"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
+	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
@@ -110,6 +111,7 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 	}
 
 	// Log the event
+	ghoster.Secrets(request, false)
 	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetUserId(), event.ProfileSSHKey, event.OnCreate, request)
 
 	return webutil.StatusOK(c, "Key added", result)
@@ -141,6 +143,7 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 	}
 
 	// Log the event
+	ghoster.Secrets(request, false)
 	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetUserId(), event.ProfileSSHKey, event.OnEdit, request)
 
 	return webutil.StatusOK(c, "Key updated", nil)
@@ -168,6 +171,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 	}
 
 	// Log the event
+	ghoster.Secrets(request, false)
 	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetUserId(), event.ProfileSSHKey, event.OnRemove, request)
 
 	return webutil.StatusOK(c, "Key removed", nil)
