@@ -133,10 +133,10 @@ func TestHandler_logout(t *testing.T) {
 	app, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
-	adminAuth := app.GetUserAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	adminAuth := app.GetProfileAuth(test.ConstAdminEmail, test.ConstAdminPassword)
 	adminHeader := test.HeadersTable{"Authorization": "Bearer " + adminAuth.Tokens.Access}
 
-	userAuth := app.GetUserAuth(test.ConstUserEmail, test.ConstUserPassword)
+	userAuth := app.GetProfileAuth(test.ConstUserEmail, test.ConstUserPassword)
 	userHeader := test.HeadersTable{"Authorization": "Bearer " + userAuth.Tokens.Access}
 
 	testTable := []test.APITable{
@@ -186,7 +186,7 @@ func TestHandler_refresh(t *testing.T) {
 	app, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
-	adminAuth := app.GetUserAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	adminAuth := app.GetProfileAuth(test.ConstAdminEmail, test.ConstAdminPassword)
 	adminHeader := test.HeadersTable{"Authorization": "Bearer " + adminAuth.Tokens.Access}
 
 	testTable := []test.APITable{

@@ -32,11 +32,11 @@ import (
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_type} [get]
 func (h *Handler) schemes(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	pagination := webutil.GetPaginationFromCtx(c)
 	request := &schemepb.Schemes_Request{
-		IsAdmin:    sessionData.IsUserAdmin(),
-		OwnerId:    sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:    sessionData.IsProfileAdmin(),
+		OwnerId:    sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId:  c.Params("project_id"),
 		SchemeType: schemeaccesspb.SchemeType(schemeaccesspb.SchemeType_value[c.Params("scheme_type")]),
 		Limit:      pagination.Limit,
@@ -73,10 +73,10 @@ func (h *Handler) schemes(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_id} [get]
 func (h *Handler) scheme(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.Scheme_Request{
-		IsAdmin:   sessionData.IsUserAdmin(),
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		SchemeId:  c.Params("scheme_id"),
 	}
@@ -107,9 +107,9 @@ func (h *Handler) scheme(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme} [post]
 func (h *Handler) addScheme(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.AddScheme_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 	}
 
@@ -145,9 +145,9 @@ func (h *Handler) addScheme(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id} [put]
 func (h *Handler) updateScheme(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.UpdateScheme_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		SchemeId:  c.Params("scheme_id"),
 	}
@@ -191,9 +191,9 @@ func (h *Handler) updateScheme(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_id} [delete]
 func (h *Handler) deleteScheme(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.DeleteScheme_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		SchemeId:  c.Params("scheme_id"),
 	}
@@ -222,9 +222,9 @@ func (h *Handler) deleteScheme(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_id}/access [get]
 func (h *Handler) schemeAccess(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.SchemeAccess_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		SchemeId:  c.Params("scheme_id"),
 	}
@@ -256,9 +256,9 @@ func (h *Handler) schemeAccess(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_id}/activity/{timestamp} [get]
 func (h *Handler) schemeActivity(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.SchemeActivity_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		SchemeId:  c.Params("scheme_id"),
 	}
@@ -303,9 +303,9 @@ func (h *Handler) schemeActivity(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_id}/activity [put]
 func (h *Handler) updateSchemeActivity(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.UpdateSchemeActivity_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		SchemeId:  c.Params("scheme_id"),
 	}
@@ -336,9 +336,9 @@ func (h *Handler) updateSchemeActivity(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_id}/firewall [get]
 func (h *Handler) schemeFirewall(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.SchemeFirewall_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		SchemeId:  c.Params("scheme_id"),
 	}
@@ -369,9 +369,9 @@ func (h *Handler) schemeFirewall(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_id}/firewall [post]
 func (h *Handler) addSchemeFirewall(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.AddSchemeFirewall_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		SchemeId:  c.Params("scheme_id"),
 	}
@@ -418,9 +418,9 @@ func (h *Handler) addSchemeFirewall(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_id}/firewall [put]
 func (h *Handler) updateSchemeFirewall(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.UpdateSchemeFirewall_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		SchemeId:  c.Params("scheme_id"),
 	}
@@ -453,9 +453,9 @@ func (h *Handler) updateSchemeFirewall(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_id}/firewalls/{firewall_type}/{firewall_id} [delete]
 func (h *Handler) deleteSchemeFirewall(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &schemepb.DeleteSchemeFirewall_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		SchemeId:  c.Params("scheme_id"),
 	}

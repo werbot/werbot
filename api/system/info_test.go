@@ -66,20 +66,20 @@ func TestHandler_info(t *testing.T) {
 		{ // ADMIN: request with show global information
 			Name:       "test1_02",
 			Method:     http.MethodGet,
-			Path:       pathSystemInfo + "?user_id=" + test.ConstFakeID,
+			Path:       pathSystemInfo + "?profile_id=" + test.ConstFakeID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":            float64(200),
 				"message":         "Short",
-				"result.users":    float64(22),
+				"result.profiles": float64(22),
 				"result.projects": float64(51),
 				"result.schemes":  float64(147),
 			}, RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with user UUID
+		{ // ADMIN: request with profile UUID
 			Name:       "test1_03",
 			Method:     http.MethodGet,
-			Path:       pathSystemInfo + "?user_id=" + test.ConstUserID,
+			Path:       pathSystemInfo + "?profile_id=" + test.ConstUserID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":            float64(200),
@@ -101,10 +101,10 @@ func TestHandler_info(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request without parameters with fake user UUID
+		{ // USER: request without parameters with fake profile UUID
 			Name:       "test2_02",
 			Method:     http.MethodGet,
-			Path:       pathSystemInfo + "?user_id=" + test.ConstFakeID,
+			Path:       pathSystemInfo + "?profile_id=" + test.ConstFakeID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":            float64(200),

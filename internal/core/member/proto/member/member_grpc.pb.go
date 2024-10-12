@@ -16,22 +16,22 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MemberHandlers_ProjectMembers_FullMethodName       = "/member.MemberHandlers/ProjectMembers"
-	MemberHandlers_ProjectMember_FullMethodName        = "/member.MemberHandlers/ProjectMember"
-	MemberHandlers_AddProjectMember_FullMethodName     = "/member.MemberHandlers/AddProjectMember"
-	MemberHandlers_UpdateProjectMember_FullMethodName  = "/member.MemberHandlers/UpdateProjectMember"
-	MemberHandlers_DeleteProjectMember_FullMethodName  = "/member.MemberHandlers/DeleteProjectMember"
-	MemberHandlers_UsersWithoutProject_FullMethodName  = "/member.MemberHandlers/UsersWithoutProject"
-	MemberHandlers_MembersInvite_FullMethodName        = "/member.MemberHandlers/MembersInvite"
-	MemberHandlers_AddMemberInvite_FullMethodName      = "/member.MemberHandlers/AddMemberInvite"
-	MemberHandlers_DeleteMemberInvite_FullMethodName   = "/member.MemberHandlers/DeleteMemberInvite"
-	MemberHandlers_MemberInviteActivate_FullMethodName = "/member.MemberHandlers/MemberInviteActivate"
-	MemberHandlers_SchemeMembers_FullMethodName        = "/member.MemberHandlers/SchemeMembers"
-	MemberHandlers_SchemeMember_FullMethodName         = "/member.MemberHandlers/SchemeMember"
-	MemberHandlers_AddSchemeMember_FullMethodName      = "/member.MemberHandlers/AddSchemeMember"
-	MemberHandlers_UpdateSchemeMember_FullMethodName   = "/member.MemberHandlers/UpdateSchemeMember"
-	MemberHandlers_DeleteSchemeMember_FullMethodName   = "/member.MemberHandlers/DeleteSchemeMember"
-	MemberHandlers_MembersWithoutScheme_FullMethodName = "/member.MemberHandlers/MembersWithoutScheme"
+	MemberHandlers_ProjectMembers_FullMethodName         = "/member.MemberHandlers/ProjectMembers"
+	MemberHandlers_ProjectMember_FullMethodName          = "/member.MemberHandlers/ProjectMember"
+	MemberHandlers_AddProjectMember_FullMethodName       = "/member.MemberHandlers/AddProjectMember"
+	MemberHandlers_UpdateProjectMember_FullMethodName    = "/member.MemberHandlers/UpdateProjectMember"
+	MemberHandlers_DeleteProjectMember_FullMethodName    = "/member.MemberHandlers/DeleteProjectMember"
+	MemberHandlers_ProfilesWithoutProject_FullMethodName = "/member.MemberHandlers/ProfilesWithoutProject"
+	MemberHandlers_MembersInvite_FullMethodName          = "/member.MemberHandlers/MembersInvite"
+	MemberHandlers_AddMemberInvite_FullMethodName        = "/member.MemberHandlers/AddMemberInvite"
+	MemberHandlers_DeleteMemberInvite_FullMethodName     = "/member.MemberHandlers/DeleteMemberInvite"
+	MemberHandlers_MemberInviteActivate_FullMethodName   = "/member.MemberHandlers/MemberInviteActivate"
+	MemberHandlers_SchemeMembers_FullMethodName          = "/member.MemberHandlers/SchemeMembers"
+	MemberHandlers_SchemeMember_FullMethodName           = "/member.MemberHandlers/SchemeMember"
+	MemberHandlers_AddSchemeMember_FullMethodName        = "/member.MemberHandlers/AddSchemeMember"
+	MemberHandlers_UpdateSchemeMember_FullMethodName     = "/member.MemberHandlers/UpdateSchemeMember"
+	MemberHandlers_DeleteSchemeMember_FullMethodName     = "/member.MemberHandlers/DeleteSchemeMember"
+	MemberHandlers_MembersWithoutScheme_FullMethodName   = "/member.MemberHandlers/MembersWithoutScheme"
 )
 
 // MemberHandlersClient is the client API for MemberHandlers service.
@@ -45,7 +45,7 @@ type MemberHandlersClient interface {
 	UpdateProjectMember(ctx context.Context, in *UpdateProjectMember_Request, opts ...grpc.CallOption) (*UpdateProjectMember_Response, error)
 	DeleteProjectMember(ctx context.Context, in *DeleteProjectMember_Request, opts ...grpc.CallOption) (*DeleteProjectMember_Response, error)
 	// Used in finding and adding a new member to the project
-	UsersWithoutProject(ctx context.Context, in *UsersWithoutProject_Request, opts ...grpc.CallOption) (*UsersWithoutProject_Response, error)
+	ProfilesWithoutProject(ctx context.Context, in *ProfilesWithoutProject_Request, opts ...grpc.CallOption) (*ProfilesWithoutProject_Response, error)
 	// Invite section
 	// TODO migrate to new invite component
 	MembersInvite(ctx context.Context, in *MembersInvite_Request, opts ...grpc.CallOption) (*MembersInvite_Response, error)
@@ -120,10 +120,10 @@ func (c *memberHandlersClient) DeleteProjectMember(ctx context.Context, in *Dele
 	return out, nil
 }
 
-func (c *memberHandlersClient) UsersWithoutProject(ctx context.Context, in *UsersWithoutProject_Request, opts ...grpc.CallOption) (*UsersWithoutProject_Response, error) {
+func (c *memberHandlersClient) ProfilesWithoutProject(ctx context.Context, in *ProfilesWithoutProject_Request, opts ...grpc.CallOption) (*ProfilesWithoutProject_Response, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UsersWithoutProject_Response)
-	err := c.cc.Invoke(ctx, MemberHandlers_UsersWithoutProject_FullMethodName, in, out, cOpts...)
+	out := new(ProfilesWithoutProject_Response)
+	err := c.cc.Invoke(ctx, MemberHandlers_ProfilesWithoutProject_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +241,7 @@ type MemberHandlersServer interface {
 	UpdateProjectMember(context.Context, *UpdateProjectMember_Request) (*UpdateProjectMember_Response, error)
 	DeleteProjectMember(context.Context, *DeleteProjectMember_Request) (*DeleteProjectMember_Response, error)
 	// Used in finding and adding a new member to the project
-	UsersWithoutProject(context.Context, *UsersWithoutProject_Request) (*UsersWithoutProject_Response, error)
+	ProfilesWithoutProject(context.Context, *ProfilesWithoutProject_Request) (*ProfilesWithoutProject_Response, error)
 	// Invite section
 	// TODO migrate to new invite component
 	MembersInvite(context.Context, *MembersInvite_Request) (*MembersInvite_Response, error)
@@ -281,8 +281,8 @@ func (UnimplementedMemberHandlersServer) UpdateProjectMember(context.Context, *U
 func (UnimplementedMemberHandlersServer) DeleteProjectMember(context.Context, *DeleteProjectMember_Request) (*DeleteProjectMember_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteProjectMember not implemented")
 }
-func (UnimplementedMemberHandlersServer) UsersWithoutProject(context.Context, *UsersWithoutProject_Request) (*UsersWithoutProject_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UsersWithoutProject not implemented")
+func (UnimplementedMemberHandlersServer) ProfilesWithoutProject(context.Context, *ProfilesWithoutProject_Request) (*ProfilesWithoutProject_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProfilesWithoutProject not implemented")
 }
 func (UnimplementedMemberHandlersServer) MembersInvite(context.Context, *MembersInvite_Request) (*MembersInvite_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MembersInvite not implemented")
@@ -425,20 +425,20 @@ func _MemberHandlers_DeleteProjectMember_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MemberHandlers_UsersWithoutProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UsersWithoutProject_Request)
+func _MemberHandlers_ProfilesWithoutProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProfilesWithoutProject_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MemberHandlersServer).UsersWithoutProject(ctx, in)
+		return srv.(MemberHandlersServer).ProfilesWithoutProject(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: MemberHandlers_UsersWithoutProject_FullMethodName,
+		FullMethod: MemberHandlers_ProfilesWithoutProject_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).UsersWithoutProject(ctx, req.(*UsersWithoutProject_Request))
+		return srv.(MemberHandlersServer).ProfilesWithoutProject(ctx, req.(*ProfilesWithoutProject_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -651,8 +651,8 @@ var MemberHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MemberHandlers_DeleteProjectMember_Handler,
 		},
 		{
-			MethodName: "UsersWithoutProject",
-			Handler:    _MemberHandlers_UsersWithoutProject_Handler,
+			MethodName: "ProfilesWithoutProject",
+			Handler:    _MemberHandlers_ProfilesWithoutProject_Handler,
 		},
 		{
 			MethodName: "MembersInvite",

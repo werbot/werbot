@@ -16,16 +16,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SystemHandlers_UserMetrics_FullMethodName = "/system.SystemHandlers/UserMetrics"
-	SystemHandlers_Countries_FullMethodName   = "/system.SystemHandlers/Countries"
-	SystemHandlers_CountryByIP_FullMethodName = "/system.SystemHandlers/CountryByIP"
+	SystemHandlers_ProfileMetrics_FullMethodName = "/system.SystemHandlers/ProfileMetrics"
+	SystemHandlers_Countries_FullMethodName      = "/system.SystemHandlers/Countries"
+	SystemHandlers_CountryByIP_FullMethodName    = "/system.SystemHandlers/CountryByIP"
 )
 
 // SystemHandlersClient is the client API for SystemHandlers service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SystemHandlersClient interface {
-	UserMetrics(ctx context.Context, in *UserMetrics_Request, opts ...grpc.CallOption) (*UserMetrics_Response, error)
+	ProfileMetrics(ctx context.Context, in *ProfileMetrics_Request, opts ...grpc.CallOption) (*ProfileMetrics_Response, error)
 	Countries(ctx context.Context, in *Countries_Request, opts ...grpc.CallOption) (*Countries_Response, error)
 	CountryByIP(ctx context.Context, in *CountryByIP_Request, opts ...grpc.CallOption) (*CountryByIP_Response, error)
 }
@@ -38,10 +38,10 @@ func NewSystemHandlersClient(cc grpc.ClientConnInterface) SystemHandlersClient {
 	return &systemHandlersClient{cc}
 }
 
-func (c *systemHandlersClient) UserMetrics(ctx context.Context, in *UserMetrics_Request, opts ...grpc.CallOption) (*UserMetrics_Response, error) {
+func (c *systemHandlersClient) ProfileMetrics(ctx context.Context, in *ProfileMetrics_Request, opts ...grpc.CallOption) (*ProfileMetrics_Response, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UserMetrics_Response)
-	err := c.cc.Invoke(ctx, SystemHandlers_UserMetrics_FullMethodName, in, out, cOpts...)
+	out := new(ProfileMetrics_Response)
+	err := c.cc.Invoke(ctx, SystemHandlers_ProfileMetrics_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (c *systemHandlersClient) CountryByIP(ctx context.Context, in *CountryByIP_
 // All implementations must embed UnimplementedSystemHandlersServer
 // for forward compatibility.
 type SystemHandlersServer interface {
-	UserMetrics(context.Context, *UserMetrics_Request) (*UserMetrics_Response, error)
+	ProfileMetrics(context.Context, *ProfileMetrics_Request) (*ProfileMetrics_Response, error)
 	Countries(context.Context, *Countries_Request) (*Countries_Response, error)
 	CountryByIP(context.Context, *CountryByIP_Request) (*CountryByIP_Response, error)
 	mustEmbedUnimplementedSystemHandlersServer()
@@ -85,8 +85,8 @@ type SystemHandlersServer interface {
 // pointer dereference when methods are called.
 type UnimplementedSystemHandlersServer struct{}
 
-func (UnimplementedSystemHandlersServer) UserMetrics(context.Context, *UserMetrics_Request) (*UserMetrics_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UserMetrics not implemented")
+func (UnimplementedSystemHandlersServer) ProfileMetrics(context.Context, *ProfileMetrics_Request) (*ProfileMetrics_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProfileMetrics not implemented")
 }
 func (UnimplementedSystemHandlersServer) Countries(context.Context, *Countries_Request) (*Countries_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Countries not implemented")
@@ -115,20 +115,20 @@ func RegisterSystemHandlersServer(s grpc.ServiceRegistrar, srv SystemHandlersSer
 	s.RegisterService(&SystemHandlers_ServiceDesc, srv)
 }
 
-func _SystemHandlers_UserMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserMetrics_Request)
+func _SystemHandlers_ProfileMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProfileMetrics_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SystemHandlersServer).UserMetrics(ctx, in)
+		return srv.(SystemHandlersServer).ProfileMetrics(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SystemHandlers_UserMetrics_FullMethodName,
+		FullMethod: SystemHandlers_ProfileMetrics_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SystemHandlersServer).UserMetrics(ctx, req.(*UserMetrics_Request))
+		return srv.(SystemHandlersServer).ProfileMetrics(ctx, req.(*ProfileMetrics_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -177,8 +177,8 @@ var SystemHandlers_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*SystemHandlersServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "UserMetrics",
-			Handler:    _SystemHandlers_UserMetrics_Handler,
+			MethodName: "ProfileMetrics",
+			Handler:    _SystemHandlers_ProfileMetrics_Handler,
 		},
 		{
 			MethodName: "Countries",

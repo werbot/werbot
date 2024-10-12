@@ -19,7 +19,7 @@ func TestHandler_projects(t *testing.T) {
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
-		{ // ADMIN: request with user UUID
+		{ // ADMIN: request with profile UUID
 			Name:       "test1_01",
 			Method:     http.MethodGet,
 			Path:       pathProjects + "?owner_id=" + test.ConstUserID,
@@ -31,7 +31,7 @@ func TestHandler_projects(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with fake user UUID
+		{ // ADMIN: request with fake profile UUID
 			Name:           "test1_02",
 			Method:         http.MethodGet,
 			Path:           pathProjects + "?owner_id=" + test.ConstFakeID,
@@ -80,7 +80,7 @@ func TestHandler_projects(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with user UUID
+		{ // USER: request with profile UUID
 			Name:       "test2_02",
 			Method:     http.MethodGet,
 			Path:       pathProjects + "?owner_id=" + test.ConstAdminID,

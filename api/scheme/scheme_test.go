@@ -135,7 +135,7 @@ func TestHandler_schemes(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with fake user UUID
+		{ // ADMIN: default request with fake profile UUID
 			Name:       "test1_11",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server") + "?owner_id=" + test.ConstFakeID,
@@ -147,7 +147,7 @@ func TestHandler_schemes(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with the project does not belong user UUID
+		{ // ADMIN: default request with the project does not belong profile UUID
 			Name:       "test1_12",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server") + "?owner_id=" + test.ConstUserID,
@@ -159,7 +159,7 @@ func TestHandler_schemes(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with the project does belong user UUID
+		{ // ADMIN: default request with the project does belong profile UUID
 			Name:       "test1_13",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server") + "?owner_id=" + test.ConstUserID,
@@ -171,7 +171,7 @@ func TestHandler_schemes(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with the project does belong user UUID with pagination
+		{ // ADMIN: default request with the project does belong profile UUID with pagination
 			Name:       "test1_14",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server") + "?limit=2&offset=0&owner_id=" + test.ConstUserID,
@@ -216,7 +216,7 @@ func TestHandler_schemes(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: default request with fake user UUID
+		{ // USER: default request with fake profile UUID
 			Name:       "test2_04",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server") + "?owner_id=" + test.ConstFakeID,
@@ -228,7 +228,7 @@ func TestHandler_schemes(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: default request with the team does belong user UUID
+		{ // USER: default request with the team does belong profile UUID
 			Name:       "test2_05",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server") + "?owner_id=" + test.ConstAdminID,
@@ -293,7 +293,7 @@ func TestHandler_scheme(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with the server does not belong user UUID
+		{ // ADMIN: default request with the server does not belong profile UUID
 			Name:           "test1_04",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID),
@@ -301,7 +301,7 @@ func TestHandler_scheme(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with the project does not belong user UUID
+		{ // ADMIN: default request with the project does not belong profile UUID
 			Name:           "test1_05",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID),
@@ -309,7 +309,7 @@ func TestHandler_scheme(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with the project does belong user UUID
+		{ // ADMIN: default request with the project does belong profile UUID
 			Name:       "test1_06",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
@@ -365,7 +365,7 @@ func TestHandler_scheme(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: default request with the scheme does not belong user UUID
+		{ // USER: default request with the scheme does not belong profile UUID
 			Name:           "test2_04",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID),
@@ -373,7 +373,7 @@ func TestHandler_scheme(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
 		},
-		{ // USER: default request with the project does not belong user UUID
+		{ // USER: default request with the project does not belong profile UUID
 			Name:           "test2_05",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
@@ -381,7 +381,7 @@ func TestHandler_scheme(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
 		},
-		{ // USER: default request with the project does belong user UUID
+		{ // USER: default request with the project does belong profile UUID
 			Name:           "test2_06",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
@@ -716,7 +716,7 @@ func TestHandler_addScheme(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with the project does not belong user UUID
+		{ // ADMIN: default request with the project does not belong profile UUID
 			Name:        "test1_14",
 			Method:      http.MethodPost,
 			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server"),
@@ -729,7 +729,7 @@ func TestHandler_addScheme(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with the project does belong user UUID
+		{ // ADMIN: default request with the project does belong profile UUID
 			Name:       "test1_15",
 			Method:     http.MethodPost,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server") + "?owner_id=" + test.ConstUserID,
@@ -884,7 +884,7 @@ func TestHandler_addScheme(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: default request with the project does not belong user UUID
+		{ // USER: default request with the project does not belong profile UUID
 			Name:        "test2_06",
 			Method:      http.MethodPost,
 			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
@@ -897,7 +897,7 @@ func TestHandler_addScheme(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: default request with the project does belong user UUID
+		{ // USER: default request with the project does belong profile UUID
 			Name:       "test2_07",
 			Method:     http.MethodPost,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server") + "?owner_id=" + test.ConstAdminID,
@@ -972,7 +972,7 @@ func TestHandler_updateScheme(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with the user does not have access to the project UUID and scheme UUID
+		{ // ADMIN: request with the profile does not have access to the project UUID and scheme UUID
 			Name:       "test1_03",
 			Method:     http.MethodPatch,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
@@ -987,7 +987,7 @@ func TestHandler_updateScheme(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with the user does not have access to the scheme UUID
+		{ // ADMIN: request with the profile does not have access to the scheme UUID
 			Name:       "test1_04",
 			Method:     http.MethodPatch,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
@@ -1002,7 +1002,7 @@ func TestHandler_updateScheme(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with the user has access to the project UUID and the scheme UUID
+		{ // ADMIN: request with the profile has access to the project UUID and the scheme UUID
 			Name:       "test1_05",
 			Method:     http.MethodPatch,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
@@ -1200,7 +1200,7 @@ func TestHandler_updateScheme(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with the user UUID (ignored) does not have access to the project UUID and scheme UUID
+		{ // USER: request with the profile UUID (ignored) does not have access to the project UUID and scheme UUID
 			Name:       "test2_03",
 			Method:     http.MethodPatch,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
@@ -1214,7 +1214,7 @@ func TestHandler_updateScheme(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with the user UUID does not have access UUID to the stranger scheme UUID
+		{ // USER: request with the profile UUID does not have access UUID to the stranger scheme UUID
 			Name:       "test2_04",
 			Method:     http.MethodPatch,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
@@ -1229,7 +1229,7 @@ func TestHandler_updateScheme(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with the user UUID (ignored) has access to the strangers project UUID and the scheme UUID
+		{ // USER: request with the profile UUID (ignored) has access to the strangers project UUID and the scheme UUID
 			Name:       "test2_05",
 			Method:     http.MethodPatch,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
@@ -1439,7 +1439,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with the user does not have access to the project UUID and scheme UUID
+		{ // ADMIN: request with the profile does not have access to the project UUID and scheme UUID
 			Name:       "test1_03",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
@@ -1451,7 +1451,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with the user does not have access to the scheme UUID
+		{ // ADMIN: request with the profile does not have access to the scheme UUID
 			Name:       "test1_04",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
@@ -1463,7 +1463,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with the user has access to the project UUID and the scheme UUID
+		{ // ADMIN: request with the profile has access to the project UUID and the scheme UUID
 			Name:       "test1_05",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
@@ -1510,7 +1510,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with the user UUID (ignored) does not have access to the project UUID and scheme UUID
+		{ // USER: request with the profile UUID (ignored) does not have access to the project UUID and scheme UUID
 			Name:       "test2_03",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
@@ -1522,7 +1522,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with the user UUID (ignored) does not have access to the scheme UUID
+		{ // USER: request with the profile UUID (ignored) does not have access to the scheme UUID
 			Name:       "test2_04",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
@@ -1534,7 +1534,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with the user UUID (ignored) has access to the project UUID and the scheme UUID
+		{ // USER: request with the profile UUID (ignored) has access to the project UUID and the scheme UUID
 			Name:       "test2_05",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH2ID) + "?owner_id=" + test.ConstAdminID,
@@ -1586,7 +1586,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken project UUID, scheme UUID and user UUID
+		{ // ADMIN: request with broken project UUID, scheme UUID and profile UUID
 			Name:           "test1_04",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "access") + "?owner_id=" + test.ConstFakeID,
@@ -1683,7 +1683,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken project UUID, scheme UUID and user UUID
+		{ // USER: request with broken project UUID, scheme UUID and profile UUID
 			Name:           "test2_04",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "access") + "?owner_id=" + test.ConstFakeID,
@@ -1699,7 +1699,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with user UUID (ignored)
+		{ // USER: request with profile UUID (ignored)
 			Name:       "test2_06",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "access") + "?owner_id=" + test.ConstAdminID,
@@ -1788,7 +1788,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken project UUID, scheme UUID and user UUID
+		{ // ADMIN: request with broken project UUID, scheme UUID and profile UUID
 			Name:           "test1_04",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + test.ConstFakeID,
@@ -1971,7 +1971,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken project UUID, scheme UUID and user UUID
+		{ // USER: request with broken project UUID, scheme UUID and profile UUID
 			Name:           "test2_04",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + test.ConstFakeID,
@@ -2227,7 +2227,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken project UUID, scheme UUID and user UUID
+		{ // ADMIN: request with broken project UUID, scheme UUID and profile UUID
 			Name:           "test1_08",
 			Method:         http.MethodPatch,
 			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + test.ConstFakeID,
@@ -2245,7 +2245,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken user UUID
+		{ // ADMIN: request with broken profile UUID
 			Name:           "test1_10",
 			Method:         http.MethodPatch,
 			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstFakeID,
@@ -2366,7 +2366,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken project UUID, scheme UUID and user UUID
+		{ // USER: request with broken project UUID, scheme UUID and profile UUID
 			Name:           "test2_08",
 			Method:         http.MethodPatch,
 			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + test.ConstFakeID,
@@ -2384,7 +2384,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken user UUID (ignored)
+		{ // USER: request with broken profile UUID (ignored)
 			Name:        "test2_10",
 			Method:      http.MethodPatch,
 			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstFakeID,
@@ -2489,7 +2489,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken project UUID, scheme UUID and user UUID
+		{ // ADMIN: request with broken project UUID, scheme UUID and profile UUID
 			Name:       "test1_05",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -2501,7 +2501,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken user UUID
+		{ // ADMIN: request with broken profile UUID
 			Name:       "test1_06",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -2600,7 +2600,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken project UUID, scheme UUID and user UUID
+		{ // USER: request with broken project UUID, scheme UUID and profile UUID
 			Name:       "test2_05",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -2612,7 +2612,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken user UUID (ignored)
+		{ // USER: request with broken profile UUID (ignored)
 			Name:       "test2_06",
 			Method:     http.MethodGet,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -2799,7 +2799,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken project UUID, scheme UUID and user UUID
+		{ // ADMIN: request with broken project UUID, scheme UUID and profile UUID
 			Name:        "test1_09",
 			Method:      http.MethodPost,
 			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -2812,7 +2812,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken user UUID
+		{ // ADMIN: request with broken profile UUID
 			Name:        "test1_10",
 			Method:      http.MethodPost,
 			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -2983,7 +2983,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken project UUID, scheme UUID and user UUID
+		{ // USER: request with broken project UUID, scheme UUID and profile UUID
 			Name:        "test2_09",
 			Method:      http.MethodPost,
 			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -2996,7 +2996,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken user UUID
+		{ // USER: request with broken profile UUID
 			Name:        "test2_10",
 			Method:      http.MethodPost,
 			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -3170,7 +3170,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken project UUID, scheme UUID and user UUID
+		{ // ADMIN: request with broken project UUID, scheme UUID and profile UUID
 			Name:        "test1_07",
 			Method:      http.MethodPatch,
 			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -3183,7 +3183,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken user UUID
+		{ // ADMIN: request with broken profile UUID
 			Name:        "test1_08",
 			Method:      http.MethodPatch,
 			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -3310,7 +3310,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken project UUID, scheme UUID and user UUID
+		{ // USER: request with broken project UUID, scheme UUID and profile UUID
 			Name:        "test2_07",
 			Method:      http.MethodPatch,
 			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -3323,7 +3323,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken user UUID
+		{ // USER: request with broken profile UUID
 			Name:        "test2_08",
 			Method:      http.MethodPatch,
 			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
@@ -3489,7 +3489,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken project UUID, scheme UUID and user UUID
+		{ // ADMIN: request with broken project UUID, scheme UUID and profile UUID
 			Name:       "test1_10",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + test.ConstFakeID,
@@ -3501,7 +3501,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken user UUID
+		{ // ADMIN: request with broken profile UUID
 			Name:       "test1_11",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + test.ConstFakeID,
@@ -3631,7 +3631,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken project UUID, scheme UUID and user UUID
+		{ // USER: request with broken project UUID, scheme UUID and profile UUID
 			Name:       "test2_08",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + test.ConstFakeID,
@@ -3643,7 +3643,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with broken user UUID
+		{ // USER: request with broken profile UUID
 			Name:       "test2_09",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + test.ConstFakeID,

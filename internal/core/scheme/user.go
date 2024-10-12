@@ -15,14 +15,14 @@ import (
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 )
 
-// UserSchemes is ...
-func (h *Handler) UserSchemes(ctx context.Context, in *schemepb.UserSchemes_Request) (*schemepb.UserSchemes_Response, error) {
+// ProfileSchemes is ...
+func (h *Handler) ProfileSchemes(ctx context.Context, in *schemepb.ProfileSchemes_Request) (*schemepb.ProfileSchemes_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := &schemepb.UserSchemes_Response{
+	response := &schemepb.ProfileSchemes_Response{
 		Total: make(map[int32]int32),
 	}
 
@@ -52,12 +52,12 @@ func (h *Handler) UserSchemes(ctx context.Context, in *schemepb.UserSchemes_Requ
           INNER JOIN "scheme_member" ON "project_member"."id" = "scheme_member"."project_member_id"
           INNER JOIN "scheme" ON "scheme_member"."scheme_id" = "scheme"."id"
         WHERE
-          "project_member"."user_id" = $2
+          "project_member"."profile_id" = $2
           AND "scheme"."project_id" = "project"."id"
         GROUP BY "group") t ON "groups"."group" = t."group"
     ORDER BY "groups"."group"`,
 		maxSchemeKey,
-		in.GetUserId(),
+		in.GetProfileId(),
 	)
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
@@ -110,11 +110,11 @@ func (h *Handler) UserSchemes(ctx context.Context, in *schemepb.UserSchemes_Requ
       INNER JOIN "scheme_member" ON "project_member"."id" = "scheme_member"."project_member_id"
       INNER JOIN "scheme" ON "scheme_member"."scheme_id" = "scheme"."id"
     WHERE
-      "project_member"."user_id" = $1
+      "project_member"."profile_id" = $1
       AND "scheme"."project_id" = "project"."id"
   `, schemeType, sqlFooter)
 
-	rows, err := h.DB.Conn.QueryContext(ctx, baseQuery, in.GetUserId())
+	rows, err := h.DB.Conn.QueryContext(ctx, baseQuery, in.GetProfileId())
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}

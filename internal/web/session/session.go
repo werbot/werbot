@@ -6,21 +6,20 @@ import (
 	"github.com/gofiber/fiber/v2"
 	golang_jwt "github.com/golang-jwt/jwt/v5"
 
-	accountpb "github.com/werbot/werbot/internal/core/account/proto/account"
-	userpb "github.com/werbot/werbot/internal/core/user/proto/user"
+	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/pkg/uuid"
 )
 
-// UserParameters encapsulates user-specific parameters.
-type UserParameters struct {
-	User *accountpb.UserParameters
+// ProfileParameters encapsulates profile-specific parameters.
+type ProfileParameters struct {
+	Profile *profilepb.ProfileParameters
 }
 
-// AuthUser authenticates a user based on the request context.
-func AuthUser(c *fiber.Ctx) *UserParameters {
-	if user := c.Locals("user"); user != nil {
-		return userParameters(c)
+// AuthProfile authenticates a profile based on the request context.
+func AuthProfile(c *fiber.Ctx) *ProfileParameters {
+	if profile := c.Locals("user"); profile != nil {
+		return profileParameters(c)
 	}
 
 	auth := c.Get("Authorization")
@@ -29,61 +28,61 @@ func AuthUser(c *fiber.Ctx) *UserParameters {
 		token, err := golang_jwt.Parse(strings.TrimSpace(auth[len(authScheme):]), jwt.CustomKeyFunc())
 		if err == nil && token.Valid {
 			c.Locals("user", token)
-			return userParameters(c)
+			return profileParameters(c)
 		}
 	}
 
-	return &UserParameters{
-		User: &accountpb.UserParameters{
-			Roles: userpb.Role(userpb.Role_role_unspecified),
+	return &ProfileParameters{
+		Profile: &profilepb.ProfileParameters{
+			Roles: profilepb.Role(profilepb.Role_role_unspecified),
 		},
 	}
 }
 
-// userParameters extracts user parameters from the Fiber context.
-// It retrieves the JWT token, extracts claims, and maps them to UserParameters.
-func userParameters(c *fiber.Ctx) *UserParameters {
-	user := c.Locals("user").(*golang_jwt.Token)
-	claims := user.Claims.(golang_jwt.MapClaims)
+// profileParameters extracts profile parameters from the Fiber context.
+// It retrieves the JWT token, extracts claims, and maps them to ProfileParameters.
+func profileParameters(c *fiber.Ctx) *ProfileParameters {
+	profile := c.Locals("user").(*golang_jwt.Token)
+	claims := profile.Claims.(golang_jwt.MapClaims)
 
 	context := claims["User"].(map[string]any)
-	role := userpb.Role(context["roles"].(float64))
+	role := profilepb.Role(context["roles"].(float64))
 	sessionID := claims["sub"].(string)
 
-	return &UserParameters{
-		User: &accountpb.UserParameters{
-			UserId:    context["user_id"].(string),
+	return &ProfileParameters{
+		Profile: &profilepb.ProfileParameters{
+			ProfileId: context["profile_id"].(string),
 			Roles:     role,
 			SessionId: sessionID,
 		},
 	}
 }
 
-// UserID returns the provided input string if it is not empty and the user has an admin role.
-// Otherwise, it returns the user's ID.
-func (u *UserParameters) UserID(input string) string {
-	if u.IsUserAdmin() && uuid.IsValid(input) {
+// ProfileID returns the provided input string if it is not empty and the profile has an admin role.
+// Otherwise, it returns the profile's ID.
+func (u *ProfileParameters) ProfileID(input string) string {
+	if u.IsProfileAdmin() && uuid.IsValid(input) {
 		return input
 	}
-	return u.User.GetUserId()
+	return u.Profile.GetProfileId()
 }
 
-// OriginalUserID returns the original user ID.
-func (u *UserParameters) OriginalUserID() string {
-	return u.User.GetUserId()
+// OriginalProfileID returns the original profile ID.
+func (u *ProfileParameters) OriginalProfileID() string {
+	return u.Profile.GetProfileId()
 }
 
-// UserRole returns the role of the user.
-func (u *UserParameters) UserRole() userpb.Role {
-	return u.User.GetRoles()
+// ProfileRole returns the role of the profile.
+func (u *ProfileParameters) ProfileRole() profilepb.Role {
+	return u.Profile.GetRoles()
 }
 
-// UserSub returns the subject identifier for the user.
-func (u *UserParameters) SessionId() string {
-	return u.User.GetSessionId()
+// SessionId returns the subject identifier for the profile.
+func (u *ProfileParameters) SessionId() string {
+	return u.Profile.GetSessionId()
 }
 
-// IsUserAdmin checks if the user has an admin role.
-func (u *UserParameters) IsUserAdmin() bool {
-	return u.User.GetRoles() == userpb.Role_admin
+// IsProfileAdmin checks if the profile has an admin role.
+func (u *ProfileParameters) IsProfileAdmin() bool {
+	return u.Profile.GetRoles() == profilepb.Role_admin
 }

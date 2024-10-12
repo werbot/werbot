@@ -7,21 +7,21 @@ import "buf/validate/validate.proto";
 option go_package = "github.com/werbot/werbot/internal/core/system/proto/system";
 
 service SystemHandlers {
-  rpc UserMetrics(UserMetrics.Request) returns (UserMetrics.Response) {}
+  rpc ProfileMetrics(ProfileMetrics.Request) returns (ProfileMetrics.Response) {}
 
   rpc Countries(Countries.Request) returns (Countries.Response) {}
   rpc CountryByIP(CountryByIP.Request) returns (CountryByIP.Response) {}
 }
 
-// rpc UserMetrics
-message UserMetrics {
+// rpc ProfileMetrics
+message ProfileMetrics {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
-    string user_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
   }
 
   message Response {
-    int32 users = 1;
+    int32 profiles = 1;
     int32 projects = 2;
     int32 schemes = 3;
   }

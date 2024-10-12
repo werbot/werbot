@@ -94,11 +94,11 @@ message Scheme {
 message Events {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
-    string user_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
 
     oneof id {
       option (buf.validate.oneof).required = true;
-      string profile_id = 3 [(buf.validate.field).string.uuid = true];
+      string user_id = 3 [(buf.validate.field).string.uuid = true];
       string project_id = 4 [(buf.validate.field).string.uuid = true];
       string scheme_id = 5 [(buf.validate.field).string.uuid = true];
     }
@@ -118,11 +118,11 @@ message Events {
 message Event {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
-    string user_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
 
     oneof id {
       option (buf.validate.oneof).required = true;
-      string profile_id = 3 [(buf.validate.field).string.uuid = true];
+      string user_id = 3 [(buf.validate.field).string.uuid = true];
       string project_id = 4 [(buf.validate.field).string.uuid = true];
       string scheme_id = 5 [(buf.validate.field).string.uuid = true];
     }
@@ -132,11 +132,11 @@ message Event {
 
   message Response {
     oneof id {
-      string profile_id = 1;
+      string user_id = 1;
       string project_id = 2;
       string scheme_id = 3;
     }
-    string user_id = 4 [(ghoster.secret) = true];;
+    string profile_id = 4 [(ghoster.secret) = true];;
     string session_id = 5;
     string user_agent = 6;
     string ip = 7;
@@ -151,7 +151,7 @@ message Event {
 // rpc AddEvent
 message AddEvent {
   message Request {
-    string user_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string profile_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
     string session_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
     oneof section {
       option (buf.validate.oneof).required = true;

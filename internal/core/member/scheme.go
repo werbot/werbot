@@ -32,7 +32,7 @@ func (h *Handler) SchemeMembers(ctx context.Context, in *memberpb.SchemeMembers_
     FROM
       "scheme_member"
       INNER JOIN "project_member" ON "scheme_member"."project_member_id" = "project_member"."id"
-      INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
+      INNER JOIN "profile" ON "project_member"."profile_id" = "profile"."id"
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
     WHERE
       "project"."owner_id" = $1
@@ -54,11 +54,11 @@ func (h *Handler) SchemeMembers(ctx context.Context, in *memberpb.SchemeMembers_
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	baseQuery := postgres.SQLGluing(`
     SELECT
-      "user"."id",
-      "user"."alias",
-      "user"."name",
-      "user"."surname",
-      "user"."email",
+      "profile"."id",
+      "profile"."alias",
+      "profile"."name",
+      "profile"."surname",
+      "profile"."email",
       "scheme_member"."id",
       "scheme_member"."active",
       "scheme_member"."online",
@@ -69,7 +69,7 @@ func (h *Handler) SchemeMembers(ctx context.Context, in *memberpb.SchemeMembers_
     FROM
       "scheme_member"
       INNER JOIN "project_member" ON "scheme_member"."project_member_id" = "project_member"."id"
-      INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
+      INNER JOIN "profile" ON "project_member"."profile_id" = "profile"."id"
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
     WHERE
       "project"."owner_id" = $1
@@ -85,10 +85,10 @@ func (h *Handler) SchemeMembers(ctx context.Context, in *memberpb.SchemeMembers_
 		var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
 		member := &memberpb.SchemeMember_Response{}
 		err = rows.Scan(
-			&member.UserId,
-			&member.UserAlias,
-			&member.UserName,
-			&member.UserSurname,
+			&member.ProfileId,
+			&member.Alias,
+			&member.Name,
+			&member.Surname,
 			&member.Email,
 			&member.SchemeMemberId,
 			&member.Active,
@@ -133,11 +133,11 @@ func (h *Handler) SchemeMember(ctx context.Context, in *memberpb.SchemeMember_Re
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
-      "user"."id",
-      "user"."alias",
-      "user"."name",
-      "user"."surname",
-      "user"."email",
+      "profile"."id",
+      "profile"."alias",
+      "profile"."name",
+      "profile"."surname",
+      "profile"."email",
       "scheme_member"."id",
       "scheme_member"."active",
       "scheme_member"."online",
@@ -148,7 +148,7 @@ func (h *Handler) SchemeMember(ctx context.Context, in *memberpb.SchemeMember_Re
     FROM
       "scheme_member"
       INNER JOIN "project_member" ON "scheme_member"."project_member_id" = "project_member"."id"
-      INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
+      INNER JOIN "profile" ON "project_member"."profile_id" = "profile"."id"
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
     WHERE
       "project"."owner_id" = $1
@@ -159,10 +159,10 @@ func (h *Handler) SchemeMember(ctx context.Context, in *memberpb.SchemeMember_Re
 		in.GetSchemeId(),
 		in.GetSchemeMemberId(),
 	).Scan(
-		&response.UserId,
-		&response.UserAlias,
-		&response.UserName,
-		&response.UserSurname,
+		&response.ProfileId,
+		&response.Alias,
+		&response.Name,
+		&response.Surname,
 		&response.Email,
 		&response.SchemeMemberId,
 		&response.Active,
@@ -344,7 +344,7 @@ func (h *Handler) MembersWithoutScheme(ctx context.Context, in *memberpb.Members
       "project_member"
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
       INNER JOIN "scheme" ON "project"."id" = "scheme"."project_id"
-      INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
+      INNER JOIN "profile" ON "project_member"."profile_id" = "profile"."id"
     WHERE
       "project_member"."id" NOT IN (
         SELECT "project_member_id"
@@ -353,7 +353,7 @@ func (h *Handler) MembersWithoutScheme(ctx context.Context, in *memberpb.Members
       )
       AND "project"."owner_id" = $1
       AND "scheme"."id" = $2
-      AND LOWER ( "user"."alias" ) LIKE LOWER ( '%' || $3 || '%' )
+      AND LOWER ( "profile"."alias" ) LIKE LOWER ( '%' || $3 || '%' )
   `,
 		in.GetOwnerId(),
 		in.GetSchemeId(),
@@ -372,10 +372,10 @@ func (h *Handler) MembersWithoutScheme(ctx context.Context, in *memberpb.Members
 	baseQuery := postgres.SQLGluing(`
     SELECT
       "project_member"."id",
-      "user"."alias",
-      "user"."email",
-      "user"."name",
-      "user"."surname",
+      "profile"."alias",
+      "profile"."email",
+      "profile"."name",
+      "profile"."surname",
       "project_member"."role",
       "project_member"."active",
       "project_member"."online"
@@ -383,7 +383,7 @@ func (h *Handler) MembersWithoutScheme(ctx context.Context, in *memberpb.Members
       "project_member"
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
       INNER JOIN "scheme" ON "project"."id" = "scheme"."project_id"
-      INNER JOIN "user" ON "project_member"."user_id" = "user"."id"
+      INNER JOIN "profile" ON "project_member"."profile_id" = "profile"."id"
     WHERE
       "project_member"."id" NOT IN (
         SELECT "project_member_id"
@@ -392,7 +392,7 @@ func (h *Handler) MembersWithoutScheme(ctx context.Context, in *memberpb.Members
       )
       AND "project"."owner_id" = $1
       AND "scheme"."id" = $2
-      AND LOWER ( "user"."alias" ) LIKE LOWER ( '%' || $3 || '%' )
+      AND LOWER ( "profile"."alias" ) LIKE LOWER ( '%' || $3 || '%' )
   `, sqlFooter)
 	rows, err := h.DB.Conn.QueryContext(ctx, baseQuery,
 		in.GetOwnerId(),
@@ -408,10 +408,10 @@ func (h *Handler) MembersWithoutScheme(ctx context.Context, in *memberpb.Members
 		member := &memberpb.MembersWithoutScheme_Member{}
 		err = rows.Scan(
 			&member.MemberId,
-			&member.UserAlias,
+			&member.Alias,
 			&member.Email,
-			&member.UserName,
-			&member.UserSurname,
+			&member.Name,
+			&member.Surname,
 			&member.Role,
 			&member.Active,
 			&member.Online,

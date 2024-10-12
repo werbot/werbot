@@ -38,9 +38,9 @@ func (h *Handler) SystemSchemesByAlias(ctx context.Context, in *schemepb.SystemS
       INNER JOIN "scheme_member" ON "scheme_member"."scheme_id" = "scheme"."id"
       INNER JOIN "project_member" ON "scheme_member"."project_member_id" = "project_member"."id"
       INNER JOIN "project" ON "project"."id" = "project_member"."project_id"
-      INNER JOIN "user" ON "user"."id" = "project_member"."user_id"
+      INNER JOIN "profile" ON "profile"."id" = "project_member"."profile_id"
     WHERE
-      "user"."alias" = $1
+      "profile"."alias" = $1
       AND "scheme_member"."active" = TRUE
       AND "scheme"."active" = TRUE
       AND "project"."id" = "scheme"."project_id"
@@ -68,9 +68,9 @@ func (h *Handler) SystemSchemesByAlias(ctx context.Context, in *schemepb.SystemS
       INNER JOIN "scheme_member" ON "scheme_member"."scheme_id" = "scheme"."id"
       INNER JOIN "project_member" ON "scheme_member"."project_member_id" = "project_member"."id"
       INNER JOIN "project" ON "project"."id" = "project_member"."project_id"
-      INNER JOIN "user" ON "user"."id" = "project_member"."user_id"
+      INNER JOIN "profile" ON "profile"."id" = "project_member"."profile_id"
     WHERE
-      "user"."alias" = $1
+      "profile"."alias" = $1
       AND "scheme_member"."active" = TRUE
       AND "scheme"."active" = TRUE
       AND "project"."id" = "scheme"."project_id"

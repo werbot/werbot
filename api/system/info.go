@@ -21,8 +21,8 @@ import (
 // @Failure 404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/system/update [get]
 func (h *Handler) update(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
-	if !sessionData.IsUserAdmin() {
+	sessionData := session.AuthProfile(c)
+	if !sessionData.IsProfileAdmin() {
 		return webutil.StatusNotFound(c, nil)
 	}
 
@@ -76,23 +76,23 @@ func (h *Handler) update(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, "Updates", updates)
 }
 
-// @Summary Get user information
-// @Description Retrieves user metrics information
+// @Summary Get profile information
+// @Description Retrieves profile metrics information
 // @Tags info
 // @Produce json
-// @Param user_id query string false "User UUID". Parameter Accessible with ROLE_ADMIN rights. 00000000-0000-0000-0000-000000000000 - show all
-// @Success 200 {object} webutil.HTTPResponse{result=systempb.UserMetrics_Response}
+// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights. 00000000-0000-0000-0000-000000000000 - show all
+// @Success 200 {object} webutil.HTTPResponse{result=systempb.ProfileMetrics_Response}
 // @Failure 404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/system/info [get]
 func (h *Handler) info(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
-	request := &systempb.UserMetrics_Request{
-		IsAdmin: sessionData.IsUserAdmin(),
-		UserId:  sessionData.UserID(c.Query("user_id")),
+	sessionData := session.AuthProfile(c)
+	request := &systempb.ProfileMetrics_Request{
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
 	}
 
 	rClient := systempb.NewSystemHandlersClient(h.Grpc)
-	info, err := rClient.UserMetrics(c.UserContext(), request)
+	info, err := rClient.ProfileMetrics(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}

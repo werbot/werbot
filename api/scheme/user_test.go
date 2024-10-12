@@ -8,7 +8,7 @@ import (
 	"github.com/werbot/werbot/internal/utils/test"
 )
 
-func TestHandler_userSchemes(t *testing.T) {
+func TestHandler_profileSchemes(t *testing.T) {
 	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
 	defer teardownTestCase(t)
 
@@ -16,18 +16,18 @@ func TestHandler_userSchemes(t *testing.T) {
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user"),
+			Path:       test.PathGluing(pathSchemes, "profile"),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN:
 			Name:       "test1_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user"),
+			Path:       test.PathGluing(pathSchemes, "profile"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
-				"message":          "User schemes",
+				"message":          "Profile schemes",
 				"result.total.100": float64(5),
 				"result.total.200": float64(7),
 				"result.total.300": float64(2),
@@ -41,11 +41,11 @@ func TestHandler_userSchemes(t *testing.T) {
 		{ // ADMIN: limit
 			Name:       "test1_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user") + "?limit=5",
+			Path:       test.PathGluing(pathSchemes, "profile") + "?limit=5",
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                         float64(200),
-				"message":                      "User schemes",
+				"message":                      "Profile schemes",
 				"result.total.100":             float64(5),
 				"result.total.200":             float64(7),
 				"result.total.300":             float64(2),
@@ -65,11 +65,11 @@ func TestHandler_userSchemes(t *testing.T) {
 		{ // ADMIN:
 			Name:       "test1_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user", "desktop"),
+			Path:       test.PathGluing(pathSchemes, "profile", "desktop"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
-				"message":          "User schemes",
+				"message":          "Profile schemes",
 				"result.total.100": float64(5),
 				"result.total.200": float64(7),
 				"result.total.300": float64(2),
@@ -85,11 +85,11 @@ func TestHandler_userSchemes(t *testing.T) {
 		{ // ADMIN: desktop schemes with limit
 			Name:       "test1_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user", "desktop") + "?limit=1",
+			Path:       test.PathGluing(pathSchemes, "profile", "desktop") + "?limit=1",
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
-				"message":          "User schemes",
+				"message":          "Profile schemes",
 				"result.total.100": float64(5),
 				"result.total.200": float64(7),
 				"result.total.300": float64(2),
@@ -101,10 +101,10 @@ func TestHandler_userSchemes(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with fake user UUID
+		{ // ADMIN: default request with fake profile UUID
 			Name:       "test1_05",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user") + "?user_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathSchemes, "profile") + "?profile_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -113,14 +113,14 @@ func TestHandler_userSchemes(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with real user UUID
+		{ // ADMIN: default request with real profile UUID
 			Name:       "test1_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user") + "?user_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, "profile") + "?profile_id=" + test.ConstUserID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
-				"message":          "User schemes",
+				"message":          "Profile schemes",
 				"result.total.100": float64(5),
 				"result.total.200": float64(10),
 				"result.total.300": float64(2),
@@ -131,14 +131,14 @@ func TestHandler_userSchemes(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: default request with real user UUID select scheme
+		{ // ADMIN: default request with real profile UUID select scheme
 			Name:       "test1_07",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user", "desktop") + "?user_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, "profile", "desktop") + "?profile_id=" + test.ConstUserID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
-				"message":          "User schemes",
+				"message":          "Profile schemes",
 				"result.total.100": float64(5),
 				"result.total.200": float64(10),
 				"result.total.300": float64(2),
@@ -152,7 +152,7 @@ func TestHandler_userSchemes(t *testing.T) {
 		{ // ADMIN:
 			Name:           "test0_02",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, "user", "test"),
+			Path:           test.PathGluing(pathSchemes, "profile", "test"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -161,11 +161,11 @@ func TestHandler_userSchemes(t *testing.T) {
 		{ // USER:
 			Name:       "test2_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user"),
+			Path:       test.PathGluing(pathSchemes, "profile"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
-				"message":          "User schemes",
+				"message":          "Profile schemes",
 				"result.total.100": float64(5),
 				"result.total.200": float64(10),
 				"result.total.300": float64(2),
@@ -179,11 +179,11 @@ func TestHandler_userSchemes(t *testing.T) {
 		{ // USER: limit
 			Name:       "test2_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user") + "?limit=5",
+			Path:       test.PathGluing(pathSchemes, "profile") + "?limit=5",
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                         float64(200),
-				"message":                      "User schemes",
+				"message":                      "Profile schemes",
 				"result.total.100":             float64(5),
 				"result.total.200":             float64(10),
 				"result.total.300":             float64(2),
@@ -203,11 +203,11 @@ func TestHandler_userSchemes(t *testing.T) {
 		{ // USER:
 			Name:       "test2_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user", "desktop"),
+			Path:       test.PathGluing(pathSchemes, "profile", "desktop"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
-				"message":          "User schemes",
+				"message":          "Profile schemes",
 				"result.total.100": float64(5),
 				"result.total.200": float64(10),
 				"result.total.300": float64(2),
@@ -223,11 +223,11 @@ func TestHandler_userSchemes(t *testing.T) {
 		{ // USER: desktop schemes with limit
 			Name:       "test2_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user", "desktop") + "?limit=1",
+			Path:       test.PathGluing(pathSchemes, "profile", "desktop") + "?limit=1",
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
-				"message":          "User schemes",
+				"message":          "Profile schemes",
 				"result.total.100": float64(5),
 				"result.total.200": float64(10),
 				"result.total.300": float64(2),
@@ -239,10 +239,10 @@ func TestHandler_userSchemes(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: default request with fake user UUID
+		{ // USER: default request with fake profile UUID
 			Name:       "test2_05",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user") + "?user_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathSchemes, "profile") + "?profile_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -251,14 +251,14 @@ func TestHandler_userSchemes(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // USER: default request with real user UUID
+		{ // USER: default request with real profile UUID
 			Name:       "test2_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user") + "?user_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, "profile") + "?profile_id=" + test.ConstAdminID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
-				"message":          "User schemes",
+				"message":          "Profile schemes",
 				"result.total.100": float64(5),
 				"result.total.200": float64(10),
 				"result.total.300": float64(2),
@@ -269,14 +269,14 @@ func TestHandler_userSchemes(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: default request with real user UUID select scheme
+		{ // USER: default request with real profile UUID select scheme
 			Name:       "test2_07",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, "user", "desktop") + "?user_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, "profile", "desktop") + "?profile_id=" + test.ConstAdminID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
-				"message":          "User schemes",
+				"message":          "Profile schemes",
 				"result.total.100": float64(5),
 				"result.total.200": float64(10),
 				"result.total.300": float64(2),

@@ -62,7 +62,7 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *memberpb.ProjectMember
       "owner"."name",
       "project_member"."project_id",
       "project"."title",
-      "project_member"."user_id",
+      "project_member"."profile_id",
       "member"."name",
       "project_member"."role",
       "project_member"."active",
@@ -77,8 +77,8 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *memberpb.ProjectMember
     FROM
       "project_member"
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
-      INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
-      INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"
+      INNER JOIN "profile" AS "member" ON "project_member"."profile_id" = "member"."id"
+      INNER JOIN "profile" AS "owner" ON "project"."owner_id" = "owner"."id"
     WHERE
       "owner"."id" = $1
       AND "project"."id" = $2
@@ -98,8 +98,8 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *memberpb.ProjectMember
 			&member.OwnerName,
 			&member.ProjectId,
 			&member.ProjectName,
-			&member.UserId,
-			&member.UserName,
+			&member.ProfileId,
+			&member.Name,
 			&member.Role,
 			&member.Active,
 			&member.Online,
@@ -146,7 +146,7 @@ func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_
     SELECT
       "owner"."name",
       "project"."title",
-      "project_member"."user_id",
+      "project_member"."profile_id",
       "member"."name",
       "project_member"."role",
       "project_member"."active",
@@ -155,8 +155,8 @@ func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_
     FROM
       "project_member"
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
-      INNER JOIN "user" AS "member" ON "project_member"."user_id" = "member"."id"
-      INNER JOIN "user" AS "owner" ON "project"."owner_id" = "owner"."id"
+      INNER JOIN "profile" AS "member" ON "project_member"."profile_id" = "member"."id"
+      INNER JOIN "profile" AS "owner" ON "project"."owner_id" = "owner"."id"
     WHERE
       "project_member"."id" = $1
       AND "project"."owner_id" = $2
@@ -170,8 +170,8 @@ func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_
 	).Scan(
 		&response.OwnerName,
 		&response.ProjectName,
-		&response.UserId,
-		&response.UserName,
+		&response.ProfileId,
+		&response.Name,
 		&response.Role,
 		&response.Active,
 		&updatedAt,
@@ -202,12 +202,12 @@ func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectM
 
 	response := &memberpb.AddProjectMember_Response{}
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    INSERT INTO "project_member" ("project_id", "user_id", "role", "active")
+    INSERT INTO "project_member" ("project_id", "profile_id", "role", "active")
     SELECT $2, $3, $4, $5
     WHERE EXISTS (
       SELECT 1
       FROM "project"
-      JOIN "user" ON "user"."id" = $3
+      JOIN "profile" ON "profile"."id" = $3
       WHERE
         "project"."id" = $2
         AND "project"."owner_id" = $1
@@ -216,7 +216,7 @@ func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectM
   `,
 		in.GetOwnerId(),
 		in.GetProjectId(),
-		in.GetUserId(),
+		in.GetProfileId(),
 		in.GetRole(),
 		in.GetActive(),
 	).Scan(&response.MemberId)
@@ -313,25 +313,25 @@ func (h *Handler) DeleteProjectMember(ctx context.Context, in *memberpb.DeletePr
 	return &memberpb.DeleteProjectMember_Response{}, nil
 }
 
-// UsersWithoutProject is ...
+// ProfilesWithoutProject is ...
 // only foe admin
-func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWithoutProject_Request) (*memberpb.UsersWithoutProject_Response, error) {
+func (h *Handler) ProfilesWithoutProject(ctx context.Context, in *memberpb.ProfilesWithoutProject_Request) (*memberpb.ProfilesWithoutProject_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := &memberpb.UsersWithoutProject_Response{}
+	response := &memberpb.ProfilesWithoutProject_Response{}
 
 	// Total count fo
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT COUNT(*)
     FROM
-      "user"
-      LEFT JOIN "project_member" ON "user"."id" = "project_member"."user_id" AND "project_member"."project_id" = $1
+      "profile"
+      LEFT JOIN "project_member" ON "profile"."id" = "project_member"."profile_id" AND "project_member"."project_id" = $1
     WHERE
-      "project_member"."user_id" IS NULL
-      AND LOWER("user"."alias") LIKE LOWER('%' || $2 || '%')
+      "project_member"."profile_id" IS NULL
+      AND LOWER("profile"."alias") LIKE LOWER('%' || $2 || '%')
   `,
 		in.GetProjectId(),
 		in.GetAlias(),
@@ -348,15 +348,15 @@ func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWit
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	baseQuery := postgres.SQLGluing(`
     SELECT
-      "user"."id",
-      "user"."alias",
-      "user"."email"
+      "profile"."id",
+      "profile"."alias",
+      "profile"."email"
     FROM
-      "user"
-      LEFT JOIN "project_member" ON "user"."id" = "project_member"."user_id" AND "project_member"."project_id" = $1
+      "profile"
+      LEFT JOIN "project_member" ON "profile"."id" = "project_member"."profile_id" AND "project_member"."project_id" = $1
     WHERE
-      "project_member"."user_id" IS NULL
-      AND LOWER("user"."alias") LIKE LOWER('%' || $2 || '%')
+      "project_member"."profile_id" IS NULL
+      AND LOWER("profile"."alias") LIKE LOWER('%' || $2 || '%')
   `, sqlFooter)
 	rows, err := h.DB.Conn.QueryContext(ctx, baseQuery,
 		in.GetProjectId(),
@@ -368,11 +368,11 @@ func (h *Handler) UsersWithoutProject(ctx context.Context, in *memberpb.UsersWit
 	defer rows.Close()
 
 	for rows.Next() {
-		user := &memberpb.UsersWithoutProject_User{}
-		if err = rows.Scan(&user.UserId, &user.Alias, &user.Email); err != nil {
+		user := &memberpb.ProfilesWithoutProject_Profile{}
+		if err = rows.Scan(&user.ProfileId, &user.Alias, &user.Email); err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
-		response.Users = append(response.Users, user)
+		response.Profiles = append(response.Profiles, user)
 	}
 
 	return response, nil
@@ -528,8 +528,8 @@ func (h *Handler) AddMemberInvite(ctx context.Context, in *memberpb.AddMemberInv
 			in.GetProjectId(),
 			uuid.New(),
 			in.GetEmail(),
-			in.GetUserName(),
-			in.GetUserSurname(),
+			in.GetName(),
+			in.GetSurname(),
 			response.Status,
 		).Scan(&response.Token)
 		if err != nil {
@@ -596,22 +596,22 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	var userID, inviteID pgtype.UUID
+	var profileID, inviteID pgtype.UUID
 	var memberStatus memberpb.InviteStatus
 	response := &memberpb.MemberInviteActivate_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
-      "user"."id",
+      "profile"."id",
       "project_invite"."project_id",
       "project_invite"."status"
     FROM
       "project_invite"
-      INNER JOIN "user" ON "project_invite"."email" = "user"."email"
+      INNER JOIN "profile" ON "project_invite"."email" = "profile"."email"
     WHERE "project_invite"."token" = $1
   `, in.GetToken(),
 	).Scan(
-		&userID,
+		&profileID,
 		&response.ProjectId,
 		&memberStatus,
 	)
@@ -625,14 +625,14 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
 	}
 
 	// if need new user registered
-	if !userID.Valid {
+	if !profileID.Valid {
 		// TODO send a new email with a link to confirm access registration
 		fmt.Print("registration")
 	}
 
 	// if user registered
-	_userID, _ := userID.Value()
-	if _userID != in.GetUserId() {
+	_userID, _ := profileID.Value()
+	if _userID != in.GetProfileId() {
 		// TODO send for authorization
 		errGRPC := status.Error(codes.NotFound, "")
 		return nil, trace.Error(errGRPC, log, nil)
@@ -645,12 +645,12 @@ func (h *Handler) MemberInviteActivate(ctx context.Context, in *memberpb.MemberI
 	defer tx.Rollback()
 
 	err = tx.QueryRowContext(ctx, `
-    INSERT INTO "project_member" ("project_id", "user_id", "role")
+    INSERT INTO "project_member" ("project_id", "profile_id", "role")
     VALUES ($1, $2, $3)
     RETURNING "id"
   `,
 		response.GetProjectId(),
-		in.GetUserId(),
+		in.GetProfileId(),
 		memberpb.InviteStatus_activated,
 	).Scan(&inviteID)
 	if err != nil {

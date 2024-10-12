@@ -10,15 +10,15 @@ import (
 )
 
 // @Summary Get License Information
-// @Description Retrieve the license information for the authenticated user
+// @Description Retrieve the license information for the authenticated profile
 // @Tags license
 // @Produce json
 // @Success 200 {object} webutil.HTTPResponse{result=licensepb.License_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/license/info  [get]
 func (h *Handler) licenseInfo(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
-	if !sessionData.IsUserAdmin() {
+	sessionData := session.AuthProfile(c)
+	if !sessionData.IsProfileAdmin() {
 		return webutil.StatusNotFound(c, nil)
 	}
 

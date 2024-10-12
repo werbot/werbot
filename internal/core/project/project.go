@@ -205,7 +205,7 @@ func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
     SELECT $1, $2, $3
     WHERE EXISTS (
       SELECT 1
-      FROM "user"
+      FROM "profile"
       WHERE "id" = $1
     )
     RETURNING "id"

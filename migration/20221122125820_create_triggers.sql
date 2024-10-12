@@ -6,7 +6,7 @@ DO $$
 DECLARE
     table_name TEXT;
     tables TEXT[] := ARRAY[
-        'user',
+        'profile',
         'project',
         'project_invite',
         'project_ldap',
@@ -14,8 +14,8 @@ DECLARE
         'scheme',
         'scheme_member',
         'scheme_activity',
-        'user_public_key',
-        'user_token',
+        'profile_public_key',
+        'profile_token',
         'scheme_host_key',
         'project_api',
         'agent_token',
@@ -40,7 +40,7 @@ DO $$
 DECLARE
     table_name TEXT;
     tables TEXT[] := ARRAY[
-        'user',
+        'profile',
         'project',
         'project_invite',
         'project_ldap',
@@ -48,8 +48,8 @@ DECLARE
         'scheme',
         'scheme_member',
         'scheme_activity',
-        'user_public_key',
-        'user_token',
+        'profile_public_key',
+        'profile_token',
         'scheme_host_key',
         'project_api',
         'agent_token',

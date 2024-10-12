@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	memberpb "github.com/werbot/werbot/internal/core/member/proto/member"
-	userpb "github.com/werbot/werbot/internal/core/user/proto/user"
+	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
 	"github.com/werbot/werbot/internal/event"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -18,7 +18,7 @@ import (
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID"
-// @Param addon path string false "Search users without project for admin"
+// @Param addon path string false "Search profiles without project for admin"
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
 // @Param sort_by query string false "Sort by for pagination"
@@ -26,26 +26,26 @@ import (
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/project/{project_id} [get]
 func (h *Handler) projectMembers(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	pagination := webutil.GetPaginationFromCtx(c)
 
-	// search users without project, access only for admin
+	// search profiles without project, access only for admin
 	if c.Params("addon") == "search" {
-		if !sessionData.IsUserAdmin() {
+		if !sessionData.IsProfileAdmin() {
 			return webutil.StatusNotFound(c, nil)
 		}
 
-		request := &memberpb.UsersWithoutProject_Request{
+		request := &memberpb.ProfilesWithoutProject_Request{
 			ProjectId: c.Params("project_id"),
 			Limit:     pagination.Limit,
 			Offset:    pagination.Offset,
-			SortBy:    `"user"."alias":ASC`,
+			SortBy:    `"profile"."alias":ASC`,
 		}
 
 		_ = webutil.Parse(c, request).Query()
 
 		rClient := memberpb.NewMemberHandlersClient(h.Grpc)
-		members, err := rClient.UsersWithoutProject(c.UserContext(), request)
+		members, err := rClient.ProfilesWithoutProject(c.UserContext(), request)
 		if err != nil {
 			return webutil.FromGRPC(c, err)
 		}
@@ -55,13 +55,13 @@ func (h *Handler) projectMembers(c *fiber.Ctx) error {
 			return webutil.FromGRPC(c, err)
 		}
 
-		return webutil.StatusOK(c, "Users without project", result)
+		return webutil.StatusOK(c, "Profiles without project", result)
 	}
 
 	// default show
 	request := &memberpb.ProjectMembers_Request{
-		IsAdmin:   sessionData.IsUserAdmin(),
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		Limit:     pagination.Limit,
 		Offset:    pagination.Offset,
@@ -95,10 +95,10 @@ func (h *Handler) projectMembers(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/project/{project_id}/{member_id} [get]
 func (h *Handler) projectMember(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.ProjectMember_Request{
-		IsAdmin:   sessionData.IsUserAdmin(),
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		MemberId:  c.Params("member_id"),
 	}
@@ -129,11 +129,11 @@ func (h *Handler) projectMember(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/project/{project_id} [post]
 func (h *Handler) addProjectMember(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.AddProjectMember_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
-		Role:      userpb.Role_user,
+		Role:      profilepb.Role_user,
 	}
 
 	_ = webutil.Parse(c, request).Body()
@@ -169,10 +169,10 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/project/{project_id}/{member_id} [put]
 func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.UpdateProjectMember_Request{
-		IsAdmin:   sessionData.IsUserAdmin(),
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		MemberId:  c.Params("member_id"),
 	}
@@ -215,9 +215,9 @@ func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/project/{project_id}/{member_id} [delete]
 func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.DeleteProjectMember_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		MemberId:  c.Params("member_id"),
 	}
@@ -235,7 +235,7 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 }
 
 // @Summary Invite members to a project
-// @Description This endpoint allows an authenticated user to invite members to a specified project
+// @Description This endpoint allows an authenticated profile to invite members to a specified project
 // @Tags members
 // @Accept json
 // @Produce json
@@ -249,10 +249,10 @@ func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 // @Router /v1/members/invite/project/{project_id} [get]
 func (h *Handler) projectMembersInvite(c *fiber.Ctx) error {
 	pagination := webutil.GetPaginationFromCtx(c)
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.MembersInvite_Request{
-		IsAdmin:   sessionData.IsUserAdmin(),
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		Limit:     pagination.Limit,
 		Offset:    pagination.Offset,
@@ -274,7 +274,7 @@ func (h *Handler) projectMembersInvite(c *fiber.Ctx) error {
 }
 
 // @Summary Invite a new member to a project
-// @Description This endpoint allows an authenticated user to invite a new member to a specific project
+// @Description This endpoint allows an authenticated profile to invite a new member to a specific project
 // @Tags members
 // @Accept json
 // @Produce json
@@ -285,9 +285,9 @@ func (h *Handler) projectMembersInvite(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/invite/project/{project_id} [post]
 func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.AddMemberInvite_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 	}
 
@@ -312,7 +312,7 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 }
 
 // @Summary Delete Project Member Invite
-// @Description Deletes an invite for a project member based on the provided user, project, and token UUIDs
+// @Description Deletes an invite for a project member based on the provided profile, project, and token UUIDs
 // @Tags members
 // @Accept json
 // @Produce json
@@ -323,9 +323,9 @@ func (h *Handler) addProjectMemberInvite(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/invite/project/{project_id}/{token} [delete]
 func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.DeleteMemberInvite_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		Token:     c.Params("token"),
 	}
@@ -352,10 +352,10 @@ func (h *Handler) deleteProjectMemberInvite(c *fiber.Ctx) error {
 // @Failure      400,500     {object} webutil.HTTPResponse
 // @Router       /v1/members/invite/:token [get]
 func (h *Handler) membersInviteActivate(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.MemberInviteActivate_Request{
-		UserId: sessionData.UserID(c.Query("owner_id")),
-		Token:  c.Params("token"),
+		ProfileId: sessionData.ProfileID(c.Query("owner_id")),
+		Token:     c.Params("token"),
 	}
 
 	rClient := memberpb.NewMemberHandlersClient(h.Grpc)

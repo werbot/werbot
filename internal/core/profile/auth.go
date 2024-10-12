@@ -1,4 +1,4 @@
-package account
+package profile
 
 import (
 	"context"
@@ -10,11 +10,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
-	accountpb "github.com/werbot/werbot/internal/core/account/proto/account"
 	invitepb "github.com/werbot/werbot/internal/core/invite/proto/invite"
 	"github.com/werbot/werbot/internal/core/notification"
 	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
-	userpb "github.com/werbot/werbot/internal/core/user/proto/user"
+	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -23,14 +22,14 @@ import (
 
 // SignIn function is used to authenticate the user by validating their credentials
 // against the credentials stored in the database.
-// It takes context and a SignIn_Request object as input and returns a User_Response object and an error response.
-func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*userpb.User_Response, error) {
+// It takes context and a SignIn_Request object as input and returns a Profile_Response object and an error response.
+func (h *Handler) SignIn(ctx context.Context, in *profilepb.SignIn_Request) (*profilepb.Profile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := &userpb.User_Response{}
+	response := &profilepb.Profile_Response{}
 	response.Email = in.GetEmail()
 
 	stmt, err := h.DB.Conn.PrepareContext(ctx, `
@@ -43,7 +42,7 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
       "active",
       "confirmed",
       "role"
-    FROM "user"
+    FROM "profile"
     WHERE
       email = $1
       AND "active" = TRUE
@@ -56,7 +55,7 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
 
 	var password string
 	err = stmt.QueryRowContext(ctx, in.GetEmail()).Scan(
-		&response.UserId,
+		&response.ProfileId,
 		&response.Alias,
 		&response.Name,
 		&response.Surname,
@@ -79,30 +78,30 @@ func (h *Handler) SignIn(ctx context.Context, in *accountpb.SignIn_Request) (*us
 }
 
 // ResetPassword is ...
-func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword_Request) (*accountpb.ResetPassword_Response, error) {
+func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword_Request) (*profilepb.ResetPassword_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	switch in.GetRequest().(type) {
-	case *accountpb.ResetPassword_Request_Email: // Step 1.1: Sending an email with a verification link
+	case *profilepb.ResetPassword_Request_Email: // Step 1.1: Sending an email with a verification link
 		var first bool
-		var userID, token sql.NullString
+		var profileID, token sql.NullString
 		err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
-      "user"."id",
-      "user_token"."token"
-    FROM "user"
-      LEFT JOIN "user_token" ON "user"."id" = "user_token"."user_id"
-        AND "user_token"."active" = true
-        AND "user_token"."action" = 4
-        AND "user_token"."created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
+      "profile"."id",
+      "profile_token"."token"
+    FROM "profile"
+      LEFT JOIN "profile_token" ON "profile"."id" = "profile_token"."profile_id"
+        AND "profile_token"."active" = true
+        AND "profile_token"."action" = 4
+        AND "profile_token"."created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
     WHERE
-      "user"."email" = $1
-      AND "user"."active" = true
+      "profile"."email" = $1
+      AND "profile"."active" = true
   `, in.GetEmail()).Scan(
-			&userID,
+			&profileID,
 			&token)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
@@ -112,11 +111,11 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 			first = true
 			token.String = uuid.New()
 			_, err = h.DB.Conn.ExecContext(ctx, `
-        INSERT INTO "user_token" ("token", "user_id", "action")
+        INSERT INTO "profile_token" ("token", "profile_id", "action")
         VALUES ($1, $2, $3)
       `,
 				token.String,
-				userID.String,
+				profileID.String,
 				invitepb.Action_reset.Enum(),
 			)
 			if err != nil {
@@ -136,44 +135,44 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 			},
 		})
 
-		return &accountpb.ResetPassword_Response{
-			UserId: userID.String,
+		return &profilepb.ResetPassword_Response{
+			ProfileId: profileID.String,
 		}, nil
 
-	case *accountpb.ResetPassword_Request_Token: // Step 1.2: Verify token
-		var userID sql.NullString
+	case *profilepb.ResetPassword_Request_Token: // Step 1.2: Verify token
+		var profileID sql.NullString
 		err := h.DB.Conn.QueryRowContext(ctx, `
-      SELECT "user_id"
-      FROM "user_token"
+      SELECT "profile_id"
+      FROM "profile_token"
       WHERE
         "token" = $1
         AND "active" = true
         AND "created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
-    `, in.GetToken()).Scan(&userID)
+    `, in.GetToken()).Scan(&profileID)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
 
-		if userID.Valid {
+		if profileID.Valid {
 			errGRPC := status.Error(codes.InvalidArgument, trace.MsgInviteIsInvalid)
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 
-	case *accountpb.ResetPassword_Request_Password: // Step 2: Saving a new password
-		var userID sql.NullString
+	case *profilepb.ResetPassword_Request_Password: // Step 2: Saving a new password
+		var profileID sql.NullString
 		err := h.DB.Conn.QueryRowContext(ctx, `
-      SELECT "user_id"
-      FROM "user_token"
+      SELECT "profile_id"
+      FROM "profile_token"
       WHERE
         "token" = $1
         AND "active" = true
         AND "created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
-    `, in.GetToken()).Scan(&userID)
+    `, in.GetToken()).Scan(&profileID)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
 
-		if userID.Valid {
+		if profileID.Valid {
 			errGRPC := status.Error(codes.InvalidArgument, trace.MsgInviteIsInvalid)
 			return nil, trace.Error(errGRPC, log, nil)
 		}
@@ -190,16 +189,16 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 		defer tx.Rollback()
 
 		_, err = tx.ExecContext(ctx, `
-      UPDATE "user"
+      UPDATE "profile"
       SET "password" = $1
       WHERE "id" = $2
-    `, newPassword, userID)
+    `, newPassword, profileID)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
 
 		_, err = tx.ExecContext(ctx, `
-      UPDATE "user_token"
+      UPDATE "profile_token"
       SET "active" = TRUE,
       WHERE "token" = $1
     `, in.GetPassword().GetToken())
@@ -212,5 +211,5 @@ func (h *Handler) ResetPassword(ctx context.Context, in *accountpb.ResetPassword
 		}
 	}
 
-	return &accountpb.ResetPassword_Response{}, nil
+	return &profilepb.ResetPassword_Response{}, nil
 }

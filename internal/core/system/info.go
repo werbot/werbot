@@ -10,27 +10,27 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// UserMetrics is ...
-func (h *Handler) UserMetrics(ctx context.Context, in *systempb.UserMetrics_Request) (*systempb.UserMetrics_Response, error) {
+// ProfileMetrics is ...
+func (h *Handler) ProfileMetrics(ctx context.Context, in *systempb.ProfileMetrics_Request) (*systempb.ProfileMetrics_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := &systempb.UserMetrics_Response{}
+	response := &systempb.ProfileMetrics_Response{}
 	var err error
 
-	if in.GetIsAdmin() && in.GetUserId() == "00000000-0000-0000-0000-000000000000" {
+	if in.GetIsAdmin() && in.GetProfileId() == "00000000-0000-0000-0000-000000000000" {
 		query := `
       SELECT
-        (SELECT COUNT(*) FROM "user"),
+        (SELECT COUNT(*) FROM "profile"),
         (SELECT COUNT(*) FROM "project"),
         (SELECT COUNT(*)
           FROM "scheme"
           INNER JOIN "project" ON "scheme"."project_id" = "project"."id"
         )
     `
-		err = h.DB.Conn.QueryRowContext(ctx, query).Scan(&response.Users, &response.Projects, &response.Schemes)
+		err = h.DB.Conn.QueryRowContext(ctx, query).Scan(&response.Profiles, &response.Projects, &response.Schemes)
 	} else {
 		query := `
       SELECT
@@ -41,7 +41,7 @@ func (h *Handler) UserMetrics(ctx context.Context, in *systempb.UserMetrics_Requ
           WHERE "project"."owner_id" = $1
         )
     `
-		err = h.DB.Conn.QueryRowContext(ctx, query, in.GetUserId()).Scan(&response.Projects, &response.Schemes)
+		err = h.DB.Conn.QueryRowContext(ctx, query, in.GetProfileId()).Scan(&response.Projects, &response.Schemes)
 	}
 
 	if err != nil {

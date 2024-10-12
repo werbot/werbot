@@ -15,7 +15,7 @@ import (
 // @Description Retrieves lists all keys if key_id is not provided
 // @Tags keys
 // @Produce json
-// @Param user_id query string false "User UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
 // @Param sort_by query string false "Sort by for pagination"
@@ -24,13 +24,13 @@ import (
 // @Router /v1/keys [get]
 func (h *Handler) keys(c *fiber.Ctx) error {
 	pagination := webutil.GetPaginationFromCtx(c)
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &keypb.Keys_Request{
-		IsAdmin: sessionData.IsUserAdmin(),
-		UserId:  sessionData.UserID(c.Query("user_id")),
-		Limit:   pagination.Limit,
-		Offset:  pagination.Offset,
-		SortBy:  `"updated_at":DESC`,
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
+		Limit:     pagination.Limit,
+		Offset:    pagination.Offset,
+		SortBy:    `"updated_at":DESC`,
 	}
 
 	rClient := keypb.NewKeyHandlersClient(h.Grpc)
@@ -51,7 +51,7 @@ func (h *Handler) keys(c *fiber.Ctx) error {
 // @Description Retrieves a specific key by key_id
 // @Tags keys
 // @Produce json
-// @Param user_id query string false "User UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param key_id path string false "Key UUID"
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
@@ -60,11 +60,11 @@ func (h *Handler) keys(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/keys/{key_id} [get]
 func (h *Handler) key(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &keypb.Key_Request{
-		IsAdmin: sessionData.IsUserAdmin(),
-		UserId:  sessionData.UserID(c.Query("user_id")),
-		KeyId:   c.Params("key_id"),
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
+		KeyId:     c.Params("key_id"),
 	}
 
 	rClient := keypb.NewKeyHandlersClient(h.Grpc)
@@ -82,19 +82,19 @@ func (h *Handler) key(c *fiber.Ctx) error {
 }
 
 // @Summary Add a new key
-// @Description Adds a new key for the specified user
+// @Description Adds a new key for the specified profile
 // @Tags keys
 // @Accept json
 // @Produce json
-// @Param user_id query string false "User UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param body body keypb.AddKey_Request true "Add Key Request Body"
 // @Success 200 {object} webutil.HTTPResponse{result=keypb.AddKey_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/keys [post]
 func (h *Handler) addKey(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &keypb.AddKey_Request{
-		UserId: sessionData.UserID(c.Query("user_id")),
+		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
 	}
 
 	_ = webutil.Parse(c, request).Body()
@@ -112,27 +112,27 @@ func (h *Handler) addKey(c *fiber.Ctx) error {
 
 	// Log the event
 	ghoster.Secrets(request, false)
-	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetUserId(), event.ProfileSSHKey, event.OnCreate, request)
+	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetProfileId(), event.ProfileSSHKey, event.OnCreate, request)
 
 	return webutil.StatusOK(c, "Key added", result)
 }
 
 // @Summary Update an existing key
-// @Description Updates an existing key for the specified user
+// @Description Updates an existing key for the specified profile
 // @Tags keys
 // @Accept json
 // @Produce json
-// @Param user_id query string false "User UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param key_id path string true "Key UUID"
 // @Param body body keypb.UpdateKey_Request true "Update Key Request Body"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/keys/{key_id} [patch]
 func (h *Handler) updateKey(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &keypb.UpdateKey_Request{
-		UserId: sessionData.UserID(c.Query("user_id")),
-		KeyId:  c.Params("key_id"),
+		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
+		KeyId:     c.Params("key_id"),
 	}
 
 	_ = webutil.Parse(c, request).Body()
@@ -144,25 +144,25 @@ func (h *Handler) updateKey(c *fiber.Ctx) error {
 
 	// Log the event
 	ghoster.Secrets(request, false)
-	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetUserId(), event.ProfileSSHKey, event.OnEdit, request)
+	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetProfileId(), event.ProfileSSHKey, event.OnEdit, request)
 
 	return webutil.StatusOK(c, "Key updated", nil)
 }
 
 // @Summary Delete an existing key
-// @Description Deletes an existing key for the specified user
+// @Description Deletes an existing key for the specified profile
 // @Tags keys
 // @Produce json
-// @Param user_id query string false "User UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param key_id path string true "Key UUID"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/keys/{key_id} [delete]
 func (h *Handler) deleteKey(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &keypb.DeleteKey_Request{
-		UserId: sessionData.UserID(c.Query("user_id")),
-		KeyId:  c.Params("key_id"),
+		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
+		KeyId:     c.Params("key_id"),
 	}
 
 	rClient := keypb.NewKeyHandlersClient(h.Grpc)
@@ -172,7 +172,7 @@ func (h *Handler) deleteKey(c *fiber.Ctx) error {
 
 	// Log the event
 	ghoster.Secrets(request, false)
-	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetUserId(), event.ProfileSSHKey, event.OnRemove, request)
+	go event.New(h.Grpc).Web(c, sessionData).Profile(request.GetProfileId(), event.ProfileSSHKey, event.OnRemove, request)
 
 	return webutil.StatusOK(c, "Key removed", nil)
 }

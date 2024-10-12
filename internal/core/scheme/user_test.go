@@ -10,30 +10,30 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func Test_UserSchemes(t *testing.T) {
+func Test_ProfileSchemes(t *testing.T) {
 	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := schemepb.NewSchemeHandlersClient(setup)
-		return a.UserSchemes(ctx, req.(*schemepb.UserSchemes_Request))
+		return a.ProfileSchemes(ctx, req.(*schemepb.ProfileSchemes_Request))
 	}
 
 	testTable := []test.GRPCTable{
 		{ // request without parameters
 			Name:    "test0_01",
-			Request: &schemepb.UserSchemes_Request{},
+			Request: &schemepb.ProfileSchemes_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
 				Message: map[string]any{
-					"user_id": "value is empty, which is not a valid UUID",
+					"profile_id": "value is empty, which is not a valid UUID",
 				},
 			},
 		},
 		{ // user schemes
 			Name: "test0_02",
-			Request: &schemepb.UserSchemes_Request{
-				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+			Request: &schemepb.ProfileSchemes_Request{
+				ProfileId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
 			},
 			Response: test.BodyTable{
 				"total.100":            float64(5),
@@ -48,8 +48,8 @@ func Test_UserSchemes(t *testing.T) {
 		{ // user database schemes
 			// Debug: true,
 			Name: "test0_03",
-			Request: &schemepb.UserSchemes_Request{
-				UserId:     "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+			Request: &schemepb.ProfileSchemes_Request{
+				ProfileId:  "c180ad5c-0c65-4cee-8725-12931cb5abb3",
 				SchemeType: schemeaccesspb.SchemeType_database,
 			},
 			Response: test.BodyTable{
@@ -66,8 +66,8 @@ func Test_UserSchemes(t *testing.T) {
 		{ // admin schemes
 			// Debug: true,
 			Name: "test0_04",
-			Request: &schemepb.UserSchemes_Request{
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+			Request: &schemepb.ProfileSchemes_Request{
+				ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
 			Response: test.BodyTable{
 				"total.100": float64(5),
@@ -81,8 +81,8 @@ func Test_UserSchemes(t *testing.T) {
 
 		{ // user1 schemes
 			Name: "test0_05",
-			Request: &schemepb.UserSchemes_Request{
-				UserId: "b3dc36e2-7f84-414b-b147-7ac850369518",
+			Request: &schemepb.ProfileSchemes_Request{
+				ProfileId: "b3dc36e2-7f84-414b-b147-7ac850369518",
 			},
 			Response: test.BodyTable{
 				"total.100": float64(1),

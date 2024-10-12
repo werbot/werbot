@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO "user" ("id", "alias", "name", "surname", "email", "password", "active", "confirmed", "role", "created_at") VALUES
+INSERT INTO "profile" ("id", "alias", "name", "surname", "email", "password", "active", "confirmed", "role", "created_at") VALUES
 ('008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'admin', 'Penny', 'Hoyle', 'admin@werbot.net', '$2a$13$xXMJafmfthQDqVZSQ5HJ/u1EmQ8PqkVAGlwKrOWH.cOVZr2KfvSAK', true, true, 3, CURRENT_TIMESTAMP - INTERVAL '24 hour'),
 ('c180ad5c-0c65-4cee-8725-12931cb5abb3', 'user', 'Carly', 'Bender', 'user@werbot.net', '$2a$13$Wv2IkOgNUL6dNEw00U0GnuEzWrPSIgHdOgugnll5kFIYgLqrKpZOe', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '23 hour'),
 ('b3dc36e2-7f84-414b-b147-7ac850369518', 'user1', 'Harrison', 'Bowling', 'user1@werbot.net', '$2a$13$DJIAXdDTXli9vTbXbAoUl..Qs3Ns.B3CAtLzLvBb3fpHkPJxzOjxK', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '22 hour'),
@@ -24,9 +24,9 @@ INSERT INTO "user" ("id", "alias", "name", "surname", "email", "password", "acti
 ('4808e401-826e-453d-b5e6-6a618bb2fa90', 'user19', 'Abel', 'Griffin', 'user19@werbot.net', '$2a$13$P6Jp0YiZHpMOrCpYcBS7Au3gO1HhZQ7auqB7.u7RGRhfDxnqbWjtC', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '4 hour'),
 ('51c12bb6-2da6-491d-8003-b024f54a1491', 'user20', 'Kyleigh', 'Steele', 'user20@werbot.net', '$2a$13$VoyU1e6Zfmza9ytImcytGe64lT1mBKAVBKzAzmuQoUhUROrSG0CpO', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '3 hour');
 
-UPDATE "user" SET "created_at" = CURRENT_TIMESTAMP - INTERVAL '48 hour' WHERE "id" = '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686';
+UPDATE "profile" SET "created_at" = CURRENT_TIMESTAMP - INTERVAL '48 hour' WHERE "id" = '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686';
 
-INSERT INTO "user_token" ("token", "user_id", "action", "created_at") VALUES
+INSERT INTO "profile_token" ("token", "profile_id", "action", "created_at") VALUES
 ('3c818d7c-72f3-4518-8eaa-755585192f21', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 5, CURRENT_TIMESTAMP - INTERVAL '5 hour'), -- for admin test
 ('55c9f79c-d827-43fc-8ad1-79e396d2432c', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 4, CURRENT_TIMESTAMP - INTERVAL '4 hour'),
 ('1b8bf7fe-d901-4c12-9c6c-e1689e45490f', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 5, CURRENT_TIMESTAMP - INTERVAL '1 hour'),
@@ -36,9 +36,9 @@ INSERT INTO "user_token" ("token", "user_id", "action", "created_at") VALUES
 ('0fcd88b3-8abb-4eb1-b96c-e0e49964cbca', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 5, CURRENT_TIMESTAMP - INTERVAL '10 hour'),
 ('88f2d90a-11da-43a3-8e79-f2d875593525', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 4, CURRENT_TIMESTAMP - INTERVAL '4 hour');
 
-UPDATE "user_token" SET "active" = false WHERE "token" = '0fcd88b3-8abb-4eb1-b96c-e0e49964cbca';
+UPDATE "profile_token" SET "active" = false WHERE "token" = '0fcd88b3-8abb-4eb1-b96c-e0e49964cbca';
 
-INSERT INTO "user_public_key" ("id", "user_id", "title", "key", "fingerprint") VALUES
+INSERT INTO "profile_public_key" ("id", "profile_id", "title", "key", "fingerprint") VALUES
 ('81f67bbb-79f8-47a1-863d-d9375f1626d3', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 1', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCgIocHncbDnM3nLFmxt9TssvmhF5x5WMwng/QRA5jZEKYER93Jsh5inCk5C9K8rAubijeKSe7A/Pp88MSYq2nXQ3UafqXGmHvt++fvMwmJ4rgoxiQlT2GzLwSBhvqZHcPBLeeVwLQB9T6wYf/9/mptVHOrb/Wy/FH4g4j7v5DflazQMiW9SOiwlaDM7jJDEGgOdTrHaOyJycx5CGzUgW0ZOnLg8a0m1Fdjvv9lFq3ZQ2S5NqIXH4to+F7YsklHEwgjZawYj3ic10vN+ei4f7PuC28sNLKADayHHyhDdpmA3mKZTw2lIplk/uvE61ucmLbLynEMwdc6eh/64MWxgif/', '03:99:f1:4b:2d:d3:10:aa:65:74:cf:c8:d6:ec:48:e8'),
 ('22a98e3b-1da8-46f5-8962-b461685e7bd7', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 2', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7BpymrfMLaou2l3LRIMjKhPZxDDZ6e09mqq+5yC8IEgjAtsoEh2i6H9IT6xHOHFqIe7thkRuDmNpAFni4aiaOREhL7U/+kdJ0trTDRv0WatxpcM7A0g4nR1aJPoxTBSG8No5JVLaaX5PNhZZx6Z4NOqr4TzhlZgoOj6CybzpZUgA+On4T2rN5BpbVfd1bbjUnpb80hNQVhShg150kMZKiH4vkqaT4CDDax3mvRETK9/hc2d3Cy3iyat/F/DncMAzSN9VdqjuOr7pFfomTKwduJ84akd2TlTdll+SyT4YIpokhemOrfXFWWxVKYVFn4aHmJ2QrovagHxLv98mL1VsP', 'af:d3:b3:aa:3c:3b:f9:58:5a:75:e9:76:37:0e:26:8a'),
 ('46d0d741-1d21-41ec-8b9b-2b456436ca48', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 3', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDDZz0EtmfSphFWOMlvfsaa4dZVVhksjAUfqS1gfb4WWN75qaDy2CZ1VCtMd3C3uVteK/cVK94EqKhk3TRQjhw2PuuDYCcZsSyGuzc+lsSKkDgdRQwOzaVLCI8t0paRiCCsiahFSvuDt28YmCSIuVbWIX21gohXMunPY1zOaGz42tb1WFLtveHb2w3cZIYzqjumrxqQKTUzglyHoV5NiQJ5kSJ+OXLa4uZ6LVpoA9/vn2gcqZMvL22w43loItzRnxVMk/hsaZKTbqQtdCo+gUbMMblqeuiNLj5RwKW64iI8ErK0uFKdnpvQ7pzurvLBe70SKakDTEZmLOrsEMwk0hqX', 'a7:f3:b8:61:55:4f:c5:4d:91:72:0f:74:f0:42:00:fe'),
@@ -54,7 +54,7 @@ INSERT INTO "user_public_key" ("id", "user_id", "title", "key", "fingerprint") V
 ('81033c2b-a69f-4290-b26a-346d28977e6e', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 11', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJIII56btowQHAD+UpiO/LOI2nf1kuGiodSO8GHUcvPX', 'c0:69:05:53:b8:b0:90:22:f8:e8:04:56:92:f5:b2:01'),
 ('74db70d8-0597-4841-aebc-57f579341ff8', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 10', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINiF7+RDhS9QzKZxVQj0ElpgQzyupViVyyHMHWH+ZgMD', 'fc:58:a8:48:d1:9f:2d:4e:38:4d:3e:ea:fc:f6:bd:a4');
 
-UPDATE "user_public_key" SET "created_at" = CURRENT_TIMESTAMP - INTERVAL '5 hour', "locked_at" = CURRENT_TIMESTAMP WHERE "id" = 'a65abdf1-2f88-4dac-b818-1d4923c2b97e';
+UPDATE "profile_public_key" SET "created_at" = CURRENT_TIMESTAMP - INTERVAL '5 hour', "locked_at" = CURRENT_TIMESTAMP WHERE "id" = 'a65abdf1-2f88-4dac-b818-1d4923c2b97e';
 
 INSERT INTO "project" ("id", "owner_id", "title", "alias") VALUES
 ('2bef1080-cd6e-49e5-8042-1224cf6a3da9', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'project1', 'Y93iyI'), -- admin
@@ -160,10 +160,10 @@ INSERT INTO "project_invite" ("token", "project_id", "name", "surname", "email",
 ('dc1dc751-1cb9-43af-a4e7-30c1100909cb', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite106', 'user106', 'invite106@werbot.net', 1, false, NULL),
 ('1b53f991-fa1b-401b-8ff4-1fe2f2498fe6', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite107', 'user107', 'invite107@werbot.net', 1, false, NULL),
 ('1e6fdbf6-beb3-4a0e-93f6-3fa033fc2626', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite108', 'user108', 'invite108@werbot.net', 1, false, NULL),
-('4d7f9bee-94e7-4463-a62d-0b939efe6096', '2bef1080-cd6e-49e5-8042-1224cf6a3da9',  'invite109', 'user109', 'invite109@werbot.net', 1, false, NULL),
+('4d7f9bee-94e7-4463-a62d-0b939efe6096', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite109', 'user109', 'invite109@werbot.net', 1, false, NULL),
 ('506732f3-8477-4963-af08-93e5071b381c', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite110', 'user110', 'invite110@werbot.net', 1, false, NULL);
 
-INSERT INTO "project_member" ("id", "project_id", "user_id", "active", "online", "role") VALUES
+INSERT INTO "project_member" ("id", "project_id", "profile_id", "active", "online", "role") VALUES
 ('9d3f7efc-14a5-436d-a763-314441d6e0a5', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', true, false, 1), -- admin project1, user member
 ('92de7a44-08fc-4d42-aab5-37f86fd598a2', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'b3dc36e2-7f84-414b-b147-7ac850369518', true, true, 1), -- admin project1, user1 member
 ('bac61932-ac1d-4f3a-b842-17b136bd1346', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'b8c3d9e4-6f4d-4e11-a3e6-72f9cb7660e0', true, true, 1), -- admin project1, user2 member
@@ -463,15 +463,15 @@ INSERT INTO "scheme_member" ("id", "scheme_id", "project_member_id", "active", "
 
 UPDATE "scheme_member" SET "online" = true WHERE "id" = '57ea9d56-5382-4749-99bb-b71a38d448b0';
 
-INSERT INTO "event_profile" ("id", "profile_id", "user_id", "session_id", "user_agent", "ip", "event", "section", "data") VALUES
+INSERT INTO "event_profile" ("id", "user_id", "profile_id", "session_id", "user_agent", "ip", "event", "section", "data") VALUES
 ('59fab0fa-8f0a-4065-8863-0dae40166015', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '98E3DDFC-DAB0-4D4E-B48E-AB1717ACAE8B', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:35.0) Gecko/20100101 Firefox/35.', '2001:0db8:85a3:0000:0000:8a2e:0370:7334', 9, 1, '{}'),
 ('7c1bd7f9-2ef4-44c8-9756-0e85156ca58f', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '98E3DDFC-DAB0-4D4E-B48E-AB1717ACAE8B', 'Mozilla/5.0 AppleWebKit/999.0 (KHTML, like Gecko) Chrome/99.0 Safari/999.0', '192.168.1.1', 10, 1, '{}');
 
-INSERT INTO "event_project" ("id", "project_id", "user_id", "session_id", "user_agent", "ip", "event", "section", "data") VALUES
+INSERT INTO "event_project" ("id", "project_id", "profile_id", "session_id", "user_agent", "ip", "event", "section", "data") VALUES
 ('163dee10-2a74-4436-9507-65a97a711ba8', '26060c68-5a06-4a57-b87a-be0f1e787157', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '98E3DDFC-DAB0-4D4E-B48E-AB1717ACAE8B', 'Mozilla/5.0 (Linux; U; Android 4.0.4; en-us; KFJWI Build/IMM76D) AppleWebKit/537.36 (KHTML, like Gecko) Silk/3.68 like Chrome/39.0.2171.93 Safari/537.36', '192.168.0.1', 1, 1, '{}'),
 ('9758b5ee-367d-4a70-965b-14a129cca4d7', '26060c68-5a06-4a57-b87a-be0f1e787157', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '98E3DDFC-DAB0-4D4E-B48E-AB1717ACAE8B', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:39.0) Gecko/20100101 Firefox/39.0', '2001:0db8:85a3:0000:0000:8a2e:0370:7334', 2, 1, '{}');
 
-INSERT INTO "event_scheme" ("id", "scheme_id", "user_id", "session_id", "user_agent", "ip", "event", "section", "data") VALUES
+INSERT INTO "event_scheme" ("id", "scheme_id", "profile_id", "session_id", "user_agent", "ip", "event", "section", "data") VALUES
 ('dea438b3-ca64-45ad-80a6-51275730f078', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '98E3DDFC-DAB0-4D4E-B48E-AB1717ACAE8B', 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; Touch; LCJB; rv:11.0) like Gecko', '192.168.1.1', 1, 1, '{}'),
 ('a2ef053e-4124-487b-9e90-b8f249d49807', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '98E3DDFC-DAB0-4D4E-B48E-AB1717ACAE8B', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36', '2001:0db8:85a3:0000:0000:8a2e:0370:7334', 2, 1, '{}'),
 ('fafa6e1f-1b13-47de-bc6a-df2458c29ff8', '0c3a8869-6fc0-4666-bf60-15475473392a', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', '98E3DDFC-DAB0-4D4E-B48E-AB1717ACAE8B', 'Mozilla/5.0 (iPad; CPU OS 8_0_2 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12A405 Safari/600.1.4', '192.168.1.1', 3, 1, '{}'),
@@ -517,6 +517,6 @@ DELETE FROM "project_member";
 DELETE FROM "project_invite";
 DELETE FROM "project_api";
 DELETE FROM "project";
-DELETE FROM "user_public_key";
-DELETE FROM "user";
+DELETE FROM "profile_public_key";
+DELETE FROM "profile";
 -- +goose StatementEnd

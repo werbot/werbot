@@ -26,31 +26,31 @@ func Test_Events(t *testing.T) {
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
 				Message: map[string]any{
-					"user_id": "value is required",
-					"id":      "exactly one field is required in oneof",
+					"profile_id": "value is required",
+					"id":         "exactly one field is required in oneof",
 				},
 			},
 		},
 		{
 			Name: "test0_02",
 			Request: &eventpb.Events_Request{
-				Id: &eventpb.Events_Request_ProfileId{
-					ProfileId: test.ConstUserID,
+				Id: &eventpb.Events_Request_UserId{
+					UserId: test.ConstUserID,
 				},
 			},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
 				Message: map[string]any{
-					"user_id": "value is required",
+					"profile_id": "value is required",
 				},
 			},
 		},
 		{
 			Name: "test0_03",
 			Request: &eventpb.Events_Request{
-				UserId: test.ConstAdminID,
-				Id: &eventpb.Events_Request_ProfileId{
-					ProfileId: "test",
+				ProfileId: test.ConstAdminID,
+				Id: &eventpb.Events_Request_UserId{
+					UserId: "test",
 				},
 			},
 			Error: test.ErrGRPC{
@@ -64,9 +64,9 @@ func Test_Events(t *testing.T) {
 		{ // list of all admin profile events
 			Name: "test0_04",
 			Request: &eventpb.Events_Request{
-				UserId: test.ConstAdminID,
-				Id: &eventpb.Events_Request_ProfileId{
-					ProfileId: test.ConstAdminID,
+				ProfileId: test.ConstAdminID,
+				Id: &eventpb.Events_Request_UserId{
+					UserId: test.ConstAdminID,
 				},
 			},
 			Response: test.BodyTable{
@@ -79,9 +79,9 @@ func Test_Events(t *testing.T) {
 		{ // list of all profile events with limit
 			Name: "test0_05",
 			Request: &eventpb.Events_Request{
-				UserId: test.ConstAdminID,
-				Id: &eventpb.Events_Request_ProfileId{
-					ProfileId: test.ConstAdminID,
+				ProfileId: test.ConstAdminID,
+				Id: &eventpb.Events_Request_UserId{
+					UserId: test.ConstAdminID,
 				},
 				Limit: 1,
 			},
@@ -95,9 +95,9 @@ func Test_Events(t *testing.T) {
 		{ // "non-existent profile UUID"
 			Name: "test0_06",
 			Request: &eventpb.Events_Request{
-				UserId: test.ConstAdminID,
-				Id: &eventpb.Events_Request_ProfileId{
-					ProfileId: "00000000-0000-0000-0000-000000000000",
+				ProfileId: test.ConstAdminID,
+				Id: &eventpb.Events_Request_UserId{
+					UserId: "00000000-0000-0000-0000-000000000000",
 				},
 			},
 			Error: test.ErrGRPC{
@@ -113,7 +113,7 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "ca7e65a4-76ea-4802-9f4f-3518a3416985",
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -127,7 +127,7 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "ca7e65a4-76ea-4802-9f4f-3518a3416985",
 				},
-				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+				ProfileId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -140,7 +140,7 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "26060c68-5a06-4a57-b87a-be0f1e787157",
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
 			Response: test.BodyTable{
 				"total":     float64(2),
@@ -155,7 +155,7 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "26060c68-5a06-4a57-b87a-be0f1e787157",
 				},
-				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+				ProfileId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -168,8 +168,8 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "26060c68-5a06-4a57-b87a-be0f1e787157",
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
-				Limit:  1,
+				ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				Limit:     1,
 			},
 			Response: test.BodyTable{
 				"total":     float64(2),
@@ -183,7 +183,7 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_ProjectId{
 					ProjectId: "00000000-0000-0000-0000-000000000000",
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -200,7 +200,7 @@ func Test_Events(t *testing.T) {
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
 				Message: map[string]any{
-					"user_id": "value is required",
+					"profile_id": "value is required",
 				},
 			},
 		},
@@ -212,7 +212,7 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_SchemeId{
 					SchemeId: "ddd084a5-7d91-4796-a133-feab4e653721",
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -225,7 +225,7 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_SchemeId{
 					SchemeId: "ca7e65a4-76ea-4802-9f4f-3518a3416985",
 				},
-				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+				ProfileId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -238,7 +238,7 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_SchemeId{
 					SchemeId: "0c3a8869-6fc0-4666-bf60-15475473392a",
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
 			Response: test.BodyTable{
 				"total": float64(11),
@@ -250,7 +250,7 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_SchemeId{
 					SchemeId: "0c3a8869-6fc0-4666-bf60-15475473392a",
 				},
-				UserId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+				ProfileId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -263,8 +263,8 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_SchemeId{
 					SchemeId: "0c3a8869-6fc0-4666-bf60-15475473392a",
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
-				Limit:  1,
+				ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				Limit:     1,
 			},
 			Response: test.BodyTable{
 				"total":     float64(11),
@@ -278,7 +278,7 @@ func Test_Events(t *testing.T) {
 				Id: &eventpb.Events_Request_SchemeId{
 					SchemeId: "00000000-0000-0000-0000-000000000000",
 				},
-				UserId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				ProfileId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -295,7 +295,7 @@ func Test_Events(t *testing.T) {
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
 				Message: map[string]any{
-					"user_id": "value is required",
+					"profile_id": "value is required",
 				},
 			},
 		},
@@ -320,15 +320,15 @@ func Test_Event(t *testing.T) {
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
 				Message: map[string]any{
-					"user_id": "value is required",
-					"id":      "exactly one field is required in oneof",
+					"profile_id": "value is required",
+					"id":         "exactly one field is required in oneof",
 				},
 			},
 		},
 		{
 			Name: "test0_02",
 			Request: &eventpb.Event_Request{
-				UserId: test.ConstFakeID,
+				ProfileId: test.ConstFakeID,
 			},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -340,9 +340,9 @@ func Test_Event(t *testing.T) {
 		{
 			Name: "test0_03",
 			Request: &eventpb.Event_Request{
-				UserId: test.ConstFakeID,
-				Id: &eventpb.Event_Request_ProfileId{
-					ProfileId: test.ConstFakeID,
+				ProfileId: test.ConstFakeID,
+				Id: &eventpb.Event_Request_UserId{
+					UserId: test.ConstFakeID,
 				},
 			},
 			Error: test.ErrGRPC{
@@ -355,9 +355,9 @@ func Test_Event(t *testing.T) {
 		{
 			Name: "test1_01",
 			Request: &eventpb.Event_Request{
-				UserId: test.ConstAdminID,
-				Id: &eventpb.Event_Request_ProfileId{
-					ProfileId: test.ConstFakeID,
+				ProfileId: test.ConstAdminID,
+				Id: &eventpb.Event_Request_UserId{
+					UserId: test.ConstFakeID,
 				},
 			},
 			Error: test.ErrGRPC{
@@ -368,9 +368,9 @@ func Test_Event(t *testing.T) {
 		{
 			Name: "test1_02",
 			Request: &eventpb.Event_Request{
-				UserId: test.ConstAdminID,
-				Id: &eventpb.Event_Request_ProfileId{
-					ProfileId: test.ConstAdminProfileEventID,
+				ProfileId: test.ConstAdminID,
+				Id: &eventpb.Event_Request_UserId{
+					UserId: test.ConstAdminProfileEventID,
 				},
 			},
 			Response: test.BodyTable{
@@ -389,7 +389,7 @@ func Test_Event(t *testing.T) {
 		{
 			Name: "test2_01",
 			Request: &eventpb.Event_Request{
-				UserId: test.ConstAdminID,
+				ProfileId: test.ConstAdminID,
 				Id: &eventpb.Event_Request_ProjectId{
 					ProjectId: test.ConstFakeID,
 				},
@@ -402,7 +402,7 @@ func Test_Event(t *testing.T) {
 		{
 			Name: "test2_02",
 			Request: &eventpb.Event_Request{
-				UserId: test.ConstAdminID,
+				ProfileId: test.ConstAdminID,
 				Id: &eventpb.Event_Request_ProjectId{
 					ProjectId: test.ConstAdminProjectEventID,
 				},
@@ -423,7 +423,7 @@ func Test_Event(t *testing.T) {
 		{
 			Name: "test3_01",
 			Request: &eventpb.Event_Request{
-				UserId: test.ConstAdminID,
+				ProfileId: test.ConstAdminID,
 				Id: &eventpb.Event_Request_SchemeId{
 					SchemeId: test.ConstFakeID,
 				},
@@ -436,7 +436,7 @@ func Test_Event(t *testing.T) {
 		{
 			Name: "test3_02",
 			Request: &eventpb.Event_Request{
-				UserId: test.ConstAdminID,
+				ProfileId: test.ConstAdminID,
 				Id: &eventpb.Event_Request_SchemeId{
 					SchemeId: test.ConstAdminSchemeEventID,
 				},
@@ -484,7 +484,7 @@ func Test_AddEvent(t *testing.T) {
 		{
 			Name: "test0_02",
 			Request: &eventpb.AddEvent_Request{
-				UserId:    "test",
+				ProfileId: "test",
 				SessionId: "test",
 				Section: &eventpb.AddEvent_Request_Profile{
 					Profile: &eventpb.Profile{
@@ -512,7 +512,7 @@ func Test_AddEvent(t *testing.T) {
 		{
 			Name: "test1_01",
 			Request: &eventpb.AddEvent_Request{
-				UserId:    test.ConstAdminID,
+				ProfileId: test.ConstAdminID,
 				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Profile{
 					Profile: &eventpb.Profile{
@@ -529,7 +529,7 @@ func Test_AddEvent(t *testing.T) {
 		{
 			Name: "test1_02",
 			Request: &eventpb.AddEvent_Request{
-				UserId:    test.ConstFakeID,
+				ProfileId: test.ConstFakeID,
 				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Profile{
 					Profile: &eventpb.Profile{
@@ -550,7 +550,7 @@ func Test_AddEvent(t *testing.T) {
 		{
 			Name: "test1_03",
 			Request: &eventpb.AddEvent_Request{
-				UserId:    test.ConstFakeID,
+				ProfileId: test.ConstFakeID,
 				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Profile{
 					Profile: &eventpb.Profile{
@@ -575,7 +575,7 @@ func Test_AddEvent(t *testing.T) {
 		{
 			Name: "test2_01",
 			Request: &eventpb.AddEvent_Request{
-				UserId:    test.ConstAdminID,
+				ProfileId: test.ConstAdminID,
 				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Project{
 					Project: &eventpb.Project{
@@ -592,7 +592,7 @@ func Test_AddEvent(t *testing.T) {
 		{
 			Name: "test2_02",
 			Request: &eventpb.AddEvent_Request{
-				UserId:    test.ConstFakeID,
+				ProfileId: test.ConstFakeID,
 				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Project{
 					Project: &eventpb.Project{
@@ -613,7 +613,7 @@ func Test_AddEvent(t *testing.T) {
 		{
 			Name: "test2_03",
 			Request: &eventpb.AddEvent_Request{
-				UserId:    test.ConstFakeID,
+				ProfileId: test.ConstFakeID,
 				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Project{
 					Project: &eventpb.Project{
@@ -638,7 +638,7 @@ func Test_AddEvent(t *testing.T) {
 		{
 			Name: "test3_01",
 			Request: &eventpb.AddEvent_Request{
-				UserId:    test.ConstAdminID,
+				ProfileId: test.ConstAdminID,
 				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Scheme{
 					Scheme: &eventpb.Scheme{
@@ -655,7 +655,7 @@ func Test_AddEvent(t *testing.T) {
 		{
 			Name: "test3_02",
 			Request: &eventpb.AddEvent_Request{
-				UserId:    test.ConstFakeID,
+				ProfileId: test.ConstFakeID,
 				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Scheme{
 					Scheme: &eventpb.Scheme{
@@ -676,7 +676,7 @@ func Test_AddEvent(t *testing.T) {
 		{
 			Name: "test3_03",
 			Request: &eventpb.AddEvent_Request{
-				UserId:    test.ConstFakeID,
+				ProfileId: test.ConstFakeID,
 				SessionId: uuid.New(),
 				Section: &eventpb.AddEvent_Request_Scheme{
 					Scheme: &eventpb.Scheme{

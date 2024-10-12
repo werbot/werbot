@@ -19,10 +19,10 @@ import (
 	"github.com/werbot/werbot/api/license"
 	"github.com/werbot/werbot/api/member"
 	"github.com/werbot/werbot/api/ping"
+	"github.com/werbot/werbot/api/profile"
 	"github.com/werbot/werbot/api/project"
 	"github.com/werbot/werbot/api/scheme"
 	"github.com/werbot/werbot/api/system"
-	"github.com/werbot/werbot/api/user"
 	"github.com/werbot/werbot/api/websocket"
 	"github.com/werbot/werbot/api/wellknown"
 	"github.com/werbot/werbot/internal"
@@ -94,7 +94,7 @@ func main() {
 	member.New(webHandler).Routes()
 	project.New(webHandler).Routes()
 	scheme.New(webHandler).Routes()
-	user.New(webHandler).Routes()
+	profile.New(webHandler).Routes()
 	system.New(webHandler).Routes()
 	event.New(webHandler).Routes()
 

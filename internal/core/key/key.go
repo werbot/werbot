@@ -34,10 +34,10 @@ func (h *Handler) Keys(ctx context.Context, in *keypb.Keys_Request) (*keypb.Keys
 	// Total count for pagination
 	baseQuery := postgres.SQLGluing(`
     SELECT COUNT(*)
-    FROM "user_public_key"
-    WHERE "user_id" = $1
+    FROM "profile_public_key"
+    WHERE "profile_id" = $1
   `, sqlUserLimit)
-	err := h.DB.Conn.QueryRowContext(ctx, baseQuery, in.GetUserId()).Scan(&response.Total)
+	err := h.DB.Conn.QueryRowContext(ctx, baseQuery, in.GetProfileId()).Scan(&response.Total)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, trace.Error(err, log, nil)
 	}
@@ -51,7 +51,7 @@ func (h *Handler) Keys(ctx context.Context, in *keypb.Keys_Request) (*keypb.Keys
 	baseQuery = postgres.SQLGluing(`
     SELECT
       "id",
-      "user_id",
+      "profile_id",
       "title",
       "key",
       "fingerprint",
@@ -59,10 +59,10 @@ func (h *Handler) Keys(ctx context.Context, in *keypb.Keys_Request) (*keypb.Keys
       "archived_at",
       "updated_at",
       "created_at"
-    FROM "user_public_key"
-    WHERE "user_id" = $1
+    FROM "profile_public_key"
+    WHERE "profile_id" = $1
   `, sqlUserLimit, sqlFooter)
-	rows, err := h.DB.Conn.QueryContext(ctx, baseQuery, in.GetUserId())
+	rows, err := h.DB.Conn.QueryContext(ctx, baseQuery, in.GetProfileId())
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}
@@ -73,7 +73,7 @@ func (h *Handler) Keys(ctx context.Context, in *keypb.Keys_Request) (*keypb.Keys
 		publicKey := &keypb.Key_Response{}
 		err = rows.Scan(
 			&publicKey.KeyId,
-			&publicKey.UserId,
+			&publicKey.ProfileId,
 			&publicKey.Title,
 			&publicKey.Key,
 			&publicKey.Fingerprint,
@@ -119,7 +119,7 @@ func (h *Handler) Key(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Re
 	baseQuery := postgres.SQLGluing(`
     SELECT
       "id",
-      "user_id",
+      "profile_id",
       "title",
       "key",
       "fingerprint",
@@ -127,12 +127,12 @@ func (h *Handler) Key(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Re
       "archived_at",
       "updated_at",
       "created_at"
-    FROM "user_public_key"
-    WHERE "id" = $1 AND "user_id" = $2
+    FROM "profile_public_key"
+    WHERE "id" = $1 AND "profile_id" = $2
   `, sqlHook)
-	err := h.DB.Conn.QueryRowContext(ctx, baseQuery, in.GetKeyId(), in.GetUserId()).Scan(
+	err := h.DB.Conn.QueryRowContext(ctx, baseQuery, in.GetKeyId(), in.GetProfileId()).Scan(
 		&response.KeyId,
-		&response.UserId,
+		&response.ProfileId,
 		&response.Title,
 		&response.Key,
 		&response.Fingerprint,
@@ -178,14 +178,14 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 	// Check public key fingerprint
 	err = h.DB.Conn.QueryRowContext(ctx, `
     SELECT "id"
-    FROM "user_public_key"
+    FROM "profile_public_key"
     WHERE
       "fingerprint" = $1
-      AND "user_id" = $2
+      AND "profile_id" = $2
       AND "archived_at" IS NULL
   `,
 		response.GetFingerprint(),
-		in.GetUserId(),
+		in.GetProfileId(),
 	).Scan(&response.KeyId)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, trace.Error(err, log, nil)
@@ -202,11 +202,11 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 
 	// Insert new public key
 	err = h.DB.Conn.QueryRowContext(ctx, `
-    INSERT INTO "user_public_key" ("user_id", "title", "key", "fingerprint")
+    INSERT INTO "profile_public_key" ("profile_id", "title", "key", "fingerprint")
     VALUES ($1, $2, $3, $4)
     RETURNING "id"
   `,
-		in.GetUserId(),
+		in.GetProfileId(),
 		sshKey.Comment,
 		in.GetKey(),
 		response.GetFingerprint(),
@@ -228,13 +228,13 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 	response := &keypb.UpdateKey_Response{}
 
 	result, err := h.DB.Conn.ExecContext(ctx, `
-    UPDATE "user_public_key"
+    UPDATE "profile_public_key"
     SET "title" = $1
-    WHERE "id" = $2 AND "user_id" = $3
+    WHERE "id" = $2 AND "profile_id" = $3
   `,
 		in.GetTitle(),
 		in.GetKeyId(),
-		in.GetUserId(),
+		in.GetProfileId(),
 	)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
@@ -258,12 +258,12 @@ func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*
 	response := &keypb.DeleteKey_Response{}
 
 	result, err := h.DB.Conn.ExecContext(ctx, `
-    UPDATE "user_public_key"
+    UPDATE "profile_public_key"
     SET "archived_at" = NOW()
-    WHERE "id" = $1 AND "user_id" = $2
+    WHERE "id" = $1 AND "profile_id" = $2
   `,
 		in.GetKeyId(),
-		in.GetUserId(),
+		in.GetProfileId(),
 	)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToDelete)

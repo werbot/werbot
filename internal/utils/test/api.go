@@ -14,8 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 
 	"github.com/werbot/werbot/api"
-	accountpb "github.com/werbot/werbot/internal/core/account/proto/account"
-	userpb "github.com/werbot/werbot/internal/core/user/proto/user"
+	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/utils/webutil"
@@ -65,18 +64,18 @@ type APIHandler struct {
 	Postgres *PostgresService
 }
 
-// UserInfo holds user information including tokens
-type UserInfo struct {
-	Tokens    *accountpb.Token_Response
-	UserID    string `json:"user_id"`
-	Role      userpb.Role
+// ProfileInfo holds profile information including tokens
+type ProfileInfo struct {
+	Tokens    *profilepb.Token_Response
+	ProfileID string `json:"profile_id"`
+	Role      profilepb.Role
 	SessionID string
 }
 
-// Tokens holds admin and user tokens
+// Tokens holds admin and profile tokens
 type Tokens struct {
-	Admin *accountpb.Token_Response `json:"admin_tokens"`
-	User  *accountpb.Token_Response `json:"user_tokens"`
+	Admin *profilepb.Token_Response `json:"admin_tokens"`
+	User  *profilepb.Token_Response `json:"user_tokens"`
 }
 
 // API sets up the test environment and returns a TestHandler and teardown function
@@ -138,9 +137,9 @@ func API(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
 		}
 }
 
-// GetUserAuth retrieves user authentication info
-func (h *APIHandler) GetUserAuth(email, password string) *UserInfo {
-	tokens := h.getAuthToken(&accountpb.SignIn_Request{
+// GetProfileAuth retrieves profile authentication info
+func (h *APIHandler) GetProfileAuth(email, password string) *ProfileInfo {
+	tokens := h.getAuthToken(&profilepb.SignIn_Request{
 		Email:    email,
 		Password: password,
 	})
@@ -148,15 +147,15 @@ func (h *APIHandler) GetUserAuth(email, password string) *UserInfo {
 	sessionData, _ := jwt.Parse(tokens.Access)
 	context := sessionData["User"].(map[string]any)
 
-	return &UserInfo{
+	return &ProfileInfo{
 		Tokens:    tokens,
-		UserID:    context["user_id"].(string),
-		Role:      userpb.Role(context["roles"].(float64)),
+		ProfileID: context["profile_id"].(string),
+		Role:      profilepb.Role(context["roles"].(float64)),
 		SessionID: sessionData["sub"].(string),
 	}
 }
 
-func (h *APIHandler) getAuthToken(signIn *accountpb.SignIn_Request) *accountpb.Token_Response {
+func (h *APIHandler) getAuthToken(signIn *profilepb.SignIn_Request) *profilepb.Token_Response {
 	bodyReader, _ := json.Marshal(signIn)
 	req := httptest.NewRequest("POST", "/auth/signin", bytes.NewBuffer(bodyReader))
 	req.Header.Set("Content-Type", "application/json")
@@ -166,7 +165,7 @@ func (h *APIHandler) getAuthToken(signIn *accountpb.SignIn_Request) *accountpb.T
 	}
 	defer res.Body.Close()
 
-	tokens := &accountpb.Token_Response{}
+	tokens := &profilepb.Token_Response{}
 	body := &webutil.HTTPResponse{
 		Result: tokens,
 	}
@@ -180,12 +179,12 @@ func (h *APIHandler) AddRoute404() {
 	})
 }
 
-// TestUserAuth is ...
-func (h *APIHandler) TestUserAuth() (adminHeader map[string]string, userHeader map[string]string) {
-	adminAuth := h.GetUserAuth("admin@werbot.net", "admin@werbot.net")
+// TestProfileAuth is ...
+func (h *APIHandler) TestProfileAuth() (adminHeader map[string]string, userHeader map[string]string) {
+	adminAuth := h.GetProfileAuth("admin@werbot.net", "admin@werbot.net")
 	adminHeader = map[string]string{"Authorization": "Bearer " + adminAuth.Tokens.Access}
 
-	userAuth := h.GetUserAuth("user@werbot.net", "user@werbot.net")
+	userAuth := h.GetProfileAuth("user@werbot.net", "user@werbot.net")
 	userHeader = map[string]string{"Authorization": "Bearer " + userAuth.Tokens.Access}
 
 	return adminHeader, userHeader

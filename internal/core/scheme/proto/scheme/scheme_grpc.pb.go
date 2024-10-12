@@ -28,7 +28,7 @@ const (
 	SchemeHandlers_AddSchemeFirewall_FullMethodName    = "/scheme.SchemeHandlers/AddSchemeFirewall"
 	SchemeHandlers_UpdateSchemeFirewall_FullMethodName = "/scheme.SchemeHandlers/UpdateSchemeFirewall"
 	SchemeHandlers_DeleteSchemeFirewall_FullMethodName = "/scheme.SchemeHandlers/DeleteSchemeFirewall"
-	SchemeHandlers_UserSchemes_FullMethodName          = "/scheme.SchemeHandlers/UserSchemes"
+	SchemeHandlers_ProfileSchemes_FullMethodName       = "/scheme.SchemeHandlers/ProfileSchemes"
 	SchemeHandlers_SystemSchemesByAlias_FullMethodName = "/scheme.SchemeHandlers/SystemSchemesByAlias"
 	SchemeHandlers_SystemSchemeAccess_FullMethodName   = "/scheme.SchemeHandlers/SystemSchemeAccess"
 	SchemeHandlers_SystemHostKey_FullMethodName        = "/scheme.SchemeHandlers/SystemHostKey"
@@ -56,7 +56,7 @@ type SchemeHandlersClient interface {
 	UpdateSchemeFirewall(ctx context.Context, in *UpdateSchemeFirewall_Request, opts ...grpc.CallOption) (*UpdateSchemeFirewall_Response, error)
 	DeleteSchemeFirewall(ctx context.Context, in *DeleteSchemeFirewall_Request, opts ...grpc.CallOption) (*DeleteSchemeFirewall_Response, error)
 	// All user shared schemes
-	UserSchemes(ctx context.Context, in *UserSchemes_Request, opts ...grpc.CallOption) (*UserSchemes_Response, error)
+	ProfileSchemes(ctx context.Context, in *ProfileSchemes_Request, opts ...grpc.CallOption) (*ProfileSchemes_Response, error)
 	// SYSTEM methods, using only in workers !!!!
 	SystemSchemesByAlias(ctx context.Context, in *SystemSchemesByAlias_Request, opts ...grpc.CallOption) (*SystemSchemesByAlias_Response, error)
 	SystemSchemeAccess(ctx context.Context, in *SystemSchemeAccess_Request, opts ...grpc.CallOption) (*SystemSchemeAccess_Response, error)
@@ -192,10 +192,10 @@ func (c *schemeHandlersClient) DeleteSchemeFirewall(ctx context.Context, in *Del
 	return out, nil
 }
 
-func (c *schemeHandlersClient) UserSchemes(ctx context.Context, in *UserSchemes_Request, opts ...grpc.CallOption) (*UserSchemes_Response, error) {
+func (c *schemeHandlersClient) ProfileSchemes(ctx context.Context, in *ProfileSchemes_Request, opts ...grpc.CallOption) (*ProfileSchemes_Response, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UserSchemes_Response)
-	err := c.cc.Invoke(ctx, SchemeHandlers_UserSchemes_FullMethodName, in, out, cOpts...)
+	out := new(ProfileSchemes_Response)
+	err := c.cc.Invoke(ctx, SchemeHandlers_ProfileSchemes_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ type SchemeHandlersServer interface {
 	UpdateSchemeFirewall(context.Context, *UpdateSchemeFirewall_Request) (*UpdateSchemeFirewall_Response, error)
 	DeleteSchemeFirewall(context.Context, *DeleteSchemeFirewall_Request) (*DeleteSchemeFirewall_Response, error)
 	// All user shared schemes
-	UserSchemes(context.Context, *UserSchemes_Request) (*UserSchemes_Response, error)
+	ProfileSchemes(context.Context, *ProfileSchemes_Request) (*ProfileSchemes_Response, error)
 	// SYSTEM methods, using only in workers !!!!
 	SystemSchemesByAlias(context.Context, *SystemSchemesByAlias_Request) (*SystemSchemesByAlias_Response, error)
 	SystemSchemeAccess(context.Context, *SystemSchemeAccess_Request) (*SystemSchemeAccess_Response, error)
@@ -315,8 +315,8 @@ func (UnimplementedSchemeHandlersServer) UpdateSchemeFirewall(context.Context, *
 func (UnimplementedSchemeHandlersServer) DeleteSchemeFirewall(context.Context, *DeleteSchemeFirewall_Request) (*DeleteSchemeFirewall_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSchemeFirewall not implemented")
 }
-func (UnimplementedSchemeHandlersServer) UserSchemes(context.Context, *UserSchemes_Request) (*UserSchemes_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UserSchemes not implemented")
+func (UnimplementedSchemeHandlersServer) ProfileSchemes(context.Context, *ProfileSchemes_Request) (*ProfileSchemes_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProfileSchemes not implemented")
 }
 func (UnimplementedSchemeHandlersServer) SystemSchemesByAlias(context.Context, *SystemSchemesByAlias_Request) (*SystemSchemesByAlias_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SystemSchemesByAlias not implemented")
@@ -567,20 +567,20 @@ func _SchemeHandlers_DeleteSchemeFirewall_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SchemeHandlers_UserSchemes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserSchemes_Request)
+func _SchemeHandlers_ProfileSchemes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProfileSchemes_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SchemeHandlersServer).UserSchemes(ctx, in)
+		return srv.(SchemeHandlersServer).ProfileSchemes(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SchemeHandlers_UserSchemes_FullMethodName,
+		FullMethod: SchemeHandlers_ProfileSchemes_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SchemeHandlersServer).UserSchemes(ctx, req.(*UserSchemes_Request))
+		return srv.(SchemeHandlersServer).ProfileSchemes(ctx, req.(*ProfileSchemes_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -713,8 +713,8 @@ var SchemeHandlers_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SchemeHandlers_DeleteSchemeFirewall_Handler,
 		},
 		{
-			MethodName: "UserSchemes",
-			Handler:    _SchemeHandlers_UserSchemes_Handler,
+			MethodName: "ProfileSchemes",
+			Handler:    _SchemeHandlers_ProfileSchemes_Handler,
 		},
 		{
 			MethodName: "SystemSchemesByAlias",

@@ -20,7 +20,7 @@ func setupTest(t *testing.T) (*test.APIHandler, func(t *testing.T), map[string]s
 	New(app.Handler).Routes()
 	app.AddRoute404()
 
-	adminHeader, userHeader := app.TestUserAuth()
+	adminHeader, userHeader := app.TestProfileAuth()
 
 	return app, teardownTestCase, adminHeader, userHeader
 }

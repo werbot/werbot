@@ -1,4 +1,4 @@
-package user
+package profile
 
 import (
 	"context"
@@ -16,28 +16,29 @@ import (
 	invitepb "github.com/werbot/werbot/internal/core/invite/proto/invite"
 	"github.com/werbot/werbot/internal/core/notification"
 	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
-	userpb "github.com/werbot/werbot/internal/core/user/proto/user"
+	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
+	"github.com/werbot/werbot/pkg/utils/strutil"
 	"github.com/werbot/werbot/pkg/uuid"
 )
 
-// Users is lists all users on the system
-func (h *Handler) Users(ctx context.Context, in *userpb.Users_Request) (*userpb.Users_Response, error) {
+// Profiles is lists all profiles on the system
+func (h *Handler) Profiles(ctx context.Context, in *profilepb.Profiles_Request) (*profilepb.Profiles_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := &userpb.Users_Response{}
+	response := &profilepb.Profiles_Response{}
 
 	// Total count for pagination
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT COUNT(*)
-    FROM "user"
+    FROM "profile"
   `).Scan(&response.Total)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, trace.Error(err, log, nil)
@@ -51,38 +52,38 @@ func (h *Handler) Users(ctx context.Context, in *userpb.Users_Request) (*userpb.
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	baseQuery := postgres.SQLGluing(`
     SELECT
-      "user"."id",
-      "user"."alias",
-      "user"."name",
-      "user"."surname",
-      "user"."email",
-      "user"."active",
-      "user"."confirmed",
-      "user"."role",
-      "user"."locked_at",
-      "user"."archived_at",
-      "user"."updated_at",
-      "user"."created_at",
+      "profile"."id",
+      "profile"."alias",
+      "profile"."name",
+      "profile"."surname",
+      "profile"."email",
+      "profile"."active",
+      "profile"."confirmed",
+      "profile"."role",
+      "profile"."locked_at",
+      "profile"."archived_at",
+      "profile"."updated_at",
+      "profile"."created_at",
       COUNT(DISTINCT "project"."id") AS "count_project",
-      COUNT(DISTINCT "user_public_key"."id") AS "count_keys",
+      COUNT(DISTINCT "profile_public_key"."id") AS "count_keys",
       COUNT(DISTINCT "scheme"."id") AS "count_schemes"
-    FROM "user"
-    LEFT JOIN "project" ON "project"."owner_id" = "user"."id"
-    LEFT JOIN "user_public_key" ON "user_public_key"."user_id" = "user"."id"
+    FROM "profile"
+    LEFT JOIN "project" ON "project"."owner_id" = "profile"."id"
+    LEFT JOIN "profile_public_key" ON "profile_public_key"."profile_id" = "profile"."id"
     LEFT JOIN "scheme" ON "scheme"."project_id" = "project"."id"
     GROUP BY
-      "user"."id",
-      "user"."alias",
-      "user"."name",
-      "user"."surname",
-      "user"."email",
-      "user"."active",
-      "user"."confirmed",
-      "user"."role",
-      "user"."locked_at",
-      "user"."archived_at",
-      "user"."updated_at",
-      "user"."created_at"
+      "profile"."id",
+      "profile"."alias",
+      "profile"."name",
+      "profile"."surname",
+      "profile"."email",
+      "profile"."active",
+      "profile"."confirmed",
+      "profile"."role",
+      "profile"."locked_at",
+      "profile"."archived_at",
+      "profile"."updated_at",
+      "profile"."created_at"
   `, sqlFooter)
 	rows, err := h.DB.Conn.QueryContext(ctx, baseQuery)
 	if err != nil {
@@ -92,23 +93,23 @@ func (h *Handler) Users(ctx context.Context, in *userpb.Users_Request) (*userpb.
 
 	for rows.Next() {
 		var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-		user := &userpb.User_Response{}
+		profile := &profilepb.Profile_Response{}
 		err = rows.Scan(
-			&user.UserId,
-			&user.Alias,
-			&user.Name,
-			&user.Surname,
-			&user.Email,
-			&user.Active,
-			&user.Confirmed,
-			&user.Role,
+			&profile.ProfileId,
+			&profile.Alias,
+			&profile.Name,
+			&profile.Surname,
+			&profile.Email,
+			&profile.Active,
+			&profile.Confirmed,
+			&profile.Role,
 			&lockedAt,
 			&archivedAt,
 			&updatedAt,
 			&createdAt,
-			&user.ProjectsCount,
-			&user.KeysCount,
-			&user.SchemesCount,
+			&profile.ProjectsCount,
+			&profile.KeysCount,
+			&profile.SchemesCount,
 		)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
@@ -122,60 +123,60 @@ func (h *Handler) Users(ctx context.Context, in *userpb.Users_Request) (*userpb.
 		})
 
 		if !in.GetIsAdmin() {
-			ghoster.Secrets(user, true)
+			ghoster.Secrets(profile, true)
 		}
 
-		response.Users = append(response.Users, user)
+		response.Profiles = append(response.Profiles, profile)
 	}
 
 	return response, nil
 }
 
-// User is displays user information
-func (h *Handler) User(ctx context.Context, in *userpb.User_Request) (*userpb.User_Response, error) {
+// Profile is displays profile information
+func (h *Handler) Profile(ctx context.Context, in *profilepb.Profile_Request) (*profilepb.Profile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-	response := &userpb.User_Response{}
-	response.UserId = in.GetUserId()
+	response := &profilepb.Profile_Response{}
+	response.ProfileId = in.GetProfileId()
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
-      "user"."alias",
-      "user"."name",
-      "user"."surname",
-      "user"."email",
-      "user"."active",
-      "user"."confirmed",
-      "user"."role",
-      "user"."locked_at",
-      "user"."archived_at",
-      "user"."updated_at",
-      "user"."created_at",
+      "profile"."alias",
+      "profile"."name",
+      "profile"."surname",
+      "profile"."email",
+      "profile"."active",
+      "profile"."confirmed",
+      "profile"."role",
+      "profile"."locked_at",
+      "profile"."archived_at",
+      "profile"."updated_at",
+      "profile"."created_at",
       COUNT(DISTINCT "project"."id") AS "count_project",
-      COUNT(DISTINCT "user_public_key"."id") AS "count_keys",
+      COUNT(DISTINCT "profile_public_key"."id") AS "count_keys",
       COUNT(DISTINCT "scheme"."id") AS "count_schemes"
-    FROM "user"
-    LEFT JOIN "project" ON "project"."owner_id" = "user"."id"
-    LEFT JOIN "user_public_key" ON "user_public_key"."user_id" = "user"."id"
+    FROM "profile"
+    LEFT JOIN "project" ON "project"."owner_id" = "profile"."id"
+    LEFT JOIN "profile_public_key" ON "profile_public_key"."profile_id" = "profile"."id"
     LEFT JOIN "scheme" ON "scheme"."project_id" = "project"."id"
-    WHERE "user"."id" = $1
+    WHERE "profile"."id" = $1
     GROUP BY
-      "user"."alias",
-      "user"."name",
-      "user"."surname",
-      "user"."email",
-      "user"."active",
-      "user"."confirmed",
-      "user"."role",
-      "user"."locked_at",
-      "user"."archived_at",
-      "user"."updated_at",
-      "user"."created_at"
-  `, in.GetUserId(),
+      "profile"."alias",
+      "profile"."name",
+      "profile"."surname",
+      "profile"."email",
+      "profile"."active",
+      "profile"."confirmed",
+      "profile"."role",
+      "profile"."locked_at",
+      "profile"."archived_at",
+      "profile"."updated_at",
+      "profile"."created_at"
+  `, in.GetProfileId(),
 	).Scan(
 		&response.Alias,
 		&response.Name,
@@ -210,20 +211,20 @@ func (h *Handler) User(ctx context.Context, in *userpb.User_Request) (*userpb.Us
 	return response, nil
 }
 
-// AddUser is adds a new user
-func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*userpb.AddUser_Response, error) {
+// AddProfile is adds a new profile
+func (h *Handler) AddProfile(ctx context.Context, in *profilepb.AddProfile_Request) (*profilepb.AddProfile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := &userpb.AddUser_Response{}
+	response := &profilepb.AddProfile_Response{}
 	password, _ := crypto.HashPassword(in.Password, internal.GetInt("PASSWORD_HASH_COST", 13))
 	err := h.DB.Conn.QueryRowContext(ctx, `
-    INSERT INTO "user" ("alias", "name", "surname", "email", "password", "active", "confirmed")
+    INSERT INTO "profile" ("alias", "name", "surname", "email", "password", "active", "confirmed")
     SELECT $1, $2, $3, $4::varchar(64), $5, $6, $7
     WHERE NOT EXISTS (
-      SELECT 1 FROM "user" WHERE "email" = $4
+      SELECT 1 FROM "profile" WHERE "email" = $4
     )
     RETURNING "id"
   `,
@@ -234,7 +235,7 @@ func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*use
 		password,
 		in.GetActive(),
 		in.GetConfirmed(),
-	).Scan(&response.UserId)
+	).Scan(&response.ProfileId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			errGRPC := status.Error(codes.Canceled, trace.MsgFailedToAdd)
@@ -246,8 +247,8 @@ func (h *Handler) AddUser(ctx context.Context, in *userpb.AddUser_Request) (*use
 	return response, nil
 }
 
-// UpdateUser is updates user data
-func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request) (*userpb.UpdateUser_Response, error) {
+// UpdateProfile is updates profile data
+func (h *Handler) UpdateProfile(ctx context.Context, in *profilepb.UpdateProfile_Request) (*profilepb.UpdateProfile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
@@ -257,49 +258,49 @@ func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request)
 	var value any
 
 	switch setting := in.GetSetting().(type) {
-	case *userpb.UpdateUser_Request_Name:
+	case *profilepb.UpdateProfile_Request_Name:
 		column = "name"
 		value = in.GetName()
-	case *userpb.UpdateUser_Request_Surname:
+	case *profilepb.UpdateProfile_Request_Surname:
 		column = "surname"
 		value = in.GetSurname()
 
-	case *userpb.UpdateUser_Request_Alias,
-		*userpb.UpdateUser_Request_Email,
-		*userpb.UpdateUser_Request_Confirmed,
-		*userpb.UpdateUser_Request_Active,
-		*userpb.UpdateUser_Request_Archived:
+	case *profilepb.UpdateProfile_Request_Alias,
+		*profilepb.UpdateProfile_Request_Email,
+		*profilepb.UpdateProfile_Request_Confirmed,
+		*profilepb.UpdateProfile_Request_Active,
+		*profilepb.UpdateProfile_Request_Archived:
 		if !in.GetIsAdmin() {
 			errGRPC := status.Error(codes.InvalidArgument, "setting: exactly one field is required in oneof")
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 		switch setting.(type) {
-		case *userpb.UpdateUser_Request_Alias:
+		case *profilepb.UpdateProfile_Request_Alias:
 			column = "alias"
 			value = in.GetAlias()
-		case *userpb.UpdateUser_Request_Email:
+		case *profilepb.UpdateProfile_Request_Email:
 			column = "email"
 			value = in.GetEmail()
-		case *userpb.UpdateUser_Request_Confirmed:
+		case *profilepb.UpdateProfile_Request_Confirmed:
 			column = "confirmed"
 			value = in.GetConfirmed()
-		case *userpb.UpdateUser_Request_Active:
+		case *profilepb.UpdateProfile_Request_Active:
 			column = "active"
 			value = in.GetActive()
-		case *userpb.UpdateUser_Request_Archived:
+		case *profilepb.UpdateProfile_Request_Archived:
 			column = "archived"
 			value = in.GetArchived()
 		}
 	}
 
 	query := fmt.Sprintf(`
-    UPDATE "user"
+    UPDATE "profile"
     SET "%s" = $1
     WHERE "id" = $2
   `, column)
 
-	result, err := h.DB.Conn.ExecContext(ctx, query, value, in.GetUserId())
+	result, err := h.DB.Conn.ExecContext(ctx, query, value, in.GetProfileId())
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 	}
@@ -309,11 +310,11 @@ func (h *Handler) UpdateUser(ctx context.Context, in *userpb.UpdateUser_Request)
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	return &userpb.UpdateUser_Response{}, nil
+	return &profilepb.UpdateProfile_Response{}, nil
 }
 
-// DeleteUser is ...
-func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request) (*userpb.DeleteUser_Response, error) {
+// DeleteProfile is ...
+func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile_Request) (*profilepb.DeleteProfile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
@@ -322,26 +323,26 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 	notification := notification.Handler{DB: h.DB, Worker: h.Worker}
 
 	switch in.GetRequest().(type) {
-	case *userpb.DeleteUser_Request_Password: // step 1
+	case *profilepb.DeleteProfile_Request_Password: // step 1
 		var first bool
 		var alias, passwordHash, email string
 		var token sql.NullString
 		err := h.DB.Conn.QueryRowContext(ctx, `
       SELECT
-        "user"."alias",
-        "user"."password",
-        "user"."email",
-        "user_token"."token"
+        "profile"."alias",
+        "profile"."password",
+        "profile"."email",
+        "profile_token"."token"
       FROM
-        "user"
-        LEFT JOIN "user_token" ON "user"."id" = "user_token"."user_id"
-          AND "user_token"."active" = true
-          AND "user_token"."action" = 5
-          AND "user_token"."created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
+        "profile"
+        LEFT JOIN "profile_token" ON "profile"."id" = "profile_token"."profile_id"
+          AND "profile_token"."active" = true
+          AND "profile_token"."action" = 5
+          AND "profile_token"."created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
       WHERE
-        "user"."id" = $1
-        AND "user"."role" = 1
-    `, in.GetUserId()).Scan(
+        "profile"."id" = $1
+        AND "profile"."role" = 1
+    `, in.GetProfileId()).Scan(
 			&alias,
 			&passwordHash,
 			&email,
@@ -360,11 +361,11 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 			first = true
 			token.String = uuid.New()
 			_, err = h.DB.Conn.ExecContext(ctx, `
-        INSERT INTO "user_token" ("token", "user_id", "action")
+        INSERT INTO "profile_token" ("token", "profile_id", "action")
         VALUES ($1, $2, $3)
       `,
 				token.String,
-				in.GetUserId(),
+				in.GetProfileId(),
 				invitepb.Action_delete.Enum(),
 			)
 			if err != nil {
@@ -375,29 +376,29 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 		// send email with token link
 		_, err = notification.SendMail(ctx, &notificationpb.SendMail_Request{
 			Email:    email,
-			Subject:  "user deletion confirmation",
+			Subject:  "profile deletion confirmation",
 			Template: notificationpb.MailTemplate_account_deletion_confirmation,
 			Data: map[string]string{
 				"Login":     alias,
-				"Link":      fmt.Sprintf("%s/profile/setting/destroy/%s", internal.GetString("APP_DSN", "http://localhost:5173"), token),
+				"Link":      fmt.Sprintf("%s/profile/setting/destroy/%s", internal.GetString("APP_DSN", "http://localhost:5173"), token.String),
 				"FirstSend": strconv.FormatBool(first),
 			},
 		})
 
-	case *userpb.DeleteUser_Request_Token: // step 2
+	case *profilepb.DeleteProfile_Request_Token: // step 2
 		var alias, email sql.NullString
 		err := h.DB.Conn.QueryRowContext(ctx, `
-      SELECT "user"."alias", "user"."email"
-      FROM "user"
-      JOIN "user_token" ON "user"."id" = "user_token"."user_id"
+      SELECT "profile"."alias", "profile"."email"
+      FROM "profile"
+      JOIN "profile_token" ON "profile"."id" = "profile_token"."profile_id"
       WHERE
-        "user_token"."user_id" = $1::uuid
-        AND "user_token"."token" = $2::uuid
-        AND "user_token"."active" = true
-        AND "user_token"."created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
-        AND "user"."role" = 1
+        "profile_token"."profile_id" = $1::uuid
+        AND "profile_token"."token" = $2::uuid
+        AND "profile_token"."active" = true
+        AND "profile_token"."created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
+        AND "profile"."role" = 1
     `,
-			in.GetUserId(),
+			in.GetProfileId(),
 			in.GetToken(),
 		).Scan(
 			&alias,
@@ -418,27 +419,27 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 		}
 		defer tx.Rollback()
 
-		// disable user
+		// disable profile
 		archivedAt := time.Now().AddDate(0, 1, 0)
 
 		_, err = tx.ExecContext(ctx, `
-      UPDATE "user"
+      UPDATE "profile"
       SET
         "active" = false,
         "locked_at" = NOW(),
         "archived_at" = $2
       WHERE "id" = $1
     `,
-			in.GetUserId(),
+			in.GetProfileId(),
 			archivedAt,
 		)
 		if err != nil {
 			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 		}
 
-		// disable user user
+		// disable profile
 		_, err = tx.ExecContext(ctx, `
-      UPDATE "user_token"
+      UPDATE "profile_token"
       SET "active" = false
       WHERE "token" = $1
     `, in.GetToken())
@@ -453,7 +454,7 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 		// send delete token to email
 		notification.SendMail(ctx, &notificationpb.SendMail_Request{
 			Email:    email.String,
-			Subject:  "user deleted",
+			Subject:  "profile deleted",
 			Template: notificationpb.MailTemplate_account_deletion_info,
 			Data: map[string]string{
 				"Login": alias.String,
@@ -461,11 +462,11 @@ func (h *Handler) DeleteUser(ctx context.Context, in *userpb.DeleteUser_Request)
 		})
 	}
 
-	return &userpb.DeleteUser_Response{}, nil
+	return &profilepb.DeleteProfile_Response{}, nil
 }
 
 // UpdatePassword is ...
-func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_Request) (*userpb.UpdatePassword_Response, error) {
+func (h *Handler) UpdatePassword(ctx context.Context, in *profilepb.UpdatePassword_Request) (*profilepb.UpdatePassword_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		errGRPC := status.Error(codes.InvalidArgument, err.Error())
 		return nil, trace.Error(errGRPC, log, nil)
@@ -475,9 +476,9 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_
 	var currentPassword string
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT "password"
-    FROM "user"
+    FROM "profile"
     WHERE "id" = $1
-  `, in.GetUserId()).Scan(&currentPassword)
+  `, in.GetProfileId()).Scan(&currentPassword)
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}
@@ -495,12 +496,12 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_
 	}
 
 	result, err := h.DB.Conn.ExecContext(ctx, `
-    UPDATE "user"
+    UPDATE "profile"
     SET "password" = $1
     WHERE "id" = $2
   `,
 		newPassword,
-		in.GetUserId(),
+		in.GetProfileId(),
 	)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
@@ -511,5 +512,74 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *userpb.UpdatePassword_
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	return &userpb.UpdatePassword_Response{}, nil
+	return &profilepb.UpdatePassword_Response{}, nil
+}
+
+// TODO Check bu invite and Enable check in Firewall
+// ProfileIDByLogin is a function that takes a context and an AccountIDByLogin_Request as input,
+// and returns an AccountIDByLogin_Response and an error as output.
+func (h *Handler) ProfileIDByLogin(ctx context.Context, in *profilepb.ProfileIDByLogin_Request) (*profilepb.ProfileIDByLogin_Response, error) {
+	if err := protoutils.ValidateRequest(in); err != nil {
+		errGRPC := status.Error(codes.InvalidArgument, err.Error())
+		return nil, trace.Error(errGRPC, log, nil)
+	}
+
+	response := &profilepb.ProfileIDByLogin_Response{}
+	nameArray := strutil.SplitNTrimmed(in.GetLogin(), "_", 3)
+
+	stmt, err := h.DB.Conn.PrepareContext(ctx, `
+    SELECT "profile"."id"
+    FROM
+      "profile"
+      JOIN "profile_public_key" ON "profile".i"d = "profile_public_key"."profile_id"
+    WHERE
+      "profile"."login" = $1
+      AND "profile_public_key"."fingerprint" = $2
+  `)
+	if err != nil {
+		return nil, trace.Error(err, log, nil)
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, nameArray[0], in.GetFingerprint()).Scan(&response.ProfileId)
+	if err != nil {
+		return nil, trace.Error(err, log, nil)
+	}
+
+	return response, nil
+}
+
+// UpdateStatus is a method implemented by Handler struct which accepts
+// a context and an UpdateStatus_Request object and returns an UpdateStatus_Response object and an error
+func (h *Handler) UpdateStatus(ctx context.Context, in *profilepb.UpdateStatus_Request) (*profilepb.UpdateStatus_Response, error) {
+	if err := protoutils.ValidateRequest(in); err != nil {
+		errGRPC := status.Error(codes.InvalidArgument, err.Error())
+		return nil, trace.Error(errGRPC, log, nil)
+	}
+
+	response := &profilepb.UpdateStatus_Response{}
+
+	online := false
+	if in.GetStatus() == 1 {
+		online = true
+	}
+
+	res, err := h.DB.Conn.ExecContext(ctx, `
+    UPDATE "scheme_member"
+    SET "online" = $2
+    WHERE "id" = $1
+  `,
+		in.GetAccountId(),
+		online,
+	)
+	if err != nil {
+		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
+	}
+
+	if rows, _ := res.RowsAffected(); rows == 0 {
+		errGRPC := status.Error(codes.NotFound, trace.MsgAccountNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
+
+	return response, nil
 }

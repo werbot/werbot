@@ -45,15 +45,16 @@ func TestHandler_events(t *testing.T) {
 			RequestHeaders: adminHeader,
 		},
 
-		{ // ADMIN: error displaying list of events with a broken user UUID
-			Name:           "test1_03",
+		{ // ADMIN: error displaying list of events with a broken profile UUID
+			Name:           "test1_04",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathEvent, "abc", test.ConstAdminID) + "?user_id=" + crypto.NewPassword(8, false),
+			Path:           test.PathGluing(pathEvent, "abc", test.ConstAdminID) + "?profile_id=" + crypto.NewPassword(8, false),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
 		},
 
+		// ---------------------------
 		// profile event
 		{ // ADMIN: error displaying list of events due to invalid arguments, ignoring broken limit
 			Name:       "test1_11",
@@ -104,7 +105,7 @@ func TestHandler_events(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // USER: error displaying profile events not owned by the user
+		{ // USER: error displaying profile events not owned by the profile
 			Name:           "test2_11",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathEventProfile, test.ConstAdminID),
@@ -113,6 +114,7 @@ func TestHandler_events(t *testing.T) {
 			RequestHeaders: userHeader,
 		},
 
+		// ---------------------------
 		// project event
 		{ // ADMIN: non-existent project UUID
 			Name:           "test1_11",
@@ -147,7 +149,7 @@ func TestHandler_events(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // USER: error displaying project events not owned by the user
+		{ // USER: error displaying project events not owned by the profile
 			Name:           "test2_21",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathEventProject, test.ConstAdminEventProjectID),
@@ -156,6 +158,7 @@ func TestHandler_events(t *testing.T) {
 			RequestHeaders: userHeader,
 		},
 
+		// ---------------------------
 		// scheme event
 		{ // ADMIN: non-existent scheme UUID
 			Name:           "test1_31",
@@ -190,7 +193,7 @@ func TestHandler_events(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // USER: error displaying scheme events not owned by the user
+		{ // USER: error displaying scheme events not owned by the profile
 			Name:           "test2_31",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathEventScheme, test.ConstAdminEventSchemeID),
@@ -245,7 +248,7 @@ func TestHandler_event(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // USER: error displaying profile event info not owned by the user
+		{ // USER: error displaying profile event info not owned by the profile
 			Name:           "test2_11",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathEventProfile, test.ConstAdminID, test.ConstAdminProfileEventID),
@@ -262,7 +265,7 @@ func TestHandler_event(t *testing.T) {
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":              float64(200),
-				"result.user_id":    test.ConstAdminID,
+				"result.profile_id": test.ConstAdminID,
 				"result.project_id": test.ConstAdminEventProjectID,
 				"result.event":      float64(1),
 				"result.ip":         "192.168.0.1",
@@ -274,7 +277,7 @@ func TestHandler_event(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // USER: error displaying project event info not owned by the user
+		{ // USER: error displaying project event info not owned by the profile
 			Name:           "test2_21",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathEventProject, test.ConstAdminEventProjectID, test.ConstAdminProjectEventID),
@@ -291,7 +294,7 @@ func TestHandler_event(t *testing.T) {
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":              float64(200),
-				"result.user_id":    test.ConstAdminID,
+				"result.profile_id": test.ConstAdminID,
 				"result.scheme_id":  test.ConstAdminEventSchemeID,
 				"result.event":      float64(1),
 				"result.ip":         "192.168.1.1",
@@ -303,7 +306,7 @@ func TestHandler_event(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // USER: error displaying scheme event info not owned by the user
+		{ // USER: error displaying scheme event info not owned by the profile
 			Name:           "test2_31",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathEventScheme, test.ConstAdminEventSchemeID, test.ConstAdminSchemeEventID),

@@ -13,7 +13,7 @@ import (
 // @Description Retrieves event records based on the provided category (profile, project, or scheme) and query parameters
 // @Tags event
 // @Produce json
-// @Param user_id query string false "User UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param category path string true "Category name (profile, project, scheme)"
 // @Param category_id path string true "Name UUID"
 // @Param limit query int false "Limit for pagination"
@@ -24,19 +24,19 @@ import (
 // @Router /v1/event/{category}/{category_id} [get]
 func (h *Handler) events(c *fiber.Ctx) error {
 	pagination := webutil.GetPaginationFromCtx(c)
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &eventpb.Events_Request{
-		IsAdmin: sessionData.IsUserAdmin(),
-		UserId:  sessionData.UserID(c.Query("user_id")),
-		Limit:   pagination.Limit,
-		Offset:  pagination.Offset,
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
+		Limit:     pagination.Limit,
+		Offset:    pagination.Offset,
 	}
 
 	_ = webutil.Parse(c, request).Query()
 
 	switch c.Params("category") {
 	case "profile":
-		request.Id = &eventpb.Events_Request_ProfileId{ProfileId: c.Params("category_id")}
+		request.Id = &eventpb.Events_Request_UserId{UserId: c.Params("category_id")}
 		request.SortBy = `"created_at":DESC`
 	case "project":
 		request.Id = &eventpb.Events_Request_ProjectId{ProjectId: c.Params("category_id")}
@@ -74,15 +74,15 @@ func (h *Handler) events(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/event/{category}/{category_id}/{event_id} [get]
 func (h *Handler) event(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &eventpb.Event_Request{
-		IsAdmin: sessionData.IsUserAdmin(),
-		UserId:  sessionData.UserID(c.Query("user_id")),
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
 	}
 
 	switch c.Params("category") {
 	case "profile":
-		request.Id = &eventpb.Event_Request_ProfileId{ProfileId: c.Params("event_id")}
+		request.Id = &eventpb.Event_Request_UserId{UserId: c.Params("event_id")}
 	case "project":
 		request.Id = &eventpb.Event_Request_ProjectId{ProjectId: c.Params("event_id")}
 	case "scheme":

@@ -15,9 +15,9 @@ import (
 	"golang.org/x/term"
 
 	"github.com/werbot/werbot/internal"
-	accountpb "github.com/werbot/werbot/internal/core/account/proto/account"
 	auditpb "github.com/werbot/werbot/internal/core/audit/proto/audit"
 	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
+	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/core/scheme/services/ssh/auditor"
 	"github.com/werbot/werbot/internal/core/scheme/services/ssh/pty"
@@ -50,7 +50,7 @@ func connectToHost(host *schemepb.Scheme_Response, actx *authContext, ctx ssh.Co
 
 	rClientF := firewallpb.NewFirewallHandlersClient(app.grpc)
 	rClientS := schemepb.NewSchemeHandlersClient(app.grpc)
-	rClientA := accountpb.NewAccountHandlersClient(app.grpc)
+	rClientA := profilepb.NewProfileHandlersClient(app.grpc)
 
 	_, err := rClientF.ServerAccess(_ctx, &firewallpb.ServerAccess_Request{
 		ServerId: host.SchemeId,
@@ -78,7 +78,7 @@ func connectToHost(host *schemepb.Scheme_Response, actx *authContext, ctx ssh.Co
 
 		app.broker.AccountStatus(host.AccountId, "online")
 
-		_, err = rClientA.UpdateStatus(_ctx, &accountpb.UpdateStatus_Request{
+		_, err = rClientA.UpdateStatus(_ctx, &profilepb.UpdateStatus_Request{
 			AccountId: host.AccountId,
 			Status:    2, // online
 		})
@@ -146,7 +146,7 @@ func connectToHost(host *schemepb.Scheme_Response, actx *authContext, ctx ssh.Co
 
 			app.broker.AccountStatus(host.AccountId, "offline")
 
-			_, err := rClientA.UpdateStatus(_ctx, &accountpb.UpdateStatus_Request{
+			_, err := rClientA.UpdateStatus(_ctx, &profilepb.UpdateStatus_Request{
 				AccountId: host.AccountId,
 				Status:    1, // offline
 			})

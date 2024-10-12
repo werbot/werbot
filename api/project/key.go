@@ -24,11 +24,11 @@ import (
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id}/keys [get]
 func (h *Handler) projectKeys(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	pagination := webutil.GetPaginationFromCtx(c)
 	request := &projectpb.ProjectKeys_Request{
-		IsAdmin:   sessionData.IsUserAdmin(),
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		Limit:     pagination.Limit,
 		Offset:    pagination.Offset,
@@ -70,11 +70,11 @@ func (h *Handler) projectKey(c *fiber.Ctx) error {
 			},
 		}
 	} else {
-		sessionData := session.AuthUser(c)
+		sessionData := session.AuthProfile(c)
 		request.Type = &projectpb.ProjectKey_Request_Private{
 			Private: &projectpb.ProjectKey_Private{
-				IsAdmin:   sessionData.IsUserAdmin(),
-				OwnerId:   sessionData.UserID(c.Query("owner_id")),
+				IsAdmin:   sessionData.IsProfileAdmin(),
+				OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 				ProjectId: c.Params("project_id"),
 				KeyId:     c.Params("key_id"),
 			},
@@ -106,9 +106,9 @@ func (h *Handler) projectKey(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id}/keys [post]
 func (h *Handler) addProjectKey(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &projectpb.AddProjectKey_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 	}
 
@@ -145,9 +145,9 @@ func (h *Handler) addProjectKey(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id}/keys/{key_id} [delete]
 func (h *Handler) deleteProjectKey(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &projectpb.DeleteProjectKey_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		KeyId:     c.Params("key_id"),
 	}

@@ -23,11 +23,11 @@ import (
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects [get]
 func (h *Handler) projects(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	pagination := webutil.GetPaginationFromCtx(c)
 	request := &projectpb.Projects_Request{
-		IsAdmin: sessionData.IsUserAdmin(),
-		OwnerId: sessionData.UserID(c.Query("owner_id")),
+		IsAdmin: sessionData.IsProfileAdmin(),
+		OwnerId: sessionData.ProfileID(c.Query("owner_id")),
 		Limit:   pagination.Limit,
 		Offset:  pagination.Offset,
 		SortBy:  "id:ASC",
@@ -57,10 +57,10 @@ func (h *Handler) projects(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id} [get]
 func (h *Handler) project(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &projectpb.Project_Request{
-		IsAdmin:   sessionData.IsUserAdmin(),
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 	}
 
@@ -79,7 +79,7 @@ func (h *Handler) project(c *fiber.Ctx) error {
 }
 
 // @Summary Add a new project
-// @Description Adds a new project for the authenticated user
+// @Description Adds a new project for the authenticated profile
 // @Tags projects
 // @Accept json
 // @Produce json
@@ -88,9 +88,9 @@ func (h *Handler) project(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects [post]
 func (h *Handler) addProject(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &projectpb.AddProject_Request{
-		OwnerId: sessionData.UserID(c.Query("owner_id")),
+		OwnerId: sessionData.ProfileID(c.Query("owner_id")),
 	}
 
 	_ = webutil.Parse(c, request).Body()
@@ -125,10 +125,10 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router //v1/projects/{project_id} [put]
 func (h *Handler) updateProject(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &projectpb.UpdateProject_Request{
-		IsAdmin:   sessionData.IsUserAdmin(),
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:   sessionData.IsProfileAdmin(),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 	}
 
@@ -157,9 +157,9 @@ func (h *Handler) updateProject(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id} [delete]
 func (h *Handler) deleteProject(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &projectpb.DeleteProject_Request{
-		OwnerId:   sessionData.UserID(c.Query("owner_id")),
+		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 	}
 

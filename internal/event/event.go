@@ -65,11 +65,11 @@ func New(grpcConn *grpc.ClientConn) *Event {
 }
 
 // Web initializes a WebEvent with user agent and IP information from the fiber context.
-func (e *Event) Web(c *fiber.Ctx, session *session.UserParameters) *WebEvent {
+func (e *Event) Web(c *fiber.Ctx, session *session.ProfileParameters) *WebEvent {
 	return &WebEvent{
 		client: e.client,
 		request: &eventpb.AddEvent_Request{
-			UserId:    session.UserID(c.Query("user_id")),
+			ProfileId: session.ProfileID(c.Query("profile_id")),
 			SessionId: session.SessionId(),
 			UserAgent: string(c.Request().Header.UserAgent()),
 			Ip:        c.IP(),

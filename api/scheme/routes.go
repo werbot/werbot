@@ -50,7 +50,7 @@ func (h *Handler) Routes() {
 	apiV1schemeFirewall.Patch("/", h.updateSchemeFirewall)
 	apiV1schemeFirewall.Delete("/:firewall_type<regex(country|network)>/:firewall_id<guid>", h.deleteSchemeFirewall)
 
-	// user share schemes block
-	// url - /v1/schemes/user/:scheme_type<regex(server|database|desktop|container|cloud|application)>?
-	apiV1.Get("/user/:scheme_type<regex(server|database|desktop|container|cloud|application)>?", h.userSchemes)
+	// profile share schemes block
+	// url - /v1/schemes/profile/:scheme_type<regex(server|database|desktop|container|cloud|application)>?
+	apiV1.Get("/profile/:scheme_type<regex(server|database|desktop|container|cloud|application)>?", h.profileSchemes)
 }

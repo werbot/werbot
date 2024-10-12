@@ -42,6 +42,7 @@ func Auth(redis *redis.Connect) *AuthMiddleware {
 // Execute is protected protect routes
 func (m AuthMiddleware) Execute() fiber.Handler {
 	return jwtware.New(jwtware.Config{
+		// ContextKey:     "profile",
 		SuccessHandler: m.authSuccess,
 		ErrorHandler:   authError,
 		SigningKey: jwtware.SigningKey{
@@ -60,7 +61,7 @@ func authError(c *fiber.Ctx, e error) error {
 
 // authSuccess handles successful authentication.
 func (m *AuthMiddleware) authSuccess(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	key := fmt.Sprintf("refresh_token:%s", sessionData.SessionId())
 	if _, err := m.redis.Client.HGetAll(m.redis.Ctx, key).Result(); err != nil {
 		return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "token has been revoked"))

@@ -95,18 +95,18 @@ func TestHandler_keys(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with incorrect user UUID parameter
+		{ // ADMIN: request with incorrect profile UUID parameter
 			Name:           "test1_03",
 			Method:         http.MethodGet,
-			Path:           pathKeys + "?user_id=" + test.ConstFakeID,
+			Path:           pathKeys + "?profile_id=" + test.ConstFakeID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with broken user UUID parameter
+		{ // ADMIN: request with broken profile UUID parameter
 			Name:       "test1_04",
 			Method:     http.MethodGet,
-			Path:       pathKeys + "?user_id=" + crypto.NewPassword(8, false),
+			Path:       pathKeys + "?profile_id=" + crypto.NewPassword(8, false),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
@@ -115,10 +115,10 @@ func TestHandler_keys(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with pagination and valid user UUID parameters
+		{ // ADMIN: request with pagination and valid profile UUID parameters
 			Name:       "test1_05",
 			Method:     http.MethodGet,
-			Path:       pathKeys + "?limit=2&offset=0&user_id=" + test.ConstUserID,
+			Path:       pathKeys + "?limit=2&offset=0&profile_id=" + test.ConstUserID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                             float64(200),
@@ -127,16 +127,17 @@ func TestHandler_keys(t *testing.T) {
 				"result.public_keys.0.fingerprint": "*",
 				"result.public_keys.0.key":         "*",
 				"result.public_keys.0.key_id":      "*",
-				"result.public_keys.0.user_id":     "*",
+				"result.public_keys.0.profile_id":  "*",
 				"result.public_keys.0.title":       "*",
 				"result.public_keys.0.locked_at":   nil,
 				"result.public_keys.0.archived_at": nil,
 				"result.public_keys.0.updated_at":  nil,
 				"result.public_keys.0.created_at":  "*",
+				// --
 				"result.public_keys.1.fingerprint": "*",
 				"result.public_keys.1.key":         "*",
 				"result.public_keys.1.key_id":      "*",
-				"result.public_keys.1.user_id":     "*",
+				"result.public_keys.1.profile_id":  "*",
 				"result.public_keys.1.title":       "*",
 				"result.public_keys.1.locked_at":   "*",
 				"result.public_keys.1.archived_at": nil,
@@ -145,10 +146,10 @@ func TestHandler_keys(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with valid user UUID parameter
+		{ // ADMIN: request with valid profile UUID parameter
 			Name:       "test1_06",
 			Method:     http.MethodGet,
-			Path:       pathKeys + "?user_id=" + test.ConstUserID,
+			Path:       pathKeys + "?profile_id=" + test.ConstUserID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
@@ -170,7 +171,7 @@ func TestHandler_keys(t *testing.T) {
 				"result.public_keys.0.fingerprint": "*",
 				"result.public_keys.0.key":         nil,
 				"result.public_keys.0.key_id":      "*",
-				"result.public_keys.0.user_id":     nil,
+				"result.public_keys.0.profile_id":  nil,
 				"result.public_keys.0.title":       "*",
 				"result.public_keys.0.locked_at":   nil,
 				"result.public_keys.0.archived_at": nil,
@@ -179,10 +180,10 @@ func TestHandler_keys(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with valid user UUID parameter
+		{ // USER: request with valid profile UUID parameter
 			Name:       "test2_02",
 			Method:     http.MethodGet,
-			Path:       pathKeys + "?user_id=" + test.ConstAdminID,
+			Path:       pathKeys + "?profile_id=" + test.ConstAdminID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                             float64(200),
@@ -191,7 +192,7 @@ func TestHandler_keys(t *testing.T) {
 				"result.public_keys.0.fingerprint": "*",
 				"result.public_keys.0.key":         nil,
 				"result.public_keys.0.key_id":      "*",
-				"result.public_keys.0.user_id":     nil,
+				"result.public_keys.0.profile_id":  nil,
 				"result.public_keys.0.title":       "*",
 				"result.public_keys.0.locked_at":   nil,
 				"result.public_keys.0.archived_at": nil,
@@ -236,7 +237,7 @@ func TestHandler_key(t *testing.T) {
 				"result.fingerprint": "*",
 				"result.key":         "*",
 				"result.key_id":      "*",
-				"result.user_id":     test.ConstAdminID,
+				"result.profile_id":  test.ConstAdminID,
 				"result.title":       "public_key 1",
 				"result.locked_at":   nil,
 				"result.archived_at": nil,
@@ -245,18 +246,18 @@ func TestHandler_key(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with key UUID and user UUID parameter
+		{ // ADMIN: request with key UUID and profile UUID parameter
 			Name:           "test1_03",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathKeys, test.ConstAdminKeyID) + "?user_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathKeys, test.ConstAdminKeyID) + "?profile_id=" + test.ConstUserID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with key UUID and user UUID parameter
+		{ // ADMIN: request with key UUID and profile UUID parameter
 			Name:       "test1_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathKeys, test.ConstUserKeyID1) + "?user_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathKeys, test.ConstUserKeyID1) + "?profile_id=" + test.ConstUserID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -265,7 +266,7 @@ func TestHandler_key(t *testing.T) {
 				"result.fingerprint": "*",
 				"result.key":         "*",
 				"result.key_id":      "*",
-				"result.user_id":     test.ConstUserID,
+				"result.profile_id":  test.ConstUserID,
 				"result.locked_at":   "*",
 				"result.archived_at": nil,
 				"result.updated_at":  "*",
@@ -285,7 +286,7 @@ func TestHandler_key(t *testing.T) {
 				"result.fingerprint": "*",
 				"result.key":         nil,
 				"result.key_id":      "*",
-				"result.user_id":     nil,
+				"result.profile_id":  nil,
 				"result.title":       "public_key 5",
 				"result.locked_at":   nil,
 				"result.archived_at": nil,
@@ -294,7 +295,7 @@ func TestHandler_key(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with key UUID and user UUID parameter
+		{ // USER: request with key UUID and profile UUID parameter
 			Name:           "test2_02",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathKeys, test.ConstAdminKeyID),
@@ -302,10 +303,10 @@ func TestHandler_key(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request key UUID and user UUID parameter
+		{ // USER: request key UUID and profile UUID parameter
 			Name:           "test2_03",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathKeys, test.ConstAdminKeyID) + "?user_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathKeys, test.ConstAdminKeyID) + "?profile_id=" + test.ConstAdminID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -365,7 +366,7 @@ func TestHandler_addKey(t *testing.T) {
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title": "Test key",
-				"key":   string(fsutil.MustReadFile("../../fixtures/keys/users/user1/id_ed25519.pub")),
+				"key":   string(fsutil.MustReadFile("../../fixtures/keys/profiles/profile1/id_ed25519.pub")),
 			},
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -382,7 +383,7 @@ func TestHandler_addKey(t *testing.T) {
 			StatusCode: 409,
 			RequestBody: test.BodyTable{
 				"title": "Test key",
-				"key":   string(fsutil.MustReadFile("../../fixtures/keys/users/user1/id_ed25519.pub")),
+				"key":   string(fsutil.MustReadFile("../../fixtures/keys/profiles/profile1/id_ed25519.pub")),
 			},
 			Body: test.BodyTable{
 				"code":    float64(409),
@@ -390,14 +391,14 @@ func TestHandler_addKey(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request adding a key to another user by user UUID
+		{ // ADMIN: request adding a key to another profile by profile UUID
 			Name:       "test1_05",
 			Method:     http.MethodPost,
-			Path:       pathKeys + "?user_id=" + test.ConstUserID,
+			Path:       pathKeys + "?profile_id=" + test.ConstUserID,
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title": "Test key",
-				"key":   string(fsutil.MustReadFile("../../fixtures/keys/users/user1/id_ed25519.pub")),
+				"key":   string(fsutil.MustReadFile("../../fixtures/keys/profiles/profile1/id_ed25519.pub")),
 			},
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -409,14 +410,14 @@ func TestHandler_addKey(t *testing.T) {
 		},
 
 		{ // USER: request a repeating key (the key was added by the admin earlier)
-			// the test depends on the test "ADMIN: Authorized request adding a key to another user by user UUID"
+			// the test depends on the test "ADMIN: Authorized request adding a key to another profile by profile UUID"
 			Name:       "test2_01",
 			Method:     http.MethodPost,
 			Path:       pathKeys,
 			StatusCode: 409,
 			RequestBody: test.BodyTable{
 				"title": "Test key",
-				"key":   string(fsutil.MustReadFile("../../fixtures/keys/users/user1/id_ed25519.pub")),
+				"key":   string(fsutil.MustReadFile("../../fixtures/keys/profiles/profile1/id_ed25519.pub")),
 			},
 			Body: test.BodyTable{
 				"code":    float64(409),
@@ -431,7 +432,7 @@ func TestHandler_addKey(t *testing.T) {
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title": "Test key2",
-				"key":   string(fsutil.MustReadFile("../../fixtures/keys/users/user2/id_ed25519.pub")),
+				"key":   string(fsutil.MustReadFile("../../fixtures/keys/profiles/profile2/id_ed25519.pub")),
 			},
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -441,15 +442,15 @@ func TestHandler_addKey(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with valid user UUID and new key
+		{ // USER: request with valid profile UUID and new key
 			// The key will be added to the USER profile.
 			Name:       "test2_03",
 			Method:     http.MethodPost,
-			Path:       pathKeys + "?user_id=" + test.ConstAdminID,
+			Path:       pathKeys + "?profile_id=" + test.ConstAdminID,
 			StatusCode: 409,
 			RequestBody: test.BodyTable{
 				"title": "Test key",
-				"key":   string(fsutil.MustReadFile("../../fixtures/keys/users/user1/id_ed25519.pub")),
+				"key":   string(fsutil.MustReadFile("../../fixtures/keys/profiles/profile1/id_ed25519.pub")),
 			},
 			Body: test.BodyTable{
 				"code":    float64(409),
@@ -457,16 +458,16 @@ func TestHandler_addKey(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with valid user UUID and double key
+		{ // USER: request with valid profile UUID and double key
 			// The key will be added to the USER profile.
 			Name:       "test2_04",
 			Method:     http.MethodPost,
 			Path:       pathKeys,
 			StatusCode: 409,
 			RequestBody: test.BodyTable{
-				"user_id": test.ConstAdminID,
-				"title":   "Test key",
-				"key":     string(fsutil.MustReadFile("../../fixtures/keys/users/user1/id_ed25519.pub")),
+				"profile_id": test.ConstAdminID,
+				"title":      "Test key",
+				"key":        string(fsutil.MustReadFile("../../fixtures/keys/profiles/profile1/id_ed25519.pub")),
 			},
 			Body: test.BodyTable{
 				"code":    float64(409),
@@ -474,14 +475,14 @@ func TestHandler_addKey(t *testing.T) {
 			},
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request adding a key to another user by user UUID (ignored)
+		{ // USER: request adding a key to another profile by profile UUID (ignored)
 			Name:       "test2_05",
 			Method:     http.MethodPost,
-			Path:       pathKeys + "?user_id=" + test.ConstUserID,
+			Path:       pathKeys + "?profile_id=" + test.ConstUserID,
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title": "Test key2",
-				"key":   string(fsutil.MustReadFile("../../fixtures/keys/users/user3/id_ed25519.pub")),
+				"key":   string(fsutil.MustReadFile("../../fixtures/keys/profiles/profile3/id_ed25519.pub")),
 			},
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -557,10 +558,10 @@ func TestHandler_updateKey(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request with parameters to another user by user UUID
+		{ // ADMIN: request with parameters to another profile by profile UUID
 			Name:       "test1_05",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathKeys, test.ConstUserKeyID1) + "?user_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathKeys, test.ConstUserKeyID1) + "?profile_id=" + test.ConstUserID,
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title": "test key name",
@@ -583,10 +584,10 @@ func TestHandler_updateKey(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request with parameters and outsider key UUID and user UUID
+		{ // USER: request with parameters and outsider key UUID and profile UUID
 			Name:       "test2_02",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathKeys, test.ConstAdminKeyID) + "?user_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathKeys, test.ConstAdminKeyID) + "?profile_id=" + test.ConstAdminID,
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"title": "test key name",
@@ -638,10 +639,10 @@ func TestHandler_deleteKey(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
 		},
-		{ // ADMIN: request other USER with user UUID
+		{ // ADMIN: request other USER with profile UUID
 			Name:       "test1_04",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathKeys, test.ConstUserKeyID1) + "?user_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathKeys, test.ConstUserKeyID1) + "?profile_id=" + test.ConstUserID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
@@ -669,10 +670,10 @@ func TestHandler_deleteKey(t *testing.T) {
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
 		},
-		{ // USER: request other USER with user UUID
+		{ // USER: request other USER with profile UUID
 			Name:           "test2_03",
 			Method:         http.MethodDelete,
-			Path:           test.PathGluing(pathKeys, test.ConstAdminKeyID) + "?user_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathKeys, test.ConstAdminKeyID) + "?profile_id=" + test.ConstAdminID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,

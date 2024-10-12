@@ -33,7 +33,7 @@ service SchemeHandlers {
   rpc DeleteSchemeFirewall(DeleteSchemeFirewall.Request) returns (DeleteSchemeFirewall.Response) {}
 
   // All user shared schemes
-  rpc UserSchemes(UserSchemes.Request) returns (UserSchemes.Response) {}
+  rpc ProfileSchemes(ProfileSchemes.Request) returns (ProfileSchemes.Response) {}
 
   // SYSTEM methods, using only in workers !!!!
   rpc SystemSchemesByAlias(SystemSchemesByAlias.Request) returns (SystemSchemesByAlias.Response) {}
@@ -345,11 +345,11 @@ message DeleteSchemeFirewall {
 }
 // -----------------------------------------------------
 
-// rpc UserSchemes
-message UserSchemes {
+// rpc ProfileSchemes
+message ProfileSchemes {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
-    string user_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
 
     access.SchemeType scheme_type = 3;
     int32 limit = 4;

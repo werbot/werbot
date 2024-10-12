@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/werbot/werbot/internal"
-	accountpb "github.com/werbot/werbot/internal/core/account/proto/account"
+	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
 	"github.com/werbot/werbot/pkg/storage/redis"
 )
 
@@ -17,11 +17,11 @@ import (
 type Config struct {
 	PrivateKey *rsa.PrivateKey
 	PublicKey  *rsa.PublicKey
-	Context    *accountpb.UserParameters
+	Context    *profilepb.ProfileParameters
 }
 
 // New creates a new instance of Config with initialized keys
-func New(context *accountpb.UserParameters) (*Config, error) {
+func New(context *profilepb.ProfileParameters) (*Config, error) {
 	privateKey, err := PrivateKey()
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func New(context *accountpb.UserParameters) (*Config, error) {
 }
 
 // PairTokens generates both an access token and a refresh token.
-func (d *Config) PairTokens() (*accountpb.Token_Response, error) {
+func (d *Config) PairTokens() (*profilepb.Token_Response, error) {
 	accessToken, err := d.createToken(internal.GetDuration("ACCESS_TOKEN_DURATION", "15m"), true)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,10 @@ func (d *Config) PairTokens() (*accountpb.Token_Response, error) {
 		return nil, err
 	}
 
-	return &accountpb.Token_Response{Access: accessToken, Refresh: refreshToken}, nil
+	return &profilepb.Token_Response{
+		Access:  accessToken,
+		Refresh: refreshToken,
+	}, nil
 }
 
 // createToken generates a JWT token with the given expiry duration and type (access or refresh).
@@ -69,10 +72,10 @@ func (d *Config) createToken(expire time.Duration, accessToken bool) (string, er
 	}
 
 	if accessToken {
-		claims.User = accountpb.UserParameters{
-			UserName: d.Context.GetUserName(),
-			UserId:   d.Context.GetUserId(),
-			Roles:    d.Context.GetRoles(),
+		claims.User = profilepb.ProfileParameters{
+			Name:      d.Context.GetName(),
+			ProfileId: d.Context.GetProfileId(),
+			Roles:     d.Context.GetRoles(),
 		}
 	}
 
@@ -81,7 +84,7 @@ func (d *Config) createToken(expire time.Duration, accessToken bool) (string, er
 }
 
 type SessionInfo struct {
-	UserID string `json:"user_id" redis:"user_id"`
+	ProfileID string `json:"profile_id" redis:"profile_id"`
 }
 
 // CacheFind search the entry with the specified key prefix and UUID from the cache.

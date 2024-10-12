@@ -1,24 +1,31 @@
 syntax = "proto3";
 
-package user;
+package profile;
 
 import "buf/validate/validate.proto";
 import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
 import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
 
-option go_package = "github.com/werbot/werbot/internal/core/user/proto/user";
+option go_package = "github.com/werbot/werbot/internal/core/profile/proto/profile";
 
-service UserHandlers {
-  // User section
-  rpc Users(Users.Request) returns (Users.Response) {}
-  rpc User(User.Request) returns (User.Response) {}
+service ProfileHandlers {
+  // Auth section
+  rpc SignIn(SignIn.Request) returns (profile.Profile.Response) {}
+  rpc ResetPassword(ResetPassword.Request) returns (ResetPassword.Response) {}
 
-  rpc AddUser(AddUser.Request) returns (AddUser.Response) {}
-  rpc UpdateUser(UpdateUser.Request) returns (UpdateUser.Response) {}
-  rpc DeleteUser(DeleteUser.Request) returns (DeleteUser.Response) {}
+  // Profile section
+  rpc Profiles(Profiles.Request) returns (Profiles.Response) {}
+  rpc Profile(Profile.Request) returns (Profile.Response) {}
+  rpc AddProfile(AddProfile.Request) returns (AddProfile.Response) {}
+  rpc UpdateProfile(UpdateProfile.Request) returns (UpdateProfile.Response) {}
+  rpc DeleteProfile(DeleteProfile.Request) returns (DeleteProfile.Response) {}
 
   rpc UpdatePassword(UpdatePassword.Request) returns (UpdatePassword.Response) {}
+
+  // Tools
+  rpc ProfileIDByLogin(ProfileIDByLogin.Request) returns (ProfileIDByLogin.Response) {}
+  rpc UpdateStatus(UpdateStatus.Request) returns (UpdateStatus.Response) {}
 }
 
 enum Role {
@@ -28,8 +35,80 @@ enum Role {
   admin = 3;
 }
 
-// rpc Users
-message Users {
+enum Status {
+  unspecified = 0;
+  offline = 1;
+  online = 2;
+}
+
+message ProfileParameters {
+  string profile_id = 1;
+  string name = 2;
+  profile.Role roles = 3;
+  string session_id = 4;
+}
+// -----------------------------------------------------
+
+// rpc SignIn
+message SignIn {
+  message Request {
+    string email = 1 [
+      (buf.validate.field).cel = {
+        id: "request.email"
+        message: "value must be a valid email address"
+        expression: "this.isEmail()"
+      },
+      (buf.validate.field).required = true
+    ];
+    string password = 2 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (buf.validate.field).required = true, (ghoster.secret) = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc Token
+message Token {
+  message Request {
+    string refresh = 1 [(buf.validate.field).required = true];
+  }
+
+  message Response {
+    string access = 1; // @gotags: json:"access_token,omitempty"
+    string refresh = 2; // @gotags: json:"refresh_token,omitempty"
+  }
+}
+// -----------------------------------------------------
+
+// rpc ResetPassword
+message ResetPassword {
+  message Request {
+    oneof request {
+      string email = 1 [
+        (buf.validate.field).cel = {
+          id: "valid_email"
+          message: "must be a valid email"
+          expression: "this.isEmail()"
+        }
+      ];
+      string token = 2 [(buf.validate.field).string.uuid = true];
+      Password password = 3;
+    }
+  }
+
+  message Response {
+    string profile_id = 1;
+  }
+
+  message Password {
+    string password = 1 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (ghoster.secret) = true];
+    string token = 2 [(buf.validate.field).string.uuid = true];
+  }
+}
+// -----------------------------------------------------
+
+// rpc Profiles
+message Profiles {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
 
@@ -40,20 +119,20 @@ message Users {
 
   message Response {
     int32 total = 1;
-    repeated User.Response users = 2;
+    repeated Profile.Response profiles = 2;
   }
 }
 
-// rpc User
-message User {
+// rpc Profile
+message Profile {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
 
-    string user_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
   }
 
   message Response {
-    string user_id = 1;
+    string profile_id = 1;
     string alias = 2;
     string name = 3;
     string surname = 4;
@@ -74,8 +153,8 @@ message User {
 }
 // -----------------------------------------------------
 
-// rpc AddUser
-message AddUser {
+// rpc AddProfile
+message AddProfile {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
 
@@ -89,17 +168,17 @@ message AddUser {
   }
 
   message Response {
-    string user_id = 1;
+    string profile_id = 1;
   }
 }
 // -----------------------------------------------------
 
-// rpc UpdateUser
-message UpdateUser {
+// rpc UpdateProfile
+message UpdateProfile {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
 
-    string user_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
     oneof setting {
       option (buf.validate.oneof).required = true;
       string name = 3 [(buf.validate.field).string = { min_len: 3 max_len: 32 }];
@@ -120,10 +199,10 @@ message UpdateUser {
 }
 // -----------------------------------------------------
 
-// rpc DeleteUser
-message DeleteUser {
+// rpc DeleteProfile
+message DeleteProfile {
   message Request {
-    string user_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    string profile_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
     oneof request {
       option (buf.validate.oneof).required = true;
       string password = 2 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (ghoster.secret) = true];
@@ -138,7 +217,7 @@ message DeleteUser {
 // rpc UpdatePassword
 message UpdatePassword {
   message Request {
-    string user_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    string profile_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
 
     string old_password = 2 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (buf.validate.field).required = true, (ghoster.secret) = true];
     string new_password = 3 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (buf.validate.field).required = true, (ghoster.secret) = true];
@@ -147,5 +226,30 @@ message UpdatePassword {
   message Response {
     string message = 1;
   }
+}
+// -----------------------------------------------------
+
+// rpc ProfileIDByLogin
+message ProfileIDByLogin {
+  message Request {
+    string login = 1;
+    string fingerprint = 2;
+    string client_ip = 3 [(buf.validate.field).string.ip = true];
+  }
+
+  message Response {
+    string profile_id = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UpdateStatus
+message UpdateStatus {
+  message Request {
+    string account_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    Status status = 2;
+  }
+
+  message Response {}
 }
 // -----------------------------------------------------

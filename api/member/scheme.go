@@ -11,8 +11,8 @@ import (
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
-// @Summary Retrieve scheme members or search users without a scheme
-// @Description Retrieves the list of members for a specified scheme, or searches for users without a scheme if the "search" addon is provided
+// @Summary Retrieve scheme members or search profiles without a scheme
+// @Description Retrieves the list of members for a specified scheme, or searches for profiles without a scheme if the "search" addon is provided
 // @Tags members
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
@@ -25,17 +25,17 @@ import (
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/scheme/{scheme_id}/{addon}? [get]
 func (h *Handler) schemeMembers(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	pagination := webutil.GetPaginationFromCtx(c)
 
-	// search users without scheme
+	// search profiles without scheme
 	if c.Params("addon") == "search" {
 		request := &memberpb.MembersWithoutScheme_Request{
-			OwnerId:  sessionData.UserID(c.Query("owner_id")),
+			OwnerId:  sessionData.ProfileID(c.Query("owner_id")),
 			SchemeId: c.Params("scheme_id"),
 			Limit:    pagination.Limit,
 			Offset:   pagination.Offset,
-			SortBy:   `"user"."name":ASC`,
+			SortBy:   `"profile"."name":ASC`,
 			Alias:    c.Query("alias"),
 		}
 
@@ -55,8 +55,8 @@ func (h *Handler) schemeMembers(c *fiber.Ctx) error {
 
 	// default show
 	request := &memberpb.SchemeMembers_Request{
-		IsAdmin:  sessionData.IsUserAdmin(),
-		OwnerId:  sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:  sessionData.IsProfileAdmin(),
+		OwnerId:  sessionData.ProfileID(c.Query("owner_id")),
 		SchemeId: c.Params("scheme_id"),
 		Limit:    pagination.Limit,
 		Offset:   pagination.Offset,
@@ -88,10 +88,10 @@ func (h *Handler) schemeMembers(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/scheme/{scheme_id}/{scheme_member_id} [get]
 func (h *Handler) schemeMember(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.SchemeMember_Request{
-		IsAdmin:        sessionData.IsUserAdmin(),
-		OwnerId:        sessionData.UserID(c.Query("owner_id")),
+		IsAdmin:        sessionData.IsProfileAdmin(),
+		OwnerId:        sessionData.ProfileID(c.Query("owner_id")),
 		SchemeId:       c.Params("scheme_id"),
 		SchemeMemberId: c.Params("scheme_member_id"),
 	}
@@ -122,9 +122,9 @@ func (h *Handler) schemeMember(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/scheme/{scheme_id} [post]
 func (h *Handler) addSchemeMember(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.AddSchemeMember_Request{
-		OwnerId:  sessionData.UserID(c.Query("owner_id")),
+		OwnerId:  sessionData.ProfileID(c.Query("owner_id")),
 		SchemeId: c.Params("scheme_id"),
 	}
 
@@ -160,9 +160,9 @@ func (h *Handler) addSchemeMember(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/scheme/{scheme_id}/{scheme_member_id} [patch]
 func (h *Handler) updateSchemeMember(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.UpdateSchemeMember_Request{
-		OwnerId:        sessionData.UserID(c.Query("owner_id")),
+		OwnerId:        sessionData.ProfileID(c.Query("owner_id")),
 		SchemeId:       c.Params("scheme_id"),
 		SchemeMemberId: c.Params("scheme_member_id"),
 	}
@@ -205,9 +205,9 @@ func (h *Handler) updateSchemeMember(c *fiber.Ctx) error {
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/scheme/{scheme_id}/{scheme_member_id} [delete]
 func (h *Handler) deleteSchemeMember(c *fiber.Ctx) error {
-	sessionData := session.AuthUser(c)
+	sessionData := session.AuthProfile(c)
 	request := &memberpb.DeleteSchemeMember_Request{
-		OwnerId:        sessionData.UserID(c.Query("owner_id")),
+		OwnerId:        sessionData.ProfileID(c.Query("owner_id")),
 		SchemeId:       c.Params("scheme_id"),
 		SchemeMemberId: c.Params("scheme_member_id"),
 	}

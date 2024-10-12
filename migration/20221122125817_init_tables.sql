@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-CREATE TABLE "user" (
+CREATE TABLE "profile" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "alias" varchar(32) NOT NULL,
     "name" varchar(32) NOT NULL,
@@ -17,15 +17,15 @@ CREATE TABLE "user" (
     "updated_at" timestamp DEFAULT NULL,
     "created_at" timestamp DEFAULT NOW()
 );
-CREATE INDEX idx_user_шв ON "user" ("id");
-CREATE INDEX idx_user_alias ON "user" ("alias");
-CREATE INDEX idx_user_role ON "user" ("role");
-CREATE INDEX idx_user_active ON "user" ("active");
-CREATE INDEX idx_user_confirmed ON "user" ("confirmed");
+CREATE INDEX idx_profile_id ON "profile" ("id");
+CREATE INDEX idx_profile_alias ON "profile" ("alias");
+CREATE INDEX idx_profile_role ON "profile" ("role");
+CREATE INDEX idx_profile_active ON "profile" ("active");
+CREATE INDEX idx_profile_confirmed ON "profile" ("confirmed");
 
 CREATE TABLE "project" (
     "id" uuid DEFAULT gen_random_uuid () PRIMARY KEY,
-    "owner_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+    "owner_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
     "title" varchar(128) NOT NULL,
     "alias" varchar(32) NOT NULL,
     "locked_at" timestamp DEFAULT NULL,
@@ -72,7 +72,7 @@ CREATE INDEX idx_project_ldap_project_id ON "project_ldap" ("project_id");
 CREATE TABLE "project_member" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "project_id" uuid NOT NULL REFERENCES "project"("id") ON DELETE CASCADE,
-    "user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+    "profile_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
     "active" bool NOT NULL DEFAULT false,
     "online" bool NOT NULL DEFAULT false,
     "role" smallint NOT NULL,
@@ -83,7 +83,7 @@ CREATE TABLE "project_member" (
 );
 CREATE INDEX idx_project_member_id ON "project_member" ("id");
 CREATE INDEX idx_project_member_project_id ON "project_member" ("project_id");
-CREATE INDEX idx_project_member_user_id ON "project_member" ("user_id");
+CREATE INDEX idx_project_member_profile_id ON "project_member" ("profile_id");
 CREATE INDEX idx_project_member_active ON "project_member" ("active");
 CREATE INDEX idx_project_member_online ON "project_member" ("online");
 
@@ -159,8 +159,8 @@ CREATE INDEX idx_scheme_firewall_network_network ON "scheme_firewall_network" ("
 
 CREATE TABLE "event_profile" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    "profile_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
-    "user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+    "user_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
+    "profile_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
     "session_id" uuid NOT NULL,
     "user_agent" varchar(255) NOT NULL DEFAULT '',
     "ip" inet,
@@ -170,8 +170,8 @@ CREATE TABLE "event_profile" (
     "created_at" timestamp DEFAULT NOW()
 );
 CREATE INDEX idx_event_profile_id ON "event_profile" ("id");
+CREATE INDEX idx_event_profile_user_id ON "event_profile" ("profile_id");
 CREATE INDEX idx_event_profile_profile_id ON "event_profile" ("profile_id");
-CREATE INDEX idx_event_profile_user_id ON "event_profile" ("user_id");
 CREATE INDEX idx_event_profile_session_id ON "event_profile" ("session_id");
 CREATE INDEX idx_event_profile_event ON "event_profile" ("event");
 CREATE INDEX idx_event_profile_section ON "event_profile" ("section");
@@ -179,7 +179,7 @@ CREATE INDEX idx_event_profile_section ON "event_profile" ("section");
 CREATE TABLE "event_project" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "project_id" uuid NOT NULL REFERENCES "project"("id") ON DELETE CASCADE,
-    "user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+    "profile_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
     "session_id" uuid NOT NULL,
     "user_agent" varchar(255) NOT NULL DEFAULT '',
     "ip" inet,
@@ -190,7 +190,7 @@ CREATE TABLE "event_project" (
 );
 CREATE INDEX idx_event_project_id ON "event_project" ("id");
 CREATE INDEX idx_event_project_project_id ON "event_project" ("project_id");
-CREATE INDEX idx_event_project_user_id ON "event_project" ("user_id");
+CREATE INDEX idx_event_project_profile_id ON "event_project" ("profile_id");
 CREATE INDEX idx_event_project_session_id ON "event_project" ("session_id");
 CREATE INDEX idx_event_project_event ON "event_project" ("event");
 CREATE INDEX idx_event_project_section ON "event_project" ("section");
@@ -198,7 +198,7 @@ CREATE INDEX idx_event_project_section ON "event_project" ("section");
 CREATE TABLE "event_scheme" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "scheme_id" uuid NOT NULL REFERENCES "scheme"("id") ON DELETE CASCADE,
-    "user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+    "profile_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
     "session_id" uuid NOT NULL,
     "user_agent" text NOT NULL DEFAULT '',
     "ip" inet,
@@ -209,7 +209,7 @@ CREATE TABLE "event_scheme" (
 );
 CREATE INDEX idx_event_scheme_id ON "event_scheme" ("id");
 CREATE INDEX idx_event_scheme_scheme_id ON "event_scheme" ("scheme_id");
-CREATE INDEX idx_event_scheme_user_id ON "event_scheme" ("user_id");
+CREATE INDEX idx_event_scheme_profile_id ON "event_scheme" ("profile_id");
 CREATE INDEX idx_event_scheme_session_id ON "event_scheme" ("session_id");
 CREATE INDEX idx_event_scheme_event ON "event_scheme" ("event");
 CREATE INDEX idx_event_scheme_section ON "event_scheme" ("section");
@@ -225,9 +225,9 @@ CREATE INDEX idx_session_id ON "session" ("id");
 CREATE INDEX idx_session_member_id ON "session" ("member_id");
 CREATE INDEX idx_session_status ON "session" ("status");
 
-CREATE TABLE "user_public_key" (
+CREATE TABLE "profile_public_key" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    "user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+    "profile_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
     "title" varchar(255) NOT NULL,
     "key" text NOT NULL,
     "fingerprint" varchar(255) NOT NULL,
@@ -236,20 +236,20 @@ CREATE TABLE "user_public_key" (
     "updated_at" timestamp DEFAULT NULL,
     "created_at" timestamp DEFAULT NOW()
 );
-CREATE INDEX idx_user_public_key_id ON "user_public_key" ("id");
-CREATE INDEX idx_user_public_key_user_id ON "user_public_key" ("user_id");
-CREATE INDEX idx_user_public_key_fingerprint ON "user_public_key" ("fingerprint");
+CREATE INDEX idx_profile_public_key_id ON "profile_public_key" ("id");
+CREATE INDEX idx_profile_public_key_profile_id ON "profile_public_key" ("profile_id");
+CREATE INDEX idx_profile_public_key_fingerprint ON "profile_public_key" ("fingerprint");
 
-CREATE TABLE "user_token" (
+CREATE TABLE "profile_token" (
     "token" uuid NOT NULL PRIMARY KEY,
-    "user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+    "profile_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
     "action" smallint NOT NULL,
     "active" bool NOT NULL DEFAULT true,
     "updated_at" timestamp DEFAULT NULL,
     "created_at" timestamp DEFAULT NOW()
 );
-CREATE INDEX idx_user_token_token ON "user_token" ("token");
-CREATE INDEX idx_user_token_user_id ON "user_token" ("user_id");
+CREATE INDEX idx_profile_token_token ON "profile_token" ("token");
+CREATE INDEX idx_profile_token_profile_id ON "profile_token" ("profile_id");
 
 CREATE TABLE "audit" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -331,8 +331,8 @@ DROP TABLE IF EXISTS "project_api";
 DROP TABLE IF EXISTS "scheme_host_key";
 DROP TABLE IF EXISTS "audit_record";
 DROP TABLE IF EXISTS "audit";
-DROP TABLE IF EXISTS "user_token";
-DROP TABLE IF EXISTS "user_public_key";
+DROP TABLE IF EXISTS "profile_token";
+DROP TABLE IF EXISTS "profile_public_key";
 DROP TABLE IF EXISTS "session";
 DROP TABLE IF EXISTS "scheme_firewall_network";
 DROP TABLE IF EXISTS "event_profile";
@@ -347,7 +347,7 @@ DROP TABLE IF EXISTS "project_member";
 DROP TABLE IF EXISTS "project_ldap";
 DROP TABLE IF EXISTS "project_invite";
 DROP TABLE IF EXISTS "project";
-DROP TABLE IF EXISTS "user";
+DROP TABLE IF EXISTS "profile";
 
 DROP EXTENSION IF EXISTS "pgcrypto";
 -- +goose StatementEnd

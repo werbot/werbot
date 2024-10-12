@@ -56,12 +56,12 @@ func (h *Handler) Routes() {
 		h.sendResponse(c, 200, "subscribe", nil)
 
 		// c.Params("session_id")
-		userID, err := h.Redis.Client.HGet(ctx, "refresh_token:"+c.Params("session_id"), "user_id").Result()
+		profileID, err := h.Redis.Client.HGet(ctx, "refresh_token:"+c.Params("session_id"), "profile_id").Result()
 		if err != nil {
 			h.sendResponse(c, 401, "error", "Token is not valid")
 		}
 
-		pubsub := h.Redis.Client.Subscribe(ctx, "ws:"+userID)
+		pubsub := h.Redis.Client.Subscribe(ctx, "ws:"+profileID)
 		defer pubsub.Close()
 		ch := pubsub.Channel()
 		go h.publishToWebSocket(c, ch)

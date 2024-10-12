@@ -38,7 +38,7 @@ message SchemeKey {
 message Keys {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
-    string user_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
 
     int32 limit = 3;
     int32 offset = 4;
@@ -56,14 +56,14 @@ message Keys {
 message Key {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
-    string user_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
 
     string key_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
   }
 
   message Response {
     string key_id = 1;
-    string user_id = 2 [(ghoster.secret) = true];
+    string profile_id = 2 [(ghoster.secret) = true];
     string title = 3;
     string key = 4 [(ghoster.secret) = true];
     string fingerprint = 5;
@@ -78,7 +78,7 @@ message Key {
 // rpc AddKey
 message AddKey {
   message Request {
-    string user_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string profile_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
     string title = 2 [(buf.validate.field).string = { min_len: 3 max_len: 128 }, (buf.validate.field).required = true];
     string key = 3 [(buf.validate.field).string = { min_len: 70 }, (buf.validate.field).required = true];
   }
@@ -93,7 +93,7 @@ message AddKey {
 // rpc UpdateKey
 message UpdateKey {
   message Request {
-    string user_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string profile_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
     string key_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     string title = 3 [(buf.validate.field).string = { min_len: 3 max_len: 128 }, (buf.validate.field).required = true];
   }
@@ -105,7 +105,7 @@ message UpdateKey {
 // rpc DeleteKey
 message DeleteKey {
   message Request {
-    string user_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string profile_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
     string key_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
   }
 

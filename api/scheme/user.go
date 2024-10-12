@@ -10,25 +10,25 @@ import (
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
-// @Summary Retrieve user schemes
-// @Description Get a list of schemes associated with a user, supports pagination and sorting.
+// @Summary Retrieve profile schemes
+// @Description Get a list of schemes associated with a profile, supports pagination and sorting.
 // @Tags schemes
 // @Accept json
 // @Produce json
-// @Param user_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param profile_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID". One is server|database|desktop|container|cloud|application
 // @Param scheme_type path string true "Scheme Type"
 // @Param limit query int false "Limit"
 // @Param offset query int false "Offset"
 // @Success 200 {object} webutil.HTTPResponse{result=schemepb.Schemes_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /user/schemes/:project_id? [get]
-func (h *Handler) userSchemes(c *fiber.Ctx) error {
+// @Router /profile/schemes/:project_id? [get]
+func (h *Handler) profileSchemes(c *fiber.Ctx) error {
 	pagination := webutil.GetPaginationFromCtx(c)
-	sessionData := session.AuthUser(c)
-	request := &schemepb.UserSchemes_Request{
-		IsAdmin:    sessionData.IsUserAdmin(),
-		UserId:     sessionData.UserID(c.Query("user_id")),
+	sessionData := session.AuthProfile(c)
+	request := &schemepb.ProfileSchemes_Request{
+		IsAdmin:    sessionData.IsProfileAdmin(),
+		ProfileId:  sessionData.ProfileID(c.Query("profile_id")),
 		SchemeType: schemeaccesspb.SchemeType(schemeaccesspb.SchemeType_value[c.Params("scheme_type")]),
 		Limit:      pagination.Limit,
 		Offset:     pagination.Offset,
@@ -36,7 +36,7 @@ func (h *Handler) userSchemes(c *fiber.Ctx) error {
 	}
 
 	rClient := schemepb.NewSchemeHandlersClient(h.Grpc)
-	schemes, err := rClient.UserSchemes(c.UserContext(), request)
+	schemes, err := rClient.ProfileSchemes(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -46,5 +46,5 @@ func (h *Handler) userSchemes(c *fiber.Ctx) error {
 		return webutil.FromGRPC(c, err)
 	}
 
-	return webutil.StatusOK(c, "User schemes", result)
+	return webutil.StatusOK(c, "Profile schemes", result)
 }

@@ -5,7 +5,7 @@ package member;
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
-import "internal/core/user/proto/user/user.proto";
+import "internal/core/profile/proto/profile/profile.proto";
 
 option go_package = "github.com/werbot/werbot/internal/core/member/proto/member";
 
@@ -18,7 +18,7 @@ service MemberHandlers {
   rpc DeleteProjectMember(DeleteProjectMember.Request) returns (DeleteProjectMember.Response) {}
 
   // Used in finding and adding a new member to the project
-  rpc UsersWithoutProject(UsersWithoutProject.Request) returns (UsersWithoutProject.Response) {}
+  rpc ProfilesWithoutProject(ProfilesWithoutProject.Request) returns (ProfilesWithoutProject.Response) {}
 
   // Invite section
   // TODO migrate to new invite component
@@ -80,9 +80,9 @@ message ProjectMember {
     string project_id = 3 [(ghoster.secret) = true];
     string project_name = 4;
     string member_id = 5;
-    string user_id = 6 [(ghoster.secret) = true];
-    string user_name = 7;
-    user.Role role = 8 [(ghoster.secret) = true];
+    string profile_id = 6 [(ghoster.secret) = true];
+    string name = 7;
+    profile.Role role = 8 [(ghoster.secret) = true];
     bool active = 9;
     bool online = 10;
     int32 schemes_count = 11;
@@ -100,8 +100,8 @@ message AddProjectMember {
     string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
 
     string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
-    string user_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
-    user.Role role = 4 [(buf.validate.field).enum = { in: [ 1, 2 ] }]; // @gotags: json:"-"
+    string profile_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    profile.Role role = 4 [(buf.validate.field).enum = { in: [ 1, 2 ] }]; // @gotags: json:"-"
     bool active = 5;
   }
 
@@ -121,7 +121,7 @@ message UpdateProjectMember {
     string member_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
     oneof setting {
       option (buf.validate.oneof).required = true;
-      user.Role role = 5 [(buf.validate.field).enum = { in: [ 1, 2 ] }];
+      profile.Role role = 5 [(buf.validate.field).enum = { in: [ 1, 2 ] }];
       bool active = 6;
     }
   }
@@ -143,8 +143,8 @@ message DeleteProjectMember {
 }
 // -----------------------------------------------------
 
-// rpc UsersWithoutProject
-message UsersWithoutProject {
+// rpc ProfilesWithoutProject
+message ProfilesWithoutProject {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
 
@@ -157,11 +157,11 @@ message UsersWithoutProject {
 
   message Response {
     int32 total = 1;
-    repeated User users = 2;
+    repeated Profile profiles = 2;
   }
 
-  message User {
-    string user_id = 1;
+  message Profile {
+    string profile_id = 1;
     string alias = 2;
     bool active = 3;
     string email = 4 [(ghoster.secret) = true];
@@ -204,17 +204,17 @@ message AddMemberInvite {
     string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
 
     string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
-    string user_name = 3 [
+    string name = 3 [
       (buf.validate.field).cel = {
-        id: "valid_user_name"
+        id: "valid_name"
         message: "required field (3 to 30 characters)"
         expression: "this.matches('^[A-Za-z0-9]{3,20}$')"
       },
       (buf.validate.field).required = true
     ];
-    string user_surname = 4 [
+    string surname = 4 [
       (buf.validate.field).cel = {
-        id: "valid_user_surname"
+        id: "valid_surname"
         message: "required field (3 to 30 characters)"
         expression: "this.matches('^[A-Za-z0-9]{3,20}$')"
       },
@@ -254,7 +254,7 @@ message DeleteMemberInvite {
 message MemberInviteActivate {
   message Request {
     string token = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
-    string user_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true]; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true]; // @gotags: json:"-"
   }
 
   message Response {
@@ -295,12 +295,12 @@ message SchemeMember {
 
   message Response {
     string scheme_member_id = 1;
-    string user_id = 2 [(ghoster.secret) = true];
-    string user_alias = 3;
-    string user_name = 4;
-    string user_surname = 5;
+    string profile_id = 2 [(ghoster.secret) = true];
+    string alias = 3;
+    string name = 4;
+    string surname = 5;
     string email = 6 [(ghoster.secret) = true];
-    user.Role role = 7 [(ghoster.secret) = true];
+    profile.Role role = 7 [(ghoster.secret) = true];
     bool active = 8;
     bool online = 9;
     google.protobuf.Timestamp locked_at = 10 [(ghoster.secret) = true];
@@ -376,12 +376,12 @@ message MembersWithoutScheme {
 
   message Member {
     string member_id = 1;
-    string user_id = 2 [(ghoster.secret) = true];
-    string user_alias = 3;
-    string user_name = 4;
-    string user_surname = 5;
+    string profile_id = 2 [(ghoster.secret) = true];
+    string alias = 3;
+    string name = 4;
+    string surname = 5;
     string email = 6 [(ghoster.secret) = true];
-    user.Role role = 7 [(ghoster.secret) = true];
+    profile.Role role = 7 [(ghoster.secret) = true];
     bool active = 8;
     bool online = 9;
     google.protobuf.Timestamp locked_at = 10 [(ghoster.secret) = true];

@@ -29,24 +29,24 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 	var eventType eventpb.EventSection
 
 	switch in.GetId().(type) {
-	case *eventpb.Events_Request_ProfileId:
+	case *eventpb.Events_Request_UserId:
 		eventType = eventpb.EventSection_profile
 		sqlQueryTotal = `
       SELECT COUNT("id")
       FROM "event_profile"
-      WHERE "profile_id" = $1 AND "user_id" = $2
+      WHERE "profile_id" = $1 AND "profile_id" = $2
     `
 		sqlQuery = `
       SELECT
         "id",
-        "user_id",
+        "profile_id",
         "session_id",
         "ip",
         "event",
         "section",
         "created_at"
       FROM "event_profile"
-      WHERE "profile_id" = $1 AND "user_id" = $2
+      WHERE "profile_id" = $1 AND "profile_id" = $2
     `
 		args = append(args, in.GetProfileId(), in.GetUserId())
 
@@ -64,7 +64,7 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 		sqlQuery = `
       SELECT
         "event_project"."id",
-        "event_project"."user_id",
+        "event_project"."profile_id",
         "event_project"."session_id",
         "event_project"."ip",
         "event_project"."event",
@@ -94,7 +94,7 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 		sqlQuery = `
       SELECT
         "event_scheme"."id",
-        "event_scheme"."user_id",
+        "event_scheme"."profile_id",
         "event_scheme"."session_id",
         "event_scheme"."ip",
         "event_scheme"."event",
@@ -147,7 +147,7 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 
 		err = rows.Scan(
 			&id,
-			&record.UserId,
+			&record.ProfileId,
 			&record.SessionId,
 			&record.Ip,
 			&record.Event,
@@ -160,8 +160,8 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 
 		switch eventType {
 		case eventpb.EventSection_profile:
-			record.Id = &eventpb.Event_Response_ProfileId{
-				ProfileId: id,
+			record.Id = &eventpb.Event_Response_UserId{
+				UserId: id,
 			}
 		case eventpb.EventSection_project:
 			record.Id = &eventpb.Event_Response_ProjectId{
@@ -200,14 +200,14 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 	var eventType string
 
 	switch in.GetId().(type) {
-	case *eventpb.Event_Request_ProfileId:
+	case *eventpb.Event_Request_UserId:
 		eventType = "profile"
 		sqlQuery = `
       SELECT
         "id",
-        "user_id",
+        "profile_id",
         "session_id",
-        "user_agent",
+        "profile_agent",
         "ip",
         "event",
         "section",
@@ -216,7 +216,7 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
       FROM "event_profile"
       WHERE
         "id" = $1
-        AND "user_id" = $2
+        AND "profile_id" = $2
     `
 		args = append(args, in.GetProfileId(), in.GetUserId())
 
@@ -225,9 +225,9 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 		sqlQuery = `
       SELECT
         "event_project"."project_id",
-        "event_project"."user_id",
+        "event_project"."profile_id",
         "event_project"."session_id",
-        "event_project"."user_agent",
+        "event_project"."profile_agent",
         "event_project"."ip",
         "event_project"."event",
         "event_project"."section",
@@ -247,9 +247,9 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 		sqlQuery = `
       SELECT
         "event_scheme"."scheme_id",
-        "event_scheme"."user_id",
+        "event_scheme"."profile_id",
         "event_scheme"."session_id",
-        "event_scheme"."user_agent",
+        "event_scheme"."profile_agent",
         "event_scheme"."ip",
         "event_scheme"."event",
         "event_scheme"."section",
@@ -272,7 +272,7 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 
 	err := h.DB.Conn.QueryRowContext(ctx, sqlQuery, args...).Scan(
 		&id,
-		&response.UserId,
+		&response.ProfileId,
 		&response.SessionId,
 		&response.UserAgent,
 		&response.Ip,
@@ -287,8 +287,8 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 
 	switch eventType {
 	case "profile":
-		response.Id = &eventpb.Event_Response_ProfileId{
-			ProfileId: id,
+		response.Id = &eventpb.Event_Response_UserId{
+			UserId: id,
 		}
 	case "project":
 		response.Id = &eventpb.Event_Response_ProjectId{
@@ -321,40 +321,40 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
 
 	response := &eventpb.AddEvent_Response{}
 
-	var sqlQuery, id, userID string
+	var sqlQuery, id, profileID string
 	var section int32
 
 	switch in.Section.(type) {
 	case *eventpb.AddEvent_Request_Profile:
 		sqlQuery = `
-      WITH user_exists AS (
+      WITH profile_exists AS (
         SELECT 1
-        FROM "user"
+        FROM "profile"
         WHERE "id" = $2
       )
       INSERT INTO "event_profile" (
         "profile_id",
-        "user_id",
+        "profile_id",
         "session_id",
-        "user_agent",
+        "profile_agent",
         "ip",
         "event",
         "section",
         "data"
       )
       SELECT $1, $2, $3, $4, $5, $6, $7, $8
-      FROM "user_exists"
+      FROM "profile_exists"
       RETURNING "id"
     `
 		section = int32(in.GetProfile().GetSection())
 		id = in.GetProfile().Id
-		userID = id
+		profileID = id
 
 	case *eventpb.AddEvent_Request_Project:
 		sqlQuery = `
-      WITH user_exists AS (
+      WITH profile_exists AS (
         SELECT 1
-        FROM "user"
+        FROM "profile"
         WHERE "id" = $2
       ),
       project_check AS (
@@ -364,27 +364,27 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
       )
       INSERT INTO "event_project" (
         "project_id",
-        "user_id",
+        "profile_id",
         "session_id",
-        "user_agent",
+        "profile_agent",
         "ip",
         "event",
         "section",
         "data"
       )
       SELECT $1, $2, $3, $4, $5, $6, $7, $8
-      FROM "user_exists", "project_check"
+      FROM "profile_exists", "project_check"
       RETURNING "id"
     `
 		section = int32(in.GetProject().Section)
 		id = in.GetProject().Id
-		userID = in.GetUserId()
+		profileID = in.GetProfileId()
 
 	case *eventpb.AddEvent_Request_Scheme:
 		sqlQuery = `
-      WITH user_exists AS (
+      WITH profile_exists AS (
         SELECT 1
-        FROM "user"
+        FROM "profile"
         WHERE "id" = $2
       ),
       scheme_check AS (
@@ -395,21 +395,21 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
       INSERT INTO
         "event_scheme" (
         "scheme_id",
-        "user_id",
+        "profile_id",
         "session_id",
-        "user_agent",
+        "profile_agent",
         "ip",
         "event",
         "section",
         "data"
       )
       SELECT $1, $2, $3, $4, $5, $6, $7, $8
-      FROM "user_exists", "scheme_check"
+      FROM "profile_exists", "scheme_check"
       RETURNING "id"
     `
 		section = int32(in.GetScheme().Section)
 		id = in.GetScheme().Id
-		userID = in.GetUserId()
+		profileID = in.GetProfileId()
 	}
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
@@ -425,7 +425,7 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
 
 	err = tx.QueryRowContext(ctx, sqlQuery,
 		id,
-		userID,
+		profileID,
 		in.GetSessionId(),
 		in.GetUserAgent(),
 		in.GetIp(),
