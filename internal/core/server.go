@@ -11,7 +11,7 @@ import (
 	"github.com/werbot/werbot/internal/core/audit"
 	auditpb "github.com/werbot/werbot/internal/core/audit/proto/audit"
 	"github.com/werbot/werbot/internal/core/event"
-	eventpb "github.com/werbot/werbot/internal/core/event/proto/event"
+	eventpb "github.com/werbot/werbot/internal/core/event/proto/rpc"
 	"github.com/werbot/werbot/internal/core/firewall"
 	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
 	"github.com/werbot/werbot/internal/core/invite"

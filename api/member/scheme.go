@@ -3,8 +3,8 @@ package member
 import (
 	"github.com/gofiber/fiber/v2"
 
+	event "github.com/werbot/werbot/internal/core/event/recorder"
 	memberpb "github.com/werbot/werbot/internal/core/member/proto/member"
-	"github.com/werbot/werbot/internal/event"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
@@ -175,7 +175,7 @@ func (h *Handler) updateSchemeMember(c *fiber.Ctx) error {
 	}
 
 	// Log the event
-	var eventType event.EventType
+	var eventType event.Type
 	switch request.GetSetting().(type) {
 	case *memberpb.UpdateSchemeMember_Request_Active:
 		eventType = event.OnActive

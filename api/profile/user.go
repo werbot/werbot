@@ -3,8 +3,8 @@ package profile
 import (
 	"github.com/gofiber/fiber/v2"
 
+	event "github.com/werbot/werbot/internal/core/event/recorder"
 	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
-	"github.com/werbot/werbot/internal/event"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
@@ -148,7 +148,7 @@ func (h *Handler) updateProfile(c *fiber.Ctx) error {
 	}
 
 	// Log the event
-	var eventType event.EventType
+	var eventType event.Type
 	switch request.GetSetting().(type) {
 	case *profilepb.UpdateProfile_Request_Alias, *profilepb.UpdateProfile_Request_Email, *profilepb.UpdateProfile_Request_Name, *profilepb.UpdateProfile_Request_Surname:
 		eventType = event.OnUpdate
@@ -196,7 +196,7 @@ func (h *Handler) deleteProfile(c *fiber.Ctx) error {
 	}
 
 	var message, description string
-	var eventType event.EventType
+	var eventType event.Type
 	var metaData map[string]any
 
 	switch request.GetRequest().(type) {

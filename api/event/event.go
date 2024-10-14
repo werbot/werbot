@@ -3,7 +3,7 @@ package event
 import (
 	"github.com/gofiber/fiber/v2"
 
-	eventpb "github.com/werbot/werbot/internal/core/event/proto/event"
+	eventpb "github.com/werbot/werbot/internal/core/event/proto/rpc"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/webutil"
@@ -13,7 +13,7 @@ import (
 // @Description Retrieves event records based on the provided category (profile, project, or scheme) and query parameters
 // @Tags event
 // @Produce json
-// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param category path string true "Category name (profile, project, scheme)"
 // @Param category_id path string true "Name UUID"
 // @Param limit query int false "Limit for pagination"
@@ -26,24 +26,22 @@ func (h *Handler) events(c *fiber.Ctx) error {
 	pagination := webutil.GetPaginationFromCtx(c)
 	sessionData := session.AuthProfile(c)
 	request := &eventpb.Events_Request{
-		IsAdmin:   sessionData.IsProfileAdmin(),
-		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
-		Limit:     pagination.Limit,
-		Offset:    pagination.Offset,
+		IsAdmin: sessionData.IsProfileAdmin(),
+		OwnerId: sessionData.ProfileID(c.Query("owner_id")),
+		Limit:   pagination.Limit,
+		Offset:  pagination.Offset,
+		SortBy:  `"event"."created_at":DESC`,
 	}
 
-	_ = webutil.Parse(c, request).Query()
+	// _ = webutil.Parse(c, request).Query()
 
 	switch c.Params("category") {
 	case "profile":
-		request.Id = &eventpb.Events_Request_UserId{UserId: c.Params("category_id")}
-		request.SortBy = `"created_at":DESC`
+		request.RelatedId = &eventpb.Events_Request_ProfileId{ProfileId: c.Params("category_id")}
 	case "project":
-		request.Id = &eventpb.Events_Request_ProjectId{ProjectId: c.Params("category_id")}
-		request.SortBy = `"event_project"."created_at":DESC`
+		request.RelatedId = &eventpb.Events_Request_ProjectId{ProjectId: c.Params("category_id")}
 	case "scheme":
-		request.Id = &eventpb.Events_Request_SchemeId{SchemeId: c.Params("category_id")}
-		request.SortBy = `"event_scheme"."created_at":DESC`
+		request.RelatedId = &eventpb.Events_Request_SchemeId{SchemeId: c.Params("category_id")}
 	}
 
 	rClient := eventpb.NewEventHandlersClient(h.Grpc)
@@ -76,17 +74,17 @@ func (h *Handler) events(c *fiber.Ctx) error {
 func (h *Handler) event(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &eventpb.Event_Request{
-		IsAdmin:   sessionData.IsProfileAdmin(),
-		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
+		IsAdmin: sessionData.IsProfileAdmin(),
+		OwnerId: sessionData.ProfileID(c.Query("owner_id")),
 	}
 
 	switch c.Params("category") {
 	case "profile":
-		request.Id = &eventpb.Event_Request_UserId{UserId: c.Params("event_id")}
+		request.EventId = &eventpb.Event_Request_ProfileId{ProfileId: c.Params("event_id")}
 	case "project":
-		request.Id = &eventpb.Event_Request_ProjectId{ProjectId: c.Params("event_id")}
+		request.EventId = &eventpb.Event_Request_ProjectId{ProjectId: c.Params("event_id")}
 	case "scheme":
-		request.Id = &eventpb.Event_Request_SchemeId{SchemeId: c.Params("event_id")}
+		request.EventId = &eventpb.Event_Request_SchemeId{SchemeId: c.Params("event_id")}
 	}
 
 	rClient := eventpb.NewEventHandlersClient(h.Grpc)

@@ -3,8 +3,8 @@ package auth
 import (
 	"github.com/gofiber/fiber/v2"
 
+	event "github.com/werbot/werbot/internal/core/event/recorder"
 	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
-	"github.com/werbot/werbot/internal/event"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -184,7 +184,7 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	//}
 
 	// Log the event
-	var eventType event.EventType
+	var eventType event.Type
 	switch request.GetRequest().(type) {
 	case *profilepb.ResetPassword_Request_Email: // Sending an email with a verification link
 		eventType = event.OnReset

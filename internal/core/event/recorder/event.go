@@ -1,4 +1,4 @@
-package event
+package recorder
 
 import (
 	"context"
@@ -8,7 +8,9 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/werbot/werbot/internal"
-	eventpb "github.com/werbot/werbot/internal/core/event/proto/event"
+	eventenum "github.com/werbot/werbot/internal/core/event/proto/enum"
+	eventmessage "github.com/werbot/werbot/internal/core/event/proto/message"
+	eventpb "github.com/werbot/werbot/internal/core/event/proto/rpc"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/logger"
 )
@@ -16,26 +18,26 @@ import (
 // Metadata is ...
 type Metadata map[string]any
 
-// EventType represents different types of events.
-type EventType eventpb.EventType
+// Type represents different types of events.
+type Type eventenum.Type
 
 // Constants for different event types.
 const (
-	Unspecified EventType = EventType(eventpb.EventType_event_unspecified)
-	OnOnline    EventType = EventType(eventpb.EventType_onOnline)
-	OnOffline   EventType = EventType(eventpb.EventType_onOffline)
-	OnCreate    EventType = EventType(eventpb.EventType_onCreate)
-	OnEdit      EventType = EventType(eventpb.EventType_onEdit)
-	OnRemove    EventType = EventType(eventpb.EventType_onRemove)
-	OnActive    EventType = EventType(eventpb.EventType_onActive)
-	OnInactive  EventType = EventType(eventpb.EventType_onInactive)
-	OnChange    EventType = EventType(eventpb.EventType_onChange)
-	OnLogin     EventType = EventType(eventpb.EventType_onLogin)
-	OnLogoff    EventType = EventType(eventpb.EventType_onLogoff)
-	OnReset     EventType = EventType(eventpb.EventType_onReset)
-	OnUpdate    EventType = EventType(eventpb.EventType_onUpdate)
-	OnRequest   EventType = EventType(eventpb.EventType_onRequest)
-	OnMessage   EventType = EventType(eventpb.EventType_onMessage)
+	Unspecified Type = Type(eventenum.Type_event_unspecified)
+	OnOnline    Type = Type(eventenum.Type_onOnline)
+	OnOffline   Type = Type(eventenum.Type_onOffline)
+	OnCreate    Type = Type(eventenum.Type_onCreate)
+	OnEdit      Type = Type(eventenum.Type_onEdit)
+	OnRemove    Type = Type(eventenum.Type_onRemove)
+	OnActive    Type = Type(eventenum.Type_onActive)
+	OnInactive  Type = Type(eventenum.Type_onInactive)
+	OnChange    Type = Type(eventenum.Type_onChange)
+	OnLogin     Type = Type(eventenum.Type_onLogin)
+	OnLogoff    Type = Type(eventenum.Type_onLogoff)
+	OnReset     Type = Type(eventenum.Type_onReset)
+	OnUpdate    Type = Type(eventenum.Type_onUpdate)
+	OnRequest   Type = Type(eventenum.Type_onRequest)
+	OnMessage   Type = Type(eventenum.Type_onMessage)
 )
 
 // Event holds the gRPC client for event handlers.
@@ -69,36 +71,38 @@ func (e *Event) Web(c *fiber.Ctx, session *session.ProfileParameters) *WebEvent 
 	return &WebEvent{
 		client: e.client,
 		request: &eventpb.AddEvent_Request{
-			ProfileId: session.ProfileID(c.Query("profile_id")),
-			SessionId: session.SessionId(),
-			UserAgent: string(c.Request().Header.UserAgent()),
-			Ip:        c.IP(),
+			OwnerId: session.ProfileID(c.Query("owner_id")),
+			Session: &eventmessage.Session{
+				Id:        session.SessionId(),
+				UserAgent: string(c.Request().Header.UserAgent()),
+				Ip:        c.IP(),
+			},
 		},
 	}
 }
 
 // addEvent adds an event to the system with the provided user ID, section, event type, and metadata.
-func (e *WebEvent) addEvent(sectionID string, section interface{}, event EventType, metaData ...any) {
+func (e *WebEvent) addEvent(sectionID string, section interface{}, event Type, metaData ...any) {
 	switch s := section.(type) {
 	case ProfileSection:
 		e.request.Section = &eventpb.AddEvent_Request_Profile{
-			Profile: &eventpb.Profile{
+			Profile: &eventmessage.Profile{
 				Id:      sectionID,
-				Section: eventpb.Profile_Section(s),
+				Section: eventmessage.Profile_Section(s),
 			},
 		}
 	case ProjectSection:
 		e.request.Section = &eventpb.AddEvent_Request_Project{
-			Project: &eventpb.Project{
+			Project: &eventmessage.Project{
 				Id:      sectionID,
-				Section: eventpb.Project_Section(s),
+				Section: eventmessage.Project_Section(s),
 			},
 		}
 	case SchemeSection:
 		e.request.Section = &eventpb.AddEvent_Request_Scheme{
-			Scheme: &eventpb.Scheme{
+			Scheme: &eventmessage.Scheme{
 				Id:      sectionID,
-				Section: eventpb.Scheme_Section(s),
+				Section: eventmessage.Scheme_Section(s),
 			},
 		}
 	default:
@@ -106,7 +110,7 @@ func (e *WebEvent) addEvent(sectionID string, section interface{}, event EventTy
 		return
 	}
 
-	e.request.Event = eventpb.EventType(event)
+	e.request.Type = eventenum.Type(event)
 
 	if len(metaData) > 0 {
 		data, err := json.Marshal(metaData)

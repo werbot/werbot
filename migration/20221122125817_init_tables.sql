@@ -157,62 +157,21 @@ CREATE INDEX idx_scheme_firewall_network_id ON "scheme_firewall_network" ("id");
 CREATE INDEX idx_scheme_firewall_network_scheme_id ON "scheme_firewall_network" ("scheme_id");
 CREATE INDEX idx_scheme_firewall_network_network ON "scheme_firewall_network" ("network");
 
-CREATE TABLE "event_profile" (
+CREATE TABLE "event" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    "user_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
-    "profile_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
-    "session_id" uuid NOT NULL,
-    "user_agent" varchar(255) NOT NULL DEFAULT '',
-    "ip" inet,
-    "event" smallint NOT NULL,
+    "related_id" uuid NOT NULL,
+    "prime_section" smallint NOT NULL,
     "section" smallint NOT NULL,
+    "type" smallint NOT NULL,
+    "session" jsonb NOT NULL DEFAULT '{}'::jsonb,
     "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
     "created_at" timestamp DEFAULT NOW()
 );
-CREATE INDEX idx_event_profile_id ON "event_profile" ("id");
-CREATE INDEX idx_event_profile_user_id ON "event_profile" ("profile_id");
-CREATE INDEX idx_event_profile_profile_id ON "event_profile" ("profile_id");
-CREATE INDEX idx_event_profile_session_id ON "event_profile" ("session_id");
-CREATE INDEX idx_event_profile_event ON "event_profile" ("event");
-CREATE INDEX idx_event_profile_section ON "event_profile" ("section");
-
-CREATE TABLE "event_project" (
-    "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    "project_id" uuid NOT NULL REFERENCES "project"("id") ON DELETE CASCADE,
-    "profile_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
-    "session_id" uuid NOT NULL,
-    "user_agent" varchar(255) NOT NULL DEFAULT '',
-    "ip" inet,
-    "event" smallint NOT NULL,
-    "section" smallint NOT NULL,
-    "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
-    "created_at" timestamp DEFAULT NOW()
-);
-CREATE INDEX idx_event_project_id ON "event_project" ("id");
-CREATE INDEX idx_event_project_project_id ON "event_project" ("project_id");
-CREATE INDEX idx_event_project_profile_id ON "event_project" ("profile_id");
-CREATE INDEX idx_event_project_session_id ON "event_project" ("session_id");
-CREATE INDEX idx_event_project_event ON "event_project" ("event");
-CREATE INDEX idx_event_project_section ON "event_project" ("section");
-
-CREATE TABLE "event_scheme" (
-    "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    "scheme_id" uuid NOT NULL REFERENCES "scheme"("id") ON DELETE CASCADE,
-    "profile_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
-    "session_id" uuid NOT NULL,
-    "user_agent" text NOT NULL DEFAULT '',
-    "ip" inet,
-    "event" smallint NOT NULL,
-    "section" smallint NOT NULL,
-    "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
-    "created_at" timestamp DEFAULT NOW()
-);
-CREATE INDEX idx_event_scheme_id ON "event_scheme" ("id");
-CREATE INDEX idx_event_scheme_scheme_id ON "event_scheme" ("scheme_id");
-CREATE INDEX idx_event_scheme_profile_id ON "event_scheme" ("profile_id");
-CREATE INDEX idx_event_scheme_session_id ON "event_scheme" ("session_id");
-CREATE INDEX idx_event_scheme_event ON "event_scheme" ("event");
-CREATE INDEX idx_event_scheme_section ON "event_scheme" ("section");
+CREATE INDEX idx_event_id ON "event" ("id");
+CREATE INDEX idx_event_related_id ON "event" ("related_id");
+CREATE INDEX idx_event_prime_section ON "event" ("prime_section");
+CREATE INDEX idx_event_section ON "event" ("section");
+CREATE INDEX idx_event_event ON "event" ("type");
 
 CREATE TABLE "session" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -335,9 +294,7 @@ DROP TABLE IF EXISTS "profile_token";
 DROP TABLE IF EXISTS "profile_public_key";
 DROP TABLE IF EXISTS "session";
 DROP TABLE IF EXISTS "scheme_firewall_network";
-DROP TABLE IF EXISTS "event_profile";
-DROP TABLE IF EXISTS "event_scheme";
-DROP TABLE IF EXISTS "event_project";
+DROP TABLE IF EXISTS "event";
 DROP TABLE IF EXISTS "scheme_firewall_country";
 DROP TABLE IF EXISTS "country";
 DROP TABLE IF EXISTS "scheme_activity";

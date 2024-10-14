@@ -3,8 +3,8 @@ package project
 import (
 	"github.com/gofiber/fiber/v2"
 
+	event "github.com/werbot/werbot/internal/core/event/recorder"
 	projectpb "github.com/werbot/werbot/internal/core/project/proto/project"
-	"github.com/werbot/werbot/internal/event"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"

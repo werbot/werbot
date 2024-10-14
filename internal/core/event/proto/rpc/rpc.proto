@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package event;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
+
+import "internal/core/event/proto/enum/enum.proto";
+import "internal/core/event/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/event/proto/event";
+
+service EventHandlers {
+  rpc Events(Events.Request) returns (Events.Response) {}
+  rpc Event(Event.Request) returns (Event.Response) {}
+  rpc AddEvent(AddEvent.Request) returns (AddEvent.Response) {}
+}
+
+// rpc Events
+message Events {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    oneof related_id {
+      option (buf.validate.oneof).required = true;
+      string profile_id = 3 [(buf.validate.field).string.uuid = true];
+      string project_id = 4 [(buf.validate.field).string.uuid = true];
+      string scheme_id = 5 [(buf.validate.field).string.uuid = true];
+    }
+
+    // string related_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    int32 limit = 6;
+    int32 offset = 7;
+    string sort_by = 8; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated Event.Response events = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc Event
+message Event {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    oneof event_id {
+      option (buf.validate.oneof).required = true;
+      string profile_id = 3 [(buf.validate.field).string.uuid = true];
+      string project_id = 4 [(buf.validate.field).string.uuid = true];
+      string scheme_id = 5 [(buf.validate.field).string.uuid = true];
+    }
+    string session_id = 6 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+  }
+
+  message Response {
+    string owner_id = 1 [(ghoster.secret) = true];
+    oneof related_id {
+      string profile_id = 2;
+      string project_id = 3;
+      string scheme_id = 4;
+    }
+    int32 section = 5;
+    eventenum.Type type = 6;
+    eventmessage.Session session = 7;
+    bytes meta_data = 8;
+    google.protobuf.Timestamp created_at = 9;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddEvent
+message AddEvent {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    oneof section {
+      option (buf.validate.oneof).required = true;
+      eventmessage.Profile profile = 2;
+      eventmessage.Project project = 3;
+      eventmessage.Scheme scheme = 4;
+    }
+    eventenum.Type type = 5 [(buf.validate.field).enum.defined_only = true, (buf.validate.field).required = true];
+    eventmessage.Session session = 6;
+    bytes meta_data = 7;
+  }
+
+  message Response {
+    string record_id = 1;
+  }
+}
+// -----------------------------------------------------

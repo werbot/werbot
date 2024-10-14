@@ -7,9 +7,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	event "github.com/werbot/werbot/internal/core/event/recorder"
 	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
-	"github.com/werbot/werbot/internal/event"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/mathutil"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -160,7 +160,7 @@ func (h *Handler) updateScheme(c *fiber.Ctx) error {
 	}
 
 	// Log the event
-	var eventType event.EventType
+	var eventType event.Type
 	switch request.GetSetting().(type) {
 	case *schemepb.UpdateScheme_Request_Title, *schemepb.UpdateScheme_Request_Description, *schemepb.UpdateScheme_Request_Scheme:
 		eventType = event.OnUpdate

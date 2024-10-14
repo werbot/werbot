@@ -8,8 +8,11 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 
-	eventpb "github.com/werbot/werbot/internal/core/event/proto/event"
+	eventenum "github.com/werbot/werbot/internal/core/event/proto/enum"
+	eventmessage "github.com/werbot/werbot/internal/core/event/proto/message"
+	eventpb "github.com/werbot/werbot/internal/core/event/proto/rpc"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -26,89 +29,103 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 	var sqlQuery, sqlQueryTotal string
 	var args []any
 	response := &eventpb.Events_Response{}
-	var eventType eventpb.EventSection
+	var eventType eventenum.Section
 
-	switch in.GetId().(type) {
-	case *eventpb.Events_Request_UserId:
-		eventType = eventpb.EventSection_profile
+	switch in.GetRelatedId().(type) {
+	case *eventpb.Events_Request_ProfileId:
+		eventType = eventenum.Section_profile
 		sqlQueryTotal = `
-      SELECT COUNT("id")
-      FROM "event_profile"
-      WHERE "profile_id" = $1 AND "profile_id" = $2
+      SELECT COUNT("event"."id")
+      FROM
+        "event"
+        INNER JOIN "profile" ON "event"."related_id" = "profile"."id"
+      WHERE
+        "profile"."id" = $1
+        AND "event"."related_id" = $2
+        AND "event"."prime_section" = 1
     `
 		sqlQuery = `
       SELECT
-        "id",
-        "profile_id",
-        "session_id",
-        "ip",
-        "event",
-        "section",
-        "created_at"
-      FROM "event_profile"
-      WHERE "profile_id" = $1 AND "profile_id" = $2
+        "event"."id",
+        "profile"."id",
+        "event"."section",
+        "event"."type",
+        "event"."session"->>'id',
+        "event"."session"->>'ip',
+        "event"."created_at"
+      FROM
+        "event"
+        INNER JOIN "profile" ON "event"."related_id" = "profile"."id"
+      WHERE
+        "profile"."id" = $1
+        AND "event"."related_id" = $2
+        AND "event"."prime_section" = 1
     `
-		args = append(args, in.GetProfileId(), in.GetUserId())
+		args = append(args, in.GetOwnerId(), in.GetProfileId())
 
 	case *eventpb.Events_Request_ProjectId:
-		eventType = eventpb.EventSection_project
+		eventType = eventenum.Section_project
 		sqlQueryTotal = `
-      SELECT COUNT("event_project"."id")
+      SELECT COUNT("event"."id")
       FROM
-        "event_project"
-        INNER JOIN "project" ON "event_project"."project_id" = "project"."id"
+        "event"
+        INNER JOIN "project" ON "event"."related_id" = "project"."id"
       WHERE
-        "event_project"."project_id" = $1
-        AND "project"."owner_id" = $2
+        "project"."owner_id" = $1
+        AND "event"."related_id" = $2
+        AND "event"."prime_section" = 2
     `
 		sqlQuery = `
       SELECT
-        "event_project"."id",
-        "event_project"."profile_id",
-        "event_project"."session_id",
-        "event_project"."ip",
-        "event_project"."event",
-        "event_project"."section",
-        "event_project"."created_at"
+        "event"."id",
+        "project"."owner_id",
+        "event"."section",
+        "event"."type",
+        "event"."session"->>'id',
+        "event"."session"->>'ip',
+        "event"."created_at"
       FROM
-        "event_project"
-        INNER JOIN "project" ON "event_project"."project_id" = "project"."id"
+        "event"
+        INNER JOIN "project" ON "event"."related_id" = "project"."id"
       WHERE
-        "event_project"."project_id" = $1
-        AND "project"."owner_id" = $2
+        "project"."owner_id" = $1
+        AND "event"."related_id" = $2
+        AND "event"."prime_section" = 2
     `
-		args = append(args, in.GetProjectId(), in.GetUserId())
+		args = append(args, in.GetOwnerId(), in.GetProjectId())
 
 	case *eventpb.Events_Request_SchemeId:
-		eventType = eventpb.EventSection_scheme
+		eventType = eventenum.Section_scheme
 		sqlQueryTotal = `
-      SELECT COUNT("event_scheme"."id")
+      SELECT COUNT("event"."id")
       FROM
-        "event_scheme"
-        INNER JOIN "scheme" ON "event_scheme"."scheme_id" = "scheme"."id"
+        "event"
+        INNER JOIN "scheme" ON "event"."related_id" = "scheme"."id"
         INNER JOIN "project" ON "scheme"."project_id" = "project"."id"
       WHERE
-        "event_scheme"."scheme_id" = $1
-        AND "project"."owner_id" = $2
+        "project"."owner_id" = $1
+        AND "event"."related_id" = $2
+        AND "event"."prime_section" = 3
     `
 		sqlQuery = `
       SELECT
-        "event_scheme"."id",
-        "event_scheme"."profile_id",
-        "event_scheme"."session_id",
-        "event_scheme"."ip",
-        "event_scheme"."event",
-        "event_scheme"."section",
-        "event_scheme"."created_at"
+        "event"."id",
+        "project"."owner_id",
+        "event"."section",
+        "event"."type",
+        "event"."session"->>'id',
+        "event"."session"->>'ip',
+        "event"."created_at"
       FROM
-        "event_scheme"
-        INNER JOIN "scheme" ON "event_scheme"."scheme_id" = "scheme"."id"
+        "event"
+        INNER JOIN "scheme" ON "event"."related_id" = "scheme"."id"
         INNER JOIN "project" ON "scheme"."project_id" = "project"."id"
       WHERE
-        "event_scheme"."scheme_id" = $1
-        AND "project"."owner_id" = $2
+        "project"."owner_id" = $1
+        AND "event"."related_id" = $2
+        AND "event"."prime_section" = 3
     `
-		args = append(args, in.GetSchemeId(), in.GetUserId())
+		args = append(args, in.GetOwnerId(), in.GetSchemeId())
 	}
 
 	// Total count for pagination
@@ -119,11 +136,11 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 	if response.Total == 0 {
 		var notFound string
 		switch eventType {
-		case eventpb.EventSection_profile:
+		case eventenum.Section_profile:
 			notFound = trace.MsgProfileNotFound
-		case eventpb.EventSection_project:
+		case eventenum.Section_project:
 			notFound = trace.MsgProjectNotFound
-		case eventpb.EventSection_scheme:
+		case eventenum.Section_scheme:
 			notFound = trace.MsgSchemeNotFound
 		}
 
@@ -131,7 +148,7 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	// List records
+	// List events
 	sqlFooter := h.DB.SQLPagination(in.GetLimit(), in.GetOffset(), in.GetSortBy())
 	baseQuery := postgres.SQLGluing(sqlQuery, sqlFooter)
 	rows, err := h.DB.Conn.QueryContext(ctx, baseQuery, args...)
@@ -141,17 +158,19 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 	defer rows.Close()
 
 	for rows.Next() {
-		var id string
+		var relatedID string
 		var createdAt pgtype.Timestamp
-		record := &eventpb.Event_Response{}
+		event := &eventpb.Event_Response{
+			Session: &eventmessage.Session{},
+		}
 
 		err = rows.Scan(
-			&id,
-			&record.ProfileId,
-			&record.SessionId,
-			&record.Ip,
-			&record.Event,
-			&record.Section,
+			&relatedID,
+			&event.OwnerId,
+			&event.Section,
+			&event.Type,
+			&event.Session.Id,
+			&event.Session.Ip,
 			&createdAt,
 		)
 		if err != nil {
@@ -159,18 +178,12 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 		}
 
 		switch eventType {
-		case eventpb.EventSection_profile:
-			record.Id = &eventpb.Event_Response_UserId{
-				UserId: id,
-			}
-		case eventpb.EventSection_project:
-			record.Id = &eventpb.Event_Response_ProjectId{
-				ProjectId: id,
-			}
-		case eventpb.EventSection_scheme:
-			record.Id = &eventpb.Event_Response_SchemeId{
-				SchemeId: id,
-			}
+		case eventenum.Section_profile:
+			event.RelatedId = &eventpb.Event_Response_ProfileId{ProfileId: relatedID}
+		case eventenum.Section_project:
+			event.RelatedId = &eventpb.Event_Response_ProjectId{ProjectId: relatedID}
+		case eventenum.Section_scheme:
+			event.RelatedId = &eventpb.Event_Response_SchemeId{SchemeId: relatedID}
 		}
 
 		protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
@@ -179,10 +192,10 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 
 		// Clearing certain fields if the user is not an administrator
 		if !in.IsAdmin {
-			ghoster.Secrets(record, true)
+			ghoster.Secrets(event, true)
 		}
 
-		response.Records = append(response.Records, record)
+		response.Events = append(response.Events, event)
 	}
 
 	return response, nil
@@ -199,85 +212,88 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 	var args []any
 	var eventType string
 
-	switch in.GetId().(type) {
-	case *eventpb.Event_Request_UserId:
+	switch in.GetEventId().(type) {
+	case *eventpb.Event_Request_ProfileId:
 		eventType = "profile"
 		sqlQuery = `
       SELECT
-        "id",
-        "profile_id",
-        "session_id",
-        "profile_agent",
-        "ip",
-        "event",
-        "section",
-        "data",
-        "created_at"
-      FROM "event_profile"
+        "event"."related_id",
+        "event"."section",
+        "event"."type",
+        "event"."session"->>'id',
+        "event"."session"->>'user_agent',
+        "event"."session"->>'ip',
+        "event"."data",
+        "event"."created_at"
+      FROM
+        "event"
+        INNER JOIN "profile" ON "event"."related_id" = "profile"."id"
       WHERE
-        "id" = $1
-        AND "profile_id" = $2
+        "profile"."id" = $1
+        AND "event"."id" = $2
+        AND "event"."prime_section" = 1
     `
-		args = append(args, in.GetProfileId(), in.GetUserId())
+		args = append(args, in.GetOwnerId(), in.GetProfileId())
 
 	case *eventpb.Event_Request_ProjectId:
 		eventType = "project"
 		sqlQuery = `
       SELECT
-        "event_project"."project_id",
-        "event_project"."profile_id",
-        "event_project"."session_id",
-        "event_project"."profile_agent",
-        "event_project"."ip",
-        "event_project"."event",
-        "event_project"."section",
-        "event_project"."data",
-        "event_project"."created_at"
+        "event"."related_id",
+        "event"."section",
+        "event"."type",
+        "event"."session"->>'id',
+        "event"."session"->>'user_agent',
+        "event"."session"->>'ip',
+        "event"."data",
+        "event"."created_at"
       FROM
-        "event_project"
-        INNER JOIN "project" ON "event_project"."project_id" = "project"."id"
+        "event"
+        INNER JOIN "project" ON "event"."related_id" = "project"."id"
       WHERE
-        "event_project"."id" = $1
-        AND "project"."owner_id" = $2
+        "project"."owner_id" = $1
+        AND "event"."id" = $2
+        AND "event"."prime_section" = 2
     `
-		args = append(args, in.GetProjectId(), in.GetUserId())
+		args = append(args, in.GetOwnerId(), in.GetProjectId())
 
 	case *eventpb.Event_Request_SchemeId:
 		eventType = "scheme"
 		sqlQuery = `
       SELECT
-        "event_scheme"."scheme_id",
-        "event_scheme"."profile_id",
-        "event_scheme"."session_id",
-        "event_scheme"."profile_agent",
-        "event_scheme"."ip",
-        "event_scheme"."event",
-        "event_scheme"."section",
-        "event_scheme"."data",
-        "event_scheme"."created_at"
+        "event"."related_id",
+        "event"."section",
+        "event"."type",
+        "event"."session"->>'id',
+        "event"."session"->>'user_agent',
+        "event"."session"->>'ip',
+        "event"."data",
+        "event"."created_at"
       FROM
-        "event_scheme"
-        INNER JOIN "scheme" ON "event_scheme"."scheme_id" = "scheme"."id"
+        "event"
+        INNER JOIN "scheme" ON "event"."related_id" = "scheme"."id"
         INNER JOIN "project" ON "scheme"."project_id" = "project"."id"
       WHERE
-        "event_scheme"."id" = $1
-        AND "project"."owner_id" = $2
+        "project"."owner_id" = $1
+        AND "event"."id" = $2
+        AND "event"."prime_section" = 3
     `
-		args = append(args, in.GetSchemeId(), in.GetUserId())
+		args = append(args, in.GetOwnerId(), in.GetSchemeId())
 	}
 
 	var createdAt pgtype.Timestamp
-	var id string
-	response := &eventpb.Event_Response{}
+	var related_id string
+	response := &eventpb.Event_Response{
+		Session: &eventmessage.Session{},
+	}
 
 	err := h.DB.Conn.QueryRowContext(ctx, sqlQuery, args...).Scan(
-		&id,
-		&response.ProfileId,
-		&response.SessionId,
-		&response.UserAgent,
-		&response.Ip,
-		&response.Event,
+		&related_id,
 		&response.Section,
+		&response.Type,
+		&response.Session.Id,
+		&response.Session.UserAgent,
+		&response.Session.Ip,
 		&response.MetaData,
 		&createdAt,
 	)
@@ -287,17 +303,11 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 
 	switch eventType {
 	case "profile":
-		response.Id = &eventpb.Event_Response_UserId{
-			UserId: id,
-		}
+		response.RelatedId = &eventpb.Event_Response_ProfileId{ProfileId: related_id}
 	case "project":
-		response.Id = &eventpb.Event_Response_ProjectId{
-			ProjectId: id,
-		}
+		response.RelatedId = &eventpb.Event_Response_ProjectId{ProjectId: related_id}
 	case "scheme":
-		response.Id = &eventpb.Event_Response_SchemeId{
-			SchemeId: id,
-		}
+		response.RelatedId = &eventpb.Event_Response_SchemeId{SchemeId: related_id}
 	}
 
 	protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
@@ -319,126 +329,93 @@ func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := &eventpb.AddEvent_Response{}
-
-	var sqlQuery, id, profileID string
-	var section int32
+	var sqlCheck, ownerID, relatedID string
+	var primeSection, section int32
 
 	switch in.Section.(type) {
 	case *eventpb.AddEvent_Request_Profile:
-		sqlQuery = `
-      WITH profile_exists AS (
+		sqlCheck = `
+      WITH access_check AS (
         SELECT 1
         FROM "profile"
-        WHERE "id" = $2
+        WHERE "id" = $1
       )
-      INSERT INTO "event_profile" (
-        "profile_id",
-        "profile_id",
-        "session_id",
-        "profile_agent",
-        "ip",
-        "event",
-        "section",
-        "data"
-      )
-      SELECT $1, $2, $3, $4, $5, $6, $7, $8
-      FROM "profile_exists"
-      RETURNING "id"
     `
+		ownerID = in.GetOwnerId()
+		primeSection = int32(eventenum.Section_profile)
 		section = int32(in.GetProfile().GetSection())
-		id = in.GetProfile().Id
-		profileID = id
+		relatedID = in.GetProfile().GetId()
 
 	case *eventpb.AddEvent_Request_Project:
-		sqlQuery = `
-      WITH profile_exists AS (
-        SELECT 1
-        FROM "profile"
-        WHERE "id" = $2
-      ),
-      project_check AS (
+		sqlCheck = `
+      WITH access_check AS (
         SELECT 1
         FROM "project"
-        WHERE id = $1
+        WHERE
+          "id" = $2
+          AND "owner_id" = $1
       )
-      INSERT INTO "event_project" (
-        "project_id",
-        "profile_id",
-        "session_id",
-        "profile_agent",
-        "ip",
-        "event",
-        "section",
-        "data"
-      )
-      SELECT $1, $2, $3, $4, $5, $6, $7, $8
-      FROM "profile_exists", "project_check"
-      RETURNING "id"
     `
+		ownerID = in.GetOwnerId()
+		primeSection = int32(eventenum.Section_project)
 		section = int32(in.GetProject().Section)
-		id = in.GetProject().Id
-		profileID = in.GetProfileId()
+		relatedID = in.GetProject().GetId()
 
 	case *eventpb.AddEvent_Request_Scheme:
-		sqlQuery = `
-      WITH profile_exists AS (
+		sqlCheck = `
+      WITH access_check AS (
         SELECT 1
-        FROM "profile"
-        WHERE "id" = $2
-      ),
-      scheme_check AS (
-        SELECT 1
-        FROM "scheme"
-        WHERE id = $1
+        FROM
+          "scheme"
+          INNER JOIN "project" ON "scheme"."project_id" = "project"."id"
+        WHERE
+          "project"."owner_id" = $1
+          AND "scheme"."id" = $2
       )
-      INSERT INTO
-        "event_scheme" (
-        "scheme_id",
-        "profile_id",
-        "session_id",
-        "profile_agent",
-        "ip",
-        "event",
-        "section",
-        "data"
-      )
-      SELECT $1, $2, $3, $4, $5, $6, $7, $8
-      FROM "profile_exists", "scheme_check"
-      RETURNING "id"
     `
+		ownerID = in.GetOwnerId()
+		primeSection = int32(eventenum.Section_scheme)
 		section = int32(in.GetScheme().Section)
-		id = in.GetScheme().Id
-		profileID = in.GetProfileId()
+		relatedID = in.GetScheme().GetId()
 	}
 
-	tx, err := h.DB.Conn.BeginTx(ctx, nil)
+	session, err := protojson.Marshal(in.GetSession())
 	if err != nil {
-		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
-	}
-	defer tx.Rollback()
-
-	json := string(in.GetMetaData())
-	if json == "" {
-		json = "{}"
+		return nil, trace.Error(err, log, nil)
 	}
 
-	err = tx.QueryRowContext(ctx, sqlQuery,
-		id,
-		profileID,
-		in.GetSessionId(),
-		in.GetUserAgent(),
-		in.GetIp(),
-		in.GetEvent(),
+	metaData := string(in.GetMetaData())
+	if metaData == "" {
+		metaData = "{}"
+	}
+
+	response := &eventpb.AddEvent_Response{}
+
+	baseQuery := postgres.SQLGluing(sqlCheck, `
+    INSERT INTO "event" (
+      "related_id",
+      "prime_section",
+      "section",
+      "type",
+      "session",
+      "data"
+    )
+    SELECT $2, $3, $4, $5, $6, $7
+    FROM "access_check"
+    RETURNING "id"
+  `)
+
+	err = h.DB.Conn.QueryRowContext(ctx, baseQuery,
+		ownerID,
+		relatedID,
+		primeSection,
 		section,
-		json,
+		in.GetType(),
+		session,
+		metaData,
 	).Scan(&response.RecordId)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToAdd)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	return response, nil

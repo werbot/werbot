@@ -53,7 +53,7 @@ protogen() {
       # the files.
       sed -i -e '1h;2,$H;$!d;g' -re 's|// versions.+// source:|// source:|' $PROTO_PATH/*.pb.go
 
-      if [ "$FOLDER_LEN" -gt 1 ]; then
+      if [ -d "$WEB_PATH/google/" ] && [ "$FOLDER_LEN" -gt 1 ]; then
         rsync -a "$WEB_PATH/google/" "$WEB_PATH/../google/"
         rm -rf "$WEB_PATH/google"
         sed -i -e 's/.\/google\/protobuf/..\/google\/protobuf/g' $WEB_PATH/${proto_file}.ts
