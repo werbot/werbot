@@ -24,7 +24,7 @@ require (
 	github.com/oschwald/geoip2-golang v1.11.0
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/rs/zerolog v1.33.0
-	github.com/vanng822/go-premailer v1.21.0
+	github.com/vanng822/go-premailer v1.22.0
 	github.com/xhit/go-simple-mail/v2 v2.16.0
 	golang.org/x/crypto v0.28.0
 	golang.org/x/oauth2 v0.23.0
