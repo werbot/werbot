@@ -9,7 +9,7 @@ require (
 	github.com/adhocore/gronx v1.19.1
 	github.com/armon/go-proxyproto v0.1.0
 	github.com/bufbuild/protovalidate-go v0.7.2
-	github.com/fsnotify/fsnotify v1.7.0
+	github.com/fsnotify/fsnotify v1.8.0
 	github.com/fsouza/go-dockerclient v1.12.0
 	github.com/gliderlabs/ssh v0.3.7
 	github.com/gofiber/contrib/jwt v1.0.10
