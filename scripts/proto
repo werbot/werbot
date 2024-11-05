@@ -49,6 +49,9 @@ protogen() {
       # the files.
       sed -i -e '1h;2,$H;$!d;g' -re 's|// versions.+// source:|// source:|' $PROTO_PATH/*.pb.go
 
+      # Fix go file
+      sed -i -e '/file_internal_core_/d' $PROTO_PATH/${proto_file}.pb.go
+
       # Fix ts files
       if [ -f "$WEB_PATH/${proto_file}.ts" ]; then
         sed -i -e 's/\/internal\/grpc\/\([a-z]\+\)\/proto//g' $WEB_PATH/${proto_file}.ts
