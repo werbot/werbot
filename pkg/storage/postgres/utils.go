@@ -7,10 +7,22 @@ import (
 
 // SQLGluing is ...
 func SQLGluing(sql ...string) string {
+	return SQLGluingOptions{
+		Separator: " ",
+	}.SQLGluing(sql...)
+}
+
+// SQLGluingOptions is ...
+type SQLGluingOptions struct {
+	Separator string
+}
+
+// SQLGluing is ...
+func (o SQLGluingOptions) SQLGluing(sql ...string) string {
 	if len(sql) == 0 {
 		return ""
 	}
-	return strings.Join(sql, " ")
+	return strings.Join(sql, o.Separator)
 }
 
 // QueryParse is parse query to map
