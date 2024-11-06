@@ -121,7 +121,11 @@ func Test_SystemSchemesByAlias(t *testing.T) {
 		},
 	}
 
-	test.RunCaseGRPCTests(t, handler, testTable)
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
 }
 
 func Test_SystemSchemeAccess(t *testing.T) {
@@ -218,7 +222,11 @@ func Test_SystemSchemeAccess(t *testing.T) {
 		},
 	}
 
-	test.RunCaseGRPCTests(t, handler, testTable)
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
 }
 
 func Test_SystemHostKey(t *testing.T) {
@@ -261,7 +269,11 @@ func Test_SystemHostKey(t *testing.T) {
 		},
 	}
 
-	test.RunCaseGRPCTests(t, handler, testTable)
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
 }
 
 func Test_SystemUpdateHostKey(t *testing.T) {
@@ -295,5 +307,9 @@ func Test_SystemUpdateHostKey(t *testing.T) {
 		},
 	}
 
-	test.RunCaseGRPCTests(t, handler, testTable)
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
 }

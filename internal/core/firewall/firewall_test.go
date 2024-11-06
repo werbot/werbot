@@ -73,7 +73,11 @@ func Test_IPAccess(t *testing.T) {
 		},
 	}
 
-	test.RunCaseGRPCTests(t, handler, testTable)
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
 }
 
 func Test_UpdateFirewallListData(t *testing.T) {
@@ -92,5 +96,9 @@ func Test_UpdateFirewallListData(t *testing.T) {
 		},
 	}
 
-	test.RunCaseGRPCTests(t, handler, testTable)
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
 }

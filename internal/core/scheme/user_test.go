@@ -95,5 +95,9 @@ func Test_ProfileSchemes(t *testing.T) {
 		},
 	}
 
-	test.RunCaseGRPCTests(t, handler, testTable)
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
 }

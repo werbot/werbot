@@ -303,7 +303,11 @@ func Test_Events(t *testing.T) {
 		},
 	}
 
-	test.RunCaseGRPCTests(t, handler, testTable)
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
 }
 
 func Test_Event(t *testing.T) {
@@ -456,7 +460,11 @@ func Test_Event(t *testing.T) {
 		},
 	}
 
-	test.RunCaseGRPCTests(t, handler, testTable)
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
 }
 
 func Test_AddEvent(t *testing.T) {
@@ -718,5 +726,9 @@ func Test_AddEvent(t *testing.T) {
 		},
 	}
 
-	test.RunCaseGRPCTests(t, handler, testTable)
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
 }

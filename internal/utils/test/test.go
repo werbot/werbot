@@ -113,7 +113,7 @@ func RunCaseAPITests(t *testing.T, app *APIHandler, testTable []APITable) {
 }
 
 // RunCaseGRPCTests is ...
-func RunCaseGRPCTests(t *testing.T, handler func(context.Context, ProtoMessage) (ProtoMessage, error), testTable []GRPCTable) {
+func RunCaseGRPCTests(t *testing.T, handler func(context.Context, ProtoMessage) (ProtoMessage, error), tt GRPCTable) {
 	checkValue := func(expected, actual any, contextKey string) {
 		if expected == "*" {
 			assert.NotEmpty(t, actual, "Key [%s] was incorrect", contextKey)
@@ -122,57 +122,63 @@ func RunCaseGRPCTests(t *testing.T, handler func(context.Context, ProtoMessage) 
 		}
 	}
 
-	for _, tt := range testTable {
-		t.Run(tt.Name, func(t *testing.T) {
-			if tt.PreWorkHook != nil {
-				tt.PreWorkHook()
-			}
+	if tt.PreWorkHook != nil {
+		tt.PreWorkHook()
+	}
 
-			response, err := handler(context.Background(), tt.Request)
+	response, err := handler(context.Background(), tt.Request)
 
-			if tt.Debug {
-				debugResponse, _ := protojson.MarshalOptions{
-					UseEnumNumbers: true,
-					UseProtoNames:  true,
-					Multiline:      true,
-				}.Marshal(response)
-				t.Logf("\nDebug data: %s", debugResponse)
-			}
+	if tt.Debug && response != nil {
+		t.Helper()
+		debugResponse, err := protojson.MarshalOptions{
+			UseEnumNumbers: true,
+			UseProtoNames:  true,
+			Multiline:      true,
+		}.Marshal(response)
+		if err == nil {
+			t.Logf("\nDebug data: %s", debugResponse)
+		} else {
+			t.Logf("Failed to marshal debug response: %v", err)
+		}
+	}
 
-			if err != nil {
-				dataError := trace.ParseError(err)
+	if err != nil {
+		dataError := trace.ParseError(err)
 
-				if tt.Error.Code > 0 {
-					assert.Equal(t, tt.Error.Code.String(), dataError.Code.String())
-				}
+		if tt.Error.Code > 0 {
+			assert.Equal(t, tt.Error.Code.String(), dataError.Code.String(), "Error code mismatch")
+		}
 
-				switch m := tt.Error.Message.(type) {
-				case string:
-					assert.Equal(t, m, dataError.Message, "Error was incorrect")
-				case map[string]any:
-					errorMap := make(map[string]any)
-					lines := strings.Split(dataError.Message, "\n")
-					for _, line := range lines {
-						if colonIndex := strings.IndexByte(line, ':'); colonIndex != -1 {
-							key := strings.TrimSpace(line[:colonIndex])
-							value := strings.TrimSpace(line[colonIndex+1:])
-							errorMap[key] = value
-						}
-					}
-					for key, want := range m {
-						val, _ := maputil.GetByPath(key, errorMap)
-						checkValue(want, val, key)
-					}
-				default:
-					assert.Errorf(t, nil, "Error key has an unknown type [%T]", m)
+		switch m := tt.Error.Message.(type) {
+		case string:
+			assert.Equal(t, m, dataError.Message, "Error message was incorrect")
+		case map[string]any:
+			errorMap := make(map[string]any)
+			lines := strings.Split(dataError.Message, "\n")
+			for _, line := range lines {
+				if colonIndex := strings.IndexByte(line, ':'); colonIndex != -1 {
+					key := strings.TrimSpace(line[:colonIndex])
+					value := strings.TrimSpace(line[colonIndex+1:])
+					errorMap[key] = value
 				}
 			}
-
-			protoResp, _ := convertProtoToBodyTable(response)
-			for key, want := range tt.Response {
-				val, _ := maputil.GetByPath(key, protoResp)
+			for key, want := range m {
+				val, _ := maputil.GetByPath(key, errorMap)
 				checkValue(want, val, key)
 			}
-		})
+		default:
+			assert.Errorf(t, nil, "Error key has an unknown type [%T]", m)
+		}
+	} else if tt.Error.Code > 0 || tt.Error.Message != nil {
+		assert.Fail(t, "Expected an error but got none.")
+	}
+
+	protoResp, err := convertProtoToBodyTable(response)
+	if err != nil {
+		t.Fatalf("Failed to convert proto to body table: %v", err)
+	}
+	for key, want := range tt.Response {
+		val, _ := maputil.GetByPath(key, protoResp)
+		checkValue(want, val, key)
 	}
 }
