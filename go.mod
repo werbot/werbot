@@ -6,7 +6,7 @@ toolchain go1.23.0
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.35.1-20240920164238-5a7b106cbb87.1
-	github.com/adhocore/gronx v1.19.3
+	github.com/adhocore/gronx v1.19.5
 	github.com/armon/go-proxyproto v0.1.0
 	github.com/bufbuild/protovalidate-go v0.7.2
 	github.com/fsnotify/fsnotify v1.8.0
