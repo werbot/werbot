@@ -5,10 +5,10 @@ go 1.23
 toolchain go1.23.0
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.35.1-20240920164238-5a7b106cbb87.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.35.2-20241127180247-a33202765966.1
 	github.com/adhocore/gronx v1.19.3
 	github.com/armon/go-proxyproto v0.1.0
-	github.com/bufbuild/protovalidate-go v0.7.2
+	github.com/bufbuild/protovalidate-go v0.8.0
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/fsouza/go-dockerclient v1.12.0
 	github.com/gliderlabs/ssh v0.3.7
@@ -30,17 +30,18 @@ require (
 	golang.org/x/oauth2 v0.23.0
 	golang.org/x/term v0.25.0
 	google.golang.org/grpc v1.67.1
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/protobuf v1.35.2
 )
 
 require (
 	github.com/alicebob/miniredis/v2 v2.33.0
 	github.com/peterldowns/pgtestdb v0.1.1
 	github.com/pressly/goose/v3 v3.22.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
+	cel.dev/expr v0.18.0 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
@@ -62,7 +63,7 @@ require (
 	github.com/fasthttp/websocket v1.5.10 // indirect
 	github.com/go-test/deep v1.1.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/google/cel-go v0.21.0 // indirect
+	github.com/google/cel-go v0.22.1 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
