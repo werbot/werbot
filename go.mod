@@ -1,9 +1,6 @@
 module github.com/werbot/werbot
 
 go 1.23
-
-toolchain go1.23.0
-
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.35.1-20240920164238-5a7b106cbb87.1
 	github.com/adhocore/gronx v1.19.3
@@ -27,7 +24,7 @@ require (
 	github.com/vanng822/go-premailer v1.22.0
 	github.com/xhit/go-simple-mail/v2 v2.16.0
 	golang.org/x/crypto v0.28.0
-	golang.org/x/oauth2 v0.23.0
+	golang.org/x/oauth2 v0.27.0
 	golang.org/x/term v0.25.0
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.35.1
