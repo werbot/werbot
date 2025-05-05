@@ -22,7 +22,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/oschwald/geoip2-golang v1.11.0
-	github.com/redis/go-redis/v9 v9.7.0
+	github.com/redis/go-redis/v9 v9.8.0
 	github.com/rs/zerolog v1.33.0
 	github.com/vanng822/go-premailer v1.22.0
 	github.com/xhit/go-simple-mail/v2 v2.16.0
