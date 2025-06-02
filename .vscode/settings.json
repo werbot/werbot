@@ -53,5 +53,11 @@
     "red": 0,
     "yellow": 60,
     "green": 90
-  }
+  },
+
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "file": ".vscode/copilot/commit-message-instructions.md"
+    }
+  ]
 }
