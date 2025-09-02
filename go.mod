@@ -37,7 +37,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.33.0
 	github.com/peterldowns/pgtestdb v0.1.1
 	github.com/pressly/goose/v3 v3.22.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
