@@ -181,10 +181,10 @@ func (h *APIHandler) AddRoute404() {
 
 // TestProfileAuth is ...
 func (h *APIHandler) TestProfileAuth() (adminHeader map[string]string, userHeader map[string]string) {
-	adminAuth := h.GetProfileAuth("admin@werbot.net", "admin@werbot.net")
+	adminAuth := h.GetProfileAuth(ConstAdminEmail, ConstAdminPassword)
 	adminHeader = map[string]string{"Authorization": "Bearer " + adminAuth.Tokens.Access}
 
-	userAuth := h.GetProfileAuth("user@werbot.net", "user@werbot.net")
+	userAuth := h.GetProfileAuth(ConstUserEmail, ConstUserPassword)
 	userHeader = map[string]string{"Authorization": "Bearer " + userAuth.Tokens.Access}
 
 	return adminHeader, userHeader

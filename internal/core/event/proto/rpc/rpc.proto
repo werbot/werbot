@@ -30,7 +30,6 @@ message Events {
       string scheme_id = 5 [(buf.validate.field).string.uuid = true];
     }
 
-    // string related_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     int32 limit = 6;
     int32 offset = 7;
     string sort_by = 8; // @gotags: json:"-"

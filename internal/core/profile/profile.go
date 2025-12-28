@@ -13,10 +13,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
-	invitepb "github.com/werbot/werbot/internal/core/invite/proto/invite"
 	"github.com/werbot/werbot/internal/core/notification"
 	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
 	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/storage/postgres"
@@ -29,8 +29,7 @@ import (
 // Profiles is lists all profiles on the system
 func (h *Handler) Profiles(ctx context.Context, in *profilepb.Profiles_Request) (*profilepb.Profiles_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &profilepb.Profiles_Response{}
@@ -135,8 +134,7 @@ func (h *Handler) Profiles(ctx context.Context, in *profilepb.Profiles_Request) 
 // Profile is displays profile information
 func (h *Handler) Profile(ctx context.Context, in *profilepb.Profile_Request) (*profilepb.Profile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
@@ -214,8 +212,7 @@ func (h *Handler) Profile(ctx context.Context, in *profilepb.Profile_Request) (*
 // AddProfile is adds a new profile
 func (h *Handler) AddProfile(ctx context.Context, in *profilepb.AddProfile_Request) (*profilepb.AddProfile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &profilepb.AddProfile_Response{}
@@ -250,8 +247,7 @@ func (h *Handler) AddProfile(ctx context.Context, in *profilepb.AddProfile_Reque
 // UpdateProfile is updates profile data
 func (h *Handler) UpdateProfile(ctx context.Context, in *profilepb.UpdateProfile_Request) (*profilepb.UpdateProfile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var column string
@@ -316,8 +312,7 @@ func (h *Handler) UpdateProfile(ctx context.Context, in *profilepb.UpdateProfile
 // DeleteProfile is ...
 func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile_Request) (*profilepb.DeleteProfile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	notification := notification.Handler{DB: h.DB, Worker: h.Worker}
@@ -366,7 +361,7 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile
       `,
 				token.String,
 				in.GetProfileId(),
-				invitepb.Action_delete.Enum(),
+				tokenenum.Action_delete.Enum(),
 			)
 			if err != nil {
 				return nil, trace.Error(err, log, trace.MsgFailedToAdd)
@@ -468,8 +463,7 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile
 // UpdatePassword is ...
 func (h *Handler) UpdatePassword(ctx context.Context, in *profilepb.UpdatePassword_Request) (*profilepb.UpdatePassword_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	// Check for a validity of the old password
@@ -520,8 +514,7 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *profilepb.UpdatePasswo
 // and returns an AccountIDByLogin_Response and an error as output.
 func (h *Handler) ProfileIDByLogin(ctx context.Context, in *profilepb.ProfileIDByLogin_Request) (*profilepb.ProfileIDByLogin_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &profilepb.ProfileIDByLogin_Response{}
@@ -543,8 +536,69 @@ func (h *Handler) ProfileIDByLogin(ctx context.Context, in *profilepb.ProfileIDB
 
 	err = stmt.QueryRowContext(ctx, nameArray[0], in.GetFingerprint()).Scan(&response.ProfileId)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			errGRPC := status.Error(codes.NotFound, trace.MsgAccountNotFound)
+			return nil, trace.Error(errGRPC, log, nil)
+		}
+
 		return nil, trace.Error(err, log, nil)
 	}
+
+	return response, nil
+}
+
+// ProfileByEmail is ...
+func (h *Handler) ProfileByEmail(ctx context.Context, in *profilepb.ProfileByEmail_Request) (*profilepb.Profile_Response, error) {
+	if err := protoutils.ValidateRequest(in); err != nil {
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
+	}
+
+	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
+	response := &profilepb.Profile_Response{}
+	err := h.DB.Conn.QueryRowContext(ctx, `
+    SELECT
+      "id",
+      "alias",
+      "name",
+      "surname",
+      "email",
+      "active",
+      "confirmed",
+      "role",
+      "locked_at",
+      "archived_at",
+      "updated_at",
+      "created_at"
+    FROM "profile"
+    WHERE "email" = $1
+  `, in.GetEmail()).Scan(
+		&response.ProfileId,
+		&response.Alias,
+		&response.Name,
+		&response.Surname,
+		&response.Email,
+		&response.Active,
+		&response.Confirmed,
+		&response.Role,
+		&lockedAt,
+		&archivedAt,
+		&updatedAt,
+		&createdAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			errGRPC := status.Error(codes.NotFound, trace.MsgAccountNotFound)
+			return nil, trace.Error(errGRPC, log, nil)
+		}
+		return nil, trace.Error(err, log, nil)
+	}
+
+	protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
+		"locked_at":   lockedAt,
+		"archived_at": archivedAt,
+		"updated_at":  updatedAt,
+		"created_at":  createdAt,
+	})
 
 	return response, nil
 }
@@ -553,8 +607,7 @@ func (h *Handler) ProfileIDByLogin(ctx context.Context, in *profilepb.ProfileIDB
 // a context and an UpdateStatus_Request object and returns an UpdateStatus_Response object and an error
 func (h *Handler) UpdateStatus(ctx context.Context, in *profilepb.UpdateStatus_Request) (*profilepb.UpdateStatus_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &profilepb.UpdateStatus_Response{}

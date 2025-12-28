@@ -25,6 +25,7 @@ service ProfileHandlers {
 
   // Tools
   rpc ProfileIDByLogin(ProfileIDByLogin.Request) returns (ProfileIDByLogin.Response) {}
+  rpc ProfileByEmail(ProfileByEmail.Request) returns (Profile.Response) {}
   rpc UpdateStatus(UpdateStatus.Request) returns (UpdateStatus.Response) {}
 }
 
@@ -242,6 +243,24 @@ message ProfileIDByLogin {
   }
 }
 // -----------------------------------------------------
+
+// rpc ProfileByEmail
+message ProfileByEmail {
+  message Request {
+    string email = 1 [
+      (buf.validate.field).cel = {
+        id: "request.email"
+        message: "value must be a valid email address"
+        expression: "this.isEmail()"
+      },
+      (buf.validate.field).required = true
+    ];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
 
 // rpc UpdateStatus
 message UpdateStatus {

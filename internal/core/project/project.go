@@ -22,8 +22,7 @@ import (
 // Projects is ...
 func (h *Handler) Projects(ctx context.Context, in *projectpb.Projects_Request) (*projectpb.Projects_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &projectpb.Projects_Response{}
@@ -119,8 +118,7 @@ func (h *Handler) Projects(ctx context.Context, in *projectpb.Projects_Request) 
 // Project is ...
 func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*projectpb.Project_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
@@ -188,10 +186,8 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
 // AddProject is ...
 func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Request) (*projectpb.AddProject_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
-
 	response := &projectpb.AddProject_Response{}
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
@@ -236,8 +232,7 @@ func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 // UpdateProject is ...
 func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject_Request) (*projectpb.UpdateProject_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var column string
@@ -282,8 +277,7 @@ func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject
 // DeleteProject is ...
 func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject_Request) (*projectpb.DeleteProject_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	archivedAt := time.Now().AddDate(0, 1, 0)

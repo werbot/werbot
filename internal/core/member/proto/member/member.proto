@@ -20,14 +20,6 @@ service MemberHandlers {
   // Used in finding and adding a new member to the project
   rpc ProfilesWithoutProject(ProfilesWithoutProject.Request) returns (ProfilesWithoutProject.Response) {}
 
-  // Invite section
-  // TODO migrate to new invite component
-  rpc MembersInvite(MembersInvite.Request) returns (MembersInvite.Response) {}
-  rpc AddMemberInvite(AddMemberInvite.Request) returns (AddMemberInvite.Response) {}
-  rpc DeleteMemberInvite(DeleteMemberInvite.Request) returns (DeleteMemberInvite.Response) {}
-  rpc MemberInviteActivate(MemberInviteActivate.Request) returns (MemberInviteActivate.Response) {}
-  // --------
-
   // Scheme section
   rpc SchemeMembers(SchemeMembers.Request) returns (SchemeMembers.Response) {}
   rpc SchemeMember(SchemeMember.Request) returns (SchemeMember.Response) {}
@@ -165,101 +157,6 @@ message ProfilesWithoutProject {
     string alias = 2;
     bool active = 3;
     string email = 4 [(ghoster.secret) = true];
-  }
-}
-// -----------------------------------------------------
-
-// rpc MembersInvite
-message MembersInvite {
-  message Request {
-    bool is_admin = 1; // @gotags: json:"-"
-    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
-
-    string project_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
-    int32 limit = 4;
-    int32 offset = 5;
-    string sort_by = 6; // @gotags: json:"-"
-  }
-
-  message Response {
-    int32 total = 1;
-    repeated MembersInvite.Invites invites = 2;
-  }
-
-  message Invites {
-    string token = 1;
-    string name = 2;
-    string surname = 3;
-    string email = 4;
-    InviteStatus status = 6;
-    google.protobuf.Timestamp updated_at = 7 [(ghoster.secret) = true];
-    google.protobuf.Timestamp created_at = 8;
-  }
-}
-// -----------------------------------------------------
-
-// rpc AddMemberInvite
-message AddMemberInvite {
-  message Request {
-    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
-
-    string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
-    string name = 3 [
-      (buf.validate.field).cel = {
-        id: "valid_name"
-        message: "required field (3 to 30 characters)"
-        expression: "this.matches('^[A-Za-z0-9]{3,20}$')"
-      },
-      (buf.validate.field).required = true
-    ];
-    string surname = 4 [
-      (buf.validate.field).cel = {
-        id: "valid_surname"
-        message: "required field (3 to 30 characters)"
-        expression: "this.matches('^[A-Za-z0-9]{3,20}$')"
-      },
-      (buf.validate.field).required = true
-    ];
-    string email = 5 [
-      (buf.validate.field).cel = {
-        id: "valid_email"
-        message: "must be a valid email"
-        expression: "this.isEmail()"
-      },
-      (buf.validate.field).required = true
-    ];
-  }
-
-  message Response {
-    string token = 1;
-    InviteStatus status = 2;
-  }
-}
-// -----------------------------------------------------
-
-// rpc DeleteMemberInvite
-message DeleteMemberInvite {
-  message Request {
-    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
-
-    string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
-    string token = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
-  }
-
-  message Response {}
-}
-// -----------------------------------------------------
-
-// rpc MemberInviteActivate
-message MemberInviteActivate {
-  message Request {
-    string token = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
-    string profile_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true]; // @gotags: json:"-"
-  }
-
-  message Response {
-    string project_id = 1;
-    string email = 2;
   }
 }
 // -----------------------------------------------------

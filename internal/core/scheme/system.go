@@ -24,8 +24,7 @@ import (
 // SystemSchemesByAlias is ...
 func (h *Handler) SystemSchemesByAlias(ctx context.Context, in *schemepb.SystemSchemesByAlias_Request) (*schemepb.SystemSchemesByAlias_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &schemepb.SystemSchemesByAlias_Response{}
@@ -141,8 +140,7 @@ func (h *Handler) SystemSchemesByAlias(ctx context.Context, in *schemepb.SystemS
 // SystemSchemeAccess is ...
 func (h *Handler) SystemSchemeAccess(ctx context.Context, in *schemepb.SystemSchemeAccess_Request) (*schemepb.SystemSchemeAccess_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	// check global firewall
@@ -273,8 +271,7 @@ func (h *Handler) SystemSchemeAccess(ctx context.Context, in *schemepb.SystemSch
 // SystemHostKey is ...
 func (h *Handler) SystemHostKey(ctx context.Context, in *schemepb.SystemHostKey_Request) (*schemepb.SystemHostKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &schemepb.SystemHostKey_Response{}
@@ -293,8 +290,7 @@ func (h *Handler) SystemHostKey(ctx context.Context, in *schemepb.SystemHostKey_
 // SystemUpdateHostKey is ...
 func (h *Handler) SystemUpdateHostKey(ctx context.Context, in *schemepb.SystemUpdateHostKey_Request) (*schemepb.SystemUpdateHostKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	result, err := h.DB.Conn.ExecContext(ctx, `

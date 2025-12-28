@@ -14,8 +14,6 @@ import (
 	eventpb "github.com/werbot/werbot/internal/core/event/proto/rpc"
 	"github.com/werbot/werbot/internal/core/firewall"
 	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
-	"github.com/werbot/werbot/internal/core/invite"
-	invitepb "github.com/werbot/werbot/internal/core/invite/proto/invite"
 	"github.com/werbot/werbot/internal/core/key"
 	keypb "github.com/werbot/werbot/internal/core/key/proto/key"
 	"github.com/werbot/werbot/internal/core/license"
@@ -32,6 +30,8 @@ import (
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/core/system"
 	systempb "github.com/werbot/werbot/internal/core/system/proto/system"
+	"github.com/werbot/werbot/internal/core/token"
+	tokenpb "github.com/werbot/werbot/internal/core/token/proto/rpc"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 	"github.com/werbot/werbot/pkg/storage/redis"
 	"github.com/werbot/werbot/pkg/worker"
@@ -51,7 +51,7 @@ func ServerHandlers(grpcServer *grpc.Server, dbConn *postgres.Connect, redisConn
 	agentpb.RegisterAgentHandlersServer(grpcServer, &agent.Handler{DB: dbConn, Redis: redisConn})
 	auditpb.RegisterAuditHandlersServer(grpcServer, &audit.Handler{DB: dbConn})
 	firewallpb.RegisterFirewallHandlersServer(grpcServer, &firewall.Handler{DB: dbConn})
-	invitepb.RegisterInviteHandlersServer(grpcServer, &invite.Handler{DB: dbConn})
+	tokenpb.RegisterTokenHandlersServer(grpcServer, &token.Handler{DB: dbConn, Worker: asynq})
 	schemepb.RegisterSchemeHandlersServer(grpcServer, &scheme.Handler{DB: dbConn, Redis: redisConn})
 	projectpb.RegisterProjectHandlersServer(grpcServer, &project.Handler{DB: dbConn})
 	memberpb.RegisterMemberHandlersServer(grpcServer, &member.Handler{DB: dbConn, Worker: asynq})

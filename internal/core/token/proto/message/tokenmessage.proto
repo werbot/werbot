@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package token.message;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
+import "internal/core/token/proto/enum/tokenenum.proto";
+import "internal/core/scheme/proto/access/access.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/token/proto/message";
+
+// MetaDataProfile
+message MetaDataProfile {
+  string name = 1 [(buf.validate.field).cel = {id: "valid_name" message: "required field (3 to 30 characters)" expression: "this.matches('^[A-Za-z0-9]{3,20}$')"}, (buf.validate.field).required = true ];
+  string surname = 2 [(buf.validate.field).cel = {id: "valid_surname" message: "required field (3 to 30 characters)" expression: "this.matches('^[A-Za-z0-9]{3,20}$')"}, (buf.validate.field).required = true];
+  string email = 3 [(buf.validate.field).cel = {id: "valid_email" message: "must be a valid email" expression: "this.isEmail()"},(buf.validate.field).required = true];
+}
+// -----------------------------------------------------
+
+// MetaDataScheme
+message MetaDataScheme {
+  access.SchemeType scheme_type = 1 [(buf.validate.field).required = true];
+  string email = 2 [(buf.validate.field).cel = {id: "valid_email" message: "must be a valid email" expression: "this.isEmail()"},(buf.validate.field).required = true];
+}
+
+// MetaDataAgent
+message MetaDataAgent {
+  access.SchemeType scheme_type = 1 [(buf.validate.field).required = true];
+}
+// -----------------------------------------------------
+
+
+// Token
+message Token {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    string token = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+  }
+
+  message Response {
+    string token = 1 [(ghoster.secret) = true];
+    string owner_id = 2 [(ghoster.secret) = true];
+    token.enum.Section section = 3;
+    token.enum.Action action = 4;
+    token.enum.Status status = 5;
+    string profile_id = 6 [(ghoster.secret) = true];
+    string project_id = 7 [(ghoster.secret) = true];
+    string scheme_id = 8 [(ghoster.secret) = true];
+    oneof data {
+      token.message.MetaDataProfile profile = 20;
+      token.message.MetaDataScheme scheme = 21;
+      token.message.MetaDataAgent agent = 22;
+    }
+    google.protobuf.Timestamp expired_at = 50;
+    google.protobuf.Timestamp updated_at = 51;
+    google.protobuf.Timestamp created_at = 52;
+  }
+}
+// -----------------------------------------------------
+
+// ArchivedToken
+message ArchivedToken {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+    string token = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// DeleteToken
+message DeleteToken {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+    string token = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------

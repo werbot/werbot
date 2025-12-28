@@ -128,17 +128,22 @@ func RunCaseGRPCTests(t *testing.T, handler func(context.Context, ProtoMessage) 
 
 	response, err := handler(context.Background(), tt.Request)
 
-	if tt.Debug && response != nil {
+	if tt.Debug {
 		t.Helper()
-		debugResponse, err := protojson.MarshalOptions{
-			UseEnumNumbers: true,
-			UseProtoNames:  true,
-			Multiline:      true,
-		}.Marshal(response)
-		if err == nil {
-			t.Logf("\nDebug data: %s", debugResponse)
+		if err != nil {
+			t.Logf("\nDebug data: %s", err)
 		} else {
-			t.Logf("Failed to marshal debug response: %v", err)
+			debugResponse, err := protojson.MarshalOptions{
+				UseEnumNumbers: true,
+				UseProtoNames:  true,
+				Multiline:      true,
+			}.Marshal(response)
+			if err == nil {
+				t.Logf("\nDebug data: %s", debugResponse)
+			} else {
+				dataError := trace.ParseError(err)
+				t.Logf("Failed to marshal debug response: %v", dataError)
+			}
 		}
 	}
 

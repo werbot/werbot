@@ -8,18 +8,16 @@ DECLARE
     tables TEXT[] := ARRAY[
         'profile',
         'project',
-        'project_invite',
         'project_ldap',
         'project_member',
         'scheme',
         'scheme_member',
         'scheme_activity',
         'profile_public_key',
-        'profile_token',
         'scheme_host_key',
         'project_api',
-        'agent_token',
-        'firewall_list'
+        'firewall_list',
+        'token'
     ];
 BEGIN
     FOREACH table_name IN ARRAY tables
@@ -40,19 +38,17 @@ DO $$
 DECLARE
     table_name TEXT;
     tables TEXT[] := ARRAY[
+        'token',
         'profile',
         'project',
-        'project_invite',
         'project_ldap',
         'project_member',
         'scheme',
         'scheme_member',
         'scheme_activity',
         'profile_public_key',
-        'profile_token',
         'scheme_host_key',
         'project_api',
-        'agent_token',
         'firewall_list'
     ];
 BEGIN

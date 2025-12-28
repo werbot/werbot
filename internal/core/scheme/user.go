@@ -18,8 +18,7 @@ import (
 // ProfileSchemes is ...
 func (h *Handler) ProfileSchemes(ctx context.Context, in *schemepb.ProfileSchemes_Request) (*schemepb.ProfileSchemes_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &schemepb.ProfileSchemes_Response{

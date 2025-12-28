@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package token.scheme;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+import "internal/core/token/proto/message/tokenmessage.proto";
+import "internal/core/token/proto/enum/tokenenum.proto";
+import "internal/core/scheme/proto/access/access.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/token/proto/message";
+
+// rpc SchemeTokens
+message SchemeTokens {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    token.enum.Action action = 2 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, in: [3, 7, 8]}];
+    token.enum.Status status = 3 [(buf.validate.field).ignore_empty = true, (buf.validate.field).enum = { defined_only: true, not_in: [0]}];
+    string owner_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    string scheme_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    int32 limit = 6;
+    int32 offset = 7;
+    string sort_by = 8; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated token.message.Token.Response tokens = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddTokenSchemeAdd
+message AddTokenSchemeAdd {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    access.SchemeType scheme_type = 3;
+    oneof data {
+      option (buf.validate.oneof).required = true;
+      string email = 4 [(buf.validate.field).cel = {id: "valid_email" message: "must be a valid email" expression: "this.isEmail()"}];
+      string profile_id = 5 [(buf.validate.field).string.uuid = true];
+    }
+    google.protobuf.Timestamp expired_at = 50;
+  }
+
+  message Response {
+    string token = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddTokenSchemeAccess
+message AddTokenSchemeAccess {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    string scheme_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    oneof data {
+      option (buf.validate.oneof).required = true;
+      string email = 3 [(buf.validate.field).cel = {id: "valid_email" message: "must be a valid email" expression: "this.isEmail()"}];
+      string profile_id = 4 [(buf.validate.field).string.uuid = true];
+    }
+    google.protobuf.Timestamp expired_at = 50;
+  }
+
+  message Response {
+    string token = 1;
+  }
+}
+// -----------------------------------------------------
+
+
+// rpc UpdateSchemeToken
+message UpdateSchemeToken {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    string token = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    token.enum.Status status = 3 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, not_in: [0]}];
+    string profile_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+    string scheme_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------

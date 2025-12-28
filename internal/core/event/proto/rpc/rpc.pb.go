@@ -146,10 +146,9 @@ type Events_Request struct {
 	//	*Events_Request_ProjectId
 	//	*Events_Request_SchemeId
 	RelatedId isEvents_Request_RelatedId `protobuf_oneof:"related_id"`
-	// string related_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
-	Limit  int32  `protobuf:"varint,6,opt,name=limit,proto3" json:"limit,omitempty"`
-	Offset int32  `protobuf:"varint,7,opt,name=offset,proto3" json:"offset,omitempty"`
-	SortBy string `protobuf:"bytes,8,opt,name=sort_by,json=sortBy,proto3" json:"-"`  
+	Limit     int32                      `protobuf:"varint,6,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset    int32                      `protobuf:"varint,7,opt,name=offset,proto3" json:"offset,omitempty"`
+	SortBy    string                     `protobuf:"bytes,8,opt,name=sort_by,json=sortBy,proto3" json:"-"`  
 }
 
 func (x *Events_Request) Reset() {

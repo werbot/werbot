@@ -14,11 +14,15 @@ const (
 
 	MsgSettingNotFound = "Setting not found"
 
+	MsgSectiNotFound  = "Section not found"
+	MsgActionNotFound = "Action not found"
+	MsgStatusNotFound = "Status not found"
+
 	// Auth error messages
 	MsgPasswordIsNotValid      = "Password is not valid"
-	MsgInviteIsInvalid         = "Invite is invalid"
-	MsgInviteIsActivated       = "Invite is activated"
-	MsgInviteNotFound          = "Invite not found"
+	MsgTokenIsInvalid          = "Token is invalid"
+	MsgTokenIsActivated        = "Token is activated"
+	MsgTokenNotFound           = "Token not found"
 	MsgUserNotFound            = "User not found"
 	MsgAuthMethodDoesNotMatch  = "The authentication method does not match"
 	MsgPPasswordHashingProblem = "Password hashing problem"
@@ -92,7 +96,4 @@ const (
 	MsgSchemeSettingNotFound = "Scheme setting not found"
 	MsgSchemeDiffers         = "Schemes differs"
 	MsgInvalidAuthType       = "Invalid authorization type"
-
-	// Agent section
-	MsgTokenNotFound = "Token not found"
 )

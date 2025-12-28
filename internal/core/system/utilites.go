@@ -17,8 +17,7 @@ import (
 // Countries is searches for a country by first letters
 func (h *Handler) Countries(ctx context.Context, in *systempb.Countries_Request) (*systempb.Countries_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &systempb.Countries_Response{}
@@ -61,8 +60,7 @@ func (h *Handler) Countries(ctx context.Context, in *systempb.Countries_Request)
 // CountryByIP is determines the country by IP
 func (h *Handler) CountryByIP(_ context.Context, in *systempb.CountryByIP_Request) (*systempb.CountryByIP_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	db, err := geoip2.Open(internal.GetString("SECURITY_GEOIP2", "/etc/geoip2/GeoLite2-Country.mmdb"))

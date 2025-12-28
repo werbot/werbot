@@ -204,7 +204,7 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	// case config.UserTypeInvite:
 	case schemepb.Type_invite:
 
-		app.log.Info().Str("invite", actx.message).Str("userAddress", actx.userAddr).Msg(trace.MsgInviteIsInvalid)
+		app.log.Info().Str("invite", actx.message).Str("userAddress", actx.userAddr).Msg(trace.MsgTokenIsInvalid)
 		sendMessageInChannel(ch, fmt.Sprintf("Invite %s is invalid.\n", actx.message))
 		_ = ch.Close()
 		return

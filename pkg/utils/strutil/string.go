@@ -27,7 +27,7 @@ func ToSlice(s string, sep ...string) []string {
 // StringInSlice is compare string in slice
 func StringInSlice(a string, list []string) bool {
 	for _, b := range list {
-		if b == a {
+		if strings.Contains(a, b) {
 			return true
 		}
 	}

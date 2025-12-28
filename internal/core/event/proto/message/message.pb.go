@@ -210,7 +210,7 @@ func (Scheme_Section) EnumDescriptor() ([]byte, []int) {
 	return file_message_proto_rawDescGZIP(), []int{3, 0}
 }
 
-// section project
+// session data
 type Session struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -99,7 +99,7 @@ func Test_Events(t *testing.T) {
 			Request: &eventpb.Events_Request{
 				OwnerId: test.ConstAdminID,
 				RelatedId: &eventpb.Events_Request_ProfileId{
-					ProfileId: "00000000-0000-0000-0000-000000000000",
+					ProfileId: test.ConstFakeID,
 				},
 			},
 			Error: test.ErrGRPC{
@@ -184,7 +184,7 @@ func Test_Events(t *testing.T) {
 			Request: &eventpb.Events_Request{
 				OwnerId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 				RelatedId: &eventpb.Events_Request_ProjectId{
-					ProjectId: "00000000-0000-0000-0000-000000000000",
+					ProjectId: test.ConstFakeID,
 				},
 			},
 			Error: test.ErrGRPC{
@@ -196,7 +196,7 @@ func Test_Events(t *testing.T) {
 			Name: "test0_13",
 			Request: &eventpb.Events_Request{
 				RelatedId: &eventpb.Events_Request_ProjectId{
-					ProjectId: "00000000-0000-0000-0000-000000000000",
+					ProjectId: test.ConstFakeID,
 				},
 			},
 			Error: test.ErrGRPC{
@@ -279,7 +279,7 @@ func Test_Events(t *testing.T) {
 			Request: &eventpb.Events_Request{
 				OwnerId: "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 				RelatedId: &eventpb.Events_Request_SchemeId{
-					SchemeId: "00000000-0000-0000-0000-000000000000",
+					SchemeId: test.ConstFakeID,
 				},
 			},
 			Error: test.ErrGRPC{
@@ -291,7 +291,7 @@ func Test_Events(t *testing.T) {
 			Name: "test0_20",
 			Request: &eventpb.Events_Request{
 				RelatedId: &eventpb.Events_Request_SchemeId{
-					SchemeId: "00000000-0000-0000-0000-000000000000",
+					SchemeId: test.ConstFakeID,
 				},
 			},
 			Error: test.ErrGRPC{

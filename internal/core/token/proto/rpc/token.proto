@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package token;
+
+import "internal/core/token/proto/message/tokenmessage.proto";
+import "internal/core/token/proto/message/tokenprofile.proto";
+import "internal/core/token/proto/message/tokenproject.proto";
+import "internal/core/token/proto/message/tokenscheme.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/token/proto/rpc";
+
+service TokenHandlers {
+  rpc Token(token.message.Token.Request) returns (token.message.Token.Response) {}
+  rpc ArchivedToken(token.message.ArchivedToken.Request) returns (token.message.ArchivedToken.Response) {}
+  rpc DeleteToken(token.message.DeleteToken.Request) returns (token.message.DeleteToken.Response) {}
+
+  // Profile section
+  rpc ProfileTokens(token.profile.ProfileTokens.Request) returns (token.profile.ProfileTokens.Response) {}
+  rpc AddTokenProfileReset(token.profile.AddTokenProfileReset.Request) returns (token.profile.AddTokenProfileReset.Response) {}
+  rpc AddTokenProfileRegistration(token.profile.AddTokenProfileRegistration.Request) returns (token.profile.AddTokenProfileRegistration.Response) {}
+  rpc AddTokenProfileDelete(token.profile.AddTokenProfileDelete.Request) returns (token.profile.AddTokenProfileDelete.Response) {}
+  rpc UpdateProfileToken(token.profile.UpdateProfileToken.Request) returns (token.profile.UpdateProfileToken.Response) {}
+
+  // Project section
+  rpc ProjectTokens(token.project.ProjectTokens.Request) returns (token.project.ProjectTokens.Response) {}
+  rpc AddTokenProjectMember(token.project.AddTokenProjectMember.Request) returns (token.project.AddTokenProjectMember.Response) {}
+  rpc UpdateProjectToken(token.project.UpdateProjectToken.Request) returns (token.project.UpdateProjectToken.Response) {}
+
+  // Scheme section
+  rpc SchemeTokens(token.scheme.SchemeTokens.Request) returns (token.scheme.SchemeTokens.Response) {}
+  rpc AddTokenSchemeAdd(token.scheme.AddTokenSchemeAdd.Request) returns (token.scheme.AddTokenSchemeAdd.Response) {}
+  rpc AddTokenSchemeAccess(token.scheme.AddTokenSchemeAccess.Request) returns (token.scheme.AddTokenSchemeAccess.Response) {}
+  rpc UpdateSchemeToken(token.scheme.UpdateSchemeToken.Request) returns (token.scheme.UpdateSchemeToken.Response) {}
+}

@@ -22,21 +22,10 @@ INSERT INTO "profile" ("id", "alias", "name", "surname", "email", "password", "a
 ('b889a039-616f-4002-a3fa-99f5c96c93a1', 'user17', 'Davion', 'Connolly', 'user17@werbot.net', '$2a$13$RmgPJg0qxclGIWkNQFKzauVV6KhKiS6bi3wSLaExMA.n6C62fmqga', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '6 hour'),
 ('465878d0-e80a-443c-ac26-d019cd2f0777', 'user18', 'Quinn', 'Baker', 'user18@werbot.net', '$2a$13$oTs9c8Vp5X9mHsesmwKiaulAfBcmpEKNwjpdG013DT74oNP.T9AZ.', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '5 hour'),
 ('4808e401-826e-453d-b5e6-6a618bb2fa90', 'user19', 'Abel', 'Griffin', 'user19@werbot.net', '$2a$13$P6Jp0YiZHpMOrCpYcBS7Au3gO1HhZQ7auqB7.u7RGRhfDxnqbWjtC', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '4 hour'),
-('51c12bb6-2da6-491d-8003-b024f54a1491', 'user20', 'Kyleigh', 'Steele', 'user20@werbot.net', '$2a$13$VoyU1e6Zfmza9ytImcytGe64lT1mBKAVBKzAzmuQoUhUROrSG0CpO', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '3 hour');
+('51c12bb6-2da6-491d-8003-b024f54a1491', 'user20', 'Kyleigh', 'Steele', 'user20@werbot.net', '$2a$13$VoyU1e6Zfmza9ytImcytGe64lT1mBKAVBKzAzmuQoUhUROrSG0CpO', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '3 hour'),
+('5a2bb353-e862-4e6f-be74-fedb2dd761fd', 'invite201', 'invite201', 'invite201', 'invite201@werbot.net', '$2a$13$VoyU1e6Zfmza9ytImcytGe64lT1mBKAVBKzAzmuQoUhUROrSG0CpO', true, true, 1, CURRENT_TIMESTAMP - INTERVAL '3 hour');
 
 UPDATE "profile" SET "created_at" = CURRENT_TIMESTAMP - INTERVAL '48 hour' WHERE "id" = '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686';
-
-INSERT INTO "profile_token" ("token", "profile_id", "action", "created_at") VALUES
-('3c818d7c-72f3-4518-8eaa-755585192f21', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 5, CURRENT_TIMESTAMP - INTERVAL '5 hour'), -- for admin test
-('55c9f79c-d827-43fc-8ad1-79e396d2432c', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 4, CURRENT_TIMESTAMP - INTERVAL '4 hour'),
-('1b8bf7fe-d901-4c12-9c6c-e1689e45490f', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 5, CURRENT_TIMESTAMP - INTERVAL '1 hour'),
-('07614765-81af-4e29-80e1-d6f01cc1b15a', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 5, CURRENT_TIMESTAMP - INTERVAL '1 day'), -- for user test
-('5241b2ee-0417-4d14-a886-921f8fcda313', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 5, CURRENT_TIMESTAMP - INTERVAL '5 hour'),
-('8c7c9b35-1c3e-4679-ab2d-3e176a2b73d9', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 5, CURRENT_TIMESTAMP - INTERVAL '5 hour'),
-('0fcd88b3-8abb-4eb1-b96c-e0e49964cbca', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 5, CURRENT_TIMESTAMP - INTERVAL '10 hour'),
-('88f2d90a-11da-43a3-8e79-f2d875593525', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', 4, CURRENT_TIMESTAMP - INTERVAL '4 hour');
-
-UPDATE "profile_token" SET "active" = false WHERE "token" = '0fcd88b3-8abb-4eb1-b96c-e0e49964cbca';
 
 INSERT INTO "profile_public_key" ("id", "profile_id", "title", "key", "fingerprint") VALUES
 ('81f67bbb-79f8-47a1-863d-d9375f1626d3', '008feb1d-12f2-4bc3-97ff-c8d7fb9f7686', 'public_key 1', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCgIocHncbDnM3nLFmxt9TssvmhF5x5WMwng/QRA5jZEKYER93Jsh5inCk5C9K8rAubijeKSe7A/Pp88MSYq2nXQ3UafqXGmHvt++fvMwmJ4rgoxiQlT2GzLwSBhvqZHcPBLeeVwLQB9T6wYf/9/mptVHOrb/Wy/FH4g4j7v5DflazQMiW9SOiwlaDM7jJDEGgOdTrHaOyJycx5CGzUgW0ZOnLg8a0m1Fdjvv9lFq3ZQ2S5NqIXH4to+F7YsklHEwgjZawYj3ic10vN+ei4f7PuC28sNLKADayHHyhDdpmA3mKZTw2lIplk/uvE61ucmLbLynEMwdc6eh/64MWxgif/', '03:99:f1:4b:2d:d3:10:aa:65:74:cf:c8:d6:ec:48:e8'),
@@ -141,27 +130,6 @@ INSERT INTO "project_api" ("id", "project_id", "api_secret", "api_key", "active"
 ('77d2c421-1ad6-40fe-8ec7-634066aa244b', 'af0b3b3f-3ba1-4ad6-8f47-184e861af1f0', 'ulFRsDzYMR19KLt1gceq5utTeI4To9R4FUe8D', 'WrG6nflBDzYMEZ1dQa9xlG4gCQOqIPei9iciP', true),
 ('81ae0bbe-b746-44a6-a1f4-8467ff17bf5e', 'f85c4597-005d-48a6-b643-a21adf19a4aa', 'B2KfVCcE8tbVDeF317D11dvbvOB00o5d0kT08', 'PBhcCYC2ccIcpeC00B06H191b300yP5bpC0Ei', true),
 ('c9ae4704-3e86-4385-8b49-23c012d3b8d5', 'cb06da23-91d5-482a-b082-86b7b4b1df8a', '5Gm8vYc5sxpO7DzYMR5xhGzg29W9cYgAShkTF', 'POyx1k1H6YuEAim2hDzYMCU1BvMoBeg9c8KMP', true);
-
-INSERT INTO "project_invite" ("token", "project_id", "name", "surname", "email", "status", "ldap_user", "ldap_name") VALUES
-('9e72fc1e-30c1-4f23-b4ac-88df12351aac', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', 'admin', 'admin1', 'admin@werbot.net', 2, false, NULL),
-('15348c8a-894e-49e6-88a9-79aa058892f3', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', 'user', 'test1', 'user@werbot.net', 1, false, NULL),
-('3ec414fc-0bbe-44b8-b1d2-ff99171b4963', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', 'use99', 'test99', 'invite99@werbot.net', 1, false, NULL),
---
-('b5b128d7-ff0c-479c-8216-14eedf9265ad', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', 'user', 'test1', 'user@werbot.net', 2, false, NULL),
---
-('37aec639-dd1c-4c73-a8e7-add2016050f7', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'user', 'test1', 'user@werbot.net', 2, false, NULL),
-('a60b7092-660e-4d05-a5d2-7d9b23b276b1', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'test3', 'user3', 'user3@werbot.net', 1, false, NULL),
-('04439feb-f981-4581-8f2c-96f21418f258', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite100', 'user100', 'invite100@werbot.net', 1, false, NULL),
-('4f405197-f312-4acb-a333-3781b6d23f9f', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite101', 'user101', 'invite101@werbot.net', 1, false, NULL),
-('b49b830b-d0be-4757-a5ce-ec2677735cc5', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite102', 'user102', 'invite102@werbot.net', 1, false, NULL),
-('b44dc303-5857-4bf6-af24-db64f3be1540', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite103', 'user103', 'invite103@werbot.net', 1, false, NULL),
-('13614994-63d4-4e1d-9ccd-d80bf2356910', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite104', 'user104', 'invite104@werbot.net', 1, false, NULL),
-('f0e9381e-ed3c-431c-bca2-019f8712436f', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite105', 'user105', 'invite105@werbot.net', 1, false, NULL),
-('dc1dc751-1cb9-43af-a4e7-30c1100909cb', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite106', 'user106', 'invite106@werbot.net', 1, false, NULL),
-('1b53f991-fa1b-401b-8ff4-1fe2f2498fe6', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite107', 'user107', 'invite107@werbot.net', 1, false, NULL),
-('1e6fdbf6-beb3-4a0e-93f6-3fa033fc2626', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite108', 'user108', 'invite108@werbot.net', 1, false, NULL),
-('4d7f9bee-94e7-4463-a62d-0b939efe6096', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite109', 'user109', 'invite109@werbot.net', 1, false, NULL),
-('506732f3-8477-4963-af08-93e5071b381c', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'invite110', 'user110', 'invite110@werbot.net', 1, false, NULL);
 
 INSERT INTO "project_member" ("id", "project_id", "profile_id", "active", "online", "role") VALUES
 ('9d3f7efc-14a5-436d-a763-314441d6e0a5', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 'c180ad5c-0c65-4cee-8725-12931cb5abb3', true, false, 1), -- admin project1, user member
@@ -491,9 +459,52 @@ INSERT INTO "event" ("id", "related_id", "prime_section", "section", "type", "se
 ('c4ab0740-b38f-40f6-9de1-00d54412b491', '0c3a8869-6fc0-4666-bf60-15475473392a', 3, 1, 2, '{"id":"98e3ddfc-dab0-4d4e-b48e-ab1717acae8b", "user_agent":"Mozilla/5.0 (Windows NT 10.0; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0", "ip":"192.168.1.4"}', '{}'),
 ('30d3a040-57c7-4613-b500-23197ffa600e', '0c3a8869-6fc0-4666-bf60-15475473392a', 3, 1, 1, '{"id":"98e3ddfc-dab0-4d4e-b48e-ab1717acae8b", "user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/33.0.0.0 Safari/534.24", "ip":"192.168.1.5"}', '{}');
 
-INSERT INTO "agent_token" ("token", "project_id", "scheme_type", "expired") VALUES
-('39c45364-4b94-45bb-88b4-1360245f8a59', '2bef1080-cd6e-49e5-8042-1224cf6a3da9', 103, CURRENT_TIMESTAMP + INTERVAL '1 month'), -- admin, ssh
-('0a177fc3-ad38-40c6-b936-ded649ce5a57', 'd958ee44-a960-420e-9bbf-c7a35084c4aa', 103, CURRENT_TIMESTAMP + INTERVAL '1 month'); -- user, ssh
+INSERT INTO "token" ("id", "section", "action", "status", "profile_id", "project_id", "scheme_id", "data", "updated_at", "expired_at") VALUES
+---- profile
+('3c818d7c-72f3-4518-8eaa-755585192f21', 1, 2, 1, 'b3dc36e2-7f84-414b-b147-7ac850369518', NULL, NULL, '{"name":"Harrison","surname":"Bowling","email":"user1@werbot.net"}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP - INTERVAL '5 hour'), -- invite for create profile, status done (user1)
+('374060a3-6c9c-44b5-9fbd-ce1ea8af6c7b', 1, 4, 2, 'b3dc36e2-7f84-414b-b147-7ac850369518', NULL, NULL, '{}', NULL, CURRENT_TIMESTAMP - INTERVAL '1 hour'), -- invite for remove profile, status sent (user1)
+('55c9f79c-d827-43fc-8ad1-79e396d2432c', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite201","surname":"invite201","email":"invite201@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '4 hour'), -- invite for create profile, status sent
+('1b8bf7fe-d901-4c12-9c6c-e1689e45490f', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite202","surname":"invite202","email":"invite202@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '1 hour'),
+('07614765-81af-4e29-80e1-d6f01cc1b15a', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite203","surname":"invite203","email":"invite203@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+('5241b2ee-0417-4d14-a886-921f8fcda313', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite204","surname":"invite204","email":"invite204@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '5 hour'),
+('8c7c9b35-1c3e-4679-ab2d-3e176a2b73d9', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite205","surname":"invite205","email":"invite205@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '5 hour'),
+('0fcd88b3-8abb-4eb1-b96c-e0e49964cbca', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite206","surname":"invite206","email":"invite206@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '10 hour'),
+('88f2d90a-11da-43a3-8e79-f2d875593525', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite207","surname":"invite207","email":"invite207@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '4 hour'),
+('fc5910d4-dddb-4b80-8ecb-fa4a3aad098c', 1, 2, 1, 'b8c3d9e4-6f4d-4e11-a3e6-72f9cb7660e0', NULL, NULL, '{"name":"Terry","surname":"Henry","email":"user2@werbot.net"}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP - INTERVAL '5 hour'), -- invite for create profile, status done (user2)
+---- project
+('9e72fc1e-30c1-4f23-b4ac-88df12351aac', 2, 3, 2, NULL, 'd958ee44-a960-420e-9bbf-c7a35084c4aa', NULL, '{"name":"admin","surname":"admin","email":"admin@werbot.net"}', NULL, NULL),
+('15348c8a-894e-49e6-88a9-79aa058892f3', 2, 3, 2, NULL, 'd958ee44-a960-420e-9bbf-c7a35084c4aa', NULL, '{"name":"user","surname":"user","email":"user@werbot.net"}', NULL, NULL),
+('3ec414fc-0bbe-44b8-b1d2-ff99171b4963', 2, 3, 2, NULL, 'd958ee44-a960-420e-9bbf-c7a35084c4aa', NULL, '{"name":"invite99","surname":"invite99","email":"invite99@werbot.net"}', NULL, NULL),
+----
+('b5b128d7-ff0c-479c-8216-14eedf9265ad', 2, 7, 2, NULL, 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', NULL, '{"name":"user","surname":"user","email":"user@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '4 hour'), -- send to registration new profile
+('958301b8-1ed0-4977-9a2a-90629e8a18b9', 2, 7, 1, '4808e401-826e-453d-b5e6-6a618bb2fa90', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', NULL, '{"name":"test3","surname":"test3","email":"test3@werbot.net"}', NULL, NULL), -- invite for add to project (create member), status done
+----
+('37aec639-dd1c-4c73-a8e7-add2016050f7', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"user","surname":"user","email":"user@werbot.net"}', CURRENT_TIMESTAMP, NULL),
+('a60b7092-660e-4d05-a5d2-7d9b23b276b1', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"test3","surname":"test3","email":"user3@werbot.net"}', NULL, NULL),
+('04439feb-f981-4581-8f2c-96f21418f258', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite100","surname":"invite100","email":"invite100@werbot.net"}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP - INTERVAL '4 hour'),
+('4f405197-f312-4acb-a333-3781b6d23f9f', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite101","surname":"invite101","email":"invite101@werbot.net"}', NULL, NULL),
+('b49b830b-d0be-4757-a5ce-ec2677735cc5', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite102","surname":"invite102","email":"invite102@werbot.net"}', NULL, NULL),
+('b44dc303-5857-4bf6-af24-db64f3be1540', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite103","surname":"invite103","email":"invite103@werbot.net"}', NULL, NULL),
+('13614994-63d4-4e1d-9ccd-d80bf2356910', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite104","surname":"invite104","email":"invite104@werbot.net"}', NULL, NULL),
+('f0e9381e-ed3c-431c-bca2-019f8712436f', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite105","surname":"invite105","email":"invite105@werbot.net"}', NULL, NULL),
+('dc1dc751-1cb9-43af-a4e7-30c1100909cb', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite106","surname":"invite106","email":"invite106@werbot.net"}', NULL, NULL),
+('1b53f991-fa1b-401b-8ff4-1fe2f2498fe6', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite107","surname":"invite107","email":"invite107@werbot.net"}', NULL, NULL),
+('1e6fdbf6-beb3-4a0e-93f6-3fa033fc2626', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite108","surname":"invite108","email":"invite108@werbot.net"}', NULL, NULL),
+('4d7f9bee-94e7-4463-a62d-0b939efe6096', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite109","surname":"invite109","email":"invite109@werbot.net"}', NULL, NULL),
+('506732f3-8477-4963-af08-93e5071b381c', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite110","surname":"invite110","email":"invite110@werbot.net"}', NULL, NULL),
+---- scheme
+('83753ac4-150f-490e-898c-99b492738f99', 3, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0918e4c3-7f61-4c4e-99ed-800c9af0d265', '{"email":"invite111@werbot.net", "scheme_type":103}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),
+('0a7b333e-4c98-4edd-9e34-a4e734a5926e', 3, 3, 1, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0c3a8869-6fc0-4666-bf60-15475473392a', '{"email":"invite109@werbot.net", "scheme_type":103}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),
+('d32e0d98-c33f-4681-bec5-6495e4533eda', 3, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '{"email":"invite111@werbot.net", "scheme_type":103}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),
+('0e0a602e-818a-46ec-87bd-4825ccbfca5c', 3, 8, 2, 'c180ad5c-0c65-4cee-8725-12931cb5abb3', NULL, '0918e4c3-7f61-4c4e-99ed-800c9af0d265', '{"email":"user@werbot.net"}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),
+('cde3dd1e-1643-4561-8e5b-e4684c05f595', 3, 8, 2, NULL, NULL, '0918e4c3-7f61-4c4e-99ed-800c9af0d265', '{"email":"invite110@werbot.net"}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),
+
+---- agent
+('39c45364-4b94-45bb-88b4-1360245f8a59', 4, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '{"scheme_type":103}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'), -- admin, ssh
+('0a177fc3-ad38-40c6-b936-ded649ce5a57', 4, 3, 2, NULL, 'd958ee44-a960-420e-9bbf-c7a35084c4aa', NULL, '{"scheme_type":103}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'); -- user, ssh
+
+--UPDATE "invite" SET "status" = 1 WHERE "token" = '37aec639-dd1c-4c73-a8e7-add2016050f7';
+------
 
 INSERT INTO "firewall_country" ("firewall_list_id", "country_code") VALUES
 ('afe7547c-f7af-41f0-bf80-dd72b807834f', 'RU'),
@@ -508,9 +519,10 @@ UPDATE "scheme_host_key" SET "host_key" = '\x746573740A' WHERE "scheme_id" = '15
 -- +goose Down
 -- +goose StatementBegin
 UPDATE "scheme_host_key" SET "host_key" = '' WHERE "scheme_id" = '156d8d65-cfe5-48a4-a636-198a5f509abf';
+
 DELETE FROM "firewall_network";
 DELETE FROM "firewall_country";
-DELETE FROM "agent_token";
+--DELETE FROM "agent_token";
 DELETE FROM "event";
 DELETE FROM "scheme_member";
 DELETE FROM "scheme_firewall_network";
@@ -519,7 +531,7 @@ DELETE FROM "scheme_activity";
 DELETE FROM "scheme_host_key";
 DELETE FROM "scheme";
 DELETE FROM "project_member";
-DELETE FROM "project_invite";
+--DELETE FROM "project_invite";
 DELETE FROM "project_api";
 DELETE FROM "project";
 DELETE FROM "profile_public_key";

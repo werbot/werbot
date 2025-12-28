@@ -37,22 +37,6 @@ CREATE INDEX idx_project_id ON "project" ("id");
 CREATE INDEX idx_project_owner_id ON "project" ("owner_id");
 CREATE INDEX idx_project_alias ON "project" ("alias");
 
-CREATE TABLE "project_invite" (
-    "token" uuid NOT NULL PRIMARY KEY,
-    "project_id" uuid NOT NULL REFERENCES "project"("id") ON DELETE CASCADE,
-    "name" varchar(32) DEFAULT NULL,
-    "surname" varchar(32) DEFAULT NULL,
-    "email" varchar(64) NOT NULL,
-    "status" smallint NOT NULL,
-    "ldap_user" bool,
-    "ldap_name" varchar(255) DEFAULT NULL,
-    "updated_at" timestamp DEFAULT NULL,
-    "created_at" timestamp DEFAULT NOW()
-);
---CREATE INDEX idx_project_invite_id ON "project_invite" ("id");
-CREATE INDEX idx_project_invite_token ON "project_invite" ("token");
-CREATE INDEX idx_project_invite_project_id ON "project_invite" ("project_id");
-
 CREATE TABLE "project_ldap" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "project_id" uuid NOT NULL REFERENCES "project"("id") ON DELETE CASCADE,
@@ -199,17 +183,6 @@ CREATE INDEX idx_profile_public_key_id ON "profile_public_key" ("id");
 CREATE INDEX idx_profile_public_key_profile_id ON "profile_public_key" ("profile_id");
 CREATE INDEX idx_profile_public_key_fingerprint ON "profile_public_key" ("fingerprint");
 
-CREATE TABLE "profile_token" (
-    "token" uuid NOT NULL PRIMARY KEY,
-    "profile_id" uuid NOT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
-    "action" smallint NOT NULL,
-    "active" bool NOT NULL DEFAULT true,
-    "updated_at" timestamp DEFAULT NULL,
-    "created_at" timestamp DEFAULT NOW()
-);
-CREATE INDEX idx_profile_token_token ON "profile_token" ("token");
-CREATE INDEX idx_profile_token_profile_id ON "profile_token" ("profile_id");
-
 CREATE TABLE "audit" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "member_id" uuid NOT NULL REFERENCES "scheme_member"("id") ON DELETE CASCADE,
@@ -266,31 +239,35 @@ CREATE INDEX idx_project_api_project_id ON "project_api" ("project_id");
 CREATE INDEX idx_project_api_api_key ON "project_api" ("api_key");
 CREATE INDEX idx_project_api_api_secret ON "project_api" ("api_secret");
 
--- storage of temporary tokens for updating schema statuses or updating keys via agent api
--- used for auto-adding server data to the panel
--- this token is generated at the moment of script creation for auto-adding
-CREATE TABLE "agent_token" (
-    "token" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    "project_id" uuid NOT NULL REFERENCES "project"("id") ON DELETE CASCADE,
-    "scheme_type" smallint NOT NULL,
-    "active" bool NOT NULL DEFAULT true,
-    "one_time" bool NOT NULL DEFAULT true,
-    "expired" timestamp DEFAULT CURRENT_TIMESTAMP + INTERVAL '1 hour',
+CREATE TABLE "token" (
+    "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    "section" smallint NOT NULL,
+    "action" smallint NOT NULL,
+    "status" smallint NOT NULL,
+    "profile_id" uuid DEFAULT NULL REFERENCES "profile"("id") ON DELETE CASCADE,
+    "project_id" uuid DEFAULT NULL REFERENCES "project"("id") ON DELETE CASCADE,
+    "scheme_id" uuid DEFAULT NULL REFERENCES "scheme"("id") ON DELETE CASCADE,
+    "data" jsonb NOT NULL DEFAULT '{}'::jsonb,
+    "expired_at" timestamp DEFAULT NULL,
     "updated_at" timestamp DEFAULT NULL,
     "created_at" timestamp DEFAULT NOW()
 );
-CREATE INDEX idx_agent_token_token ON "agent_token" ("token");
-CREATE INDEX idx_agent_token_project_id ON "agent_token" ("project_id");
+CREATE INDEX idx_token_id ON "token" ("id");
+CREATE INDEX idx_token_section ON "token" ("section");
+CREATE INDEX idx_token_action ON "token" ("action");
+CREATE INDEX idx_token_status ON "token" ("status");
+CREATE INDEX idx_token_profile_id ON "token" ("profile_id");
+CREATE INDEX idx_token_project_id ON "token" ("project_id");
+CREATE INDEX idx_token_scheme_id ON "token" ("scheme_id");
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS "agent_token";
+DROP TABLE IF EXISTS "token";
 DROP TABLE IF EXISTS "project_api";
 DROP TABLE IF EXISTS "scheme_host_key";
 DROP TABLE IF EXISTS "audit_record";
 DROP TABLE IF EXISTS "audit";
-DROP TABLE IF EXISTS "profile_token";
 DROP TABLE IF EXISTS "profile_public_key";
 DROP TABLE IF EXISTS "session";
 DROP TABLE IF EXISTS "scheme_firewall_network";
@@ -302,7 +279,6 @@ DROP TABLE IF EXISTS "scheme_member";
 DROP TABLE IF EXISTS "scheme";
 DROP TABLE IF EXISTS "project_member";
 DROP TABLE IF EXISTS "project_ldap";
-DROP TABLE IF EXISTS "project_invite";
 DROP TABLE IF EXISTS "project";
 DROP TABLE IF EXISTS "profile";
 

@@ -19,8 +19,7 @@ import (
 // ProjectKeys is ...
 func (h *Handler) ProjectKeys(ctx context.Context, in *projectpb.ProjectKeys_Request) (*projectpb.ProjectKeys_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &projectpb.ProjectKeys_Response{}
@@ -108,8 +107,7 @@ func (h *Handler) ProjectKeys(ctx context.Context, in *projectpb.ProjectKeys_Req
 // ProjectKey is ...
 func (h *Handler) ProjectKey(ctx context.Context, in *projectpb.ProjectKey_Request) (*projectpb.ProjectKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &projectpb.ProjectKey_Response{}
@@ -178,8 +176,7 @@ func (h *Handler) ProjectKey(ctx context.Context, in *projectpb.ProjectKey_Reque
 // AddProjectKey is ...
 func (h *Handler) AddProjectKey(ctx context.Context, in *projectpb.AddProjectKey_Request) (*projectpb.AddProjectKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &projectpb.AddProjectKey_Response{
@@ -211,8 +208,7 @@ func (h *Handler) AddProjectKey(ctx context.Context, in *projectpb.AddProjectKey
 // DeleteProjectKey is ...
 func (h *Handler) DeleteProjectKey(ctx context.Context, in *projectpb.DeleteProjectKey_Request) (*projectpb.DeleteProjectKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	result, err := h.DB.Conn.ExecContext(ctx, `

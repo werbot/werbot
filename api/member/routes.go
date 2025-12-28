@@ -23,17 +23,6 @@ func New(h *api.Handler) *Handler {
 func (h *Handler) Routes() {
 	apiV1 := h.App.Group("/v1/members")
 
-	// TODO: Move all invites to a separate component
-	// invite section (public)
-	apiV1.Get("/invite/:token<guid>", h.membersInviteActivate)
-
-	// invite section (private)
-	// url - /v1/members/invite/project/:project_id<guid>
-	apiV1invite := apiV1.Group("/invite/project/:project_id<guid>", h.Auth)
-	apiV1invite.Get("/", h.projectMembersInvite)
-	apiV1invite.Post("/", h.addProjectMemberInvite)
-	apiV1invite.Delete("/:token<guid>", h.deleteProjectMemberInvite)
-
 	// Project section (private)
 	// url - /v1/members/project/:project_id<guid>
 	apiV1project := apiV1.Group("/project/:project_id<guid>", h.Auth)

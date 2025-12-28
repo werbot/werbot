@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package token.enum;
+
+option go_package = "github.com/werbot/werbot/internal/core/token/proto/enum";
+
+enum Section {
+  section_unspecified = 0;
+  profile = 1;
+  project = 2;
+  scheme = 3;
+  agent = 4;
+  rest = 5;
+}
+
+enum Action {
+  action_unspecified = 0;
+  reset = 1;
+  register = 2;
+  add = 3;
+  delete = 4;
+  disable = 5;
+  enable = 6;
+  request = 7;
+  access = 8;
+}
+
+enum Status {
+  status_unspecified = 0;
+  done = 1;
+  sent = 2;
+  used = 3;
+  deleted = 4;
+  archived = 5;
+}

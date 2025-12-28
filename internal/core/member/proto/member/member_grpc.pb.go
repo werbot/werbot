@@ -22,10 +22,6 @@ const (
 	MemberHandlers_UpdateProjectMember_FullMethodName    = "/member.MemberHandlers/UpdateProjectMember"
 	MemberHandlers_DeleteProjectMember_FullMethodName    = "/member.MemberHandlers/DeleteProjectMember"
 	MemberHandlers_ProfilesWithoutProject_FullMethodName = "/member.MemberHandlers/ProfilesWithoutProject"
-	MemberHandlers_MembersInvite_FullMethodName          = "/member.MemberHandlers/MembersInvite"
-	MemberHandlers_AddMemberInvite_FullMethodName        = "/member.MemberHandlers/AddMemberInvite"
-	MemberHandlers_DeleteMemberInvite_FullMethodName     = "/member.MemberHandlers/DeleteMemberInvite"
-	MemberHandlers_MemberInviteActivate_FullMethodName   = "/member.MemberHandlers/MemberInviteActivate"
 	MemberHandlers_SchemeMembers_FullMethodName          = "/member.MemberHandlers/SchemeMembers"
 	MemberHandlers_SchemeMember_FullMethodName           = "/member.MemberHandlers/SchemeMember"
 	MemberHandlers_AddSchemeMember_FullMethodName        = "/member.MemberHandlers/AddSchemeMember"
@@ -46,12 +42,6 @@ type MemberHandlersClient interface {
 	DeleteProjectMember(ctx context.Context, in *DeleteProjectMember_Request, opts ...grpc.CallOption) (*DeleteProjectMember_Response, error)
 	// Used in finding and adding a new member to the project
 	ProfilesWithoutProject(ctx context.Context, in *ProfilesWithoutProject_Request, opts ...grpc.CallOption) (*ProfilesWithoutProject_Response, error)
-	// Invite section
-	// TODO migrate to new invite component
-	MembersInvite(ctx context.Context, in *MembersInvite_Request, opts ...grpc.CallOption) (*MembersInvite_Response, error)
-	AddMemberInvite(ctx context.Context, in *AddMemberInvite_Request, opts ...grpc.CallOption) (*AddMemberInvite_Response, error)
-	DeleteMemberInvite(ctx context.Context, in *DeleteMemberInvite_Request, opts ...grpc.CallOption) (*DeleteMemberInvite_Response, error)
-	MemberInviteActivate(ctx context.Context, in *MemberInviteActivate_Request, opts ...grpc.CallOption) (*MemberInviteActivate_Response, error)
 	// Scheme section
 	SchemeMembers(ctx context.Context, in *SchemeMembers_Request, opts ...grpc.CallOption) (*SchemeMembers_Response, error)
 	SchemeMember(ctx context.Context, in *SchemeMember_Request, opts ...grpc.CallOption) (*SchemeMember_Response, error)
@@ -130,46 +120,6 @@ func (c *memberHandlersClient) ProfilesWithoutProject(ctx context.Context, in *P
 	return out, nil
 }
 
-func (c *memberHandlersClient) MembersInvite(ctx context.Context, in *MembersInvite_Request, opts ...grpc.CallOption) (*MembersInvite_Response, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MembersInvite_Response)
-	err := c.cc.Invoke(ctx, MemberHandlers_MembersInvite_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *memberHandlersClient) AddMemberInvite(ctx context.Context, in *AddMemberInvite_Request, opts ...grpc.CallOption) (*AddMemberInvite_Response, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddMemberInvite_Response)
-	err := c.cc.Invoke(ctx, MemberHandlers_AddMemberInvite_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *memberHandlersClient) DeleteMemberInvite(ctx context.Context, in *DeleteMemberInvite_Request, opts ...grpc.CallOption) (*DeleteMemberInvite_Response, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteMemberInvite_Response)
-	err := c.cc.Invoke(ctx, MemberHandlers_DeleteMemberInvite_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *memberHandlersClient) MemberInviteActivate(ctx context.Context, in *MemberInviteActivate_Request, opts ...grpc.CallOption) (*MemberInviteActivate_Response, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MemberInviteActivate_Response)
-	err := c.cc.Invoke(ctx, MemberHandlers_MemberInviteActivate_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *memberHandlersClient) SchemeMembers(ctx context.Context, in *SchemeMembers_Request, opts ...grpc.CallOption) (*SchemeMembers_Response, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SchemeMembers_Response)
@@ -242,12 +192,6 @@ type MemberHandlersServer interface {
 	DeleteProjectMember(context.Context, *DeleteProjectMember_Request) (*DeleteProjectMember_Response, error)
 	// Used in finding and adding a new member to the project
 	ProfilesWithoutProject(context.Context, *ProfilesWithoutProject_Request) (*ProfilesWithoutProject_Response, error)
-	// Invite section
-	// TODO migrate to new invite component
-	MembersInvite(context.Context, *MembersInvite_Request) (*MembersInvite_Response, error)
-	AddMemberInvite(context.Context, *AddMemberInvite_Request) (*AddMemberInvite_Response, error)
-	DeleteMemberInvite(context.Context, *DeleteMemberInvite_Request) (*DeleteMemberInvite_Response, error)
-	MemberInviteActivate(context.Context, *MemberInviteActivate_Request) (*MemberInviteActivate_Response, error)
 	// Scheme section
 	SchemeMembers(context.Context, *SchemeMembers_Request) (*SchemeMembers_Response, error)
 	SchemeMember(context.Context, *SchemeMember_Request) (*SchemeMember_Response, error)
@@ -283,18 +227,6 @@ func (UnimplementedMemberHandlersServer) DeleteProjectMember(context.Context, *D
 }
 func (UnimplementedMemberHandlersServer) ProfilesWithoutProject(context.Context, *ProfilesWithoutProject_Request) (*ProfilesWithoutProject_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProfilesWithoutProject not implemented")
-}
-func (UnimplementedMemberHandlersServer) MembersInvite(context.Context, *MembersInvite_Request) (*MembersInvite_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method MembersInvite not implemented")
-}
-func (UnimplementedMemberHandlersServer) AddMemberInvite(context.Context, *AddMemberInvite_Request) (*AddMemberInvite_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddMemberInvite not implemented")
-}
-func (UnimplementedMemberHandlersServer) DeleteMemberInvite(context.Context, *DeleteMemberInvite_Request) (*DeleteMemberInvite_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteMemberInvite not implemented")
-}
-func (UnimplementedMemberHandlersServer) MemberInviteActivate(context.Context, *MemberInviteActivate_Request) (*MemberInviteActivate_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method MemberInviteActivate not implemented")
 }
 func (UnimplementedMemberHandlersServer) SchemeMembers(context.Context, *SchemeMembers_Request) (*SchemeMembers_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SchemeMembers not implemented")
@@ -443,78 +375,6 @@ func _MemberHandlers_ProfilesWithoutProject_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MemberHandlers_MembersInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MembersInvite_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MemberHandlersServer).MembersInvite(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MemberHandlers_MembersInvite_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).MembersInvite(ctx, req.(*MembersInvite_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MemberHandlers_AddMemberInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddMemberInvite_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MemberHandlersServer).AddMemberInvite(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MemberHandlers_AddMemberInvite_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).AddMemberInvite(ctx, req.(*AddMemberInvite_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MemberHandlers_DeleteMemberInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteMemberInvite_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MemberHandlersServer).DeleteMemberInvite(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MemberHandlers_DeleteMemberInvite_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).DeleteMemberInvite(ctx, req.(*DeleteMemberInvite_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MemberHandlers_MemberInviteActivate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MemberInviteActivate_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MemberHandlersServer).MemberInviteActivate(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MemberHandlers_MemberInviteActivate_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemberHandlersServer).MemberInviteActivate(ctx, req.(*MemberInviteActivate_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _MemberHandlers_SchemeMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SchemeMembers_Request)
 	if err := dec(in); err != nil {
@@ -653,22 +513,6 @@ var MemberHandlers_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ProfilesWithoutProject",
 			Handler:    _MemberHandlers_ProfilesWithoutProject_Handler,
-		},
-		{
-			MethodName: "MembersInvite",
-			Handler:    _MemberHandlers_MembersInvite_Handler,
-		},
-		{
-			MethodName: "AddMemberInvite",
-			Handler:    _MemberHandlers_AddMemberInvite_Handler,
-		},
-		{
-			MethodName: "DeleteMemberInvite",
-			Handler:    _MemberHandlers_DeleteMemberInvite_Handler,
-		},
-		{
-			MethodName: "MemberInviteActivate",
-			Handler:    _MemberHandlers_MemberInviteActivate_Handler,
 		},
 		{
 			MethodName: "SchemeMembers",

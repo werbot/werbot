@@ -25,6 +25,7 @@ const (
 	ProfileHandlers_DeleteProfile_FullMethodName    = "/profile.ProfileHandlers/DeleteProfile"
 	ProfileHandlers_UpdatePassword_FullMethodName   = "/profile.ProfileHandlers/UpdatePassword"
 	ProfileHandlers_ProfileIDByLogin_FullMethodName = "/profile.ProfileHandlers/ProfileIDByLogin"
+	ProfileHandlers_ProfileByEmail_FullMethodName   = "/profile.ProfileHandlers/ProfileByEmail"
 	ProfileHandlers_UpdateStatus_FullMethodName     = "/profile.ProfileHandlers/UpdateStatus"
 )
 
@@ -44,6 +45,7 @@ type ProfileHandlersClient interface {
 	UpdatePassword(ctx context.Context, in *UpdatePassword_Request, opts ...grpc.CallOption) (*UpdatePassword_Response, error)
 	// Tools
 	ProfileIDByLogin(ctx context.Context, in *ProfileIDByLogin_Request, opts ...grpc.CallOption) (*ProfileIDByLogin_Response, error)
+	ProfileByEmail(ctx context.Context, in *ProfileByEmail_Request, opts ...grpc.CallOption) (*Profile_Response, error)
 	UpdateStatus(ctx context.Context, in *UpdateStatus_Request, opts ...grpc.CallOption) (*UpdateStatus_Response, error)
 }
 
@@ -145,6 +147,16 @@ func (c *profileHandlersClient) ProfileIDByLogin(ctx context.Context, in *Profil
 	return out, nil
 }
 
+func (c *profileHandlersClient) ProfileByEmail(ctx context.Context, in *ProfileByEmail_Request, opts ...grpc.CallOption) (*Profile_Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Profile_Response)
+	err := c.cc.Invoke(ctx, ProfileHandlers_ProfileByEmail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *profileHandlersClient) UpdateStatus(ctx context.Context, in *UpdateStatus_Request, opts ...grpc.CallOption) (*UpdateStatus_Response, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateStatus_Response)
@@ -171,6 +183,7 @@ type ProfileHandlersServer interface {
 	UpdatePassword(context.Context, *UpdatePassword_Request) (*UpdatePassword_Response, error)
 	// Tools
 	ProfileIDByLogin(context.Context, *ProfileIDByLogin_Request) (*ProfileIDByLogin_Response, error)
+	ProfileByEmail(context.Context, *ProfileByEmail_Request) (*Profile_Response, error)
 	UpdateStatus(context.Context, *UpdateStatus_Request) (*UpdateStatus_Response, error)
 	mustEmbedUnimplementedProfileHandlersServer()
 }
@@ -208,6 +221,9 @@ func (UnimplementedProfileHandlersServer) UpdatePassword(context.Context, *Updat
 }
 func (UnimplementedProfileHandlersServer) ProfileIDByLogin(context.Context, *ProfileIDByLogin_Request) (*ProfileIDByLogin_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProfileIDByLogin not implemented")
+}
+func (UnimplementedProfileHandlersServer) ProfileByEmail(context.Context, *ProfileByEmail_Request) (*Profile_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProfileByEmail not implemented")
 }
 func (UnimplementedProfileHandlersServer) UpdateStatus(context.Context, *UpdateStatus_Request) (*UpdateStatus_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateStatus not implemented")
@@ -395,6 +411,24 @@ func _ProfileHandlers_ProfileIDByLogin_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProfileHandlers_ProfileByEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProfileByEmail_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfileHandlersServer).ProfileByEmail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProfileHandlers_ProfileByEmail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfileHandlersServer).ProfileByEmail(ctx, req.(*ProfileByEmail_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ProfileHandlers_UpdateStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateStatus_Request)
 	if err := dec(in); err != nil {
@@ -455,6 +489,10 @@ var ProfileHandlers_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ProfileIDByLogin",
 			Handler:    _ProfileHandlers_ProfileIDByLogin_Handler,
+		},
+		{
+			MethodName: "ProfileByEmail",
+			Handler:    _ProfileHandlers_ProfileByEmail_Handler,
 		},
 		{
 			MethodName: "UpdateStatus",

@@ -22,8 +22,7 @@ import (
 // Auth is ...
 func (h *Handler) Auth(ctx context.Context, in *agentpb.Auth_Request) (*agentpb.Auth_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &agentpb.Auth_Response{}
@@ -59,8 +58,7 @@ func (h *Handler) Auth(ctx context.Context, in *agentpb.Auth_Request) (*agentpb.
 // AddScheme is ...
 func (h *Handler) AddScheme(ctx context.Context, in *agentpb.AddScheme_Request) (*agentpb.AddScheme_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	// core info about scheme described in token
@@ -167,8 +165,7 @@ func (h *Handler) AddScheme(ctx context.Context, in *agentpb.AddScheme_Request) 
 // UpdateScheme is ...
 //func (h *Handler) UpdateScheme(ctx context.Context, in *agentpb.UpdateScheme_Request) (*agentpb.UpdateScheme_Response, error) {
 //	if err := protoutils.ValidateRequest(in); err != nil {
-//		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-//		return nil, trace.Error(errGRPC, log, nil)
+//		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 //	}
 //
 //	response := &agentpb.UpdateScheme_Response{}

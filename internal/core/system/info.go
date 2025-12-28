@@ -13,8 +13,7 @@ import (
 // ProfileMetrics is ...
 func (h *Handler) ProfileMetrics(ctx context.Context, in *systempb.ProfileMetrics_Request) (*systempb.ProfileMetrics_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &systempb.ProfileMetrics_Response{}

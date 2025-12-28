@@ -8,7 +8,7 @@ import (
 
 func SetPgtypeTimestamps(msg protoreflect.ProtoMessage, timestamps map[string]pgtype.Timestamp) {
 	SetPgtypeTimestampsOptions{
-		FieldNames: []protoreflect.Name{"expired_at", "locked_at", "archived_at", "updated_at", "created_at"},
+		FieldNames: []protoreflect.Name{"created_at", "updated_at", "archived_at", "deleted_at", "locked_at", "expired_at"},
 	}.SetPgtypeTimestamps(msg, timestamps)
 }
 

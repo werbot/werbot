@@ -63,6 +63,7 @@ Temporary Items
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+!.vscode/copilot
 *.code-workspace
 
 # Local History for Visual Studio Code
@@ -90,3 +91,4 @@ rest.http
 fixtures/migration/*_private.sql
 
 dist/
+.cursor/

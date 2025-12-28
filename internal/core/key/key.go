@@ -24,8 +24,7 @@ import (
 // Keys fetches a list of keys based on the request parameters.
 func (h *Handler) Keys(ctx context.Context, in *keypb.Keys_Request) (*keypb.Keys_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &keypb.Keys_Response{}
@@ -106,8 +105,7 @@ func (h *Handler) Keys(ctx context.Context, in *keypb.Keys_Request) (*keypb.Keys
 // Key fetches a single key based on the request parameters.
 func (h *Handler) Key(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &keypb.Key_Response{
@@ -162,8 +160,7 @@ func (h *Handler) Key(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Re
 // AddKey adds a new key to the database.
 func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	sshKey, err := crypto.ParseSSHKey([]byte(in.GetKey()))
@@ -221,8 +218,7 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 // UpdateKey is ...
 func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*keypb.UpdateKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &keypb.UpdateKey_Response{}
@@ -251,8 +247,7 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 // DeleteKey is ...
 func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*keypb.DeleteKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &keypb.DeleteKey_Response{}
@@ -280,8 +275,7 @@ func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*
 // GenerateSSHKey is ...
 func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_Request) (*keypb.GenerateSSHKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	// Generate SSH key

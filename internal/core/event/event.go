@@ -22,13 +22,13 @@ import (
 // Events is ...
 func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*eventpb.Events_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
+
+	response := &eventpb.Events_Response{}
 
 	var sqlQuery, sqlQueryTotal string
 	var args []any
-	response := &eventpb.Events_Response{}
 	var eventType eventenum.Section
 
 	switch in.GetRelatedId().(type) {
@@ -204,8 +204,7 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 // Event is ...
 func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventpb.Event_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var sqlQuery string
@@ -325,8 +324,7 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 // AddEvent is ...
 func (h *Handler) AddEvent(ctx context.Context, in *eventpb.AddEvent_Request) (*eventpb.AddEvent_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var sqlCheck, ownerID, relatedID string

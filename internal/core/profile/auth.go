@@ -10,10 +10,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
-	invitepb "github.com/werbot/werbot/internal/core/invite/proto/invite"
 	"github.com/werbot/werbot/internal/core/notification"
 	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
 	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -25,8 +25,7 @@ import (
 // It takes context and a SignIn_Request object as input and returns a Profile_Response object and an error response.
 func (h *Handler) SignIn(ctx context.Context, in *profilepb.SignIn_Request) (*profilepb.Profile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &profilepb.Profile_Response{}
@@ -80,8 +79,7 @@ func (h *Handler) SignIn(ctx context.Context, in *profilepb.SignIn_Request) (*pr
 // ResetPassword is ...
 func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword_Request) (*profilepb.ResetPassword_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	switch in.GetRequest().(type) {
@@ -116,7 +114,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword
       `,
 				token.String,
 				profileID.String,
-				invitepb.Action_reset.Enum(),
+				tokenenum.Action_reset.Enum(),
 			)
 			if err != nil {
 				return nil, trace.Error(err, log, trace.MsgFailedToAdd)
@@ -154,7 +152,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword
 		}
 
 		if profileID.Valid {
-			errGRPC := status.Error(codes.InvalidArgument, trace.MsgInviteIsInvalid)
+			errGRPC := status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid)
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 
@@ -173,7 +171,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword
 		}
 
 		if profileID.Valid {
-			errGRPC := status.Error(codes.InvalidArgument, trace.MsgInviteIsInvalid)
+			errGRPC := status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid)
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 

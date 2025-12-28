@@ -20,8 +20,7 @@ import (
 // SchemeMembers is ...
 func (h *Handler) SchemeMembers(ctx context.Context, in *memberpb.SchemeMembers_Request) (*memberpb.SchemeMembers_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &memberpb.SchemeMembers_Response{}
@@ -122,8 +121,7 @@ func (h *Handler) SchemeMembers(ctx context.Context, in *memberpb.SchemeMembers_
 // SchemeMember is ...
 func (h *Handler) SchemeMember(ctx context.Context, in *memberpb.SchemeMember_Request) (*memberpb.SchemeMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
@@ -193,8 +191,7 @@ func (h *Handler) SchemeMember(ctx context.Context, in *memberpb.SchemeMember_Re
 // AddSchemeMember is ...
 func (h *Handler) AddSchemeMember(ctx context.Context, in *memberpb.AddSchemeMember_Request) (*memberpb.AddSchemeMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &memberpb.AddSchemeMember_Response{}
@@ -246,8 +243,7 @@ func (h *Handler) AddSchemeMember(ctx context.Context, in *memberpb.AddSchemeMem
 // UpdateSchemeMember is ...
 func (h *Handler) UpdateSchemeMember(ctx context.Context, in *memberpb.UpdateSchemeMember_Request) (*memberpb.UpdateSchemeMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var column string
@@ -299,8 +295,7 @@ func (h *Handler) UpdateSchemeMember(ctx context.Context, in *memberpb.UpdateSch
 // DeleteSchemeMember is ...
 func (h *Handler) DeleteSchemeMember(ctx context.Context, in *memberpb.DeleteSchemeMember_Request) (*memberpb.DeleteSchemeMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	result, err := h.DB.Conn.ExecContext(ctx, `
@@ -331,8 +326,7 @@ func (h *Handler) DeleteSchemeMember(ctx context.Context, in *memberpb.DeleteSch
 // MembersWithoutScheme is ...
 func (h *Handler) MembersWithoutScheme(ctx context.Context, in *memberpb.MembersWithoutScheme_Request) (*memberpb.MembersWithoutScheme_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &memberpb.MembersWithoutScheme_Response{}

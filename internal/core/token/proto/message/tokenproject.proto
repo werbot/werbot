@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package token.project;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+import "internal/core/token/proto/message/tokenmessage.proto";
+import "internal/core/token/proto/enum/tokenenum.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/token/proto/message";
+
+// rpc ProjectTokens
+message ProjectTokens {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    token.enum.Action action = 2 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, in: [7]}]; // 4, 2
+    token.enum.Status status = 3 [(buf.validate.field).ignore_empty = true, (buf.validate.field).enum = { defined_only: true, not_in: [0, 3]}];
+    string owner_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    string project_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    int32 limit = 6;
+    int32 offset = 7;
+    string sort_by = 8; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated token.message.Token.Response tokens = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddTokenProjectMember
+// action 7
+message AddTokenProjectMember {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+
+    oneof profile {
+      option (buf.validate.oneof).required = true;
+      string profile_id = 3 [(buf.validate.field).string.uuid = true];
+      token.message.MetaDataProfile create_new_profile = 4;
+    }
+    google.protobuf.Timestamp expired_at = 50;
+  }
+
+  message Response {
+    string token = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UpdateProjectToken
+message UpdateProjectToken{
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    string token = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    token.enum.Status status = 4 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, not_in: [0, 3]}];
+    string profile_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------

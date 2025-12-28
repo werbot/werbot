@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package token.profile;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+import "internal/core/token/proto/message/tokenmessage.proto";
+import "internal/core/token/proto/enum/tokenenum.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/token/proto/message";
+
+// rpc ProfileTokens
+message ProfileTokens {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    token.enum.Action action = 2 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, in: [1, 2, 4]}];
+    token.enum.Status status = 3 [(buf.validate.field).ignore_empty = true, (buf.validate.field).enum = { defined_only: true, not_in: [0, 3]}];
+    int32 limit = 4;
+    int32 offset = 5;
+    string sort_by = 6; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated token.message.Token.Response tokens = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddTokenProfileReset
+// action 1
+message AddTokenProfileReset {
+  message Request {
+    string profile_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+    google.protobuf.Timestamp expired_at = 50;
+  }
+
+  message Response {
+    string token = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddTokenProfileRegistration
+// action 2
+message AddTokenProfileRegistration {
+  message Request {
+    token.message.MetaDataProfile data = 1 [(buf.validate.field).required = true];
+    google.protobuf.Timestamp expired_at = 50;
+  }
+
+  message Response {
+    string token = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddTokenProfileDelete
+// action 4
+message AddTokenProfileDelete {
+  message Request {
+    string profile_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+    google.protobuf.Timestamp expired_at = 50;
+  }
+
+  message Response {
+    string token = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UpdateProfileToken
+message UpdateProfileToken {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    string token = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    token.enum.Status status = 3 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, not_in: [0, 3]}];
+    string profile_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------

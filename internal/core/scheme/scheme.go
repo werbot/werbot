@@ -32,8 +32,7 @@ import (
 // Schemes is displays a list of available schemes
 func (h *Handler) Schemes(ctx context.Context, in *schemepb.Schemes_Request) (*schemepb.Schemes_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &schemepb.Schemes_Response{}
@@ -169,8 +168,7 @@ func (h *Handler) Schemes(ctx context.Context, in *schemepb.Schemes_Request) (*s
 // Scheme is displays data on the scheme
 func (h *Handler) Scheme(ctx context.Context, in *schemepb.Scheme_Request) (*schemepb.Scheme_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
@@ -245,8 +243,7 @@ func (h *Handler) Scheme(ctx context.Context, in *schemepb.Scheme_Request) (*sch
 // AddScheme is ...
 func (h *Handler) AddScheme(ctx context.Context, in *schemepb.AddScheme_Request) (*schemepb.AddScheme_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	// define access scheme
@@ -306,8 +303,7 @@ func (h *Handler) AddScheme(ctx context.Context, in *schemepb.AddScheme_Request)
 // UpdateScheme is ...
 func (h *Handler) UpdateScheme(ctx context.Context, in *schemepb.UpdateScheme_Request) (*schemepb.UpdateScheme_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var column string
@@ -383,10 +379,8 @@ func (h *Handler) UpdateScheme(ctx context.Context, in *schemepb.UpdateScheme_Re
 // DeleteScheme is ...
 func (h *Handler) DeleteScheme(ctx context.Context, in *schemepb.DeleteScheme_Request) (*schemepb.DeleteScheme_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
-
 	result, err := h.DB.Conn.ExecContext(ctx, `
     DELETE FROM "scheme"
     USING "project"
@@ -414,8 +408,7 @@ func (h *Handler) DeleteScheme(ctx context.Context, in *schemepb.DeleteScheme_Re
 // SchemeAccess is displays an affordable version of connecting to the scheme
 func (h *Handler) SchemeAccess(ctx context.Context, in *schemepb.SchemeAccess_Request) (*schemepb.SchemeAccess_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &schemepb.SchemeAccess_Response{}
@@ -461,8 +454,7 @@ func (h *Handler) SchemeAccess(ctx context.Context, in *schemepb.SchemeAccess_Re
 // SchemeActivity is ...
 func (h *Handler) SchemeActivity(ctx context.Context, in *schemepb.SchemeActivity_Request) (*schemepb.SchemeActivity_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var jsonb []byte
@@ -518,8 +510,7 @@ func (h *Handler) SchemeActivity(ctx context.Context, in *schemepb.SchemeActivit
 // UpdateSchemeActivity is ...
 func (h *Handler) UpdateSchemeActivity(ctx context.Context, in *schemepb.UpdateSchemeActivity_Request) (*schemepb.UpdateSchemeActivity_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	data, err := protojson.Marshal(in.GetActivity())
@@ -559,8 +550,7 @@ func (h *Handler) UpdateSchemeActivity(ctx context.Context, in *schemepb.UpdateS
 // SchemeFirewall is scheme firewall settings for scheme_id
 func (h *Handler) SchemeFirewall(ctx context.Context, in *schemepb.SchemeFirewall_Request) (*schemepb.SchemeFirewall_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	response := &schemepb.SchemeFirewall_Response{
@@ -677,8 +667,7 @@ func (h *Handler) SchemeFirewall(ctx context.Context, in *schemepb.SchemeFirewal
 // AddSchemeFirewall is adding scheme firewall settings for scheme_id
 func (h *Handler) AddSchemeFirewall(ctx context.Context, in *schemepb.AddSchemeFirewall_Request) (*schemepb.AddSchemeFirewall_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var err error
@@ -778,8 +767,7 @@ func (h *Handler) AddSchemeFirewall(ctx context.Context, in *schemepb.AddSchemeF
 // UpdateSchemeFirewall is ...
 func (h *Handler) UpdateSchemeFirewall(ctx context.Context, in *schemepb.UpdateSchemeFirewall_Request) (*schemepb.UpdateSchemeFirewall_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var table string
@@ -832,8 +820,7 @@ func (h *Handler) UpdateSchemeFirewall(ctx context.Context, in *schemepb.UpdateS
 // DeleteSchemeFirewall is deleting scheme firewall settings for scheme_id
 func (h *Handler) DeleteSchemeFirewall(ctx context.Context, in *schemepb.DeleteSchemeFirewall_Request) (*schemepb.DeleteSchemeFirewall_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
-		errGRPC := status.Error(codes.InvalidArgument, err.Error())
-		return nil, trace.Error(errGRPC, log, nil)
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var result sql.Result

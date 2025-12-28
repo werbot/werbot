@@ -6,7 +6,7 @@ import "buf/validate/validate.proto";
 
 option go_package = "github.com/werbot/werbot/internal/core/event/proto/message";
 
-// section project
+// session data
 message Session {
   string id = 1 [(buf.validate.field).string.uuid = true];
   string user_agent = 2;
