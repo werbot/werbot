@@ -5,7 +5,7 @@ package scheme;
 import "google/protobuf/timestamp.proto";
 import "buf/validate/validate.proto";
 import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
-import "internal/core/firewall/proto/firewall/firewall.proto";
+import "internal/core/firewall/proto/message/message.proto";
 import "internal/core/scheme/proto/access/access.proto";
 import "internal/core/scheme/proto/auth/auth.proto";
 

@@ -9,18 +9,18 @@ import (
 
 	"github.com/oschwald/geoip2-golang"
 	"github.com/werbot/werbot/internal"
-	systempb "github.com/werbot/werbot/internal/core/system/proto/system"
+	systemmessage "github.com/werbot/werbot/internal/core/system/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 )
 
 // Countries is searches for a country by first letters
-func (h *Handler) Countries(ctx context.Context, in *systempb.Countries_Request) (*systempb.Countries_Response, error) {
+func (h *Handler) Countries(ctx context.Context, in *systemmessage.Countries_Request) (*systemmessage.Countries_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &systempb.Countries_Response{}
+	response := &systemmessage.Countries_Response{}
 
 	rows, err := h.DB.Conn.QueryContext(ctx, `
     SELECT
@@ -37,7 +37,7 @@ func (h *Handler) Countries(ctx context.Context, in *systempb.Countries_Request)
 	defer rows.Close()
 
 	for rows.Next() {
-		country := &systempb.Countries_Country{}
+		country := &systemmessage.Countries_Country{}
 		err = rows.Scan(
 			&country.Code,
 			&country.Name,
@@ -58,7 +58,7 @@ func (h *Handler) Countries(ctx context.Context, in *systempb.Countries_Request)
 }
 
 // CountryByIP is determines the country by IP
-func (h *Handler) CountryByIP(_ context.Context, in *systempb.CountryByIP_Request) (*systempb.CountryByIP_Response, error) {
+func (h *Handler) CountryByIP(_ context.Context, in *systemmessage.CountryByIP_Request) (*systemmessage.CountryByIP_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -70,7 +70,7 @@ func (h *Handler) CountryByIP(_ context.Context, in *systempb.CountryByIP_Reques
 	defer db.Close()
 
 	record, err := db.Country(net.ParseIP(in.GetIp()))
-	response := &systempb.CountryByIP_Response{
+	response := &systemmessage.CountryByIP_Response{
 		Name: record.Country.Names["en"],
 		Code: record.Country.IsoCode,
 	}

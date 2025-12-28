@@ -1,7 +1,7 @@
 package project
 
 import (
-	projectpb "github.com/werbot/werbot/internal/core/project/proto/project"
+	projectrpc "github.com/werbot/werbot/internal/core/project/proto/rpc"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 )
@@ -10,7 +10,7 @@ var log logger.Logger
 
 // Handler is ...
 type Handler struct {
-	projectpb.UnimplementedProjectHandlersServer
+	projectrpc.UnimplementedProjectHandlersServer
 	DB *postgres.Connect
 }
 

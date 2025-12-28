@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	projectpb "github.com/werbot/werbot/internal/core/project/proto/project"
+	projectmessage "github.com/werbot/werbot/internal/core/project/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/storage/postgres"
@@ -20,12 +20,12 @@ import (
 )
 
 // Projects is ...
-func (h *Handler) Projects(ctx context.Context, in *projectpb.Projects_Request) (*projectpb.Projects_Response, error) {
+func (h *Handler) Projects(ctx context.Context, in *projectmessage.Projects_Request) (*projectmessage.Projects_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &projectpb.Projects_Response{}
+	response := &projectmessage.Projects_Response{}
 
 	// Total count for pagination
 	err := h.DB.Conn.QueryRowContext(ctx, `
@@ -75,7 +75,7 @@ func (h *Handler) Projects(ctx context.Context, in *projectpb.Projects_Request) 
 
 	for rows.Next() {
 		var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-		project := &projectpb.Project_Response{}
+		project := &projectmessage.Project_Response{}
 		err = rows.Scan(
 			&project.ProjectId,
 			&project.OwnerId,
@@ -116,13 +116,13 @@ func (h *Handler) Projects(ctx context.Context, in *projectpb.Projects_Request) 
 }
 
 // Project is ...
-func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*projectpb.Project_Response, error) {
+func (h *Handler) Project(ctx context.Context, in *projectmessage.Project_Request) (*projectmessage.Project_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-	response := &projectpb.Project_Response{}
+	response := &projectmessage.Project_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -184,11 +184,11 @@ func (h *Handler) Project(ctx context.Context, in *projectpb.Project_Request) (*
 }
 
 // AddProject is ...
-func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Request) (*projectpb.AddProject_Response, error) {
+func (h *Handler) AddProject(ctx context.Context, in *projectmessage.AddProject_Request) (*projectmessage.AddProject_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
-	response := &projectpb.AddProject_Response{}
+	response := &projectmessage.AddProject_Response{}
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {
@@ -230,7 +230,7 @@ func (h *Handler) AddProject(ctx context.Context, in *projectpb.AddProject_Reque
 }
 
 // UpdateProject is ...
-func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject_Request) (*projectpb.UpdateProject_Response, error) {
+func (h *Handler) UpdateProject(ctx context.Context, in *projectmessage.UpdateProject_Request) (*projectmessage.UpdateProject_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -239,14 +239,14 @@ func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject
 	var value any
 
 	switch in.GetSetting().(type) {
-	case *projectpb.UpdateProject_Request_Alias:
+	case *projectmessage.UpdateProject_Request_Alias:
 		if !in.GetIsAdmin() {
 			errGRPC := status.Error(codes.InvalidArgument, "setting: exactly one field is required in oneof")
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 		column = "alias"
 		value = in.GetAlias()
-	case *projectpb.UpdateProject_Request_Title:
+	case *projectmessage.UpdateProject_Request_Title:
 		column = "title"
 		value = in.GetTitle()
 	}
@@ -271,11 +271,11 @@ func (h *Handler) UpdateProject(ctx context.Context, in *projectpb.UpdateProject
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	return &projectpb.UpdateProject_Response{}, nil
+	return &projectmessage.UpdateProject_Response{}, nil
 }
 
 // DeleteProject is ...
-func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject_Request) (*projectpb.DeleteProject_Response, error) {
+func (h *Handler) DeleteProject(ctx context.Context, in *projectmessage.DeleteProject_Request) (*projectmessage.DeleteProject_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -302,5 +302,5 @@ func (h *Handler) DeleteProject(ctx context.Context, in *projectpb.DeleteProject
 	}
 	// TODO send project delete email
 
-	return &projectpb.DeleteProject_Response{}, nil
+	return &projectmessage.DeleteProject_Response{}, nil
 }

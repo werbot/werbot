@@ -3,7 +3,7 @@ package system
 import (
 	"context"
 
-	systempb "github.com/werbot/werbot/internal/core/system/proto/system"
+	systemmessage "github.com/werbot/werbot/internal/core/system/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"google.golang.org/grpc/codes"
@@ -11,12 +11,12 @@ import (
 )
 
 // ProfileMetrics is ...
-func (h *Handler) ProfileMetrics(ctx context.Context, in *systempb.ProfileMetrics_Request) (*systempb.ProfileMetrics_Response, error) {
+func (h *Handler) ProfileMetrics(ctx context.Context, in *systemmessage.ProfileMetrics_Request) (*systemmessage.ProfileMetrics_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &systempb.ProfileMetrics_Response{}
+	response := &systemmessage.ProfileMetrics_Response{}
 	var err error
 
 	if in.GetIsAdmin() && in.GetProfileId() == "00000000-0000-0000-0000-000000000000" {

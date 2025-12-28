@@ -13,7 +13,8 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/werbot/werbot/internal"
-	keypb "github.com/werbot/werbot/internal/core/key/proto/key"
+	keymessage "github.com/werbot/werbot/internal/core/key/proto/message"
+	keyenum "github.com/werbot/werbot/internal/core/key/proto/enum"
 	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
 	schemeauthpb "github.com/werbot/werbot/internal/core/scheme/proto/auth"
 	"github.com/werbot/werbot/internal/trace"
@@ -109,11 +110,11 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 		fmt.Print("agent")
 
 	case *schemeaccesspb.AccessScheme_Server_SSH_Key:
-		schemeKey := &keypb.SchemeKey{}
+		schemeKey := &keymessage.SchemeKey{}
 		tmpKeyID := newAccess.GetKey().GetKeyId()
 
 		if tmpKeyID == "00000000-0000-0000-0000-000000000000" {
-			newKeySSH, err := crypto.NewSSHKey(keypb.KeyType_ed25519.String())
+			newKeySSH, err := crypto.NewSSHKey(keyenum.KeyType_ed25519.String())
 			if err != nil {
 				return nil, trace.Error(err, s.sh.Log, trace.MsgFailedCreatingSSHKey)
 			}

@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/werbot/werbot/internal"
-	keypb "github.com/werbot/werbot/internal/core/key/proto/key"
+	keymessage "github.com/werbot/werbot/internal/core/key/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/storage/postgres"
@@ -22,12 +22,12 @@ import (
 )
 
 // Keys fetches a list of keys based on the request parameters.
-func (h *Handler) Keys(ctx context.Context, in *keypb.Keys_Request) (*keypb.Keys_Response, error) {
+func (h *Handler) Keys(ctx context.Context, in *keymessage.Keys_Request) (*keymessage.Keys_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &keypb.Keys_Response{}
+	response := &keymessage.Keys_Response{}
 	sqlUserLimit := postgres.SQLColumnsNull(in.GetIsAdmin(), true, []string{`"locked_at"`}) // if not admin
 
 	// Total count for pagination
@@ -69,7 +69,7 @@ func (h *Handler) Keys(ctx context.Context, in *keypb.Keys_Request) (*keypb.Keys
 
 	for rows.Next() {
 		var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-		publicKey := &keypb.Key_Response{}
+		publicKey := &keymessage.Key_Response{}
 		err = rows.Scan(
 			&publicKey.KeyId,
 			&publicKey.ProfileId,
@@ -103,12 +103,12 @@ func (h *Handler) Keys(ctx context.Context, in *keypb.Keys_Request) (*keypb.Keys
 }
 
 // Key fetches a single key based on the request parameters.
-func (h *Handler) Key(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Response, error) {
+func (h *Handler) Key(ctx context.Context, in *keymessage.Key_Request) (*keymessage.Key_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &keypb.Key_Response{
+	response := &keymessage.Key_Response{
 		KeyId: in.GetKeyId(),
 	}
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
@@ -158,7 +158,7 @@ func (h *Handler) Key(ctx context.Context, in *keypb.Key_Request) (*keypb.Key_Re
 }
 
 // AddKey adds a new key to the database.
-func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.AddKey_Response, error) {
+func (h *Handler) AddKey(ctx context.Context, in *keymessage.AddKey_Request) (*keymessage.AddKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -168,7 +168,7 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, trace.MsgPublicKeyIsBroken)
 	}
 
-	response := &keypb.AddKey_Response{
+	response := &keymessage.AddKey_Response{
 		Fingerprint: sshKey.Fingerprint,
 	}
 
@@ -216,12 +216,12 @@ func (h *Handler) AddKey(ctx context.Context, in *keypb.AddKey_Request) (*keypb.
 }
 
 // UpdateKey is ...
-func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*keypb.UpdateKey_Response, error) {
+func (h *Handler) UpdateKey(ctx context.Context, in *keymessage.UpdateKey_Request) (*keymessage.UpdateKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &keypb.UpdateKey_Response{}
+	response := &keymessage.UpdateKey_Response{}
 
 	result, err := h.DB.Conn.ExecContext(ctx, `
     UPDATE "profile_public_key"
@@ -245,12 +245,12 @@ func (h *Handler) UpdateKey(ctx context.Context, in *keypb.UpdateKey_Request) (*
 }
 
 // DeleteKey is ...
-func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*keypb.DeleteKey_Response, error) {
+func (h *Handler) DeleteKey(ctx context.Context, in *keymessage.DeleteKey_Request) (*keymessage.DeleteKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &keypb.DeleteKey_Response{}
+	response := &keymessage.DeleteKey_Response{}
 
 	result, err := h.DB.Conn.ExecContext(ctx, `
     UPDATE "profile_public_key"
@@ -273,7 +273,7 @@ func (h *Handler) DeleteKey(ctx context.Context, in *keypb.DeleteKey_Request) (*
 }
 
 // GenerateSSHKey is ...
-func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_Request) (*keypb.GenerateSSHKey_Response, error) {
+func (h *Handler) GenerateSSHKey(ctx context.Context, in *keymessage.GenerateSSHKey_Request) (*keymessage.GenerateSSHKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -285,7 +285,7 @@ func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_R
 	}
 
 	// Populate response fields
-	response := &keypb.GenerateSSHKey_Response{
+	response := &keymessage.GenerateSSHKey_Response{
 		KeyType:     in.GetKeyType(),
 		Public:      string(key.PublicKey),
 		Passphrase:  key.Passphrase,
@@ -294,7 +294,7 @@ func (h *Handler) GenerateSSHKey(ctx context.Context, in *keypb.GenerateSSHKey_R
 	}
 
 	// Prepare cache key
-	cacheKey := &keypb.SchemeKey{
+	cacheKey := &keymessage.SchemeKey{
 		Private:     string(key.PrivateKey),
 		Public:      string(key.PublicKey),
 		Passphrase:  key.Passphrase,

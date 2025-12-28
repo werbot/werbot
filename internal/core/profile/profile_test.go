@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	profilerpc "github.com/werbot/werbot/internal/core/profile/proto/rpc"
+	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	"github.com/werbot/werbot/internal/utils/test"
 	"google.golang.org/grpc/codes"
 )
@@ -14,14 +15,14 @@ func Test_ProfileIDByLogin(t *testing.T) {
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
-		a := profilepb.NewProfileHandlersClient(setup)
-		return a.ProfileIDByLogin(ctx, req.(*profilepb.ProfileIDByLogin_Request))
+		a := profilerpc.NewProfileHandlersClient(setup)
+		return a.ProfileIDByLogin(ctx, req.(*profilemessage.ProfileIDByLogin_Request))
 	}
 
 	testTable := []test.GRPCTable{
 		{
 			Name: "test0_01",
-			Request: &profilepb.ProfileIDByLogin_Request{
+			Request: &profilemessage.ProfileIDByLogin_Request{
 				Login:       "admin",
 				Fingerprint: "b6:07:6a:ef:82:e3:73:47:56:69:3f:3d:c7:d7:6f:23",
 			},

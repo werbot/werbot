@@ -7,29 +7,29 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/werbot/werbot/internal/core/agent"
-	agentpb "github.com/werbot/werbot/internal/core/agent/proto/agent"
+	agentpb "github.com/werbot/werbot/internal/core/agent/proto/rpc"
 	"github.com/werbot/werbot/internal/core/audit"
-	auditpb "github.com/werbot/werbot/internal/core/audit/proto/audit"
+	auditpb "github.com/werbot/werbot/internal/core/audit/proto/rpc"
 	"github.com/werbot/werbot/internal/core/event"
 	eventpb "github.com/werbot/werbot/internal/core/event/proto/rpc"
 	"github.com/werbot/werbot/internal/core/firewall"
-	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
+	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/rpc"
 	"github.com/werbot/werbot/internal/core/key"
-	keypb "github.com/werbot/werbot/internal/core/key/proto/key"
+	keyrpc "github.com/werbot/werbot/internal/core/key/proto/rpc"
 	"github.com/werbot/werbot/internal/core/license"
-	licensepb "github.com/werbot/werbot/internal/core/license/proto/license"
+	licenserpc "github.com/werbot/werbot/internal/core/license/proto/rpc"
 	"github.com/werbot/werbot/internal/core/member"
-	memberpb "github.com/werbot/werbot/internal/core/member/proto/member"
+	memberrpc "github.com/werbot/werbot/internal/core/member/proto/rpc"
 	"github.com/werbot/werbot/internal/core/notification"
-	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
+	notificationrpc "github.com/werbot/werbot/internal/core/notification/proto/rpc"
 	"github.com/werbot/werbot/internal/core/profile"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	profilerpc "github.com/werbot/werbot/internal/core/profile/proto/rpc"
 	"github.com/werbot/werbot/internal/core/project"
-	projectpb "github.com/werbot/werbot/internal/core/project/proto/project"
+	projectpb "github.com/werbot/werbot/internal/core/project/proto/rpc"
 	"github.com/werbot/werbot/internal/core/scheme"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/core/system"
-	systempb "github.com/werbot/werbot/internal/core/system/proto/system"
+	systempb "github.com/werbot/werbot/internal/core/system/proto/rpc"
 	"github.com/werbot/werbot/internal/core/token"
 	tokenpb "github.com/werbot/werbot/internal/core/token/proto/rpc"
 	"github.com/werbot/werbot/pkg/storage/postgres"
@@ -54,11 +54,11 @@ func ServerHandlers(grpcServer *grpc.Server, dbConn *postgres.Connect, redisConn
 	tokenpb.RegisterTokenHandlersServer(grpcServer, &token.Handler{DB: dbConn, Worker: asynq})
 	schemepb.RegisterSchemeHandlersServer(grpcServer, &scheme.Handler{DB: dbConn, Redis: redisConn})
 	projectpb.RegisterProjectHandlersServer(grpcServer, &project.Handler{DB: dbConn})
-	memberpb.RegisterMemberHandlersServer(grpcServer, &member.Handler{DB: dbConn, Worker: asynq})
-	notificationpb.RegisterNotificationHandlersServer(grpcServer, &notification.Handler{DB: dbConn, Worker: asynq})
-	profilepb.RegisterProfileHandlersServer(grpcServer, &profile.Handler{DB: dbConn, Worker: asynq})
-	licensepb.RegisterLicenseHandlersServer(grpcServer, &license.Handler{})
-	keypb.RegisterKeyHandlersServer(grpcServer, &key.Handler{DB: dbConn, Redis: redisConn})
+	memberrpc.RegisterMemberHandlersServer(grpcServer, &member.Handler{DB: dbConn, Worker: asynq})
+	notificationrpc.RegisterNotificationHandlersServer(grpcServer, &notification.Handler{DB: dbConn, Worker: asynq})
+	profilerpc.RegisterProfileHandlersServer(grpcServer, &profile.Handler{DB: dbConn, Worker: asynq})
+	licenserpc.RegisterLicenseHandlersServer(grpcServer, &license.Handler{})
+	keyrpc.RegisterKeyHandlersServer(grpcServer, &key.Handler{DB: dbConn, Redis: redisConn})
 	eventpb.RegisterEventHandlersServer(grpcServer, &event.Handler{DB: dbConn})
 
 	systempb.RegisterSystemHandlersServer(grpcServer, &system.Handler{DB: dbConn})

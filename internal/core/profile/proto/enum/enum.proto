@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package profileenum;
+
+option go_package = "github.com/werbot/werbot/internal/core/profile/proto/enum";
+
+enum Role {
+  role_unspecified = 0;
+  user = 1;
+  manager = 2;
+  admin = 3;
+}
+
+enum Status {
+  unspecified = 0;
+  offline = 1;
+  online = 2;
+}

@@ -1,7 +1,7 @@
 package profile
 
 import (
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	profilerpc "github.com/werbot/werbot/internal/core/profile/proto/rpc"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 	"github.com/werbot/werbot/pkg/worker"
@@ -11,7 +11,7 @@ var log logger.Logger
 
 // Handler is ...
 type Handler struct {
-	profilepb.UnimplementedProfileHandlersServer
+	profilerpc.UnimplementedProfileHandlersServer
 	DB     *postgres.Connect
 	Worker worker.Client
 }

@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
+	firewallmessage "github.com/werbot/werbot/internal/core/firewall/proto/message"
+	firewallrpc "github.com/werbot/werbot/internal/core/firewall/proto/rpc"
 	"github.com/werbot/werbot/internal/utils/test"
 	"google.golang.org/grpc/codes"
 )
@@ -17,14 +18,14 @@ func Test_IPAccess(t *testing.T) {
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
-		a := firewallpb.NewFirewallHandlersClient(setup)
-		return a.IPAccess(ctx, req.(*firewallpb.IPAccess_Request))
+		a := firewallrpc.NewFirewallHandlersClient(setup)
+		return a.IPAccess(ctx, req.(*firewallmessage.IPAccess_Request))
 	}
 
 	testTable := []test.GRPCTable{
 		{ // request without parameters
 			Name:    "test0_01",
-			Request: &firewallpb.IPAccess_Request{},
+			Request: &firewallmessage.IPAccess_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
 				Message: map[string]any{
@@ -34,7 +35,7 @@ func Test_IPAccess(t *testing.T) {
 		},
 		{ // request with broken parameters
 			Name: "test0_02",
-			Request: &firewallpb.IPAccess_Request{
+			Request: &firewallmessage.IPAccess_Request{
 				ClientIp: "123",
 			},
 			Error: test.ErrGRPC{
@@ -46,14 +47,14 @@ func Test_IPAccess(t *testing.T) {
 		},
 		{ // request with local ip
 			Name: "test0_03",
-			Request: &firewallpb.IPAccess_Request{
+			Request: &firewallmessage.IPAccess_Request{
 				ClientIp: "127.0.0.1",
 			},
 			Response: test.BodyTable{},
 		},
 		{ // request with parameters
 			Name: "test0_04",
-			Request: &firewallpb.IPAccess_Request{
+			Request: &firewallmessage.IPAccess_Request{
 				ClientIp: "64.233.164.102",
 			},
 			Response: test.BodyTable{
@@ -63,7 +64,7 @@ func Test_IPAccess(t *testing.T) {
 		},
 		{ // request with blocked ip
 			Name: "test0_05",
-			Request: &firewallpb.IPAccess_Request{
+			Request: &firewallmessage.IPAccess_Request{
 				ClientIp: "37.214.65.1",
 			},
 			Error: test.ErrGRPC{
@@ -85,14 +86,14 @@ func Test_UpdateFirewallListData(t *testing.T) {
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
-		a := firewallpb.NewFirewallHandlersClient(setup)
-		return a.UpdateFirewallListData(ctx, req.(*firewallpb.UpdateFirewallListData_Request))
+		a := firewallrpc.NewFirewallHandlersClient(setup)
+		return a.UpdateFirewallListData(ctx, req.(*firewallmessage.UpdateFirewallListData_Request))
 	}
 
 	testTable := []test.GRPCTable{
 		{ // request without parameters
 			Name:    "test0_01",
-			Request: &firewallpb.UpdateFirewallListData_Request{},
+			Request: &firewallmessage.UpdateFirewallListData_Request{},
 		},
 	}
 

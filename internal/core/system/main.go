@@ -1,7 +1,7 @@
 package system
 
 import (
-	systempb "github.com/werbot/werbot/internal/core/system/proto/system"
+	systemrpc "github.com/werbot/werbot/internal/core/system/proto/rpc"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 )
@@ -10,7 +10,7 @@ var log logger.Logger
 
 // Handler is ...
 type Handler struct {
-	systempb.UnimplementedSystemHandlersServer
+	systemrpc.UnimplementedSystemHandlersServer
 	DB *postgres.Connect
 }
 

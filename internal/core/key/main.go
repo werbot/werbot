@@ -1,7 +1,7 @@
 package key
 
 import (
-	keypb "github.com/werbot/werbot/internal/core/key/proto/key"
+	keyrpc "github.com/werbot/werbot/internal/core/key/proto/rpc"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 	"github.com/werbot/werbot/pkg/storage/redis"
@@ -11,7 +11,7 @@ var log logger.Logger
 
 // Handler is ...
 type Handler struct {
-	keypb.UnimplementedKeyHandlersServer
+	keyrpc.UnimplementedKeyHandlersServer
 	DB    *postgres.Connect
 	Redis *redis.Connect
 }

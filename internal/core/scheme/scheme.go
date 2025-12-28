@@ -14,7 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
+	firewallmessage "github.com/werbot/werbot/internal/core/firewall/proto/message"
 	"github.com/werbot/werbot/internal/core/scheme/access"
 	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
@@ -623,7 +623,7 @@ func (h *Handler) SchemeFirewall(ctx context.Context, in *schemepb.SchemeFirewal
 	defer rows.Close()
 
 	for rows.Next() {
-		country := &firewallpb.Country{}
+		country := &firewallmessage.Country{}
 		if err := rows.Scan(&country.CountryId, &country.CountryCode, &country.CountryName); err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
@@ -654,7 +654,7 @@ func (h *Handler) SchemeFirewall(ctx context.Context, in *schemepb.SchemeFirewal
 	defer rows.Close()
 
 	for rows.Next() {
-		network := &firewallpb.Network{}
+		network := &firewallmessage.Network{}
 		if err := rows.Scan(&network.NetworkId, &network.Network); err != nil {
 			return nil, trace.Error(err, log, nil)
 		}

@@ -2,7 +2,7 @@ package firewall
 
 import (
 	"github.com/werbot/werbot/internal"
-	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
+	firewallrpc "github.com/werbot/werbot/internal/core/firewall/proto/rpc"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 )
@@ -14,7 +14,7 @@ var (
 
 // Handler is ...
 type Handler struct {
-	firewallpb.UnimplementedFirewallHandlersServer
+	firewallrpc.UnimplementedFirewallHandlersServer
 	DB *postgres.Connect
 }
 

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package memberenum;
+
+option go_package = "github.com/werbot/werbot/internal/core/member/proto/enum";
+
+enum InviteStatus {
+  unspecified = 0;
+  send = 1;
+  activated = 2;
+}

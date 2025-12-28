@@ -6,7 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	licensepb "github.com/werbot/werbot/internal/core/license/proto/license"
+	licensemessage "github.com/werbot/werbot/internal/core/license/proto/message"
+	licenserpc "github.com/werbot/werbot/internal/core/license/proto/rpc"
 	"github.com/werbot/werbot/internal/utils/test"
 	"github.com/werbot/werbot/pkg/utils/fsutil"
 )
@@ -26,16 +27,16 @@ func Test_license(t *testing.T) {
 		name      string
 		licPath   string
 		licPubKey string
-		req       *licensepb.License_Request
-		resp      *licensepb.License_Response
+		req       *licensemessage.License_Request
+		resp      *licensemessage.License_Response
 		respErr   string
 	}{
 		{ // License file found
 			name:      "test0_01",
 			licPath:   licenseOk,
 			licPubKey: pubKeyOk,
-			req:       &licensepb.License_Request{},
-			resp: &licensepb.License_Response{
+			req:       &licensemessage.License_Request{},
+			resp: &licensemessage.License_Response{
 				Customer: "8ED96811-1804-4A13-9CE7-05874869A1CF",
 				Type:     "Enterprise",
 				Modules:  []string{"module1", "module2", "module3"},
@@ -51,8 +52,8 @@ func Test_license(t *testing.T) {
 			name:      "test0_02",
 			licPath:   licenseOk,
 			licPubKey: "",
-			req:       &licensepb.License_Request{},
-			resp: &licensepb.License_Response{
+			req:       &licensemessage.License_Request{},
+			resp: &licensemessage.License_Response{
 				Customer: "Mr. Robot",
 				Type:     "open source",
 				Modules:  []string{"module1", "module2", "module3"},
@@ -68,8 +69,8 @@ func Test_license(t *testing.T) {
 			name:      "test0_03",
 			licPath:   "/license.key",
 			licPubKey: pubKeyOk,
-			req:       &licensepb.License_Request{},
-			resp: &licensepb.License_Response{
+			req:       &licensemessage.License_Request{},
+			resp: &licensemessage.License_Response{
 				Customer: "Mr. Robot",
 				Type:     "open source",
 				Modules:  []string{"module1", "module2", "module3"},
@@ -85,8 +86,8 @@ func Test_license(t *testing.T) {
 			name:      "test0_04",
 			licPath:   licenseErr,
 			licPubKey: pubKeyOk,
-			req:       &licensepb.License_Request{},
-			resp:      &licensepb.License_Response{},
+			req:       &licensemessage.License_Request{},
+			resp:      &licensemessage.License_Response{},
 			respErr:   "rpc error: code = PermissionDenied desc = The license has a broken",
 		},
 	}
@@ -96,7 +97,7 @@ func Test_license(t *testing.T) {
 			t.Setenv("LICENSE_FILE", tt.licPath)
 			t.Setenv("LICENSE_KEY_PUBLIC", tt.licPubKey)
 
-			l := licensepb.NewLicenseHandlersClient(setup)
+			l := licenserpc.NewLicenseHandlersClient(setup)
 			response, err := l.License(ctx, tt.req)
 			if err != nil {
 				assert.EqualError(t, err, tt.respErr)

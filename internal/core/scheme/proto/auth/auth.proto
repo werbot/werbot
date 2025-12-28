@@ -3,7 +3,7 @@ syntax = "proto3";
 package auth;
 
 import "buf/validate/validate.proto";
-import "internal/core/key/proto/key/key.proto";
+import "internal/core/key/proto/message/message.proto";
 import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
 
 option go_package = "github.com/werbot/werbot/internal/core/scheme/proto/auth";

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package firewallenum;
+
+option go_package = "github.com/werbot/werbot/internal/core/firewall/proto/enum";
+
+enum Rules {
+  unspecified = 0;
+  country = 1;
+  ip = 2;
+}

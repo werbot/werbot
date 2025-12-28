@@ -5,12 +5,12 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 )
 
 // UserClaims represents public and private claims for a JWT token.
 type UserClaims struct {
-	User profilepb.ProfileParameters
+	User profilemessage.ProfileParameters
 	jwt.RegisteredClaims
 }
 

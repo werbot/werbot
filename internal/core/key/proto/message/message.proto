@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package key;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
+import "internal/core/key/proto/enum/enum.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/key/proto/message";
+
+message SchemeKey {
+  string public = 1;
+  string private = 2 [(ghoster.secret) = true];
+  string passphrase = 3 [(ghoster.secret) = true];
+  string finger_print = 4;
+}
+
+// rpc Keys
+message Keys {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    int32 limit = 3;
+    int32 offset = 4;
+    string sort_by = 5; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated Key.Response public_keys = 3;
+  }
+}
+// -----------------------------------------------------
+
+// rpc Key
+message Key {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string key_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+  }
+
+  message Response {
+    string key_id = 1;
+    string profile_id = 2 [(ghoster.secret) = true];
+    string title = 3;
+    string key = 4 [(ghoster.secret) = true];
+    string fingerprint = 5;
+    google.protobuf.Timestamp locked_at = 6 [(ghoster.secret) = true];
+    google.protobuf.Timestamp archived_at = 7 [(ghoster.secret) = true];
+    google.protobuf.Timestamp updated_at = 8 [(ghoster.secret) = true];
+    google.protobuf.Timestamp created_at = 9;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddKey
+message AddKey {
+  message Request {
+    string profile_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string title = 2 [(buf.validate.field).string = { min_len: 3 max_len: 128 }, (buf.validate.field).required = true];
+    string key = 3 [(buf.validate.field).string = { min_len: 70 }, (buf.validate.field).required = true];
+  }
+
+  message Response {
+    string key_id = 1;
+    string fingerprint = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UpdateKey
+message UpdateKey {
+  message Request {
+    string profile_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string key_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    string title = 3 [(buf.validate.field).string = { min_len: 3 max_len: 128 }, (buf.validate.field).required = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc DeleteKey
+message DeleteKey {
+  message Request {
+    string profile_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string key_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc GenerateSSHKey
+message GenerateSSHKey {
+  message Request {
+    keyenum.KeyType key_type = 1 [(buf.validate.field).required = true];
+  }
+
+  message Response {
+    keyenum.KeyType key_type = 1;
+    string uuid = 2;
+    string passphrase = 3;
+    // bytes private = 3;
+    string public = 4;
+    string finger_print = 5;
+  }
+}
+// -----------------------------------------------------

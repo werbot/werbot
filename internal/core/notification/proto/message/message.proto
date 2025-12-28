@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package notificationmessage;
+
+import "internal/core/notification/proto/enum/enum.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/notification/proto/message";
+
+// rpc SendMail
+message SendMail {
+  message Request {
+    string email = 1;
+    string subject = 2;
+    notificationenum.MailTemplate template = 3;
+    map<string, string> data = 4;
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------

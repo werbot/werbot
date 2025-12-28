@@ -6,14 +6,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 	golang_jwt "github.com/golang-jwt/jwt/v5"
 
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
+	profileenum "github.com/werbot/werbot/internal/core/profile/proto/enum"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/pkg/uuid"
 )
 
 // ProfileParameters encapsulates profile-specific parameters.
 type ProfileParameters struct {
-	Profile *profilepb.ProfileParameters
+	Profile *profilemessage.ProfileParameters
 }
 
 // AuthProfile authenticates a profile based on the request context.
@@ -33,8 +34,8 @@ func AuthProfile(c *fiber.Ctx) *ProfileParameters {
 	}
 
 	return &ProfileParameters{
-		Profile: &profilepb.ProfileParameters{
-			Roles: profilepb.Role(profilepb.Role_role_unspecified),
+		Profile: &profilemessage.ProfileParameters{
+			Roles: profileenum.Role(profileenum.Role_role_unspecified),
 		},
 	}
 }
@@ -46,11 +47,11 @@ func profileParameters(c *fiber.Ctx) *ProfileParameters {
 	claims := profile.Claims.(golang_jwt.MapClaims)
 
 	context := claims["User"].(map[string]any)
-	role := profilepb.Role(context["roles"].(float64))
+	role := profileenum.Role(context["roles"].(float64))
 	sessionID := claims["sub"].(string)
 
 	return &ProfileParameters{
-		Profile: &profilepb.ProfileParameters{
+		Profile: &profilemessage.ProfileParameters{
 			ProfileId: context["profile_id"].(string),
 			Roles:     role,
 			SessionId: sessionID,
@@ -73,7 +74,7 @@ func (u *ProfileParameters) OriginalProfileID() string {
 }
 
 // ProfileRole returns the role of the profile.
-func (u *ProfileParameters) ProfileRole() profilepb.Role {
+func (u *ProfileParameters) ProfileRole() profileenum.Role {
 	return u.Profile.GetRoles()
 }
 
@@ -84,5 +85,5 @@ func (u *ProfileParameters) SessionId() string {
 
 // IsProfileAdmin checks if the profile has an admin role.
 func (u *ProfileParameters) IsProfileAdmin() bool {
-	return u.Profile.GetRoles() == profilepb.Role_admin
+	return u.Profile.GetRoles() == profileenum.Role_admin
 }

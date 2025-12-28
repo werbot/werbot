@@ -6,29 +6,29 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	auditpb "github.com/werbot/werbot/internal/core/audit/proto/audit"
+	auditmessage "github.com/werbot/werbot/internal/core/audit/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 )
 
 // ListAudits is displays the list all audits for scheme_id
-func (h *Handler) ListAudits(ctx context.Context, in *auditpb.ListAudits_Request) (*auditpb.ListAudits_Response, error) {
-	response := &auditpb.ListAudits_Response{}
+func (h *Handler) ListAudits(ctx context.Context, in *auditmessage.ListAudits_Request) (*auditmessage.ListAudits_Response, error) {
+	response := &auditmessage.ListAudits_Response{}
 	return response, nil
 }
 
 // Audit is displays audit information on audit_id
-func (h *Handler) Audit(ctx context.Context, in *auditpb.Audit_Request) (*auditpb.Audit_Response, error) {
-	response := &auditpb.Audit_Response{}
+func (h *Handler) Audit(ctx context.Context, in *auditmessage.Audit_Request) (*auditmessage.Audit_Response, error) {
+	response := &auditmessage.Audit_Response{}
 	return response, nil
 }
 
 // AddAudit is adds a new audit for scheme_id
-func (h *Handler) AddAudit(ctx context.Context, in *auditpb.AddAudit_Request) (*auditpb.AddAudit_Response, error) {
+func (h *Handler) AddAudit(ctx context.Context, in *auditmessage.AddAudit_Request) (*auditmessage.AddAudit_Response, error) {
 	if in.GetAccountId() == "" && in.GetVersion() == 0 && in.GetSession() == "" && in.GetClientIp() == "" {
 		return nil, status.Error(codes.InvalidArgument, trace.MsgInvalidArgument)
 	}
 
-	response := &auditpb.AddAudit_Response{}
+	response := &auditmessage.AddAudit_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     INSERT INTO
@@ -62,8 +62,8 @@ func (h *Handler) AddAudit(ctx context.Context, in *auditpb.AddAudit_Request) (*
 }
 
 // UpdateAudit is update audit for scheme_id
-func (h *Handler) UpdateAudit(ctx context.Context, in *auditpb.UpdateAudit_Request) (*auditpb.UpdateAudit_Response, error) {
-	response := &auditpb.UpdateAudit_Response{}
+func (h *Handler) UpdateAudit(ctx context.Context, in *auditmessage.UpdateAudit_Request) (*auditmessage.UpdateAudit_Response, error) {
+	response := &auditmessage.UpdateAudit_Response{}
 
 	res, err := h.DB.Conn.ExecContext(ctx, `
     UPDATE "audit"
@@ -89,21 +89,21 @@ func (h *Handler) UpdateAudit(ctx context.Context, in *auditpb.UpdateAudit_Reque
 }
 
 // DeleteAudit is delete audit for scheme_id
-func (h *Handler) DeleteAudit(ctx context.Context, in *auditpb.DeleteAudit_Request) (*auditpb.DeleteAudit_Response, error) {
-	response := &auditpb.DeleteAudit_Response{}
+func (h *Handler) DeleteAudit(ctx context.Context, in *auditmessage.DeleteAudit_Request) (*auditmessage.DeleteAudit_Response, error) {
+	response := &auditmessage.DeleteAudit_Response{}
 	return response, nil
 }
 
 // ListRecords is display of all records for audit_id
-func (h *Handler) ListRecords(ctx context.Context, in *auditpb.ListRecords_Request) (*auditpb.ListRecords_Response, error) {
-	response := &auditpb.ListRecords_Response{}
+func (h *Handler) ListRecords(ctx context.Context, in *auditmessage.ListRecords_Request) (*auditmessage.ListRecords_Response, error) {
+	response := &auditmessage.ListRecords_Response{}
 	return response, nil
 }
 
 // AddRecord is adds a new record for audit_id
 // https://git.piplos.by/werbot/old-werbot/-/blob/master/wserver/audit.go
-func (h *Handler) AddRecord(ctx context.Context, in *auditpb.AddRecord_Request) (*auditpb.AddRecord_Response, error) {
-	response := &auditpb.AddRecord_Response{}
+func (h *Handler) AddRecord(ctx context.Context, in *auditmessage.AddRecord_Request) (*auditmessage.AddRecord_Response, error) {
+	response := &auditmessage.AddRecord_Response{}
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)
 	if err != nil {

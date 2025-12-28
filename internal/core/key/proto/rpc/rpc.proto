@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package key;
+
+import "internal/core/key/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/key/proto/rpc";
+
+service KeyHandlers {
+  // Key section
+  rpc Keys(key.Keys.Request) returns (key.Keys.Response) {}
+  rpc Key(key.Key.Request) returns (key.Key.Response) {}
+  rpc AddKey(key.AddKey.Request) returns (key.AddKey.Response) {}
+  rpc UpdateKey(key.UpdateKey.Request) returns (key.UpdateKey.Response) {}
+  rpc DeleteKey(key.DeleteKey.Request) returns (key.DeleteKey.Response) {}
+
+  // Generate key section
+  rpc GenerateSSHKey(key.GenerateSSHKey.Request) returns (key.GenerateSSHKey.Response) {}
+}

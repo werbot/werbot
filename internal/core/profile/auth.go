@@ -10,8 +10,9 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/core/notification"
-	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	notificationenum "github.com/werbot/werbot/internal/core/notification/proto/enum"
+	notificationmessage "github.com/werbot/werbot/internal/core/notification/proto/message"
+	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	"github.com/werbot/werbot/internal/core/token"
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
@@ -23,12 +24,12 @@ import (
 // SignIn function is used to authenticate the user by validating their credentials
 // against the credentials stored in the database.
 // It takes context and a SignIn_Request object as input and returns a Profile_Response object and an error response.
-func (h *Handler) SignIn(ctx context.Context, in *profilepb.SignIn_Request) (*profilepb.Profile_Response, error) {
+func (h *Handler) SignIn(ctx context.Context, in *profilemessage.SignIn_Request) (*profilemessage.Profile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &profilepb.Profile_Response{}
+	response := &profilemessage.Profile_Response{}
 	response.Email = in.GetEmail()
 
 	stmt, err := h.DB.Conn.PrepareContext(ctx, `
@@ -77,13 +78,13 @@ func (h *Handler) SignIn(ctx context.Context, in *profilepb.SignIn_Request) (*pr
 }
 
 // ResetPassword is ...
-func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword_Request) (*profilepb.ResetPassword_Response, error) {
+func (h *Handler) ResetPassword(ctx context.Context, in *profilemessage.ResetPassword_Request) (*profilemessage.ResetPassword_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	switch in.GetRequest().(type) {
-	case *profilepb.ResetPassword_Request_Email: // Step 1.1: Sending an email with a verification link
+	case *profilemessage.ResetPassword_Request_Email: // Step 1.1: Sending an email with a verification link
 		// Get profile_id by email
 		var profileID string
 		err := h.DB.Conn.QueryRowContext(ctx, `
@@ -112,10 +113,10 @@ func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword
 
 		// send email with token link
 		notification := notification.Handler{DB: h.DB, Worker: h.Worker}
-		if _, err := notification.SendMail(ctx, &notificationpb.SendMail_Request{
+		if _, err := notification.SendMail(ctx, &notificationmessage.SendMail_Request{
 			Email:    in.GetEmail(),
 			Subject:  "reset password confirmation",
-			Template: notificationpb.MailTemplate_password_reset,
+			Template: notificationenum.MailTemplate_password_reset,
 			Data: map[string]string{
 				"Link":      fmt.Sprintf("%s/auth/password_reset/%s", internal.GetString("APP_DSN", "http://localhost:5173"), tokenID),
 				"FirstSend": strconv.FormatBool(isNew),
@@ -124,11 +125,11 @@ func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword
 			return nil, trace.Error(err, log, nil)
 		}
 
-		return &profilepb.ResetPassword_Response{
+		return &profilemessage.ResetPassword_Response{
 			ProfileId: profileID,
 		}, nil
 
-	case *profilepb.ResetPassword_Request_Token: // Step 1.2: Verify token
+	case *profilemessage.ResetPassword_Request_Token: // Step 1.2: Verify token
 		// Check token via token package
 		tokenHandler := token.Handler{DB: h.DB, Worker: h.Worker}
 		tokenData, err := tokenHandler.Token(ctx, &tokenmessage.Token_Request{
@@ -151,7 +152,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 
-	case *profilepb.ResetPassword_Request_Password: // Step 2: Saving a new password
+	case *profilemessage.ResetPassword_Request_Password: // Step 2: Saving a new password
 		// Check token via token package
 		tokenHandler := token.Handler{DB: h.DB, Worker: h.Worker}
 		tokenData, err := tokenHandler.Token(ctx, &tokenmessage.Token_Request{
@@ -210,5 +211,5 @@ func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword
 		}
 	}
 
-	return &profilepb.ResetPassword_Response{}, nil
+	return &profilemessage.ResetPassword_Response{}, nil
 }

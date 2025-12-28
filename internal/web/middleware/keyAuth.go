@@ -7,7 +7,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	projectpb "github.com/werbot/werbot/internal/core/project/proto/project"
+	projectrpc "github.com/werbot/werbot/internal/core/project/proto/rpc"
+	projectmessage "github.com/werbot/werbot/internal/core/project/proto/message"
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
@@ -45,10 +46,10 @@ func keySuccess(c *fiber.Ctx) error {
 
 // tokenCheck validates the provided token by checking it against the gRPC service.
 func (m KeyMiddleware) tokenCheck(c *fiber.Ctx, token string) (bool, error) {
-	rClient := projectpb.NewProjectHandlersClient(m.grpcClient)
-	project, err := rClient.ProjectKey(c.UserContext(), &projectpb.ProjectKey_Request{
-		Type: &projectpb.ProjectKey_Request_Public{
-			Public: &projectpb.ProjectKey_Public{
+	rClient := projectrpc.NewProjectHandlersClient(m.grpcClient)
+	project, err := rClient.ProjectKey(c.UserContext(), &projectmessage.ProjectKey_Request{
+		Type: &projectmessage.ProjectKey_Request_Public{
+			Public: &projectmessage.ProjectKey_Public{
 				Key: token,
 			},
 		},

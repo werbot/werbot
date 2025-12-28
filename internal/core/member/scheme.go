@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	memberpb "github.com/werbot/werbot/internal/core/member/proto/member"
+	membermessage "github.com/werbot/werbot/internal/core/member/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -18,12 +18,12 @@ import (
 )
 
 // SchemeMembers is ...
-func (h *Handler) SchemeMembers(ctx context.Context, in *memberpb.SchemeMembers_Request) (*memberpb.SchemeMembers_Response, error) {
+func (h *Handler) SchemeMembers(ctx context.Context, in *membermessage.SchemeMembers_Request) (*membermessage.SchemeMembers_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &memberpb.SchemeMembers_Response{}
+	response := &membermessage.SchemeMembers_Response{}
 
 	// Total members
 	err := h.DB.Conn.QueryRowContext(ctx, `
@@ -82,7 +82,7 @@ func (h *Handler) SchemeMembers(ctx context.Context, in *memberpb.SchemeMembers_
 
 	for rows.Next() {
 		var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-		member := &memberpb.SchemeMember_Response{}
+		member := &membermessage.SchemeMember_Response{}
 		err = rows.Scan(
 			&member.ProfileId,
 			&member.Alias,
@@ -119,13 +119,13 @@ func (h *Handler) SchemeMembers(ctx context.Context, in *memberpb.SchemeMembers_
 }
 
 // SchemeMember is ...
-func (h *Handler) SchemeMember(ctx context.Context, in *memberpb.SchemeMember_Request) (*memberpb.SchemeMember_Response, error) {
+func (h *Handler) SchemeMember(ctx context.Context, in *membermessage.SchemeMember_Request) (*membermessage.SchemeMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-	response := &memberpb.SchemeMember_Response{
+	response := &membermessage.SchemeMember_Response{
 		// MemberId: in.GetMemberId(),
 	}
 
@@ -189,12 +189,12 @@ func (h *Handler) SchemeMember(ctx context.Context, in *memberpb.SchemeMember_Re
 }
 
 // AddSchemeMember is ...
-func (h *Handler) AddSchemeMember(ctx context.Context, in *memberpb.AddSchemeMember_Request) (*memberpb.AddSchemeMember_Response, error) {
+func (h *Handler) AddSchemeMember(ctx context.Context, in *membermessage.AddSchemeMember_Request) (*membermessage.AddSchemeMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &memberpb.AddSchemeMember_Response{}
+	response := &membermessage.AddSchemeMember_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     WITH project_check AS (
@@ -241,7 +241,7 @@ func (h *Handler) AddSchemeMember(ctx context.Context, in *memberpb.AddSchemeMem
 }
 
 // UpdateSchemeMember is ...
-func (h *Handler) UpdateSchemeMember(ctx context.Context, in *memberpb.UpdateSchemeMember_Request) (*memberpb.UpdateSchemeMember_Response, error) {
+func (h *Handler) UpdateSchemeMember(ctx context.Context, in *membermessage.UpdateSchemeMember_Request) (*membermessage.UpdateSchemeMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -250,10 +250,10 @@ func (h *Handler) UpdateSchemeMember(ctx context.Context, in *memberpb.UpdateSch
 	var value any
 
 	switch in.GetSetting().(type) {
-	case *memberpb.UpdateSchemeMember_Request_Active:
+	case *membermessage.UpdateSchemeMember_Request_Active:
 		column = "active"
 		value = in.GetActive()
-	case *memberpb.UpdateSchemeMember_Request_Online:
+	case *membermessage.UpdateSchemeMember_Request_Online:
 		column = "online"
 		value = in.GetOnline()
 	default:
@@ -289,11 +289,11 @@ func (h *Handler) UpdateSchemeMember(ctx context.Context, in *memberpb.UpdateSch
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	return &memberpb.UpdateSchemeMember_Response{}, nil
+	return &membermessage.UpdateSchemeMember_Response{}, nil
 }
 
 // DeleteSchemeMember is ...
-func (h *Handler) DeleteSchemeMember(ctx context.Context, in *memberpb.DeleteSchemeMember_Request) (*memberpb.DeleteSchemeMember_Response, error) {
+func (h *Handler) DeleteSchemeMember(ctx context.Context, in *membermessage.DeleteSchemeMember_Request) (*membermessage.DeleteSchemeMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -320,16 +320,16 @@ func (h *Handler) DeleteSchemeMember(ctx context.Context, in *memberpb.DeleteSch
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	return &memberpb.DeleteSchemeMember_Response{}, nil
+	return &membermessage.DeleteSchemeMember_Response{}, nil
 }
 
 // MembersWithoutScheme is ...
-func (h *Handler) MembersWithoutScheme(ctx context.Context, in *memberpb.MembersWithoutScheme_Request) (*memberpb.MembersWithoutScheme_Response, error) {
+func (h *Handler) MembersWithoutScheme(ctx context.Context, in *membermessage.MembersWithoutScheme_Request) (*membermessage.MembersWithoutScheme_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &memberpb.MembersWithoutScheme_Response{}
+	response := &membermessage.MembersWithoutScheme_Response{}
 
 	// Total count for pagination
 	err := h.DB.Conn.QueryRowContext(ctx, `
@@ -399,7 +399,7 @@ func (h *Handler) MembersWithoutScheme(ctx context.Context, in *memberpb.Members
 	defer rows.Close()
 
 	for rows.Next() {
-		member := &memberpb.MembersWithoutScheme_Member{}
+		member := &membermessage.MembersWithoutScheme_Member{}
 		err = rows.Scan(
 			&member.MemberId,
 			&member.Alias,

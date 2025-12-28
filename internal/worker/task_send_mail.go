@@ -5,7 +5,8 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
+	notificationmessage "github.com/werbot/werbot/internal/core/notification/proto/message"
+	notificationenum "github.com/werbot/werbot/internal/core/notification/proto/enum"
 	"github.com/werbot/werbot/internal/core/notification/providers/mail"
 	"github.com/werbot/werbot/pkg/worker"
 )
@@ -16,7 +17,7 @@ const (
 
 func sendMail() worker.TaskHandler {
 	return func(_ context.Context, payload []byte) error {
-		request := &notificationpb.SendMail_Request{}
+		request := &notificationmessage.SendMail_Request{}
 		if err := proto.Unmarshal(payload, request); err != nil {
 			log.Error(err).Send()
 			return err
@@ -32,12 +33,12 @@ func sendMail() worker.TaskHandler {
 	}
 }
 
-func tmplMail(tmpl notificationpb.MailTemplate) (template string) {
-	templateMap := map[notificationpb.MailTemplate]string{
-		notificationpb.MailTemplate_password_reset:                "password-reset",
-		notificationpb.MailTemplate_project_invite:                "project-invite",
-		notificationpb.MailTemplate_account_deletion_confirmation: "account-deletion-confirmation",
-		notificationpb.MailTemplate_account_deletion_info:         "account-deletion-info",
+func tmplMail(tmpl notificationenum.MailTemplate) (template string) {
+	templateMap := map[notificationenum.MailTemplate]string{
+		notificationenum.MailTemplate_password_reset:                "password-reset",
+		notificationenum.MailTemplate_project_invite:                "project-invite",
+		notificationenum.MailTemplate_account_deletion_confirmation: "account-deletion-confirmation",
+		notificationenum.MailTemplate_account_deletion_info:         "account-deletion-info",
 	}
 
 	return templateMap[tmpl]

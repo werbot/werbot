@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	memberpb "github.com/werbot/werbot/internal/core/member/proto/member"
+	membermessage "github.com/werbot/werbot/internal/core/member/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -18,12 +18,12 @@ import (
 )
 
 // ProjectMembers is ...
-func (h *Handler) ProjectMembers(ctx context.Context, in *memberpb.ProjectMembers_Request) (*memberpb.ProjectMembers_Response, error) {
+func (h *Handler) ProjectMembers(ctx context.Context, in *membermessage.ProjectMembers_Request) (*membermessage.ProjectMembers_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &memberpb.ProjectMembers_Response{}
+	response := &membermessage.ProjectMembers_Response{}
 	sqlUserLimit := postgres.SQLColumnsNull(in.GetIsAdmin(), true, []string{`"project_member"."locked_at"`}) // if not admin
 
 	// Total count for pagination
@@ -86,7 +86,7 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *memberpb.ProjectMember
 
 	for rows.Next() {
 		var updatedAt, createdAt pgtype.Timestamp
-		member := &memberpb.ProjectMember_Response{}
+		member := &membermessage.ProjectMember_Response{}
 		err = rows.Scan(
 			&member.MemberId,
 			&member.OwnerId,
@@ -122,13 +122,13 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *memberpb.ProjectMember
 }
 
 // ProjectMember is ...
-func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_Request) (*memberpb.ProjectMember_Response, error) {
+func (h *Handler) ProjectMember(ctx context.Context, in *membermessage.ProjectMember_Request) (*membermessage.ProjectMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var updatedAt, createdAt pgtype.Timestamp
-	response := &memberpb.ProjectMember_Response{
+	response := &membermessage.ProjectMember_Response{
 		MemberId:  in.GetMemberId(),
 		OwnerId:   in.GetOwnerId(),
 		ProjectId: in.GetProjectId(),
@@ -188,12 +188,12 @@ func (h *Handler) ProjectMember(ctx context.Context, in *memberpb.ProjectMember_
 }
 
 // AddProjectMember is ...
-func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectMember_Request) (*memberpb.AddProjectMember_Response, error) {
+func (h *Handler) AddProjectMember(ctx context.Context, in *membermessage.AddProjectMember_Request) (*membermessage.AddProjectMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &memberpb.AddProjectMember_Response{}
+	response := &membermessage.AddProjectMember_Response{}
 	err := h.DB.Conn.QueryRowContext(ctx, `
     INSERT INTO "project_member" ("project_id", "profile_id", "role", "active")
     SELECT $2, $3, $4, $5
@@ -225,7 +225,7 @@ func (h *Handler) AddProjectMember(ctx context.Context, in *memberpb.AddProjectM
 }
 
 // UpdateProjectMember is ...
-func (h *Handler) UpdateProjectMember(ctx context.Context, in *memberpb.UpdateProjectMember_Request) (*memberpb.UpdateProjectMember_Response, error) {
+func (h *Handler) UpdateProjectMember(ctx context.Context, in *membermessage.UpdateProjectMember_Request) (*membermessage.UpdateProjectMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -234,14 +234,14 @@ func (h *Handler) UpdateProjectMember(ctx context.Context, in *memberpb.UpdatePr
 	var value any
 
 	switch in.GetSetting().(type) {
-	case *memberpb.UpdateProjectMember_Request_Role:
+	case *membermessage.UpdateProjectMember_Request_Role:
 		if !in.GetIsAdmin() {
 			errGRPC := status.Error(codes.InvalidArgument, "setting: exactly one field is required in oneof")
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 		column = "role"
 		value = in.GetRole()
-	case *memberpb.UpdateProjectMember_Request_Active:
+	case *membermessage.UpdateProjectMember_Request_Active:
 		column = "active"
 		value = in.GetActive()
 	}
@@ -272,11 +272,11 @@ func (h *Handler) UpdateProjectMember(ctx context.Context, in *memberpb.UpdatePr
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	return &memberpb.UpdateProjectMember_Response{}, nil
+	return &membermessage.UpdateProjectMember_Response{}, nil
 }
 
 // DeleteProjectMember is ...
-func (h *Handler) DeleteProjectMember(ctx context.Context, in *memberpb.DeleteProjectMember_Request) (*memberpb.DeleteProjectMember_Response, error) {
+func (h *Handler) DeleteProjectMember(ctx context.Context, in *membermessage.DeleteProjectMember_Request) (*membermessage.DeleteProjectMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -301,17 +301,17 @@ func (h *Handler) DeleteProjectMember(ctx context.Context, in *memberpb.DeletePr
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	return &memberpb.DeleteProjectMember_Response{}, nil
+	return &membermessage.DeleteProjectMember_Response{}, nil
 }
 
 // ProfilesWithoutProject is ...
 // only foe admin
-func (h *Handler) ProfilesWithoutProject(ctx context.Context, in *memberpb.ProfilesWithoutProject_Request) (*memberpb.ProfilesWithoutProject_Response, error) {
+func (h *Handler) ProfilesWithoutProject(ctx context.Context, in *membermessage.ProfilesWithoutProject_Request) (*membermessage.ProfilesWithoutProject_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &memberpb.ProfilesWithoutProject_Response{}
+	response := &membermessage.ProfilesWithoutProject_Response{}
 
 	// Total count fo
 	err := h.DB.Conn.QueryRowContext(ctx, `
@@ -358,7 +358,7 @@ func (h *Handler) ProfilesWithoutProject(ctx context.Context, in *memberpb.Profi
 	defer rows.Close()
 
 	for rows.Next() {
-		user := &memberpb.ProfilesWithoutProject_Profile{}
+		user := &membermessage.ProfilesWithoutProject_Profile{}
 		if err = rows.Scan(&user.ProfileId, &user.Alias, &user.Email); err != nil {
 			return nil, trace.Error(err, log, nil)
 		}

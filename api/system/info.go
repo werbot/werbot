@@ -9,7 +9,8 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/gofiber/fiber/v2"
 
-	systempb "github.com/werbot/werbot/internal/core/system/proto/system"
+	systemrpc "github.com/werbot/werbot/internal/core/system/proto/rpc"
+	systemmessage "github.com/werbot/werbot/internal/core/system/proto/message"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -85,17 +86,17 @@ func (h *Handler) update(c *fiber.Ctx) error {
 // @Tags info
 // @Produce json
 // @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights. 00000000-0000-0000-0000-000000000000 - show all
-// @Success 200 {object} webutil.HTTPResponse{result=systempb.ProfileMetrics_Response}
+// @Success 200 {object} webutil.HTTPResponse{result=systemmessage.ProfileMetrics_Response}
 // @Failure 404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/system/info [get]
 func (h *Handler) info(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &systempb.ProfileMetrics_Request{
+	request := &systemmessage.ProfileMetrics_Request{
 		IsAdmin:   sessionData.IsProfileAdmin(),
 		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
 	}
 
-	rClient := systempb.NewSystemHandlersClient(h.Grpc)
+	rClient := systemrpc.NewSystemHandlersClient(h.Grpc)
 	info, err := rClient.ProfileMetrics(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

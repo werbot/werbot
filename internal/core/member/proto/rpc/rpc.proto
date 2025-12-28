@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package member;
+
+import "internal/core/member/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/member/proto/rpc";
+
+service MemberHandlers {
+  // Project section
+  rpc ProjectMembers(membermessage.ProjectMembers.Request) returns (membermessage.ProjectMembers.Response) {}
+  rpc ProjectMember(membermessage.ProjectMember.Request) returns (membermessage.ProjectMember.Response) {}
+  rpc AddProjectMember(membermessage.AddProjectMember.Request) returns (membermessage.AddProjectMember.Response) {}
+  rpc UpdateProjectMember(membermessage.UpdateProjectMember.Request) returns (membermessage.UpdateProjectMember.Response) {}
+  rpc DeleteProjectMember(membermessage.DeleteProjectMember.Request) returns (membermessage.DeleteProjectMember.Response) {}
+
+  // Used in finding and adding a new member to the project
+  rpc ProfilesWithoutProject(membermessage.ProfilesWithoutProject.Request) returns (membermessage.ProfilesWithoutProject.Response) {}
+
+  // Scheme section
+  rpc SchemeMembers(membermessage.SchemeMembers.Request) returns (membermessage.SchemeMembers.Response) {}
+  rpc SchemeMember(membermessage.SchemeMember.Request) returns (membermessage.SchemeMember.Response) {}
+  rpc AddSchemeMember(membermessage.AddSchemeMember.Request) returns (membermessage.AddSchemeMember.Response) {}
+  rpc UpdateSchemeMember(membermessage.UpdateSchemeMember.Request) returns (membermessage.UpdateSchemeMember.Response) {}
+  rpc DeleteSchemeMember(membermessage.DeleteSchemeMember.Request) returns (membermessage.DeleteSchemeMember.Response) {}
+
+  // Used in finding and adding a new member to the scheme
+  rpc MembersWithoutScheme(membermessage.MembersWithoutScheme.Request) returns (membermessage.MembersWithoutScheme.Response) {}
+}

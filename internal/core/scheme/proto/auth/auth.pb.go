@@ -5,7 +5,7 @@ package auth
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	key "github.com/werbot/werbot/internal/core/key/proto/key"
+	message "github.com/werbot/werbot/internal/core/key/proto/message"
 	_ "github.com/werbot/werbot/pkg/utils/protoutils/ghoster/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -233,7 +233,7 @@ func (x *Auth_Key) GetKeyId() string {
 	return ""
 }
 
-func (x *Auth_Key) GetKey() *key.SchemeKey {
+func (x *Auth_Key) GetKey() *message.SchemeKey {
 	if x != nil {
 		if x, ok := x.Access.(*Auth_Key_Key); ok {
 			return x.Key
@@ -251,7 +251,7 @@ type Auth_Key_KeyId struct {
 }
 
 type Auth_Key_Key struct {
-	Key *key.SchemeKey `protobuf:"bytes,3,opt,name=key,proto3,oneof"`
+	Key *message.SchemeKey `protobuf:"bytes,3,opt,name=key,proto3,oneof"`
 }
 
 func (*Auth_Key_KeyId) isAuth_Key_Access() {}
@@ -451,7 +451,7 @@ var File_auth_proto protoreflect.FileDescriptor
 const file_auth_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"auth.proto\x12\x04auth\x1a\x1bbuf/validate/validate.proto\x1a%internal/core/key/proto/key/key.proto\x1a0pkg/utils/protoutils/ghoster/proto/ghoster.proto\"\xff\x04\n" +
+	"auth.proto\x12\x04auth\x1a\x1bbuf/validate/validate.proto\x1a-internal/core/key/proto/message/message.proto\x1a0pkg/utils/protoutils/ghoster/proto/ghoster.proto\"\xff\x04\n" +
 	"\x04Auth\x1af\n" +
 	"\bPassword\x12/\n" +
 	"\x05login\x18\x01 \x01(\tB\x19\xbaH\x16r\x14\x10\x03\x18\x142\x0e^[a-zA-Z0-9]+$R\x05login\x12)\n" +
@@ -500,14 +500,14 @@ func file_auth_proto_rawDescGZIP() []byte {
 var file_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_auth_proto_goTypes = []any{
-	(AuthMethod)(0),       // 0: auth.AuthMethod
-	(*Auth)(nil),          // 1: auth.Auth
-	(*Auth_Password)(nil), // 2: auth.Auth.Password
-	(*Auth_Key)(nil),      // 3: auth.Auth.Key
-	(*Auth_Agent)(nil),    // 4: auth.Auth.Agent
-	(*Auth_MTLS)(nil),     // 5: auth.Auth.MTLS
-	(*Auth_API)(nil),      // 6: auth.Auth.API
-	(*key.SchemeKey)(nil), // 7: key.SchemeKey
+	(AuthMethod)(0),           // 0: auth.AuthMethod
+	(*Auth)(nil),              // 1: auth.Auth
+	(*Auth_Password)(nil),     // 2: auth.Auth.Password
+	(*Auth_Key)(nil),          // 3: auth.Auth.Key
+	(*Auth_Agent)(nil),        // 4: auth.Auth.Agent
+	(*Auth_MTLS)(nil),         // 5: auth.Auth.MTLS
+	(*Auth_API)(nil),          // 6: auth.Auth.API
+	(*message.SchemeKey)(nil), // 7: key.SchemeKey
 }
 var file_auth_proto_depIdxs = []int32{
 	7, // 0: auth.Auth.Key.key:type_name -> key.SchemeKey

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package systemmessage;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/system/proto/message";
+
+// rpc ProfileMetrics
+message ProfileMetrics {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string profile_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 profiles = 1;
+    int32 projects = 2;
+    int32 schemes = 3;
+  }
+}
+// -----------------------------------------------------
+
+// rpc GetInfo
+message Countries {
+  message Request {
+    string name = 1 [(buf.validate.field).string.min_len = 3, (buf.validate.field).required = true];
+  }
+
+  message Response {
+    repeated Country countries = 1;
+  }
+
+  message Country {
+    string code = 1;
+    string name = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc CountryByIP
+message CountryByIP {
+  message Request {
+    string ip = 1 [(buf.validate.field).string.ip = true, (buf.validate.field).required = true];
+  }
+  message Response {
+    string name = 1;
+    string code = 2;
+  }
+}
+// -----------------------------------------------------

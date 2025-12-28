@@ -4,7 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	event "github.com/werbot/werbot/internal/core/event/recorder"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	profilerpc "github.com/werbot/werbot/internal/core/profile/proto/rpc"
+	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
@@ -19,7 +20,7 @@ import (
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
 // @Param sort_by query string false "Sort by for pagination"
-// @Success 200 {object} webutil.HTTPResponse{result=profilepb.Profiles_Response}
+// @Success 200 {object} webutil.HTTPResponse{result=profilemessage.Profiles_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/profiles/list [get]
 func (h *Handler) profiles(c *fiber.Ctx) error {
@@ -31,14 +32,14 @@ func (h *Handler) profiles(c *fiber.Ctx) error {
 	}
 
 	pagination := webutil.GetPaginationFromCtx(c)
-	request := &profilepb.Profiles_Request{
+	request := &profilemessage.Profiles_Request{
 		IsAdmin: sessionData.IsProfileAdmin(),
 		Limit:   pagination.Limit,
 		Offset:  pagination.Offset,
 		SortBy:  `"profile"."created_at":ASC`,
 	}
 
-	rClient := profilepb.NewProfileHandlersClient(h.Grpc)
+	rClient := profilerpc.NewProfileHandlersClient(h.Grpc)
 	profiles, err := rClient.Profiles(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -58,17 +59,17 @@ func (h *Handler) profiles(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
-// @Success 200 {object} webutil.HTTPResponse{result=profilepb.Profile_Response}
+// @Success 200 {object} webutil.HTTPResponse{result=profilemessage.Profile_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/profiles [get]
 func (h *Handler) profile(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &profilepb.Profile_Request{
+	request := &profilemessage.Profile_Request{
 		IsAdmin:   sessionData.IsProfileAdmin(),
 		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
 	}
 
-	rClient := profilepb.NewProfileHandlersClient(h.Grpc)
+	rClient := profilerpc.NewProfileHandlersClient(h.Grpc)
 	profile, err := rClient.Profile(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -87,8 +88,8 @@ func (h *Handler) profile(c *fiber.Ctx) error {
 // @Tags profiles
 // @Accept json
 // @Produce json
-// @Param profile body profilepb.AddProfile_Request true "Add Profile Request"
-// @Success 200 {object} webutil.HTTPResponse{result=profilepb.AddProfile_Response}
+// @Param profile body profilemessage.AddProfile_Request true "Add Profile Request"
+// @Success 200 {object} webutil.HTTPResponse{result=profilemessage.AddProfile_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/profiles [post]
 func (h *Handler) addProfile(c *fiber.Ctx) error {
@@ -99,13 +100,13 @@ func (h *Handler) addProfile(c *fiber.Ctx) error {
 		return webutil.StatusNotFound(c, nil)
 	}
 
-	request := &profilepb.AddProfile_Request{
+	request := &profilemessage.AddProfile_Request{
 		IsAdmin: sessionData.IsProfileAdmin(),
 	}
 
 	_ = webutil.Parse(c, request).Body(false)
 
-	rClient := profilepb.NewProfileHandlersClient(h.Grpc)
+	rClient := profilerpc.NewProfileHandlersClient(h.Grpc)
 	profile, err := rClient.AddProfile(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -129,20 +130,20 @@ func (h *Handler) addProfile(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param profile_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
-// @Param body body profilepb.UpdateProfile_Request true
+// @Param body body profilemessage.UpdateProfile_Request true
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/profiles [put]
 func (h *Handler) updateProfile(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &profilepb.UpdateProfile_Request{
+	request := &profilemessage.UpdateProfile_Request{
 		IsAdmin:   sessionData.IsProfileAdmin(),
 		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
 	}
 
 	_ = webutil.Parse(c, request).Body(true)
 
-	rClient := profilepb.NewProfileHandlersClient(h.Grpc)
+	rClient := profilerpc.NewProfileHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateProfile(c.UserContext(), request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -150,9 +151,9 @@ func (h *Handler) updateProfile(c *fiber.Ctx) error {
 	// Log the event
 	var eventType event.Type
 	switch request.GetSetting().(type) {
-	case *profilepb.UpdateProfile_Request_Alias, *profilepb.UpdateProfile_Request_Email, *profilepb.UpdateProfile_Request_Name, *profilepb.UpdateProfile_Request_Surname:
+	case *profilemessage.UpdateProfile_Request_Alias, *profilemessage.UpdateProfile_Request_Email, *profilemessage.UpdateProfile_Request_Name, *profilemessage.UpdateProfile_Request_Surname:
 		eventType = event.OnUpdate
-	case *profilepb.UpdateProfile_Request_Active, *profilepb.UpdateProfile_Request_Confirmed:
+	case *profilemessage.UpdateProfile_Request_Active, *profilemessage.UpdateProfile_Request_Confirmed:
 		if request.GetActive() || request.GetConfirmed() {
 			eventType = event.OnOffline
 		} else {
@@ -179,7 +180,7 @@ func (h *Handler) updateProfile(c *fiber.Ctx) error {
 // @Router /v1/profiles/delete [post, delete]
 func (h *Handler) deleteProfile(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &profilepb.DeleteProfile_Request{
+	request := &profilemessage.DeleteProfile_Request{
 		ProfileId: sessionData.ProfileID(c.Query("profiles")),
 	}
 
@@ -190,7 +191,7 @@ func (h *Handler) deleteProfile(c *fiber.Ctx) error {
 
 	// using on step 2
 	if c.Method() == "DELETE" {
-		request.Request = &profilepb.DeleteProfile_Request_Token{
+		request.Request = &profilemessage.DeleteProfile_Request_Token{
 			Token: c.Params("token"),
 		}
 	}
@@ -200,14 +201,14 @@ func (h *Handler) deleteProfile(c *fiber.Ctx) error {
 	var metaData map[string]any
 
 	switch request.GetRequest().(type) {
-	case *profilepb.DeleteProfile_Request_Password: // step 1 - send email and token
+	case *profilemessage.DeleteProfile_Request_Password: // step 1 - send email and token
 		message = "Request for delete"
 		description = "An email with instructions to delete your profile has been sent to your email"
 		eventType = event.OnMessage
 		metaData = event.Metadata{
 			"subject": "profile deletion confirmation",
 		}
-	case *profilepb.DeleteProfile_Request_Token: // step 2 - check token and delete profile
+	case *profilemessage.DeleteProfile_Request_Token: // step 2 - check token and delete profile
 		message = "Profile deleted"
 		eventType = event.OnInactive
 		metaData = event.Metadata{
@@ -219,7 +220,7 @@ func (h *Handler) deleteProfile(c *fiber.Ctx) error {
 		})
 	}
 
-	rClient := profilepb.NewProfileHandlersClient(h.Grpc)
+	rClient := profilerpc.NewProfileHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteProfile(c.UserContext(), request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -235,19 +236,19 @@ func (h *Handler) deleteProfile(c *fiber.Ctx) error {
 // @Tags profiles
 // @Accept json
 // @Produce json
-// @Param body body profilepb.UpdatePassword_Request true "Update Password Request"
+// @Param body body profilemessage.UpdatePassword_Request true "Update Password Request"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/profiles/password [patch]
 func (h *Handler) updatePassword(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &profilepb.UpdatePassword_Request{
+	request := &profilemessage.UpdatePassword_Request{
 		ProfileId: sessionData.Profile.GetProfileId(),
 	}
 
 	_ = webutil.Parse(c, request).Body()
 
-	rClient := profilepb.NewProfileHandlersClient(h.Grpc)
+	rClient := profilerpc.NewProfileHandlersClient(h.Grpc)
 	msg, err := rClient.UpdatePassword(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

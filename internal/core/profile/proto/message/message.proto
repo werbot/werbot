@@ -1,0 +1,240 @@
+syntax = "proto3";
+
+package profilemessage;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
+import "internal/core/profile/proto/enum/enum.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/profile/proto/message";
+
+message ProfileParameters {
+  string profile_id = 1;
+  string name = 2;
+  profileenum.Role roles = 3;
+  string session_id = 4;
+}
+// -----------------------------------------------------
+
+// rpc SignIn
+message SignIn {
+  message Request {
+    string email = 1 [
+      (buf.validate.field).cel = {
+        id: "request.email"
+        message: "value must be a valid email address"
+        expression: "this.isEmail()"
+      },
+      (buf.validate.field).required = true
+    ];
+    string password = 2 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (buf.validate.field).required = true, (ghoster.secret) = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc Token
+message Token {
+  message Request {
+    string refresh = 1 [(buf.validate.field).required = true];
+  }
+
+  message Response {
+    string access = 1; // @gotags: json:"access_token,omitempty"
+    string refresh = 2; // @gotags: json:"refresh_token,omitempty"
+  }
+}
+// -----------------------------------------------------
+
+// rpc ResetPassword
+message ResetPassword {
+  message Request {
+    oneof request {
+      string email = 1 [
+        (buf.validate.field).cel = {
+          id: "valid_email"
+          message: "must be a valid email"
+          expression: "this.isEmail()"
+        }
+      ];
+      string token = 2 [(buf.validate.field).string.uuid = true];
+      Password password = 3;
+    }
+  }
+
+  message Response {
+    string profile_id = 1;
+  }
+
+  message Password {
+    string password = 1 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (ghoster.secret) = true];
+    string token = 2 [(buf.validate.field).string.uuid = true];
+  }
+}
+// -----------------------------------------------------
+
+// rpc Profiles
+message Profiles {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    int32 limit = 4;
+    int32 offset = 5;
+    string sort_by = 6; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated Profile.Response profiles = 2;
+  }
+}
+
+// rpc Profile
+message Profile {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    string profile_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    string profile_id = 1;
+    string alias = 2;
+    string name = 3;
+    string surname = 4;
+    string email = 5;
+    bool active = 6;
+    bool confirmed = 7;
+    profileenum.Role role = 8 [(ghoster.secret) = true];
+    string password = 9 [(ghoster.secret) = true];
+    google.protobuf.Timestamp locked_at = 10 [(ghoster.secret) = true];
+    google.protobuf.Timestamp archived_at = 11 [(ghoster.secret) = true];
+    google.protobuf.Timestamp updated_at = 12 [(ghoster.secret) = true];
+    google.protobuf.Timestamp created_at = 13;
+
+    int32 schemes_count = 50;
+    int32 projects_count = 51;
+    int32 keys_count = 52;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddProfile
+message AddProfile {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    string alias = 2 [(buf.validate.field).string = { pattern: '^[a-z0-9]+$' min_len: 3 max_len: 32 }, (buf.validate.field).required = true];
+    string email = 3 [(buf.validate.field).cel = { id: "valid_email" message: "must be a valid email" expression: "this.isEmail()" }, (buf.validate.field).required = true];
+    string name = 4 [(buf.validate.field).string = { min_len: 3 max_len: 32 }, (buf.validate.field).required = true];
+    string surname = 5 [(buf.validate.field).string = { min_len: 3 max_len: 32 }, (buf.validate.field).required = true];
+    bool active = 6;
+    bool confirmed = 7;
+    string password = 8 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (buf.validate.field).required = true, (ghoster.secret) = true];
+  }
+
+  message Response {
+    string profile_id = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UpdateProfile
+message UpdateProfile {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    string profile_id = 2 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    oneof setting {
+      option (buf.validate.oneof).required = true;
+      string name = 3 [(buf.validate.field).string = { min_len: 3 max_len: 32 }];
+      string surname = 4 [(buf.validate.field).string = { min_len: 3 max_len: 32 }];
+
+      // use only for admin
+      string alias = 5 [(buf.validate.field).string = { pattern: '^[a-z0-9]+$' min_len: 3 max_len: 32 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      string email = 6 [
+        (buf.validate.field).cel = { id: "valid_email" message: "must be a valid email" expression: "this.isEmail()" }
+      ];
+      bool active = 7;
+      bool confirmed = 8;
+      bool archived = 9;
+    }
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc DeleteProfile
+message DeleteProfile {
+  message Request {
+    string profile_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    oneof request {
+      option (buf.validate.oneof).required = true;
+      string password = 2 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (ghoster.secret) = true];
+      string token = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+    }
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc UpdatePassword
+message UpdatePassword {
+  message Request {
+    string profile_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+
+    string old_password = 2 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (buf.validate.field).required = true, (ghoster.secret) = true];
+    string new_password = 3 [(buf.validate.field).string = { min_len: 8 max_len: 32 }, (buf.validate.field).required = true, (ghoster.secret) = true];
+  }
+
+  message Response {
+    string message = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc ProfileIDByLogin
+message ProfileIDByLogin {
+  message Request {
+    string login = 1;
+    string fingerprint = 2;
+    string client_ip = 3 [(buf.validate.field).string.ip = true];
+  }
+
+  message Response {
+    string profile_id = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc ProfileByEmail
+message ProfileByEmail {
+  message Request {
+    string email = 1 [
+      (buf.validate.field).cel = {
+        id: "request.email"
+        message: "value must be a valid email address"
+        expression: "this.isEmail()"
+      },
+      (buf.validate.field).required = true
+    ];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc UpdateStatus
+message UpdateStatus {
+  message Request {
+    string account_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
+    profileenum.Status status = 2;
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------

@@ -9,8 +9,8 @@ import (
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
 
-	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	firewallmessage "github.com/werbot/werbot/internal/core/firewall/proto/message"
+	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/utils/alias"
 	"github.com/werbot/werbot/pkg/utils/netutil"
@@ -43,11 +43,11 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 		_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		rClientF := firewallpb.NewFirewallHandlersClient(app.grpc)
-		rClientA := profilepb.NewProfileHandlersClient(app.grpc)
+		rClientF := firewallmessage.NewFirewallHandlersClient(app.grpc)
+		rClientA := profilemessage.NewProfileHandlersClient(app.grpc)
 
 		// IP check for global Firewall settings
-		_, err := rClientF.IPAccess(_ctx, &firewallpb.IPAccess_Request{
+		_, err := rClientF.IPAccess(_ctx, &firewallmessage.IPAccess_Request{
 			ClientIp: actx.userAddr,
 		})
 		if err != nil {
@@ -75,7 +75,7 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 			return true
 		}
 
-		profileID, err := rClientA.ProfileIDByLogin(_ctx, &profilepb.ProfileIDByLogin_Request{
+		profileID, err := rClientA.ProfileIDByLogin(_ctx, &profilemessage.ProfileIDByLogin_Request{
 			Login:       actx.alias,
 			Fingerprint: actx.userFingerPrint,
 			ClientIp:    actx.userAddr,

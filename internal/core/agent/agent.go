@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	agentpb "github.com/werbot/werbot/internal/core/agent/proto/agent"
+	agentmessage "github.com/werbot/werbot/internal/core/agent/proto/message"
 	"github.com/werbot/werbot/internal/core/scheme"
 	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
 	schemeauthpb "github.com/werbot/werbot/internal/core/scheme/proto/auth"
@@ -20,12 +20,12 @@ import (
 )
 
 // Auth is ...
-func (h *Handler) Auth(ctx context.Context, in *agentpb.Auth_Request) (*agentpb.Auth_Response, error) {
+func (h *Handler) Auth(ctx context.Context, in *agentmessage.Auth_Request) (*agentmessage.Auth_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &agentpb.Auth_Response{}
+	response := &agentmessage.Auth_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -56,7 +56,7 @@ func (h *Handler) Auth(ctx context.Context, in *agentpb.Auth_Request) (*agentpb.
 }
 
 // AddScheme is ...
-func (h *Handler) AddScheme(ctx context.Context, in *agentpb.AddScheme_Request) (*agentpb.AddScheme_Response, error) {
+func (h *Handler) AddScheme(ctx context.Context, in *agentmessage.AddScheme_Request) (*agentmessage.AddScheme_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -135,7 +135,7 @@ func (h *Handler) AddScheme(ctx context.Context, in *agentpb.AddScheme_Request) 
 		return nil, trace.Error(err, log, nil)
 	}
 
-	response := &agentpb.AddScheme_Response{
+	response := &agentmessage.AddScheme_Response{
 		SchemeId: newSchemeData.GetSchemeId(),
 	}
 
@@ -163,12 +163,12 @@ func (h *Handler) AddScheme(ctx context.Context, in *agentpb.AddScheme_Request) 
 }
 
 // UpdateScheme is ...
-//func (h *Handler) UpdateScheme(ctx context.Context, in *agentpb.UpdateScheme_Request) (*agentpb.UpdateScheme_Response, error) {
+//func (h *Handler) UpdateScheme(ctx context.Context, in *agentmessage.UpdateScheme_Request) (*agentmessage.UpdateScheme_Response, error) {
 //	if err := protoutils.ValidateRequest(in); err != nil {
 //		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 //	}
 //
-//	response := &agentpb.UpdateScheme_Response{}
+//	response := &agentmessage.UpdateScheme_Response{}
 //
 //	return response, nil
 //}

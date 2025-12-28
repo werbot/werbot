@@ -5,7 +5,7 @@ package scheme
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	firewall "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
+	message "github.com/werbot/werbot/internal/core/firewall/proto/message"
 	access "github.com/werbot/werbot/internal/core/scheme/proto/access"
 	auth "github.com/werbot/werbot/internal/core/scheme/proto/auth"
 	_ "github.com/werbot/werbot/pkg/utils/protoutils/ghoster/proto"
@@ -2156,7 +2156,7 @@ type SchemeFirewall_Countries struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WiteList      bool                   `protobuf:"varint,1,opt,name=wite_list,json=witeList,proto3" json:"wite_list,omitempty"`
 	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
-	List          []*firewall.Country    `protobuf:"bytes,3,rep,name=list,proto3" json:"list,omitempty"`
+	List          []*message.Country     `protobuf:"bytes,3,rep,name=list,proto3" json:"list,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2205,7 +2205,7 @@ func (x *SchemeFirewall_Countries) GetTotal() int32 {
 	return 0
 }
 
-func (x *SchemeFirewall_Countries) GetList() []*firewall.Country {
+func (x *SchemeFirewall_Countries) GetList() []*message.Country {
 	if x != nil {
 		return x.List
 	}
@@ -2216,7 +2216,7 @@ type SchemeFirewall_Networks struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WiteList      bool                   `protobuf:"varint,1,opt,name=wite_list,json=witeList,proto3" json:"wite_list,omitempty"`
 	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
-	List          []*firewall.Network    `protobuf:"bytes,3,rep,name=list,proto3" json:"list,omitempty"`
+	List          []*message.Network     `protobuf:"bytes,3,rep,name=list,proto3" json:"list,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2265,7 +2265,7 @@ func (x *SchemeFirewall_Networks) GetTotal() int32 {
 	return 0
 }
 
-func (x *SchemeFirewall_Networks) GetList() []*firewall.Network {
+func (x *SchemeFirewall_Networks) GetList() []*message.Network {
 	if x != nil {
 		return x.List
 	}
@@ -3276,7 +3276,7 @@ var File_scheme_proto protoreflect.FileDescriptor
 
 const file_scheme_proto_rawDesc = "" +
 	"\n" +
-	"\fscheme.proto\x12\x06scheme\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bbuf/validate/validate.proto\x1a0pkg/utils/protoutils/ghoster/proto/ghoster.proto\x1a4internal/core/firewall/proto/firewall/firewall.proto\x1a.internal/core/scheme/proto/access/access.proto\x1a*internal/core/scheme/proto/auth/auth.proto\"\xcf\x02\n" +
+	"\fscheme.proto\x12\x06scheme\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bbuf/validate/validate.proto\x1a0pkg/utils/protoutils/ghoster/proto/ghoster.proto\x1a2internal/core/firewall/proto/message/message.proto\x1a.internal/core/scheme/proto/access/access.proto\x1a*internal/core/scheme/proto/auth/auth.proto\"\xcf\x02\n" +
 	"\aSchemes\x1a\xee\x01\n" +
 	"\aRequest\x12\x19\n" +
 	"\bis_admin\x18\x01 \x01(\bR\aisAdmin\x12#\n" +
@@ -3605,8 +3605,8 @@ var file_scheme_proto_goTypes = []any{
 	(auth.AuthMethod)(0),                  // 58: auth.AuthMethod
 	(*timestamppb.Timestamp)(nil),         // 59: google.protobuf.Timestamp
 	(*access.AccessScheme)(nil),           // 60: access.AccessScheme
-	(*firewall.Country)(nil),              // 61: firewall.Country
-	(*firewall.Network)(nil),              // 62: firewall.Network
+	(*message.Country)(nil),               // 61: firewall.Country
+	(*message.Network)(nil),               // 62: firewall.Network
 }
 var file_scheme_proto_depIdxs = []int32{
 	57, // 0: scheme.Schemes.Request.scheme_type:type_name -> access.SchemeType

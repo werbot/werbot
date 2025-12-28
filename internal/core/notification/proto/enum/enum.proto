@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package notificationenum;
+
+option go_package = "github.com/werbot/werbot/internal/core/notification/proto/enum";
+
+enum MailTemplate {
+  unspecified = 0;
+  password_reset = 1;
+  project_invite = 2;
+  account_deletion_confirmation = 3;
+  account_deletion_info = 4;
+}

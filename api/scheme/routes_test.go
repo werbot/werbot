@@ -9,7 +9,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/api/auth"
-	keypb "github.com/werbot/werbot/internal/core/key/proto/key"
+	keymessage "github.com/werbot/werbot/internal/core/key/proto/message"
+	keyenum "github.com/werbot/werbot/internal/core/key/proto/enum"
 	"github.com/werbot/werbot/internal/utils/test"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/storage/redis"
@@ -36,8 +37,8 @@ func serverKeygen(rd *redis.Connect, uuid string, empty bool) func() {
 		if empty {
 			_ = rd.Client.Set(context.Background(), cacheKeyStr, "{}", expiration)
 		} else {
-			newKeySSH, _ := crypto.NewSSHKey(keypb.KeyType_ed25519.String())
-			schemeKey := &keypb.SchemeKey{
+			newKeySSH, _ := crypto.NewSSHKey(keyenum.KeyType_ed25519.String())
+			schemeKey := &keymessage.SchemeKey{
 				Public:      string(newKeySSH.PublicKey),
 				Private:     string(newKeySSH.PrivateKey),
 				Passphrase:  newKeySSH.Passphrase,

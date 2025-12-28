@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package audit;
+
+import "internal/core/audit/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/audit/proto/rpc";
+
+service AuditHandlers {
+  // Audit section
+  rpc ListAudits(auditmessage.ListAudits.Request) returns (auditmessage.ListAudits.Response) {}
+  rpc Audit(auditmessage.Audit.Request) returns (auditmessage.Audit.Response) {}
+  rpc AddAudit(auditmessage.AddAudit.Request) returns (auditmessage.AddAudit.Response) {}
+  rpc UpdateAudit(auditmessage.UpdateAudit.Request) returns (auditmessage.UpdateAudit.Response) {}
+  rpc DeleteAudit(auditmessage.DeleteAudit.Request) returns (auditmessage.DeleteAudit.Response) {}
+
+  // Record section
+  rpc ListRecords(auditmessage.ListRecords.Request) returns (auditmessage.ListRecords.Response) {}
+  rpc AddRecord(auditmessage.AddRecord.Request) returns (auditmessage.AddRecord.Response) {}
+}

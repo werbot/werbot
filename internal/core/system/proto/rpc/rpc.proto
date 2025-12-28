@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package system;
+
+import "internal/core/system/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/system/proto/rpc";
+
+service SystemHandlers {
+  rpc ProfileMetrics(systemmessage.ProfileMetrics.Request) returns (systemmessage.ProfileMetrics.Response) {}
+
+  rpc Countries(systemmessage.Countries.Request) returns (systemmessage.Countries.Response) {}
+  rpc CountryByIP(systemmessage.CountryByIP.Request) returns (systemmessage.CountryByIP.Response) {}
+}

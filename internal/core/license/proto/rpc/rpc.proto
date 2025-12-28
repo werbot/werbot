@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package license;
+
+import "internal/core/license/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/license/proto/rpc";
+
+service LicenseHandlers {
+  rpc License(licensemessage.License.Request) returns (licensemessage.License.Response) {}
+}

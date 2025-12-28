@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package profile;
+
+import "internal/core/profile/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/profile/proto/rpc";
+
+service ProfileHandlers {
+  // Auth section
+  rpc SignIn(profilemessage.SignIn.Request) returns (profilemessage.Profile.Response) {}
+  rpc ResetPassword(profilemessage.ResetPassword.Request) returns (profilemessage.ResetPassword.Response) {}
+
+  // Profile section
+  rpc Profiles(profilemessage.Profiles.Request) returns (profilemessage.Profiles.Response) {}
+  rpc Profile(profilemessage.Profile.Request) returns (profilemessage.Profile.Response) {}
+  rpc AddProfile(profilemessage.AddProfile.Request) returns (profilemessage.AddProfile.Response) {}
+  rpc UpdateProfile(profilemessage.UpdateProfile.Request) returns (profilemessage.UpdateProfile.Response) {}
+  rpc DeleteProfile(profilemessage.DeleteProfile.Request) returns (profilemessage.DeleteProfile.Response) {}
+
+  rpc UpdatePassword(profilemessage.UpdatePassword.Request) returns (profilemessage.UpdatePassword.Response) {}
+
+  // Tools
+  rpc ProfileIDByLogin(profilemessage.ProfileIDByLogin.Request) returns (profilemessage.ProfileIDByLogin.Response) {}
+  rpc ProfileByEmail(profilemessage.ProfileByEmail.Request) returns (profilemessage.Profile.Response) {}
+  rpc UpdateStatus(profilemessage.UpdateStatus.Request) returns (profilemessage.UpdateStatus.Response) {}
+}

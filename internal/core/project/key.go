@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	projectpb "github.com/werbot/werbot/internal/core/project/proto/project"
+	projectmessage "github.com/werbot/werbot/internal/core/project/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/storage/postgres"
@@ -17,12 +17,12 @@ import (
 )
 
 // ProjectKeys is ...
-func (h *Handler) ProjectKeys(ctx context.Context, in *projectpb.ProjectKeys_Request) (*projectpb.ProjectKeys_Response, error) {
+func (h *Handler) ProjectKeys(ctx context.Context, in *projectmessage.ProjectKeys_Request) (*projectmessage.ProjectKeys_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &projectpb.ProjectKeys_Response{}
+	response := &projectmessage.ProjectKeys_Response{}
 
 	// Total count for pagination
 	err := h.DB.Conn.QueryRowContext(ctx, `
@@ -72,7 +72,7 @@ func (h *Handler) ProjectKeys(ctx context.Context, in *projectpb.ProjectKeys_Req
 
 	for rows.Next() {
 		var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-		key := &projectpb.ProjectKey_Response{}
+		key := &projectmessage.ProjectKey_Response{}
 		err = rows.Scan(
 			&key.KeyId,
 			&key.Key,
@@ -105,15 +105,15 @@ func (h *Handler) ProjectKeys(ctx context.Context, in *projectpb.ProjectKeys_Req
 }
 
 // ProjectKey is ...
-func (h *Handler) ProjectKey(ctx context.Context, in *projectpb.ProjectKey_Request) (*projectpb.ProjectKey_Response, error) {
+func (h *Handler) ProjectKey(ctx context.Context, in *projectmessage.ProjectKey_Request) (*projectmessage.ProjectKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &projectpb.ProjectKey_Response{}
+	response := &projectmessage.ProjectKey_Response{}
 
 	switch in.GetType().(type) {
-	case *projectpb.ProjectKey_Request_Public:
+	case *projectmessage.ProjectKey_Request_Public:
 		err := h.DB.Conn.QueryRowContext(ctx, `
       SELECT "project_id"
       FROM "project_api"
@@ -123,7 +123,7 @@ func (h *Handler) ProjectKey(ctx context.Context, in *projectpb.ProjectKey_Reque
 			return nil, trace.Error(err, log, nil)
 		}
 
-	case *projectpb.ProjectKey_Request_Private:
+	case *projectmessage.ProjectKey_Request_Private:
 		var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
 		err := h.DB.Conn.QueryRowContext(ctx, `
       SELECT
@@ -174,12 +174,12 @@ func (h *Handler) ProjectKey(ctx context.Context, in *projectpb.ProjectKey_Reque
 }
 
 // AddProjectKey is ...
-func (h *Handler) AddProjectKey(ctx context.Context, in *projectpb.AddProjectKey_Request) (*projectpb.AddProjectKey_Response, error) {
+func (h *Handler) AddProjectKey(ctx context.Context, in *projectmessage.AddProjectKey_Request) (*projectmessage.AddProjectKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &projectpb.AddProjectKey_Response{
+	response := &projectmessage.AddProjectKey_Response{
 		Key: crypto.NewPassword(37, false),
 	}
 
@@ -206,7 +206,7 @@ func (h *Handler) AddProjectKey(ctx context.Context, in *projectpb.AddProjectKey
 }
 
 // DeleteProjectKey is ...
-func (h *Handler) DeleteProjectKey(ctx context.Context, in *projectpb.DeleteProjectKey_Request) (*projectpb.DeleteProjectKey_Response, error) {
+func (h *Handler) DeleteProjectKey(ctx context.Context, in *projectmessage.DeleteProjectKey_Request) (*projectmessage.DeleteProjectKey_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -231,5 +231,5 @@ func (h *Handler) DeleteProjectKey(ctx context.Context, in *projectpb.DeleteProj
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	return &projectpb.DeleteProjectKey_Response{}, nil
+	return &projectmessage.DeleteProjectKey_Response{}, nil
 }

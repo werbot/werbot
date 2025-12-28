@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package keyenum;
+
+option go_package = "github.com/werbot/werbot/internal/core/key/proto/enum";
+
+enum KeyType {
+  unspecified = 0;
+  ed25519 = 1;
+  ecdsa = 2;
+  rsa = 3;
+}

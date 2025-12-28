@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package notification;
+
+import "internal/core/notification/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/notification/proto/rpc";
+
+service NotificationHandlers {
+  rpc SendMail(notificationmessage.SendMail.Request) returns (notificationmessage.SendMail.Response) {}
+}

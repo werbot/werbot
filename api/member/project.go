@@ -4,8 +4,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	event "github.com/werbot/werbot/internal/core/event/recorder"
-	memberpb "github.com/werbot/werbot/internal/core/member/proto/member"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	memberrpc "github.com/werbot/werbot/internal/core/member/proto/rpc"
+	membermessage "github.com/werbot/werbot/internal/core/member/proto/message"
+	profileenum "github.com/werbot/werbot/internal/core/profile/proto/enum"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
@@ -22,7 +23,7 @@ import (
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
 // @Param sort_by query string false "Sort by for pagination"
-// @Success 200 {object} webutil.HTTPResponse{result1=memberpb.ProjectMembers_Response,result2=memberpb.AddProjectMember_Response}
+// @Success 200 {object} webutil.HTTPResponse{result1=membermessage.ProjectMembers_Response,result2=membermessage.AddProjectMember_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/project/{project_id} [get]
 func (h *Handler) projectMembers(c *fiber.Ctx) error {
@@ -35,7 +36,7 @@ func (h *Handler) projectMembers(c *fiber.Ctx) error {
 			return webutil.StatusNotFound(c, nil)
 		}
 
-		request := &memberpb.ProfilesWithoutProject_Request{
+		request := &membermessage.ProfilesWithoutProject_Request{
 			ProjectId: c.Params("project_id"),
 			Limit:     pagination.Limit,
 			Offset:    pagination.Offset,
@@ -44,7 +45,7 @@ func (h *Handler) projectMembers(c *fiber.Ctx) error {
 
 		_ = webutil.Parse(c, request).Query()
 
-		rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+		rClient := memberrpc.NewMemberHandlersClient(h.Grpc)
 		members, err := rClient.ProfilesWithoutProject(c.UserContext(), request)
 		if err != nil {
 			return webutil.FromGRPC(c, err)
@@ -59,7 +60,7 @@ func (h *Handler) projectMembers(c *fiber.Ctx) error {
 	}
 
 	// default show
-	request := &memberpb.ProjectMembers_Request{
+	request := &membermessage.ProjectMembers_Request{
 		IsAdmin:   sessionData.IsProfileAdmin(),
 		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
@@ -70,7 +71,7 @@ func (h *Handler) projectMembers(c *fiber.Ctx) error {
 
 	_ = webutil.Parse(c, request).Query()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	rClient := memberrpc.NewMemberHandlersClient(h.Grpc)
 	members, err := rClient.ProjectMembers(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -91,19 +92,19 @@ func (h *Handler) projectMembers(c *fiber.Ctx) error {
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID"
 // @Param member_id path string true "Member UUID"
-// @Success 200 {object} webutil.HTTPResponse{result=memberpb.ProjectMember_Response}
+// @Success 200 {object} webutil.HTTPResponse{result=membermessage.ProjectMember_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/project/{project_id}/{member_id} [get]
 func (h *Handler) projectMember(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &memberpb.ProjectMember_Request{
+	request := &membermessage.ProjectMember_Request{
 		IsAdmin:   sessionData.IsProfileAdmin(),
 		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		MemberId:  c.Params("member_id"),
 	}
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	rClient := memberrpc.NewMemberHandlersClient(h.Grpc)
 	member, err := rClient.ProjectMember(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -124,21 +125,21 @@ func (h *Handler) projectMember(c *fiber.Ctx) error {
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "UUID of the project"
-// @Param body body memberpb.AddProjectMember_Request true "Adds a new member Request Body"
-// @Success 200 {object} webutil.HTTPResponse{result=memberpb.AddProjectMember_Response}
+// @Param body body membermessage.AddProjectMember_Request true "Adds a new member Request Body"
+// @Success 200 {object} webutil.HTTPResponse{result=membermessage.AddProjectMember_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/project/{project_id} [post]
 func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &memberpb.AddProjectMember_Request{
+	request := &membermessage.AddProjectMember_Request{
 		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
-		Role:      profilepb.Role_user,
+		Role:      profileenum.Role_user,
 	}
 
 	_ = webutil.Parse(c, request).Body()
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	rClient := memberrpc.NewMemberHandlersClient(h.Grpc)
 	member, err := rClient.AddProjectMember(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -164,13 +165,13 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "UUID of the project"
 // @Param member_id path string true "UUID of the member to be updated"
-// @Param body body memberpb.UpdateProjectMember_Request true "Updates the role or status Request Body"
+// @Param body body membermessage.UpdateProjectMember_Request true "Updates the role or status Request Body"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/project/{project_id}/{member_id} [put]
 func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &memberpb.UpdateProjectMember_Request{
+	request := &membermessage.UpdateProjectMember_Request{
 		IsAdmin:   sessionData.IsProfileAdmin(),
 		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
@@ -179,7 +180,7 @@ func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 
 	_ = webutil.Parse(c, request).Body(true)
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	rClient := memberrpc.NewMemberHandlersClient(h.Grpc)
 	if _, err := rClient.UpdateProjectMember(c.UserContext(), request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}
@@ -187,9 +188,9 @@ func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 	// Log the event
 	var eventType event.Type
 	switch request.GetSetting().(type) {
-	case *memberpb.UpdateProjectMember_Request_Role:
+	case *membermessage.UpdateProjectMember_Request_Role:
 		eventType = event.OnUpdate
-	case *memberpb.UpdateProjectMember_Request_Active:
+	case *membermessage.UpdateProjectMember_Request_Active:
 		if request.GetActive() {
 			eventType = event.OnOffline
 		} else {
@@ -216,13 +217,13 @@ func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 // @Router /v1/members/project/{project_id}/{member_id} [delete]
 func (h *Handler) deleteProjectMember(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &memberpb.DeleteProjectMember_Request{
+	request := &membermessage.DeleteProjectMember_Request{
 		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		MemberId:  c.Params("member_id"),
 	}
 
-	rClient := memberpb.NewMemberHandlersClient(h.Grpc)
+	rClient := memberrpc.NewMemberHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteProjectMember(c.UserContext(), request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}

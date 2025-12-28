@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/werbot/werbot/internal"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	"github.com/werbot/werbot/pkg/storage/redis"
 )
 
@@ -17,11 +17,11 @@ import (
 type Config struct {
 	PrivateKey *rsa.PrivateKey
 	PublicKey  *rsa.PublicKey
-	Context    *profilepb.ProfileParameters
+	Context    *profilemessage.ProfileParameters
 }
 
 // New creates a new instance of Config with initialized keys
-func New(context *profilepb.ProfileParameters) (*Config, error) {
+func New(context *profilemessage.ProfileParameters) (*Config, error) {
 	privateKey, err := PrivateKey()
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func New(context *profilepb.ProfileParameters) (*Config, error) {
 }
 
 // PairTokens generates both an access token and a refresh token.
-func (d *Config) PairTokens() (*profilepb.Token_Response, error) {
+func (d *Config) PairTokens() (*profilemessage.Token_Response, error) {
 	accessToken, err := d.createToken(internal.GetDuration("ACCESS_TOKEN_DURATION", "15m"), true)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (d *Config) PairTokens() (*profilepb.Token_Response, error) {
 		return nil, err
 	}
 
-	return &profilepb.Token_Response{
+	return &profilemessage.Token_Response{
 		Access:  accessToken,
 		Refresh: refreshToken,
 	}, nil
@@ -72,7 +72,7 @@ func (d *Config) createToken(expire time.Duration, accessToken bool) (string, er
 	}
 
 	if accessToken {
-		claims.User = profilepb.ProfileParameters{
+		claims.User = profilemessage.ProfileParameters{
 			Name:      d.Context.GetName(),
 			ProfileId: d.Context.GetProfileId(),
 			Roles:     d.Context.GetRoles(),

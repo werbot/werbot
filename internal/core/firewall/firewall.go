@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"regexp"
 
-	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
+	firewallmessage "github.com/werbot/werbot/internal/core/firewall/proto/message"
 	"github.com/werbot/werbot/internal/core/system"
-	systempb "github.com/werbot/werbot/internal/core/system/proto/system"
+	systemmessage "github.com/werbot/werbot/internal/core/system/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/utils/netutil"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -17,13 +17,13 @@ import (
 )
 
 // IPAccess is global service access check by IP
-func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request) (*firewallpb.IPAccess_Response, error) {
+func (h *Handler) IPAccess(ctx context.Context, in *firewallmessage.IPAccess_Request) (*firewallmessage.IPAccess_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	utilityHandler := &system.Handler{}
-	countryByIP, _ := utilityHandler.CountryByIP(ctx, &systempb.CountryByIP_Request{
+	countryByIP, _ := utilityHandler.CountryByIP(ctx, &systemmessage.CountryByIP_Request{
 		Ip: in.GetClientIp(),
 	})
 
@@ -65,7 +65,7 @@ func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request)
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	response := &firewallpb.IPAccess_Response{
+	response := &firewallmessage.IPAccess_Response{
 		CountryName: countryByIP.GetName(),
 		CountryCode: countryByIP.GetCode(),
 	}
@@ -74,7 +74,7 @@ func (h *Handler) IPAccess(ctx context.Context, in *firewallpb.IPAccess_Request)
 }
 
 // UpdateFirewallListData is ...
-func (h *Handler) UpdateFirewallListData(ctx context.Context, _ *firewallpb.UpdateFirewallListData_Request) (*firewallpb.UpdateFirewallListData_Response, error) {
+func (h *Handler) UpdateFirewallListData(ctx context.Context, _ *firewallmessage.UpdateFirewallListData_Request) (*firewallmessage.UpdateFirewallListData_Response, error) {
 	rows, err := h.DB.Conn.QueryContext(ctx, `
     SELECT "id", "name", "path"
     FROM "firewall_list"
@@ -135,5 +135,5 @@ func (h *Handler) UpdateFirewallListData(ctx context.Context, _ *firewallpb.Upda
 		}
 	}
 
-	return &firewallpb.UpdateFirewallListData_Response{}, nil
+	return &firewallmessage.UpdateFirewallListData_Response{}, nil
 }

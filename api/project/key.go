@@ -4,7 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	event "github.com/werbot/werbot/internal/core/event/recorder"
-	projectpb "github.com/werbot/werbot/internal/core/project/proto/project"
+	projectrpc "github.com/werbot/werbot/internal/core/project/proto/rpc"
+	projectmessage "github.com/werbot/werbot/internal/core/project/proto/message"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
@@ -20,13 +21,13 @@ import (
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
 // @Param sort_by query string false "Sort by for pagination"
-// @Success 200 {object} webutil.HTTPResponse{result=projectpb.ProjectKeys_Response}
+// @Success 200 {object} webutil.HTTPResponse{result=projectmessage.ProjectKeys_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id}/keys [get]
 func (h *Handler) projectKeys(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	pagination := webutil.GetPaginationFromCtx(c)
-	request := &projectpb.ProjectKeys_Request{
+	request := &projectmessage.ProjectKeys_Request{
 		IsAdmin:   sessionData.IsProfileAdmin(),
 		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
@@ -35,7 +36,7 @@ func (h *Handler) projectKeys(c *fiber.Ctx) error {
 		SortBy:    "id:ASC",
 	}
 
-	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
+	rClient := projectrpc.NewProjectHandlersClient(h.Grpc)
 	projects, err := rClient.ProjectKeys(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -56,23 +57,23 @@ func (h *Handler) projectKeys(c *fiber.Ctx) error {
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID"
 // @Param key_id path string true "Key UUID"
-// @Success 200 {object} webutil.HTTPResponse{result=projectpb.ProjectKey_Response}
+// @Success 200 {object} webutil.HTTPResponse{result=projectmessage.ProjectKey_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id}/keys/{key_id} [get]
 func (h *Handler) projectKey(c *fiber.Ctx) error {
-	request := &projectpb.ProjectKey_Request{}
+	request := &projectmessage.ProjectKey_Request{}
 
 	key := c.Params("key")
 	if key != "" { // without authorizations, using in agent
-		request.Type = &projectpb.ProjectKey_Request_Public{
-			Public: &projectpb.ProjectKey_Public{
+		request.Type = &projectmessage.ProjectKey_Request_Public{
+			Public: &projectmessage.ProjectKey_Public{
 				Key: key,
 			},
 		}
 	} else {
 		sessionData := session.AuthProfile(c)
-		request.Type = &projectpb.ProjectKey_Request_Private{
-			Private: &projectpb.ProjectKey_Private{
+		request.Type = &projectmessage.ProjectKey_Request_Private{
+			Private: &projectmessage.ProjectKey_Private{
 				IsAdmin:   sessionData.IsProfileAdmin(),
 				OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 				ProjectId: c.Params("project_id"),
@@ -81,7 +82,7 @@ func (h *Handler) projectKey(c *fiber.Ctx) error {
 		}
 	}
 
-	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
+	rClient := projectrpc.NewProjectHandlersClient(h.Grpc)
 	project, err := rClient.ProjectKey(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -102,19 +103,19 @@ func (h *Handler) projectKey(c *fiber.Ctx) error {
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID"
-// @Success 200 {object} webutil.HTTPResponse{result=projectpb.AddProjectKey_Response}
+// @Success 200 {object} webutil.HTTPResponse{result=projectmessage.AddProjectKey_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id}/keys [post]
 func (h *Handler) addProjectKey(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &projectpb.AddProjectKey_Request{
+	request := &projectmessage.AddProjectKey_Request{
 		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 	}
 
 	_ = webutil.Parse(c, request).Body()
 
-	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
+	rClient := projectrpc.NewProjectHandlersClient(h.Grpc)
 	project, err := rClient.AddProjectKey(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -146,13 +147,13 @@ func (h *Handler) addProjectKey(c *fiber.Ctx) error {
 // @Router /v1/projects/{project_id}/keys/{key_id} [delete]
 func (h *Handler) deleteProjectKey(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
-	request := &projectpb.DeleteProjectKey_Request{
+	request := &projectmessage.DeleteProjectKey_Request{
 		OwnerId:   sessionData.ProfileID(c.Query("owner_id")),
 		ProjectId: c.Params("project_id"),
 		KeyId:     c.Params("key_id"),
 	}
 
-	rClient := projectpb.NewProjectHandlersClient(h.Grpc)
+	rClient := projectrpc.NewProjectHandlersClient(h.Grpc)
 	if _, err := rClient.DeleteProjectKey(c.UserContext(), request); err != nil {
 		return webutil.FromGRPC(c, err)
 	}

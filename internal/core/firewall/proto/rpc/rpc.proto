@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package firewall;
+
+import "internal/core/firewall/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/firewall/proto/rpc";
+
+service FirewallHandlers {
+  rpc IPAccess(firewall.IPAccess.Request) returns (firewall.IPAccess.Response) {}
+
+  rpc UpdateFirewallListData(firewall.UpdateFirewallListData.Request) returns (firewall.UpdateFirewallListData.Response) {}
+}

@@ -3,18 +3,19 @@ package agent
 import (
 	"github.com/gofiber/fiber/v2"
 
-	agentpb "github.com/werbot/werbot/internal/core/agent/proto/agent"
+	agentrpc "github.com/werbot/werbot/internal/core/agent/proto/rpc"
+	agentmessage "github.com/werbot/werbot/internal/core/agent/proto/message"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
 // authToken
 func (h *Handler) authToken(c *fiber.Ctx) error {
-	request := &agentpb.Auth_Request{
+	request := &agentmessage.Auth_Request{
 		Token: c.Params("token"),
 	}
 
-	rClient := agentpb.NewAgentHandlersClient(h.Grpc)
+	rClient := agentrpc.NewAgentHandlersClient(h.Grpc)
 	keys, err := rClient.Auth(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
@@ -37,13 +38,13 @@ func (h *Handler) authToken(c *fiber.Ctx) error {
 // @Failure      400,401,500 {object} webutil.HTTPResponse
 // @Router       /v1/service/server [post]
 func (h *Handler) addScheme(c *fiber.Ctx) error {
-	request := &agentpb.AddScheme_Request{
+	request := &agentmessage.AddScheme_Request{
 		Token: c.Params("token"),
 	}
 
 	_ = webutil.Parse(c, request).Body()
 
-	rClient := agentpb.NewAgentHandlersClient(h.Grpc)
+	rClient := agentrpc.NewAgentHandlersClient(h.Grpc)
 	scheme, err := rClient.AddScheme(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

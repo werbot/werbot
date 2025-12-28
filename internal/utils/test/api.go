@@ -14,7 +14,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 
 	"github.com/werbot/werbot/api"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	profileenum "github.com/werbot/werbot/internal/core/profile/proto/enum"
+	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/internal/web/middleware"
 	"github.com/werbot/werbot/pkg/utils/webutil"
@@ -66,16 +67,16 @@ type APIHandler struct {
 
 // ProfileInfo holds profile information including tokens
 type ProfileInfo struct {
-	Tokens    *profilepb.Token_Response
+	Tokens    *profilemessage.Token_Response
 	ProfileID string `json:"profile_id"`
-	Role      profilepb.Role
+	Role      profileenum.Role
 	SessionID string
 }
 
 // Tokens holds admin and profile tokens
 type Tokens struct {
-	Admin *profilepb.Token_Response `json:"admin_tokens"`
-	User  *profilepb.Token_Response `json:"user_tokens"`
+	Admin *profilemessage.Token_Response `json:"admin_tokens"`
+	User  *profilemessage.Token_Response `json:"user_tokens"`
 }
 
 // API sets up the test environment and returns a TestHandler and teardown function
@@ -139,7 +140,7 @@ func API(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
 
 // GetProfileAuth retrieves profile authentication info
 func (h *APIHandler) GetProfileAuth(email, password string) *ProfileInfo {
-	tokens := h.getAuthToken(&profilepb.SignIn_Request{
+	tokens := h.getAuthToken(&profilemessage.SignIn_Request{
 		Email:    email,
 		Password: password,
 	})
@@ -150,12 +151,12 @@ func (h *APIHandler) GetProfileAuth(email, password string) *ProfileInfo {
 	return &ProfileInfo{
 		Tokens:    tokens,
 		ProfileID: context["profile_id"].(string),
-		Role:      profilepb.Role(context["roles"].(float64)),
+		Role:      profileenum.Role(context["roles"].(float64)),
 		SessionID: sessionData["sub"].(string),
 	}
 }
 
-func (h *APIHandler) getAuthToken(signIn *profilepb.SignIn_Request) *profilepb.Token_Response {
+func (h *APIHandler) getAuthToken(signIn *profilemessage.SignIn_Request) *profilemessage.Token_Response {
 	bodyReader, _ := json.Marshal(signIn)
 	req := httptest.NewRequest("POST", "/auth/signin", bytes.NewBuffer(bodyReader))
 	req.Header.Set("Content-Type", "application/json")
@@ -165,7 +166,7 @@ func (h *APIHandler) getAuthToken(signIn *profilepb.SignIn_Request) *profilepb.T
 	}
 	defer res.Body.Close()
 
-	tokens := &profilepb.Token_Response{}
+	tokens := &profilemessage.Token_Response{}
 	body := &webutil.HTTPResponse{
 		Result: tokens,
 	}

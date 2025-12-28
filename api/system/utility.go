@@ -3,7 +3,8 @@ package system
 import (
 	"github.com/gofiber/fiber/v2"
 
-	systempb "github.com/werbot/werbot/internal/core/system/proto/system"
+	systemrpc "github.com/werbot/werbot/internal/core/system/proto/rpc"
+	systemmessage "github.com/werbot/werbot/internal/core/system/proto/message"
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
@@ -12,11 +13,11 @@ func (h *Handler) myIP(c *fiber.Ctx) error {
 }
 
 func (h *Handler) countries(c *fiber.Ctx) error {
-	request := &systempb.Countries_Request{}
+	request := &systemmessage.Countries_Request{}
 
 	_ = webutil.Parse(c, request).Query()
 
-	rClient := systempb.NewSystemHandlersClient(h.Grpc)
+	rClient := systemrpc.NewSystemHandlersClient(h.Grpc)
 	countries, err := rClient.Countries(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)

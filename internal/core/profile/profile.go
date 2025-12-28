@@ -14,8 +14,9 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/core/notification"
-	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	notificationmessage "github.com/werbot/werbot/internal/core/notification/proto/message"
+	notificationenum "github.com/werbot/werbot/internal/core/notification/proto/enum"
+	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	"github.com/werbot/werbot/internal/core/token"
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
@@ -28,12 +29,12 @@ import (
 )
 
 // Profiles is lists all profiles on the system
-func (h *Handler) Profiles(ctx context.Context, in *profilepb.Profiles_Request) (*profilepb.Profiles_Response, error) {
+func (h *Handler) Profiles(ctx context.Context, in *profilemessage.Profiles_Request) (*profilemessage.Profiles_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &profilepb.Profiles_Response{}
+	response := &profilemessage.Profiles_Response{}
 
 	// Total count for pagination
 	err := h.DB.Conn.QueryRowContext(ctx, `
@@ -93,7 +94,7 @@ func (h *Handler) Profiles(ctx context.Context, in *profilepb.Profiles_Request) 
 
 	for rows.Next() {
 		var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-		profile := &profilepb.Profile_Response{}
+		profile := &profilemessage.Profile_Response{}
 		err = rows.Scan(
 			&profile.ProfileId,
 			&profile.Alias,
@@ -133,13 +134,13 @@ func (h *Handler) Profiles(ctx context.Context, in *profilepb.Profiles_Request) 
 }
 
 // Profile is displays profile information
-func (h *Handler) Profile(ctx context.Context, in *profilepb.Profile_Request) (*profilepb.Profile_Response, error) {
+func (h *Handler) Profile(ctx context.Context, in *profilemessage.Profile_Request) (*profilemessage.Profile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-	response := &profilepb.Profile_Response{}
+	response := &profilemessage.Profile_Response{}
 	response.ProfileId = in.GetProfileId()
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
@@ -211,12 +212,12 @@ func (h *Handler) Profile(ctx context.Context, in *profilepb.Profile_Request) (*
 }
 
 // AddProfile is adds a new profile
-func (h *Handler) AddProfile(ctx context.Context, in *profilepb.AddProfile_Request) (*profilepb.AddProfile_Response, error) {
+func (h *Handler) AddProfile(ctx context.Context, in *profilemessage.AddProfile_Request) (*profilemessage.AddProfile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &profilepb.AddProfile_Response{}
+	response := &profilemessage.AddProfile_Response{}
 	password, _ := crypto.HashPassword(in.Password, internal.GetInt("PASSWORD_HASH_COST", 13))
 	err := h.DB.Conn.QueryRowContext(ctx, `
     INSERT INTO "profile" ("alias", "name", "surname", "email", "password", "active", "confirmed")
@@ -246,7 +247,7 @@ func (h *Handler) AddProfile(ctx context.Context, in *profilepb.AddProfile_Reque
 }
 
 // UpdateProfile is updates profile data
-func (h *Handler) UpdateProfile(ctx context.Context, in *profilepb.UpdateProfile_Request) (*profilepb.UpdateProfile_Response, error) {
+func (h *Handler) UpdateProfile(ctx context.Context, in *profilemessage.UpdateProfile_Request) (*profilemessage.UpdateProfile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -255,37 +256,37 @@ func (h *Handler) UpdateProfile(ctx context.Context, in *profilepb.UpdateProfile
 	var value any
 
 	switch setting := in.GetSetting().(type) {
-	case *profilepb.UpdateProfile_Request_Name:
+	case *profilemessage.UpdateProfile_Request_Name:
 		column = "name"
 		value = in.GetName()
-	case *profilepb.UpdateProfile_Request_Surname:
+	case *profilemessage.UpdateProfile_Request_Surname:
 		column = "surname"
 		value = in.GetSurname()
 
-	case *profilepb.UpdateProfile_Request_Alias,
-		*profilepb.UpdateProfile_Request_Email,
-		*profilepb.UpdateProfile_Request_Confirmed,
-		*profilepb.UpdateProfile_Request_Active,
-		*profilepb.UpdateProfile_Request_Archived:
+	case *profilemessage.UpdateProfile_Request_Alias,
+		*profilemessage.UpdateProfile_Request_Email,
+		*profilemessage.UpdateProfile_Request_Confirmed,
+		*profilemessage.UpdateProfile_Request_Active,
+		*profilemessage.UpdateProfile_Request_Archived:
 		if !in.GetIsAdmin() {
 			errGRPC := status.Error(codes.InvalidArgument, "setting: exactly one field is required in oneof")
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 		switch setting.(type) {
-		case *profilepb.UpdateProfile_Request_Alias:
+		case *profilemessage.UpdateProfile_Request_Alias:
 			column = "alias"
 			value = in.GetAlias()
-		case *profilepb.UpdateProfile_Request_Email:
+		case *profilemessage.UpdateProfile_Request_Email:
 			column = "email"
 			value = in.GetEmail()
-		case *profilepb.UpdateProfile_Request_Confirmed:
+		case *profilemessage.UpdateProfile_Request_Confirmed:
 			column = "confirmed"
 			value = in.GetConfirmed()
-		case *profilepb.UpdateProfile_Request_Active:
+		case *profilemessage.UpdateProfile_Request_Active:
 			column = "active"
 			value = in.GetActive()
-		case *profilepb.UpdateProfile_Request_Archived:
+		case *profilemessage.UpdateProfile_Request_Archived:
 			column = "archived"
 			value = in.GetArchived()
 		}
@@ -307,11 +308,11 @@ func (h *Handler) UpdateProfile(ctx context.Context, in *profilepb.UpdateProfile
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	return &profilepb.UpdateProfile_Response{}, nil
+	return &profilemessage.UpdateProfile_Response{}, nil
 }
 
 // DeleteProfile is ...
-func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile_Request) (*profilepb.DeleteProfile_Response, error) {
+func (h *Handler) DeleteProfile(ctx context.Context, in *profilemessage.DeleteProfile_Request) (*profilemessage.DeleteProfile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -319,7 +320,7 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile
 	notification := notification.Handler{DB: h.DB, Worker: h.Worker}
 
 	switch in.GetRequest().(type) {
-	case *profilepb.DeleteProfile_Request_Password: // step 1
+	case *profilemessage.DeleteProfile_Request_Password: // step 1
 		// Get profile data
 		var alias, passwordHash, email string
 		err := h.DB.Conn.QueryRowContext(ctx, `
@@ -356,10 +357,10 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile
 		}
 
 		// send email with token link
-		if _, err := notification.SendMail(ctx, &notificationpb.SendMail_Request{
+		if _, err := notification.SendMail(ctx, &notificationmessage.SendMail_Request{
 			Email:    email,
 			Subject:  "profile deletion confirmation",
-			Template: notificationpb.MailTemplate_account_deletion_confirmation,
+			Template: notificationenum.MailTemplate_account_deletion_confirmation,
 			Data: map[string]string{
 				"Login":     alias,
 				"Link":      fmt.Sprintf("%s/profile/setting/destroy/%s", internal.GetString("APP_DSN", "http://localhost:5173"), tokenID),
@@ -369,7 +370,7 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile
 			return nil, trace.Error(err, log, nil)
 		}
 
-	case *profilepb.DeleteProfile_Request_Token: // step 2
+	case *profilemessage.DeleteProfile_Request_Token: // step 2
 		// Check token via token package
 		tokenHandler := token.Handler{DB: h.DB, Worker: h.Worker}
 		tokenData, err := tokenHandler.Token(ctx, &tokenmessage.Token_Request{
@@ -443,21 +444,21 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile
 		}
 
 		// send delete token to email
-		notification.SendMail(ctx, &notificationpb.SendMail_Request{
+		notification.SendMail(ctx, &notificationmessage.SendMail_Request{
 			Email:    email,
 			Subject:  "profile deleted",
-			Template: notificationpb.MailTemplate_account_deletion_info,
+			Template: notificationenum.MailTemplate_account_deletion_info,
 			Data: map[string]string{
 				"Login": alias,
 			},
 		})
 	}
 
-	return &profilepb.DeleteProfile_Response{}, nil
+	return &profilemessage.DeleteProfile_Response{}, nil
 }
 
 // UpdatePassword is ...
-func (h *Handler) UpdatePassword(ctx context.Context, in *profilepb.UpdatePassword_Request) (*profilepb.UpdatePassword_Response, error) {
+func (h *Handler) UpdatePassword(ctx context.Context, in *profilemessage.UpdatePassword_Request) (*profilemessage.UpdatePassword_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
@@ -502,18 +503,18 @@ func (h *Handler) UpdatePassword(ctx context.Context, in *profilepb.UpdatePasswo
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	return &profilepb.UpdatePassword_Response{}, nil
+	return &profilemessage.UpdatePassword_Response{}, nil
 }
 
 // TODO Check bu invite and Enable check in Firewall
 // ProfileIDByLogin is a function that takes a context and an AccountIDByLogin_Request as input,
 // and returns an AccountIDByLogin_Response and an error as output.
-func (h *Handler) ProfileIDByLogin(ctx context.Context, in *profilepb.ProfileIDByLogin_Request) (*profilepb.ProfileIDByLogin_Response, error) {
+func (h *Handler) ProfileIDByLogin(ctx context.Context, in *profilemessage.ProfileIDByLogin_Request) (*profilemessage.ProfileIDByLogin_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &profilepb.ProfileIDByLogin_Response{}
+	response := &profilemessage.ProfileIDByLogin_Response{}
 	nameArray := strutil.SplitNTrimmed(in.GetLogin(), "_", 3)
 
 	stmt, err := h.DB.Conn.PrepareContext(ctx, `
@@ -544,13 +545,13 @@ func (h *Handler) ProfileIDByLogin(ctx context.Context, in *profilepb.ProfileIDB
 }
 
 // ProfileByEmail is ...
-func (h *Handler) ProfileByEmail(ctx context.Context, in *profilepb.ProfileByEmail_Request) (*profilepb.Profile_Response, error) {
+func (h *Handler) ProfileByEmail(ctx context.Context, in *profilemessage.ProfileByEmail_Request) (*profilemessage.Profile_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-	response := &profilepb.Profile_Response{}
+	response := &profilemessage.Profile_Response{}
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "id",
@@ -601,12 +602,12 @@ func (h *Handler) ProfileByEmail(ctx context.Context, in *profilepb.ProfileByEma
 
 // UpdateStatus is a method implemented by Handler struct which accepts
 // a context and an UpdateStatus_Request object and returns an UpdateStatus_Response object and an error
-func (h *Handler) UpdateStatus(ctx context.Context, in *profilepb.UpdateStatus_Request) (*profilepb.UpdateStatus_Response, error) {
+func (h *Handler) UpdateStatus(ctx context.Context, in *profilemessage.UpdateStatus_Request) (*profilemessage.UpdateStatus_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	response := &profilepb.UpdateStatus_Response{}
+	response := &profilemessage.UpdateStatus_Response{}
 
 	online := false
 	if in.GetStatus() == 1 {

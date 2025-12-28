@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package agent;
+
+import "internal/core/agent/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/agent/proto/rpc";
+
+service AgentHandlers {
+  rpc Auth(agentmessage.Auth.Request) returns (agentmessage.Auth.Response) {}
+
+  // Agent section
+  rpc AddScheme(agentmessage.AddScheme.Request) returns (agentmessage.AddScheme.Response) {}
+  // rpc UpdateScheme(UpdateScheme.Request) returns (UpdateScheme.Response) {}
+}

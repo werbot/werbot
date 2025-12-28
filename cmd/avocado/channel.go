@@ -15,7 +15,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/werbot/werbot/internal"
-	auditpb "github.com/werbot/werbot/internal/core/audit/proto/audit"
+	auditmessage "github.com/werbot/werbot/internal/core/audit/proto/message"
 	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
 	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
@@ -48,11 +48,11 @@ func connectToHost(host *schemepb.Scheme_Response, actx *authContext, ctx ssh.Co
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClientF := firewallpb.NewFirewallHandlersClient(app.grpc)
+	rClientF := firewallmessage.NewFirewallHandlersClient(app.grpc)
 	rClientS := schemepb.NewSchemeHandlersClient(app.grpc)
-	rClientA := profilepb.NewProfileHandlersClient(app.grpc)
+	rClientA := profilemessage.NewProfileHandlersClient(app.grpc)
 
-	_, err := rClientF.ServerAccess(_ctx, &firewallpb.ServerAccess_Request{
+	_, err := rClientF.ServerAccess(_ctx, &firewallmessage.ServerAccess_Request{
 		ServerId: host.SchemeId,
 		UserId:   actx.userID,
 		MemberIp: actx.userAddr,
@@ -78,7 +78,7 @@ func connectToHost(host *schemepb.Scheme_Response, actx *authContext, ctx ssh.Co
 
 		app.broker.AccountStatus(host.AccountId, "online")
 
-		_, err = rClientA.UpdateStatus(_ctx, &profilepb.UpdateStatus_Request{
+		_, err = rClientA.UpdateStatus(_ctx, &profilemessage.UpdateStatus_Request{
 			AccountId: host.AccountId,
 			Status:    2, // online
 		})
@@ -146,7 +146,7 @@ func connectToHost(host *schemepb.Scheme_Response, actx *authContext, ctx ssh.Co
 
 			app.broker.AccountStatus(host.AccountId, "offline")
 
-			_, err := rClientA.UpdateStatus(_ctx, &profilepb.UpdateStatus_Request{
+			_, err := rClientA.UpdateStatus(_ctx, &profilemessage.UpdateStatus_Request{
 				AccountId: host.AccountId,
 				Status:    1, // offline
 			})
@@ -403,7 +403,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 	errch := make(chan error, 1)
 	quit := make(chan string, 1)
 
-	newAudit := &auditpb.AddAudit_Request{
+	newAudit := &auditmessage.AddAudit_Request{
 		AccountId: sessConfig.AccountID,
 		ClientIp:  sessConfig.ClientIP,
 		Session:   sessConfig.SessionID,
@@ -451,7 +451,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := auditpb.NewAuditHandlersClient(app.grpc)
+	rClient := auditmessage.NewAuditHandlersClient(app.grpc)
 
 	go func(quit chan string) {
 		for req := range lreqs {
@@ -468,7 +468,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 			if req.Type == "pty-req" {
 				ptyReq, _ := pty.ParsePtyRequest(req.Payload)
 
-				_, err = rClient.UpdateAudit(_ctx, &auditpb.UpdateAudit_Request{
+				_, err = rClient.UpdateAudit(_ctx, &auditmessage.UpdateAudit_Request{
 					AuditId: auditID,
 					Width:   int32(ptyReq.Width),
 					Height:  int32(ptyReq.Height),

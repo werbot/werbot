@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package project;
+
+import "internal/core/project/proto/message/message.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/project/proto/rpc";
+
+service ProjectHandlers {
+  // Project section
+  rpc Projects(projectmessage.Projects.Request) returns (projectmessage.Projects.Response) {}
+  rpc Project(projectmessage.Project.Request) returns (projectmessage.Project.Response) {}
+  rpc AddProject(projectmessage.AddProject.Request) returns (projectmessage.AddProject.Response) {}
+  rpc UpdateProject(projectmessage.UpdateProject.Request) returns (projectmessage.UpdateProject.Response) {}
+  rpc DeleteProject(projectmessage.DeleteProject.Request) returns (projectmessage.DeleteProject.Response) {}
+
+  // Project key section
+  rpc ProjectKeys(projectmessage.ProjectKeys.Request) returns (projectmessage.ProjectKeys.Response) {}
+  rpc ProjectKey(projectmessage.ProjectKey.Request) returns (projectmessage.ProjectKey.Response) {}
+  rpc AddProjectKey(projectmessage.AddProjectKey.Request) returns (projectmessage.AddProjectKey.Response) {}
+  rpc DeleteProjectKey(projectmessage.DeleteProjectKey.Request) returns (projectmessage.DeleteProjectKey.Response) {}
+}

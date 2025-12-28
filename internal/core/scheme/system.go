@@ -12,7 +12,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/werbot/werbot/internal/core/firewall"
-	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
+	firewallmessage "github.com/werbot/werbot/internal/core/firewall/proto/message"
 	"github.com/werbot/werbot/internal/core/scheme/access"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/trace"
@@ -148,7 +148,7 @@ func (h *Handler) SystemSchemeAccess(ctx context.Context, in *schemepb.SystemSch
 		DB: h.DB,
 	}
 
-	ipInfo, err := firewallHandler.IPAccess(ctx, &firewallpb.IPAccess_Request{
+	ipInfo, err := firewallHandler.IPAccess(ctx, &firewallmessage.IPAccess_Request{
 		ClientIp: in.GetClientIp(),
 	})
 	if err != nil {

@@ -5,7 +5,8 @@ import (
 
 	"google.golang.org/grpc"
 
-	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
+	firewallmessage "github.com/werbot/werbot/internal/core/firewall/proto/message"
+	firewallrpc "github.com/werbot/werbot/internal/core/firewall/proto/rpc"
 	"github.com/werbot/werbot/pkg/worker"
 )
 
@@ -13,8 +14,8 @@ func cronUpdateFirewallList(grpcClient *grpc.ClientConn) worker.CronHandler {
 	return func(_ context.Context) error {
 		log.Info().Msg("Update firewall list")
 
-		rClient := firewallpb.NewFirewallHandlersClient(grpcClient)
-		if _, err := rClient.UpdateFirewallListData(context.Background(), nil); err != nil {
+		rClient := firewallrpc.NewFirewallHandlersClient(grpcClient)
+		if _, err := rClient.UpdateFirewallListData(context.Background(), &firewallmessage.UpdateFirewallListData_Request{}); err != nil {
 			log.Fatal(err).Send()
 		}
 

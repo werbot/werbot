@@ -5,14 +5,14 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	messagepb "github.com/werbot/werbot/internal/core/notification/proto/notification"
+	notificationmessage "github.com/werbot/werbot/internal/core/notification/proto/message"
 	"github.com/werbot/werbot/internal/worker"
 )
 
 type MetaData map[string]string
 
 // SendMail sends an email based on the request parameters
-func (m *Handler) SendMail(ctx context.Context, in *messagepb.SendMail_Request) (*messagepb.SendMail_Response, error) {
+func (m *Handler) SendMail(ctx context.Context, in *notificationmessage.SendMail_Request) (*notificationmessage.SendMail_Response, error) {
 	payload, err := proto.Marshal(in)
 	if err != nil {
 		log.Error(err).Send()
@@ -23,5 +23,5 @@ func (m *Handler) SendMail(ctx context.Context, in *messagepb.SendMail_Request) 
 		return nil, err
 	}
 
-	return &messagepb.SendMail_Response{}, nil
+	return &notificationmessage.SendMail_Response{}, nil
 }

@@ -1,7 +1,7 @@
 package license
 
 import (
-	licensepb "github.com/werbot/werbot/internal/core/license/proto/license"
+	licenserpc "github.com/werbot/werbot/internal/core/license/proto/rpc"
 	"github.com/werbot/werbot/pkg/logger"
 )
 
@@ -9,7 +9,7 @@ var log logger.Logger
 
 // Handler is ...
 type Handler struct {
-	licensepb.UnimplementedLicenseHandlersServer
+	licenserpc.UnimplementedLicenseHandlersServer
 }
 
 func init() {

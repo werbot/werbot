@@ -1,0 +1,262 @@
+syntax = "proto3";
+
+package membermessage;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
+import "internal/core/profile/proto/enum/enum.proto";
+
+option go_package = "github.com/werbot/werbot/internal/core/member/proto/message";
+
+// rpc ProjectMembers
+message ProjectMembers {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    int32 limit = 4;
+    int32 offset = 5;
+    string sort_by = 6; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated ProjectMember.Response members = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc ProjectMember
+message ProjectMember {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string member_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    string owner_id = 1 [(ghoster.secret) = true];
+    string owner_name = 2 [(ghoster.secret) = true];
+    string project_id = 3 [(ghoster.secret) = true];
+    string project_name = 4;
+    string member_id = 5;
+    string profile_id = 6 [(ghoster.secret) = true];
+    string name = 7;
+    profileenum.Role role = 8 [(ghoster.secret) = true];
+    bool active = 9;
+    bool online = 10;
+    int32 schemes_count = 11;
+    google.protobuf.Timestamp locked_at = 12 [(ghoster.secret) = true];
+    google.protobuf.Timestamp archived_at = 13 [(ghoster.secret) = true];
+    google.protobuf.Timestamp updated_at = 14 [(ghoster.secret) = true];
+    google.protobuf.Timestamp created_at = 15;
+  }
+}
+// -----------------------------------------------------
+
+// rpc AddProjectMember
+message AddProjectMember {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string profile_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    profileenum.Role role = 4 [(buf.validate.field).enum = { in: [ 1, 2 ] }]; // @gotags: json:"-"
+    bool active = 5;
+  }
+
+  message Response {
+    string member_id = 1;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UpdateProjectMember
+message UpdateProjectMember {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string member_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    oneof setting {
+      option (buf.validate.oneof).required = true;
+      profileenum.Role role = 5 [(buf.validate.field).enum = { in: [ 1, 2 ] }];
+      bool active = 6;
+    }
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc DeleteProjectMember
+message DeleteProjectMember {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string member_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc ProfilesWithoutProject
+message ProfilesWithoutProject {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+
+    string project_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string alias = 3;
+    int32 limit = 4;
+    int32 offset = 5;
+    string sort_by = 6; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated Profile profiles = 2;
+  }
+
+  message Profile {
+    string profile_id = 1;
+    string alias = 2;
+    bool active = 3;
+    string email = 4 [(ghoster.secret) = true];
+  }
+}
+// -----------------------------------------------------
+
+// SchemeMembers
+message SchemeMembers {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string scheme_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    int32 limit = 4;
+    int32 offset = 5;
+    string sort_by = 6; // @gotags: json:"-"
+  }
+
+  message Response {
+    int32 total = 1;
+    repeated SchemeMember.Response members = 2;
+  }
+}
+// -----------------------------------------------------
+
+// SchemeMember
+message SchemeMember {
+  message Request {
+    bool is_admin = 1; // @gotags: json:"-"
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string scheme_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string scheme_member_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+  }
+
+  message Response {
+    string scheme_member_id = 1;
+    string profile_id = 2 [(ghoster.secret) = true];
+    string alias = 3;
+    string name = 4;
+    string surname = 5;
+    string email = 6 [(ghoster.secret) = true];
+    profileenum.Role role = 7 [(ghoster.secret) = true];
+    bool active = 8;
+    bool online = 9;
+    google.protobuf.Timestamp locked_at = 10 [(ghoster.secret) = true];
+    google.protobuf.Timestamp archived_at = 11 [(ghoster.secret) = true];
+    google.protobuf.Timestamp updated_at = 12 [(ghoster.secret) = true];
+    google.protobuf.Timestamp created_at = 13;
+  }
+}
+// -----------------------------------------------------
+
+// AddSchemeMember
+message AddSchemeMember {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string scheme_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string member_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    bool active = 4;
+  }
+
+  message Response {
+    string scheme_member_id = 1;
+  }
+}
+// -----------------------------------------------------
+
+// UpdateSchemeMember
+message UpdateSchemeMember {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string scheme_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string scheme_member_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    oneof setting {
+      option (buf.validate.oneof).required = true;
+      bool active = 4;
+      bool online = 5;
+    }
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// DeleteSchemeMember
+message DeleteSchemeMember {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string scheme_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string scheme_member_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+  }
+
+  message Response {}
+}
+// -----------------------------------------------------
+
+// rpc MembersWithoutScheme
+message MembersWithoutScheme {
+  message Request {
+    string owner_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+
+    string scheme_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string alias = 3;
+    int32 limit = 4;
+    int32 offset = 5;
+    string sort_by = 6; // @gotags: json:"-"
+  }
+  message Response {
+    int32 total = 1;
+    repeated Member members = 2;
+  }
+
+  message Member {
+    string member_id = 1;
+    string profile_id = 2 [(ghoster.secret) = true];
+    string alias = 3;
+    string name = 4;
+    string surname = 5;
+    string email = 6 [(ghoster.secret) = true];
+    profileenum.Role role = 7 [(ghoster.secret) = true];
+    bool active = 8;
+    bool online = 9;
+    google.protobuf.Timestamp locked_at = 10 [(ghoster.secret) = true];
+    google.protobuf.Timestamp archived_at = 11 [(ghoster.secret) = true];
+    google.protobuf.Timestamp updated_at = 12 [(ghoster.secret) = true];
+    google.protobuf.Timestamp created_at = 13;
+  }
+}
+// -----------------------------------------------------
