@@ -39,25 +39,9 @@
     "web/src/proto": false
   },
 
-  "protoc": {
-    "compile_on_save": false,
-    "options": ["--proto_path=${workspaceRoot}/**/proto/src"]
-  },
-
-  "clang-format.style": "{Language: Proto, BasedOnStyle: Google, IndentWidth: 2, ColumnLimit: 0, SpacesBeforeTrailingComments: 1, AlignTrailingComments: off, AllowShortEnumsOnASingleLine: true}",
-
-  "[proto3]": {
-    "editor.defaultFormatter": "zxh404.vscode-proto3"
-  },
   "testing.coverageBarThresholds": {
     "red": 0,
     "yellow": 60,
     "green": 90
-  },
-
-  "github.copilot.chat.commitMessageGeneration.instructions": [
-    {
-      "file": ".vscode/copilot/commit-message-instructions.md"
-    }
-  ]
+  }
 }

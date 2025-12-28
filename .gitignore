@@ -92,3 +92,4 @@ fixtures/migration/*_private.sql
 
 dist/
 .cursor/
+.playwright-mcp/
