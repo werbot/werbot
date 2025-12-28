@@ -120,11 +120,108 @@ Here is a list of modules that are included within the `Werbot`.
 
 ## 📚&nbsp;&nbsp;Documentation
 
-... coming soon ...
+Documentation for Werbot is available in the [`docs/`](docs/) directory. Currently available:
+
+- [Token Package Documentation](docs/packages/token.md) - Comprehensive guide to the token management system
+
+Additional documentation is being actively developed. For the latest updates, please check the [docs/](docs/) directory.
 
 ## 🏁&nbsp;&nbsp;Installation
 
-... coming soon ...
+### Prerequisites
+
+- Docker and Docker Compose
+- Domain name with DNS access (Cloudflare recommended)
+- Go 1.25+ (for development)
+- Make (for build automation)
+
+### Quick Start
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/werbot/werbot.git
+   cd werbot
+   ```
+
+2. **Configure environment:**
+   - Copy `.env.example` to `.env` (if available) or create `.env` file
+   - Configure required environment variables:
+     - `GEOLITE_LICENSE` - Geolite key for downloading the latest geolite database
+     - `DOMAIN` - Second-level domain in format `*.domain.com`
+     - `DNS_CLOUDFLARE_EMAIL` - Your Cloudflare email
+     - `DNS_CLOUDFLARE_API_KEY` - Your Cloudflare API key
+
+3. **Set up DNS records:**
+   - Add DNS A records pointing to your server:
+     - `api.domain.com` → Your server IP
+     - `app.domain.com` → Your server IP
+
+4. **Initialize the environment:**
+   ```bash
+   make init
+   ```
+   This script will:
+   - Validate DNS configuration
+   - Generate secure passwords for PostgreSQL and Redis
+   - Generate encryption keys
+   - Create necessary configuration files
+
+5. **Start services:**
+   ```bash
+   cd docker
+   docker-compose up -d
+   ```
+
+### Development Setup
+
+1. **Install development tools:**
+   ```bash
+   make tools
+   ```
+
+2. **Build the project:**
+   ```bash
+   make build
+   ```
+   This will build all services into the `bin/` directory.
+
+3. **Run database migrations:**
+   ```bash
+   make migration
+   ```
+
+4. **Update GeoLite database:**
+   ```bash
+   make geolite
+   ```
+
+### Available Make Commands
+
+- `make help` - Show all available commands
+- `make init` - Initialize development environment
+- `make build [service]` - Build project or specific service
+- `make tools` - Install/update development tools
+- `make migration` - Run database migrations
+- `make geolite` - Update GeoLite database
+- `make clean` - Clean up temporary files and containers
+- `make key` - Generate encryption keys
+- `make protos` - Generate protobuf files
+
+### Docker Services
+
+The project runs as microservices in Docker containers:
+
+- **taco** - Main API service
+- **buffet** - gRPC service
+- **avocado** - Authentication service
+- **ghost** - Background worker service
+- **app** - Web frontend
+- **postgres** - PostgreSQL database
+- **redis** - Redis cache
+- **haproxy** - Load balancer and reverse proxy
+- **acme** - SSL certificate management (Let's Encrypt)
+
+For more details, see [`docker/docker-compose.yaml`](docker/docker-compose.yaml).
 
 ## 👑&nbsp;&nbsp;Community
 
