@@ -2,7 +2,6 @@ package profile
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 
@@ -13,11 +12,12 @@ import (
 	"github.com/werbot/werbot/internal/core/notification"
 	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
 	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	"github.com/werbot/werbot/internal/core/token"
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
+	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
-	"github.com/werbot/werbot/pkg/uuid"
 )
 
 // SignIn function is used to authenticate the user by validating their credentials
@@ -84,93 +84,92 @@ func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword
 
 	switch in.GetRequest().(type) {
 	case *profilepb.ResetPassword_Request_Email: // Step 1.1: Sending an email with a verification link
-		var first bool
-		var profileID, token sql.NullString
+		// Get profile_id by email
+		var profileID string
 		err := h.DB.Conn.QueryRowContext(ctx, `
-    SELECT
-      "profile"."id",
-      "profile_token"."token"
-    FROM "profile"
-      LEFT JOIN "profile_token" ON "profile"."id" = "profile_token"."profile_id"
-        AND "profile_token"."active" = true
-        AND "profile_token"."action" = 4
-        AND "profile_token"."created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
-    WHERE
-      "profile"."email" = $1
-      AND "profile"."active" = true
-  `, in.GetEmail()).Scan(
-			&profileID,
-			&token)
+      SELECT "id"
+      FROM "profile"
+      WHERE "email" = $1 AND "active" = true
+    `, in.GetEmail()).Scan(&profileID)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
 
-		if !token.Valid {
-			first = true
-			token.String = uuid.New()
-			_, err = h.DB.Conn.ExecContext(ctx, `
-        INSERT INTO "profile_token" ("token", "profile_id", "action")
-        VALUES ($1, $2, $3)
-      `,
-				token.String,
-				profileID.String,
-				tokenenum.Action_reset.Enum(),
-			)
+		// Get or create token via token package
+		tokenHandler := token.Handler{DB: h.DB, Worker: h.Worker}
+		tokenID, isNew, err := tokenHandler.GetOrCreateProfileToken(ctx, profileID, tokenenum.Action_reset, func(ctx context.Context, profileID string) (string, error) {
+			tokenResp, err := tokenHandler.AddTokenProfileReset(ctx, &tokenmessage.AddTokenProfileReset_Request{
+				ProfileId: profileID,
+			})
 			if err != nil {
-				return nil, trace.Error(err, log, trace.MsgFailedToAdd)
+				return "", err
 			}
+			return tokenResp.GetToken(), nil
+		})
+		if err != nil {
+			return nil, trace.Error(err, log, nil)
 		}
 
 		// send email with token link
 		notification := notification.Handler{DB: h.DB, Worker: h.Worker}
-		notification.SendMail(ctx, &notificationpb.SendMail_Request{
+		if _, err := notification.SendMail(ctx, &notificationpb.SendMail_Request{
 			Email:    in.GetEmail(),
 			Subject:  "reset password confirmation",
 			Template: notificationpb.MailTemplate_password_reset,
 			Data: map[string]string{
-				"Link":      fmt.Sprintf("%s/auth/password_reset/%s", internal.GetString("APP_DSN", "http://localhost:5173"), token.String),
-				"FirstSend": strconv.FormatBool(first),
+				"Link":      fmt.Sprintf("%s/auth/password_reset/%s", internal.GetString("APP_DSN", "http://localhost:5173"), tokenID),
+				"FirstSend": strconv.FormatBool(isNew),
 			},
-		})
-
-		return &profilepb.ResetPassword_Response{
-			ProfileId: profileID.String,
-		}, nil
-
-	case *profilepb.ResetPassword_Request_Token: // Step 1.2: Verify token
-		var profileID sql.NullString
-		err := h.DB.Conn.QueryRowContext(ctx, `
-      SELECT "profile_id"
-      FROM "profile_token"
-      WHERE
-        "token" = $1
-        AND "active" = true
-        AND "created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
-    `, in.GetToken()).Scan(&profileID)
-		if err != nil {
+		}); err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
 
-		if profileID.Valid {
+		return &profilepb.ResetPassword_Response{
+			ProfileId: profileID,
+		}, nil
+
+	case *profilepb.ResetPassword_Request_Token: // Step 1.2: Verify token
+		// Check token via token package
+		tokenHandler := token.Handler{DB: h.DB, Worker: h.Worker}
+		tokenData, err := tokenHandler.Token(ctx, &tokenmessage.Token_Request{
+			IsAdmin: false,
+			Token:   in.GetToken(),
+		})
+		if err != nil {
+			return nil, trace.Error(status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid), log, nil)
+		}
+
+		// Verify token is for reset password and has correct status
+		if tokenData.GetAction() != tokenenum.Action_reset || tokenData.GetStatus() != tokenenum.Status_sent {
+			errGRPC := status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid)
+			return nil, trace.Error(errGRPC, log, nil)
+		}
+
+		// Check token creation time (24 hours)
+		if tokenData.GetCreatedAt() == nil {
 			errGRPC := status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid)
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 	case *profilepb.ResetPassword_Request_Password: // Step 2: Saving a new password
-		var profileID sql.NullString
-		err := h.DB.Conn.QueryRowContext(ctx, `
-      SELECT "profile_id"
-      FROM "profile_token"
-      WHERE
-        "token" = $1
-        AND "active" = true
-        AND "created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
-    `, in.GetToken()).Scan(&profileID)
+		// Check token via token package
+		tokenHandler := token.Handler{DB: h.DB, Worker: h.Worker}
+		tokenData, err := tokenHandler.Token(ctx, &tokenmessage.Token_Request{
+			IsAdmin: false,
+			Token:   in.GetPassword().GetToken(),
+		})
 		if err != nil {
-			return nil, trace.Error(err, log, nil)
+			return nil, trace.Error(status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid), log, nil)
 		}
 
-		if profileID.Valid {
+		// Verify token is for reset password and has correct status
+		if tokenData.GetAction() != tokenenum.Action_reset || tokenData.GetStatus() != tokenenum.Status_sent {
+			errGRPC := status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid)
+			return nil, trace.Error(errGRPC, log, nil)
+		}
+
+		profileID := tokenData.GetProfileId()
+		if profileID == "" {
 			errGRPC := status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid)
 			return nil, trace.Error(errGRPC, log, nil)
 		}
@@ -195,11 +194,13 @@ func (h *Handler) ResetPassword(ctx context.Context, in *profilepb.ResetPassword
 			return nil, trace.Error(err, log, nil)
 		}
 
+		// Update token status to used via token package
+		// Use direct SQL within transaction, as UpdateProfileToken uses its own transaction
 		_, err = tx.ExecContext(ctx, `
-      UPDATE "profile_token"
-      SET "active" = TRUE,
-      WHERE "token" = $1
-    `, in.GetPassword().GetToken())
+      UPDATE "token"
+      SET "status" = $1
+      WHERE "id" = $2
+    `, tokenenum.Status_used, in.GetPassword().GetToken())
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}

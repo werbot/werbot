@@ -20,8 +20,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/werbot/werbot/internal/core/profile"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	"github.com/werbot/werbot/internal/trace"
@@ -29,8 +27,9 @@ import (
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 )
 
-// ProfileTokens is ...
-// this functionality can only be accessed with administrator rights
+// ProfileTokens retrieves a list of profile tokens filtered by action and optional status
+// This functionality can only be accessed with administrator rights
+// Returns paginated list of tokens with total count
 func (h *Handler) ProfileTokens(ctx context.Context, in *tokenmessage.ProfileTokens_Request) (*tokenmessage.ProfileTokens_Response, error) {
 	// access only for admin or system request
 	if !in.GetIsAdmin() {
@@ -93,24 +92,30 @@ func (h *Handler) ProfileTokens(ctx context.Context, in *tokenmessage.ProfileTok
 	return response, nil
 }
 
-// AddTokenProfileReset is ...
+// AddTokenProfileReset creates a password reset token for a profile
+// Validates that the profile exists before creating the token
+// Supports custom expiration time via expired_at parameter
+// Returns the created token ID
 func (h *Handler) AddTokenProfileReset(ctx context.Context, in *tokenmessage.AddTokenProfileReset_Request) (*tokenmessage.AddTokenProfileReset_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	// check profile
-	profileDB := profile.Handler{DB: h.DB}
-	_, err := profileDB.Profile(ctx, &profilepb.Profile_Request{
-		ProfileId: in.GetProfileId(),
-	})
+	// check profile exists
+	var profileExists bool
+	err := h.DB.Conn.QueryRowContext(ctx, `
+      SELECT EXISTS(SELECT 1 FROM "profile" WHERE "id" = $1)
+    `, in.GetProfileId()).Scan(&profileExists)
 	if err != nil {
-		return nil, err
+		return nil, trace.Error(err, log, nil)
 	}
-	// ----
+	if !profileExists {
+		errGRPC := status.Error(codes.NotFound, trace.MsgProfileNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
 	fields := []string{"section", "action", "status", "data", "profile_id"}
-	args := []any{tokenenum.Section_profile, tokenenum.Action_delete, tokenenum.Status_sent, []byte("{}"), in.GetProfileId()}
+	args := []any{tokenenum.Section_profile, tokenenum.Action_reset, tokenenum.Status_sent, []byte("{}"), in.GetProfileId()}
 
 	if in.GetExpiredAt() != nil {
 		fields = append(fields, "expired_at")
@@ -131,7 +136,10 @@ func (h *Handler) AddTokenProfileReset(ctx context.Context, in *tokenmessage.Add
 	return response, nil
 }
 
-// AddTokenProfileRegistration is ...
+// AddTokenProfileRegistration creates a registration token with profile metadata
+// Stores profile data (name, surname, email) in token metadata for registration flow
+// Supports custom expiration time via expired_at parameter
+// Returns the created token ID
 func (h *Handler) AddTokenProfileRegistration(ctx context.Context, in *tokenmessage.AddTokenProfileRegistration_Request) (*tokenmessage.AddTokenProfileRegistration_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
@@ -164,21 +172,27 @@ func (h *Handler) AddTokenProfileRegistration(ctx context.Context, in *tokenmess
 	return response, nil
 }
 
-// AddTokenProfileDelete is ...
+// AddTokenProfileDelete creates a profile deletion token
+// Validates that the profile exists before creating the token
+// Supports custom expiration time via expired_at parameter
+// Returns the created token ID
 func (h *Handler) AddTokenProfileDelete(ctx context.Context, in *tokenmessage.AddTokenProfileDelete_Request) (*tokenmessage.AddTokenProfileDelete_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	// check profile
-	profileDB := profile.Handler{DB: h.DB}
-	_, err := profileDB.Profile(ctx, &profilepb.Profile_Request{
-		ProfileId: in.GetProfileId(),
-	})
+	// check profile exists
+	var profileExists bool
+	err := h.DB.Conn.QueryRowContext(ctx, `
+      SELECT EXISTS(SELECT 1 FROM "profile" WHERE "id" = $1)
+    `, in.GetProfileId()).Scan(&profileExists)
 	if err != nil {
-		return nil, err
+		return nil, trace.Error(err, log, nil)
 	}
-	// ----
+	if !profileExists {
+		errGRPC := status.Error(codes.NotFound, trace.MsgProfileNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
 	fields := []string{"section", "action", "status", "profile_id", "data"}
 	args := []any{tokenenum.Section_profile, tokenenum.Action_delete, tokenenum.Status_sent, in.GetProfileId(), []byte("{}")}
@@ -202,14 +216,13 @@ func (h *Handler) AddTokenProfileDelete(ctx context.Context, in *tokenmessage.Ad
 	return response, nil
 }
 
-// UpdateProfileToken is ...
+// UpdateProfileToken updates profile token status
+// Validates token status transitions based on user permissions (admin vs regular user)
+// For registration tokens, requires profile_id when updating to done status
+// Returns error if validation fails or token not found
 func (h *Handler) UpdateProfileToken(ctx context.Context, in *tokenmessage.UpdateProfileToken_Request) (*tokenmessage.UpdateProfileToken_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
-	}
-
-	if !in.GetIsAdmin() && (in.GetStatus() == tokenenum.Status_status_unspecified || in.GetStatus() == tokenenum.Status_deleted || in.GetStatus() == tokenenum.Status_archived) {
-		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgStatusNotFound), log, nil)
 	}
 
 	// get core data for token
@@ -220,8 +233,10 @@ func (h *Handler) UpdateProfileToken(ctx context.Context, in *tokenmessage.Updat
 	if err != nil {
 		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgTokenNotFound), log, nil)
 	}
-	if !in.GetIsAdmin() && tokenData.GetStatus() == tokenenum.Status_done {
-		return nil, trace.Error(status.Error(codes.PermissionDenied, trace.MsgPermissionDenied), log, nil)
+
+	// Validate token for update using common validation function
+	if err := ValidateTokenForUpdate(in.GetIsAdmin(), tokenData.GetStatus(), in.GetStatus()); err != nil {
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// SQL constructor

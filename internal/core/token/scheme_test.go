@@ -26,8 +26,8 @@ func Test_SchemeTokens(t *testing.T) {
 	}
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_required_parameters",
 			Request: &tokenmessage.SchemeTokens_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -39,7 +39,7 @@ func Test_SchemeTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_02",
+			Name: "invalid_parameters_format",
 			Request: &tokenmessage.SchemeTokens_Request{
 				OwnerId:  "ok",
 				SchemeId: "ok",
@@ -55,7 +55,7 @@ func Test_SchemeTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "tokens_not_found_wrong_owner_and_scheme",
 			Request: &tokenmessage.SchemeTokens_Request{
 				OwnerId:  test.ConstFakeID,
 				SchemeId: test.ConstFakeID,
@@ -67,7 +67,7 @@ func Test_SchemeTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "tokens_not_found_wrong_scheme",
 			Request: &tokenmessage.SchemeTokens_Request{
 				OwnerId:  test.ConstAdminID,
 				SchemeId: test.ConstFakeID,
@@ -79,7 +79,7 @@ func Test_SchemeTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_05",
+			Name: "tokens_not_found_wrong_owner",
 			Request: &tokenmessage.SchemeTokens_Request{
 				OwnerId:  test.ConstFakeID,
 				SchemeId: "0918e4c3-7f61-4c4e-99ed-800c9af0d265",
@@ -91,7 +91,7 @@ func Test_SchemeTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_06",
+			Name: "admin_list_scheme_tokens_success",
 			Request: &tokenmessage.SchemeTokens_Request{
 				OwnerId:  test.ConstAdminID,
 				SchemeId: "0918e4c3-7f61-4c4e-99ed-800c9af0d265",
@@ -108,7 +108,7 @@ func Test_SchemeTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_07",
+			Name: "admin_list_scheme_tokens_with_status_filter_no_results",
 			Request: &tokenmessage.SchemeTokens_Request{
 				OwnerId:  test.ConstAdminID,
 				SchemeId: "0918e4c3-7f61-4c4e-99ed-800c9af0d265",
@@ -141,8 +141,8 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 	now := time.Now()
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_required_parameters",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -153,9 +153,8 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 				},
 			},
 		},
-
 		{
-			Name: "test0_02",
+			Name: "missing_owner_and_project_with_email",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				SchemeType: schemeaccesspb.SchemeType_server_ssh,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_Email{
@@ -171,7 +170,7 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "invalid_project_id_format",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				ProjectId:  "ok",
 				SchemeType: schemeaccesspb.SchemeType_server_ssh,
@@ -187,7 +186,7 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "invalid_email_format",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				OwnerId:   test.ConstAdminID,
 				ProjectId: test.ConstFakeID,
@@ -203,7 +202,7 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_05",
+			Name: "project_not_found",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				OwnerId:   test.ConstAdminID,
 				ProjectId: test.ConstFakeID,
@@ -217,7 +216,7 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_06",
+			Name: "project_not_found_wrong_owner",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				OwnerId:   test.ConstFakeID,
 				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -231,7 +230,7 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_07",
+			Name: "create_scheme_add_token_with_email_success",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				OwnerId:    test.ConstAdminID,
 				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -245,13 +244,13 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_08",
+			Name: "create_scheme_add_token_with_email_duplicate",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				OwnerId:    test.ConstAdminID,
 				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
 				SchemeType: schemeaccesspb.SchemeType_server_ssh,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_Email{
-					Email: "admin@mail.com", // profile not registered
+					Email: "admin@mail.com",
 				},
 			},
 			Response: test.BodyTable{
@@ -259,13 +258,13 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_09",
+			Name: "create_scheme_add_token_with_email_custom_expiration",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				OwnerId:    test.ConstAdminID,
 				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
 				SchemeType: schemeaccesspb.SchemeType_server_ssh,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_Email{
-					Email: "admin@werbot.net", // the profile is registered and has a profile UUID
+					Email: "admin@werbot.net",
 				},
 				ExpiredAt: timestamppb.New(now.Add(36 * time.Hour)),
 			},
@@ -273,9 +272,8 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 				"token": "*",
 			},
 		},
-
-		{ // broken profile UUID
-			Name: "test0_10",
+		{
+			Name: "profile_not_found_with_profile_id",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				OwnerId:    test.ConstAdminID,
 				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -289,8 +287,8 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 				Message: "Not found",
 			},
 		},
-		{ // broken profile UUID
-			Name: "test0_11",
+		{
+			Name: "invalid_profile_id_format",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				OwnerId:    test.ConstAdminID,
 				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -306,8 +304,8 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 				},
 			},
 		},
-		{ // broken profile UUID
-			Name: "test0_12",
+		{
+			Name: "create_scheme_add_token_with_profile_id_success",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				OwnerId:    "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
 				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -342,8 +340,8 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 	now := time.Now()
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_required_parameters",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -354,9 +352,8 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 				},
 			},
 		},
-
 		{
-			Name: "test0_02",
+			Name: "missing_owner_and_scheme_with_email",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
 				Data: &tokenmessage.AddTokenSchemeAccess_Request_Email{
 					Email: "admin@mail.com",
@@ -371,7 +368,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "invalid_parameters_format_with_email",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
 				OwnerId:  "ok",
 				SchemeId: "ok",
@@ -389,7 +386,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "invalid_email_format",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
 				OwnerId:  test.ConstAdminID,
 				SchemeId: test.ConstFakeID,
@@ -405,7 +402,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_05",
+			Name: "scheme_not_found",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
 				OwnerId:  test.ConstAdminID,
 				SchemeId: test.ConstFakeID,
@@ -418,9 +415,8 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 				Message: "Not found",
 			},
 		},
-
 		{
-			Name: "test0_06",
+			Name: "scheme_not_found_wrong_owner",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
 				OwnerId:  test.ConstFakeID,
 				SchemeId: test.ConstAdminSchemeSSH1ID,
@@ -434,7 +430,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_07",
+			Name: "create_scheme_access_token_with_email_success",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
 				OwnerId:  test.ConstAdminID,
 				SchemeId: test.ConstAdminSchemeSSH1ID,
@@ -447,7 +443,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_08",
+			Name: "profile_not_found_with_profile_id",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
 				OwnerId:  test.ConstAdminID,
 				SchemeId: test.ConstAdminSchemeSSH1ID,
@@ -461,7 +457,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_09",
+			Name: "create_scheme_access_token_with_profile_id_success",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
 				OwnerId:  test.ConstAdminID,
 				SchemeId: test.ConstAdminSchemeSSH1ID,
@@ -474,7 +470,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_10",
+			Name: "create_scheme_access_token_with_profile_id_custom_expiration",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
 				OwnerId:  test.ConstAdminID,
 				SchemeId: test.ConstAdminSchemeSSH1ID,
@@ -506,8 +502,8 @@ func Test_UpdateSchemeToken(t *testing.T) {
 	}
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_token_and_status",
 			Request: &tokenmessage.UpdateSchemeToken_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -518,7 +514,7 @@ func Test_UpdateSchemeToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_02",
+			Name: "invalid_token_format_and_status_enum",
 			Request: &tokenmessage.UpdateSchemeToken_Request{
 				Token:  "ok",
 				Status: 99,
@@ -532,7 +528,7 @@ func Test_UpdateSchemeToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "missing_status",
 			Request: &tokenmessage.UpdateSchemeToken_Request{
 				Token: test.ConstFakeID,
 			},
@@ -544,7 +540,7 @@ func Test_UpdateSchemeToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "token_not_found",
 			Request: &tokenmessage.UpdateSchemeToken_Request{
 				Token:  test.ConstFakeID,
 				Status: tokenenum.Status_done,
@@ -555,7 +551,7 @@ func Test_UpdateSchemeToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_05",
+			Name: "token_not_found_duplicate",
 			Request: &tokenmessage.UpdateSchemeToken_Request{
 				Token:  test.ConstFakeID,
 				Status: tokenenum.Status_done,
@@ -565,76 +561,6 @@ func Test_UpdateSchemeToken(t *testing.T) {
 				Message: trace.MsgTokenNotFound,
 			},
 		},
-
-		/*
-			// SCHEME setion
-			{ // 3-3-1, ERROR
-				Name: "test3_01",
-				Request: &tokenmessage.UpdateToken_Request{
-					Token:    test.ConstFakeID,
-					Status:   tokenenum.Status_done,
-					SchemeId: test.ConstFakeID,
-				},
-				Error: test.ErrGRPC{
-					Code:    codes.NotFound,
-					Message: trace.MsgTokenNotFound,
-				},
-			},
-			{ // 3-3-1, ERROR
-				Name: "test3_02",
-				Request: &tokenmessage.UpdateToken_Request{
-					Token:  "0a7b333e-4c98-4edd-9e34-a4e734a5926e",
-					Status: tokenenum.Status_done,
-				},
-				Error: test.ErrGRPC{
-					Code: codes.InvalidArgument,
-					Message: map[string]any{
-						"owner_id": "value is required",
-					},
-				},
-			},
-			{ // 3-2-1, ERROR
-				Name: "test3_03",
-				Request: &tokenmessage.UpdateToken_Request{
-					OwnerId: test.ConstFakeID,
-					Token:   "0a7b333e-4c98-4edd-9e34-a4e734a5926e",
-					Status:  tokenenum.Status_done,
-				},
-				Error: test.ErrGRPC{
-					Code:    codes.NotFound,
-					Message: "Owner not found",
-				},
-			},
-			{ // 3-2-1, DONE
-				Name: "test3_04",
-				Request: &tokenmessage.UpdateToken_Request{
-					OwnerId: test.ConstAdminID,
-					Token:   "0a7b333e-4c98-4edd-9e34-a4e734a5926e",
-					Status:  tokenenum.Status_done,
-				},
-				Response: test.BodyTable{},
-			},
-			{ // 3-2-1, DONE
-				Name: "test3_05",
-				Request: &tokenmessage.UpdateToken_Request{
-					OwnerId:   test.ConstAdminID,
-					Token:     "0a7b333e-4c98-4edd-9e34-a4e734a5926e",
-					Status:    tokenenum.Status_done,
-					ProfileId: test.ConstUserID,
-				},
-				Response: test.BodyTable{},
-			},
-
-			{ // 3-8-1, DONE
-				Name: "test3_07",
-				Request: &tokenmessage.UpdateToken_Request{
-					OwnerId: test.ConstAdminID,
-					Token:   "cde3dd1e-1643-4561-8e5b-e4684c05f595",
-					Status:  tokenenum.Status_done,
-				},
-				Response: test.BodyTable{},
-			},
-		*/
 	}
 
 	for _, tt := range testTable {

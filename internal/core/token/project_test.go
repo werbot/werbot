@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	tokenpb "github.com/werbot/werbot/internal/core/token/proto/rpc"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/utils/test"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func Test_ProjectTokens(t *testing.T) {
@@ -24,8 +25,8 @@ func Test_ProjectTokens(t *testing.T) {
 	}
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_required_parameters",
 			Request: &tokenmessage.ProjectTokens_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -36,9 +37,8 @@ func Test_ProjectTokens(t *testing.T) {
 				},
 			},
 		},
-
 		{
-			Name: "test0_02",
+			Name: "invalid_parameters_format",
 			Request: &tokenmessage.ProjectTokens_Request{
 				OwnerId:   "ok",
 				ProjectId: "ok",
@@ -54,7 +54,7 @@ func Test_ProjectTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "tokens_not_found_wrong_owner_and_project",
 			Request: &tokenmessage.ProjectTokens_Request{
 				OwnerId:   test.ConstFakeID,
 				ProjectId: test.ConstFakeID,
@@ -66,7 +66,7 @@ func Test_ProjectTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "tokens_not_found_wrong_owner",
 			Request: &tokenmessage.ProjectTokens_Request{
 				OwnerId:   test.ConstFakeID,
 				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -78,7 +78,7 @@ func Test_ProjectTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_05",
+			Name: "admin_list_project_tokens_success",
 			Request: &tokenmessage.ProjectTokens_Request{
 				OwnerId:   test.ConstAdminID,
 				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -103,7 +103,7 @@ func Test_ProjectTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_06",
+			Name: "admin_list_project_tokens_with_status_filter",
 			Request: &tokenmessage.ProjectTokens_Request{
 				OwnerId:   test.ConstAdminID,
 				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -141,8 +141,8 @@ func Test_AddTokenProjectMember(t *testing.T) {
 	now := time.Now()
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_required_parameters",
 			Request: &tokenmessage.AddTokenProjectMember_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -154,26 +154,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_02",
-			Request: &tokenmessage.AddTokenProjectMember_Request{
-				OwnerId:   "ok",
-				ProjectId: "ok",
-				Profile: &tokenmessage.AddTokenProjectMember_Request_ProfileId{
-					ProfileId: "ok",
-				},
-			},
-			Error: test.ErrGRPC{
-				Code: codes.InvalidArgument,
-				Message: map[string]any{
-					"owner_id":   "value must be a valid UUID",
-					"project_id": "value must be a valid UUID",
-					"profile_id": "value must be a valid UUID",
-				},
-			},
-		},
-
-		{
-			Name: "test1_01",
+			Name: "invalid_parameters_format_with_profile_id",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
 				OwnerId:   "ok",
 				ProjectId: "ok",
@@ -191,7 +172,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 		},
 		{
-			Name: "test1_02",
+			Name: "profile_not_found_wrong_owner_and_project",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
 				OwnerId:   test.ConstFakeID,
 				ProjectId: test.ConstFakeID,
@@ -205,7 +186,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 		},
 		{
-			Name: "test1_03",
+			Name: "profile_not_found_wrong_owner",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
 				OwnerId:   test.ConstFakeID,
 				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -219,7 +200,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 		},
 		{
-			Name: "test1_04",
+			Name: "profile_not_found_admin_wrong_profile",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
 				OwnerId:   test.ConstAdminID,
 				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -233,11 +214,8 @@ func Test_AddTokenProjectMember(t *testing.T) {
 				Message: "Not found",
 			},
 		},
-
-		// ------------------------------------------------
-
 		{
-			Name: "test2_01",
+			Name: "invalid_parameters_format_with_new_profile",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
 				OwnerId:   "ok",
 				ProjectId: "ok",
@@ -261,7 +239,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 		},
 		{
-			Name: "test2_02",
+			Name: "project_not_found_wrong_owner_and_project",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
 				OwnerId:   test.ConstFakeID,
 				ProjectId: test.ConstFakeID,
@@ -279,7 +257,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 		},
 		{
-			Name: "test2_03",
+			Name: "project_not_found_wrong_owner",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
 				OwnerId:   test.ConstFakeID,
 				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -297,7 +275,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 		},
 		{
-			Name: "test2_04",
+			Name: "create_member_token_with_new_profile_success",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
 				OwnerId:   test.ConstAdminID,
 				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
@@ -333,8 +311,8 @@ func Test_UpdateProjectToken(t *testing.T) {
 	}
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_token_and_status",
 			Request: &tokenmessage.UpdateProjectToken_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -345,7 +323,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_02",
+			Name: "invalid_token_format_and_status_enum",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				Token:  "ok",
 				Status: 99,
@@ -359,7 +337,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "missing_status",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				Token: test.ConstFakeID,
 			},
@@ -371,7 +349,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "token_not_found",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				Token:  test.ConstFakeID,
 				Status: tokenenum.Status_done,
@@ -382,7 +360,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_05",
+			Name: "token_not_found_duplicate",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				Token:  test.ConstFakeID,
 				Status: tokenenum.Status_done,
@@ -393,7 +371,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_06",
+			Name: "member_token_missing_profile_id",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				Token:  "b5b128d7-ff0c-479c-8216-14eedf9265ad",
 				Status: tokenenum.Status_done,
@@ -406,7 +384,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_07",
+			Name: "user_cannot_set_deleted_status",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				Token:     "b5b128d7-ff0c-479c-8216-14eedf9265ad",
 				Status:    tokenenum.Status_deleted,
@@ -418,7 +396,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_08",
+			Name: "user_cannot_update_other_owner_token",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				Token:  "958301b8-1ed0-4977-9a2a-90629e8a18b9",
 				Status: tokenenum.Status_done,
@@ -429,7 +407,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_09",
+			Name: "admin_update_token_success",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				IsAdmin: true,
 				Token:   "958301b8-1ed0-4977-9a2a-90629e8a18b9",
@@ -438,7 +416,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			Response: test.BodyTable{},
 		},
 		{
-			Name: "test0_10",
+			Name: "admin_set_deleted_status_success",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				IsAdmin:   true,
 				Token:     "b5b128d7-ff0c-479c-8216-14eedf9265ad",
@@ -448,7 +426,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			Response: test.BodyTable{},
 		},
 		{
-			Name: "test0_11",
+			Name: "user_update_member_token_success",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				Token:     "b5b128d7-ff0c-479c-8216-14eedf9265ad",
 				Status:    tokenenum.Status_done,

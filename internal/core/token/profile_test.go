@@ -26,7 +26,7 @@ func Test_ProfileTokens(t *testing.T) {
 
 	testTable := []test.GRPCTable{
 		{
-			Name:    "test0_01",
+			Name:    "non_admin_access_denied",
 			Request: &tokenmessage.ProfileTokens_Request{},
 			Error: test.ErrGRPC{
 				Code:    codes.PermissionDenied,
@@ -34,7 +34,7 @@ func Test_ProfileTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_02",
+			Name: "admin_missing_action",
 			Request: &tokenmessage.ProfileTokens_Request{
 				IsAdmin: true,
 			},
@@ -46,7 +46,7 @@ func Test_ProfileTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "admin_invalid_action_enum",
 			Request: &tokenmessage.ProfileTokens_Request{
 				IsAdmin: true,
 				Action:  99,
@@ -59,7 +59,7 @@ func Test_ProfileTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "admin_list_register_tokens",
 			Request: &tokenmessage.ProfileTokens_Request{
 				IsAdmin: true,
 				Action:  tokenenum.Action_register,
@@ -81,7 +81,7 @@ func Test_ProfileTokens(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_05",
+			Name: "admin_list_register_tokens_with_status_filter",
 			Request: &tokenmessage.ProfileTokens_Request{
 				IsAdmin: true,
 				Action:  tokenenum.Action_register,
@@ -126,8 +126,8 @@ func Test_AddTokenProfileReset(t *testing.T) {
 	now := time.Now()
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_profile_id",
 			Request: &tokenmessage.AddTokenProfileReset_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -137,7 +137,7 @@ func Test_AddTokenProfileReset(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_02",
+			Name: "invalid_profile_id_format",
 			Request: &tokenmessage.AddTokenProfileReset_Request{
 				ProfileId: "ok",
 			},
@@ -149,7 +149,7 @@ func Test_AddTokenProfileReset(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "profile_not_found",
 			Request: &tokenmessage.AddTokenProfileReset_Request{
 				ProfileId: test.ConstFakeID,
 			},
@@ -159,10 +159,20 @@ func Test_AddTokenProfileReset(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "create_reset_token_with_custom_expiration",
 			Request: &tokenmessage.AddTokenProfileReset_Request{
 				ProfileId: test.ConstUserID,
 				ExpiredAt: timestamppb.New(now.Add(36 * time.Hour)),
+			},
+			Response: test.BodyTable{
+				"token": "*",
+			},
+		},
+		{
+			Name: "create_reset_token_with_past_expiration",
+			Request: &tokenmessage.AddTokenProfileReset_Request{
+				ProfileId: test.ConstUserID,
+				ExpiredAt: timestamppb.New(now.Add(-1 * time.Hour)),
 			},
 			Response: test.BodyTable{
 				"token": "*",
@@ -189,8 +199,8 @@ func Test_AddTokenProfileRegistration(t *testing.T) {
 	now := time.Now()
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_profile_data",
 			Request: &tokenmessage.AddTokenProfileRegistration_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -199,9 +209,8 @@ func Test_AddTokenProfileRegistration(t *testing.T) {
 				},
 			},
 		},
-
 		{
-			Name: "test0_02",
+			Name: "empty_profile_data_fields",
 			Request: &tokenmessage.AddTokenProfileRegistration_Request{
 				Data: &tokenmessage.MetaDataProfile{},
 			},
@@ -215,7 +224,7 @@ func Test_AddTokenProfileRegistration(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "invalid_profile_data_validation",
 			Request: &tokenmessage.AddTokenProfileRegistration_Request{
 				Data: &tokenmessage.MetaDataProfile{
 					Name:    "ok",
@@ -233,7 +242,7 @@ func Test_AddTokenProfileRegistration(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "create_registration_token_success",
 			Request: &tokenmessage.AddTokenProfileRegistration_Request{
 				Data: &tokenmessage.MetaDataProfile{
 					Name:    "name",
@@ -267,8 +276,8 @@ func Test_AddTokenProfileDelete(t *testing.T) {
 	now := time.Now()
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_profile_id",
 			Request: &tokenmessage.AddTokenProfileDelete_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -277,9 +286,8 @@ func Test_AddTokenProfileDelete(t *testing.T) {
 				},
 			},
 		},
-
 		{
-			Name: "test0_02",
+			Name: "invalid_profile_id_format",
 			Request: &tokenmessage.AddTokenProfileDelete_Request{
 				ProfileId: "ok",
 			},
@@ -291,7 +299,7 @@ func Test_AddTokenProfileDelete(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "profile_not_found",
 			Request: &tokenmessage.AddTokenProfileDelete_Request{
 				ProfileId: test.ConstFakeID,
 			},
@@ -301,7 +309,7 @@ func Test_AddTokenProfileDelete(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "create_delete_token_success",
 			Request: &tokenmessage.AddTokenProfileDelete_Request{
 				ProfileId: test.ConstUserID,
 				ExpiredAt: timestamppb.New(now.Add(36 * time.Hour)),
@@ -329,8 +337,8 @@ func Test_UpdateProfileToken(t *testing.T) {
 	}
 
 	testTable := []test.GRPCTable{
-		{ // request without parameters
-			Name:    "test0_01",
+		{
+			Name:    "missing_token_and_status",
 			Request: &tokenmessage.UpdateProfileToken_Request{},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
@@ -341,7 +349,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_02",
+			Name: "invalid_token_format_and_status_enum",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				Token:  "ok",
 				Status: 99,
@@ -355,7 +363,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_03",
+			Name: "missing_status",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				Token: test.ConstFakeID,
 			},
@@ -367,7 +375,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_04",
+			Name: "token_not_found",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				Token:  test.ConstFakeID,
 				Status: tokenenum.Status_done,
@@ -377,9 +385,8 @@ func Test_UpdateProfileToken(t *testing.T) {
 				Message: trace.MsgTokenNotFound,
 			},
 		},
-
 		{
-			Name: "test0_05",
+			Name: "token_not_found_with_profile_id",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				Token:     test.ConstFakeID,
 				Status:    tokenenum.Status_done,
@@ -391,7 +398,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_06",
+			Name: "register_token_missing_profile_id",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				Token:  "55c9f79c-d827-43fc-8ad1-79e396d2432c",
 				Status: tokenenum.Status_done,
@@ -404,7 +411,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_07",
+			Name: "register_token_profile_not_found",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				ProfileId: test.ConstFakeID,
 				Token:     "55c9f79c-d827-43fc-8ad1-79e396d2432c",
@@ -416,7 +423,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 			},
 		},
 		{
-			Name: "test0_08",
+			Name: "update_register_token_to_done_success",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				ProfileId: "5a2bb353-e862-4e6f-be74-fedb2dd761fd",
 				Token:     "55c9f79c-d827-43fc-8ad1-79e396d2432c",
@@ -424,9 +431,8 @@ func Test_UpdateProfileToken(t *testing.T) {
 			},
 			Response: test.BodyTable{},
 		},
-
 		{
-			Name: "test0_09",
+			Name: "update_reset_token_to_used_success",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				Token:  "55c9f79c-d827-43fc-8ad1-79e396d2432c",
 				Status: tokenenum.Status_used,
@@ -434,7 +440,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 			Response: test.BodyTable{},
 		},
 		{
-			Name: "test0_10",
+			Name: "user_cannot_set_deleted_status",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				Token:  "55c9f79c-d827-43fc-8ad1-79e396d2432c",
 				Status: tokenenum.Status_deleted,

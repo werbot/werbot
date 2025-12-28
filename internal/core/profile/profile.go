@@ -16,14 +16,15 @@ import (
 	"github.com/werbot/werbot/internal/core/notification"
 	notificationpb "github.com/werbot/werbot/internal/core/notification/proto/notification"
 	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	"github.com/werbot/werbot/internal/core/token"
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
+	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
 	"github.com/werbot/werbot/pkg/utils/strutil"
-	"github.com/werbot/werbot/pkg/uuid"
 )
 
 // Profiles is lists all profiles on the system
@@ -319,29 +320,16 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile
 
 	switch in.GetRequest().(type) {
 	case *profilepb.DeleteProfile_Request_Password: // step 1
-		var first bool
+		// Get profile data
 		var alias, passwordHash, email string
-		var token sql.NullString
 		err := h.DB.Conn.QueryRowContext(ctx, `
-      SELECT
-        "profile"."alias",
-        "profile"."password",
-        "profile"."email",
-        "profile_token"."token"
-      FROM
-        "profile"
-        LEFT JOIN "profile_token" ON "profile"."id" = "profile_token"."profile_id"
-          AND "profile_token"."active" = true
-          AND "profile_token"."action" = 5
-          AND "profile_token"."created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
-      WHERE
-        "profile"."id" = $1
-        AND "profile"."role" = 1
+      SELECT "alias", "password", "email"
+      FROM "profile"
+      WHERE "id" = $1 AND "role" = 1
     `, in.GetProfileId()).Scan(
 			&alias,
 			&passwordHash,
 			&email,
-			&token,
 		)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
@@ -352,60 +340,67 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile
 			return nil, trace.Error(errGRPC, log, nil)
 		}
 
-		if !token.Valid {
-			first = true
-			token.String = uuid.New()
-			_, err = h.DB.Conn.ExecContext(ctx, `
-        INSERT INTO "profile_token" ("token", "profile_id", "action")
-        VALUES ($1, $2, $3)
-      `,
-				token.String,
-				in.GetProfileId(),
-				tokenenum.Action_delete.Enum(),
-			)
+		// Get or create token via token package
+		tokenHandler := token.Handler{DB: h.DB, Worker: h.Worker}
+		tokenID, isNew, err := tokenHandler.GetOrCreateProfileToken(ctx, in.GetProfileId(), tokenenum.Action_delete, func(ctx context.Context, profileID string) (string, error) {
+			tokenResp, err := tokenHandler.AddTokenProfileDelete(ctx, &tokenmessage.AddTokenProfileDelete_Request{
+				ProfileId: profileID,
+			})
 			if err != nil {
-				return nil, trace.Error(err, log, trace.MsgFailedToAdd)
+				return "", err
 			}
+			return tokenResp.GetToken(), nil
+		})
+		if err != nil {
+			return nil, trace.Error(err, log, nil)
 		}
 
 		// send email with token link
-		_, err = notification.SendMail(ctx, &notificationpb.SendMail_Request{
+		if _, err := notification.SendMail(ctx, &notificationpb.SendMail_Request{
 			Email:    email,
 			Subject:  "profile deletion confirmation",
 			Template: notificationpb.MailTemplate_account_deletion_confirmation,
 			Data: map[string]string{
 				"Login":     alias,
-				"Link":      fmt.Sprintf("%s/profile/setting/destroy/%s", internal.GetString("APP_DSN", "http://localhost:5173"), token.String),
-				"FirstSend": strconv.FormatBool(first),
+				"Link":      fmt.Sprintf("%s/profile/setting/destroy/%s", internal.GetString("APP_DSN", "http://localhost:5173"), tokenID),
+				"FirstSend": strconv.FormatBool(isNew),
 			},
-		})
-
-	case *profilepb.DeleteProfile_Request_Token: // step 2
-		var alias, email sql.NullString
-		err := h.DB.Conn.QueryRowContext(ctx, `
-      SELECT "profile"."alias", "profile"."email"
-      FROM "profile"
-      JOIN "profile_token" ON "profile"."id" = "profile_token"."profile_id"
-      WHERE
-        "profile_token"."profile_id" = $1::uuid
-        AND "profile_token"."token" = $2::uuid
-        AND "profile_token"."active" = true
-        AND "profile_token"."created_at" > CURRENT_TIMESTAMP - INTERVAL '24 hour'
-        AND "profile"."role" = 1
-    `,
-			in.GetProfileId(),
-			in.GetToken(),
-		).Scan(
-			&alias,
-			&email,
-		)
-		if err != nil {
+		}); err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
 
-		if !alias.Valid || !email.Valid {
-			errGRPC := status.Error(codes.InvalidArgument, "")
+	case *profilepb.DeleteProfile_Request_Token: // step 2
+		// Check token via token package
+		tokenHandler := token.Handler{DB: h.DB, Worker: h.Worker}
+		tokenData, err := tokenHandler.Token(ctx, &tokenmessage.Token_Request{
+			IsAdmin: false,
+			Token:   in.GetToken(),
+		})
+		if err != nil {
+			return nil, trace.Error(status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid), log, nil)
+		}
+
+		// Verify token is for delete profile and has correct status
+		if tokenData.GetAction() != tokenenum.Action_delete || tokenData.GetStatus() != tokenenum.Status_sent {
+			errGRPC := status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid)
 			return nil, trace.Error(errGRPC, log, nil)
+		}
+
+		// Verify token belongs to specified profile
+		if tokenData.GetProfileId() != in.GetProfileId() {
+			errGRPC := status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid)
+			return nil, trace.Error(errGRPC, log, nil)
+		}
+
+		// Get profile data
+		var alias, email string
+		err = h.DB.Conn.QueryRowContext(ctx, `
+      SELECT "alias", "email"
+      FROM "profile"
+      WHERE "id" = $1 AND "role" = 1
+    `, in.GetProfileId()).Scan(&alias, &email)
+		if err != nil {
+			return nil, trace.Error(err, log, nil)
 		}
 
 		tx, err := h.DB.Conn.BeginTx(ctx, nil)
@@ -432,12 +427,13 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile
 			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 		}
 
-		// disable profile
+		// Update token status to used via token package
+		// Use direct SQL within transaction, as UpdateProfileToken uses its own transaction
 		_, err = tx.ExecContext(ctx, `
-      UPDATE "profile_token"
-      SET "active" = false
-      WHERE "token" = $1
-    `, in.GetToken())
+      UPDATE "token"
+      SET "status" = $1
+      WHERE "id" = $2
+    `, tokenenum.Status_used, in.GetToken())
 		if err != nil {
 			return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
 		}
@@ -448,11 +444,11 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilepb.DeleteProfile
 
 		// send delete token to email
 		notification.SendMail(ctx, &notificationpb.SendMail_Request{
-			Email:    email.String,
+			Email:    email,
 			Subject:  "profile deleted",
 			Template: notificationpb.MailTemplate_account_deletion_info,
 			Data: map[string]string{
-				"Login": alias.String,
+				"Login": alias,
 			},
 		})
 	}

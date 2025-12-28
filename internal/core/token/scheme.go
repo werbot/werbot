@@ -12,16 +12,13 @@ package token
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/werbot/werbot/internal/core/profile"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
-	"github.com/werbot/werbot/internal/core/project"
-	projectpb "github.com/werbot/werbot/internal/core/project/proto/project"
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	"github.com/werbot/werbot/internal/trace"
@@ -29,6 +26,9 @@ import (
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 )
 
+// SchemeTokens retrieves a list of scheme tokens filtered by action and optional status
+// Requires owner_id and scheme_id to verify scheme ownership through project
+// Returns paginated list of tokens with total count
 func (h *Handler) SchemeTokens(ctx context.Context, in *tokenmessage.SchemeTokens_Request) (*tokenmessage.SchemeTokens_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
@@ -97,58 +97,80 @@ func (h *Handler) SchemeTokens(ctx context.Context, in *tokenmessage.SchemeToken
 	return response, nil
 }
 
-// AddTokenSchemeAdd is ...
+// AddTokenSchemeAdd creates a token for adding a scheme to a project
+// Supports two modes: existing profile (by profile_id) or email-based invitation
+// Validates project ownership and profile existence
+// Supports custom expiration time via expired_at parameter
+// Returns the created token ID
 func (h *Handler) AddTokenSchemeAdd(ctx context.Context, in *tokenmessage.AddTokenSchemeAdd_Request) (*tokenmessage.AddTokenSchemeAdd_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	// check access for add
-	projectDB := project.Handler{DB: h.DB}
-	_, err := projectDB.Project(ctx, &projectpb.Project_Request{
-		OwnerId:   in.GetOwnerId(),
-		ProjectId: in.GetProjectId(),
-	})
+	// check project exists and access
+	var projectExists bool
+	err := h.DB.Conn.QueryRowContext(ctx, `
+      SELECT EXISTS(
+        SELECT 1 FROM "project"
+        WHERE "id" = $1 AND "owner_id" = $2
+      )
+    `, in.GetProjectId(), in.GetOwnerId()).Scan(&projectExists)
 	if err != nil {
-		return nil, err
+		return nil, trace.Error(err, log, nil)
 	}
-	// ----
+	if !projectExists {
+		errGRPC := status.Error(codes.NotFound, trace.MsgProjectNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
 	fields := []string{"section", "action", "status", "project_id"}
 	args := []any{tokenenum.Section_scheme, tokenenum.Action_add, tokenenum.Status_sent, in.GetProjectId()}
 
-	profileDB := profile.Handler{DB: h.DB, Worker: h.Worker}
 	var metaData *tokenmessage.MetaDataProfile
 
 	switch in.GetData().(type) {
 	case *tokenmessage.AddTokenSchemeAdd_Request_Email:
-		profileData, err := profileDB.ProfileByEmail(ctx, &profilepb.ProfileByEmail_Request{Email: in.GetEmail()})
-		if err != nil && status.Convert(err).Code() != codes.NotFound {
-			return nil, err
+		// check if profile exists by email
+		profileDataByEmail, err := h.GetProfileDataByEmail(ctx, in.GetEmail())
+		if err != nil {
+			return nil, trace.Error(err, log, nil)
 		}
 
-		if profileData.GetProfileId() != "" {
+		if profileDataByEmail.Exists {
 			fields = append(fields, "profile_id")
-			args = append(args, profileData.GetProfileId())
-		}
-
-		metaData = &tokenmessage.MetaDataProfile{
-			Email: in.GetEmail(),
+			args = append(args, profileDataByEmail.ID)
+			metaData = &tokenmessage.MetaDataProfile{
+				Name:    profileDataByEmail.Name,
+				Surname: profileDataByEmail.Surname,
+				Email:   in.GetEmail(),
+			}
+		} else {
+			metaData = &tokenmessage.MetaDataProfile{
+				Email: in.GetEmail(),
+			}
 		}
 
 	case *tokenmessage.AddTokenSchemeAdd_Request_ProfileId:
-		profileData, err := profileDB.Profile(ctx, &profilepb.Profile_Request{ProfileId: in.GetProfileId()})
+		// check profile exists and get data
+		var name, surname, email string
+		err := h.DB.Conn.QueryRowContext(ctx, `
+      SELECT "name", "surname", "email" FROM "profile" WHERE "id" = $1
+    `, in.GetProfileId()).Scan(&name, &surname, &email)
 		if err != nil {
-			return nil, err
+			if err == sql.ErrNoRows {
+				errGRPC := status.Error(codes.NotFound, trace.MsgProfileNotFound)
+				return nil, trace.Error(errGRPC, log, nil)
+			}
+			return nil, trace.Error(err, log, nil)
 		}
 
 		fields = append(fields, "profile_id")
 		args = append(args, in.GetProfileId())
 
 		metaData = &tokenmessage.MetaDataProfile{
-			Name:    profileData.GetName(),
-			Surname: profileData.GetSurname(),
-			Email:   profileData.GetEmail(),
+			Name:    name,
+			Surname: surname,
+			Email:   email,
 		}
 	}
 
@@ -180,7 +202,11 @@ func (h *Handler) AddTokenSchemeAdd(ctx context.Context, in *tokenmessage.AddTok
 	return response, nil
 }
 
-// AddTokenSchemeAccess is ...
+// AddTokenSchemeAccess creates a token for one-time web access to a scheme
+// Supports two modes: existing profile (by profile_id) or email-based invitation
+// Validates scheme ownership through project
+// Supports custom expiration time via expired_at parameter
+// Returns the created token ID
 func (h *Handler) AddTokenSchemeAccess(ctx context.Context, in *tokenmessage.AddTokenSchemeAccess_Request) (*tokenmessage.AddTokenSchemeAccess_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
@@ -201,7 +227,7 @@ func (h *Handler) AddTokenSchemeAccess(ctx context.Context, in *tokenmessage.Add
 		return nil, trace.Error(err, log, nil)
 	}
 	if schemeCount == 0 {
-		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgNotFound), log, nil)
+		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgSchemeNotFound), log, nil)
 	}
 	// ----
 
@@ -209,36 +235,50 @@ func (h *Handler) AddTokenSchemeAccess(ctx context.Context, in *tokenmessage.Add
 	args := []any{tokenenum.Section_scheme, tokenenum.Action_request, tokenenum.Status_sent, in.GetSchemeId()}
 
 	var metaData *tokenmessage.MetaDataProfile
-	profile := profile.Handler{DB: h.DB, Worker: h.Worker}
 
 	switch in.GetData().(type) {
 	case *tokenmessage.AddTokenSchemeAccess_Request_Email:
-		profileData, err := profile.ProfileByEmail(ctx, &profilepb.ProfileByEmail_Request{Email: in.GetEmail()})
-		if err != nil && status.Convert(err).Code() != codes.NotFound {
-			return nil, err
-		}
-		if profileData.GetProfileId() != "" {
-			fields = append(fields, "profile_id")
-			args = append(args, profileData.GetProfileId())
+		// check if profile exists by email
+		profileDataByEmail, err := h.GetProfileDataByEmail(ctx, in.GetEmail())
+		if err != nil {
+			return nil, trace.Error(err, log, nil)
 		}
 
-		metaData = &tokenmessage.MetaDataProfile{
-			Email: in.GetEmail(),
+		if profileDataByEmail.Exists {
+			fields = append(fields, "profile_id")
+			args = append(args, profileDataByEmail.ID)
+			metaData = &tokenmessage.MetaDataProfile{
+				Name:    profileDataByEmail.Name,
+				Surname: profileDataByEmail.Surname,
+				Email:   in.GetEmail(),
+			}
+		} else {
+			metaData = &tokenmessage.MetaDataProfile{
+				Email: in.GetEmail(),
+			}
 		}
 
 	case *tokenmessage.AddTokenSchemeAccess_Request_ProfileId:
-		profileData, err := profile.Profile(ctx, &profilepb.Profile_Request{ProfileId: in.GetProfileId()})
+		// check profile exists and get data
+		var name, surname, email string
+		err := h.DB.Conn.QueryRowContext(ctx, `
+      SELECT "name", "surname", "email" FROM "profile" WHERE "id" = $1
+    `, in.GetProfileId()).Scan(&name, &surname, &email)
 		if err != nil {
-			return nil, err
+			if err == sql.ErrNoRows {
+				errGRPC := status.Error(codes.NotFound, trace.MsgProfileNotFound)
+				return nil, trace.Error(errGRPC, log, nil)
+			}
+			return nil, trace.Error(err, log, nil)
 		}
 
 		fields = append(fields, "profile_id")
 		args = append(args, in.GetProfileId())
 
 		metaData = &tokenmessage.MetaDataProfile{
-			Name:    profileData.GetName(),
-			Surname: profileData.GetSurname(),
-			Email:   profileData.GetEmail(),
+			Name:    name,
+			Surname: surname,
+			Email:   email,
 		}
 	}
 
@@ -270,14 +310,14 @@ func (h *Handler) AddTokenSchemeAccess(ctx context.Context, in *tokenmessage.Add
 	return response, nil
 }
 
-// UpdateSchemeToken is ...
+// UpdateSchemeToken updates scheme token status
+// Validates token status transitions based on user permissions (admin vs regular user)
+// For scheme add tokens, requires scheme_id when updating to done status
+// Optionally requires profile_id if profile was registered
+// Returns error if validation fails or token not found
 func (h *Handler) UpdateSchemeToken(ctx context.Context, in *tokenmessage.UpdateSchemeToken_Request) (*tokenmessage.UpdateSchemeToken_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
-	}
-
-	if !in.GetIsAdmin() && (in.GetStatus() == tokenenum.Status_status_unspecified || in.GetStatus() == tokenenum.Status_deleted || in.GetStatus() == tokenenum.Status_archived) {
-		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgStatusNotFound), log, nil)
 	}
 
 	// get core data for token
@@ -288,8 +328,10 @@ func (h *Handler) UpdateSchemeToken(ctx context.Context, in *tokenmessage.Update
 	if err != nil {
 		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgTokenNotFound), log, nil)
 	}
-	if !in.GetIsAdmin() && tokenData.GetStatus() == tokenenum.Status_done {
-		return nil, trace.Error(status.Error(codes.PermissionDenied, trace.MsgPermissionDenied), log, nil)
+
+	// Validate token for update using common validation function
+	if err := ValidateTokenForUpdate(in.GetIsAdmin(), tokenData.GetStatus(), in.GetStatus()); err != nil {
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// SQL constructor

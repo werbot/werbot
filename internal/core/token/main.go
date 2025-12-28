@@ -9,7 +9,8 @@ import (
 
 var log logger.Logger
 
-// Handler is ...
+// Handler provides token management operations
+// Implements gRPC token service handlers for profile, project, and scheme tokens
 type Handler struct {
 	tokenpb.UnimplementedTokenHandlersServer
 	DB     *postgres.Connect

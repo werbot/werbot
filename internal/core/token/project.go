@@ -19,10 +19,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/werbot/werbot/internal/core/profile"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
-	"github.com/werbot/werbot/internal/core/project"
-	projectpb "github.com/werbot/werbot/internal/core/project/proto/project"
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	"github.com/werbot/werbot/internal/trace"
@@ -30,6 +26,9 @@ import (
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 )
 
+// ProjectTokens retrieves a list of project tokens filtered by action and optional status
+// Requires owner_id and project_id to verify project ownership
+// Returns paginated list of tokens with total count
 func (h *Handler) ProjectTokens(ctx context.Context, in *tokenmessage.ProjectTokens_Request) (*tokenmessage.ProjectTokens_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
@@ -95,24 +94,31 @@ func (h *Handler) ProjectTokens(ctx context.Context, in *tokenmessage.ProjectTok
 	return response, nil
 }
 
-// AddTokenProjectMember is ...
+// AddTokenProjectMember creates a project member invitation token
+// Supports two modes: existing profile (by profile_id) or new profile registration (by email/name/surname)
+// Validates project ownership and profile existence
+// Supports custom expiration time via expired_at parameter
+// Returns the created token ID
 func (h *Handler) AddTokenProjectMember(ctx context.Context, in *tokenmessage.AddTokenProjectMember_Request) (*tokenmessage.AddTokenProjectMember_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	// check access for add
-	projectDB := project.Handler{DB: h.DB}
-	_, err := projectDB.Project(ctx, &projectpb.Project_Request{
-		OwnerId:   in.GetOwnerId(),
-		ProjectId: in.GetProjectId(),
-	})
+	// check project exists and access
+	var projectExists bool
+	err := h.DB.Conn.QueryRowContext(ctx, `
+      SELECT EXISTS(
+        SELECT 1 FROM "project"
+        WHERE "id" = $1 AND "owner_id" = $2
+      )
+    `, in.GetProjectId(), in.GetOwnerId()).Scan(&projectExists)
 	if err != nil {
-		return nil, err
+		return nil, trace.Error(err, log, nil)
 	}
-	// ----
-
-	profileDB := profile.Handler{DB: h.DB, Worker: h.Worker}
+	if !projectExists {
+		errGRPC := status.Error(codes.NotFound, trace.MsgProjectNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
 	fields := []string{"section", "action", "status", "project_id"}
 	args := []any{tokenenum.Section_project, tokenenum.Action_request, tokenenum.Status_sent}
@@ -125,23 +131,33 @@ func (h *Handler) AddTokenProjectMember(ctx context.Context, in *tokenmessage.Ad
 			return nil, trace.Error(err, log, nil)
 		}
 
-		profileEmail, err := profileDB.ProfileByEmail(ctx, &profilepb.ProfileByEmail_Request{
-			Email: profileData.Email,
-		})
-		if err != nil && status.Convert(err).Code() != codes.NotFound {
-			return nil, err
+		// check if profile exists by email
+		profileDataByEmail, err := h.GetProfileDataByEmail(ctx, profileData.Email)
+		if err != nil {
+			return nil, trace.Error(err, log, nil)
 		}
+		profileID := profileDataByEmail.ID
 
-		fields = append(fields, "data", "profile_id")
-		args = append(args, data, profileEmail)
+		fields = append(fields, "data")
+		args = append(args, data)
+		if profileID != "" {
+			fields = append(fields, "profile_id")
+			args = append(args, profileID)
+		}
 
 	case *tokenmessage.AddTokenProjectMember_Request_ProfileId:
 		profileID := in.GetProfileId()
-		_, err := profileDB.Profile(ctx, &profilepb.Profile_Request{
-			ProfileId: profileID,
-		})
+		// check profile exists
+		var profileExists bool
+		err := h.DB.Conn.QueryRowContext(ctx, `
+      SELECT EXISTS(SELECT 1 FROM "profile" WHERE "id" = $1)
+    `, profileID).Scan(&profileExists)
 		if err != nil {
-			return nil, err
+			return nil, trace.Error(err, log, nil)
+		}
+		if !profileExists {
+			errGRPC := status.Error(codes.NotFound, trace.MsgProfileNotFound)
+			return nil, trace.Error(errGRPC, log, nil)
 		}
 
 		fields = append(fields, "profile_id")
@@ -167,14 +183,13 @@ func (h *Handler) AddTokenProjectMember(ctx context.Context, in *tokenmessage.Ad
 	return response, nil
 }
 
-// UpdateProjectToken is ...
+// UpdateProjectToken updates project token status
+// Validates token status transitions based on user permissions (admin vs regular user)
+// For member invitation tokens, requires profile_id when updating to done status
+// Returns error if validation fails or token not found
 func (h *Handler) UpdateProjectToken(ctx context.Context, in *tokenmessage.UpdateProjectToken_Request) (*tokenmessage.UpdateProjectToken_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
-	}
-
-	if !in.GetIsAdmin() && (in.GetStatus() == tokenenum.Status_status_unspecified || in.GetStatus() == tokenenum.Status_deleted || in.GetStatus() == tokenenum.Status_archived) {
-		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgStatusNotFound), log, nil)
 	}
 
 	// get core data for token
@@ -185,8 +200,10 @@ func (h *Handler) UpdateProjectToken(ctx context.Context, in *tokenmessage.Updat
 	if err != nil {
 		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgTokenNotFound), log, nil)
 	}
-	if !in.GetIsAdmin() && tokenData.GetStatus() == tokenenum.Status_done {
-		return nil, trace.Error(status.Error(codes.PermissionDenied, trace.MsgPermissionDenied), log, nil)
+
+	// Validate token for update using common validation function
+	if err := ValidateTokenForUpdate(in.GetIsAdmin(), tokenData.GetStatus(), in.GetStatus()); err != nil {
+		return nil, trace.Error(err, log, nil)
 	}
 
 	// SQL constructor

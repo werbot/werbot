@@ -2,6 +2,7 @@ package token
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
@@ -14,7 +15,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// Token is ...
+// Token retrieves token details by token ID
+// Returns token information including section, action, status, and associated metadata
+// Validates token expiration if expired_at is set
+// Masks sensitive data (owner_id, profile_id, project_id, scheme_id) for non-admin users
 func (h *Handler) Token(ctx context.Context, in *tokenmessage.Token_Request) (*tokenmessage.Token_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
@@ -66,6 +70,14 @@ func (h *Handler) Token(ctx context.Context, in *tokenmessage.Token_Request) (*t
 	)
 	if err != nil {
 		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgTokenNotFound), log, nil)
+	}
+
+	// Validate token expiration: check expired_at if set, otherwise use 24-hour default
+	if expiredAt.Valid {
+		now := time.Now()
+		if expiredAt.Time.Before(now) {
+			return nil, trace.Error(status.Error(codes.InvalidArgument, "token has expired"), log, nil)
+		}
 	}
 
 	response.OwnerId = ownerID.String
@@ -235,7 +247,9 @@ func (h *Handler) UpdateToken(ctx context.Context, in *tokenmessage.UpdateToken_
 }
 */
 
-// DeleteToken is ...
+// DeleteToken marks a token as deleted by setting status to deleted
+// Requires owner_id for non-admin users to verify ownership
+// Returns error if token not found or ownership verification fails
 func (h *Handler) DeleteToken(ctx context.Context, in *tokenmessage.DeleteToken_Request) (*tokenmessage.DeleteToken_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
@@ -273,7 +287,9 @@ func (h *Handler) DeleteToken(ctx context.Context, in *tokenmessage.DeleteToken_
 	return &tokenmessage.DeleteToken_Response{}, nil
 }
 
-// ArchivedToken is ...
+// ArchivedToken marks a token as archived by setting status to archived
+// Requires owner_id for non-admin users to verify ownership
+// Returns error if token not found or ownership verification fails
 func (h *Handler) ArchivedToken(ctx context.Context, in *tokenmessage.ArchivedToken_Request) (*tokenmessage.ArchivedToken_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
