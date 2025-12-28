@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bufbuild/protovalidate-go"
+	"buf.build/go/protovalidate"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
@@ -23,9 +23,35 @@ func ValidateRequest(request proto.Message) error {
 
 	if err := v.Validate(request); err != nil {
 		errorList := make(errutil.ErrorMap)
-		validErr := err.(*protovalidate.ValidationError).ToProto().GetViolations()
-		for _, errTmp := range validErr {
-			errorList[errTmp.GetFieldPath()] = errTmp.GetMessage()
+		validErr := err.(*protovalidate.ValidationError)
+		for _, violation := range validErr.Violations {
+			// Get field path from FieldDescriptor
+			fieldPath := string(violation.FieldDescriptor.Name())
+			if violation.Proto != nil {
+				// Try to get field path from proto if available
+				if field := violation.Proto.GetField(); field != nil && len(field.GetElements()) > 0 {
+					var pathParts []string
+					for _, elem := range field.GetElements() {
+						if elem.GetFieldName() != "" {
+							pathParts = append(pathParts, elem.GetFieldName())
+						}
+					}
+					if len(pathParts) > 0 {
+						fieldPath = pathParts[0]
+						for _, part := range pathParts[1:] {
+							fieldPath += "." + part
+						}
+					}
+				}
+				message := violation.Proto.GetMessage()
+				if message == "" {
+					message = violation.String()
+				}
+				errorList[fieldPath] = message
+			} else {
+				// Fallback to String() if Proto is nil
+				errorList[fieldPath] = violation.String()
+			}
 		}
 
 		return errorList

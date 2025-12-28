@@ -1,6 +1,6 @@
 package pkg
 
 import (
-	_ "github.com/bufbuild/protovalidate-go"
+	_ "buf.build/go/protovalidate"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
