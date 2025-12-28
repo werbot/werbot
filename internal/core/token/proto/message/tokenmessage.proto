@@ -66,7 +66,7 @@ message ArchivedToken {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
 
-    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
     string token = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
   }
 
@@ -79,7 +79,7 @@ message DeleteToken {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
 
-    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+    string owner_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
     string token = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
   }
 

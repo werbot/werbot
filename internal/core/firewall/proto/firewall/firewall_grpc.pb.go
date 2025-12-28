@@ -73,10 +73,10 @@ type FirewallHandlersServer interface {
 type UnimplementedFirewallHandlersServer struct{}
 
 func (UnimplementedFirewallHandlersServer) IPAccess(context.Context, *IPAccess_Request) (*IPAccess_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method IPAccess not implemented")
+	return nil, status.Error(codes.Unimplemented, "method IPAccess not implemented")
 }
 func (UnimplementedFirewallHandlersServer) UpdateFirewallListData(context.Context, *UpdateFirewallListData_Request) (*UpdateFirewallListData_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateFirewallListData not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateFirewallListData not implemented")
 }
 func (UnimplementedFirewallHandlersServer) mustEmbedUnimplementedFirewallHandlersServer() {}
 func (UnimplementedFirewallHandlersServer) testEmbeddedByValue()                          {}
@@ -89,7 +89,7 @@ type UnsafeFirewallHandlersServer interface {
 }
 
 func RegisterFirewallHandlersServer(s grpc.ServiceRegistrar, srv FirewallHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedFirewallHandlersServer was
+	// If the following call panics, it indicates UnimplementedFirewallHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

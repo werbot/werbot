@@ -249,49 +249,49 @@ type TokenHandlersServer interface {
 type UnimplementedTokenHandlersServer struct{}
 
 func (UnimplementedTokenHandlersServer) Token(context.Context, *message.Token_Request) (*message.Token_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Token not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Token not implemented")
 }
 func (UnimplementedTokenHandlersServer) ArchivedToken(context.Context, *message.ArchivedToken_Request) (*message.ArchivedToken_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ArchivedToken not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ArchivedToken not implemented")
 }
 func (UnimplementedTokenHandlersServer) DeleteToken(context.Context, *message.DeleteToken_Request) (*message.DeleteToken_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteToken not implemented")
+	return nil, status.Error(codes.Unimplemented, "method DeleteToken not implemented")
 }
 func (UnimplementedTokenHandlersServer) ProfileTokens(context.Context, *message.ProfileTokens_Request) (*message.ProfileTokens_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProfileTokens not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProfileTokens not implemented")
 }
 func (UnimplementedTokenHandlersServer) AddTokenProfileReset(context.Context, *message.AddTokenProfileReset_Request) (*message.AddTokenProfileReset_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddTokenProfileReset not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddTokenProfileReset not implemented")
 }
 func (UnimplementedTokenHandlersServer) AddTokenProfileRegistration(context.Context, *message.AddTokenProfileRegistration_Request) (*message.AddTokenProfileRegistration_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddTokenProfileRegistration not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddTokenProfileRegistration not implemented")
 }
 func (UnimplementedTokenHandlersServer) AddTokenProfileDelete(context.Context, *message.AddTokenProfileDelete_Request) (*message.AddTokenProfileDelete_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddTokenProfileDelete not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddTokenProfileDelete not implemented")
 }
 func (UnimplementedTokenHandlersServer) UpdateProfileToken(context.Context, *message.UpdateProfileToken_Request) (*message.UpdateProfileToken_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateProfileToken not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateProfileToken not implemented")
 }
 func (UnimplementedTokenHandlersServer) ProjectTokens(context.Context, *message.ProjectTokens_Request) (*message.ProjectTokens_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProjectTokens not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProjectTokens not implemented")
 }
 func (UnimplementedTokenHandlersServer) AddTokenProjectMember(context.Context, *message.AddTokenProjectMember_Request) (*message.AddTokenProjectMember_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddTokenProjectMember not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddTokenProjectMember not implemented")
 }
 func (UnimplementedTokenHandlersServer) UpdateProjectToken(context.Context, *message.UpdateProjectToken_Request) (*message.UpdateProjectToken_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateProjectToken not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateProjectToken not implemented")
 }
 func (UnimplementedTokenHandlersServer) SchemeTokens(context.Context, *message.SchemeTokens_Request) (*message.SchemeTokens_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SchemeTokens not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SchemeTokens not implemented")
 }
 func (UnimplementedTokenHandlersServer) AddTokenSchemeAdd(context.Context, *message.AddTokenSchemeAdd_Request) (*message.AddTokenSchemeAdd_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddTokenSchemeAdd not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddTokenSchemeAdd not implemented")
 }
 func (UnimplementedTokenHandlersServer) AddTokenSchemeAccess(context.Context, *message.AddTokenSchemeAccess_Request) (*message.AddTokenSchemeAccess_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddTokenSchemeAccess not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddTokenSchemeAccess not implemented")
 }
 func (UnimplementedTokenHandlersServer) UpdateSchemeToken(context.Context, *message.UpdateSchemeToken_Request) (*message.UpdateSchemeToken_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateSchemeToken not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateSchemeToken not implemented")
 }
 func (UnimplementedTokenHandlersServer) mustEmbedUnimplementedTokenHandlersServer() {}
 func (UnimplementedTokenHandlersServer) testEmbeddedByValue()                       {}
@@ -304,7 +304,7 @@ type UnsafeTokenHandlersServer interface {
 }
 
 func RegisterTokenHandlersServer(s grpc.ServiceRegistrar, srv TokenHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedTokenHandlersServer was
+	// If the following call panics, it indicates UnimplementedTokenHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

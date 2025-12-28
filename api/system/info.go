@@ -1,9 +1,12 @@
 package system
 
 import (
+	"context"
 	"fmt"
 
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/client"
 	"github.com/gofiber/fiber/v2"
 
 	systempb "github.com/werbot/werbot/internal/core/system/proto/system"
@@ -26,16 +29,17 @@ func (h *Handler) update(c *fiber.Ctx) error {
 		return webutil.StatusNotFound(c, nil)
 	}
 
-	client, err := docker.NewClient("unix:///var/run/docker.sock")
+	dockerClient, err := client.NewClientWithOpts(client.WithHost("unix:///var/run/docker.sock"), client.WithAPIVersionNegotiation())
 	if err != nil {
 		return webutil.StatusInternalServerError(c, "Failed connect to docker")
 	}
+	defer dockerClient.Close()
 
-	listContainers, err := client.ListContainers(docker.ListContainersOptions{
-		All: false,
-		Filters: map[string][]string{
-			"label": {"org.opencontainers.image.version"},
-		},
+	filterArgs := filters.NewArgs()
+	filterArgs.Add("label", "org.opencontainers.image.version")
+	listContainers, err := dockerClient.ContainerList(context.Background(), container.ListOptions{
+		All:     false,
+		Filters: filterArgs,
 	})
 	if err != nil {
 		return webutil.StatusInternalServerError(c, "Failed to show container list")
@@ -56,9 +60,9 @@ func (h *Handler) update(c *fiber.Ctx) error {
 	}
 
 	updates := make(map[string]map[string]any)
-	for _, image := range listContainers {
-		service := image.Labels["org.opencontainers.image.title"]
-		version := image.Labels["org.opencontainers.image.version"]
+	for _, container := range listContainers {
+		service := container.Labels["org.opencontainers.image.title"]
+		version := container.Labels["org.opencontainers.image.version"]
 
 		if service == "werbot.web" {
 			updates["web"] = map[string]any{

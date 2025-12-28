@@ -280,55 +280,55 @@ type SchemeHandlersServer interface {
 type UnimplementedSchemeHandlersServer struct{}
 
 func (UnimplementedSchemeHandlersServer) Schemes(context.Context, *Schemes_Request) (*Schemes_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Schemes not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Schemes not implemented")
 }
 func (UnimplementedSchemeHandlersServer) Scheme(context.Context, *Scheme_Request) (*Scheme_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Scheme not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Scheme not implemented")
 }
 func (UnimplementedSchemeHandlersServer) AddScheme(context.Context, *AddScheme_Request) (*AddScheme_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddScheme not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddScheme not implemented")
 }
 func (UnimplementedSchemeHandlersServer) UpdateScheme(context.Context, *UpdateScheme_Request) (*UpdateScheme_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateScheme not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateScheme not implemented")
 }
 func (UnimplementedSchemeHandlersServer) DeleteScheme(context.Context, *DeleteScheme_Request) (*DeleteScheme_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteScheme not implemented")
+	return nil, status.Error(codes.Unimplemented, "method DeleteScheme not implemented")
 }
 func (UnimplementedSchemeHandlersServer) SchemeAccess(context.Context, *SchemeAccess_Request) (*SchemeAccess_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SchemeAccess not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SchemeAccess not implemented")
 }
 func (UnimplementedSchemeHandlersServer) SchemeActivity(context.Context, *SchemeActivity_Request) (*SchemeActivity_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SchemeActivity not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SchemeActivity not implemented")
 }
 func (UnimplementedSchemeHandlersServer) UpdateSchemeActivity(context.Context, *UpdateSchemeActivity_Request) (*UpdateSchemeActivity_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateSchemeActivity not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateSchemeActivity not implemented")
 }
 func (UnimplementedSchemeHandlersServer) SchemeFirewall(context.Context, *SchemeFirewall_Request) (*SchemeFirewall_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SchemeFirewall not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SchemeFirewall not implemented")
 }
 func (UnimplementedSchemeHandlersServer) AddSchemeFirewall(context.Context, *AddSchemeFirewall_Request) (*AddSchemeFirewall_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddSchemeFirewall not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddSchemeFirewall not implemented")
 }
 func (UnimplementedSchemeHandlersServer) UpdateSchemeFirewall(context.Context, *UpdateSchemeFirewall_Request) (*UpdateSchemeFirewall_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateSchemeFirewall not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateSchemeFirewall not implemented")
 }
 func (UnimplementedSchemeHandlersServer) DeleteSchemeFirewall(context.Context, *DeleteSchemeFirewall_Request) (*DeleteSchemeFirewall_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteSchemeFirewall not implemented")
+	return nil, status.Error(codes.Unimplemented, "method DeleteSchemeFirewall not implemented")
 }
 func (UnimplementedSchemeHandlersServer) ProfileSchemes(context.Context, *ProfileSchemes_Request) (*ProfileSchemes_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProfileSchemes not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProfileSchemes not implemented")
 }
 func (UnimplementedSchemeHandlersServer) SystemSchemesByAlias(context.Context, *SystemSchemesByAlias_Request) (*SystemSchemesByAlias_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SystemSchemesByAlias not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SystemSchemesByAlias not implemented")
 }
 func (UnimplementedSchemeHandlersServer) SystemSchemeAccess(context.Context, *SystemSchemeAccess_Request) (*SystemSchemeAccess_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SystemSchemeAccess not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SystemSchemeAccess not implemented")
 }
 func (UnimplementedSchemeHandlersServer) SystemHostKey(context.Context, *SystemHostKey_Request) (*SystemHostKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SystemHostKey not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SystemHostKey not implemented")
 }
 func (UnimplementedSchemeHandlersServer) SystemUpdateHostKey(context.Context, *SystemUpdateHostKey_Request) (*SystemUpdateHostKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SystemUpdateHostKey not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SystemUpdateHostKey not implemented")
 }
 func (UnimplementedSchemeHandlersServer) mustEmbedUnimplementedSchemeHandlersServer() {}
 func (UnimplementedSchemeHandlersServer) testEmbeddedByValue()                        {}
@@ -341,7 +341,7 @@ type UnsafeSchemeHandlersServer interface {
 }
 
 func RegisterSchemeHandlersServer(s grpc.ServiceRegistrar, srv SchemeHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedSchemeHandlersServer was
+	// If the following call panics, it indicates UnimplementedSchemeHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

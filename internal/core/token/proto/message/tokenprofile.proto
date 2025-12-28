@@ -16,7 +16,7 @@ message ProfileTokens {
     bool is_admin = 1; // @gotags: json:"-"
 
     token.enum.Action action = 2 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, in: [1, 2, 4]}];
-    token.enum.Status status = 3 [(buf.validate.field).ignore_empty = true, (buf.validate.field).enum = { defined_only: true, not_in: [0, 3]}];
+    token.enum.Status status = 3 [(buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE, (buf.validate.field).enum = { defined_only: true, not_in: [0, 3]}];
     int32 limit = 4;
     int32 offset = 5;
     string sort_by = 6; // @gotags: json:"-"
@@ -78,7 +78,7 @@ message UpdateProfileToken {
 
     string token = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     token.enum.Status status = 3 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, not_in: [0, 3]}];
-    string profile_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+    string profile_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   }
 
   message Response {}

@@ -60,7 +60,7 @@ type NotificationHandlersServer interface {
 type UnimplementedNotificationHandlersServer struct{}
 
 func (UnimplementedNotificationHandlersServer) SendMail(context.Context, *SendMail_Request) (*SendMail_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendMail not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SendMail not implemented")
 }
 func (UnimplementedNotificationHandlersServer) mustEmbedUnimplementedNotificationHandlersServer() {}
 func (UnimplementedNotificationHandlersServer) testEmbeddedByValue()                              {}
@@ -73,7 +73,7 @@ type UnsafeNotificationHandlersServer interface {
 }
 
 func RegisterNotificationHandlersServer(s grpc.ServiceRegistrar, srv NotificationHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedNotificationHandlersServer was
+	// If the following call panics, it indicates UnimplementedNotificationHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

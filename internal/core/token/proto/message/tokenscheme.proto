@@ -17,7 +17,7 @@ message SchemeTokens {
     bool is_admin = 1; // @gotags: json:"-"
 
     token.enum.Action action = 2 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, in: [3, 7, 8]}];
-    token.enum.Status status = 3 [(buf.validate.field).ignore_empty = true, (buf.validate.field).enum = { defined_only: true, not_in: [0]}];
+    token.enum.Status status = 3 [(buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE, (buf.validate.field).enum = { defined_only: true, not_in: [0]}];
     string owner_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     string scheme_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     int32 limit = 6;
@@ -79,8 +79,8 @@ message UpdateSchemeToken {
 
     string token = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     token.enum.Status status = 3 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, not_in: [0]}];
-    string profile_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
-    string scheme_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+    string profile_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+    string scheme_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   }
 
   message Response {}

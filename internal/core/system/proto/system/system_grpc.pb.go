@@ -86,13 +86,13 @@ type SystemHandlersServer interface {
 type UnimplementedSystemHandlersServer struct{}
 
 func (UnimplementedSystemHandlersServer) ProfileMetrics(context.Context, *ProfileMetrics_Request) (*ProfileMetrics_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProfileMetrics not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProfileMetrics not implemented")
 }
 func (UnimplementedSystemHandlersServer) Countries(context.Context, *Countries_Request) (*Countries_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Countries not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Countries not implemented")
 }
 func (UnimplementedSystemHandlersServer) CountryByIP(context.Context, *CountryByIP_Request) (*CountryByIP_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CountryByIP not implemented")
+	return nil, status.Error(codes.Unimplemented, "method CountryByIP not implemented")
 }
 func (UnimplementedSystemHandlersServer) mustEmbedUnimplementedSystemHandlersServer() {}
 func (UnimplementedSystemHandlersServer) testEmbeddedByValue()                        {}
@@ -105,7 +105,7 @@ type UnsafeSystemHandlersServer interface {
 }
 
 func RegisterSystemHandlersServer(s grpc.ServiceRegistrar, srv SystemHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedSystemHandlersServer was
+	// If the following call panics, it indicates UnimplementedSystemHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

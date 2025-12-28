@@ -75,10 +75,10 @@ type AgentHandlersServer interface {
 type UnimplementedAgentHandlersServer struct{}
 
 func (UnimplementedAgentHandlersServer) Auth(context.Context, *Auth_Request) (*Auth_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Auth not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Auth not implemented")
 }
 func (UnimplementedAgentHandlersServer) AddScheme(context.Context, *AddScheme_Request) (*AddScheme_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddScheme not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddScheme not implemented")
 }
 func (UnimplementedAgentHandlersServer) mustEmbedUnimplementedAgentHandlersServer() {}
 func (UnimplementedAgentHandlersServer) testEmbeddedByValue()                       {}
@@ -91,7 +91,7 @@ type UnsafeAgentHandlersServer interface {
 }
 
 func RegisterAgentHandlersServer(s grpc.ServiceRegistrar, srv AgentHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedAgentHandlersServer was
+	// If the following call panics, it indicates UnimplementedAgentHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

@@ -86,13 +86,13 @@ type EventHandlersServer interface {
 type UnimplementedEventHandlersServer struct{}
 
 func (UnimplementedEventHandlersServer) Events(context.Context, *Events_Request) (*Events_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Events not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Events not implemented")
 }
 func (UnimplementedEventHandlersServer) Event(context.Context, *Event_Request) (*Event_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Event not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Event not implemented")
 }
 func (UnimplementedEventHandlersServer) AddEvent(context.Context, *AddEvent_Request) (*AddEvent_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddEvent not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddEvent not implemented")
 }
 func (UnimplementedEventHandlersServer) mustEmbedUnimplementedEventHandlersServer() {}
 func (UnimplementedEventHandlersServer) testEmbeddedByValue()                       {}
@@ -105,7 +105,7 @@ type UnsafeEventHandlersServer interface {
 }
 
 func RegisterEventHandlersServer(s grpc.ServiceRegistrar, srv EventHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedEventHandlersServer was
+	// If the following call panics, it indicates UnimplementedEventHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

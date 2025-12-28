@@ -168,31 +168,31 @@ type ProjectHandlersServer interface {
 type UnimplementedProjectHandlersServer struct{}
 
 func (UnimplementedProjectHandlersServer) Projects(context.Context, *Projects_Request) (*Projects_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Projects not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Projects not implemented")
 }
 func (UnimplementedProjectHandlersServer) Project(context.Context, *Project_Request) (*Project_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Project not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Project not implemented")
 }
 func (UnimplementedProjectHandlersServer) AddProject(context.Context, *AddProject_Request) (*AddProject_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddProject not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddProject not implemented")
 }
 func (UnimplementedProjectHandlersServer) UpdateProject(context.Context, *UpdateProject_Request) (*UpdateProject_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateProject not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateProject not implemented")
 }
 func (UnimplementedProjectHandlersServer) DeleteProject(context.Context, *DeleteProject_Request) (*DeleteProject_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteProject not implemented")
+	return nil, status.Error(codes.Unimplemented, "method DeleteProject not implemented")
 }
 func (UnimplementedProjectHandlersServer) ProjectKeys(context.Context, *ProjectKeys_Request) (*ProjectKeys_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProjectKeys not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProjectKeys not implemented")
 }
 func (UnimplementedProjectHandlersServer) ProjectKey(context.Context, *ProjectKey_Request) (*ProjectKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProjectKey not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProjectKey not implemented")
 }
 func (UnimplementedProjectHandlersServer) AddProjectKey(context.Context, *AddProjectKey_Request) (*AddProjectKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddProjectKey not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddProjectKey not implemented")
 }
 func (UnimplementedProjectHandlersServer) DeleteProjectKey(context.Context, *DeleteProjectKey_Request) (*DeleteProjectKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteProjectKey not implemented")
+	return nil, status.Error(codes.Unimplemented, "method DeleteProjectKey not implemented")
 }
 func (UnimplementedProjectHandlersServer) mustEmbedUnimplementedProjectHandlersServer() {}
 func (UnimplementedProjectHandlersServer) testEmbeddedByValue()                         {}
@@ -205,7 +205,7 @@ type UnsafeProjectHandlersServer interface {
 }
 
 func RegisterProjectHandlersServer(s grpc.ServiceRegistrar, srv ProjectHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedProjectHandlersServer was
+	// If the following call panics, it indicates UnimplementedProjectHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

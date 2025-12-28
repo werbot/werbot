@@ -16,7 +16,7 @@ message ProjectTokens {
     bool is_admin = 1; // @gotags: json:"-"
 
     token.enum.Action action = 2 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, in: [7]}]; // 4, 2
-    token.enum.Status status = 3 [(buf.validate.field).ignore_empty = true, (buf.validate.field).enum = { defined_only: true, not_in: [0, 3]}];
+    token.enum.Status status = 3 [(buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE, (buf.validate.field).enum = { defined_only: true, not_in: [0, 3]}];
     string owner_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     string project_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     int32 limit = 6;
@@ -59,7 +59,7 @@ message UpdateProjectToken{
 
     string token = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     token.enum.Status status = 4 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, not_in: [0, 3]}];
-    string profile_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+    string profile_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   }
 
   message Response {}

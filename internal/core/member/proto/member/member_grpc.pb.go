@@ -211,40 +211,40 @@ type MemberHandlersServer interface {
 type UnimplementedMemberHandlersServer struct{}
 
 func (UnimplementedMemberHandlersServer) ProjectMembers(context.Context, *ProjectMembers_Request) (*ProjectMembers_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProjectMembers not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProjectMembers not implemented")
 }
 func (UnimplementedMemberHandlersServer) ProjectMember(context.Context, *ProjectMember_Request) (*ProjectMember_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProjectMember not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProjectMember not implemented")
 }
 func (UnimplementedMemberHandlersServer) AddProjectMember(context.Context, *AddProjectMember_Request) (*AddProjectMember_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddProjectMember not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddProjectMember not implemented")
 }
 func (UnimplementedMemberHandlersServer) UpdateProjectMember(context.Context, *UpdateProjectMember_Request) (*UpdateProjectMember_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateProjectMember not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateProjectMember not implemented")
 }
 func (UnimplementedMemberHandlersServer) DeleteProjectMember(context.Context, *DeleteProjectMember_Request) (*DeleteProjectMember_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteProjectMember not implemented")
+	return nil, status.Error(codes.Unimplemented, "method DeleteProjectMember not implemented")
 }
 func (UnimplementedMemberHandlersServer) ProfilesWithoutProject(context.Context, *ProfilesWithoutProject_Request) (*ProfilesWithoutProject_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProfilesWithoutProject not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProfilesWithoutProject not implemented")
 }
 func (UnimplementedMemberHandlersServer) SchemeMembers(context.Context, *SchemeMembers_Request) (*SchemeMembers_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SchemeMembers not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SchemeMembers not implemented")
 }
 func (UnimplementedMemberHandlersServer) SchemeMember(context.Context, *SchemeMember_Request) (*SchemeMember_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SchemeMember not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SchemeMember not implemented")
 }
 func (UnimplementedMemberHandlersServer) AddSchemeMember(context.Context, *AddSchemeMember_Request) (*AddSchemeMember_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddSchemeMember not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddSchemeMember not implemented")
 }
 func (UnimplementedMemberHandlersServer) UpdateSchemeMember(context.Context, *UpdateSchemeMember_Request) (*UpdateSchemeMember_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateSchemeMember not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateSchemeMember not implemented")
 }
 func (UnimplementedMemberHandlersServer) DeleteSchemeMember(context.Context, *DeleteSchemeMember_Request) (*DeleteSchemeMember_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteSchemeMember not implemented")
+	return nil, status.Error(codes.Unimplemented, "method DeleteSchemeMember not implemented")
 }
 func (UnimplementedMemberHandlersServer) MembersWithoutScheme(context.Context, *MembersWithoutScheme_Request) (*MembersWithoutScheme_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method MembersWithoutScheme not implemented")
+	return nil, status.Error(codes.Unimplemented, "method MembersWithoutScheme not implemented")
 }
 func (UnimplementedMemberHandlersServer) mustEmbedUnimplementedMemberHandlersServer() {}
 func (UnimplementedMemberHandlersServer) testEmbeddedByValue()                        {}
@@ -257,7 +257,7 @@ type UnsafeMemberHandlersServer interface {
 }
 
 func RegisterMemberHandlersServer(s grpc.ServiceRegistrar, srv MemberHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedMemberHandlersServer was
+	// If the following call panics, it indicates UnimplementedMemberHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

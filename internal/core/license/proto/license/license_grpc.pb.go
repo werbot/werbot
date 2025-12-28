@@ -60,7 +60,7 @@ type LicenseHandlersServer interface {
 type UnimplementedLicenseHandlersServer struct{}
 
 func (UnimplementedLicenseHandlersServer) License(context.Context, *License_Request) (*License_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method License not implemented")
+	return nil, status.Error(codes.Unimplemented, "method License not implemented")
 }
 func (UnimplementedLicenseHandlersServer) mustEmbedUnimplementedLicenseHandlersServer() {}
 func (UnimplementedLicenseHandlersServer) testEmbeddedByValue()                         {}
@@ -73,7 +73,7 @@ type UnsafeLicenseHandlersServer interface {
 }
 
 func RegisterLicenseHandlersServer(s grpc.ServiceRegistrar, srv LicenseHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedLicenseHandlersServer was
+	// If the following call panics, it indicates UnimplementedLicenseHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

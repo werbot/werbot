@@ -87,20 +87,20 @@ message AccessScheme {
   message Server {
     message TCP {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
     }
 
     message UDP {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
     }
 
     message SSH {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       oneof access {
         auth.Auth.Password password = 4;
         auth.Auth.Key key = 5;
@@ -110,8 +110,8 @@ message AccessScheme {
 
     message Telnet {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       auth.Auth.Password access = 4;
     }
   }
@@ -119,8 +119,8 @@ message AccessScheme {
   message Database {
     message MySQL {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       string database_name = 4;
       auth.Auth.Password access = 5;
       auth.Auth.MTLS mtls = 6;
@@ -128,8 +128,8 @@ message AccessScheme {
 
     message Postgres {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       string database_name = 4;
       auth.Auth.Password access = 5;
       auth.Auth.MTLS mtls = 6;
@@ -138,16 +138,16 @@ message AccessScheme {
 
     message Redis {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       auth.Auth.Password access = 4;
       bool tls_required = 5;
     }
 
     message MongoDB {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       string database_name = 4;
       auth.Auth.Password access = 5;
       bool tls_required = 6;
@@ -156,32 +156,32 @@ message AccessScheme {
 
     message Elastic {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       auth.Auth.Password access = 4;
       bool tls_required = 5;
     }
 
     message DynamoDB {
       string alias = 1; // @gotags: json:"-"
-      // string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      // int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      // string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      // int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       string region = 4;
       auth.Auth.API api = 5;
     }
 
     message Cassandra {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       auth.Auth.Password access = 4;
       bool tls_required = 5;
     }
 
     message SQLServer {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       auth.Auth.Password access = 4;
       string schema = 5;
       bool default_database = 6;
@@ -198,15 +198,15 @@ message AccessScheme {
   message Desktop {
     message RDP {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       auth.Auth.Password access = 4;
     }
 
     message VNC {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       auth.Auth.Password access = 4;
     }
   }
@@ -214,15 +214,15 @@ message AccessScheme {
   message Container {
     message Docker {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       auth.Auth.MTLS mtls = 4;
     }
 
     message K8S {
       string alias = 1; // @gotags: json:"-"
-      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore_empty = true];
-      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore_empty = true];
+      string address = 2 [(buf.validate.field).string.address = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+      int32 port = 3 [(buf.validate.field).int32 = { gte: 1 lt: 65536 }, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
       auth.Auth.MTLS mtls = 4;
       string healthcheck_namespace = 5;
     }

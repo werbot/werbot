@@ -129,22 +129,22 @@ type KeyHandlersServer interface {
 type UnimplementedKeyHandlersServer struct{}
 
 func (UnimplementedKeyHandlersServer) Keys(context.Context, *Keys_Request) (*Keys_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Keys not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Keys not implemented")
 }
 func (UnimplementedKeyHandlersServer) Key(context.Context, *Key_Request) (*Key_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Key not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Key not implemented")
 }
 func (UnimplementedKeyHandlersServer) AddKey(context.Context, *AddKey_Request) (*AddKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddKey not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddKey not implemented")
 }
 func (UnimplementedKeyHandlersServer) UpdateKey(context.Context, *UpdateKey_Request) (*UpdateKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateKey not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateKey not implemented")
 }
 func (UnimplementedKeyHandlersServer) DeleteKey(context.Context, *DeleteKey_Request) (*DeleteKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteKey not implemented")
+	return nil, status.Error(codes.Unimplemented, "method DeleteKey not implemented")
 }
 func (UnimplementedKeyHandlersServer) GenerateSSHKey(context.Context, *GenerateSSHKey_Request) (*GenerateSSHKey_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GenerateSSHKey not implemented")
+	return nil, status.Error(codes.Unimplemented, "method GenerateSSHKey not implemented")
 }
 func (UnimplementedKeyHandlersServer) mustEmbedUnimplementedKeyHandlersServer() {}
 func (UnimplementedKeyHandlersServer) testEmbeddedByValue()                     {}
@@ -157,7 +157,7 @@ type UnsafeKeyHandlersServer interface {
 }
 
 func RegisterKeyHandlersServer(s grpc.ServiceRegistrar, srv KeyHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedKeyHandlersServer was
+	// If the following call panics, it indicates UnimplementedKeyHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

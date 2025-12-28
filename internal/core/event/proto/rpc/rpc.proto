@@ -54,7 +54,7 @@ message Event {
       string project_id = 4 [(buf.validate.field).string.uuid = true];
       string scheme_id = 5 [(buf.validate.field).string.uuid = true];
     }
-    string session_id = 6 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore_empty = true];
+    string session_id = 6 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   }
 
   message Response {

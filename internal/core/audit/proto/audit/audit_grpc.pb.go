@@ -142,25 +142,25 @@ type AuditHandlersServer interface {
 type UnimplementedAuditHandlersServer struct{}
 
 func (UnimplementedAuditHandlersServer) ListAudits(context.Context, *ListAudits_Request) (*ListAudits_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListAudits not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ListAudits not implemented")
 }
 func (UnimplementedAuditHandlersServer) Audit(context.Context, *Audit_Request) (*Audit_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Audit not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Audit not implemented")
 }
 func (UnimplementedAuditHandlersServer) AddAudit(context.Context, *AddAudit_Request) (*AddAudit_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddAudit not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddAudit not implemented")
 }
 func (UnimplementedAuditHandlersServer) UpdateAudit(context.Context, *UpdateAudit_Request) (*UpdateAudit_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateAudit not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateAudit not implemented")
 }
 func (UnimplementedAuditHandlersServer) DeleteAudit(context.Context, *DeleteAudit_Request) (*DeleteAudit_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteAudit not implemented")
+	return nil, status.Error(codes.Unimplemented, "method DeleteAudit not implemented")
 }
 func (UnimplementedAuditHandlersServer) ListRecords(context.Context, *ListRecords_Request) (*ListRecords_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListRecords not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ListRecords not implemented")
 }
 func (UnimplementedAuditHandlersServer) AddRecord(context.Context, *AddRecord_Request) (*AddRecord_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddRecord not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddRecord not implemented")
 }
 func (UnimplementedAuditHandlersServer) mustEmbedUnimplementedAuditHandlersServer() {}
 func (UnimplementedAuditHandlersServer) testEmbeddedByValue()                       {}
@@ -173,7 +173,7 @@ type UnsafeAuditHandlersServer interface {
 }
 
 func RegisterAuditHandlersServer(s grpc.ServiceRegistrar, srv AuditHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedAuditHandlersServer was
+	// If the following call panics, it indicates UnimplementedAuditHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

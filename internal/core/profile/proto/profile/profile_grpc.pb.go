@@ -196,37 +196,37 @@ type ProfileHandlersServer interface {
 type UnimplementedProfileHandlersServer struct{}
 
 func (UnimplementedProfileHandlersServer) SignIn(context.Context, *SignIn_Request) (*Profile_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SignIn not implemented")
+	return nil, status.Error(codes.Unimplemented, "method SignIn not implemented")
 }
 func (UnimplementedProfileHandlersServer) ResetPassword(context.Context, *ResetPassword_Request) (*ResetPassword_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ResetPassword not implemented")
 }
 func (UnimplementedProfileHandlersServer) Profiles(context.Context, *Profiles_Request) (*Profiles_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Profiles not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Profiles not implemented")
 }
 func (UnimplementedProfileHandlersServer) Profile(context.Context, *Profile_Request) (*Profile_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Profile not implemented")
+	return nil, status.Error(codes.Unimplemented, "method Profile not implemented")
 }
 func (UnimplementedProfileHandlersServer) AddProfile(context.Context, *AddProfile_Request) (*AddProfile_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddProfile not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddProfile not implemented")
 }
 func (UnimplementedProfileHandlersServer) UpdateProfile(context.Context, *UpdateProfile_Request) (*UpdateProfile_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateProfile not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateProfile not implemented")
 }
 func (UnimplementedProfileHandlersServer) DeleteProfile(context.Context, *DeleteProfile_Request) (*DeleteProfile_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteProfile not implemented")
+	return nil, status.Error(codes.Unimplemented, "method DeleteProfile not implemented")
 }
 func (UnimplementedProfileHandlersServer) UpdatePassword(context.Context, *UpdatePassword_Request) (*UpdatePassword_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdatePassword not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdatePassword not implemented")
 }
 func (UnimplementedProfileHandlersServer) ProfileIDByLogin(context.Context, *ProfileIDByLogin_Request) (*ProfileIDByLogin_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProfileIDByLogin not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProfileIDByLogin not implemented")
 }
 func (UnimplementedProfileHandlersServer) ProfileByEmail(context.Context, *ProfileByEmail_Request) (*Profile_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProfileByEmail not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ProfileByEmail not implemented")
 }
 func (UnimplementedProfileHandlersServer) UpdateStatus(context.Context, *UpdateStatus_Request) (*UpdateStatus_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateStatus not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateStatus not implemented")
 }
 func (UnimplementedProfileHandlersServer) mustEmbedUnimplementedProfileHandlersServer() {}
 func (UnimplementedProfileHandlersServer) testEmbeddedByValue()                         {}
@@ -239,7 +239,7 @@ type UnsafeProfileHandlersServer interface {
 }
 
 func RegisterProfileHandlersServer(s grpc.ServiceRegistrar, srv ProfileHandlersServer) {
-	// If the following call pancis, it indicates UnimplementedProfileHandlersServer was
+	// If the following call panics, it indicates UnimplementedProfileHandlersServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
