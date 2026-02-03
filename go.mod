@@ -19,7 +19,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/gofiber/contrib/jwt v1.1.2
 	github.com/gofiber/contrib/websocket v1.3.4
-	github.com/gofiber/fiber/v2 v2.52.10
+	github.com/gofiber/fiber/v2 v2.52.11
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/hibiken/asynq v0.25.1
