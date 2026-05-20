@@ -1,45 +1,65 @@
 package crypto
 
 import (
-	"math/rand"
-	"time"
-	"unsafe"
+	"crypto/rand"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-// NewPassword is ....
-// https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-golang
+// NewPassword generates a cryptographically secure random string of length n.
+// When hard is true, the alphabet additionally includes a set of special
+// characters. The function relies on crypto/rand so the produced value is
+// suitable for security-sensitive use cases such as passwords, secret tokens
+// and API keys.
+//
+// To avoid modulo bias when mapping random bytes onto the alphabet the
+// implementation uses rejection sampling: bytes that fall outside the largest
+// multiple of the alphabet length within [0, 256) are discarded and re-drawn.
 func NewPassword(n int, hard bool) string {
-	const (
-		letterIdxBits = 6                    // 6 bits to represent a letter index
-		letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-		letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
-	)
+	if n <= 0 {
+		return ""
+	}
 
-	letterBytes := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	const simpleAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	alphabet := simpleAlphabet
 	if hard {
-		letterBytes = "*&^%$#@()<?!>" + letterBytes
+		alphabet = "*&^%$#@()<?!>" + simpleAlphabet
 	}
 
-	src := rand.NewSource(time.Now().UnixNano())
-	b := make([]byte, n)
-	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
-	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
-		if remain == 0 {
-			cache, remain = src.Int63(), letterIdxMax
+	alphabetLen := len(alphabet)
+	maxByte := 256 - (256 % alphabetLen)
+
+	result := make([]byte, n)
+	// Slightly over-allocate to reduce the number of rand.Read calls when
+	// rejection sampling discards some bytes.
+	buf := make([]byte, n+n/4+8)
+
+	i := 0
+	for i < n {
+		if _, err := rand.Read(buf); err != nil {
+			// crypto/rand.Read is documented to never fail on supported
+			// platforms; a failure here means the OS entropy source is
+			// broken and silently degrading to a weaker generator would be
+			// dangerous.
+			panic("crypto/rand: " + err.Error())
 		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-			b[i] = letterBytes[idx]
-			i--
+		for _, b := range buf {
+			if int(b) >= maxByte {
+				continue
+			}
+			result[i] = alphabet[int(b)%alphabetLen]
+			i++
+			if i >= n {
+				break
+			}
 		}
-		cache >>= letterIdxBits
-		remain--
 	}
-	return *(*string)(unsafe.Pointer(&b))
+
+	return string(result)
 }
 
-// The HashPassword function accepts a string password argument and returns a hashed password as a string and error.
+// HashPassword accepts a string password argument and returns a bcrypt hashed
+// password as a string and an error.
 func HashPassword(password string, cost int) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), cost)
 	return string(bytes), err
