@@ -9,7 +9,7 @@ networks:
 
 services:
   testdb:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_PASSWORD: password
     restart: unless-stopped
@@ -17,7 +17,7 @@ services:
       # Uses a tmpfs volume to make tests extremely fast. The data in test
       # databases is not persisted across restarts, nor does it need to be.
       - type: tmpfs
-        target: /var/lib/postgresql/data/
+        target: /var/lib/postgresql/
     command:
       - "postgres"
       - "-c" # turn off fsync for speed

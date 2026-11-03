@@ -220,7 +220,7 @@ Release images for `taco` are built with `saas` enabled (see `.goreleaser.yaml`)
 
 ### Tests
 
-Integration tests need PostgreSQL on port `5433`:
+Integration tests need PostgreSQL 18 on port `5433`:
 
 ```bash
 docker compose -f docker/docker-compose-test.yaml up -d testdb
@@ -238,12 +238,14 @@ The project runs as microservices in Docker containers:
 - **avocado** - Authentication service
 - **ghost** - Background worker service
 - **app** - Web frontend
-- **postgres** - PostgreSQL database
+- **postgres** - PostgreSQL 18 database (`postgres:18-alpine`)
 - **redis** - Redis cache
 - **haproxy** - Load balancer and reverse proxy
 - **acme** - SSL certificate management (Let's Encrypt)
 
 For more details, see [`docker/docker-compose.yaml`](docker/docker-compose.yaml).
+
+> **Upgrading from PostgreSQL 16:** the `postgres_data` volume is now mounted at `/var/lib/postgresql` (PostgreSQL 18 stores data in `/var/lib/postgresql/18/docker`). A PostgreSQL 16 data directory is not compatible with PostgreSQL 18. Dump the database with `pg_dumpall` before upgrading, start PostgreSQL 18 on a fresh volume, then restore the dump.
 
 ## 👑&nbsp;&nbsp;Community
 
