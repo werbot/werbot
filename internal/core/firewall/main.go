@@ -1,16 +1,12 @@
 package firewall
 
 import (
-	"github.com/werbot/werbot/internal"
 	firewallrpc "github.com/werbot/werbot/internal/core/firewall/proto/rpc"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/storage/postgres"
 )
 
-var (
-	log     logger.Logger
-	envMode string
-)
+var log logger.Logger
 
 // Handler is ...
 type Handler struct {
@@ -20,5 +16,4 @@ type Handler struct {
 
 func init() {
 	log = logger.New()
-	envMode = internal.GetString("ENV_MODE", "prod")
 }

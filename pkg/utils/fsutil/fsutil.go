@@ -12,7 +12,7 @@ import (
 // Download downloads file from url and saves it to filepath
 func Download(filepath string, url string) (err error) {
 	// Make HTTP GET request
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:gosec // G107: URL is a hardcoded constant at every call site
 	if err != nil {
 		return err
 	}

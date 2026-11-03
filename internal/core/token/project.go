@@ -120,7 +120,7 @@ func (h *Handler) AddTokenProjectMember(ctx context.Context, in *tokenmessage.Ad
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	fields := []string{"section", "action", "status", "project_id"}
+	fields := []string{fieldSection, fieldAction, fieldStatus, "project_id"}
 	args := []any{tokenenum.Section_project, tokenenum.Action_request, tokenenum.Status_sent, in.GetProjectId()}
 
 	switch in.GetProfile().(type) {
@@ -224,24 +224,47 @@ func (h *Handler) UpdateProjectToken(ctx context.Context, in *tokenmessage.Updat
 
 	// -----
 	// updating token related to project member
+	profileID := tokenData.GetProfileId()
 	if tokenData.GetAction() == tokenenum.Action_request &&
 		tokenData.GetProfileId() == "" &&
 		in.GetStatus() == tokenenum.Status_done {
 		if err := addCondition("profile_id", in.GetProfileId()); err != nil {
 			return nil, err
 		}
+		profileID = in.GetProfileId()
 	}
 	// -----
 
 	query = postgres.SQLGluing(query, `WHERE "id" = $1`)
 
-	result, err := h.DB.Conn.ExecContext(ctx, query, args...)
+	tx, err := h.DB.Conn.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
+	}
+	defer tx.Rollback()
+
+	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return nil, handleSQLError(err)
 	}
 
 	if rows, _ := result.RowsAffected(); rows == 0 {
 		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgTokenNotFound), log, nil)
+	}
+
+	// Accepting a project invite also grants membership. The INSERT ... SELECT
+	// keeps the check and the write atomic and is safe to repeat.
+	if tokenData.GetAction() == tokenenum.Action_request && in.GetStatus() == tokenenum.Status_done {
+		if profileID == "" {
+			return nil, trace.Error(status.Error(codes.InvalidArgument, trace.MsgInvalidArgument), log, "profile_id: value is required")
+		}
+		if err := addProjectMemberForToken(ctx, tx, tokenData.GetProjectId(), profileID); err != nil {
+			return nil, trace.Error(err, log, trace.MsgFailedToAdd)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	// TODO: send email message if need

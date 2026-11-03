@@ -35,16 +35,7 @@ type GRPCHandler struct {
 func GRPC(t *testing.T, addonDirs ...string) (*GRPCHandler, func(t *testing.T)) {
 	t.Setenv("ENV_MODE", "test")
 
-	migrationsDirs := []string{"../../../migration"}
-	fixturesDirs := []string{"../../../fixtures/migration"}
-	if len(addonDirs) > 0 {
-		for _, dir := range addonDirs {
-			migrationsDirs = append(migrationsDirs, dir+"migration")
-			fixturesDirs = append(migrationsDirs, dir+"fixtures/migration")
-		}
-	}
-
-	migrations := append(migrationsDirs, fixturesDirs...)
+	migrations := migrationDirs("../../../", addonDirs)
 	pgTest := ServerPostgres(t, migrations...)
 
 	redisTest := ServerRedis(context.Background(), t)
@@ -55,11 +46,11 @@ func GRPC(t *testing.T, addonDirs ...string) (*GRPCHandler, func(t *testing.T)) 
 	}
 
 	return &GRPCHandler{
-			grpcTest.ClientConn,
-		}, func(_ *testing.T) {
-			grpcTest.Close()
-			redisTest.Close()
-		}
+		grpcTest.ClientConn,
+	}, func(_ *testing.T) {
+		grpcTest.Close()
+		redisTest.Close()
+	}
 }
 
 func convertProtoToBodyTable(proto ProtoMessage) (BodyTable, error) {

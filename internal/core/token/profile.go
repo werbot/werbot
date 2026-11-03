@@ -15,6 +15,7 @@ package token
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -114,13 +115,16 @@ func (h *Handler) AddTokenProfileReset(ctx context.Context, in *tokenmessage.Add
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	fields := []string{"section", "action", "status", "data", "profile_id"}
+	fields := []string{fieldSection, fieldAction, fieldStatus, "data", "profile_id"}
 	args := []any{tokenenum.Section_profile, tokenenum.Action_reset, tokenenum.Status_sent, []byte("{}"), in.GetProfileId()}
 
+	// Reset tokens always expire; callers may override the default 24 hours.
+	expiredAt := time.Now().UTC().Add(24 * time.Hour)
 	if in.GetExpiredAt() != nil {
-		fields = append(fields, "expired_at")
-		args = append(args, in.GetExpiredAt().AsTime())
+		expiredAt = in.GetExpiredAt().AsTime().UTC()
 	}
+	fields = append(fields, "expired_at")
+	args = append(args, expiredAt)
 
 	baseQuery, args := buildInsertQuery(fields, args)
 
@@ -150,7 +154,7 @@ func (h *Handler) AddTokenProfileRegistration(ctx context.Context, in *tokenmess
 		return nil, trace.Error(err, log, nil)
 	}
 
-	fields := []string{"section", "action", "status", "data"}
+	fields := []string{fieldSection, fieldAction, fieldStatus, "data"}
 	args := []any{tokenenum.Section_profile, tokenenum.Action_register, tokenenum.Status_sent, data}
 
 	if in.GetExpiredAt() != nil {
@@ -194,7 +198,7 @@ func (h *Handler) AddTokenProfileDelete(ctx context.Context, in *tokenmessage.Ad
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	fields := []string{"section", "action", "status", "profile_id", "data"}
+	fields := []string{fieldSection, fieldAction, fieldStatus, "profile_id", "data"}
 	args := []any{tokenenum.Section_profile, tokenenum.Action_delete, tokenenum.Status_sent, in.GetProfileId(), []byte("{}")}
 
 	if in.GetExpiredAt() != nil {

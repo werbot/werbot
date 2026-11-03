@@ -76,6 +76,9 @@ func Test_Events(t *testing.T) {
 				"events.0": "*",
 				"events.1": "*",
 				"events.2": nil,
+
+				"events.0.created_at": "*",
+				"events.1.created_at": "*",
 			},
 		},
 		{ // list of all profile events with limit

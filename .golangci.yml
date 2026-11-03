@@ -1,55 +1,79 @@
-issues:
-  exclude-rules:
-    - linters:
-        - gosimple
-      text: "S1002: should omit comparison to bool constant"
-    - linters:
-        - revive
-      text: "exported: exported const"
-    - linters:
-        - unused
-      path: 'operator/controllers/resources/(.+)_controller_test\.go'
-  exclude-use-default: true
-  max-same-issues: 0
-  max-issues-per-linter: 0
-
-linters-settings:
-  goconst:
-    min-len: 5
-    min-occurrences: 4
-  misspell:
-    locale: US
-  nolintlint:
-    allow-unused: true # Enabled because of conditional builds / build tags.
-    require-explanation: true
-    require-specific: true
-  gosec:
-    excludes:
-      - G202 # SQL string concatenation
-      - G401 # Detect the usage of DES, RC4, MD5 or SHA1
-      - G501 # Detect the usage of DES, RC4, MD5 or SHA1
-
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
     - bodyclose
-    # - dupl
-    - goimports
-    - gosimple
+    - goconst
+    - gocritic
+    - goprintffuncname
+    - gosec
     - govet
     - ineffassign
     - misspell
     - nolintlint
     - revive
-    - gosec
     - sqlclosecheck
-    - goprintffuncname
-    - exportloopref
-    - unparam
-    - whitespace
     - staticcheck
     - unconvert
+    - unparam
     - unused
-    - goconst
-    - gocritic
-
+    - whitespace
+  settings:
+    goconst:
+      min-len: 5
+      min-occurrences: 4
+    gosec:
+      excludes:
+        - G202
+        - G401
+        - G501
+    misspell:
+      locale: US
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      # Test tables intentionally repeat string literals; extraction into
+      # constants makes them harder to read.
+      - linters:
+          - goconst
+        path: _test\.go
+      # Tests and fixtures contain intentionally hardcoded credentials.
+      - linters:
+          - gosec
+        path: _test\.go
+        text: G101
+      - linters:
+          - gosec
+        path: (^|/)internal/utils/test/
+        text: G101
+      - linters:
+          - staticcheck
+        text: 'S1002: should omit comparison to bool constant'
+      - linters:
+          - revive
+        text: 'exported: exported const'
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

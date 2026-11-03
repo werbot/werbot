@@ -98,10 +98,10 @@ func (h *Handler) Projects(ctx context.Context, in *projectmessage.Projects_Requ
 		}
 
 		protoutils.SetPgtypeTimestamps(project, map[string]pgtype.Timestamp{
-			"locked_at":   lockedAt,
-			"archived_at": archivedAt,
-			"updated_at":  updatedAt,
-			"created_at":  createdAt,
+			protoutils.FieldLockedAt:   lockedAt,
+			protoutils.FieldArchivedAt: archivedAt,
+			protoutils.FieldUpdatedAt:  updatedAt,
+			protoutils.FieldCreatedAt:  createdAt,
 		})
 
 		if !in.GetIsAdmin() {
@@ -122,7 +122,10 @@ func (h *Handler) Project(ctx context.Context, in *projectmessage.Project_Reques
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
-	response := &projectmessage.Project_Response{}
+	response := &projectmessage.Project_Response{
+		ProjectId: in.GetProjectId(),
+		OwnerId:   in.GetOwnerId(),
+	}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -251,6 +254,7 @@ func (h *Handler) UpdateProject(ctx context.Context, in *projectmessage.UpdatePr
 		value = in.GetTitle()
 	}
 
+	//nolint:gosec // G201: column comes from a fixed whitelist
 	query := fmt.Sprintf(`
     UPDATE "project"
     SET "%s" = $1

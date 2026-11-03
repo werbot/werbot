@@ -2,6 +2,7 @@ package scheme_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
@@ -110,13 +111,14 @@ func Test_SystemSchemesByAlias(t *testing.T) {
 				Alias: "admin_C8cXx0_7TrR6t",
 			},
 			Response: test.BodyTable{
-				"total":                 float64(1),
-				"schemes.0.project_id":  "d958ee44-a960-420e-9bbf-c7a35084c4aa",
-				"schemes.0.scheme_id":   "2acb611c-4ab9-4540-954a-ddcfd81ee308",
-				"schemes.0.scheme_type": float64(205),
-				"schemes.0.auth_method": float64(1),
-				"schemes.0.alias":       "admin_C8cXx0_7TrR6t",
-				"schemes.0.title":       "Elastic server #1",
+				"total":                      float64(1),
+				"schemes.0.project_id":       "d958ee44-a960-420e-9bbf-c7a35084c4aa",
+				"schemes.0.scheme_id":        "2acb611c-4ab9-4540-954a-ddcfd81ee308",
+				"schemes.0.scheme_member_id": "7b991097-dd3f-4da0-bac1-fbab92c9043e",
+				"schemes.0.scheme_type":      float64(205),
+				"schemes.0.auth_method":      float64(1),
+				"schemes.0.alias":            "admin_C8cXx0_7TrR6t",
+				"schemes.0.title":            "Elastic server #1",
 			},
 		},
 	}
@@ -129,7 +131,11 @@ func Test_SystemSchemesByAlias(t *testing.T) {
 }
 
 func Test_SystemSchemeAccess(t *testing.T) {
-	t.Setenv("SECURITY_GEOIP2", "../../../docker/core/GeoLite2-Country.mmdb")
+	const geoIPDB = "../../../docker/core/GeoLite2-Country.mmdb"
+	if _, err := os.Stat(geoIPDB); err != nil {
+		t.Skip("GeoLite2-Country.mmdb is not available; skipping country access test")
+	}
+	t.Setenv("SECURITY_GEOIP2", geoIPDB)
 
 	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
@@ -218,6 +224,61 @@ func Test_SystemSchemeAccess(t *testing.T) {
 				"scheme_type":                         float64(103),
 				"access.server_ssh.alias":             "onxzU5",
 				"access.server_ssh.password.password": "***",
+			},
+		},
+		{ // last hour of a 24 element grid is allowed
+			Name: "test0_07",
+			Request: &schemepb.SystemSchemeAccess_Request{
+				SchemeId: test.ConstAdminSchemeSSH1ID,
+				ClientIp: "64.233.162.100",
+				Timestamp: &timestamppb.Timestamp{ // 2024-09-16 23:18:09.455761+00
+					Seconds: 1726528689,
+					Nanos:   455761000,
+				},
+			},
+			Response: test.BodyTable{
+				"project_id":                          test.ConstAdminProject1ID,
+				"scheme_type":                         float64(103),
+				"access.server_ssh.alias":             "onxzU5",
+				"access.server_ssh.password.password": "***",
+			},
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
+}
+
+// Test_SystemSchemeAccessGeoIPUnavailable verifies that an unavailable GeoIP
+// database denies scheme access instead of failing open.
+func Test_SystemSchemeAccessGeoIPUnavailable(t *testing.T) {
+	t.Setenv("SECURITY_GEOIP2", "../../../docker/core/missing.mmdb")
+
+	setup, teardownTestCase := test.GRPC(t)
+	defer teardownTestCase(t)
+
+	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
+		a := schemepb.NewSchemeHandlersClient(setup)
+		return a.SystemSchemeAccess(ctx, req.(*schemepb.SystemSchemeAccess_Request))
+	}
+
+	testTable := []test.GRPCTable{
+		{
+			Name: "geoip_database_missing",
+			Request: &schemepb.SystemSchemeAccess_Request{
+				SchemeId: test.ConstAdminSchemeSSH1ID,
+				ClientIp: "64.233.162.100",
+				Timestamp: &timestamppb.Timestamp{
+					Seconds: 1726449489,
+					Nanos:   455761000,
+				},
+			},
+			Error: test.ErrGRPC{
+				Code:    codes.PermissionDenied,
+				Message: "Access is denied for this country",
 			},
 		},
 	}

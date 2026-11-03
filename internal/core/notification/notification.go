@@ -18,7 +18,7 @@ func (m *Handler) SendMail(ctx context.Context, in *notificationmessage.SendMail
 		log.Error(err).Send()
 	}
 
-	err = m.Worker.Submit(ctx, worker.TaskSendMail, []byte(payload))
+	err = m.Worker.Submit(ctx, worker.TaskSendMail, payload)
 	if err != nil {
 		return nil, err
 	}

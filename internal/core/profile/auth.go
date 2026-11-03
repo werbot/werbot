@@ -156,7 +156,7 @@ func (h *Handler) ResetPassword(ctx context.Context, in *profilemessage.ResetPas
 		// Check token via token package
 		tokenHandler := token.Handler{DB: h.DB, Worker: h.Worker}
 		tokenData, err := tokenHandler.Token(ctx, &tokenmessage.Token_Request{
-			IsAdmin: false,
+			IsAdmin: true,
 			Token:   in.GetPassword().GetToken(),
 		})
 		if err != nil {

@@ -1,72 +1,46 @@
 package auditor
 
 import (
-	"encoding/binary"
-	"errors"
 	"io"
-	"syscall"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 )
 
+// logTunnel forwards bytes to an SSH channel and records them in a separate
+// writer. The recorded stream is never written back to the SSH channel.
 type logTunnel struct {
-	host    string
 	channel ssh.Channel
-	writer  io.WriteCloser
+	writer  io.Writer
 }
 
-// ForwardData ...
-type ForwardData struct {
-	DestinationHost string
-	DestinationPort uint32
-	SourceHost      string
-	SourcePort      uint32
-}
-
-// NewLogtunnel is ...
-func NewLogtunnel(channel ssh.Channel, writer io.WriteCloser, host string) io.ReadWriteCloser {
+// NewLogtunnel wraps an SSH channel. Bytes read from the wrapper come from the
+// channel; bytes written to the wrapper are recorded in writer and forwarded to
+// the channel. The writer must be independent from the channel, otherwise the
+// recorded data is echoed back to the client.
+func NewLogtunnel(channel ssh.Channel, writer io.Writer) io.ReadWriteCloser {
 	return &logTunnel{
-		host:    host,
 		channel: channel,
 		writer:  writer,
 	}
 }
 
-// Read is ...
+// Read reads data from the proxied SSH channel.
 func (l *logTunnel) Read(data []byte) (int, error) {
-	return 0, errors.New("logTunnel.Read is not implemented")
+	return l.channel.Read(data)
 }
 
-// Write is ...
+// Write records data and forwards it to the proxied SSH channel.
 func (l *logTunnel) Write(data []byte) (int, error) {
-	writeHeader(l.writer, len(data)+len(l.host+": "))
-	if _, err := l.writer.Write([]byte(l.host + ": ")); err != nil {
-		log.Error(err).Msg("Failed to write log header")
+	if l.writer != nil {
+		if _, err := l.writer.Write(data); err != nil {
+			log.Error(err).Msg("Failed to write log data")
+		}
 	}
-	if _, err := l.writer.Write(data); err != nil {
-		log.Error(err).Msg("Failed to write log header")
-	}
+
 	return l.channel.Write(data)
 }
 
-// Close is ...
+// Close closes the proxied SSH channel.
 func (l *logTunnel) Close() error {
-	l.writer.Close()
 	return l.channel.Close()
-}
-
-func writeHeader(fd io.Writer, length int) {
-	t := time.Now()
-	tv := syscall.NsecToTimeval(t.UnixNano())
-
-	if err := binary.Write(fd, binary.LittleEndian, int32(tv.Sec)); err != nil {
-		log.Error(err).Msg("Failed to write log header")
-	}
-	if err := binary.Write(fd, binary.LittleEndian, tv.Usec); err != nil {
-		log.Error(err).Msg("Failed to write log header")
-	}
-	if err := binary.Write(fd, binary.LittleEndian, int32(length)); err != nil {
-		log.Error(err).Msg("Failed to write log header")
-	}
 }

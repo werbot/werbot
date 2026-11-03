@@ -2,6 +2,7 @@ package firewall_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	firewallmessage "github.com/werbot/werbot/internal/core/firewall/proto/message"
@@ -12,7 +13,11 @@ import (
 
 func Test_IPAccess(t *testing.T) {
 	// t.Setenv("ENV_MODE", "test")
-	t.Setenv("SECURITY_GEOIP2", "../../../docker/core/GeoLite2-Country.mmdb")
+	const geoIPDB = "../../../docker/core/GeoLite2-Country.mmdb"
+	if _, err := os.Stat(geoIPDB); err != nil {
+		t.Skip("GeoLite2-Country.mmdb is not available; skipping country firewall test")
+	}
+	t.Setenv("SECURITY_GEOIP2", geoIPDB)
 
 	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
@@ -45,12 +50,25 @@ func Test_IPAccess(t *testing.T) {
 				},
 			},
 		},
-		{ // request with local ip
+		{ // request with local ip: the country is unknown, so access fails closed
 			Name: "test0_03",
 			Request: &firewallmessage.IPAccess_Request{
 				ClientIp: "127.0.0.1",
 			},
-			Response: test.BodyTable{},
+			Error: test.ErrGRPC{
+				Code:    codes.PermissionDenied,
+				Message: "Access is denied for this country",
+			},
+		},
+		{ // request with an IP that is not present in the GeoIP database
+			Name: "test0_03_1",
+			Request: &firewallmessage.IPAccess_Request{
+				ClientIp: "192.0.2.1",
+			},
+			Error: test.ErrGRPC{
+				Code:    codes.PermissionDenied,
+				Message: "Access is denied for this country",
+			},
 		},
 		{ // request with parameters
 			Name: "test0_04",
@@ -66,6 +84,39 @@ func Test_IPAccess(t *testing.T) {
 			Name: "test0_05",
 			Request: &firewallmessage.IPAccess_Request{
 				ClientIp: "37.214.65.1",
+			},
+			Error: test.ErrGRPC{
+				Code:    codes.PermissionDenied,
+				Message: "Access is denied for this country",
+			},
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
+}
+
+// Test_IPAccessGeoIPUnavailable verifies that a missing or unreadable GeoIP
+// database fails closed instead of allowing the request.
+func Test_IPAccessGeoIPUnavailable(t *testing.T) {
+	t.Setenv("SECURITY_GEOIP2", "../../../docker/core/missing.mmdb")
+
+	setup, teardownTestCase := test.GRPC(t)
+	defer teardownTestCase(t)
+
+	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
+		a := firewallrpc.NewFirewallHandlersClient(setup)
+		return a.IPAccess(ctx, req.(*firewallmessage.IPAccess_Request))
+	}
+
+	testTable := []test.GRPCTable{
+		{
+			Name: "geoip_database_missing",
+			Request: &firewallmessage.IPAccess_Request{
+				ClientIp: "64.233.164.102",
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.PermissionDenied,

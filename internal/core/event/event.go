@@ -186,7 +186,7 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 			event.RelatedId = &eventpb.Event_Response_SchemeId{SchemeId: relatedID}
 		}
 
-		protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
+		protoutils.SetPgtypeTimestamps(event, map[string]pgtype.Timestamp{
 			"created_at": createdAt,
 		})
 
@@ -281,13 +281,13 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 	}
 
 	var createdAt pgtype.Timestamp
-	var related_id string
+	var relatedID string
 	response := &eventpb.Event_Response{
 		Session: &eventmessage.Session{},
 	}
 
 	err := h.DB.Conn.QueryRowContext(ctx, sqlQuery, args...).Scan(
-		&related_id,
+		&relatedID,
 		&response.Section,
 		&response.Type,
 		&response.Session.Id,
@@ -302,11 +302,11 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
 
 	switch eventType {
 	case "profile":
-		response.RelatedId = &eventpb.Event_Response_ProfileId{ProfileId: related_id}
+		response.RelatedId = &eventpb.Event_Response_ProfileId{ProfileId: relatedID}
 	case "project":
-		response.RelatedId = &eventpb.Event_Response_ProjectId{ProjectId: related_id}
+		response.RelatedId = &eventpb.Event_Response_ProjectId{ProjectId: relatedID}
 	case "scheme":
-		response.RelatedId = &eventpb.Event_Response_SchemeId{SchemeId: related_id}
+		response.RelatedId = &eventpb.Event_Response_SchemeId{SchemeId: relatedID}
 	}
 
 	protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{

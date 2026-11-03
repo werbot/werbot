@@ -53,13 +53,16 @@ func (h *Handler) Routes() {
 		defer c.Close()
 
 		ctx := context.Background()
-		h.sendResponse(c, 200, "subscribe", nil)
 
-		// c.Params("session_id")
+		// The Redis session id is the WebSocket auth contract. Validate it before
+		// subscribing so an invalid session cannot hold an open subscription.
 		profileID, err := h.Redis.Client.HGet(ctx, "refresh_token:"+c.Params("session_id"), "profile_id").Result()
 		if err != nil {
 			h.sendResponse(c, 401, "error", "Token is not valid")
+			return
 		}
+
+		h.sendResponse(c, 200, "subscribe", nil)
 
 		pubsub := h.Redis.Client.Subscribe(ctx, "ws:"+profileID)
 		defer pubsub.Close()

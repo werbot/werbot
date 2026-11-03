@@ -19,8 +19,14 @@ import (
 	grpcInt "github.com/werbot/werbot/internal/core"
 	"github.com/werbot/werbot/internal/utils/broker"
 	"github.com/werbot/werbot/internal/version"
+	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/logger"
 	"github.com/werbot/werbot/pkg/storage/redis"
+)
+
+const (
+	channelTypeSession     = "session"
+	channelTypeDirectTCPIP = "direct-tcpip"
 )
 
 var app = App{}
@@ -43,6 +49,10 @@ func main() {
 
 	app.log = logger.New()
 
+	if aesKey := internal.GetString("SECURITY_AES_KEY", ""); !crypto.CheckAESKey(aesKey) {
+		app.log.Fatal(fmt.Errorf("SECURITY_AES_KEY is not a hex encoded 16, 24 or 32 byte AES key")).Msg("Invalid configuration")
+	}
+
 	app.redis = redis.New(ctx, &redis.Config{
 		Addr:     internal.GetString("REDIS_ADDR", "localhost:6379"),
 		Password: internal.GetString("REDIS_PASSWORD", "redisPassword"),
@@ -50,7 +60,7 @@ func main() {
 
 	app.broker = broker.New(ctx, app.redis.Client)
 
-	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {}
+	app.defaultChannelHandler = func(_ *ssh.Server, _ *gossh.ServerConn, _ gossh.NewChannel, _ ssh.Context) {}
 
 	// Load TLS configuration from files at startup
 	app.grpc, err = grpcInt.NewClient()
@@ -79,9 +89,9 @@ func main() {
 
 	app.defaultChannelHandler = func(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {
 		switch newChan.ChannelType() {
-		case "session":
+		case channelTypeSession:
 			go ssh.DefaultSessionHandler(srv, conn, newChan, ctx)
-		case "direct-tcpip":
+		case channelTypeDirectTCPIP:
 			go ssh.DirectTCPIPHandler(srv, conn, newChan, ctx)
 		default:
 			if err := newChan.Reject(gossh.UnknownChannelType, "unsupported channel type"); err != nil {

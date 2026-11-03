@@ -8,7 +8,7 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
 
-option go_package = "github.com/werbot/werbot/pkgutils/protoutils/ghoster/proto/test";
+option go_package = "github.com/werbot/werbot/pkg/utils/protoutils/ghoster/test";
 
 message MessageTest {
   string proto_string = 1 [(ghoster.secret) = true];

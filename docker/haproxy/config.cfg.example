@@ -25,6 +25,7 @@ listen stats
     http-request use-service prometheus-exporter if { path /metrics }
     stats enable
     stats uri /admin
+    stats auth "admin:${HAPROXY_STATS_PASSWORD}"
 
 # docker DNS
 resolvers docker
@@ -51,7 +52,8 @@ frontend http_https
     acl cdn_ip_hdr req.hdr(CF-Connecting-IP) -m found
     http-request set-header X-Forwarded-For %[req.hdr(CF-Connecting-IP)] if cdn cdn_ip_hdr
 
-    option forwardfor header X-Real-IP
+    # Set, never append, so a client-supplied X-Real-IP cannot reach taco.
+    http-request set-header X-Real-IP %[src]
     http-request redirect prefix https://%[hdr(host),regsub(^www\.,,i)] code 301 if { hdr_beg(host) -i www. }
     use_backend app_back if { hdr(host) -i app.__DONAIN__ }
     use_backend taco_back if { hdr(host) -i api.__DONAIN__ }

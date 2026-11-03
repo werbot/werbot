@@ -9,8 +9,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/werbot/werbot/api/auth"
-	keymessage "github.com/werbot/werbot/internal/core/key/proto/message"
 	keyenum "github.com/werbot/werbot/internal/core/key/proto/enum"
+	keymessage "github.com/werbot/werbot/internal/core/key/proto/message"
 	"github.com/werbot/werbot/internal/utils/test"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/storage/redis"

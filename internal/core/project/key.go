@@ -88,10 +88,10 @@ func (h *Handler) ProjectKeys(ctx context.Context, in *projectmessage.ProjectKey
 		}
 
 		protoutils.SetPgtypeTimestamps(key, map[string]pgtype.Timestamp{
-			"locked_at":   lockedAt,
-			"archived_at": archivedAt,
-			"updated_at":  updatedAt,
-			"created_at":  createdAt,
+			protoutils.FieldLockedAt:   lockedAt,
+			protoutils.FieldArchivedAt: archivedAt,
+			protoutils.FieldUpdatedAt:  updatedAt,
+			protoutils.FieldCreatedAt:  createdAt,
 		})
 
 		if !in.GetIsAdmin() {

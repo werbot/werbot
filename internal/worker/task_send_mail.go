@@ -5,8 +5,8 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	notificationmessage "github.com/werbot/werbot/internal/core/notification/proto/message"
 	notificationenum "github.com/werbot/werbot/internal/core/notification/proto/enum"
+	notificationmessage "github.com/werbot/werbot/internal/core/notification/proto/message"
 	"github.com/werbot/werbot/internal/core/notification/providers/mail"
 	"github.com/werbot/werbot/pkg/worker"
 )
@@ -39,6 +39,7 @@ func tmplMail(tmpl notificationenum.MailTemplate) (template string) {
 		notificationenum.MailTemplate_project_invite:                "project-invite",
 		notificationenum.MailTemplate_account_deletion_confirmation: "account-deletion-confirmation",
 		notificationenum.MailTemplate_account_deletion_info:         "account-deletion-info",
+		notificationenum.MailTemplate_scheme_invite:                 "scheme-invite",
 	}
 
 	return templateMap[tmpl]

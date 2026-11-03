@@ -107,8 +107,8 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *membermessage.ProjectM
 		}
 
 		protoutils.SetPgtypeTimestamps(member, map[string]pgtype.Timestamp{
-			"updated_at": updatedAt,
-			"created_at": createdAt,
+			protoutils.FieldUpdatedAt: updatedAt,
+			protoutils.FieldCreatedAt: createdAt,
 		})
 
 		if !in.GetIsAdmin() {
@@ -176,8 +176,8 @@ func (h *Handler) ProjectMember(ctx context.Context, in *membermessage.ProjectMe
 	}
 
 	protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
-		"updated_at": updatedAt,
-		"created_at": createdAt,
+		protoutils.FieldUpdatedAt: updatedAt,
+		protoutils.FieldCreatedAt: createdAt,
 	})
 
 	if !in.GetIsAdmin() {
@@ -246,6 +246,7 @@ func (h *Handler) UpdateProjectMember(ctx context.Context, in *membermessage.Upd
 		value = in.GetActive()
 	}
 
+	//nolint:gosec // G201: column comes from a fixed whitelist
 	query := fmt.Sprintf(`
     UPDATE "project_member"
     SET "%s" = $1

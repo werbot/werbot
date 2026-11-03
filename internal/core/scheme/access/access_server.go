@@ -13,13 +13,28 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/werbot/werbot/internal"
-	keymessage "github.com/werbot/werbot/internal/core/key/proto/message"
 	keyenum "github.com/werbot/werbot/internal/core/key/proto/enum"
+	keymessage "github.com/werbot/werbot/internal/core/key/proto/message"
 	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
 	schemeauthpb "github.com/werbot/werbot/internal/core/scheme/proto/auth"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 )
+
+// encryptSecret encrypts a scheme secret with the configured AES key.
+// Empty secrets stay empty; an unset or invalid key is a configuration error.
+func encryptSecret(secret string) (string, error) {
+	if secret == "" {
+		return "", nil
+	}
+
+	aesKey := internal.GetString("SECURITY_AES_KEY", "")
+	if !crypto.CheckAESKey(aesKey) {
+		return "", status.Error(codes.FailedPrecondition, "SECURITY_AES_KEY must be a hex encoded 16, 24 or 32 byte AES key")
+	}
+
+	return crypto.TextEncrypt(secret, aesKey)
+}
 
 func NewServerTCP() proto.Message { return &schemeaccesspb.AccessScheme_Server_TCP{} }
 func SetServerTCP(core *schemeaccesspb.AccessScheme, msg proto.Message) {
@@ -65,6 +80,7 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 	schemeType := schemeaccesspb.SchemeType_server_ssh
 	newAccess := in.ServerSsh
 
+	var oldPassword string
 	if s.sh.Update != nil {
 		if schemeType != s.schemeType {
 			errGRPC := status.Error(codes.InvalidArgument, trace.MsgSchemeDiffers)
@@ -74,6 +90,9 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 		var oldAccess schemeaccesspb.AccessScheme_Server_SSH
 		if err := protojson.Unmarshal(s.schemeByte, &oldAccess); err != nil {
 			return nil, trace.Error(err, s.sh.Log, nil)
+		}
+		if oldPw, ok := oldAccess.GetAccess().(*schemeaccesspb.AccessScheme_Server_SSH_Password); ok {
+			oldPassword = oldPw.Password.GetPassword()
 		}
 
 		// check auth methods
@@ -86,7 +105,6 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 
 		// replace alias
 		newAccess.Alias = oldAccess.GetAlias()
-
 		// update address
 		if newAccess.GetAddress() == "" {
 			newAccess.Address = oldAccess.GetAddress()
@@ -102,8 +120,21 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 
 	switch accessTmp := newAccess.GetAccess().(type) {
 	case *schemeaccesspb.AccessScheme_Server_SSH_Password:
-		password := accessTmp.Password.GetPassword()
-		accessTmp.Password.Password = crypto.TextEncrypt(password, internal.GetString("SECURITY_AES_KEY", "3D6A619811A17396E45D514695DCDA3A"))
+		// Editing address/port or login keeps the existing encrypted password
+		// when the client does not send a new one.
+		if s.sh.Update != nil && accessTmp.Password.GetPassword() == "" && oldPassword != "" {
+			accessTmp.Password.Password = oldPassword
+			break
+		}
+		if accessTmp.Password.GetPassword() == "" {
+			errGRPC := status.Error(codes.InvalidArgument, "password is required")
+			return nil, trace.Error(errGRPC, s.sh.Log, nil)
+		}
+		password, err := encryptSecret(accessTmp.Password.GetPassword())
+		if err != nil {
+			return nil, trace.Error(err, s.sh.Log, nil)
+		}
+		accessTmp.Password.Password = password
 
 	case *schemeaccesspb.AccessScheme_Server_SSH_Agent:
 		// TODO add agent access
@@ -138,8 +169,18 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 			}
 		}
 
-		schemeKey.Private = crypto.TextEncrypt(schemeKey.GetPrivate(), internal.GetString("SECURITY_AES_KEY", "3D6A619811A17396E45D514695DCDA3A"))
-		schemeKey.Passphrase = crypto.TextEncrypt(schemeKey.GetPassphrase(), internal.GetString("SECURITY_AES_KEY", "3D6A619811A17396E45D514695DCDA3A"))
+		encryptedPrivate, err := encryptSecret(schemeKey.GetPrivate())
+		if err != nil {
+			return nil, trace.Error(err, s.sh.Log, nil)
+		}
+		schemeKey.Private = encryptedPrivate
+
+		encryptedPassphrase, err := encryptSecret(schemeKey.GetPassphrase())
+		if err != nil {
+			return nil, trace.Error(err, s.sh.Log, nil)
+		}
+		schemeKey.Passphrase = encryptedPassphrase
+
 		accessTmp.Key.Access = &schemeauthpb.Auth_Key_Key{
 			Key: schemeKey,
 		}

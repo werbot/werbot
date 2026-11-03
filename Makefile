@@ -40,16 +40,29 @@ geolite: ## Updating and install GeoLite database to the latest version
 
 
 #############################################################################
-.PHONY: release
-release:
-	@scripts/release $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-#############################################################################
-
-
-#############################################################################
 .PHONY: build
 build: ## Building project in bin folder
 	@scripts/build $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+#############################################################################
+
+
+#############################################################################
+.PHONY: prod_build
+prod_build: build ## Alias for build (kept for existing deployment scripts)
+#############################################################################
+
+
+#############################################################################
+.PHONY: test
+test: ## Running tests
+	@go test -count=1 ./...
+#############################################################################
+
+
+#############################################################################
+.PHONY: lint
+lint: ## Running linters
+	@golangci-lint run ./...
 #############################################################################
 
 
@@ -90,6 +103,8 @@ clean: ## Cleaning garbage and inactive containers
 
 
 #############################################################################
+# Catch-all target. It is required so that extra arguments (e.g. `make protos user`
+# or `make build taco`) reach the scripts instead of failing with "No rule to make target".
 %: ## A parameter
 	@true
 #############################################################################

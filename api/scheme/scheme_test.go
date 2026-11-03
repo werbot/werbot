@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"testing"
 
+	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/utils/test"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/uuid"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func TestHandler_schemes(t *testing.T) {
@@ -2129,13 +2131,13 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		return test.BodyTable{"activity": activity}
 	}
 
-	validDayValues := createRepeatedValues(23, 0)
+	validDayValues := createRepeatedValues(24, 0)
 	validDayValuesBody := createActivityTable(validDayValues, "", nil)
 
 	brokenDayValues := createRepeatedValues(22, 1)
 	brokenDayValuesBody := createActivityTable(validDayValues, "mon", brokenDayValues)
 
-	brokenDayValues2 := createRepeatedValues(23, 2)
+	brokenDayValues2 := createRepeatedValues(24, 2)
 	brokenDayValues2Body2 := createActivityTable(validDayValues, "mon", brokenDayValues2)
 
 	testTable := []test.APITable{
@@ -2195,7 +2197,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 				"code":    float64(400),
 				"message": "Bad Request",
 				"result": map[string]any{
-					"activity.mon": "value must contain at least 23 item(s)",
+					"activity.mon": "value must contain at least 24 item(s)",
 				},
 			},
 			RequestHeaders: adminHeader,
@@ -2334,7 +2336,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 				"code":    float64(400),
 				"message": "Bad Request",
 				"result": map[string]any{
-					"activity.mon": "value must contain at least 23 item(s)",
+					"activity.mon": "value must contain at least 24 item(s)",
 				},
 			},
 			RequestHeaders: userHeader,
@@ -3694,4 +3696,64 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 	}
 
 	test.RunCaseAPITests(t, app, testTable)
+}
+
+func TestHandler_updateSchemeKeepsPassword(t *testing.T) {
+	app, teardownTestCase, adminHeader, _ := setupTest(t)
+	defer teardownTestCase(t)
+
+	const schemePath = "/v1/schemes/" + test.ConstAdminProject1ID + "/" + test.ConstAdminSchemeSSH1ID
+
+	readAccess := func() *schemeaccesspb.AccessScheme_Server_SSH {
+		t.Helper()
+		var raw []byte
+		if err := app.Postgres.Conn().Conn.QueryRow(
+			`SELECT "access" FROM "scheme" WHERE "id" = $1`, test.ConstAdminSchemeSSH1ID,
+		).Scan(&raw); err != nil {
+			t.Fatalf("read scheme access: %v", err)
+		}
+		access := &schemeaccesspb.AccessScheme_Server_SSH{}
+		if err := protojson.Unmarshal(raw, access); err != nil {
+			t.Fatalf("unmarshal scheme access: %v", err)
+		}
+		return access
+	}
+
+	before := readAccess()
+	beforePassword := before.GetPassword().GetPassword()
+	if beforePassword == "" {
+		t.Fatal("fixture scheme has no password")
+	}
+
+	test.RunCaseAPITests(t, app, []test.APITable{{
+		Name:       "update_address_without_password",
+		Method:     http.MethodPatch,
+		Path:       schemePath,
+		StatusCode: 200,
+		RequestBody: test.BodyTable{
+			"scheme": test.BodyTable{
+				"server_ssh": test.BodyTable{
+					"address": "127.0.0.5",
+					"port":    float64(2222),
+					"password": test.BodyTable{
+						"login":    "root",
+						"password": "",
+					},
+				},
+			},
+		},
+		Body: test.BodyTable{
+			"code":    float64(200),
+			"message": "Scheme updated",
+		},
+		RequestHeaders: adminHeader,
+	}})
+
+	after := readAccess()
+	if got := after.GetPassword().GetPassword(); got != beforePassword {
+		t.Fatal("password was overwritten when the update did not send a new one")
+	}
+	if got := after.GetAddress(); got != "127.0.0.5" {
+		t.Fatalf("address = %q, want 127.0.0.5", got)
+	}
 }

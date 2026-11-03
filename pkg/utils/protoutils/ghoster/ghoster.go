@@ -14,7 +14,7 @@ func Secrets(msg proto.Message, nuller bool) {
 	secretReplacementMask := "***"
 	msgReflect := msg.ProtoReflect()
 
-	handleField := func(fd protoreflect.FieldDescriptor, v protoreflect.Value) {
+	handleField := func(fd protoreflect.FieldDescriptor, _ protoreflect.Value) {
 		if options, ok := fd.Options().(*descriptorpb.FieldOptions); ok {
 			if ext, ok := proto.GetExtension(options, ghosterpb.E_Secret).(bool); ok && ext {
 				if !nuller && fd.Kind() == protoreflect.StringKind {

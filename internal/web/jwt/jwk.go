@@ -54,6 +54,6 @@ func UnmarshalJWK(jwk JWK) (crypto.PublicKey, error) {
 
 	return &rsa.PublicKey{
 		N: new(big.Int).SetBytes(n),
-		E: int(new(big.Int).SetBytes(e).Uint64()),
+		E: int(new(big.Int).SetBytes(e).Uint64()), //nolint:gosec // G115: RSA exponent from a JWK is small (65537)
 	}, nil
 }

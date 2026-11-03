@@ -101,7 +101,7 @@ func (l *Public) Decode(data []byte) (*Public, error) {
 
 	block, _ := pem.Decode(data)
 	if block == nil || len(block.Bytes) < ed25519.SignatureSize {
-		return nil, errors.New("Malformed License")
+		return nil, errors.New("malformed license")
 	}
 
 	sig := block.Bytes[:ed25519.SignatureSize]

@@ -3,6 +3,7 @@ package grpc
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -15,8 +16,13 @@ import (
 // NewClient is ...
 func NewClient() (*grpc.ClientConn, error) {
 	dsn := internal.GetString("GRPCSERVER_HOST", "localhost:50051")
-	token := internal.GetString("GRPCSERVER_TOKEN", "token")
+	token := internal.GetString("GRPCSERVER_TOKEN", "")
 	nameOverride := internal.GetString("GRPCSERVER_NAMEOVERRIDE", "werbot.com")
+
+	// Fail closed: the server rejects all requests when its token is not configured.
+	if token == "" {
+		return nil, errors.New("GRPCSERVER_TOKEN is not set")
+	}
 
 	// init certificate setting
 	certPEM, err := internal.GetByteFromFile("GRPCSERVER_CERTIFICATE", "./grpc_certificate.key")

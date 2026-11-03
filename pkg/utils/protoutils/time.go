@@ -6,6 +6,14 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// Timestamp column names shared by SQL row scanning and response maps.
+const (
+	FieldCreatedAt  = "created_at"
+	FieldUpdatedAt  = "updated_at"
+	FieldLockedAt   = "locked_at"
+	FieldArchivedAt = "archived_at"
+)
+
 func SetPgtypeTimestamps(msg protoreflect.ProtoMessage, timestamps map[string]pgtype.Timestamp) {
 	SetPgtypeTimestampsOptions{
 		FieldNames: []protoreflect.Name{"created_at", "updated_at", "archived_at", "deleted_at", "locked_at", "expired_at"},

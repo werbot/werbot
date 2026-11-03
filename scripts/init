@@ -68,6 +68,17 @@ echo -e "# GRPC section
 GRPCSERVER_TOKEN=$GRPCSERVER_TOKEN
 " >>$DOCKER_ENV_FILE
 
+# HAProxy stats credentials. The password is regenerated with docker/.env on
+# every init run; set HAPROXY_STATS_PASSWORD in the main .env to pin it.
+HAPROXY_STATS_PASSWORD=$(grep "^HAPROXY_STATS_PASSWORD=" $MAIN_ENV_FILE | awk -F '=' '{print $2}')
+if [ -z "$HAPROXY_STATS_PASSWORD" ]; then
+  HAPROXY_STATS_PASSWORD=$(generate_password)
+fi
+echo -e "# HAProxy section
+# -------------------------
+HAPROXY_STATS_PASSWORD=$HAPROXY_STATS_PASSWORD
+" >>$DOCKER_ENV_FILE
+
 SECURITY_AES_KEY=$(grep "^SECURITY_AES_KEY=" $MAIN_ENV_FILE | awk -F '=' '{print $2}')
 if [ -z "$SECURITY_AES_KEY" ]; then
   SECURITY_AES_KEY=$(${ROOT_PATH}/scripts/key aes)
@@ -124,23 +135,23 @@ ${ROOT_PATH}/scripts/haproxy blacklist_agent
 
 # create SSL sertificates for damain
 print_header "ACME account registration"
-docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --register-account -m ${DNS_CLOUDFLARE_EMAIL} >/dev/null 2>&1
+docker compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --register-account -m ${DNS_CLOUDFLARE_EMAIL} >/dev/null 2>&1
 print_answer "SUCCESS" green
 
 print_header "Issuing an SSL certificate"
-docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --issue -d *.${DOMAIN} --dns dns_cf --dnssleep 10 >/dev/null 2>&1
+docker compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --issue -d *.${DOMAIN} --dns dns_cf --dnssleep 10 >/dev/null 2>&1
 print_answer "SUCCESS" green
 
 print_header "Adding of SSL certificate"
-docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --deploy -d *.werbot.net --deploy-hook haproxy >/dev/null 2>&1
+docker compose -f "${ROOT_PATH}/docker/docker-compose.yaml" run --rm acme --deploy -d *.werbot.net --deploy-hook haproxy >/dev/null 2>&1
 print_answer "SUCCESS" green
 
 # run database migration
 print_header "Database migration"
-docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" up postgres -d >/dev/null 2>&1
+docker compose -f "${ROOT_PATH}/docker/docker-compose.yaml" up postgres -d >/dev/null 2>&1
 sleep 3
-${ROOT_PATH}/scripts/migration up >/dev/null 2>&1
-docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" down >/dev/null 2>&1
+${ROOT_PATH}/scripts/migration all up >/dev/null 2>&1
+docker compose -f "${ROOT_PATH}/docker/docker-compose.yaml" down >/dev/null 2>&1
 print_answer "SUCCESS" green
 
 # config haproxy

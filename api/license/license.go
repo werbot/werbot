@@ -3,8 +3,8 @@ package license
 import (
 	"github.com/gofiber/fiber/v2"
 
-	licenserpc "github.com/werbot/werbot/internal/core/license/proto/rpc"
 	licensemessage "github.com/werbot/werbot/internal/core/license/proto/message"
+	licenserpc "github.com/werbot/werbot/internal/core/license/proto/rpc"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/webutil"

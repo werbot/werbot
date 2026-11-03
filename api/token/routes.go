@@ -5,13 +5,13 @@ import (
 	"github.com/werbot/werbot/pkg/logger"
 )
 
-// Handler handles member-related routes.
+// Handler handles token-related routes.
 type Handler struct {
 	*api.Handler
 	log logger.Logger
 }
 
-// New creates a new member handler.
+// New creates a new token handler.
 func New(h *api.Handler) *Handler {
 	return &Handler{
 		Handler: h,
@@ -19,32 +19,33 @@ func New(h *api.Handler) *Handler {
 	}
 }
 
-// Routes sets up the member-related routes.
+// Routes sets up the token-related routes.
 func (h *Handler) Routes() {
 	apiV1 := h.App.Group("/v1/tokens")
 
-	// public
-	apiV1.Get("/:token_id<guid>", h.token)
-	apiV1.Patch("/:token_id<guid>", h.updateToken)
+	// Public section. Invite links are opened without an authenticated session.
+	apiV1.Get("/:token<guid>", h.token)
+	apiV1.Post("/register", h.register)
+	apiV1.Post("/accept", h.accept)
 
-	// profile section (private)
+	// Profile section (admin only)
+	// url - /v1/tokens/profile
 	apiV1profile := apiV1.Group("/profile", h.Auth)
 	apiV1profile.Get("/", h.profileTokens)
 	apiV1profile.Post("/", h.addProfileToken)
-	apiV1profile.Patch("/:invite_id<guid>", h.updateProfileToken)
-	apiV1profile.Delete("/:invite_id<guid>", h.deleteProfileToken)
 
-	// project section (private)
-	apiV1project := apiV1.Group("/project", h.Auth)
+	// Project section (private)
+	// url - /v1/tokens/project/:project_id<guid>
+	apiV1project := apiV1.Group("/project/:project_id<guid>", h.Auth)
 	apiV1project.Get("/", h.projectTokens)
 	apiV1project.Post("/", h.addProjectToken)
-	apiV1project.Patch("/:token_id<guid>", h.updateProjectToken)
-	apiV1project.Delete("/:token_id<guid>", h.deleteProjectToken)
 
-	// scheme section (private)
-	apiV1scheme := apiV1.Group("/scheme", h.Auth)
+	// Scheme section (private)
+	// url - /v1/tokens/scheme/:scheme_id<guid>
+	apiV1scheme := apiV1.Group("/scheme/:scheme_id<guid>", h.Auth)
 	apiV1scheme.Get("/", h.schemeTokens)
 	apiV1scheme.Post("/", h.addSchemeToken)
-	apiV1scheme.Patch("/:token_id<guid>", h.updateSchemeToken)
-	apiV1scheme.Delete("/:token_id<guid>", h.deleteSchemeToken)
+
+	// Token deletion (private)
+	apiV1.Delete("/:token<guid>", h.Auth, h.deleteToken)
 }

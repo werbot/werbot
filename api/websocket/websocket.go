@@ -1,20 +1,9 @@
 package websocket
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/gofiber/contrib/websocket"
 	"github.com/redis/go-redis/v9"
 )
-
-// sendInRedis publish messages to Redis
-func (h *Handler) sendToChannel(ctx context.Context, channel, message string) error {
-	if err := h.Redis.Client.Publish(ctx, channel, message).Err(); err != nil {
-		return fmt.Errorf("error publishing message to channel %s: %w", channel, err)
-	}
-	return nil
-}
 
 func (h *Handler) publishToWebSocket(c *websocket.Conn, ch <-chan *redis.Message) {
 	for msg := range ch {

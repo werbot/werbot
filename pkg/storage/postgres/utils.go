@@ -84,7 +84,7 @@ func (db *Connect) SQLPagination(limit, offset int32, sortBy string) string {
 				orderParts = append(orderParts, fmt.Sprintf("%s %s", parts[0], parts[1]))
 			}
 		}
-		showSortBy = showSortBy + strings.Join(orderParts, ", ")
+		showSortBy += strings.Join(orderParts, ", ")
 	}
 
 	return fmt.Sprintf(" %s LIMIT %d OFFSET %d", showSortBy, limit, offset)

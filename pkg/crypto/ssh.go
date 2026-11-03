@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"slices"
 
 	"github.com/werbot/werbot/internal/trace"
 	"golang.org/x/crypto/ssh"
@@ -51,7 +52,7 @@ func NewSSHKey(keyType string) (*PairOfKeys, error) {
 
 		passphrase = NewPassword(22, false)
 
-		block, err = x509.EncryptPEMBlock(rand.Reader, block.Type, block.Bytes, []byte(passphrase), x509.PEMCipherAES256)
+		block, err = x509.EncryptPEMBlock(rand.Reader, block.Type, block.Bytes, []byte(passphrase), x509.PEMCipherAES256) //nolint:staticcheck // SA1019: keeps the existing RFC 1423 PEM format that generated keys must retain
 		if err != nil {
 			return nil, err
 		}
@@ -153,7 +154,7 @@ func MarshalED25519PrivateKey(key ed25519.PrivateKey) []byte {
 	// Set our check ints
 	// ci := mathRand.Uint32()
 	mathRand, _ := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
-	ci := uint32(mathRand.Uint64())
+	ci := uint32(mathRand.Uint64()) //nolint:gosec // G115: check ints are 32-bit by SSH key encoding
 	pk1.Check1 = ci
 	pk1.Check2 = ci
 
@@ -197,7 +198,7 @@ func MarshalED25519PrivateKey(key ed25519.PrivateKey) []byte {
 	w.KdfName = "none"
 	w.KdfOpts = ""
 	w.NumKeys = 1
-	w.PubKey = append(prefix, pubKey...)
+	w.PubKey = append(slices.Clone(prefix), pubKey...)
 	w.PrivKeyBlock = ssh.Marshal(pk1)
 
 	magic = append(magic, ssh.Marshal(w)...)

@@ -1,0 +1,88 @@
+name: ci
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Build, test and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      GRPCSERVER_TOKEN: test-token
+      # 32 hex characters, the test suite expects this exact key.
+      SECURITY_AES_KEY: 3D6A619811A17396E45D514695DCDA3A
+      JWT_PUBLIC_KEY: ${{ github.workspace }}/fixtures/keys/jwt/jwt_public.key
+      JWT_PRIVATE_KEY: ${{ github.workspace }}/fixtures/keys/jwt/jwt_private.key
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+          token: ${{ secrets.SUBMODULE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Check go.mod and go.sum are tidy
+        run: go mod tidy -diff
+
+      - name: Build core
+        run: go build ./...
+
+      - name: Build with saas add-on
+        run: go build -tags saas ./...
+
+      - name: Build with enterprise add-on
+        run: go build -tags ee ./...
+
+      - name: Test core
+        run: go test -count=1 -coverprofile=coverage.out ./...
+
+      - name: Test saas add-on
+        run: go test -tags saas -count=1 ./add-on/...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v6
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          files: coverage.out
+          fail_ci_if_error: false
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.15.0
+          args: --timeout=10m

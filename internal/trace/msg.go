@@ -21,7 +21,7 @@ const (
 	// Auth error messages
 	MsgPasswordIsNotValid      = "Password is not valid"
 	MsgTokenIsInvalid          = "Token is invalid"
-	MsgTokenIsActivated        = "Token is activated"
+	MsgTokenIsActivated        = "Token is activated" //nolint:gosec // G101: user-facing message, not a credential
 	MsgTokenNotFound           = "Token not found"
 	MsgUserNotFound            = "User not found"
 	MsgAuthMethodDoesNotMatch  = "The authentication method does not match"
@@ -49,7 +49,7 @@ const (
 
 	// Key error messages
 	MsgKeyNotFound          = "Key not found"
-	MsgPublicKeyIsBroken    = "The public key has a broken"
+	MsgPublicKeyIsBroken    = "the public key has a broken"
 	MsgPrivateKeyIsBroken   = "The private key has a broken"
 	MsgFailedCreatingSSHKey = "Failed to creating SSH key"
 

@@ -49,6 +49,7 @@ func (h *Handler) SystemSchemesByAlias(ctx context.Context, in *schemepb.SystemS
     SELECT DISTINCT
       "project_member"."project_id",
       "scheme"."id",
+      "scheme_member"."id" AS "scheme_member_id",
       "scheme"."scheme_type",
       CASE
         WHEN "scheme"."access"->>'key' IS NOT NULL THEN 2
@@ -118,6 +119,7 @@ func (h *Handler) SystemSchemesByAlias(ctx context.Context, in *schemepb.SystemS
 		err := rows.Scan(
 			&scheme.ProjectId,
 			&scheme.SchemeId,
+			&scheme.SchemeMemberId,
 			&scheme.SchemeType,
 			&scheme.AuthMethod,
 			&projectAlias,
@@ -153,6 +155,14 @@ func (h *Handler) SystemSchemeAccess(ctx context.Context, in *schemepb.SystemSch
 	})
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
+	}
+
+	countryCode := ipInfo.GetCountryCode()
+	if countryCode == "" {
+		// The country cannot be resolved, so the country policy cannot be
+		// evaluated safely. Deny access instead of treating it as a match.
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+		return nil, trace.Error(errGRPC, log, nil)
 	}
 
 	// check access for scheme
@@ -226,7 +236,7 @@ func (h *Handler) SystemSchemeAccess(ctx context.Context, in *schemepb.SystemSch
 	err = h.DB.Conn.QueryRowContext(ctx, query,
 		in.GetSchemeId(),
 		in.GetClientIp(),
-		ipInfo.GetCountryCode(),
+		countryCode,
 		currentTime,
 	).Scan(
 		&response.ProjectId,

@@ -7,19 +7,20 @@ import (
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
 )
 
-type accessScheme struct {
+// DecodedScheme wraps a decoded scheme access payload with helpers.
+type DecodedScheme struct {
 	*schemeaccesspb.AccessScheme
 }
 
 // Unmarshal is ...
-func Unmarshal(data []byte, schemeType schemeaccesspb.SchemeType) (*accessScheme, error) {
+func Unmarshal(data []byte, schemeType schemeaccesspb.SchemeType) (*DecodedScheme, error) {
 	typeToScheme := TypeToScheme(schemeType)
 	instance := typeToScheme.NewInstance()
 	if err := protojson.Unmarshal(data, instance); err != nil {
 		return nil, err
 	}
 
-	access := &accessScheme{
+	access := &DecodedScheme{
 		AccessScheme: &schemeaccesspb.AccessScheme{},
 	}
 	typeToScheme.SetAccess(access.AccessScheme, instance)
@@ -28,6 +29,6 @@ func Unmarshal(data []byte, schemeType schemeaccesspb.SchemeType) (*accessScheme
 }
 
 // Ghoster is ...
-func (a *accessScheme) Ghoster() {
+func (a *DecodedScheme) Ghoster() {
 	ghoster.Secrets(a.AccessScheme, false)
 }

@@ -14,8 +14,8 @@ import (
 
 	"github.com/werbot/werbot/internal"
 	"github.com/werbot/werbot/internal/core/notification"
-	notificationmessage "github.com/werbot/werbot/internal/core/notification/proto/message"
 	notificationenum "github.com/werbot/werbot/internal/core/notification/proto/enum"
+	notificationmessage "github.com/werbot/werbot/internal/core/notification/proto/message"
 	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	"github.com/werbot/werbot/internal/core/token"
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
@@ -116,7 +116,7 @@ func (h *Handler) Profiles(ctx context.Context, in *profilemessage.Profiles_Requ
 			return nil, trace.Error(err, log, nil)
 		}
 
-		protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
+		protoutils.SetPgtypeTimestamps(profile, map[string]pgtype.Timestamp{
 			"locked_at":   lockedAt,
 			"archived_at": archivedAt,
 			"updated_at":  updatedAt,
@@ -292,6 +292,7 @@ func (h *Handler) UpdateProfile(ctx context.Context, in *profilemessage.UpdatePr
 		}
 	}
 
+	//nolint:gosec // G201: column comes from a fixed whitelist
 	query := fmt.Sprintf(`
     UPDATE "profile"
     SET "%s" = $1
@@ -633,10 +634,7 @@ func (h *Handler) UpdateStatus(ctx context.Context, in *profilemessage.UpdateSta
 
 	response := &profilemessage.UpdateStatus_Response{}
 
-	online := false
-	if in.GetStatus() == 1 {
-		online = true
-	}
+	online := in.GetStatus() == 1
 
 	res, err := h.DB.Conn.ExecContext(ctx, `
     UPDATE "scheme_member"

@@ -6,7 +6,11 @@ ROOT_PATH="$(git rev-parse --show-toplevel)"
 source ${ROOT_PATH}/scripts/_helper
 
 build() {
-  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/werbot/werbot/internal/version.version=${VERSION} -X github.com/werbot/werbot/internal/version.gitCommit=${GIT_COMMIT} -X github.com/werbot/werbot/internal/version.buildDate=${BUILD_DATE}" -o ${ROOT_PATH}/bin/${1} ${ROOT_PATH}/cmd/${1}
+  TAGS_FLAG=""
+  if [ -n "${TAGS:-}" ]; then
+    TAGS_FLAG="-tags ${TAGS}"
+  fi
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ${TAGS_FLAG} -ldflags "-s -w -X github.com/werbot/werbot/internal/version.version=${VERSION} -X github.com/werbot/werbot/internal/version.gitCommit=${GIT_COMMIT} -X github.com/werbot/werbot/internal/version.buildDate=${BUILD_DATE}" -o ${ROOT_PATH}/bin/${1} ${ROOT_PATH}/cmd/${1}
   upx --no-progress -9 ${ROOT_PATH}/bin/${1} >/dev/null 2>&1
   upx -t ${ROOT_PATH}/bin/${1} >/dev/null 2>&1
   rm -rf ${ROOT_PATH}/bin/${1}.~

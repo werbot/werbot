@@ -50,6 +50,7 @@ const (
 	ConstUserEmail    = "user@werbot.net"
 	ConstUserPassword = "user@werbot.net"
 	ConstUserID       = "c180ad5c-0c65-4cee-8725-12931cb5abb3"
+	ConstUser1ID      = "b3dc36e2-7f84-414b-b147-7ac850369518"
 
 	// user event section
 	// TODO
@@ -63,7 +64,7 @@ const (
 	ConstUserProject1InviteID  = "05985260-cffd-4878-9d3b-73f09e34e4d0"
 	ConstUserMemberInviteID    = "15348c8a-894e-49e6-88a9-79aa058892f3"
 	ConstUserProjectMemberID   = "9d3f7efc-14a5-436d-a763-314441d6e0a5"
-	ConstUserProjectApiID      = "268def26-4efb-47c4-b699-f34903cf05f5"
+	ConstUserProjectAPIID      = "268def26-4efb-47c4-b699-f34903cf05f5"
 	ConstUserProject1ApiKey    = "5tYJOkr3oLCOEvhw3nB83AmDzYM7yJsJ0Sonl"
 	ConstUserProject1ApiSecret = "aDzYMy9g3mmsq3XazPLvvCbj4kJAsgatxBDVW"
 

@@ -182,6 +182,78 @@ func TestHandler_logout(t *testing.T) {
 	test.RunCaseAPITests(t, app, testTable)
 }
 
+func TestHandler_logoutRevokesAccessToken(t *testing.T) {
+	app, teardownTestCase := setupTest(t)
+	defer teardownTestCase(t)
+
+	adminAuth := app.GetProfileAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	adminHeader := test.HeadersTable{"Authorization": "Bearer " + adminAuth.Tokens.Access}
+
+	test.RunCaseAPITests(t, app, []test.APITable{
+		{
+			Name:           "test1_01_logout",
+			Method:         http.MethodPost,
+			Path:           pathAuthLogout,
+			StatusCode:     200,
+			RequestHeaders: adminHeader,
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Successful logout",
+			},
+		},
+		{
+			Name:           "test1_02_reuse_revoked_access",
+			Method:         http.MethodPost,
+			Path:           pathAuthLogout,
+			StatusCode:     401,
+			RequestHeaders: adminHeader,
+			Body:           test.BodyUnauthorized,
+		},
+	})
+}
+
+func TestHandler_refreshRejectsAccessToken(t *testing.T) {
+	app, teardownTestCase := setupTest(t)
+	defer teardownTestCase(t)
+
+	adminAuth := app.GetProfileAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+
+	test.RunCaseAPITests(t, app, []test.APITable{
+		{
+			Name:       "test1_01_access_token_as_refresh",
+			Method:     http.MethodPost,
+			Path:       pathAuthRefresh,
+			StatusCode: 400,
+			RequestBody: test.BodyTable{
+				"refresh": adminAuth.Tokens.Access,
+			},
+			Body: test.BodyTable{
+				"code":   float64(400),
+				"result": "Invalid token type",
+			},
+		},
+	})
+}
+
+func TestHandler_refreshTokenCannotAuthorize(t *testing.T) {
+	app, teardownTestCase := setupTest(t)
+	defer teardownTestCase(t)
+
+	adminAuth := app.GetProfileAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	refreshHeader := test.HeadersTable{"Authorization": "Bearer " + adminAuth.Tokens.Refresh}
+
+	test.RunCaseAPITests(t, app, []test.APITable{
+		{
+			Name:           "test1_01_refresh_as_bearer",
+			Method:         http.MethodPost,
+			Path:           pathAuthLogout,
+			StatusCode:     401,
+			RequestHeaders: refreshHeader,
+			Body:           test.BodyUnauthorized,
+		},
+	})
+}
+
 func TestHandler_refresh(t *testing.T) {
 	app, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)

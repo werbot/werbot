@@ -73,7 +73,7 @@ func (e *Event) Web(c *fiber.Ctx, session *session.ProfileParameters) *WebEvent 
 		request: &eventpb.AddEvent_Request{
 			OwnerId: session.ProfileID(c.Query("owner_id")),
 			Session: &eventmessage.Session{
-				Id:        session.SessionId(),
+				Id:        session.SessionID(),
 				UserAgent: string(c.Request().Header.UserAgent()),
 				Ip:        c.IP(),
 			},

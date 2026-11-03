@@ -50,7 +50,7 @@ func TryToString(val any, defaultAsErr bool) (str string, err error) {
 	case float64:
 		str = strconv.FormatFloat(value, 'f', -1, 64)
 	case time.Duration:
-		str = strconv.FormatUint(uint64(value.Nanoseconds()), 10)
+		str = strconv.FormatUint(uint64(value.Nanoseconds()), 10) //nolint:gosec // G115: duration nanoseconds are formatted as unsigned by design
 	case json.Number:
 		str = value.String()
 	default:

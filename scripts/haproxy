@@ -21,8 +21,7 @@ replicas)
 
 recreate)
   print_header "Recreate Haproxy docker"
-  #docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" up -d >/dev/null 2>&1
-  docker-compose -f "${ROOT_PATH}/docker/docker-compose.yaml" up -d --force-recreate haproxy >/dev/null 2>&1
+  docker compose -f "${ROOT_PATH}/docker/docker-compose.yaml" up -d --force-recreate haproxy >/dev/null 2>&1
   print_answer "SUCCESS" green
   ;;
 

@@ -35,7 +35,7 @@ func privateKey() func(*ssh.Server) error {
 }
 
 func dynamicHostKey(host *schemepb.Scheme_Response) gossh.HostKeyCallback {
-	return func(hostname string, remote net.Addr, key gossh.PublicKey) error {
+	return func(hostname string, _ net.Addr, key gossh.PublicKey) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 

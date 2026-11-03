@@ -41,7 +41,7 @@ import (
 func NewServer(dbConn *postgres.Connect, redisConn *redis.Connect, asynq worker.Client, cert tls.Certificate) *grpc.Server {
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials.NewServerTLSFromCert(&cert)),
-		grpc.UnaryInterceptor(ensureValidToken),
+		grpc.ChainUnaryInterceptor(unaryRecoveryInterceptor, ensureValidToken),
 	)
 
 	return ServerHandlers(grpcServer, dbConn, redisConn, asynq)

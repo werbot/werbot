@@ -10,4 +10,5 @@ enum MailTemplate {
   project_invite = 2;
   account_deletion_confirmation = 3;
   account_deletion_info = 4;
+  scheme_invite = 5;
 }

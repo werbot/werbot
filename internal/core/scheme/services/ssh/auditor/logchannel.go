@@ -2,7 +2,10 @@ package auditor
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -19,12 +22,15 @@ var log = logger.New()
 type LogChannel struct {
 	AuditID     string
 	AccountID   string
+	ProfileID   string
+	SessionID   string
 	ClientIP    string
 	Channel     ssh.Channel
 	FramesCount int32
 	Frames      []*auditmessage.Record
 	fullTime    time.Time
 
+	mu          sync.Mutex
 	grpcSession *grpc.ClientConn
 	recordCount int32
 }
@@ -37,6 +43,7 @@ func NewLogchannel(account *auditmessage.AddAudit_Request, channel ssh.Channel, 
 	rClient := auditrpc.NewAuditHandlersClient(grpcSession)
 	auditData, err := rClient.AddAudit(ctx, &auditmessage.AddAudit_Request{
 		AccountId: account.AccountId,
+		ProfileId: account.ProfileId,
 		Version:   2,
 		ClientIp:  account.ClientIp,
 		Session:   account.Session,
@@ -49,6 +56,8 @@ func NewLogchannel(account *auditmessage.AddAudit_Request, channel ssh.Channel, 
 	return &LogChannel{
 		AuditID:     auditData.AuditId,
 		AccountID:   account.AccountId,
+		ProfileID:   account.ProfileId,
+		SessionID:   account.Session,
 		ClientIP:    account.ClientIp,
 		Channel:     channel,
 		fullTime:    time.Now(),
@@ -63,66 +72,95 @@ func NewLogchannel(account *auditmessage.AddAudit_Request, channel ssh.Channel, 
 //	return l.Read(data)
 // }
 
-// Write is ...
+// Write records terminal text and forwards it to the client channel.
 func (l *LogChannel) Write(data []byte) (int, error) {
-	record := &auditmessage.Record{}                              // frame
-	record.Duration = fmt.Sprintf("%.6f", l.Duration().Seconds()) // Time
-	record.Type = "o"                                             // Type
-	record.Screen = string(data)                                  // Data
-
-	l.FramesCount++
-	l.Frames = append(l.Frames, record)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rClient := auditrpc.NewAuditHandlersClient(l.grpcSession)
-
-	if l.FramesCount == l.recordCount {
-		// TODO: переименовать названия на новые frame, Time, Type, Data
-		// go func() {
-		_, err := rClient.AddRecord(ctx, &auditmessage.AddRecord_Request{
-			AuditId: l.AuditID,
-			Records: l.Frames,
-		})
-		if err != nil {
-			log.Error(err).Msg("goroutine CreateRecord")
-		}
-		// }()
-
-		l.Frames = nil
-		l.FramesCount = 0
-	}
+	l.appendRecord(&auditmessage.Record{
+		Duration: fmt.Sprintf("%.6f", l.Duration().Seconds()),
+		Type:     "o",
+		Screen:   string(data),
+	})
 
 	return l.Channel.Write(data)
 }
 
-// Close is ...
-func (l *LogChannel) Close() error {
-	// TODO: вынести в отдельную функцию отправку дополнительного последнего сообщения рекордера о закрытии сессии
-	//	if string(l.Frames[len(l.Frames)-1].Data) == "exit\r\n" {
-	//		l.Frames = l.Frames[:len(l.Frames)-1]
-	//	}
+// WriteBinary records raw tunnel bytes without forwarding them anywhere. The
+// payload is stored base64 encoded because a screenshot record is text.
+func (l *LogChannel) WriteBinary(data []byte) (int, error) {
+	l.appendRecord(&auditmessage.Record{
+		Duration: fmt.Sprintf("%.6f", l.Duration().Seconds()),
+		Type:     "b",
+		Screen:   base64.StdEncoding.EncodeToString(data),
+	})
+
+	return len(data), nil
+}
+
+// RecordWriter returns an io.Writer that records tunnel bytes without writing
+// them to the channel.
+func (l *LogChannel) RecordWriter() io.Writer {
+	return recordWriter{log: l}
+}
+
+type recordWriter struct {
+	log *LogChannel
+}
+
+func (w recordWriter) Write(data []byte) (int, error) {
+	return w.log.WriteBinary(data)
+}
+
+func (l *LogChannel) appendRecord(record *auditmessage.Record) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	l.FramesCount++
+	l.Frames = append(l.Frames, record)
+
+	if l.FramesCount == l.recordCount {
+		l.flushLocked()
+	}
+}
+
+func (l *LogChannel) flushLocked() {
+	if l.FramesCount == 0 {
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	rClient := auditrpc.NewAuditHandlersClient(l.grpcSession)
 
-	if l.FramesCount > 0 {
-		_, err := rClient.AddRecord(ctx, &auditmessage.AddRecord_Request{
-			AuditId: l.AuditID,
-			Records: l.Frames,
-		})
-		if err != nil {
-			log.Error(err).Msg("CreateRecord")
-		}
-		l.Frames = nil
-		l.FramesCount = 0
+	// TODO: переименовать названия на новые frame, Time, Type, Data
+	if _, err := rClient.AddRecord(ctx, &auditmessage.AddRecord_Request{
+		AuditId:   l.AuditID,
+		ProfileId: l.ProfileID,
+		Session:   l.SessionID,
+		Records:   l.Frames,
+	}); err != nil {
+		log.Error(err).Msg("goroutine CreateRecord")
 	}
 
+	l.Frames = nil
+	l.FramesCount = 0
+}
+
+// Close flushes pending frames and marks the audit as finished.
+func (l *LogChannel) Close() error {
+	l.mu.Lock()
+	l.flushLocked()
+	l.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	rClient := auditrpc.NewAuditHandlersClient(l.grpcSession)
+
 	_, err := rClient.UpdateAudit(ctx, &auditmessage.UpdateAudit_Request{
-		AuditId:  l.AuditID,
-		Duration: fmt.Sprintf("%.6f", l.Duration().Seconds()),
+		AuditId:   l.AuditID,
+		ProfileId: l.ProfileID,
+		Session:   l.SessionID,
+		Duration:  fmt.Sprintf("%.6f", l.Duration().Seconds()),
 	})
 	if err != nil {
 		log.Error(err).Msg("Logchannel close error")

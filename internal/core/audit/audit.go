@@ -16,6 +16,10 @@ import (
 
 // ListAudits is displays the list all audits for scheme_id
 func (h *Handler) ListAudits(ctx context.Context, in *auditmessage.ListAudits_Request) (*auditmessage.ListAudits_Response, error) {
+	if err := protoutils.ValidateRequest(in); err != nil {
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
+	}
+
 	response := &auditmessage.ListAudits_Response{}
 
 	err := h.DB.Conn.QueryRowContext(ctx, `
@@ -23,8 +27,13 @@ func (h *Handler) ListAudits(ctx context.Context, in *auditmessage.ListAudits_Re
     FROM
       "audit"
       INNER JOIN "scheme_member" ON "audit"."member_id" = "scheme_member"."id"
-    WHERE "scheme_member"."scheme_id" = $1
-  `, in.GetServerId()).Scan(&response.Total)
+      INNER JOIN "scheme" ON "scheme"."id" = "scheme_member"."scheme_id"
+      INNER JOIN "project" ON "project"."id" = "scheme"."project_id"
+      INNER JOIN "project_member" ON "project_member"."id" = "scheme_member"."project_member_id"
+    WHERE
+      "scheme_member"."scheme_id" = $1
+      AND ("project"."owner_id" = $2 OR "project_member"."profile_id" = $2)
+  `, in.GetServerId(), in.GetProfileId()).Scan(&response.Total)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, trace.Error(err, log, nil)
 	}
@@ -38,18 +47,27 @@ func (h *Handler) Audit(ctx context.Context, in *auditmessage.Audit_Request) (*a
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
+	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId(), "")
+	if err != nil {
+		return nil, err
+	}
+	// A read hides both a missing audit and a foreign audit behind NotFound so
+	// callers cannot probe for audit ids.
+	if !exists || !allowed {
+		return nil, auditNotFound()
+	}
+
 	response := &auditmessage.Audit_Response{}
 
 	var timeStart, timeEnd sql.NullTime
-	err := h.DB.Conn.QueryRowContext(ctx, `
+	err = h.DB.Conn.QueryRowContext(ctx, `
     SELECT "time_start", "time_end"
     FROM "audit"
     WHERE "id" = $1
   `, in.GetAuditId()).Scan(&timeStart, &timeEnd)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			errGRPC := status.Error(codes.NotFound, trace.MsgAuditNotFound)
-			return nil, trace.Error(errGRPC, log, nil)
+			return nil, auditNotFound()
 		}
 		return nil, trace.Error(err, log, nil)
 	}
@@ -70,9 +88,20 @@ func (h *Handler) AddAudit(ctx context.Context, in *auditmessage.AddAudit_Reques
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
+	exists, allowed, err := h.memberAccess(ctx, in.GetAccountId(), in.GetProfileId())
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, memberNotFound()
+	}
+	if !allowed {
+		return nil, permissionDenied()
+	}
+
 	response := &auditmessage.AddAudit_Response{}
 
-	err := h.DB.Conn.QueryRowContext(ctx, `
+	err = h.DB.Conn.QueryRowContext(ctx, `
     INSERT INTO
       "audit" (
         "member_id",
@@ -105,6 +134,21 @@ func (h *Handler) AddAudit(ctx context.Context, in *auditmessage.AddAudit_Reques
 
 // UpdateAudit is update audit for scheme_id
 func (h *Handler) UpdateAudit(ctx context.Context, in *auditmessage.UpdateAudit_Request) (*auditmessage.UpdateAudit_Response, error) {
+	if err := protoutils.ValidateRequest(in); err != nil {
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
+	}
+
+	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId(), in.GetSession())
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, auditNotFound()
+	}
+	if !allowed {
+		return nil, permissionDenied()
+	}
+
 	response := &auditmessage.UpdateAudit_Response{}
 
 	res, err := h.DB.Conn.ExecContext(ctx, `
@@ -115,7 +159,7 @@ func (h *Handler) UpdateAudit(ctx context.Context, in *auditmessage.UpdateAudit_
       "env_term" = COALESCE(NULLIF($3, ''), "env_term"),
       "duration" = COALESCE(NULLIF($4, '')::float8, "duration"),
       "time_end" = COALESCE($5, "time_end")
-    WHERE "id" = $6
+    WHERE "id" = $6 AND "session" = $7
   `,
 		in.GetWidth(),
 		in.GetHeight(),
@@ -123,6 +167,7 @@ func (h *Handler) UpdateAudit(ctx context.Context, in *auditmessage.UpdateAudit_
 		in.GetDuration(),
 		in.GetTimeEnd().AsTime(),
 		in.GetAuditId(),
+		in.GetSession(),
 	)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
@@ -142,10 +187,21 @@ func (h *Handler) DeleteAudit(ctx context.Context, in *auditmessage.DeleteAudit_
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
+	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId(), in.GetSession())
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, auditNotFound()
+	}
+	if !allowed {
+		return nil, permissionDenied()
+	}
+
 	res, err := h.DB.Conn.ExecContext(ctx, `
     DELETE FROM "audit"
-    WHERE "id" = $1
-  `, in.GetAuditId())
+    WHERE "id" = $1 AND "session" = $2
+  `, in.GetAuditId(), in.GetSession())
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}
@@ -167,11 +223,19 @@ func (h *Handler) ListRecords(ctx context.Context, in *auditmessage.ListRecords_
 	response := &auditmessage.ListRecords_Response{}
 
 	rows, err := h.DB.Conn.QueryContext(ctx, `
-    SELECT "id", "duration", "screen", "type"
-    FROM "audit_record"
-    WHERE "audit_id" = $1
-    ORDER BY "duration"
-  `, in.GetAuditId())
+    SELECT "audit_record"."id", "audit_record"."duration", "audit_record"."screen", "audit_record"."type"
+    FROM
+      "audit_record"
+      INNER JOIN "audit" ON "audit"."id" = "audit_record"."audit_id"
+      INNER JOIN "scheme_member" ON "scheme_member"."id" = "audit"."member_id"
+      INNER JOIN "scheme" ON "scheme"."id" = "scheme_member"."scheme_id"
+      INNER JOIN "project" ON "project"."id" = "scheme"."project_id"
+      INNER JOIN "project_member" ON "project_member"."id" = "scheme_member"."project_member_id"
+    WHERE
+      "audit_record"."audit_id" = $1
+      AND ("project"."owner_id" = $2 OR "project_member"."profile_id" = $2)
+    ORDER BY "audit_record"."duration"
+  `, in.GetAuditId(), in.GetProfileId())
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}
@@ -195,6 +259,17 @@ func (h *Handler) ListRecords(ctx context.Context, in *auditmessage.ListRecords_
 func (h *Handler) AddRecord(ctx context.Context, in *auditmessage.AddRecord_Request) (*auditmessage.AddRecord_Response, error) {
 	if err := protoutils.ValidateRequest(in); err != nil {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
+	}
+
+	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId(), in.GetSession())
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, auditNotFound()
+	}
+	if !allowed {
+		return nil, permissionDenied()
 	}
 
 	tx, err := h.DB.Conn.BeginTx(ctx, nil)

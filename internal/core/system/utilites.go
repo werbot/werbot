@@ -70,13 +70,16 @@ func (h *Handler) CountryByIP(_ context.Context, in *systemmessage.CountryByIP_R
 	defer db.Close()
 
 	record, err := db.Country(net.ParseIP(in.GetIp()))
-	response := &systemmessage.CountryByIP_Response{
-		Name: record.Country.Names["en"],
-		Code: record.Country.IsoCode,
-	}
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgAborted)
 	}
+	if record == nil || record.Country.IsoCode == "" {
+		errGRPC := status.Error(codes.NotFound, trace.MsgNotFound)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
-	return response, nil
+	return &systemmessage.CountryByIP_Response{
+		Name: record.Country.Names["en"],
+		Code: record.Country.IsoCode,
+	}, nil
 }

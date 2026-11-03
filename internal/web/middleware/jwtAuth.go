@@ -55,15 +55,21 @@ func (m AuthMiddleware) Execute() fiber.Handler {
 }
 
 // authError handles authentication errors.
-func authError(c *fiber.Ctx, e error) error {
+func authError(c *fiber.Ctx, _ error) error {
 	return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "unauthorized"))
 }
 
 // authSuccess handles successful authentication.
 func (m *AuthMiddleware) authSuccess(c *fiber.Ctx) error {
+	if session.TokenType(c) != jwt.TokenTypeAccess {
+		return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "invalid token type"))
+	}
+
 	sessionData := session.AuthProfile(c)
-	key := fmt.Sprintf("refresh_token:%s", sessionData.SessionId())
-	if _, err := m.redis.Client.HGetAll(m.redis.Ctx, key).Result(); err != nil {
+	key := fmt.Sprintf("refresh_token:%s", sessionData.SessionID())
+
+	exists, err := m.redis.Client.Exists(m.redis.Ctx, key).Result()
+	if err != nil || exists == 0 {
 		return webutil.FromGRPC(c, status.Error(codes.Unauthenticated, "token has been revoked"))
 	}
 

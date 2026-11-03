@@ -21,7 +21,7 @@ type GRPCService struct {
 }
 
 // ServerGRPC initializes a new GRPCService with a gRPC client connection.
-func ServerGRPC(ctx context.Context, t *testing.T, db *PostgresService, redis *RedisService) (*GRPCService, error) {
+func ServerGRPC(_ context.Context, t *testing.T, db *PostgresService, redis *RedisService) (*GRPCService, error) {
 	service := &GRPCService{
 		test:  t,
 		db:    db,
@@ -29,7 +29,7 @@ func ServerGRPC(ctx context.Context, t *testing.T, db *PostgresService, redis *R
 	}
 
 	var err error
-	service.ClientConn, err = grpc.DialContext(ctx, "", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(service.serverGRPC()))
+	service.ClientConn, err = grpc.NewClient("passthrough:///bufnet", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(service.serverGRPC()))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (s *GRPCService) serverGRPC() func(context.Context, string) (net.Conn, erro
 
 	go func() {
 		if err := newServer.Serve(listener); err != nil {
-			s.test.Fatalf("Server GRPC exited with error: %v", err)
+			s.test.Errorf("Server GRPC exited with error: %v", err)
 		}
 	}()
 
