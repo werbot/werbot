@@ -10,7 +10,9 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 
 	firewallmessage "github.com/werbot/werbot/internal/core/firewall/proto/message"
+	firewallrpc "github.com/werbot/werbot/internal/core/firewall/proto/rpc"
 	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
+	profilerpc "github.com/werbot/werbot/internal/core/profile/proto/rpc"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/utils/alias"
 	"github.com/werbot/werbot/pkg/utils/netutil"
@@ -20,7 +22,7 @@ func passwordAuthHandler() ssh.PasswordHandler {
 	return func(ctx ssh.Context, pass string) bool {
 		actx := &authContext{
 			alias:      ctx.User(),
-			userAddr:   ctx.RemoteAddr().String(),
+			clientIP:   netutil.IP(ctx.RemoteAddr().String()),
 			authMethod: "password",
 		}
 		actx.authSuccess = actx.userType() == schemepb.Type_healthcheck
@@ -33,8 +35,8 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 	return func(ctx ssh.Context, key ssh.PublicKey) bool {
 		actx := &authContext{
 			alias:           alias.FixAlias(ctx.User()),
-			userAddr:        netutil.IP(ctx.RemoteAddr().String()),
-			userFingerPrint: gossh.FingerprintLegacyMD5(key),
+			clientIP:        netutil.IP(ctx.RemoteAddr().String()),
+			userFingerprint: gossh.FingerprintLegacyMD5(key),
 			authMethod:      "pubkey",
 			authSuccess:     true,
 		}
@@ -43,12 +45,12 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 		_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		rClientF := firewallmessage.NewFirewallHandlersClient(app.grpc)
-		rClientA := profilemessage.NewProfileHandlersClient(app.grpc)
+		rClientF := firewallrpc.NewFirewallHandlersClient(app.grpc)
+		rClientA := profilerpc.NewProfileHandlersClient(app.grpc)
 
 		// IP check for global Firewall settings
 		_, err := rClientF.IPAccess(_ctx, &firewallmessage.IPAccess_Request{
-			ClientIp: actx.userAddr,
+			ClientIp: actx.clientIP,
 		})
 		if err != nil {
 			actx.message = "Access denied"
@@ -77,8 +79,8 @@ func publicKeyAuthHandler() ssh.PublicKeyHandler {
 
 		profileID, err := rClientA.ProfileIDByLogin(_ctx, &profilemessage.ProfileIDByLogin_Request{
 			Login:       actx.alias,
-			Fingerprint: actx.userFingerPrint,
-			ClientIp:    actx.userAddr,
+			Fingerprint: actx.userFingerprint,
+			ClientIp:    actx.clientIP,
 		})
 		if err != nil {
 			return true

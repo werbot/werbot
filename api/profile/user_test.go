@@ -27,7 +27,7 @@ func TestHandler_profiles(t *testing.T) {
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Profiles",
-				"result.total": float64(22),
+				"result.total": float64(23),
 			},
 			RequestHeaders: adminHeader,
 		},
@@ -39,7 +39,7 @@ func TestHandler_profiles(t *testing.T) {
 			Body: test.BodyTable{
 				"code":              float64(200),
 				"message":           "Profiles",
-				"result.total":      float64(22),
+				"result.total":      float64(23),
 				"result.profiles.0": "*",
 				"result.profiles.1": "*",
 				"result.profiles.2": nil,
@@ -817,7 +817,7 @@ func TestHandler_deleteProfile(t *testing.T) {
 		{ // USER: step 2, real token
 			Name:       "test2_04",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProfiles, "delete", "8c7c9b35-1c3e-4679-ab2d-3e176a2b73d9"),
+			Path:       test.PathGluing(pathProfiles, "delete", "4b1e7c2a-8f63-4bd5-9a1e-2c7d90ab5f31"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),

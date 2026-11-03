@@ -182,7 +182,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
-				Message: "Not found",
+				Message: "Project not found",
 			},
 		},
 		{
@@ -196,7 +196,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
-				Message: "Not found",
+				Message: "Project not found",
 			},
 		},
 		{
@@ -211,7 +211,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
-				Message: "Not found",
+				Message: "Profile not found",
 			},
 		},
 		{
@@ -253,7 +253,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
-				Message: "Not found",
+				Message: "Project not found",
 			},
 		},
 		{
@@ -271,7 +271,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
-				Message: "Not found",
+				Message: "Project not found",
 			},
 		},
 		{

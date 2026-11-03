@@ -71,7 +71,7 @@ func TestHandler_info(t *testing.T) {
 			Body: test.BodyTable{
 				"code":            float64(200),
 				"message":         "Short",
-				"result.profiles": float64(22),
+				"result.profiles": float64(23),
 				"result.projects": float64(51),
 				"result.schemes":  float64(147),
 			}, RequestHeaders: adminHeader,

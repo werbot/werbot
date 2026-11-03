@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"buf.build/go/protovalidate"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -25,8 +26,12 @@ func ValidateRequest(request proto.Message) error {
 		errorList := make(errutil.ErrorMap)
 		validErr := err.(*protovalidate.ValidationError)
 		for _, violation := range validErr.Violations {
-			// Get field path from FieldDescriptor
-			fieldPath := string(violation.FieldDescriptor.Name())
+			// Get field path from FieldDescriptor. A violation raised on the
+			// message itself (oneof, message-level CEL) has no field descriptor.
+			fieldPath := ""
+			if violation.FieldDescriptor != nil {
+				fieldPath = string(violation.FieldDescriptor.Name())
+			}
 			if violation.Proto != nil {
 				// Try to get field path from proto if available
 				if field := violation.Proto.GetField(); field != nil && len(field.GetElements()) > 0 {
@@ -34,6 +39,9 @@ func ValidateRequest(request proto.Message) error {
 					for _, elem := range field.GetElements() {
 						if elem.GetFieldName() != "" {
 							pathParts = append(pathParts, elem.GetFieldName())
+						}
+						if elem.GetSubscript() != nil && len(pathParts) > 0 {
+							pathParts[len(pathParts)-1] += fmt.Sprintf("[%d]", elem.GetIndex())
 						}
 					}
 					if len(pathParts) > 0 {
@@ -46,6 +54,27 @@ func ValidateRequest(request proto.Message) error {
 				message := violation.Proto.GetMessage()
 				if message == "" {
 					message = violation.String()
+				}
+				// protovalidate v1.4 reworded the builtin constraint messages
+				// ("value must be at least 3 characters" instead of "value length
+				// must be at least 3 characters") and dropped the "value " prefix
+				// from some. Custom CEL messages and oneof/required-oneof
+				// violations are already full sentences and are left untouched.
+				// The API contract and its tests still report the pre-1.4 wording
+				// for builtin field rules.
+				ruleName := ""
+				if violation.RuleDescriptor != nil {
+					ruleName = string(violation.RuleDescriptor.Name())
+				}
+				isOneof := strings.Contains(message, "exactly one field is required in oneof")
+				if ruleName != "cel" && ruleName != "required" && !isOneof {
+					if !strings.HasPrefix(message, "value ") {
+						message = "value " + message
+					}
+					if strings.HasPrefix(message, "value must be at least ") ||
+						strings.HasPrefix(message, "value must be at most ") {
+						message = "value length" + strings.TrimPrefix(message, "value")
+					}
 				}
 				errorList[fieldPath] = message
 			} else {

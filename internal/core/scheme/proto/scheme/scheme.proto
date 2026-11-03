@@ -383,6 +383,7 @@ message SystemSchemeAccess {
     string scheme_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     string client_ip = 2 [(buf.validate.field).string.ip = true, (buf.validate.field).required = true];
     google.protobuf.Timestamp timestamp = 3;
+    bool no_ghost = 4; // @gotags: json:"-"
   }
 
   message Response {

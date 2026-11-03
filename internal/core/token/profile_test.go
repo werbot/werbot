@@ -155,7 +155,7 @@ func Test_AddTokenProfileReset(t *testing.T) {
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
-				Message: "Not found",
+				Message: "Profile not found",
 			},
 		},
 		{
@@ -305,7 +305,7 @@ func Test_AddTokenProfileDelete(t *testing.T) {
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
-				Message: "Not found",
+				Message: "Profile not found",
 			},
 		},
 		{
@@ -432,12 +432,17 @@ func Test_UpdateProfileToken(t *testing.T) {
 			Response: test.BodyTable{},
 		},
 		{
-			Name: "update_reset_token_to_used_success",
+			Name: "user_cannot_set_used_status",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				Token:  "55c9f79c-d827-43fc-8ad1-79e396d2432c",
 				Status: tokenenum.Status_used,
 			},
-			Response: test.BodyTable{},
+			Error: test.ErrGRPC{
+				Code: codes.InvalidArgument,
+				Message: map[string]any{
+					"status": "value must not be in list [0, 3]",
+				},
+			},
 		},
 		{
 			Name: "user_cannot_set_deleted_status",

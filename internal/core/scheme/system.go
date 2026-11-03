@@ -262,7 +262,9 @@ func (h *Handler) SystemSchemeAccess(ctx context.Context, in *schemepb.SystemSch
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
 	}
-	accessData.Ghoster()
+	if !in.GetNoGhost() {
+		accessData.Ghoster()
+	}
 	response.Access = accessData.AccessScheme
 
 	return response, nil

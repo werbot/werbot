@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"time"
@@ -35,25 +36,31 @@ func privateKey() func(*ssh.Server) error {
 
 func dynamicHostKey(host *schemepb.Scheme_Response) gossh.HostKeyCallback {
 	return func(hostname string, remote net.Addr, key gossh.PublicKey) error {
-		if len(host.HostKey) == 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		rClient := schemepb.NewSchemeHandlersClient(app.grpc)
+		stored, err := rClient.SystemHostKey(ctx, &schemepb.SystemHostKey_Request{
+			SchemeId: host.SchemeId,
+		})
+		if err != nil {
+			return fmt.Errorf("get stored host key: %w", err)
+		}
+
+		if len(stored.GetHostkey()) == 0 {
 			log.Info().Str("hostAddress", netutil.IP(hostname)).Msg("Discovering host fingerprint")
 
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-
-			rClient := schemepb.NewSchemeHandlersClient(app.grpc)
-			_, err := rClient.UpdateHostKey(ctx, &schemepb.UpdateHostKey_Request{
+			if _, err := rClient.SystemUpdateHostKey(ctx, &schemepb.SystemUpdateHostKey_Request{
 				SchemeId: host.SchemeId,
 				Hostkey:  key.Marshal(),
-			})
-			if err != nil {
-				app.log.Error(err).Msg("gRPC UpdateServerHostKey")
+			}); err != nil {
+				app.log.Error(err).Msg("Update scheme host key")
 			}
 
 			return nil
 		}
 
-		if !bytes.Equal(host.HostKey, key.Marshal()) {
+		if !bytes.Equal(stored.GetHostkey(), key.Marshal()) {
 			return errors.New("SSH host key mismatch")
 		}
 

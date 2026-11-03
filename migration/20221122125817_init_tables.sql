@@ -210,7 +210,7 @@ CREATE TABLE "audit_record" (
     "audit_id" uuid NOT NULL REFERENCES "audit"("id") ON DELETE CASCADE,
     "duration" float8 NOT NULL,
     "screen" text NOT NULL,
-    "type" smallint NOT NULL
+    "type" varchar(1) NOT NULL
 );
 CREATE INDEX idx_audit_record_id ON "audit_record" ("id");
 CREATE INDEX idx_audit_record_audit_id ON "audit_record" ("audit_id");

@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
@@ -46,13 +47,16 @@ func (c Handler) WriteConsole() error {
 }
 
 // AccountStatus is ...
-func (c Handler) AccountStatus(accountID, status string) error {
-	message := []byte(fmt.Sprintf(`{"account.%v":{"id":%v}}`, status, accountID))
-	pub := c.client.Publish(c.ctx, "scheme.events", message)
-	if err := pub.Err(); err != nil {
+func (c Handler) AccountStatus(schemeID, status string) error {
+	payload, err := json.Marshal(map[string]map[string]string{
+		"scheme." + status: {"id": schemeID},
+	})
+	if err != nil {
 		return err
 	}
-	return nil
+
+	pub := c.client.Publish(c.ctx, "scheme.events", payload)
+	return pub.Err()
 }
 
 // WriteStatus is ...

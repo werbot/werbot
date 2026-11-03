@@ -91,5 +91,5 @@ rest.http
 fixtures/migration/*_private.sql
 
 dist/
-.cursor/
+.superpowers/
 .playwright-mcp/

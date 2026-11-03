@@ -165,7 +165,7 @@ func TestHandler_projectMembers(t *testing.T) {
 			Body: test.BodyTable{
 				"code":                         float64(200),
 				"message":                      "Profiles without project",
-				"result.total":                 float64(15),
+				"result.total":                 float64(16),
 				"result.profiles.0.email":      test.ConstAdminEmail,
 				"result.profiles.0.alias":      "admin",
 				"result.profiles.0.profile_id": test.ConstAdminID,
@@ -180,10 +180,10 @@ func TestHandler_projectMembers(t *testing.T) {
 			Body: test.BodyTable{
 				"code":                         float64(200),
 				"message":                      "Profiles without project",
-				"result.total":                 float64(10),
-				"result.profiles.0.email":      test.ConstUserEmail,
-				"result.profiles.0.alias":      "user",
-				"result.profiles.0.profile_id": test.ConstUserID,
+				"result.total":                 float64(11),
+				"result.profiles.0.email":      "invite201@werbot.net",
+				"result.profiles.0.alias":      "invite201",
+				"result.profiles.0.profile_id": "5a2bb353-e862-4e6f-be74-fedb2dd761fd",
 			},
 			RequestHeaders: adminHeader,
 		},

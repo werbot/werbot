@@ -121,7 +121,7 @@ func (h *Handler) AddTokenProjectMember(ctx context.Context, in *tokenmessage.Ad
 	}
 
 	fields := []string{"section", "action", "status", "project_id"}
-	args := []any{tokenenum.Section_project, tokenenum.Action_request, tokenenum.Status_sent}
+	args := []any{tokenenum.Section_project, tokenenum.Action_request, tokenenum.Status_sent, in.GetProjectId()}
 
 	switch in.GetProfile().(type) {
 	case *tokenmessage.AddTokenProjectMember_Request_CreateNewProfile:

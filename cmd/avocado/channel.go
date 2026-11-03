@@ -10,20 +10,21 @@ import (
 
 	"github.com/gliderlabs/ssh"
 	"github.com/olekukonko/tablewriter"
+	tw "github.com/olekukonko/tablewriter/tw"
 	"github.com/rs/zerolog/log"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 
 	"github.com/werbot/werbot/internal"
 	auditmessage "github.com/werbot/werbot/internal/core/audit/proto/message"
-	firewallpb "github.com/werbot/werbot/internal/core/firewall/proto/firewall"
-	profilepb "github.com/werbot/werbot/internal/core/profile/proto/profile"
+	auditrpc "github.com/werbot/werbot/internal/core/audit/proto/rpc"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/core/scheme/services/ssh/auditor"
 	"github.com/werbot/werbot/internal/core/scheme/services/ssh/pty"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/utils/strutil"
+	"github.com/werbot/werbot/pkg/uuid"
 )
 
 type sessionConfig struct {
@@ -42,131 +43,53 @@ type channelTunnel struct {
 	err   error
 }
 
-// TODO: combine Host and Actx with the required parameters in one
-// https://git.piplos.by/werbot/werbot-server/blob/3c833b2e6fd5a5d2914a4d9aaa640040dd605371/server.go
-func connectToHost(host *schemepb.Scheme_Response, actx *authContext, ctx ssh.Context, newChan gossh.NewChannel, srv *ssh.Server, conn *gossh.ServerConn, ch channelTunnel) {
-	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func connectToHost(scheme *schemepb.Scheme_Response, actx *authContext, sshCtx ssh.Context, newChan gossh.NewChannel, srv *ssh.Server, conn *gossh.ServerConn, ch channelTunnel) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClientF := firewallmessage.NewFirewallHandlersClient(app.grpc)
-	rClientS := schemepb.NewSchemeHandlersClient(app.grpc)
-	rClientA := profilemessage.NewProfileHandlersClient(app.grpc)
-
-	_, err := rClientF.ServerAccess(_ctx, &firewallmessage.ServerAccess_Request{
-		ServerId: host.SchemeId,
-		UserId:   actx.userID,
-		MemberIp: actx.userAddr,
-	})
+	client, err := newSession(scheme, actx, ctx)
 	if err != nil {
-		actx.message = "Permission denied"
+		app.log.Error(err).Msg("Bastion ClientConfig error")
+		actx.message = fmt.Sprintf("%v", err)
 		sendMessageInChannel(ch.lch, actx.message+"\n")
-		ch.lch.Close()
+		_ = ch.lch.Close()
 		return
 	}
 
-	switch host.GetScheme() {
-	case schemepb.SchemeProtocol_ssh: // ssh
-		sessionConfigs := make([]sessionConfig, 0)
-		clientConfig, err := bastionClientConfig(ctx, host)
-		if err != nil {
-			app.log.Error(err).Msg("Bastion ClientConfig error")
-			actx.message = fmt.Sprintf("%v", err)
-			sendMessageInChannel(ch.lch, actx.message+"\n")
-			ch.lch.Close()
-			return
+	app.broker.AccountStatus(scheme.GetSchemeId(), "online")
+
+	sessionConfigs := []sessionConfig{{
+		Addr:         client.Address,
+		ClientConfig: client.ClientConfig,
+		AccountID:    scheme.GetSchemeId(),
+		ClientIP:     actx.clientIP,
+		SessionID:    actx.sessionID,
+		Channel:      ch,
+	}}
+
+	log.Info().
+		Str("alias", actx.alias).
+		Str("clientIP", actx.clientIP).
+		Str("schemeID", actx.schemeID).
+		Str("userID", actx.userID).
+		Msg("Open virtual connection")
+
+	go func() {
+		if err := multiChannelHandler(srv, conn, newChan, sshCtx, sessionConfigs); err != nil {
+			app.log.Error(err).Msg("Multi ChannelHandler error")
+			conn.Close()
 		}
 
-		app.broker.AccountStatus(host.AccountId, "online")
+		app.broker.AccountStatus(scheme.GetSchemeId(), "offline")
 
-		_, err = rClientA.UpdateStatus(_ctx, &profilemessage.UpdateStatus_Request{
-			AccountId: host.AccountId,
-			Status:    2, // online
-		})
-		if err != nil {
-			app.log.Error(err).Msg("gRPC UpdateAccountStatus")
-		}
-
-		data, err := rClientS.AddSession(_ctx, &schemepb.AddSession_Request{
-			AccountId: host.AccountId,
-			Status:    true,
-			Message:   "",
-		})
-		if err != nil {
-			app.log.Error(err).Msg("gRPC ServerSessionAdd")
-		}
-		actx.sessionID = data.GetSessionId()
-
-		_, err = rClientS.UpdateScheme(_ctx, &schemepb.UpdateScheme_Request{
-			SchemeId: host.SchemeId,
-			Setting: &schemepb.UpdateScheme_Request_Active{
-				Active: true,
-			},
-		})
-		if err != nil {
-			app.log.Error(err).Msg("gRPC UpdateServerOnlineStatus")
-		}
-
-		log.Info().Str("alias", actx.alias).Str("userAddress", actx.userAddr).Str("hostID", actx.hostID).Str("userID", actx.userID).Str("UUID", actx.sessionID).Msg("Open virtual connection")
-
-		sessionConfigs = append([]sessionConfig{{
-			Addr:         actx.hostAddr,
-			ClientConfig: clientConfig,
-			AccountID:    host.AccountId,
-			ClientIP:     actx.userAddr,
-			SessionID:    actx.sessionID,
-			Channel:      ch,
-		}}, sessionConfigs...)
-
-		go func() {
-			err = multiChannelHandler(srv, conn, newChan, ctx, sessionConfigs)
-			if err != nil {
-				app.log.Error(err).Msg("Multi ChannelHandler error")
-				_, err := rClientS.UpdateScheme(_ctx, &schemepb.UpdateScheme_Request{
-					SchemeId: host.SchemeId,
-					Setting: &schemepb.UpdateScheme_Request_Active{
-						Active: false,
-					},
-				})
-				if err != nil {
-					app.log.Error(err).Msg("gRPC UpdateServerOnlineStatus")
-				}
-
-				conn.Close()
-			}
-
-			data, err = rClientS.AddSession(_ctx, &schemepb.AddSession_Request{
-				AccountId: host.AccountId,
-				Status:    false,
-				Message:   actx.message,
-			})
-			if err != nil {
-				app.log.Error(err).Msg("gRPC ServerSessionAdd")
-			}
-			actx.sessionID = data.GetSessionId()
-
-			app.broker.AccountStatus(host.AccountId, "offline")
-
-			_, err := rClientA.UpdateStatus(_ctx, &profilemessage.UpdateStatus_Request{
-				AccountId: host.AccountId,
-				Status:    1, // offline
-			})
-			if err != nil {
-				app.log.Error(err).Msg("gRPC UpdateAccountStatus")
-			}
-
-			actx.message = "Host unavailable"
-			app.log.Info().Str("alias", actx.alias).Str("userAddress", actx.userAddr).Str("hostID", actx.hostID).Str("userID", actx.userID).Str("UUID", actx.sessionID).Msg("Closed virtual connection")
-		}()
-
-	// case "telnet":
-	//	tmpSrv := ssh.Server{
-	//		Handler: telnetHandler(host),
-	//	}
-	//	defaultChannelHandler(&tmpSrv, conn, newChan, ctx)
-	default:
-		actx.message = "unknown bastion scheme"
-		sendMessageInChannel(ch.lch, actx.message+"\n")
-	}
+		actx.message = "Host unavailable"
+		log.Info().
+			Str("alias", actx.alias).
+			Str("clientIP", actx.clientIP).
+			Str("schemeID", actx.schemeID).
+			Str("userID", actx.userID).
+			Msg("Closed virtual connection")
+	}()
 }
 
 func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {
@@ -194,40 +117,40 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	rClient := schemepb.NewSchemeHandlersClient(app.grpc)
 
 	switch actx.userType() {
-	// case config.UserTypeHealthcheck:
 	case schemepb.Type_healthcheck:
 		sendMessageInChannel(ch, "OK\n")
 		_ = ch.Close()
 		return
 
-	// TODO: Add disposable invites
-	// case config.UserTypeInvite:
 	case schemepb.Type_invite:
-
-		app.log.Info().Str("invite", actx.message).Str("userAddress", actx.userAddr).Msg(trace.MsgTokenIsInvalid)
+		app.log.Info().Str("invite", actx.message).Str("clientIP", actx.clientIP).Msg(trace.MsgTokenIsInvalid)
 		sendMessageInChannel(ch, fmt.Sprintf("Invite %s is invalid.\n", actx.message))
 		_ = ch.Close()
 		return
 
-	// case config.UserTypeShell:
 	case schemepb.Type_shell:
 		if actx.userID == "" {
-			app.log.Info().Str("alias", actx.alias).Str("userAddress", actx.userAddr).Msg(trace.MsgAccessIsDeniedUser)
+			app.log.Info().Str("alias", actx.alias).Str("clientIP", actx.clientIP).Msg(trace.MsgAccessIsDeniedUser)
 			actx.message = "Firewall denied access"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()
 			return
 		}
 
+		actx.sessionID = uuid.New()
+
 		sendMessageInChannel(ch, " _    _  ____  ____  ____  _____  ____ \n( \\/\\/ )( ___)(  _ \\(  _ \\(  _  )(_  _)\n \033[0;31m)    (  )__)  )   / ) _ < )(_)(   )(\033[0m  \n(__/\\__)(____)(_)\\_)(____/(_____) (__) \n"+version.Version()+", "+version.Commit()+", "+version.BuildDate()+"\n\n")
 
-		serverList, _ := rClient.SchemesByLogin(_ctx, &schemepb.SchemesByLogin_Request{
-			Login: actx.alias,
+		schemeList, err := rClient.SystemSchemesByAlias(_ctx, &schemepb.SystemSchemesByAlias_Request{
+			Alias: actx.alias,
 		})
-		actx.serverList = serverList.GetServers()
+		if err != nil {
+			app.log.Error(err).Str("alias", actx.alias).Msg("Schemes not found")
+		}
+		actx.serverList = schemeList.GetSchemes()
 
 		if len(actx.serverList) > 0 {
-			app.log.Info().Str("alias", actx.alias).Str("userAddress", actx.userAddr).Str("userID", actx.userID).Str("UUID", actx.sessionID).Msg("Open shellconsole connection")
+			app.log.Info().Str("alias", actx.alias).Str("clientIP", actx.clientIP).Str("userID", actx.userID).Msg("Open shell console connection")
 
 			loginArray := strutil.SplitNTrimmed(actx.alias, "_", 3)
 			status := map[bool]string{
@@ -235,70 +158,77 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 				true:  "\x1B[01;32m•\x1B[0m",
 			}
 
-			message := "Hello " + loginArray[0] + ", you access to next servers:\n"
+			message := "Hello " + loginArray[0] + ", you access to next schemes:\n"
 			bufMsg := &strings.Builder{}
-			table := tablewriter.NewWriter(bufMsg)
-			table.SetHeader([]string{"⚡", "Name", "Login for direct access", "🚚"})
-			table.SetAutoWrapText(false)
+			table := tablewriter.NewTable(bufMsg,
+				tablewriter.WithHeader([]string{"⚡", "Name", "Login for direct access", "🚚"}),
+				tablewriter.WithRowAutoWrap(tw.WrapNone),
+			)
 
 			for i := 0; i < len(actx.serverList); i++ {
-				server := actx.serverList[int32(i)]
-				table.Append([]string{fmt.Sprintf("%v %v", status[server.Online], (i + 1)), server.Title, fmt.Sprintf("%v_%v_%v", loginArray[0], server.ProjectLogin, server.Token), server.GetScheme().String()})
+				scheme := actx.serverList[i]
+				table.Append([]string{
+					fmt.Sprintf("%v %v", status[scheme.GetOnline()], i+1),
+					scheme.GetTitle(),
+					scheme.GetAlias(),
+					scheme.GetSchemeType().String(),
+				})
 			}
 			table.Render()
 			message += bufMsg.String()
 			sendMessageInChannel(ch, message)
 
-			term := term.NewTerminal(ch, "Select server or push enter to exit > ")
-			selectedServer, _ := term.ReadLine()
-			selectServer := strutil.ToInt32(selectedServer)
+			term := term.NewTerminal(ch, "Select scheme or push enter to exit > ")
+			selected, _ := term.ReadLine()
+			selectedIndex := strutil.ToInt32(selected)
 
 			switch {
-			case selectServer <= int32(len(actx.serverList)) && selectServer > 0:
-				selectServer--
-				actx.hostAddr = fmt.Sprintf("%v:%d", actx.serverList[selectServer].Address, actx.serverList[selectServer].Port)
-				actx.hostID = actx.serverList[selectServer].SchemeId
-				sendMessageInChannel(ch, "Connect to server-name: "+actx.serverList[selectServer].Title+"\n")
-				connectToHost(actx.serverList[selectServer], actx, ctx, newChan, srv, conn, channelTunnel{ch, req, err})
+			case selectedIndex <= int32(len(actx.serverList)) && selectedIndex > 0:
+				selectedIndex--
+				scheme := actx.serverList[selectedIndex]
+				actx.schemeID = scheme.GetSchemeId()
+				sendMessageInChannel(ch, "Connect to scheme-name: "+scheme.GetTitle()+"\n")
+				connectToHost(scheme, actx, ctx, newChan, srv, conn, channelTunnel{ch, req, err})
 
-			case selectServer > int32(len(actx.serverList)):
-				sendMessageInChannel(ch, "\nServer was not found\nBye-Bye! :(\n\n")
+			case selectedIndex > int32(len(actx.serverList)):
+				sendMessageInChannel(ch, "\nScheme was not found\nBye-Bye! :(\n\n")
 				_ = ch.Close()
 
 			default:
-				sendMessageInChannel(ch, "\nYou have not selected server\nBye-Bye! :(\n\n")
+				sendMessageInChannel(ch, "\nYou have not selected scheme\nBye-Bye! :(\n\n")
 				_ = ch.Close()
 			}
 		} else {
-			sendMessageInChannel(ch, "\nYou don't have active servers\nBye-Bye! :(\n\n")
+			sendMessageInChannel(ch, "\nYou don't have active schemes\nBye-Bye! :(\n\n")
 			_ = ch.Close()
 		}
 		return
 
 	case schemepb.Type_bastion:
 		if actx.userID == "" {
-			app.log.Info().Str("login", actx.alias).Str("userAddress", actx.userAddr).Msg("Permission denied")
+			app.log.Info().Str("alias", actx.alias).Str("clientIP", actx.clientIP).Msg("Permission denied")
 			actx.message = "Permission denied"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()
 			return
 		}
 
-		getHosts, err := rClient.ServersByLogin(_ctx, &schemepb.ServersByLogin_Request{
-			Login: actx.alias,
+		actx.sessionID = uuid.New()
+
+		getSchemes, err := rClient.SystemSchemesByAlias(_ctx, &schemepb.SystemSchemesByAlias_Request{
+			Alias: actx.alias,
 		})
 		if err != nil {
-			app.log.Error(err).Str("alias", actx.alias).Str("userAddress", actx.userAddr).Msg("Host not found (channel)")
-			actx.message = "Host not found"
+			app.log.Error(err).Str("alias", actx.alias).Str("clientIP", actx.clientIP).Msg("Scheme not found (channel)")
+			actx.message = "Scheme not found"
 			sendMessageInChannel(ch, actx.message+"\n")
 			_ = ch.Close()
 			return
 		}
-		host := getHosts.Servers[0]
+		scheme := getSchemes.GetSchemes()[0]
 
-		actx.hostAddr = fmt.Sprintf("%v:%d", host.Address, host.Port)
-		actx.hostID = host.ServerId
-		connectToHost(host, actx, ctx, newChan, srv, conn, channelTunnel{ch, req, err})
+		actx.schemeID = scheme.GetSchemeId()
+		connectToHost(scheme, actx, ctx, newChan, srv, conn, channelTunnel{ch, req, err})
 		return
 
 	default:
@@ -315,7 +245,7 @@ func multiChannelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.
 	case "session":
 		lch, lreqs, err := configs[0].Channel.lch, configs[0].Channel.lreqs, configs[0].Channel.err
 		if err != nil {
-			return errors.New("Duplicate response received for channel")
+			return errors.New("duplicate response received for channel")
 		}
 
 		for _, config := range configs {
@@ -350,7 +280,7 @@ func multiChannelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.
 	case "direct-tcpip":
 		lch, lreqs, err := configs[0].Channel.lch, configs[0].Channel.lreqs, configs[0].Channel.err
 		if err != nil {
-			return errors.New("Duplicate response received for channel")
+			return errors.New("duplicate response received for channel")
 		}
 
 		for _, config := range configs {
@@ -376,10 +306,6 @@ func multiChannelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.
 			lastClient = client
 		}
 
-		d := auditor.ForwardData{}
-		if err := gossh.Unmarshal(newChan.ExtraData(), &d); err != nil {
-			return err
-		}
 		rch, rreqs, err := lastClient.OpenChannel("direct-tcpip", newChan.ExtraData())
 		if err != nil {
 			return err
@@ -410,14 +336,18 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 	}
 
 	recordCount := internal.GetInt32("SSHSERVER_RECORD_COUNT", 50)
-	wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, recordCount)
-	auditID := wrappedlch.AuditID
-	defer wrappedlch.Close()
+	auditID := ""
+	var logChannel io.Writer = lch
+	if wrapped := auditor.NewLogchannel(newAudit, lch, app.grpc, recordCount); wrapped != nil {
+		auditID = wrapped.AuditID
+		logChannel = wrapped
+		defer wrapped.Close()
+	}
 
 	channeltype := newChan.ChannelType()
 	if channeltype == "session" {
 		go func(quit chan string) {
-			_, _ = io.Copy(wrappedlch, rch)
+			_, _ = io.Copy(logChannel, rch)
 			quit <- "rch"
 		}(quit)
 
@@ -451,17 +381,18 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := auditmessage.NewAuditHandlersClient(app.grpc)
+	rClient := auditrpc.NewAuditHandlersClient(app.grpc)
 
 	go func(quit chan string) {
 		for req := range lreqs {
 			b, err := rch.SendRequest(req.Type, req.WantReply, req.Payload)
 			if req.Type == "exec" {
-				recordCount := internal.GetInt32("SSHSERVER_RECORD_COUNT", 50)
-				wrappedlch := auditor.NewLogchannel(newAudit, lch, app.grpc, recordCount)
-				command := append(req.Payload, []byte("\n")...)
-				if _, err := wrappedlch.Write(command); err != nil {
-					app.log.Error(err).Msg("failed to write log")
+				if wrapped := auditor.NewLogchannel(newAudit, lch, app.grpc, recordCount); wrapped != nil {
+					command := append(req.Payload, []byte("\n")...)
+					if _, err := wrapped.Write(command); err != nil {
+						app.log.Error(err).Msg("failed to write log")
+					}
+					_ = wrapped.Close()
 				}
 			}
 
@@ -521,11 +452,6 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 				rchClosed = true
 			}
 
-			// TODO: отладить закрытие, возникает ошибка при обрыве сессии из-за которой не срабатывает нормально конструкция ниже
-			// жёстко закрываем все
-			// rch.Close()
-			// lch.Close()
-
 			if lchEOF && lchClosed && !rchClosed {
 				rch.Close()
 			}
@@ -538,7 +464,6 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 				return nil
 			}
 
-			// TODO: принудительно без ошибок :)
 			return nil
 		}
 	}

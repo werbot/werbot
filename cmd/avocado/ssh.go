@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/werbot/werbot/internal"
+	"github.com/werbot/werbot/internal/core/scheme/proto/access"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/utils/strutil"
@@ -27,13 +27,10 @@ type authContext struct {
 	sessionID       string
 	userID          string
 	alias           string
-	userFingerPrint string
-	hostAddr        string
-	hostID          string
-	userAddr        string
-	aesKey          string // TODO добавить в базу для пользователя уникальный AES ключ по которому будут шифроваться его данные
+	userFingerprint string
+	schemeID        string
+	clientIP        string
 	serverList      []*schemepb.Scheme_Response
-	// serverList      map[int32]*server.Server
 }
 
 func (c authContext) userType() schemepb.Type {
@@ -45,85 +42,106 @@ func (c authContext) userType() schemepb.Type {
 		return schemepb.Type_invite
 	}
 
-	nameArray := strutil.SplitNTrimmed(c.alias, "_", 3)
-	if len(nameArray) == 3 && nameArray[2] != "" {
+	loginArray := strutil.SplitNTrimmed(c.alias, "_", 3)
+	if len(loginArray) == 3 && loginArray[2] != "" {
 		return schemepb.Type_bastion
 	}
 	return schemepb.Type_shell
 }
 
-func bastionClientConfig(ctx ssh.Context, host *schemepb.Scheme_Response) (*gossh.ClientConfig, error) {
-	actx := ctx.Value(authContextKey).(*authContext)
-
-	_ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
+// schemeAccess fetches the scheme connection settings with secrets decrypted.
+func schemeAccess(ctx context.Context, schemeID, clientIP string) (*access.AccessScheme_Server_SSH, error) {
 	rClient := schemepb.NewSchemeHandlersClient(app.grpc)
-	access, _ := rClient.SchemeAccess(_ctx, &schemepb.ServerAccess_Request{
-		ProjectId: host.GetProjectId(),
-		SchemeId:  host.GetSchemeId(),
+	resp, err := rClient.SystemSchemeAccess(ctx, &schemepb.SystemSchemeAccess_Request{
+		SchemeId: schemeID,
+		ClientIp: clientIP,
+		NoGhost:  true,
 	})
-
-	accessDecrypt := &schemepb.SchemeAccess_Response{}
-
-	switch access.GetAccess().(type) {
-	case *schemepb.SchemeAccess_Response_Password:
-		accessDecrypt.Access = &schemepb.SchemeAccess_Response_Password{
-			Password: crypto.TextDecrypt(access.GetPassword(), actx.aesKey),
-		}
-
-	case *schemepb.SchemeAccess_Response_Key:
-		accessDecrypt.Access = &schemepb.SchemeAccess_Response_Key{
-			Key: &schemepb.AccessKey{
-				Private:    crypto.TextDecrypt(access.GetKey().GetPrivate(), actx.aesKey),
-				Passphrase: crypto.TextDecrypt(access.GetKey().GetPassphrase(), actx.aesKey),
-			},
-		}
-	}
-
-	clientConfig, err := clientConfig(host, accessDecrypt, dynamicHostKey(host))
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO Here you can add ACL verification verification for the accessibility of rights
+	serverSSH := resp.GetAccess().GetServerSsh()
+	if serverSSH == nil {
+		return nil, errors.New("scheme is not an SSH server")
+	}
 
-	return clientConfig, nil
+	aesKey := internal.GetString("SECURITY_AES_KEY", "3D6A619811A17396E45D514695DCDA3A")
+	switch auth := serverSSH.GetAccess().(type) {
+	case *access.AccessScheme_Server_SSH_Password:
+		auth.Password.Password = crypto.TextDecrypt(auth.Password.GetPassword(), aesKey)
+		if isMasked(auth.Password.GetPassword()) {
+			return nil, errors.New("scheme password is masked by the server")
+		}
+	case *access.AccessScheme_Server_SSH_Key:
+		auth.Key.GetKey().Private = crypto.TextDecrypt(auth.Key.GetKey().GetPrivate(), aesKey)
+		auth.Key.GetKey().Passphrase = crypto.TextDecrypt(auth.Key.GetKey().GetPassphrase(), aesKey)
+		if isMasked(auth.Key.GetKey().GetPrivate()) {
+			return nil, errors.New("scheme private key is masked by the server")
+		}
+	}
+
+	return serverSSH, nil
 }
 
-func clientConfig(host *schemepb.Scheme_Response, access *schemepb.SchemeAccess_Response, hk gossh.HostKeyCallback) (*gossh.ClientConfig, error) {
-	auth := []gossh.AuthMethod{}
+// isMasked reports whether the server returned the ghoster secret mask instead of a real value.
+func isMasked(secret string) bool {
+	return secret == "***"
+}
 
-	if access.GetKey().GetPrivate() == "" && access.GetPassword() == "" {
-		return nil, errors.New("empty private key and password")
+// session is the resolved target address plus its SSH client config.
+type session struct {
+	Address      string
+	ClientConfig *gossh.ClientConfig
+}
+
+// newSession resolves scheme access, decrypts secrets and builds the SSH client config.
+func newSession(scheme *schemepb.Scheme_Response, actx *authContext, ctx context.Context) (*session, error) {
+	serverSSH, err := schemeAccess(ctx, scheme.GetSchemeId(), actx.clientIP)
+	if err != nil {
+		return nil, err
 	}
 
-	if host.Auth == schemepb.Auth_key && access.GetKey().GetPrivate() != "" {
+	authMethods := []gossh.AuthMethod{}
+	login := ""
+
+	switch auth := serverSSH.GetAccess().(type) {
+	case *access.AccessScheme_Server_SSH_Password:
+		login = auth.Password.GetLogin()
+		if auth.Password.GetPassword() != "" {
+			authMethods = append(authMethods, gossh.Password(auth.Password.GetPassword()))
+		}
+
+	case *access.AccessScheme_Server_SSH_Key:
+		login = auth.Key.GetLogin()
+		key := auth.Key.GetKey()
+		if key.GetPrivate() == "" {
+			break
+		}
+
 		var signer gossh.Signer
-		var err error
-		// If the key has a password, use it
-		if access.GetKey().GetPrivate() != "" {
-			signer, err = gossh.ParsePrivateKeyWithPassphrase([]byte(access.GetKey().GetPrivate()), []byte(access.GetKey().GetPassphrase()))
+		if key.GetPassphrase() != "" {
+			signer, err = gossh.ParsePrivateKeyWithPassphrase([]byte(key.GetPrivate()), []byte(key.GetPassphrase()))
 		} else {
-			signer, err = gossh.ParsePrivateKey([]byte(access.GetKey().GetPrivate()))
+			signer, err = gossh.ParsePrivateKey([]byte(key.GetPrivate()))
 		}
 		if err != nil {
-			return nil, errors.New("unable to parse private key")
+			return nil, fmt.Errorf("parse private key: %w", err)
 		}
-		auth = append(auth, gossh.PublicKeys(signer))
+		authMethods = append(authMethods, gossh.PublicKeys(signer))
 	}
 
-	if host.Auth == schemepb.Auth_password && access.GetPassword() != "" {
-		auth = append(auth, gossh.Password(access.GetPassword()))
-	}
-	if len(auth) == 0 {
-		return nil, fmt.Errorf("no valid authentication method for host %q", host.Title)
+	if len(authMethods) == 0 {
+		return nil, fmt.Errorf("no valid authentication method for scheme %q", scheme.GetTitle())
 	}
 
-	return &gossh.ClientConfig{
-		User:            host.Alias,
-		HostKeyCallback: hk,
-		Auth:            auth,
-		Timeout:         time.Duration(internal.GetInt("SSHSERVER_IDLE_TIMEOUT", 300)) * time.Second,
+	return &session{
+		Address: fmt.Sprintf("%s:%d", serverSSH.GetAddress(), serverSSH.GetPort()),
+		ClientConfig: &gossh.ClientConfig{
+			User:            login,
+			HostKeyCallback: dynamicHostKey(scheme),
+			Auth:            authMethods,
+			Timeout:         time.Duration(internal.GetInt("SSHSERVER_IDLE_TIMEOUT", 300)) * time.Second,
+		},
 	}, nil
 }

@@ -461,9 +461,10 @@ INSERT INTO "event" ("id", "related_id", "prime_section", "section", "type", "se
 
 INSERT INTO "token" ("id", "section", "action", "status", "profile_id", "project_id", "scheme_id", "data", "updated_at", "expired_at") VALUES
 ---- profile
-('3c818d7c-72f3-4518-8eaa-755585192f21', 1, 2, 1, 'b3dc36e2-7f84-414b-b147-7ac850369518', NULL, NULL, '{"name":"Harrison","surname":"Bowling","email":"user1@werbot.net"}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP - INTERVAL '5 hour'), -- invite for create profile, status done (user1)
-('374060a3-6c9c-44b5-9fbd-ce1ea8af6c7b', 1, 4, 2, 'b3dc36e2-7f84-414b-b147-7ac850369518', NULL, NULL, '{}', NULL, CURRENT_TIMESTAMP - INTERVAL '1 hour'), -- invite for remove profile, status sent (user1)
-('55c9f79c-d827-43fc-8ad1-79e396d2432c', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite201","surname":"invite201","email":"invite201@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '4 hour'), -- invite for create profile, status sent
+('3c818d7c-72f3-4518-8eaa-755585192f21', 1, 2, 1, 'b3dc36e2-7f84-414b-b147-7ac850369518', NULL, NULL, '{"name":"Harrison","surname":"Bowling","email":"user1@werbot.net"}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '5 hour'), -- invite for create profile, status done (user1)
+('374060a3-6c9c-44b5-9fbd-ce1ea8af6c7b', 1, 4, 2, 'b3dc36e2-7f84-414b-b147-7ac850369518', NULL, NULL, '{}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 hour'), -- invite for remove profile, status sent (user1)
+('4b1e7c2a-8f63-4bd5-9a1e-2c7d90ab5f31', 1, 4, 2, 'c180ad5c-0c65-4cee-8725-12931cb5abb3', NULL, NULL, '{}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 hour'), -- delete token for user (c180ad5c)
+('55c9f79c-d827-43fc-8ad1-79e396d2432c', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite201","surname":"invite201","email":"invite201@werbot.net"}', NULL, CURRENT_TIMESTAMP + INTERVAL '4 hour'), -- invite for create profile, status sent
 ('1b8bf7fe-d901-4c12-9c6c-e1689e45490f', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite202","surname":"invite202","email":"invite202@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '1 hour'),
 ('07614765-81af-4e29-80e1-d6f01cc1b15a', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite203","surname":"invite203","email":"invite203@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '1 day'),
 ('5241b2ee-0417-4d14-a886-921f8fcda313', 1, 2, 2, NULL, NULL, NULL, '{"name":"invite204","surname":"invite204","email":"invite204@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '5 hour'),
@@ -476,12 +477,12 @@ INSERT INTO "token" ("id", "section", "action", "status", "profile_id", "project
 ('15348c8a-894e-49e6-88a9-79aa058892f3', 2, 3, 2, NULL, 'd958ee44-a960-420e-9bbf-c7a35084c4aa', NULL, '{"name":"user","surname":"user","email":"user@werbot.net"}', NULL, NULL),
 ('3ec414fc-0bbe-44b8-b1d2-ff99171b4963', 2, 3, 2, NULL, 'd958ee44-a960-420e-9bbf-c7a35084c4aa', NULL, '{"name":"invite99","surname":"invite99","email":"invite99@werbot.net"}', NULL, NULL),
 ----
-('b5b128d7-ff0c-479c-8216-14eedf9265ad', 2, 7, 2, NULL, 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', NULL, '{"name":"user","surname":"user","email":"user@werbot.net"}', NULL, CURRENT_TIMESTAMP - INTERVAL '4 hour'), -- send to registration new profile
+('b5b128d7-ff0c-479c-8216-14eedf9265ad', 2, 7, 2, NULL, 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', NULL, '{"name":"user","surname":"user","email":"user@werbot.net"}', NULL, CURRENT_TIMESTAMP + INTERVAL '4 hour'), -- send to registration new profile
 ('958301b8-1ed0-4977-9a2a-90629e8a18b9', 2, 7, 1, '4808e401-826e-453d-b5e6-6a618bb2fa90', 'fe52ca9b-5599-4bb6-818b-1896d56e9aa2', NULL, '{"name":"test3","surname":"test3","email":"test3@werbot.net"}', NULL, NULL), -- invite for add to project (create member), status done
 ----
 ('37aec639-dd1c-4c73-a8e7-add2016050f7', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"user","surname":"user","email":"user@werbot.net"}', CURRENT_TIMESTAMP, NULL),
 ('a60b7092-660e-4d05-a5d2-7d9b23b276b1', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"test3","surname":"test3","email":"user3@werbot.net"}', NULL, NULL),
-('04439feb-f981-4581-8f2c-96f21418f258', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite100","surname":"invite100","email":"invite100@werbot.net"}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP - INTERVAL '4 hour'),
+('04439feb-f981-4581-8f2c-96f21418f258', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite100","surname":"invite100","email":"invite100@werbot.net"}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '4 hour'),
 ('4f405197-f312-4acb-a333-3781b6d23f9f', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite101","surname":"invite101","email":"invite101@werbot.net"}', NULL, NULL),
 ('b49b830b-d0be-4757-a5ce-ec2677735cc5', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite102","surname":"invite102","email":"invite102@werbot.net"}', NULL, NULL),
 ('b44dc303-5857-4bf6-af24-db64f3be1540', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite103","surname":"invite103","email":"invite103@werbot.net"}', NULL, NULL),
@@ -494,7 +495,7 @@ INSERT INTO "token" ("id", "section", "action", "status", "profile_id", "project
 ('506732f3-8477-4963-af08-93e5071b381c', 2, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NUll, '{"name":"invite110","surname":"invite110","email":"invite110@werbot.net"}', NULL, NULL),
 ---- scheme
 ('83753ac4-150f-490e-898c-99b492738f99', 3, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0918e4c3-7f61-4c4e-99ed-800c9af0d265', '{"email":"invite111@werbot.net", "scheme_type":103}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),
-('0a7b333e-4c98-4edd-9e34-a4e734a5926e', 3, 3, 1, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0c3a8869-6fc0-4666-bf60-15475473392a', '{"email":"invite109@werbot.net", "scheme_type":103}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),
+('0a7b333e-4c98-4edd-9e34-a4e734a5926e', 3, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', '0c3a8869-6fc0-4666-bf60-15475473392a', '{"email":"invite109@werbot.net", "scheme_type":103}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),
 ('d32e0d98-c33f-4681-bec5-6495e4533eda', 3, 3, 2, NULL, '2bef1080-cd6e-49e5-8042-1224cf6a3da9', NULL, '{"email":"invite111@werbot.net", "scheme_type":103}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),
 ('0e0a602e-818a-46ec-87bd-4825ccbfca5c', 3, 8, 2, 'c180ad5c-0c65-4cee-8725-12931cb5abb3', NULL, '0918e4c3-7f61-4c4e-99ed-800c9af0d265', '{"email":"user@werbot.net"}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),
 ('cde3dd1e-1643-4561-8e5b-e4684c05f595', 3, 8, 2, NULL, NULL, '0918e4c3-7f61-4c4e-99ed-800c9af0d265', '{"email":"invite110@werbot.net"}', NULL, CURRENT_TIMESTAMP + INTERVAL '1 month'),

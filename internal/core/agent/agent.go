@@ -8,12 +8,15 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	agentmessage "github.com/werbot/werbot/internal/core/agent/proto/message"
 	"github.com/werbot/werbot/internal/core/scheme"
 	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
 	schemeauthpb "github.com/werbot/werbot/internal/core/scheme/proto/auth"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
+	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
+	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -27,20 +30,24 @@ func (h *Handler) Auth(ctx context.Context, in *agentmessage.Auth_Request) (*age
 
 	response := &agentmessage.Auth_Response{}
 
+	// Agent tokens live in the unified "token" table (section = agent) since
+	// the dedicated "agent_token" table was removed.
+	var data []byte
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
-      "agent_token"."scheme_type",
+      "token"."data",
       "project_api"."api_key",
       "project_api"."api_secret"
     FROM
-      "agent_token"
-      INNER JOIN "project_api" ON "agent_token"."project_id" = "project_api"."project_id"
+      "token"
+      INNER JOIN "project_api" ON "token"."project_id" = "project_api"."project_id"
     WHERE
-      "agent_token"."token" = $1
-      AND "agent_token"."active" = TRUE
+      "token"."id" = $1
+      AND "token"."section" = $2
+      AND "token"."status" = $3
       AND "project_api"."active" = TRUE
-  `, in.GetToken()).Scan(
-		&response.SchemeType,
+  `, in.GetToken(), tokenenum.Section_agent, tokenenum.Status_sent).Scan(
+		&data,
 		&response.ApiKey,
 		&response.ApiSecret,
 	)
@@ -51,6 +58,12 @@ func (h *Handler) Auth(ctx context.Context, in *agentmessage.Auth_Request) (*age
 		}
 		return nil, trace.Error(err, log, "")
 	}
+
+	meta := &tokenmessage.MetaDataAgent{}
+	if err := protojson.Unmarshal(data, meta); err != nil {
+		return nil, trace.Error(err, log, trace.MsgStructureIsBroken)
+	}
+	response.SchemeType = meta.GetSchemeType()
 
 	return response, nil
 }
@@ -64,21 +77,23 @@ func (h *Handler) AddScheme(ctx context.Context, in *agentmessage.AddScheme_Requ
 	// core info about scheme described in token
 	var ownerID, projectID string
 	var schemeType schemeaccesspb.SchemeType
+	var data []byte
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
       "project"."owner_id",
-      "agent_token"."project_id",
-      "agent_token"."scheme_type"
+      "token"."project_id",
+      "token"."data"
     FROM
-      "agent_token"
-      INNER JOIN "project" ON "agent_token"."project_id" = "project"."id"
+      "token"
+      INNER JOIN "project" ON "token"."project_id" = "project"."id"
     WHERE
-      "token" = $1
-      AND "active" = TRUE
-  `, in.GetToken()).Scan(
+      "token"."id" = $1
+      AND "token"."section" = $2
+      AND "token"."status" = $3
+  `, in.GetToken(), tokenenum.Section_agent, tokenenum.Status_sent).Scan(
 		&ownerID,
 		&projectID,
-		&schemeType,
+		&data,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -87,6 +102,12 @@ func (h *Handler) AddScheme(ctx context.Context, in *agentmessage.AddScheme_Requ
 		}
 		return nil, trace.Error(err, log, "")
 	}
+
+	meta := &tokenmessage.MetaDataAgent{}
+	if err := protojson.Unmarshal(data, meta); err != nil {
+		return nil, trace.Error(err, log, trace.MsgStructureIsBroken)
+	}
+	schemeType = meta.GetSchemeType()
 
 	// define access scheme
 	// now - only SSH access :)
@@ -149,12 +170,12 @@ func (h *Handler) AddScheme(ctx context.Context, in *agentmessage.AddScheme_Requ
 		return nil, trace.Error(err, log, "")
 	}
 
-	// block token
+	// mark the token as used
 	_, err = h.DB.Conn.ExecContext(ctx, `
-    UPDATE "agent_token"
-    SET "active" = FALSE
-    WHERE "token" = $1 AND "one_time" = TRUE
-  `, in.GetToken())
+    UPDATE "token"
+    SET "status" = $2
+    WHERE "id" = $1
+  `, in.GetToken(), tokenenum.Status_used)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}

@@ -333,6 +333,10 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilemessage.DeletePr
 			&email,
 		)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				errGRPC := status.Error(codes.NotFound, trace.MsgProfileNotFound)
+				return nil, trace.Error(errGRPC, log, nil)
+			}
 			return nil, trace.Error(err, log, nil)
 		}
 
@@ -371,14 +375,30 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilemessage.DeletePr
 		}
 
 	case *profilemessage.DeleteProfile_Request_Token: // step 2
-		// Check token via token package
+		// Only a regular profile can be deleted. Check it before the token so
+		// an undeletable profile reports NotFound instead of a token error.
+		var deletable bool
+		err := h.DB.Conn.QueryRowContext(ctx, `
+      SELECT EXISTS(SELECT 1 FROM "profile" WHERE "id" = $1 AND "role" = 1)
+    `, in.GetProfileId()).Scan(&deletable)
+		if err != nil {
+			return nil, trace.Error(err, log, nil)
+		}
+		if !deletable {
+			errGRPC := status.Error(codes.NotFound, trace.MsgProfileNotFound)
+			return nil, trace.Error(errGRPC, log, nil)
+		}
+
+		// Check token via token package. IsAdmin must be true here: profile_id
+		// is a ghoster secret, so a non-admin lookup clears it and the ownership
+		// check below always fails.
 		tokenHandler := token.Handler{DB: h.DB, Worker: h.Worker}
 		tokenData, err := tokenHandler.Token(ctx, &tokenmessage.Token_Request{
-			IsAdmin: false,
+			IsAdmin: true,
 			Token:   in.GetToken(),
 		})
 		if err != nil {
-			return nil, trace.Error(status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid), log, nil)
+			return nil, trace.Error(status.Error(codes.NotFound, trace.MsgNotFound), log, nil)
 		}
 
 		// Verify token is for delete profile and has correct status
@@ -401,6 +421,10 @@ func (h *Handler) DeleteProfile(ctx context.Context, in *profilemessage.DeletePr
       WHERE "id" = $1 AND "role" = 1
     `, in.GetProfileId()).Scan(&alias, &email)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				errGRPC := status.Error(codes.NotFound, trace.MsgProfileNotFound)
+				return nil, trace.Error(errGRPC, log, nil)
+			}
 			return nil, trace.Error(err, log, nil)
 		}
 

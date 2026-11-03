@@ -8,7 +8,8 @@ import (
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc"
 
-	auditpb "github.com/werbot/werbot/internal/core/audit/proto/audit"
+	auditmessage "github.com/werbot/werbot/internal/core/audit/proto/message"
+	auditrpc "github.com/werbot/werbot/internal/core/audit/proto/rpc"
 	"github.com/werbot/werbot/pkg/logger"
 )
 
@@ -21,7 +22,7 @@ type LogChannel struct {
 	ClientIP    string
 	Channel     ssh.Channel
 	FramesCount int32
-	Frames      []*auditpb.Record
+	Frames      []*auditmessage.Record
 	fullTime    time.Time
 
 	grpcSession *grpc.ClientConn
@@ -29,12 +30,12 @@ type LogChannel struct {
 }
 
 // NewLogchannel is ...
-func NewLogchannel(account *auditpb.AddAudit_Request, channel ssh.Channel, grpcSession *grpc.ClientConn, recordCount int32) *LogChannel {
+func NewLogchannel(account *auditmessage.AddAudit_Request, channel ssh.Channel, grpcSession *grpc.ClientConn, recordCount int32) *LogChannel {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := auditpb.NewAuditHandlersClient(grpcSession)
-	auditData, err := rClient.AddAudit(ctx, &auditpb.AddAudit_Request{
+	rClient := auditrpc.NewAuditHandlersClient(grpcSession)
+	auditData, err := rClient.AddAudit(ctx, &auditmessage.AddAudit_Request{
 		AccountId: account.AccountId,
 		Version:   2,
 		ClientIp:  account.ClientIp,
@@ -64,7 +65,7 @@ func NewLogchannel(account *auditpb.AddAudit_Request, channel ssh.Channel, grpcS
 
 // Write is ...
 func (l *LogChannel) Write(data []byte) (int, error) {
-	record := &auditpb.Record{}                                   // frame
+	record := &auditmessage.Record{}                              // frame
 	record.Duration = fmt.Sprintf("%.6f", l.Duration().Seconds()) // Time
 	record.Type = "o"                                             // Type
 	record.Screen = string(data)                                  // Data
@@ -75,12 +76,12 @@ func (l *LogChannel) Write(data []byte) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := auditpb.NewAuditHandlersClient(l.grpcSession)
+	rClient := auditrpc.NewAuditHandlersClient(l.grpcSession)
 
 	if l.FramesCount == l.recordCount {
 		// TODO: переименовать названия на новые frame, Time, Type, Data
 		// go func() {
-		_, err := rClient.AddRecord(ctx, &auditpb.AddRecord_Request{
+		_, err := rClient.AddRecord(ctx, &auditmessage.AddRecord_Request{
 			AuditId: l.AuditID,
 			Records: l.Frames,
 		})
@@ -105,10 +106,10 @@ func (l *LogChannel) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rClient := auditpb.NewAuditHandlersClient(l.grpcSession)
+	rClient := auditrpc.NewAuditHandlersClient(l.grpcSession)
 
 	if l.FramesCount > 0 {
-		_, err := rClient.AddRecord(ctx, &auditpb.AddRecord_Request{
+		_, err := rClient.AddRecord(ctx, &auditmessage.AddRecord_Request{
 			AuditId: l.AuditID,
 			Records: l.Frames,
 		})
@@ -119,7 +120,7 @@ func (l *LogChannel) Close() error {
 		l.FramesCount = 0
 	}
 
-	_, err := rClient.UpdateAudit(ctx, &auditpb.UpdateAudit_Request{
+	_, err := rClient.UpdateAudit(ctx, &auditmessage.UpdateAudit_Request{
 		AuditId:  l.AuditID,
 		Duration: fmt.Sprintf("%.6f", l.Duration().Seconds()),
 	})

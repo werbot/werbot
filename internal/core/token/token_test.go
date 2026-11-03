@@ -245,8 +245,7 @@ func Test_DeleteToken(t *testing.T) {
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
 				Message: map[string]any{
-					"owner_id": "value is required",
-					"token":    "value is required",
+					"token": "value is required",
 				},
 			},
 		},
@@ -258,8 +257,7 @@ func Test_DeleteToken(t *testing.T) {
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,
 				Message: map[string]any{
-					"owner_id": "value is required",
-					"token":    "value must be a valid UUID",
+					"token": "value must be a valid UUID",
 				},
 			},
 		},
