@@ -1,0 +1,4 @@
+FROM scratch
+ARG TARGETPLATFORM
+ENTRYPOINT ["/buffet"]
+COPY $TARGETPLATFORM/werbot_buffet /buffet

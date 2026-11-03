@@ -1,3 +1,5 @@
+version: 2
+
 env:
   - CGO_ENABLED=0
 
@@ -6,153 +8,111 @@ before:
     - go mod download
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 builds:
-  - main: ./cmd/avocado
+  - &go-build
     id: avocado
-    binary: werbot_avocado_{{- title .Os }}_amd64
+    main: ./cmd/avocado
+    binary: werbot_avocado
     ldflags:
       - -s -w
-      - -X github.com/werbot/werbot/internal/version/version={{.Version}}
-      - -X github.com/werbot/werbot/internal/version/gitCommit={{.ShortCommit}}
-      - -X github.com/werbot/werbot/internal/version/buildDate={{.Date}}
+      - -X github.com/werbot/werbot/internal/version.version={{ .Version }}
+      - -X github.com/werbot/werbot/internal/version.gitCommit={{ .ShortCommit }}
+      - -X github.com/werbot/werbot/internal/version.buildDate={{ .Date }}
     goos: [linux]
-    goarch: [amd64]
-    no_unique_dist_dir: true
-  - main: ./cmd/buffet
+    goarch: [amd64, arm64]
+  - <<: *go-build
     id: buffet
-    binary: werbot_buffet_{{- title .Os }}_amd64
-    ldflags:
-      - -s -w
-      - -X github.com/werbot/werbot/internal/version/version={{.Version}}
-      - -X github.com/werbot/werbot/internal/version/gitCommit={{.ShortCommit}}
-      - -X github.com/werbot/werbot/internal/version/buildDate={{.Date}}
-    goos: [linux]
-    goarch: [amd64]
-    no_unique_dist_dir: true
-  - main: ./cmd/ghost
+    main: ./cmd/buffet
+    binary: werbot_buffet
+  - <<: *go-build
     id: ghost
-    binary: werbot_ghost_{{- title .Os }}_amd64
-    ldflags:
-      - -s -w
-      - -X github.com/werbot/werbot/internal/version/version={{.Version}}
-      - -X github.com/werbot/werbot/internal/version/gitCommit={{.ShortCommit}}
-      - -X github.com/werbot/werbot/internal/version/buildDate={{.Date}}
-    goos: [linux]
-    goarch: [amd64]
-    no_unique_dist_dir: true
-  - main: ./cmd/taco
+    main: ./cmd/ghost
+    binary: werbot_ghost
+  - <<: *go-build
     id: taco
-    binary: werbot_taco_{{- title .Os }}_amd64
-    ldflags:
-      - -s -w
-      - -X github.com/werbot/werbot/internal/version/version.version={{.Version}}
-      - -X github.com/werbot/werbot/internal/version/version.gitCommit={{.ShortCommit}}
-      - -X github.com/werbot/werbot/internal/version/version.buildDate={{.Date}}
-    goos: [linux]
-    goarch: [amd64]
-    no_unique_dist_dir: true
+    main: ./cmd/taco
+    binary: werbot_taco
 
 archives:
-  - id: avocado
-    builds: [avocado]
-    name_template: "{{ .Binary }}"
-    format: binary
-  - id: buffet
-    builds: [buffet]
-    name_template: "{{ .Binary }}"
-    format: binary
-  - id: ghost
-    builds: [ghost]
-    name_template: "{{ .Binary }}"
-    format: binary
-  - id: taco
-    builds: [taco]
-    name_template: "{{ .Binary }}"
-    format: binary
+  - ids: [avocado, buffet, ghost, taco]
+    formats: [binary]
+    name_template: "{{ .Binary }}_{{ title .Os }}_{{ .Arch }}"
 
-dockers:
-  - ids: [avocado]
-    dockerfile: .goreleaser/Dockerfile.avocado
-    image_templates:
-      - "ghcr.io/werbot/avocado:latest"
-      - "ghcr.io/werbot/avocado:{{ .Tag }}"
-    build_flag_templates:
-      - --pull
-      - --label=org.opencontainers.image.created={{.Date}}
-      - --label=org.opencontainers.image.revision={{.ShortCommit}}
-      - --label=org.opencontainers.image.version={{.Version}}
-      - --label=org.opencontainers.image.title=avocado
-      - --label=org.opencontainers.image.description=🥑 avocado - worker server
-      - --label=org.opencontainers.image.vendor=Werbot, Inc.
-      - --label=org.opencontainers.image.authors=info@werbot.com
-      - --label=org.opencontainers.image.licenses=Business Source License 1.1
-      - --label=org.opencontainers.image.url={{.GitURL}}
-      - --label=org.opencontainers.image.documentation={{.GitURL}}
-      - --label=org.opencontainers.image.source={{replace .GitURL ".git" "" }}
-  - ids: [buffet]
-    dockerfile: .goreleaser/Dockerfile.buffet
-    image_templates:
-      - "ghcr.io/werbot/buffet:latest"
-      - "ghcr.io/werbot/buffet:{{ .Tag }}"
-    build_flag_templates:
-      - --pull
-      - --label=org.opencontainers.image.created={{.Date}}
-      - --label=org.opencontainers.image.revision={{.ShortCommit}}
-      - --label=org.opencontainers.image.version={{.Version}}
-      - --label=org.opencontainers.image.title=buffet
-      - --label=org.opencontainers.image.description=🍱 buffet - gRPC server
-      - --label=org.opencontainers.image.vendor=Werbot, Inc.
-      - --label=org.opencontainers.image.authors=info@werbot.com
-      - --label=org.opencontainers.image.licenses=Business Source License 1.1
-      - --label=org.opencontainers.image.url={{.GitURL}}
-      - --label=org.opencontainers.image.documentation={{.GitURL}}
-      - --label=org.opencontainers.image.source={{replace .GitURL ".git" "" }}
-  - ids: [ghost]
-    dockerfile: .goreleaser/Dockerfile.ghost
-    image_templates:
-      - "ghcr.io/werbot/ghost:latest"
-      - "ghcr.io/werbot/ghost:{{ .Tag }}"
-    build_flag_templates:
-      - --pull
-      - --label=org.opencontainers.image.created={{.Date}}
-      - --label=org.opencontainers.image.revision={{.ShortCommit}}
-      - --label=org.opencontainers.image.version={{.Version}}
-      - --label=org.opencontainers.image.title=ghost
-      - --label=org.opencontainers.image.description=👻 ghost - master microservice
-      - --label=org.opencontainers.image.vendor=Werbot, Inc.
-      - --label=org.opencontainers.image.authors=info@werbot.com
-      - --label=org.opencontainers.image.licenses=Business Source License 1.1
-      - --label=org.opencontainers.image.url={{.GitURL}}
-      - --label=org.opencontainers.image.documentation={{.GitURL}}
-      - --label=org.opencontainers.image.source={{replace .GitURL ".git" "" }}
-  - ids: [taco]
-    dockerfile: .goreleaser/Dockerfile.taco
-    image_templates:
-      - "ghcr.io/werbot/taco:latest"
-      - "ghcr.io/werbot/taco:{{ .Tag }}"
-    build_flag_templates:
-      - --pull
-      - --label=org.opencontainers.image.created={{.Date}}
-      - --label=org.opencontainers.image.revision={{.ShortCommit}}
-      - --label=org.opencontainers.image.version={{.Version}}
-      - --label=org.opencontainers.image.title=taco
-      - --label=org.opencontainers.image.description=🌮 taco - public API server
-      - --label=org.opencontainers.image.vendor=Werbot, Inc.
-      - --label=org.opencontainers.image.authors=info@werbot.com
-      - --label=org.opencontainers.image.licenses=Business Source License 1.1
-      - --label=org.opencontainers.image.url={{.GitURL}}
-      - --label=org.opencontainers.image.documentation={{.GitURL}}
-      - --label=org.opencontainers.image.source={{replace .GitURL ".git" "" }}
+dockers_v2:
+  - id: avocado
+    ids: [avocado]
+    dockerfile: docker/release/Dockerfile.avocado
+    images: [ghcr.io/werbot/avocado]
+    tags:
+      - "{{ .Tag }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms: [linux/amd64, linux/arm64]
+    sbom: false
+    flags: [--pull]
+    labels: &image-labels
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.revision: "{{ .ShortCommit }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.vendor: Werbot, Inc.
+      org.opencontainers.image.authors: info@werbot.com
+      org.opencontainers.image.licenses: Business Source License 1.1
+      org.opencontainers.image.url: "{{ replace (replace .GitURL \"git@github.com:\" \"https://github.com/\") \".git\" \"\" }}"
+      org.opencontainers.image.documentation: "{{ replace (replace .GitURL \"git@github.com:\" \"https://github.com/\") \".git\" \"\" }}"
+      org.opencontainers.image.source: "{{ replace (replace .GitURL \"git@github.com:\" \"https://github.com/\") \".git\" \"\" }}"
+      org.opencontainers.image.title: avocado
+      org.opencontainers.image.description: "🥑 avocado - worker server"
+  - id: buffet
+    ids: [buffet]
+    dockerfile: docker/release/Dockerfile.buffet
+    images: [ghcr.io/werbot/buffet]
+    tags:
+      - "{{ .Tag }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms: [linux/amd64, linux/arm64]
+    sbom: false
+    flags: [--pull]
+    labels:
+      <<: *image-labels
+      org.opencontainers.image.title: buffet
+      org.opencontainers.image.description: "🍱 buffet - gRPC server"
+  - id: ghost
+    ids: [ghost]
+    dockerfile: docker/release/Dockerfile.ghost
+    images: [ghcr.io/werbot/ghost]
+    tags:
+      - "{{ .Tag }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms: [linux/amd64, linux/arm64]
+    sbom: false
+    flags: [--pull]
     extra_files:
-      - cmd/taco/templates
+      - cmd/ghost/templates
+    labels:
+      <<: *image-labels
+      org.opencontainers.image.title: ghost
+      org.opencontainers.image.description: "👻 ghost - master microservice"
+  - id: taco
+    ids: [taco]
+    dockerfile: docker/release/Dockerfile.taco
+    images: [ghcr.io/werbot/taco]
+    tags:
+      - "{{ .Tag }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms: [linux/amd64, linux/arm64]
+    sbom: false
+    flags: [--pull]
+    labels:
+      <<: *image-labels
+      org.opencontainers.image.title: taco
+      org.opencontainers.image.description: "🌮 taco - public API server"
 
 upx:
   - enabled: true
 
 checksum:
-  name_template: "checksums.txt"
+  name_template: checksums.txt
 
 changelog:
   sort: asc
@@ -163,9 +123,9 @@ changelog:
       - "^.*?test:"
       - "^.*?build(deps):"
       - "^.*?build:"
-      - "README"
-      - "Up"
-      - "merge conflict"
+      - README
+      - Up
+      - merge conflict
       - Bump
       - Small fix
       - Update
@@ -178,20 +138,20 @@ changelog:
     - title: Dependency updates
       regexp: '^.*?(feat|fix)\(deps\)!?:.+$'
       order: 300
-    - title: "New Features"
+    - title: New Features
       regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
       order: 100
-    - title: "Security updates"
+    - title: Security updates
       regexp: '^.*?sec(\([[:word:]]+\))??!?:.+$'
       order: 150
-    - title: "Bug fixes"
+    - title: Bug fixes
       regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
       order: 200
-    - title: "Documentation updates"
-      regexp: ^.*?doc(\([[:word:]]+\))??!?:.+$
+    - title: Documentation updates
+      regexp: '^.*?doc(\([[:word:]]+\))??!?:.+$'
       order: 400
-    - title: "Build process updates"
-      regexp: ^.*?build(\([[:word:]]+\))??!?:.+$
+    - title: Build process updates
+      regexp: '^.*?build(\([[:word:]]+\))??!?:.+$'
       order: 400
     - title: Other work
       order: 9999

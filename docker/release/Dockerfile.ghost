@@ -1,0 +1,9 @@
+FROM alpine:3.22 AS certs
+RUN apk add --no-cache ca-certificates
+
+FROM scratch
+ARG TARGETPLATFORM
+ENTRYPOINT ["/ghost"]
+COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY cmd/ghost/templates/ /templates/
+COPY $TARGETPLATFORM/werbot_ghost /ghost

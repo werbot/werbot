@@ -1,3 +1,0 @@
-FROM scratch
-ENTRYPOINT ["/avocado"]
-COPY werbot_avocado_Linux_amd64 /avocado
