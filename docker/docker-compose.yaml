@@ -78,7 +78,7 @@ services:
     logging: *default-logging
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: service.postgres
     restart: always
     ports:
@@ -92,7 +92,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - ./core/postgres_certificate.key:/var/lib/postgresql/server.crt:ro
       - ./core/postgres_private.key:/var/lib/postgresql/server.key:ro
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     command: -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-werbot}"]
