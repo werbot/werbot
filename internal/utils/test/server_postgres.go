@@ -105,7 +105,7 @@ func (gm *GooseMigrator) Migrate(_ context.Context, db *sql.DB, _ pgtestdb.Confi
 	for i, dir := range gm.dirs {
 		goose.SetTableName(fmt.Sprintf("goose_db_version_%d", i))
 		if err := goose.Up(db, dir); err != nil {
-			gm.test.Errorf("%s: %v", dir, err)
+			return fmt.Errorf("%s: %w", dir, err)
 		}
 	}
 	return nil

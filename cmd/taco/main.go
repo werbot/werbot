@@ -68,11 +68,15 @@ func run() error {
 	})
 
 	app = fiber.New(fiber.Config{
-		// HAProxy forwards the real client address in X-Real-IP; trust it so
-		// c.IP() (and the auth rate limiter key) sees the client, not the proxy.
-		ProxyHeader:           "X-Real-IP",
-		DisableStartupMessage: true,
-		ServerHeader:          fmt.Sprintf("[werbot] %s-%s", "taco", version.Version()),
+		// HAProxy sets X-Real-IP to the real client address. Only trust the
+		// header when the request comes from a trusted proxy, otherwise a
+		// client could spoof its IP and bypass the auth rate limiter.
+		ProxyHeader:             "X-Real-IP",
+		EnableIPValidation:      true,
+		EnableTrustedProxyCheck: true,
+		TrustedProxies:          internal.GetSliceString("TRUSTED_PROXIES", "127.0.0.1,::1,10.16.0.0/16"),
+		DisableStartupMessage:   true,
+		ServerHeader:            fmt.Sprintf("[werbot] %s-%s", "taco", version.Version()),
 	})
 
 	app.Use(
@@ -86,11 +90,14 @@ func run() error {
 		helmet.New(),
 		etag.New(),
 		// Throttle credential endpoints to slow password and token brute force.
+		// Only sign-in and password-reset are limited: refreshing a token and
+		// logging out are normal high-frequency operations behind a shared NAT.
 		limiter.New(limiter.Config{
 			Max:        20,
 			Expiration: time.Minute,
 			Next: func(c *fiber.Ctx) bool {
-				return !strings.HasPrefix(c.Path(), "/auth/")
+				path := c.Path()
+				return path != "/auth/signin" && !strings.HasPrefix(path, "/auth/password_reset")
 			},
 		}),
 	)

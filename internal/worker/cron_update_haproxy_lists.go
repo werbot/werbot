@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/werbot/werbot/internal"
@@ -13,6 +14,7 @@ func cronUpdateHAProxyLists() worker.CronHandler {
 	return func(_ context.Context) error {
 		log.Info().Msg("Download haproxy lists")
 		lists := []string{"blacklist-agent.txt", "cloudflare-ips.txt"}
+		var errs []error
 
 		for _, list := range lists {
 			err := fsutil.Download(
@@ -21,8 +23,9 @@ func cronUpdateHAProxyLists() worker.CronHandler {
 			)
 			if err != nil {
 				log.Error(err).Send()
+				errs = append(errs, err)
 			}
 		}
-		return nil
+		return errors.Join(errs...)
 	}
 }

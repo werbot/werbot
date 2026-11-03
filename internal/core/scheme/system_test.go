@@ -2,6 +2,7 @@ package scheme_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
@@ -129,7 +130,11 @@ func Test_SystemSchemesByAlias(t *testing.T) {
 }
 
 func Test_SystemSchemeAccess(t *testing.T) {
-	t.Setenv("SECURITY_GEOIP2", "../../../docker/core/GeoLite2-Country.mmdb")
+	const geoIPDB = "../../../docker/core/GeoLite2-Country.mmdb"
+	if _, err := os.Stat(geoIPDB); err != nil {
+		t.Skip("GeoLite2-Country.mmdb is not available; skipping country access test")
+	}
+	t.Setenv("SECURITY_GEOIP2", geoIPDB)
 
 	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)

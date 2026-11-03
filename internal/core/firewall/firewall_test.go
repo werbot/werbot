@@ -2,6 +2,7 @@ package firewall_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	firewallmessage "github.com/werbot/werbot/internal/core/firewall/proto/message"
@@ -12,7 +13,11 @@ import (
 
 func Test_IPAccess(t *testing.T) {
 	// t.Setenv("ENV_MODE", "test")
-	t.Setenv("SECURITY_GEOIP2", "../../../docker/core/GeoLite2-Country.mmdb")
+	const geoIPDB = "../../../docker/core/GeoLite2-Country.mmdb"
+	if _, err := os.Stat(geoIPDB); err != nil {
+		t.Skip("GeoLite2-Country.mmdb is not available; skipping country firewall test")
+	}
+	t.Setenv("SECURITY_GEOIP2", geoIPDB)
 
 	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
