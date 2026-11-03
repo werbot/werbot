@@ -73,12 +73,13 @@ func (h *Handler) Token(ctx context.Context, in *tokenmessage.Token_Request) (*t
 	}
 
 	// Validate token expiration: check expired_at if set, otherwise use a 24-hour default.
-	now := time.Now()
+	// Token timestamps are stored without a time zone, so compare in UTC.
+	now := time.Now().UTC()
 	if expiredAt.Valid {
-		if expiredAt.Time.Before(now) {
+		if expiredAt.Time.UTC().Before(now) {
 			return nil, trace.Error(status.Error(codes.InvalidArgument, "token has expired"), log, nil)
 		}
-	} else if createdAt.Valid && createdAt.Time.Add(24*time.Hour).Before(now) {
+	} else if createdAt.Valid && createdAt.Time.UTC().Add(24*time.Hour).Before(now) {
 		return nil, trace.Error(status.Error(codes.InvalidArgument, "token has expired"), log, nil)
 	}
 

@@ -50,6 +50,7 @@ const (
 	ConstUserEmail    = "user@werbot.net"
 	ConstUserPassword = "user@werbot.net"
 	ConstUserID       = "c180ad5c-0c65-4cee-8725-12931cb5abb3"
+	ConstUser1ID      = "b3dc36e2-7f84-414b-b147-7ac850369518"
 
 	// user event section
 	// TODO

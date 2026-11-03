@@ -49,6 +49,7 @@ func (h *Handler) SystemSchemesByAlias(ctx context.Context, in *schemepb.SystemS
     SELECT DISTINCT
       "project_member"."project_id",
       "scheme"."id",
+      "scheme_member"."id" AS "scheme_member_id",
       "scheme"."scheme_type",
       CASE
         WHEN "scheme"."access"->>'key' IS NOT NULL THEN 2
@@ -118,6 +119,7 @@ func (h *Handler) SystemSchemesByAlias(ctx context.Context, in *schemepb.SystemS
 		err := rows.Scan(
 			&scheme.ProjectId,
 			&scheme.SchemeId,
+			&scheme.SchemeMemberId,
 			&scheme.SchemeType,
 			&scheme.AuthMethod,
 			&projectAlias,

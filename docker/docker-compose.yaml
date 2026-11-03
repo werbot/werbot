@@ -139,6 +139,7 @@ services:
     restart: always
     environment:
       SECURITY_AES_KEY: ${SECURITY_AES_KEY:?SECURITY_AES_KEY is required}
+      SECURITY_AES_KEY_LEGACY: ${SECURITY_AES_KEY_LEGACY:-}
       <<: *grpc-environment
     volumes:
       - /etc/localtime:/etc/localtime:ro

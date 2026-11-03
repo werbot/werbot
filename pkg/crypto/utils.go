@@ -44,6 +44,25 @@ func TextEncrypt(cryptoText, aesKey string) (string, error) {
 	return encrypt(cryptoText, aesKey)
 }
 
+// TextDecryptWithFallback decrypts with the current key and, if that fails,
+// retries with an optional legacy key. usedLegacy reports which key worked so
+// callers can warn that the stored secret should be re-encrypted.
+func TextDecryptWithFallback(cryptoText, aesKey, legacyKey string) (plain string, usedLegacy bool, err error) {
+	plain, err = TextDecrypt(cryptoText, aesKey)
+	if err == nil {
+		return plain, false, nil
+	}
+	if legacyKey == "" || legacyKey == aesKey || !CheckAESKey(legacyKey) {
+		return "", false, err
+	}
+
+	plain, legacyErr := TextDecrypt(cryptoText, legacyKey)
+	if legacyErr != nil {
+		return "", false, err
+	}
+	return plain, true, nil
+}
+
 // TextDecrypt decrypts the given text using the provided AES key.
 func TextDecrypt(cryptoText, aesKey string) (string, error) {
 	if cryptoText == "" {

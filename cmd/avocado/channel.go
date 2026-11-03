@@ -34,6 +34,7 @@ type sessionConfig struct {
 
 	Addr      string
 	AccountID string
+	ProfileID string
 	ClientIP  string
 	SessionID string
 }
@@ -62,7 +63,8 @@ func connectToHost(scheme *schemepb.Scheme_Response, actx *authContext, sshCtx s
 	sessionConfigs := []sessionConfig{{
 		Addr:         client.Address,
 		ClientConfig: client.ClientConfig,
-		AccountID:    scheme.GetSchemeId(),
+		AccountID:    scheme.GetSchemeMemberId(),
+		ProfileID:    actx.userID,
 		ClientIP:     actx.clientIP,
 		SessionID:    actx.sessionID,
 		Channel:      ch,
@@ -332,14 +334,17 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 
 	newAudit := &auditmessage.AddAudit_Request{
 		AccountId: sessConfig.AccountID,
+		ProfileId: sessConfig.ProfileID,
 		ClientIp:  sessConfig.ClientIP,
 		Session:   sessConfig.SessionID,
 	}
 
 	recordCount := internal.GetInt32("SSHSERVER_RECORD_COUNT", 50)
 	auditID := ""
+	var auditLog *auditor.LogChannel
 	var logChannel io.Writer = lch
 	if wrapped := auditor.NewLogchannel(newAudit, lch, app.grpc, recordCount); wrapped != nil {
+		auditLog = wrapped
 		auditID = wrapped.AuditID
 		logChannel = wrapped
 		defer wrapped.Close()
@@ -359,16 +364,16 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 	}
 
 	if channeltype == channelTypeDirectTCPIP {
-		d := auditor.ForwardData{}
-		if err := gossh.Unmarshal(newChan.ExtraData(), &d); err != nil {
-			return err
-		}
-
 		// Tunnel payload is a raw byte stream. The recording sink must be
 		// separate from the client channel; writing the log back into lch
 		// echoed target traffic to the client.
-		wrappedlch := auditor.NewLogtunnel(lch, io.Discard, d.SourceHost)
-		wrappedrch := auditor.NewLogtunnel(rch, io.Discard, d.DestinationHost)
+		writer := io.Discard
+		if auditLog != nil {
+			writer = auditLog.RecordWriter()
+		}
+
+		wrappedlch := auditor.NewLogtunnel(lch, writer)
+		wrappedrch := auditor.NewLogtunnel(rch, writer)
 		go func(quit chan string) {
 			_, _ = io.Copy(wrappedlch, rch)
 			quit <- "rch"
@@ -405,10 +410,11 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 				ptyReq, _ := pty.ParsePtyRequest(req.Payload)
 
 				_, err = rClient.UpdateAudit(_ctx, &auditmessage.UpdateAudit_Request{
-					AuditId: auditID,
-					Width:   int32(ptyReq.Width),  //nolint:gosec // G115: pty dimensions come from a 4-byte wire field
-					Height:  int32(ptyReq.Height), //nolint:gosec // G115: pty dimensions come from a 4-byte wire field
-					EnvTerm: ptyReq.EnvTerm,
+					AuditId:   auditID,
+					ProfileId: sessConfig.ProfileID,
+					Width:     int32(ptyReq.Width),  //nolint:gosec // G115: pty dimensions come from a 4-byte wire field
+					Height:    int32(ptyReq.Height), //nolint:gosec // G115: pty dimensions come from a 4-byte wire field
+					EnvTerm:   ptyReq.EnvTerm,
 				})
 				if err != nil {
 					app.log.Error(err).Msg("gRPC AuditUpdate")

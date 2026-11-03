@@ -49,6 +49,22 @@ func (c authContext) userType() schemepb.Type {
 	return schemepb.Type_shell
 }
 
+// decryptSchemeSecret decrypts a stored scheme secret. If the secret predates
+// an AES key rotation, SECURITY_AES_KEY_LEGACY is tried and a warning asks the
+// operator to re-save the scheme so it is re-encrypted with the current key.
+func decryptSchemeSecret(value, aesKey string) (string, error) {
+	plain, usedLegacy, err := crypto.TextDecryptWithFallback(
+		value, aesKey, internal.GetString("SECURITY_AES_KEY_LEGACY", ""),
+	)
+	if err != nil {
+		return "", err
+	}
+	if usedLegacy {
+		app.log.Info().Msg("scheme secret decrypted with SECURITY_AES_KEY_LEGACY; re-save it to migrate")
+	}
+	return plain, nil
+}
+
 // schemeAccess fetches the scheme connection settings with secrets decrypted.
 func schemeAccess(ctx context.Context, schemeID, clientIP string) (*access.AccessScheme_Server_SSH, error) {
 	rClient := schemepb.NewSchemeHandlersClient(app.grpc)
@@ -77,7 +93,7 @@ func schemeAccess(ctx context.Context, schemeID, clientIP string) (*access.Acces
 			return nil, errors.New("scheme password is masked by the server")
 		}
 		if auth.Password.GetPassword() != "" {
-			password, err := crypto.TextDecrypt(auth.Password.GetPassword(), aesKey)
+			password, err := decryptSchemeSecret(auth.Password.GetPassword(), aesKey)
 			if err != nil {
 				return nil, fmt.Errorf("decrypt scheme password: %w", err)
 			}
@@ -88,14 +104,14 @@ func schemeAccess(ctx context.Context, schemeID, clientIP string) (*access.Acces
 			return nil, errors.New("scheme private key is masked by the server")
 		}
 		if auth.Key.GetKey().GetPrivate() != "" {
-			privateKey, err := crypto.TextDecrypt(auth.Key.GetKey().GetPrivate(), aesKey)
+			privateKey, err := decryptSchemeSecret(auth.Key.GetKey().GetPrivate(), aesKey)
 			if err != nil {
 				return nil, fmt.Errorf("decrypt scheme private key: %w", err)
 			}
 			auth.Key.GetKey().Private = privateKey
 		}
 		if auth.Key.GetKey().GetPassphrase() != "" {
-			passphrase, err := crypto.TextDecrypt(auth.Key.GetKey().GetPassphrase(), aesKey)
+			passphrase, err := decryptSchemeSecret(auth.Key.GetKey().GetPassphrase(), aesKey)
 			if err != nil {
 				return nil, fmt.Errorf("decrypt scheme key passphrase: %w", err)
 			}

@@ -14,8 +14,27 @@ import (
 )
 
 // constSchemeMemberID is a "scheme_member" row from the fixtures. The audit
-// table references that table through "member_id".
+// table references that table through "member_id". It belongs to the admin
+// project and is attached to the user profile.
 const constSchemeMemberID = "8ca0ad93-4338-44cb-93dd-3f57272d0ffa"
+
+func addAudit(t *testing.T, client auditrpc.AuditHandlersClient, profileID, session string) *auditmessage.AddAudit_Response {
+	t.Helper()
+
+	created, err := client.AddAudit(context.Background(), &auditmessage.AddAudit_Request{
+		ServerId:  test.ConstAdminSchemeSSH1ID,
+		AccountId: constSchemeMemberID,
+		ProfileId: profileID,
+		Version:   2,
+		Session:   session,
+		ClientIp:  "8.8.8.8",
+	})
+	if err != nil {
+		t.Fatalf("prepare audit: %v", err)
+	}
+
+	return created
+}
 
 func Test_AddAudit(t *testing.T) {
 	setup, teardownTestCase := test.GRPC(t)
@@ -34,6 +53,7 @@ func Test_AddAudit(t *testing.T) {
 				Code: codes.InvalidArgument,
 				Message: map[string]any{
 					"account_id": "value is required",
+					"profile_id": "value is required",
 					"server_id":  "value is required",
 				},
 			},
@@ -57,6 +77,7 @@ func Test_AddAudit_writesRow(t *testing.T) {
 		_, err := client.AddAudit(context.Background(), &auditmessage.AddAudit_Request{
 			ServerId:  test.ConstFakeID,
 			AccountId: test.ConstFakeID,
+			ProfileId: test.ConstAdminID,
 			Version:   2,
 			Session:   "session-1",
 			ClientIp:  "8.8.8.8",
@@ -64,31 +85,47 @@ func Test_AddAudit_writesRow(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected an error for a member that does not exist")
 		}
+		if code := status.Code(err); code != codes.NotFound {
+			t.Fatalf("code = %v, want NotFound", code)
+		}
 	})
 
-	created, err := client.AddAudit(context.Background(), &auditmessage.AddAudit_Request{
-		ServerId:  test.ConstAdminSchemeSSH1ID,
-		AccountId: constSchemeMemberID,
-		Version:   2,
-		Session:   "session-1",
-		ClientIp:  "8.8.8.8",
-	})
-	if err != nil {
-		t.Fatalf("add audit: %v", err)
-	}
-	if created.GetAuditId() == "" {
-		t.Fatal("audit_id is empty")
-	}
+	t.Run("member_creates_audit", func(t *testing.T) {
+		created := addAudit(t, client, test.ConstUserID, "session-1")
+		if created.GetAuditId() == "" {
+			t.Fatal("audit_id is empty")
+		}
 
-	t.Run("audit_is_readable", func(t *testing.T) {
 		resp, err := client.Audit(context.Background(), &auditmessage.Audit_Request{
-			AuditId: created.GetAuditId(),
+			AuditId:   created.GetAuditId(),
+			ProfileId: test.ConstUserID,
 		})
 		if err != nil {
 			t.Fatalf("audit by id: %v", err)
 		}
 		if resp.GetCreatedAt() == nil {
 			t.Fatal("created_at is empty")
+		}
+	})
+
+	t.Run("owner_creates_audit", func(t *testing.T) {
+		created := addAudit(t, client, test.ConstAdminID, "session-owner")
+		if created.GetAuditId() == "" {
+			t.Fatal("audit_id is empty")
+		}
+	})
+
+	t.Run("non_member_is_denied", func(t *testing.T) {
+		_, err := client.AddAudit(context.Background(), &auditmessage.AddAudit_Request{
+			ServerId:  test.ConstAdminSchemeSSH1ID,
+			AccountId: constSchemeMemberID,
+			ProfileId: test.ConstUser1ID,
+			Version:   2,
+			Session:   "session-denied",
+			ClientIp:  "8.8.8.8",
+		})
+		if code := status.Code(err); code != codes.PermissionDenied {
+			t.Fatalf("code = %v, want PermissionDenied", code)
 		}
 	})
 }
@@ -98,22 +135,13 @@ func Test_UpdateAudit(t *testing.T) {
 	defer teardownTestCase(t)
 
 	client := auditrpc.NewAuditHandlersClient(setup)
-
-	created, err := client.AddAudit(context.Background(), &auditmessage.AddAudit_Request{
-		ServerId:  test.ConstAdminSchemeSSH1ID,
-		AccountId: constSchemeMemberID,
-		Version:   2,
-		Session:   "session-update",
-		ClientIp:  "8.8.8.8",
-	})
-	if err != nil {
-		t.Fatalf("prepare audit: %v", err)
-	}
+	created := addAudit(t, client, test.ConstUserID, "session-update")
 
 	t.Run("unknown_audit_returns_not_found", func(t *testing.T) {
 		_, err := client.UpdateAudit(context.Background(), &auditmessage.UpdateAudit_Request{
-			AuditId:  test.ConstFakeID,
-			Duration: "1.5",
+			AuditId:   test.ConstFakeID,
+			ProfileId: test.ConstAdminID,
+			Duration:  "1.5",
 		})
 		if err == nil {
 			t.Fatal("expected an error for an unknown audit")
@@ -125,9 +153,10 @@ func Test_UpdateAudit(t *testing.T) {
 
 	t.Run("closes_the_audit", func(t *testing.T) {
 		_, err := client.UpdateAudit(context.Background(), &auditmessage.UpdateAudit_Request{
-			AuditId:  created.GetAuditId(),
-			Duration: "12.500000",
-			TimeEnd:  timestamppb.Now(),
+			AuditId:   created.GetAuditId(),
+			ProfileId: test.ConstUserID,
+			Duration:  "12.500000",
+			TimeEnd:   timestamppb.Now(),
 		})
 		if err != nil {
 			t.Fatalf("close audit: %v", err)
@@ -137,16 +166,18 @@ func Test_UpdateAudit(t *testing.T) {
 	t.Run("keeps_previous_values", func(t *testing.T) {
 		// Only the terminal size is sent; duration and time_end must survive.
 		if _, err := client.UpdateAudit(context.Background(), &auditmessage.UpdateAudit_Request{
-			AuditId: created.GetAuditId(),
-			Width:   120,
-			Height:  40,
-			EnvTerm: "xterm-256color",
+			AuditId:   created.GetAuditId(),
+			ProfileId: test.ConstAdminID,
+			Width:     120,
+			Height:    40,
+			EnvTerm:   "xterm-256color",
 		}); err != nil {
 			t.Fatalf("update terminal size: %v", err)
 		}
 
 		resp, err := client.Audit(context.Background(), &auditmessage.Audit_Request{
-			AuditId: created.GetAuditId(),
+			AuditId:   created.GetAuditId(),
+			ProfileId: test.ConstAdminID,
 		})
 		if err != nil {
 			t.Fatalf("audit by id: %v", err)
@@ -162,21 +193,12 @@ func Test_AuditRecords(t *testing.T) {
 	defer teardownTestCase(t)
 
 	client := auditrpc.NewAuditHandlersClient(setup)
-
-	created, err := client.AddAudit(context.Background(), &auditmessage.AddAudit_Request{
-		ServerId:  test.ConstAdminSchemeSSH1ID,
-		AccountId: constSchemeMemberID,
-		Version:   2,
-		Session:   "session-records",
-		ClientIp:  "8.8.8.8",
-	})
-	if err != nil {
-		t.Fatalf("prepare audit: %v", err)
-	}
+	created := addAudit(t, client, test.ConstUserID, "session-records")
 	auditID := created.GetAuditId()
 
 	if _, err := client.AddRecord(context.Background(), &auditmessage.AddRecord_Request{
-		AuditId: auditID,
+		AuditId:   auditID,
+		ProfileId: test.ConstUserID,
 		Records: []*auditmessage.Record{
 			{Duration: "0.100000", Screen: "hello", Type: "o"},
 			{Duration: "0.200000", Screen: "world", Type: "o"},
@@ -187,7 +209,8 @@ func Test_AuditRecords(t *testing.T) {
 
 	t.Run("records_are_stored", func(t *testing.T) {
 		resp, err := client.ListRecords(context.Background(), &auditmessage.ListRecords_Request{
-			AuditId: auditID,
+			AuditId:   auditID,
+			ProfileId: test.ConstUserID,
 		})
 		if err != nil {
 			t.Fatalf("list records: %v", err)
@@ -202,7 +225,8 @@ func Test_AuditRecords(t *testing.T) {
 
 	t.Run("audit_is_listed_for_the_scheme", func(t *testing.T) {
 		resp, err := client.ListAudits(context.Background(), &auditmessage.ListAudits_Request{
-			ServerId: test.ConstAdminSchemeSSH1ID,
+			ServerId:  test.ConstAdminSchemeSSH1ID,
+			ProfileId: test.ConstUserID,
 		})
 		if err != nil {
 			t.Fatalf("list audits: %v", err)
@@ -214,19 +238,138 @@ func Test_AuditRecords(t *testing.T) {
 
 	t.Run("records_are_removed_with_the_audit", func(t *testing.T) {
 		if _, err := client.DeleteAudit(context.Background(), &auditmessage.DeleteAudit_Request{
-			AuditId: auditID,
+			AuditId:   auditID,
+			ProfileId: test.ConstUserID,
 		}); err != nil {
 			t.Fatalf("delete audit: %v", err)
 		}
 
 		resp, err := client.ListRecords(context.Background(), &auditmessage.ListRecords_Request{
-			AuditId: auditID,
+			AuditId:   auditID,
+			ProfileId: test.ConstUserID,
 		})
 		if err != nil {
 			t.Fatalf("list records after delete: %v", err)
 		}
 		if got := len(resp.GetRecords()); got != 0 {
 			t.Fatalf("records count after delete = %d, want 0", got)
+		}
+	})
+}
+
+func Test_AuditAuthorization(t *testing.T) {
+	setup, teardownTestCase := test.GRPC(t)
+	defer teardownTestCase(t)
+
+	client := auditrpc.NewAuditHandlersClient(setup)
+	created := addAudit(t, client, test.ConstUserID, "session-auth")
+	auditID := created.GetAuditId()
+
+	t.Run("member_can_read", func(t *testing.T) {
+		if _, err := client.Audit(context.Background(), &auditmessage.Audit_Request{
+			AuditId:   auditID,
+			ProfileId: test.ConstUserID,
+		}); err != nil {
+			t.Fatalf("member read: %v", err)
+		}
+	})
+
+	t.Run("owner_can_read", func(t *testing.T) {
+		if _, err := client.Audit(context.Background(), &auditmessage.Audit_Request{
+			AuditId:   auditID,
+			ProfileId: test.ConstAdminID,
+		}); err != nil {
+			t.Fatalf("owner read: %v", err)
+		}
+	})
+
+	t.Run("non_member_read_is_not_found", func(t *testing.T) {
+		_, err := client.Audit(context.Background(), &auditmessage.Audit_Request{
+			AuditId:   auditID,
+			ProfileId: test.ConstUser1ID,
+		})
+		if code := status.Code(err); code != codes.NotFound {
+			t.Fatalf("code = %v, want NotFound", code)
+		}
+	})
+
+	t.Run("non_member_update_is_denied", func(t *testing.T) {
+		_, err := client.UpdateAudit(context.Background(), &auditmessage.UpdateAudit_Request{
+			AuditId:   auditID,
+			ProfileId: test.ConstUser1ID,
+			Duration:  "1.5",
+		})
+		if code := status.Code(err); code != codes.PermissionDenied {
+			t.Fatalf("code = %v, want PermissionDenied", code)
+		}
+	})
+
+	t.Run("non_member_add_record_is_denied", func(t *testing.T) {
+		_, err := client.AddRecord(context.Background(), &auditmessage.AddRecord_Request{
+			AuditId:   auditID,
+			ProfileId: test.ConstUser1ID,
+			Records: []*auditmessage.Record{
+				{Duration: "0.100000", Screen: "denied", Type: "o"},
+			},
+		})
+		if code := status.Code(err); code != codes.PermissionDenied {
+			t.Fatalf("code = %v, want PermissionDenied", code)
+		}
+	})
+
+	t.Run("non_member_sees_no_records", func(t *testing.T) {
+		resp, err := client.ListRecords(context.Background(), &auditmessage.ListRecords_Request{
+			AuditId:   auditID,
+			ProfileId: test.ConstUser1ID,
+		})
+		if err != nil {
+			t.Fatalf("list records: %v", err)
+		}
+		if got := len(resp.GetRecords()); got != 0 {
+			t.Fatalf("records count = %d, want 0", got)
+		}
+	})
+
+	t.Run("list_audits_is_filtered_by_membership", func(t *testing.T) {
+		member, err := client.ListAudits(context.Background(), &auditmessage.ListAudits_Request{
+			ServerId:  test.ConstAdminSchemeSSH1ID,
+			ProfileId: test.ConstUserID,
+		})
+		if err != nil {
+			t.Fatalf("member list audits: %v", err)
+		}
+		if member.GetTotal() < 1 {
+			t.Fatalf("member audits total = %d, want at least 1", member.GetTotal())
+		}
+
+		other, err := client.ListAudits(context.Background(), &auditmessage.ListAudits_Request{
+			ServerId:  test.ConstAdminSchemeSSH1ID,
+			ProfileId: test.ConstUser1ID,
+		})
+		if err != nil {
+			t.Fatalf("non-member list audits: %v", err)
+		}
+		if other.GetTotal() != 0 {
+			t.Fatalf("non-member audits total = %d, want 0", other.GetTotal())
+		}
+	})
+
+	t.Run("non_member_delete_is_denied", func(t *testing.T) {
+		_, err := client.DeleteAudit(context.Background(), &auditmessage.DeleteAudit_Request{
+			AuditId:   auditID,
+			ProfileId: test.ConstUser1ID,
+		})
+		if code := status.Code(err); code != codes.PermissionDenied {
+			t.Fatalf("code = %v, want PermissionDenied", code)
+		}
+	})
+
+	t.Run("owner_can_delete", func(t *testing.T) {
+		if _, err := client.DeleteAudit(context.Background(), &auditmessage.DeleteAudit_Request{
+			AuditId:   auditID,
+			ProfileId: test.ConstAdminID,
+		}); err != nil {
+			t.Fatalf("owner delete: %v", err)
 		}
 	})
 }

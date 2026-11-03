@@ -973,26 +973,27 @@ func (x *Scheme_Request) GetSchemeId() string {
 }
 
 type Scheme_Response struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SchemeId      string                 `protobuf:"bytes,1,opt,name=scheme_id,json=schemeId,proto3" json:"scheme_id,omitempty"`
-	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	OwnerId       string                 `protobuf:"bytes,3,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
-	Address       string                 `protobuf:"bytes,4,opt,name=address,proto3" json:"address,omitempty"`
-	Alias         string                 `protobuf:"bytes,5,opt,name=alias,proto3" json:"alias,omitempty"`
-	Title         string                 `protobuf:"bytes,6,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
-	Audit         bool                   `protobuf:"varint,8,opt,name=audit,proto3" json:"audit,omitempty"`
-	Active        bool                   `protobuf:"varint,9,opt,name=active,proto3" json:"active,omitempty"`
-	Online        bool                   `protobuf:"varint,10,opt,name=online,proto3" json:"online,omitempty"`
-	AuthMethod    auth.AuthMethod        `protobuf:"varint,11,opt,name=auth_method,json=authMethod,proto3,enum=auth.AuthMethod" json:"auth_method,omitempty"`
-	SchemeType    access.SchemeType      `protobuf:"varint,12,opt,name=scheme_type,json=schemeType,proto3,enum=access.SchemeType" json:"scheme_type,omitempty"`
-	CountMembers  int32                  `protobuf:"varint,13,opt,name=count_members,json=countMembers,proto3" json:"count_members,omitempty"`
-	LockedAt      *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=locked_at,json=lockedAt,proto3" json:"locked_at,omitempty"`
-	ArchivedAt    *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=archived_at,json=archivedAt,proto3" json:"archived_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	SchemeId       string                 `protobuf:"bytes,1,opt,name=scheme_id,json=schemeId,proto3" json:"scheme_id,omitempty"`
+	ProjectId      string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	OwnerId        string                 `protobuf:"bytes,3,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	Address        string                 `protobuf:"bytes,4,opt,name=address,proto3" json:"address,omitempty"`
+	Alias          string                 `protobuf:"bytes,5,opt,name=alias,proto3" json:"alias,omitempty"`
+	Title          string                 `protobuf:"bytes,6,opt,name=title,proto3" json:"title,omitempty"`
+	Description    string                 `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
+	Audit          bool                   `protobuf:"varint,8,opt,name=audit,proto3" json:"audit,omitempty"`
+	Active         bool                   `protobuf:"varint,9,opt,name=active,proto3" json:"active,omitempty"`
+	Online         bool                   `protobuf:"varint,10,opt,name=online,proto3" json:"online,omitempty"`
+	AuthMethod     auth.AuthMethod        `protobuf:"varint,11,opt,name=auth_method,json=authMethod,proto3,enum=auth.AuthMethod" json:"auth_method,omitempty"`
+	SchemeType     access.SchemeType      `protobuf:"varint,12,opt,name=scheme_type,json=schemeType,proto3,enum=access.SchemeType" json:"scheme_type,omitempty"`
+	CountMembers   int32                  `protobuf:"varint,13,opt,name=count_members,json=countMembers,proto3" json:"count_members,omitempty"`
+	LockedAt       *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=locked_at,json=lockedAt,proto3" json:"locked_at,omitempty"`
+	ArchivedAt     *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=archived_at,json=archivedAt,proto3" json:"archived_at,omitempty"`
+	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	SchemeMemberId string                 `protobuf:"bytes,18,opt,name=scheme_member_id,json=schemeMemberId,proto3" json:"-"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Scheme_Response) Reset() {
@@ -1142,6 +1143,13 @@ func (x *Scheme_Response) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *Scheme_Response) GetSchemeMemberId() string {
+	if x != nil {
+		return x.SchemeMemberId
+	}
+	return ""
 }
 
 type AddScheme_Request struct {
@@ -3298,14 +3306,14 @@ const file_internal_core_scheme_proto_scheme_scheme_proto_rawDesc = "" +
 	"\asort_by\x18\a \x01(\tR\x06sortBy\x1aS\n" +
 	"\bResponse\x12\x14\n" +
 	"\x05total\x18\x01 \x01(\x05R\x05total\x121\n" +
-	"\aschemes\x18\x02 \x03(\v2\x17.scheme.Scheme.ResponseR\aschemes\"\xc7\x06\n" +
+	"\aschemes\x18\x02 \x03(\v2\x17.scheme.Scheme.ResponseR\aschemes\"\xf1\x06\n" +
 	"\x06Scheme\x1a\x99\x01\n" +
 	"\aRequest\x12\x19\n" +
 	"\bis_admin\x18\x01 \x01(\bR\aisAdmin\x12#\n" +
 	"\bowner_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\aownerId\x12'\n" +
 	"\n" +
 	"project_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tprojectId\x12%\n" +
-	"\tscheme_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\bschemeId\x1a\xa0\x05\n" +
+	"\tscheme_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\bschemeId\x1a\xca\x05\n" +
 	"\bResponse\x12\x1b\n" +
 	"\tscheme_id\x18\x01 \x01(\tR\bschemeId\x12#\n" +
 	"\n" +
@@ -3330,7 +3338,8 @@ const file_internal_core_scheme_proto_scheme_scheme_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampB\x04\x88\xb5\x18\x01R\tupdatedAt\x129\n" +
 	"\n" +
-	"created_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xa2\x02\n" +
+	"created_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12(\n" +
+	"\x10scheme_member_id\x18\x12 \x01(\tR\x0eschemeMemberId\"\xa2\x02\n" +
 	"\tAddScheme\x1a\xeb\x01\n" +
 	"\aRequest\x12#\n" +
 	"\bowner_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\aownerId\x12'\n" +

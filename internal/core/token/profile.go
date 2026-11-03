@@ -119,9 +119,9 @@ func (h *Handler) AddTokenProfileReset(ctx context.Context, in *tokenmessage.Add
 	args := []any{tokenenum.Section_profile, tokenenum.Action_reset, tokenenum.Status_sent, []byte("{}"), in.GetProfileId()}
 
 	// Reset tokens always expire; callers may override the default 24 hours.
-	expiredAt := time.Now().Add(24 * time.Hour)
+	expiredAt := time.Now().UTC().Add(24 * time.Hour)
 	if in.GetExpiredAt() != nil {
-		expiredAt = in.GetExpiredAt().AsTime()
+		expiredAt = in.GetExpiredAt().AsTime().UTC()
 	}
 	fields = append(fields, "expired_at")
 	args = append(args, expiredAt)

@@ -129,3 +129,30 @@ func Test_AESKeyGen(t *testing.T) {
 		}
 	}
 }
+
+func Test_TextDecryptWithFallback(t *testing.T) {
+	current := strings.Repeat("ab", 16)
+	legacy := strings.Repeat("cd", 16)
+
+	encrypted, err := TextEncrypt("secret", legacy)
+	if err != nil {
+		t.Fatalf("TextEncrypt: %v", err)
+	}
+
+	plain, usedLegacy, err := TextDecryptWithFallback(encrypted, current, legacy)
+	if err != nil || !usedLegacy || plain != "secret" {
+		t.Fatalf("fallback = (%q, %v, %v), want (secret, true, nil)", plain, usedLegacy, err)
+	}
+
+	plain, usedLegacy, err = TextDecryptWithFallback(encrypted, legacy, current)
+	if err != nil || usedLegacy || plain != "secret" {
+		t.Fatalf("current key = (%q, %v, %v), want (secret, false, nil)", plain, usedLegacy, err)
+	}
+
+	if _, _, err := TextDecryptWithFallback(encrypted, current, ""); err == nil {
+		t.Fatal("expected an error without a legacy key")
+	}
+	if _, _, err := TextDecryptWithFallback(encrypted, current, strings.Repeat("zz", 16)); err == nil {
+		t.Fatal("expected an error for an invalid legacy key")
+	}
+}
