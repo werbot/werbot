@@ -3,8 +3,8 @@ package system
 import (
 	"github.com/gofiber/fiber/v2"
 
-	systemrpc "github.com/werbot/werbot/internal/core/system/proto/rpc"
 	systemmessage "github.com/werbot/werbot/internal/core/system/proto/message"
+	systemrpc "github.com/werbot/werbot/internal/core/system/proto/rpc"
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 

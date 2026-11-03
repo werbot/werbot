@@ -759,9 +759,25 @@ func TestHandler_deleteProfile(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
+		{ // ADMIN: step 1 for another profile reads profile_id
+			// Before the fix the handler read "profiles" and always targeted the admin.
+			Name:       "test1_04",
+			Method:     http.MethodPost,
+			Path:       test.PathGluing(pathProfiles, "delete") + "?profile_id=" + test.ConstUserID,
+			StatusCode: 200,
+			RequestBody: test.BodyTable{
+				"password": "user@werbot.net",
+			},
+			Body: test.BodyTable{
+				"code":    float64(200),
+				"message": "Request for delete",
+				"result":  "An email with instructions to delete your profile has been sent to your email",
+			},
+			RequestHeaders: adminHeader,
+		},
 		{ // ADMIN: step 1, real password for delete oth
 			// The administrator cannot be deleted!!!
-			Name:       "test1_04",
+			Name:       "test1_05",
 			Method:     http.MethodDelete,
 			Path:       test.PathGluing(pathProfiles, "delete", "3c818d7c-72f3-4518-8eaa-755585192f21"),
 			StatusCode: 404,

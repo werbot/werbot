@@ -268,12 +268,12 @@ func (h *Handler) schemeActivity(c *fiber.Ctx) error {
 		case "now":
 			request.Timestamp = timestamppb.Now()
 		default:
-			if timestamp, err := c.ParamsInt("timestamp"); err != nil {
+			timestamp, err := c.ParamsInt("timestamp")
+			if err != nil {
 				return webutil.FromGRPC(c, err)
-			} else {
-				t := time.Unix(int64(timestamp), 0)
-				request.Timestamp = timestamppb.New(t)
 			}
+			t := time.Unix(int64(timestamp), 0)
+			request.Timestamp = timestamppb.New(t)
 		}
 	}
 

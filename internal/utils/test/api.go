@@ -23,25 +23,27 @@ import (
 
 type HeadersTable map[string]string
 
+const fieldMessage = "message"
+
 var (
 	BodyInvalidArgument = BodyTable{
-		"code":    float64(400),
-		"message": "Bad Request",
+		"code":       float64(400),
+		fieldMessage: "Bad Request",
 	}
 
 	BodyUnauthorized = BodyTable{
-		"code":    float64(401),
-		"message": "Unauthorized",
+		"code":       float64(401),
+		fieldMessage: "Unauthorized",
 	}
 
 	BodyNotFound = BodyTable{
-		"code":    float64(404),
-		"message": "Not Found",
+		"code":       float64(404),
+		fieldMessage: "Not Found",
 	}
 
 	BodyInternalServerError = BodyTable{
-		"code":    float64(500),
-		"message": "Internal Server Error",
+		"code":       float64(500),
+		fieldMessage: "Internal Server Error",
 	}
 )
 
@@ -86,16 +88,7 @@ func API(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
 	t.Setenv("JWT_PUBLIC_KEY", "../../fixtures/keys/jwt/jwt_public.key")
 	t.Setenv("JWT_PRIVATE_KEY", "../../fixtures/keys/jwt/jwt_private.key")
 
-	migrationsDirs := []string{"../../migration"}
-	fixturesDirs := []string{"../../fixtures/migration"}
-	if len(addonDirs) > 0 {
-		for _, dir := range addonDirs {
-			migrationsDirs = append(migrationsDirs, dir+"migration")
-			fixturesDirs = append(migrationsDirs, dir+"fixtures/migration")
-		}
-	}
-
-	migrations := append(migrationsDirs, fixturesDirs...)
+	migrations := migrationDirs("../../", addonDirs)
 	pgTest := ServerPostgres(t, migrations...)
 
 	redisTest := ServerRedis(context.Background(), t)
@@ -130,12 +123,12 @@ func API(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
 	}
 
 	return &APIHandler{
-			Handler:  webHandler,
-			Postgres: pgTest,
-		}, func(_ *testing.T) {
-			redisTest.Close()
-			grpcTest.Close()
-		}
+		Handler:  webHandler,
+		Postgres: pgTest,
+	}, func(_ *testing.T) {
+		redisTest.Close()
+		grpcTest.Close()
+	}
 }
 
 // GetProfileAuth retrieves profile authentication info
@@ -157,7 +150,7 @@ func (h *APIHandler) GetProfileAuth(email, password string) *ProfileInfo {
 }
 
 func (h *APIHandler) getAuthToken(signIn *profilemessage.SignIn_Request) *profilemessage.Token_Response {
-	bodyReader, _ := json.Marshal(signIn)
+	bodyReader, _ := json.Marshal(signIn) //nolint:gosec // G117: test helper marshals a fixture sign-in request
 	req := httptest.NewRequest("POST", "/auth/signin", bytes.NewBuffer(bodyReader))
 	req.Header.Set("Content-Type", "application/json")
 	res, err := h.App.Test(req, -1)

@@ -11,12 +11,13 @@ import (
 )
 
 func cronUpdateFirewallList(grpcClient *grpc.ClientConn) worker.CronHandler {
-	return func(_ context.Context) error {
+	return func(ctx context.Context) error {
 		log.Info().Msg("Update firewall list")
 
 		rClient := firewallrpc.NewFirewallHandlersClient(grpcClient)
-		if _, err := rClient.UpdateFirewallListData(context.Background(), &firewallmessage.UpdateFirewallListData_Request{}); err != nil {
-			log.Fatal(err).Send()
+		if _, err := rClient.UpdateFirewallListData(ctx, &firewallmessage.UpdateFirewallListData_Request{}); err != nil {
+			log.Error(err).Send()
+			return err
 		}
 
 		return nil

@@ -1,21 +1,28 @@
 package worker
 
 import (
-	"fmt"
+	"errors"
 
 	"google.golang.org/grpc"
 
 	"github.com/werbot/werbot/pkg/logger"
+	"github.com/werbot/werbot/pkg/worker"
 	"github.com/werbot/werbot/pkg/worker/asynq"
 )
 
-var log logger.Logger
+var log = logger.New()
 
-func New(redisURI string, grpcClient *grpc.ClientConn) {
-	log = logger.New()
+// ErrServerCreateFailed indicates that the worker server could not be created.
+var ErrServerCreateFailed = errors.New("failed to create the worker server")
 
+// New creates and starts the worker server. It returns an error when the
+// server cannot be created or started so the caller can decide how to react.
+func New(redisURI string, grpcClient *grpc.ClientConn) (worker.Server, error) {
 	asynqServer := asynq.NewServer(redisURI, asynq.BatchConfig(50, 1, 1))
-	asynqServer.HandleTask(TaskDownloadLicense, downloadLicense())
+	if asynqServer == nil {
+		return nil, ErrServerCreateFailed
+	}
+
 	asynqServer.HandleTask(TaskSendMail, sendMail())
 
 	// asynqServer.HandleTask(task.TaskServerDemo, task.ServerDemo(), asynq.BatchTask())
@@ -27,6 +34,8 @@ func New(redisURI string, grpcClient *grpc.ClientConn) {
 	asynqServer.HandleCron("@weekly", cronUpdateHAProxyLists())
 
 	if err := asynqServer.Start(); err != nil {
-		fmt.Print(err)
+		return nil, err
 	}
+
+	return asynqServer, nil
 }

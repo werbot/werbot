@@ -4,8 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	event "github.com/werbot/werbot/internal/core/event/recorder"
-	memberrpc "github.com/werbot/werbot/internal/core/member/proto/rpc"
 	membermessage "github.com/werbot/werbot/internal/core/member/proto/message"
+	memberrpc "github.com/werbot/werbot/internal/core/member/proto/rpc"
 	profileenum "github.com/werbot/werbot/internal/core/profile/proto/enum"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"

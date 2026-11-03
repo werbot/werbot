@@ -352,6 +352,7 @@ func (h *Handler) UpdateScheme(ctx context.Context, in *schemepb.UpdateScheme_Re
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
+	//nolint:gosec // G201: column comes from a fixed whitelist
 	query := fmt.Sprintf(`
     UPDATE "scheme"
     SET "%s" = $1
@@ -491,12 +492,20 @@ func (h *Handler) SchemeActivity(ctx context.Context, in *schemepb.SchemeActivit
 		weekday := strings.ToLower(t.Format("Mon"))
 		hour := t.Hour()
 
-		reflectedPerson := week.ProtoReflect()
-		nameField := reflectedPerson.Descriptor().Fields().ByName(protoreflect.Name(weekday))
-		nameValue := reflectedPerson.Get(nameField).List().Get(hour).Int()
+		allowed := false
+		reflectedWeek := week.ProtoReflect()
+		nameField := reflectedWeek.Descriptor().Fields().ByName(protoreflect.Name(weekday))
+		if nameField != nil {
+			hours := reflectedWeek.Get(nameField).List()
+			// Older rows may contain 23 hours instead of 24; fail closed
+			// instead of panicking when the requested hour has no entry.
+			if hour >= 0 && hour < hours.Len() {
+				allowed = hours.Get(hour).Int() != 0
+			}
+		}
 
 		response.Period = &schemepb.SchemeActivity_Response_Hour{
-			Hour: nameValue != 0,
+			Hour: allowed,
 		}
 	} else {
 		response.Period = &schemepb.SchemeActivity_Response_Week{
@@ -713,7 +722,8 @@ func (h *Handler) AddSchemeFirewall(ctx context.Context, in *schemepb.AddSchemeF
 
 	case *schemepb.AddSchemeFirewall_Request_Network:
 		var networkID sql.NullString
-		network, err := netutil.IPWithMask(in.GetNetwork())
+		var network string
+		network, err = netutil.IPWithMask(in.GetNetwork())
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
@@ -782,7 +792,7 @@ func (h *Handler) UpdateSchemeFirewall(ctx context.Context, in *schemepb.UpdateS
 		statusList = in.GetCountry()
 		table = "{country}"
 	case *schemepb.UpdateSchemeFirewall_Request_Network:
-		statusList = in.GetCountry()
+		statusList = in.GetNetwork()
 		table = "{network}"
 	}
 

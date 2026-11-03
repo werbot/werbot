@@ -3,8 +3,8 @@ package agent
 import (
 	"github.com/gofiber/fiber/v2"
 
-	agentrpc "github.com/werbot/werbot/internal/core/agent/proto/rpc"
 	agentmessage "github.com/werbot/werbot/internal/core/agent/proto/message"
+	agentrpc "github.com/werbot/werbot/internal/core/agent/proto/rpc"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
@@ -59,6 +59,3 @@ func (h *Handler) addScheme(c *fiber.Ctx) error {
 }
 
 // AgentUpdateAutoScheme is ...
-//func (h *Handler) updateScheme(c *fiber.Ctx) error {
-//	return webutil.StatusOK(c, "Status", "online")
-//}

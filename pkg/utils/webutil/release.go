@@ -13,7 +13,7 @@ type actualVersion struct {
 
 // GetLatestRelease fetches the latest release tag name from the provided URL.
 func GetLatestRelease(url string) (string, error) {
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:gosec // G107: URL is a hardcoded constant at every call site
 	if err != nil {
 		return "", fmt.Errorf("failed to get latest release: %w", err)
 	}

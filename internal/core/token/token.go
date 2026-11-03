@@ -72,12 +72,14 @@ func (h *Handler) Token(ctx context.Context, in *tokenmessage.Token_Request) (*t
 		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgTokenNotFound), log, nil)
 	}
 
-	// Validate token expiration: check expired_at if set, otherwise use 24-hour default
+	// Validate token expiration: check expired_at if set, otherwise use a 24-hour default.
+	now := time.Now()
 	if expiredAt.Valid {
-		now := time.Now()
 		if expiredAt.Time.Before(now) {
 			return nil, trace.Error(status.Error(codes.InvalidArgument, "token has expired"), log, nil)
 		}
+	} else if createdAt.Valid && createdAt.Time.Add(24*time.Hour).Before(now) {
+		return nil, trace.Error(status.Error(codes.InvalidArgument, "token has expired"), log, nil)
 	}
 
 	response.OwnerId = ownerID.String
@@ -112,9 +114,9 @@ func (h *Handler) Token(ctx context.Context, in *tokenmessage.Token_Request) (*t
 	}
 
 	protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{
-		"expired_at": expiredAt,
-		"updated_at": updatedAt,
-		"created_at": createdAt,
+		"expired_at":              expiredAt,
+		protoutils.FieldUpdatedAt: updatedAt,
+		protoutils.FieldCreatedAt: createdAt,
 	})
 
 	if !in.GetIsAdmin() {

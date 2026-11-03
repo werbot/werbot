@@ -23,13 +23,20 @@ func (h *Handler) IPAccess(ctx context.Context, in *firewallmessage.IPAccess_Req
 	}
 
 	utilityHandler := &system.Handler{}
-	countryByIP, _ := utilityHandler.CountryByIP(ctx, &systemmessage.CountryByIP_Request{
+	countryByIP, err := utilityHandler.CountryByIP(ctx, &systemmessage.CountryByIP_Request{
 		Ip: in.GetClientIp(),
 	})
+	if err != nil {
+		// GeoIP is part of the access decision: if the country cannot be
+		// resolved, deny access instead of silently allowing it.
+		log.Error(err).Msg("Failed to resolve country by IP")
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
 
 	// search country on the global list
 	var total int
-	err := h.DB.Conn.QueryRowContext(ctx, `
+	err = h.DB.Conn.QueryRowContext(ctx, `
     SELECT COUNT(*)
     FROM
       "firewall_country"

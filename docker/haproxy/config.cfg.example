@@ -25,6 +25,7 @@ listen stats
     http-request use-service prometheus-exporter if { path /metrics }
     stats enable
     stats uri /admin
+    stats auth "admin:${HAPROXY_STATS_PASSWORD}"
 
 # docker DNS
 resolvers docker

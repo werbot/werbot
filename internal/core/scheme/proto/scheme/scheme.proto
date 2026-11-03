@@ -203,38 +203,38 @@ message SchemeActivity {
 
   message Week {
     repeated int32 mon = 1 [(buf.validate.field).repeated = {
-      min_items: 23,
-      max_items: 23,
+      min_items: 24,
+      max_items: 24,
       items: { int32: { in: [ 0, 1 ] } }
     }];
     repeated int32 tue = 2 [(buf.validate.field).repeated = {
-      min_items: 23
-      max_items: 23
+      min_items: 24
+      max_items: 24
       items: { int32: { in: [ 0, 1 ] } }
     }];
     repeated int32 wed = 3 [(buf.validate.field).repeated = {
-      min_items: 23
-      max_items: 23
+      min_items: 24
+      max_items: 24
       items: { int32: { in: [ 0, 1 ] } }
     }];
     repeated int32 thu = 4 [(buf.validate.field).repeated = {
-      min_items: 23
-      max_items: 23
+      min_items: 24
+      max_items: 24
       items: { int32: { in: [ 0, 1 ] } }
     }];
     repeated int32 fri = 5 [(buf.validate.field).repeated = {
-      min_items: 23
-      max_items: 23
+      min_items: 24
+      max_items: 24
       items: { int32: { in: [ 0, 1 ] } }
     }];
     repeated int32 sat = 6 [(buf.validate.field).repeated = {
-      min_items: 23
-      max_items: 23
+      min_items: 24
+      max_items: 24
       items: { int32: { in: [ 0, 1 ] } }
     }];
     repeated int32 sun = 7 [(buf.validate.field).repeated = {
-      min_items: 23
-      max_items: 23
+      min_items: 24
+      max_items: 24
       items: { int32: { in: [ 0, 1 ] } }
     }];
   }

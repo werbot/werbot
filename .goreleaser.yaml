@@ -26,6 +26,7 @@ builds:
     id: buffet
     main: ./cmd/buffet
     binary: werbot_buffet
+    tags: [saas]
   - <<: *go-build
     id: ghost
     main: ./cmd/ghost
@@ -34,6 +35,7 @@ builds:
     id: taco
     main: ./cmd/taco
     binary: werbot_taco
+    tags: [saas]
 
 archives:
   - ids: [avocado, buffet, ghost, taco]

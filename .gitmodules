@@ -1,9 +1,9 @@
 [submodule "add-on/ee"]
 	path = add-on/ee
-	url = git@github.com:werbot/werbot.ee.git
+	url = https://github.com/werbot/werbot.ee.git
 [submodule "add-on/saas"]
 	path = add-on/saas
-	url = git@github.com:werbot/werbot.saas.git
+	url = https://github.com/werbot/werbot.saas.git
 [submodule "web"]
 	path = web
-	url = git@github.com:werbot/werbot.web.git
+	url = https://github.com/werbot/werbot.web.git

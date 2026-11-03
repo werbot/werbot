@@ -58,9 +58,9 @@ func scanTokens(rows *sql.Rows, limit int32, isAdmin bool) ([]*tokenmessage.Toke
 		token.SchemeId = schemeID.String
 
 		protoutils.SetPgtypeTimestamps(token, map[string]pgtype.Timestamp{
-			"expired_at": expiredAt,
-			"updated_at": updatedAt,
-			"created_at": createdAt,
+			"expired_at":              expiredAt,
+			protoutils.FieldUpdatedAt: updatedAt,
+			protoutils.FieldCreatedAt: createdAt,
 		})
 
 		if !isAdmin {
@@ -248,8 +248,8 @@ func (h *Handler) CheckRateLimit(ctx context.Context, profileID string, action t
 	return count >= maxTokensPer24h, nil
 }
 
-// TokenMetrics contains basic token usage metrics
-type TokenMetrics struct {
+// Metrics contains basic token usage metrics
+type Metrics struct {
 	Section tokenenum.Section
 	Action  tokenenum.Action
 	Created int
@@ -258,8 +258,8 @@ type TokenMetrics struct {
 
 // GetTokenMetrics retrieves basic token usage metrics by section and action
 // Returns metrics for token creation and usage counts
-func (h *Handler) GetTokenMetrics(ctx context.Context, section tokenenum.Section, action tokenenum.Action) (*TokenMetrics, error) {
-	metrics := &TokenMetrics{
+func (h *Handler) GetTokenMetrics(ctx context.Context, section tokenenum.Section, action tokenenum.Action) (*Metrics, error) {
+	metrics := &Metrics{
 		Section: section,
 		Action:  action,
 	}

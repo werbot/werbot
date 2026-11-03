@@ -73,7 +73,7 @@ func (h *Handler) ProfileSchemes(ctx context.Context, in *schemepb.ProfileScheme
 			return nil, trace.Error(err, log, nil)
 		}
 
-		total = total + count
+		total += count
 		response.Total[group] = count
 	}
 	if total == 0 {

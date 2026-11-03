@@ -120,7 +120,7 @@ func (h *Handler) AddTokenProjectMember(ctx context.Context, in *tokenmessage.Ad
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	fields := []string{"section", "action", "status", "project_id"}
+	fields := []string{fieldSection, fieldAction, fieldStatus, "project_id"}
 	args := []any{tokenenum.Section_project, tokenenum.Action_request, tokenenum.Status_sent, in.GetProjectId()}
 
 	switch in.GetProfile().(type) {

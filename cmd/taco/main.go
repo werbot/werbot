@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/joho/godotenv"
 
 	"github.com/werbot/werbot/api"
@@ -40,6 +43,12 @@ var (
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err).Send()
+	}
+}
+
+func run() error {
 	godotenv.Load(".env", "/etc/werbot/.env")
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -49,7 +58,7 @@ func main() {
 
 	grpcClient, err := grpc.NewClient()
 	if err != nil {
-		log.Fatal(err).Send()
+		return err
 	}
 	defer grpcClient.Close()
 
@@ -59,7 +68,9 @@ func main() {
 	})
 
 	app = fiber.New(fiber.Config{
-		// ProxyHeader:           fiber.HeaderXForwardedFor,
+		// HAProxy forwards the real client address in X-Real-IP; trust it so
+		// c.IP() (and the auth rate limiter key) sees the client, not the proxy.
+		ProxyHeader:           "X-Real-IP",
 		DisableStartupMessage: true,
 		ServerHeader:          fmt.Sprintf("[werbot] %s-%s", "taco", version.Version()),
 	})
@@ -74,6 +85,14 @@ func main() {
 		}),
 		helmet.New(),
 		etag.New(),
+		// Throttle credential endpoints to slow password and token brute force.
+		limiter.New(limiter.Config{
+			Max:        20,
+			Expiration: time.Minute,
+			Next: func(c *fiber.Ctx) bool {
+				return !strings.HasPrefix(c.Path(), "/auth/")
+			},
+		}),
 	)
 
 	authMiddleware := middleware.Auth(redis).Execute()
@@ -104,7 +123,7 @@ func main() {
 	license.New(webHandler, internal.GetString("LICENSE_KEY_PUBLIC", "")).Routes()
 
 	// dynamic handlers
-	handler(webHandler)
+	registerAddons(webHandler)
 
 	// notFoundRoute func for describe 404 Error route.
 	app.Use(func(c *fiber.Ctx) error {
@@ -115,9 +134,11 @@ func main() {
 
 	ln, err := net.Listen("tcp", appPort)
 	if err != nil {
-		log.Fatal(err).Msg("Failed to listen on port")
+		return fmt.Errorf("failed to listen on %s: %w", appPort, err)
 	}
 	if err := app.Listener(ln); err != nil {
-		log.Fatal(err).Msg("Failed to create server")
+		return fmt.Errorf("failed to serve: %w", err)
 	}
+
+	return nil
 }

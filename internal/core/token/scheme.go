@@ -123,7 +123,7 @@ func (h *Handler) AddTokenSchemeAdd(ctx context.Context, in *tokenmessage.AddTok
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
-	fields := []string{"section", "action", "status", "project_id"}
+	fields := []string{fieldSection, fieldAction, fieldStatus, "project_id"}
 	args := []any{tokenenum.Section_scheme, tokenenum.Action_add, tokenenum.Status_sent, in.GetProjectId()}
 
 	var metaData *tokenmessage.MetaDataProfile
@@ -231,7 +231,7 @@ func (h *Handler) AddTokenSchemeAccess(ctx context.Context, in *tokenmessage.Add
 	}
 	// ----
 
-	fields := []string{"section", "action", "status", "scheme_id"}
+	fields := []string{fieldSection, fieldAction, fieldStatus, "scheme_id"}
 	args := []any{tokenenum.Section_scheme, tokenenum.Action_request, tokenenum.Status_sent, in.GetSchemeId()}
 
 	var metaData *tokenmessage.MetaDataProfile

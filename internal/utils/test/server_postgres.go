@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -98,7 +99,11 @@ func (gm *GooseMigrator) Migrate(_ context.Context, db *sql.DB, _ pgtestdb.Confi
 		return err
 	}
 
-	for _, dir := range gm.dirs {
+	// Every directory gets its own version table. Sharing one table breaks as
+	// soon as a core migration is newer than the data fixtures, because goose
+	// then refuses to apply the older fixture files.
+	for i, dir := range gm.dirs {
+		goose.SetTableName(fmt.Sprintf("goose_db_version_%d", i))
 		if err := goose.Up(db, dir); err != nil {
 			gm.test.Errorf("%s: %v", dir, err)
 		}

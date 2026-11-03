@@ -2129,13 +2129,13 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		return test.BodyTable{"activity": activity}
 	}
 
-	validDayValues := createRepeatedValues(23, 0)
+	validDayValues := createRepeatedValues(24, 0)
 	validDayValuesBody := createActivityTable(validDayValues, "", nil)
 
 	brokenDayValues := createRepeatedValues(22, 1)
 	brokenDayValuesBody := createActivityTable(validDayValues, "mon", brokenDayValues)
 
-	brokenDayValues2 := createRepeatedValues(23, 2)
+	brokenDayValues2 := createRepeatedValues(24, 2)
 	brokenDayValues2Body2 := createActivityTable(validDayValues, "mon", brokenDayValues2)
 
 	testTable := []test.APITable{
@@ -2195,7 +2195,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 				"code":    float64(400),
 				"message": "Bad Request",
 				"result": map[string]any{
-					"activity.mon": "value must contain at least 23 item(s)",
+					"activity.mon": "value must contain at least 24 item(s)",
 				},
 			},
 			RequestHeaders: adminHeader,
@@ -2334,7 +2334,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 				"code":    float64(400),
 				"message": "Bad Request",
 				"result": map[string]any{
-					"activity.mon": "value must contain at least 23 item(s)",
+					"activity.mon": "value must contain at least 24 item(s)",
 				},
 			},
 			RequestHeaders: userHeader,

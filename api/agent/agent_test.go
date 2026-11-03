@@ -9,7 +9,7 @@ import (
 )
 
 func TestHandler_auth(t *testing.T) {
-	app, teardownTestCase, _, _ := setupTest(t)
+	app, teardownTestCase, _ := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -50,7 +50,7 @@ func TestHandler_auth(t *testing.T) {
 }
 
 func TestHandler_addScheme(t *testing.T) {
-	app, teardownTestCase, adminHeader, _ := setupTest(t)
+	app, teardownTestCase, adminHeader := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{

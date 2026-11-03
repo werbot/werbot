@@ -5,8 +5,8 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	notificationmessage "github.com/werbot/werbot/internal/core/notification/proto/message"
 	notificationenum "github.com/werbot/werbot/internal/core/notification/proto/enum"
+	notificationmessage "github.com/werbot/werbot/internal/core/notification/proto/message"
 	"github.com/werbot/werbot/internal/core/notification/providers/mail"
 	"github.com/werbot/werbot/pkg/worker"
 )

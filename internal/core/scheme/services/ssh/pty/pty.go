@@ -45,7 +45,7 @@ func parseString(in []byte) (out string, rest []byte, ok bool) {
 		return
 	}
 	length := binary.BigEndian.Uint32(in)
-	if uint32(len(in)) < 4+length {
+	if uint32(len(in)) < 4+length { //nolint:gosec // G115: length is a 4-byte wire field, so len(in) < 4 GiB in practice
 		return
 	}
 	out = string(in[4 : 4+length])

@@ -102,10 +102,10 @@ func (h *Handler) SchemeMembers(ctx context.Context, in *membermessage.SchemeMem
 		}
 
 		protoutils.SetPgtypeTimestamps(member, map[string]pgtype.Timestamp{
-			"locked_at":   lockedAt,
-			"archived_at": archivedAt,
-			"updated_at":  updatedAt,
-			"created_at":  createdAt,
+			protoutils.FieldLockedAt:   lockedAt,
+			protoutils.FieldArchivedAt: archivedAt,
+			protoutils.FieldUpdatedAt:  updatedAt,
+			protoutils.FieldCreatedAt:  createdAt,
 		})
 
 		if !in.GetIsAdmin() {
@@ -261,6 +261,7 @@ func (h *Handler) UpdateSchemeMember(ctx context.Context, in *membermessage.Upda
 		return nil, trace.Error(errGRPC, log, nil)
 	}
 
+	//nolint:gosec // G201: column comes from a fixed whitelist
 	query := fmt.Sprintf(`
     UPDATE "scheme_member"
     SET "%s" = $1

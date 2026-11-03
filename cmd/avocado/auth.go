@@ -19,7 +19,7 @@ import (
 )
 
 func passwordAuthHandler() ssh.PasswordHandler {
-	return func(ctx ssh.Context, pass string) bool {
+	return func(ctx ssh.Context, _ string) bool {
 		actx := &authContext{
 			alias:      ctx.User(),
 			clientIP:   netutil.IP(ctx.RemoteAddr().String()),

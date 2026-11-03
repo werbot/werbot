@@ -66,18 +66,40 @@ func schemeAccess(ctx context.Context, schemeID, clientIP string) (*access.Acces
 		return nil, errors.New("scheme is not an SSH server")
 	}
 
-	aesKey := internal.GetString("SECURITY_AES_KEY", "3D6A619811A17396E45D514695DCDA3A")
+	aesKey := internal.GetString("SECURITY_AES_KEY", "")
+	if !crypto.CheckAESKey(aesKey) {
+		return nil, errors.New("SECURITY_AES_KEY must be a hex encoded 16, 24 or 32 byte AES key")
+	}
+
 	switch auth := serverSSH.GetAccess().(type) {
 	case *access.AccessScheme_Server_SSH_Password:
-		auth.Password.Password = crypto.TextDecrypt(auth.Password.GetPassword(), aesKey)
 		if isMasked(auth.Password.GetPassword()) {
 			return nil, errors.New("scheme password is masked by the server")
 		}
+		if auth.Password.GetPassword() != "" {
+			password, err := crypto.TextDecrypt(auth.Password.GetPassword(), aesKey)
+			if err != nil {
+				return nil, fmt.Errorf("decrypt scheme password: %w", err)
+			}
+			auth.Password.Password = password
+		}
 	case *access.AccessScheme_Server_SSH_Key:
-		auth.Key.GetKey().Private = crypto.TextDecrypt(auth.Key.GetKey().GetPrivate(), aesKey)
-		auth.Key.GetKey().Passphrase = crypto.TextDecrypt(auth.Key.GetKey().GetPassphrase(), aesKey)
 		if isMasked(auth.Key.GetKey().GetPrivate()) {
 			return nil, errors.New("scheme private key is masked by the server")
+		}
+		if auth.Key.GetKey().GetPrivate() != "" {
+			privateKey, err := crypto.TextDecrypt(auth.Key.GetKey().GetPrivate(), aesKey)
+			if err != nil {
+				return nil, fmt.Errorf("decrypt scheme private key: %w", err)
+			}
+			auth.Key.GetKey().Private = privateKey
+		}
+		if auth.Key.GetKey().GetPassphrase() != "" {
+			passphrase, err := crypto.TextDecrypt(auth.Key.GetKey().GetPassphrase(), aesKey)
+			if err != nil {
+				return nil, fmt.Errorf("decrypt scheme key passphrase: %w", err)
+			}
+			auth.Key.GetKey().Passphrase = passphrase
 		}
 	}
 
@@ -96,7 +118,7 @@ type session struct {
 }
 
 // newSession resolves scheme access, decrypts secrets and builds the SSH client config.
-func newSession(scheme *schemepb.Scheme_Response, actx *authContext, ctx context.Context) (*session, error) {
+func newSession(ctx context.Context, scheme *schemepb.Scheme_Response, actx *authContext) (*session, error) {
 	serverSSH, err := schemeAccess(ctx, scheme.GetSchemeId(), actx.clientIP)
 	if err != nil {
 		return nil, err

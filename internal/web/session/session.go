@@ -6,8 +6,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	golang_jwt "github.com/golang-jwt/jwt/v5"
 
-	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	profileenum "github.com/werbot/werbot/internal/core/profile/proto/enum"
+	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	"github.com/werbot/werbot/internal/web/jwt"
 	"github.com/werbot/werbot/pkg/uuid"
 )
@@ -35,28 +35,63 @@ func AuthProfile(c *fiber.Ctx) *ProfileParameters {
 
 	return &ProfileParameters{
 		Profile: &profilemessage.ProfileParameters{
-			Roles: profileenum.Role(profileenum.Role_role_unspecified),
+			Roles: profileenum.Role_role_unspecified,
 		},
 	}
 }
 
 // profileParameters extracts profile parameters from the Fiber context.
 // It retrieves the JWT token, extracts claims, and maps them to ProfileParameters.
+// Missing or malformed claims yield an unspecified profile instead of panicking,
+// so authorization checks reject the request.
 func profileParameters(c *fiber.Ctx) *ProfileParameters {
-	profile := c.Locals("user").(*golang_jwt.Token)
-	claims := profile.Claims.(golang_jwt.MapClaims)
-
-	context := claims["User"].(map[string]any)
-	role := profileenum.Role(context["roles"].(float64))
-	sessionID := claims["sub"].(string)
-
-	return &ProfileParameters{
-		Profile: &profilemessage.ProfileParameters{
-			ProfileId: context["profile_id"].(string),
-			Roles:     role,
-			SessionId: sessionID,
-		},
+	profile := &profilemessage.ProfileParameters{
+		Roles: profileenum.Role_role_unspecified,
 	}
+
+	token, ok := c.Locals("user").(*golang_jwt.Token)
+	if !ok || token == nil {
+		return &ProfileParameters{Profile: profile}
+	}
+
+	claims, ok := token.Claims.(golang_jwt.MapClaims)
+	if !ok {
+		return &ProfileParameters{Profile: profile}
+	}
+
+	if sessionID, ok := claims["sub"].(string); ok {
+		profile.SessionId = sessionID
+	}
+
+	context, ok := claims["User"].(map[string]any)
+	if !ok {
+		return &ProfileParameters{Profile: profile}
+	}
+
+	if profileID, ok := context["profile_id"].(string); ok {
+		profile.ProfileId = profileID
+	}
+	if role, ok := context["roles"].(float64); ok {
+		profile.Roles = profileenum.Role(role)
+	}
+
+	return &ProfileParameters{Profile: profile}
+}
+
+// TokenType returns the token style claim for the parsed JWT stored by the
+// authentication middleware. An empty result means the token is not usable.
+func TokenType(c *fiber.Ctx) string {
+	token, ok := c.Locals("user").(*golang_jwt.Token)
+	if !ok || token == nil {
+		return ""
+	}
+
+	claims, ok := token.Claims.(golang_jwt.MapClaims)
+	if !ok {
+		return ""
+	}
+
+	return jwt.TokenType(claims)
 }
 
 // ProfileID returns the provided input string if it is not empty and the profile has an admin role.
@@ -79,7 +114,8 @@ func (u *ProfileParameters) ProfileRole() profileenum.Role {
 }
 
 // SessionId returns the subject identifier for the profile.
-func (u *ProfileParameters) SessionId() string {
+// SessionID returns the session id of the profile.
+func (u *ProfileParameters) SessionID() string {
 	return u.Profile.GetSessionId()
 }
 

@@ -184,12 +184,3 @@ func (h *Handler) AddScheme(ctx context.Context, in *agentmessage.AddScheme_Requ
 }
 
 // UpdateScheme is ...
-//func (h *Handler) UpdateScheme(ctx context.Context, in *agentmessage.UpdateScheme_Request) (*agentmessage.UpdateScheme_Response, error) {
-//	if err := protoutils.ValidateRequest(in); err != nil {
-//		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
-//	}
-//
-//	response := &agentmessage.UpdateScheme_Response{}
-//
-//	return response, nil
-//}

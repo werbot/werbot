@@ -7,6 +7,12 @@ import (
 	"github.com/werbot/werbot/pkg/worker"
 )
 
+const (
+	fieldAction  = "action"
+	fieldSection = "section"
+	fieldStatus  = "status"
+)
+
 var log logger.Logger
 
 // Handler provides token management operations

@@ -63,6 +63,7 @@ func (d *Config) createToken(expire time.Duration, accessToken bool) (string, er
 	exp := now.Add(expire)
 
 	claims := UserClaims{
+		Type: TokenTypeRefresh,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   d.Context.GetSessionId(),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -72,6 +73,7 @@ func (d *Config) createToken(expire time.Duration, accessToken bool) (string, er
 	}
 
 	if accessToken {
+		claims.Type = TokenTypeAccess
 		claims.User = profilemessage.ProfileParameters{
 			Name:      d.Context.GetName(),
 			ProfileId: d.Context.GetProfileId(),
@@ -87,42 +89,42 @@ type SessionInfo struct {
 	ProfileID string `json:"profile_id" redis:"profile_id"`
 }
 
-// CacheFind search the entry with the specified key prefix and UUID from the cache.
+// CacheGet returns the session entry stored under keyPrefix:sessionID.
+// A missing or empty entry is reported as an error so callers cannot treat a
+// revoked session as valid.
 func CacheGet(redis *redis.Connect, keyPrefix, sessionID string) (*SessionInfo, error) {
 	key := keyPrefix + ":" + sessionID
 
-	var data SessionInfo
-	redis.Client.HGetAll(redis.Ctx, key).Scan(&data)
+	res, err := redis.Client.HGetAll(redis.Ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+	if len(res) == 0 {
+		return nil, errors.New("session not found")
+	}
 
-	//dataCache, err := redis.Client.Get(redis.Ctx, key).Result()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//var data SessionInfo
-	//if err := json.Unmarshal([]byte(dataCache), &data); err != nil {
-	//	return nil, err
-	//}
-	return &data, nil
+	return &SessionInfo{ProfileID: res["profile_id"]}, nil
 }
 
 // CacheAdd adds the given data to the cache with the specified key prefix and UUID.
-func CacheAdd(redis *redis.Connect, keyPrefix, sessionID string, data any) {
+func CacheAdd(redis *redis.Connect, keyPrefix, sessionID string, data any) error {
 	duration := internal.GetDuration(strings.ToUpper(keyPrefix)+"_DURATION", "168h")
 	key := keyPrefix + ":" + sessionID
 
-	redis.Client.HSet(redis.Ctx, key, data)
-	redis.Client.Expire(redis.Ctx, key, duration)
+	if err := redis.Client.HSet(redis.Ctx, key, data).Err(); err != nil {
+		return err
+	}
 
-	// jsonData, _ := json.Marshal(data)
-	// err := redis.Client.Set(redis.Ctx, key, jsonData, duration)
-	// return err == nil
+	return redis.Client.Expire(redis.Ctx, key, duration).Err()
 }
 
 // CacheDelete removes the entry with the specified key prefix and UUID from the cache.
+// It returns true only when an entry was actually removed.
 func CacheDelete(redis *redis.Connect, keyPrefix, sessionID string) bool {
 	key := keyPrefix + ":" + sessionID
-	return redis.Client.Del(redis.Ctx, key) == nil
+
+	removed, err := redis.Client.Del(redis.Ctx, key).Result()
+	return err == nil && removed > 0
 }
 
 // -----------
@@ -147,7 +149,5 @@ func verifyToken(token *jwt.Token) (any, error) {
 
 // CustomKeyFunc is ...
 func CustomKeyFunc() jwt.Keyfunc {
-	return func(t *jwt.Token) (any, error) {
-		return verifyToken(t)
-	}
+	return verifyToken
 }

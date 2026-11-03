@@ -220,6 +220,61 @@ func Test_SystemSchemeAccess(t *testing.T) {
 				"access.server_ssh.password.password": "***",
 			},
 		},
+		{ // last hour of a 24 element grid is allowed
+			Name: "test0_07",
+			Request: &schemepb.SystemSchemeAccess_Request{
+				SchemeId: test.ConstAdminSchemeSSH1ID,
+				ClientIp: "64.233.162.100",
+				Timestamp: &timestamppb.Timestamp{ // 2024-09-16 23:18:09.455761+00
+					Seconds: 1726528689,
+					Nanos:   455761000,
+				},
+			},
+			Response: test.BodyTable{
+				"project_id":                          test.ConstAdminProject1ID,
+				"scheme_type":                         float64(103),
+				"access.server_ssh.alias":             "onxzU5",
+				"access.server_ssh.password.password": "***",
+			},
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.Name, func(t *testing.T) {
+			test.RunCaseGRPCTests(t, handler, tt)
+		})
+	}
+}
+
+// Test_SystemSchemeAccessGeoIPUnavailable verifies that an unavailable GeoIP
+// database denies scheme access instead of failing open.
+func Test_SystemSchemeAccessGeoIPUnavailable(t *testing.T) {
+	t.Setenv("SECURITY_GEOIP2", "../../../docker/core/missing.mmdb")
+
+	setup, teardownTestCase := test.GRPC(t)
+	defer teardownTestCase(t)
+
+	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
+		a := schemepb.NewSchemeHandlersClient(setup)
+		return a.SystemSchemeAccess(ctx, req.(*schemepb.SystemSchemeAccess_Request))
+	}
+
+	testTable := []test.GRPCTable{
+		{
+			Name: "geoip_database_missing",
+			Request: &schemepb.SystemSchemeAccess_Request{
+				SchemeId: test.ConstAdminSchemeSSH1ID,
+				ClientIp: "64.233.162.100",
+				Timestamp: &timestamppb.Timestamp{
+					Seconds: 1726449489,
+					Nanos:   455761000,
+				},
+			},
+			Error: test.ErrGRPC{
+				Code:    codes.PermissionDenied,
+				Message: "Access is denied for this country",
+			},
+		},
 	}
 
 	for _, tt := range testTable {

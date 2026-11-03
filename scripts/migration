@@ -44,6 +44,7 @@ run_goose() {
     echo
     echo "command:"
     print_help "<empty>" "Core version"
+    print_help all "Core and all installed add-ons"
     print_help ee "Enterprise version"
     print_help saas "SaaS version"
     print_help test "Test version"
@@ -60,43 +61,107 @@ run_goose() {
   fi
 }
 
-arr_type=(ee saas test)
+# run_goose_dir runs a goose action for one directory with its own version table,
+# so core and add-on migrations never share goose history.
+run_goose_dir() {
+  local dir="$1" table="$2" action="$3"
+  (
+    MIGRATION_DIR="$dir"
+    DB_POSTFIX="$table"
+    run_goose "$action"
+  )
+}
+
+# addon_migration_dirs lists `<name> <dir>` pairs for every installed add-on
+# that ships migration files. Missing or empty add-on dirs (uninitialized
+# submodules) are skipped.
+addon_migration_dirs() {
+  local addon_path addon_name addon_migration
+  for addon_path in "${ROOT_PATH}"/add-on/*/; do
+    addon_name=$(basename "${addon_path}")
+    addon_migration="${addon_path}migration"
+    [ -d "${addon_migration}" ] || continue
+    compgen -G "${addon_migration}/*.sql" >/dev/null || continue
+    echo "${addon_name} ${addon_migration}"
+  done
+}
+
+# run_all_migrations applies core migrations first, then every installed add-on.
+# Rolling back goes in reverse order because add-on tables reference core tables.
+run_all_migrations() {
+  local action="$1" addon_name addon_migration
+  local -a addon_names=() addon_dirs=()
+
+  while read -r addon_name addon_migration; do
+    [ -n "${addon_name}" ] || continue
+    addon_names+=("${addon_name}")
+    addon_dirs+=("${addon_migration}")
+  done < <(addon_migration_dirs)
+
+  if [ "${action}" == "down" ]; then
+    local idx
+    for ((idx = ${#addon_dirs[@]} - 1; idx >= 0; idx--)); do
+      run_goose_dir "${addon_dirs[$idx]}" "${DB_POSTFIX}_${addon_names[$idx]}" "${action}"
+    done
+    run_goose_dir "${ROOT_PATH}/migration" "${DB_POSTFIX}" "${action}"
+  else
+    run_goose_dir "${ROOT_PATH}/migration" "${DB_POSTFIX}" "${action}"
+    local idx
+    for idx in "${!addon_dirs[@]}"; do
+      run_goose_dir "${addon_dirs[$idx]}" "${DB_POSTFIX}_${addon_names[$idx]}" "${action}"
+    done
+  fi
+}
+
+# assemble_fixtures collects fixture migrations from core and every installed
+# add-on into one directory. Core migrations are NOT copied: fixtures are data
+# only and are tracked in their own goose history table.
+assemble_fixtures() {
+  local fixture_dir="${ROOT_PATH}/.vscode/migrate_tmp"
+  local source_dir file_migrate base_name
+
+  rm -rf "${fixture_dir}"
+  mkdir -p "${fixture_dir}"
+
+  for source_dir in "${ROOT_PATH}/fixtures/migration" "${ROOT_PATH}"/add-on/*/fixtures/migration; do
+    [ -d "${source_dir}" ] || continue
+    for file_migrate in "${source_dir}"/*.sql; do
+      [ -f "${file_migrate}" ] || continue
+      base_name=$(basename "${file_migrate}")
+      if [ -e "${fixture_dir}/${base_name}" ]; then
+        print_answer "ERROR" red
+        echo "Duplicate fixture migration file name: ${base_name} (${source_dir})"
+        exit 1
+      fi
+      cp "${file_migrate}" "${fixture_dir}/"
+    done
+  done
+}
+
+arr_type=(all ee saas test)
 if [[ " ${arr_type[*]} " =~ " $MIGRATION " ]]; then
   print_header "Migrations sql $MIGRATION:$GOOSE_ACTION"
 
-  if [ "$MIGRATION" == "ee" ]; then
-    MIGRATION_DIR=${ROOT_PATH}/add-on/ee/migration
-    DB_POSTFIX=${DB_POSTFIX}"_ee"
-  elif [ "$MIGRATION" == "saas" ]; then
-    MIGRATION_DIR=${ROOT_PATH}/add-on/saas/migration
-    DB_POSTFIX=${DB_POSTFIX}"_saas"
+  if [ "$MIGRATION" == "all" ]; then
+    run_all_migrations "$GOOSE_ACTION"
+  elif [ "$MIGRATION" == "ee" ] || [ "$MIGRATION" == "saas" ]; then
+    run_goose_dir "${ROOT_PATH}/add-on/${MIGRATION}/migration" "${DB_POSTFIX}_${MIGRATION}" "$GOOSE_ACTION"
   elif [ "$MIGRATION" == "test" ]; then
-    if ! [ -d ${ROOT_PATH}/.vscode/migrate_tmp ]; then
-      mkdir ${ROOT_PATH}/.vscode/migrate_tmp
-    fi
-    for file_migrate in $(find ${ROOT_PATH} -path '*/fixtures/migration/*' | sort -r); do
-      cp "$file_migrate" ${ROOT_PATH}/.vscode/migrate_tmp/
-    done
-    MIGRATION_DIR=${ROOT_PATH}/.vscode/migrate_tmp
-    DB_POSTFIX=${DB_POSTFIX}"_test"
+    assemble_fixtures
+    run_goose_dir "${ROOT_PATH}/.vscode/migrate_tmp" "${DB_POSTFIX}_test" "$GOOSE_ACTION"
   fi
-  run_goose $GOOSE_ACTION
 elif [[ $MIGRATION == "dev" ]]; then
   arr_goose=(up down reset)
   if [[ " ${arr_goose[*]} " =~ " $GOOSE_ACTION " ]]; then
     SOURCE=${BASH_SOURCE[0]}
     case $GOOSE_ACTION in
     up)
-      $SOURCE up
-      $SOURCE ee up
-      $SOURCE saas up
+      $SOURCE all up
       $SOURCE test up
       ;;
     down)
       $SOURCE test down
-      $SOURCE saas down
-      $SOURCE ee down
-      $SOURCE down
+      $SOURCE all down
       ;;
     reset)
       $SOURCE dev down

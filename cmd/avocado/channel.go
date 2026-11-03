@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -47,7 +48,7 @@ func connectToHost(scheme *schemepb.Scheme_Response, actx *authContext, sshCtx s
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err := newSession(scheme, actx, ctx)
+	client, err := newSession(ctx, scheme, actx)
 	if err != nil {
 		app.log.Error(err).Msg("Bastion ClientConfig error")
 		actx.message = fmt.Sprintf("%v", err)
@@ -94,8 +95,8 @@ func connectToHost(scheme *schemepb.Scheme_Response, actx *authContext, sshCtx s
 
 func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context) {
 	switch newChan.ChannelType() {
-	case "session":
-	case "direct-tcpip":
+	case channelTypeSession:
+	case channelTypeDirectTCPIP:
 	default:
 		if err := newChan.Reject(gossh.UnknownChannelType, "unsupported channel type"); err != nil {
 			app.log.Error(err).Msg("Failed to reject channel")
@@ -180,17 +181,17 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 
 			term := term.NewTerminal(ch, "Select scheme or push enter to exit > ")
 			selected, _ := term.ReadLine()
-			selectedIndex := strutil.ToInt32(selected)
+			selectedIndex := int(strutil.ToInt32(selected))
 
 			switch {
-			case selectedIndex <= int32(len(actx.serverList)) && selectedIndex > 0:
+			case selectedIndex <= len(actx.serverList) && selectedIndex > 0:
 				selectedIndex--
 				scheme := actx.serverList[selectedIndex]
 				actx.schemeID = scheme.GetSchemeId()
 				sendMessageInChannel(ch, "Connect to scheme-name: "+scheme.GetTitle()+"\n")
 				connectToHost(scheme, actx, ctx, newChan, srv, conn, channelTunnel{ch, req, err})
 
-			case selectedIndex > int32(len(actx.serverList)):
+			case selectedIndex > len(actx.serverList):
 				sendMessageInChannel(ch, "\nScheme was not found\nBye-Bye! :(\n\n")
 				_ = ch.Close()
 
@@ -238,11 +239,11 @@ func channelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewCh
 	_ = ch.Close()
 }
 
-func multiChannelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx ssh.Context, configs []sessionConfig) error {
+func multiChannelHandler(_ *ssh.Server, _ *gossh.ServerConn, newChan gossh.NewChannel, _ ssh.Context, configs []sessionConfig) error {
 	var lastClient *gossh.Client
 
 	switch newChan.ChannelType() {
-	case "session":
+	case channelTypeSession:
 		lch, lreqs, err := configs[0].Channel.lch, configs[0].Channel.lreqs, configs[0].Channel.err
 		if err != nil {
 			return errors.New("duplicate response received for channel")
@@ -271,13 +272,13 @@ func multiChannelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.
 			lastClient = client
 		}
 
-		rch, rreqs, err := lastClient.OpenChannel("session", []byte{})
+		rch, rreqs, err := lastClient.OpenChannel(channelTypeSession, []byte{})
 		if err != nil {
 			return err
 		}
 		return pipe(lreqs, rreqs, lch, rch, newChan, configs[0])
 
-	case "direct-tcpip":
+	case channelTypeDirectTCPIP:
 		lch, lreqs, err := configs[0].Channel.lch, configs[0].Channel.lreqs, configs[0].Channel.err
 		if err != nil {
 			return errors.New("duplicate response received for channel")
@@ -306,7 +307,7 @@ func multiChannelHandler(srv *ssh.Server, conn *gossh.ServerConn, newChan gossh.
 			lastClient = client
 		}
 
-		rch, rreqs, err := lastClient.OpenChannel("direct-tcpip", newChan.ExtraData())
+		rch, rreqs, err := lastClient.OpenChannel(channelTypeDirectTCPIP, newChan.ExtraData())
 		if err != nil {
 			return err
 		}
@@ -345,7 +346,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 	}
 
 	channeltype := newChan.ChannelType()
-	if channeltype == "session" {
+	if channeltype == channelTypeSession {
 		go func(quit chan string) {
 			_, _ = io.Copy(logChannel, rch)
 			quit <- "rch"
@@ -357,13 +358,17 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 		}(quit)
 	}
 
-	if channeltype == "direct-tcpip" {
+	if channeltype == channelTypeDirectTCPIP {
 		d := auditor.ForwardData{}
 		if err := gossh.Unmarshal(newChan.ExtraData(), &d); err != nil {
 			return err
 		}
-		wrappedlch := auditor.NewLogtunnel(lch, lch, d.SourceHost)
-		wrappedrch := auditor.NewLogtunnel(rch, lch, d.DestinationHost)
+
+		// Tunnel payload is a raw byte stream. The recording sink must be
+		// separate from the client channel; writing the log back into lch
+		// echoed target traffic to the client.
+		wrappedlch := auditor.NewLogtunnel(lch, io.Discard, d.SourceHost)
+		wrappedrch := auditor.NewLogtunnel(rch, io.Discard, d.DestinationHost)
 		go func(quit chan string) {
 			_, _ = io.Copy(wrappedlch, rch)
 			quit <- "rch"
@@ -388,7 +393,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 			b, err := rch.SendRequest(req.Type, req.WantReply, req.Payload)
 			if req.Type == "exec" {
 				if wrapped := auditor.NewLogchannel(newAudit, lch, app.grpc, recordCount); wrapped != nil {
-					command := append(req.Payload, []byte("\n")...)
+					command := append(slices.Clone(req.Payload), '\n')
 					if _, err := wrapped.Write(command); err != nil {
 						app.log.Error(err).Msg("failed to write log")
 					}
@@ -401,8 +406,8 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 
 				_, err = rClient.UpdateAudit(_ctx, &auditmessage.UpdateAudit_Request{
 					AuditId: auditID,
-					Width:   int32(ptyReq.Width),
-					Height:  int32(ptyReq.Height),
+					Width:   int32(ptyReq.Width),  //nolint:gosec // G115: pty dimensions come from a 4-byte wire field
+					Height:  int32(ptyReq.Height), //nolint:gosec // G115: pty dimensions come from a 4-byte wire field
 					EnvTerm: ptyReq.EnvTerm,
 				})
 				if err != nil {

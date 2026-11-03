@@ -9,11 +9,11 @@ import (
 )
 
 func Test_DbgActivityValidation(t *testing.T) {
-	bad := make([]int32, 23)
+	bad := make([]int32, 24)
 	for i := range bad {
 		bad[i] = 2
 	}
-	good := make([]int32, 23)
+	good := make([]int32, 24)
 
 	req := &schemepb.UpdateSchemeActivity_Request{
 		OwnerId:   "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",

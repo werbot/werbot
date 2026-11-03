@@ -4,8 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	event "github.com/werbot/werbot/internal/core/event/recorder"
-	profilerpc "github.com/werbot/werbot/internal/core/profile/proto/rpc"
 	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
+	profilerpc "github.com/werbot/werbot/internal/core/profile/proto/rpc"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
@@ -181,7 +181,7 @@ func (h *Handler) updateProfile(c *fiber.Ctx) error {
 func (h *Handler) deleteProfile(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &profilemessage.DeleteProfile_Request{
-		ProfileId: sessionData.ProfileID(c.Query("profiles")),
+		ProfileId: sessionData.ProfileID(c.Query("profile_id")),
 	}
 
 	// using on step 1

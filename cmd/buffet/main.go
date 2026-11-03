@@ -6,11 +6,11 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
-	"os"
 
 	"github.com/joho/godotenv"
 
 	"github.com/werbot/werbot/internal"
+	"github.com/werbot/werbot/internal/addon"
 	grpc "github.com/werbot/werbot/internal/core"
 	"github.com/werbot/werbot/internal/version"
 	"github.com/werbot/werbot/pkg/logger"
@@ -22,6 +22,12 @@ import (
 var log = logger.New()
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err).Send()
+	}
+}
+
+func run() error {
 	// Load config from environment variables
 	godotenv.Load(".env", "/etc/werbot/.env")
 
@@ -43,7 +49,7 @@ func main() {
 		MaxLifetimeConn: internal.GetInt("PSQLSERVER_MAX_LIFETIME_CONN", 300),
 	})
 	if err != nil {
-		log.Fatal(err).Msg("Failed to connect to database")
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	// Connect to Redis
@@ -68,13 +74,12 @@ func main() {
 		internal.GetString("GRPCSERVER_PRIVATE_KEY", "./grpc_private.key"),
 	)
 	if err != nil {
-		log.Fatal().Msg("Failed to parse GRPC keys pair")
-		os.Exit(1)
+		return fmt.Errorf("failed to parse GRPC keys pair: %w", err)
 	}
 
 	cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
-		log.Fatal(err).Msg("Failed to parse certificate")
+		return fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
 	certPool := x509.NewCertPool()
@@ -85,12 +90,15 @@ func main() {
 	log.Info().Str("serverAddress", serverAddr).Str("version", version.Version()).Msg("Starting buffet server")
 
 	s := grpc.NewServer(db, redis, asynq, cert)
+	registerAddons(s, addon.Deps{DB: db, Redis: redis, Worker: asynq})
 
 	lis, err := net.Listen("tcp", serverAddr)
 	if err != nil {
-		log.Fatal(err).Msg("Failed to listen")
+		return fmt.Errorf("failed to listen: %w", err)
 	}
 	if err := s.Serve(lis); err != nil {
-		log.Fatal(err).Msg("Failed to serve")
+		return fmt.Errorf("failed to serve: %w", err)
 	}
+
+	return nil
 }

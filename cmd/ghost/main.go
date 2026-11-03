@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/joho/godotenv"
 
@@ -15,6 +19,12 @@ import (
 var log logger.Logger
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err).Send()
+	}
+}
+
+func run() error {
 	godotenv.Load(".env", "/etc/werbot/.env")
 
 	log = logger.New()
@@ -22,7 +32,7 @@ func main() {
 
 	grpcClient, err := grpc.NewClient()
 	if err != nil {
-		log.Fatal(err).Send()
+		return err
 	}
 	defer grpcClient.Close()
 
@@ -32,9 +42,20 @@ func main() {
 		"1",
 	)
 
-	worker.New(redisURI, grpcClient)
+	workerServer, err := worker.New(redisURI, grpcClient)
+	if err != nil {
+		return err
+	}
+	defer workerServer.Shutdown()
 
-	// hack
-	var input string
-	fmt.Scanf("%v", &input)
+	// The asynq server starts in the background, so the process has to block
+	// until it is asked to stop. Without this, a detached container would exit
+	// immediately because stdin is EOF.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	<-ctx.Done()
+	log.Info().Msg("Shutting down ghost server")
+
+	return nil
 }

@@ -155,6 +155,14 @@ func (h *Handler) SystemSchemeAccess(ctx context.Context, in *schemepb.SystemSch
 		return nil, trace.Error(err, log, nil)
 	}
 
+	countryCode := ipInfo.GetCountryCode()
+	if countryCode == "" {
+		// The country cannot be resolved, so the country policy cannot be
+		// evaluated safely. Deny access instead of treating it as a match.
+		errGRPC := status.Error(codes.PermissionDenied, trace.MsgAccessIsDeniedCountry)
+		return nil, trace.Error(errGRPC, log, nil)
+	}
+
 	// check access for scheme
 	query := `
     WITH ctime AS (
@@ -226,7 +234,7 @@ func (h *Handler) SystemSchemeAccess(ctx context.Context, in *schemepb.SystemSch
 	err = h.DB.Conn.QueryRowContext(ctx, query,
 		in.GetSchemeId(),
 		in.GetClientIp(),
-		ipInfo.GetCountryCode(),
+		countryCode,
 		currentTime,
 	).Scan(
 		&response.ProjectId,

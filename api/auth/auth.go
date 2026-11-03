@@ -52,7 +52,9 @@ func (h *Handler) signIn(c *fiber.Ctx) error {
 	// Adding access and refresh tokens to the cache
 	cacheData := jwt.SessionInfo{ProfileID: profile.GetProfileId()}
 	for _, token := range []string{"access_token", "refresh_token"} {
-		jwt.CacheAdd(h.Redis, token, sessionID, cacheData)
+		if err := jwt.CacheAdd(h.Redis, token, sessionID, cacheData); err != nil {
+			return webutil.StatusInternalServerError(c, "Failed to cache session")
+		}
 	}
 
 	// Log the event
@@ -82,7 +84,7 @@ func (h *Handler) logout(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 
 	for _, token := range []string{"access_token", "refresh_token"} {
-		jwt.CacheDelete(h.Redis, token, sessionData.SessionId())
+		jwt.CacheDelete(h.Redis, token, sessionData.SessionID())
 	}
 
 	// Log the event
@@ -108,6 +110,10 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 	claimsRefresh, err := jwt.Parse(request.Refresh)
 	if err != nil {
 		return webutil.StatusBadRequest(c, "Impossible to parse the key")
+	}
+
+	if jwt.TokenType(claimsRefresh) != jwt.TokenTypeRefresh {
+		return webutil.StatusBadRequest(c, "Invalid token type")
 	}
 
 	sessionID, err := claimsRefresh.GetSubject()
@@ -138,7 +144,9 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 	}
 
 	cacheData := jwt.SessionInfo{ProfileID: sessionData.ProfileID}
-	jwt.CacheAdd(h.Redis, "access_token", sessionID, cacheData)
+	if err := jwt.CacheAdd(h.Redis, "access_token", sessionID, cacheData); err != nil {
+		return webutil.StatusInternalServerError(c, "Failed to cache session")
+	}
 
 	newToken, err := jwtConfig.PairTokens()
 	if err != nil {
@@ -176,13 +184,6 @@ func (h *Handler) resetPassword(c *fiber.Ctx) error {
 	if err != nil {
 		return webutil.FromGRPC(c, err)
 	}
-
-	// profileID := response.GetProfileId()
-	// response.ProfileId = ""
-	//result, err := protoutils.ConvertProtoMessageToMap(response)
-	//if err != nil {
-	//	return webutil.FromGRPC(c, err)
-	//}
 
 	// Log the event
 	var eventType event.Type

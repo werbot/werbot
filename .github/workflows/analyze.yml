@@ -39,6 +39,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
+      with:
+        submodules: true
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Go
       uses: actions/setup-go@v6
@@ -50,16 +53,12 @@ jobs:
       uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
+        build-mode: manual
       timeout-minutes: 10
-
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v4
-      if: ${{ matrix.language != 'go' }}
-      timeout-minutes: 30
 
     - name: Build Werbot microservices
       run: |
-        make prod_build
+        go build ./...
       if: ${{ matrix.language == 'go' }}
 
     - name: Perform CodeQL Analysis
