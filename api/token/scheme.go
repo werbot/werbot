@@ -3,6 +3,7 @@ package token
 import (
 	"github.com/gofiber/fiber/v2"
 
+	notificationenum "github.com/werbot/werbot/internal/core/notification/proto/enum"
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	tokenpb "github.com/werbot/werbot/internal/core/token/proto/rpc"
@@ -88,6 +89,18 @@ func (h *Handler) addSchemeToken(c *fiber.Ctx) error {
 	tokenData, err := rClient.AddTokenSchemeAccess(c.UserContext(), request)
 	if err != nil {
 		return webutil.FromGRPC(c, err)
+	}
+
+	// Email delivery must not fail the invite.
+	if body.Email != "" {
+		h.sendInviteMail(
+			c.UserContext(),
+			body.Email,
+			tokenData.GetToken(),
+			notificationenum.MailTemplate_scheme_invite,
+			"invite/token",
+			"server invitation",
+		)
 	}
 
 	result, err := protoutils.ConvertProtoMessageToMap(tokenData)

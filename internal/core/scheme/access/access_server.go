@@ -80,6 +80,7 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 	schemeType := schemeaccesspb.SchemeType_server_ssh
 	newAccess := in.ServerSsh
 
+	var oldPassword string
 	if s.sh.Update != nil {
 		if schemeType != s.schemeType {
 			errGRPC := status.Error(codes.InvalidArgument, trace.MsgSchemeDiffers)
@@ -89,6 +90,9 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 		var oldAccess schemeaccesspb.AccessScheme_Server_SSH
 		if err := protojson.Unmarshal(s.schemeByte, &oldAccess); err != nil {
 			return nil, trace.Error(err, s.sh.Log, nil)
+		}
+		if oldPw, ok := oldAccess.GetAccess().(*schemeaccesspb.AccessScheme_Server_SSH_Password); ok {
+			oldPassword = oldPw.Password.GetPassword()
 		}
 
 		// check auth methods
@@ -101,7 +105,6 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 
 		// replace alias
 		newAccess.Alias = oldAccess.GetAlias()
-
 		// update address
 		if newAccess.GetAddress() == "" {
 			newAccess.Address = oldAccess.GetAddress()
@@ -117,6 +120,16 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 
 	switch accessTmp := newAccess.GetAccess().(type) {
 	case *schemeaccesspb.AccessScheme_Server_SSH_Password:
+		// Editing address/port or login keeps the existing encrypted password
+		// when the client does not send a new one.
+		if s.sh.Update != nil && accessTmp.Password.GetPassword() == "" && oldPassword != "" {
+			accessTmp.Password.Password = oldPassword
+			break
+		}
+		if accessTmp.Password.GetPassword() == "" {
+			errGRPC := status.Error(codes.InvalidArgument, "password is required")
+			return nil, trace.Error(errGRPC, s.sh.Log, nil)
+		}
 		password, err := encryptSecret(accessTmp.Password.GetPassword())
 		if err != nil {
 			return nil, trace.Error(err, s.sh.Log, nil)

@@ -39,6 +39,7 @@ func tmplMail(tmpl notificationenum.MailTemplate) (template string) {
 		notificationenum.MailTemplate_project_invite:                "project-invite",
 		notificationenum.MailTemplate_account_deletion_confirmation: "account-deletion-confirmation",
 		notificationenum.MailTemplate_account_deletion_info:         "account-deletion-info",
+		notificationenum.MailTemplate_scheme_invite:                 "scheme-invite",
 	}
 
 	return templateMap[tmpl]

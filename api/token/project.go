@@ -117,13 +117,31 @@ func (h *Handler) addProjectToken(c *fiber.Ctx) error {
 // sendProjectInvite enqueues the project invitation email. Errors are logged
 // because the invite itself has already been created.
 func (h *Handler) sendProjectInvite(ctx context.Context, email, token string) {
-	link := fmt.Sprintf("%s/invite/project/%s", internal.GetString("APP_DSN", "http://localhost:5173"), token)
+	h.sendInviteMail(
+		ctx,
+		email,
+		token,
+		notificationenum.MailTemplate_project_invite,
+		"invite/project",
+		"project invitation",
+	)
+}
+
+// sendInviteMail enqueues an invitation email. Errors are logged because the
+// invite itself has already been created.
+func (h *Handler) sendInviteMail(
+	ctx context.Context,
+	email, token string,
+	template notificationenum.MailTemplate,
+	path, subject string,
+) {
+	link := fmt.Sprintf("%s/%s/%s", internal.GetString("APP_DSN", "http://localhost:5173"), path, token)
 
 	rClient := notificationrpc.NewNotificationHandlersClient(h.Grpc)
 	_, err := rClient.SendMail(ctx, &notificationmessage.SendMail_Request{
 		Email:    email,
-		Subject:  "project invitation",
-		Template: notificationenum.MailTemplate_project_invite,
+		Subject:  subject,
+		Template: template,
 		Data: map[string]string{
 			"Link": link,
 		},
