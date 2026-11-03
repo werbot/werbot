@@ -71,6 +71,7 @@ message UpdateAudit {
     google.protobuf.Timestamp time_end = 6;
 
     string profile_id = 7 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string session = 8 [(buf.validate.field).required = true]; // @gotags: json:"-"
   }
 
   message Response {}
@@ -82,6 +83,7 @@ message DeleteAudit {
   message Request {
     string audit_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
     string profile_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string session = 3 [(buf.validate.field).required = true]; // @gotags: json:"-"
   }
 
   message Response {}
@@ -117,6 +119,7 @@ message AddRecord {
     string audit_id = 1 [(buf.validate.field).string.uuid = true]; // @gotags: json:"-"
     repeated Record records = 2;
     string profile_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true]; // @gotags: json:"-"
+    string session = 4 [(buf.validate.field).required = true]; // @gotags: json:"-"
   }
 
   message Response {}

@@ -26,6 +26,7 @@ import (
 	"github.com/werbot/werbot/api/project"
 	"github.com/werbot/werbot/api/scheme"
 	"github.com/werbot/werbot/api/system"
+	"github.com/werbot/werbot/api/token"
 	"github.com/werbot/werbot/api/websocket"
 	"github.com/werbot/werbot/api/wellknown"
 	"github.com/werbot/werbot/internal"
@@ -123,6 +124,7 @@ func run() error {
 	profile.New(webHandler).Routes()
 	system.New(webHandler).Routes()
 	event.New(webHandler).Routes()
+	token.New(webHandler).Routes()
 
 	websocket.New(webHandler).Routes()
 

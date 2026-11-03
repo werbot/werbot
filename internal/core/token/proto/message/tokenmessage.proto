@@ -49,6 +49,7 @@ message Token {
     string profile_id = 6 [(ghoster.secret) = true];
     string project_id = 7 [(ghoster.secret) = true];
     string scheme_id = 8 [(ghoster.secret) = true];
+    bool profile_exists = 9;
     oneof data {
       token.message.MetaDataProfile profile = 20;
       token.message.MetaDataScheme scheme = 21;

@@ -350,6 +350,8 @@ func (h *Handler) UpdateSchemeToken(ctx context.Context, in *tokenmessage.Update
 		return nil
 	}
 
+	profileID := tokenData.GetProfileId()
+
 	// -----
 	// adding a new scheme to the project
 	if tokenData.GetAction() == tokenenum.Action_add &&
@@ -365,17 +367,56 @@ func (h *Handler) UpdateSchemeToken(ctx context.Context, in *tokenmessage.Update
 			}
 		}
 	}
+
+	// accepting a scheme access invite
+	if tokenData.GetAction() == tokenenum.Action_request &&
+		in.GetStatus() == tokenenum.Status_done &&
+		tokenData.GetProfileId() == "" {
+		if err := addCondition("profile_id", in.GetProfileId()); err != nil {
+			return nil, err
+		}
+		profileID = in.GetProfileId()
+	}
 	// -----
 
 	query = postgres.SQLGluing(query, `WHERE "id" = $1`)
 
-	result, err := h.DB.Conn.ExecContext(ctx, query, args...)
+	tx, err := h.DB.Conn.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, trace.Error(err, log, trace.MsgTransactionCreateError)
+	}
+	defer tx.Rollback()
+
+	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return nil, handleSQLError(err)
 	}
 
 	if rows, _ := result.RowsAffected(); rows == 0 {
 		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgTokenNotFound), log, nil)
+	}
+
+	// Accepting a scheme invite also grants project and scheme membership.
+	if tokenData.GetAction() == tokenenum.Action_request && in.GetStatus() == tokenenum.Status_done {
+		if profileID == "" {
+			return nil, trace.Error(status.Error(codes.InvalidArgument, trace.MsgInvalidArgument), log, "profile_id: value is required")
+		}
+
+		schemeID := tokenData.GetSchemeId()
+		if schemeID == "" {
+			schemeID = in.GetSchemeId()
+		}
+		if schemeID == "" {
+			return nil, trace.Error(status.Error(codes.InvalidArgument, trace.MsgInvalidArgument), log, "scheme_id: value is required")
+		}
+
+		if err := addSchemeMemberForToken(ctx, tx, schemeID, profileID); err != nil {
+			return nil, trace.Error(err, log, trace.MsgFailedToAdd)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, trace.Error(err, log, trace.MsgTransactionCommitError)
 	}
 
 	// TODO: send email message if need

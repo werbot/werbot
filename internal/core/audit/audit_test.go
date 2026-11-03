@@ -141,6 +141,7 @@ func Test_UpdateAudit(t *testing.T) {
 		_, err := client.UpdateAudit(context.Background(), &auditmessage.UpdateAudit_Request{
 			AuditId:   test.ConstFakeID,
 			ProfileId: test.ConstAdminID,
+			Session:   "session-update",
 			Duration:  "1.5",
 		})
 		if err == nil {
@@ -155,6 +156,7 @@ func Test_UpdateAudit(t *testing.T) {
 		_, err := client.UpdateAudit(context.Background(), &auditmessage.UpdateAudit_Request{
 			AuditId:   created.GetAuditId(),
 			ProfileId: test.ConstUserID,
+			Session:   "session-update",
 			Duration:  "12.500000",
 			TimeEnd:   timestamppb.Now(),
 		})
@@ -168,6 +170,7 @@ func Test_UpdateAudit(t *testing.T) {
 		if _, err := client.UpdateAudit(context.Background(), &auditmessage.UpdateAudit_Request{
 			AuditId:   created.GetAuditId(),
 			ProfileId: test.ConstAdminID,
+			Session:   "session-update",
 			Width:     120,
 			Height:    40,
 			EnvTerm:   "xterm-256color",
@@ -199,6 +202,7 @@ func Test_AuditRecords(t *testing.T) {
 	if _, err := client.AddRecord(context.Background(), &auditmessage.AddRecord_Request{
 		AuditId:   auditID,
 		ProfileId: test.ConstUserID,
+		Session:   "session-records",
 		Records: []*auditmessage.Record{
 			{Duration: "0.100000", Screen: "hello", Type: "o"},
 			{Duration: "0.200000", Screen: "world", Type: "o"},
@@ -240,6 +244,7 @@ func Test_AuditRecords(t *testing.T) {
 		if _, err := client.DeleteAudit(context.Background(), &auditmessage.DeleteAudit_Request{
 			AuditId:   auditID,
 			ProfileId: test.ConstUserID,
+			Session:   "session-records",
 		}); err != nil {
 			t.Fatalf("delete audit: %v", err)
 		}
@@ -297,6 +302,7 @@ func Test_AuditAuthorization(t *testing.T) {
 		_, err := client.UpdateAudit(context.Background(), &auditmessage.UpdateAudit_Request{
 			AuditId:   auditID,
 			ProfileId: test.ConstUser1ID,
+			Session:   "session-auth",
 			Duration:  "1.5",
 		})
 		if code := status.Code(err); code != codes.PermissionDenied {
@@ -308,6 +314,7 @@ func Test_AuditAuthorization(t *testing.T) {
 		_, err := client.AddRecord(context.Background(), &auditmessage.AddRecord_Request{
 			AuditId:   auditID,
 			ProfileId: test.ConstUser1ID,
+			Session:   "session-auth",
 			Records: []*auditmessage.Record{
 				{Duration: "0.100000", Screen: "denied", Type: "o"},
 			},
@@ -354,10 +361,23 @@ func Test_AuditAuthorization(t *testing.T) {
 		}
 	})
 
+	t.Run("wrong_session_update_is_denied", func(t *testing.T) {
+		_, err := client.UpdateAudit(context.Background(), &auditmessage.UpdateAudit_Request{
+			AuditId:   auditID,
+			ProfileId: test.ConstUserID,
+			Session:   "another-session",
+			Duration:  "1.5",
+		})
+		if code := status.Code(err); code != codes.PermissionDenied {
+			t.Fatalf("code = %v, want PermissionDenied", code)
+		}
+	})
+
 	t.Run("non_member_delete_is_denied", func(t *testing.T) {
 		_, err := client.DeleteAudit(context.Background(), &auditmessage.DeleteAudit_Request{
 			AuditId:   auditID,
 			ProfileId: test.ConstUser1ID,
+			Session:   "session-auth",
 		})
 		if code := status.Code(err); code != codes.PermissionDenied {
 			t.Fatalf("code = %v, want PermissionDenied", code)
@@ -368,6 +388,7 @@ func Test_AuditAuthorization(t *testing.T) {
 		if _, err := client.DeleteAudit(context.Background(), &auditmessage.DeleteAudit_Request{
 			AuditId:   auditID,
 			ProfileId: test.ConstAdminID,
+			Session:   "session-auth",
 		}); err != nil {
 			t.Fatalf("owner delete: %v", err)
 		}

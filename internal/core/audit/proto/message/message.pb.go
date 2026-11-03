@@ -757,6 +757,7 @@ type UpdateAudit_Request struct {
 	Duration      string                 `protobuf:"bytes,5,opt,name=duration,proto3" json:"duration,omitempty"`
 	TimeEnd       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=time_end,json=timeEnd,proto3" json:"time_end,omitempty"`
 	ProfileId     string                 `protobuf:"bytes,7,opt,name=profile_id,json=profileId,proto3" json:"-"`
+	Session       string                 `protobuf:"bytes,8,opt,name=session,proto3" json:"-"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -840,6 +841,13 @@ func (x *UpdateAudit_Request) GetProfileId() string {
 	return ""
 }
 
+func (x *UpdateAudit_Request) GetSession() string {
+	if x != nil {
+		return x.Session
+	}
+	return ""
+}
+
 type UpdateAudit_Response struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -880,6 +888,7 @@ type DeleteAudit_Request struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AuditId       string                 `protobuf:"bytes,1,opt,name=audit_id,json=auditId,proto3" json:"-"`
 	ProfileId     string                 `protobuf:"bytes,2,opt,name=profile_id,json=profileId,proto3" json:"-"`
+	Session       string                 `protobuf:"bytes,3,opt,name=session,proto3" json:"-"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -924,6 +933,13 @@ func (x *DeleteAudit_Request) GetAuditId() string {
 func (x *DeleteAudit_Request) GetProfileId() string {
 	if x != nil {
 		return x.ProfileId
+	}
+	return ""
+}
+
+func (x *DeleteAudit_Request) GetSession() string {
+	if x != nil {
+		return x.Session
 	}
 	return ""
 }
@@ -1065,6 +1081,7 @@ type AddRecord_Request struct {
 	AuditId       string                 `protobuf:"bytes,1,opt,name=audit_id,json=auditId,proto3" json:"-"`
 	Records       []*Record              `protobuf:"bytes,2,rep,name=records,proto3" json:"records,omitempty"`
 	ProfileId     string                 `protobuf:"bytes,3,opt,name=profile_id,json=profileId,proto3" json:"-"`
+	Session       string                 `protobuf:"bytes,4,opt,name=session,proto3" json:"-"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1116,6 +1133,13 @@ func (x *AddRecord_Request) GetRecords() []*Record {
 func (x *AddRecord_Request) GetProfileId() string {
 	if x != nil {
 		return x.ProfileId
+	}
+	return ""
+}
+
+func (x *AddRecord_Request) GetSession() string {
+	if x != nil {
+		return x.Session
 	}
 	return ""
 }
@@ -1200,8 +1224,8 @@ const file_internal_core_audit_proto_message_message_proto_rawDesc = "" +
 	"\n" +
 	"profile_id\x18\r \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tprofileId\x1a%\n" +
 	"\bResponse\x12\x19\n" +
-	"\baudit_id\x18\x01 \x01(\tR\aauditId\"\x92\x02\n" +
-	"\vUpdateAudit\x1a\xf6\x01\n" +
+	"\baudit_id\x18\x01 \x01(\tR\aauditId\"\xb4\x02\n" +
+	"\vUpdateAudit\x1a\x98\x02\n" +
 	"\aRequest\x12#\n" +
 	"\baudit_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\aauditId\x12\x14\n" +
 	"\x05width\x18\x02 \x01(\x05R\x05width\x12\x16\n" +
@@ -1210,14 +1234,16 @@ const file_internal_core_audit_proto_message_message_proto_rawDesc = "" +
 	"\bduration\x18\x05 \x01(\tR\bduration\x125\n" +
 	"\btime_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\atimeEnd\x12*\n" +
 	"\n" +
-	"profile_id\x18\a \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tprofileId\x1a\n" +
+	"profile_id\x18\a \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tprofileId\x12 \n" +
+	"\asession\x18\b \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\asession\x1a\n" +
 	"\n" +
-	"\bResponse\"u\n" +
-	"\vDeleteAudit\x1aZ\n" +
+	"\bResponse\"\x97\x01\n" +
+	"\vDeleteAudit\x1a|\n" +
 	"\aRequest\x12#\n" +
 	"\baudit_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\aauditId\x12*\n" +
 	"\n" +
-	"profile_id\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tprofileId\x1a\n" +
+	"profile_id\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tprofileId\x12 \n" +
+	"\asession\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\asession\x1a\n" +
 	"\n" +
 	"\bResponse\"v\n" +
 	"\x06Record\x12\x0e\n" +
@@ -1232,13 +1258,14 @@ const file_internal_core_audit_proto_message_message_proto_rawDesc = "" +
 	"\n" +
 	"profile_id\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tprofileId\x1a:\n" +
 	"\bResponse\x12.\n" +
-	"\arecords\x18\x01 \x03(\v2\x14.auditmessage.RecordR\arecords\"\xa4\x01\n" +
-	"\tAddRecord\x1a\x8a\x01\n" +
+	"\arecords\x18\x01 \x03(\v2\x14.auditmessage.RecordR\arecords\"\xc6\x01\n" +
+	"\tAddRecord\x1a\xac\x01\n" +
 	"\aRequest\x12#\n" +
 	"\baudit_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\aauditId\x12.\n" +
 	"\arecords\x18\x02 \x03(\v2\x14.auditmessage.RecordR\arecords\x12*\n" +
 	"\n" +
-	"profile_id\x18\x03 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tprofileId\x1a\n" +
+	"profile_id\x18\x03 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tprofileId\x12 \n" +
+	"\asession\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\asession\x1a\n" +
 	"\n" +
 	"\bResponseB<Z:github.com/werbot/werbot/internal/core/audit/proto/messageb\x06proto3"
 

@@ -47,7 +47,7 @@ func (h *Handler) Audit(ctx context.Context, in *auditmessage.Audit_Request) (*a
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId())
+	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId(), "")
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (h *Handler) UpdateAudit(ctx context.Context, in *auditmessage.UpdateAudit_
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId())
+	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId(), in.GetSession())
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (h *Handler) UpdateAudit(ctx context.Context, in *auditmessage.UpdateAudit_
       "env_term" = COALESCE(NULLIF($3, ''), "env_term"),
       "duration" = COALESCE(NULLIF($4, '')::float8, "duration"),
       "time_end" = COALESCE($5, "time_end")
-    WHERE "id" = $6
+    WHERE "id" = $6 AND "session" = $7
   `,
 		in.GetWidth(),
 		in.GetHeight(),
@@ -167,6 +167,7 @@ func (h *Handler) UpdateAudit(ctx context.Context, in *auditmessage.UpdateAudit_
 		in.GetDuration(),
 		in.GetTimeEnd().AsTime(),
 		in.GetAuditId(),
+		in.GetSession(),
 	)
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToUpdate)
@@ -186,7 +187,7 @@ func (h *Handler) DeleteAudit(ctx context.Context, in *auditmessage.DeleteAudit_
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId())
+	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId(), in.GetSession())
 	if err != nil {
 		return nil, err
 	}
@@ -199,8 +200,8 @@ func (h *Handler) DeleteAudit(ctx context.Context, in *auditmessage.DeleteAudit_
 
 	res, err := h.DB.Conn.ExecContext(ctx, `
     DELETE FROM "audit"
-    WHERE "id" = $1
-  `, in.GetAuditId())
+    WHERE "id" = $1 AND "session" = $2
+  `, in.GetAuditId(), in.GetSession())
 	if err != nil {
 		return nil, trace.Error(err, log, trace.MsgFailedToDelete)
 	}
@@ -260,7 +261,7 @@ func (h *Handler) AddRecord(ctx context.Context, in *auditmessage.AddRecord_Requ
 		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
 	}
 
-	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId())
+	exists, allowed, err := h.auditAccess(ctx, in.GetAuditId(), in.GetProfileId(), in.GetSession())
 	if err != nil {
 		return nil, err
 	}

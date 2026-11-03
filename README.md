@@ -209,10 +209,11 @@ Additional documentation is being actively developed. For the latest updates, pl
 
 ### Build editions
 
-The default build is the community core. The SaaS add-on is compiled with the `saas` build tag:
+The default build is the community core. Editions are compiled with a build tag:
 
 ```bash
-TAGS=saas make build taco
+TAGS=saas make build taco   # SaaS add-on
+TAGS=ee make build taco     # Enterprise skeleton (future commercial modules)
 ```
 
 Release images for `taco` are built with `saas` enabled (see `.goreleaser.yaml`). Add-ons live in private git submodules under `add-on/`; initialize them with `git submodule update --init --recursive`.

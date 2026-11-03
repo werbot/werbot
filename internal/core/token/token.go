@@ -85,6 +85,7 @@ func (h *Handler) Token(ctx context.Context, in *tokenmessage.Token_Request) (*t
 
 	response.OwnerId = ownerID.String
 	response.ProfileId = profileID.String
+	response.ProfileExists = profileID.String != ""
 	response.ProjectId = projectID.String
 	response.SchemeId = schemeID.String
 

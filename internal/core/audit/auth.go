@@ -12,7 +12,7 @@ import (
 // auditAccess reports whether the audit exists and whether the profile owns the
 // project or is attached to the audit's scheme member. The check runs in one
 // query and never loads the audit row into Go.
-func (h *Handler) auditAccess(ctx context.Context, auditID, profileID string) (bool, bool, error) {
+func (h *Handler) auditAccess(ctx context.Context, auditID, profileID, session string) (bool, bool, error) {
 	var exists, allowed bool
 	err := h.DB.Conn.QueryRowContext(ctx, `
     SELECT
@@ -31,8 +31,9 @@ func (h *Handler) auditAccess(ctx context.Context, auditID, profileID string) (b
         WHERE
           a."id" = $1
           AND (p."owner_id" = $2 OR pm."profile_id" = $2)
+          AND ($3 = '' OR a."session" = $3)
       )
-  `, auditID, profileID).Scan(&exists, &allowed)
+  `, auditID, profileID, session).Scan(&exists, &allowed)
 	if err != nil {
 		return false, false, trace.Error(err, log, nil)
 	}

@@ -23,6 +23,7 @@ type LogChannel struct {
 	AuditID     string
 	AccountID   string
 	ProfileID   string
+	SessionID   string
 	ClientIP    string
 	Channel     ssh.Channel
 	FramesCount int32
@@ -56,6 +57,7 @@ func NewLogchannel(account *auditmessage.AddAudit_Request, channel ssh.Channel, 
 		AuditID:     auditData.AuditId,
 		AccountID:   account.AccountId,
 		ProfileID:   account.ProfileId,
+		SessionID:   account.Session,
 		ClientIP:    account.ClientIp,
 		Channel:     channel,
 		fullTime:    time.Now(),
@@ -133,6 +135,7 @@ func (l *LogChannel) flushLocked() {
 	if _, err := rClient.AddRecord(ctx, &auditmessage.AddRecord_Request{
 		AuditId:   l.AuditID,
 		ProfileId: l.ProfileID,
+		Session:   l.SessionID,
 		Records:   l.Frames,
 	}); err != nil {
 		log.Error(err).Msg("goroutine CreateRecord")
@@ -156,6 +159,7 @@ func (l *LogChannel) Close() error {
 	_, err := rClient.UpdateAudit(ctx, &auditmessage.UpdateAudit_Request{
 		AuditId:   l.AuditID,
 		ProfileId: l.ProfileID,
+		Session:   l.SessionID,
 		Duration:  fmt.Sprintf("%.6f", l.Duration().Seconds()),
 	})
 	if err != nil {
