@@ -172,6 +172,7 @@ func (h *Handler) Scheme(ctx context.Context, in *schemepb.Scheme_Request) (*sch
 	}
 
 	var lockedAt, archivedAt, updatedAt, createdAt pgtype.Timestamp
+	var address, alias sql.NullString
 	response := &schemepb.Scheme_Response{
 		ProjectId: in.GetProjectId(),
 	}
@@ -208,8 +209,8 @@ func (h *Handler) Scheme(ctx context.Context, in *schemepb.Scheme_Request) (*sch
 		in.GetProjectId(),
 		in.GetSchemeId(),
 	).Scan(
-		&response.Address,
-		&response.Alias,
+		&address,
+		&alias,
 		&response.Title,
 		&response.Description,
 		&response.Audit,
@@ -224,6 +225,14 @@ func (h *Handler) Scheme(ctx context.Context, in *schemepb.Scheme_Request) (*sch
 	)
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
+	}
+
+	if address.Valid {
+		response.Address = address.String
+	}
+
+	if alias.Valid {
+		response.Alias = alias.String
 	}
 
 	protoutils.SetPgtypeTimestamps(response, map[string]pgtype.Timestamp{

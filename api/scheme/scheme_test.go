@@ -295,6 +295,22 @@ func TestHandler_scheme(t *testing.T) {
 			},
 			RequestHeaders: adminHeader,
 		},
+		{ // ADMIN: scheme without an address in its access settings
+			Name:       "test1_07",
+			Method:     http.MethodGet,
+			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminEventSchemeID),
+			StatusCode: 200,
+			Body: test.BodyTable{
+				"code":               float64(200),
+				"message":            "Scheme",
+				"result.project_id":  test.ConstAdminProject1ID,
+				"result.auth_method": float64(2),
+				"result.scheme_type": float64(103),
+				"result.title":       "Develop server #2",
+				"result.alias":       "7Ub2Gn",
+			},
+			RequestHeaders: adminHeader,
+		},
 		{ // ADMIN: default request with the server does not belong profile UUID
 			Name:           "test1_04",
 			Method:         http.MethodGet,
