@@ -37,6 +37,15 @@ for entry in "${ROOT_PATH}/bin/"*; do
   fi
 done
 
+for dir in bin logs ghost; do
+  legacy_path="${ROOT_PATH}/.vscode/${dir}"
+  if [ -e "${legacy_path}" ]; then
+    print_header "Deleting .vscode/${dir}"
+    rm -rf "${legacy_path}"
+    print_answer "SUCCESS" green
+  fi
+done
+
 arr_folders=("${ROOT_PATH}/web/dist" "${ROOT_PATH}/dist")
 for folder in "${arr_folders[@]}"; do
   if [ -e "$folder" ]; then
