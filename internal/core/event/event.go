@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
@@ -18,6 +20,32 @@ import (
 	"github.com/werbot/werbot/pkg/utils/protoutils"
 	"github.com/werbot/werbot/pkg/utils/protoutils/ghoster"
 )
+
+// eventFilters builds the optional SQL conditions for the event list filters.
+func eventFilters(in *eventpb.Events_Request, args []any) (string, []any) {
+	var conditions []string
+
+	if in.GetSection() > 0 {
+		args = append(args, in.GetSection())
+		conditions = append(conditions, fmt.Sprintf(`AND "event"."section" = $%d`, len(args)))
+	}
+
+	if in.GetType() != eventenum.Type_event_unspecified {
+		args = append(args, int32(in.GetType()))
+		conditions = append(conditions, fmt.Sprintf(`AND "event"."type" = $%d`, len(args)))
+	}
+
+	if search := strings.TrimSpace(in.GetSearch()); search != "" {
+		escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(search)
+		args = append(args, "%"+escaped+"%")
+		conditions = append(conditions, fmt.Sprintf(
+			`AND ("event"."session"->>'ip' ILIKE $%d OR COALESCE("event"."session"->>'userAgent', "event"."session"->>'user_agent', '') ILIKE $%d)`,
+			len(args), len(args),
+		))
+	}
+
+	return strings.Join(conditions, " "), args
+}
 
 // Events is ...
 func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*eventpb.Events_Response, error) {
@@ -133,6 +161,10 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
     `
 		args = append(args, in.GetOwnerId(), in.GetSchemeId())
 	}
+
+	filters, args := eventFilters(in, args)
+	sqlQueryTotal = postgres.SQLGluing(sqlQueryTotal, filters)
+	sqlQuery = postgres.SQLGluing(sqlQuery, filters)
 
 	// Total count for pagination
 	err := h.DB.Conn.QueryRowContext(ctx, sqlQueryTotal, args...).Scan(&response.Total)

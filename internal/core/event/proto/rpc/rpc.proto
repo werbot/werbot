@@ -9,7 +9,7 @@ import "pkg/utils/protoutils/ghoster/proto/ghoster.proto";
 import "internal/core/event/proto/enum/enum.proto";
 import "internal/core/event/proto/message/message.proto";
 
-option go_package = "github.com/werbot/werbot/internal/core/event/proto/event";
+option go_package = "github.com/werbot/werbot/internal/core/event/proto/rpc";
 
 service EventHandlers {
   rpc Events(Events.Request) returns (Events.Response) {}
@@ -33,6 +33,10 @@ message Events {
     int32 limit = 6;
     int32 offset = 7;
     string sort_by = 8; // @gotags: json:"-"
+
+    int32 section = 9 [(buf.validate.field).int32.gte = 0];
+    eventenum.Type type = 10 [(buf.validate.field).enum.defined_only = true];
+    string search = 11 [(buf.validate.field).string.max_len = 128];
   }
 
   message Response {

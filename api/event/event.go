@@ -1,8 +1,12 @@
 package event
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 
+	eventenum "github.com/werbot/werbot/internal/core/event/proto/enum"
 	eventpb "github.com/werbot/werbot/internal/core/event/proto/rpc"
 	"github.com/werbot/werbot/internal/web/session"
 	"github.com/werbot/werbot/pkg/utils/protoutils"
@@ -18,6 +22,9 @@ import (
 // @Param category_id path string true "Profile, project or scheme UUID"
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
+// @Param section query int false "Filter by event section"
+// @Param type query int false "Filter by event type"
+// @Param search query string false "Case-insensitive search over session IP and User-Agent"
 // @Success 200 {object} webutil.HTTPResponse{result=eventpb.Events_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/event/{category}/{category_id} [get]
@@ -31,6 +38,14 @@ func (h *Handler) events(c *fiber.Ctx) error {
 		Offset:  pagination.Offset,
 		SortBy:  `"event"."created_at":DESC`,
 	}
+
+	if value, err := strconv.ParseInt(c.Query("section"), 10, 32); err == nil {
+		request.Section = int32(value)
+	}
+	if value, err := strconv.ParseInt(c.Query("type"), 10, 32); err == nil {
+		request.Type = eventenum.Type(value)
+	}
+	request.Search = strings.TrimSpace(c.Query("search"))
 
 	// _ = webutil.Parse(c, request).Query()
 
