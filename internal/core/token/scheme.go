@@ -65,10 +65,15 @@ func (h *Handler) SchemeTokens(ctx context.Context, in *tokenmessage.SchemeToken
 	baseQuery := postgres.SQLGluing(`
     SELECT
       "token"."id",
+      "token"."section",
       "token"."action",
       "token"."status",
       "token"."profile_id",
       "token"."scheme_id",
+      COALESCE(
+        NULLIF("token"."data", '{}'::jsonb),
+        jsonb_strip_nulls(jsonb_build_object('email', "profile"."email"))
+      ) AS "data",
       "token"."expired_at",
       "token"."updated_at",
       "token"."created_at"
@@ -76,6 +81,7 @@ func (h *Handler) SchemeTokens(ctx context.Context, in *tokenmessage.SchemeToken
       "token"
       INNER JOIN "scheme" ON "token"."scheme_id" = "scheme". "id"
       INNER JOIN "project" ON "scheme"."project_id" = "project". "id"
+      LEFT JOIN "profile" ON "profile"."id" = "token"."profile_id"
     WHERE
       "token". "section" = $1
       AND "project"."owner_id" = $2

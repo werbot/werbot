@@ -2162,7 +2162,7 @@ func (x *SchemeFirewall_Response) GetNetwork() *SchemeFirewall_Networks {
 
 type SchemeFirewall_Countries struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	WiteList      bool                   `protobuf:"varint,1,opt,name=wite_list,json=witeList,proto3" json:"wite_list,omitempty"`
+	WhiteList     bool                   `protobuf:"varint,1,opt,name=white_list,json=whiteList,proto3" json:"white_list,omitempty"`
 	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
 	List          []*message.Country     `protobuf:"bytes,3,rep,name=list,proto3" json:"list,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -2199,9 +2199,9 @@ func (*SchemeFirewall_Countries) Descriptor() ([]byte, []int) {
 	return file_internal_core_scheme_proto_scheme_scheme_proto_rawDescGZIP(), []int{8, 2}
 }
 
-func (x *SchemeFirewall_Countries) GetWiteList() bool {
+func (x *SchemeFirewall_Countries) GetWhiteList() bool {
 	if x != nil {
-		return x.WiteList
+		return x.WhiteList
 	}
 	return false
 }
@@ -2222,7 +2222,7 @@ func (x *SchemeFirewall_Countries) GetList() []*message.Country {
 
 type SchemeFirewall_Networks struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	WiteList      bool                   `protobuf:"varint,1,opt,name=wite_list,json=witeList,proto3" json:"wite_list,omitempty"`
+	WhiteList     bool                   `protobuf:"varint,1,opt,name=white_list,json=whiteList,proto3" json:"white_list,omitempty"`
 	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
 	List          []*message.Network     `protobuf:"bytes,3,rep,name=list,proto3" json:"list,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -2259,9 +2259,9 @@ func (*SchemeFirewall_Networks) Descriptor() ([]byte, []int) {
 	return file_internal_core_scheme_proto_scheme_scheme_proto_rawDescGZIP(), []int{8, 3}
 }
 
-func (x *SchemeFirewall_Networks) GetWiteList() bool {
+func (x *SchemeFirewall_Networks) GetWhiteList() bool {
 	if x != nil {
-		return x.WiteList
+		return x.WhiteList
 	}
 	return false
 }
@@ -3412,7 +3412,7 @@ const file_internal_core_scheme_proto_scheme_scheme_proto_rawDesc = "" +
 	"\tscheme_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\bschemeId\x12?\n" +
 	"\bactivity\x18\x04 \x01(\v2\x1b.scheme.SchemeActivity.WeekB\x06\xbaH\x03\xc8\x01\x01R\bactivity\x1a\n" +
 	"\n" +
-	"\bResponse\"\xe1\x03\n" +
+	"\bResponse\"\xe5\x03\n" +
 	"\x0eSchemeFirewall\x1a~\n" +
 	"\aRequest\x12#\n" +
 	"\bowner_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\aownerId\x12'\n" +
@@ -3421,22 +3421,25 @@ const file_internal_core_scheme_proto_scheme_scheme_proto_rawDesc = "" +
 	"\tscheme_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\bschemeId\x1a\x81\x01\n" +
 	"\bResponse\x12:\n" +
 	"\acountry\x18\x01 \x01(\v2 .scheme.SchemeFirewall.CountriesR\acountry\x129\n" +
-	"\anetwork\x18\x02 \x01(\v2\x1f.scheme.SchemeFirewall.NetworksR\anetwork\x1ae\n" +
-	"\tCountries\x12\x1b\n" +
-	"\twite_list\x18\x01 \x01(\bR\bwiteList\x12\x14\n" +
+	"\anetwork\x18\x02 \x01(\v2\x1f.scheme.SchemeFirewall.NetworksR\anetwork\x1ag\n" +
+	"\tCountries\x12\x1d\n" +
+	"\n" +
+	"white_list\x18\x01 \x01(\bR\twhiteList\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\x12%\n" +
-	"\x04list\x18\x03 \x03(\v2\x11.firewall.CountryR\x04list\x1ad\n" +
-	"\bNetworks\x12\x1b\n" +
-	"\twite_list\x18\x01 \x01(\bR\bwiteList\x12\x14\n" +
+	"\x04list\x18\x03 \x03(\v2\x11.firewall.CountryR\x04list\x1af\n" +
+	"\bNetworks\x12\x1d\n" +
+	"\n" +
+	"white_list\x18\x01 \x01(\bR\twhiteList\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\x12%\n" +
-	"\x04list\x18\x03 \x03(\v2\x11.firewall.NetworkR\x04list\"\xd1\x02\n" +
-	"\x11AddSchemeFirewall\x1a\xe3\x01\n" +
+	"\x04list\x18\x03 \x03(\v2\x11.firewall.NetworkR\x04list\"\xb4\x03\n" +
+	"\x11AddSchemeFirewall\x1a\xc6\x02\n" +
 	"\aRequest\x12#\n" +
 	"\bowner_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\aownerId\x12'\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tprojectId\x12%\n" +
-	"\tscheme_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\bschemeId\x12#\n" +
-	"\anetwork\x18\x04 \x01(\tB\a\xbaH\x04r\x02p\x01H\x00R\anetwork\x12-\n" +
+	"\tscheme_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\bschemeId\x12\x85\x01\n" +
+	"\anetwork\x18\x04 \x01(\tBi\xbaHf\xba\x01c\n" +
+	"\rvalid_network\x12\"must be a valid IP address or CIDR\x1a.this == '' || this.isIp() || this.isIpPrefix()H\x00R\anetwork\x12-\n" +
 	"\fcountry_code\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x98\x01\x02H\x00R\vcountryCodeB\x0f\n" +
 	"\x06record\x12\x05\xbaH\x02\b\x01\x1aV\n" +
 	"\bResponse\x12\x1f\n" +

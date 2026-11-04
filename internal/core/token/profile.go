@@ -67,10 +67,12 @@ func (h *Handler) ProfileTokens(ctx context.Context, in *tokenmessage.ProfileTok
 	baseQuery := postgres.SQLGluing(`
     SELECT
       "id",
+      "section",
       "action",
       "status",
-      "project_id",
+      "profile_id",
       "scheme_id",
+      "data",
       "expired_at",
       "updated_at",
       "created_at"

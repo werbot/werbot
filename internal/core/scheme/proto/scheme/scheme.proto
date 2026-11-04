@@ -272,13 +272,13 @@ message SchemeFirewall {
   }
 
   message Countries {
-    bool wite_list = 1;
+    bool white_list = 1;
     int32 total = 2;
     repeated firewall.Country list = 3;
   }
 
   message Networks {
-    bool wite_list = 1;
+    bool white_list = 1;
     int32 total = 2;
     repeated firewall.Network list = 3;
   }
@@ -295,7 +295,11 @@ message AddSchemeFirewall {
     oneof record {
       option (buf.validate.oneof).required = true;
 
-      string network = 4 [(buf.validate.field).string.ip = true];
+      string network = 4 [(buf.validate.field).cel = {
+        id: "valid_network"
+        message: "must be a valid IP address or CIDR"
+        expression: "this == '' || this.isIp() || this.isIpPrefix()"
+      }];
       string country_code = 5 [(buf.validate.field).string.len = 2];
     }
   }

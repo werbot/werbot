@@ -63,16 +63,26 @@ func (h *Handler) ProjectTokens(ctx context.Context, in *tokenmessage.ProjectTok
 	baseQuery := postgres.SQLGluing(`
     SELECT
       "token"."id",
+      "token"."section",
       "token"."action",
       "token"."status",
       "token"."profile_id",
       "token"."scheme_id",
+      COALESCE(
+        NULLIF("token"."data", '{}'::jsonb),
+        jsonb_strip_nulls(jsonb_build_object(
+          'name', "profile"."name",
+          'surname', "profile"."surname",
+          'email', "profile"."email"
+        ))
+      ) AS "data",
       "token"."expired_at",
       "token"."updated_at",
       "token"."created_at"
     FROM
       "token"
       INNER JOIN "project" ON "project"."id" = "token"."project_id"
+      LEFT JOIN "profile" ON "profile"."id" = "token"."profile_id"
     WHERE
       "token"."section" = $1
       AND "project"."owner_id" = $2

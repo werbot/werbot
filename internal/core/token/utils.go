@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
@@ -39,13 +40,16 @@ func scanTokens(rows *sql.Rows, limit int32, isAdmin bool) ([]*tokenmessage.Toke
 		token := &tokenmessage.Token_Response{}
 		var expiredAt, updatedAt, createdAt pgtype.Timestamp
 		var profileID, schemeID pgtype.Text
+		var data []byte
 
 		err := rows.Scan(
 			&token.Token,
+			&token.Section,
 			&token.Action,
 			&token.Status,
 			&profileID,
 			&schemeID,
+			&data,
 			&expiredAt,
 			&updatedAt,
 			&createdAt,
@@ -56,6 +60,10 @@ func scanTokens(rows *sql.Rows, limit int32, isAdmin bool) ([]*tokenmessage.Toke
 
 		token.ProfileId = profileID.String
 		token.SchemeId = schemeID.String
+
+		if err := scanTokenData(token, data); err != nil {
+			return nil, err
+		}
 
 		protoutils.SetPgtypeTimestamps(token, map[string]pgtype.Timestamp{
 			"expired_at":              expiredAt,
@@ -70,6 +78,37 @@ func scanTokens(rows *sql.Rows, limit int32, isAdmin bool) ([]*tokenmessage.Toke
 		tokens = append(tokens, token)
 	}
 	return tokens, nil
+}
+
+func scanTokenData(token *tokenmessage.Token_Response, data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	unmarshal := protojson.UnmarshalOptions{DiscardUnknown: true}
+
+	switch token.GetSection() {
+	case tokenenum.Section_profile, tokenenum.Section_project:
+		profile := &tokenmessage.MetaDataProfile{}
+		if err := unmarshal.Unmarshal(data, profile); err != nil {
+			return err
+		}
+		token.Data = &tokenmessage.Token_Response_Profile{Profile: profile}
+	case tokenenum.Section_scheme:
+		scheme := &tokenmessage.MetaDataScheme{}
+		if err := unmarshal.Unmarshal(data, scheme); err != nil {
+			return err
+		}
+		token.Data = &tokenmessage.Token_Response_Scheme{Scheme: scheme}
+	case tokenenum.Section_agent:
+		agent := &tokenmessage.MetaDataAgent{}
+		if err := unmarshal.Unmarshal(data, agent); err != nil {
+			return err
+		}
+		token.Data = &tokenmessage.Token_Response_Agent{Agent: agent}
+	}
+
+	return nil
 }
 
 func buildInsertQuery(fields []string, args []any) (string, []any) {

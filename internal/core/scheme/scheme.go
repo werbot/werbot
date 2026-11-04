@@ -602,9 +602,9 @@ func (h *Handler) SchemeFirewall(ctx context.Context, in *schemepb.SchemeFirewal
 		in.GetProjectId(),
 		in.GetSchemeId(),
 	).Scan(
-		&response.Country.WiteList,
+		&response.Country.WhiteList,
 		&response.Country.Total,
-		&response.Network.WiteList,
+		&response.Network.WhiteList,
 		&response.Network.Total,
 	)
 	if err != nil {

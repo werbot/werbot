@@ -46,12 +46,14 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
     `
 		sqlQuery = `
       SELECT
-        "event"."id",
+        "event"."related_id",
         "profile"."id",
         "event"."section",
         "event"."type",
         "event"."session"->>'id',
+        COALESCE("event"."session"->>'userAgent', "event"."session"->>'user_agent', ''),
         "event"."session"->>'ip',
+        "event"."data",
         "event"."created_at"
       FROM
         "event"
@@ -77,12 +79,14 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
     `
 		sqlQuery = `
       SELECT
-        "event"."id",
+        "event"."related_id",
         "project"."owner_id",
         "event"."section",
         "event"."type",
         "event"."session"->>'id',
+        COALESCE("event"."session"->>'userAgent', "event"."session"->>'user_agent', ''),
         "event"."session"->>'ip',
+        "event"."data",
         "event"."created_at"
       FROM
         "event"
@@ -109,12 +113,14 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
     `
 		sqlQuery = `
       SELECT
-        "event"."id",
+        "event"."related_id",
         "project"."owner_id",
         "event"."section",
         "event"."type",
         "event"."session"->>'id',
+        COALESCE("event"."session"->>'userAgent', "event"."session"->>'user_agent', ''),
         "event"."session"->>'ip',
+        "event"."data",
         "event"."created_at"
       FROM
         "event"
@@ -170,7 +176,9 @@ func (h *Handler) Events(ctx context.Context, in *eventpb.Events_Request) (*even
 			&event.Section,
 			&event.Type,
 			&event.Session.Id,
+			&event.Session.UserAgent,
 			&event.Session.Ip,
+			&event.MetaData,
 			&createdAt,
 		)
 		if err != nil {
@@ -220,7 +228,7 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
         "event"."section",
         "event"."type",
         "event"."session"->>'id',
-        "event"."session"->>'user_agent',
+        COALESCE("event"."session"->>'userAgent', "event"."session"->>'user_agent', ''),
         "event"."session"->>'ip',
         "event"."data",
         "event"."created_at"
@@ -242,7 +250,7 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
         "event"."section",
         "event"."type",
         "event"."session"->>'id',
-        "event"."session"->>'user_agent',
+        COALESCE("event"."session"->>'userAgent', "event"."session"->>'user_agent', ''),
         "event"."session"->>'ip',
         "event"."data",
         "event"."created_at"
@@ -264,7 +272,7 @@ func (h *Handler) Event(ctx context.Context, in *eventpb.Event_Request) (*eventp
         "event"."section",
         "event"."type",
         "event"."session"->>'id',
-        "event"."session"->>'user_agent',
+        COALESCE("event"."session"->>'userAgent', "event"."session"->>'user_agent', ''),
         "event"."session"->>'ip',
         "event"."data",
         "event"."created_at"
