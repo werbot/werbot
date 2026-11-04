@@ -7,7 +7,7 @@ import (
 	"github.com/werbot/werbot/pkg/storage/redis"
 )
 
-// Handler is ...
+// Handler carries the shared HTTP, gRPC and Redis dependencies used by API handlers.
 type Handler struct {
 	App     *fiber.App
 	Grpc    *grpc.ClientConn

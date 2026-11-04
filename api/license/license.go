@@ -16,7 +16,7 @@ import (
 // @Produce json
 // @Success 200 {object} webutil.HTTPResponse{result=licensemessage.License_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /v1/license/info  [get]
+// @Router /v1/license/info [get]
 func (h *Handler) licenseInfo(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	if !sessionData.IsProfileAdmin() {

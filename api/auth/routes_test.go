@@ -7,10 +7,11 @@ import (
 )
 
 const (
-	pathAuth        = "/auth"
-	pathAuthSignIn  = pathAuth + "/signin"
-	pathAuthLogout  = pathAuth + "/logout"
-	pathAuthRefresh = pathAuth + "/refresh"
+	pathAuth              = "/auth"
+	pathAuthSignIn        = pathAuth + "/signin"
+	pathAuthLogout        = pathAuth + "/logout"
+	pathAuthRefresh       = pathAuth + "/refresh"
+	pathAuthPasswordReset = pathAuth + "/password_reset"
 )
 
 func setupTest(t *testing.T) (*test.APIHandler, func(t *testing.T)) {

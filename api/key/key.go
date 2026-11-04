@@ -13,14 +13,13 @@ import (
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
-// @Summary Retrieve key
-// @Description Retrieves lists all keys if key_id is not provided
+// @Summary Retrieve keys
+// @Description Retrieves all keys for the profile with pagination.
 // @Tags keys
 // @Produce json
 // @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
-// @Param sort_by query string false "Sort by for pagination"
 // @Success 200 {object} webutil.HTTPResponse{result=keymessage.Keys_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/keys [get]
@@ -49,15 +48,12 @@ func (h *Handler) keys(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, "Keys", result)
 }
 
-// @Summary Retrieve keys
-// @Description Retrieves a specific key by key_id
+// @Summary Retrieve key
+// @Description Retrieves a specific key by key_id.
 // @Tags keys
 // @Produce json
 // @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
-// @Param key_id path string false "Key UUID"
-// @Param limit query int false "Limit for pagination"
-// @Param offset query int false "Offset for pagination"
-// @Param sort_by query string false "Sort by for pagination"
+// @Param key_id path string true "Key UUID"
 // @Success 200 {object} webutil.HTTPResponse{result=keymessage.Key_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/keys/{key_id} [get]

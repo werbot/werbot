@@ -9,7 +9,14 @@ import (
 	"github.com/werbot/werbot/pkg/utils/webutil"
 )
 
-// authToken
+// @Summary Authenticate an agent token
+// @Description Returns the API credentials and scheme type for an agent token.
+// @Tags agent
+// @Produce json
+// @Param token path string true "Agent token UUID"
+// @Success 200 {object} webutil.HTTPResponse{result=agentmessage.Auth_Response}
+// @Failure 400,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/agent/auth/{token} [post]
 func (h *Handler) authToken(c *fiber.Ctx) error {
 	request := &agentmessage.Auth_Request{
 		Token: c.Params("token"),
@@ -29,14 +36,16 @@ func (h *Handler) authToken(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, "Auth data", result)
 }
 
-// @Summary      Adding a new scheme
-// @Tags         schemes
-// @Accept       json
-// @Produce      json
-// @Param        req         body     schemepb.AddScheme_Request{}
-// @Success      200         {object} webutil.HTTPResponse{data=schemepb.AddScheme_Response}
-// @Failure      400,401,500 {object} webutil.HTTPResponse
-// @Router       /v1/service/server [post]
+// @Summary Add a scheme from an agent
+// @Description Registers a scheme using the agent token and connection details.
+// @Tags agent
+// @Accept json
+// @Produce json
+// @Param token path string true "Agent token UUID"
+// @Param body body agentmessage.AddScheme_Request true "Agent scheme details"
+// @Success 200 {object} webutil.HTTPResponse{result=agentmessage.AddScheme_Response}
+// @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/agent/scheme/{token} [post]
 func (h *Handler) addScheme(c *fiber.Ctx) error {
 	request := &agentmessage.AddScheme_Request{
 		Token: c.Params("token"),
@@ -57,5 +66,3 @@ func (h *Handler) addScheme(c *fiber.Ctx) error {
 
 	return webutil.StatusOK(c, "Scheme data", result)
 }
-
-// AgentUpdateAutoScheme is ...

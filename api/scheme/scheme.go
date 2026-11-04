@@ -24,10 +24,10 @@ import (
 // @Accept json
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
-// @Param project_id path string true "Project UUID". One is server|database|desktop|container|cloud|application
+// @Param project_id path string true "Project UUID"
+// @Param scheme_type path string true "Scheme type (server, database, desktop, container, cloud, application)"
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
-// @Param sort_by query string false "Sort by for pagination"
 // @Success 200 {object} webutil.HTTPResponse{result=schemepb.Schemes_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_type} [get]
@@ -105,7 +105,7 @@ func (h *Handler) scheme(c *fiber.Ctx) error {
 // @Param body body schemepb.AddScheme_Request true "Add Scheme Request Body"
 // @Success 200 {object} webutil.HTTPResponse{result=schemepb.AddScheme_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /v1/schemes/{project_id}/{scheme} [post]
+// @Router /v1/schemes/{project_id}/{scheme_type} [post]
 func (h *Handler) addScheme(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &schemepb.AddScheme_Request{
@@ -141,9 +141,10 @@ func (h *Handler) addScheme(c *fiber.Ctx) error {
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID"
 // @Param scheme_id path string true "Scheme UUID"
+// @Param body body schemepb.UpdateScheme_Request true "Update Scheme Request Body"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /v1/schemes/{project_id} [put]
+// @Router /v1/schemes/{project_id}/{scheme_id} [patch]
 func (h *Handler) updateScheme(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &schemepb.UpdateScheme_Request{
@@ -299,9 +300,10 @@ func (h *Handler) schemeActivity(c *fiber.Ctx) error {
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID"
 // @Param scheme_id path string true "Scheme UUID"
+// @Param body body schemepb.UpdateSchemeActivity_Request true "Update Scheme Activity Request Body"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /v1/schemes/{project_id}/{scheme_id}/activity [put]
+// @Router /v1/schemes/{project_id}/{scheme_id}/activity [patch]
 func (h *Handler) updateSchemeActivity(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &schemepb.UpdateSchemeActivity_Request{
@@ -357,14 +359,15 @@ func (h *Handler) schemeFirewall(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, "Scheme firewall", result)
 }
 
-// @Summary Add a new scheme
-// @Description Adds a new scheme for a given owner and project.
+// @Summary Add a scheme firewall rule
+// @Description Adds a country or network rule to the scheme firewall.
 // @Tags schemes
 // @Accept json
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID"
-// @Param body body schemepb.AddScheme_Request true "Add Scheme Request Body"
+// @Param scheme_id path string true "Scheme UUID"
+// @Param body body schemepb.AddSchemeFirewall_Request true "Add Scheme Firewall Request Body"
 // @Success 200 {object} webutil.HTTPResponse{result=schemepb.AddSchemeFirewall_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/schemes/{project_id}/{scheme_id}/firewall [post]
@@ -413,10 +416,11 @@ func (h *Handler) addSchemeFirewall(c *fiber.Ctx) error {
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID"
-// @Param body body schemepb.UpdateSchemeFirewall_Request true "Add Scheme Request Body"
+// @Param scheme_id path string true "Scheme UUID"
+// @Param body body schemepb.UpdateSchemeFirewall_Request true "Update Scheme Firewall Request Body"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /v1/schemes/{project_id}/{scheme_id}/firewall [put]
+// @Router /v1/schemes/{project_id}/{scheme_id}/firewall [patch]
 func (h *Handler) updateSchemeFirewall(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &schemepb.UpdateSchemeFirewall_Request{
@@ -439,8 +443,8 @@ func (h *Handler) updateSchemeFirewall(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, "Record updated", nil)
 }
 
-// @Summary Delete a scheme
-// @Description Deletes a scheme based on owner UUID, project UUID, and scheme UUID provided in the request.
+// @Summary Delete a scheme firewall rule
+// @Description Deletes a country or network rule from the scheme firewall.
 // @Tags schemes
 // @Accept json
 // @Produce json
@@ -451,7 +455,7 @@ func (h *Handler) updateSchemeFirewall(c *fiber.Ctx) error {
 // @Param firewall_id path string true "ID of the firewall rule to delete"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /v1/schemes/{project_id}/{scheme_id}/firewalls/{firewall_type}/{firewall_id} [delete]
+// @Router /v1/schemes/{project_id}/{scheme_id}/firewall/{firewall_type}/{firewall_id} [delete]
 func (h *Handler) deleteSchemeFirewall(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &schemepb.DeleteSchemeFirewall_Request{

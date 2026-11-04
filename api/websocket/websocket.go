@@ -5,6 +5,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// publishToWebSocket forwards Redis pub/sub messages to the WebSocket client.
 func (h *Handler) publishToWebSocket(c *websocket.Conn, ch <-chan *redis.Message) {
 	for msg := range ch {
 		if err := c.WriteMessage(websocket.TextMessage, []byte(msg.Payload)); err != nil {
@@ -14,6 +15,7 @@ func (h *Handler) publishToWebSocket(c *websocket.Conn, ch <-chan *redis.Message
 	}
 }
 
+// processRequest dispatches an incoming WebSocket request by action.
 func (h *Handler) processRequest(c *websocket.Conn, request *Request) {
 	switch request.Action {
 	case "info":
@@ -23,6 +25,7 @@ func (h *Handler) processRequest(c *websocket.Conn, request *Request) {
 	}
 }
 
+// sendResponse writes a JSON response to the WebSocket client.
 func (h *Handler) sendResponse(c *websocket.Conn, code int, action string, data any) {
 	response := Response{Code: code, Action: action, Data: data}
 	if err := c.WriteJSON(response); err != nil {

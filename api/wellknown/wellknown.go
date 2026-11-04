@@ -18,7 +18,8 @@ type JWKSResponse struct {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Success      200 {object} JWKSResponse{}
+// @Success      200 {object} JWKSResponse
+// @Failure      500 {object} webutil.HTTPResponse{result=string}
 // @Router       /.well-known/jwks.json [get]
 func (h *Handler) jwks(c *fiber.Ctx) error {
 	jwkBytes, err := internal.GetByteFromFile("JWT_PUBLIC_KEY", "./jwt_public.key")

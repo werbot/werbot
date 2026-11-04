@@ -20,7 +20,6 @@ import (
 // @Param project_id path string true "Project UUID"
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
-// @Param sort_by query string false "Sort by for pagination"
 // @Success 200 {object} webutil.HTTPResponse{result=projectmessage.ProjectKeys_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id}/keys [get]
@@ -141,7 +140,6 @@ func (h *Handler) addProjectKey(c *fiber.Ctx) error {
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID"
 // @Param key_id path string true "Key UUID"
-// @Param project_id path string true "Project UUID"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id}/keys/{key_id} [delete]

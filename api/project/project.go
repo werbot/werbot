@@ -13,13 +13,12 @@ import (
 )
 
 // @Summary Get Projects
-// @Description Retrieve a list of projects with pagination and sorting.
+// @Description Retrieve a list of projects with pagination.
 // @Tags projects
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
-// @Param sort_by query string false "Sort by for pagination"
 // @Success 200 {object} webutil.HTTPResponse{result=projectmessage.Projects_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects [get]
@@ -53,7 +52,7 @@ func (h *Handler) projects(c *fiber.Ctx) error {
 // @Tags projects
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
-// @Param member_id path string true "Member UUID"
+// @Param project_id path string true "Project UUID"
 // @Success 200 {object} webutil.HTTPResponse{result=projectmessage.Project_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects/{project_id} [get]
@@ -85,7 +84,7 @@ func (h *Handler) project(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
-// @Success 200 {object} webutil.HTTPResponse{result=projectmessage.AddProject_Request}
+// @Success 200 {object} webutil.HTTPResponse{result=projectmessage.AddProject_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/projects [post]
 func (h *Handler) addProject(c *fiber.Ctx) error {
@@ -124,7 +123,7 @@ func (h *Handler) addProject(c *fiber.Ctx) error {
 // @Param body body projectmessage.UpdateProject_Request true "Update Project Request Body"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router //v1/projects/{project_id} [put]
+// @Router /v1/projects/{project_id} [patch]
 func (h *Handler) updateProject(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &projectmessage.UpdateProject_Request{

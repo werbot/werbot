@@ -19,12 +19,12 @@ import (
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param scheme_id path string true "Scheme UUID"
 // @Param addon path string false "Addon (e.g., 'search')"
+// @Param alias query string false "Profile alias to search"
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
-// @Param sort_by query string false "Sort by for pagination"
 // @Success 200 {object} webutil.HTTPResponse{result1=membermessage.MembersWithoutScheme_Response,result2=membermessage.SchemeMembers_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /v1/members/scheme/{scheme_id}/{addon}? [get]
+// @Router /v1/members/scheme/{scheme_id}/{addon} [get]
 func (h *Handler) schemeMembers(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	pagination := webutil.GetPaginationFromCtx(c)
@@ -112,13 +112,13 @@ func (h *Handler) schemeMember(c *fiber.Ctx) error {
 }
 
 // @Summary Add a new member to a scheme
-// @Description Adds a new member to the specified scheme using owner_id, scheme_id, and member_id parameters
+// @Description Adds a new member to the specified scheme using the project member id in the request body
 // @Tags members
 // @Accept json
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param scheme_id path string true "Scheme UUID"
-// @Param member_id path string true "Member UUID"
+// @Param body body membermessage.AddSchemeMember_Request true "Add Scheme Member Request Body"
 // @Success 200 {object} webutil.HTTPResponse{result=membermessage.AddSchemeMember_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/scheme/{scheme_id} [post]
@@ -150,13 +150,14 @@ func (h *Handler) addSchemeMember(c *fiber.Ctx) error {
 }
 
 // @Summary Update scheme member details
-// @Description Updates the details of an existing member in the specified scheme using owner_id, scheme_id, and member_id parameters
+// @Description Updates the details of an existing member in the specified scheme using owner_id, scheme_id, and scheme_member_id parameters
 // @Tags members
 // @Accept json
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param scheme_id path string true "Scheme UUID"
 // @Param scheme_member_id path string true "Member UUID"
+// @Param body body membermessage.UpdateSchemeMember_Request true "Update Scheme Member Request Body"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/scheme/{scheme_id}/{scheme_member_id} [patch]
@@ -197,7 +198,7 @@ func (h *Handler) updateSchemeMember(c *fiber.Ctx) error {
 
 // @Summary Delete a scheme member
 // @Description Deletes a member from a specified scheme
-// @Tags Scheme Members
+// @Tags members
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param scheme_id path string true "UUID of the scheme"

@@ -13,13 +13,12 @@ import (
 )
 
 // @Summary Retrieve profiles
-// @Description Retrieves a list of profiles with pagination and sorting options. Access restricted to admin profiles.
+// @Description Retrieves a list of profiles with pagination. Access restricted to admin profiles.
 // @Tags profiles
 // @Accept json
 // @Produce json
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
-// @Param sort_by query string false "Sort by for pagination"
 // @Success 200 {object} webutil.HTTPResponse{result=profilemessage.Profiles_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/profiles/list [get]
@@ -58,7 +57,7 @@ func (h *Handler) profiles(c *fiber.Ctx) error {
 // @Tags profiles
 // @Accept json
 // @Produce json
-// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Success 200 {object} webutil.HTTPResponse{result=profilemessage.Profile_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/profiles [get]
@@ -129,11 +128,11 @@ func (h *Handler) addProfile(c *fiber.Ctx) error {
 // @Tags profiles
 // @Accept json
 // @Produce json
-// @Param profile_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
-// @Param body body profilemessage.UpdateProfile_Request true
+// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param body body profilemessage.UpdateProfile_Request true "Update Profile Request Body"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /v1/profiles [put]
+// @Router /v1/profiles [patch]
 func (h *Handler) updateProfile(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &profilemessage.UpdateProfile_Request{
@@ -174,10 +173,11 @@ func (h *Handler) updateProfile(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param profile_id query string true "Profile ID"
-// @Param token path string false "Token"
+// @Param token path string false "Deletion token"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /v1/profiles/delete [post, delete]
+// @Router /v1/profiles/delete [post]
+// @Router /v1/profiles/delete/{token} [delete]
 func (h *Handler) deleteProfile(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &profilemessage.DeleteProfile_Request{

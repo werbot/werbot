@@ -11,18 +11,17 @@ import (
 )
 
 // @Summary Retrieve profile schemes
-// @Description Get a list of schemes associated with a profile, supports pagination and sorting.
+// @Description Get a list of schemes associated with a profile, supports pagination.
 // @Tags schemes
 // @Accept json
 // @Produce json
-// @Param profile_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
-// @Param project_id path string true "Project UUID". One is server|database|desktop|container|cloud|application
-// @Param scheme_type path string true "Scheme Type"
-// @Param limit query int false "Limit"
-// @Param offset query int false "Offset"
-// @Success 200 {object} webutil.HTTPResponse{result=schemepb.Schemes_Response}
+// @Param profile_id query string false "Profile UUID". Parameter Accessible with ROLE_ADMIN rights
+// @Param scheme_type path string false "Scheme type (server, database, desktop, container, cloud, application)"
+// @Param limit query int false "Limit for pagination"
+// @Param offset query int false "Offset for pagination"
+// @Success 200 {object} webutil.HTTPResponse{result=schemepb.ProfileSchemes_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /profile/schemes/:project_id? [get]
+// @Router /v1/schemes/profile/{scheme_type} [get]
 func (h *Handler) profileSchemes(c *fiber.Ctx) error {
 	pagination := webutil.GetPaginationFromCtx(c)
 	sessionData := session.AuthProfile(c)

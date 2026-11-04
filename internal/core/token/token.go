@@ -98,10 +98,12 @@ func (h *Handler) Token(ctx context.Context, in *tokenmessage.Token_Request) (*t
 		}
 		response.Data = &tokenmessage.Token_Response_Profile{Profile: data}
 
-	// scheme section:
+	// scheme section: scheme invites store scheme metadata, sometimes with
+	// legacy profile fields (name, surname) that are ignored here.
 	case tokenenum.Section_scheme:
 		data := &tokenmessage.MetaDataScheme{}
-		if err := protojson.Unmarshal(jsonb, data); err != nil {
+		unmarshal := protojson.UnmarshalOptions{DiscardUnknown: true}
+		if err := unmarshal.Unmarshal(jsonb, data); err != nil {
 			return nil, trace.Error(err, log, nil)
 		}
 		response.Data = &tokenmessage.Token_Response_Scheme{Scheme: data}

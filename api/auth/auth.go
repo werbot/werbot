@@ -98,7 +98,7 @@ func (h *Handler) logout(c *fiber.Ctx) error {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param body body jwt.Tokens true "Tokens"
+// @Param body body profilemessage.Token_Request true "Refresh token"
 // @Success 200 {object} webutil.HTTPResponse{result=profilemessage.Token_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /auth/refresh [post]
@@ -165,7 +165,7 @@ func (h *Handler) refresh(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param body body profilemessage.ResetPassword_Request true "Reset Password Request"
-// @Success 200 {object} webutil.HTTPResponse{result=profilemessage.ResetPassword_Response}
+// @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /auth/password_reset [post]
 func (h *Handler) resetPassword(c *fiber.Ctx) error {

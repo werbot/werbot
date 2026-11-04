@@ -14,16 +14,16 @@ import (
 )
 
 // @Summary Retrieve project members
-// @Description Get a list of members for a given project UUID with pagination and sorting options
+// @Description Get a list of members for a given project UUID with pagination
 // @Tags members
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param project_id path string true "Project UUID"
 // @Param addon path string false "Search profiles without project for admin"
+// @Param alias query string false "Profile alias to search"
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
-// @Param sort_by query string false "Sort by for pagination"
-// @Success 200 {object} webutil.HTTPResponse{result1=membermessage.ProjectMembers_Response,result2=membermessage.AddProjectMember_Response}
+// @Success 200 {object} webutil.HTTPResponse{result1=membermessage.ProjectMembers_Response,result2=membermessage.ProfilesWithoutProject_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/members/project/{project_id} [get]
 func (h *Handler) projectMembers(c *fiber.Ctx) error {
@@ -118,7 +118,7 @@ func (h *Handler) projectMember(c *fiber.Ctx) error {
 	return webutil.StatusOK(c, "Member", result)
 }
 
-// @Summary Add Project Member, access only for admin
+// @Summary Add a project member
 // @Description Adds a new member to the specified project with a given role
 // @Tags members
 // @Accept json
@@ -168,7 +168,7 @@ func (h *Handler) addProjectMember(c *fiber.Ctx) error {
 // @Param body body membermessage.UpdateProjectMember_Request true "Updates the role or status Request Body"
 // @Success 200 {object} webutil.HTTPResponse
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
-// @Router /v1/members/project/{project_id}/{member_id} [put]
+// @Router /v1/members/project/{project_id}/{member_id} [patch]
 func (h *Handler) updateProjectMember(c *fiber.Ctx) error {
 	sessionData := session.AuthProfile(c)
 	request := &membermessage.UpdateProjectMember_Request{

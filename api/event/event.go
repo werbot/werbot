@@ -15,10 +15,9 @@ import (
 // @Produce json
 // @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param category path string true "Category name (profile, project, scheme)"
-// @Param category_id path string true "Name UUID"
+// @Param category_id path string true "Profile, project or scheme UUID"
 // @Param limit query int false "Limit for pagination"
 // @Param offset query int false "Offset for pagination"
-// @Param sort_by query string false "Sort by for pagination"
 // @Success 200 {object} webutil.HTTPResponse{result=eventpb.Events_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/event/{category}/{category_id} [get]
@@ -65,8 +64,9 @@ func (h *Handler) events(c *fiber.Ctx) error {
 // @Description Retrieves a single event record based on the provided category (profile, project, or scheme) and query parameters
 // @Tags event
 // @Produce json
+// @Param owner_id query string false "Owner UUID". Parameter Accessible with ROLE_ADMIN rights
 // @Param category path string true "Category name (profile, project, scheme)"
-// @Param category_id path string true "Name UUID"
+// @Param category_id path string true "Profile, project or scheme UUID"
 // @Param event_id path string true "Event UUID"
 // @Success 200 {object} webutil.HTTPResponse{result=eventpb.Event_Response}
 // @Failure 400,401,404,500 {object} webutil.HTTPResponse{result=string}

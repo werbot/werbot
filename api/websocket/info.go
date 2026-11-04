@@ -8,6 +8,7 @@ import (
 	"github.com/werbot/werbot/internal/version"
 )
 
+// handleInfo sends the UI and API versions to the WebSocket client.
 func (h *Handler) handleInfo(c *websocket.Conn) {
 	versions := make(map[string]string)
 	versions["ui"] = fmt.Sprintf("%s (%s)", "2", version.Commit())

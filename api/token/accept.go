@@ -15,7 +15,7 @@ import (
 // @Accept json
 // @Produce json
 // @Param body body acceptRequest true "Invite acceptance body"
-// @Success 200 {object} webutil.HTTPResponse
+// @Success 200 {object} webutil.HTTPResponse{result=map[string]any}
 // @Failure 400,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/tokens/accept [post]
 func (h *Handler) accept(c *fiber.Ctx) error {

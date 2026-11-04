@@ -15,7 +15,7 @@ import (
 // @Accept json
 // @Produce json
 // @Param body body registerRequest true "Registration body"
-// @Success 200 {object} webutil.HTTPResponse
+// @Success 200 {object} webutil.HTTPResponse{result=map[string]string}
 // @Failure 400,404,500 {object} webutil.HTTPResponse{result=string}
 // @Router /v1/tokens/register [post]
 func (h *Handler) register(c *fiber.Ctx) error {

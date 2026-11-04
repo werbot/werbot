@@ -11,7 +11,7 @@ type Handler struct {
 	log logger.Logger
 }
 
-// New creates a new info handler.
+// New creates a new system handler.
 func New(h *api.Handler) *Handler {
 	return &Handler{
 		Handler: h,
@@ -19,7 +19,7 @@ func New(h *api.Handler) *Handler {
 	}
 }
 
-// Routes sets up the info-related routes.
+// Routes sets up the system-related routes.
 func (h *Handler) Routes() {
 	apiV1 := h.App.Group("/v1/system")
 

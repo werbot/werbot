@@ -101,6 +101,7 @@ func validateInviteToken(tokenData *tokenmessage.Token_Response, section tokenen
 	return nil
 }
 
+// invalidTokenError returns the standard error for an unusable invite token.
 func invalidTokenError() error {
 	return status.Error(codes.InvalidArgument, trace.MsgTokenIsInvalid)
 }
