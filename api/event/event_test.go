@@ -2,6 +2,7 @@ package event
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/werbot/werbot/internal/utils/test"
@@ -253,6 +254,14 @@ func TestHandler_events(t *testing.T) {
 			Name:           "test1_30",
 			Method:         http.MethodGet,
 			Path:           test.PathGluing(pathEventProject, test.ConstAdminEventProjectID) + "?section=-1",
+			StatusCode:     400,
+			Body:           test.BodyInvalidArgument,
+			RequestHeaders: adminHeader,
+		},
+		{ // ADMIN: search longer than the 128 character maximum is rejected
+			Name:           "test1_35",
+			Method:         http.MethodGet,
+			Path:           test.PathGluing(pathEventProject, test.ConstAdminEventProjectID) + "?search=" + strings.Repeat("a", 129),
 			StatusCode:     400,
 			Body:           test.BodyInvalidArgument,
 			RequestHeaders: adminHeader,
