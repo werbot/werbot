@@ -257,6 +257,14 @@ func TestHandler_events(t *testing.T) {
 			Body:           test.BodyInvalidArgument,
 			RequestHeaders: adminHeader,
 		},
+		{ // ADMIN: project events filtered by a section with no matches
+			Name:           "test1_34",
+			Method:         http.MethodGet,
+			Path:           test.PathGluing(pathEventProject, test.ConstAdminEventProjectID) + "?section=2",
+			StatusCode:     404,
+			Body:           test.BodyNotFound,
+			RequestHeaders: adminHeader,
+		},
 		{ // USER: error displaying project events not owned by the profile
 			Name:           "test2_21",
 			Method:         http.MethodGet,
