@@ -5,7 +5,7 @@
 ROOT_PATH="$(git rev-parse --show-toplevel)"
 source ${ROOT_PATH}/scripts/_helper
 
-arr_process=("__debug_bin" "vite")
+arr_process=("__debug_bin" "${ROOT_PATH}/bin/" "vite")
 for process_name in "${arr_process[@]}"; do
   pids=$(pgrep -f "$process_name")
   for pid in $pids; do
