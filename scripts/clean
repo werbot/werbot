@@ -5,7 +5,7 @@
 ROOT_PATH="$(git rev-parse --show-toplevel)"
 source ${ROOT_PATH}/scripts/_helper
 
-arr_process=("__debug_bin" "vite")
+arr_process=("__debug_bin" "${ROOT_PATH}/bin/" "vite")
 for process_name in "${arr_process[@]}"; do
   pids=$(pgrep -f "$process_name")
   for pid in $pids; do
@@ -33,6 +33,15 @@ for entry in "${ROOT_PATH}/bin/"*; do
   if [[ $name != .* && $name != '*' ]]; then
     print_header "Deleting bin file for ${name}"
     rm -rf ${entry}
+    print_answer "SUCCESS" green
+  fi
+done
+
+for dir in bin logs ghost; do
+  legacy_path="${ROOT_PATH}/.vscode/${dir}"
+  if [ -e "${legacy_path}" ]; then
+    print_header "Deleting .vscode/${dir}"
+    rm -rf "${legacy_path}"
     print_answer "SUCCESS" green
   fi
 done

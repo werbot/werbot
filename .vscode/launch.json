@@ -8,7 +8,8 @@
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/buffet/",
       "envFile": "${workspaceFolder}/.env",
-      "args": [""]
+      "args": [""],
+      "output": "${workspaceFolder}/bin/buffet"
     },
     {
       "name": "🌮 api (Taco)",
@@ -17,7 +18,8 @@
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/taco/",
       "envFile": "${workspaceFolder}/.env",
-      "args": [""]
+      "args": [""],
+      "output": "${workspaceFolder}/bin/taco"
     },
     {
       "name": "🥑 worker (Avocado)",
@@ -26,7 +28,8 @@
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/avocado/",
       "envFile": "${workspaceFolder}/.env",
-      "args": [""]
+      "args": [""],
+      "output": "${workspaceFolder}/bin/avocado"
     },
     {
       "name": "👻 master (Ghost)",
@@ -35,7 +38,8 @@
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/ghost/",
       "envFile": "${workspaceFolder}/.env",
-      "args": [""]
+      "args": [""],
+      "output": "${workspaceFolder}/bin/ghost"
     }
   ],
   "compounds": [
@@ -47,5 +51,5 @@
         "👻 master (Ghost)"
       ]
     }
-  ],
+  ]
 }

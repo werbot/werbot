@@ -185,6 +185,12 @@ Additional documentation is being actively developed. For the latest updates, pl
    ```
    This will build all services into the `bin/` directory.
 
+   For local run or debugging, build native host binaries instead:
+   ```bash
+   make build-local            # all services
+   make build-local taco       # one service
+   ```
+
 3. **Run database migrations:**
    ```bash
    make migration
@@ -200,6 +206,7 @@ Additional documentation is being actively developed. For the latest updates, pl
 - `make help` - Show all available commands
 - `make init` - Initialize development environment
 - `make build [service]` - Build project or specific service
+- `make build-local [service]` - Build native host binaries into `bin/` for local run or debug
 - `make tools` - Install/update development tools
 - `make migration` - Run database migrations
 - `make geolite` - Update GeoLite database

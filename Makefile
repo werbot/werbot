@@ -47,6 +47,13 @@ build: ## Building project in bin folder
 
 
 #############################################################################
+.PHONY: build-local
+build-local: ## Building project natively in bin folder
+	@scripts/build --local $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+#############################################################################
+
+
+#############################################################################
 .PHONY: prod_build
 prod_build: build ## Alias for build (kept for existing deployment scripts)
 #############################################################################
