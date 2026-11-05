@@ -419,6 +419,311 @@ func TestBuilderSchemeFirewallCountry(t *testing.T) {
 	assert.Equal(t, "US", countryCode)
 }
 
+func newSchemeMember(t *testing.T, b *factory.Builder) factory.SchemeMember {
+	t.Helper()
+
+	profile := b.Profile(factory.ProfileParams{})
+	project := b.Project(factory.ProjectParams{OwnerID: profile.ID})
+	projectMember := b.ProjectMember(factory.ProjectMemberParams{
+		ProjectID: project.ID,
+		ProfileID: profile.ID,
+	})
+	scheme := b.Scheme(factory.SchemeParams{ProjectID: project.ID})
+
+	return b.SchemeMember(factory.SchemeMemberParams{
+		SchemeID:        scheme.ID,
+		ProjectMemberID: projectMember.ID,
+	})
+}
+
+func TestBuilderEvent(t *testing.T) {
+	b, db := newBuilder(t)
+
+	profile := b.Profile(factory.ProfileParams{})
+	event := b.Event(factory.EventParams{
+		RelatedID:    profile.ID,
+		PrimeSection: 1,
+		Section:      101,
+		Type:         1,
+	})
+
+	assert.True(t, uuid.IsValid(event.ID), "event ID must be a valid UUID")
+	assert.Equal(t, profile.ID, event.RelatedID)
+	assert.Equal(t, int16(1), event.PrimeSection)
+	assert.Equal(t, int16(101), event.Section)
+	assert.Equal(t, int16(1), event.Type)
+
+	var sessionJSON, dataJSON string
+	err := db.QueryRow(`
+		SELECT "session"::text, "data"::text FROM "event" WHERE "id" = $1
+	`, event.ID).Scan(&sessionJSON, &dataJSON)
+	require.NoError(t, err)
+
+	var session map[string]any
+	require.NoError(t, json.Unmarshal([]byte(sessionJSON), &session))
+
+	sessionID, ok := session["id"].(string)
+	require.True(t, ok, "session must contain an id")
+	assert.True(t, uuid.IsValid(sessionID), "session ID must be a valid UUID")
+	assert.Equal(t, "test-agent", session["user_agent"])
+	assert.Equal(t, "192.0.2.1", session["ip"])
+	assert.JSONEq(t, `{}`, dataJSON)
+}
+
+func TestBuilderEventSession(t *testing.T) {
+	b, db := newBuilder(t)
+
+	profile := b.Profile(factory.ProfileParams{})
+	explicitID := uuid.New()
+	event := b.Event(factory.EventParams{
+		RelatedID:    profile.ID,
+		PrimeSection: 1,
+		Section:      101,
+		Type:         2,
+		Session: map[string]any{
+			"id":         explicitID,
+			"user_agent": "explicit-agent",
+			"ip":         "198.51.100.7",
+		},
+		SessionID: uuid.New(),
+		UserAgent: "ignored-agent",
+		IP:        "192.0.2.99",
+	})
+
+	var sessionJSON string
+	err := db.QueryRow(`SELECT "session"::text FROM "event" WHERE "id" = $1`, event.ID).Scan(&sessionJSON)
+	require.NoError(t, err)
+
+	var session map[string]any
+	require.NoError(t, json.Unmarshal([]byte(sessionJSON), &session))
+
+	assert.Equal(t, explicitID, session["id"])
+	assert.Equal(t, "explicit-agent", session["user_agent"])
+	assert.Equal(t, "198.51.100.7", session["ip"])
+
+	scalarID := uuid.New()
+	scalar := b.Event(factory.EventParams{
+		RelatedID:    profile.ID,
+		PrimeSection: 1,
+		Section:      101,
+		Type:         3,
+		SessionID:    scalarID,
+		UserAgent:    "scalar-agent",
+		IP:           "203.0.113.5",
+	})
+
+	err = db.QueryRow(`SELECT "session"::text FROM "event" WHERE "id" = $1`, scalar.ID).Scan(&sessionJSON)
+	require.NoError(t, err)
+
+	require.NoError(t, json.Unmarshal([]byte(sessionJSON), &session))
+
+	assert.Equal(t, scalarID, session["id"])
+	assert.Equal(t, "scalar-agent", session["user_agent"])
+	assert.Equal(t, "203.0.113.5", session["ip"])
+}
+
+func TestBuilderSession(t *testing.T) {
+	b, db := newBuilder(t)
+
+	member := newSchemeMember(t, b)
+	session := b.Session(factory.SessionParams{
+		MemberID: member.ID,
+		Status:   factory.Bool(true),
+		Message:  "connected",
+	})
+
+	assert.True(t, uuid.IsValid(session.ID), "session ID must be a valid UUID")
+	assert.Equal(t, member.ID, session.MemberID)
+
+	var (
+		memberID, message string
+		status            bool
+	)
+	err := db.QueryRow(`
+		SELECT "member_id", "status", "message" FROM "session" WHERE "id" = $1
+	`, session.ID).Scan(&memberID, &status, &message)
+	require.NoError(t, err)
+
+	assert.Equal(t, member.ID, memberID)
+	assert.True(t, status)
+	assert.Equal(t, "connected", message)
+}
+
+func TestBuilderAudit(t *testing.T) {
+	b, db := newBuilder(t)
+
+	member := newSchemeMember(t, b)
+	audit := b.Audit(factory.AuditParams{
+		MemberID: member.ID,
+		Version:  2,
+		Width:    120,
+		Height:   40,
+		Duration: 12.5,
+		Command:  "ls -la",
+		Title:    "bash",
+		EnvTerm:  "xterm-256color",
+		EnvShell: "/bin/bash",
+		Session:  "audit-session",
+		ClientIP: "192.0.2.5",
+	})
+
+	assert.True(t, uuid.IsValid(audit.ID), "audit ID must be a valid UUID")
+	assert.Equal(t, member.ID, audit.MemberID)
+
+	var (
+		memberID, command, title, envTerm, envShell, session, clientIP string
+		version, width, height                                         int16
+		duration                                                       float64
+		timeStart                                                      sql.NullTime
+	)
+	err := db.QueryRow(`
+		SELECT "member_id", "time_start", "version", "width", "height", "duration",
+			"command", "title", "env_term", "env_shell", "session", host("client_ip")
+		FROM "audit" WHERE "id" = $1
+	`, audit.ID).Scan(&memberID, &timeStart, &version, &width, &height, &duration,
+		&command, &title, &envTerm, &envShell, &session, &clientIP)
+	require.NoError(t, err)
+
+	assert.Equal(t, member.ID, memberID)
+	assert.True(t, timeStart.Valid, "time_start must be set by default")
+	assert.Equal(t, int16(2), version)
+	assert.Equal(t, int16(120), width)
+	assert.Equal(t, int16(40), height)
+	assert.Equal(t, 12.5, duration)
+	assert.Equal(t, "ls -la", command)
+	assert.Equal(t, "bash", title)
+	assert.Equal(t, "xterm-256color", envTerm)
+	assert.Equal(t, "/bin/bash", envShell)
+	assert.Equal(t, "audit-session", session)
+	assert.Equal(t, "192.0.2.5", clientIP)
+}
+
+func TestBuilderAuditRecord(t *testing.T) {
+	b, db := newBuilder(t)
+
+	member := newSchemeMember(t, b)
+	audit := b.Audit(factory.AuditParams{MemberID: member.ID})
+	record := b.AuditRecord(factory.AuditRecordParams{
+		AuditID:  audit.ID,
+		Duration: 0.25,
+		Screen:   "screen data",
+		Type:     "o",
+	})
+
+	assert.True(t, uuid.IsValid(record.ID), "audit record ID must be a valid UUID")
+	assert.Equal(t, audit.ID, record.AuditID)
+
+	var (
+		auditID, screen, recordType string
+		duration                    float64
+	)
+	err := db.QueryRow(`
+		SELECT "audit_id", "duration", "screen", "type"
+		FROM "audit_record" WHERE "id" = $1
+	`, record.ID).Scan(&auditID, &duration, &screen, &recordType)
+	require.NoError(t, err)
+
+	assert.Equal(t, audit.ID, auditID)
+	assert.Equal(t, 0.25, duration)
+	assert.Equal(t, "screen data", screen)
+	assert.Equal(t, "o", recordType)
+}
+
+func TestBuilderToken(t *testing.T) {
+	b, db := newBuilder(t)
+
+	nullToken := b.Token(factory.TokenParams{Section: 1, Action: 2, Status: 3})
+
+	assert.True(t, uuid.IsValid(nullToken.ID), "token ID must be a valid UUID")
+
+	var (
+		profileID, projectID, schemeID sql.NullString
+		section, action, status        int16
+		dataJSON                       string
+	)
+	err := db.QueryRow(`
+		SELECT "section", "action", "status", "profile_id", "project_id", "scheme_id", "data"::text
+		FROM "token" WHERE "id" = $1
+	`, nullToken.ID).Scan(&section, &action, &status, &profileID, &projectID, &schemeID, &dataJSON)
+	require.NoError(t, err)
+
+	assert.Equal(t, int16(1), section)
+	assert.Equal(t, int16(2), action)
+	assert.Equal(t, int16(3), status)
+	assert.False(t, profileID.Valid, "empty profile ID must be stored as NULL")
+	assert.False(t, projectID.Valid, "empty project ID must be stored as NULL")
+	assert.False(t, schemeID.Valid, "empty scheme ID must be stored as NULL")
+	assert.JSONEq(t, `{}`, dataJSON)
+
+	profile := b.Profile(factory.ProfileParams{})
+	project := b.Project(factory.ProjectParams{OwnerID: profile.ID})
+	scheme := b.Scheme(factory.SchemeParams{ProjectID: project.ID})
+	linked := b.Token(factory.TokenParams{
+		Section:   1,
+		Action:    2,
+		Status:    3,
+		ProfileID: profile.ID,
+		ProjectID: project.ID,
+		SchemeID:  scheme.ID,
+		Data:      map[string]any{"key": "value"},
+	})
+
+	assert.True(t, uuid.IsValid(linked.ID), "linked token ID must be a valid UUID")
+
+	err = db.QueryRow(`
+		SELECT "profile_id", "project_id", "scheme_id", "data"::text
+		FROM "token" WHERE "id" = $1
+	`, linked.ID).Scan(&profileID, &projectID, &schemeID, &dataJSON)
+	require.NoError(t, err)
+
+	assert.Equal(t, profile.ID, profileID.String)
+	assert.Equal(t, project.ID, projectID.String)
+	assert.Equal(t, scheme.ID, schemeID.String)
+	assert.JSONEq(t, `{"key": "value"}`, dataJSON)
+}
+
+func TestBuilderFirewallList(t *testing.T) {
+	b, db := newBuilder(t)
+
+	listID := b.FirewallList(factory.FirewallListParams{Name: "test.netset"})
+
+	assert.True(t, uuid.IsValid(listID), "firewall list ID must be a valid UUID")
+
+	var (
+		name   string
+		active bool
+		path   int16
+	)
+	err := db.QueryRow(`
+		SELECT "name", "active", "path" FROM "firewall_list" WHERE "id" = $1
+	`, listID).Scan(&name, &active, &path)
+	require.NoError(t, err)
+
+	assert.Equal(t, "test.netset", name)
+	assert.True(t, active, "firewall list must be active by default")
+	assert.Equal(t, int16(0), path)
+
+	b.FirewallCountry(listID, "US")
+
+	var countryCode string
+	err = db.QueryRow(`
+		SELECT "country_code" FROM "firewall_country" WHERE "firewall_list_id" = $1
+	`, listID).Scan(&countryCode)
+	require.NoError(t, err)
+
+	assert.Equal(t, "US", countryCode)
+
+	b.FirewallNetwork(listID, "10.0.0.0/8")
+
+	var network string
+	err = db.QueryRow(`
+		SELECT "network"::text FROM "firewall_network" WHERE "firewall_list_id" = $1
+	`, listID).Scan(&network)
+	require.NoError(t, err)
+
+	assert.Equal(t, "10.0.0.0/8", network)
+}
+
 func TestBuilderSchemeFirewallNetwork(t *testing.T) {
 	b, db := newBuilder(t)
 

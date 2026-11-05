@@ -45,6 +45,14 @@ func randomAlias() string {
 	return strings.ToLower(crypto.NewPassword(8, false))
 }
 
+// stringOr returns v when it is set and def otherwise.
+func stringOr(v, def string) string {
+	if v == "" {
+		return def
+	}
+	return v
+}
+
 // boolOr returns the value behind v, or def when v is nil.
 func boolOr(v *bool, def bool) bool {
 	if v == nil {
