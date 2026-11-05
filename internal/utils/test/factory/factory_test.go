@@ -748,6 +748,18 @@ func TestBuilderFirewallList(t *testing.T) {
 	assert.True(t, active, "firewall list must be active by default")
 	assert.Equal(t, int16(0), path)
 
+	inactiveID := b.FirewallList(factory.FirewallListParams{
+		Name:   "test.netset.inactive",
+		Active: factory.Bool(false),
+	})
+
+	var inactiveActive bool
+	err = db.QueryRow(`
+		SELECT "active" FROM "firewall_list" WHERE "id" = $1
+	`, inactiveID).Scan(&inactiveActive)
+	require.NoError(t, err)
+	assert.False(t, inactiveActive, "firewall list must persist an explicit inactive state")
+
 	b.FirewallCountry(listID, "US")
 
 	var countryCode string

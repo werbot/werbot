@@ -99,9 +99,9 @@ func (gm *GooseMigrator) Migrate(_ context.Context, db *sql.DB, _ pgtestdb.Confi
 		return err
 	}
 
-	// Every directory gets its own version table. Sharing one table breaks as
-	// soon as a core migration is newer than the data fixtures, because goose
-	// then refuses to apply the older fixture files.
+	// Every directory gets its own version table so the core and add-on
+	// migration histories stay independent. Tests no longer load data fixtures
+	// through this path.
 	for i, dir := range gm.dirs {
 		goose.SetTableName(fmt.Sprintf("goose_db_version_%d", i))
 		if err := goose.Up(db, dir); err != nil {

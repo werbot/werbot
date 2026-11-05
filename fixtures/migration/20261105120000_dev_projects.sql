@@ -52,10 +52,20 @@ SELECT
     ELSE 'b8c3d9e4-6f4d-4e11-a3e6-72f9cb7660e0'::uuid        -- user2
   END,
   'seed public key ' || n,
-  'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI'
-    || substr(md5('seed-public-key-' || n), 1, 32)
-    || ' seed' || n || '@werbot.net',
-  rtrim(regexp_replace(md5('seed-public-key-fp-' || n), '(.{2})', '\1:', 'g'), ':'),
+  'ssh-ed25519 ' || encode(
+    decode('AAAAC3NzaC1lZDI1NTE5AAAAIA==', 'base64')
+      || decode(md5('seed-public-key-a-' || n), 'hex')
+      || decode(md5('seed-public-key-b-' || n), 'hex'),
+    'base64'
+  ) || ' seed' || n || '@werbot.net',
+  rtrim(regexp_replace(
+    md5(
+      decode('AAAAC3NzaC1lZDI1NTE5AAAAIA==', 'base64')
+        || decode(md5('seed-public-key-a-' || n), 'hex')
+        || decode(md5('seed-public-key-b-' || n), 'hex')
+    ),
+    '(.{2})', '\1:', 'g'
+  ), ':'),
   CASE WHEN n % 7 = 0 THEN CURRENT_TIMESTAMP - INTERVAL '2 hour' END,
   CASE WHEN n % 11 = 0 THEN CURRENT_TIMESTAMP - INTERVAL '1 day' END,
   CURRENT_TIMESTAMP - (n % 30) * INTERVAL '1 day' - (n % 24) * INTERVAL '1 hour'

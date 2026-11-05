@@ -35,14 +35,9 @@ type GRPCHandler struct {
 
 // GRPC is ...
 func GRPC(t *testing.T, addonDirs ...string) (*GRPCHandler, func(t *testing.T)) {
-	return newGRPCHandler(t, migrationDirs("../../../", addonDirs))
-}
-
-// newGRPCHandler builds the gRPC handler and services for GRPC.
-func newGRPCHandler(t *testing.T, migrations []string) (*GRPCHandler, func(t *testing.T)) {
 	t.Setenv("ENV_MODE", "test")
 
-	pgTest := ServerPostgres(t, migrations...)
+	pgTest := ServerPostgres(t, migrationDirs("../../../", addonDirs)...)
 
 	redisTest := ServerRedis(context.Background(), t)
 

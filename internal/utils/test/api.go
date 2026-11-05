@@ -83,17 +83,12 @@ type Tokens struct {
 
 // API sets up the test environment and returns a TestHandler and teardown function
 func API(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
-	return newAPIHandler(t, migrationDirs("../../", addonDirs))
-}
-
-// newAPIHandler builds the API handler and services for API.
-func newAPIHandler(t *testing.T, migrations []string) (*APIHandler, func(t *testing.T)) {
 	t.Setenv("ENV_MODE", "test")
 	t.Setenv("SECURITY_AES_KEY", "3D6A619811A17396E45D514695DCDA3A") // example key for tests, don't change
 	t.Setenv("JWT_PUBLIC_KEY", "../../fixtures/keys/jwt/jwt_public.key")
 	t.Setenv("JWT_PRIVATE_KEY", "../../fixtures/keys/jwt/jwt_private.key")
 
-	pgTest := ServerPostgres(t, migrations...)
+	pgTest := ServerPostgres(t, migrationDirs("../../", addonDirs)...)
 
 	redisTest := ServerRedis(context.Background(), t)
 

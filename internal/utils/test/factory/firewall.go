@@ -7,7 +7,7 @@ import (
 // FirewallListParams is the set of optional and required values for a firewall list.
 type FirewallListParams struct {
 	ID, Name string
-	Active   bool
+	Active   *bool
 	Path     int16
 }
 
@@ -17,9 +17,8 @@ func (b *Builder) FirewallList(l FirewallListParams) string {
 
 	l.ID = uuidOrNew(l.ID)
 	l.Name = stringOr(l.Name, "firewall-list")
-	// Active is a plain bool, so it cannot distinguish an unset value from
-	// false. Firewall lists are created active; path defaults to 0.
-	active := true
+	// Firewall lists are created active by default; path defaults to 0.
+	active := boolOr(l.Active, true)
 
 	_, err := b.db.Exec(`
 		INSERT INTO "firewall_list" ("id", "name", "active", "path")
