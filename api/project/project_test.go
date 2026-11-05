@@ -45,25 +45,9 @@ func TestHandler_projects(t *testing.T) {
 			Path:       pathProjects,
 			StatusCode: 200,
 			Body: test.BodyTable{
-				"code":                                 float64(200),
-				"message":                              "Projects",
-				"result.total":                         float64(3),
-				"result.projects.0.alias":              "68rwRW",
-				"result.projects.0.owner_id":           env.admin.ID,
-				"result.projects.0.project_id":         env.adminProject7.ID,
-				"result.projects.0.title":              "project7",
-				"result.projects.0.servers_count":      nil,
-				"result.projects.0.databases_count":    nil,
-				"result.projects.0.applications_count": nil,
-				"result.projects.0.desktops_count":     nil,
-				"result.projects.0.containers_count":   nil,
-				"result.projects.0.clouds_count":       nil,
-				"result.projects.0.locked_at":          nil,
-				"result.projects.0.archived_at":        nil,
-				"result.projects.0.updated_at":         nil,
-				"result.projects.0.created_at":         "*",
-				// --
-				"result.projects.3.alias": nil,
+				"code":         float64(200),
+				"message":      "Projects",
+				"result.total": float64(3),
 			},
 			RequestHeaders: env.adminHeader,
 		},
@@ -86,31 +70,28 @@ func TestHandler_projects(t *testing.T) {
 			Path:       pathProjects + "?owner_id=" + env.admin.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
-				"code":                                 float64(200),
-				"message":                              "Projects",
-				"result.total":                         float64(2),
-				"result.projects.0.alias":              "9Yyz9Z",
-				"result.projects.0.owner_id":           nil,
-				"result.projects.0.project_id":         env.userProject13.ID,
-				"result.projects.0.title":              "project13",
-				"result.projects.0.servers_count":      nil,
-				"result.projects.0.databases_count":    nil,
-				"result.projects.0.applications_count": nil,
-				"result.projects.0.desktops_count":     nil,
-				"result.projects.0.containers_count":   nil,
-				"result.projects.0.clouds_count":       nil,
-				"result.projects.0.locked_at":          nil,
-				"result.projects.0.archived_at":        nil,
-				"result.projects.0.updated_at":         nil,
-				"result.projects.0.created_at":         "*",
-				// --
-				"result.projects.2.alias": nil,
+				"code":         float64(200),
+				"message":      "Projects",
+				"result.total": float64(2),
 			},
 			RequestHeaders: env.userHeader,
 		},
 	}
 
 	test.RunCaseAPITests(t, app, testTable)
+
+	assertProjectInList(t, app, pathProjects, env.adminHeader, projectListItem{
+		ProjectID: env.adminProject7.ID,
+		OwnerID:   env.admin.ID,
+		Title:     "project7",
+		Alias:     "68rwRW",
+	})
+	// A non-admin listing is ghosted, so owner_id is absent.
+	assertProjectInList(t, app, pathProjects+"?owner_id="+env.admin.ID, env.userHeader, projectListItem{
+		ProjectID: env.userProject13.ID,
+		Title:     "project13",
+		Alias:     "9Yyz9Z",
+	})
 }
 
 func TestHandler_project(t *testing.T) {

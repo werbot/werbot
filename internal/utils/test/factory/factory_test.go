@@ -88,11 +88,14 @@ func TestBuilderPublicKey(t *testing.T) {
 
 	assert.True(t, uuid.IsValid(publicKey.ID), "public key ID must be a valid UUID")
 	assert.Equal(t, "public_key", publicKey.Title, "default title must be public_key")
-	assert.NotEmpty(t, publicKey.Key, "default key must not be empty")
 	assert.NotEmpty(t, publicKey.Fingerprint, "default fingerprint must not be empty")
 
+	parsed, err := crypto.ParseSSHKey([]byte(publicKey.Key))
+	require.NoError(t, err, "default key must be a valid SSH public key")
+	assert.NotEmpty(t, parsed.Fingerprint, "parsed default key must have a fingerprint")
+
 	var profileID, title, key, fingerprint string
-	err := db.QueryRow(`
+	err = db.QueryRow(`
 		SELECT "profile_id", "title", "key", "fingerprint" FROM "profile_public_key" WHERE "id" = $1
 	`, publicKey.ID).Scan(&profileID, &title, &key, &fingerprint)
 	require.NoError(t, err)

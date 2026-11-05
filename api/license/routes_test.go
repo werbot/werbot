@@ -12,7 +12,9 @@ const (
 	pathLicense     = "/v1/license"
 	pathLicenseInfo = pathLicense + "/info"
 
+	adminEmail    = "admin@werbot.net"
 	adminPassword = "admin@werbot.net"
+	userEmail     = "user@werbot.net"
 	userPassword  = "user@werbot.net"
 )
 
@@ -25,19 +27,19 @@ func setupTest(t *testing.T) (*test.APIHandler, func(t *testing.T), map[string]s
 	builder := factory.New(t, app.Postgres.Conn().Conn)
 	admin := builder.Profile(factory.ProfileParams{
 		Alias:    "admin",
-		Email:    adminPassword,
+		Email:    adminEmail,
 		Password: adminPassword,
 		Role:     3,
 	})
-	builder.Profile(factory.ProfileParams{
+	user := builder.Profile(factory.ProfileParams{
 		Alias:    "user",
-		Email:    userPassword,
+		Email:    userEmail,
 		Password: userPassword,
 		Role:     1,
 	})
 
 	adminHeader := app.AuthHeader(admin.Email, adminPassword)
-	userHeader := app.AuthHeader(userPassword, userPassword)
+	userHeader := app.AuthHeader(user.Email, userPassword)
 
 	return app, teardownTestCase, adminHeader, userHeader
 }

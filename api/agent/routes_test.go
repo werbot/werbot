@@ -13,6 +13,7 @@ const (
 	pathAgent       = "/v1/agent"
 	pathAgentScheme = "/v1/agent/scheme"
 
+	ownerEmail    = "user@werbot.net"
 	ownerPassword = "user@werbot.net"
 )
 
@@ -35,7 +36,7 @@ func setupTest(t *testing.T) (*test.APIHandler, *agentEnv, func(t *testing.T)) {
 	env := &agentEnv{}
 	env.owner = builder.Profile(factory.ProfileParams{
 		Alias:    "user",
-		Email:    ownerPassword,
+		Email:    ownerEmail,
 		Password: ownerPassword,
 		Role:     1,
 	})

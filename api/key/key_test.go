@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/werbot/werbot/internal/utils/test"
 	"github.com/werbot/werbot/pkg/crypto"
 	"github.com/werbot/werbot/pkg/utils/fsutil"
@@ -121,28 +123,9 @@ func TestHandler_keys(t *testing.T) {
 			Path:       pathKeys + "?limit=2&offset=0&profile_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
-				"code":                             float64(200),
-				"message":                          "Keys",
-				"result.total":                     float64(2),
-				"result.public_keys.0.fingerprint": "*",
-				"result.public_keys.0.key":         "*",
-				"result.public_keys.0.key_id":      "*",
-				"result.public_keys.0.profile_id":  "*",
-				"result.public_keys.0.title":       "*",
-				"result.public_keys.0.locked_at":   nil,
-				"result.public_keys.0.archived_at": nil,
-				"result.public_keys.0.updated_at":  nil,
-				"result.public_keys.0.created_at":  "*",
-				// --
-				"result.public_keys.1.fingerprint": "*",
-				"result.public_keys.1.key":         "*",
-				"result.public_keys.1.key_id":      "*",
-				"result.public_keys.1.profile_id":  "*",
-				"result.public_keys.1.title":       "*",
-				"result.public_keys.1.locked_at":   "*",
-				"result.public_keys.1.archived_at": nil,
-				"result.public_keys.1.updated_at":  "*",
-				"result.public_keys.1.created_at":  "*",
+				"code":         float64(200),
+				"message":      "Keys",
+				"result.total": float64(2),
 			},
 			RequestHeaders: env.adminHeader,
 		},
@@ -165,18 +148,9 @@ func TestHandler_keys(t *testing.T) {
 			Path:       pathKeys + "?limit=1&offset=0",
 			StatusCode: 200,
 			Body: test.BodyTable{
-				"code":                             float64(200),
-				"message":                          "Keys",
-				"result.total":                     float64(1),
-				"result.public_keys.0.fingerprint": "*",
-				"result.public_keys.0.key":         nil,
-				"result.public_keys.0.key_id":      "*",
-				"result.public_keys.0.profile_id":  nil,
-				"result.public_keys.0.title":       "*",
-				"result.public_keys.0.locked_at":   nil,
-				"result.public_keys.0.archived_at": nil,
-				"result.public_keys.0.updated_at":  nil,
-				"result.public_keys.0.created_at":  "*",
+				"code":         float64(200),
+				"message":      "Keys",
+				"result.total": float64(1),
 			},
 			RequestHeaders: env.userHeader,
 		},
@@ -186,24 +160,43 @@ func TestHandler_keys(t *testing.T) {
 			Path:       pathKeys + "?profile_id=" + env.admin.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
-				"code":                             float64(200),
-				"message":                          "Keys",
-				"result.total":                     float64(1),
-				"result.public_keys.0.fingerprint": "*",
-				"result.public_keys.0.key":         nil,
-				"result.public_keys.0.key_id":      "*",
-				"result.public_keys.0.profile_id":  nil,
-				"result.public_keys.0.title":       "*",
-				"result.public_keys.0.locked_at":   nil,
-				"result.public_keys.0.archived_at": nil,
-				"result.public_keys.0.updated_at":  nil,
-				"result.public_keys.0.created_at":  "*",
+				"code":         float64(200),
+				"message":      "Keys",
+				"result.total": float64(1),
 			},
 			RequestHeaders: env.userHeader,
 		},
 	}
 
 	test.RunCaseAPITests(t, app, testTable)
+
+	unlocked := findKeyInList(t, app, pathKeys+"?limit=2&offset=0&profile_id="+env.user.ID, env.adminHeader, env.unlockedUserKey.ID)
+	assert.Equal(t, "public_key 5", unlocked.Title)
+	assert.Equal(t, env.user.ID, unlocked.ProfileID)
+	assert.NotEmpty(t, unlocked.Fingerprint)
+	assert.NotNil(t, unlocked.Key)
+	assert.Nil(t, unlocked.LockedAt)
+	assert.Nil(t, unlocked.UpdatedAt)
+
+	locked := findKeyInList(t, app, pathKeys+"?limit=2&offset=0&profile_id="+env.user.ID, env.adminHeader, env.lockedUserKey.ID)
+	assert.Equal(t, "public_key 4", locked.Title)
+	assert.Equal(t, env.user.ID, locked.ProfileID)
+	assert.NotEmpty(t, locked.Fingerprint)
+	assert.NotNil(t, locked.Key)
+	assert.NotNil(t, locked.LockedAt)
+	assert.NotNil(t, locked.UpdatedAt)
+
+	own := findKeyInList(t, app, pathKeys+"?limit=1&offset=0", env.userHeader, env.unlockedUserKey.ID)
+	assert.Equal(t, "public_key 5", own.Title)
+	assert.Empty(t, own.ProfileID)
+	assert.Nil(t, own.Key)
+	assert.Nil(t, own.LockedAt)
+	assert.Nil(t, own.UpdatedAt)
+
+	own = findKeyInList(t, app, pathKeys+"?profile_id="+env.admin.ID, env.userHeader, env.unlockedUserKey.ID)
+	assert.Equal(t, "public_key 5", own.Title)
+	assert.Empty(t, own.ProfileID)
+	assert.Nil(t, own.Key)
 }
 
 func TestHandler_key(t *testing.T) {

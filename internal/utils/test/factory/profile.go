@@ -24,6 +24,13 @@ type Profile struct {
 	Active, Confirmed                         bool
 }
 
+const (
+	// defaultPublicKey is a syntactically valid ed25519 SSH public key.
+	defaultPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMKIhlysVKLIuxl2RvfpdGptcvghhSkWfmmum1pSVze0"
+	// defaultFingerprint is the MD5 fingerprint of defaultPublicKey.
+	defaultFingerprint = "b6:07:6a:ef:82:e3:73:47:56:69:3f:3d:c7:d7:6f:23"
+)
+
 // PublicKeyParams is the set of optional and required values for a profile
 // public key.
 type PublicKeyParams struct {
@@ -43,10 +50,10 @@ func (b *Builder) PublicKey(p PublicKeyParams) PublicKey {
 		p.Title = "public_key"
 	}
 	if p.Key == "" {
-		p.Key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI" + randomAlias()
+		p.Key = defaultPublicKey
 	}
 	if p.Fingerprint == "" {
-		p.Fingerprint = randomAlias()
+		p.Fingerprint = defaultFingerprint
 	}
 
 	_, err := b.db.Exec(`

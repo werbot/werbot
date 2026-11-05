@@ -68,11 +68,13 @@ func setupTest(t *testing.T) (*test.APIHandler, *profileEnv, func(t *testing.T))
 	env.userHeader = app.AuthHeader(env.user.Email, userPassword)
 
 	past := time.Now().Add(-48 * time.Hour)
+	// The expired token belongs to the admin, who survives the user delete
+	// case, so the 404 can only come from token expiry.
 	env.expiredDeleteToken = builder.Token(factory.TokenParams{
 		Section:   int16(tokenenum.Section_profile),
 		Action:    int16(tokenenum.Action_delete),
 		Status:    int16(tokenenum.Status_sent),
-		ProfileID: env.user.ID,
+		ProfileID: env.admin.ID,
 		CreatedAt: factory.Time(past),
 		ExpiredAt: factory.Time(time.Now().Add(-time.Hour)),
 	})

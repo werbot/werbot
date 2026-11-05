@@ -1,8 +1,13 @@
 package key
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/api/auth"
 	"github.com/werbot/werbot/internal/utils/test"
@@ -66,4 +71,47 @@ func setupTest(t *testing.T) (*test.APIHandler, *keyEnv, func(t *testing.T)) {
 	env.userHeader = app.AuthHeader(env.user.Email, userPassword)
 
 	return app, env, teardownTestCase
+}
+
+type keyListItem struct {
+	KeyID       string  `json:"key_id"`
+	ProfileID   string  `json:"profile_id"`
+	Title       string  `json:"title"`
+	Key         *string `json:"key"`
+	Fingerprint string  `json:"fingerprint"`
+	LockedAt    *string `json:"locked_at"`
+	ArchivedAt  *string `json:"archived_at"`
+	UpdatedAt   *string `json:"updated_at"`
+}
+
+// findKeyInList fetches a key list and returns the key with keyID. The list
+// query has no ORDER BY, so the test must not depend on row indexes.
+func findKeyInList(t *testing.T, app *test.APIHandler, path string, headers map[string]string, keyID string) keyListItem {
+	t.Helper()
+
+	request := httptest.NewRequest(http.MethodGet, path, nil)
+	for k, v := range headers {
+		request.Header.Add(k, v)
+	}
+
+	response, err := app.App.Test(request, -1)
+	require.NoError(t, err)
+	defer response.Body.Close()
+	require.Equal(t, http.StatusOK, response.StatusCode)
+
+	var body struct {
+		Result struct {
+			PublicKeys []keyListItem `json:"public_keys"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&body))
+
+	for _, key := range body.Result.PublicKeys {
+		if key.KeyID == keyID {
+			return key
+		}
+	}
+
+	require.Failf(t, "key not found", "key %s is missing from %s", keyID, path)
+	return keyListItem{}
 }
