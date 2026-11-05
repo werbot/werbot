@@ -111,19 +111,28 @@ func Test_ProjectCounts(t *testing.T) {
 	builder.ProjectMember(factory.ProjectMemberParams{ProjectID: project.ID, ProfileID: memberOne.ID})
 	builder.ProjectMember(factory.ProjectMemberParams{ProjectID: project.ID, ProfileID: memberTwo.ID})
 
-	// Two servers and one scheme of every other group. Subtypes must be
-	// folded into their group (100 -> server, 200 -> database, ...).
-	for _, schemeType := range []int16{101, 103, 201, 301, 401, 501, 601} {
-		builder.Scheme(factory.SchemeParams{ProjectID: project.ID, SchemeType: schemeType})
+	// Different count per group and scheme subtype so a wrong column
+	// mapping or exact-type match fails the test.
+	for schemeType, count := range map[int16]int{
+		101: 2,
+		201: 3,
+		601: 4,
+		301: 5,
+		401: 6,
+		501: 7,
+	} {
+		for range count {
+			builder.Scheme(factory.SchemeParams{ProjectID: project.ID, SchemeType: schemeType})
+		}
 	}
 
 	counts := test.BodyTable{
 		"servers_count":      float64(2),
-		"databases_count":    float64(1),
-		"applications_count": float64(1),
-		"desktops_count":     float64(1),
-		"containers_count":   float64(1),
-		"clouds_count":       float64(1),
+		"databases_count":    float64(3),
+		"applications_count": float64(4),
+		"desktops_count":     float64(5),
+		"containers_count":   float64(6),
+		"clouds_count":       float64(7),
 		"members_count":      float64(2),
 	}
 

@@ -88,10 +88,10 @@ func (h *Handler) Projects(ctx context.Context, in *projectmessage.Projects_Requ
 			&project.MembersCount,
 			&project.ServersCount,
 			&project.DatabasesCount,
-			&project.ApplicationsCount,
 			&project.DesktopsCount,
 			&project.ContainersCount,
 			&project.CloudsCount,
+			&project.ApplicationsCount,
 		)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
@@ -163,10 +163,10 @@ func (h *Handler) Project(ctx context.Context, in *projectmessage.Project_Reques
 		&response.MembersCount,
 		&response.ServersCount,
 		&response.DatabasesCount,
-		&response.ApplicationsCount,
 		&response.DesktopsCount,
 		&response.ContainersCount,
 		&response.CloudsCount,
+		&response.ApplicationsCount,
 	)
 	if err != nil {
 		return nil, trace.Error(err, log, nil)
