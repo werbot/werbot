@@ -12,17 +12,21 @@ import (
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	tokenpb "github.com/werbot/werbot/internal/core/token/proto/rpc"
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/internal/utils/test/factory"
 )
 
 // Test_FindActiveTokenByProfileAndAction_ExpiredAt tests expired_at validation
 // This function is used internally by AddTokenProfileReset, so we test it indirectly
 func Test_FindActiveTokenByProfileAndAction_ExpiredAt(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+	user := builder.Profile(factory.ProfileParams{Alias: "user", Name: "user", Surname: "user", Email: "user@werbot.net"})
 
 	client := tokenpb.NewTokenHandlersClient(setup)
 	ctx := context.Background()
-	profileID := test.ConstUserID
+	profileID := user.ID
 	now := time.Now()
 
 	// Create token with custom expiration (1 hour from now)

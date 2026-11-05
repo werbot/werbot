@@ -13,11 +13,34 @@ import (
 	tokenpb "github.com/werbot/werbot/internal/core/token/proto/rpc"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/internal/utils/test/factory"
 )
 
 func Test_ProjectTokens(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	project := builder.Project(factory.ProjectParams{OwnerID: admin.ID, Title: "project1"})
+
+	now := time.Now().UTC()
+	builder.Token(factory.TokenParams{
+		Section:   2,
+		Action:    7,
+		Status:    2,
+		ProjectID: project.ID,
+		ExpiredAt: factory.Time(now.Add(24 * time.Hour)),
+		CreatedAt: factory.Time(now.Add(-2 * time.Second)),
+	})
+	builder.Token(factory.TokenParams{
+		Section:   2,
+		Action:    7,
+		Status:    1,
+		ProjectID: project.ID,
+		CreatedAt: factory.Time(now.Add(-time.Second)),
+	})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -69,7 +92,7 @@ func Test_ProjectTokens(t *testing.T) {
 			Name: "tokens_not_found_wrong_owner",
 			Request: &tokenmessage.ProjectTokens_Request{
 				OwnerId:   test.ConstFakeID,
-				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				ProjectId: project.ID,
 				Action:    tokenenum.Action_request,
 			},
 			Error: test.ErrGRPC{
@@ -80,9 +103,10 @@ func Test_ProjectTokens(t *testing.T) {
 		{
 			Name: "admin_list_project_tokens_success",
 			Request: &tokenmessage.ProjectTokens_Request{
-				OwnerId:   test.ConstAdminID,
-				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				OwnerId:   admin.ID,
+				ProjectId: project.ID,
 				Action:    tokenenum.Action_request,
+				SortBy:    "created_at:ASC",
 			},
 			Response: test.BodyTable{
 				"total": float64(2),
@@ -105,10 +129,11 @@ func Test_ProjectTokens(t *testing.T) {
 		{
 			Name: "admin_list_project_tokens_with_status_filter",
 			Request: &tokenmessage.ProjectTokens_Request{
-				OwnerId:   test.ConstAdminID,
-				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				OwnerId:   admin.ID,
+				ProjectId: project.ID,
 				Action:    tokenenum.Action_request,
 				Status:    tokenenum.Status_sent,
+				SortBy:    "created_at:ASC",
 			},
 			Response: test.BodyTable{
 				"total": float64(1),
@@ -130,8 +155,13 @@ func Test_ProjectTokens(t *testing.T) {
 }
 
 func Test_AddTokenProjectMember(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	project := builder.Project(factory.ProjectParams{OwnerID: admin.ID, Title: "project1"})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -189,7 +219,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			Name: "profile_not_found_wrong_owner",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
 				OwnerId:   test.ConstFakeID,
-				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				ProjectId: project.ID,
 				Profile: &tokenmessage.AddTokenProjectMember_Request_ProfileId{
 					ProfileId: test.ConstFakeID,
 				},
@@ -202,8 +232,8 @@ func Test_AddTokenProjectMember(t *testing.T) {
 		{
 			Name: "profile_not_found_admin_wrong_profile",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
-				OwnerId:   test.ConstAdminID,
-				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				OwnerId:   admin.ID,
+				ProjectId: project.ID,
 				Profile: &tokenmessage.AddTokenProjectMember_Request_ProfileId{
 					ProfileId: test.ConstFakeID,
 				},
@@ -260,7 +290,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 			Name: "project_not_found_wrong_owner",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
 				OwnerId:   test.ConstFakeID,
-				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				ProjectId: project.ID,
 				Profile: &tokenmessage.AddTokenProjectMember_Request_CreateNewProfile{
 					CreateNewProfile: &tokenmessage.MetaDataProfile{
 						Name:    "name",
@@ -277,8 +307,8 @@ func Test_AddTokenProjectMember(t *testing.T) {
 		{
 			Name: "create_member_token_with_new_profile_success",
 			Request: &tokenmessage.AddTokenProjectMember_Request{
-				OwnerId:   test.ConstAdminID,
-				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				OwnerId:   admin.ID,
+				ProjectId: project.ID,
 				Profile: &tokenmessage.AddTokenProjectMember_Request_CreateNewProfile{
 					CreateNewProfile: &tokenmessage.MetaDataProfile{
 						Name:    "name",
@@ -302,8 +332,29 @@ func Test_AddTokenProjectMember(t *testing.T) {
 }
 
 func Test_UpdateProjectToken(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	user := builder.Profile(factory.ProfileParams{Alias: "user", Name: "user", Surname: "user", Email: "user@werbot.net"})
+	project := builder.Project(factory.ProjectParams{OwnerID: admin.ID, Title: "project1"})
+
+	memberToken := builder.Token(factory.TokenParams{
+		Section:   2,
+		Action:    7,
+		Status:    2,
+		ProjectID: project.ID,
+	})
+	doneToken := builder.Token(factory.TokenParams{
+		Section:   2,
+		Action:    7,
+		Status:    1,
+		ProfileID: user.ID,
+		ProjectID: project.ID,
+		Data:      map[string]any{"name": "test3", "surname": "test3", "email": "test3@werbot.net"},
+	})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -373,7 +424,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 		{
 			Name: "member_token_missing_profile_id",
 			Request: &tokenmessage.UpdateProjectToken_Request{
-				Token:  "b5b128d7-ff0c-479c-8216-14eedf9265ad",
+				Token:  memberToken.ID,
 				Status: tokenenum.Status_done,
 			},
 			Error: test.ErrGRPC{
@@ -386,9 +437,9 @@ func Test_UpdateProjectToken(t *testing.T) {
 		{
 			Name: "user_cannot_set_deleted_status",
 			Request: &tokenmessage.UpdateProjectToken_Request{
-				Token:     "b5b128d7-ff0c-479c-8216-14eedf9265ad",
+				Token:     memberToken.ID,
 				Status:    tokenenum.Status_deleted,
-				ProfileId: test.ConstUserID,
+				ProfileId: user.ID,
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -398,7 +449,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 		{
 			Name: "user_cannot_update_other_owner_token",
 			Request: &tokenmessage.UpdateProjectToken_Request{
-				Token:  "958301b8-1ed0-4977-9a2a-90629e8a18b9",
+				Token:  doneToken.ID,
 				Status: tokenenum.Status_done,
 			},
 			Error: test.ErrGRPC{
@@ -410,7 +461,7 @@ func Test_UpdateProjectToken(t *testing.T) {
 			Name: "admin_update_token_success",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				IsAdmin: true,
-				Token:   "958301b8-1ed0-4977-9a2a-90629e8a18b9",
+				Token:   doneToken.ID,
 				Status:  tokenenum.Status_done,
 			},
 			Response: test.BodyTable{},
@@ -419,18 +470,18 @@ func Test_UpdateProjectToken(t *testing.T) {
 			Name: "admin_set_deleted_status_success",
 			Request: &tokenmessage.UpdateProjectToken_Request{
 				IsAdmin:   true,
-				Token:     "b5b128d7-ff0c-479c-8216-14eedf9265ad",
+				Token:     memberToken.ID,
 				Status:    tokenenum.Status_deleted,
-				ProfileId: test.ConstUserID,
+				ProfileId: user.ID,
 			},
 			Response: test.BodyTable{},
 		},
 		{
 			Name: "user_update_member_token_success",
 			Request: &tokenmessage.UpdateProjectToken_Request{
-				Token:     "b5b128d7-ff0c-479c-8216-14eedf9265ad",
+				Token:     memberToken.ID,
 				Status:    tokenenum.Status_done,
-				ProfileId: test.ConstUserID,
+				ProfileId: user.ID,
 			},
 			Response: test.BodyTable{},
 		},

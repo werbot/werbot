@@ -3,17 +3,87 @@ package token_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	tokenpb "github.com/werbot/werbot/internal/core/token/proto/rpc"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/internal/utils/test/factory"
 	"google.golang.org/grpc/codes"
 )
 
 func Test_Token(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	user1 := builder.Profile(factory.ProfileParams{
+		Alias:   "user1",
+		Name:    "Harrison",
+		Surname: "Bowling",
+		Email:   "user1@werbot.net",
+	})
+	project := builder.Project(factory.ProjectParams{OwnerID: admin.ID, Title: "project1"})
+	scheme := builder.Scheme(factory.SchemeParams{ProjectID: project.ID, SchemeType: 103, Title: "MySQL"})
+
+	expiredAt := factory.Time(time.Now().UTC().Add(24 * time.Hour))
+	updatedAt := factory.Time(time.Now().UTC())
+
+	profileToken := builder.Token(factory.TokenParams{
+		Section:   1,
+		Action:    2,
+		Status:    1,
+		ProfileID: user1.ID,
+		Data: map[string]any{
+			"name":    "Harrison",
+			"surname": "Bowling",
+			"email":   "user1@werbot.net",
+		},
+		ExpiredAt: expiredAt,
+		UpdatedAt: updatedAt,
+	})
+	deleteToken := builder.Token(factory.TokenParams{
+		Section:   1,
+		Action:    4,
+		Status:    2,
+		ExpiredAt: expiredAt,
+	})
+	projectToken := builder.Token(factory.TokenParams{
+		Section:   2,
+		Action:    3,
+		Status:    2,
+		ProjectID: project.ID,
+		Data: map[string]any{
+			"name":    "invite100",
+			"surname": "invite100",
+			"email":   "invite100@werbot.net",
+		},
+		ExpiredAt: expiredAt,
+		UpdatedAt: updatedAt,
+	})
+	schemeToken := builder.Token(factory.TokenParams{
+		Section:   3,
+		Action:    3,
+		Status:    2,
+		ProjectID: project.ID,
+		SchemeID:  scheme.ID,
+		Data: map[string]any{
+			"scheme_type": 103,
+			"email":       "invite109@werbot.net",
+		},
+		ExpiredAt: expiredAt,
+	})
+	agentToken := builder.Token(factory.TokenParams{
+		Section:   4,
+		Action:    3,
+		Status:    2,
+		ProjectID: project.ID,
+		Data:      map[string]any{"scheme_type": 103},
+		ExpiredAt: expiredAt,
+	})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -57,10 +127,10 @@ func Test_Token(t *testing.T) {
 			Name: "admin_get_profile_token_with_metadata",
 			Request: &tokenmessage.Token_Request{
 				IsAdmin: true,
-				Token:   "3c818d7c-72f3-4518-8eaa-755585192f21",
+				Token:   profileToken.ID,
 			},
 			Response: test.BodyTable{
-				"owner_id":        "b3dc36e2-7f84-414b-b147-7ac850369518",
+				"owner_id":        user1.ID,
 				"section":         float64(1),
 				"action":          float64(2),
 				"status":          float64(1),
@@ -76,7 +146,7 @@ func Test_Token(t *testing.T) {
 		{
 			Name: "user_get_profile_token_masked",
 			Request: &tokenmessage.Token_Request{
-				Token: "3c818d7c-72f3-4518-8eaa-755585192f21",
+				Token: profileToken.ID,
 			},
 			Response: test.BodyTable{
 				"owner_id":        nil,
@@ -95,7 +165,7 @@ func Test_Token(t *testing.T) {
 		{
 			Name: "user_get_profile_token_without_metadata",
 			Request: &tokenmessage.Token_Request{
-				Token: "374060a3-6c9c-44b5-9fbd-ce1ea8af6c7b",
+				Token: deleteToken.ID,
 			},
 			Response: test.BodyTable{
 				"owner_id":   nil,
@@ -113,10 +183,10 @@ func Test_Token(t *testing.T) {
 			Name: "admin_get_project_token_with_metadata",
 			Request: &tokenmessage.Token_Request{
 				IsAdmin: true,
-				Token:   "04439feb-f981-4581-8f2c-96f21418f258",
+				Token:   projectToken.ID,
 			},
 			Response: test.BodyTable{
-				"owner_id":        "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				"owner_id":        admin.ID,
 				"section":         float64(2),
 				"action":          float64(3),
 				"status":          float64(2),
@@ -132,7 +202,7 @@ func Test_Token(t *testing.T) {
 		{
 			Name: "user_get_project_token_masked",
 			Request: &tokenmessage.Token_Request{
-				Token: "04439feb-f981-4581-8f2c-96f21418f258",
+				Token: projectToken.ID,
 			},
 			Response: test.BodyTable{
 				"owner_id":        nil,
@@ -152,10 +222,10 @@ func Test_Token(t *testing.T) {
 			Name: "admin_get_scheme_token_with_metadata",
 			Request: &tokenmessage.Token_Request{
 				IsAdmin: true,
-				Token:   "0a7b333e-4c98-4edd-9e34-a4e734a5926e",
+				Token:   schemeToken.ID,
 			},
 			Response: test.BodyTable{
-				"owner_id":           "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				"owner_id":           admin.ID,
 				"section":            float64(3),
 				"action":             float64(3),
 				"status":             float64(2),
@@ -170,7 +240,7 @@ func Test_Token(t *testing.T) {
 		{
 			Name: "user_get_scheme_token_masked",
 			Request: &tokenmessage.Token_Request{
-				Token: "0a7b333e-4c98-4edd-9e34-a4e734a5926e",
+				Token: schemeToken.ID,
 			},
 			Response: test.BodyTable{
 				"owner_id":           nil,
@@ -189,10 +259,10 @@ func Test_Token(t *testing.T) {
 			Name: "admin_get_agent_token_with_metadata",
 			Request: &tokenmessage.Token_Request{
 				IsAdmin: true,
-				Token:   "39c45364-4b94-45bb-88b4-1360245f8a59",
+				Token:   agentToken.ID,
 			},
 			Response: test.BodyTable{
-				"owner_id":          "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				"owner_id":          admin.ID,
 				"section":           float64(4),
 				"action":            float64(3),
 				"status":            float64(2),
@@ -206,7 +276,7 @@ func Test_Token(t *testing.T) {
 		{
 			Name: "user_get_agent_token_masked",
 			Request: &tokenmessage.Token_Request{
-				Token: "39c45364-4b94-45bb-88b4-1360245f8a59",
+				Token: agentToken.ID,
 			},
 			Response: test.BodyTable{
 				"owner_id":          nil,
@@ -230,8 +300,31 @@ func Test_Token(t *testing.T) {
 }
 
 func Test_DeleteToken(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	user1 := builder.Profile(factory.ProfileParams{
+		Alias:   "user1",
+		Name:    "Harrison",
+		Surname: "Bowling",
+		Email:   "user1@werbot.net",
+	})
+
+	userToken := builder.Token(factory.TokenParams{
+		Section:   1,
+		Action:    2,
+		Status:    1,
+		ProfileID: user1.ID,
+	})
+	adminToken := builder.Token(factory.TokenParams{
+		Section:   1,
+		Action:    2,
+		Status:    2,
+		ProfileID: admin.ID,
+	})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -289,7 +382,7 @@ func Test_DeleteToken(t *testing.T) {
 			Name: "token_not_found_wrong_owner",
 			Request: &tokenmessage.DeleteToken_Request{
 				OwnerId: test.ConstFakeID,
-				Token:   "3c818d7c-72f3-4518-8eaa-755585192f21",
+				Token:   userToken.ID,
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -299,8 +392,8 @@ func Test_DeleteToken(t *testing.T) {
 		{
 			Name: "token_not_found_admin_wrong_token",
 			Request: &tokenmessage.DeleteToken_Request{
-				OwnerId: test.ConstAdminID,
-				Token:   "3c818d7c-72f3-4518-8eaa-755585192f21",
+				OwnerId: admin.ID,
+				Token:   userToken.ID,
 			},
 			Error: test.ErrGRPC{
 				Code:    codes.NotFound,
@@ -310,8 +403,8 @@ func Test_DeleteToken(t *testing.T) {
 		{
 			Name: "admin_delete_token_success",
 			Request: &tokenmessage.DeleteToken_Request{
-				OwnerId: test.ConstAdminID,
-				Token:   "37aec639-dd1c-4c73-a8e7-add2016050f7",
+				OwnerId: admin.ID,
+				Token:   adminToken.ID,
 			},
 			Response: test.BodyTable{},
 		},

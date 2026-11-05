@@ -13,11 +13,35 @@ import (
 	tokenpb "github.com/werbot/werbot/internal/core/token/proto/rpc"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/internal/utils/test/factory"
 )
 
 func Test_ProfileTokens(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+
+	now := time.Now().UTC()
+	expiredAt := factory.Time(now.Add(24 * time.Hour))
+
+	builder.Token(factory.TokenParams{
+		Section:   1,
+		Action:    2,
+		Status:    1,
+		Data:      map[string]any{"name": "Terry", "surname": "Henry", "email": "user2@werbot.net"},
+		ExpiredAt: expiredAt,
+		UpdatedAt: factory.Time(now),
+		CreatedAt: factory.Time(now.Add(-2 * time.Second)),
+	})
+	builder.Token(factory.TokenParams{
+		Section:   1,
+		Action:    2,
+		Status:    2,
+		Data:      map[string]any{"name": "invite201", "surname": "invite201", "email": "invite201@werbot.net"},
+		ExpiredAt: expiredAt,
+		CreatedAt: factory.Time(now.Add(-time.Second)),
+	})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -63,9 +87,10 @@ func Test_ProfileTokens(t *testing.T) {
 			Request: &tokenmessage.ProfileTokens_Request{
 				IsAdmin: true,
 				Action:  tokenenum.Action_register,
+				SortBy:  "created_at:ASC",
 			},
 			Response: test.BodyTable{
-				"total": float64(9),
+				"total": float64(2),
 				// ----
 				"tokens.0.status":     float64(1),
 				"tokens.0.expired_at": "*",
@@ -77,7 +102,7 @@ func Test_ProfileTokens(t *testing.T) {
 				"tokens.1.updated_at": nil,
 				"tokens.1.created_at": "*",
 				// ----
-				"tokens.9.action": nil,
+				"tokens.2.action": nil,
 			},
 		},
 		{
@@ -86,9 +111,10 @@ func Test_ProfileTokens(t *testing.T) {
 				IsAdmin: true,
 				Action:  tokenenum.Action_register,
 				Status:  tokenenum.Status_done,
+				SortBy:  "created_at:ASC",
 			},
 			Response: test.BodyTable{
-				"total": float64(2),
+				"total": float64(1),
 				// ----
 				"tokens.0.action":     float64(2),
 				"tokens.0.status":     float64(1),
@@ -96,13 +122,7 @@ func Test_ProfileTokens(t *testing.T) {
 				"tokens.0.updated_at": "*",
 				"tokens.0.created_at": "*",
 				// ----
-				"tokens.1.action":     float64(2),
-				"tokens.1.status":     float64(1),
-				"tokens.1.expired_at": "*",
-				"tokens.1.updated_at": "*",
-				"tokens.1.created_at": "*",
-				// ----
-				"tokens.2.action": nil,
+				"tokens.1.action": nil,
 			},
 		},
 	}
@@ -115,8 +135,11 @@ func Test_ProfileTokens(t *testing.T) {
 }
 
 func Test_AddTokenProfileReset(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+	user := builder.Profile(factory.ProfileParams{Alias: "user", Name: "user", Surname: "user", Email: "user@werbot.net"})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -161,7 +184,7 @@ func Test_AddTokenProfileReset(t *testing.T) {
 		{
 			Name: "create_reset_token_with_custom_expiration",
 			Request: &tokenmessage.AddTokenProfileReset_Request{
-				ProfileId: test.ConstUserID,
+				ProfileId: user.ID,
 				ExpiredAt: timestamppb.New(now.Add(36 * time.Hour)),
 			},
 			Response: test.BodyTable{
@@ -171,7 +194,7 @@ func Test_AddTokenProfileReset(t *testing.T) {
 		{
 			Name: "create_reset_token_with_past_expiration",
 			Request: &tokenmessage.AddTokenProfileReset_Request{
-				ProfileId: test.ConstUserID,
+				ProfileId: user.ID,
 				ExpiredAt: timestamppb.New(now.Add(-1 * time.Hour)),
 			},
 			Response: test.BodyTable{
@@ -188,7 +211,7 @@ func Test_AddTokenProfileReset(t *testing.T) {
 }
 
 func Test_AddTokenProfileRegistration(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
@@ -265,8 +288,11 @@ func Test_AddTokenProfileRegistration(t *testing.T) {
 }
 
 func Test_AddTokenProfileDelete(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+	user := builder.Profile(factory.ProfileParams{Alias: "user", Name: "user", Surname: "user", Email: "user@werbot.net"})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -311,7 +337,7 @@ func Test_AddTokenProfileDelete(t *testing.T) {
 		{
 			Name: "create_delete_token_success",
 			Request: &tokenmessage.AddTokenProfileDelete_Request{
-				ProfileId: test.ConstUserID,
+				ProfileId: user.ID,
 				ExpiredAt: timestamppb.New(now.Add(36 * time.Hour)),
 			},
 			Response: test.BodyTable{
@@ -328,8 +354,18 @@ func Test_AddTokenProfileDelete(t *testing.T) {
 }
 
 func Test_UpdateProfileToken(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+	user := builder.Profile(factory.ProfileParams{Alias: "user", Name: "user", Surname: "user", Email: "user@werbot.net"})
+
+	registerToken := builder.Token(factory.TokenParams{
+		Section: 1,
+		Action:  2,
+		Status:  2,
+		Data:    map[string]any{"name": "invite201", "surname": "invite201", "email": "invite201@werbot.net"},
+	})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -400,7 +436,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 		{
 			Name: "register_token_missing_profile_id",
 			Request: &tokenmessage.UpdateProfileToken_Request{
-				Token:  "55c9f79c-d827-43fc-8ad1-79e396d2432c",
+				Token:  registerToken.ID,
 				Status: tokenenum.Status_done,
 			},
 			Error: test.ErrGRPC{
@@ -414,7 +450,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 			Name: "register_token_profile_not_found",
 			Request: &tokenmessage.UpdateProfileToken_Request{
 				ProfileId: test.ConstFakeID,
-				Token:     "55c9f79c-d827-43fc-8ad1-79e396d2432c",
+				Token:     registerToken.ID,
 				Status:    tokenenum.Status_done,
 			},
 			Error: test.ErrGRPC{
@@ -425,8 +461,8 @@ func Test_UpdateProfileToken(t *testing.T) {
 		{
 			Name: "update_register_token_to_done_success",
 			Request: &tokenmessage.UpdateProfileToken_Request{
-				ProfileId: "5a2bb353-e862-4e6f-be74-fedb2dd761fd",
-				Token:     "55c9f79c-d827-43fc-8ad1-79e396d2432c",
+				ProfileId: user.ID,
+				Token:     registerToken.ID,
 				Status:    tokenenum.Status_done,
 			},
 			Response: test.BodyTable{},
@@ -434,7 +470,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 		{
 			Name: "user_cannot_set_used_status",
 			Request: &tokenmessage.UpdateProfileToken_Request{
-				Token:  "55c9f79c-d827-43fc-8ad1-79e396d2432c",
+				Token:  registerToken.ID,
 				Status: tokenenum.Status_used,
 			},
 			Error: test.ErrGRPC{
@@ -447,7 +483,7 @@ func Test_UpdateProfileToken(t *testing.T) {
 		{
 			Name: "user_cannot_set_deleted_status",
 			Request: &tokenmessage.UpdateProfileToken_Request{
-				Token:  "55c9f79c-d827-43fc-8ad1-79e396d2432c",
+				Token:  registerToken.ID,
 				Status: tokenenum.Status_deleted,
 			},
 			Error: test.ErrGRPC{

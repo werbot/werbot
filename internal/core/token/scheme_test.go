@@ -14,11 +14,28 @@ import (
 	tokenpb "github.com/werbot/werbot/internal/core/token/proto/rpc"
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/internal/utils/test/factory"
 )
 
 func Test_SchemeTokens(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	project := builder.Project(factory.ProjectParams{OwnerID: admin.ID, Title: "project1"})
+	scheme := builder.Scheme(factory.SchemeParams{ProjectID: project.ID, SchemeType: 103, Title: "MySQL"})
+
+	builder.Token(factory.TokenParams{
+		Section:   3,
+		Action:    3,
+		Status:    2,
+		ProjectID: project.ID,
+		SchemeID:  scheme.ID,
+		Data:      map[string]any{"email": "invite111@werbot.net", "scheme_type": 103},
+		ExpiredAt: factory.Time(time.Now().UTC().Add(24 * time.Hour)),
+	})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -69,7 +86,7 @@ func Test_SchemeTokens(t *testing.T) {
 		{
 			Name: "tokens_not_found_wrong_scheme",
 			Request: &tokenmessage.SchemeTokens_Request{
-				OwnerId:  test.ConstAdminID,
+				OwnerId:  admin.ID,
 				SchemeId: test.ConstFakeID,
 				Action:   tokenenum.Action_add,
 			},
@@ -82,7 +99,7 @@ func Test_SchemeTokens(t *testing.T) {
 			Name: "tokens_not_found_wrong_owner",
 			Request: &tokenmessage.SchemeTokens_Request{
 				OwnerId:  test.ConstFakeID,
-				SchemeId: "0918e4c3-7f61-4c4e-99ed-800c9af0d265",
+				SchemeId: scheme.ID,
 				Action:   tokenenum.Action_add,
 			},
 			Error: test.ErrGRPC{
@@ -93,8 +110,8 @@ func Test_SchemeTokens(t *testing.T) {
 		{
 			Name: "admin_list_scheme_tokens_success",
 			Request: &tokenmessage.SchemeTokens_Request{
-				OwnerId:  test.ConstAdminID,
-				SchemeId: "0918e4c3-7f61-4c4e-99ed-800c9af0d265",
+				OwnerId:  admin.ID,
+				SchemeId: scheme.ID,
 				Action:   tokenenum.Action_add,
 			},
 			Response: test.BodyTable{
@@ -110,8 +127,8 @@ func Test_SchemeTokens(t *testing.T) {
 		{
 			Name: "admin_list_scheme_tokens_with_status_filter_no_results",
 			Request: &tokenmessage.SchemeTokens_Request{
-				OwnerId:  test.ConstAdminID,
-				SchemeId: "0918e4c3-7f61-4c4e-99ed-800c9af0d265",
+				OwnerId:  admin.ID,
+				SchemeId: scheme.ID,
 				Action:   tokenenum.Action_add,
 				Status:   tokenenum.Status_done,
 			},
@@ -130,8 +147,14 @@ func Test_SchemeTokens(t *testing.T) {
 }
 
 func Test_AddTokenSchemeAdd(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Name: "admin", Surname: "admin", Email: "admin@werbot.net", Role: 3})
+	user := builder.Profile(factory.ProfileParams{Alias: "user", Name: "user", Surname: "user", Email: "user@werbot.net"})
+	project := builder.Project(factory.ProjectParams{OwnerID: admin.ID, Title: "project1"})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -188,7 +211,7 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 		{
 			Name: "invalid_email_format",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
-				OwnerId:   test.ConstAdminID,
+				OwnerId:   admin.ID,
 				ProjectId: test.ConstFakeID,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_Email{
 					Email: "admin",
@@ -204,7 +227,7 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 		{
 			Name: "project_not_found",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
-				OwnerId:   test.ConstAdminID,
+				OwnerId:   admin.ID,
 				ProjectId: test.ConstFakeID,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_Email{
 					Email: "admin@mail.com",
@@ -219,7 +242,7 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 			Name: "project_not_found_wrong_owner",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
 				OwnerId:   test.ConstFakeID,
-				ProjectId: "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				ProjectId: project.ID,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_Email{
 					Email: "admin@mail.com",
 				},
@@ -232,8 +255,8 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 		{
 			Name: "create_scheme_add_token_with_email_success",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
-				OwnerId:    test.ConstAdminID,
-				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				OwnerId:    admin.ID,
+				ProjectId:  project.ID,
 				SchemeType: schemeaccesspb.SchemeType_server_ssh,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_Email{
 					Email: "admin@mail.com",
@@ -246,8 +269,8 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 		{
 			Name: "create_scheme_add_token_with_email_duplicate",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
-				OwnerId:    test.ConstAdminID,
-				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				OwnerId:    admin.ID,
+				ProjectId:  project.ID,
 				SchemeType: schemeaccesspb.SchemeType_server_ssh,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_Email{
 					Email: "admin@mail.com",
@@ -260,8 +283,8 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 		{
 			Name: "create_scheme_add_token_with_email_custom_expiration",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
-				OwnerId:    test.ConstAdminID,
-				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				OwnerId:    admin.ID,
+				ProjectId:  project.ID,
 				SchemeType: schemeaccesspb.SchemeType_server_ssh,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_Email{
 					Email: "admin@werbot.net",
@@ -275,8 +298,8 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 		{
 			Name: "profile_not_found_with_profile_id",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
-				OwnerId:    test.ConstAdminID,
-				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				OwnerId:    admin.ID,
+				ProjectId:  project.ID,
 				SchemeType: schemeaccesspb.SchemeType_server_ssh,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_ProfileId{
 					ProfileId: test.ConstFakeID,
@@ -290,8 +313,8 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 		{
 			Name: "invalid_profile_id_format",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
-				OwnerId:    test.ConstAdminID,
-				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				OwnerId:    admin.ID,
+				ProjectId:  project.ID,
 				SchemeType: schemeaccesspb.SchemeType_server_ssh,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_ProfileId{
 					ProfileId: "ok",
@@ -307,11 +330,11 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 		{
 			Name: "create_scheme_add_token_with_profile_id_success",
 			Request: &tokenmessage.AddTokenSchemeAdd_Request{
-				OwnerId:    "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
-				ProjectId:  "fe52ca9b-5599-4bb6-818b-1896d56e9aa2",
+				OwnerId:    admin.ID,
+				ProjectId:  project.ID,
 				SchemeType: schemeaccesspb.SchemeType_server_ssh,
 				Data: &tokenmessage.AddTokenSchemeAdd_Request_ProfileId{
-					ProfileId: "51c12bb6-2da6-491d-8003-b024f54a1491",
+					ProfileId: user.ID,
 				},
 				ExpiredAt: timestamppb.New(now.Add(36 * time.Hour)),
 			},
@@ -329,8 +352,15 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 }
 
 func Test_AddTokenSchemeAccess(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Name: "admin", Surname: "admin", Email: "admin@werbot.net", Role: 3})
+	user := builder.Profile(factory.ProfileParams{Alias: "user", Name: "user", Surname: "user", Email: "user@werbot.net"})
+	project := builder.Project(factory.ProjectParams{OwnerID: admin.ID, Title: "project1"})
+	scheme := builder.Scheme(factory.SchemeParams{ProjectID: project.ID, SchemeType: 103, Title: "MySQL"})
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := tokenpb.NewTokenHandlersClient(setup)
@@ -388,7 +418,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 		{
 			Name: "invalid_email_format",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
-				OwnerId:  test.ConstAdminID,
+				OwnerId:  admin.ID,
 				SchemeId: test.ConstFakeID,
 				Data: &tokenmessage.AddTokenSchemeAccess_Request_Email{
 					Email: "admin",
@@ -404,7 +434,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 		{
 			Name: "scheme_not_found",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
-				OwnerId:  test.ConstAdminID,
+				OwnerId:  admin.ID,
 				SchemeId: test.ConstFakeID,
 				Data: &tokenmessage.AddTokenSchemeAccess_Request_Email{
 					Email: "admin@mail.com",
@@ -419,7 +449,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 			Name: "scheme_not_found_wrong_owner",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
 				OwnerId:  test.ConstFakeID,
-				SchemeId: test.ConstAdminSchemeSSH1ID,
+				SchemeId: scheme.ID,
 				Data: &tokenmessage.AddTokenSchemeAccess_Request_Email{
 					Email: "user@mail.com",
 				},
@@ -432,8 +462,8 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 		{
 			Name: "create_scheme_access_token_with_email_success",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
-				OwnerId:  test.ConstAdminID,
-				SchemeId: test.ConstAdminSchemeSSH1ID,
+				OwnerId:  admin.ID,
+				SchemeId: scheme.ID,
 				Data: &tokenmessage.AddTokenSchemeAccess_Request_Email{
 					Email: "user@mail.com",
 				},
@@ -445,8 +475,8 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 		{
 			Name: "profile_not_found_with_profile_id",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
-				OwnerId:  test.ConstAdminID,
-				SchemeId: test.ConstAdminSchemeSSH1ID,
+				OwnerId:  admin.ID,
+				SchemeId: scheme.ID,
 				Data: &tokenmessage.AddTokenSchemeAccess_Request_ProfileId{
 					ProfileId: test.ConstFakeID,
 				},
@@ -459,10 +489,10 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 		{
 			Name: "create_scheme_access_token_with_profile_id_success",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
-				OwnerId:  test.ConstAdminID,
-				SchemeId: test.ConstAdminSchemeSSH1ID,
+				OwnerId:  admin.ID,
+				SchemeId: scheme.ID,
 				Data: &tokenmessage.AddTokenSchemeAccess_Request_ProfileId{
-					ProfileId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+					ProfileId: user.ID,
 				},
 			},
 			Response: test.BodyTable{
@@ -472,10 +502,10 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 		{
 			Name: "create_scheme_access_token_with_profile_id_custom_expiration",
 			Request: &tokenmessage.AddTokenSchemeAccess_Request{
-				OwnerId:  test.ConstAdminID,
-				SchemeId: test.ConstAdminSchemeSSH1ID,
+				OwnerId:  admin.ID,
+				SchemeId: scheme.ID,
 				Data: &tokenmessage.AddTokenSchemeAccess_Request_ProfileId{
-					ProfileId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+					ProfileId: user.ID,
 				},
 				ExpiredAt: timestamppb.New(now.Add(36 * time.Hour)),
 			},
@@ -493,7 +523,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 }
 
 func Test_UpdateSchemeToken(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
