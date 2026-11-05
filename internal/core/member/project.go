@@ -64,16 +64,31 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *membermessage.ProjectM
       "project_member"."online",
       "project_member"."updated_at",
       "project_member"."created_at",
-      (
-        SELECT COUNT(*)
-        FROM "scheme_member"
-        WHERE "project_member_id" = "project_member"."id"
-      ) AS "count_schemes"
+      "scheme_counts"."count_schemes",
+      "scheme_counts"."count_servers",
+      "scheme_counts"."count_databases",
+      "scheme_counts"."count_applications",
+      "scheme_counts"."count_desktops",
+      "scheme_counts"."count_containers",
+      "scheme_counts"."count_clouds"
     FROM
       "project_member"
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
       INNER JOIN "profile" AS "member" ON "project_member"."profile_id" = "member"."id"
       INNER JOIN "profile" AS "owner" ON "project"."owner_id" = "owner"."id"
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(DISTINCT "scheme"."id") AS "count_schemes",
+          COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 100 AND 199 THEN "scheme"."id" END) AS "count_servers",
+          COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 200 AND 299 THEN "scheme"."id" END) AS "count_databases",
+          COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 600 AND 699 THEN "scheme"."id" END) AS "count_applications",
+          COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 300 AND 399 THEN "scheme"."id" END) AS "count_desktops",
+          COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 400 AND 499 THEN "scheme"."id" END) AS "count_containers",
+          COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 500 AND 599 THEN "scheme"."id" END) AS "count_clouds"
+        FROM "scheme_member"
+        INNER JOIN "scheme" ON "scheme"."id" = "scheme_member"."scheme_id"
+        WHERE "scheme_member"."project_member_id" = "project_member"."id"
+      ) AS "scheme_counts" ON TRUE
     WHERE
       "owner"."id" = $1
       AND "project"."id" = $2
@@ -101,6 +116,12 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *membermessage.ProjectM
 			&updatedAt,
 			&createdAt,
 			&member.SchemesCount,
+			&member.ServersCount,
+			&member.DatabasesCount,
+			&member.ApplicationsCount,
+			&member.DesktopsCount,
+			&member.ContainersCount,
+			&member.CloudsCount,
 		)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)

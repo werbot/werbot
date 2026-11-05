@@ -54,6 +54,12 @@ message ProjectMember {
     google.protobuf.Timestamp archived_at = 13 [(ghoster.secret) = true];
     google.protobuf.Timestamp updated_at = 14 [(ghoster.secret) = true];
     google.protobuf.Timestamp created_at = 15;
+    int32 servers_count = 16;
+    int32 databases_count = 17;
+    int32 applications_count = 18;
+    int32 desktops_count = 19;
+    int32 containers_count = 20;
+    int32 clouds_count = 21;
   }
 }
 // -----------------------------------------------------
