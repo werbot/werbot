@@ -9,7 +9,7 @@ import (
 )
 
 func TestHandler_auth(t *testing.T) {
-	app, teardownTestCase, _ := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -34,13 +34,13 @@ func TestHandler_auth(t *testing.T) {
 		{
 			Name:       "test0_03",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathAgent, "auth", "0a177fc3-ad38-40c6-b936-ded649ce5a57"),
+			Path:       test.PathGluing(pathAgent, "auth", env.token.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
 				"message":            "Auth data",
-				"result.api_key":     "5tYJOkr3oLCOEvhw3nB83AmDzYM7yJsJ0Sonl",
-				"result.api_secret":  "aDzYMy9g3mmsq3XazPLvvCbj4kJAsgatxBDVW",
+				"result.api_key":     env.projectAPI.APIKey,
+				"result.api_secret":  env.projectAPI.APISecret,
 				"result.scheme_type": float64(103),
 			},
 		},
@@ -50,7 +50,7 @@ func TestHandler_auth(t *testing.T) {
 }
 
 func TestHandler_addScheme(t *testing.T) {
-	app, teardownTestCase, adminHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -67,7 +67,7 @@ func TestHandler_addScheme(t *testing.T) {
 			Path:           test.PathGluing(pathAgentScheme),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.apiKeyHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_02",
@@ -81,7 +81,7 @@ func TestHandler_addScheme(t *testing.T) {
 				"result.port":    "value is required",
 				"result.login":   "value is required",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.apiKeyHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_03",
@@ -98,12 +98,12 @@ func TestHandler_addScheme(t *testing.T) {
 				"message": "Not Found",
 				"result":  trace.MsgTokenNotFound,
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.apiKeyHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_04",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathAgentScheme, "0a177fc3-ad38-40c6-b936-ded649ce5a57"),
+			Path:       test.PathGluing(pathAgentScheme, env.token.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"address": "127.0.0.255",
@@ -116,7 +116,7 @@ func TestHandler_addScheme(t *testing.T) {
 				"result.public_key": "*",
 				"result.scheme_id":  "*",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.apiKeyHeader,
 		},
 	}
 

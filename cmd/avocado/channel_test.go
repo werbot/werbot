@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	testSchemeMemberID = "8ca0ad93-4338-44cb-93dd-3f57272d0ffa"
-	testProfileID      = "c180ad5c-0c65-4cee-8725-12931cb5abb3"
+	testSchemeMemberID = "44444444-4444-4444-4444-444444444444"
+	testProfileID      = "55555555-5555-5555-5555-555555555555"
 )
 
 type auditRecorder struct {

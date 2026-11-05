@@ -38,7 +38,7 @@ func authRequest(t *testing.T, app *test.APIHandler, method, path string, body a
 }
 
 func TestHandler_passwordReset(t *testing.T) {
-	app, teardownTestCase := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	// Reject an invalid email.
@@ -49,7 +49,7 @@ func TestHandler_passwordReset(t *testing.T) {
 
 	// Request a reset token for the admin profile.
 	statusCode, body = authRequest(t, app, http.MethodPost, pathAuthPasswordReset, map[string]any{
-		"email": test.ConstAdminEmail,
+		"email": env.admin.Email,
 	})
 	require.Equal(t, http.StatusOK, statusCode, body)
 
@@ -60,7 +60,7 @@ func TestHandler_passwordReset(t *testing.T) {
     WHERE "profile_id" = $1 AND "section" = 1 AND "action" = 1 AND "status" = 2
     ORDER BY "created_at" DESC
     LIMIT 1
-  `, test.ConstAdminID).Scan(&token)
+  `, env.admin.ID).Scan(&token)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 
@@ -84,7 +84,7 @@ func TestHandler_passwordReset(t *testing.T) {
 
 	// The new password can be used to sign in.
 	statusCode, body = authRequest(t, app, http.MethodPost, pathAuthSignIn, map[string]any{
-		"email":    test.ConstAdminEmail,
+		"email":    env.admin.Email,
 		"password": newPassword,
 	})
 	require.Equal(t, http.StatusOK, statusCode, body)

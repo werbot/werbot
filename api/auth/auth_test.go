@@ -10,7 +10,7 @@ import (
 )
 
 func TestHandler_signin(t *testing.T) {
-	app, teardownTestCase := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -63,7 +63,7 @@ func TestHandler_signin(t *testing.T) {
 			Path:       pathAuthSignIn,
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
-				"email": test.ConstAdminEmail,
+				"email": env.admin.Email,
 			},
 			Body: test.BodyTable{
 				"code":            float64(400),
@@ -76,7 +76,7 @@ func TestHandler_signin(t *testing.T) {
 			Path:       pathAuthSignIn,
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
-				"password": test.ConstAdminEmail,
+				"password": env.admin.Email,
 			},
 			Body: test.BodyTable{
 				"code":         float64(400),
@@ -89,7 +89,7 @@ func TestHandler_signin(t *testing.T) {
 			Path:       pathAuthSignIn,
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
-				"email":    test.ConstAdminEmail,
+				"email":    env.admin.Email,
 				"password": crypto.NewPassword(1, false),
 			},
 			Body: test.BodyTable{
@@ -114,8 +114,8 @@ func TestHandler_signin(t *testing.T) {
 			Path:       pathAuthSignIn,
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
-				"email":    test.ConstAdminEmail,
-				"password": test.ConstAdminPassword,
+				"email":    env.admin.Email,
+				"password": env.adminPassword,
 			},
 			Body: test.BodyTable{
 				"code":                 float64(200),
@@ -130,13 +130,13 @@ func TestHandler_signin(t *testing.T) {
 }
 
 func TestHandler_logout(t *testing.T) {
-	app, teardownTestCase := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
-	adminAuth := app.GetProfileAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	adminAuth := app.GetProfileAuth(env.admin.Email, env.adminPassword)
 	adminHeader := test.HeadersTable{"Authorization": "Bearer " + adminAuth.Tokens.Access}
 
-	userAuth := app.GetProfileAuth(test.ConstUserEmail, test.ConstUserPassword)
+	userAuth := app.GetProfileAuth(env.user.Email, env.userPassword)
 	userHeader := test.HeadersTable{"Authorization": "Bearer " + userAuth.Tokens.Access}
 
 	testTable := []test.APITable{
@@ -183,10 +183,10 @@ func TestHandler_logout(t *testing.T) {
 }
 
 func TestHandler_logoutRevokesAccessToken(t *testing.T) {
-	app, teardownTestCase := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
-	adminAuth := app.GetProfileAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	adminAuth := app.GetProfileAuth(env.admin.Email, env.adminPassword)
 	adminHeader := test.HeadersTable{"Authorization": "Bearer " + adminAuth.Tokens.Access}
 
 	test.RunCaseAPITests(t, app, []test.APITable{
@@ -213,10 +213,10 @@ func TestHandler_logoutRevokesAccessToken(t *testing.T) {
 }
 
 func TestHandler_refreshRejectsAccessToken(t *testing.T) {
-	app, teardownTestCase := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
-	adminAuth := app.GetProfileAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	adminAuth := app.GetProfileAuth(env.admin.Email, env.adminPassword)
 
 	test.RunCaseAPITests(t, app, []test.APITable{
 		{
@@ -236,10 +236,10 @@ func TestHandler_refreshRejectsAccessToken(t *testing.T) {
 }
 
 func TestHandler_refreshTokenCannotAuthorize(t *testing.T) {
-	app, teardownTestCase := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
-	adminAuth := app.GetProfileAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	adminAuth := app.GetProfileAuth(env.admin.Email, env.adminPassword)
 	refreshHeader := test.HeadersTable{"Authorization": "Bearer " + adminAuth.Tokens.Refresh}
 
 	test.RunCaseAPITests(t, app, []test.APITable{
@@ -255,10 +255,10 @@ func TestHandler_refreshTokenCannotAuthorize(t *testing.T) {
 }
 
 func TestHandler_refresh(t *testing.T) {
-	app, teardownTestCase := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
-	adminAuth := app.GetProfileAuth(test.ConstAdminEmail, test.ConstAdminPassword)
+	adminAuth := app.GetProfileAuth(env.admin.Email, env.adminPassword)
 	adminHeader := test.HeadersTable{"Authorization": "Bearer " + adminAuth.Tokens.Access}
 
 	testTable := []test.APITable{

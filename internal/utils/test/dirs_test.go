@@ -16,7 +16,7 @@ func Test_migrationDirs(t *testing.T) {
 		{
 			name: "core only",
 			root: "../../",
-			want: []string{"../../migration", "../../fixtures/migration"},
+			want: []string{"../../migration"},
 		},
 		{
 			name:      "core and addons",
@@ -26,9 +26,6 @@ func Test_migrationDirs(t *testing.T) {
 				"../../../migration",
 				"../../../add-on/saas/migration",
 				"../../../add-on/other/migration",
-				"../../../fixtures/migration",
-				"../../../add-on/saas/fixtures/migration",
-				"../../../add-on/other/fixtures/migration",
 			},
 		},
 	}

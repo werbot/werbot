@@ -8,18 +8,33 @@ import (
 	firewallmessage "github.com/werbot/werbot/internal/core/firewall/proto/message"
 	firewallrpc "github.com/werbot/werbot/internal/core/firewall/proto/rpc"
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/internal/utils/test/factory"
 	"google.golang.org/grpc/codes"
 )
 
+// setupFirewall creates the global firewall list owned by the test.
+func setupFirewall(t *testing.T) (*test.GRPCHandler, func(t *testing.T)) {
+	t.Helper()
+
+	setup, teardownTestCase := test.GRPC(t)
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+
+	listID := builder.FirewallList(factory.FirewallListParams{Name: "global"})
+	builder.FirewallCountry(listID, "RU")
+	builder.FirewallCountry(listID, "BY")
+	builder.FirewallNetwork(listID, "178.239.2.11/32")
+
+	return setup, teardownTestCase
+}
+
 func Test_IPAccess(t *testing.T) {
-	// t.Setenv("ENV_MODE", "test")
 	const geoIPDB = "../../../docker/core/GeoLite2-Country.mmdb"
 	if _, err := os.Stat(geoIPDB); err != nil {
 		t.Skip("GeoLite2-Country.mmdb is not available; skipping country firewall test")
 	}
 	t.Setenv("SECURITY_GEOIP2", geoIPDB)
 
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := setupFirewall(t)
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
@@ -133,7 +148,7 @@ func Test_IPAccessGeoIPUnavailable(t *testing.T) {
 }
 
 func Test_UpdateFirewallListData(t *testing.T) {
-	setup, teardownTestCase := test.GRPC(t)
+	setup, teardownTestCase := setupFirewall(t)
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {

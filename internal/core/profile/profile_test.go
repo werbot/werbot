@@ -7,6 +7,7 @@ import (
 	profilemessage "github.com/werbot/werbot/internal/core/profile/proto/message"
 	profilerpc "github.com/werbot/werbot/internal/core/profile/proto/rpc"
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/internal/utils/test/factory"
 	"google.golang.org/grpc/codes"
 )
 
@@ -14,13 +15,17 @@ func Test_Profiles(t *testing.T) {
 	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+	builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	builder.Profile(factory.ProfileParams{Alias: "user"})
+
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := profilerpc.NewProfileHandlersClient(setup)
 		return a.Profiles(ctx, req.(*profilemessage.Profiles_Request))
 	}
 
 	testTable := []test.GRPCTable{
-		{ // list items carry created_at
+		{ // list items carry created_at; limit=2 over two created profiles
 			Name: "test1_01",
 			Request: &profilemessage.Profiles_Request{
 				IsAdmin: true,
@@ -47,6 +52,10 @@ func Test_ProfileIDByLogin(t *testing.T) {
 	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	key := builder.PublicKey(factory.PublicKeyParams{ProfileID: admin.ID})
+
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
 		a := profilerpc.NewProfileHandlersClient(setup)
 		return a.ProfileIDByLogin(ctx, req.(*profilemessage.ProfileIDByLogin_Request))
@@ -56,8 +65,8 @@ func Test_ProfileIDByLogin(t *testing.T) {
 		{
 			Name: "test0_01",
 			Request: &profilemessage.ProfileIDByLogin_Request{
-				Login:       "admin",
-				Fingerprint: "b6:07:6a:ef:82:e3:73:47:56:69:3f:3d:c7:d7:6f:23",
+				Login:       admin.Alias,
+				Fingerprint: key.Fingerprint,
 			},
 			Error: test.ErrGRPC{
 				Code: codes.InvalidArgument,

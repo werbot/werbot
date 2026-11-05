@@ -88,8 +88,7 @@ func API(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
 	t.Setenv("JWT_PUBLIC_KEY", "../../fixtures/keys/jwt/jwt_public.key")
 	t.Setenv("JWT_PRIVATE_KEY", "../../fixtures/keys/jwt/jwt_private.key")
 
-	migrations := migrationDirs("../../", addonDirs)
-	pgTest := ServerPostgres(t, migrations...)
+	pgTest := ServerPostgres(t, migrationDirs("../../", addonDirs)...)
 
 	redisTest := ServerRedis(context.Background(), t)
 
@@ -173,13 +172,9 @@ func (h *APIHandler) AddRoute404() {
 	})
 }
 
-// TestProfileAuth is ...
-func (h *APIHandler) TestProfileAuth() (adminHeader map[string]string, userHeader map[string]string) {
-	adminAuth := h.GetProfileAuth(ConstAdminEmail, ConstAdminPassword)
-	adminHeader = map[string]string{"Authorization": "Bearer " + adminAuth.Tokens.Access}
-
-	userAuth := h.GetProfileAuth(ConstUserEmail, ConstUserPassword)
-	userHeader = map[string]string{"Authorization": "Bearer " + userAuth.Tokens.Access}
-
-	return adminHeader, userHeader
+// AuthHeader returns an Authorization header for the profile with the given
+// credentials.
+func (h *APIHandler) AuthHeader(email, password string) map[string]string {
+	auth := h.GetProfileAuth(email, password)
+	return map[string]string{"Authorization": "Bearer " + auth.Tokens.Access}
 }

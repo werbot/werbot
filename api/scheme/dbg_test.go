@@ -16,9 +16,9 @@ func Test_DbgActivityValidation(t *testing.T) {
 	good := make([]int32, 24)
 
 	req := &schemepb.UpdateSchemeActivity_Request{
-		OwnerId:   "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
-		ProjectId: "2bef1080-cd6e-49e5-8042-1224cf6a3da9",
-		SchemeId:  "156d8d65-cfe5-48a4-a636-198a5f509abf",
+		OwnerId:   "11111111-1111-1111-1111-111111111111",
+		ProjectId: "22222222-2222-2222-2222-222222222222",
+		SchemeId:  "33333333-3333-3333-3333-333333333333",
 		Activity: &schemepb.SchemeActivity_Week{
 			Mon: bad,
 			Tue: good,

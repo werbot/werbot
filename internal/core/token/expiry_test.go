@@ -3,6 +3,7 @@ package token_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,10 +12,11 @@ import (
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
 	tokenpb "github.com/werbot/werbot/internal/core/token/proto/rpc"
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/internal/utils/test/factory"
 )
 
 func Test_TokenExpiry(t *testing.T) {
-	pgTest := test.ServerPostgres(t, "../../../migration", "../../../fixtures/migration")
+	pgTest := test.ServerPostgres(t, "../../../migration")
 	redisTest := test.ServerRedis(context.Background(), t)
 	grpcTest, err := test.ServerGRPC(context.Background(), t, pgTest, redisTest)
 	require.NoError(t, err)
@@ -26,25 +28,23 @@ func Test_TokenExpiry(t *testing.T) {
 	ctx := context.Background()
 	client := tokenpb.NewTokenHandlersClient(grpcTest)
 
-	var oldToken string
-	err = pgTest.Conn().Conn.QueryRowContext(ctx, `
-    INSERT INTO "token" ("section", "action", "status", "profile_id", "created_at")
-    VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP - INTERVAL '48 hour')
-    RETURNING "id"
-  `,
-		tokenenum.Section_profile,
-		tokenenum.Action_reset,
-		tokenenum.Status_sent,
-		test.ConstUserID,
-	).Scan(&oldToken)
-	require.NoError(t, err)
+	builder := factory.New(t, pgTest.Conn().Conn)
+	user := builder.Profile(factory.ProfileParams{Alias: "user", Name: "user", Surname: "user", Email: "user@werbot.net"})
 
-	_, err = client.Token(ctx, &tokenmessage.Token_Request{Token: oldToken})
+	oldToken := builder.Token(factory.TokenParams{
+		Section:   int16(tokenenum.Section_profile),
+		Action:    int16(tokenenum.Action_reset),
+		Status:    int16(tokenenum.Status_sent),
+		ProfileID: user.ID,
+		CreatedAt: factory.Time(time.Now().UTC().Add(-48 * time.Hour)),
+	})
+
+	_, err = client.Token(ctx, &tokenmessage.Token_Request{Token: oldToken.ID})
 	require.Error(t, err, "a token with a NULL expired_at older than 24 hours must be rejected")
 	assert.Contains(t, err.Error(), "expired")
 
 	reset, err := client.AddTokenProfileReset(ctx, &tokenmessage.AddTokenProfileReset_Request{
-		ProfileId: test.ConstUserID,
+		ProfileId: user.ID,
 	})
 	require.NoError(t, err)
 

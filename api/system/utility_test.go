@@ -8,7 +8,7 @@ import (
 )
 
 func TestHandler_myIP(t *testing.T) {
-	app, teardownTestCase, adminHeader, _ := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -33,7 +33,7 @@ func TestHandler_myIP(t *testing.T) {
 				"message": "IP",
 				"result":  "0.0.0.0",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 	}
 
@@ -41,7 +41,7 @@ func TestHandler_myIP(t *testing.T) {
 }
 
 func TestHandler_countries(t *testing.T) {
-	app, teardownTestCase, adminHeader, _ := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -62,7 +62,7 @@ func TestHandler_countries(t *testing.T) {
 				"message":     "Bad Request",
 				"result.name": "value is required",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_02",
@@ -74,7 +74,7 @@ func TestHandler_countries(t *testing.T) {
 				"message":     "Bad Request",
 				"result.name": "value length must be at least 3 characters",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_03",
@@ -91,7 +91,7 @@ func TestHandler_countries(t *testing.T) {
 				"result.countries.2.code": "BZ",
 				"result.countries.2.name": "Belize",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_04",
@@ -103,7 +103,7 @@ func TestHandler_countries(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 	}
 

@@ -9,14 +9,14 @@ import (
 )
 
 func TestHandler_projectKeys(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys"),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys"),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
@@ -30,21 +30,21 @@ func TestHandler_projectKeys(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys"),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                      float64(200),
 				"message":                   "Project keys",
 				"result.total":              float64(1),
-				"result.keys.0.key_id":      "a1059d92-d032-427c-9444-571967d1f9a5",
+				"result.keys.0.key_id":      env.adminProject1API.ID,
 				"result.keys.0.online":      true,
-				"result.keys.0.key":         "3GZBSPqDi7r1FDzYMUNV41l9HOJlb9y8b3ZI9",
-				"result.keys.0.secret":      "AweHj3rtANGfy0gG021ptsDzYMwYmgwnY11CC",
+				"result.keys.0.key":         env.adminProject1API.APIKey,
+				"result.keys.0.secret":      env.adminProject1API.APISecret,
 				"result.keys.0.locked_at":   nil,
 				"result.keys.0.archived_at": nil,
 				"result.keys.0.updated_at":  nil,
@@ -52,32 +52,32 @@ func TestHandler_projectKeys(t *testing.T) {
 				// --
 				"result.keys.1.key_id": nil,
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys") + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys") + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                      float64(200),
 				"message":                   "Project keys",
 				"result.total":              float64(1),
-				"result.keys.0.key_id":      "268def26-4efb-47c4-b699-f34903cf05f5",
-				"result.keys.0.key":         "5tYJOkr3oLCOEvhw3nB83AmDzYM7yJsJ0Sonl",
-				"result.keys.0.secret":      "aDzYMy9g3mmsq3XazPLvvCbj4kJAsgatxBDVW",
+				"result.keys.0.key_id":      env.userProject3API.ID,
+				"result.keys.0.key":         env.userProject3API.APIKey,
+				"result.keys.0.secret":      env.userProject3API.APISecret,
 				"result.keys.0.online":      true,
 				"result.keys.0.locked_at":   nil,
 				"result.keys.0.archived_at": nil,
@@ -86,7 +86,7 @@ func TestHandler_projectKeys(t *testing.T) {
 				// --
 				"result.keys.1.key_id": nil,
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 
 		{ // USER:
@@ -99,20 +99,20 @@ func TestHandler_projectKeys(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys"),
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                      float64(200),
 				"message":                   "Project keys",
 				"result.total":              float64(1),
-				"result.keys.0.key_id":      "268def26-4efb-47c4-b699-f34903cf05f5",
-				"result.keys.0.key":         "5tYJOkr3oLCOEvhw3nB83AmDzYM7yJsJ0Sonl",
-				"result.keys.0.secret":      "aDzYMy9g3mmsq3XazPLvvCbj4kJAsgatxBDVW",
+				"result.keys.0.key_id":      env.userProject3API.ID,
+				"result.keys.0.key":         env.userProject3API.APIKey,
+				"result.keys.0.secret":      env.userProject3API.APISecret,
 				"result.keys.0.online":      true,
 				"result.keys.0.locked_at":   nil,
 				"result.keys.0.archived_at": nil,
@@ -121,31 +121,31 @@ func TestHandler_projectKeys(t *testing.T) {
 				// --
 				"result.keys.1.key_id": nil,
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys") + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys") + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 
@@ -153,7 +153,7 @@ func TestHandler_projectKeys(t *testing.T) {
 }
 
 func TestHandler_projectKey(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -168,12 +168,12 @@ func TestHandler_projectKey(t *testing.T) {
 		{ // unauthorized request with valid api key
 			Name:       "test0_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, "key", "3GZBSPqDi7r1FDzYMUNV41l9HOJlb9y8b3ZI9"),
+			Path:       test.PathGluing(pathProjects, "key", env.adminProject1API.APIKey),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":              float64(200),
 				"message":           "Project key",
-				"result.project_id": "2bef1080-cd6e-49e5-8042-1224cf6a3da9",
+				"result.project_id": env.adminProject1.ID,
 			},
 		},
 
@@ -181,7 +181,7 @@ func TestHandler_projectKey(t *testing.T) {
 		{ // unauthorized request
 			Name:       "test0_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys", test.ConstAdminProject1ApiID),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys", env.adminProject1API.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
@@ -189,181 +189,181 @@ func TestHandler_projectKey(t *testing.T) {
 		{ // ADMIN:
 			Name:       "test1_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstFakeID, "keys", test.ConstAdminProject1ApiID),
+			Path:       test.PathGluing(pathProjects, test.ConstFakeID, "keys", env.adminProject1API.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys", test.ConstFakeID),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:           "test1_03",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathProjects, test.ConstAdminProject1ID, "test", test.ConstAdminProject1ApiID),
+			Path:           test.PathGluing(pathProjects, env.adminProject1.ID, "test", env.adminProject1API.ID),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys", test.ConstAdminProject1ApiID),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys", env.adminProject1API.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
 				"message":            "Project key",
-				"result.key":         "3GZBSPqDi7r1FDzYMUNV41l9HOJlb9y8b3ZI9",
-				"result.secret":      "AweHj3rtANGfy0gG021ptsDzYMwYmgwnY11CC",
+				"result.key":         env.adminProject1API.APIKey,
+				"result.secret":      env.adminProject1API.APISecret,
 				"result.online":      true,
 				"result.locked_at":   nil,
 				"result.archived_at": nil,
 				"result.updated_at":  nil,
 				"result.created_at":  "*",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_05",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys", "268def26-4efb-47c4-b699-f34903cf05f5"),
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys", env.userProject3API.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys", "268def26-4efb-47c4-b699-f34903cf05f5") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys", env.userProject3API.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_07",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys", "268def26-4efb-47c4-b699-f34903cf05f5") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys", env.userProject3API.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
 				"message":            "Project key",
-				"result.key":         "5tYJOkr3oLCOEvhw3nB83AmDzYM7yJsJ0Sonl",
-				"result.secret":      "aDzYMy9g3mmsq3XazPLvvCbj4kJAsgatxBDVW",
+				"result.key":         env.userProject3API.APIKey,
+				"result.secret":      env.userProject3API.APISecret,
 				"result.online":      true,
 				"result.locked_at":   nil,
 				"result.archived_at": nil,
 				"result.updated_at":  nil,
 				"result.created_at":  "*",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 
 		{ // USER:
 			Name:       "test2_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstFakeID, "keys", "268def26-4efb-47c4-b699-f34903cf05f5"),
+			Path:       test.PathGluing(pathProjects, test.ConstFakeID, "keys", env.userProject3API.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys", test.ConstFakeID),
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:           "test2_03",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathProjects, test.ConstUserProject1ID, "test", "268def26-4efb-47c4-b699-f34903cf05f5"),
+			Path:           test.PathGluing(pathProjects, env.userProject3.ID, "test", env.userProject3API.ID),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys", "268def26-4efb-47c4-b699-f34903cf05f5"),
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys", env.userProject3API.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
 				"message":            "Project key",
-				"result.key":         "5tYJOkr3oLCOEvhw3nB83AmDzYM7yJsJ0Sonl",
-				"result.secret":      "aDzYMy9g3mmsq3XazPLvvCbj4kJAsgatxBDVW",
+				"result.key":         env.userProject3API.APIKey,
+				"result.secret":      env.userProject3API.APISecret,
 				"result.online":      true,
 				"result.locked_at":   nil,
 				"result.archived_at": nil,
 				"result.updated_at":  nil,
 				"result.created_at":  "*",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_05",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys", test.ConstAdminProject1ApiID),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys", env.adminProject1API.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys", test.ConstAdminProject1ApiID) + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys", env.adminProject1API.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_07",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys", test.ConstAdminProject1ApiID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys", env.adminProject1API.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 
@@ -371,14 +371,14 @@ func TestHandler_projectKey(t *testing.T) {
 }
 
 func TestHandler_addProjectKey(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys"),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys"),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
@@ -392,12 +392,12 @@ func TestHandler_addProjectKey(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: request without parameters
 			Name:       "test1_02",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys"),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":          float64(200),
@@ -405,24 +405,24 @@ func TestHandler_addProjectKey(t *testing.T) {
 				"result.key_id": "*",
 				"result.key":    "*",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_03",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys") + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_04",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys") + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":          float64(200),
@@ -430,7 +430,7 @@ func TestHandler_addProjectKey(t *testing.T) {
 				"result.key_id": "*",
 				"result.key":    "*",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 
 		{ // USER: request without parameters
@@ -443,12 +443,12 @@ func TestHandler_addProjectKey(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: request without parameters
 			Name:       "test2_02",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys"),
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":          float64(200),
@@ -456,31 +456,31 @@ func TestHandler_addProjectKey(t *testing.T) {
 				"result.key_id": "*",
 				"result.key":    "*",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_03",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys") + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_04",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys") + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 
@@ -488,14 +488,14 @@ func TestHandler_addProjectKey(t *testing.T) {
 }
 
 func TestHandler_deleteProjectKey(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys", test.ConstAdminProject1ApiID),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys", env.adminProject1API.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
@@ -509,65 +509,65 @@ func TestHandler_deleteProjectKey(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_02",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, test.ConstFakeID, "keys", test.ConstAdminProject1ApiID),
+			Path:       test.PathGluing(pathProjects, test.ConstFakeID, "keys", env.adminProject1API.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_03",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys", test.ConstFakeID),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_04",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, test.ConstAdminProject1ID, "keys", test.ConstAdminProject1ApiID),
+			Path:       test.PathGluing(pathProjects, env.adminProject1.ID, "keys", env.adminProject1API.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
 				"message": "Project key deleted",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_05",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys", "268def26-4efb-47c4-b699-f34903cf05f5") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys", env.userProject3API.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_06",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys", "268def26-4efb-47c4-b699-f34903cf05f5") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys", env.userProject3API.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
 				"message": "Project key deleted",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 
 		{ // USER:
@@ -580,65 +580,65 @@ func TestHandler_deleteProjectKey(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_02",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, test.ConstFakeID, "keys", test.ConstAdminProject1ApiID),
+			Path:       test.PathGluing(pathProjects, test.ConstFakeID, "keys", env.adminProject1API.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_03",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, test.ConstUserProject1ID, "keys", test.ConstFakeID),
+			Path:       test.PathGluing(pathProjects, env.userProject3.ID, "keys", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_04",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, "f85c4597-005d-48a6-b643-a21adf19a4aa", "keys", "81ae0bbe-b746-44a6-a1f4-8467ff17bf5e"),
+			Path:       test.PathGluing(pathProjects, env.userProject13.ID, "keys", env.userProject13API.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
 				"message": "Project key deleted",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_05",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, "e29568e6-c8f8-4555-a531-58a44554046f", "keys", "974c8001-4f8a-4ccc-b9db-9cf29e1405b2") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathProjects, env.adminProject2.ID, "keys", env.adminProject2API.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_06",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathProjects, "e29568e6-c8f8-4555-a531-58a44554046f", "keys", "974c8001-4f8a-4ccc-b9db-9cf29e1405b2") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathProjects, env.adminProject2.ID, "keys", env.adminProject2API.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":   float64(404),
 				"result": "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 
