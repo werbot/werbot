@@ -22,6 +22,9 @@ func New(t *testing.T, db *sql.DB) *Builder {
 	return &Builder{t: t, db: db}
 }
 
+// defaultPassword is the password stored by factories when none is given.
+const defaultPassword = "password"
+
 // Bool returns a pointer to v.
 func Bool(v bool) *bool {
 	return &v

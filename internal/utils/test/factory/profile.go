@@ -33,7 +33,7 @@ func (b *Builder) Profile(p ProfileParams) Profile {
 		p.Alias = randomAlias()
 	}
 	if p.Password == "" {
-		p.Password = "password"
+		p.Password = defaultPassword
 	}
 	if p.Role == 0 {
 		p.Role = 1

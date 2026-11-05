@@ -45,7 +45,7 @@ func (b *Builder) Scheme(p SchemeParams) Scheme {
 			"port":    22,
 			"password": map[string]any{
 				"login":    "user",
-				"password": "password",
+				"password": defaultPassword,
 			},
 		}
 	}
@@ -184,11 +184,7 @@ func (b *Builder) SchemeFirewallCountry(c SchemeFirewallCountryParams) SchemeFir
 	`, c.ID, c.SchemeID, c.CountryCode)
 	require.NoError(b.t, err, "scheme firewall country: insert")
 
-	return SchemeFirewallCountry{
-		ID:          c.ID,
-		SchemeID:    c.SchemeID,
-		CountryCode: c.CountryCode,
-	}
+	return SchemeFirewallCountry(c)
 }
 
 // SchemeFirewallNetworkParams is the set of optional and required values for a scheme firewall network.
@@ -211,9 +207,5 @@ func (b *Builder) SchemeFirewallNetwork(n SchemeFirewallNetworkParams) SchemeFir
 	`, n.ID, n.SchemeID, n.Network)
 	require.NoError(b.t, err, "scheme firewall network: insert")
 
-	return SchemeFirewallNetwork{
-		ID:       n.ID,
-		SchemeID: n.SchemeID,
-		Network:  n.Network,
-	}
+	return SchemeFirewallNetwork(n)
 }
