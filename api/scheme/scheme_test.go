@@ -13,14 +13,16 @@ import (
 )
 
 func TestHandler_schemes(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
+	env.addGroups(t)
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
@@ -47,79 +49,79 @@ func TestHandler_schemes(t *testing.T) {
 		{ // ADMIN: default request with servers
 			Name:       "test1_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Servers",
-				"result.total": float64(20),
+				"result.total": float64(3),
 			},
 			RequestHeaders: adminHeader,
 		},
 		{ // ADMIN: default request with databases
 			Name:       "test1_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "database"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "database"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Databases",
-				"result.total": float64(27),
+				"result.total": float64(1),
 			},
 			RequestHeaders: adminHeader,
 		},
 		{ // ADMIN: default request with desktops
 			Name:       "test1_05",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "desktop"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "desktop"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Desktops",
-				"result.total": float64(6),
+				"result.total": float64(1),
 			},
 			RequestHeaders: adminHeader,
 		},
 		{ // ADMIN: default request with containers
 			Name:       "test1_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "container"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "container"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Containers",
-				"result.total": float64(6),
+				"result.total": float64(1),
 			},
 			RequestHeaders: adminHeader,
 		},
 		{ // ADMIN: default request with clouds
 			Name:       "test1_07",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "cloud"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "cloud"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Clouds",
-				"result.total": float64(15),
+				"result.total": float64(1),
 			},
 			RequestHeaders: adminHeader,
 		},
 		{ // ADMIN: default request with applications
 			Name:       "test1_08",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "application"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "application"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Applications",
-				"result.total": float64(3),
+				"result.total": float64(1),
 			},
 			RequestHeaders: adminHeader,
 		},
 		{ // ADMIN: default request
 			Name:           "test1_09",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "test"),
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, "test"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -127,12 +129,12 @@ func TestHandler_schemes(t *testing.T) {
 		{ // ADMIN: default request with pagination
 			Name:       "test1_10",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server") + "?limit=2&offset=0",
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server") + "?limit=2&offset=0",
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":             float64(200),
 				"message":          "Servers",
-				"result.total":     float64(20),
+				"result.total":     float64(3),
 				"result.servers.2": nil,
 			},
 			RequestHeaders: adminHeader,
@@ -140,7 +142,7 @@ func TestHandler_schemes(t *testing.T) {
 		{ // ADMIN: default request with fake profile UUID
 			Name:       "test1_11",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server") + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -152,7 +154,7 @@ func TestHandler_schemes(t *testing.T) {
 		{ // ADMIN: default request with the project does not belong profile UUID
 			Name:       "test1_12",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server") + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -164,24 +166,24 @@ func TestHandler_schemes(t *testing.T) {
 		{ // ADMIN: default request with the project does belong profile UUID
 			Name:       "test1_13",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, "server") + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Servers",
-				"result.total": float64(11),
+				"result.total": float64(2),
 			},
 			RequestHeaders: adminHeader,
 		},
 		{ // ADMIN: default request with the project does belong profile UUID with pagination
 			Name:       "test1_14",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server") + "?limit=2&offset=0&owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, "server") + "?limit=2&offset=0&owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Servers",
-				"result.total": float64(11),
+				"result.total": float64(2),
 			},
 			RequestHeaders: adminHeader,
 		},
@@ -209,31 +211,31 @@ func TestHandler_schemes(t *testing.T) {
 		{ // USER: default request
 			Name:       "test2_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, "server"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Servers",
-				"result.total": float64(11),
+				"result.total": float64(2),
 			},
 			RequestHeaders: userHeader,
 		},
 		{ // USER: default request with fake profile UUID
 			Name:       "test2_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, "server") + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Servers",
-				"result.total": float64(11),
+				"result.total": float64(2),
 			},
 			RequestHeaders: userHeader,
 		},
 		{ // USER: default request with the team does belong profile UUID
 			Name:       "test2_05",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server") + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -248,21 +250,22 @@ func TestHandler_schemes(t *testing.T) {
 }
 
 func TestHandler_scheme(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: request with fake scheme UUID
 			Name:           "test1_01",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstFakeID),
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, test.ConstFakeID),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -270,7 +273,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // ADMIN: request with fake project UUID
 			Name:           "test1_02",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstAdminSchemeSSH1ID),
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, env.adminScheme1.ID),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -278,7 +281,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // ADMIN: base request
 			Name:       "test1_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -287,7 +290,7 @@ func TestHandler_scheme(t *testing.T) {
 				"result.active":      nil,
 				"result.online":      true,
 				"result.audit":       nil,
-				"result.project_id":  test.ConstAdminProject1ID,
+				"result.project_id":  env.project1.ID,
 				"result.auth_method": float64(1),
 				"result.scheme_type": float64(103),
 				"result.title":       "Git server",
@@ -298,12 +301,12 @@ func TestHandler_scheme(t *testing.T) {
 		{ // ADMIN: scheme without an address in its access settings
 			Name:       "test1_07",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminEventSchemeID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminEventScheme.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
 				"message":            "Scheme",
-				"result.project_id":  test.ConstAdminProject1ID,
+				"result.project_id":  env.project1.ID,
 				"result.auth_method": float64(2),
 				"result.scheme_type": float64(103),
 				"result.title":       "Develop server #2",
@@ -314,7 +317,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // ADMIN: default request with the server does not belong profile UUID
 			Name:           "test1_04",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID),
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -322,7 +325,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // ADMIN: default request with the project does not belong profile UUID
 			Name:           "test1_05",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID),
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -330,7 +333,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // ADMIN: default request with the project does belong profile UUID
 			Name:       "test1_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -339,7 +342,7 @@ func TestHandler_scheme(t *testing.T) {
 				"result.address":     "127.0.0.4",
 				"result.audit":       nil,
 				"result.online":      nil,
-				"result.project_id":  test.ConstUserProject1ID,
+				"result.project_id":  env.project3.ID,
 				"result.auth_method": float64(1),
 				"result.scheme_type": float64(103),
 				"result.title":       "Storage server backup",
@@ -351,7 +354,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // USER: request with fake scheme UUID
 			Name:           "test2_01",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstFakeID),
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, test.ConstFakeID),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -359,7 +362,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // USER: request with fake project UUID
 			Name:           "test2_02",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstUserSchemeSSH1ID),
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, env.userScheme1.ID),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -367,7 +370,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // USER: base request
 			Name:       "test2_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -386,7 +389,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // USER: default request with the scheme does not belong profile UUID
 			Name:           "test2_04",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -394,7 +397,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // USER: default request with the project does not belong profile UUID
 			Name:           "test2_05",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -402,7 +405,7 @@ func TestHandler_scheme(t *testing.T) {
 		{ // USER: default request with the project does belong profile UUID
 			Name:           "test2_06",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -413,21 +416,24 @@ func TestHandler_scheme(t *testing.T) {
 }
 
 func TestHandler_addScheme(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
+
+	generatedKeyID := uuid.New()
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: base request without access information
 			Name:       "test1_02",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -447,7 +453,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: base request with broken scheme
 			Name:       "test1_03",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -471,7 +477,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: base request
 			Name:       "test1_04",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"title": "title",
@@ -497,7 +503,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: base request
 			Name:       "test1_05",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"title": "title",
@@ -523,7 +529,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: base request
 			Name:       "test1_06",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"title": "title",
@@ -551,7 +557,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: base request
 			Name:       "test1_07",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -579,7 +585,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: base request with autogenerate (use key UUID - 00000000-0000-0000-0000-000000000000)
 			Name:       "test1_08",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -607,7 +613,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: base request with generated key UUID
 			Name:       "test1_09",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -620,7 +626,7 @@ func TestHandler_addScheme(t *testing.T) {
 						"port":    float64(10000),
 						"key": test.BodyTable{
 							"login":  "login",
-							"key_id": "aac78aae-2036-468a-a12f-beadf7bd07ec",
+							"key_id": generatedKeyID,
 						},
 					},
 				},
@@ -631,12 +637,12 @@ func TestHandler_addScheme(t *testing.T) {
 				"result.scheme_id": "*",
 			},
 			RequestHeaders: adminHeader,
-			PreWorkHook:    serverKeygen(app.Redis, "aac78aae-2036-468a-a12f-beadf7bd07ec", true),
+			PreWorkHook:    serverKeygen(app.Redis, generatedKeyID, true),
 		},
 		{ // ADMIN: base request with password
 			Name:       "test1_10",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -664,7 +670,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: base request with small password
 			Name:       "test1_11",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -694,7 +700,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: base request with big password
 			Name:       "test1_12",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -737,7 +743,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: default request with the project does not belong profile UUID
 			Name:        "test1_14",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, "server"),
 			StatusCode:  404,
 			RequestBody: test.BodyTable{},
 			Body: test.BodyTable{
@@ -750,7 +756,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // ADMIN: default request with the project does belong profile UUID
 			Name:       "test1_15",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, "server") + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -779,7 +785,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // USER: base request
 			Name:       "test2_01",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, "server"),
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -807,7 +813,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // USER: base request with autogenerate (use key UUID - 00000000-0000-0000-0000-000000000000)
 			Name:       "test2_02",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, "server"),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -835,7 +841,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // USER: base request with generated key UUID
 			Name:       "test2_03",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, "server"),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -848,7 +854,7 @@ func TestHandler_addScheme(t *testing.T) {
 						"port":    float64(10000),
 						"key": test.BodyTable{
 							"login":  "login",
-							"key_id": "aac78aae-2036-468a-a12f-beadf7bd07ec",
+							"key_id": generatedKeyID,
 						},
 					},
 				},
@@ -859,12 +865,12 @@ func TestHandler_addScheme(t *testing.T) {
 				"result.scheme_id": "*",
 			},
 			RequestHeaders: userHeader,
-			PreWorkHook:    serverKeygen(app.Redis, "aac78aae-2036-468a-a12f-beadf7bd07ec", true),
+			PreWorkHook:    serverKeygen(app.Redis, generatedKeyID, true),
 		},
 		{ // USER: base request with password
 			Name:       "test2_04",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, "server"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, "server"),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -905,7 +911,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // USER: default request with the project does not belong profile UUID
 			Name:        "test2_06",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, "server"),
 			StatusCode:  404,
 			RequestBody: test.BodyTable{},
 			Body: test.BodyTable{
@@ -918,7 +924,7 @@ func TestHandler_addScheme(t *testing.T) {
 		{ // USER: default request with the project does belong profile UUID
 			Name:       "test2_07",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, "server") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, "server") + "?owner_id=" + env.admin.ID,
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"title":  "title",
@@ -949,21 +955,22 @@ func TestHandler_addScheme(t *testing.T) {
 }
 
 func TestHandler_updateScheme(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: request with broken scheme UUID
 			Name:       "test1_01",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, test.ConstFakeID),
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"audit": true,
@@ -978,7 +985,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: request with broken project UUID
 			Name:       "test1_02",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, env.adminScheme1.ID),
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"audit": true,
@@ -993,7 +1000,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: request with the profile does not have access to the project UUID and scheme UUID
 			Name:       "test1_03",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"audit": true,
@@ -1008,7 +1015,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: request with the profile does not have access to the scheme UUID
 			Name:       "test1_04",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"audit": true,
@@ -1023,7 +1030,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: request with the profile has access to the project UUID and the scheme UUID
 			Name:       "test1_05",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"audit": true,
@@ -1037,7 +1044,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: base request with active parameter
 			Name:       "test1_06",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"active": false,
@@ -1051,7 +1058,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: base request with online parameter
 			Name:       "test1_07",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"online": true,
@@ -1065,7 +1072,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: base request with online parameter
 			Name:       "test1_08",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"title": "",
@@ -1080,7 +1087,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: base request with online parameter
 			Name:       "test1_09",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title": "new title",
@@ -1094,7 +1101,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: request without parameters
 			Name:       "test1_10",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":           float64(400),
@@ -1106,7 +1113,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: base request with fake setting
 			Name:       "test1_11",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"test": test.BodyTable{},
@@ -1121,7 +1128,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: base request with info parameters
 			Name:       "test1_12",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"scheme": test.BodyTable{
@@ -1145,7 +1152,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: base request with info parameters
 			Name:       "test1_13",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH2ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme2.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"scheme": test.BodyTable{
@@ -1169,7 +1176,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // ADMIN: base request with info parameters
 			Name:       "test1_14",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH2ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme2.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"scheme": test.BodyTable{
@@ -1191,7 +1198,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: request with broken scheme UUID
 			Name:       "test2_01",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, test.ConstFakeID),
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"audit": true,
@@ -1206,7 +1213,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: request with broken project UUID
 			Name:       "test2_02",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, env.userScheme1.ID),
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"audit": true,
@@ -1221,7 +1228,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: request with the profile UUID (ignored) does not have access to the project UUID and scheme UUID
 			Name:       "test2_03",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"audit": true,
@@ -1235,7 +1242,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: request with the profile UUID does not have access UUID to the stranger scheme UUID
 			Name:       "test2_04",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"audit": true,
@@ -1250,7 +1257,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: request with the profile UUID (ignored) has access to the strangers project UUID and the scheme UUID
 			Name:       "test2_05",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"audit": true,
@@ -1265,7 +1272,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: base request with active parameter
 			Name:       "test2_06",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"active": true,
@@ -1279,7 +1286,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: base request with online parameter
 			Name:       "test2_07",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"online": true,
@@ -1293,7 +1300,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: base request with online parameter
 			Name:       "test2_08",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"title": "",
@@ -1308,7 +1315,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: base request with online parameter
 			Name:       "test2_09",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"title": "new title",
@@ -1322,7 +1329,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: request without parameters
 			Name:       "test2_10",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":           float64(400),
@@ -1334,7 +1341,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: base request with fake setting
 			Name:       "test2_11",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"test": test.BodyTable{},
@@ -1349,7 +1356,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: base request with info parameters
 			Name:       "test2_12",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"scheme": test.BodyTable{
@@ -1373,7 +1380,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: base request with info parameters
 			Name:       "test2_13",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH2ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme2.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"scheme": test.BodyTable{
@@ -1397,7 +1404,7 @@ func TestHandler_updateScheme(t *testing.T) {
 		{ // USER: base request with info parameters
 			Name:       "test2_14",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH2ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme2.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"scheme": test.BodyTable{
@@ -1421,14 +1428,15 @@ func TestHandler_updateScheme(t *testing.T) {
 }
 
 func TestHandler_deleteScheme(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
@@ -1436,7 +1444,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // ADMIN: request with broken scheme UUID
 			Name:       "test1_01",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -1448,7 +1456,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // ADMIN: request with broken project UUID
 			Name:       "test1_02",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, env.adminScheme1.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -1460,7 +1468,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // ADMIN: request with the profile does not have access to the project UUID and scheme UUID
 			Name:       "test1_03",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -1472,7 +1480,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // ADMIN: request with the profile does not have access to the scheme UUID
 			Name:       "test1_04",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -1484,7 +1492,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // ADMIN: request with the profile has access to the project UUID and the scheme UUID
 			Name:       "test1_05",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
@@ -1495,7 +1503,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // ADMIN: base request with info parameters
 			Name:       "test1_06",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
@@ -1507,7 +1515,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // USER: request with broken scheme UUID
 			Name:       "test2_01",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -1519,7 +1527,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // USER: request with broken project UUID
 			Name:       "test2_02",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, env.userScheme1.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -1531,7 +1539,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // USER: request with the profile UUID (ignored) does not have access to the project UUID and scheme UUID
 			Name:       "test2_03",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -1543,7 +1551,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // USER: request with the profile UUID (ignored) does not have access to the scheme UUID
 			Name:       "test2_04",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -1555,7 +1563,7 @@ func TestHandler_deleteScheme(t *testing.T) {
 		{ // USER: request with the profile UUID (ignored) has access to the project UUID and the scheme UUID
 			Name:       "test2_05",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH2ID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme2.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
@@ -1569,21 +1577,22 @@ func TestHandler_deleteScheme(t *testing.T) {
 }
 
 func TestHandler_schemeAccess(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "access"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "access"),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: request with broken project UUID
 			Name:           "test1_01",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstAdminSchemeSSH1ID, "access"),
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, env.adminScheme1.ID, "access"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1591,7 +1600,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // ADMIN: request with broken scheme UUID
 			Name:           "test1_02",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstFakeID, "access"),
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, test.ConstFakeID, "access"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1615,7 +1624,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // ADMIN: request with broken project UUID and scheme UUID
 			Name:           "test1_05",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "access") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "access") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1623,7 +1632,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // ADMIN: request
 			Name:           "test1_06",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "access") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "access") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1631,7 +1640,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // ADMIN: request
 			Name:           "test1_07",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "access") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "access") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1639,7 +1648,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // ADMIN: request
 			Name:           "test1_08",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "access") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "access") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1647,7 +1656,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // ADMIN: request
 			Name:       "test1_09",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "access"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "access"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                                       float64(200),
@@ -1663,7 +1672,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // ADMIN: request
 			Name:       "test1_10",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "access") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "access") + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                                       float64(200),
@@ -1680,7 +1689,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // USER: request with broken project UUID
 			Name:           "test2_01",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstUserSchemeSSH1ID, "access"),
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, env.userScheme1.ID, "access"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -1688,7 +1697,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // USER: request with broken scheme UUID
 			Name:           "test2_02",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstFakeID, "access"),
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, test.ConstFakeID, "access"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -1712,7 +1721,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // USER: request with broken project UUID and scheme UUID
 			Name:           "test2_05",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "access") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "access") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -1720,7 +1729,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // USER: request with profile UUID (ignored)
 			Name:       "test2_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "access") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "access") + "?owner_id=" + env.admin.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                                       float64(200),
@@ -1736,7 +1745,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // USER: request
 			Name:           "test2_07",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "access") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "access") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -1744,7 +1753,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // USER: request
 			Name:           "test2_08",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "access") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "access") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -1752,7 +1761,7 @@ func TestHandler_schemeAccess(t *testing.T) {
 		{ // USER: request
 			Name:       "test2_09",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "access"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "access"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                                       float64(200),
@@ -1771,21 +1780,23 @@ func TestHandler_schemeAccess(t *testing.T) {
 }
 
 func TestHandler_schemeActivity(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
+	env.addActivity(t)
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity"),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: request with broken project UUID
 			Name:           "test1_01",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstAdminSchemeSSH1ID, "activity"),
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, env.adminScheme1.ID, "activity"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1793,7 +1804,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: request with broken scheme UUID
 			Name:           "test1_02",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstFakeID, "activity"),
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, test.ConstFakeID, "activity"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1817,7 +1828,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: request with broken project UUID and scheme UUID
 			Name:           "test1_05",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1825,7 +1836,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: request
 			Name:           "test1_06",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1833,7 +1844,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: request
 			Name:           "test1_07",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "activity") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1841,7 +1852,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: request
 			Name:           "test1_08",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "activity") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -1849,7 +1860,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: request
 			Name:       "test1_09",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -1884,7 +1895,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: activity for now
 			Name:       "test1_10",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity", "now"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity", "now"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":        float64(200),
@@ -1896,7 +1907,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: activity for select hour (timestamp)
 			Name:       "test1_11",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity", "1725885312000"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity", "1725885312000"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":        float64(200),
@@ -1908,7 +1919,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: activity for owner UUID
 			Name:       "test1_12",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity") + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -1943,7 +1954,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: activity for now for owner UUID
 			Name:       "test1_13",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity", "now") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity", "now") + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":        float64(200),
@@ -1955,7 +1966,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // ADMIN: activity for owner UUID select hour (timestamp)
 			Name:       "test1_14",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity", "1725863712") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity", "1725863712") + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":        float64(200),
@@ -1968,7 +1979,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: request with broken project UUID
 			Name:           "test2_01",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstUserSchemeSSH1ID, "activity"),
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, env.userScheme1.ID, "activity"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -1976,7 +1987,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: request with broken scheme UUID
 			Name:           "test2_02",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstFakeID, "activity"),
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, test.ConstFakeID, "activity"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -2000,7 +2011,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: request with broken project UUID and scheme UUID
 			Name:           "test2_05",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -2008,7 +2019,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: request
 			Name:       "test2_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity") + "?owner_id=" + env.admin.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":               float64(200),
@@ -2043,7 +2054,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: request
 			Name:           "test2_07",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "activity") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -2051,7 +2062,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: request
 			Name:           "test2_08",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "activity") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -2059,7 +2070,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: request
 			Name:           "test2_09",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity"),
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -2067,7 +2078,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: activity for now
 			Name:       "test2_10",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity", "now"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity", "now"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":        float64(200),
@@ -2079,7 +2090,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: activity for select hour (timestamp)
 			Name:       "test2_11",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity", "1725863712"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity", "1725863712"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":        float64(200),
@@ -2091,7 +2102,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: activity for owner UUID
 			Name:           "test2_12",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -2099,7 +2110,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: activity for now for owner UUID
 			Name:           "test2_13",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity", "now") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity", "now") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -2107,7 +2118,7 @@ func TestHandler_schemeActivity(t *testing.T) {
 		{ // USER: activity for owner UUID select hour (timestamp)
 			Name:           "test2_14",
 			Method:         http.MethodGet,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity", "1725863712") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity", "1725863712") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: userHeader,
@@ -2118,8 +2129,9 @@ func TestHandler_schemeActivity(t *testing.T) {
 }
 
 func TestHandler_updateSchemeActivity(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
 
 	createRepeatedValues := func(size int, value int32) []int32 {
 		repeatedValues := make([]int32, size)
@@ -2160,14 +2172,14 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity"),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: request with broken project UUID
 			Name:           "test1_01",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstAdminSchemeSSH1ID, "access"),
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, env.adminScheme1.ID, "access"),
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2176,7 +2188,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // ADMIN: request with broken scheme UUID
 			Name:           "test1_02",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstFakeID, "access"),
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, test.ConstFakeID, "access"),
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2194,7 +2206,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // ADMIN: empty body request
 			Name:       "test1_04",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity"),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":            float64(400),
@@ -2206,7 +2218,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // ADMIN: broken body request (not all hours are transferred to monday (0-23))
 			Name:        "test1_05",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity"),
 			StatusCode:  400,
 			RequestBody: brokenDayValuesBody,
 			Body: test.BodyTable{
@@ -2221,7 +2233,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // ADMIN: broken body request (invalid values ​​passed to monday)
 			Name:        "test1_06",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity"),
 			StatusCode:  400,
 			RequestBody: brokenDayValues2Body2,
 			Body: test.BodyTable{
@@ -2236,7 +2248,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // ADMIN: valid request
 			Name:        "test1_07",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity"),
 			StatusCode:  200,
 			RequestBody: validDayValuesBody,
 			Body: test.BodyTable{
@@ -2257,7 +2269,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // ADMIN: request with broken project UUID and scheme UUID
 			Name:           "test1_09",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2266,7 +2278,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // ADMIN: request with broken profile UUID
 			Name:           "test1_10",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstFakeID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity") + "?owner_id=" + test.ConstFakeID,
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2275,7 +2287,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // ADMIN: request
 			Name:           "test1_11",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "activity") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2284,7 +2296,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // ADMIN: request
 			Name:           "test1_12",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstUserID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "activity") + "?owner_id=" + env.user.ID,
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2293,7 +2305,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // ADMIN: valid request
 			Name:        "test1_13",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstUserID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity") + "?owner_id=" + env.user.ID,
 			StatusCode:  200,
 			RequestBody: validDayValuesBody,
 			Body: test.BodyTable{
@@ -2306,7 +2318,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: request with broken project UUID
 			Name:           "test2_01",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstUserSchemeSSH1ID, "access"),
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, env.userScheme1.ID, "access"),
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2315,7 +2327,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: request with broken scheme UUID
 			Name:           "test2_02",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstFakeID, "access"),
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, test.ConstFakeID, "access"),
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2333,7 +2345,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: empty body request
 			Name:       "test2_04",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity"),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":            float64(400),
@@ -2345,7 +2357,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: broken body request (not all hours are transferred to monday (0-23))
 			Name:        "test2_05",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity"),
 			StatusCode:  400,
 			RequestBody: brokenDayValuesBody,
 			Body: test.BodyTable{
@@ -2360,7 +2372,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: broken body request (invalid values ​​passed to monday)
 			Name:        "test2_06",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity"),
 			StatusCode:  400,
 			RequestBody: brokenDayValues2Body2,
 			Body: test.BodyTable{
@@ -2375,7 +2387,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: valid request
 			Name:        "test2_07",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity"),
 			StatusCode:  200,
 			RequestBody: validDayValuesBody,
 			Body: test.BodyTable{
@@ -2396,7 +2408,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: request with broken project UUID and scheme UUID
 			Name:           "test2_09",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstFakeID, "activity") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2405,7 +2417,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: request with broken profile UUID (ignored)
 			Name:        "test2_10",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstFakeID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "activity") + "?owner_id=" + test.ConstFakeID,
 			StatusCode:  200,
 			RequestBody: validDayValuesBody,
 			Body: test.BodyTable{
@@ -2417,7 +2429,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: request
 			Name:           "test2_11",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "activity") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2426,7 +2438,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: request
 			Name:           "test2_12",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "activity") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2435,7 +2447,7 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 		{ // USER: valid request
 			Name:           "test2_13",
 			Method:         http.MethodPatch,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "activity") + "?owner_id=" + test.ConstAdminID,
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "activity") + "?owner_id=" + env.admin.ID,
 			StatusCode:     404,
 			RequestBody:    validDayValuesBody,
 			Body:           test.BodyNotFound,
@@ -2447,21 +2459,23 @@ func TestHandler_updateSchemeActivity(t *testing.T) {
 }
 
 func TestHandler_schemeFirewall(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
+	env.addFirewall(t)
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: request with broken project UUID
 			Name:       "test1_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, env.adminScheme1.ID, "firewall"),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -2473,7 +2487,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken scheme UUID
 			Name:       "test1_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstFakeID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, test.ConstFakeID, "firewall"),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -2497,7 +2511,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // ADMIN: empty body request
 			Name:       "test1_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                 float64(200),
@@ -2522,7 +2536,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken profile UUID
 			Name:       "test1_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -2534,7 +2548,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:       "test1_07",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -2546,7 +2560,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:       "test1_08",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -2558,7 +2572,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // ADMIN: valid request
 			Name:       "test1_09",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                 float64(200),
@@ -2572,7 +2586,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // USER: request with broken project UUID
 			Name:       "test2_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, env.userScheme1.ID, "firewall"),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -2584,7 +2598,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // USER: request with broken scheme UUID
 			Name:       "test2_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstFakeID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, test.ConstFakeID, "firewall"),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -2608,7 +2622,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // USER: empty body request
 			Name:       "test2_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                 float64(200),
@@ -2633,7 +2647,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // USER: request with broken profile UUID (ignored)
 			Name:       "test2_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                 float64(200),
@@ -2646,7 +2660,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:       "test2_07",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -2658,7 +2672,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:       "test2_08",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -2670,7 +2684,7 @@ func TestHandler_schemeFirewall(t *testing.T) {
 		{ // USER: valid request
 			Name:       "test2_09",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -2685,8 +2699,9 @@ func TestHandler_schemeFirewall(t *testing.T) {
 }
 
 func TestHandler_addSchemeFirewall(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
 
 	genSchemeFirewallData := func(scheme, value string) test.BodyTable {
 		data := test.BodyTable{
@@ -2708,14 +2723,14 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: empty request
 			Name:       "test1_01",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":    float64(400),
@@ -2729,7 +2744,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:        "test1_02",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode:  200,
 			RequestBody: genSchemeFirewallData("country", "CA"),
 			Body: test.BodyTable{
@@ -2742,7 +2757,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with double
 			Name:        "test1_03",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "CA"),
 			Body: test.BodyTable{
@@ -2755,7 +2770,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:        "test1_04",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode:  200,
 			RequestBody: genSchemeFirewallData("network", "192.168.20.20"),
 			Body: test.BodyTable{
@@ -2768,7 +2783,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with double
 			Name:        "test1_05",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("network", "192.168.20.20"),
 			Body: test.BodyTable{
@@ -2781,7 +2796,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken project UUID
 			Name:        "test1_06",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, env.adminScheme1.ID, "firewall"),
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "CA"),
 			Body: test.BodyTable{
@@ -2794,7 +2809,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken scheme UUID
 			Name:        "test1_07",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstFakeID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, test.ConstFakeID, "firewall"),
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "CA"),
 			Body: test.BodyTable{
@@ -2833,7 +2848,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken profile UUID
 			Name:        "test1_10",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + test.ConstFakeID,
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "CA"),
 			Body: test.BodyTable{
@@ -2846,7 +2861,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:        "test1_11",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "CA"),
 			Body: test.BodyTable{
@@ -2859,7 +2874,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:        "test1_12",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "CA"),
 			Body: test.BodyTable{
@@ -2872,7 +2887,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: valid request
 			Name:        "test1_13",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode:  200,
 			RequestBody: genSchemeFirewallData("country", "CA"),
 			Body: test.BodyTable{
@@ -2885,7 +2900,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // ADMIN: valid request
 			Name:        "test1_14",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode:  200,
 			RequestBody: genSchemeFirewallData("network", "192.168.20.20"),
 			Body: test.BodyTable{
@@ -2899,7 +2914,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: empty request
 			Name:       "test2_01",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall"),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":    float64(400),
@@ -2913,7 +2928,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:        "test2_02",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall"),
 			StatusCode:  200,
 			RequestBody: genSchemeFirewallData("country", "ES"),
 			Body: test.BodyTable{
@@ -2926,7 +2941,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: request with double
 			Name:        "test2_03",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall"),
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "ES"),
 			Body: test.BodyTable{
@@ -2939,7 +2954,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:        "test2_04",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall"),
 			StatusCode:  200,
 			RequestBody: genSchemeFirewallData("network", "192.168.20.30"),
 			Body: test.BodyTable{
@@ -2952,7 +2967,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: request with double
 			Name:        "test2_05",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall"),
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("network", "192.168.20.30"),
 			Body: test.BodyTable{
@@ -2965,7 +2980,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: request with broken project UUID
 			Name:        "test2_06",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, env.userScheme1.ID, "firewall"),
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "ES"),
 			Body: test.BodyTable{
@@ -2978,7 +2993,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: request with broken scheme UUID
 			Name:        "test2_07",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstFakeID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, test.ConstFakeID, "firewall"),
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "ES"),
 			Body: test.BodyTable{
@@ -3017,7 +3032,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: request with broken profile UUID
 			Name:        "test2_10",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + test.ConstFakeID,
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "ES"),
 			Body: test.BodyTable{
@@ -3030,7 +3045,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:        "test2_11",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstAdminID,
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + env.admin.ID,
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "ES"),
 			Body: test.BodyTable{
@@ -3043,7 +3058,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:        "test2_12",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "ES"),
 			Body: test.BodyTable{
@@ -3056,7 +3071,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: valid request
 			Name:        "test2_13",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstAdminID,
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + env.admin.ID,
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("country", "ES"),
 			Body: test.BodyTable{
@@ -3069,7 +3084,7 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 		{ // USER: valid request
 			Name:        "test2_14",
 			Method:      http.MethodPost,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstAdminID,
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + env.admin.ID,
 			StatusCode:  400,
 			RequestBody: genSchemeFirewallData("network", "192.168.20.30"),
 			Body: test.BodyTable{
@@ -3085,8 +3100,9 @@ func TestHandler_addSchemeFirewall(t *testing.T) {
 }
 
 func TestHandler_updateSchemeFirewall(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
 
 	genRequestBody := func(scheme string, status bool) test.BodyTable {
 		data := test.BodyTable{
@@ -3108,7 +3124,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
@@ -3116,7 +3132,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:       "test1_01",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":          float64(400),
@@ -3128,7 +3144,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // ADMIN: update status list for country
 			Name:        "test1_02",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode:  200,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3140,7 +3156,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // ADMIN: update status list for network
 			Name:        "test1_03",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode:  200,
 			RequestBody: genRequestBody("network", true),
 			Body: test.BodyTable{
@@ -3152,7 +3168,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken scheme UUID
 			Name:        "test1_04",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstFakeID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, test.ConstFakeID, "firewall"),
 			StatusCode:  404,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3165,7 +3181,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken project UUID
 			Name:        "test1_05",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, env.adminScheme1.ID, "firewall"),
 			StatusCode:  404,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3204,7 +3220,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken profile UUID
 			Name:        "test1_08",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + test.ConstFakeID,
 			StatusCode:  404,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3217,7 +3233,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:        "test1_09",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode:  404,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3230,7 +3246,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:        "test1_10",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode:  404,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3243,7 +3259,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:        "test1_11",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstUserID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + env.user.ID,
 			StatusCode:  200,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3256,7 +3272,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:       "test2_01",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall"),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":          float64(400),
@@ -3268,7 +3284,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // USER: update status list for country
 			Name:        "test2_02",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall"),
 			StatusCode:  200,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3280,7 +3296,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // USER: update status list for network
 			Name:        "test2_03",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall"),
 			StatusCode:  200,
 			RequestBody: genRequestBody("network", true),
 			Body: test.BodyTable{
@@ -3292,7 +3308,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // USER: request with broken scheme UUID
 			Name:        "test2_04",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstFakeID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, test.ConstFakeID, "firewall"),
 			StatusCode:  404,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3305,7 +3321,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // USER: request with broken project UUID
 			Name:        "test2_05",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstUserSchemeSSH1ID, "firewall"),
+			Path:        test.PathGluing(pathSchemes, test.ConstFakeID, env.userScheme1.ID, "firewall"),
 			StatusCode:  404,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3344,7 +3360,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // USER: request with broken profile UUID
 			Name:        "test2_08",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstFakeID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + test.ConstFakeID,
 			StatusCode:  200,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3356,7 +3372,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:        "test2_09",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstAdminID,
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "firewall") + "?owner_id=" + env.admin.ID,
 			StatusCode:  404,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3369,7 +3385,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:        "test2_10",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstAdminID,
+			Path:        test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + env.admin.ID,
 			StatusCode:  404,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3382,7 +3398,7 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:        "test2_11",
 			Method:      http.MethodPatch,
-			Path:        test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall") + "?owner_id=" + test.ConstAdminID,
+			Path:        test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall") + "?owner_id=" + env.admin.ID,
 			StatusCode:  404,
 			RequestBody: genRequestBody("country", true),
 			Body: test.BodyTable{
@@ -3398,21 +3414,23 @@ func TestHandler_updateSchemeFirewall(t *testing.T) {
 }
 
 func TestHandler_deleteSchemeFirewall(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader, userHeader := env.adminHeader, env.userHeader
+	env.addFirewall(t)
 
 	testTable := []test.APITable{
 		{ // unauthorized request
 			Name:       "test0_01",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall"),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall"),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: request
 			Name:           "test1_01",
 			Method:         http.MethodDelete,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "country"),
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall", "country"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -3420,7 +3438,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:           "test1_02",
 			Method:         http.MethodDelete,
-			Path:           test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "network"),
+			Path:           test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall", "network"),
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
 			RequestHeaders: adminHeader,
@@ -3428,7 +3446,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: remove country
 			Name:       "test1_03",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "country", test.ConstAdminSchemeSSH1FrwCnt1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall", "country", env.adminCountries[0].ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
@@ -3439,7 +3457,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:       "test1_04",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "country", test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall", "country", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3451,7 +3469,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: remove network
 			Name:       "test1_05",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "network", test.ConstAdminSchemeSSH1FrwNtw1ID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall", "network", env.adminNetworks[0].ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
@@ -3462,7 +3480,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:       "test1_06",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "network", test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall", "network", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3474,7 +3492,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken project UUID
 			Name:       "test1_07",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstAdminSchemeSSH1ID, "firewall", "country", test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, env.adminScheme1.ID, "firewall", "country", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3486,7 +3504,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken scheme UUID
 			Name:       "test1_08",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstFakeID, "firewall", "country", test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, test.ConstFakeID, "firewall", "country", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3522,7 +3540,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request with broken profile UUID
 			Name:       "test1_11",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3534,7 +3552,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:       "test1_12",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3546,7 +3564,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: request
 			Name:       "test1_13",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstUserSchemeSSH1ID, "firewall", "country", test.ConstUserSchemeSSH1FrwCnt1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.userScheme1.ID, "firewall", "country", env.userCountries[0].ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3558,7 +3576,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // ADMIN: valid request
 			Name:       "test1_14",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall", "country", test.ConstUserSchemeSSH1FrwCnt1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall", "country", env.userCountries[0].ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
@@ -3570,7 +3588,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // USER: remove country
 			Name:       "test2_01",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall", "country", test.ConstUserSchemeSSH1FrwCnt2ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall", "country", env.userCountries[1].ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
@@ -3581,7 +3599,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:       "test2_02",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall", "country", test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall", "country", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3593,7 +3611,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // USER: remove network
 			Name:       "test2_03",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall", "network", test.ConstUserSchemeSSH1FrwNtw2ID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall", "network", env.userNetworks[1].ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
@@ -3604,7 +3622,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:       "test2_04",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall", "network", test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall", "network", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3616,7 +3634,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // USER: request with broken project UUID
 			Name:       "test2_05",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, test.ConstUserSchemeSSH1ID, "firewall", "country", test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, test.ConstFakeID, env.userScheme1.ID, "firewall", "country", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3628,7 +3646,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // USER: request with broken scheme UUID
 			Name:       "test2_06",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstFakeID, "firewall", "country", test.ConstFakeID),
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, test.ConstFakeID, "firewall", "country", test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3664,7 +3682,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // USER: request with broken profile UUID
 			Name:       "test2_09",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstUserSchemeSSH1ID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.userScheme1.ID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3676,7 +3694,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:       "test2_10",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "firewall", "country", test.ConstFakeID) + "?owner_id=" + env.user.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3688,7 +3706,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // USER: request
 			Name:       "test2_11",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstUserProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "country", test.ConstAdminSchemeSSH1FrwCnt1ID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project3.ID, env.adminScheme1.ID, "firewall", "country", env.adminCountries[0].ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3700,7 +3718,7 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 		{ // USER: valid request
 			Name:       "test2_12",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathSchemes, test.ConstAdminProject1ID, test.ConstAdminSchemeSSH1ID, "firewall", "country", test.ConstAdminSchemeSSH1FrwCnt1ID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathSchemes, env.project1.ID, env.adminScheme1.ID, "firewall", "country", env.adminCountries[0].ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
@@ -3715,16 +3733,17 @@ func TestHandler_deleteSchemeFirewall(t *testing.T) {
 }
 
 func TestHandler_updateSchemeKeepsPassword(t *testing.T) {
-	app, teardownTestCase, adminHeader, _ := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
+	adminHeader := env.adminHeader
 
-	const schemePath = "/v1/schemes/" + test.ConstAdminProject1ID + "/" + test.ConstAdminSchemeSSH1ID
+	schemePath := "/v1/schemes/" + env.project1.ID + "/" + env.adminScheme1.ID
 
 	readAccess := func() *schemeaccesspb.AccessScheme_Server_SSH {
 		t.Helper()
 		var raw []byte
 		if err := app.Postgres.Conn().Conn.QueryRow(
-			`SELECT "access" FROM "scheme" WHERE "id" = $1`, test.ConstAdminSchemeSSH1ID,
+			`SELECT "access" FROM "scheme" WHERE "id" = $1`, env.adminScheme1.ID,
 		).Scan(&raw); err != nil {
 			t.Fatalf("read scheme access: %v", err)
 		}
@@ -3738,7 +3757,7 @@ func TestHandler_updateSchemeKeepsPassword(t *testing.T) {
 	before := readAccess()
 	beforePassword := before.GetPassword().GetPassword()
 	if beforePassword == "" {
-		t.Fatal("fixture scheme has no password")
+		t.Fatal("scheme has no password")
 	}
 
 	test.RunCaseAPITests(t, app, []test.APITable{{
