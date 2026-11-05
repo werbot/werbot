@@ -5,19 +5,26 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/werbot/werbot/internal/core/scheme"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/internal/utils/test/factory"
 )
 
-func newDBHandler(t *testing.T) (*scheme.Handler, *test.PostgresService) {
+// newSchemeGraph creates one owned SSH scheme with the default access policy.
+func newSchemeGraph(t *testing.T) (*scheme.Handler, *test.PostgresService, *factory.Builder, factory.Profile, factory.Project, factory.Scheme) {
 	t.Helper()
 
-	pg := test.ServerPostgres(t, "../../../migration", "../../../fixtures/migration")
-	return &scheme.Handler{DB: pg.Conn()}, pg
+	pg := test.ServerPostgres(t, "../../../migration")
+	builder := factory.New(t, pg.Conn().Conn)
+
+	owner := builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	project := builder.Project(factory.ProjectParams{OwnerID: owner.ID, Title: "project1"})
+	ssh := builder.Scheme(factory.SchemeParams{ProjectID: project.ID, Title: "Git server"})
+
+	return &scheme.Handler{DB: pg.Conn()}, pg, builder, owner, project, ssh
 }
 
 func fillHours(size int, value int32) []int32 {
@@ -26,6 +33,15 @@ func fillHours(size int, value int32) []int32 {
 		hours[i] = value
 	}
 	return hours
+}
+
+func weekGrid(size int, value int32) map[string][]int32 {
+	days := []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
+	week := make(map[string][]int32, len(days))
+	for _, day := range days {
+		week[day] = fillHours(size, value)
+	}
+	return week
 }
 
 func weekWithHours(size int, value int32) *schemepb.SchemeActivity_Week {
@@ -42,20 +58,20 @@ func weekWithHours(size int, value int32) *schemepb.SchemeActivity_Week {
 }
 
 func Test_UpdateSchemeFirewallNetworkStatus(t *testing.T) {
-	handler, pg := newDBHandler(t)
+	handler, pg, _, owner, project, ssh := newSchemeGraph(t)
 	ctx := context.Background()
 
 	var countryBefore string
 	if err := pg.Conn().Conn.QueryRowContext(ctx, `
     SELECT "access_policy"->>'country' FROM "scheme" WHERE "id" = $1
-  `, test.ConstAdminSchemeSSH1ID).Scan(&countryBefore); err != nil {
+  `, ssh.ID).Scan(&countryBefore); err != nil {
 		t.Fatalf("query access_policy before update: %v", err)
 	}
 
 	_, err := handler.UpdateSchemeFirewall(ctx, &schemepb.UpdateSchemeFirewall_Request{
-		OwnerId:   test.ConstAdminID,
-		ProjectId: test.ConstAdminProject1ID,
-		SchemeId:  test.ConstAdminSchemeSSH1ID,
+		OwnerId:   owner.ID,
+		ProjectId: project.ID,
+		SchemeId:  ssh.ID,
 		Status: &schemepb.UpdateSchemeFirewall_Request_Network{
 			Network: true,
 		},
@@ -69,7 +85,7 @@ func Test_UpdateSchemeFirewallNetworkStatus(t *testing.T) {
     SELECT "access_policy"->>'network', "access_policy"->>'country'
     FROM "scheme"
     WHERE "id" = $1
-  `, test.ConstAdminSchemeSSH1ID).Scan(&network, &country); err != nil {
+  `, ssh.ID).Scan(&network, &country); err != nil {
 		t.Fatalf("query access_policy: %v", err)
 	}
 
@@ -82,25 +98,17 @@ func Test_UpdateSchemeFirewallNetworkStatus(t *testing.T) {
 }
 
 func Test_SchemeActivityShortGridFailsClosed(t *testing.T) {
-	handler, pg := newDBHandler(t)
+	handler, _, builder, owner, project, ssh := newSchemeGraph(t)
 	ctx := context.Background()
 
 	// Simulate a row written before the 24 hour fix.
-	data, err := protojson.Marshal(weekWithHours(23, 1))
-	if err != nil {
-		t.Fatalf("marshal week: %v", err)
-	}
-	if _, err := pg.Conn().Conn.ExecContext(ctx, `
-    UPDATE "scheme_activity" SET "data" = $1 WHERE "scheme_id" = $2
-  `, data, test.ConstAdminSchemeSSH1ID); err != nil {
-		t.Fatalf("update scheme_activity: %v", err)
-	}
+	builder.SchemeActivity(ssh.ID, weekGrid(23, 1))
 
 	// 2024-09-16 is a Monday; 23:00 has no entry in a 23 element grid.
 	response, err := handler.SchemeActivity(ctx, &schemepb.SchemeActivity_Request{
-		OwnerId:   test.ConstAdminID,
-		ProjectId: test.ConstAdminProject1ID,
-		SchemeId:  test.ConstAdminSchemeSSH1ID,
+		OwnerId:   owner.ID,
+		ProjectId: project.ID,
+		SchemeId:  ssh.ID,
 		Timestamp: timestamppb.New(time.Date(2024, time.September, 16, 23, 0, 0, 0, time.UTC)),
 	})
 	if err != nil {
@@ -117,30 +125,36 @@ func Test_SchemeActivityShortGridFailsClosed(t *testing.T) {
 }
 
 func Test_UpdateSchemeActivity24Hours(t *testing.T) {
-	handler, pg := newDBHandler(t)
+	handler, pg, builder, owner, project, ssh := newSchemeGraph(t)
 	ctx := context.Background()
+
+	// Start from a closed grid so the update is observable.
+	builder.SchemeActivity(ssh.ID, weekGrid(24, 0))
 
 	week := weekWithHours(24, 1)
 	if _, err := handler.UpdateSchemeActivity(ctx, &schemepb.UpdateSchemeActivity_Request{
-		OwnerId:   test.ConstAdminID,
-		ProjectId: test.ConstAdminProject1ID,
-		SchemeId:  test.ConstAdminSchemeSSH1ID,
+		OwnerId:   owner.ID,
+		ProjectId: project.ID,
+		SchemeId:  ssh.ID,
 		Activity:  week,
 	}); err != nil {
 		t.Fatalf("UpdateSchemeActivity(24 hours) error = %v", err)
 	}
 
-	var stored []byte
+	var storedHour string
 	if err := pg.Conn().Conn.QueryRowContext(ctx, `
-    SELECT "data" FROM "scheme_activity" WHERE "scheme_id" = $1
-  `, test.ConstAdminSchemeSSH1ID).Scan(&stored); err != nil {
+    SELECT "data"->'mon'->>23 FROM "scheme_activity" WHERE "scheme_id" = $1
+  `, ssh.ID).Scan(&storedHour); err != nil {
 		t.Fatalf("query scheme_activity: %v", err)
+	}
+	if storedHour != "1" {
+		t.Fatalf("scheme_activity mon[23] = %q, want %q", storedHour, "1")
 	}
 
 	response, err := handler.SchemeActivity(ctx, &schemepb.SchemeActivity_Request{
-		OwnerId:   test.ConstAdminID,
-		ProjectId: test.ConstAdminProject1ID,
-		SchemeId:  test.ConstAdminSchemeSSH1ID,
+		OwnerId:   owner.ID,
+		ProjectId: project.ID,
+		SchemeId:  ssh.ID,
 		Timestamp: timestamppb.New(time.Date(2024, time.September, 16, 23, 0, 0, 0, time.UTC)),
 	})
 	if err != nil {
