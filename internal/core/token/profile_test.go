@@ -17,7 +17,7 @@ import (
 )
 
 func Test_ProfileTokens(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -135,7 +135,7 @@ func Test_ProfileTokens(t *testing.T) {
 }
 
 func Test_AddTokenProfileReset(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -211,7 +211,7 @@ func Test_AddTokenProfileReset(t *testing.T) {
 }
 
 func Test_AddTokenProfileRegistration(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
@@ -288,7 +288,7 @@ func Test_AddTokenProfileRegistration(t *testing.T) {
 }
 
 func Test_AddTokenProfileDelete(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -354,7 +354,7 @@ func Test_AddTokenProfileDelete(t *testing.T) {
 }
 
 func Test_UpdateProfileToken(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)

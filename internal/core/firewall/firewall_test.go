@@ -16,7 +16,7 @@ import (
 func setupFirewall(t *testing.T) (*test.GRPCHandler, func(t *testing.T)) {
 	t.Helper()
 
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
 
 	listID := builder.FirewallList(factory.FirewallListParams{Name: "global"})
@@ -119,7 +119,7 @@ func Test_IPAccess(t *testing.T) {
 func Test_IPAccessGeoIPUnavailable(t *testing.T) {
 	t.Setenv("SECURITY_GEOIP2", "../../../docker/core/missing.mmdb")
 
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {

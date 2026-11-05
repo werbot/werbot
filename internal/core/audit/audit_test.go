@@ -31,7 +31,7 @@ type auditEnv struct {
 func setupAudit(t *testing.T) (*test.GRPCHandler, *auditEnv, func(t *testing.T)) {
 	t.Helper()
 
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
 
 	env := &auditEnv{}

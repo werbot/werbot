@@ -18,7 +18,7 @@ import (
 // Test_FindActiveTokenByProfileAndAction_ExpiredAt tests expired_at validation
 // This function is used internally by AddTokenProfileReset, so we test it indirectly
 func Test_FindActiveTokenByProfileAndAction_ExpiredAt(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)

@@ -17,7 +17,7 @@ import (
 )
 
 func Test_ProjectTokens(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -155,7 +155,7 @@ func Test_ProjectTokens(t *testing.T) {
 }
 
 func Test_AddTokenProjectMember(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -332,7 +332,7 @@ func Test_AddTokenProjectMember(t *testing.T) {
 }
 
 func Test_UpdateProjectToken(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)

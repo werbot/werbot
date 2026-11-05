@@ -25,7 +25,7 @@ func newTokenConfig(t *testing.T) *jwt.Config {
 
 	config, err := jwt.New(&profilemessage.ProfileParameters{
 		Name:      "name",
-		ProfileId: "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+		ProfileId: "66666666-6666-6666-6666-666666666666",
 		SessionId: "3e2e1d9a-2b3a-4c39-8c4f-7b7b6c1e2f3a",
 	})
 	require.NoError(t, err)

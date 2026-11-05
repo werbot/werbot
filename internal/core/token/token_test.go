@@ -14,7 +14,7 @@ import (
 )
 
 func Test_Token(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -300,7 +300,7 @@ func Test_Token(t *testing.T) {
 }
 
 func Test_DeleteToken(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)

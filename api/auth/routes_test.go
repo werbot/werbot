@@ -26,7 +26,7 @@ type authEnv struct {
 }
 
 func setupTest(t *testing.T) (*test.APIHandler, *authEnv, func(t *testing.T)) {
-	app, teardownTestCase := test.APIWithoutFixtures(t)
+	app, teardownTestCase := test.API(t)
 	New(app.Handler).Routes()
 	app.AddRoute404()
 

@@ -22,7 +22,7 @@ func schemeAccess(alias string) map[string]any {
 }
 
 func Test_ProfileSchemes(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)

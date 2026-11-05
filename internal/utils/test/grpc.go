@@ -38,13 +38,7 @@ func GRPC(t *testing.T, addonDirs ...string) (*GRPCHandler, func(t *testing.T)) 
 	return newGRPCHandler(t, migrationDirs("../../../", addonDirs))
 }
 
-// GRPCWithoutFixtures is ...
-func GRPCWithoutFixtures(t *testing.T, addonDirs ...string) (*GRPCHandler, func(t *testing.T)) {
-	return newGRPCHandler(t, migrationDirsOnly("../../../", addonDirs))
-}
-
-// newGRPCHandler builds the gRPC handler and services shared by GRPC and
-// GRPCWithoutFixtures.
+// newGRPCHandler builds the gRPC handler and services for GRPC.
 func newGRPCHandler(t *testing.T, migrations []string) (*GRPCHandler, func(t *testing.T)) {
 	t.Setenv("ENV_MODE", "test")
 

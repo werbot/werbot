@@ -53,7 +53,7 @@ type eventEnv struct {
 func setupEvent(t *testing.T) (*test.GRPCHandler, *eventEnv, func(t *testing.T)) {
 	t.Helper()
 
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
 
 	env := &eventEnv{}

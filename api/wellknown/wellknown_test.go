@@ -12,7 +12,7 @@ import (
 )
 
 func TestHandler_jwks(t *testing.T) {
-	app, teardownTestCase := test.APIWithoutFixtures(t)
+	app, teardownTestCase := test.API(t)
 	defer teardownTestCase(t)
 
 	New(app.Handler).Routes()

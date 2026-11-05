@@ -17,7 +17,7 @@ import (
 )
 
 func TestHandler_websocket(t *testing.T) {
-	app, teardownTestCase := test.APIWithoutFixtures(t)
+	app, teardownTestCase := test.API(t)
 	defer teardownTestCase(t)
 
 	New(app.Handler).Routes()

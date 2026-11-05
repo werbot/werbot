@@ -18,7 +18,7 @@ import (
 )
 
 func Test_SchemeTokens(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -147,7 +147,7 @@ func Test_SchemeTokens(t *testing.T) {
 }
 
 func Test_AddTokenSchemeAdd(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -352,7 +352,7 @@ func Test_AddTokenSchemeAdd(t *testing.T) {
 }
 
 func Test_AddTokenSchemeAccess(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -523,7 +523,7 @@ func Test_AddTokenSchemeAccess(t *testing.T) {
 }
 
 func Test_UpdateSchemeToken(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	handler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {

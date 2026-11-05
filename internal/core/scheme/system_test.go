@@ -14,7 +14,7 @@ import (
 )
 
 func Test_SystemSchemesByAlias(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -181,7 +181,7 @@ func Test_SystemSchemeAccess(t *testing.T) {
 	}
 	t.Setenv("SECURITY_GEOIP2", geoIPDB)
 
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -327,7 +327,7 @@ func Test_SystemSchemeAccess(t *testing.T) {
 func Test_SystemSchemeAccessGeoIPUnavailable(t *testing.T) {
 	t.Setenv("SECURITY_GEOIP2", "../../../docker/core/missing.mmdb")
 
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -366,7 +366,7 @@ func Test_SystemSchemeAccessGeoIPUnavailable(t *testing.T) {
 }
 
 func Test_SystemHostKey(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)
@@ -421,7 +421,7 @@ func Test_SystemHostKey(t *testing.T) {
 }
 
 func Test_SystemUpdateHostKey(t *testing.T) {
-	setup, teardownTestCase := test.GRPCWithoutFixtures(t)
+	setup, teardownTestCase := test.GRPC(t)
 	defer teardownTestCase(t)
 
 	builder := factory.New(t, setup.Postgres.Conn().Conn)

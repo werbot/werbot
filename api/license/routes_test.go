@@ -19,7 +19,7 @@ const (
 )
 
 func setupTest(t *testing.T) (*test.APIHandler, func(t *testing.T), map[string]string, map[string]string) {
-	app, teardownTestCase := test.APIWithoutFixtures(t)
+	app, teardownTestCase := test.API(t)
 	auth.New(app.Handler).Routes()
 	New(app.Handler, "../../fixtures/licenses/publicKey_ok.key").Routes()
 	app.AddRoute404()

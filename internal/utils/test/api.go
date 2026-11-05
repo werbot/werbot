@@ -86,13 +86,7 @@ func API(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
 	return newAPIHandler(t, migrationDirs("../../", addonDirs))
 }
 
-// APIWithoutFixtures sets up the test environment without fixture data.
-func APIWithoutFixtures(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
-	return newAPIHandler(t, migrationDirsOnly("../../", addonDirs))
-}
-
-// newAPIHandler builds the API handler and services shared by API and
-// APIWithoutFixtures.
+// newAPIHandler builds the API handler and services for API.
 func newAPIHandler(t *testing.T, migrations []string) (*APIHandler, func(t *testing.T)) {
 	t.Setenv("ENV_MODE", "test")
 	t.Setenv("SECURITY_AES_KEY", "3D6A619811A17396E45D514695DCDA3A") // example key for tests, don't change
@@ -188,15 +182,4 @@ func (h *APIHandler) AddRoute404() {
 func (h *APIHandler) AuthHeader(email, password string) map[string]string {
 	auth := h.GetProfileAuth(email, password)
 	return map[string]string{"Authorization": "Bearer " + auth.Tokens.Access}
-}
-
-// TestProfileAuth is ...
-func (h *APIHandler) TestProfileAuth() (adminHeader map[string]string, userHeader map[string]string) {
-	adminAuth := h.GetProfileAuth(ConstAdminEmail, ConstAdminPassword)
-	adminHeader = map[string]string{"Authorization": "Bearer " + adminAuth.Tokens.Access}
-
-	userAuth := h.GetProfileAuth(ConstUserEmail, ConstUserPassword)
-	userHeader = map[string]string{"Authorization": "Bearer " + userAuth.Tokens.Access}
-
-	return adminHeader, userHeader
 }
