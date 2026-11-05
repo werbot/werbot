@@ -29,13 +29,25 @@ type ErrGRPC struct {
 // GRPCHandler is ...
 type GRPCHandler struct {
 	*grpc.ClientConn
+
+	Postgres *PostgresService
 }
 
 // GRPC is ...
 func GRPC(t *testing.T, addonDirs ...string) (*GRPCHandler, func(t *testing.T)) {
+	return newGRPCHandler(t, migrationDirs("../../../", addonDirs))
+}
+
+// GRPCWithoutFixtures is ...
+func GRPCWithoutFixtures(t *testing.T, addonDirs ...string) (*GRPCHandler, func(t *testing.T)) {
+	return newGRPCHandler(t, migrationDirsOnly("../../../", addonDirs))
+}
+
+// newGRPCHandler builds the gRPC handler and services shared by GRPC and
+// GRPCWithoutFixtures.
+func newGRPCHandler(t *testing.T, migrations []string) (*GRPCHandler, func(t *testing.T)) {
 	t.Setenv("ENV_MODE", "test")
 
-	migrations := migrationDirs("../../../", addonDirs)
 	pgTest := ServerPostgres(t, migrations...)
 
 	redisTest := ServerRedis(context.Background(), t)
@@ -46,7 +58,8 @@ func GRPC(t *testing.T, addonDirs ...string) (*GRPCHandler, func(t *testing.T)) 
 	}
 
 	return &GRPCHandler{
-		grpcTest.ClientConn,
+		ClientConn: grpcTest.ClientConn,
+		Postgres:   pgTest,
 	}, func(_ *testing.T) {
 		grpcTest.Close()
 		redisTest.Close()

@@ -83,12 +83,22 @@ type Tokens struct {
 
 // API sets up the test environment and returns a TestHandler and teardown function
 func API(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
+	return newAPIHandler(t, migrationDirs("../../", addonDirs))
+}
+
+// APIWithoutFixtures sets up the test environment without fixture data.
+func APIWithoutFixtures(t *testing.T, addonDirs ...string) (*APIHandler, func(t *testing.T)) {
+	return newAPIHandler(t, migrationDirsOnly("../../", addonDirs))
+}
+
+// newAPIHandler builds the API handler and services shared by API and
+// APIWithoutFixtures.
+func newAPIHandler(t *testing.T, migrations []string) (*APIHandler, func(t *testing.T)) {
 	t.Setenv("ENV_MODE", "test")
 	t.Setenv("SECURITY_AES_KEY", "3D6A619811A17396E45D514695DCDA3A") // example key for tests, don't change
 	t.Setenv("JWT_PUBLIC_KEY", "../../fixtures/keys/jwt/jwt_public.key")
 	t.Setenv("JWT_PRIVATE_KEY", "../../fixtures/keys/jwt/jwt_private.key")
 
-	migrations := migrationDirs("../../", addonDirs)
 	pgTest := ServerPostgres(t, migrations...)
 
 	redisTest := ServerRedis(context.Background(), t)
@@ -171,6 +181,13 @@ func (h *APIHandler) AddRoute404() {
 	h.App.Use(func(c *fiber.Ctx) error {
 		return webutil.StatusNotFound(c, nil)
 	})
+}
+
+// AuthHeader returns an Authorization header for the profile with the given
+// credentials.
+func (h *APIHandler) AuthHeader(email, password string) map[string]string {
+	auth := h.GetProfileAuth(email, password)
+	return map[string]string{"Authorization": "Bearer " + auth.Tokens.Access}
 }
 
 // TestProfileAuth is ...
