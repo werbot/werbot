@@ -54,12 +54,12 @@ func (h *Handler) Projects(ctx context.Context, in *projectmessage.Projects_Requ
       "project"."updated_at",
       "project"."created_at",
       COUNT(DISTINCT "project_member"."id") AS member_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 100 THEN 1 END) AS scheme_type_100_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 200 THEN 1 END) AS scheme_type_200_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 300 THEN 1 END) AS scheme_type_300_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 400 THEN 1 END) AS scheme_type_400_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 500 THEN 1 END) AS scheme_type_500_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 600 THEN 1 END) AS scheme_type_600_count
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 100 AND 199 THEN "scheme"."id" END) AS scheme_type_100_count,
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 200 AND 299 THEN "scheme"."id" END) AS scheme_type_200_count,
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 300 AND 399 THEN "scheme"."id" END) AS scheme_type_300_count,
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 400 AND 499 THEN "scheme"."id" END) AS scheme_type_400_count,
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 500 AND 599 THEN "scheme"."id" END) AS scheme_type_500_count,
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 600 AND 699 THEN "scheme"."id" END) AS scheme_type_600_count
     FROM
       "project"
     LEFT JOIN "project_member" ON "project_member"."project_id" = "project"."id"
@@ -136,12 +136,12 @@ func (h *Handler) Project(ctx context.Context, in *projectmessage.Project_Reques
       "project"."updated_at",
       "project"."created_at",
       COUNT(DISTINCT "project_member"."id") AS member_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 100 THEN 1 END) AS scheme_type_100_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 200 THEN 1 END) AS scheme_type_200_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 300 THEN 1 END) AS scheme_type_300_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 400 THEN 1 END) AS scheme_type_400_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 500 THEN 1 END) AS scheme_type_500_count,
-      COUNT(CASE WHEN "scheme"."scheme_type" = 600 THEN 1 END) AS scheme_type_600_count
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 100 AND 199 THEN "scheme"."id" END) AS scheme_type_100_count,
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 200 AND 299 THEN "scheme"."id" END) AS scheme_type_200_count,
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 300 AND 399 THEN "scheme"."id" END) AS scheme_type_300_count,
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 400 AND 499 THEN "scheme"."id" END) AS scheme_type_400_count,
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 500 AND 599 THEN "scheme"."id" END) AS scheme_type_500_count,
+      COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 600 AND 699 THEN "scheme"."id" END) AS scheme_type_600_count
     FROM
       "project"
     LEFT JOIN "project_member" ON "project_member"."project_id" = "project"."id"

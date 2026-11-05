@@ -94,3 +94,67 @@ func Test_Project(t *testing.T) {
 		})
 	}
 }
+
+func Test_ProjectCounts(t *testing.T) {
+	setup, teardownTestCase := test.GRPC(t)
+	defer teardownTestCase(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	memberOne := builder.Profile(factory.ProfileParams{Alias: "member1", Role: 1})
+	memberTwo := builder.Profile(factory.ProfileParams{Alias: "member2", Role: 1})
+
+	project := builder.Project(factory.ProjectParams{
+		OwnerID: admin.ID,
+		Title:   "project-with-schemes",
+	})
+	builder.ProjectMember(factory.ProjectMemberParams{ProjectID: project.ID, ProfileID: memberOne.ID})
+	builder.ProjectMember(factory.ProjectMemberParams{ProjectID: project.ID, ProfileID: memberTwo.ID})
+
+	// Two servers and one scheme of every other group. Subtypes must be
+	// folded into their group (100 -> server, 200 -> database, ...).
+	for _, schemeType := range []int16{101, 103, 201, 301, 401, 501, 601} {
+		builder.Scheme(factory.SchemeParams{ProjectID: project.ID, SchemeType: schemeType})
+	}
+
+	counts := test.BodyTable{
+		"servers_count":      float64(2),
+		"databases_count":    float64(1),
+		"applications_count": float64(1),
+		"desktops_count":     float64(1),
+		"containers_count":   float64(1),
+		"clouds_count":       float64(1),
+		"members_count":      float64(2),
+	}
+
+	projectHandler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
+		a := projectpb.NewProjectHandlersClient(setup)
+		return a.Project(ctx, req.(*projectmessage.Project_Request))
+	}
+	test.RunCaseGRPCTests(t, projectHandler, test.GRPCTable{
+		Name: "counts group scheme subtypes and ignore the member cross join",
+		Request: &projectmessage.Project_Request{
+			IsAdmin:   true,
+			OwnerId:   admin.ID,
+			ProjectId: project.ID,
+		},
+		Response: counts,
+	})
+
+	projectsHandler := func(ctx context.Context, req test.ProtoMessage) (test.ProtoMessage, error) {
+		a := projectpb.NewProjectHandlersClient(setup)
+		return a.Projects(ctx, req.(*projectmessage.Projects_Request))
+	}
+	listResponse := test.BodyTable{"total": float64(1)}
+	for key, value := range counts {
+		listResponse["projects.0."+key] = value
+	}
+	test.RunCaseGRPCTests(t, projectsHandler, test.GRPCTable{
+		Name: "list counts group scheme subtypes and ignore the member cross join",
+		Request: &projectmessage.Projects_Request{
+			IsAdmin: true,
+			OwnerId: admin.ID,
+		},
+		Response: listResponse,
+	})
+}
