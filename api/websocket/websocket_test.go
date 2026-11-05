@@ -13,10 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/utils/test"
+	"github.com/werbot/werbot/pkg/uuid"
 )
 
 func TestHandler_websocket(t *testing.T) {
-	app, teardownTestCase := test.API(t)
+	app, teardownTestCase := test.APIWithoutFixtures(t)
 	defer teardownTestCase(t)
 
 	New(app.Handler).Routes()
@@ -41,8 +42,12 @@ func TestHandler_websocket(t *testing.T) {
 
 		url := "ws://" + listener.Addr().String() + "/ws/" + sessionID
 		var conn *websocket.Conn
+		var resp *http.Response
 		for attempt := 0; attempt < 20; attempt++ {
-			conn, _, err = websocket.DefaultDialer.Dial(url, nil)
+			conn, resp, err = websocket.DefaultDialer.Dial(url, nil)
+			if resp != nil {
+				_ = resp.Body.Close()
+			}
 			if err == nil {
 				return conn
 			}
@@ -64,10 +69,8 @@ func TestHandler_websocket(t *testing.T) {
 	require.Equal(t, "error", invalidResponse.Action)
 
 	// Register a valid session in the same Redis store the route reads.
-	const (
-		sessionID = "00000000-0000-0000-0000-000000000003"
-		profileID = test.ConstAdminID
-	)
+	const sessionID = "00000000-0000-0000-0000-000000000003"
+	profileID := uuid.New()
 	ctx := context.Background()
 	require.NoError(t, app.Redis.Client.HSet(ctx, "refresh_token:"+sessionID, "profile_id", profileID).Err())
 

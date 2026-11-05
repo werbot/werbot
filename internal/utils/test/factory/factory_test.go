@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,6 +78,47 @@ func TestBuilderProfile(t *testing.T) {
 	assert.Equal(t, "Jane", name)
 	assert.Equal(t, "Doe", surname)
 	assert.Equal(t, "jane@example.com", email)
+}
+
+func TestBuilderPublicKey(t *testing.T) {
+	b, db := newBuilder(t)
+
+	profile := b.Profile(factory.ProfileParams{})
+	publicKey := b.PublicKey(factory.PublicKeyParams{ProfileID: profile.ID})
+
+	assert.True(t, uuid.IsValid(publicKey.ID), "public key ID must be a valid UUID")
+	assert.Equal(t, "public_key", publicKey.Title, "default title must be public_key")
+	assert.NotEmpty(t, publicKey.Key, "default key must not be empty")
+	assert.NotEmpty(t, publicKey.Fingerprint, "default fingerprint must not be empty")
+
+	var profileID, title, key, fingerprint string
+	err := db.QueryRow(`
+		SELECT "profile_id", "title", "key", "fingerprint" FROM "profile_public_key" WHERE "id" = $1
+	`, publicKey.ID).Scan(&profileID, &title, &key, &fingerprint)
+	require.NoError(t, err)
+
+	assert.Equal(t, profile.ID, profileID)
+	assert.Equal(t, publicKey.Title, title)
+	assert.Equal(t, publicKey.Key, key)
+	assert.Equal(t, publicKey.Fingerprint, fingerprint)
+
+	lockedAt := factory.Time(time.Now())
+	custom := b.PublicKey(factory.PublicKeyParams{
+		ProfileID:   profile.ID,
+		Title:       "custom key",
+		Key:         "ssh-ed25519 custom",
+		Fingerprint: "aa:bb",
+		LockedAt:    lockedAt,
+	})
+
+	assert.Equal(t, "custom key", custom.Title)
+	assert.Equal(t, "ssh-ed25519 custom", custom.Key)
+	assert.Equal(t, "aa:bb", custom.Fingerprint)
+
+	var locked bool
+	err = db.QueryRow(`SELECT "locked_at" IS NOT NULL FROM "profile_public_key" WHERE "id" = $1`, custom.ID).Scan(&locked)
+	require.NoError(t, err)
+	assert.True(t, locked, "custom public key must be locked")
 }
 
 func TestBuilderProject(t *testing.T) {

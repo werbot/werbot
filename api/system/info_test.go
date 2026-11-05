@@ -8,7 +8,7 @@ import (
 )
 
 func TestHandler_update(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -25,7 +25,7 @@ func TestHandler_update(t *testing.T) {
 			Path:           pathSystemUpdate,
 			StatusCode:     200,
 			Body:           test.BodyTable{"code": float64(200), "message": "Updates"},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // USER: request without parameters
 			Name:           "test2_01",
@@ -33,7 +33,7 @@ func TestHandler_update(t *testing.T) {
 			Path:           pathSystemUpdate,
 			StatusCode:     404,
 			Body:           test.BodyNotFound,
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 
@@ -41,7 +41,7 @@ func TestHandler_update(t *testing.T) {
 }
 
 func TestHandler_info(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -61,7 +61,7 @@ func TestHandler_info(t *testing.T) {
 				"code":    float64(200),
 				"message": "Short",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: request with show global information
 			Name:       "test1_02",
@@ -71,22 +71,22 @@ func TestHandler_info(t *testing.T) {
 			Body: test.BodyTable{
 				"code":            float64(200),
 				"message":         "Short",
-				"result.profiles": float64(23),
-				"result.projects": float64(51),
-				"result.schemes":  float64(147),
-			}, RequestHeaders: adminHeader,
+				"result.profiles": float64(2),
+				"result.projects": float64(3),
+				"result.schemes":  float64(5),
+			}, RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: request with profile UUID
 			Name:       "test1_03",
 			Method:     http.MethodGet,
-			Path:       pathSystemInfo + "?profile_id=" + test.ConstUserID,
+			Path:       pathSystemInfo + "?profile_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":            float64(200),
 				"message":         "Short",
-				"result.projects": float64(3),
-				"result.schemes":  float64(68),
-			}, RequestHeaders: adminHeader,
+				"result.projects": float64(1),
+				"result.schemes":  float64(2),
+			}, RequestHeaders: env.adminHeader,
 		},
 		{ // USER: request without parameters
 			Name:       "test2_01",
@@ -96,10 +96,10 @@ func TestHandler_info(t *testing.T) {
 			Body: test.BodyTable{
 				"code":            float64(200),
 				"message":         "Short",
-				"result.projects": float64(3),
-				"result.schemes":  float64(68),
+				"result.projects": float64(1),
+				"result.schemes":  float64(2),
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: request without parameters with fake profile UUID
 			Name:       "test2_02",
@@ -109,10 +109,10 @@ func TestHandler_info(t *testing.T) {
 			Body: test.BodyTable{
 				"code":            float64(200),
 				"message":         "Short",
-				"result.projects": float64(3),
-				"result.schemes":  float64(68),
+				"result.projects": float64(1),
+				"result.schemes":  float64(2),
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 
@@ -120,7 +120,7 @@ func TestHandler_info(t *testing.T) {
 }
 
 func TestHandler_version(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -141,7 +141,7 @@ func TestHandler_version(t *testing.T) {
 				"message":    "Apps version",
 				"result.api": "0.0.1 (00000000)",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // USER: request without parameters
 			Name:       "test2_01",
@@ -153,7 +153,7 @@ func TestHandler_version(t *testing.T) {
 				"message":    "Apps version",
 				"result.api": "0.0.1 (00000000)",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: request without parameters
 			Name:       "test2_02",
@@ -165,7 +165,7 @@ func TestHandler_version(t *testing.T) {
 				"message":    "Apps version",
 				"result.api": "0.0.1 (00000000)",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 

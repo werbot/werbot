@@ -24,6 +24,49 @@ type Profile struct {
 	Active, Confirmed                         bool
 }
 
+// PublicKeyParams is the set of optional and required values for a profile
+// public key.
+type PublicKeyParams struct {
+	ID, ProfileID, Title, Key, Fingerprint     string
+	LockedAt, ArchivedAt, UpdatedAt, CreatedAt *time.Time
+}
+
+// PublicKey is a created profile public key row.
+type PublicKey struct{ ID, ProfileID, Title, Key, Fingerprint string }
+
+// PublicKey inserts one profile public key row and returns it.
+func (b *Builder) PublicKey(p PublicKeyParams) PublicKey {
+	b.t.Helper()
+
+	p.ID = uuidOrNew(p.ID)
+	if p.Title == "" {
+		p.Title = "public_key"
+	}
+	if p.Key == "" {
+		p.Key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI" + randomAlias()
+	}
+	if p.Fingerprint == "" {
+		p.Fingerprint = randomAlias()
+	}
+
+	_, err := b.db.Exec(`
+		INSERT INTO "profile_public_key" (
+			"id", "profile_id", "title", "key", "fingerprint",
+			"locked_at", "archived_at", "updated_at", "created_at"
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, NOW()))
+	`, p.ID, p.ProfileID, p.Title, p.Key, p.Fingerprint,
+		p.LockedAt, p.ArchivedAt, p.UpdatedAt, p.CreatedAt)
+	require.NoError(b.t, err, "public key: insert")
+
+	return PublicKey{
+		ID:          p.ID,
+		ProfileID:   p.ProfileID,
+		Title:       p.Title,
+		Key:         p.Key,
+		Fingerprint: p.Fingerprint,
+	}
+}
+
 // Profile inserts one profile row and returns it.
 func (b *Builder) Profile(p ProfileParams) Profile {
 	b.t.Helper()
