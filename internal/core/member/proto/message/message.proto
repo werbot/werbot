@@ -23,7 +23,21 @@ message ProjectMembers {
 
   message Response {
     int32 total = 1;
-    repeated ProjectMember.Response members = 2;
+    repeated Item members = 2;
+  }
+
+  message Item {
+    string member_id = 1;
+    string name = 2;
+    profileenum.Role role = 3;
+    bool active = 4;
+    bool online = 5;
+    int32 servers_count = 6;
+    int32 databases_count = 7;
+    int32 applications_count = 8;
+    int32 desktops_count = 9;
+    int32 containers_count = 10;
+    int32 clouds_count = 11;
   }
 }
 // -----------------------------------------------------

@@ -551,9 +551,9 @@ func (x *ProjectMembers_Request) GetSortBy() string {
 }
 
 type ProjectMembers_Response struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	Total         int32                     `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
-	Members       []*ProjectMember_Response `protobuf:"bytes,2,rep,name=members,proto3" json:"members,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Total         int32                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
+	Members       []*ProjectMembers_Item `protobuf:"bytes,2,rep,name=members,proto3" json:"members,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -595,11 +595,135 @@ func (x *ProjectMembers_Response) GetTotal() int32 {
 	return 0
 }
 
-func (x *ProjectMembers_Response) GetMembers() []*ProjectMember_Response {
+func (x *ProjectMembers_Response) GetMembers() []*ProjectMembers_Item {
 	if x != nil {
 		return x.Members
 	}
 	return nil
+}
+
+type ProjectMembers_Item struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	MemberId          string                 `protobuf:"bytes,1,opt,name=member_id,json=memberId,proto3" json:"member_id,omitempty"`
+	Name              string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Role              enum.Role              `protobuf:"varint,3,opt,name=role,proto3,enum=profileenum.Role" json:"role,omitempty"`
+	Active            bool                   `protobuf:"varint,4,opt,name=active,proto3" json:"active,omitempty"`
+	Online            bool                   `protobuf:"varint,5,opt,name=online,proto3" json:"online,omitempty"`
+	ServersCount      int32                  `protobuf:"varint,6,opt,name=servers_count,json=serversCount,proto3" json:"servers_count,omitempty"`
+	DatabasesCount    int32                  `protobuf:"varint,7,opt,name=databases_count,json=databasesCount,proto3" json:"databases_count,omitempty"`
+	ApplicationsCount int32                  `protobuf:"varint,8,opt,name=applications_count,json=applicationsCount,proto3" json:"applications_count,omitempty"`
+	DesktopsCount     int32                  `protobuf:"varint,9,opt,name=desktops_count,json=desktopsCount,proto3" json:"desktops_count,omitempty"`
+	ContainersCount   int32                  `protobuf:"varint,10,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
+	CloudsCount       int32                  `protobuf:"varint,11,opt,name=clouds_count,json=cloudsCount,proto3" json:"clouds_count,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ProjectMembers_Item) Reset() {
+	*x = ProjectMembers_Item{}
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProjectMembers_Item) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProjectMembers_Item) ProtoMessage() {}
+
+func (x *ProjectMembers_Item) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProjectMembers_Item.ProtoReflect.Descriptor instead.
+func (*ProjectMembers_Item) Descriptor() ([]byte, []int) {
+	return file_internal_core_member_proto_message_message_proto_rawDescGZIP(), []int{0, 2}
+}
+
+func (x *ProjectMembers_Item) GetMemberId() string {
+	if x != nil {
+		return x.MemberId
+	}
+	return ""
+}
+
+func (x *ProjectMembers_Item) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ProjectMembers_Item) GetRole() enum.Role {
+	if x != nil {
+		return x.Role
+	}
+	return enum.Role(0)
+}
+
+func (x *ProjectMembers_Item) GetActive() bool {
+	if x != nil {
+		return x.Active
+	}
+	return false
+}
+
+func (x *ProjectMembers_Item) GetOnline() bool {
+	if x != nil {
+		return x.Online
+	}
+	return false
+}
+
+func (x *ProjectMembers_Item) GetServersCount() int32 {
+	if x != nil {
+		return x.ServersCount
+	}
+	return 0
+}
+
+func (x *ProjectMembers_Item) GetDatabasesCount() int32 {
+	if x != nil {
+		return x.DatabasesCount
+	}
+	return 0
+}
+
+func (x *ProjectMembers_Item) GetApplicationsCount() int32 {
+	if x != nil {
+		return x.ApplicationsCount
+	}
+	return 0
+}
+
+func (x *ProjectMembers_Item) GetDesktopsCount() int32 {
+	if x != nil {
+		return x.DesktopsCount
+	}
+	return 0
+}
+
+func (x *ProjectMembers_Item) GetContainersCount() int32 {
+	if x != nil {
+		return x.ContainersCount
+	}
+	return 0
+}
+
+func (x *ProjectMembers_Item) GetCloudsCount() int32 {
+	if x != nil {
+		return x.CloudsCount
+	}
+	return 0
 }
 
 type ProjectMember_Request struct {
@@ -614,7 +738,7 @@ type ProjectMember_Request struct {
 
 func (x *ProjectMember_Request) Reset() {
 	*x = ProjectMember_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[14]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -626,7 +750,7 @@ func (x *ProjectMember_Request) String() string {
 func (*ProjectMember_Request) ProtoMessage() {}
 
 func (x *ProjectMember_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[14]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -699,7 +823,7 @@ type ProjectMember_Response struct {
 
 func (x *ProjectMember_Response) Reset() {
 	*x = ProjectMember_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[15]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -711,7 +835,7 @@ func (x *ProjectMember_Response) String() string {
 func (*ProjectMember_Response) ProtoMessage() {}
 
 func (x *ProjectMember_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[15]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -887,7 +1011,7 @@ type AddProjectMember_Request struct {
 
 func (x *AddProjectMember_Request) Reset() {
 	*x = AddProjectMember_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[16]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -899,7 +1023,7 @@ func (x *AddProjectMember_Request) String() string {
 func (*AddProjectMember_Request) ProtoMessage() {}
 
 func (x *AddProjectMember_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[16]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -959,7 +1083,7 @@ type AddProjectMember_Response struct {
 
 func (x *AddProjectMember_Response) Reset() {
 	*x = AddProjectMember_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[17]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -971,7 +1095,7 @@ func (x *AddProjectMember_Response) String() string {
 func (*AddProjectMember_Response) ProtoMessage() {}
 
 func (x *AddProjectMember_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[17]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1011,7 +1135,7 @@ type UpdateProjectMember_Request struct {
 
 func (x *UpdateProjectMember_Request) Reset() {
 	*x = UpdateProjectMember_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[18]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1023,7 +1147,7 @@ func (x *UpdateProjectMember_Request) String() string {
 func (*UpdateProjectMember_Request) ProtoMessage() {}
 
 func (x *UpdateProjectMember_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[18]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1116,7 +1240,7 @@ type UpdateProjectMember_Response struct {
 
 func (x *UpdateProjectMember_Response) Reset() {
 	*x = UpdateProjectMember_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[19]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1128,7 +1252,7 @@ func (x *UpdateProjectMember_Response) String() string {
 func (*UpdateProjectMember_Response) ProtoMessage() {}
 
 func (x *UpdateProjectMember_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[19]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1155,7 +1279,7 @@ type DeleteProjectMember_Request struct {
 
 func (x *DeleteProjectMember_Request) Reset() {
 	*x = DeleteProjectMember_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[20]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1167,7 +1291,7 @@ func (x *DeleteProjectMember_Request) String() string {
 func (*DeleteProjectMember_Request) ProtoMessage() {}
 
 func (x *DeleteProjectMember_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[20]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1212,7 +1336,7 @@ type DeleteProjectMember_Response struct {
 
 func (x *DeleteProjectMember_Response) Reset() {
 	*x = DeleteProjectMember_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[21]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1224,7 +1348,7 @@ func (x *DeleteProjectMember_Response) String() string {
 func (*DeleteProjectMember_Response) ProtoMessage() {}
 
 func (x *DeleteProjectMember_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[21]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1254,7 +1378,7 @@ type ProfilesWithoutProject_Request struct {
 
 func (x *ProfilesWithoutProject_Request) Reset() {
 	*x = ProfilesWithoutProject_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[22]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1266,7 +1390,7 @@ func (x *ProfilesWithoutProject_Request) String() string {
 func (*ProfilesWithoutProject_Request) ProtoMessage() {}
 
 func (x *ProfilesWithoutProject_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[22]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1334,7 +1458,7 @@ type ProfilesWithoutProject_Response struct {
 
 func (x *ProfilesWithoutProject_Response) Reset() {
 	*x = ProfilesWithoutProject_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[23]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1346,7 +1470,7 @@ func (x *ProfilesWithoutProject_Response) String() string {
 func (*ProfilesWithoutProject_Response) ProtoMessage() {}
 
 func (x *ProfilesWithoutProject_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[23]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1388,7 +1512,7 @@ type ProfilesWithoutProject_Profile struct {
 
 func (x *ProfilesWithoutProject_Profile) Reset() {
 	*x = ProfilesWithoutProject_Profile{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[24]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1400,7 +1524,7 @@ func (x *ProfilesWithoutProject_Profile) String() string {
 func (*ProfilesWithoutProject_Profile) ProtoMessage() {}
 
 func (x *ProfilesWithoutProject_Profile) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[24]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1458,7 +1582,7 @@ type SchemeMembers_Request struct {
 
 func (x *SchemeMembers_Request) Reset() {
 	*x = SchemeMembers_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[25]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1470,7 +1594,7 @@ func (x *SchemeMembers_Request) String() string {
 func (*SchemeMembers_Request) ProtoMessage() {}
 
 func (x *SchemeMembers_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[25]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1538,7 +1662,7 @@ type SchemeMembers_Response struct {
 
 func (x *SchemeMembers_Response) Reset() {
 	*x = SchemeMembers_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[26]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1550,7 +1674,7 @@ func (x *SchemeMembers_Response) String() string {
 func (*SchemeMembers_Response) ProtoMessage() {}
 
 func (x *SchemeMembers_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[26]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1592,7 +1716,7 @@ type SchemeMember_Request struct {
 
 func (x *SchemeMember_Request) Reset() {
 	*x = SchemeMember_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[27]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1604,7 +1728,7 @@ func (x *SchemeMember_Request) String() string {
 func (*SchemeMember_Request) ProtoMessage() {}
 
 func (x *SchemeMember_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[27]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1669,7 +1793,7 @@ type SchemeMember_Response struct {
 
 func (x *SchemeMember_Response) Reset() {
 	*x = SchemeMember_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[28]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1681,7 +1805,7 @@ func (x *SchemeMember_Response) String() string {
 func (*SchemeMember_Response) ProtoMessage() {}
 
 func (x *SchemeMember_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[28]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1800,7 +1924,7 @@ type AddSchemeMember_Request struct {
 
 func (x *AddSchemeMember_Request) Reset() {
 	*x = AddSchemeMember_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[29]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1812,7 +1936,7 @@ func (x *AddSchemeMember_Request) String() string {
 func (*AddSchemeMember_Request) ProtoMessage() {}
 
 func (x *AddSchemeMember_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[29]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1865,7 +1989,7 @@ type AddSchemeMember_Response struct {
 
 func (x *AddSchemeMember_Response) Reset() {
 	*x = AddSchemeMember_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[30]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1877,7 +2001,7 @@ func (x *AddSchemeMember_Response) String() string {
 func (*AddSchemeMember_Response) ProtoMessage() {}
 
 func (x *AddSchemeMember_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[30]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1916,7 +2040,7 @@ type UpdateSchemeMember_Request struct {
 
 func (x *UpdateSchemeMember_Request) Reset() {
 	*x = UpdateSchemeMember_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[31]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1928,7 +2052,7 @@ func (x *UpdateSchemeMember_Request) String() string {
 func (*UpdateSchemeMember_Request) ProtoMessage() {}
 
 func (x *UpdateSchemeMember_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[31]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2014,7 +2138,7 @@ type UpdateSchemeMember_Response struct {
 
 func (x *UpdateSchemeMember_Response) Reset() {
 	*x = UpdateSchemeMember_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[32]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2026,7 +2150,7 @@ func (x *UpdateSchemeMember_Response) String() string {
 func (*UpdateSchemeMember_Response) ProtoMessage() {}
 
 func (x *UpdateSchemeMember_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[32]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2053,7 +2177,7 @@ type DeleteSchemeMember_Request struct {
 
 func (x *DeleteSchemeMember_Request) Reset() {
 	*x = DeleteSchemeMember_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[33]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2065,7 +2189,7 @@ func (x *DeleteSchemeMember_Request) String() string {
 func (*DeleteSchemeMember_Request) ProtoMessage() {}
 
 func (x *DeleteSchemeMember_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[33]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2110,7 +2234,7 @@ type DeleteSchemeMember_Response struct {
 
 func (x *DeleteSchemeMember_Response) Reset() {
 	*x = DeleteSchemeMember_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[34]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2122,7 +2246,7 @@ func (x *DeleteSchemeMember_Response) String() string {
 func (*DeleteSchemeMember_Response) ProtoMessage() {}
 
 func (x *DeleteSchemeMember_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[34]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2152,7 +2276,7 @@ type MembersWithoutScheme_Request struct {
 
 func (x *MembersWithoutScheme_Request) Reset() {
 	*x = MembersWithoutScheme_Request{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[35]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2164,7 +2288,7 @@ func (x *MembersWithoutScheme_Request) String() string {
 func (*MembersWithoutScheme_Request) ProtoMessage() {}
 
 func (x *MembersWithoutScheme_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[35]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2232,7 +2356,7 @@ type MembersWithoutScheme_Response struct {
 
 func (x *MembersWithoutScheme_Response) Reset() {
 	*x = MembersWithoutScheme_Response{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[36]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2244,7 +2368,7 @@ func (x *MembersWithoutScheme_Response) String() string {
 func (*MembersWithoutScheme_Response) ProtoMessage() {}
 
 func (x *MembersWithoutScheme_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[36]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2295,7 +2419,7 @@ type MembersWithoutScheme_Member struct {
 
 func (x *MembersWithoutScheme_Member) Reset() {
 	*x = MembersWithoutScheme_Member{}
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[37]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2307,7 +2431,7 @@ func (x *MembersWithoutScheme_Member) String() string {
 func (*MembersWithoutScheme_Member) ProtoMessage() {}
 
 func (x *MembersWithoutScheme_Member) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[37]
+	mi := &file_internal_core_member_proto_message_message_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2418,7 +2542,7 @@ var File_internal_core_member_proto_message_message_proto protoreflect.FileDescr
 
 const file_internal_core_member_proto_message_message_proto_rawDesc = "" +
 	"\n" +
-	"0internal/core/member/proto/message/message.proto\x12\rmembermessage\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a0pkg/utils/protoutils/ghoster/proto/ghoster.proto\x1a+internal/core/profile/proto/enum/enum.proto\"\xb5\x02\n" +
+	"0internal/core/member/proto/message/message.proto\x12\rmembermessage\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a0pkg/utils/protoutils/ghoster/proto/ghoster.proto\x1a+internal/core/profile/proto/enum/enum.proto\"\xb5\x05\n" +
 	"\x0eProjectMembers\x1a\xbf\x01\n" +
 	"\aRequest\x12\x19\n" +
 	"\bis_admin\x18\x01 \x01(\bR\aisAdmin\x12&\n" +
@@ -2427,10 +2551,23 @@ const file_internal_core_member_proto_message_message_proto_rawDesc = "" +
 	"project_id\x18\x03 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tprojectId\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x05 \x01(\x05R\x06offset\x12\x17\n" +
-	"\asort_by\x18\x06 \x01(\tR\x06sortBy\x1aa\n" +
+	"\asort_by\x18\x06 \x01(\tR\x06sortBy\x1a^\n" +
 	"\bResponse\x12\x14\n" +
-	"\x05total\x18\x01 \x01(\x05R\x05total\x12?\n" +
-	"\amembers\x18\x02 \x03(\v2%.membermessage.ProjectMember.ResponseR\amembers\"\x97\b\n" +
+	"\x05total\x18\x01 \x01(\x05R\x05total\x12<\n" +
+	"\amembers\x18\x02 \x03(\v2\".membermessage.ProjectMembers.ItemR\amembers\x1a\x80\x03\n" +
+	"\x04Item\x12\x1b\n" +
+	"\tmember_id\x18\x01 \x01(\tR\bmemberId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +
+	"\x04role\x18\x03 \x01(\x0e2\x11.profileenum.RoleR\x04role\x12\x16\n" +
+	"\x06active\x18\x04 \x01(\bR\x06active\x12\x16\n" +
+	"\x06online\x18\x05 \x01(\bR\x06online\x12#\n" +
+	"\rservers_count\x18\x06 \x01(\x05R\fserversCount\x12'\n" +
+	"\x0fdatabases_count\x18\a \x01(\x05R\x0edatabasesCount\x12-\n" +
+	"\x12applications_count\x18\b \x01(\x05R\x11applicationsCount\x12%\n" +
+	"\x0edesktops_count\x18\t \x01(\x05R\rdesktopsCount\x12)\n" +
+	"\x10containers_count\x18\n" +
+	" \x01(\x05R\x0fcontainersCount\x12!\n" +
+	"\fclouds_count\x18\v \x01(\x05R\vcloudsCount\"\x97\b\n" +
 	"\rProjectMember\x1a\xa2\x01\n" +
 	"\aRequest\x12\x19\n" +
 	"\bis_admin\x18\x01 \x01(\bR\aisAdmin\x12&\n" +
@@ -2622,7 +2759,7 @@ func file_internal_core_member_proto_message_message_proto_rawDescGZIP() []byte 
 	return file_internal_core_member_proto_message_message_proto_rawDescData
 }
 
-var file_internal_core_member_proto_message_message_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_internal_core_member_proto_message_message_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_internal_core_member_proto_message_message_proto_goTypes = []any{
 	(*ProjectMembers)(nil),                  // 0: membermessage.ProjectMembers
 	(*ProjectMember)(nil),                   // 1: membermessage.ProjectMember
@@ -2638,60 +2775,62 @@ var file_internal_core_member_proto_message_message_proto_goTypes = []any{
 	(*MembersWithoutScheme)(nil),            // 11: membermessage.MembersWithoutScheme
 	(*ProjectMembers_Request)(nil),          // 12: membermessage.ProjectMembers.Request
 	(*ProjectMembers_Response)(nil),         // 13: membermessage.ProjectMembers.Response
-	(*ProjectMember_Request)(nil),           // 14: membermessage.ProjectMember.Request
-	(*ProjectMember_Response)(nil),          // 15: membermessage.ProjectMember.Response
-	(*AddProjectMember_Request)(nil),        // 16: membermessage.AddProjectMember.Request
-	(*AddProjectMember_Response)(nil),       // 17: membermessage.AddProjectMember.Response
-	(*UpdateProjectMember_Request)(nil),     // 18: membermessage.UpdateProjectMember.Request
-	(*UpdateProjectMember_Response)(nil),    // 19: membermessage.UpdateProjectMember.Response
-	(*DeleteProjectMember_Request)(nil),     // 20: membermessage.DeleteProjectMember.Request
-	(*DeleteProjectMember_Response)(nil),    // 21: membermessage.DeleteProjectMember.Response
-	(*ProfilesWithoutProject_Request)(nil),  // 22: membermessage.ProfilesWithoutProject.Request
-	(*ProfilesWithoutProject_Response)(nil), // 23: membermessage.ProfilesWithoutProject.Response
-	(*ProfilesWithoutProject_Profile)(nil),  // 24: membermessage.ProfilesWithoutProject.Profile
-	(*SchemeMembers_Request)(nil),           // 25: membermessage.SchemeMembers.Request
-	(*SchemeMembers_Response)(nil),          // 26: membermessage.SchemeMembers.Response
-	(*SchemeMember_Request)(nil),            // 27: membermessage.SchemeMember.Request
-	(*SchemeMember_Response)(nil),           // 28: membermessage.SchemeMember.Response
-	(*AddSchemeMember_Request)(nil),         // 29: membermessage.AddSchemeMember.Request
-	(*AddSchemeMember_Response)(nil),        // 30: membermessage.AddSchemeMember.Response
-	(*UpdateSchemeMember_Request)(nil),      // 31: membermessage.UpdateSchemeMember.Request
-	(*UpdateSchemeMember_Response)(nil),     // 32: membermessage.UpdateSchemeMember.Response
-	(*DeleteSchemeMember_Request)(nil),      // 33: membermessage.DeleteSchemeMember.Request
-	(*DeleteSchemeMember_Response)(nil),     // 34: membermessage.DeleteSchemeMember.Response
-	(*MembersWithoutScheme_Request)(nil),    // 35: membermessage.MembersWithoutScheme.Request
-	(*MembersWithoutScheme_Response)(nil),   // 36: membermessage.MembersWithoutScheme.Response
-	(*MembersWithoutScheme_Member)(nil),     // 37: membermessage.MembersWithoutScheme.Member
-	(enum.Role)(0),                          // 38: profileenum.Role
-	(*timestamppb.Timestamp)(nil),           // 39: google.protobuf.Timestamp
+	(*ProjectMembers_Item)(nil),             // 14: membermessage.ProjectMembers.Item
+	(*ProjectMember_Request)(nil),           // 15: membermessage.ProjectMember.Request
+	(*ProjectMember_Response)(nil),          // 16: membermessage.ProjectMember.Response
+	(*AddProjectMember_Request)(nil),        // 17: membermessage.AddProjectMember.Request
+	(*AddProjectMember_Response)(nil),       // 18: membermessage.AddProjectMember.Response
+	(*UpdateProjectMember_Request)(nil),     // 19: membermessage.UpdateProjectMember.Request
+	(*UpdateProjectMember_Response)(nil),    // 20: membermessage.UpdateProjectMember.Response
+	(*DeleteProjectMember_Request)(nil),     // 21: membermessage.DeleteProjectMember.Request
+	(*DeleteProjectMember_Response)(nil),    // 22: membermessage.DeleteProjectMember.Response
+	(*ProfilesWithoutProject_Request)(nil),  // 23: membermessage.ProfilesWithoutProject.Request
+	(*ProfilesWithoutProject_Response)(nil), // 24: membermessage.ProfilesWithoutProject.Response
+	(*ProfilesWithoutProject_Profile)(nil),  // 25: membermessage.ProfilesWithoutProject.Profile
+	(*SchemeMembers_Request)(nil),           // 26: membermessage.SchemeMembers.Request
+	(*SchemeMembers_Response)(nil),          // 27: membermessage.SchemeMembers.Response
+	(*SchemeMember_Request)(nil),            // 28: membermessage.SchemeMember.Request
+	(*SchemeMember_Response)(nil),           // 29: membermessage.SchemeMember.Response
+	(*AddSchemeMember_Request)(nil),         // 30: membermessage.AddSchemeMember.Request
+	(*AddSchemeMember_Response)(nil),        // 31: membermessage.AddSchemeMember.Response
+	(*UpdateSchemeMember_Request)(nil),      // 32: membermessage.UpdateSchemeMember.Request
+	(*UpdateSchemeMember_Response)(nil),     // 33: membermessage.UpdateSchemeMember.Response
+	(*DeleteSchemeMember_Request)(nil),      // 34: membermessage.DeleteSchemeMember.Request
+	(*DeleteSchemeMember_Response)(nil),     // 35: membermessage.DeleteSchemeMember.Response
+	(*MembersWithoutScheme_Request)(nil),    // 36: membermessage.MembersWithoutScheme.Request
+	(*MembersWithoutScheme_Response)(nil),   // 37: membermessage.MembersWithoutScheme.Response
+	(*MembersWithoutScheme_Member)(nil),     // 38: membermessage.MembersWithoutScheme.Member
+	(enum.Role)(0),                          // 39: profileenum.Role
+	(*timestamppb.Timestamp)(nil),           // 40: google.protobuf.Timestamp
 }
 var file_internal_core_member_proto_message_message_proto_depIdxs = []int32{
-	15, // 0: membermessage.ProjectMembers.Response.members:type_name -> membermessage.ProjectMember.Response
-	38, // 1: membermessage.ProjectMember.Response.role:type_name -> profileenum.Role
-	39, // 2: membermessage.ProjectMember.Response.locked_at:type_name -> google.protobuf.Timestamp
-	39, // 3: membermessage.ProjectMember.Response.archived_at:type_name -> google.protobuf.Timestamp
-	39, // 4: membermessage.ProjectMember.Response.updated_at:type_name -> google.protobuf.Timestamp
-	39, // 5: membermessage.ProjectMember.Response.created_at:type_name -> google.protobuf.Timestamp
-	38, // 6: membermessage.AddProjectMember.Request.role:type_name -> profileenum.Role
-	38, // 7: membermessage.UpdateProjectMember.Request.role:type_name -> profileenum.Role
-	24, // 8: membermessage.ProfilesWithoutProject.Response.profiles:type_name -> membermessage.ProfilesWithoutProject.Profile
-	28, // 9: membermessage.SchemeMembers.Response.members:type_name -> membermessage.SchemeMember.Response
-	38, // 10: membermessage.SchemeMember.Response.role:type_name -> profileenum.Role
-	39, // 11: membermessage.SchemeMember.Response.locked_at:type_name -> google.protobuf.Timestamp
-	39, // 12: membermessage.SchemeMember.Response.archived_at:type_name -> google.protobuf.Timestamp
-	39, // 13: membermessage.SchemeMember.Response.updated_at:type_name -> google.protobuf.Timestamp
-	39, // 14: membermessage.SchemeMember.Response.created_at:type_name -> google.protobuf.Timestamp
-	37, // 15: membermessage.MembersWithoutScheme.Response.members:type_name -> membermessage.MembersWithoutScheme.Member
-	38, // 16: membermessage.MembersWithoutScheme.Member.role:type_name -> profileenum.Role
-	39, // 17: membermessage.MembersWithoutScheme.Member.locked_at:type_name -> google.protobuf.Timestamp
-	39, // 18: membermessage.MembersWithoutScheme.Member.archived_at:type_name -> google.protobuf.Timestamp
-	39, // 19: membermessage.MembersWithoutScheme.Member.updated_at:type_name -> google.protobuf.Timestamp
-	39, // 20: membermessage.MembersWithoutScheme.Member.created_at:type_name -> google.protobuf.Timestamp
-	21, // [21:21] is the sub-list for method output_type
-	21, // [21:21] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	14, // 0: membermessage.ProjectMembers.Response.members:type_name -> membermessage.ProjectMembers.Item
+	39, // 1: membermessage.ProjectMembers.Item.role:type_name -> profileenum.Role
+	39, // 2: membermessage.ProjectMember.Response.role:type_name -> profileenum.Role
+	40, // 3: membermessage.ProjectMember.Response.locked_at:type_name -> google.protobuf.Timestamp
+	40, // 4: membermessage.ProjectMember.Response.archived_at:type_name -> google.protobuf.Timestamp
+	40, // 5: membermessage.ProjectMember.Response.updated_at:type_name -> google.protobuf.Timestamp
+	40, // 6: membermessage.ProjectMember.Response.created_at:type_name -> google.protobuf.Timestamp
+	39, // 7: membermessage.AddProjectMember.Request.role:type_name -> profileenum.Role
+	39, // 8: membermessage.UpdateProjectMember.Request.role:type_name -> profileenum.Role
+	25, // 9: membermessage.ProfilesWithoutProject.Response.profiles:type_name -> membermessage.ProfilesWithoutProject.Profile
+	29, // 10: membermessage.SchemeMembers.Response.members:type_name -> membermessage.SchemeMember.Response
+	39, // 11: membermessage.SchemeMember.Response.role:type_name -> profileenum.Role
+	40, // 12: membermessage.SchemeMember.Response.locked_at:type_name -> google.protobuf.Timestamp
+	40, // 13: membermessage.SchemeMember.Response.archived_at:type_name -> google.protobuf.Timestamp
+	40, // 14: membermessage.SchemeMember.Response.updated_at:type_name -> google.protobuf.Timestamp
+	40, // 15: membermessage.SchemeMember.Response.created_at:type_name -> google.protobuf.Timestamp
+	38, // 16: membermessage.MembersWithoutScheme.Response.members:type_name -> membermessage.MembersWithoutScheme.Member
+	39, // 17: membermessage.MembersWithoutScheme.Member.role:type_name -> profileenum.Role
+	40, // 18: membermessage.MembersWithoutScheme.Member.locked_at:type_name -> google.protobuf.Timestamp
+	40, // 19: membermessage.MembersWithoutScheme.Member.archived_at:type_name -> google.protobuf.Timestamp
+	40, // 20: membermessage.MembersWithoutScheme.Member.updated_at:type_name -> google.protobuf.Timestamp
+	40, // 21: membermessage.MembersWithoutScheme.Member.created_at:type_name -> google.protobuf.Timestamp
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_internal_core_member_proto_message_message_proto_init() }
@@ -2699,11 +2838,11 @@ func file_internal_core_member_proto_message_message_proto_init() {
 	if File_internal_core_member_proto_message_message_proto != nil {
 		return
 	}
-	file_internal_core_member_proto_message_message_proto_msgTypes[18].OneofWrappers = []any{
+	file_internal_core_member_proto_message_message_proto_msgTypes[19].OneofWrappers = []any{
 		(*UpdateProjectMember_Request_Role)(nil),
 		(*UpdateProjectMember_Request_Active)(nil),
 	}
-	file_internal_core_member_proto_message_message_proto_msgTypes[31].OneofWrappers = []any{
+	file_internal_core_member_proto_message_message_proto_msgTypes[32].OneofWrappers = []any{
 		(*UpdateSchemeMember_Request_Active)(nil),
 		(*UpdateSchemeMember_Request_Online)(nil),
 	}
@@ -2713,7 +2852,7 @@ func file_internal_core_member_proto_message_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_core_member_proto_message_message_proto_rawDesc), len(file_internal_core_member_proto_message_message_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   38,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

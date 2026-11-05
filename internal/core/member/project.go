@@ -53,18 +53,10 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *membermessage.ProjectM
 	baseQuery = postgres.SQLGluing(`
     SELECT
       "project_member"."id",
-      "project"."owner_id",
-      "owner"."name",
-      "project_member"."project_id",
-      "project"."title",
-      "project_member"."profile_id",
       "member"."name",
       "project_member"."role",
       "project_member"."active",
       "project_member"."online",
-      "project_member"."updated_at",
-      "project_member"."created_at",
-      "scheme_counts"."count_schemes",
       "scheme_counts"."count_servers",
       "scheme_counts"."count_databases",
       "scheme_counts"."count_applications",
@@ -75,10 +67,8 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *membermessage.ProjectM
       "project_member"
       INNER JOIN "project" ON "project_member"."project_id" = "project"."id"
       INNER JOIN "profile" AS "member" ON "project_member"."profile_id" = "member"."id"
-      INNER JOIN "profile" AS "owner" ON "project"."owner_id" = "owner"."id"
       LEFT JOIN LATERAL (
         SELECT
-          COUNT(DISTINCT "scheme"."id") AS "count_schemes",
           COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 100 AND 199 THEN "scheme"."id" END) AS "count_servers",
           COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 200 AND 299 THEN "scheme"."id" END) AS "count_databases",
           COUNT(DISTINCT CASE WHEN "scheme"."scheme_type" BETWEEN 600 AND 699 THEN "scheme"."id" END) AS "count_applications",
@@ -90,8 +80,8 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *membermessage.ProjectM
         WHERE "scheme_member"."project_member_id" = "project_member"."id"
       ) AS "scheme_counts" ON TRUE
     WHERE
-      "owner"."id" = $1
-      AND "project"."id" = $2
+      "project"."owner_id" = $1
+      AND "project_member"."project_id" = $2
   `, sqlUserLimit, sqlFooter)
 	rows, err := h.DB.Conn.QueryContext(ctx, baseQuery, in.GetOwnerId(), in.GetProjectId())
 	if err != nil {
@@ -100,22 +90,13 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *membermessage.ProjectM
 	defer rows.Close()
 
 	for rows.Next() {
-		var updatedAt, createdAt pgtype.Timestamp
-		member := &membermessage.ProjectMember_Response{}
+		member := &membermessage.ProjectMembers_Item{}
 		err = rows.Scan(
 			&member.MemberId,
-			&member.OwnerId,
-			&member.OwnerName,
-			&member.ProjectId,
-			&member.ProjectName,
-			&member.ProfileId,
 			&member.Name,
 			&member.Role,
 			&member.Active,
 			&member.Online,
-			&updatedAt,
-			&createdAt,
-			&member.SchemesCount,
 			&member.ServersCount,
 			&member.DatabasesCount,
 			&member.ApplicationsCount,
@@ -125,15 +106,6 @@ func (h *Handler) ProjectMembers(ctx context.Context, in *membermessage.ProjectM
 		)
 		if err != nil {
 			return nil, trace.Error(err, log, nil)
-		}
-
-		protoutils.SetPgtypeTimestamps(member, map[string]pgtype.Timestamp{
-			protoutils.FieldUpdatedAt: updatedAt,
-			protoutils.FieldCreatedAt: createdAt,
-		})
-
-		if !in.GetIsAdmin() {
-			ghoster.Secrets(member, true)
 		}
 
 		response.Members = append(response.Members, member)
