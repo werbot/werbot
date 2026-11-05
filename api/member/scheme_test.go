@@ -8,7 +8,7 @@ import (
 )
 
 func TestHandler_schemeMembers(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -22,7 +22,7 @@ func TestHandler_schemeMembers(t *testing.T) {
 		{ // unauthorized request
 			Name:       "test0_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
@@ -36,19 +36,19 @@ func TestHandler_schemeMembers(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: request without parameters
 			Name:       "test1_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                              float64(200),
 				"message":                           "Members",
 				"result.total":                      float64(1),
-				"result.members.0.scheme_member_id": "8ca0ad93-4338-44cb-93dd-3f57272d0ffa",
-				"result.members.0.profile_id":       "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+				"result.members.0.scheme_member_id": env.adminScheme1User.ID,
+				"result.members.0.profile_id":       env.user.ID,
 				"result.members.0.name":             "Carly",
 				"result.members.0.surname":          "Bender",
 				"result.members.0.alias":            "user",
@@ -60,30 +60,30 @@ func TestHandler_schemeMembers(t *testing.T) {
 				"result.members.0.updated_at":       nil,
 				"result.members.0.created_at":       "*",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: search profiles without scheme
 			Name:       "test1_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, "search"),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, "search"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Members without scheme",
 				"result.total": float64(6),
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: search profiles without scheme
 			Name:       "test1_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, "search") + "?alias=user1",
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, "search") + "?alias=user1",
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                       float64(200),
 				"message":                    "Members without scheme",
 				"result.total":               float64(1),
-				"result.members.0.member_id": "92de7a44-08fc-4d42-aab5-37f86fd598a2",
+				"result.members.0.member_id": env.p1Members["user1"].ID,
 				"result.members.0.email":     "user1@werbot.net",
 				"result.members.0.online":    true,
 				"result.members.0.active":    true,
@@ -92,44 +92,44 @@ func TestHandler_schemeMembers(t *testing.T) {
 				"result.members.0.name":      "Harrison",
 				"result.members.0.surname":   "Bowling",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_05",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_07",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                              float64(200),
 				"message":                           "Members",
 				"result.total":                      float64(1),
 				"result.members.0.email":            "admin@werbot.net",
-				"result.members.0.scheme_member_id": "57ea9d56-5382-4749-99bb-b71a38d448b0",
-				"result.members.0.profile_id":       "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				"result.members.0.scheme_member_id": env.userScheme1Admin.ID,
+				"result.members.0.profile_id":       env.admin.ID,
 				"result.members.0.name":             "Penny",
 				"result.members.0.surname":          "Hoyle",
 				"result.members.0.alias":            "admin",
@@ -142,18 +142,18 @@ func TestHandler_schemeMembers(t *testing.T) {
 				// --
 				"result.members.1.scheme_member_id": nil,
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_08",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, "search") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, "search") + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                       float64(200),
 				"message":                    "Members without scheme",
 				"result.total":               float64(11),
-				"result.members.0.member_id": "7f717b66-34b5-4707-b9b8-0f63e8e034de",
+				"result.members.0.member_id": env.p3Members["user9"].ID,
 				"result.members.0.email":     "user9@werbot.net",
 				"result.members.0.online":    true,
 				"result.members.0.active":    true,
@@ -164,7 +164,7 @@ func TestHandler_schemeMembers(t *testing.T) {
 				// --
 				"result.members.11.scheme_member_id": nil,
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 
 		{ // USER:
@@ -177,18 +177,18 @@ func TestHandler_schemeMembers(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: request without parameters
 			Name:       "test2_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                              float64(200),
 				"message":                           "Members",
 				"result.total":                      float64(1),
-				"result.members.0.scheme_member_id": "57ea9d56-5382-4749-99bb-b71a38d448b0",
+				"result.members.0.scheme_member_id": env.userScheme1Admin.ID,
 				"result.members.0.profile_id":       nil,
 				"result.members.0.name":             "Penny",
 				"result.members.0.surname":          "Hoyle",
@@ -201,30 +201,30 @@ func TestHandler_schemeMembers(t *testing.T) {
 				"result.members.0.updated_at":       nil,
 				"result.members.0.created_at":       "*",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: search profiles without scheme
 			Name:       "test2_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, "search"),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, "search"),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":         float64(200),
 				"message":      "Members without scheme",
 				"result.total": float64(11),
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: search profiles without scheme
 			Name:       "test2_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, "search") + "?alias=user1",
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, "search") + "?alias=user1",
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                       float64(200),
 				"message":                    "Members without scheme",
 				"result.total":               float64(3),
-				"result.members.0.member_id": "de040931-6977-4629-aab0-6d621ff368a3",
+				"result.members.0.member_id": env.p3Members["user10"].ID,
 				"result.members.0.email":     "user10@werbot.net",
 				"result.members.0.online":    true,
 				"result.members.0.active":    true,
@@ -233,55 +233,55 @@ func TestHandler_schemeMembers(t *testing.T) {
 				"result.members.0.name":      "Clinton",
 				"result.members.0.surname":   "Proctor",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_05",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_06",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_07",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_08",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, "search") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, "search") + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Project not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 
@@ -289,7 +289,7 @@ func TestHandler_schemeMembers(t *testing.T) {
 }
 
 func TestHandler_schemeMember(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -303,44 +303,44 @@ func TestHandler_schemeMember(t *testing.T) {
 		{ // unauthorized request
 			Name:       "test0_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, test.ConstUserScheme1MemberID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, env.adminScheme1User.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: request without parameters
 			Name:       "test1_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, test.ConstFakeID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: request without parameters
 			Name:       "test1_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstFakeID, test.ConstUserScheme1MemberID),
+			Path:       test.PathGluing(pathMembersScheme, test.ConstFakeID, env.adminScheme1User.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: request without parameters
 			Name:       "test1_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, test.ConstUserScheme1MemberID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, env.adminScheme1User.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                    float64(200),
 				"message":                 "Member",
-				"result.scheme_member_id": "8ca0ad93-4338-44cb-93dd-3f57272d0ffa",
-				"result.profile_id":       "c180ad5c-0c65-4cee-8725-12931cb5abb3",
+				"result.scheme_member_id": env.adminScheme1User.ID,
+				"result.profile_id":       env.user.ID,
 				"result.name":             "Carly",
 				"result.surname":          "Bender",
 				"result.alias":            "user",
@@ -352,30 +352,30 @@ func TestHandler_schemeMember(t *testing.T) {
 				"result.updated_at":       nil,
 				"result.created_at":       "*",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, test.ConstUserScheme1MemberID) + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, env.adminScheme1User.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_05",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, "57ea9d56-5382-4749-99bb-b71a38d448b0") + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, env.userScheme1Admin.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                    float64(200),
 				"message":                 "Member",
-				"result.scheme_member_id": "57ea9d56-5382-4749-99bb-b71a38d448b0",
-				"result.profile_id":       "008feb1d-12f2-4bc3-97ff-c8d7fb9f7686",
+				"result.scheme_member_id": env.userScheme1Admin.ID,
+				"result.profile_id":       env.admin.ID,
 				"result.name":             "Penny",
 				"result.surname":          "Hoyle",
 				"result.alias":            "admin",
@@ -387,42 +387,42 @@ func TestHandler_schemeMember(t *testing.T) {
 				"result.updated_at":       "*",
 				"result.created_at":       "*",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 
 		{ // USER: request without parameters
 			Name:       "test2_01",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, test.ConstFakeID),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: request without parameters
 			Name:       "test2_02",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstFakeID, "57ea9d56-5382-4749-99bb-b71a38d448b0"),
+			Path:       test.PathGluing(pathMembersScheme, test.ConstFakeID, env.userScheme1Admin.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: request without parameters
 			Name:       "test2_03",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, "57ea9d56-5382-4749-99bb-b71a38d448b0"),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, env.userScheme1Admin.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":                    float64(200),
 				"message":                 "Member",
-				"result.scheme_member_id": "57ea9d56-5382-4749-99bb-b71a38d448b0",
+				"result.scheme_member_id": env.userScheme1Admin.ID,
 				"result.profile_id":       nil,
 				"result.name":             "Penny",
 				"result.surname":          "Hoyle",
@@ -435,31 +435,31 @@ func TestHandler_schemeMember(t *testing.T) {
 				"result.updated_at":       nil,
 				"result.created_at":       "*",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_04",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, "de040931-6977-4629-aab0-6d621ff368a3") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, env.p3Members["user10"].ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_05",
 			Method:     http.MethodGet,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, "de040931-6977-4629-aab0-6d621ff368a3") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, env.p3Members["user10"].ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 
@@ -467,7 +467,7 @@ func TestHandler_schemeMember(t *testing.T) {
 }
 
 func TestHandler_addSchemeMember(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -481,26 +481,26 @@ func TestHandler_addSchemeMember(t *testing.T) {
 		{ // unauthorized request
 			Name:       "test0_02",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: request without parameters
 			Name:       "test1_01",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":             float64(400),
 				"message":          "Bad Request",
 				"result.member_id": "value is required",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: request without parameters
 			Name:       "test1_02",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"member_id": "test",
@@ -510,12 +510,12 @@ func TestHandler_addSchemeMember(t *testing.T) {
 				"message":          "Bad Request",
 				"result.member_id": "value must be a valid UUID",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: request without parameters
 			Name:       "test1_03",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID),
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"member_id": test.ConstFakeID,
@@ -525,85 +525,85 @@ func TestHandler_addSchemeMember(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_04",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
-				"member_id": "92de7a44-08fc-4d42-aab5-37f86fd598a2",
+				"member_id": env.p1Members["user1"].ID,
 			},
 			Body: test.BodyTable{
 				"code":                    float64(200),
 				"message":                 "Member added",
 				"result.scheme_member_id": "*",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: member from other team
 			Name:       "test1_05",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID),
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
-				"member_id": "43ab80dd-ffe6-4881-aa8d-52b56ea715d2",
+				"member_id": env.p3Members["user2"].ID,
 			},
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_06",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
-				"member_id": "43ab80dd-ffe6-4881-aa8d-52b56ea715d2",
+				"member_id": env.p3Members["user2"].ID,
 			},
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_07",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
-				"member_id": "e7492145-3b8e-4d06-a3a7-81fb6deb3571",
+				"member_id": env.p3Members["user11"].ID,
 			},
 			Body: test.BodyTable{
 				"code":                    float64(200),
 				"message":                 "Member added",
 				"result.scheme_member_id": "*",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 
 		{ // USER: request without parameters
 			Name:       "test2_01",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":             float64(400),
 				"message":          "Bad Request",
 				"result.member_id": "value is required",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: request without parameters
 			Name:       "test2_02",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID),
 			StatusCode: 400,
 			RequestBody: test.BodyTable{
 				"member_id": "test",
@@ -613,12 +613,12 @@ func TestHandler_addSchemeMember(t *testing.T) {
 				"message":          "Bad Request",
 				"result.member_id": "value must be a valid UUID",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: request without parameters
 			Name:       "test2_03",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID),
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
 				"member_id": test.ConstFakeID,
@@ -628,67 +628,67 @@ func TestHandler_addSchemeMember(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_04",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
-				"member_id": "de040931-6977-4629-aab0-6d621ff368a3",
+				"member_id": env.p3Members["user10"].ID,
 			},
 			Body: test.BodyTable{
 				"code":                    float64(200),
 				"message":                 "Member added",
 				"result.scheme_member_id": "*",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: member from other team
 			Name:       "test2_05",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID),
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
-				"member_id": "bac61932-ac1d-4f3a-b842-17b136bd1346",
+				"member_id": env.p1Members["user2"].ID,
 			},
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_06",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
-				"member_id": "bac61932-ac1d-4f3a-b842-17b136bd1346",
+				"member_id": env.p1Members["user2"].ID,
 			},
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_07",
 			Method:     http.MethodPost,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID) + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			RequestBody: test.BodyTable{
-				"member_id": "bac61932-ac1d-4f3a-b842-17b136bd1346",
+				"member_id": env.p1Members["user2"].ID,
 			},
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 
@@ -696,7 +696,7 @@ func TestHandler_addSchemeMember(t *testing.T) {
 }
 
 func TestHandler_updateSchemeMember(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -710,26 +710,26 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 		{ // unauthorized request
 			Name:       "test0_02",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, test.ConstUserScheme1MemberID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, env.adminScheme1User.ID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: request without parameters
 			Name:       "test1_01",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, test.ConstUserScheme1MemberID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, env.adminScheme1User.ID),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":           float64(400),
 				"message":        "Bad Request",
 				"result.setting": "exactly one field is required in oneof",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: turn active member
 			Name:       "test1_02",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, test.ConstUserScheme1MemberID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, env.adminScheme1User.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"active": true,
@@ -738,12 +738,12 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 				"code":    float64(200),
 				"message": "Member updated",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: broken scheme UUID
 			Name:   "test1_03",
 			Method: http.MethodPatch,
-			Path:   test.PathGluing(pathMembersScheme, test.ConstFakeID, test.ConstUserScheme1MemberID),
+			Path:   test.PathGluing(pathMembersScheme, test.ConstFakeID, env.adminScheme1User.ID),
 			RequestBody: test.BodyTable{
 				"active": true,
 			},
@@ -753,12 +753,12 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: active a member from someone else's project
 			Name:   "test1_04",
 			Method: http.MethodPatch,
-			Path:   test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH2ID, test.ConstUserScheme2MemberID),
+			Path:   test.PathGluing(pathMembersScheme, env.adminScheme2.ID, env.userScheme2User1.ID),
 			RequestBody: test.BodyTable{
 				"active": true,
 			},
@@ -767,12 +767,12 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
-			}, RequestHeaders: adminHeader,
+			}, RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:   "test1_05",
 			Method: http.MethodPatch,
-			Path:   test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH2ID, test.ConstUserScheme2MemberID) + "?owner_id=" + test.ConstFakeID,
+			Path:   test.PathGluing(pathMembersScheme, env.userScheme2.ID, env.userScheme2User1.ID) + "?owner_id=" + test.ConstFakeID,
 			RequestBody: test.BodyTable{
 				"active": true,
 			},
@@ -781,12 +781,12 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
-			}, RequestHeaders: adminHeader,
+			}, RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: active a member from someone else's project with profile UUID
 			Name:   "test1_06",
 			Method: http.MethodPatch,
-			Path:   test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH2ID, test.ConstUserScheme2MemberID) + "?owner_id=" + test.ConstUserID,
+			Path:   test.PathGluing(pathMembersScheme, env.userScheme2.ID, env.userScheme2User1.ID) + "?owner_id=" + env.user.ID,
 			RequestBody: test.BodyTable{
 				"active": true,
 			},
@@ -795,25 +795,25 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 				"code":    float64(200),
 				"message": "Member updated",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 
 		{ // USER: request without parameters
 			Name:       "test2_01",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, "57ea9d56-5382-4749-99bb-b71a38d448b0"),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, env.userScheme1Admin.ID),
 			StatusCode: 400,
 			Body: test.BodyTable{
 				"code":           float64(400),
 				"message":        "Bad Request",
 				"result.setting": "exactly one field is required in oneof",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: turn active member
 			Name:       "test2_02",
 			Method:     http.MethodPatch,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, "57ea9d56-5382-4749-99bb-b71a38d448b0"),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, env.userScheme1Admin.ID),
 			StatusCode: 200,
 			RequestBody: test.BodyTable{
 				"active": true,
@@ -822,12 +822,12 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 				"code":    float64(200),
 				"message": "Member updated",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: broken scheme UUID
 			Name:   "test2_03",
 			Method: http.MethodPatch,
-			Path:   test.PathGluing(pathMembersScheme, test.ConstFakeID, "57ea9d56-5382-4749-99bb-b71a38d448b0"),
+			Path:   test.PathGluing(pathMembersScheme, test.ConstFakeID, env.userScheme1Admin.ID),
 			RequestBody: test.BodyTable{
 				"active": true,
 			},
@@ -837,12 +837,12 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: active a member from someone else's project
 			Name:   "test2_04",
 			Method: http.MethodPatch,
-			Path:   test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH2ID, "57ea9d56-5382-4749-99bb-b71a38d448b0"),
+			Path:   test.PathGluing(pathMembersScheme, env.userScheme2.ID, env.userScheme1Admin.ID),
 			RequestBody: test.BodyTable{
 				"active": true,
 			},
@@ -851,12 +851,12 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
-			}, RequestHeaders: userHeader,
+			}, RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:   "test2_05",
 			Method: http.MethodPatch,
-			Path:   test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH2ID, "57ea9d56-5382-4749-99bb-b71a38d448b0") + "?owner_id=" + test.ConstFakeID,
+			Path:   test.PathGluing(pathMembersScheme, env.userScheme2.ID, env.userScheme1Admin.ID) + "?owner_id=" + test.ConstFakeID,
 			RequestBody: test.BodyTable{
 				"active": true,
 			},
@@ -866,12 +866,12 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: active a member from someone else's project with user UUID
 			Name:   "test2_06",
 			Method: http.MethodPatch,
-			Path:   test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH2ID, "57ea9d56-5382-4749-99bb-b71a38d448b0") + "?owner_id=" + test.ConstUserID,
+			Path:   test.PathGluing(pathMembersScheme, env.userScheme2.ID, env.userScheme1Admin.ID) + "?owner_id=" + env.user.ID,
 			RequestBody: test.BodyTable{
 				"active": true,
 			},
@@ -881,7 +881,7 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 
@@ -889,7 +889,7 @@ func TestHandler_updateSchemeMember(t *testing.T) {
 }
 
 func TestHandler_deleteSchemeMember(t *testing.T) {
-	app, teardownTestCase, adminHeader, userHeader := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	testTable := []test.APITable{
@@ -903,127 +903,127 @@ func TestHandler_deleteSchemeMember(t *testing.T) {
 		{ // unauthorized request
 			Name:       "test0_02",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, test.ConstFakeID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, test.ConstFakeID),
 			StatusCode: 401,
 			Body:       test.BodyUnauthorized,
 		},
 		{ // ADMIN: fake member UUID
 			Name:       "test1_01",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, test.ConstFakeID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: is not the owner of the scheme
 			Name:       "test1_02",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, test.ConstUserScheme2MemberID),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, env.userScheme2User1.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_03",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH1ID, "8ca0ad93-4338-44cb-93dd-3f57272d0ffa"),
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme1.ID, env.adminScheme1User.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
 				"message": "Member deleted",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN:
 			Name:       "test1_04",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH2ID, test.ConstUserScheme2MemberID) + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme2.ID, env.userScheme2User1.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 		{ // ADMIN: is not the owner of the scheme but can pass the profile_id
 			Name:       "test1_05",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH2ID, test.ConstUserScheme2MemberID) + "?owner_id=" + test.ConstUserID,
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme2.ID, env.userScheme2User1.ID) + "?owner_id=" + env.user.ID,
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
 				"message": "Member deleted",
 			},
-			RequestHeaders: adminHeader,
+			RequestHeaders: env.adminHeader,
 		},
 
 		{ // USER: fake member UUID
 			Name:       "test2_01",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, test.ConstFakeID),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, test.ConstFakeID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: is not the owner of the scheme
 			Name:       "test2_02",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, "8ca0ad93-4338-44cb-93dd-3f57272d0ffa"),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, env.adminScheme1User.ID),
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_03",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstUserSchemeSSH1ID, "57ea9d56-5382-4749-99bb-b71a38d448b0"),
+			Path:       test.PathGluing(pathMembersScheme, env.userScheme1.ID, env.userScheme1Admin.ID),
 			StatusCode: 200,
 			Body: test.BodyTable{
 				"code":    float64(200),
 				"message": "Member deleted",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER:
 			Name:       "test2_04",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH2ID, "8ca0ad93-4338-44cb-93dd-3f57272d0ffa") + "?owner_id=" + test.ConstFakeID,
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme2.ID, env.adminScheme1User.ID) + "?owner_id=" + test.ConstFakeID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 		{ // USER: is not the owner of the scheme but can pass the profile_id
 			Name:       "test2_05",
 			Method:     http.MethodDelete,
-			Path:       test.PathGluing(pathMembersScheme, test.ConstAdminSchemeSSH2ID, "8ca0ad93-4338-44cb-93dd-3f57272d0ffa") + "?owner_id=" + test.ConstAdminID,
+			Path:       test.PathGluing(pathMembersScheme, env.adminScheme2.ID, env.adminScheme1User.ID) + "?owner_id=" + env.admin.ID,
 			StatusCode: 404,
 			Body: test.BodyTable{
 				"code":    float64(404),
 				"message": "Not Found",
 				"result":  "Member not found",
 			},
-			RequestHeaders: userHeader,
+			RequestHeaders: env.userHeader,
 		},
 	}
 

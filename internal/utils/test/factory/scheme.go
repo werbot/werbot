@@ -82,9 +82,9 @@ func (b *Builder) Scheme(p SchemeParams) Scheme {
 
 // SchemeMemberParams is the set of optional and required values for a scheme member.
 type SchemeMemberParams struct {
-	ID, SchemeID, ProjectMemberID   string
-	Active, Online                  *bool
-	LockedAt, ArchivedAt, CreatedAt *time.Time
+	ID, SchemeID, ProjectMemberID              string
+	Active, Online                             *bool
+	LockedAt, ArchivedAt, UpdatedAt, CreatedAt *time.Time
 }
 
 // SchemeMember is a created scheme member row.
@@ -104,10 +104,10 @@ func (b *Builder) SchemeMember(m SchemeMemberParams) SchemeMember {
 	_, err := b.db.Exec(`
 		INSERT INTO "scheme_member" (
 			"id", "scheme_id", "project_member_id", "active", "online",
-			"locked_at", "archived_at", "created_at"
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, NOW()))
+			"locked_at", "archived_at", "updated_at", "created_at"
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, NOW()))
 	`, m.ID, m.SchemeID, m.ProjectMemberID, active, online,
-		m.LockedAt, m.ArchivedAt, m.CreatedAt)
+		m.LockedAt, m.ArchivedAt, m.UpdatedAt, m.CreatedAt)
 	require.NoError(b.t, err, "scheme member: insert")
 
 	return SchemeMember{
