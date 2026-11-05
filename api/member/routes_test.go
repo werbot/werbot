@@ -159,10 +159,10 @@ func setupTest(t *testing.T) (*test.APIHandler, *memberEnv, func(t *testing.T)) 
 		env.p3Members[alias] = builder.ProjectMember(params)
 	}
 
-	env.adminScheme1 = builder.Scheme(factory.SchemeParams{ProjectID: env.project1.ID, Title: "admin scheme 1"})
+	env.adminScheme1 = builder.Scheme(factory.SchemeParams{ProjectID: env.project1.ID, Title: "admin scheme 1", SchemeType: 103})
 	env.adminScheme2 = builder.Scheme(factory.SchemeParams{ProjectID: env.project1.ID, Title: "admin scheme 2"})
-	env.userScheme1 = builder.Scheme(factory.SchemeParams{ProjectID: env.project3.ID, Title: "user scheme 1"})
-	env.userScheme2 = builder.Scheme(factory.SchemeParams{ProjectID: env.project3.ID, Title: "user scheme 2"})
+	env.userScheme1 = builder.Scheme(factory.SchemeParams{ProjectID: env.project3.ID, Title: "user scheme 1", SchemeType: 201})
+	env.userScheme2 = builder.Scheme(factory.SchemeParams{ProjectID: env.project3.ID, Title: "user scheme 2", SchemeType: 301})
 
 	env.adminScheme1User = builder.SchemeMember(factory.SchemeMemberParams{
 		SchemeID:        env.adminScheme1.ID,
