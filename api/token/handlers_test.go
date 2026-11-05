@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	"github.com/werbot/werbot/internal/utils/test"
 )
 
@@ -29,11 +30,11 @@ func findToken(t *testing.T, body map[string]any, token string) map[string]any {
 }
 
 func TestTokenLookupAndLists(t *testing.T) {
-	app, teardownTestCase, adminHeader, _ := setupTest(t)
+	app, env, teardownTestCase := setupTest(t)
 	defer teardownTestCase(t)
 
 	// Registration invite: the list and the public lookup expose profile metadata.
-	statusCode, body := apiRequest(t, app, http.MethodPost, pathTokensProfile, adminHeader, map[string]any{
+	statusCode, body := apiRequest(t, app, http.MethodPost, pathTokensProfile, env.adminHeader, map[string]any{
 		"name":    "List",
 		"surname": "User",
 		"email":   "list.user@werbot.net",
@@ -41,7 +42,7 @@ func TestTokenLookupAndLists(t *testing.T) {
 	require.Equal(t, http.StatusOK, statusCode, body)
 	profileToken := responseToken(t, body)
 
-	statusCode, body = apiRequest(t, app, http.MethodGet, pathTokensProfile, adminHeader, nil)
+	statusCode, body = apiRequest(t, app, http.MethodGet, pathTokensProfile, env.adminHeader, nil)
 	require.Equal(t, http.StatusOK, statusCode, body)
 	profileItem := findToken(t, body, profileToken)
 	profileData, ok := profileItem["profile"].(map[string]any)
@@ -51,14 +52,14 @@ func TestTokenLookupAndLists(t *testing.T) {
 	statusCode, body = apiRequest(t, app, http.MethodGet, pathTokens+"/"+profileToken, nil, nil)
 	require.Equal(t, http.StatusOK, statusCode, body)
 	result := responseResult(t, body)
-	require.Equal(t, float64(1), result["section"]) // profile
-	require.Equal(t, float64(2), result["action"])  // register
+	require.Equal(t, float64(tokenenum.Section_profile), result["section"])
+	require.Equal(t, float64(tokenenum.Action_register), result["action"])
 	profileData, ok = result["profile"].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "list.user@werbot.net", profileData["email"])
 
 	// Scheme invite: scheme tokens store profile metadata too.
-	statusCode, body = apiRequest(t, app, http.MethodPost, pathTokensScheme+"/"+testAdminSchemeID, adminHeader, map[string]any{
+	statusCode, body = apiRequest(t, app, http.MethodPost, pathTokensScheme+"/"+env.adminScheme.ID, env.adminHeader, map[string]any{
 		"email": "scheme.list@werbot.net",
 	})
 	require.Equal(t, http.StatusOK, statusCode, body)
@@ -67,13 +68,13 @@ func TestTokenLookupAndLists(t *testing.T) {
 	statusCode, body = apiRequest(t, app, http.MethodGet, pathTokens+"/"+schemeToken, nil, nil)
 	require.Equal(t, http.StatusOK, statusCode, body)
 	result = responseResult(t, body)
-	require.Equal(t, float64(3), result["section"]) // scheme
-	require.Equal(t, float64(7), result["action"])  // request
+	require.Equal(t, float64(tokenenum.Section_scheme), result["section"])
+	require.Equal(t, float64(tokenenum.Action_request), result["action"])
 	schemeData, ok := result["scheme"].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "scheme.list@werbot.net", schemeData["email"])
 
-	statusCode, body = apiRequest(t, app, http.MethodGet, pathTokensScheme+"/"+testAdminSchemeID, adminHeader, nil)
+	statusCode, body = apiRequest(t, app, http.MethodGet, pathTokensScheme+"/"+env.adminScheme.ID, env.adminHeader, nil)
 	require.Equal(t, http.StatusOK, statusCode, body)
 	schemeItem := findToken(t, body, schemeToken)
 	schemeData, ok = schemeItem["scheme"].(map[string]any)
