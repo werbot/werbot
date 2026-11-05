@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"database/sql"
+	"encoding/json"
 	"regexp"
 	"testing"
 
@@ -193,4 +194,252 @@ func TestBuilderProjectLDAP(t *testing.T) {
 
 	assert.Equal(t, "ldap.example.com", host)
 	assert.Equal(t, int32(389), port)
+}
+
+func TestBuilderScheme(t *testing.T) {
+	b, db := newBuilder(t)
+
+	profile := b.Profile(factory.ProfileParams{})
+	project := b.Project(factory.ProjectParams{OwnerID: profile.ID})
+
+	access := map[string]any{
+		"alias":   "scheme01",
+		"address": "127.0.0.1",
+		"port":    22,
+		"password": map[string]any{
+			"login":    "user",
+			"password": "password",
+		},
+	}
+	scheme := b.Scheme(factory.SchemeParams{
+		ProjectID:    project.ID,
+		Title:        "custom scheme",
+		Description:  "custom description",
+		SchemeType:   103,
+		Access:       access,
+		AccessPolicy: map[string]any{"country": 1, "network": 1},
+		Active:       factory.Bool(false),
+		Audit:        factory.Bool(true),
+		Online:       factory.Bool(true),
+	})
+
+	assert.True(t, uuid.IsValid(scheme.ID), "scheme ID must be a valid UUID")
+	assert.Equal(t, project.ID, scheme.ProjectID)
+	assert.Equal(t, "custom scheme", scheme.Title)
+	assert.Equal(t, int16(103), scheme.SchemeType)
+	assert.Equal(t, access, scheme.Access)
+
+	var (
+		title, description, accessJSON, policyJSON string
+		schemeType                                 int16
+		active, audit, online                      bool
+	)
+	err := db.QueryRow(`
+		SELECT "title", "description", "scheme_type", "active", "audit", "online",
+			"access"::text, "access_policy"::text
+		FROM "scheme" WHERE "id" = $1
+	`, scheme.ID).Scan(&title, &description, &schemeType, &active, &audit, &online, &accessJSON, &policyJSON)
+	require.NoError(t, err)
+
+	assert.Equal(t, "custom scheme", title)
+	assert.Equal(t, "custom description", description)
+	assert.Equal(t, int16(103), schemeType)
+	assert.False(t, active)
+	assert.True(t, audit)
+	assert.True(t, online)
+
+	expectedAccess, err := json.Marshal(access)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(expectedAccess), accessJSON)
+	assert.JSONEq(t, `{"country": 1, "network": 1}`, policyJSON)
+
+	defaultScheme := b.Scheme(factory.SchemeParams{ProjectID: project.ID})
+
+	assert.True(t, uuid.IsValid(defaultScheme.ID), "default scheme ID must be a valid UUID")
+	assert.Equal(t, "scheme", defaultScheme.Title)
+	assert.Equal(t, int16(103), defaultScheme.SchemeType)
+	assert.Len(t, defaultScheme.Access["alias"], 8, "default access alias must have 8 characters")
+	assert.Equal(t, "127.0.0.1", defaultScheme.Access["address"])
+	assert.Equal(t, 22, defaultScheme.Access["port"])
+
+	err = db.QueryRow(`
+		SELECT "active", "audit", "online", "access_policy"::text
+		FROM "scheme" WHERE "id" = $1
+	`, defaultScheme.ID).Scan(&active, &audit, &online, &policyJSON)
+	require.NoError(t, err)
+
+	assert.True(t, active)
+	assert.False(t, audit)
+	assert.False(t, online)
+	assert.JSONEq(t, `{"country": 0, "network": 0}`, policyJSON)
+}
+
+func TestBuilderSchemeMember(t *testing.T) {
+	b, db := newBuilder(t)
+
+	profile := b.Profile(factory.ProfileParams{})
+	project := b.Project(factory.ProjectParams{OwnerID: profile.ID})
+	projectMember := b.ProjectMember(factory.ProjectMemberParams{
+		ProjectID: project.ID,
+		ProfileID: profile.ID,
+	})
+	scheme := b.Scheme(factory.SchemeParams{ProjectID: project.ID})
+
+	member := b.SchemeMember(factory.SchemeMemberParams{
+		SchemeID:        scheme.ID,
+		ProjectMemberID: projectMember.ID,
+		Active:          factory.Bool(false),
+		Online:          factory.Bool(true),
+	})
+
+	assert.True(t, uuid.IsValid(member.ID), "scheme member ID must be a valid UUID")
+	assert.Equal(t, scheme.ID, member.SchemeID)
+	assert.Equal(t, projectMember.ID, member.ProjectMemberID)
+	assert.False(t, member.Active)
+	assert.True(t, member.Online)
+
+	var (
+		schemeID, projectMemberID string
+		active, online            bool
+	)
+	err := db.QueryRow(`
+		SELECT "scheme_id", "project_member_id", "active", "online"
+		FROM "scheme_member" WHERE "id" = $1
+	`, member.ID).Scan(&schemeID, &projectMemberID, &active, &online)
+	require.NoError(t, err)
+
+	assert.Equal(t, scheme.ID, schemeID)
+	assert.Equal(t, projectMember.ID, projectMemberID)
+	assert.False(t, active)
+	assert.True(t, online)
+
+	defaultMember := b.SchemeMember(factory.SchemeMemberParams{
+		SchemeID:        scheme.ID,
+		ProjectMemberID: projectMember.ID,
+	})
+
+	assert.True(t, defaultMember.Active, "scheme member must be active by default")
+	assert.False(t, defaultMember.Online, "scheme member must be offline by default")
+}
+
+func TestBuilderSchemeActivity(t *testing.T) {
+	b, db := newBuilder(t)
+
+	profile := b.Profile(factory.ProfileParams{})
+	project := b.Project(factory.ProjectParams{OwnerID: profile.ID})
+	scheme := b.Scheme(factory.SchemeParams{ProjectID: project.ID})
+
+	week := map[string][]int32{}
+	for _, day := range []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"} {
+		hours := make([]int32, 24)
+		for i := range hours {
+			hours[i] = int32(i % 2)
+		}
+		week[day] = hours
+	}
+
+	b.SchemeActivity(scheme.ID, week)
+
+	var (
+		count     int
+		dataJSON  string
+		updatedAt sql.NullTime
+	)
+	err := db.QueryRow(`
+		SELECT COUNT(*), MIN("data"::text), MIN("updated_at")
+		FROM "scheme_activity" WHERE "scheme_id" = $1
+	`, scheme.ID).Scan(&count, &dataJSON, &updatedAt)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, count, "trigger-created activity row must be updated, not duplicated")
+
+	var got map[string][]int32
+	require.NoError(t, json.Unmarshal([]byte(dataJSON), &got))
+	assert.Equal(t, week, got)
+}
+
+func TestBuilderSchemeHostKey(t *testing.T) {
+	b, db := newBuilder(t)
+
+	profile := b.Profile(factory.ProfileParams{})
+	project := b.Project(factory.ProjectParams{OwnerID: profile.ID})
+	scheme := b.Scheme(factory.SchemeParams{ProjectID: project.ID})
+
+	key := []byte("ssh-rsa host key")
+	b.SchemeHostKey(scheme.ID, key)
+
+	var (
+		count   int
+		hostKey []byte
+	)
+	err := db.QueryRow(`
+		SELECT COUNT(*), MIN("host_key")
+		FROM "scheme_host_key" WHERE "scheme_id" = $1
+	`, scheme.ID).Scan(&count, &hostKey)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, count, "trigger-created host key row must be updated, not duplicated")
+	assert.Equal(t, key, hostKey)
+
+	noTrigger := b.Scheme(factory.SchemeParams{ProjectID: project.ID, SchemeType: 101})
+	b.SchemeHostKey(noTrigger.ID, key)
+
+	err = db.QueryRow(`
+		SELECT COUNT(*), MIN("host_key")
+		FROM "scheme_host_key" WHERE "scheme_id" = $1
+	`, noTrigger.ID).Scan(&count, &hostKey)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, count, "host key row must be inserted when the trigger created none")
+	assert.Equal(t, key, hostKey)
+}
+
+func TestBuilderSchemeFirewallCountry(t *testing.T) {
+	b, db := newBuilder(t)
+
+	profile := b.Profile(factory.ProfileParams{})
+	project := b.Project(factory.ProjectParams{OwnerID: profile.ID})
+	scheme := b.Scheme(factory.SchemeParams{ProjectID: project.ID})
+
+	country := b.SchemeFirewallCountry(factory.SchemeFirewallCountryParams{
+		SchemeID:    scheme.ID,
+		CountryCode: "US",
+	})
+
+	assert.True(t, uuid.IsValid(country.ID), "firewall country ID must be a valid UUID")
+	assert.Equal(t, scheme.ID, country.SchemeID)
+	assert.Equal(t, "US", country.CountryCode)
+
+	var countryCode string
+	err := db.QueryRow(`
+		SELECT "country_code" FROM "scheme_firewall_country" WHERE "id" = $1
+	`, country.ID).Scan(&countryCode)
+	require.NoError(t, err)
+
+	assert.Equal(t, "US", countryCode)
+}
+
+func TestBuilderSchemeFirewallNetwork(t *testing.T) {
+	b, db := newBuilder(t)
+
+	profile := b.Profile(factory.ProfileParams{})
+	project := b.Project(factory.ProjectParams{OwnerID: profile.ID})
+	scheme := b.Scheme(factory.SchemeParams{ProjectID: project.ID})
+
+	network := b.SchemeFirewallNetwork(factory.SchemeFirewallNetworkParams{
+		SchemeID: scheme.ID,
+		Network:  "10.0.0.0/8",
+	})
+
+	assert.True(t, uuid.IsValid(network.ID), "firewall network ID must be a valid UUID")
+	assert.Equal(t, scheme.ID, network.SchemeID)
+	assert.Equal(t, "10.0.0.0/8", network.Network)
+
+	var got string
+	err := db.QueryRow(`
+		SELECT "network"::text FROM "scheme_firewall_network" WHERE "id" = $1
+	`, network.ID).Scan(&got)
+	require.NoError(t, err)
+
+	assert.Equal(t, "10.0.0.0/8", got)
 }
