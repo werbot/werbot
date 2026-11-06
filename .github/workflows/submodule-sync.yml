@@ -1,0 +1,67 @@
+name: submodule-sync
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: submodule-sync-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Submodule auto-sync
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.SUBMODULE_TOKEN }}
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Configure git
+        env:
+          TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
+        run: |
+          git config --global user.name "werbot-bot"
+          git config --global user.email "bot@werbot.net"
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
+
+      - name: Check token write access
+        env:
+          GH_TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
+        run: |
+          repos=(werbot/werbot)
+          while read -r url; do
+            slug=${url#https://github.com/}
+            slug=${slug#git@github.com:}
+            slug=${slug%.git}
+            repos+=("$slug")
+          done < <(git config -f .gitmodules --get-regexp '^submodule\..*\.url$' | awk '{print $2}')
+          for repo in "${repos[@]}"; do
+            if [ "$(gh api "repos/$repo" --jq '.permissions.push')" != "true" ]; then
+              echo "::error::SUBMODULE_TOKEN lacks push access to $repo"
+              exit 1
+            fi
+          done
+
+      - name: Sync submodule pins
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          before=$(git rev-parse HEAD)
+          scripts/submodules sync --pin --commit
+          after=$(git rev-parse HEAD)
+          if [ "$before" != "$after" ]; then
+            git push origin "HEAD:${HEAD_REF}"
+          else
+            echo "no submodule changes"
+          fi
