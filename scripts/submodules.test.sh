@@ -455,6 +455,20 @@ test_sync_commit_ignores_unrelated_staged_files() {
   fi
 }
 
+test_check_uses_gitmodules_url_when_uninitialized() {
+  local dir
+  dir=$(new_fixture uninitialized)
+  git -C "$dir/parent" submodule deinit -f -- sub >/dev/null 2>&1
+  rm -rf "$dir/parent/sub"
+  mkdir -p "$dir/parent/sub"
+  git -C "$dir/parent" remote add origin "$dir/parent-does-not-exist.git"
+  if (cd "$dir/parent" && "$CHECK" check --mode main) >/dev/null; then
+    pass "check uses the .gitmodules URL for an uninitialized module"
+  else
+    fail_test "check uses the .gitmodules URL for an uninitialized module"
+  fi
+}
+
 for t in \
   test_main_mode_passes_when_synced \
   test_main_mode_fails_when_pin_missing_on_remote \
@@ -475,6 +489,7 @@ for t in \
   test_runs_without_tags_or_term \
   test_make_targets \
   test_missing_url_fails \
+  test_check_uses_gitmodules_url_when_uninitialized \
   test_pre_push_checks_pushed_ref_not_head \
   test_branch_mode_accepts_synced_merge_commit \
   test_sync_commit_ignores_unrelated_staged_files; do
