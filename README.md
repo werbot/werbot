@@ -227,56 +227,46 @@ Release images for `taco` are built with `saas` enabled (see `.goreleaser.yaml`)
 
 ### Submodules
 
-`web`, `add-on/ee`, and `add-on/saas` are git submodules. The parent `main` must pin each module's remote `main` tip. A parent feature branch may pin the tip of the same-named module branch.
+`web`, `add-on/ee`, and `add-on/saas` are git submodules. The parent `main` must pin each module's remote `main` tip.
 
-**Setup (once per clone)**
+**Automatic synchronization**
 
-```bash
-make hooks
-```
+- **Pull requests**: job `Submodule auto-sync` merges every pinned module commit into the module `main`, pushes it, updates the parent gitlinks, and commits them back to the PR branch. It runs only for branches from this repository and skips drafts.
+- **Parent `main`**: job `Submodule reconcile` runs on every push, every six hours, and on manual dispatch. It merges any pinned commit that is not yet in the module `main` and fast-forwards pins when a module `main` advanced. The job handles races and a bypassed local hook.
+- **No automatic PR merge**: the PR still waits for you.
 
-Installs `.githooks/pre-push` through `core.hooksPath`. The hook checks every parent push.
+Both workflows need the repository secret `SUBMODULE_TOKEN` with **Contents: Read and write** on `werbot/werbot`, `werbot/werbot.ee`, `werbot/werbot.saas`, and `werbot/werbot.web`. They verify push access before writing and fail with `SUBMODULE_TOKEN lacks push access to <repo>` otherwise.
 
-**Commands**
+**What you do manually**
 
-| Command | Purpose |
-| --- | --- |
-| `make submodules status` | Show each module pin, remote `main`, and state (`synced`, `drift`, `missing`) |
-| `make submodules-check` | Strict check: every pin equals the module `main` tip |
-| `make submodules-sync` | Push the current branch, merge it into module `main`, push, and commit the new pins |
-| `make submodules-test` | Run the offline regression suite (24 cases) |
+1. Commit and push the module change. The commit must exist on the module remote.
+2. Commit the parent gitlink and push the branch.
+3. Open the PR and merge it when you are ready.
 
-For a feature branch check:
+Use the same branch name in the parent and the module when possible; the local pre-push hook checks changed pins against the same-named module branch. If the names differ, push with `SKIP_SUBMODULE_CHECK=1 git push`; the PR job synchronizes by pin.
 
-```bash
-make submodules-check SUBMODULES_CHECK_ARGS="--mode branch --branch <name>"
-```
-
-`make submodules-sync` refuses to run on `main`, requires clean module worktrees, and leaves each module on `main`. Override the branch name with:
+**Local setup and diagnostics**
 
 ```bash
-make submodules-sync SUBMODULES_SYNC_ARGS="--branch <module-branch> --commit"
+make hooks              # once per clone: install .githooks/pre-push
+make submodules status  # pin, remote main, state
+make submodules-check   # strict main check
+make submodules-test    # offline regression suite (29 cases)
 ```
+
+`make submodules-sync` remains available for a manual repair from a feature branch. It pushes the branch, merges it into module `main`, pushes, and commits the pins.
 
 **What is enforced**
 
 - **Push to parent `main`**: every pin equals the module remote `main` tip.
 - **Push to a feature branch**: a changed pin equals the tip of the same-named module branch, or the module `main` tip after sync. A module branch with unpushed commits blocks the push.
-- **Pull request**: if no gitlink changed, CI runs the strict `main` check; otherwise it runs the branch check.
+- **Pull request**: if no gitlink changed, CI runs the strict `main` check; otherwise it runs the branch check. The auto-sync job can commit the required pin update before the check passes.
 - **CI**: job `Submodule synchronization` runs before `Build, test and lint`; the build job cannot start when the gate fails.
 - **Dirty module worktrees** produce a warning; uncommitted changes are never pushed.
 
-**Normal workflow**
+**Manual repair**
 
-1. Use the same branch name in the parent and in each changed module.
-2. Commit and push the module branch first.
-3. Commit the parent gitlink and push; the hook validates it.
-4. Before merging the parent PR, run `make submodules-sync` and push the parent commit.
-5. Merge the PR; CI repeats the check on `main`.
-
-**When a module `main` advanced without a matching branch**
-
-Update the pins manually, then commit:
+If automation is unavailable, update pins or run the local sync:
 
 ```bash
 git submodule update --remote --checkout add-on/ee add-on/saas web
@@ -284,7 +274,7 @@ git add add-on/ee add-on/saas web
 git commit -m "🔧 chore(submodules): bump modules to main"
 ```
 
-Bypass the hook locally with `SKIP_SUBMODULE_CHECK=1 git push` only for emergencies; CI still enforces the rule.
+Bypass the local hook with `SKIP_SUBMODULE_CHECK=1 git push` only for emergencies; CI and the reconcile job still enforce the invariant.
 
 ### Tests
 
