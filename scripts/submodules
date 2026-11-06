@@ -41,7 +41,7 @@ load_submodule_entries() {
     local url
     url=$(git config -f "$gitmodules" "submodule.${name}.url") ||
       die "${path}: missing URL in .gitmodules"
-    if git -C "${ROOT_PATH}/${path}" rev-parse --git-dir >/dev/null 2>&1; then
+    if submodule_initialized "$path"; then
       url=$(git -C "${ROOT_PATH}/${path}" remote get-url origin 2>/dev/null || echo "$url")
     fi
     SUBMODULE_NAMES+=("$name")
@@ -53,6 +53,11 @@ load_submodule_entries() {
 pin_sha() {
   local path="$1" rev="${2:-HEAD}"
   git rev-parse --verify --quiet "${rev}:${path}"
+}
+
+submodule_initialized() {
+  local abs="${ROOT_PATH}/$1"
+  [ -e "${abs}/.git" ] && git -C "$abs" rev-parse --git-dir >/dev/null 2>&1
 }
 
 remote_sha() {
@@ -248,7 +253,7 @@ cmd_sync() {
   for i in "${!SUBMODULE_PATHS[@]}"; do
     path="${SUBMODULE_PATHS[$i]}"
     abs="${ROOT_PATH}/${path}"
-    if ! git -C "$abs" rev-parse --git-dir >/dev/null 2>&1; then
+    if ! submodule_initialized "$path"; then
       echo "[ERROR] ${path}: not initialized; run git submodule update --init ${path}" >&2
       errors=$((errors + 1))
       continue
@@ -380,7 +385,7 @@ cmd_check_pre_push() {
   for i in "${!SUBMODULE_PATHS[@]}"; do
     path="${SUBMODULE_PATHS[$i]}"
     abs="${ROOT_PATH}/${path}"
-    git -C "$abs" rev-parse --git-dir >/dev/null 2>&1 || continue
+    submodule_initialized "$path" || continue
 
     if [ -n "$(git -C "$abs" status --porcelain)" ]; then
       echo "[WARN] ${path}: uncommitted changes will not be pushed" >&2
