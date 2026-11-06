@@ -225,6 +225,26 @@ TAGS=ee make build taco     # Enterprise skeleton (future commercial modules)
 
 Release images for `taco` are built with `saas` enabled (see `.goreleaser.yaml`). Add-ons live in private git submodules under `add-on/`; initialize them with `git submodule update --init --recursive`.
 
+### Submodules
+
+`web`, `add-on/ee`, and `add-on/saas` are tracked through gitlinks. The parent `main` must pin each module's remote `main` tip.
+
+```bash
+make hooks                       # once per clone: install .githooks/pre-push
+make submodules status           # pin vs remote main
+make submodules check --mode main
+make submodules sync --commit    # push branch, merge to module main, commit pins
+```
+
+Workflow:
+
+1. Commit and push changes in the submodule branch first.
+2. Push the parent branch; the pre-push hook blocks missing, unmerged, or unpushed module commits.
+3. Before merging the parent branch, run `make submodules sync`, then push the parent commit.
+4. CI job `Submodule synchronization` repeats the check before `Build, test and lint`; on `main` a pin must equal the module `main` tip.
+
+Bypass the hook locally with `SKIP_SUBMODULE_CHECK=1 git push` only for emergencies; CI still enforces the rule.
+
 ### Tests
 
 Integration tests need PostgreSQL 18 on port `5433`:

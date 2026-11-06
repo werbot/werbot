@@ -33,6 +33,9 @@ submodule_entries() {
     local url
     url=$(git config -f "$gitmodules" "submodule.${name}.url") ||
       die "${path}: missing URL in .gitmodules"
+    if git -C "${ROOT_PATH}/${path}" rev-parse --git-dir >/dev/null 2>&1; then
+      url=$(git -C "${ROOT_PATH}/${path}" remote get-url origin 2>/dev/null || echo "$url")
+    fi
     printf '%s\t%s\t%s\n' "$name" "$path" "$url"
   done < <(git config -f "$gitmodules" --get-regexp '^submodule\..*\.path$')
 }

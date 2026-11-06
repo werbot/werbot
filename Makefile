@@ -74,6 +74,20 @@ lint: ## Running linters
 
 
 #############################################################################
+.PHONY: submodules
+submodules: ## Submodule status, check, sync and tests
+	@scripts/submodules $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+#############################################################################
+
+
+#############################################################################
+.PHONY: hooks
+hooks: ## Install repository git hooks
+	@scripts/submodules install-hook
+#############################################################################
+
+
+#############################################################################
 .PHONY: haproxy
 haproxy:
 	@scripts/haproxy $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))

@@ -114,6 +114,7 @@ test_unreachable_remote_fails() {
   local dir out status
   dir=$(new_fixture unreachable)
   git -C "$dir/parent" config -f .gitmodules submodule.sub.url "$dir/does-not-exist.git"
+  git -C "$dir/parent/sub" remote set-url origin "$dir/does-not-exist.git"
   out=$(cd "$dir/parent" && "$CHECK" check --mode main 2>&1) && status=0 || status=$?
   if [ "$status" -ne 0 ] && assert_contains "$out" "cannot read remote"; then
     pass "unreachable remote fails with a named error"
