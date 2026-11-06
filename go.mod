@@ -9,6 +9,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.40.0
 	github.com/armon/go-proxyproto v0.1.0
 	github.com/docker/docker v28.5.2+incompatible
+	github.com/fasthttp/websocket v1.5.12
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/gofiber/contrib/jwt v1.1.2
 	github.com/gofiber/contrib/websocket v1.3.4
@@ -53,7 +54,6 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.8.2 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/fasthttp/websocket v1.5.12 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
