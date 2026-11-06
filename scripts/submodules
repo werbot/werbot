@@ -100,8 +100,51 @@ cmd_check_main() {
 }
 
 cmd_check_branch() {
-  # Implemented in Task 2.
-  :
+  local branch="${1:-}" base="${2:-origin/main}"
+  if [ -z "$branch" ]; then
+    branch=$(git symbolic-ref --short -q HEAD) || die "cannot determine the current branch; pass --branch"
+  fi
+  if ! git rev-parse --verify --quiet "${base}^{commit}" >/dev/null; then
+    die "base ref '${base}' not found; fetch it or pass --base"
+  fi
+
+  local name path url pin base_pin branch_tip main errors=0
+  while IFS=$'\t' read -r name path url; do
+    pin=$(pin_sha "$path")
+    base_pin=$(git rev-parse --verify --quiet "${base}:${path}" || true)
+    [ "$pin" = "$base_pin" ] && continue
+
+    if ! branch_tip=$(remote_sha "$url" "refs/heads/${branch}"); then
+      echo "[ERROR] ${path}: cannot read remote '${url}'" >&2
+      errors=$((errors + 1))
+      continue
+    fi
+    if [ -n "$branch_tip" ]; then
+      if [ "$pin" != "$branch_tip" ]; then
+        echo "[ERROR] ${path}: pin $(short "$pin") is not the tip of remote branch '${branch}' ($(short "$branch_tip"))" >&2
+        errors=$((errors + 1))
+      fi
+      continue
+    fi
+
+    if ! main=$(remote_sha "$url" refs/heads/main); then
+      echo "[ERROR] ${path}: cannot read remote '${url}'" >&2
+      errors=$((errors + 1))
+      continue
+    fi
+    if [ -z "$main" ]; then
+      echo "[ERROR] ${path}: remote has no main branch" >&2
+      errors=$((errors + 1))
+    elif [ "$pin" != "$main" ]; then
+      echo "[ERROR] ${path}: branch '${branch}' not found on remote and pin $(short "$pin") is not the remote main tip $(short "$main")" >&2
+      errors=$((errors + 1))
+    fi
+  done < <(submodule_entries)
+
+  if [ "$errors" -ne 0 ]; then
+    echo "[ERROR] submodule check failed: ${errors} violation(s)" >&2
+    exit 1
+  fi
 }
 
 cmd_check() {

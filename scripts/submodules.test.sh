@@ -122,12 +122,81 @@ test_unreachable_remote_fails() {
   fi
 }
 
+test_branch_mode_passes_for_branch_tip() {
+  local dir
+  dir=$(new_fixture branchpass)
+  git -C "$dir/seed" checkout -qb feature
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm feature
+  git -C "$dir/seed" push -q origin feature
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q origin/feature
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+  if (cd "$dir/parent" && "$CHECK" check --mode branch --branch feature) >/dev/null; then
+    pass "branch mode accepts the same-named branch tip"
+  else
+    fail_test "branch mode accepts the same-named branch tip"
+  fi
+}
+
+test_branch_mode_fails_when_pin_is_behind() {
+  local dir out status
+  dir=$(new_fixture branchbehind)
+  git -C "$dir/seed" checkout -qb feature
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm one
+  git -C "$dir/seed" push -q origin feature
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q feature
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+  echo three >"$dir/seed/three"
+  git -C "$dir/seed" add three
+  git -C "$dir/seed" commit -qm two
+  git -C "$dir/seed" push -q origin feature
+  out=$(cd "$dir/parent" && "$CHECK" check --mode branch --branch feature 2>&1) && status=0 || status=$?
+  if [ "$status" -ne 0 ] && assert_contains "$out" "is not the tip of remote branch 'feature'"; then
+    pass "branch mode rejects a stale pin"
+  else
+    fail_test "branch mode rejects a stale pin"
+  fi
+}
+
+test_branch_mode_ignores_unchanged_module() {
+  local dir
+  dir=$(new_fixture branchskip)
+  if (cd "$dir/parent" && "$CHECK" check --mode branch --branch missing-branch) >/dev/null; then
+    pass "branch mode skips unchanged submodules"
+  else
+    fail_test "branch mode skips unchanged submodules"
+  fi
+}
+
+test_branch_mode_requires_base_ref() {
+  local dir out status
+  dir=$(new_fixture nobase)
+  git -C "$dir/parent" update-ref -d refs/remotes/origin/main 2>/dev/null || true
+  out=$(cd "$dir/parent" && "$CHECK" check --mode branch --branch feature 2>&1) && status=0 || status=$?
+  if [ "$status" -ne 0 ] && assert_contains "$out" "base ref"; then
+    pass "branch mode names a missing base ref"
+  else
+    fail_test "branch mode names a missing base ref"
+  fi
+}
+
 for t in \
   test_main_mode_passes_when_synced \
   test_main_mode_fails_when_pin_missing_on_remote \
   test_main_mode_fails_when_pin_is_on_unmerged_branch \
   test_status_reports_synced_and_drift \
-  test_unreachable_remote_fails; do
+  test_unreachable_remote_fails \
+  test_branch_mode_passes_for_branch_tip \
+  test_branch_mode_fails_when_pin_is_behind \
+  test_branch_mode_ignores_unchanged_module \
+  test_branch_mode_requires_base_ref; do
   "$t"
 done
 
