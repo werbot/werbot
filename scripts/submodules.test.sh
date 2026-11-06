@@ -31,6 +31,8 @@ new_fixture() {
   git -C "$dir/parent" config user.email test@example.com
   git -C "$dir/parent" config user.name Test
   git -C "$dir/parent" -c protocol.file.allow=always submodule add -q "$dir/origin.git" sub
+  git -C "$dir/parent/sub" config user.email test@example.com
+  git -C "$dir/parent/sub" config user.name Test
   git -C "$dir/parent" commit -qm "add submodule"
   git -C "$dir/parent" tag v0.0.0
   git -C "$dir/parent" update-ref refs/remotes/origin/main HEAD
@@ -317,6 +319,142 @@ test_pre_push_handles_detached_submodule() {
   fi
 }
 
+test_runs_without_tags_or_term() {
+  local dir
+  dir=$(new_fixture notags)
+  git -C "$dir/parent" tag -d v0.0.0 >/dev/null
+  if (cd "$dir/parent" && env -u TERM "$CHECK" check --mode main) >/dev/null; then
+    pass "check runs without tags or TERM"
+  else
+    fail_test "check runs without tags or TERM"
+  fi
+}
+
+test_make_targets() {
+  local root out
+  root="$(cd "$SCRIPT_DIR/.." && pwd)"
+  if ! out=$(make -C "$root" -n submodules-check 2>&1); then
+    fail_test "make submodules-check target exists"
+    return
+  fi
+  if ! assert_contains "$out" "scripts/submodules check --mode main"; then
+    fail_test "make submodules-check runs the main check"
+    return
+  fi
+  if ! out=$(make -C "$root" -n submodules-sync 2>&1) ||
+    ! assert_contains "$out" "scripts/submodules sync"; then
+    fail_test "make submodules-sync target exists"
+    return
+  fi
+  pass "make submodule targets exist"
+}
+
+test_missing_url_fails() {
+  local dir out status
+  dir=$(new_fixture nourl)
+  git -C "$dir/parent" config -f .gitmodules --unset submodule.sub.url
+  out=$(cd "$dir/parent" && "$CHECK" check --mode main 2>&1) && status=0 || status=$?
+  if [ "$status" -ne 0 ] && assert_contains "$out" "missing URL"; then
+    pass "missing .gitmodules URL fails the check"
+  else
+    fail_test "missing .gitmodules URL fails the check"
+  fi
+}
+
+test_pre_push_checks_pushed_ref_not_head() {
+  local dir line bad_sha out status
+  dir=$(new_fixture prepushref)
+  git -C "$dir/seed" checkout -qb feature
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm feature
+  git -C "$dir/seed" push -q origin feature
+  git -C "$dir/parent" checkout -qb bad
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q origin/feature
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm "bad pin"
+  bad_sha=$(git -C "$dir/parent" rev-parse HEAD)
+  git -C "$dir/parent/sub" checkout -q main
+  git -C "$dir/parent" checkout -q main
+  line="refs/heads/bad ${bad_sha} refs/heads/bad 0000000000000000000000000000000000000000"
+  out=$(cd "$dir/parent" && printf '%s\n' "$line" | "$CHECK" check --pre-push 2>&1) && status=0 || status=$?
+  if [ "$status" -ne 0 ]; then
+    pass "pre-push checks the pushed ref, not HEAD"
+  else
+    fail_test "pre-push checks the pushed ref, not HEAD"
+  fi
+}
+
+test_branch_mode_accepts_synced_merge_commit() {
+  local dir
+  dir=$(new_fixture mergesync)
+  git -C "$dir/seed" checkout -qb feature
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm one
+  git -C "$dir/seed" push -q origin feature
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q feature
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+
+  git -C "$dir/seed" checkout -q main
+  echo main >"$dir/seed/main"
+  git -C "$dir/seed" add main
+  git -C "$dir/seed" commit -qm main
+  git -C "$dir/seed" push -q origin main
+  git -C "$dir/seed" checkout -q feature
+  echo three >"$dir/seed/three"
+  git -C "$dir/seed" add three
+  git -C "$dir/seed" commit -qm two
+  git -C "$dir/seed" push -q origin feature
+
+  (cd "$dir/parent" && "$CHECK" sync --branch feature --commit) >/dev/null || {
+    fail_test "branch mode accepts a synced merge commit"
+    return
+  }
+  if (cd "$dir/parent" && "$CHECK" check --mode branch --branch feature) >/dev/null; then
+    pass "branch mode accepts a synced merge commit"
+  else
+    fail_test "branch mode accepts a synced merge commit"
+  fi
+}
+
+test_sync_commit_ignores_unrelated_staged_files() {
+  local dir
+  dir=$(new_fixture syncstage)
+  git -C "$dir/seed" checkout -qb feature
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm one
+  git -C "$dir/seed" push -q origin feature
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q feature
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+  echo three >"$dir/seed/three"
+  git -C "$dir/seed" add three
+  git -C "$dir/seed" commit -qm two
+  git -C "$dir/seed" push -q origin feature
+
+  echo unrelated >"$dir/parent/staged.txt"
+  git -C "$dir/parent" add staged.txt
+  (cd "$dir/parent" && "$CHECK" sync --branch feature --commit) >/dev/null || {
+    fail_test "sync commit ignores unrelated staged files"
+    return
+  }
+  if git -C "$dir/parent" show --name-only --format= HEAD | grep -qx "staged.txt"; then
+    fail_test "sync commit ignores unrelated staged files"
+    return
+  fi
+  if git -C "$dir/parent" diff --cached --name-only | grep -qx "staged.txt"; then
+    pass "sync commit ignores unrelated staged files"
+  else
+    fail_test "sync commit ignores unrelated staged files"
+  fi
+}
+
 for t in \
   test_main_mode_passes_when_synced \
   test_main_mode_fails_when_pin_missing_on_remote \
@@ -333,7 +471,13 @@ for t in \
   test_sync_commit_creates_parent_commit \
   test_pre_push_fails_on_unpushed_commit \
   test_pre_push_passes_after_push \
-  test_pre_push_handles_detached_submodule; do
+  test_pre_push_handles_detached_submodule \
+  test_runs_without_tags_or_term \
+  test_make_targets \
+  test_missing_url_fails \
+  test_pre_push_checks_pushed_ref_not_head \
+  test_branch_mode_accepts_synced_merge_commit \
+  test_sync_commit_ignores_unrelated_staged_files; do
   "$t"
 done
 

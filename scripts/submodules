@@ -4,7 +4,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_PATH="$(git rev-parse --show-toplevel)"
-source "${SCRIPT_DIR}/_helper"
+
+SUBMODULE_NAMES=()
+SUBMODULE_PATHS=()
+SUBMODULE_URLS=()
 
 die() {
   echo "[ERROR] $*" >&2
@@ -17,14 +20,19 @@ Usage: scripts/submodules <command> [options]
 
 Commands:
   status                              Show pin and remote main state
-  check --mode main                   Require pin == remote main tip
-  check --mode branch [--branch N]    Require pin == same-named branch tip
+  check --mode main [--rev REF]       Require pin == remote main tip
+  check --mode branch [--branch N] [--base REF] [--rev REF]
+                                      Require pin == same-named branch tip
+  check --pre-push                    Hook mode: validate pushed refs
   sync [--branch N] [--commit]        Merge module branches into main
   install-hook                        Set core.hooksPath=.githooks
 EOF
 }
 
-submodule_entries() {
+load_submodule_entries() {
+  SUBMODULE_NAMES=()
+  SUBMODULE_PATHS=()
+  SUBMODULE_URLS=()
   local gitmodules="${ROOT_PATH}/.gitmodules"
   [ -f "$gitmodules" ] || return 0
   while read -r key path; do
@@ -36,17 +44,20 @@ submodule_entries() {
     if git -C "${ROOT_PATH}/${path}" rev-parse --git-dir >/dev/null 2>&1; then
       url=$(git -C "${ROOT_PATH}/${path}" remote get-url origin 2>/dev/null || echo "$url")
     fi
-    printf '%s\t%s\t%s\n' "$name" "$path" "$url"
+    SUBMODULE_NAMES+=("$name")
+    SUBMODULE_PATHS+=("$path")
+    SUBMODULE_URLS+=("$url")
   done < <(git config -f "$gitmodules" --get-regexp '^submodule\..*\.path$')
 }
 
 pin_sha() {
-  git rev-parse "HEAD:$1"
+  local path="$1" rev="${2:-HEAD}"
+  git rev-parse --verify --quiet "${rev}:${path}"
 }
 
 remote_sha() {
   local url="$1" ref="$2" out
-  if ! out=$(git ls-remote "$url" "$ref" 2>/dev/null); then
+  if ! out=$(GIT_TERMINAL_PROMPT=0 git ls-remote "$url" "$ref" 2>/dev/null); then
     return 2
   fi
   awk 'NR==1 {print $1}' <<<"$out"
@@ -57,10 +68,16 @@ short() {
 }
 
 cmd_status() {
+  load_submodule_entries
   printf '%-14s %-9s %-9s %s\n' "module" "pin" "main" "state"
-  local name path url pin main state
-  while IFS=$'\t' read -r name path url; do
-    pin=$(pin_sha "$path")
+  local i path url pin main state
+  for i in "${!SUBMODULE_PATHS[@]}"; do
+    path="${SUBMODULE_PATHS[$i]}"
+    url="${SUBMODULE_URLS[$i]}"
+    if ! pin=$(pin_sha "$path"); then
+      printf '%-14s %-9s %-9s %s\n' "$path" "-" "-" "missing"
+      continue
+    fi
     if ! main=$(remote_sha "$url" refs/heads/main); then
       state="missing"
       main="unreachable"
@@ -73,13 +90,21 @@ cmd_status() {
       state="drift"
     fi
     printf '%-14s %-9s %-9s %s\n' "$path" "$(short "$pin")" "$(short "$main")" "$state"
-  done < <(submodule_entries)
+  done
 }
 
 cmd_check_main() {
-  local name path url pin main errors=0
-  while IFS=$'\t' read -r name path url; do
-    pin=$(pin_sha "$path")
+  local rev="${1:-HEAD}"
+  load_submodule_entries
+  local i path url pin main errors=0
+  for i in "${!SUBMODULE_PATHS[@]}"; do
+    path="${SUBMODULE_PATHS[$i]}"
+    url="${SUBMODULE_URLS[$i]}"
+    if ! pin=$(pin_sha "$path" "$rev"); then
+      echo "[ERROR] ${path}: no gitlink in ${rev}" >&2
+      errors=$((errors + 1))
+      continue
+    fi
     if ! main=$(remote_sha "$url" refs/heads/main); then
       echo "[ERROR] ${path}: cannot read remote '${url}'" >&2
       errors=$((errors + 1))
@@ -94,7 +119,7 @@ cmd_check_main() {
       echo "[ERROR] ${path}: pin $(short "$pin") is not the remote main tip $(short "$main")" >&2
       errors=$((errors + 1))
     fi
-  done < <(submodule_entries)
+  done
 
   if [ "$errors" -ne 0 ]; then
     echo "[ERROR] submodule check failed: ${errors} violation(s)" >&2
@@ -103,23 +128,40 @@ cmd_check_main() {
 }
 
 cmd_check_branch() {
-  local branch="${1:-}" base="${2:-origin/main}"
+  local branch="${1:-}" base="${2:-origin/main}" rev="${3:-HEAD}"
   if [ -z "$branch" ]; then
     branch=$(git symbolic-ref --short -q HEAD) || die "cannot determine the current branch; pass --branch"
   fi
   if ! git rev-parse --verify --quiet "${base}^{commit}" >/dev/null; then
     die "base ref '${base}' not found; fetch it or pass --base"
   fi
+  load_submodule_entries
 
-  local name path url pin base_pin branch_tip main errors=0
-  while IFS=$'\t' read -r name path url; do
-    pin=$(pin_sha "$path")
+  local i path url pin base_pin branch_tip main errors=0
+  for i in "${!SUBMODULE_PATHS[@]}"; do
+    path="${SUBMODULE_PATHS[$i]}"
+    url="${SUBMODULE_URLS[$i]}"
+    if ! pin=$(pin_sha "$path" "$rev"); then
+      echo "[ERROR] ${path}: no gitlink in ${rev}" >&2
+      errors=$((errors + 1))
+      continue
+    fi
     base_pin=$(git rev-parse --verify --quiet "${base}:${path}" || true)
     [ "$pin" = "$base_pin" ] && continue
 
     if ! branch_tip=$(remote_sha "$url" "refs/heads/${branch}"); then
       echo "[ERROR] ${path}: cannot read remote '${url}'" >&2
       errors=$((errors + 1))
+      continue
+    fi
+    if ! main=$(remote_sha "$url" refs/heads/main); then
+      echo "[ERROR] ${path}: cannot read remote '${url}'" >&2
+      errors=$((errors + 1))
+      continue
+    fi
+
+    # A branch push may pin the module main tip after sync merged the branch.
+    if [ -n "$main" ] && [ "$pin" = "$main" ]; then
       continue
     fi
     if [ -n "$branch_tip" ]; then
@@ -130,19 +172,14 @@ cmd_check_branch() {
       continue
     fi
 
-    if ! main=$(remote_sha "$url" refs/heads/main); then
-      echo "[ERROR] ${path}: cannot read remote '${url}'" >&2
-      errors=$((errors + 1))
-      continue
-    fi
     if [ -z "$main" ]; then
       echo "[ERROR] ${path}: remote has no main branch" >&2
       errors=$((errors + 1))
-    elif [ "$pin" != "$main" ]; then
+    else
       echo "[ERROR] ${path}: branch '${branch}' not found on remote and pin $(short "$pin") is not the remote main tip $(short "$main")" >&2
       errors=$((errors + 1))
     fi
-  done < <(submodule_entries)
+  done
 
   if [ "$errors" -ne 0 ]; then
     echo "[ERROR] submodule check failed: ${errors} violation(s)" >&2
@@ -151,7 +188,7 @@ cmd_check_branch() {
 }
 
 cmd_check() {
-  local mode="branch" branch="" base="origin/main"
+  local mode="branch" branch="" base="origin/main" rev=""
   while [ $# -gt 0 ]; do
     case "$1" in
     --mode)
@@ -166,6 +203,10 @@ cmd_check() {
       base="$2"
       shift 2
       ;;
+    --rev)
+      rev="$2"
+      shift 2
+      ;;
     *)
       die "unknown check option: $1"
       ;;
@@ -173,8 +214,8 @@ cmd_check() {
   done
 
   case "$mode" in
-  main) cmd_check_main ;;
-  branch) cmd_check_branch "$branch" "$base" ;;
+  main) cmd_check_main "${rev:-HEAD}" ;;
+  branch) cmd_check_branch "$branch" "$base" "${rev:-HEAD}" ;;
   *) die "unknown check mode: ${mode}" ;;
   esac
 }
@@ -202,8 +243,10 @@ cmd_sync() {
   fi
   [ "$branch" != "main" ] || die "sync refuses to run on main; use check --mode main instead"
 
-  local name path url abs errors=0
-  while IFS=$'\t' read -r name path url; do
+  load_submodule_entries
+  local i path url abs errors=0
+  for i in "${!SUBMODULE_PATHS[@]}"; do
+    path="${SUBMODULE_PATHS[$i]}"
     abs="${ROOT_PATH}/${path}"
     if ! git -C "$abs" rev-parse --git-dir >/dev/null 2>&1; then
       echo "[ERROR] ${path}: not initialized; run git submodule update --init ${path}" >&2
@@ -214,15 +257,18 @@ cmd_sync() {
       echo "[ERROR] ${path}: uncommitted changes; commit or stash them first" >&2
       errors=$((errors + 1))
     fi
-  done < <(submodule_entries)
+  done
 
   if [ "$errors" -ne 0 ]; then
     echo "[ERROR] sync preflight failed: ${errors} violation(s)" >&2
     exit 1
   fi
 
-  local local_ref remote_ref local_sha remote_sha_value
-  while IFS=$'\t' read -r name path url; do
+  local local_ref remote_ref local_sha remote_sha_value new_pin
+  local -a synced_paths=()
+  for i in "${!SUBMODULE_PATHS[@]}"; do
+    path="${SUBMODULE_PATHS[$i]}"
+    url="${SUBMODULE_URLS[$i]}"
     abs="${ROOT_PATH}/${path}"
     local_ref="refs/heads/${branch}"
     remote_ref="refs/remotes/origin/${branch}"
@@ -260,22 +306,23 @@ cmd_sync() {
     fi
     git -C "$abs" push -q origin main || die "${path}: cannot push main"
     git -C "$ROOT_PATH" add "$path"
-    echo "synced ${path} -> $(short "$(pin_sha "$path")")"
-  done < <(submodule_entries)
+    synced_paths+=("$path")
+    new_pin=$(git -C "$ROOT_PATH" rev-parse ":${path}")
+    echo "synced ${path} -> $(short "$new_pin")"
+  done
 
-  if [ "$do_commit" -eq 1 ]; then
-    local staged
-    staged=$(git -C "$ROOT_PATH" diff --cached --name-only)
-    if [ -n "$staged" ]; then
-      git -C "$ROOT_PATH" commit -q \
-        -m "🔧 chore(submodules): sync submodule pins with main" \
-        -m "Changes made in this commit:
-- Modified: $(tr '\n' ',' <<<"$staged" | sed 's/,$//')
+  if [ "$do_commit" -eq 1 ] && [ "${#synced_paths[@]}" -gt 0 ]; then
+    local modified IFS=,
+    modified="${synced_paths[*]}"
+    git -C "$ROOT_PATH" commit -q --only \
+      -m "🔧 chore(submodules): sync submodule pins with main" \
+      -m "Changes made in this commit:
+- Modified: ${modified}
 
 Key changes:
-- Update parent gitlinks to the merged module main tips"
-      echo "committed submodule pins"
-    fi
+- Update parent gitlinks to the merged module main tips" \
+      -- "${synced_paths[@]}"
+    echo "committed submodule pins"
   fi
 }
 
@@ -285,46 +332,53 @@ cmd_check_pre_push() {
     return 0
   fi
 
-  local main_mode=0 branches="" local_ref local_sha remote_ref remote_sha_value
+  local zero="0000000000000000000000000000000000000000"
+  local main_sha="" local_ref local_sha remote_ref remote_sha_value
+  local -a branch_names=()
+  local -a branch_shas=()
+
   if [ -t 0 ]; then
     local current
     current=$(git symbolic-ref --short -q HEAD) || die "cannot determine the current branch"
     if [ "$current" = "main" ]; then
-      main_mode=1
+      main_sha=$(git rev-parse HEAD)
     else
-      branches="${current}"
+      branch_names=("$current")
+      branch_shas=("HEAD")
     fi
   else
     while read -r local_ref local_sha remote_ref remote_sha_value; do
       [ -n "$remote_ref" ] || continue
+      if [ "$local_sha" = "$zero" ]; then
+        continue
+      fi
       case "$remote_ref" in
       refs/heads/main)
-        main_mode=1
+        main_sha="$local_sha"
         ;;
       refs/heads/*)
-        branches="${branches}${remote_ref#refs/heads/}
-"
+        branch_names+=("${remote_ref#refs/heads/}")
+        branch_shas+=("$local_sha")
         ;;
       esac
     done
   fi
 
-  if [ "$main_mode" -eq 1 ]; then
-    cmd_check_main
+  if [ -n "$main_sha" ]; then
+    cmd_check_main "$main_sha"
   fi
-  if [ -n "$branches" ]; then
-    local pushed
-    while IFS= read -r pushed; do
-      [ -n "$pushed" ] || continue
-      cmd_check_branch "$pushed" "origin/main"
-    done <<<"$branches"
-  fi
-  if [ "$main_mode" -eq 0 ] && [ -z "$branches" ]; then
-    cmd_check_branch "" "origin/main"
+  local i
+  for i in "${!branch_names[@]}"; do
+    cmd_check_branch "${branch_names[$i]}" "origin/main" "${branch_shas[$i]}"
+  done
+  if [ -z "$main_sha" ] && [ "${#branch_names[@]}" -eq 0 ]; then
+    cmd_check_branch "" "origin/main" "HEAD"
   fi
 
-  local name path url abs branch upstream ahead errors=0
-  while IFS=$'\t' read -r name path url; do
+  load_submodule_entries
+  local path url abs branch upstream ahead errors=0
+  for i in "${!SUBMODULE_PATHS[@]}"; do
+    path="${SUBMODULE_PATHS[$i]}"
     abs="${ROOT_PATH}/${path}"
     git -C "$abs" rev-parse --git-dir >/dev/null 2>&1 || continue
 
@@ -343,7 +397,7 @@ cmd_check_pre_push() {
       echo "[ERROR] ${path}: branch '${branch}' has ${ahead} unpushed commit(s)" >&2
       errors=$((errors + 1))
     fi
-  done < <(submodule_entries)
+  done
 
   if [ "$errors" -ne 0 ]; then
     echo "[ERROR] submodule pre-push check failed: ${errors} violation(s)" >&2

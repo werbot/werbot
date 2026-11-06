@@ -81,6 +81,30 @@ submodules: ## Submodule status, check, sync and tests
 
 
 #############################################################################
+SUBMODULES_CHECK_ARGS ?= --mode main
+SUBMODULES_SYNC_ARGS ?= --commit
+
+.PHONY: submodules-check
+submodules-check: ## Check submodule pins against remote main
+	@scripts/submodules check $(SUBMODULES_CHECK_ARGS)
+#############################################################################
+
+
+#############################################################################
+.PHONY: submodules-sync
+submodules-sync: ## Merge module branches into main and commit pins
+	@scripts/submodules sync $(SUBMODULES_SYNC_ARGS)
+#############################################################################
+
+
+#############################################################################
+.PHONY: submodules-test
+submodules-test: ## Run offline submodule tool tests
+	@scripts/submodules.test.sh
+#############################################################################
+
+
+#############################################################################
 .PHONY: hooks
 hooks: ## Install repository git hooks
 	@scripts/submodules install-hook

@@ -232,15 +232,22 @@ Release images for `taco` are built with `saas` enabled (see `.goreleaser.yaml`)
 ```bash
 make hooks                       # once per clone: install .githooks/pre-push
 make submodules status           # pin vs remote main
-make submodules check --mode main
-make submodules sync --commit    # push branch, merge to module main, commit pins
+make submodules-check            # check pins against module main
+make submodules-sync             # push branch, merge to module main, commit pins
+make submodules-test             # offline regression suite
+```
+
+For a feature branch, override the check arguments:
+
+```bash
+make submodules-check SUBMODULES_CHECK_ARGS="--mode branch --branch <name>"
 ```
 
 Workflow:
 
 1. Commit and push changes in the submodule branch first.
 2. Push the parent branch; the pre-push hook blocks missing, unmerged, or unpushed module commits.
-3. Before merging the parent branch, run `make submodules sync`, then push the parent commit.
+3. Before merging the parent branch, run `make submodules-sync`, then push the parent commit.
 4. CI job `Submodule synchronization` repeats the check before `Build, test and lint`; on `main` a pin must equal the module `main` tip.
 
 Bypass the hook locally with `SKIP_SUBMODULE_CHECK=1 git push` only for emergencies; CI still enforces the rule.
