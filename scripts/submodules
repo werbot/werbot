@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_PATH="$(git rev-parse --show-toplevel)"
+source "${SCRIPT_DIR}/_helper"
+
+die() {
+  echo "[ERROR] $*" >&2
+  exit 1
+}
+
+usage() {
+  cat >&2 <<EOF
+Usage: scripts/submodules <command> [options]
+
+Commands:
+  status                              Show pin and remote main state
+  check --mode main                   Require pin == remote main tip
+  check --mode branch [--branch N]    Require pin == same-named branch tip
+  sync [--branch N] [--commit]        Merge module branches into main
+  install-hook                        Set core.hooksPath=.githooks
+EOF
+}
+
+submodule_entries() {
+  local gitmodules="${ROOT_PATH}/.gitmodules"
+  [ -f "$gitmodules" ] || return 0
+  while read -r key path; do
+    local name="${key#submodule.}"
+    name="${name%.path}"
+    local url
+    url=$(git config -f "$gitmodules" "submodule.${name}.url") ||
+      die "${path}: missing URL in .gitmodules"
+    printf '%s\t%s\t%s\n' "$name" "$path" "$url"
+  done < <(git config -f "$gitmodules" --get-regexp '^submodule\..*\.path$')
+}
+
+pin_sha() {
+  git rev-parse "HEAD:$1"
+}
+
+remote_sha() {
+  local url="$1" ref="$2" out
+  if ! out=$(git ls-remote "$url" "$ref" 2>/dev/null); then
+    return 2
+  fi
+  awk 'NR==1 {print $1}' <<<"$out"
+}
+
+short() {
+  printf '%.7s' "$1"
+}
+
+cmd_status() {
+  printf '%-14s %-9s %-9s %s\n' "module" "pin" "main" "state"
+  local name path url pin main state
+  while IFS=$'\t' read -r name path url; do
+    pin=$(pin_sha "$path")
+    if ! main=$(remote_sha "$url" refs/heads/main); then
+      state="missing"
+      main="unreachable"
+    elif [ -z "$main" ]; then
+      state="missing"
+      main="-"
+    elif [ "$pin" = "$main" ]; then
+      state="synced"
+    else
+      state="drift"
+    fi
+    printf '%-14s %-9s %-9s %s\n' "$path" "$(short "$pin")" "$(short "$main")" "$state"
+  done < <(submodule_entries)
+}
+
+cmd_check_main() {
+  local name path url pin main errors=0
+  while IFS=$'\t' read -r name path url; do
+    pin=$(pin_sha "$path")
+    if ! main=$(remote_sha "$url" refs/heads/main); then
+      echo "[ERROR] ${path}: cannot read remote '${url}'" >&2
+      errors=$((errors + 1))
+      continue
+    fi
+    if [ -z "$main" ]; then
+      echo "[ERROR] ${path}: remote has no main branch" >&2
+      errors=$((errors + 1))
+      continue
+    fi
+    if [ "$pin" != "$main" ]; then
+      echo "[ERROR] ${path}: pin $(short "$pin") is not the remote main tip $(short "$main")" >&2
+      errors=$((errors + 1))
+    fi
+  done < <(submodule_entries)
+
+  if [ "$errors" -ne 0 ]; then
+    echo "[ERROR] submodule check failed: ${errors} violation(s)" >&2
+    exit 1
+  fi
+}
+
+cmd_check_branch() {
+  # Implemented in Task 2.
+  :
+}
+
+cmd_check() {
+  local mode="branch" branch="" base="origin/main"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+    --mode)
+      mode="$2"
+      shift 2
+      ;;
+    --branch)
+      branch="$2"
+      shift 2
+      ;;
+    --base)
+      base="$2"
+      shift 2
+      ;;
+    *)
+      die "unknown check option: $1"
+      ;;
+    esac
+  done
+
+  case "$mode" in
+  main) cmd_check_main ;;
+  branch) cmd_check_branch "$branch" "$base" ;;
+  *) die "unknown check mode: ${mode}" ;;
+  esac
+}
+
+cmd_install_hook() {
+  echo "install-hook is implemented in Task 4"
+}
+
+case "${1:-}" in
+status)
+  shift
+  cmd_status "$@"
+  ;;
+check)
+  shift
+  cmd_check "$@"
+  ;;
+install-hook)
+  shift
+  cmd_install_hook "$@"
+  ;;
+"" | help | -h | --help)
+  usage
+  ;;
+*)
+  usage
+  exit 2
+  ;;
+esac
