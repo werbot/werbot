@@ -22,7 +22,7 @@ var File_internal_core_token_proto_rpc_token_proto protoreflect.FileDescriptor
 
 const file_internal_core_token_proto_rpc_token_proto_rawDesc = "" +
 	"\n" +
-	")internal/core/token/proto/rpc/token.proto\x12\x05token\x1a4internal/core/token/proto/message/tokenmessage.proto\x1a4internal/core/token/proto/message/tokenprofile.proto\x1a4internal/core/token/proto/message/tokenproject.proto\x1a3internal/core/token/proto/message/tokenscheme.proto2\xc1\f\n" +
+	")internal/core/token/proto/rpc/token.proto\x12\x05token\x1a4internal/core/token/proto/message/tokenmessage.proto\x1a4internal/core/token/proto/message/tokenprofile.proto\x1a4internal/core/token/proto/message/tokenproject.proto\x1a3internal/core/token/proto/message/tokenscheme.proto2\xad\x0e\n" +
 	"\rTokenHandlers\x12F\n" +
 	"\x05Token\x12\x1c.token.message.Token.Request\x1a\x1d.token.message.Token.Response\"\x00\x12^\n" +
 	"\rArchivedToken\x12$.token.message.ArchivedToken.Request\x1a%.token.message.ArchivedToken.Response\"\x00\x12X\n" +
@@ -37,7 +37,9 @@ const file_internal_core_token_proto_rpc_token_proto_rawDesc = "" +
 	"\x12UpdateProjectToken\x12).token.project.UpdateProjectToken.Request\x1a*.token.project.UpdateProjectToken.Response\"\x00\x12Y\n" +
 	"\fSchemeTokens\x12\".token.scheme.SchemeTokens.Request\x1a#.token.scheme.SchemeTokens.Response\"\x00\x12h\n" +
 	"\x11AddTokenSchemeAdd\x12'.token.scheme.AddTokenSchemeAdd.Request\x1a(.token.scheme.AddTokenSchemeAdd.Response\"\x00\x12q\n" +
-	"\x14AddTokenSchemeAccess\x12*.token.scheme.AddTokenSchemeAccess.Request\x1a+.token.scheme.AddTokenSchemeAccess.Response\"\x00\x12h\n" +
+	"\x14AddTokenSchemeAccess\x12*.token.scheme.AddTokenSchemeAccess.Request\x1a+.token.scheme.AddTokenSchemeAccess.Response\"\x00\x12t\n" +
+	"\x15AddTokenSchemeConnect\x12+.token.scheme.AddTokenSchemeConnect.Request\x1a,.token.scheme.AddTokenSchemeConnect.Response\"\x00\x12t\n" +
+	"\x15UseTokenSchemeConnect\x12+.token.scheme.UseTokenSchemeConnect.Request\x1a,.token.scheme.UseTokenSchemeConnect.Response\"\x00\x12h\n" +
 	"\x11UpdateSchemeToken\x12'.token.scheme.UpdateSchemeToken.Request\x1a(.token.scheme.UpdateSchemeToken.Response\"\x00B8Z6github.com/werbot/werbot/internal/core/token/proto/rpcb\x06proto3"
 
 var file_internal_core_token_proto_rpc_token_proto_goTypes = []any{
@@ -55,22 +57,26 @@ var file_internal_core_token_proto_rpc_token_proto_goTypes = []any{
 	(*message.SchemeTokens_Request)(nil),                 // 11: token.scheme.SchemeTokens.Request
 	(*message.AddTokenSchemeAdd_Request)(nil),            // 12: token.scheme.AddTokenSchemeAdd.Request
 	(*message.AddTokenSchemeAccess_Request)(nil),         // 13: token.scheme.AddTokenSchemeAccess.Request
-	(*message.UpdateSchemeToken_Request)(nil),            // 14: token.scheme.UpdateSchemeToken.Request
-	(*message.Token_Response)(nil),                       // 15: token.message.Token.Response
-	(*message.ArchivedToken_Response)(nil),               // 16: token.message.ArchivedToken.Response
-	(*message.DeleteToken_Response)(nil),                 // 17: token.message.DeleteToken.Response
-	(*message.ProfileTokens_Response)(nil),               // 18: token.profile.ProfileTokens.Response
-	(*message.AddTokenProfileReset_Response)(nil),        // 19: token.profile.AddTokenProfileReset.Response
-	(*message.AddTokenProfileRegistration_Response)(nil), // 20: token.profile.AddTokenProfileRegistration.Response
-	(*message.AddTokenProfileDelete_Response)(nil),       // 21: token.profile.AddTokenProfileDelete.Response
-	(*message.UpdateProfileToken_Response)(nil),          // 22: token.profile.UpdateProfileToken.Response
-	(*message.ProjectTokens_Response)(nil),               // 23: token.project.ProjectTokens.Response
-	(*message.AddTokenProjectMember_Response)(nil),       // 24: token.project.AddTokenProjectMember.Response
-	(*message.UpdateProjectToken_Response)(nil),          // 25: token.project.UpdateProjectToken.Response
-	(*message.SchemeTokens_Response)(nil),                // 26: token.scheme.SchemeTokens.Response
-	(*message.AddTokenSchemeAdd_Response)(nil),           // 27: token.scheme.AddTokenSchemeAdd.Response
-	(*message.AddTokenSchemeAccess_Response)(nil),        // 28: token.scheme.AddTokenSchemeAccess.Response
-	(*message.UpdateSchemeToken_Response)(nil),           // 29: token.scheme.UpdateSchemeToken.Response
+	(*message.AddTokenSchemeConnect_Request)(nil),        // 14: token.scheme.AddTokenSchemeConnect.Request
+	(*message.UseTokenSchemeConnect_Request)(nil),        // 15: token.scheme.UseTokenSchemeConnect.Request
+	(*message.UpdateSchemeToken_Request)(nil),            // 16: token.scheme.UpdateSchemeToken.Request
+	(*message.Token_Response)(nil),                       // 17: token.message.Token.Response
+	(*message.ArchivedToken_Response)(nil),               // 18: token.message.ArchivedToken.Response
+	(*message.DeleteToken_Response)(nil),                 // 19: token.message.DeleteToken.Response
+	(*message.ProfileTokens_Response)(nil),               // 20: token.profile.ProfileTokens.Response
+	(*message.AddTokenProfileReset_Response)(nil),        // 21: token.profile.AddTokenProfileReset.Response
+	(*message.AddTokenProfileRegistration_Response)(nil), // 22: token.profile.AddTokenProfileRegistration.Response
+	(*message.AddTokenProfileDelete_Response)(nil),       // 23: token.profile.AddTokenProfileDelete.Response
+	(*message.UpdateProfileToken_Response)(nil),          // 24: token.profile.UpdateProfileToken.Response
+	(*message.ProjectTokens_Response)(nil),               // 25: token.project.ProjectTokens.Response
+	(*message.AddTokenProjectMember_Response)(nil),       // 26: token.project.AddTokenProjectMember.Response
+	(*message.UpdateProjectToken_Response)(nil),          // 27: token.project.UpdateProjectToken.Response
+	(*message.SchemeTokens_Response)(nil),                // 28: token.scheme.SchemeTokens.Response
+	(*message.AddTokenSchemeAdd_Response)(nil),           // 29: token.scheme.AddTokenSchemeAdd.Response
+	(*message.AddTokenSchemeAccess_Response)(nil),        // 30: token.scheme.AddTokenSchemeAccess.Response
+	(*message.AddTokenSchemeConnect_Response)(nil),       // 31: token.scheme.AddTokenSchemeConnect.Response
+	(*message.UseTokenSchemeConnect_Response)(nil),       // 32: token.scheme.UseTokenSchemeConnect.Response
+	(*message.UpdateSchemeToken_Response)(nil),           // 33: token.scheme.UpdateSchemeToken.Response
 }
 var file_internal_core_token_proto_rpc_token_proto_depIdxs = []int32{
 	0,  // 0: token.TokenHandlers.Token:input_type -> token.message.Token.Request
@@ -87,24 +93,28 @@ var file_internal_core_token_proto_rpc_token_proto_depIdxs = []int32{
 	11, // 11: token.TokenHandlers.SchemeTokens:input_type -> token.scheme.SchemeTokens.Request
 	12, // 12: token.TokenHandlers.AddTokenSchemeAdd:input_type -> token.scheme.AddTokenSchemeAdd.Request
 	13, // 13: token.TokenHandlers.AddTokenSchemeAccess:input_type -> token.scheme.AddTokenSchemeAccess.Request
-	14, // 14: token.TokenHandlers.UpdateSchemeToken:input_type -> token.scheme.UpdateSchemeToken.Request
-	15, // 15: token.TokenHandlers.Token:output_type -> token.message.Token.Response
-	16, // 16: token.TokenHandlers.ArchivedToken:output_type -> token.message.ArchivedToken.Response
-	17, // 17: token.TokenHandlers.DeleteToken:output_type -> token.message.DeleteToken.Response
-	18, // 18: token.TokenHandlers.ProfileTokens:output_type -> token.profile.ProfileTokens.Response
-	19, // 19: token.TokenHandlers.AddTokenProfileReset:output_type -> token.profile.AddTokenProfileReset.Response
-	20, // 20: token.TokenHandlers.AddTokenProfileRegistration:output_type -> token.profile.AddTokenProfileRegistration.Response
-	21, // 21: token.TokenHandlers.AddTokenProfileDelete:output_type -> token.profile.AddTokenProfileDelete.Response
-	22, // 22: token.TokenHandlers.UpdateProfileToken:output_type -> token.profile.UpdateProfileToken.Response
-	23, // 23: token.TokenHandlers.ProjectTokens:output_type -> token.project.ProjectTokens.Response
-	24, // 24: token.TokenHandlers.AddTokenProjectMember:output_type -> token.project.AddTokenProjectMember.Response
-	25, // 25: token.TokenHandlers.UpdateProjectToken:output_type -> token.project.UpdateProjectToken.Response
-	26, // 26: token.TokenHandlers.SchemeTokens:output_type -> token.scheme.SchemeTokens.Response
-	27, // 27: token.TokenHandlers.AddTokenSchemeAdd:output_type -> token.scheme.AddTokenSchemeAdd.Response
-	28, // 28: token.TokenHandlers.AddTokenSchemeAccess:output_type -> token.scheme.AddTokenSchemeAccess.Response
-	29, // 29: token.TokenHandlers.UpdateSchemeToken:output_type -> token.scheme.UpdateSchemeToken.Response
-	15, // [15:30] is the sub-list for method output_type
-	0,  // [0:15] is the sub-list for method input_type
+	14, // 14: token.TokenHandlers.AddTokenSchemeConnect:input_type -> token.scheme.AddTokenSchemeConnect.Request
+	15, // 15: token.TokenHandlers.UseTokenSchemeConnect:input_type -> token.scheme.UseTokenSchemeConnect.Request
+	16, // 16: token.TokenHandlers.UpdateSchemeToken:input_type -> token.scheme.UpdateSchemeToken.Request
+	17, // 17: token.TokenHandlers.Token:output_type -> token.message.Token.Response
+	18, // 18: token.TokenHandlers.ArchivedToken:output_type -> token.message.ArchivedToken.Response
+	19, // 19: token.TokenHandlers.DeleteToken:output_type -> token.message.DeleteToken.Response
+	20, // 20: token.TokenHandlers.ProfileTokens:output_type -> token.profile.ProfileTokens.Response
+	21, // 21: token.TokenHandlers.AddTokenProfileReset:output_type -> token.profile.AddTokenProfileReset.Response
+	22, // 22: token.TokenHandlers.AddTokenProfileRegistration:output_type -> token.profile.AddTokenProfileRegistration.Response
+	23, // 23: token.TokenHandlers.AddTokenProfileDelete:output_type -> token.profile.AddTokenProfileDelete.Response
+	24, // 24: token.TokenHandlers.UpdateProfileToken:output_type -> token.profile.UpdateProfileToken.Response
+	25, // 25: token.TokenHandlers.ProjectTokens:output_type -> token.project.ProjectTokens.Response
+	26, // 26: token.TokenHandlers.AddTokenProjectMember:output_type -> token.project.AddTokenProjectMember.Response
+	27, // 27: token.TokenHandlers.UpdateProjectToken:output_type -> token.project.UpdateProjectToken.Response
+	28, // 28: token.TokenHandlers.SchemeTokens:output_type -> token.scheme.SchemeTokens.Response
+	29, // 29: token.TokenHandlers.AddTokenSchemeAdd:output_type -> token.scheme.AddTokenSchemeAdd.Response
+	30, // 30: token.TokenHandlers.AddTokenSchemeAccess:output_type -> token.scheme.AddTokenSchemeAccess.Response
+	31, // 31: token.TokenHandlers.AddTokenSchemeConnect:output_type -> token.scheme.AddTokenSchemeConnect.Response
+	32, // 32: token.TokenHandlers.UseTokenSchemeConnect:output_type -> token.scheme.UseTokenSchemeConnect.Response
+	33, // 33: token.TokenHandlers.UpdateSchemeToken:output_type -> token.scheme.UpdateSchemeToken.Response
+	17, // [17:34] is the sub-list for method output_type
+	0,  // [0:17] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

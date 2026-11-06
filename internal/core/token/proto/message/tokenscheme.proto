@@ -16,7 +16,7 @@ message SchemeTokens {
   message Request {
     bool is_admin = 1; // @gotags: json:"-"
 
-    token.enum.Action action = 2 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, in: [3, 7, 8]}];
+    token.enum.Action action = 2 [(buf.validate.field).required = true, (buf.validate.field).enum = { defined_only: true, in: [3, 7, 8, 9]}];
     token.enum.Status status = 3 [(buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE, (buf.validate.field).enum = { defined_only: true, not_in: [0]}];
     string owner_id = 4 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
     string scheme_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
@@ -71,6 +71,34 @@ message AddTokenSchemeAccess {
 }
 // -----------------------------------------------------
 
+
+// rpc AddTokenSchemeConnect
+message AddTokenSchemeConnect {
+  message Request {
+    string profile_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+    string scheme_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+  }
+
+  message Response {
+    string token = 1;
+    google.protobuf.Timestamp expired_at = 2;
+  }
+}
+// -----------------------------------------------------
+
+// rpc UseTokenSchemeConnect
+message UseTokenSchemeConnect {
+  message Request {
+    string token = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).required = true];
+  }
+
+  message Response {
+    string profile_id = 1;
+    string scheme_id = 2;
+    string scheme_member_id = 3;
+  }
+}
+// -----------------------------------------------------
 
 // rpc UpdateSchemeToken
 message UpdateSchemeToken {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
@@ -15,6 +16,7 @@ import (
 	"github.com/werbot/werbot/internal/trace"
 	"github.com/werbot/werbot/internal/utils/test"
 	"github.com/werbot/werbot/internal/utils/test/factory"
+	"github.com/werbot/werbot/pkg/uuid"
 )
 
 func Test_SchemeTokens(t *testing.T) {
@@ -597,5 +599,239 @@ func Test_UpdateSchemeToken(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			test.RunCaseGRPCTests(t, handler, tt)
 		})
+	}
+}
+
+type connectFixture struct {
+	setup        *test.GRPCHandler
+	builder      *factory.Builder
+	client       tokenpb.TokenHandlersClient
+	admin, other factory.Profile
+	project      factory.Project
+	scheme       factory.Scheme
+	schemeMember factory.SchemeMember
+}
+
+func newConnectFixture(t *testing.T) *connectFixture {
+	t.Helper()
+
+	setup, teardown := test.GRPC(t)
+	t.Cleanup(func() { teardown(t) })
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+	admin := builder.Profile(factory.ProfileParams{Alias: "admin", Role: 3})
+	other := builder.Profile(factory.ProfileParams{Alias: "other"})
+	project := builder.Project(factory.ProjectParams{OwnerID: admin.ID, Title: "project1"})
+	member := builder.ProjectMember(factory.ProjectMemberParams{ProjectID: project.ID, ProfileID: admin.ID})
+	scheme := builder.Scheme(factory.SchemeParams{ProjectID: project.ID, SchemeType: 104, Title: "telnet"})
+	schemeMember := builder.SchemeMember(factory.SchemeMemberParams{SchemeID: scheme.ID, ProjectMemberID: member.ID})
+
+	return &connectFixture{
+		setup:        setup,
+		builder:      builder,
+		client:       tokenpb.NewTokenHandlersClient(setup),
+		admin:        admin,
+		other:        other,
+		project:      project,
+		scheme:       scheme,
+		schemeMember: schemeMember,
+	}
+}
+
+func Test_AddTokenSchemeConnect(t *testing.T) {
+	t.Run("missing_required_parameters", func(t *testing.T) {
+		f := newConnectFixture(t)
+		_, err := f.client.AddTokenSchemeConnect(context.Background(), &tokenmessage.AddTokenSchemeConnect_Request{})
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("code = %v, want InvalidArgument", status.Code(err))
+		}
+	})
+
+	t.Run("member_success", func(t *testing.T) {
+		f := newConnectFixture(t)
+		now := time.Now()
+
+		response, err := f.client.AddTokenSchemeConnect(context.Background(), &tokenmessage.AddTokenSchemeConnect_Request{
+			ProfileId: f.admin.ID,
+			SchemeId:  f.scheme.ID,
+		})
+		if err != nil {
+			t.Fatalf("AddTokenSchemeConnect() error = %v", err)
+		}
+		if !uuid.IsValid(response.GetToken()) {
+			t.Fatalf("token = %q, want UUID", response.GetToken())
+		}
+		expired := response.GetExpiredAt().AsTime()
+		if expired.Before(now.Add(4*time.Minute+59*time.Second)) || expired.After(now.Add(5*time.Minute+time.Second)) {
+			t.Fatalf("expired_at = %v, want about now+5m", expired)
+		}
+
+		var section, action, status int16
+		var profileID, schemeID string
+		var expiredAt time.Time
+		err = f.setup.Postgres.Conn().Conn.QueryRow(`
+			SELECT "section", "action", "status", "profile_id", "scheme_id", "expired_at"
+			FROM "token" WHERE "id" = $1
+		`, response.GetToken()).Scan(&section, &action, &status, &profileID, &schemeID, &expiredAt)
+		if err != nil {
+			t.Fatalf("query token: %v", err)
+		}
+		if section != int16(tokenenum.Section_scheme) || action != int16(tokenenum.Action_connect) || status != int16(tokenenum.Status_sent) {
+			t.Fatalf("token row = section %d action %d status %d", section, action, status)
+		}
+		if profileID != f.admin.ID || schemeID != f.scheme.ID {
+			t.Fatalf("token row = profile %q scheme %q", profileID, schemeID)
+		}
+	})
+
+	t.Run("not_member", func(t *testing.T) {
+		f := newConnectFixture(t)
+		_, err := f.client.AddTokenSchemeConnect(context.Background(), &tokenmessage.AddTokenSchemeConnect_Request{
+			ProfileId: f.other.ID,
+			SchemeId:  f.scheme.ID,
+		})
+		if status.Code(err) != codes.NotFound || status.Convert(err).Message() != trace.MsgSchemeNotFound {
+			t.Fatalf("error = %v, want NotFound %q", err, trace.MsgSchemeNotFound)
+		}
+	})
+
+	t.Run("inactive_scheme_member", func(t *testing.T) {
+		f := newConnectFixture(t)
+		if _, err := f.setup.Postgres.Conn().Conn.Exec(`UPDATE "scheme_member" SET "active" = FALSE WHERE "id" = $1`, f.schemeMember.ID); err != nil {
+			t.Fatalf("deactivate scheme member: %v", err)
+		}
+		_, err := f.client.AddTokenSchemeConnect(context.Background(), &tokenmessage.AddTokenSchemeConnect_Request{
+			ProfileId: f.admin.ID,
+			SchemeId:  f.scheme.ID,
+		})
+		if status.Code(err) != codes.NotFound || status.Convert(err).Message() != trace.MsgSchemeNotFound {
+			t.Fatalf("error = %v, want NotFound %q", err, trace.MsgSchemeNotFound)
+		}
+	})
+}
+
+func Test_UseTokenSchemeConnect(t *testing.T) {
+	f := newConnectFixture(t)
+	ctx := context.Background()
+
+	add := func(t *testing.T) *tokenmessage.AddTokenSchemeConnect_Response {
+		t.Helper()
+		response, err := f.client.AddTokenSchemeConnect(ctx, &tokenmessage.AddTokenSchemeConnect_Request{
+			ProfileId: f.admin.ID,
+			SchemeId:  f.scheme.ID,
+		})
+		if err != nil {
+			t.Fatalf("AddTokenSchemeConnect() error = %v", err)
+		}
+		return response
+	}
+
+	t.Run("success", func(t *testing.T) {
+		token := add(t)
+		response, err := f.client.UseTokenSchemeConnect(ctx, &tokenmessage.UseTokenSchemeConnect_Request{Token: token.GetToken()})
+		if err != nil {
+			t.Fatalf("UseTokenSchemeConnect() error = %v", err)
+		}
+		if response.GetProfileId() != f.admin.ID || response.GetSchemeId() != f.scheme.ID || response.GetSchemeMemberId() != f.schemeMember.ID {
+			t.Fatalf("response = %+v", response)
+		}
+
+		var statusValue int16
+		if err := f.setup.Postgres.Conn().Conn.QueryRow(`SELECT "status" FROM "token" WHERE "id" = $1`, token.GetToken()).Scan(&statusValue); err != nil {
+			t.Fatalf("query token status: %v", err)
+		}
+		if statusValue != int16(tokenenum.Status_used) {
+			t.Fatalf("status = %d, want used", statusValue)
+		}
+	})
+
+	t.Run("second_use", func(t *testing.T) {
+		token := add(t)
+		if _, err := f.client.UseTokenSchemeConnect(ctx, &tokenmessage.UseTokenSchemeConnect_Request{Token: token.GetToken()}); err != nil {
+			t.Fatalf("first UseTokenSchemeConnect() error = %v", err)
+		}
+		_, err := f.client.UseTokenSchemeConnect(ctx, &tokenmessage.UseTokenSchemeConnect_Request{Token: token.GetToken()})
+		if status.Code(err) != codes.NotFound || status.Convert(err).Message() != trace.MsgTokenIsInvalid {
+			t.Fatalf("error = %v, want NotFound %q", err, trace.MsgTokenIsInvalid)
+		}
+	})
+
+	t.Run("expired", func(t *testing.T) {
+		token := f.builder.Token(factory.TokenParams{
+			Section:   int16(tokenenum.Section_scheme),
+			Action:    int16(tokenenum.Action_connect),
+			Status:    int16(tokenenum.Status_sent),
+			ProfileID: f.admin.ID,
+			SchemeID:  f.scheme.ID,
+			ExpiredAt: factory.Time(time.Now().UTC().Add(-time.Minute)),
+		})
+		_, err := f.client.UseTokenSchemeConnect(ctx, &tokenmessage.UseTokenSchemeConnect_Request{Token: token.ID})
+		if status.Code(err) != codes.NotFound || status.Convert(err).Message() != trace.MsgTokenIsInvalid {
+			t.Fatalf("error = %v, want NotFound %q", err, trace.MsgTokenIsInvalid)
+		}
+	})
+
+	t.Run("wrong_action", func(t *testing.T) {
+		token := f.builder.Token(factory.TokenParams{
+			Section:   int16(tokenenum.Section_scheme),
+			Action:    int16(tokenenum.Action_access),
+			Status:    int16(tokenenum.Status_sent),
+			ProfileID: f.admin.ID,
+			SchemeID:  f.scheme.ID,
+		})
+		_, err := f.client.UseTokenSchemeConnect(ctx, &tokenmessage.UseTokenSchemeConnect_Request{Token: token.ID})
+		if status.Code(err) != codes.NotFound || status.Convert(err).Message() != trace.MsgTokenIsInvalid {
+			t.Fatalf("error = %v, want NotFound %q", err, trace.MsgTokenIsInvalid)
+		}
+	})
+
+	t.Run("membership_revoked", func(t *testing.T) {
+		token := add(t)
+		if _, err := f.setup.Postgres.Conn().Conn.Exec(`UPDATE "scheme_member" SET "active" = FALSE WHERE "id" = $1`, f.schemeMember.ID); err != nil {
+			t.Fatalf("deactivate scheme member: %v", err)
+		}
+		_, err := f.client.UseTokenSchemeConnect(ctx, &tokenmessage.UseTokenSchemeConnect_Request{Token: token.GetToken()})
+		if status.Code(err) != codes.NotFound || status.Convert(err).Message() != trace.MsgTokenIsInvalid {
+			t.Fatalf("error = %v, want NotFound %q", err, trace.MsgTokenIsInvalid)
+		}
+	})
+}
+
+func Test_AddTokenSchemeConnectProjectOwner(t *testing.T) {
+	setup, teardown := test.GRPC(t)
+	defer teardown(t)
+
+	builder := factory.New(t, setup.Postgres.Conn().Conn)
+	owner := builder.Profile(factory.ProfileParams{Alias: "owner", Role: 3})
+	project := builder.Project(factory.ProjectParams{OwnerID: owner.ID, Title: "owner project"})
+	scheme := builder.Scheme(factory.SchemeParams{ProjectID: project.ID, SchemeType: 104, Title: "telnet"})
+	client := tokenpb.NewTokenHandlersClient(setup)
+	ctx := context.Background()
+
+	response, err := client.AddTokenSchemeConnect(ctx, &tokenmessage.AddTokenSchemeConnect_Request{
+		ProfileId: owner.ID,
+		SchemeId:  scheme.ID,
+	})
+	if err != nil {
+		t.Fatalf("AddTokenSchemeConnect() error = %v", err)
+	}
+
+	var projectMemberID, schemeMemberID string
+	err = setup.Postgres.Conn().Conn.QueryRow(`
+		SELECT pm.id, sm.id
+		FROM project_member pm
+		INNER JOIN scheme_member sm ON sm.project_member_id = pm.id
+		WHERE pm.project_id = $1 AND pm.profile_id = $2 AND pm.active = TRUE AND sm.active = TRUE
+	`, project.ID, owner.ID).Scan(&projectMemberID, &schemeMemberID)
+	if err != nil {
+		t.Fatalf("owner membership was not created: %v", err)
+	}
+
+	used, err := client.UseTokenSchemeConnect(ctx, &tokenmessage.UseTokenSchemeConnect_Request{Token: response.GetToken()})
+	if err != nil {
+		t.Fatalf("UseTokenSchemeConnect() error = %v", err)
+	}
+	if used.GetSchemeMemberId() != schemeMemberID {
+		t.Fatalf("scheme_member_id = %q, want %q", used.GetSchemeMemberId(), schemeMemberID)
 	}
 }

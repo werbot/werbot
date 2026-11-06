@@ -23,6 +23,7 @@ enum Action {
   enable = 6;
   request = 7;
   access = 8;
+  connect = 9;
 }
 
 enum Status {

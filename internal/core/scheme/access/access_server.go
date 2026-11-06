@@ -196,6 +196,51 @@ func (s *handler) handleServerSSH(in *schemeaccesspb.AccessScheme_ServerSsh) (*S
 func (s *handler) handleServerTelnet(in *schemeaccesspb.AccessScheme_ServerTelnet) (*SchemeDescription, error) {
 	schemeType := schemeaccesspb.SchemeType_server_telnet
 	newAccess := in.ServerTelnet
+
+	var oldPassword string
+	if s.sh.Update != nil {
+		if schemeType != s.schemeType {
+			errGRPC := status.Error(codes.InvalidArgument, trace.MsgSchemeDiffers)
+			return nil, trace.Error(errGRPC, s.sh.Log, nil)
+		}
+
+		var oldAccess schemeaccesspb.AccessScheme_Server_Telnet
+		if err := protojson.Unmarshal(s.schemeByte, &oldAccess); err != nil {
+			return nil, trace.Error(err, s.sh.Log, nil)
+		}
+		oldPassword = oldAccess.GetAccess().GetPassword()
+
+		newAccess.Alias = oldAccess.GetAlias()
+		if newAccess.GetAddress() == "" {
+			newAccess.Address = oldAccess.GetAddress()
+		}
+		if newAccess.GetPort() == 0 {
+			newAccess.Port = oldAccess.GetPort()
+		}
+	} else {
+		newAccess.Alias = s.alias
+	}
+
+	if newAccess.GetAccess() == nil {
+		errGRPC := status.Error(codes.InvalidArgument, "password is required")
+		return nil, trace.Error(errGRPC, s.sh.Log, nil)
+	}
+
+	password := newAccess.GetAccess().GetPassword()
+	if s.sh.Update != nil && password == "" && oldPassword != "" {
+		newAccess.Access.Password = oldPassword
+	} else {
+		if password == "" {
+			errGRPC := status.Error(codes.InvalidArgument, "password is required")
+			return nil, trace.Error(errGRPC, s.sh.Log, nil)
+		}
+		encrypted, err := encryptSecret(password)
+		if err != nil {
+			return nil, trace.Error(err, s.sh.Log, nil)
+		}
+		newAccess.Access.Password = encrypted
+	}
+
 	return &SchemeDescription{
 		SchemeType:   schemeType,
 		Access:       newAccess,

@@ -19,6 +19,7 @@ import (
 	"github.com/werbot/werbot/internal"
 	auditmessage "github.com/werbot/werbot/internal/core/audit/proto/message"
 	auditrpc "github.com/werbot/werbot/internal/core/audit/proto/rpc"
+	schemeaccesspb "github.com/werbot/werbot/internal/core/scheme/proto/access"
 	schemepb "github.com/werbot/werbot/internal/core/scheme/proto/scheme"
 	"github.com/werbot/werbot/internal/core/scheme/services/ssh/auditor"
 	"github.com/werbot/werbot/internal/core/scheme/services/ssh/pty"
@@ -32,6 +33,7 @@ type sessionConfig struct {
 	ClientConfig *gossh.ClientConfig
 	Channel      channelTunnel
 
+	SchemeID  string
 	Addr      string
 	AccountID string
 	ProfileID string
@@ -46,6 +48,18 @@ type channelTunnel struct {
 }
 
 func connectToHost(scheme *schemepb.Scheme_Response, actx *authContext, sshCtx ssh.Context, newChan gossh.NewChannel, srv *ssh.Server, conn *gossh.ServerConn, ch channelTunnel) {
+	switch scheme.GetSchemeType() {
+	case schemeaccesspb.SchemeType_server_telnet:
+		connectToTelnet(scheme, actx, newChan, ch)
+		return
+	case schemeaccesspb.SchemeType_server_ssh:
+		// SSH is the original path below.
+	default:
+		sendMessageInChannel(ch.lch, fmt.Sprintf("Scheme type %s is not supported\n", scheme.GetSchemeType()))
+		_ = ch.lch.Close()
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -63,6 +77,7 @@ func connectToHost(scheme *schemepb.Scheme_Response, actx *authContext, sshCtx s
 	sessionConfigs := []sessionConfig{{
 		Addr:         client.Address,
 		ClientConfig: client.ClientConfig,
+		SchemeID:     scheme.GetSchemeId(),
 		AccountID:    scheme.GetSchemeMemberId(),
 		ProfileID:    actx.userID,
 		ClientIP:     actx.clientIP,
@@ -333,6 +348,7 @@ func pipe(lreqs, rreqs <-chan *gossh.Request, lch, rch gossh.Channel, newChan go
 	quit := make(chan string, 1)
 
 	newAudit := &auditmessage.AddAudit_Request{
+		ServerId:  sessConfig.SchemeID,
 		AccountId: sessConfig.AccountID,
 		ProfileId: sessConfig.ProfileID,
 		ClientIp:  sessConfig.ClientIP,

@@ -30,5 +30,7 @@ service TokenHandlers {
   rpc SchemeTokens(token.scheme.SchemeTokens.Request) returns (token.scheme.SchemeTokens.Response) {}
   rpc AddTokenSchemeAdd(token.scheme.AddTokenSchemeAdd.Request) returns (token.scheme.AddTokenSchemeAdd.Response) {}
   rpc AddTokenSchemeAccess(token.scheme.AddTokenSchemeAccess.Request) returns (token.scheme.AddTokenSchemeAccess.Response) {}
+  rpc AddTokenSchemeConnect(token.scheme.AddTokenSchemeConnect.Request) returns (token.scheme.AddTokenSchemeConnect.Response) {}
+  rpc UseTokenSchemeConnect(token.scheme.UseTokenSchemeConnect.Request) returns (token.scheme.UseTokenSchemeConnect.Response) {}
   rpc UpdateSchemeToken(token.scheme.UpdateSchemeToken.Request) returns (token.scheme.UpdateSchemeToken.Response) {}
 }

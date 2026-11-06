@@ -45,6 +45,7 @@ func (h *Handler) Routes() {
 	apiV1scheme := apiV1.Group("/scheme/:scheme_id<guid>", h.Auth)
 	apiV1scheme.Get("/", h.schemeTokens)
 	apiV1scheme.Post("/", h.addSchemeToken)
+	apiV1scheme.Post("/connect", h.addSchemeConnectToken)
 
 	// Token deletion (private)
 	apiV1.Delete("/:token<guid>", h.Auth, h.deleteToken)

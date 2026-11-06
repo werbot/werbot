@@ -88,6 +88,7 @@ const (
 	Action_enable             Action = 6
 	Action_request            Action = 7
 	Action_access             Action = 8
+	Action_connect            Action = 9
 )
 
 // Enum value maps for Action.
@@ -102,6 +103,7 @@ var (
 		6: "enable",
 		7: "request",
 		8: "access",
+		9: "connect",
 	}
 	Action_value = map[string]int32{
 		"action_unspecified": 0,
@@ -113,6 +115,7 @@ var (
 		"enable":             6,
 		"request":            7,
 		"access":             8,
+		"connect":            9,
 	}
 )
 
@@ -214,7 +217,7 @@ const file_internal_core_token_proto_enum_tokenenum_proto_rawDesc = "" +
 	"\n" +
 	"\x06scheme\x10\x03\x12\t\n" +
 	"\x05agent\x10\x04\x12\b\n" +
-	"\x04rest\x10\x05*\x80\x01\n" +
+	"\x04rest\x10\x05*\x8d\x01\n" +
 	"\x06Action\x12\x16\n" +
 	"\x12action_unspecified\x10\x00\x12\t\n" +
 	"\x05reset\x10\x01\x12\f\n" +
@@ -227,7 +230,8 @@ const file_internal_core_token_proto_enum_tokenenum_proto_rawDesc = "" +
 	"\x06enable\x10\x06\x12\v\n" +
 	"\arequest\x10\a\x12\n" +
 	"\n" +
-	"\x06access\x10\b*Y\n" +
+	"\x06access\x10\b\x12\v\n" +
+	"\aconnect\x10\t*Y\n" +
 	"\x06Status\x12\x16\n" +
 	"\x12status_unspecified\x10\x00\x12\b\n" +
 	"\x04done\x10\x01\x12\b\n" +
