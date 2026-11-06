@@ -271,6 +271,51 @@ test_sync_commit_creates_parent_commit() {
   fi
 }
 
+test_pre_push_fails_on_unpushed_commit() {
+  local dir line out status
+  dir=$(new_fixture prepush)
+  echo two >"$dir/parent/sub/two"
+  git -C "$dir/parent/sub" add two
+  git -C "$dir/parent/sub" -c user.email=t@e -c user.name=T commit -qm local
+  line="refs/heads/main $(git -C "$dir/parent" rev-parse HEAD) refs/heads/main 0000000000000000000000000000000000000000"
+  out=$(cd "$dir/parent" && printf '%s\n' "$line" | "$CHECK" check --pre-push 2>&1) && status=0 || status=$?
+  if [ "$status" -ne 0 ] && assert_contains "$out" "unpushed commit"; then
+    pass "pre-push rejects unpushed submodule commits"
+  else
+    fail_test "pre-push rejects unpushed submodule commits"
+  fi
+}
+
+test_pre_push_passes_after_push() {
+  local dir line
+  dir=$(new_fixture prepushok)
+  echo two >"$dir/parent/sub/two"
+  git -C "$dir/parent/sub" add two
+  git -C "$dir/parent/sub" -c user.email=t@e -c user.name=T commit -qm local
+  git -C "$dir/parent/sub" push -q origin HEAD:main
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+  line="refs/heads/main $(git -C "$dir/parent" rev-parse HEAD) refs/heads/main 0000000000000000000000000000000000000000"
+  if (cd "$dir/parent" && printf '%s\n' "$line" | "$CHECK" check --pre-push) >/dev/null; then
+    pass "pre-push passes when the module is pushed and merged"
+  else
+    fail_test "pre-push passes when the module is pushed and merged"
+  fi
+}
+
+test_pre_push_handles_detached_submodule() {
+  local dir line
+  dir=$(new_fixture prepushdetached)
+  git -C "$dir/parent/sub" checkout -q --detach
+  line="refs/heads/main $(git -C "$dir/parent" rev-parse HEAD) refs/heads/main 0000000000000000000000000000000000000000"
+  if (cd "$dir/parent" && printf '%s\n' "$line" | "$CHECK" check --pre-push) >/dev/null; then
+    pass "pre-push handles a detached submodule"
+  else
+    fail_test "pre-push handles a detached submodule"
+  fi
+}
+
 for t in \
   test_main_mode_passes_when_synced \
   test_main_mode_fails_when_pin_missing_on_remote \
@@ -284,7 +329,10 @@ for t in \
   test_sync_merges_pushes_and_updates_pin \
   test_sync_aborts_on_dirty_submodule \
   test_sync_requires_initialized_submodule \
-  test_sync_commit_creates_parent_commit; do
+  test_sync_commit_creates_parent_commit \
+  test_pre_push_fails_on_unpushed_commit \
+  test_pre_push_passes_after_push \
+  test_pre_push_handles_detached_submodule; do
   "$t"
 done
 

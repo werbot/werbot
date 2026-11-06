@@ -276,8 +276,81 @@ Key changes:
   fi
 }
 
+cmd_check_pre_push() {
+  if [ "${SKIP_SUBMODULE_CHECK:-0}" = "1" ]; then
+    echo "[WARN] submodule check skipped by SKIP_SUBMODULE_CHECK=1" >&2
+    return 0
+  fi
+
+  local main_mode=0 branches="" local_ref local_sha remote_ref remote_sha_value
+  if [ -t 0 ]; then
+    local current
+    current=$(git symbolic-ref --short -q HEAD) || die "cannot determine the current branch"
+    if [ "$current" = "main" ]; then
+      main_mode=1
+    else
+      branches="${current}"
+    fi
+  else
+    while read -r local_ref local_sha remote_ref remote_sha_value; do
+      [ -n "$remote_ref" ] || continue
+      case "$remote_ref" in
+      refs/heads/main)
+        main_mode=1
+        ;;
+      refs/heads/*)
+        branches="${branches}${remote_ref#refs/heads/}
+"
+        ;;
+      esac
+    done
+  fi
+
+  if [ "$main_mode" -eq 1 ]; then
+    cmd_check_main
+  fi
+  if [ -n "$branches" ]; then
+    local pushed
+    while IFS= read -r pushed; do
+      [ -n "$pushed" ] || continue
+      cmd_check_branch "$pushed" "origin/main"
+    done <<<"$branches"
+  fi
+  if [ "$main_mode" -eq 0 ] && [ -z "$branches" ]; then
+    cmd_check_branch "" "origin/main"
+  fi
+
+  local name path url abs branch upstream ahead errors=0
+  while IFS=$'\t' read -r name path url; do
+    abs="${ROOT_PATH}/${path}"
+    git -C "$abs" rev-parse --git-dir >/dev/null 2>&1 || continue
+
+    if [ -n "$(git -C "$abs" status --porcelain)" ]; then
+      echo "[WARN] ${path}: uncommitted changes will not be pushed" >&2
+    fi
+
+    branch=$(git -C "$abs" symbolic-ref --short -q HEAD) || continue
+    if ! upstream=$(git -C "$abs" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null); then
+      echo "[ERROR] ${path}: branch '${branch}' has no upstream; push it" >&2
+      errors=$((errors + 1))
+      continue
+    fi
+    ahead=$(git -C "$abs" rev-list --count '@{u}..HEAD')
+    if [ "$ahead" -gt 0 ]; then
+      echo "[ERROR] ${path}: branch '${branch}' has ${ahead} unpushed commit(s)" >&2
+      errors=$((errors + 1))
+    fi
+  done < <(submodule_entries)
+
+  if [ "$errors" -ne 0 ]; then
+    echo "[ERROR] submodule pre-push check failed: ${errors} violation(s)" >&2
+    exit 1
+  fi
+}
+
 cmd_install_hook() {
-  echo "install-hook is implemented in Task 4"
+  git -C "$ROOT_PATH" config core.hooksPath .githooks
+  echo "git hooks installed at ${ROOT_PATH}/.githooks"
 }
 
 case "${1:-}" in
@@ -287,7 +360,12 @@ status)
   ;;
 check)
   shift
-  cmd_check "$@"
+  if [ "${1:-}" = "--pre-push" ]; then
+    shift
+    cmd_check_pre_push
+  else
+    cmd_check "$@"
+  fi
   ;;
 sync)
   shift
