@@ -26,6 +26,30 @@ jobs:
           submodules: false
           token: ${{ secrets.SUBMODULE_TOKEN || secrets.GITHUB_TOKEN }}
 
+      - name: Check token write access
+        env:
+          GH_TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
+          PARENT_REPO: ${{ github.repository }}
+        run: |
+          repos=("$PARENT_REPO")
+          while read -r url; do
+            slug=${url#https://github.com/}
+            slug=${slug#git@github.com:}
+            slug=${slug%.git}
+            if [[ ! "$slug" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+              echo "::error::invalid submodule repository slug '$slug'"
+              exit 1
+            fi
+            repos+=("$slug")
+          done < <(git config -f .gitmodules --get-regexp '^submodule\..*\.url$' | awk '{print $2}')
+          for repo in "${repos[@]}"; do
+            if ! state=$(gh api "repos/$repo" --jq '.permissions.push' 2>/dev/null) ||
+              [ "$state" != "true" ]; then
+              echo "::error::SUBMODULE_TOKEN lacks push access to $repo"
+              exit 1
+            fi
+          done
+
       - name: Test submodule tooling
         run: scripts/submodules.test.sh
 

@@ -1,0 +1,73 @@
+name: submodule-reconcile
+
+on:
+  push:
+    branches: ["main"]
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: submodule-reconcile-main
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    name: Submodule reconcile
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          token: ${{ secrets.SUBMODULE_TOKEN }}
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Configure git
+        env:
+          TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
+        run: |
+          git config --global user.name "werbot-bot"
+          git config --global user.email "bot@werbot.net"
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
+
+      - name: Check token write access
+        env:
+          GH_TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
+          PARENT_REPO: ${{ github.repository }}
+        run: |
+          repos=("$PARENT_REPO")
+          while read -r url; do
+            slug=${url#https://github.com/}
+            slug=${slug#git@github.com:}
+            slug=${slug%.git}
+            if [[ ! "$slug" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+              echo "::error::invalid submodule repository slug '$slug'"
+              exit 1
+            fi
+            repos+=("$slug")
+          done < <(git config -f .gitmodules --get-regexp '^submodule\..*\.url$' | awk '{print $2}')
+          for repo in "${repos[@]}"; do
+            if ! state=$(gh api "repos/$repo" --jq '.permissions.push' 2>/dev/null) ||
+              [ "$state" != "true" ]; then
+              echo "::error::SUBMODULE_TOKEN lacks push access to $repo"
+              exit 1
+            fi
+          done
+
+      - name: Reconcile submodule pins
+        run: |
+          before=$(git rev-parse HEAD)
+          scripts/submodules sync --pin --commit
+          after=$(git rev-parse HEAD)
+          if [ "$before" != "$after" ]; then
+            git push origin main
+          else
+            echo "submodules already synced"
+          fi

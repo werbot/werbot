@@ -161,10 +161,29 @@ test_branch_mode_fails_when_pin_is_behind() {
   git -C "$dir/seed" commit -qm two
   git -C "$dir/seed" push -q origin feature
   out=$(cd "$dir/parent" && "$CHECK" check --mode branch --branch feature 2>&1) && status=0 || status=$?
-  if [ "$status" -ne 0 ] && assert_contains "$out" "is not the tip of remote branch 'feature'"; then
+  if [ "$status" -ne 0 ] && assert_contains "$out" "is not the tip of any remote branch"; then
     pass "branch mode rejects a stale pin"
   else
     fail_test "branch mode rejects a stale pin"
+  fi
+}
+
+test_branch_mode_accepts_any_pushed_branch_name() {
+  local dir
+  dir=$(new_fixture branchany)
+  git -C "$dir/seed" checkout -qb feature-any-name
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm feature
+  git -C "$dir/seed" push -q origin feature-any-name
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q origin/feature-any-name
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+  if (cd "$dir/parent" && "$CHECK" check --mode branch --branch unrelated-name) >/dev/null; then
+    pass "branch mode accepts any pushed branch name"
+  else
+    fail_test "branch mode accepts any pushed branch name"
   fi
 }
 
@@ -375,6 +394,10 @@ test_pre_push_checks_pushed_ref_not_head() {
   git -C "$dir/parent" add sub
   git -C "$dir/parent" commit -qm "bad pin"
   bad_sha=$(git -C "$dir/parent" rev-parse HEAD)
+  echo three >"$dir/seed/three"
+  git -C "$dir/seed" add three
+  git -C "$dir/seed" commit -qm "advance"
+  git -C "$dir/seed" push -q origin feature
   git -C "$dir/parent/sub" checkout -q main
   git -C "$dir/parent" checkout -q main
   line="refs/heads/bad ${bad_sha} refs/heads/bad 0000000000000000000000000000000000000000"
@@ -469,6 +492,187 @@ test_check_uses_gitmodules_url_when_uninitialized() {
   fi
 }
 
+test_sync_pin_fast_forwards_to_pinned_commit() {
+  local dir before after
+  dir=$(new_fixture pinmerge)
+  before=$(git -C "$dir/parent" rev-parse HEAD)
+  git -C "$dir/seed" checkout -qb feature-any-name
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm feature
+  git -C "$dir/seed" push -q origin feature-any-name
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q origin/feature-any-name
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+  before=$(git -C "$dir/parent" rev-parse HEAD)
+  (cd "$dir/parent" && "$CHECK" sync --pin --commit) >/dev/null || {
+    fail_test "sync --pin fast-forwards to the pinned commit"
+    return
+  }
+  local main_sha indexed
+  main_sha=$(git -C "$dir/origin.git" rev-parse refs/heads/main)
+  indexed=$(git -C "$dir/parent" rev-parse :sub)
+  after=$(git -C "$dir/parent" rev-parse HEAD)
+  if [ "$main_sha" = "$indexed" ] && [ "$before" = "$after" ]; then
+    pass "sync --pin fast-forwards to the pinned commit"
+  else
+    fail_test "sync --pin fast-forwards to the pinned commit"
+  fi
+}
+
+test_sync_pin_fast_forwards_pin_when_main_advanced() {
+  local dir
+  dir=$(new_fixture pinff)
+  echo main >"$dir/seed/main"
+  git -C "$dir/seed" add main
+  git -C "$dir/seed" commit -qm advance
+  git -C "$dir/seed" push -q origin main
+  (cd "$dir/parent" && "$CHECK" sync --pin --commit) >/dev/null || {
+    fail_test "sync --pin fast-forwards to module main"
+    return
+  }
+  local main_sha indexed
+  main_sha=$(git -C "$dir/origin.git" rev-parse refs/heads/main)
+  indexed=$(git -C "$dir/parent" rev-parse :sub)
+  [ "$main_sha" = "$indexed" ] && pass "sync --pin fast-forwards to module main" ||
+    fail_test "sync --pin fast-forwards to module main"
+}
+
+test_sync_pin_fails_when_pin_missing_on_remote() {
+  local dir out status
+  dir=$(new_fixture pinmissing)
+  echo two >"$dir/parent/sub/two"
+  git -C "$dir/parent/sub" add two
+  git -C "$dir/parent/sub" -c user.email=t@e -c user.name=T commit -qm local
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+  out=$(cd "$dir/parent" && "$CHECK" sync --pin --commit 2>&1) && status=0 || status=$?
+  if [ "$status" -ne 0 ] && assert_contains "$out" "is not on the remote"; then
+    pass "sync --pin rejects an unpushed pin"
+  else
+    fail_test "sync --pin rejects an unpushed pin"
+  fi
+}
+
+test_sync_pin_noop_when_synced() {
+  local dir before after
+  dir=$(new_fixture pinnoop)
+  before=$(git -C "$dir/parent" rev-parse HEAD)
+  (cd "$dir/parent" && "$CHECK" sync --pin --commit) >/dev/null || {
+    fail_test "sync --pin is a no-op when synced"
+    return
+  }
+  after=$(git -C "$dir/parent" rev-parse HEAD)
+  [ "$before" = "$after" ] && pass "sync --pin is a no-op when synced" ||
+    fail_test "sync --pin is a no-op when synced"
+}
+
+test_sync_pin_rejects_branch_combination() {
+  local dir out status
+  dir=$(new_fixture pinboth)
+  out=$(cd "$dir/parent" && "$CHECK" sync --pin --branch feature 2>&1) && status=0 || status=$?
+  if [ "$status" -ne 0 ] && assert_contains "$out" "mutually exclusive"; then
+    pass "sync rejects --pin with --branch"
+  else
+    fail_test "sync rejects --pin with --branch"
+  fi
+}
+
+test_sync_pin_creates_merge_commit_when_main_advanced() {
+  local dir
+  dir=$(new_fixture pinmergecommit)
+  git -C "$dir/seed" checkout -qb feature
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm feature
+  git -C "$dir/seed" push -q origin feature
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q origin/feature
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+
+  git -C "$dir/seed" checkout -q main
+  echo main >"$dir/seed/main"
+  git -C "$dir/seed" add main
+  git -C "$dir/seed" commit -qm main
+  git -C "$dir/seed" push -q origin main
+
+  (cd "$dir/parent" && "$CHECK" sync --pin --commit) >/dev/null || {
+    fail_test "sync --pin creates a merge commit"
+    return
+  }
+  local subject main_sha indexed
+  subject=$(git -C "$dir/parent" log -1 --format=%s)
+  main_sha=$(git -C "$dir/origin.git" rev-parse refs/heads/main)
+  indexed=$(git -C "$dir/parent" rev-parse :sub)
+  if assert_contains "$subject" "sync submodule pins" &&
+    [ "$main_sha" = "$indexed" ] &&
+    git -C "$dir/parent/sub" rev-parse --verify --quiet HEAD^2 >/dev/null; then
+    pass "sync --pin creates a merge commit"
+  else
+    fail_test "sync --pin creates a merge commit"
+  fi
+}
+
+test_sync_pin_stops_on_conflict() {
+  local dir out status parent_before main_before
+  dir=$(new_fixture pinconflict)
+  git -C "$dir/seed" checkout -qb feature
+  echo feature >"$dir/seed/file"
+  git -C "$dir/seed" add file
+  git -C "$dir/seed" commit -qm feature
+  git -C "$dir/seed" push -q origin feature
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q origin/feature
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+
+  git -C "$dir/seed" checkout -q main
+  echo main >"$dir/seed/file"
+  git -C "$dir/seed" add file
+  git -C "$dir/seed" commit -qm main
+  git -C "$dir/seed" push -q origin main
+
+  parent_before=$(git -C "$dir/parent" rev-parse HEAD)
+  main_before=$(git -C "$dir/origin.git" rev-parse refs/heads/main)
+  out=$(cd "$dir/parent" && "$CHECK" sync --pin --commit 2>&1) && status=0 || status=$?
+  if [ "$status" -ne 0 ] &&
+    assert_contains "$out" "merge conflict" &&
+    [ "$parent_before" = "$(git -C "$dir/parent" rev-parse HEAD)" ] &&
+    [ "$main_before" = "$(git -C "$dir/origin.git" rev-parse refs/heads/main)" ]; then
+    pass "sync --pin stops on conflict without pushing"
+  else
+    fail_test "sync --pin stops on conflict without pushing"
+  fi
+}
+
+test_sync_pin_second_run_is_noop() {
+  local dir first second
+  dir=$(new_fixture pinsecond)
+  git -C "$dir/seed" checkout -qb feature
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm feature
+  git -C "$dir/seed" push -q origin feature
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q origin/feature
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+  git -C "$dir/seed" checkout -q main
+  echo main >"$dir/seed/main"
+  git -C "$dir/seed" add main
+  git -C "$dir/seed" commit -qm main
+  git -C "$dir/seed" push -q origin main
+
+  (cd "$dir/parent" && "$CHECK" sync --pin --commit) >/dev/null
+  first=$(git -C "$dir/parent" rev-parse HEAD)
+  (cd "$dir/parent" && "$CHECK" sync --pin --commit) >/dev/null
+  second=$(git -C "$dir/parent" rev-parse HEAD)
+  [ "$first" = "$second" ] && pass "sync --pin second run is a no-op" ||
+    fail_test "sync --pin second run is a no-op"
+}
+
 for t in \
   test_main_mode_passes_when_synced \
   test_main_mode_fails_when_pin_missing_on_remote \
@@ -476,6 +680,7 @@ for t in \
   test_status_reports_synced_and_drift \
   test_unreachable_remote_fails \
   test_branch_mode_passes_for_branch_tip \
+  test_branch_mode_accepts_any_pushed_branch_name \
   test_branch_mode_fails_when_pin_is_behind \
   test_branch_mode_ignores_unchanged_module \
   test_branch_mode_requires_base_ref \
@@ -492,7 +697,15 @@ for t in \
   test_check_uses_gitmodules_url_when_uninitialized \
   test_pre_push_checks_pushed_ref_not_head \
   test_branch_mode_accepts_synced_merge_commit \
-  test_sync_commit_ignores_unrelated_staged_files; do
+  test_sync_commit_ignores_unrelated_staged_files \
+  test_sync_pin_fast_forwards_to_pinned_commit \
+  test_sync_pin_fast_forwards_pin_when_main_advanced \
+  test_sync_pin_fails_when_pin_missing_on_remote \
+  test_sync_pin_noop_when_synced \
+  test_sync_pin_rejects_branch_combination \
+  test_sync_pin_creates_merge_commit_when_main_advanced \
+  test_sync_pin_stops_on_conflict \
+  test_sync_pin_second_run_is_noop; do
   "$t"
 done
 
