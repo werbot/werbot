@@ -22,7 +22,7 @@ Commands:
   status                              Show pin and remote main state
   check --mode main [--rev REF]       Require pin == remote main tip
   check --mode branch [--branch N] [--base REF] [--rev REF]
-                                      Require pin == same-named branch tip
+                                      Require changed pins to be remote branch tips
   check --pre-push                    Hook mode: validate pushed refs
   sync [--branch N | --pin] [--commit]
                                       Merge module branches or pinned commits into main
@@ -134,16 +134,13 @@ cmd_check_main() {
 }
 
 cmd_check_branch() {
-  local branch="${1:-}" base="${2:-origin/main}" rev="${3:-HEAD}"
-  if [ -z "$branch" ]; then
-    branch=$(git symbolic-ref --short -q HEAD) || die "cannot determine the current branch; pass --branch"
-  fi
+  local _branch="${1:-}" base="${2:-origin/main}" rev="${3:-HEAD}"
   if ! git rev-parse --verify --quiet "${base}^{commit}" >/dev/null; then
     die "base ref '${base}' not found; fetch it or pass --base"
   fi
   load_submodule_entries
 
-  local i path url pin base_pin branch_tip main errors=0
+  local i path url pin base_pin heads errors=0
   for i in "${!SUBMODULE_PATHS[@]}"; do
     path="${SUBMODULE_PATHS[$i]}"
     url="${SUBMODULE_URLS[$i]}"
@@ -155,36 +152,17 @@ cmd_check_branch() {
     base_pin=$(git rev-parse --verify --quiet "${base}:${path}" || true)
     [ "$pin" = "$base_pin" ] && continue
 
-    if ! branch_tip=$(remote_sha "$url" "refs/heads/${branch}"); then
+    if ! heads=$(git ls-remote --heads "$url" 2>/dev/null); then
       echo "[ERROR] ${path}: cannot read remote '${url}'" >&2
       errors=$((errors + 1))
       continue
     fi
-    if ! main=$(remote_sha "$url" refs/heads/main); then
-      echo "[ERROR] ${path}: cannot read remote '${url}'" >&2
-      errors=$((errors + 1))
+    if awk '{print $1}' <<<"$heads" | grep -qx "$pin"; then
       continue
     fi
 
-    # A branch push may pin the module main tip after sync merged the branch.
-    if [ -n "$main" ] && [ "$pin" = "$main" ]; then
-      continue
-    fi
-    if [ -n "$branch_tip" ]; then
-      if [ "$pin" != "$branch_tip" ]; then
-        echo "[ERROR] ${path}: pin $(short "$pin") is not the tip of remote branch '${branch}' ($(short "$branch_tip"))" >&2
-        errors=$((errors + 1))
-      fi
-      continue
-    fi
-
-    if [ -z "$main" ]; then
-      echo "[ERROR] ${path}: remote has no main branch" >&2
-      errors=$((errors + 1))
-    else
-      echo "[ERROR] ${path}: branch '${branch}' not found on remote and pin $(short "$pin") is not the remote main tip $(short "$main")" >&2
-      errors=$((errors + 1))
-    fi
+    echo "[ERROR] ${path}: pin $(short "$pin") is not the tip of any remote branch; push the module branch" >&2
+    errors=$((errors + 1))
   done
 
   if [ "$errors" -ne 0 ]; then
@@ -280,7 +258,7 @@ cmd_sync() {
     exit 1
   fi
 
-  local local_ref remote_ref local_sha remote_sha_value new_pin
+  local local_ref remote_ref local_sha remote_sha_value new_pin pin main_tip old_pin
   local -a synced_paths=()
   for i in "${!SUBMODULE_PATHS[@]}"; do
     path="${SUBMODULE_PATHS[$i]}"
@@ -307,9 +285,12 @@ cmd_sync() {
           die "${path}: merge conflict for ${pin}; resolve it in ${abs}"
       fi
       git -C "$abs" push -q origin main || die "${path}: cannot push main"
+      old_pin=$(git -C "$ROOT_PATH" rev-parse ":${path}")
       git -C "$ROOT_PATH" add "$path"
-      synced_paths+=("$path")
       new_pin=$(git -C "$ROOT_PATH" rev-parse ":${path}")
+      if [ "$old_pin" != "$new_pin" ]; then
+        synced_paths+=("$path")
+      fi
       echo "synced ${path} -> $(short "$new_pin")"
       continue
     fi
@@ -349,18 +330,21 @@ cmd_sync() {
         die "${path}: merge conflict on '${branch}'; resolve it in ${abs}"
     fi
     git -C "$abs" push -q origin main || die "${path}: cannot push main"
+    old_pin=$(git -C "$ROOT_PATH" rev-parse ":${path}")
     git -C "$ROOT_PATH" add "$path"
-    synced_paths+=("$path")
     new_pin=$(git -C "$ROOT_PATH" rev-parse ":${path}")
+    if [ "$old_pin" != "$new_pin" ]; then
+      synced_paths+=("$path")
+    fi
     echo "synced ${path} -> $(short "$new_pin")"
   done
 
   if [ "$do_commit" -eq 1 ] && [ "${#synced_paths[@]}" -gt 0 ] &&
-    ! git -C "$ROOT_PATH" diff --cached --quiet; then
+    ! git -C "$ROOT_PATH" diff --cached --quiet -- "${synced_paths[@]}"; then
     local modified IFS=,
     modified="${synced_paths[*]}"
     git -C "$ROOT_PATH" commit -q --only \
-      -m "🔧 chore(submodules): sync submodule pins with main [skip reconcile]" \
+      -m "🔧 chore(submodules): sync submodule pins with main" \
       -m "Changes made in this commit:
 - Modified: ${modified}
 

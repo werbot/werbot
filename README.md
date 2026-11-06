@@ -231,19 +231,19 @@ Release images for `taco` are built with `saas` enabled (see `.goreleaser.yaml`)
 
 **Automatic synchronization**
 
-- **Pull requests**: job `Submodule auto-sync` merges every pinned module commit into the module `main`, pushes it, updates the parent gitlinks, and commits them back to the PR branch. It runs only for branches from this repository and skips drafts.
-- **Parent `main`**: job `Submodule reconcile` runs on every push, every six hours, and on manual dispatch. It merges any pinned commit that is not yet in the module `main` and fast-forwards pins when a module `main` advanced. The job handles races and a bypassed local hook.
-- **No automatic PR merge**: the PR still waits for you.
+- **After a parent `main` merge**: job `Submodule reconcile` merges every pinned module commit into the module `main`, pushes it, updates the parent gitlinks, and commits them back to `main`. That commit triggers a normal CI run.
+- **Every six hours and on manual dispatch**: the same job catches a module `main` that advanced independently or a bypassed local hook.
+- The merge commit can show a red `Submodule synchronization` check for a short window before the reconcile commit lands. The reconcile commit restores green; no action is needed.
+- There is no pre-merge module merge and no automatic PR merge. Closing a parent PR cannot leak its code into a module `main`.
 
-Both workflows need the repository secret `SUBMODULE_TOKEN` with **Contents: Read and write** on `werbot/werbot`, `werbot/werbot.ee`, `werbot/werbot.saas`, and `werbot/werbot.web`. They verify push access before writing and fail with `SUBMODULE_TOKEN lacks push access to <repo>` otherwise.
+The workflow needs the repository secret `SUBMODULE_TOKEN` with **Contents: Read and write** on the parent repository and on `werbot/werbot.ee`, `werbot/werbot.saas`, and `werbot/werbot.web`. It verifies push access before writing and fails with `SUBMODULE_TOKEN lacks push access to <repo>` otherwise. Parent and module `main` branches must allow the token to push directly; configure a ruleset bypass if protection is enabled.
 
 **What you do manually**
 
 1. Commit and push the module change. The commit must exist on the module remote.
-2. Commit the parent gitlink and push the branch.
-3. Open the PR and merge it when you are ready.
+2. Commit the parent gitlink, push the branch, open the PR, and merge it when ready.
 
-Use the same branch name in the parent and the module when possible; the local pre-push hook checks changed pins against the same-named module branch. If the names differ, push with `SKIP_SUBMODULE_CHECK=1 git push`; the PR job synchronizes by pin.
+Branch names do not need to match. The local hook and CI accept any pushed module branch tip, and the reconcile job works from the pinned SHA alone.
 
 **Local setup and diagnostics**
 
@@ -251,16 +251,16 @@ Use the same branch name in the parent and the module when possible; the local p
 make hooks              # once per clone: install .githooks/pre-push
 make submodules status  # pin, remote main, state
 make submodules-check   # strict main check
-make submodules-test    # offline regression suite (29 cases)
+make submodules-test    # offline regression suite (33 cases)
 ```
 
 `make submodules-sync` remains available for a manual repair from a feature branch. It pushes the branch, merges it into module `main`, pushes, and commits the pins.
 
 **What is enforced**
 
-- **Push to parent `main`**: every pin equals the module remote `main` tip.
-- **Push to a feature branch**: a changed pin equals the tip of the same-named module branch, or the module `main` tip after sync. A module branch with unpushed commits blocks the push.
-- **Pull request**: if no gitlink changed, CI runs the strict `main` check; otherwise it runs the branch check. The auto-sync job can commit the required pin update before the check passes.
+- **Push to parent `main`**: every pin equals the module remote `main` tip. The reconcile job repairs a violation after the push.
+- **Push to a feature branch**: a changed pin equals the tip of any remote branch in the module. A module branch with unpushed commits blocks the push.
+- **Pull request**: if no gitlink changed, CI runs the strict `main` check; otherwise it checks that every changed pin is a pushed branch tip.
 - **CI**: job `Submodule synchronization` runs before `Build, test and lint`; the build job cannot start when the gate fails.
 - **Dirty module worktrees** produce a warning; uncommitted changes are never pushed.
 
