@@ -187,6 +187,90 @@ test_branch_mode_requires_base_ref() {
   fi
 }
 
+test_sync_merges_pushes_and_updates_pin() {
+  local dir old_pin
+  dir=$(new_fixture syncok)
+  git -C "$dir/seed" checkout -qb feature
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm one
+  git -C "$dir/seed" push -q origin feature
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q feature
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+  old_pin=$(git -C "$dir/parent" rev-parse :sub)
+  echo three >"$dir/seed/three"
+  git -C "$dir/seed" add three
+  git -C "$dir/seed" commit -qm two
+  git -C "$dir/seed" push -q origin feature
+  (cd "$dir/parent" && "$CHECK" sync --branch feature) >/dev/null || {
+    fail_test "sync merges, pushes and stages the new pin"
+    return
+  }
+  local main_sha indexed
+  main_sha=$(git -C "$dir/origin.git" rev-parse refs/heads/main)
+  indexed=$(git -C "$dir/parent" rev-parse :sub)
+  if [ "$main_sha" = "$indexed" ] && [ "$indexed" != "$old_pin" ]; then
+    pass "sync merges, pushes and stages the new pin"
+  else
+    fail_test "sync merges, pushes and stages the new pin"
+  fi
+}
+
+test_sync_aborts_on_dirty_submodule() {
+  local dir out status
+  dir=$(new_fixture syncdirty)
+  echo dirty >"$dir/parent/sub/dirty"
+  out=$(cd "$dir/parent" && "$CHECK" sync --branch feature 2>&1) && status=0 || status=$?
+  if [ "$status" -ne 0 ] && assert_contains "$out" "uncommitted changes"; then
+    pass "sync refuses a dirty submodule"
+  else
+    fail_test "sync refuses a dirty submodule"
+  fi
+}
+
+test_sync_requires_initialized_submodule() {
+  local dir out status
+  dir=$(new_fixture syncuninit)
+  git -C "$dir/parent" submodule deinit -f -- sub >/dev/null 2>&1
+  rm -rf "$dir/parent/sub"
+  out=$(cd "$dir/parent" && "$CHECK" sync --branch feature 2>&1) && status=0 || status=$?
+  if [ "$status" -ne 0 ] && assert_contains "$out" "not initialized"; then
+    pass "sync names an uninitialized submodule"
+  else
+    fail_test "sync names an uninitialized submodule"
+  fi
+}
+
+test_sync_commit_creates_parent_commit() {
+  local dir subject
+  dir=$(new_fixture synccommit)
+  git -C "$dir/seed" checkout -qb feature
+  echo two >"$dir/seed/two"
+  git -C "$dir/seed" add two
+  git -C "$dir/seed" commit -qm one
+  git -C "$dir/seed" push -q origin feature
+  git -C "$dir/parent/sub" fetch -q origin
+  git -C "$dir/parent/sub" checkout -q feature
+  git -C "$dir/parent" add sub
+  git -C "$dir/parent" commit -qm pin
+  echo three >"$dir/seed/three"
+  git -C "$dir/seed" add three
+  git -C "$dir/seed" commit -qm two
+  git -C "$dir/seed" push -q origin feature
+  (cd "$dir/parent" && "$CHECK" sync --branch feature --commit) >/dev/null || {
+    fail_test "--commit creates a parent pin commit"
+    return
+  }
+  subject=$(git -C "$dir/parent" log -1 --format=%s)
+  if assert_contains "$subject" "sync submodule pins"; then
+    pass "--commit creates a parent pin commit"
+  else
+    fail_test "--commit creates a parent pin commit"
+  fi
+}
+
 for t in \
   test_main_mode_passes_when_synced \
   test_main_mode_fails_when_pin_missing_on_remote \
@@ -196,7 +280,11 @@ for t in \
   test_branch_mode_passes_for_branch_tip \
   test_branch_mode_fails_when_pin_is_behind \
   test_branch_mode_ignores_unchanged_module \
-  test_branch_mode_requires_base_ref; do
+  test_branch_mode_requires_base_ref \
+  test_sync_merges_pushes_and_updates_pin \
+  test_sync_aborts_on_dirty_submodule \
+  test_sync_requires_initialized_submodule \
+  test_sync_commit_creates_parent_commit; do
   "$t"
 done
 

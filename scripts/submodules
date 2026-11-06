@@ -176,6 +176,106 @@ cmd_check() {
   esac
 }
 
+cmd_sync() {
+  local branch="" do_commit=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+    --branch)
+      branch="$2"
+      shift 2
+      ;;
+    --commit)
+      do_commit=1
+      shift
+      ;;
+    *)
+      die "unknown sync option: $1"
+      ;;
+    esac
+  done
+
+  if [ -z "$branch" ]; then
+    branch=$(git symbolic-ref --short -q HEAD) || die "cannot determine the current branch; pass --branch"
+  fi
+  [ "$branch" != "main" ] || die "sync refuses to run on main; use check --mode main instead"
+
+  local name path url abs errors=0
+  while IFS=$'\t' read -r name path url; do
+    abs="${ROOT_PATH}/${path}"
+    if ! git -C "$abs" rev-parse --git-dir >/dev/null 2>&1; then
+      echo "[ERROR] ${path}: not initialized; run git submodule update --init ${path}" >&2
+      errors=$((errors + 1))
+      continue
+    fi
+    if [ -n "$(git -C "$abs" status --porcelain)" ]; then
+      echo "[ERROR] ${path}: uncommitted changes; commit or stash them first" >&2
+      errors=$((errors + 1))
+    fi
+  done < <(submodule_entries)
+
+  if [ "$errors" -ne 0 ]; then
+    echo "[ERROR] sync preflight failed: ${errors} violation(s)" >&2
+    exit 1
+  fi
+
+  local local_ref remote_ref local_sha remote_sha_value
+  while IFS=$'\t' read -r name path url; do
+    abs="${ROOT_PATH}/${path}"
+    local_ref="refs/heads/${branch}"
+    remote_ref="refs/remotes/origin/${branch}"
+
+    if ! git -C "$abs" fetch -q origin; then
+      die "${path}: cannot fetch origin"
+    fi
+
+    if git -C "$abs" show-ref --verify --quiet "$local_ref"; then
+      local_sha=$(git -C "$abs" rev-parse "$local_ref")
+      if ! git -C "$abs" show-ref --verify --quiet "$remote_ref"; then
+        git -C "$abs" push -q -u origin "$branch" || die "${path}: cannot push branch '${branch}'"
+      else
+        remote_sha_value=$(git -C "$abs" rev-parse "$remote_ref")
+        if [ "$local_sha" != "$remote_sha_value" ]; then
+          if git -C "$abs" merge-base --is-ancestor "$remote_ref" "$local_ref"; then
+            git -C "$abs" push -q -u origin "$branch" || die "${path}: cannot push branch '${branch}'"
+          elif ! git -C "$abs" merge-base --is-ancestor "$local_ref" "$remote_ref"; then
+            die "${path}: local and remote branches '${branch}' diverged; merge them manually"
+          fi
+        fi
+      fi
+    fi
+
+    if ! git -C "$abs" show-ref --verify --quiet "$remote_ref"; then
+      echo "skip ${path}: branch '${branch}' not found"
+      continue
+    fi
+
+    git -C "$abs" checkout -q main || die "${path}: cannot check out main"
+    git -C "$abs" pull -q --ff-only origin main || die "${path}: cannot fast-forward main"
+    if ! git -C "$abs" merge -q --ff-only "origin/${branch}" 2>/dev/null; then
+      git -C "$abs" merge --no-edit "origin/${branch}" ||
+        die "${path}: merge conflict on '${branch}'; resolve it in ${abs}"
+    fi
+    git -C "$abs" push -q origin main || die "${path}: cannot push main"
+    git -C "$ROOT_PATH" add "$path"
+    echo "synced ${path} -> $(short "$(pin_sha "$path")")"
+  done < <(submodule_entries)
+
+  if [ "$do_commit" -eq 1 ]; then
+    local staged
+    staged=$(git -C "$ROOT_PATH" diff --cached --name-only)
+    if [ -n "$staged" ]; then
+      git -C "$ROOT_PATH" commit -q \
+        -m "🔧 chore(submodules): sync submodule pins with main" \
+        -m "Changes made in this commit:
+- Modified: $(tr '\n' ',' <<<"$staged" | sed 's/,$//')
+
+Key changes:
+- Update parent gitlinks to the merged module main tips"
+      echo "committed submodule pins"
+    fi
+  fi
+}
+
 cmd_install_hook() {
   echo "install-hook is implemented in Task 4"
 }
@@ -188,6 +288,10 @@ status)
 check)
   shift
   cmd_check "$@"
+  ;;
+sync)
+  shift
+  cmd_sync "$@"
   ;;
 install-hook)
   shift
