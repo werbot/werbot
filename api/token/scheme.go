@@ -110,3 +110,33 @@ func (h *Handler) addSchemeToken(c *fiber.Ctx) error {
 
 	return webutil.StatusOK(c, "Scheme token added", result)
 }
+
+// @Summary Create a telnet connection token
+// @Description Returns a one-time token for connecting to a telnet scheme through the avocado telnet listener.
+// @Tags tokens
+// @Produce json
+// @Param scheme_id path string true "Scheme UUID"
+// @Success 200 {object} webutil.HTTPResponse{result=tokenmessage.AddTokenSchemeConnect_Response}
+// @Failure 401,404,500 {object} webutil.HTTPResponse{result=string}
+// @Router /v1/tokens/scheme/{scheme_id}/connect [post]
+func (h *Handler) addSchemeConnectToken(c *fiber.Ctx) error {
+	sessionData := session.AuthProfile(c)
+
+	request := &tokenmessage.AddTokenSchemeConnect_Request{
+		ProfileId: sessionData.OriginalProfileID(),
+		SchemeId:  c.Params("scheme_id"),
+	}
+
+	rClient := tokenpb.NewTokenHandlersClient(h.Grpc)
+	tokenData, err := rClient.AddTokenSchemeConnect(c.UserContext(), request)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	result, err := protoutils.ConvertProtoMessageToMap(tokenData)
+	if err != nil {
+		return webutil.FromGRPC(c, err)
+	}
+
+	return webutil.StatusOK(c, "Connect token", result)
+}

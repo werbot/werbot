@@ -19,6 +19,7 @@ import (
 )
 
 const (
+	testSchemeID       = "33333333-3333-3333-3333-333333333333"
 	testSchemeMemberID = "44444444-4444-4444-4444-444444444444"
 	testProfileID      = "55555555-5555-5555-5555-555555555555"
 )
@@ -162,6 +163,7 @@ func TestPipeDirectTCPIPRecordsTunnelWithoutEcho(t *testing.T) {
 	rreqs := make(chan *gossh.Request)
 
 	err := pipe(lreqs, rreqs, client, target, tunnelNewChannel{}, sessionConfig{
+		SchemeID:  testSchemeID,
 		AccountID: testSchemeMemberID,
 		ProfileID: testProfileID,
 		ClientIP:  "8.8.8.8",
@@ -190,6 +192,9 @@ func TestPipeDirectTCPIPRecordsTunnelWithoutEcho(t *testing.T) {
 	}
 	if got := audits[0].GetAccountId(); got != testSchemeMemberID {
 		t.Fatalf("audit account_id = %q, want scheme_member id %q", got, testSchemeMemberID)
+	}
+	if got := audits[0].GetServerId(); got != testSchemeID {
+		t.Fatalf("audit server_id = %q, want scheme id %q", got, testSchemeID)
 	}
 	if got := audits[0].GetProfileId(); got != testProfileID {
 		t.Fatalf("audit profile_id = %q, want %q", got, testProfileID)

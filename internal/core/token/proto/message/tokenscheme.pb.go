@@ -133,6 +133,80 @@ func (*AddTokenSchemeAccess) Descriptor() ([]byte, []int) {
 	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{2}
 }
 
+// rpc AddTokenSchemeConnect
+type AddTokenSchemeConnect struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddTokenSchemeConnect) Reset() {
+	*x = AddTokenSchemeConnect{}
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddTokenSchemeConnect) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddTokenSchemeConnect) ProtoMessage() {}
+
+func (x *AddTokenSchemeConnect) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddTokenSchemeConnect.ProtoReflect.Descriptor instead.
+func (*AddTokenSchemeConnect) Descriptor() ([]byte, []int) {
+	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{3}
+}
+
+// rpc UseTokenSchemeConnect
+type UseTokenSchemeConnect struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UseTokenSchemeConnect) Reset() {
+	*x = UseTokenSchemeConnect{}
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UseTokenSchemeConnect) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UseTokenSchemeConnect) ProtoMessage() {}
+
+func (x *UseTokenSchemeConnect) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UseTokenSchemeConnect.ProtoReflect.Descriptor instead.
+func (*UseTokenSchemeConnect) Descriptor() ([]byte, []int) {
+	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{4}
+}
+
 // rpc UpdateSchemeToken
 type UpdateSchemeToken struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -142,7 +216,7 @@ type UpdateSchemeToken struct {
 
 func (x *UpdateSchemeToken) Reset() {
 	*x = UpdateSchemeToken{}
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[3]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -154,7 +228,7 @@ func (x *UpdateSchemeToken) String() string {
 func (*UpdateSchemeToken) ProtoMessage() {}
 
 func (x *UpdateSchemeToken) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[3]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -167,7 +241,7 @@ func (x *UpdateSchemeToken) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSchemeToken.ProtoReflect.Descriptor instead.
 func (*UpdateSchemeToken) Descriptor() ([]byte, []int) {
-	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{3}
+	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{5}
 }
 
 type SchemeTokens_Request struct {
@@ -186,7 +260,7 @@ type SchemeTokens_Request struct {
 
 func (x *SchemeTokens_Request) Reset() {
 	*x = SchemeTokens_Request{}
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[4]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -198,7 +272,7 @@ func (x *SchemeTokens_Request) String() string {
 func (*SchemeTokens_Request) ProtoMessage() {}
 
 func (x *SchemeTokens_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[4]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +354,7 @@ type SchemeTokens_Response struct {
 
 func (x *SchemeTokens_Response) Reset() {
 	*x = SchemeTokens_Response{}
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[5]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -292,7 +366,7 @@ func (x *SchemeTokens_Response) String() string {
 func (*SchemeTokens_Response) ProtoMessage() {}
 
 func (x *SchemeTokens_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[5]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -339,7 +413,7 @@ type AddTokenSchemeAdd_Request struct {
 
 func (x *AddTokenSchemeAdd_Request) Reset() {
 	*x = AddTokenSchemeAdd_Request{}
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[6]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -351,7 +425,7 @@ func (x *AddTokenSchemeAdd_Request) String() string {
 func (*AddTokenSchemeAdd_Request) ProtoMessage() {}
 
 func (x *AddTokenSchemeAdd_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[6]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -445,7 +519,7 @@ type AddTokenSchemeAdd_Response struct {
 
 func (x *AddTokenSchemeAdd_Response) Reset() {
 	*x = AddTokenSchemeAdd_Response{}
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[7]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -457,7 +531,7 @@ func (x *AddTokenSchemeAdd_Response) String() string {
 func (*AddTokenSchemeAdd_Response) ProtoMessage() {}
 
 func (x *AddTokenSchemeAdd_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[7]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -496,7 +570,7 @@ type AddTokenSchemeAccess_Request struct {
 
 func (x *AddTokenSchemeAccess_Request) Reset() {
 	*x = AddTokenSchemeAccess_Request{}
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[8]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -508,7 +582,7 @@ func (x *AddTokenSchemeAccess_Request) String() string {
 func (*AddTokenSchemeAccess_Request) ProtoMessage() {}
 
 func (x *AddTokenSchemeAccess_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[8]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -595,7 +669,7 @@ type AddTokenSchemeAccess_Response struct {
 
 func (x *AddTokenSchemeAccess_Response) Reset() {
 	*x = AddTokenSchemeAccess_Response{}
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[9]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -607,7 +681,7 @@ func (x *AddTokenSchemeAccess_Response) String() string {
 func (*AddTokenSchemeAccess_Response) ProtoMessage() {}
 
 func (x *AddTokenSchemeAccess_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[9]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -630,6 +704,214 @@ func (x *AddTokenSchemeAccess_Response) GetToken() string {
 	return ""
 }
 
+type AddTokenSchemeConnect_Request struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProfileId     string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	SchemeId      string                 `protobuf:"bytes,2,opt,name=scheme_id,json=schemeId,proto3" json:"scheme_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddTokenSchemeConnect_Request) Reset() {
+	*x = AddTokenSchemeConnect_Request{}
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddTokenSchemeConnect_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddTokenSchemeConnect_Request) ProtoMessage() {}
+
+func (x *AddTokenSchemeConnect_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddTokenSchemeConnect_Request.ProtoReflect.Descriptor instead.
+func (*AddTokenSchemeConnect_Request) Descriptor() ([]byte, []int) {
+	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{3, 0}
+}
+
+func (x *AddTokenSchemeConnect_Request) GetProfileId() string {
+	if x != nil {
+		return x.ProfileId
+	}
+	return ""
+}
+
+func (x *AddTokenSchemeConnect_Request) GetSchemeId() string {
+	if x != nil {
+		return x.SchemeId
+	}
+	return ""
+}
+
+type AddTokenSchemeConnect_Response struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	ExpiredAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expired_at,json=expiredAt,proto3" json:"expired_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddTokenSchemeConnect_Response) Reset() {
+	*x = AddTokenSchemeConnect_Response{}
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddTokenSchemeConnect_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddTokenSchemeConnect_Response) ProtoMessage() {}
+
+func (x *AddTokenSchemeConnect_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddTokenSchemeConnect_Response.ProtoReflect.Descriptor instead.
+func (*AddTokenSchemeConnect_Response) Descriptor() ([]byte, []int) {
+	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{3, 1}
+}
+
+func (x *AddTokenSchemeConnect_Response) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *AddTokenSchemeConnect_Response) GetExpiredAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiredAt
+	}
+	return nil
+}
+
+type UseTokenSchemeConnect_Request struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UseTokenSchemeConnect_Request) Reset() {
+	*x = UseTokenSchemeConnect_Request{}
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UseTokenSchemeConnect_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UseTokenSchemeConnect_Request) ProtoMessage() {}
+
+func (x *UseTokenSchemeConnect_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UseTokenSchemeConnect_Request.ProtoReflect.Descriptor instead.
+func (*UseTokenSchemeConnect_Request) Descriptor() ([]byte, []int) {
+	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{4, 0}
+}
+
+func (x *UseTokenSchemeConnect_Request) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type UseTokenSchemeConnect_Response struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ProfileId      string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	SchemeId       string                 `protobuf:"bytes,2,opt,name=scheme_id,json=schemeId,proto3" json:"scheme_id,omitempty"`
+	SchemeMemberId string                 `protobuf:"bytes,3,opt,name=scheme_member_id,json=schemeMemberId,proto3" json:"scheme_member_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UseTokenSchemeConnect_Response) Reset() {
+	*x = UseTokenSchemeConnect_Response{}
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UseTokenSchemeConnect_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UseTokenSchemeConnect_Response) ProtoMessage() {}
+
+func (x *UseTokenSchemeConnect_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UseTokenSchemeConnect_Response.ProtoReflect.Descriptor instead.
+func (*UseTokenSchemeConnect_Response) Descriptor() ([]byte, []int) {
+	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{4, 1}
+}
+
+func (x *UseTokenSchemeConnect_Response) GetProfileId() string {
+	if x != nil {
+		return x.ProfileId
+	}
+	return ""
+}
+
+func (x *UseTokenSchemeConnect_Response) GetSchemeId() string {
+	if x != nil {
+		return x.SchemeId
+	}
+	return ""
+}
+
+func (x *UseTokenSchemeConnect_Response) GetSchemeMemberId() string {
+	if x != nil {
+		return x.SchemeMemberId
+	}
+	return ""
+}
+
 type UpdateSchemeToken_Request struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	IsAdmin       bool                   `protobuf:"varint,1,opt,name=is_admin,json=isAdmin,proto3" json:"-"`
@@ -643,7 +925,7 @@ type UpdateSchemeToken_Request struct {
 
 func (x *UpdateSchemeToken_Request) Reset() {
 	*x = UpdateSchemeToken_Request{}
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[10]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -655,7 +937,7 @@ func (x *UpdateSchemeToken_Request) String() string {
 func (*UpdateSchemeToken_Request) ProtoMessage() {}
 
 func (x *UpdateSchemeToken_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[10]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -668,7 +950,7 @@ func (x *UpdateSchemeToken_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSchemeToken_Request.ProtoReflect.Descriptor instead.
 func (*UpdateSchemeToken_Request) Descriptor() ([]byte, []int) {
-	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{3, 0}
+	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{5, 0}
 }
 
 func (x *UpdateSchemeToken_Request) GetIsAdmin() bool {
@@ -714,7 +996,7 @@ type UpdateSchemeToken_Response struct {
 
 func (x *UpdateSchemeToken_Response) Reset() {
 	*x = UpdateSchemeToken_Response{}
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[11]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -726,7 +1008,7 @@ func (x *UpdateSchemeToken_Response) String() string {
 func (*UpdateSchemeToken_Response) ProtoMessage() {}
 
 func (x *UpdateSchemeToken_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[11]
+	mi := &file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -739,18 +1021,19 @@ func (x *UpdateSchemeToken_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSchemeToken_Response.ProtoReflect.Descriptor instead.
 func (*UpdateSchemeToken_Response) Descriptor() ([]byte, []int) {
-	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{3, 1}
+	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP(), []int{5, 1}
 }
 
 var File_internal_core_token_proto_message_tokenscheme_proto protoreflect.FileDescriptor
 
 const file_internal_core_token_proto_message_tokenscheme_proto_rawDesc = "" +
 	"\n" +
-	"3internal/core/token/proto/message/tokenscheme.proto\x12\ftoken.scheme\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a4internal/core/token/proto/message/tokenmessage.proto\x1a.internal/core/token/proto/enum/tokenenum.proto\x1a.internal/core/scheme/proto/access/access.proto\"\xa1\x03\n" +
-	"\fSchemeTokens\x1a\xb7\x02\n" +
+	"3internal/core/token/proto/message/tokenscheme.proto\x12\ftoken.scheme\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a4internal/core/token/proto/message/tokenmessage.proto\x1a.internal/core/token/proto/enum/tokenenum.proto\x1a.internal/core/scheme/proto/access/access.proto\"\xa3\x03\n" +
+	"\fSchemeTokens\x1a\xb9\x02\n" +
 	"\aRequest\x12\x19\n" +
-	"\bis_admin\x18\x01 \x01(\bR\aisAdmin\x12=\n" +
-	"\x06action\x18\x02 \x01(\x0e2\x12.token.enum.ActionB\x11\xbaH\x0e\xc8\x01\x01\x82\x01\b\x10\x01\x18\x03\x18\a\x18\bR\x06action\x129\n" +
+	"\bis_admin\x18\x01 \x01(\bR\aisAdmin\x12?\n" +
+	"\x06action\x18\x02 \x01(\x0e2\x12.token.enum.ActionB\x13\xbaH\x10\xc8\x01\x01\x82\x01\n" +
+	"\x10\x01\x18\x03\x18\a\x18\b\x18\tR\x06action\x129\n" +
 	"\x06status\x18\x03 \x01(\x0e2\x12.token.enum.StatusB\r\xbaH\n" +
 	"\xd8\x01\x01\x82\x01\x04\x10\x01 \x00R\x06status\x12&\n" +
 	"\bowner_id\x18\x04 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\aownerId\x12(\n" +
@@ -789,7 +1072,24 @@ const file_internal_core_token_proto_message_tokenscheme_proto_rawDesc = "" +
 	"expired_at\x182 \x01(\v2\x1a.google.protobuf.TimestampR\texpiredAtB\r\n" +
 	"\x04data\x12\x05\xbaH\x02\b\x01\x1a \n" +
 	"\bResponse\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\xfa\x01\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\xd5\x01\n" +
+	"\x15AddTokenSchemeConnect\x1a_\n" +
+	"\aRequest\x12*\n" +
+	"\n" +
+	"profile_id\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tprofileId\x12(\n" +
+	"\tscheme_id\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bschemeId\x1a[\n" +
+	"\bResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x129\n" +
+	"\n" +
+	"expired_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiredAt\"\xb7\x01\n" +
+	"\x15UseTokenSchemeConnect\x1a,\n" +
+	"\aRequest\x12!\n" +
+	"\x05token\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x05token\x1ap\n" +
+	"\bResponse\x12\x1d\n" +
+	"\n" +
+	"profile_id\x18\x01 \x01(\tR\tprofileId\x12\x1b\n" +
+	"\tscheme_id\x18\x02 \x01(\tR\bschemeId\x12(\n" +
+	"\x10scheme_member_id\x18\x03 \x01(\tR\x0eschemeMemberId\"\xfa\x01\n" +
 	"\x11UpdateSchemeToken\x1a\xd8\x01\n" +
 	"\aRequest\x12\x19\n" +
 	"\bis_admin\x18\x01 \x01(\bR\aisAdmin\x12!\n" +
@@ -814,39 +1114,46 @@ func file_internal_core_token_proto_message_tokenscheme_proto_rawDescGZIP() []by
 	return file_internal_core_token_proto_message_tokenscheme_proto_rawDescData
 }
 
-var file_internal_core_token_proto_message_tokenscheme_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_internal_core_token_proto_message_tokenscheme_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_internal_core_token_proto_message_tokenscheme_proto_goTypes = []any{
-	(*SchemeTokens)(nil),                  // 0: token.scheme.SchemeTokens
-	(*AddTokenSchemeAdd)(nil),             // 1: token.scheme.AddTokenSchemeAdd
-	(*AddTokenSchemeAccess)(nil),          // 2: token.scheme.AddTokenSchemeAccess
-	(*UpdateSchemeToken)(nil),             // 3: token.scheme.UpdateSchemeToken
-	(*SchemeTokens_Request)(nil),          // 4: token.scheme.SchemeTokens.Request
-	(*SchemeTokens_Response)(nil),         // 5: token.scheme.SchemeTokens.Response
-	(*AddTokenSchemeAdd_Request)(nil),     // 6: token.scheme.AddTokenSchemeAdd.Request
-	(*AddTokenSchemeAdd_Response)(nil),    // 7: token.scheme.AddTokenSchemeAdd.Response
-	(*AddTokenSchemeAccess_Request)(nil),  // 8: token.scheme.AddTokenSchemeAccess.Request
-	(*AddTokenSchemeAccess_Response)(nil), // 9: token.scheme.AddTokenSchemeAccess.Response
-	(*UpdateSchemeToken_Request)(nil),     // 10: token.scheme.UpdateSchemeToken.Request
-	(*UpdateSchemeToken_Response)(nil),    // 11: token.scheme.UpdateSchemeToken.Response
-	(enum.Action)(0),                      // 12: token.enum.Action
-	(enum.Status)(0),                      // 13: token.enum.Status
-	(*Token_Response)(nil),                // 14: token.message.Token.Response
-	(access.SchemeType)(0),                // 15: access.SchemeType
-	(*timestamppb.Timestamp)(nil),         // 16: google.protobuf.Timestamp
+	(*SchemeTokens)(nil),                   // 0: token.scheme.SchemeTokens
+	(*AddTokenSchemeAdd)(nil),              // 1: token.scheme.AddTokenSchemeAdd
+	(*AddTokenSchemeAccess)(nil),           // 2: token.scheme.AddTokenSchemeAccess
+	(*AddTokenSchemeConnect)(nil),          // 3: token.scheme.AddTokenSchemeConnect
+	(*UseTokenSchemeConnect)(nil),          // 4: token.scheme.UseTokenSchemeConnect
+	(*UpdateSchemeToken)(nil),              // 5: token.scheme.UpdateSchemeToken
+	(*SchemeTokens_Request)(nil),           // 6: token.scheme.SchemeTokens.Request
+	(*SchemeTokens_Response)(nil),          // 7: token.scheme.SchemeTokens.Response
+	(*AddTokenSchemeAdd_Request)(nil),      // 8: token.scheme.AddTokenSchemeAdd.Request
+	(*AddTokenSchemeAdd_Response)(nil),     // 9: token.scheme.AddTokenSchemeAdd.Response
+	(*AddTokenSchemeAccess_Request)(nil),   // 10: token.scheme.AddTokenSchemeAccess.Request
+	(*AddTokenSchemeAccess_Response)(nil),  // 11: token.scheme.AddTokenSchemeAccess.Response
+	(*AddTokenSchemeConnect_Request)(nil),  // 12: token.scheme.AddTokenSchemeConnect.Request
+	(*AddTokenSchemeConnect_Response)(nil), // 13: token.scheme.AddTokenSchemeConnect.Response
+	(*UseTokenSchemeConnect_Request)(nil),  // 14: token.scheme.UseTokenSchemeConnect.Request
+	(*UseTokenSchemeConnect_Response)(nil), // 15: token.scheme.UseTokenSchemeConnect.Response
+	(*UpdateSchemeToken_Request)(nil),      // 16: token.scheme.UpdateSchemeToken.Request
+	(*UpdateSchemeToken_Response)(nil),     // 17: token.scheme.UpdateSchemeToken.Response
+	(enum.Action)(0),                       // 18: token.enum.Action
+	(enum.Status)(0),                       // 19: token.enum.Status
+	(*Token_Response)(nil),                 // 20: token.message.Token.Response
+	(access.SchemeType)(0),                 // 21: access.SchemeType
+	(*timestamppb.Timestamp)(nil),          // 22: google.protobuf.Timestamp
 }
 var file_internal_core_token_proto_message_tokenscheme_proto_depIdxs = []int32{
-	12, // 0: token.scheme.SchemeTokens.Request.action:type_name -> token.enum.Action
-	13, // 1: token.scheme.SchemeTokens.Request.status:type_name -> token.enum.Status
-	14, // 2: token.scheme.SchemeTokens.Response.tokens:type_name -> token.message.Token.Response
-	15, // 3: token.scheme.AddTokenSchemeAdd.Request.scheme_type:type_name -> access.SchemeType
-	16, // 4: token.scheme.AddTokenSchemeAdd.Request.expired_at:type_name -> google.protobuf.Timestamp
-	16, // 5: token.scheme.AddTokenSchemeAccess.Request.expired_at:type_name -> google.protobuf.Timestamp
-	13, // 6: token.scheme.UpdateSchemeToken.Request.status:type_name -> token.enum.Status
-	7,  // [7:7] is the sub-list for method output_type
-	7,  // [7:7] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	18, // 0: token.scheme.SchemeTokens.Request.action:type_name -> token.enum.Action
+	19, // 1: token.scheme.SchemeTokens.Request.status:type_name -> token.enum.Status
+	20, // 2: token.scheme.SchemeTokens.Response.tokens:type_name -> token.message.Token.Response
+	21, // 3: token.scheme.AddTokenSchemeAdd.Request.scheme_type:type_name -> access.SchemeType
+	22, // 4: token.scheme.AddTokenSchemeAdd.Request.expired_at:type_name -> google.protobuf.Timestamp
+	22, // 5: token.scheme.AddTokenSchemeAccess.Request.expired_at:type_name -> google.protobuf.Timestamp
+	22, // 6: token.scheme.AddTokenSchemeConnect.Response.expired_at:type_name -> google.protobuf.Timestamp
+	19, // 7: token.scheme.UpdateSchemeToken.Request.status:type_name -> token.enum.Status
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_internal_core_token_proto_message_tokenscheme_proto_init() }
@@ -855,11 +1162,11 @@ func file_internal_core_token_proto_message_tokenscheme_proto_init() {
 		return
 	}
 	file_internal_core_token_proto_message_tokenmessage_proto_init()
-	file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[6].OneofWrappers = []any{
+	file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[8].OneofWrappers = []any{
 		(*AddTokenSchemeAdd_Request_Email)(nil),
 		(*AddTokenSchemeAdd_Request_ProfileId)(nil),
 	}
-	file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[8].OneofWrappers = []any{
+	file_internal_core_token_proto_message_tokenscheme_proto_msgTypes[10].OneofWrappers = []any{
 		(*AddTokenSchemeAccess_Request_Email)(nil),
 		(*AddTokenSchemeAccess_Request_ProfileId)(nil),
 	}
@@ -869,7 +1176,7 @@ func file_internal_core_token_proto_message_tokenscheme_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_core_token_proto_message_tokenscheme_proto_rawDesc), len(file_internal_core_token_proto_message_tokenscheme_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

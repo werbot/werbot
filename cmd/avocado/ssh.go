@@ -66,7 +66,7 @@ func decryptSchemeSecret(value, aesKey string) (string, error) {
 }
 
 // schemeAccess fetches the scheme connection settings with secrets decrypted.
-func schemeAccess(ctx context.Context, schemeID, clientIP string) (*access.AccessScheme_Server_SSH, error) {
+func schemeAccess(ctx context.Context, schemeID, clientIP string) (*access.AccessScheme, error) {
 	rClient := schemepb.NewSchemeHandlersClient(app.grpc)
 	resp, err := rClient.SystemSchemeAccess(ctx, &schemepb.SystemSchemeAccess_Request{
 		SchemeId: schemeID,
@@ -77,9 +77,9 @@ func schemeAccess(ctx context.Context, schemeID, clientIP string) (*access.Acces
 		return nil, err
 	}
 
-	serverSSH := resp.GetAccess().GetServerSsh()
-	if serverSSH == nil {
-		return nil, errors.New("scheme is not an SSH server")
+	accessScheme := resp.GetAccess()
+	if accessScheme == nil {
+		return nil, errors.New("scheme access is empty")
 	}
 
 	aesKey := internal.GetString("SECURITY_AES_KEY", "")
@@ -87,39 +87,93 @@ func schemeAccess(ctx context.Context, schemeID, clientIP string) (*access.Acces
 		return nil, errors.New("SECURITY_AES_KEY must be a hex encoded 16, 24 or 32 byte AES key")
 	}
 
-	switch auth := serverSSH.GetAccess().(type) {
-	case *access.AccessScheme_Server_SSH_Password:
-		if isMasked(auth.Password.GetPassword()) {
-			return nil, errors.New("scheme password is masked by the server")
+	if err := decryptSchemeAccess(accessScheme, aesKey); err != nil {
+		if accessScheme.GetServerTelnet() != nil {
+			app.log.Info().Msg("telnet scheme password cannot be decrypted; re-save the scheme to encrypt its password")
 		}
-		if auth.Password.GetPassword() != "" {
-			password, err := decryptSchemeSecret(auth.Password.GetPassword(), aesKey)
-			if err != nil {
-				return nil, fmt.Errorf("decrypt scheme password: %w", err)
-			}
-			auth.Password.Password = password
-		}
-	case *access.AccessScheme_Server_SSH_Key:
-		if isMasked(auth.Key.GetKey().GetPrivate()) {
-			return nil, errors.New("scheme private key is masked by the server")
-		}
-		if auth.Key.GetKey().GetPrivate() != "" {
-			privateKey, err := decryptSchemeSecret(auth.Key.GetKey().GetPrivate(), aesKey)
-			if err != nil {
-				return nil, fmt.Errorf("decrypt scheme private key: %w", err)
-			}
-			auth.Key.GetKey().Private = privateKey
-		}
-		if auth.Key.GetKey().GetPassphrase() != "" {
-			passphrase, err := decryptSchemeSecret(auth.Key.GetKey().GetPassphrase(), aesKey)
-			if err != nil {
-				return nil, fmt.Errorf("decrypt scheme key passphrase: %w", err)
-			}
-			auth.Key.GetKey().Passphrase = passphrase
-		}
+		return nil, err
 	}
 
-	return serverSSH, nil
+	return accessScheme, nil
+}
+
+// decryptSchemeAccess decrypts secrets according to the scheme type.
+func decryptSchemeAccess(accessScheme *access.AccessScheme, aesKey string) error {
+	switch auth := accessScheme.GetAccess().(type) {
+	case *access.AccessScheme_ServerSsh:
+		serverSSH := auth.ServerSsh
+
+		switch auth := serverSSH.GetAccess().(type) {
+		case *access.AccessScheme_Server_SSH_Password:
+			if isMasked(auth.Password.GetPassword()) {
+				return errors.New("scheme password is masked by the server")
+			}
+			if auth.Password.GetPassword() != "" {
+				password, err := decryptSchemeSecret(auth.Password.GetPassword(), aesKey)
+				if err != nil {
+					return fmt.Errorf("decrypt scheme password: %w", err)
+				}
+				auth.Password.Password = password
+			}
+		case *access.AccessScheme_Server_SSH_Key:
+			if isMasked(auth.Key.GetKey().GetPrivate()) {
+				return errors.New("scheme private key is masked by the server")
+			}
+			if auth.Key.GetKey().GetPrivate() != "" {
+				privateKey, err := decryptSchemeSecret(auth.Key.GetKey().GetPrivate(), aesKey)
+				if err != nil {
+					return fmt.Errorf("decrypt scheme private key: %w", err)
+				}
+				auth.Key.GetKey().Private = privateKey
+			}
+			if auth.Key.GetKey().GetPassphrase() != "" {
+				passphrase, err := decryptSchemeSecret(auth.Key.GetKey().GetPassphrase(), aesKey)
+				if err != nil {
+					return fmt.Errorf("decrypt scheme key passphrase: %w", err)
+				}
+				auth.Key.GetKey().Passphrase = passphrase
+			}
+		}
+
+	case *access.AccessScheme_ServerTelnet:
+		serverTelnet := auth.ServerTelnet
+		if serverTelnet.GetAccess() == nil {
+			return errors.New("scheme password is required")
+		}
+		password := serverTelnet.GetAccess().GetPassword()
+		if isMasked(password) {
+			return errors.New("scheme password is masked by the server")
+		}
+		if password != "" {
+			plain, err := decryptSchemeSecret(password, aesKey)
+			if err != nil {
+				return fmt.Errorf("decrypt scheme password: %w", err)
+			}
+			serverTelnet.Access.Password = plain
+		}
+
+	default:
+		return fmt.Errorf("scheme type %s is not supported", schemeTypeName(accessScheme))
+	}
+
+	return nil
+}
+
+func schemeTypeName(accessScheme *access.AccessScheme) string {
+	if accessScheme == nil {
+		return "unknown"
+	}
+
+	message := accessScheme.ProtoReflect()
+	oneof := message.Descriptor().Oneofs().ByName("access")
+	if oneof == nil {
+		return "unknown"
+	}
+	field := message.WhichOneof(oneof)
+	if field == nil {
+		return "unknown"
+	}
+	return string(field.Name())
 }
 
 // isMasked reports whether the server returned the ghoster secret mask instead of a real value.
@@ -135,9 +189,14 @@ type session struct {
 
 // newSession resolves scheme access, decrypts secrets and builds the SSH client config.
 func newSession(ctx context.Context, scheme *schemepb.Scheme_Response, actx *authContext) (*session, error) {
-	serverSSH, err := schemeAccess(ctx, scheme.GetSchemeId(), actx.clientIP)
+	accessScheme, err := schemeAccess(ctx, scheme.GetSchemeId(), actx.clientIP)
 	if err != nil {
 		return nil, err
+	}
+
+	serverSSH := accessScheme.GetServerSsh()
+	if serverSSH == nil {
+		return nil, errors.New("scheme is not an SSH server")
 	}
 
 	authMethods := []gossh.AuthMethod{}

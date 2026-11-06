@@ -31,6 +31,8 @@ const (
 	TokenHandlers_SchemeTokens_FullMethodName                = "/token.TokenHandlers/SchemeTokens"
 	TokenHandlers_AddTokenSchemeAdd_FullMethodName           = "/token.TokenHandlers/AddTokenSchemeAdd"
 	TokenHandlers_AddTokenSchemeAccess_FullMethodName        = "/token.TokenHandlers/AddTokenSchemeAccess"
+	TokenHandlers_AddTokenSchemeConnect_FullMethodName       = "/token.TokenHandlers/AddTokenSchemeConnect"
+	TokenHandlers_UseTokenSchemeConnect_FullMethodName       = "/token.TokenHandlers/UseTokenSchemeConnect"
 	TokenHandlers_UpdateSchemeToken_FullMethodName           = "/token.TokenHandlers/UpdateSchemeToken"
 )
 
@@ -55,6 +57,8 @@ type TokenHandlersClient interface {
 	SchemeTokens(ctx context.Context, in *message.SchemeTokens_Request, opts ...grpc.CallOption) (*message.SchemeTokens_Response, error)
 	AddTokenSchemeAdd(ctx context.Context, in *message.AddTokenSchemeAdd_Request, opts ...grpc.CallOption) (*message.AddTokenSchemeAdd_Response, error)
 	AddTokenSchemeAccess(ctx context.Context, in *message.AddTokenSchemeAccess_Request, opts ...grpc.CallOption) (*message.AddTokenSchemeAccess_Response, error)
+	AddTokenSchemeConnect(ctx context.Context, in *message.AddTokenSchemeConnect_Request, opts ...grpc.CallOption) (*message.AddTokenSchemeConnect_Response, error)
+	UseTokenSchemeConnect(ctx context.Context, in *message.UseTokenSchemeConnect_Request, opts ...grpc.CallOption) (*message.UseTokenSchemeConnect_Response, error)
 	UpdateSchemeToken(ctx context.Context, in *message.UpdateSchemeToken_Request, opts ...grpc.CallOption) (*message.UpdateSchemeToken_Response, error)
 }
 
@@ -206,6 +210,26 @@ func (c *tokenHandlersClient) AddTokenSchemeAccess(ctx context.Context, in *mess
 	return out, nil
 }
 
+func (c *tokenHandlersClient) AddTokenSchemeConnect(ctx context.Context, in *message.AddTokenSchemeConnect_Request, opts ...grpc.CallOption) (*message.AddTokenSchemeConnect_Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(message.AddTokenSchemeConnect_Response)
+	err := c.cc.Invoke(ctx, TokenHandlers_AddTokenSchemeConnect_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *tokenHandlersClient) UseTokenSchemeConnect(ctx context.Context, in *message.UseTokenSchemeConnect_Request, opts ...grpc.CallOption) (*message.UseTokenSchemeConnect_Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(message.UseTokenSchemeConnect_Response)
+	err := c.cc.Invoke(ctx, TokenHandlers_UseTokenSchemeConnect_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *tokenHandlersClient) UpdateSchemeToken(ctx context.Context, in *message.UpdateSchemeToken_Request, opts ...grpc.CallOption) (*message.UpdateSchemeToken_Response, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(message.UpdateSchemeToken_Response)
@@ -237,6 +261,8 @@ type TokenHandlersServer interface {
 	SchemeTokens(context.Context, *message.SchemeTokens_Request) (*message.SchemeTokens_Response, error)
 	AddTokenSchemeAdd(context.Context, *message.AddTokenSchemeAdd_Request) (*message.AddTokenSchemeAdd_Response, error)
 	AddTokenSchemeAccess(context.Context, *message.AddTokenSchemeAccess_Request) (*message.AddTokenSchemeAccess_Response, error)
+	AddTokenSchemeConnect(context.Context, *message.AddTokenSchemeConnect_Request) (*message.AddTokenSchemeConnect_Response, error)
+	UseTokenSchemeConnect(context.Context, *message.UseTokenSchemeConnect_Request) (*message.UseTokenSchemeConnect_Response, error)
 	UpdateSchemeToken(context.Context, *message.UpdateSchemeToken_Request) (*message.UpdateSchemeToken_Response, error)
 	mustEmbedUnimplementedTokenHandlersServer()
 }
@@ -289,6 +315,12 @@ func (UnimplementedTokenHandlersServer) AddTokenSchemeAdd(context.Context, *mess
 }
 func (UnimplementedTokenHandlersServer) AddTokenSchemeAccess(context.Context, *message.AddTokenSchemeAccess_Request) (*message.AddTokenSchemeAccess_Response, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddTokenSchemeAccess not implemented")
+}
+func (UnimplementedTokenHandlersServer) AddTokenSchemeConnect(context.Context, *message.AddTokenSchemeConnect_Request) (*message.AddTokenSchemeConnect_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddTokenSchemeConnect not implemented")
+}
+func (UnimplementedTokenHandlersServer) UseTokenSchemeConnect(context.Context, *message.UseTokenSchemeConnect_Request) (*message.UseTokenSchemeConnect_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "method UseTokenSchemeConnect not implemented")
 }
 func (UnimplementedTokenHandlersServer) UpdateSchemeToken(context.Context, *message.UpdateSchemeToken_Request) (*message.UpdateSchemeToken_Response, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateSchemeToken not implemented")
@@ -566,6 +598,42 @@ func _TokenHandlers_AddTokenSchemeAccess_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TokenHandlers_AddTokenSchemeConnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(message.AddTokenSchemeConnect_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TokenHandlersServer).AddTokenSchemeConnect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TokenHandlers_AddTokenSchemeConnect_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TokenHandlersServer).AddTokenSchemeConnect(ctx, req.(*message.AddTokenSchemeConnect_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TokenHandlers_UseTokenSchemeConnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(message.UseTokenSchemeConnect_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TokenHandlersServer).UseTokenSchemeConnect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TokenHandlers_UseTokenSchemeConnect_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TokenHandlersServer).UseTokenSchemeConnect(ctx, req.(*message.UseTokenSchemeConnect_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _TokenHandlers_UpdateSchemeToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(message.UpdateSchemeToken_Request)
 	if err := dec(in); err != nil {
@@ -646,6 +714,14 @@ var TokenHandlers_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddTokenSchemeAccess",
 			Handler:    _TokenHandlers_AddTokenSchemeAccess_Handler,
+		},
+		{
+			MethodName: "AddTokenSchemeConnect",
+			Handler:    _TokenHandlers_AddTokenSchemeConnect_Handler,
+		},
+		{
+			MethodName: "UseTokenSchemeConnect",
+			Handler:    _TokenHandlers_UseTokenSchemeConnect_Handler,
 		},
 		{
 			MethodName: "UpdateSchemeToken",

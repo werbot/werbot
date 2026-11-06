@@ -116,6 +116,9 @@ func main() {
 	}
 
 	log.Info().Str("serverAddress", internal.GetString("SSHSERVER_BIND_ADDRESS", ":3022")).Dur("idleTimout", time.Duration(internal.GetInt("SSHSERVER_IDLE_TIMEOUT", 300))*time.Second).Str("version", version.Version()).Msg("SSH Server accepting connections")
+	if addr := internal.GetString("TELNETSERVER_BIND_ADDRESS", ""); addr != "" {
+		go serveTelnet(addr)
+	}
 	if err := srv.Serve(proxyListener); err != nil {
 		app.log.Fatal(err).Msg("Create server")
 	}

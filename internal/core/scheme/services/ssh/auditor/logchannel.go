@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc"
 
 	auditmessage "github.com/werbot/werbot/internal/core/audit/proto/message"
@@ -25,7 +24,7 @@ type LogChannel struct {
 	ProfileID   string
 	SessionID   string
 	ClientIP    string
-	Channel     ssh.Channel
+	Channel     io.WriteCloser
 	FramesCount int32
 	Frames      []*auditmessage.Record
 	fullTime    time.Time
@@ -36,12 +35,13 @@ type LogChannel struct {
 }
 
 // NewLogchannel is ...
-func NewLogchannel(account *auditmessage.AddAudit_Request, channel ssh.Channel, grpcSession *grpc.ClientConn, recordCount int32) *LogChannel {
+func NewLogchannel(account *auditmessage.AddAudit_Request, channel io.WriteCloser, grpcSession *grpc.ClientConn, recordCount int32) *LogChannel {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	rClient := auditrpc.NewAuditHandlersClient(grpcSession)
 	auditData, err := rClient.AddAudit(ctx, &auditmessage.AddAudit_Request{
+		ServerId:  account.ServerId,
 		AccountId: account.AccountId,
 		ProfileId: account.ProfileId,
 		Version:   2,

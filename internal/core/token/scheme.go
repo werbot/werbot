@@ -14,10 +14,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	tokenmessage "github.com/werbot/werbot/internal/core/token/proto/message"
@@ -429,4 +431,200 @@ func (h *Handler) UpdateSchemeToken(ctx context.Context, in *tokenmessage.Update
 	// use data from tokenData
 
 	return &tokenmessage.UpdateSchemeToken_Response{}, nil
+}
+
+// schemeConnectTTL is the lifetime of a one-time telnet listener token.
+const schemeConnectTTL = 5 * time.Minute
+
+// AddTokenSchemeConnect creates a one-time token for connecting to a telnet
+// scheme through the avocado telnet listener.
+func (h *Handler) AddTokenSchemeConnect(ctx context.Context, in *tokenmessage.AddTokenSchemeConnect_Request) (*tokenmessage.AddTokenSchemeConnect_Response, error) {
+	if err := protoutils.ValidateRequest(in); err != nil {
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
+	}
+
+	if _, err := h.activeSchemeMemberID(ctx, in.GetProfileId(), in.GetSchemeId()); err != nil {
+		if err == sql.ErrNoRows {
+			exists, existsErr := h.hasSchemeMembership(ctx, in.GetProfileId(), in.GetSchemeId())
+			if existsErr != nil {
+				return nil, trace.Error(existsErr, log, nil)
+			}
+			if exists {
+				return nil, trace.Error(status.Error(codes.NotFound, trace.MsgSchemeNotFound), log, nil)
+			}
+			if _, err := h.enrollProjectOwner(ctx, in.GetProfileId(), in.GetSchemeId()); err != nil {
+				if err == sql.ErrNoRows {
+					return nil, trace.Error(status.Error(codes.NotFound, trace.MsgSchemeNotFound), log, nil)
+				}
+				return nil, trace.Error(err, log, nil)
+			}
+		} else {
+			return nil, trace.Error(err, log, nil)
+		}
+	}
+
+	expiresAt := time.Now().UTC().Add(schemeConnectTTL)
+	fields := []string{fieldSection, fieldAction, fieldStatus, "profile_id", "scheme_id", "expired_at"}
+	args := []any{
+		tokenenum.Section_scheme,
+		tokenenum.Action_connect,
+		tokenenum.Status_sent,
+		in.GetProfileId(),
+		in.GetSchemeId(),
+		expiresAt,
+	}
+	query, args := buildInsertQuery(fields, args)
+
+	response := &tokenmessage.AddTokenSchemeConnect_Response{}
+	if err := h.DB.Conn.QueryRowContext(ctx, query, args...).Scan(&response.Token); err != nil {
+		return nil, trace.Error(status.Error(codes.InvalidArgument, trace.MsgFailedToAdd), log, nil)
+	}
+	response.ExpiredAt = timestamppb.New(expiresAt)
+
+	return response, nil
+}
+
+// UseTokenSchemeConnect consumes a one-time telnet connection token and
+// returns its profile, scheme and active scheme membership.
+func (h *Handler) UseTokenSchemeConnect(ctx context.Context, in *tokenmessage.UseTokenSchemeConnect_Request) (*tokenmessage.UseTokenSchemeConnect_Response, error) {
+	if err := protoutils.ValidateRequest(in); err != nil {
+		return nil, trace.Error(status.Error(codes.InvalidArgument, err.Error()), log, nil)
+	}
+
+	var profileID, schemeID string
+	err := h.DB.Conn.QueryRowContext(ctx, `
+    UPDATE "token"
+    SET "status" = $2, "updated_at" = NOW()
+    WHERE "id" = $1
+      AND "section" = $3
+      AND "action" = $4
+      AND "status" = $5
+      AND "expired_at" > NOW()
+    RETURNING "profile_id", "scheme_id"
+  `,
+		in.GetToken(),
+		tokenenum.Status_used,
+		tokenenum.Section_scheme,
+		tokenenum.Action_connect,
+		tokenenum.Status_sent,
+	).Scan(&profileID, &schemeID)
+	if err != nil {
+		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgTokenIsInvalid), log, nil)
+	}
+
+	schemeMemberID, err := h.activeSchemeMemberID(ctx, profileID, schemeID)
+	if err != nil {
+		return nil, trace.Error(status.Error(codes.NotFound, trace.MsgTokenIsInvalid), log, nil)
+	}
+
+	return &tokenmessage.UseTokenSchemeConnect_Response{
+		ProfileId:      profileID,
+		SchemeId:       schemeID,
+		SchemeMemberId: schemeMemberID,
+	}, nil
+}
+
+func (h *Handler) activeSchemeMemberID(ctx context.Context, profileID, schemeID string) (string, error) {
+	var schemeMemberID string
+	err := h.DB.Conn.QueryRowContext(ctx, `
+    SELECT "scheme_member"."id"
+    FROM "scheme_member"
+      INNER JOIN "project_member" ON "project_member"."id" = "scheme_member"."project_member_id"
+      INNER JOIN "scheme" ON "scheme"."id" = "scheme_member"."scheme_id"
+    WHERE "project_member"."profile_id" = $1
+      AND "scheme_member"."scheme_id" = $2
+      AND "scheme_member"."active" = TRUE
+      AND "scheme"."active" = TRUE
+  `, profileID, schemeID).Scan(&schemeMemberID)
+	return schemeMemberID, err
+}
+
+func (h *Handler) hasSchemeMembership(ctx context.Context, profileID, schemeID string) (bool, error) {
+	var exists bool
+	err := h.DB.Conn.QueryRowContext(ctx, `
+    SELECT EXISTS(
+      SELECT 1
+      FROM "scheme_member"
+        INNER JOIN "project_member" ON "project_member"."id" = "scheme_member"."project_member_id"
+      WHERE "project_member"."profile_id" = $1
+        AND "scheme_member"."scheme_id" = $2
+    )
+  `, profileID, schemeID).Scan(&exists)
+	return exists, err
+}
+
+// enrollProjectOwner lets a project owner obtain a connect token without first
+// creating an explicit project/scheme membership. The audit subsystem needs a
+// scheme_member id, so the owner is enrolled lazily and permanently.
+func (h *Handler) enrollProjectOwner(ctx context.Context, profileID, schemeID string) (string, error) {
+	tx, err := h.DB.Conn.BeginTx(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	var projectID string
+	err = tx.QueryRowContext(ctx, `
+    SELECT "id"
+    FROM "project"
+    WHERE "id" = (SELECT "project_id" FROM "scheme" WHERE "id" = $1 AND "active" = TRUE)
+      AND "owner_id" = $2
+    FOR UPDATE
+  `, schemeID, profileID).Scan(&projectID)
+	if err != nil {
+		return "", err
+	}
+
+	var projectMemberID string
+	err = tx.QueryRowContext(ctx, `
+    INSERT INTO "project_member" ("project_id", "profile_id", "role", "active")
+    SELECT $1, $2, 1, TRUE
+    WHERE NOT EXISTS (
+      SELECT 1 FROM "project_member" WHERE "project_id" = $1 AND "profile_id" = $2
+    )
+    RETURNING "id"
+  `, projectID, profileID).Scan(&projectMemberID)
+	if err == sql.ErrNoRows {
+		err = tx.QueryRowContext(ctx, `
+      SELECT "id" FROM "project_member"
+      WHERE "project_id" = $1 AND "profile_id" = $2
+      ORDER BY "created_at" ASC LIMIT 1
+    `, projectID, profileID).Scan(&projectMemberID)
+	}
+	if err != nil {
+		return "", err
+	}
+
+	if _, err := tx.ExecContext(ctx, `UPDATE "project_member" SET "active" = TRUE WHERE "id" = $1`, projectMemberID); err != nil {
+		return "", err
+	}
+
+	var schemeMemberID string
+	err = tx.QueryRowContext(ctx, `
+    INSERT INTO "scheme_member" ("scheme_id", "project_member_id", "active")
+    SELECT $1, $2, TRUE
+    WHERE NOT EXISTS (
+      SELECT 1 FROM "scheme_member" WHERE "scheme_id" = $1 AND "project_member_id" = $2
+    )
+    RETURNING "id"
+  `, schemeID, projectMemberID).Scan(&schemeMemberID)
+	if err == sql.ErrNoRows {
+		err = tx.QueryRowContext(ctx, `
+      SELECT "id" FROM "scheme_member"
+      WHERE "scheme_id" = $1 AND "project_member_id" = $2
+      ORDER BY "created_at" ASC LIMIT 1
+    `, schemeID, projectMemberID).Scan(&schemeMemberID)
+	}
+	if err != nil {
+		return "", err
+	}
+
+	if _, err := tx.ExecContext(ctx, `UPDATE "scheme_member" SET "active" = TRUE WHERE "id" = $1`, schemeMemberID); err != nil {
+		return "", err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+	return schemeMemberID, nil
 }

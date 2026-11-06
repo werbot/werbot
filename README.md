@@ -56,9 +56,18 @@ Werbot is written in golang, runs in Docker containers, and works as microservic
 
 **Supported technology:**
 
-- _Protocols_ - SSH is fully proxied and recorded today. Access profiles for RDP, VNC, databases and cloud providers exist in the data model; their proxy connectors are not implemented yet.
+- _Protocols_ - SSH and Telnet are proxied and recorded today. Access profiles for RDP, VNC, databases and cloud providers exist in the data model; their proxy connectors are not implemented yet.
 - _Containers_ - Docker, Kubernetes (access metadata)
 - _Databases_ - MySQL, Maria, PostgresQL, Redis, MongoDB, Elasticsearch, and other (access metadata)
+
+### Telnet access
+
+Telnet schemes can be reached in two ways:
+
+1. **SSH bridge** - connect to avocado over SSH, then select a `server_telnet` scheme from the shell or use its direct-access alias. Avocado logs in to the target automatically and records the session.
+2. **Telnet listener** - set `TELNETSERVER_BIND_ADDRESS` (for example `:2323`) and start avocado. Request a one-time token with `POST /v1/tokens/scheme/{scheme_id}/connect`, connect to the listener, and enter the token at the `Token:` prompt.
+
+The listener is disabled by default. The client-to-avocado leg of the listener and the avocado-to-target leg are plaintext because telnet has no encryption; the connection token is single-use and expires after 5 minutes. Prefer the SSH bridge when the network is untrusted.
 
 
 

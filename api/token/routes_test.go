@@ -15,6 +15,7 @@ import (
 	tokenenum "github.com/werbot/werbot/internal/core/token/proto/enum"
 	"github.com/werbot/werbot/internal/utils/test"
 	"github.com/werbot/werbot/internal/utils/test/factory"
+	"github.com/werbot/werbot/pkg/uuid"
 )
 
 const (
@@ -353,4 +354,36 @@ func TestProjectTokensPrivacyAndDelete(t *testing.T) {
 	statusCode, body = apiRequest(t, app, http.MethodDelete, test.PathGluing(pathTokens, secondUserToken), env.adminHeader, nil)
 	require.Equal(t, http.StatusOK, statusCode, body)
 	require.Equal(t, int(tokenenum.Status_deleted), tokenStatus(t, app, secondUserToken))
+}
+
+func TestAddSchemeConnectToken(t *testing.T) {
+	app, env, teardownTestCase := setupTest(t)
+	defer teardownTestCase(t)
+
+	builder := factory.New(t, app.Postgres.Conn().Conn)
+
+	projectMember := builder.ProjectMember(factory.ProjectMemberParams{
+		ProjectID: env.adminProject.ID,
+		ProfileID: env.user.ID,
+	})
+	builder.SchemeMember(factory.SchemeMemberParams{
+		SchemeID:        env.adminScheme.ID,
+		ProjectMemberID: projectMember.ID,
+	})
+	foreignScheme := builder.Scheme(factory.SchemeParams{
+		ProjectID: env.userProject.ID,
+		Title:     "foreign scheme",
+	})
+
+	path := pathTokensScheme + "/" + env.adminScheme.ID + "/connect"
+
+	statusCode, body := apiRequest(t, app, http.MethodPost, path, env.userHeader, nil)
+	require.Equal(t, http.StatusOK, statusCode, body)
+	require.True(t, uuid.IsValid(responseToken(t, body)), "token is not a UUID: %#v", body)
+
+	statusCode, _ = apiRequest(t, app, http.MethodPost, pathTokensScheme+"/"+foreignScheme.ID+"/connect", env.adminHeader, nil)
+	require.Equal(t, http.StatusNotFound, statusCode)
+
+	statusCode, _ = apiRequest(t, app, http.MethodPost, path, nil, nil)
+	require.Equal(t, http.StatusUnauthorized, statusCode)
 }

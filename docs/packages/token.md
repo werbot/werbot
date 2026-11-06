@@ -82,6 +82,7 @@ Specifies the type of operation the token authorizes:
 | 6 | `enable` | Enable operation |
 | 7 | `request` | Request/invitation |
 | 8 | `access` | Access grant |
+| 9 | `connect` | One-time telnet listener connection |
 
 ### Status (Lifecycle State)
 
@@ -902,6 +903,32 @@ if err != nil {
 }
 // metrics.Created - count of created tokens
 // metrics.Used - count of used tokens
+```
+
+## Scheme Connect Tokens
+
+Telnet listener access uses a one-time token in the `scheme` section with action `connect` (9). The token is bound to one profile and scheme, and expires after 5 minutes.
+
+### `AddTokenSchemeConnect`
+
+Creates a token for a profile that has an active `scheme_member` link to an active scheme.
+
+Request fields: `profile_id`, `scheme_id`.
+Response fields: `token`, `expired_at`.
+
+### `UseTokenSchemeConnect`
+
+Atomically consumes the token (`status = used`) and returns `profile_id`, `scheme_id` and the active `scheme_member_id`. A second use, an expired token, a wrong action, or revoked membership returns `NotFound` with `Token is invalid`.
+
+### API
+
+`POST /v1/tokens/scheme/{scheme_id}/connect` issues a connect token for the authenticated profile, even when the caller is an administrator.
+
+```json
+{
+  "token": "11111111-1111-1111-1111-111111111111",
+  "expired_at": "2026-11-06T12:05:00Z"
+}
 ```
 
 ## Error Handling
