@@ -40,7 +40,12 @@ jobs:
             scripts/submodules check --mode main
           else
             git fetch --no-tags origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
-            scripts/submodules check --mode branch --branch "${HEAD_REF}"
+            mapfile -t modules < <(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
+            if git diff --quiet "origin/${BASE_REF}" -- "${modules[@]}"; then
+              scripts/submodules check --mode main
+            else
+              scripts/submodules check --mode branch --branch "${HEAD_REF}"
+            fi
           fi
 
   ci:
