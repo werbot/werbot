@@ -1,0 +1,9 @@
+.superpowers/
+/bin/
+/data/
+.env
+web/node_modules/
+web/.svelte-kit/
+web/build/*
+!web/build/.gitkeep
+.DS_Store
