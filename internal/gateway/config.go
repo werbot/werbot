@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
 
@@ -120,9 +122,6 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	if c.JoinToken == "" {
 		c.JoinToken = env[envToken]
 	}
-	if err := checkServerURL(c.ServerURL, c.InsecureEnroll); err != nil {
-		return c, err
-	}
 	if c.Name == "" {
 		return c, fmt.Errorf("%s is empty and the OS hostname is unavailable", envName)
 	}
@@ -203,14 +202,18 @@ func ParseJoinToken(s string) (caFingerprint string, err error) {
 var errNoIdentity = errors.New("no instance identity")
 
 // identityError reports why dataDir holds no usable instance identity: none was saved,
-// or its client certificate does not load or has expired. nil means enrolled.
+// its gateway.json is corrupt, or its client certificate does not load or has expired.
+// nil means enrolled.
 func identityError(dataDir string) error {
 	if _, err := os.Stat(filepath.Join(dataDir, stateFile)); err != nil {
 		return errNoIdentity
 	}
-	cs, err := loadCertStore(dataDir)
+	st, cs, err := loadIdentity(dataDir)
 	if err != nil {
 		return err
+	}
+	if st.GatewayID == uuid.Nil || st.InstanceID == uuid.Nil {
+		return fmt.Errorf("%s has no gateway_id or instance_id", stateFile)
 	}
 	if exp := cs.Leaf().NotAfter; !time.Now().Before(exp) {
 		return fmt.Errorf("gateway certificate expired at %s", exp.UTC().Format(time.RFC3339))
@@ -218,6 +221,7 @@ func identityError(dataDir string) error {
 	return nil
 }
 
-// Enrolled reports whether dataDir holds a usable instance identity: an expired or
-// unloadable certificate counts as not enrolled, so the instance enrolls again.
+// Enrolled reports whether dataDir holds a usable instance identity: a corrupt
+// gateway.json or an expired or unloadable certificate counts as not enrolled, so the
+// instance enrolls again.
 func Enrolled(dataDir string) bool { return identityError(dataDir) == nil }

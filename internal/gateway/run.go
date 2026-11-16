@@ -34,9 +34,10 @@ func Run(ctx context.Context, cfg Config, logger *slog.Logger) error {
 }
 
 // serve enrolls (or loads the identity), keeps the tunnel and serves SSH on sshLn
-// and /readyz, /metrics on httpLn (nil: off) until ctx ends. Then it drains: new
-// sessions are refused at once, running ones get cfg.DrainTimeout, and the tunnel
-// stays up until their EndSession calls are delivered.
+// and /readyz, /metrics on httpLn (nil: off) until ctx ends or the tunnel stops for
+// good (expired certificate). Then it drains: new sessions are refused at once,
+// running ones get cfg.DrainTimeout, and the tunnel stays up until their EndSession
+// calls are delivered. The tunnel error, if any, is returned after the drain.
 func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *slog.Logger) error {
 	defer sshLn.Close() //nolint:errcheck // closed twice on the normal path
 	if httpLn != nil {
@@ -59,9 +60,10 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	// the tunnel outlives ctx: drain still sends EndSession through it
 	tunnelCtx, stopTunnel := context.WithCancel(context.WithoutCancel(ctx))
 	tunnelDone := make(chan struct{})
+	var tunnelErr error // read after tunnelDone
 	go func() {
 		defer close(tunnelDone)
-		_ = tc.Run(tunnelCtx, p.heartbeat) // returns nil once tunnelCtx ends
+		tunnelErr = tc.Run(tunnelCtx, p.heartbeat) // nil once tunnelCtx ends
 	}()
 
 	var hs *http.Server
@@ -82,6 +84,7 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 		select {
 		case <-ctx.Done():
 		case <-frontDone: // a failed front drains too
+		case <-tunnelDone: // so does a tunnel that cannot reconnect
 		}
 		p.active.startDrain()
 		stopFront()
@@ -100,5 +103,5 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 		defer cancel()
 		_ = hs.Shutdown(sctx)
 	}
-	return err
+	return errors.Join(err, tunnelErr)
 }

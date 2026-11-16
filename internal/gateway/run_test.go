@@ -65,15 +65,21 @@ type serveEnv struct {
 	key     gossh.Signer
 	host    gossh.PublicKey // the pool host key from enrollment
 	cancel  context.CancelFunc
+	wait    func() error // waits for serve to return and returns its result
 	stop    func() error // cancels serve and returns its result
+	wantErr error        // what serve returns at cleanup; nil by default
 }
 
-func newServeEnv(t *testing.T, drain time.Duration) *serveEnv {
+// newServeEnv starts serve; opts adjust the fakes before it starts.
+func newServeEnv(t *testing.T, drain time.Duration, opts ...func(*fakeEnroll, *fakeTunnel)) *serveEnv {
 	t.Helper()
 	enr, esrv := newFake(t)
 	m := ids{"u1": testUserID, "rblocker": uuid.New()}
 	snap := testSnapshot(t, m, `permit (principal == Werbot::User::"u1", action, resource);`, nil, res{"rblocker", "blocker", "blocker"})
 	tun, tunnelURL := serveFakeTunnel(t, enr.ca, func(int) attempt { return attempt{snap: snap} })
+	for _, o := range opts {
+		o(enr, tun)
+	}
 	host, err := gossh.ParsePrivateKey(enr.hostKey)
 	require.NoError(t, err)
 	e := &serveEnv{tun: tun, key: newKey(t), host: host.PublicKey()}
@@ -90,8 +96,7 @@ func newServeEnv(t *testing.T, drain time.Duration) *serveEnv {
 	done := make(chan error, 1)
 	go func() { done <- serve(ctx, cfg, sshLn, httpLn, slog.New(slog.DiscardHandler)) }()
 	e.cancel = cancel
-	e.stop = sync.OnceValue(func() error {
-		cancel()
+	e.wait = sync.OnceValue(func() error {
 		select {
 		case err := <-done:
 			return err
@@ -99,7 +104,8 @@ func newServeEnv(t *testing.T, drain time.Duration) *serveEnv {
 			return errors.New("serve did not return")
 		}
 	})
-	t.Cleanup(func() { require.NoError(t, e.stop()) })
+	e.stop = func() error { cancel(); return e.wait() }
+	t.Cleanup(func() { require.ErrorIs(t, e.stop(), e.wantErr) }) // errors.Is(nil, nil) holds
 	require.Eventually(t, func() bool { return e.readyz() == http.StatusOK }, 5*time.Second, 10*time.Millisecond)
 	return e
 }
@@ -196,4 +202,28 @@ func TestServeDrain(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("the SSH session is still open after serve returned")
 	}
+}
+
+// A certificate that expired while serving ends serve after the drain: the
+// process exits (standalone) or enrolls again (embedded) instead of retrying forever.
+func TestServeReturnsWhenCertExpires(t *testing.T) {
+	const ttl = 2 * time.Second
+	e := newServeEnv(t, 50*time.Millisecond, func(enr *fakeEnroll, tun *fakeTunnel) {
+		enr.ttl = ttl
+		tun.renewErr = connect.NewError(connect.CodeUnavailable, errors.New("down"))
+	})
+	e.wantErr = errCertExpired
+	time.Sleep(ttl) // the open stream outlives the certificate; its end reveals the expiry
+	e.tun.kill <- connect.NewError(connect.CodeInternal, errors.New("boom"))
+
+	done := make(chan error, 1)
+	go func() { done <- e.wait() }()
+	select {
+	case err := <-done:
+		require.ErrorIs(t, err, errCertExpired)
+	case <-time.After(3 * time.Second):
+		t.Fatal("serve did not return after the certificate expired")
+	}
+	_, err := net.Dial("tcp", e.sshAddr)
+	require.Error(t, err, "the SSH listener is closed")
 }

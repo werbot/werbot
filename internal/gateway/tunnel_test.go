@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -208,5 +209,45 @@ func TestTunnelBackoff(t *testing.T) {
 			require.GreaterOrEqual(t, d, max(want*8/10, c.backoffMin))
 			require.LessOrEqual(t, d, want*12/10)
 		}
+	}
+}
+
+// A heartbeat that hits a stream the server already closed gets io.EOF; the server's
+// close error from Receive must still decide the reconnect: a planned close never backs off.
+func TestHeartbeatEOFKeepsServerError(t *testing.T) {
+	const n = 30
+	e := newTunnelEnv(t, func(int) attempt {
+		return attempt{snap: testSnap("v1"), closeWith: connect.NewError(connect.CodeUnavailable, errors.New("rebalance")),
+			closeAfter: 20 * time.Millisecond}
+	}, time.Hour)
+	e.c.heartbeatEvery, e.c.backoffMin = time.Millisecond, 500*time.Millisecond
+	e.run(t, nil)
+	require.Eventually(t, func() bool { return e.f.attempts() > n }, 10*time.Second, time.Millisecond)
+
+	e.f.mu.Lock()
+	defer e.f.mu.Unlock()
+	for i := range n {
+		require.Less(t, e.f.starts[i+1].Sub(e.f.closes[i]), e.c.backoffMin, "reconnect %d backed off", i+1)
+	}
+}
+
+// Once the client certificate expired no stream can open and renewal is impossible:
+// Run returns errCertExpired so the process restarts and enrolls again.
+func TestTunnelStopsOnExpiredCert(t *testing.T) {
+	e := newTunnelEnv(t, func(int) attempt {
+		return attempt{reject: connect.NewError(connect.CodeInternal, errors.New("no"))}
+	}, time.Second)
+	e.f.with(func(f *fakeTunnel) { f.renewErr = connect.NewError(connect.CodeUnavailable, errors.New("down")) })
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		done <- e.c.Run(ctx, func() *gatewayv1.Heartbeat { return &gatewayv1.Heartbeat{Version: "test"} })
+	}()
+	select {
+	case err := <-done:
+		require.ErrorIs(t, err, errCertExpired)
+	case <-time.After(3 * time.Second):
+		t.Fatal("Run did not return after the certificate expired")
 	}
 }

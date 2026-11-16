@@ -26,6 +26,10 @@ const renewRetry = time.Minute
 // errRenewed cancels the stream that still runs on the replaced certificate.
 var errRenewed = errors.New("client certificate renewed")
 
+// errCertExpired ends Run: an expired client certificate opens no stream and cannot be
+// renewed, so the instance has to enroll again.
+var errCertExpired = errors.New("gateway certificate expired; the instance must enroll again")
+
 // tunnelConn is one transport with its client; renewal swaps both.
 type tunnelConn struct {
 	tr  *http.Transport
@@ -56,7 +60,7 @@ func newTunnelClient(st state, roots *x509.CertPool, certs *certStore, reg *metr
 		heartbeatEvery: 15 * time.Second, backoffMin: time.Second, backoffMax: 30 * time.Second, callTimeout: 10 * time.Second,
 		reconnectGrace: 5 * time.Second,
 		st:             st, roots: roots, certs: certs, log: logger,
-		gauge: reg.Gauge("werbot_gateway_tunnel_connected", "1 while the tunnel stream is open and has delivered a snapshot."),
+		gauge: reg.Gauge("werbot_gateway_tunnel_connected", "1 while the tunnel stream is open and its latest snapshot compiled."),
 	}
 	c.dial()
 	return c
@@ -97,7 +101,7 @@ func (c *tunnelClient) dial() {
 // Policy is the latest snapshot; nil until the first one arrives.
 func (c *tunnelClient) Policy() *Policy { return c.policy.Load() }
 
-// Connected reports whether the stream is open and has delivered a snapshot. After a
+// Connected reports whether the stream is open and its latest snapshot compiled. After a
 // planned close it stays true while the reconnect runs, for at most reconnectGrace.
 func (c *tunnelClient) Connected() bool {
 	return c.connected.Load() || time.Now().UnixNano() < c.graceEnd.Load()
@@ -113,17 +117,24 @@ func (c *tunnelClient) setConnected(v bool) {
 }
 
 // Run keeps the stream open and the certificate fresh until ctx ends, then returns nil.
-// A broken stream leaves active sessions and the last snapshot alone.
+// A broken stream leaves active sessions and the last snapshot alone. Once the client
+// certificate has expired, the next stream end returns errCertExpired.
 func (c *tunnelClient) Run(ctx context.Context, heartbeat func() *gatewayv1.Heartbeat) error {
+	ctx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	wg.Go(func() { c.renewLoop(ctx) })
 	defer wg.Wait()
+	defer cancel() // before wg.Wait: renewLoop exits
 	defer func() { c.conn.Load().tr.CloseIdleConnections() }()
 	failures := 0
 	for {
 		got, err := c.stream(ctx, heartbeat)
 		if ctx.Err() != nil {
 			return nil
+		}
+		if exp := c.certs.Leaf().NotAfter; !time.Now().Before(exp) {
+			c.log.ErrorContext(ctx, "tunnel: client certificate expired", "expired_at", exp, "error", err)
+			return errCertExpired
 		}
 		if got {
 			failures = 0

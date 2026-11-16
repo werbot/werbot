@@ -34,7 +34,8 @@ type state struct {
 
 // ensureEnrolled returns the persisted identity, enrolling through the join token on first start.
 // A usable saved identity wins: the token is not read, so an exhausted one in env is harmless.
-// An identity whose certificate expired or does not load is replaced by a new enrollment.
+// An identity whose gateway.json is corrupt or whose certificate expired or does not load
+// is replaced by a new enrollment.
 func ensureEnrolled(ctx context.Context, cfg Config, hc *http.Client, connectors []string) (state, *certStore, *x509.CertPool, error) {
 	var st state
 	var cs *certStore
@@ -44,8 +45,12 @@ func ensureEnrolled(ctx context.Context, cfg Config, hc *http.Client, connectors
 		st, cs, err = loadIdentity(cfg.DataDir)
 	} else {
 		st, cs, err = enroll(ctx, cfg, hc, connectors)
-		if err != nil && !errors.Is(stale, errNoIdentity) {
+		switch {
+		case err == nil, errors.Is(stale, errNoIdentity):
+		case connect.CodeOf(err) == connect.CodePermissionDenied: // the token is spent or rejected
 			err = fmt.Errorf("saved identity is unusable (%v), re-enrollment needs a new join token: %w", stale, err)
+		default:
+			err = fmt.Errorf("saved identity is unusable (%v): %w", stale, err)
 		}
 	}
 	if err != nil {
@@ -111,6 +116,9 @@ func loadIdentity(dir string) (state, *certStore, error) {
 }
 
 func enroll(ctx context.Context, cfg Config, hc *http.Client, connectors []string) (state, *certStore, error) {
+	if err := checkServerURL(cfg.ServerURL, cfg.InsecureEnroll); err != nil {
+		return state{}, nil, err
+	}
 	if cfg.ServerURL == "" || cfg.JoinToken == "" {
 		return state{}, nil, errors.New("instance is not enrolled: WERBOT_GATEWAY_SERVER_URL and WERBOT_GATEWAY_JOIN_TOKEN are required")
 	}

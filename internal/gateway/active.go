@@ -33,6 +33,9 @@ type activeSessions struct {
 	cancels  map[uuid.UUID]context.CancelCauseFunc // opened sessions; nil until Run binds
 	pending  map[uuid.UUID]struct{}                // EndSession not delivered yet
 	shutdown error                                 // set by cancelAll: a later bind cancels at once
+	// retriesClosed is set by drain before it waits on the retries: no retry starts after
+	retriesClosed bool
+	lastOmitted   int // pending ids left out of the last heartbeat; the cap warning fires when it changes
 }
 
 func newActiveSessions(gauge *metrics.Gauge, logger *slog.Logger) *activeSessions {
@@ -157,12 +160,36 @@ func (a *activeSessions) ids() []string {
 	}
 	for id := range a.pending {
 		if len(out) == maxSessionIDs {
-			a.log.Warn("session: heartbeat full, undelivered ends left out", "omitted", len(a.cancels)+len(a.pending)-maxSessionIDs)
 			break
 		}
 		out = append(out, id.String())
 	}
+	if omitted := len(a.cancels) + len(a.pending) - len(out); omitted != a.lastOmitted {
+		a.lastOmitted = omitted
+		if omitted > 0 {
+			a.log.Warn("session: heartbeat full, undelivered ends left out", "omitted", omitted)
+		}
+	}
 	return out
+}
+
+// startRetry adds a retry to wg unless drain closed the gate; the check and the Add
+// share a.mu with closeRetries, so wg.Wait never races a late Add.
+func (a *activeSessions) startRetry(wg *sync.WaitGroup) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.retriesClosed {
+		return false
+	}
+	wg.Add(1)
+	return true
+}
+
+// closeRetries makes every later startRetry fail.
+func (a *activeSessions) closeRetries() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.retriesClosed = true
 }
 
 // unreachable reports a control plane outage, as opposed to a refusal.
@@ -178,17 +205,20 @@ func unreachable(err error) bool {
 // endSession sends EndSession once; on an outage it keeps the id in the
 // heartbeat and retries in the background until delivery, a refusal or stop.
 // The id leaves the heartbeat only once the server accepted or refused the end;
-// after stop it stays pending.
+// after stop, or once drain stopped taking retries, it stays pending.
 func (p *Pipeline) endSession(id uuid.UUID, reason string) {
 	err := p.ctl.EndSession(p.stop, id, reason)
-	stopped := p.stop.Err() != nil
+	stopped := err != nil && p.stop.Err() != nil
 	retry := unreachable(err) || stopped
 	p.active.done(id, retry)
 	switch {
-	case stopped:
-		p.log.Warn("session: end not delivered before stop", "session_id", id, "reason", reason)
+	case retry && !stopped && p.active.startRetry(&p.retries):
+		go func() {
+			defer p.retries.Done()
+			p.retryEnd(id, reason)
+		}()
 	case retry:
-		p.retries.Go(func() { p.retryEnd(id, reason) })
+		p.log.Warn("session: end not delivered before stop", "session_id", id, "reason", reason)
 	case err != nil:
 		p.log.Warn("session: end not accepted", "session_id", id, "reason", reason, "error", err)
 	}
@@ -204,7 +234,10 @@ func (p *Pipeline) retryEnd(id uuid.UUID, reason string) {
 		}
 		var err error
 		if p.stop.Err() == nil {
-			err = p.ctl.EndSession(p.stop, id, reason)
+			if err = p.ctl.EndSession(p.stop, id, reason); err == nil {
+				p.active.delivered(id) // accepted, even if stop came during the call
+				return
+			}
 		}
 		if p.stop.Err() != nil {
 			p.log.Warn("session: end not delivered before stop", "session_id", id, "reason", reason)
@@ -232,6 +265,7 @@ func (p *Pipeline) drain(timeout time.Duration) {
 			p.log.Error("drain: sessions did not end after cancel", "session_ids", p.active.ids())
 		}
 	}
+	p.active.closeRetries() // before Wait: a later Add would race it
 	flushed := make(chan struct{})
 	go func() { p.retries.Wait(); close(flushed) }()
 	waitFor(flushed, p.flushTimeout)

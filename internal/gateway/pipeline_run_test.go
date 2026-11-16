@@ -3,12 +3,17 @@ package gateway
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+
+	"github.com/werbot/werbot/internal/platform/metrics"
 )
 
 func TestRunEndReasons(t *testing.T) {
@@ -232,4 +237,62 @@ func TestDrain(t *testing.T) {
 		<-drained
 		require.Equal(t, []string{"gateway_shutdown"}, e.f.endsOf(s.ID))
 	})
+}
+
+// An end whose first attempt fails after drain closed the retry gate gets no
+// retry goroutine (drain already waits on retries) and keeps its id pending.
+func TestEndAfterRetryGateClosedNoRetry(t *testing.T) {
+	e := newPipeEnv(t, 10)
+	e.f.with(func(f *fakeControl) { f.endErr = connect.NewError(connect.CodeUnavailable, errors.New("down")) })
+	e.p.active.closeRetries()
+	id := uuid.New()
+	e.p.endSession(id, "closed")
+	time.Sleep(3 * e.p.backoffMin)
+	require.Len(t, e.f.endsOf(id), 1, "no retry after the gate closed")
+	require.Contains(t, e.p.active.ids(), id.String())
+	require.Contains(t, e.log.String(), "end not delivered before stop")
+}
+
+// An EndSession the server accepted is delivered even when stop came during the call.
+func TestEndDeliveredAtStopIsDelivered(t *testing.T) {
+	t.Run("first attempt", func(t *testing.T) {
+		e := newPipeEnv(t, 10)
+		e.f.with(func(f *fakeControl) { f.onEnd = func(int) { e.p.stopNow() } })
+		id := uuid.New()
+		e.p.endSession(id, "closed")
+		require.Empty(t, e.p.active.ids())
+		require.NotContains(t, e.log.String(), "not delivered")
+	})
+	t.Run("retry", func(t *testing.T) {
+		e := newPipeEnv(t, 10)
+		e.f.with(func(f *fakeControl) {
+			f.endErrs = []error{connect.NewError(connect.CodeUnavailable, errors.New("down"))}
+			f.onEnd = func(n int) {
+				if n == 2 {
+					e.p.stopNow()
+				}
+			}
+		})
+		id := uuid.New()
+		e.p.endSession(id, "closed")
+		e.p.retries.Wait()
+		require.Len(t, e.f.endsOf(id), 2)
+		require.Empty(t, e.p.active.ids())
+		require.NotContains(t, e.log.String(), "not delivered")
+	})
+}
+
+func TestIDsCapWarnsOnce(t *testing.T) {
+	log := &syncBuffer{}
+	a := newActiveSessions(metrics.NewRegistry().Gauge("werbot_test_sessions", "test"), slog.New(slog.NewTextHandler(log, nil)))
+	for range maxSessionIDs + 1 {
+		a.done(uuid.New(), true)
+	}
+	for range 3 {
+		require.Len(t, a.ids(), maxSessionIDs)
+	}
+	require.Equal(t, 1, strings.Count(log.String(), "heartbeat full"))
+	a.done(uuid.New(), true)
+	a.ids()
+	require.Equal(t, 2, strings.Count(log.String(), "heartbeat full"), "the omitted count changed")
 }

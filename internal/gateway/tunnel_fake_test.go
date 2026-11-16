@@ -29,6 +29,7 @@ type attempt struct {
 	reject, closeWith error
 	snap              *gatewayv1.Snapshot
 	hold              <-chan struct{} // delays the snapshot until closed
+	closeAfter        time.Duration   // delays closeWith after the snapshot
 }
 
 // fakeTunnel is a TunnelService behind real mTLS HTTP/2 that records the calls.
@@ -48,6 +49,7 @@ type fakeTunnel struct {
 	hbs        []*gatewayv1.Heartbeat
 	pins       []*gatewayv1.PinHostKeyRequest
 	pinErr     error
+	renewErr   error // returned by RenewCertificate when set
 	ends       []*gatewayv1.EndSessionRequest
 	csrs       [][]byte
 	startCalls int
@@ -89,6 +91,7 @@ func (f *fakeTunnel) Connect(ctx context.Context, st *connect.BidiStream[gateway
 		return err
 	}
 	if a.closeWith != nil {
+		time.Sleep(a.closeAfter) // short: no need to watch ctx
 		f.closed()
 		return a.closeWith
 	}
@@ -160,7 +163,11 @@ func (f *fakeTunnel) PinHostKey(_ context.Context, r *connect.Request[gatewayv1.
 func (f *fakeTunnel) RenewCertificate(_ context.Context, r *connect.Request[gatewayv1.RenewCertificateRequest]) (*connect.Response[gatewayv1.RenewCertificateResponse], error) {
 	f.mu.Lock()
 	f.csrs = append(f.csrs, r.Msg.GetCsrDer())
+	renewErr := f.renewErr
 	f.mu.Unlock()
+	if renewErr != nil {
+		return nil, renewErr
+	}
 	cert, err := f.ca.IssueClient(r.Msg.GetCsrDer(), f.cn, time.Hour)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)

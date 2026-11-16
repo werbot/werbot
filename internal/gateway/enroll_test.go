@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"cmp"
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -8,12 +9,13 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -65,7 +67,8 @@ type fakeEnroll struct {
 	ca      *tlsca.CA
 	extraCA []byte // appended to ca_pem
 	hostKey []byte
-	spent   bool // the token is exhausted
+	spent   bool          // the token is exhausted
+	ttl     time.Duration // of issued certificates; zero is an hour
 	mu      sync.Mutex
 	reqs    []*werbotv1.EnrollRequest
 }
@@ -77,7 +80,7 @@ func (f *fakeEnroll) Enroll(_ context.Context, r *connect.Request[werbotv1.Enrol
 	if f.spent {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("invalid join token"))
 	}
-	cert, err := f.ca.IssueClient(r.Msg.GetCsrDer(), "gateway:x:y", time.Hour)
+	cert, err := f.ca.IssueClient(r.Msg.GetCsrDer(), "gateway:x:y", cmp.Or(f.ttl, time.Hour))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -186,46 +189,6 @@ func TestEnsureEnrolledSkipsWhenEnrolled(t *testing.T) {
 	require.Equal(t, before.ModTime(), after.ModTime())
 }
 
-// writeExpiredCert replaces the client certificate in dir with one that expired an hour ago.
-func writeExpiredCert(t *testing.T, dir string) {
-	t.Helper()
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
-	require.NoError(t, err)
-	tmpl := &x509.Certificate{SerialNumber: big.NewInt(1), NotBefore: time.Now().Add(-48 * time.Hour), NotAfter: time.Now().Add(-time.Hour)}
-	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, pub, priv)
-	require.NoError(t, err)
-	key, err := x509.MarshalPKCS8PrivateKey(priv)
-	require.NoError(t, err)
-	require.NoError(t, (&certStore{dir: dir}).Replace(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}),
-		pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: key})))
-}
-
-func TestEnsureEnrolledReenrollsStaleIdentity(t *testing.T) {
-	f, srv := newFake(t)
-	dir := t.TempDir()
-	cfg := Config{ServerURL: srv.URL, DataDir: dir, Name: "gw", JoinToken: testToken(f.ca.Fingerprint())}
-	_, _, _, err := ensureEnrolled(t.Context(), cfg, srv.Client(), nil)
-	require.NoError(t, err)
-	writeExpiredCert(t, dir)
-	require.False(t, Enrolled(dir), "expired certificate")
-
-	f.spent = true // a standalone gateway restarted with its old token
-	_, _, _, err = ensureEnrolled(t.Context(), cfg, srv.Client(), nil)
-	require.ErrorContains(t, err, "expired")
-	require.ErrorContains(t, err, "new join token")
-	require.ErrorContains(t, err, "invalid join token")
-
-	f.spent = false
-	_, cs, _, err := ensureEnrolled(t.Context(), cfg, srv.Client(), nil)
-	require.NoError(t, err)
-	require.Len(t, f.reqs, 3, "Enroll is called for the stale identity")
-	require.True(t, cs.Leaf().NotAfter.After(time.Now()))
-	require.True(t, Enrolled(dir))
-
-	require.NoError(t, os.WriteFile(filepath.Join(dir, certFile), []byte("garbage"), 0o600))
-	require.False(t, Enrolled(dir), "unloadable certificate")
-}
-
 func TestEnsureEnrolledRequiresServerAndToken(t *testing.T) {
 	_, _, _, err := ensureEnrolled(t.Context(), Config{DataDir: t.TempDir()}, http.DefaultClient, nil)
 	require.ErrorContains(t, err, "WERBOT_GATEWAY_SERVER_URL")
@@ -281,4 +244,42 @@ func TestEnsureEnrolledPinsSingleCAOnRestart(t *testing.T) {
 	require.NoError(t, os.WriteFile(p, []byte("garbage"), 0o600))
 	_, _, _, err = ensureEnrolled(t.Context(), Config{DataDir: dir}, srv.Client(), nil)
 	require.ErrorContains(t, err, caFile)
+}
+
+// roundTripFunc is an http.RoundTripper made of a function.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// The scheme check runs at enrollment, not in LoadConfig (moved there from
+// TestLoadConfigServerScheme): an enrolled instance does not use ServerURL, while
+// every enrollment still refuses to send the join token in cleartext to a remote host.
+func TestEnrollRejectsCleartextServer(t *testing.T) {
+	var calls atomic.Int32
+	offline := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		calls.Add(1)
+		return nil, errors.New("offline")
+	})}
+	tok := testToken(strings.Repeat("ab", 32))
+	enroll := func(u string, insecure bool) error {
+		_, _, _, err := ensureEnrolled(t.Context(), Config{ServerURL: u, JoinToken: tok, InsecureEnroll: insecure, DataDir: t.TempDir()}, offline, nil)
+		return err
+	}
+	for _, u := range []string{"http://werbot.example", "http://10.0.0.5:8080", "http://localhost.evil.example", "ftp://werbot.example", "werbot.example"} {
+		require.ErrorContains(t, enroll(u, false), envServer, u)
+	}
+	require.Zero(t, calls.Load(), "refused before any request")
+	for _, u := range []string{"https://werbot.example", "http://127.0.0.1:8080", "http://127.1.2.3", "http://[::1]:8080", "http://localhost:8080"} {
+		require.ErrorContains(t, enroll(u, false), "offline", u)
+	}
+	require.ErrorContains(t, enroll("http://server:8080", true), "offline", "lab networks opt in")
+	require.EqualValues(t, 6, calls.Load())
+
+	f, srv := newFake(t)
+	dir := t.TempDir()
+	_, _, _, err := ensureEnrolled(t.Context(), Config{ServerURL: srv.URL, DataDir: dir, Name: "gw", JoinToken: testToken(f.ca.Fingerprint())}, srv.Client(), nil)
+	require.NoError(t, err)
+	_, _, _, err = ensureEnrolled(t.Context(), Config{ServerURL: "http://example.com", DataDir: dir}, offline, nil)
+	require.NoError(t, err, "an enrolled instance starts with a URL it does not use")
+	require.EqualValues(t, 6, calls.Load())
 }
