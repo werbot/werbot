@@ -113,6 +113,7 @@ func Handler(cfg Config, ui fs.FS, draining *atomic.Bool, reg *metrics.Registry,
 			}
 		},
 		Transport:     tr,
+		ErrorLog:      slog.NewLogLogger(logger.Handler(), slog.LevelWarn),
 		FlushInterval: -1,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			if r.Context().Err() != nil { // client went away: not an upstream failure
@@ -163,7 +164,8 @@ func Run(ctx context.Context, cfg Config, ui fs.FS, logger *slog.Logger) error {
 	for _, s := range servers {
 		go func() { errc <- s.ListenAndServe() }()
 	}
-	logger.Info("web started", "addr", cfg.Addr, "api_url", cfg.APIURL, "metrics_addr", cfg.MetricsAddr)
+	api, _ := url.Parse(cfg.APIURL) // already validated by Handler
+	logger.Info("web started", "addr", cfg.Addr, "api_url", api.Redacted(), "metrics_addr", cfg.MetricsAddr)
 
 	select {
 	case err = <-errc:

@@ -6,7 +6,7 @@ linters:
     depguard:
       rules:
         sdk:
-          files: ["**/sdk/**/*.go"]
+          files: ["**/sdk/*.go", "**/sdk/**/*.go"]
           deny:
             - pkg: github.com/werbot/werbot/internal
               desc: sdk is a public contract and must not import internal packages
@@ -26,7 +26,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/system, desc: platform must not import domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: platform must not import domains }
         system:
-          files: ["**/internal/system/**/*.go"]
+          files: ["**/internal/system/*.go", "**/internal/system/**/*.go"]
           deny:
             - { pkg: github.com/werbot/werbot/internal/app, desc: domains must not import the composition root }
             - { pkg: github.com/werbot/werbot/internal/identity, desc: domains must not import other domains }

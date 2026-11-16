@@ -269,3 +269,13 @@ func TestClientCancelNotCounted(t *testing.T) {
 	assert.Contains(t, metricsText(t, reg), "\nwerbot_web_upstream_errors_total 0\n")
 	assert.NotContains(t, logs.String(), "upstream error")
 }
+
+func TestRunRedactsAPIURL(t *testing.T) {
+	var logs syncBuffer
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	cfg := webui.Config{Addr: "127.0.0.1:0", APIURL: "http://u:s3cret@127.0.0.1:1"} //nolint:gosec // fake credential checked for redaction
+	require.NoError(t, webui.Run(ctx, cfg, fstest.MapFS{}, slog.New(slog.NewTextHandler(&logs, nil))))
+	assert.Contains(t, logs.String(), "web started")
+	assert.NotContains(t, logs.String(), "s3cret")
+}
