@@ -2,7 +2,6 @@ package sshconnector
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -26,10 +25,11 @@ func pipe(client, target io.ReadWriteCloser, rec gateway.RecordingSink) error {
 }
 
 // relay copies src to dst, then half-closes dst. A side closed by the other
-// direction or by the session end is a normal end.
+// direction or by the session end is a normal end (an SSH channel write after
+// the remote close is io.EOF).
 func relay(dst io.WriteCloser, src io.Reader, record func([]byte)) error {
 	err := copyRec(dst, src, record)
-	if errors.Is(err, net.ErrClosed) || errors.Is(err, io.ErrClosedPipe) {
+	if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) || errors.Is(err, io.ErrClosedPipe) {
 		return nil
 	}
 	if err != nil {
@@ -64,53 +64,4 @@ func copyRec(dst io.Writer, src io.Reader, record func([]byte)) error {
 			return err
 		}
 	}
-}
-
-// guard runs the relay goroutines of one session. The pipeline recovers only
-// the Serve goroutine, so a relay panic is recovered here: the first panic or
-// error stops the session and becomes the result of done.
-type guard struct {
-	stop func()
-	wg   sync.WaitGroup
-	mu   sync.Mutex
-	err  error
-}
-
-// spawn runs fn on a goroutine that done waits for.
-func (g *guard) spawn(fn func() error) {
-	g.wg.Go(func() { g.call(fn) })
-}
-
-// detach runs fn on a goroutine that done does not wait for: fn may block on
-// a reader the session cannot interrupt, until the front closes it.
-func (g *guard) detach(fn func() error) {
-	go g.call(fn)
-}
-
-func (g *guard) call(fn func() error) {
-	defer func() {
-		if r := recover(); r != nil {
-			g.fail(fmt.Errorf("ssh: relay panic: %v", r))
-		}
-	}()
-	if err := fn(); err != nil {
-		g.fail(err)
-	}
-}
-
-func (g *guard) fail(err error) {
-	g.mu.Lock()
-	if g.err == nil {
-		g.err = err
-	}
-	g.mu.Unlock()
-	g.stop()
-}
-
-// done waits for the spawned goroutines and returns the first failure.
-func (g *guard) done() error {
-	g.wg.Wait()
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	return g.err
 }

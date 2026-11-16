@@ -31,7 +31,8 @@ func (Connector) Kinds() []gateway.Kind {
 }
 
 // Serve connects to the target and serves s until it ends; a cancel of ctx
-// closes the target connection (and the stream) and is not an error.
+// closes the target connection (and the stream) and is not an error. A relay
+// panic closes the target and re-panics here, cancel or not, for the pipeline.
 func (c Connector) Serve(ctx context.Context, s *gateway.Session) error {
 	if s.Kind == gateway.KindStream {
 		defer s.Stream.Close()

@@ -104,15 +104,25 @@ func TestCancelClosesTarget(t *testing.T) {
 	waitEvent(t, tg, "closed")
 }
 
-// A panic in a relay goroutine ends only its session, with an error from Serve.
+// A panic in a relay goroutine closes the target and re-panics on the Serve
+// goroutine, where the pipeline recovers it as "internal_error".
 func TestRelayPanicEndsSession(t *testing.T) {
 	tg := sshtest.StartTarget(t, "pw", nil)
 	s := newSession(t, tg, gateway.KindTerminal)
 	s.Terminal = &gateway.Terminal{ReadWriter: panicRW{}, Term: "xterm", Window: gateway.Window{Cols: 80, Rows: 24},
 		Resize: make(chan gateway.Window), SetExitStatus: func(int) {}}
-	err := wait(t, serve(t.Context(), s))
-	require.ErrorContains(t, err, "panic")
+	p := recovered(func() { _ = Connector{DialTimeout: waitFor}.Serve(t.Context(), s) })
+	require.NotNil(t, p, "the relay panic did not reach Serve")
+	require.Contains(t, fmt.Sprint(p), "fault injected")
+	require.Contains(t, fmt.Sprint(p), "relay goroutine stack")
 	waitEvent(t, tg, "closed")
+}
+
+// recovered runs fn and returns what it panicked with.
+func recovered(fn func()) (p any) {
+	defer func() { p = recover() }()
+	fn()
+	return nil
 }
 
 type panicRW struct{}

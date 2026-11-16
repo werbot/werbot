@@ -1,6 +1,7 @@
 package sshconnector
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"testing"
@@ -34,12 +35,12 @@ func TestPipeNoEcho(t *testing.T) {
 	require.Empty(t, out)
 }
 
-// A panic in a relay ends the pipe with an error and closes both sides.
+// A panic in a relay closes both sides and re-panics on the pipe caller.
 func TestPipeRelayPanic(t *testing.T) {
 	targetUser, target := net.Pipe()
-	err := pipe(panicConn{}, target, &recSink{})
-	require.ErrorContains(t, err, "panic")
-	_, err = targetUser.Read(make([]byte, 1))
+	p := recovered(func() { _ = pipe(panicConn{}, target, &recSink{}) })
+	require.Contains(t, fmt.Sprint(p), "fault injected")
+	_, err := targetUser.Read(make([]byte, 1))
 	require.ErrorIs(t, err, io.EOF, "the target side is not closed")
 }
 
