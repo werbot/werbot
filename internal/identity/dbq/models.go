@@ -9,7 +9,19 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type AccessBinding struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	SubjectType   string
+	SubjectID     uuid.UUID
+	ResourceID    *uuid.UUID
+	LabelSelector []byte
+	CreatedBy     uuid.UUID
+	CreatedAt     time.Time
+}
 
 type AuditEvent struct {
 	ID          uuid.UUID
@@ -22,6 +34,30 @@ type AuditEvent struct {
 	Ip          *netip.Addr
 	Data        []byte
 	CreatedAt   time.Time
+}
+
+type Credential struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	ResourceID uuid.UUID
+	Kind       string
+	Ciphertext []byte
+	KeyID      string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+type GeoipDb struct {
+	ID        int16
+	Month     pgtype.Date
+	Data      []byte
+	UpdatedAt time.Time
+}
+
+type IpBlocklist struct {
+	Cidr      netip.Prefix
+	Source    string
+	UpdatedAt time.Time
 }
 
 type Membership struct {
@@ -47,6 +83,57 @@ type Organization struct {
 	ID        uuid.UUID
 	Name      string
 	CreatedAt time.Time
+}
+
+type Resource struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	Name      string
+	Type      string
+	Category  string
+	GatewayID *uuid.UUID
+	Config    []byte
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type ResourceCountryRule struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	ResourceID uuid.UUID
+	Country    string
+	Effect     string
+}
+
+type ResourceHostKey struct {
+	ResourceID        uuid.UUID
+	OrgID             uuid.UUID
+	KeyType           string
+	PublicKey         string
+	FingerprintSha256 string
+	CreatedAt         time.Time
+}
+
+type ResourceLabel struct {
+	ResourceID uuid.UUID
+	OrgID      uuid.UUID
+	Key        string
+	Value      string
+}
+
+type ResourceNetworkRule struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	ResourceID uuid.UUID
+	Cidr       netip.Prefix
+	Effect     string
+}
+
+type ResourceSchedule struct {
+	ResourceID uuid.UUID
+	OrgID      uuid.UUID
+	Weekday    int16
+	Hour       int16
 }
 
 type Team struct {
