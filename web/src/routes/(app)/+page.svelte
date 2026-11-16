@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { EmptyState } from '#lib/ui/index.js';
 	import { system } from '#lib/api.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
 
 	let version = $state('');
 	let failed = $state(false);
@@ -15,10 +17,6 @@
 	});
 </script>
 
-<EmptyState title={m.app_title()}>
-	{#if failed}
-		{m.version_unavailable()}
-	{:else if version}
-		{m.version_label({ version })}
-	{/if}
-</EmptyState>
+<h1>{m.dashboard_title()}</h1>
+<p>{data.session.organization?.name}</p>
+<p>{failed ? m.version_unavailable() : version && m.version_label({ version })}</p>
