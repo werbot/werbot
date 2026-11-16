@@ -33,4 +33,10 @@ type Store interface {
 	DeleteOtherUserSessions(ctx context.Context, arg dbq.DeleteOtherUserSessionsParams) error
 	LockOrgOwners(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	ListSSHKeys(ctx context.Context, userID uuid.UUID) ([]dbq.ListSSHKeysRow, error)
+	CreateSSHKey(ctx context.Context, arg dbq.CreateSSHKeyParams) (dbq.CreateSSHKeyRow, error)
+	UpdateSSHKey(ctx context.Context, arg dbq.UpdateSSHKeyParams) (dbq.UpdateSSHKeyRow, error)
+	DeleteSSHKey(ctx context.Context, arg dbq.DeleteSSHKeyParams) (string, error)
+	LookupSSHKeyUser(ctx context.Context, arg dbq.LookupSSHKeyUserParams) (dbq.LookupSSHKeyUserRow, error)
+	LookupLoginUser(ctx context.Context, arg dbq.LookupLoginUserParams) (dbq.LookupLoginUserRow, error)
 }

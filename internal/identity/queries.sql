@@ -91,3 +91,29 @@ SELECT user_id FROM membership WHERE org_id = @org_id AND role = 'owner' ORDER B
 
 -- name: DeleteUser :exec
 DELETE FROM users WHERE id = @id;
+
+-- name: ListSSHKeys :many
+SELECT id, name, public_key, fingerprint_sha256, created_at FROM user_ssh_key WHERE user_id = @user_id ORDER BY created_at, id;
+
+-- name: CreateSSHKey :one
+INSERT INTO user_ssh_key (user_id, name, public_key, fingerprint_sha256)
+VALUES (@user_id, @name, @public_key, @fingerprint_sha256)
+RETURNING id, name, public_key, fingerprint_sha256, created_at;
+
+-- name: UpdateSSHKey :one
+UPDATE user_ssh_key SET name = @name WHERE id = @id AND user_id = @user_id
+RETURNING id, name, public_key, fingerprint_sha256, created_at;
+
+-- name: DeleteSSHKey :one
+DELETE FROM user_ssh_key WHERE id = @id AND user_id = @user_id RETURNING fingerprint_sha256;
+
+-- name: LookupSSHKeyUser :one
+SELECT u.id, u.login, m.role FROM user_ssh_key k
+JOIN users u ON u.id = k.user_id
+JOIN membership m ON m.user_id = u.id AND m.org_id = @org_id
+WHERE k.fingerprint_sha256 = @fingerprint_sha256;
+
+-- name: LookupLoginUser :one
+SELECT u.id, u.login, m.role FROM users u
+JOIN membership m ON m.user_id = u.id AND m.org_id = @org_id
+WHERE u.login = @login;

@@ -70,3 +70,12 @@ type UserSession struct {
 	Ip         *netip.Addr
 	UserAgent  string
 }
+
+type UserSshKey struct {
+	ID                uuid.UUID
+	UserID            uuid.UUID
+	Name              string
+	PublicKey         string
+	FingerprintSha256 string
+	CreatedAt         time.Time
+}

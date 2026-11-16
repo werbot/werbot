@@ -97,6 +97,45 @@ func (q *Queries) CreateOrganization(ctx context.Context, name string) (uuid.UUI
 	return id, err
 }
 
+const createSSHKey = `-- name: CreateSSHKey :one
+INSERT INTO user_ssh_key (user_id, name, public_key, fingerprint_sha256)
+VALUES ($1, $2, $3, $4)
+RETURNING id, name, public_key, fingerprint_sha256, created_at
+`
+
+type CreateSSHKeyParams struct {
+	UserID            uuid.UUID
+	Name              string
+	PublicKey         string
+	FingerprintSha256 string
+}
+
+type CreateSSHKeyRow struct {
+	ID                uuid.UUID
+	Name              string
+	PublicKey         string
+	FingerprintSha256 string
+	CreatedAt         time.Time
+}
+
+func (q *Queries) CreateSSHKey(ctx context.Context, arg CreateSSHKeyParams) (CreateSSHKeyRow, error) {
+	row := q.db.QueryRow(ctx, createSSHKey,
+		arg.UserID,
+		arg.Name,
+		arg.PublicKey,
+		arg.FingerprintSha256,
+	)
+	var i CreateSSHKeyRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.PublicKey,
+		&i.FingerprintSha256,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createSession = `-- name: CreateSession :exec
 INSERT INTO user_session (token_hash, user_id, org_id, expires_at, ip, user_agent)
 VALUES ($1, $2, $3, now() + interval '7 days', $4, $5)
@@ -158,6 +197,22 @@ type DeleteOtherUserSessionsParams struct {
 func (q *Queries) DeleteOtherUserSessions(ctx context.Context, arg DeleteOtherUserSessionsParams) error {
 	_, err := q.db.Exec(ctx, deleteOtherUserSessions, arg.UserID, arg.KeepID)
 	return err
+}
+
+const deleteSSHKey = `-- name: DeleteSSHKey :one
+DELETE FROM user_ssh_key WHERE id = $1 AND user_id = $2 RETURNING fingerprint_sha256
+`
+
+type DeleteSSHKeyParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeleteSSHKey(ctx context.Context, arg DeleteSSHKeyParams) (string, error) {
+	row := q.db.QueryRow(ctx, deleteSSHKey, arg.ID, arg.UserID)
+	var fingerprint_sha256 string
+	err := row.Scan(&fingerprint_sha256)
+	return fingerprint_sha256, err
 }
 
 const deleteSession = `-- name: DeleteSession :exec
@@ -375,6 +430,44 @@ func (q *Queries) HasUsers(ctx context.Context) (bool, error) {
 	return exists, err
 }
 
+const listSSHKeys = `-- name: ListSSHKeys :many
+SELECT id, name, public_key, fingerprint_sha256, created_at FROM user_ssh_key WHERE user_id = $1 ORDER BY created_at, id
+`
+
+type ListSSHKeysRow struct {
+	ID                uuid.UUID
+	Name              string
+	PublicKey         string
+	FingerprintSha256 string
+	CreatedAt         time.Time
+}
+
+func (q *Queries) ListSSHKeys(ctx context.Context, userID uuid.UUID) ([]ListSSHKeysRow, error) {
+	rows, err := q.db.Query(ctx, listSSHKeys, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSSHKeysRow
+	for rows.Next() {
+		var i ListSSHKeysRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.PublicKey,
+			&i.FingerprintSha256,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockOrgOwners = `-- name: LockOrgOwners :many
 SELECT user_id FROM membership WHERE org_id = $1 AND role = 'owner' ORDER BY user_id FOR UPDATE
 `
@@ -409,6 +502,55 @@ func (q *Queries) LockSetup(ctx context.Context, key int64) error {
 	return err
 }
 
+const lookupLoginUser = `-- name: LookupLoginUser :one
+SELECT u.id, u.login, m.role FROM users u
+JOIN membership m ON m.user_id = u.id AND m.org_id = $1
+WHERE u.login = $2
+`
+
+type LookupLoginUserParams struct {
+	OrgID uuid.UUID
+	Login string
+}
+
+type LookupLoginUserRow struct {
+	ID    uuid.UUID
+	Login string
+	Role  string
+}
+
+func (q *Queries) LookupLoginUser(ctx context.Context, arg LookupLoginUserParams) (LookupLoginUserRow, error) {
+	row := q.db.QueryRow(ctx, lookupLoginUser, arg.OrgID, arg.Login)
+	var i LookupLoginUserRow
+	err := row.Scan(&i.ID, &i.Login, &i.Role)
+	return i, err
+}
+
+const lookupSSHKeyUser = `-- name: LookupSSHKeyUser :one
+SELECT u.id, u.login, m.role FROM user_ssh_key k
+JOIN users u ON u.id = k.user_id
+JOIN membership m ON m.user_id = u.id AND m.org_id = $1
+WHERE k.fingerprint_sha256 = $2
+`
+
+type LookupSSHKeyUserParams struct {
+	OrgID             uuid.UUID
+	FingerprintSha256 string
+}
+
+type LookupSSHKeyUserRow struct {
+	ID    uuid.UUID
+	Login string
+	Role  string
+}
+
+func (q *Queries) LookupSSHKeyUser(ctx context.Context, arg LookupSSHKeyUserParams) (LookupSSHKeyUserRow, error) {
+	row := q.db.QueryRow(ctx, lookupSSHKeyUser, arg.OrgID, arg.FingerprintSha256)
+	var i LookupSSHKeyUserRow
+	err := row.Scan(&i.ID, &i.Login, &i.Role)
+	return i, err
+}
+
 const updateProfile = `-- name: UpdateProfile :exec
 UPDATE users SET name = $1, email = $2, updated_at = now() WHERE id = $3
 `
@@ -422,6 +564,38 @@ type UpdateProfileParams struct {
 func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) error {
 	_, err := q.db.Exec(ctx, updateProfile, arg.Name, arg.Email, arg.ID)
 	return err
+}
+
+const updateSSHKey = `-- name: UpdateSSHKey :one
+UPDATE user_ssh_key SET name = $1 WHERE id = $2 AND user_id = $3
+RETURNING id, name, public_key, fingerprint_sha256, created_at
+`
+
+type UpdateSSHKeyParams struct {
+	Name   string
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+type UpdateSSHKeyRow struct {
+	ID                uuid.UUID
+	Name              string
+	PublicKey         string
+	FingerprintSha256 string
+	CreatedAt         time.Time
+}
+
+func (q *Queries) UpdateSSHKey(ctx context.Context, arg UpdateSSHKeyParams) (UpdateSSHKeyRow, error) {
+	row := q.db.QueryRow(ctx, updateSSHKey, arg.Name, arg.ID, arg.UserID)
+	var i UpdateSSHKeyRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.PublicKey,
+		&i.FingerprintSha256,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const updateUserPassword = `-- name: UpdateUserPassword :exec
