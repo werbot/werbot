@@ -7,3 +7,4 @@ web/.svelte-kit/
 web/build/*
 !web/build/.gitkeep
 .DS_Store
+CLAUDE.md

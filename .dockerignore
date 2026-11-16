@@ -1,3 +1,8 @@
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
 .git
 .github
 .superpowers/
@@ -7,3 +12,4 @@ data/
 web/node_modules/
 web/.svelte-kit/
 web/build/*
+CLAUDE.md
