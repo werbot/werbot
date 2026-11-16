@@ -180,6 +180,19 @@ type ResourceSchedule struct {
 	Hour       int16
 }
 
+type Session struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	UserID            *uuid.UUID
+	ResourceID        *uuid.UUID
+	GatewayID         *uuid.UUID
+	GatewayInstanceID *uuid.UUID
+	ClientIp          netip.Addr
+	StartedAt         time.Time
+	EndedAt           *time.Time
+	EndReason         *string
+}
+
 type Team struct {
 	ID        uuid.UUID
 	OrgID     uuid.UUID
