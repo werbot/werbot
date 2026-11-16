@@ -11,9 +11,11 @@ API=http://localhost:8080
 TMP=$(mktemp -d)
 cleanup() {
   local rc=$?
+  set +e # a failing teardown must not skip the rest or replace the exit code
   ((rc == 0)) || compose --profile gateway logs --tail 100 >&2
   compose --profile gateway down -v
   rm -rf "$TMP"
+  exit "$rc"
 }
 trap cleanup EXIT
 
