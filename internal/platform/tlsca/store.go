@@ -7,6 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/werbot/werbot/internal/platform/dbx"
 )
 
 // StoredCA is the persisted CA: the PKCS#8 key sealed by secretbox plus the root certificate.
@@ -30,21 +32,29 @@ func PostgresStore(pool *pgxpool.Pool) CAStore { return pgStore{pool} }
 
 func (s pgStore) Load(ctx context.Context) (StoredCA, bool, error) {
 	var st StoredCA
-	err := s.pool.QueryRow(ctx, "SELECT ciphertext, key_id, cert_pem FROM ca_key WHERE id = 1").
-		Scan(&st.Ciphertext, &st.KeyID, &st.CertPEM)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return StoredCA{}, false, nil
-	}
+	found := true
+	err := dbx.System(ctx, s.pool, dbx.ReasonBootstrap, func(tx pgx.Tx) error {
+		err := tx.QueryRow(ctx, "SELECT ciphertext, key_id, cert_pem FROM ca_key WHERE id = 1").
+			Scan(&st.Ciphertext, &st.KeyID, &st.CertPEM)
+		if errors.Is(err, pgx.ErrNoRows) {
+			found = false
+			return nil
+		}
+		return err
+	})
 	if err != nil {
 		return StoredCA{}, false, fmt.Errorf("tlsca: load ca_key: %w", err)
 	}
-	return st, true, nil
+	return st, found, nil
 }
 
 func (s pgStore) Insert(ctx context.Context, st StoredCA) error {
-	_, err := s.pool.Exec(ctx,
-		"INSERT INTO ca_key (id, ciphertext, key_id, cert_pem) VALUES (1, $1, $2, $3) ON CONFLICT (id) DO NOTHING",
-		st.Ciphertext, st.KeyID, string(st.CertPEM))
+	err := dbx.System(ctx, s.pool, dbx.ReasonBootstrap, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx,
+			"INSERT INTO ca_key (id, ciphertext, key_id, cert_pem) VALUES (1, $1, $2, $3) ON CONFLICT (id) DO NOTHING",
+			st.Ciphertext, st.KeyID, string(st.CertPEM))
+		return err
+	})
 	if err != nil {
 		return fmt.Errorf("tlsca: insert ca_key: %w", err)
 	}
