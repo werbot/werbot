@@ -1,0 +1,29 @@
+import { defineConfig, devices } from '@playwright/test';
+
+const dbURL =
+	process.env.WERBOT_E2E_DATABASE_URL ?? 'postgres://postgres:password@localhost:5433/werbot_e2e?sslmode=disable';
+
+export default defineConfig({
+	testDir: 'e2e',
+	workers: 1,
+	retries: 0,
+	use: { baseURL: 'http://127.0.0.1:18080', trace: 'retain-on-failure' },
+	projects: [
+		{ name: 'identity', testMatch: 'identity.spec.ts', use: { ...devices['Desktop Chrome'] } },
+		{ name: 'chromium', testIgnore: 'identity.spec.ts', dependencies: ['identity'], use: { ...devices['Desktop Chrome'] } }
+	],
+	webServer: {
+		command: '../bin/werbot server > e2e/.server.log 2>&1',
+		url: 'http://127.0.0.1:18080/healthz',
+		reuseExistingServer: false,
+		timeout: 60_000,
+		env: {
+			WERBOT_ENV: 'development',
+			WERBOT_HTTP_ADDR: '127.0.0.1:18080',
+			WERBOT_PUBLIC_URL: 'http://127.0.0.1:18080',
+			WERBOT_DATABASE_URL: dbURL,
+			WERBOT_SECRET_KEY: 'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=',
+			WERBOT_LOG_FORMAT: 'json' // SMTP unset: LogMailer prints emails to the log
+		}
+	}
+});

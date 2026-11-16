@@ -82,6 +82,7 @@ The stack listens on http://localhost:8080 (`/healthz`, `/readyz`).
 ```sh
 make test   # needs `make dev-db`
 make lint
+make e2e    # Playwright e2e on DB `werbot_e2e` (needs `make dev-db`; first run: `cd web && bunx playwright install chromium`)
 make sqlc   # regenerates internal/<domain>/dbq from migrations/ and internal/<domain>/queries.sql
 ```
 

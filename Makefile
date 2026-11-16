@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto sqlc web
+.PHONY: build test lint dev-db proto sqlc web e2e
 
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
@@ -23,3 +23,7 @@ sqlc:
 
 web:
 	cd web && bun install && VITE_WERBOT_VERSION=$(VERSION) bun run build
+
+e2e: build
+	docker compose -f deploy/docker-compose.test.yaml exec -T testdb psql -U postgres -c 'DROP DATABASE IF EXISTS werbot_e2e WITH (FORCE)' -c 'CREATE DATABASE werbot_e2e'
+	cd web && bunx playwright test

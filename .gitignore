@@ -8,3 +8,6 @@ web/build/*
 !web/build/.gitkeep
 .DS_Store
 CLAUDE.md
+web/test-results/
+web/playwright-report/
+web/e2e/.server.log
