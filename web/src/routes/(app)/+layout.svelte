@@ -17,7 +17,8 @@
 		...(manager
 			? [
 					{ href: '/members', icon: 'users', label: m.nav_members() },
-					{ href: '/teams', icon: 'workspace', label: m.nav_teams() }
+					{ href: '/teams', icon: 'workspace', label: m.nav_teams() },
+					{ href: '/resources', icon: 'server', label: m.nav_resources() }
 				]
 			: [])
 	]);

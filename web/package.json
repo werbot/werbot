@@ -11,6 +11,7 @@
 		"build": "vite build && touch build/.gitkeep",
 		"preview": "vite preview",
 		"e2e": "playwright test",
+		"test:unit": "vitest run",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --emit-ts-declarations --silent && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --emit-ts-declarations --silent && svelte-check --tsconfig ./tsconfig.json --watch"
@@ -26,7 +27,8 @@
 		"svelte": "^5.57.2",
 		"svelte-check": "^4.6.0",
 		"typescript": "^6.0.3",
-		"vite": "^8.3.0"
+		"vite": "^8.3.0",
+		"vitest": "5.1.0"
 	},
 	"dependencies": {
 		"@bufbuild/protobuf": "^2.17.0",
