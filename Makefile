@@ -30,7 +30,9 @@ e2e: build
 
 E2E_NETWORK = docker compose -p werbot-e2e -f deploy/e2e/docker-compose.yaml
 
-# run.sh tears the stack down on exit; a failed `up` tears it down here
+# run.sh tears the stack down on exit; a failed `up` tears it down here;
+# the first `down` clears a stack left by a killed run
 e2e-network:
+	$(E2E_NETWORK) --profile gateway down -v
 	$(E2E_NETWORK) up -d --build --wait postgres server target || { $(E2E_NETWORK) down -v; exit 1; }
 	deploy/e2e/run.sh

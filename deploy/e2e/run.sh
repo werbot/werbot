@@ -9,11 +9,17 @@ compose() { docker compose -p werbot-e2e -f deploy/e2e/docker-compose.yaml "$@";
 
 API=http://localhost:8080
 TMP=$(mktemp -d)
-trap 'compose --profile gateway down -v; rm -rf "$TMP"' EXIT
+cleanup() {
+  local rc=$?
+  ((rc == 0)) || compose --profile gateway logs --tail 100 >&2
+  compose --profile gateway down -v
+  rm -rf "$TMP"
+}
+trap cleanup EXIT
 
 # rpc Service/Method JSON: Connect unary call with the session cookie.
 rpc() {
-  curl -fsS -b "$TMP/cookies" -c "$TMP/cookies" -H 'Content-Type: application/json' \
+  curl -sS --fail-with-body -b "$TMP/cookies" -c "$TMP/cookies" -H 'Content-Type: application/json' \
     -d "$2" "$API/werbot.v1.$1"
 }
 
@@ -24,7 +30,6 @@ wait_for() {
   until "$@" >/dev/null 2>&1; do
     if ((SECONDS >= deadline)); then
       echo "timeout: $*" >&2
-      compose --profile gateway logs --tail 50 >&2
       return 1
     fi
     sleep 1
@@ -42,7 +47,7 @@ instance_id() {
 }
 
 ssh_target() {
-  ssh -i "$TMP/id" -p 2222 -o BatchMode=yes -o ConnectTimeout=5 \
+  ssh -i "$TMP/id" -p 2222 -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=5 \
     -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR \
     e2e+target@localhost hostname
 }
@@ -54,6 +59,22 @@ check_ssh() {
   got=$(ssh_target)
   echo "target hostname via gateway: $got"
   [[ "$got" == "$want" ]] || { echo "want hostname $want, got $got" >&2; exit 1; }
+}
+
+gateway_ready() { [[ "$(curl -fsS localhost:8081/readyz)" == ok ]]; }
+
+# tunnel_up: captured first, so grep -q cannot SIGPIPE curl under pipefail.
+tunnel_up() {
+  local m
+  m=$(curl -fsS localhost:8081/metrics)
+  grep -qx 'werbot_gateway_tunnel_connected 1' <<<"$m"
+}
+
+# want_networks SERVICE JSON: the container joins exactly these networks.
+want_networks() {
+  local got
+  got=$(networks "$1")
+  [[ "$got" == "$2" ]] || { echo "$1 networks: want $2, got $got" >&2; exit 1; }
 }
 
 networks() { docker inspect -f '{{json .NetworkSettings.Networks}}' "$(compose ps -q "$1")" | jq -c 'keys'; }
@@ -74,8 +95,8 @@ wait_for 60 pool_online
 first=$(instance_id)
 
 echo "== gateway readyz and metrics"
-[[ "$(curl -fsS localhost:8081/readyz)" == ok ]]
-curl -fsS localhost:8081/metrics | grep -qx 'werbot_gateway_tunnel_connected 1'
+wait_for 30 gateway_ready
+wait_for 30 tunnel_up
 
 echo "== resource, credential, binding"
 res=$(rpc ResourceService/CreateResource '{"name":"target","type":"ssh","config":{"@type":"type.googleapis.com/werbot.connector.ssh.v1.Config","host":"target","port":2222,"login":"werbot"}}' | jq -r .resource.id)
@@ -90,12 +111,14 @@ check_ssh
 
 echo "== gateway restart keeps its identity"
 compose restart gateway
+# SSH first: it needs the new process's live tunnel, so the pool state
+# read after it is fresh, not the pre-restart online flag.
+check_ssh
 wait_for 60 pool_online
 [[ "$(instance_id)" == "$first" ]] || { echo "instance changed: $first -> $(instance_id)" >&2; exit 1; }
-check_ssh
 
 echo "== topology"
-[[ "$(networks server)" == '["werbot-e2e_public"]' ]]
-[[ "$(networks target)" == '["werbot-e2e_private"]' ]]
+want_networks server '["werbot-e2e_public"]'
+want_networks target '["werbot-e2e_private"]'
 
 echo "PASS"
