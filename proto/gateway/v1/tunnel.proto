@@ -1,0 +1,104 @@
+syntax = "proto3";
+package gateway.v1;
+
+// TunnelService is the gateway-to-core control plane. The caller is a gateway
+// instance identified by its mTLS client certificate, never by request fields.
+service TunnelService {
+  // Connect carries heartbeats up and policy snapshots down.
+  rpc Connect(stream ConnectRequest) returns (stream ConnectResponse);
+  rpc AuthenticateUser(AuthenticateUserRequest) returns (AuthenticateUserResponse);
+  rpc StartSession(StartSessionRequest) returns (StartSessionResponse);
+  rpc EndSession(EndSessionRequest) returns (EndSessionResponse);
+  rpc PinHostKey(PinHostKeyRequest) returns (PinHostKeyResponse);
+  rpc RenewCertificate(RenewCertificateRequest) returns (RenewCertificateResponse);
+}
+
+message ConnectRequest {
+  oneof msg {
+    Heartbeat heartbeat = 1;
+  }
+}
+
+message Heartbeat {
+  string version = 1;
+  repeated string connectors = 2;
+  repeated string active_session_ids = 3;
+}
+
+message ConnectResponse {
+  oneof msg {
+    Snapshot snapshot = 1;
+  }
+}
+
+message Snapshot {
+  string cedar_policies = 1;
+  bytes entities_json = 2;
+  repeated Resource resources = 3;
+  repeated string blocklist = 4;
+  // hex SHA-256 of the deterministic encoding without this field
+  string version = 5;
+}
+
+message Resource {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  // protojson of the connector config
+  bytes config_json = 4;
+}
+
+message AuthenticateUserRequest {
+  oneof by {
+    string fingerprint_sha256 = 1;
+    string login = 2;
+  }
+  string client_ip = 3;
+}
+
+message AuthenticateUserResponse {
+  string user_id = 1;
+  string login = 2;
+  repeated string team_ids = 3;
+  string country = 4;
+}
+
+message StartSessionRequest {
+  string user_id = 1;
+  string resource_id = 2;
+  string client_ip = 3;
+}
+
+message StartSessionResponse {
+  string session_id = 1;
+  Credential credential = 2;
+}
+
+message Credential {
+  string kind = 1;
+  bytes value = 2;
+}
+
+message EndSessionRequest {
+  string session_id = 1;
+  string reason = 2;
+}
+
+message EndSessionResponse {}
+
+message PinHostKeyRequest {
+  string resource_id = 1;
+  // SSH: alg = PublicKey.Type(), public_key = PublicKey.Marshal()
+  bytes public_key = 2;
+  string alg = 3;
+}
+
+message PinHostKeyResponse {}
+
+message RenewCertificateRequest {
+  bytes csr_der = 1;
+}
+
+message RenewCertificateResponse {
+  bytes cert_pem = 1;
+}
