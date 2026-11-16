@@ -117,6 +117,218 @@ func (x *GetVersionResponse) GetBuildDate() string {
 	return ""
 }
 
+type ListCountriesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCountriesRequest) Reset() {
+	*x = ListCountriesRequest{}
+	mi := &file_werbot_v1_system_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCountriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCountriesRequest) ProtoMessage() {}
+
+func (x *ListCountriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_system_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCountriesRequest.ProtoReflect.Descriptor instead.
+func (*ListCountriesRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_system_proto_rawDescGZIP(), []int{2}
+}
+
+type Country struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Country) Reset() {
+	*x = Country{}
+	mi := &file_werbot_v1_system_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Country) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Country) ProtoMessage() {}
+
+func (x *Country) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_system_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Country.ProtoReflect.Descriptor instead.
+func (*Country) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_system_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Country) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *Country) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type ListCountriesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Countries     []*Country             `protobuf:"bytes,1,rep,name=countries,proto3" json:"countries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCountriesResponse) Reset() {
+	*x = ListCountriesResponse{}
+	mi := &file_werbot_v1_system_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCountriesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCountriesResponse) ProtoMessage() {}
+
+func (x *ListCountriesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_system_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCountriesResponse.ProtoReflect.Descriptor instead.
+func (*ListCountriesResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_system_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListCountriesResponse) GetCountries() []*Country {
+	if x != nil {
+		return x.Countries
+	}
+	return nil
+}
+
+type GetClientIPRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetClientIPRequest) Reset() {
+	*x = GetClientIPRequest{}
+	mi := &file_werbot_v1_system_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetClientIPRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetClientIPRequest) ProtoMessage() {}
+
+func (x *GetClientIPRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_system_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetClientIPRequest.ProtoReflect.Descriptor instead.
+func (*GetClientIPRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_system_proto_rawDescGZIP(), []int{5}
+}
+
+type GetClientIPResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ip            string                 `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetClientIPResponse) Reset() {
+	*x = GetClientIPResponse{}
+	mi := &file_werbot_v1_system_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetClientIPResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetClientIPResponse) ProtoMessage() {}
+
+func (x *GetClientIPResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_system_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetClientIPResponse.ProtoReflect.Descriptor instead.
+func (*GetClientIPResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_system_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetClientIPResponse) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
 var File_werbot_v1_system_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_system_proto_rawDesc = "" +
@@ -127,10 +339,21 @@ const file_werbot_v1_system_proto_rawDesc = "" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x16\n" +
 	"\x06commit\x18\x02 \x01(\tR\x06commit\x12\x1d\n" +
 	"\n" +
-	"build_date\x18\x03 \x01(\tR\tbuildDate2Z\n" +
+	"build_date\x18\x03 \x01(\tR\tbuildDate\"\x16\n" +
+	"\x14ListCountriesRequest\"1\n" +
+	"\aCountry\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"I\n" +
+	"\x15ListCountriesResponse\x120\n" +
+	"\tcountries\x18\x01 \x03(\v2\x12.werbot.v1.CountryR\tcountries\"\x14\n" +
+	"\x12GetClientIPRequest\"%\n" +
+	"\x13GetClientIPResponse\x12\x0e\n" +
+	"\x02ip\x18\x01 \x01(\tR\x02ip2\xfc\x01\n" +
 	"\rSystemService\x12I\n" +
 	"\n" +
-	"GetVersion\x12\x1c.werbot.v1.GetVersionRequest\x1a\x1d.werbot.v1.GetVersionResponseB\x92\x01\n" +
+	"GetVersion\x12\x1c.werbot.v1.GetVersionRequest\x1a\x1d.werbot.v1.GetVersionResponse\x12R\n" +
+	"\rListCountries\x12\x1f.werbot.v1.ListCountriesRequest\x1a .werbot.v1.ListCountriesResponse\x12L\n" +
+	"\vGetClientIP\x12\x1d.werbot.v1.GetClientIPRequest\x1a\x1e.werbot.v1.GetClientIPResponseB\x92\x01\n" +
 	"\rcom.werbot.v1B\vSystemProtoP\x01Z/github.com/werbot/werbot/gen/werbot/v1;werbotv1\xa2\x02\x03WXX\xaa\x02\tWerbot.V1\xca\x02\tWerbot\\V1\xe2\x02\x15Werbot\\V1\\GPBMetadata\xea\x02\n" +
 	"Werbot::V1b\x06proto3"
 
@@ -146,19 +369,29 @@ func file_werbot_v1_system_proto_rawDescGZIP() []byte {
 	return file_werbot_v1_system_proto_rawDescData
 }
 
-var file_werbot_v1_system_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_werbot_v1_system_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_werbot_v1_system_proto_goTypes = []any{
-	(*GetVersionRequest)(nil),  // 0: werbot.v1.GetVersionRequest
-	(*GetVersionResponse)(nil), // 1: werbot.v1.GetVersionResponse
+	(*GetVersionRequest)(nil),     // 0: werbot.v1.GetVersionRequest
+	(*GetVersionResponse)(nil),    // 1: werbot.v1.GetVersionResponse
+	(*ListCountriesRequest)(nil),  // 2: werbot.v1.ListCountriesRequest
+	(*Country)(nil),               // 3: werbot.v1.Country
+	(*ListCountriesResponse)(nil), // 4: werbot.v1.ListCountriesResponse
+	(*GetClientIPRequest)(nil),    // 5: werbot.v1.GetClientIPRequest
+	(*GetClientIPResponse)(nil),   // 6: werbot.v1.GetClientIPResponse
 }
 var file_werbot_v1_system_proto_depIdxs = []int32{
-	0, // 0: werbot.v1.SystemService.GetVersion:input_type -> werbot.v1.GetVersionRequest
-	1, // 1: werbot.v1.SystemService.GetVersion:output_type -> werbot.v1.GetVersionResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	3, // 0: werbot.v1.ListCountriesResponse.countries:type_name -> werbot.v1.Country
+	0, // 1: werbot.v1.SystemService.GetVersion:input_type -> werbot.v1.GetVersionRequest
+	2, // 2: werbot.v1.SystemService.ListCountries:input_type -> werbot.v1.ListCountriesRequest
+	5, // 3: werbot.v1.SystemService.GetClientIP:input_type -> werbot.v1.GetClientIPRequest
+	1, // 4: werbot.v1.SystemService.GetVersion:output_type -> werbot.v1.GetVersionResponse
+	4, // 5: werbot.v1.SystemService.ListCountries:output_type -> werbot.v1.ListCountriesResponse
+	6, // 6: werbot.v1.SystemService.GetClientIP:output_type -> werbot.v1.GetClientIPResponse
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_werbot_v1_system_proto_init() }
@@ -172,7 +405,7 @@ func file_werbot_v1_system_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_werbot_v1_system_proto_rawDesc), len(file_werbot_v1_system_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

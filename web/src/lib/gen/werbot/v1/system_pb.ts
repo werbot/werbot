@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file werbot/v1/system.proto.
  */
 export const file_werbot_v1_system: GenFile = /*@__PURE__*/
-  fileDesc("ChZ3ZXJib3QvdjEvc3lzdGVtLnByb3RvEgl3ZXJib3QudjEiEwoRR2V0VmVyc2lvblJlcXVlc3QiSQoSR2V0VmVyc2lvblJlc3BvbnNlEg8KB3ZlcnNpb24YASABKAkSDgoGY29tbWl0GAIgASgJEhIKCmJ1aWxkX2RhdGUYAyABKAkyWgoNU3lzdGVtU2VydmljZRJJCgpHZXRWZXJzaW9uEhwud2VyYm90LnYxLkdldFZlcnNpb25SZXF1ZXN0Gh0ud2VyYm90LnYxLkdldFZlcnNpb25SZXNwb25zZUKSAQoNY29tLndlcmJvdC52MUILU3lzdGVtUHJvdG9QAVovZ2l0aHViLmNvbS93ZXJib3Qvd2VyYm90L2dlbi93ZXJib3QvdjE7d2VyYm90djGiAgNXWFiqAglXZXJib3QuVjHKAglXZXJib3RcVjHiAhVXZXJib3RcVjFcR1BCTWV0YWRhdGHqAgpXZXJib3Q6OlYxYgZwcm90bzM");
+  fileDesc("ChZ3ZXJib3QvdjEvc3lzdGVtLnByb3RvEgl3ZXJib3QudjEiEwoRR2V0VmVyc2lvblJlcXVlc3QiSQoSR2V0VmVyc2lvblJlc3BvbnNlEg8KB3ZlcnNpb24YASABKAkSDgoGY29tbWl0GAIgASgJEhIKCmJ1aWxkX2RhdGUYAyABKAkiFgoUTGlzdENvdW50cmllc1JlcXVlc3QiJQoHQ291bnRyeRIMCgRjb2RlGAEgASgJEgwKBG5hbWUYAiABKAkiPgoVTGlzdENvdW50cmllc1Jlc3BvbnNlEiUKCWNvdW50cmllcxgBIAMoCzISLndlcmJvdC52MS5Db3VudHJ5IhQKEkdldENsaWVudElQUmVxdWVzdCIhChNHZXRDbGllbnRJUFJlc3BvbnNlEgoKAmlwGAEgASgJMvwBCg1TeXN0ZW1TZXJ2aWNlEkkKCkdldFZlcnNpb24SHC53ZXJib3QudjEuR2V0VmVyc2lvblJlcXVlc3QaHS53ZXJib3QudjEuR2V0VmVyc2lvblJlc3BvbnNlElIKDUxpc3RDb3VudHJpZXMSHy53ZXJib3QudjEuTGlzdENvdW50cmllc1JlcXVlc3QaIC53ZXJib3QudjEuTGlzdENvdW50cmllc1Jlc3BvbnNlEkwKC0dldENsaWVudElQEh0ud2VyYm90LnYxLkdldENsaWVudElQUmVxdWVzdBoeLndlcmJvdC52MS5HZXRDbGllbnRJUFJlc3BvbnNlQpIBCg1jb20ud2VyYm90LnYxQgtTeXN0ZW1Qcm90b1ABWi9naXRodWIuY29tL3dlcmJvdC93ZXJib3QvZ2VuL3dlcmJvdC92MTt3ZXJib3R2MaICA1dYWKoCCVdlcmJvdC5WMcoCCVdlcmJvdFxWMeICFVdlcmJvdFxWMVxHUEJNZXRhZGF0YeoCCldlcmJvdDo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message werbot.v1.GetVersionRequest
@@ -53,6 +53,88 @@ export const GetVersionResponseSchema: GenMessage<GetVersionResponse> = /*@__PUR
   messageDesc(file_werbot_v1_system, 1);
 
 /**
+ * @generated from message werbot.v1.ListCountriesRequest
+ */
+export type ListCountriesRequest = Message<"werbot.v1.ListCountriesRequest"> & {
+};
+
+/**
+ * Describes the message werbot.v1.ListCountriesRequest.
+ * Use `create(ListCountriesRequestSchema)` to create a new message.
+ */
+export const ListCountriesRequestSchema: GenMessage<ListCountriesRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_system, 2);
+
+/**
+ * @generated from message werbot.v1.Country
+ */
+export type Country = Message<"werbot.v1.Country"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message werbot.v1.Country.
+ * Use `create(CountrySchema)` to create a new message.
+ */
+export const CountrySchema: GenMessage<Country> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_system, 3);
+
+/**
+ * @generated from message werbot.v1.ListCountriesResponse
+ */
+export type ListCountriesResponse = Message<"werbot.v1.ListCountriesResponse"> & {
+  /**
+   * @generated from field: repeated werbot.v1.Country countries = 1;
+   */
+  countries: Country[];
+};
+
+/**
+ * Describes the message werbot.v1.ListCountriesResponse.
+ * Use `create(ListCountriesResponseSchema)` to create a new message.
+ */
+export const ListCountriesResponseSchema: GenMessage<ListCountriesResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_system, 4);
+
+/**
+ * @generated from message werbot.v1.GetClientIPRequest
+ */
+export type GetClientIPRequest = Message<"werbot.v1.GetClientIPRequest"> & {
+};
+
+/**
+ * Describes the message werbot.v1.GetClientIPRequest.
+ * Use `create(GetClientIPRequestSchema)` to create a new message.
+ */
+export const GetClientIPRequestSchema: GenMessage<GetClientIPRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_system, 5);
+
+/**
+ * @generated from message werbot.v1.GetClientIPResponse
+ */
+export type GetClientIPResponse = Message<"werbot.v1.GetClientIPResponse"> & {
+  /**
+   * @generated from field: string ip = 1;
+   */
+  ip: string;
+};
+
+/**
+ * Describes the message werbot.v1.GetClientIPResponse.
+ * Use `create(GetClientIPResponseSchema)` to create a new message.
+ */
+export const GetClientIPResponseSchema: GenMessage<GetClientIPResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_system, 6);
+
+/**
  * @generated from service werbot.v1.SystemService
  */
 export const SystemService: GenService<{
@@ -63,6 +145,22 @@ export const SystemService: GenService<{
     methodKind: "unary";
     input: typeof GetVersionRequestSchema;
     output: typeof GetVersionResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.SystemService.ListCountries
+   */
+  listCountries: {
+    methodKind: "unary";
+    input: typeof ListCountriesRequestSchema;
+    output: typeof ListCountriesResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.SystemService.GetClientIP
+   */
+  getClientIP: {
+    methodKind: "unary";
+    input: typeof GetClientIPRequestSchema;
+    output: typeof GetClientIPResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_werbot_v1_system, 0);

@@ -3,10 +3,25 @@ package werbot.v1;
 
 service SystemService {
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+  rpc ListCountries(ListCountriesRequest) returns (ListCountriesResponse);
+  rpc GetClientIP(GetClientIPRequest) returns (GetClientIPResponse);
 }
 message GetVersionRequest {}
 message GetVersionResponse {
   string version = 1;
   string commit = 2;
   string build_date = 3;
+}
+
+message ListCountriesRequest {}
+message Country {
+  string code = 1;
+  string name = 2;
+}
+message ListCountriesResponse {
+  repeated Country countries = 1;
+}
+message GetClientIPRequest {}
+message GetClientIPResponse {
+  string ip = 1;
 }

@@ -36,11 +36,19 @@ const (
 	// SystemServiceGetVersionProcedure is the fully-qualified name of the SystemService's GetVersion
 	// RPC.
 	SystemServiceGetVersionProcedure = "/werbot.v1.SystemService/GetVersion"
+	// SystemServiceListCountriesProcedure is the fully-qualified name of the SystemService's
+	// ListCountries RPC.
+	SystemServiceListCountriesProcedure = "/werbot.v1.SystemService/ListCountries"
+	// SystemServiceGetClientIPProcedure is the fully-qualified name of the SystemService's GetClientIP
+	// RPC.
+	SystemServiceGetClientIPProcedure = "/werbot.v1.SystemService/GetClientIP"
 )
 
 // SystemServiceClient is a client for the werbot.v1.SystemService service.
 type SystemServiceClient interface {
 	GetVersion(context.Context, *connect.Request[v1.GetVersionRequest]) (*connect.Response[v1.GetVersionResponse], error)
+	ListCountries(context.Context, *connect.Request[v1.ListCountriesRequest]) (*connect.Response[v1.ListCountriesResponse], error)
+	GetClientIP(context.Context, *connect.Request[v1.GetClientIPRequest]) (*connect.Response[v1.GetClientIPResponse], error)
 }
 
 // NewSystemServiceClient constructs a client for the werbot.v1.SystemService service. By default,
@@ -60,12 +68,26 @@ func NewSystemServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(systemServiceMethods.ByName("GetVersion")),
 			connect.WithClientOptions(opts...),
 		),
+		listCountries: connect.NewClient[v1.ListCountriesRequest, v1.ListCountriesResponse](
+			httpClient,
+			baseURL+SystemServiceListCountriesProcedure,
+			connect.WithSchema(systemServiceMethods.ByName("ListCountries")),
+			connect.WithClientOptions(opts...),
+		),
+		getClientIP: connect.NewClient[v1.GetClientIPRequest, v1.GetClientIPResponse](
+			httpClient,
+			baseURL+SystemServiceGetClientIPProcedure,
+			connect.WithSchema(systemServiceMethods.ByName("GetClientIP")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // systemServiceClient implements SystemServiceClient.
 type systemServiceClient struct {
-	getVersion *connect.Client[v1.GetVersionRequest, v1.GetVersionResponse]
+	getVersion    *connect.Client[v1.GetVersionRequest, v1.GetVersionResponse]
+	listCountries *connect.Client[v1.ListCountriesRequest, v1.ListCountriesResponse]
+	getClientIP   *connect.Client[v1.GetClientIPRequest, v1.GetClientIPResponse]
 }
 
 // GetVersion calls werbot.v1.SystemService.GetVersion.
@@ -73,9 +95,21 @@ func (c *systemServiceClient) GetVersion(ctx context.Context, req *connect.Reque
 	return c.getVersion.CallUnary(ctx, req)
 }
 
+// ListCountries calls werbot.v1.SystemService.ListCountries.
+func (c *systemServiceClient) ListCountries(ctx context.Context, req *connect.Request[v1.ListCountriesRequest]) (*connect.Response[v1.ListCountriesResponse], error) {
+	return c.listCountries.CallUnary(ctx, req)
+}
+
+// GetClientIP calls werbot.v1.SystemService.GetClientIP.
+func (c *systemServiceClient) GetClientIP(ctx context.Context, req *connect.Request[v1.GetClientIPRequest]) (*connect.Response[v1.GetClientIPResponse], error) {
+	return c.getClientIP.CallUnary(ctx, req)
+}
+
 // SystemServiceHandler is an implementation of the werbot.v1.SystemService service.
 type SystemServiceHandler interface {
 	GetVersion(context.Context, *connect.Request[v1.GetVersionRequest]) (*connect.Response[v1.GetVersionResponse], error)
+	ListCountries(context.Context, *connect.Request[v1.ListCountriesRequest]) (*connect.Response[v1.ListCountriesResponse], error)
+	GetClientIP(context.Context, *connect.Request[v1.GetClientIPRequest]) (*connect.Response[v1.GetClientIPResponse], error)
 }
 
 // NewSystemServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -91,10 +125,26 @@ func NewSystemServiceHandler(svc SystemServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(systemServiceMethods.ByName("GetVersion")),
 		connect.WithHandlerOptions(opts...),
 	)
+	systemServiceListCountriesHandler := connect.NewUnaryHandler(
+		SystemServiceListCountriesProcedure,
+		svc.ListCountries,
+		connect.WithSchema(systemServiceMethods.ByName("ListCountries")),
+		connect.WithHandlerOptions(opts...),
+	)
+	systemServiceGetClientIPHandler := connect.NewUnaryHandler(
+		SystemServiceGetClientIPProcedure,
+		svc.GetClientIP,
+		connect.WithSchema(systemServiceMethods.ByName("GetClientIP")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/werbot.v1.SystemService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SystemServiceGetVersionProcedure:
 			systemServiceGetVersionHandler.ServeHTTP(w, r)
+		case SystemServiceListCountriesProcedure:
+			systemServiceListCountriesHandler.ServeHTTP(w, r)
+		case SystemServiceGetClientIPProcedure:
+			systemServiceGetClientIPHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -106,4 +156,12 @@ type UnimplementedSystemServiceHandler struct{}
 
 func (UnimplementedSystemServiceHandler) GetVersion(context.Context, *connect.Request[v1.GetVersionRequest]) (*connect.Response[v1.GetVersionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.SystemService.GetVersion is not implemented"))
+}
+
+func (UnimplementedSystemServiceHandler) ListCountries(context.Context, *connect.Request[v1.ListCountriesRequest]) (*connect.Response[v1.ListCountriesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.SystemService.ListCountries is not implemented"))
+}
+
+func (UnimplementedSystemServiceHandler) GetClientIP(context.Context, *connect.Request[v1.GetClientIPRequest]) (*connect.Response[v1.GetClientIPResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.SystemService.GetClientIP is not implemented"))
 }

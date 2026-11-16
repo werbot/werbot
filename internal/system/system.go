@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
+	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/version"
 )
 
@@ -23,4 +24,18 @@ func (*Service) GetVersion(_ context.Context, _ *connect.Request[werbotv1.GetVer
 		Commit:    version.Commit,
 		BuildDate: version.BuildDate,
 	}), nil
+}
+
+// ListCountries returns the ISO 3166-1 country list.
+func (*Service) ListCountries(_ context.Context, _ *connect.Request[werbotv1.ListCountriesRequest]) (*connect.Response[werbotv1.ListCountriesResponse], error) {
+	return connect.NewResponse(&werbotv1.ListCountriesResponse{Countries: countries()}), nil
+}
+
+// GetClientIP returns the caller address resolved by clientip.Middleware, or "" when invalid.
+func (*Service) GetClientIP(ctx context.Context, _ *connect.Request[werbotv1.GetClientIPRequest]) (*connect.Response[werbotv1.GetClientIPResponse], error) {
+	ip := ""
+	if a := clientip.From(ctx); a.IsValid() {
+		ip = a.String()
+	}
+	return connect.NewResponse(&werbotv1.GetClientIPResponse{Ip: ip}), nil
 }
