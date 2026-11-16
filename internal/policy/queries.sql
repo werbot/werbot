@@ -40,3 +40,19 @@ SELECT cidr FROM ip_blocklist ORDER BY cidr;
 
 -- name: GetGeoIPData :one
 SELECT data FROM geoip_db WHERE id = 1;
+
+-- name: ReplaceBlocklist :copyfrom
+INSERT INTO ip_blocklist (cidr, source) VALUES (@cidr, @source);
+
+-- name: DeleteBlocklistSource :exec
+DELETE FROM ip_blocklist WHERE source = @source;
+
+-- name: GetGeoIPMonth :one
+SELECT month FROM geoip_db WHERE id = 1;
+
+-- name: UpsertGeoIP :exec
+INSERT INTO geoip_db (id, month, data, updated_at) VALUES (1, @month, @data, now())
+ON CONFLICT (id) DO UPDATE SET month = EXCLUDED.month, data = EXCLUDED.data, updated_at = now();
+
+-- name: NotifyGeoIPChanged :exec
+SELECT pg_notify('werbot_geoip_changed', '');

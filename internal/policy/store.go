@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/netip"
 
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/werbot/werbot/internal/policy/dbq"
 )
 
@@ -21,4 +23,9 @@ type Store interface {
 	IPBlocked(ctx context.Context, ip netip.Addr) (bool, error)
 	ListBlocklist(ctx context.Context) ([]netip.Prefix, error)
 	GetGeoIPData(ctx context.Context) ([]byte, error)
+	DeleteBlocklistSource(ctx context.Context, source string) error
+	ReplaceBlocklist(ctx context.Context, arg []dbq.ReplaceBlocklistParams) (int64, error)
+	GetGeoIPMonth(ctx context.Context) (pgtype.Date, error)
+	UpsertGeoIP(ctx context.Context, arg dbq.UpsertGeoIPParams) error
+	NotifyGeoIPChanged(ctx context.Context) error
 }

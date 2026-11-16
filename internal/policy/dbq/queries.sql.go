@@ -10,7 +10,17 @@ import (
 	"net/netip"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const deleteBlocklistSource = `-- name: DeleteBlocklistSource :exec
+DELETE FROM ip_blocklist WHERE source = $1
+`
+
+func (q *Queries) DeleteBlocklistSource(ctx context.Context, source string) error {
+	_, err := q.db.Exec(ctx, deleteBlocklistSource, source)
+	return err
+}
 
 const deleteCountryRules = `-- name: DeleteCountryRules :exec
 DELETE FROM resource_country_rule WHERE org_id = $1 AND resource_id = $2
@@ -63,6 +73,17 @@ func (q *Queries) GetGeoIPData(ctx context.Context) ([]byte, error) {
 	var data []byte
 	err := row.Scan(&data)
 	return data, err
+}
+
+const getGeoIPMonth = `-- name: GetGeoIPMonth :one
+SELECT month FROM geoip_db WHERE id = 1
+`
+
+func (q *Queries) GetGeoIPMonth(ctx context.Context) (pgtype.Date, error) {
+	row := q.db.QueryRow(ctx, getGeoIPMonth)
+	var month pgtype.Date
+	err := row.Scan(&month)
+	return month, err
 }
 
 const iPBlocked = `-- name: IPBlocked :one
@@ -273,4 +294,33 @@ func (q *Queries) ListSchedule(ctx context.Context, arg ListScheduleParams) ([]L
 		return nil, err
 	}
 	return items, nil
+}
+
+const notifyGeoIPChanged = `-- name: NotifyGeoIPChanged :exec
+SELECT pg_notify('werbot_geoip_changed', '')
+`
+
+func (q *Queries) NotifyGeoIPChanged(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, notifyGeoIPChanged)
+	return err
+}
+
+type ReplaceBlocklistParams struct {
+	Cidr   netip.Prefix
+	Source string
+}
+
+const upsertGeoIP = `-- name: UpsertGeoIP :exec
+INSERT INTO geoip_db (id, month, data, updated_at) VALUES (1, $1, $2, now())
+ON CONFLICT (id) DO UPDATE SET month = EXCLUDED.month, data = EXCLUDED.data, updated_at = now()
+`
+
+type UpsertGeoIPParams struct {
+	Month pgtype.Date
+	Data  []byte
+}
+
+func (q *Queries) UpsertGeoIP(ctx context.Context, arg UpsertGeoIPParams) error {
+	_, err := q.db.Exec(ctx, upsertGeoIP, arg.Month, arg.Data)
+	return err
 }

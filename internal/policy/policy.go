@@ -140,6 +140,9 @@ func matches(labels, selector map[string]string) bool {
 // resource type's actions or any policy evaluation error denies. A zero
 // r.Time means now.
 func (ps *PolicySet) Authorize(r Request) Decision {
+	if ps == nil {
+		return Decision{Reasons: []string{"error:compile"}}
+	}
 	if !r.IP.IsValid() {
 		return Decision{Reasons: []string{"invalid_ip"}}
 	}
