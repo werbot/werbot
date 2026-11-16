@@ -32,6 +32,7 @@ type Store interface {
 	GetPasswordHash(ctx context.Context, id uuid.UUID) (string, error)
 	DeleteOtherUserSessions(ctx context.Context, arg dbq.DeleteOtherUserSessionsParams) error
 	LockOrgOwners(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error)
+	LockUserOwnedOrgs(ctx context.Context, userID uuid.UUID) ([]dbq.LockUserOwnedOrgsRow, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	ListSSHKeys(ctx context.Context, userID uuid.UUID) ([]dbq.ListSSHKeysRow, error)
 	CreateSSHKey(ctx context.Context, arg dbq.CreateSSHKeyParams) (dbq.CreateSSHKeyRow, error)

@@ -109,6 +109,28 @@ func TestAccountDeletionTokenOfOtherUser(t *testing.T) {
 	require.NoError(t, svc.ConfirmAccountDeletion(bobCtx, token), "the token is not spent by the refused attempt")
 }
 
+func TestSoleOwnerOfOtherOrgCannotDeleteAccount(t *testing.T) {
+	svc, pool, q := newTestService(t)
+	org1, org2 := seedOrg(t, pool, "Acme"), seedOrg(t, pool, "Other")
+	seedUser(t, pool, org1, "alice", principal.RoleOwner)
+	dave := seedUser(t, pool, org1, "dave", principal.RoleMember)
+	ctx, _ := loginCtx(t, svc, "dave") // session in org1: the first membership
+	token := deletionToken(ctx, t, svc, q)
+	bg := context.Background()
+	_, err := pool.Exec(bg, "INSERT INTO membership (org_id, user_id, role) VALUES ($1, $2, 'owner')", org2, dave)
+	require.NoError(t, err)
+
+	assert.ErrorIs(t, svc.RequestAccountDeletion(ctx), apperr.ErrFailedPrecondition)
+	assert.ErrorIs(t, svc.ConfirmAccountDeletion(ctx, token), apperr.ErrFailedPrecondition)
+	var n int
+	require.NoError(t, pool.QueryRow(bg, "SELECT count(*) FROM membership WHERE user_id = $1", dave).Scan(&n))
+	assert.Equal(t, 2, n, "nothing deleted")
+
+	_, err = pool.Exec(bg, "DELETE FROM membership WHERE org_id = $1", org2)
+	require.NoError(t, err)
+	require.NoError(t, svc.ConfirmAccountDeletion(ctx, token), "the refused attempt left the token unspent")
+}
+
 func TestLastOwnerCannotDeleteAccount(t *testing.T) {
 	svc, pool, q := newTestService(t)
 	org := seedOrg(t, pool, "Acme")

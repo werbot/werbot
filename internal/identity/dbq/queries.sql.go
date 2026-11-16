@@ -629,6 +629,39 @@ func (q *Queries) LockSetup(ctx context.Context, key int64) error {
 	return err
 }
 
+const lockUserOwnedOrgs = `-- name: LockUserOwnedOrgs :many
+SELECT m.org_id, m.user_id FROM membership m
+WHERE m.role = 'owner' AND m.org_id IN (SELECT o.org_id FROM membership o WHERE o.user_id = $1 AND o.role = 'owner')
+ORDER BY m.org_id, m.user_id FOR UPDATE OF m
+`
+
+type LockUserOwnedOrgsRow struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+// Owners of every organization the user owns, locked in (org_id, user_id) order.
+// ponytail: reads other orgs inside the caller's InOrg tx; stage 42 RLS must allow it.
+func (q *Queries) LockUserOwnedOrgs(ctx context.Context, userID uuid.UUID) ([]LockUserOwnedOrgsRow, error) {
+	rows, err := q.db.Query(ctx, lockUserOwnedOrgs, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LockUserOwnedOrgsRow
+	for rows.Next() {
+		var i LockUserOwnedOrgsRow
+		if err := rows.Scan(&i.OrgID, &i.UserID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lookupLoginUser = `-- name: LookupLoginUser :one
 SELECT u.id, u.login, m.role FROM users u
 JOIN membership m ON m.user_id = u.id AND m.org_id = $1

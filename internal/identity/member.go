@@ -52,10 +52,15 @@ func checkRole(p principal.Principal, role string) error {
 
 // lockTarget returns userID's role in p's organization; only an owner may
 // change an owner. Owner rows are locked first, as ensureNotLastOwner does,
-// so concurrent role changes take their locks in one order.
+// so concurrent role changes take their locks in one order. Under that lock
+// an owner principal must still be an owner: the session role may be stale.
 func lockTarget(ctx context.Context, st Store, p principal.Principal, userID uuid.UUID) (string, error) {
-	if _, err := st.LockOrgOwners(ctx, p.OrgID); err != nil {
+	owners, err := st.LockOrgOwners(ctx, p.OrgID)
+	if err != nil {
 		return "", err
+	}
+	if p.Role == principal.RoleOwner && !slices.Contains(owners, p.UserID) {
+		return "", fmt.Errorf("no longer an owner: %w", apperr.ErrPermissionDenied)
 	}
 	role, err := st.LockMemberRole(ctx, dbq.LockMemberRoleParams{OrgID: p.OrgID, UserID: userID})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -102,10 +107,13 @@ func (s *Service) ListMembers(ctx context.Context) ([]Member, []Invite, error) {
 			})
 		}
 		inv, err := st.ListInvites(ctx, p.OrgID)
+		if err != nil {
+			return err
+		}
 		for _, r := range inv {
 			invites = append(invites, Invite(r))
 		}
-		return err
+		return nil
 	})
 	return members, invites, err
 }
@@ -255,8 +263,11 @@ func (s *Service) inviteeUser(ctx context.Context, st Store, email string, in Ac
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, err
 	}
-	if in.Login == "" || in.Name == "" {
-		return uuid.Nil, fmt.Errorf("login and name are required: %w", apperr.ErrInvalidArgument)
+	if in.Name == "" {
+		return uuid.Nil, fmt.Errorf("name is required: %w", apperr.ErrInvalidArgument)
+	}
+	if err := validateLogin(in.Login); err != nil {
+		return uuid.Nil, err
 	}
 	if err := validatePassword(in.Password); err != nil {
 		return uuid.Nil, err

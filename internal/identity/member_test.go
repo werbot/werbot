@@ -87,6 +87,10 @@ func TestAcceptInviteNewUserNeedsFields(t *testing.T) {
 	bg := context.Background()
 	_, err := svc.AcceptInvite(bg, AcceptInput{Token: raw, Password: testPassword}, "test")
 	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
+	for _, login := range []string{"Bob", "b", "-bob"} {
+		_, err = svc.AcceptInvite(bg, AcceptInput{Token: raw, Login: login, Name: "Bob", Password: testPassword}, "test")
+		assert.ErrorIs(t, err, apperr.ErrInvalidArgument, login)
+	}
 	_, err = svc.AcceptInvite(bg, AcceptInput{Token: raw, Login: "bob", Name: "Bob", Password: "short"}, "test")
 	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
 	_, err = svc.AcceptInvite(bg, AcceptInput{Token: raw, Login: "alice", Name: "Bob", Password: testPassword}, "test")
@@ -224,7 +228,8 @@ func TestConcurrentOwnerDemotionKeepsOneOwner(t *testing.T) {
 		require.True(t, (errs[0] == nil) != (errs[1] == nil), "exactly one fails: %v", errs)
 		for _, err := range errs {
 			if err != nil {
-				assert.ErrorIs(t, err, apperr.ErrFailedPrecondition)
+				// The loser's session still says owner; under the owner lock it is not.
+				assert.ErrorIs(t, err, apperr.ErrPermissionDenied)
 			}
 		}
 		var owners int

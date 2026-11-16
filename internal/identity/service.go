@@ -43,6 +43,9 @@ func (s *Service) NeedsSetup(ctx context.Context) (bool, error) {
 // Setup creates the first organization, its owner and a session, and returns
 // the session token. Once any user exists it fails with ErrFailedPrecondition.
 func (s *Service) Setup(ctx context.Context, in SetupInput, userAgent string) (string, error) {
+	if err := validateLogin(in.Login); err != nil {
+		return "", err
+	}
 	if err := validatePassword(in.Password); err != nil {
 		return "", err
 	}

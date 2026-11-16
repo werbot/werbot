@@ -95,8 +95,8 @@ func (s *Service) ChangePassword(ctx context.Context, current, next string) erro
 	})
 }
 
-// RequestAccountDeletion emails the caller a confirmation link. The last
-// owner of the organization cannot delete the account.
+// RequestAccountDeletion emails the caller a confirmation link. The sole
+// owner of any organization cannot delete the account.
 func (s *Service) RequestAccountDeletion(ctx context.Context) error {
 	p, err := principal.Require(ctx)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s *Service) RequestAccountDeletion(ctx context.Context) error {
 	}
 	return dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
 		st := newStore(tx)
-		if err := ensureNotLastOwner(ctx, st, p.OrgID, p.UserID); err != nil {
+		if err := ensureNotSoleOwner(ctx, st, p.UserID); err != nil {
 			return err
 		}
 		u, err := readProfile(ctx, st, p)
@@ -139,7 +139,7 @@ func (s *Service) ConfirmAccountDeletion(ctx context.Context, token string) erro
 		if c.UserID == nil || *c.UserID != p.UserID {
 			return fmt.Errorf("invalid or expired token: %w", apperr.ErrNotFound)
 		}
-		if err := ensureNotLastOwner(ctx, st, p.OrgID, p.UserID); err != nil {
+		if err := ensureNotSoleOwner(ctx, st, p.UserID); err != nil {
 			return err
 		}
 		if err := st.DeleteUser(ctx, p.UserID); err != nil {

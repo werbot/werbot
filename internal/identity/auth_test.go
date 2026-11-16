@@ -85,6 +85,12 @@ func TestSetupRejectsShortPassword(t *testing.T) {
 	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
 }
 
+func TestSetupRejectsBadLogin(t *testing.T) {
+	svc, _, _ := newTestService(t)
+	_, err := svc.Setup(context.Background(), setupInput("owner@example.com", "Owner"), "test")
+	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
+}
+
 func TestLogin(t *testing.T) {
 	svc, pool, _ := newTestService(t)
 	ctx := context.Background()

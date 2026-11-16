@@ -144,3 +144,10 @@ UPDATE membership SET role = @role WHERE org_id = @org_id AND user_id = @user_id
 
 -- name: DeleteMembership :exec
 DELETE FROM membership WHERE org_id = @org_id AND user_id = @user_id;
+
+-- name: LockUserOwnedOrgs :many
+-- Owners of every organization the user owns, locked in (org_id, user_id) order.
+-- ponytail: reads other orgs inside the caller's InOrg tx; stage 42 RLS must allow it.
+SELECT m.org_id, m.user_id FROM membership m
+WHERE m.role = 'owner' AND m.org_id IN (SELECT o.org_id FROM membership o WHERE o.user_id = @user_id AND o.role = 'owner')
+ORDER BY m.org_id, m.user_id FOR UPDATE OF m;

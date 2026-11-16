@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -65,6 +66,17 @@ func verifyPassword(encoded, pw string) (bool, error) {
 	}
 	got := argon2.IDKey([]byte(pw), salt, time, memory, threads, uint32(len(key))) //nolint:gosec // key length comes from our own 32-byte hashes
 	return subtle.ConstantTimeCompare(got, key) == 1, nil
+}
+
+// loginPattern is the users.login CHECK (migrations/00003_users.sql).
+var loginPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{1,31}$`)
+
+// validateLogin checks login against the users.login CHECK.
+func validateLogin(login string) error {
+	if !loginPattern.MatchString(login) {
+		return fmt.Errorf("login must match %s: %w", loginPattern, apperr.ErrInvalidArgument)
+	}
+	return nil
 }
 
 // validatePassword enforces the 12–256 character rule.
