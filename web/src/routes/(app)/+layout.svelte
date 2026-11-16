@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Sidebar, SidebarItem } from '#lib/ui/index.js';
+	import { Sidebar, SidebarItem, Toaster } from '#lib/ui/index.js';
 	import { auth } from '#lib/api.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -41,6 +41,7 @@
 	</Sidebar>
 	<main>{@render children()}</main>
 </div>
+<Toaster />
 
 <style>
 	.shell {
