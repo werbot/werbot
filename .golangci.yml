@@ -67,6 +67,21 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import other domains }
+        connector:
+          files: ["**/internal/connector/*.go", "**/internal/connector/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: connector may import only platform and gen }
         webui:
           files: ["**/internal/webui/*.go", "**/internal/webui/**/*.go"]
           deny:
