@@ -7,18 +7,17 @@
 
 	// svelte-ignore state_referenced_locally
 	let text = $state(initial?.configJson || '{}');
-	let error = $state('');
-
-	$effect(() => {
+	let valid = $derived.by(() => {
 		try {
 			JSON.parse(text);
+			return true;
 		} catch {
-			error = m.resources_config_json_invalid();
-			return;
+			return false;
 		}
-		error = '';
-		onchange({ configJson: text });
 	});
+
+	// An empty value blocks submit in ResourceForm while the JSON is invalid.
+	$effect(() => onchange(valid ? { configJson: text } : {}));
 </script>
 
-<Textarea label={m.resources_config_json()} bind:value={text} {error} rows={8} />
+<Textarea label={m.resources_config_json()} bind:value={text} error={valid ? '' : m.resources_config_json_invalid()} rows={8} />

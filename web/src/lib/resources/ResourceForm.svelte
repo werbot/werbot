@@ -29,10 +29,12 @@
 	let value = $state.raw<ConfigValue>({});
 
 	let type = $derived(types.find((t) => t.name === typeName));
+	let valid = $derived(!!value.config || value.configJson !== undefined);
 	let Form = $derived(configFormFor(typeName));
 
 	function submit(e: SubmitEvent) {
 		e.preventDefault();
+		if (!valid) return;
 		onsubmit({ ...value, name, type: typeName, labels: labelsFromRows(rows) });
 	}
 </script>
@@ -54,7 +56,7 @@
 		{/key}
 	{/if}
 	<LabelsEditor bind:rows />
-	<div><Button type="submit" variant="solid">{m.resources_save()}</Button></div>
+	<div><Button type="submit" variant="solid" disabled={!valid}>{m.resources_save()}</Button></div>
 </form>
 
 <style>

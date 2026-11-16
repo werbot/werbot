@@ -13,13 +13,13 @@
 	let error = $state('');
 	let tab = $state('settings');
 
-	const tabs = [
+	const tabs = $derived([
 		{ value: 'settings', label: m.resources_tab_settings() },
 		{ value: 'credentials', label: m.resources_tab_credentials() },
 		{ value: 'rules', label: m.resources_tab_rules() },
 		{ value: 'access', label: m.resources_tab_access() },
 		{ value: 'host_key', label: m.resources_tab_host_key() }
-	];
+	]);
 
 	onMount(async () => {
 		try {

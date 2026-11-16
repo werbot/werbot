@@ -12,11 +12,11 @@
 	let error = $state('');
 	let confirming = $state(false);
 
-	async function run(action: () => Promise<unknown>) {
+	async function run(action: () => Promise<unknown>, saved: string) {
 		error = '';
 		try {
 			await action();
-			toast({ tone: 'success', text: m.common_saved() });
+			toast({ tone: 'success', text: saved });
 			return true;
 		} catch (e) {
 			error = errorMessage(e);
@@ -29,11 +29,11 @@
 		await run(async () => {
 			const res = await resources.updateResource({ id: resource.id, name, labels, config, configJson });
 			if (res.resource) resource = res.resource;
-		});
+		}, m.common_saved());
 	}
 
 	async function remove() {
-		if (await run(() => resources.deleteResource({ id: resource.id }))) await goto('/resources');
+		if (await run(() => resources.deleteResource({ id: resource.id }), m.resources_deleted())) await goto('/resources');
 	}
 </script>
 

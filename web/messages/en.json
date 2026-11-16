@@ -100,6 +100,7 @@
 	"resources_cred_none": "none",
 	"resources_save": "Save",
 	"resources_delete": "Delete resource",
+	"resources_deleted": "Deleted",
 	"resources_delete_confirm": "Delete this resource? This cannot be undone.",
 	"resources_tab_settings": "Settings",
 	"resources_tab_credentials": "Credentials",
