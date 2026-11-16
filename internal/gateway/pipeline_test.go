@@ -112,7 +112,7 @@ func TestRegisterConnector(t *testing.T) {
 	require.Equal(t, "fake", c.Type())
 	_, ok = LookupConnector("nope")
 	require.False(t, ok)
-	require.Equal(t, []string{"blocker", "fake", "panicky", "streamonly"}, connectors())
+	require.Equal(t, []string{"blocker", "fake", "panicky", "spy", "streamonly"}, connectors())
 }
 
 func TestPinKeyCallsServer(t *testing.T) {

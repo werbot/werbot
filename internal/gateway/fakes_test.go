@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -24,7 +25,7 @@ import (
 func init() {
 	// server-side types: the local PDP requires "<type>.connect" among the type's actions
 	all := []connector.Kind{connector.KindTerminal, connector.KindExec, connector.KindStream}
-	for _, n := range []string{"fake", "blocker", "panicky", "streamonly", "nope"} {
+	for _, n := range []string{"fake", "blocker", "panicky", "streamonly", "nope", "spy"} {
 		connector.Register(connector.Type{Name: n, NewConfig: func() proto.Message { return &emptypb.Empty{} },
 			Validate: func(proto.Message) error { return nil }, Actions: []string{n + ".connect"}, Kinds: all})
 	}
@@ -33,6 +34,7 @@ func init() {
 	RegisterConnector(funcConn{typ: "blocker", kinds: []Kind{KindTerminal, KindExec, KindStream}, serve: block})
 	RegisterConnector(funcConn{typ: "panicky", kinds: []Kind{KindTerminal}, serve: func(context.Context, *Session) error { panic("boom") }})
 	RegisterConnector(funcConn{typ: "streamonly", kinds: []Kind{KindStream}, serve: block})
+	RegisterConnector(funcConn{typ: "spy", kinds: []Kind{KindTerminal, KindExec, KindStream}, serve: spy})
 }
 
 func block(ctx context.Context, _ *Session) error {
@@ -83,6 +85,8 @@ type fakeControl struct {
 	connected  bool
 	user       User
 	authErr    error
+	byKey      map[string]User  // AuthenticateUser by fingerprint when set; unknown → NotFound
+	keyErrs    map[string]error // AuthenticateUser error by fingerprint
 	startErr   error
 	endErrs    []error // returned by the next EndSession calls in order, then endErr
 	endErr     error
@@ -90,6 +94,7 @@ type fakeControl struct {
 	pinErr     error
 	authCalls  []string
 	startCalls int
+	starts     []string // "<user id> <resource id> <ip>"
 	ends       []endCall
 	pins       []string
 	events     []string
@@ -100,17 +105,28 @@ func (f *fakeControl) AuthenticateUser(_ context.Context, fp string, ip netip.Ad
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.authCalls = append(f.authCalls, fp+" "+ip.String())
-	return f.user, f.authErr
+	if f.byKey == nil || f.authErr != nil {
+		return f.user, f.authErr
+	}
+	if err := f.keyErrs[fp]; err != nil {
+		return User{}, err
+	}
+	u, ok := f.byKey[fp]
+	if !ok {
+		return User{}, connect.NewError(connect.CodeNotFound, nil)
+	}
+	return u, nil
 }
 
-func (f *fakeControl) StartSession(_ context.Context, userID, _ uuid.UUID, _ netip.Addr) (uuid.UUID, Secret, error) {
+func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr) (uuid.UUID, Secret, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.startCalls++
+	f.starts = append(f.starts, fmt.Sprintf("%s %s %s", userID, resourceID, ip))
 	if f.startErr != nil {
 		return uuid.Nil, Secret{}, f.startErr
 	}
-	if userID != f.user.ID {
+	if f.byKey == nil && userID != f.user.ID {
 		return uuid.Nil, Secret{}, fmt.Errorf("unexpected user %s", userID)
 	}
 	return uuid.New(), Secret{Kind: "password", Value: []byte("s3cret-value")}, nil

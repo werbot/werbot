@@ -86,6 +86,25 @@ A failed download keeps the previous data.
 | `WERBOT_LOG_FORMAT` | `json` | `json` or `text`. |
 | `WERBOT_METRICS_ADDR` | empty (disabled) | Listen address for `/metrics`. |
 
+`werbot gateway` (an instance of a gateway pool; each variable also has a flag, for example `--ssh-addr`):
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `WERBOT_GATEWAY_SERVER_URL` | empty | `http(s)://` URL of the server API; needed for the first enrollment only. |
+| `WERBOT_GATEWAY_JOIN_TOKEN` | empty | Join token of the pool; needed for the first enrollment only. A saved identity wins over it. |
+| `WERBOT_GATEWAY_DATA_DIR` | `./gateway-data` | Instance identity: `gateway.json`, `gateway.key`, `gateway.crt`, `ca.crt`, `ssh_host_ed25519_key`. |
+| `WERBOT_GATEWAY_SSH_ADDR` | `:2222` | SSH listen address. |
+| `WERBOT_GATEWAY_PROXY_PROTOCOL` | `false` | Require a PROXY protocol header on every SSH connection; expose the port to the load balancer only. |
+| `WERBOT_GATEWAY_NAME` | OS hostname | Instance hostname shown in the pool. |
+| `WERBOT_GATEWAY_IDLE_TIMEOUT` | `5m` | Closes an SSH connection without traffic; `0` disables. |
+| `WERBOT_GATEWAY_HTTP_ADDR` | empty (disabled) | Listen address for `/readyz` and `/metrics`. |
+| `WERBOT_GATEWAY_DRAIN_TIMEOUT` | `30s` | On SIGTERM, how long running sessions may continue before they end with `gateway_shutdown`. |
+| `WERBOT_GATEWAY_MAX_SESSIONS` | `10000` | Concurrent session limit, 1-10000; above it users get `Gateway is busy, try again later`. |
+
+The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR`; it connects out to the server tunnel. Users log in with their SSH key: `ssh <login>+<resource>@<gateway> -p 2222` runs a shell or a command on the resource, `ssh -L <port>:<host>:<port> <login>+<resource>@<gateway> -p 2222` forwards a port, and `ssh <login>@<gateway> -p 2222` (interactive terminal only) shows a menu of the resources the user may open. Without the server or a policy snapshot the gateway refuses new sessions (`Gateway is not ready, try again later`); running sessions continue. `/readyz` returns 200 only while the tunnel is up with a snapshot, a session slot is free and no drain runs. On SIGTERM `/readyz` returns 503 at once and the SSH port stops accepting connections.
+
+The instance renews its certificate before it expires. If the process crashes during a renewal, `gateway.key` and `gateway.crt` may no longer match and the instance fails to start: clear `WERBOT_GATEWAY_DATA_DIR` and enroll again with a new join token.
+
 ## Deployment modes
 
 - All-in-one (default): `werbot server` serves the API and the UI on one address.

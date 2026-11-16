@@ -37,17 +37,20 @@ type fakeTunnel struct {
 	cn   string
 	plan func(n int) attempt
 	push chan *gatewayv1.Snapshot // sent on the open stream
+	kill chan error               // ends the open stream with the error
+	fp   string                   // a key fingerprint AuthenticateUser accepts besides "SHA256:known"
 
-	mu      sync.Mutex
-	starts  []time.Time         // Connect attempts
-	closes  []time.Time         // stream ends caused by the plan
-	peers   []*x509.Certificate // client certificates of Connect attempts
-	hbs     []*gatewayv1.Heartbeat
-	pins    []*gatewayv1.PinHostKeyRequest
-	pinErr  error
-	ends    []*gatewayv1.EndSessionRequest
-	csrs    [][]byte
-	unaryIP []string
+	mu         sync.Mutex
+	starts     []time.Time         // Connect attempts
+	closes     []time.Time         // stream ends caused by the plan
+	peers      []*x509.Certificate // client certificates of Connect attempts
+	hbs        []*gatewayv1.Heartbeat
+	pins       []*gatewayv1.PinHostKeyRequest
+	pinErr     error
+	ends       []*gatewayv1.EndSessionRequest
+	csrs       [][]byte
+	startCalls int
+	unaryIP    []string
 }
 
 func (f *fakeTunnel) Connect(ctx context.Context, st *connect.BidiStream[gatewayv1.ConnectRequest, gatewayv1.ConnectResponse]) error {
@@ -87,6 +90,9 @@ func (f *fakeTunnel) Connect(ctx context.Context, st *connect.BidiStream[gateway
 			if err := send(s); err != nil {
 				return err
 			}
+		case err := <-f.kill:
+			f.closed()
+			return err
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -102,8 +108,9 @@ func (f *fakeTunnel) closed() {
 func (f *fakeTunnel) AuthenticateUser(_ context.Context, r *connect.Request[gatewayv1.AuthenticateUserRequest]) (*connect.Response[gatewayv1.AuthenticateUserResponse], error) {
 	f.mu.Lock()
 	f.unaryIP = append(f.unaryIP, r.Msg.GetClientIp())
+	known := f.fp
 	f.mu.Unlock()
-	if r.Msg.GetFingerprintSha256() != "SHA256:known" {
+	if fp := r.Msg.GetFingerprintSha256(); fp != "SHA256:known" && (known == "" || fp != known) {
 		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 	}
 	return connect.NewResponse(&gatewayv1.AuthenticateUserResponse{UserId: testUserID.String(), Login: "alice",
@@ -111,6 +118,9 @@ func (f *fakeTunnel) AuthenticateUser(_ context.Context, r *connect.Request[gate
 }
 
 func (f *fakeTunnel) StartSession(ctx context.Context, r *connect.Request[gatewayv1.StartSessionRequest]) (*connect.Response[gatewayv1.StartSessionResponse], error) {
+	f.mu.Lock()
+	f.startCalls++
+	f.mu.Unlock()
 	if r.Msg.GetUserId() == uuid.Nil.String() { // hangs
 		<-ctx.Done()
 		return nil, ctx.Err()
@@ -190,7 +200,29 @@ type tunnelEnv struct {
 func newTunnelEnv(t *testing.T, plan func(n int) attempt, certTTL time.Duration) *tunnelEnv {
 	t.Helper()
 	ca := newCA(t)
-	f := &fakeTunnel{ca: ca, cn: tlsca.GatewayCN(uuid.New(), uuid.New()), plan: plan, push: make(chan *gatewayv1.Snapshot)}
+	f, tunnelURL := serveFakeTunnel(t, ca, plan)
+
+	dir := t.TempDir()
+	keyPEM, csr, err := newCSR()
+	require.NoError(t, err)
+	certPEM, err := ca.IssueClient(csr, f.cn, certTTL)
+	require.NoError(t, err)
+	cs := &certStore{dir: dir}
+	require.NoError(t, cs.Replace(certPEM, keyPEM))
+	roots, _, err := singleCA(ca.RootPEM())
+	require.NoError(t, err)
+
+	e := &tunnelEnv{f: f, reg: metrics.NewRegistry(), log: &syncBuffer{}, dir: dir}
+	e.c = newTunnelClient(state{TunnelURL: tunnelURL}, roots, cs, e.reg, slog.New(slog.NewTextHandler(e.log, nil)))
+	e.c.heartbeatEvery, e.c.backoffMin, e.c.callTimeout = 50*time.Millisecond, 10*time.Millisecond, 100*time.Millisecond
+	return e
+}
+
+// serveFakeTunnel serves a fake TunnelService over mTLS from ca until the test ends; nil plan sends snapshot v1.
+func serveFakeTunnel(t *testing.T, ca *tlsca.CA, plan func(n int) attempt) (*fakeTunnel, string) {
+	t.Helper()
+	f := &fakeTunnel{ca: ca, cn: tlsca.GatewayCN(uuid.New(), uuid.New()), plan: plan,
+		push: make(chan *gatewayv1.Snapshot), kill: make(chan error)}
 	if f.plan == nil {
 		f.plan = func(int) attempt { return attempt{snap: testSnap("v1")} }
 	}
@@ -213,21 +245,7 @@ func newTunnelEnv(t *testing.T, plan func(n int) attempt, certTTL time.Duration)
 		})}
 	go func() { _ = srv.ServeTLS(ln, "", "") }()
 	t.Cleanup(func() { _ = srv.Close() })
-
-	dir := t.TempDir()
-	keyPEM, csr, err := newCSR()
-	require.NoError(t, err)
-	certPEM, err := ca.IssueClient(csr, f.cn, certTTL)
-	require.NoError(t, err)
-	cs := &certStore{dir: dir}
-	require.NoError(t, cs.Replace(certPEM, keyPEM))
-	roots, _, err := singleCA(ca.RootPEM())
-	require.NoError(t, err)
-
-	e := &tunnelEnv{f: f, reg: metrics.NewRegistry(), log: &syncBuffer{}, dir: dir}
-	e.c = newTunnelClient(state{TunnelURL: "https://" + ln.Addr().String()}, roots, cs, e.reg, slog.New(slog.NewTextHandler(e.log, nil)))
-	e.c.heartbeatEvery, e.c.backoffMin, e.c.callTimeout = 50*time.Millisecond, 10*time.Millisecond, 100*time.Millisecond
-	return e
+	return f, "https://" + ln.Addr().String()
 }
 
 // run starts Run until the test ends and checks that it returns nil.

@@ -56,8 +56,16 @@ func (m ids) expand(text string) string {
 // res is a snapshot resource: id name, display name, type.
 type res struct{ id, name, typ string }
 
-// compileTest builds a snapshot the way the server does: cedar text plus the resource entities.
+// compileTest compiles testSnapshot.
 func compileTest(t *testing.T, m ids, policies string, blocklist []string, rs ...res) *Policy {
+	t.Helper()
+	p, err := CompilePolicy(testSnapshot(t, m, policies, blocklist, rs...))
+	require.NoError(t, err)
+	return p
+}
+
+// testSnapshot builds a snapshot the way the server does: cedar text plus the resource entities.
+func testSnapshot(t *testing.T, m ids, policies string, blocklist []string, rs ...res) *gatewayv1.Snapshot {
 	t.Helper()
 	ents := cedar.EntityMap{}
 	s := &gatewayv1.Snapshot{CedarPolicies: m.expand(policies), Blocklist: blocklist, Version: "v1"}
@@ -69,9 +77,7 @@ func compileTest(t *testing.T, m ids, policies string, blocklist []string, rs ..
 	var err error
 	s.EntitiesJson, err = json.Marshal(ents)
 	require.NoError(t, err)
-	p, err := CompilePolicy(s)
-	require.NoError(t, err)
-	return p
+	return s
 }
 
 func TestAuthorize(t *testing.T) {

@@ -13,12 +13,14 @@ require (
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/oschwald/maxminddb-golang/v2 v2.9.0
 	github.com/peterldowns/pgtestdb v0.1.1
+	github.com/pires/go-proxyproto v0.16.0
 	github.com/pressly/goose/v3 v3.30.1
 	github.com/riverqueue/river v0.51.0
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.51.0
 	github.com/stretchr/testify v1.12.1
 	github.com/wneessen/go-mail v0.8.1
 	golang.org/x/crypto v0.58.0
+	golang.org/x/term v0.47.0
 	google.golang.org/protobuf v1.36.12
 )
 
