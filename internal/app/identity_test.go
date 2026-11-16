@@ -156,6 +156,17 @@ func TestWebLoginThroughProxy(t *testing.T) {
 	assert.Equal(t, "127.0.0.1", latestSessionIP(t, pool2))
 }
 
+func TestServeRejectsOversizedRequest(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	cfg := config.Config{HTTPAddr: freeAddr(t), Env: "development", WebEmbedded: true}
+	startServe(t, cfg, pool, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
+	auth := werbotv1connect.NewAuthServiceClient(http.DefaultClient, "http://"+cfg.HTTPAddr)
+
+	big := &werbotv1.LoginRequest{Email: "a@example.com", Password: strings.Repeat("a", 2<<20)}
+	_, err := auth.Login(context.Background(), connect.NewRequest(big))
+	assert.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(err), "read limit, before protovalidate")
+}
+
 func TestLogInternalErrors(t *testing.T) {
 	var logs bytes.Buffer
 	ic := logInternalErrors(slog.New(slog.NewTextHandler(&logs, nil)))

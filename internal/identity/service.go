@@ -63,7 +63,7 @@ func (s *Service) Setup(ctx context.Context, in SetupInput, userAgent string) (s
 			return fmt.Errorf("setup already completed: %w", apperr.ErrFailedPrecondition)
 		}
 		// Hashed only after the check: a completed setup costs no argon2 work.
-		hash, err := hashPassword(in.Password)
+		hash, err := hashPassword(ctx, in.Password)
 		if err != nil {
 			return err
 		}

@@ -18,7 +18,7 @@ const testPassword = "correct horse battery"
 
 // testPasswordHash is computed once: argon2id is deliberately slow.
 var testPasswordHash = sync.OnceValue(func() string {
-	h, err := hashPassword(testPassword)
+	h, err := hashPassword(context.Background(), testPassword)
 	if err != nil {
 		panic(err)
 	}

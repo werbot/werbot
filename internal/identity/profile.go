@@ -75,14 +75,14 @@ func (s *Service) ChangePassword(ctx context.Context, current, next string) erro
 		if err != nil {
 			return err
 		}
-		ok, err := verifyPassword(hash, current)
+		ok, err := verifyPassword(ctx, hash, current)
 		if err != nil {
 			return err
 		}
 		if !ok {
 			return fmt.Errorf("current password is wrong: %w", apperr.ErrInvalidArgument)
 		}
-		if hash, err = hashPassword(next); err != nil {
+		if hash, err = hashPassword(ctx, next); err != nil {
 			return err
 		}
 		if err := st.UpdateUserPassword(ctx, dbq.UpdateUserPasswordParams{ID: p.UserID, PasswordHash: hash}); err != nil {

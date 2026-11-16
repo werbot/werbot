@@ -1,7 +1,10 @@
 package identity
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -125,6 +128,51 @@ func TestMiddlewareExtendsStaleSession(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, c.Value, again.Value)
 	assert.Equal(t, 604800, again.MaxAge)
+}
+
+func TestMiddlewareStoreFailureIsUnavailable(t *testing.T) {
+	svc, pool, _ := newTestService(t)
+	seedUser(t, pool, seedOrg(t, pool, "Acme"), "alice", principal.RoleOwner)
+	var logs bytes.Buffer
+	svc.cfg.Logger = slog.New(slog.NewTextHandler(&logs, nil))
+	mux := http.NewServeMux()
+	mux.Handle(werbotv1connect.NewAuthServiceHandler(NewHandler(svc)))
+	mux.HandleFunc("/", func(_ http.ResponseWriter, r *http.Request) {
+		_, ok := principal.From(r.Context())
+		assert.False(t, ok, "SPA request goes on without a subject")
+	})
+	srv := httptest.NewServer(Middleware(svc)(mux))
+	t.Cleanup(srv.Close)
+	client := werbotv1connect.NewAuthServiceClient(srv.Client(), srv.URL)
+	c := login(t, client)
+	pool.Close() // the session lookup now fails with a store error, not "no session"
+
+	_, err := client.GetSession(context.Background(), withCookie(&werbotv1.GetSessionRequest{}, c.Name, c.Value))
+	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/werbot.v1.AuthService/GetSession", strings.NewReader("{}"))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(c)
+	res, err := srv.Client().Do(req)
+	require.NoError(t, err)
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.NoError(t, res.Body.Close())
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	assert.JSONEq(t, `{"code":"unavailable","message":"unavailable"}`, string(body))
+
+	req, err = http.NewRequest(http.MethodGet, srv.URL+"/invite/one-time-token", nil)
+	require.NoError(t, err)
+	req.AddCookie(c)
+	res, err = srv.Client().Do(req)
+	require.NoError(t, err)
+	require.NoError(t, res.Body.Close())
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	assert.Contains(t, logs.String(), "session lookup failed")
+	assert.NotContains(t, logs.String(), c.Value, "the cookie never reaches the log")
+	assert.NotContains(t, logs.String(), "one-time-token", "SPA paths carry tokens: the path is not logged")
 }
 
 // publicMethods are the only RPCs served without a session.

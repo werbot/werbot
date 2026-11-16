@@ -1,12 +1,14 @@
 package identity
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"regexp"
+	"runtime"
 	"strings"
 	"unicode/utf8"
 
@@ -30,13 +32,35 @@ var errMalformedHash = errors.New("identity: malformed password hash")
 // costs the same argon2 work as a wrong password.
 var dummyHash = encodeHash(make([]byte, argonSaltLen), make([]byte, argonKeyLen))
 
+// argonSlots bounds concurrent argon2 runs: each allocates its memory
+// parameter (64 MiB), so public Login cannot exhaust the process memory.
+// ponytail: per-process cap of GOMAXPROCS runs (~GOMAXPROCS × 64 MiB); callers
+// queue on it. Rate limiting of Login and RequestPasswordReset is a later stage.
+var argonSlots = make(chan struct{}, runtime.GOMAXPROCS(0))
+
+// argonKey is argon2.IDKey run in a free slot; it gives up with ctx.Err()
+// when ctx ends first.
+func argonKey(ctx context.Context, pw, salt []byte, time, memory uint32, threads uint8, keyLen uint32) ([]byte, error) {
+	select {
+	case argonSlots <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	defer func() { <-argonSlots }()
+	return argon2.IDKey(pw, salt, time, memory, threads, keyLen), nil
+}
+
 // hashPassword returns pw as an argon2id PHC string.
-func hashPassword(pw string) (string, error) {
+func hashPassword(ctx context.Context, pw string) (string, error) {
 	salt := make([]byte, argonSaltLen)
 	if _, err := rand.Read(salt); err != nil {
 		return "", err
 	}
-	return encodeHash(salt, argon2.IDKey([]byte(pw), salt, argonTime, argonMemory, argonThreads, argonKeyLen)), nil
+	key, err := argonKey(ctx, []byte(pw), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
+	if err != nil {
+		return "", err
+	}
+	return encodeHash(salt, key), nil
 }
 
 func encodeHash(salt, key []byte) string {
@@ -46,7 +70,7 @@ func encodeHash(salt, key []byte) string {
 
 // verifyPassword reports whether pw matches the PHC string encoded, using the
 // parameters stored in it.
-func verifyPassword(encoded, pw string) (bool, error) {
+func verifyPassword(ctx context.Context, encoded, pw string) (bool, error) {
 	parts := strings.Split(encoded, "$")
 	if len(parts) != 6 || parts[1] != "argon2id" || parts[2] != fmt.Sprintf("v=%d", argon2.Version) {
 		return false, errMalformedHash
@@ -64,7 +88,10 @@ func verifyPassword(encoded, pw string) (bool, error) {
 	if err != nil || len(key) == 0 {
 		return false, errMalformedHash
 	}
-	got := argon2.IDKey([]byte(pw), salt, time, memory, threads, uint32(len(key))) //nolint:gosec // key length comes from our own 32-byte hashes
+	got, err := argonKey(ctx, []byte(pw), salt, time, memory, threads, uint32(len(key))) //nolint:gosec // key length comes from our own 32-byte hashes
+	if err != nil {
+		return false, err
+	}
 	return subtle.ConstantTimeCompare(got, key) == 1, nil
 }
 

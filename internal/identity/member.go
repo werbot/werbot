@@ -251,7 +251,7 @@ func (s *Service) AcceptInvite(ctx context.Context, in AcceptInput, userAgent st
 func (s *Service) inviteeUser(ctx context.Context, st Store, email string, in AcceptInput) (uuid.UUID, error) {
 	u, err := st.GetLoginUser(ctx, email)
 	if err == nil {
-		ok, err := verifyPassword(u.PasswordHash, in.Password)
+		ok, err := verifyPassword(ctx, u.PasswordHash, in.Password)
 		if err != nil {
 			return uuid.Nil, err
 		}
@@ -272,7 +272,7 @@ func (s *Service) inviteeUser(ctx context.Context, st Store, email string, in Ac
 	if err := validatePassword(in.Password); err != nil {
 		return uuid.Nil, err
 	}
-	hash, err := hashPassword(in.Password)
+	hash, err := hashPassword(ctx, in.Password)
 	if err != nil {
 		return uuid.Nil, err
 	}

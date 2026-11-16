@@ -5,6 +5,7 @@ package identity
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,8 +16,9 @@ import (
 
 // Config holds identity settings from the server configuration.
 type Config struct {
-	WebURL        string // base of links in emails (config.WebURL)
-	SecureCookies bool   // false only for WERBOT_ENV=development
+	WebURL        string       // base of links in emails (config.WebURL)
+	SecureCookies bool         // false only for WERBOT_ENV=development
+	Logger        *slog.Logger // nil: slog.Default()
 }
 
 // EmailQueue enqueues an email in the caller's transaction.

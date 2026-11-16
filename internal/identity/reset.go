@@ -46,7 +46,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	if err := validatePassword(newPassword); err != nil {
 		return err
 	}
-	hash, err := hashPassword(newPassword) // outside the transaction: argon2 holds no connection
+	hash, err := hashPassword(ctx, newPassword) // outside the transaction: argon2 holds no connection
 	if err != nil {
 		return err
 	}

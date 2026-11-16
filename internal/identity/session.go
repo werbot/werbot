@@ -1,12 +1,15 @@
 package identity
 
 import (
+	"cmp"
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/netip"
 	"strings"
 
+	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
@@ -104,18 +107,33 @@ func (s *Service) CurrentSession(ctx context.Context) (SessionInfo, error) {
 
 // Middleware puts the principal of a valid session cookie into the request
 // context. A missing or invalid session is not an error: the request goes on
-// without a subject and handlers decide with principal.Require.
+// without a subject and handlers decide with principal.Require. A failed
+// lookup (database down, pool timeout) is logged and answers Connect calls
+// with Unavailable, so clients retry instead of going to the login page;
+// other paths (the SPA) are served without a subject.
 func Middleware(s *Service) func(http.Handler) http.Handler {
 	secure := s.cfg.SecureCookies
 	name := sessionCookieName(secure)
+	logger := cmp.Or(s.cfg.Logger, slog.Default())
+	errw := connect.NewErrorWriter()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if c, err := r.Cookie(name); err == nil {
-				if p, extended, err := s.authenticate(r.Context(), c.Value); err == nil {
+				p, extended, err := s.authenticate(r.Context(), c.Value)
+				switch {
+				case err == nil:
 					if extended {
 						http.SetCookie(w, newSessionCookie(c.Value, sessionMaxAge, secure))
 					}
 					r = r.WithContext(principal.With(r.Context(), p))
+				case r.Context().Err() != nil: // client went away: not a store failure
+					return
+				case !errors.Is(err, apperr.ErrUnauthenticated):
+					logger.Warn("session lookup failed", "err", err) // no path: SPA paths carry one-time tokens
+					if strings.HasPrefix(r.URL.Path, "/werbot.v1.") {
+						_ = errw.Write(w, r, apperr.ToConnect(apperr.ErrUnavailable))
+						return
+					}
 				}
 			}
 			next.ServeHTTP(w, r)

@@ -19,9 +19,13 @@ make dev-db                      # Postgres 18 on localhost:5433 (postgres/passw
 (cd web && bun install)          # web/node_modules is required by `make proto`
 make proto                       # buf lint + generate (Go and TypeScript)
 make build                       # builds the UI and bin/werbot
+export WERBOT_SECRET_KEY="$(openssl rand -base64 32)"  # generate once and keep: it decrypts queued email jobs
+WERBOT_ENV=development \
 WERBOT_DATABASE_URL='postgres://postgres:password@localhost:5433/postgres?sslmode=disable' \
-WERBOT_PUBLIC_URL=http://localhost:8080 WERBOT_SECRET_KEY="$(openssl rand -base64 32)" ./bin/werbot server
+WERBOT_PUBLIC_URL=http://localhost:8080 ./bin/werbot server
 ```
+
+`WERBOT_ENV=development` is for local plain-http runs: the session cookie is `werbot_session` without `Secure`, and without SMTP the log shows the full email text with reset and invite links. Production mode uses `__Host-werbot_session` with `Secure`, which browsers drop over plain http on any host but `localhost` (Safari drops it on `localhost` too).
 
 Commands: `./bin/werbot <server|web|migrate|version>`.
 
@@ -67,11 +71,12 @@ Commands: `./bin/werbot <server|web|migrate|version>`.
 ## Deployment modes
 
 - All-in-one (default): `werbot server` serves the API and the UI on one address.
-- Separate UI: run `werbot server` with `WERBOT_WEB_EMBEDDED=false` and `werbot web` with `WERBOT_WEB_API_URL` pointing to the server.
+- Separate UI: run `werbot server` with `WERBOT_WEB_EMBEDDED=false` and `werbot web` with `WERBOT_WEB_API_URL` pointing to the server. Set `WERBOT_WEB_URL` on the server to the UI address (links in emails) and `WERBOT_TRUSTED_PROXIES` to the `werbot web` address (client IPs in sessions and audit).
 
 Docker:
 
 ```sh
+export WERBOT_SECRET_KEY="$(openssl rand -base64 32)"  # required; keep the same key between runs
 docker compose -f deploy/docker-compose.yaml up --build
 ```
 

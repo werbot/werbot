@@ -1,9 +1,11 @@
 package identity
 
 import (
+	"context"
 	"encoding/base64"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,7 +14,7 @@ import (
 )
 
 func TestHashPasswordParams(t *testing.T) {
-	h, err := hashPassword("correct horse battery")
+	h, err := hashPassword(context.Background(), "correct horse battery")
 	require.NoError(t, err)
 	assert.True(t, strings.HasPrefix(h, "$argon2id$v=19$m=65536,t=3,p=2$"))
 	parts := strings.Split(h, "$")
@@ -24,21 +26,44 @@ func TestHashPasswordParams(t *testing.T) {
 	assert.Len(t, salt, 16)
 	assert.Len(t, key, 32)
 
-	ok, err := verifyPassword(h, "correct horse battery")
+	ok, err := verifyPassword(context.Background(), h, "correct horse battery")
 	require.NoError(t, err)
 	assert.True(t, ok)
-	ok, err = verifyPassword(h, "wrong horse battery!")
+	ok, err = verifyPassword(context.Background(), h, "wrong horse battery!")
 	require.NoError(t, err)
 	assert.False(t, ok)
 
-	h2, err := hashPassword("correct horse battery")
+	h2, err := hashPassword(context.Background(), "correct horse battery")
 	require.NoError(t, err)
 	assert.NotEqual(t, h, h2, "salt must be random")
 }
 
+func TestArgonConcurrencyIsCapped(t *testing.T) {
+	hash := testPasswordHash()  // before the slots are taken: it hashes too
+	for range cap(argonSlots) { // take every slot, as GOMAXPROCS running hashes would
+		argonSlots <- struct{}{}
+	}
+	t.Cleanup(func() {
+		for len(argonSlots) > 0 {
+			<-argonSlots
+		}
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	_, err := hashPassword(ctx, testPassword)
+	require.ErrorIs(t, err, context.DeadlineExceeded, "no free slot: the call waits, then gives up with ctx")
+	_, err = verifyPassword(ctx, hash, testPassword)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+
+	<-argonSlots // one hash finishes
+	ok, err := verifyPassword(context.Background(), hash, testPassword)
+	require.NoError(t, err)
+	assert.True(t, ok)
+}
+
 func TestVerifyPasswordRejectsMalformed(t *testing.T) {
 	for _, enc := range []string{"", "plain", "$argon2i$v=19$m=65536,t=3,p=2$c2FsdA$a2V5", "$argon2id$v=19$m=x,t=3,p=2$c2FsdA$a2V5"} {
-		_, err := verifyPassword(enc, "pw")
+		_, err := verifyPassword(context.Background(), enc, "pw")
 		assert.Error(t, err, enc)
 	}
 }

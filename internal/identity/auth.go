@@ -30,7 +30,7 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent string) 
 	if found {
 		hash = u.PasswordHash
 	}
-	ok, err := verifyPassword(hash, password)
+	ok, err := verifyPassword(ctx, hash, password)
 	if err != nil {
 		return "", err
 	}

@@ -106,9 +106,14 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	if err != nil {
 		return err
 	}
-	ids := identity.New(pool, notify.NewQueue(rc, box), identity.Config{WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development"})
+	ids := identity.New(pool, notify.NewQueue(rc, box), identity.Config{
+		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger,
+	})
 	idh := identity.NewHandler(ids)
-	opts := connect.WithInterceptors(validate.NewInterceptor(), logInternalErrors(logger))
+	opts := connect.WithHandlerOptions(
+		connect.WithInterceptors(validate.NewInterceptor(), logInternalErrors(logger)),
+		connect.WithReadMaxBytes(1<<20), // public RPCs: no body is read past 1 MiB
+	)
 
 	var draining atomic.Bool
 	mux := http.NewServeMux()
