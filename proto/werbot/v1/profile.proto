@@ -1,0 +1,40 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "werbot/v1/user.proto";
+
+service ProfileService {
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc RequestAccountDeletion(RequestAccountDeletionRequest) returns (RequestAccountDeletionResponse);
+  rpc ConfirmAccountDeletion(ConfirmAccountDeletionRequest) returns (ConfirmAccountDeletionResponse);
+}
+
+message GetProfileRequest {}
+message GetProfileResponse {
+  User user = 1;
+}
+
+message UpdateProfileRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  string email = 2 [(buf.validate.field).string = {email: true, max_len: 254}];
+}
+message UpdateProfileResponse {
+  User user = 1;
+}
+
+message ChangePasswordRequest {
+  string current_password = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  string new_password = 2 [(buf.validate.field).string = {min_len: 12, max_len: 256}];
+}
+message ChangePasswordResponse {}
+
+message RequestAccountDeletionRequest {}
+message RequestAccountDeletionResponse {}
+
+message ConfirmAccountDeletionRequest {
+  string token = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+}
+message ConfirmAccountDeletionResponse {}

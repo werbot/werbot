@@ -1,0 +1,57 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "werbot/v1/user.proto";
+
+message Member {
+  User user = 1;
+  Role role = 2;
+  google.protobuf.Timestamp joined_at = 3;
+}
+
+message Invite {
+  string email = 1;
+  Role role = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+service MemberService {
+  rpc ListMembers(ListMembersRequest) returns (ListMembersResponse);
+  rpc InviteMember(InviteMemberRequest) returns (InviteMemberResponse);
+  rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse);
+  rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse);
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+}
+
+message ListMembersRequest {}
+message ListMembersResponse {
+  repeated Member members = 1;
+  repeated Invite invites = 2;
+}
+
+message InviteMemberRequest {
+  string email = 1 [(buf.validate.field).string = {email: true, max_len: 254}];
+  Role role = 2 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+}
+message InviteMemberResponse {}
+
+message AcceptInviteRequest {
+  string token = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  string login = 2 [(buf.validate.field).string.pattern = "^[a-z0-9][a-z0-9_-]{1,31}$", (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string name = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string password = 4 [(buf.validate.field).string = {min_len: 1, max_len: 256}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+}
+message AcceptInviteResponse {}
+
+message UpdateMemberRoleRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  Role role = 2 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+}
+message UpdateMemberRoleResponse {}
+
+message RemoveMemberRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message RemoveMemberResponse {}

@@ -1,0 +1,58 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+message Team {
+  string id = 1;
+  string name = 2;
+  repeated string member_user_ids = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+service TeamService {
+  rpc ListTeams(ListTeamsRequest) returns (ListTeamsResponse);
+  rpc CreateTeam(CreateTeamRequest) returns (CreateTeamResponse);
+  rpc RenameTeam(RenameTeamRequest) returns (RenameTeamResponse);
+  rpc DeleteTeam(DeleteTeamRequest) returns (DeleteTeamResponse);
+  rpc AddTeamMember(AddTeamMemberRequest) returns (AddTeamMemberResponse);
+  rpc RemoveTeamMember(RemoveTeamMemberRequest) returns (RemoveTeamMemberResponse);
+}
+
+message ListTeamsRequest {}
+message ListTeamsResponse {
+  repeated Team teams = 1;
+}
+
+message CreateTeamRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+}
+message CreateTeamResponse {
+  Team team = 1;
+}
+
+message RenameTeamRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+}
+message RenameTeamResponse {
+  Team team = 1;
+}
+
+message DeleteTeamRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteTeamResponse {}
+
+message AddTeamMemberRequest {
+  string team_id = 1 [(buf.validate.field).string.uuid = true];
+  string user_id = 2 [(buf.validate.field).string.uuid = true];
+}
+message AddTeamMemberResponse {}
+
+message RemoveTeamMemberRequest {
+  string team_id = 1 [(buf.validate.field).string.uuid = true];
+  string user_id = 2 [(buf.validate.field).string.uuid = true];
+}
+message RemoveTeamMemberResponse {}

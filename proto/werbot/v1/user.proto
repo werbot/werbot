@@ -1,0 +1,24 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "google/protobuf/timestamp.proto";
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_OWNER = 1;
+  ROLE_ADMIN = 2;
+  ROLE_MEMBER = 3;
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+  string login = 3;
+  string name = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message Organization {
+  string id = 1;
+  string name = 2;
+}

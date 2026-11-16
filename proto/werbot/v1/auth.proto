@@ -1,0 +1,56 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "werbot/v1/user.proto";
+
+service AuthService {
+  rpc GetSetupState(GetSetupStateRequest) returns (GetSetupStateResponse);
+  rpc Setup(SetupRequest) returns (SetupResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+}
+
+message GetSetupStateRequest {}
+message GetSetupStateResponse {
+  bool needs_setup = 1;
+}
+
+message SetupRequest {
+  string email = 1 [(buf.validate.field).string = {email: true, max_len: 254}];
+  string login = 2 [(buf.validate.field).string.pattern = "^[a-z0-9][a-z0-9_-]{1,31}$"];
+  string name = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  string password = 4 [(buf.validate.field).string = {min_len: 12, max_len: 256}];
+  string organization_name = 5 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+}
+message SetupResponse {}
+
+message LoginRequest {
+  string email = 1 [(buf.validate.field).string = {email: true, max_len: 254}];
+  string password = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+}
+message LoginResponse {}
+
+message LogoutRequest {}
+message LogoutResponse {}
+
+message GetSessionRequest {}
+message GetSessionResponse {
+  User user = 1;
+  Organization organization = 2;
+  Role role = 3;
+}
+
+message RequestPasswordResetRequest {
+  string email = 1 [(buf.validate.field).string = {email: true, max_len: 254}];
+}
+message RequestPasswordResetResponse {}
+
+message ResetPasswordRequest {
+  string token = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  string new_password = 2 [(buf.validate.field).string = {min_len: 12, max_len: 256}];
+}
+message ResetPasswordResponse {}

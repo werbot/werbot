@@ -1,0 +1,46 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+message SSHKey {
+  string id = 1;
+  string name = 2;
+  string public_key = 3;
+  string fingerprint_sha256 = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+service SSHKeyService {
+  rpc ListSSHKeys(ListSSHKeysRequest) returns (ListSSHKeysResponse);
+  rpc AddSSHKey(AddSSHKeyRequest) returns (AddSSHKeyResponse);
+  rpc UpdateSSHKey(UpdateSSHKeyRequest) returns (UpdateSSHKeyResponse);
+  rpc DeleteSSHKey(DeleteSSHKeyRequest) returns (DeleteSSHKeyResponse);
+}
+
+message ListSSHKeysRequest {}
+message ListSSHKeysResponse {
+  repeated SSHKey keys = 1;
+}
+
+message AddSSHKeyRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string public_key = 2 [(buf.validate.field).string = {min_len: 1, max_len: 16384}];
+}
+message AddSSHKeyResponse {
+  SSHKey key = 1;
+}
+
+message UpdateSSHKeyRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+}
+message UpdateSSHKeyResponse {
+  SSHKey key = 1;
+}
+
+message DeleteSSHKeyRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteSSHKeyResponse {}
