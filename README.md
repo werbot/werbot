@@ -25,8 +25,8 @@ WERBOT_PUBLIC_URL=http://localhost:8080 WERBOT_SECRET_KEY="$(openssl rand -base6
 
 Commands: `./bin/werbot <server|web|migrate|version>`.
 
-- `server` runs migrations under an advisory lock, then serves the API (and the UI when embedded).
-- `migrate` runs migrations and exits.
+- `server` runs migrations (schema and River job queue) under an advisory lock, then serves the API (and the UI when embedded) and runs the River job client.
+- `migrate` runs migrations (schema and River job queue) and exits.
 - `web` serves the UI and proxies the API to a separate `server`.
 - `version` prints the build version.
 

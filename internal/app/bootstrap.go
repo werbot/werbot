@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/werbot/werbot/internal/platform/db"
+	"github.com/werbot/werbot/internal/platform/jobs"
 	"github.com/werbot/werbot/migrations"
 )
 
@@ -35,6 +36,10 @@ func bootstrap(ctx context.Context, databaseURL string) error {
 		}
 		if err != nil {
 			return fmt.Errorf("bootstrap: %w", err)
+		}
+		// (2) River schema. Shares bpool (MaxConns 2: lock + this connection).
+		if err := jobs.Migrate(ctx, bpool); err != nil {
+			return fmt.Errorf("bootstrap: river migrate: %w", err)
 		}
 		return nil
 	})

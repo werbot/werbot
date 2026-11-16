@@ -13,12 +13,14 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/db"
 	"github.com/werbot/werbot/internal/platform/httpserver"
+	"github.com/werbot/werbot/internal/platform/jobs"
 	"github.com/werbot/werbot/internal/platform/logging"
 	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/version"
@@ -81,8 +83,21 @@ func (h host) DB() *pgxpool.Pool                      { return h.pool }
 func (h host) Handle(pattern string, hd http.Handler) { h.mux.Handle(pattern, hd) }
 func (host) Entitled(string) bool                     { return false }
 
+// placeholderArgs exists because River refuses to start without a worker.
+// Delete it when the first real worker (stage 3 e-mail) is registered.
+type placeholderArgs struct{}
+
+func (placeholderArgs) Kind() string { return "placeholder" }
+
+type placeholderWorker struct {
+	river.WorkerDefaults[placeholderArgs]
+}
+
+func (placeholderWorker) Work(context.Context, *river.Job[placeholderArgs]) error { return nil }
+
 // serve runs the main HTTP server (and the metrics server when cfg.MetricsAddr
-// is set) until ctx ends, then drains and shuts both down within 10s.
+// is set) and the River client until ctx ends, then drains and shuts the HTTP
+// servers down, then stops River, each within 10s.
 func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS) error {
 	var draining atomic.Bool
 	mux := http.NewServeMux()
@@ -121,6 +136,18 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	if err != nil {
 		return err
 	}
+	workers := river.NewWorkers()
+	river.AddWorker(workers, placeholderWorker{})
+	rc, err := jobs.NewClient(pool, workers, nil, logger)
+	if err == nil {
+		err = rc.Start(ctx)
+	}
+	if err != nil {
+		for _, ln := range lns {
+			_ = ln.Close()
+		}
+		return err
+	}
 	errc := make(chan error, len(servers))
 	for i, s := range servers {
 		go func() { errc <- s.Serve(lns[i]) }()
@@ -138,6 +165,11 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 		if serr := s.Shutdown(sctx); serr != nil {
 			logger.Error("server shutdown", "addr", s.Addr, "error", serr)
 		}
+	}
+	rctx, rcancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer rcancel()
+	if rerr := rc.Stop(rctx); rerr != nil {
+		logger.Error("river stop", "error", rerr)
 	}
 	return err
 }

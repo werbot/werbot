@@ -15,6 +15,7 @@ import (
 	"github.com/peterldowns/pgtestdb"
 
 	"github.com/werbot/werbot/internal/platform/db"
+	"github.com/werbot/werbot/internal/platform/jobs"
 	"github.com/werbot/werbot/migrations"
 )
 
@@ -41,7 +42,8 @@ func New(t testing.TB) (pool *pgxpool.Pool, url string) {
 
 type migrator struct{}
 
-// Hash covers names and contents of every migration, so any change rebuilds the template.
+// Hash covers names and contents of every migration and the River schema
+// version, so any change rebuilds the template.
 func (migrator) Hash() (string, error) {
 	entries, err := fs.ReadDir(migrations.FS, ".")
 	if err != nil {
@@ -56,9 +58,19 @@ func (migrator) Hash() (string, error) {
 		_, _ = fmt.Fprintf(h, "%s\x00%d\x00", e.Name(), len(data))
 		_, _ = h.Write(data)
 	}
+	_, _ = fmt.Fprintf(h, "river:%d", jobs.SchemaVersion())
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-func (migrator) Migrate(ctx context.Context, sqlDB *sql.DB, _ pgtestdb.Config) error {
-	return db.Migrate(ctx, sqlDB, migrations.FS)
+// Migrate runs without db.WithLock: pgtestdb serializes template creation.
+func (migrator) Migrate(ctx context.Context, sqlDB *sql.DB, cfg pgtestdb.Config) error {
+	if err := db.Migrate(ctx, sqlDB, migrations.FS); err != nil {
+		return err
+	}
+	pool, err := pgxpool.New(ctx, cfg.URL())
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	return jobs.Migrate(ctx, pool)
 }

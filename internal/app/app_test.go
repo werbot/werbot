@@ -24,6 +24,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/db"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
+	"github.com/werbot/werbot/internal/platform/jobs"
 	"github.com/werbot/werbot/sdk"
 )
 
@@ -124,10 +125,37 @@ func TestRunServerUnreachableDB(t *testing.T) {
 }
 
 func TestRunMigrateTwice(t *testing.T) {
-	_, url := dbtest.New(t)
+	pool, url := dbtest.New(t)
 	getenv := env(map[string]string{"WERBOT_DATABASE_URL": url, "WERBOT_PUBLIC_URL": testPublicURL, "WERBOT_SECRET_KEY": testSecretKey})
 	require.NoError(t, Run(context.Background(), []string{"migrate"}, getenv, io.Discard))
 	require.NoError(t, Run(context.Background(), []string{"migrate"}, getenv, io.Discard))
+	var ok bool
+	require.NoError(t, pool.QueryRow(context.Background(), "SELECT to_regclass('river_job') IS NOT NULL").Scan(&ok))
+	assert.True(t, ok)
+}
+
+func TestBootstrapConcurrentRiverMigrate(t *testing.T) {
+	pool, url := dbtest.New(t)
+	ctx := context.Background()
+	_, err := pool.Exec(ctx, "DROP SCHEMA public CASCADE; CREATE SCHEMA public")
+	require.NoError(t, err)
+
+	getenv := env(map[string]string{"WERBOT_DATABASE_URL": url, "WERBOT_PUBLIC_URL": testPublicURL, "WERBOT_SECRET_KEY": testSecretKey})
+	bctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	errs := make([]error, 3)
+	var wg sync.WaitGroup
+	for i := range errs {
+		wg.Go(func() { errs[i] = Run(bctx, []string{"migrate"}, getenv, io.Discard) })
+	}
+	wg.Wait()
+	for _, err := range errs {
+		assert.NoError(t, err)
+	}
+
+	var v int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT max(version) FROM river_migration").Scan(&v))
+	assert.Equal(t, jobs.SchemaVersion(), v)
 }
 
 func TestBootstrapConcurrent(t *testing.T) {
