@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/pem"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -45,7 +46,16 @@ func TestAddSSHKey(t *testing.T) {
 	assert.Equal(t, "alice@laptop", k.Name)
 	assert.Equal(t, ssh.FingerprintSHA256(pub), k.FingerprintSHA256)
 	assert.NotContains(t, k.PublicKey, "alice@laptop")
-	assert.Equal(t, string(ssh.MarshalAuthorizedKey(pub))[:len(k.PublicKey)], k.PublicKey)
+	assert.Equal(t, strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pub))), k.PublicKey)
+
+	long, _ := newEd25519(t, strings.Repeat("c", 200))
+	k3, err := svc.AddSSHKey(actx, "", long)
+	require.NoError(t, err)
+	assert.Equal(t, "key", k3.Name)
+	_, err = svc.UpdateSSHKey(actx, k3.ID, "  \t ")
+	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
+	_, err = svc.AddSSHKey(actx, strings.Repeat("n", 129), line)
+	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
 
 	_, err = svc.AddSSHKey(bctx, "dup", line)
 	assert.ErrorIs(t, err, apperr.ErrAlreadyExists)
@@ -53,7 +63,7 @@ func TestAddSSHKey(t *testing.T) {
 
 	keys, err := svc.ListSSHKeys(actx)
 	require.NoError(t, err)
-	assert.Equal(t, []SSHKey{k}, keys)
+	assert.Contains(t, keys, k)
 
 	k2, err := svc.UpdateSSHKey(actx, k.ID, "work")
 	require.NoError(t, err)
@@ -75,6 +85,10 @@ func TestAddSSHKeyRejectsPrivateKey(t *testing.T) {
 	require.NoError(t, err)
 	rsaPub, err := ssh.NewPublicKey(&rsaKey.PublicKey)
 	require.NoError(t, err)
+	signer, err := ssh.NewSignerFromKey(rsaKey)
+	require.NoError(t, err)
+	cert := &ssh.Certificate{Key: rsaPub, CertType: ssh.UserCert, ValidBefore: ssh.CertTimeInfinity}
+	require.NoError(t, cert.SignCert(rand.Reader, signer))
 	one, _ := newEd25519(t, "")
 	two, _ := newEd25519(t, "")
 
@@ -83,6 +97,7 @@ func TestAddSSHKeyRejectsPrivateKey(t *testing.T) {
 		"garbage":  "garbage",
 		"two keys": one + "\n" + two,
 		"rsa 1024": string(ssh.MarshalAuthorizedKey(rsaPub)),
+		"cert":     string(ssh.MarshalAuthorizedKey(cert)),
 	} {
 		_, err := svc.AddSSHKey(ctx, "k", in)
 		require.ErrorIs(t, err, apperr.ErrInvalidArgument, name)

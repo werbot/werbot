@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -24,6 +25,7 @@ import (
 const (
 	minRSABits = 2048
 	algoDSA    = "ssh-dss" // ssh.KeyAlgoDSA is deprecated
+	maxKeyName = 128       // user_ssh_key.name CHECK
 )
 
 // SSHKey is a public key a user signs in to the gateway with.
@@ -39,6 +41,18 @@ func keyFromRow(r dbq.ListSSHKeysRow) SSHKey {
 	return SSHKey{ID: r.ID, Name: r.Name, PublicKey: r.PublicKey, FingerprintSHA256: r.FingerprintSha256, CreatedAt: r.CreatedAt}
 }
 
+// keyName trims name and checks the 1..maxKeyName rune range of the DB CHECK.
+func keyName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", invalidKey("name is required")
+	}
+	if utf8.RuneCountInString(name) > maxKeyName {
+		return "", invalidKey("name is too long")
+	}
+	return name, nil
+}
+
 func invalidKey(msg string) error { return fmt.Errorf("%s: %w", msg, apperr.ErrInvalidArgument) }
 
 // parseSSHKey parses exactly one authorized_keys public key. Errors never
@@ -50,6 +64,9 @@ func parseSSHKey(text string) (ssh.PublicKey, string, error) {
 	key, comment, _, rest, err := ssh.ParseAuthorizedKey([]byte(text))
 	if err != nil || strings.TrimSpace(string(rest)) != "" {
 		return nil, "", invalidKey("expected exactly one public key in authorized_keys format")
+	}
+	if _, ok := key.(*ssh.Certificate); ok {
+		return nil, "", invalidKey("certificates are not accepted")
 	}
 	if key.Type() == algoDSA {
 		return nil, "", invalidKey("ssh-dss keys are not accepted")
@@ -98,8 +115,15 @@ func (s *Service) AddSSHKey(ctx context.Context, name, publicKey string) (SSHKey
 	if err != nil {
 		return SSHKey{}, err
 	}
-	if name = strings.TrimSpace(name); name == "" {
+	if strings.TrimSpace(name) == "" {
+		// A comment that is empty or too long falls back to "key".
 		name = cmp.Or(strings.TrimSpace(comment), "key")
+		if utf8.RuneCountInString(name) > maxKeyName {
+			name = "key"
+		}
+	}
+	if name, err = keyName(name); err != nil {
+		return SSHKey{}, err
 	}
 	var k SSHKey
 	err = dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
@@ -126,9 +150,12 @@ func (s *Service) UpdateSSHKey(ctx context.Context, id uuid.UUID, name string) (
 	if err != nil {
 		return SSHKey{}, err
 	}
+	if name, err = keyName(name); err != nil {
+		return SSHKey{}, err
+	}
 	var k SSHKey
 	err = dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
-		r, err := newStore(tx).UpdateSSHKey(ctx, dbq.UpdateSSHKeyParams{ID: id, UserID: p.UserID, Name: strings.TrimSpace(name)})
+		r, err := newStore(tx).UpdateSSHKey(ctx, dbq.UpdateSSHKeyParams{ID: id, UserID: p.UserID, Name: name})
 		if err != nil {
 			return err
 		}
