@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -28,6 +30,9 @@ type Config struct {
 	HTTPAddr      string // empty: disabled
 	DrainTimeout  time.Duration
 	MaxSessions   int
+	// InsecureEnroll allows an http:// ServerURL to a non-loopback host (flag only:
+	// enrollment then sends the join token and the pool host key in cleartext).
+	InsecureEnroll bool
 
 	TunnelURL string            // not from env: overrides the tunnel_url of enrollment (embedded gateway)
 	Recording RecordingFactory  // not from env: nil means NopRecording
@@ -101,6 +106,7 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	fs.StringVar(&c.HTTPAddr, "http-addr", env[envHTTPAddr], "readyz/metrics address; empty disables")
 	fs.DurationVar(&c.DrainTimeout, "drain-timeout", c.DrainTimeout, "shutdown drain timeout")
 	fs.IntVar(&c.MaxSessions, "max-sessions", c.MaxSessions, "concurrent session limit")
+	fs.BoolVar(&c.InsecureEnroll, "insecure-enroll", false, "allow an http:// server URL to a non-loopback host (trusted lab networks only)")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) { // parse errors are returned, help is printed
 			fs.SetOutput(os.Stderr)
@@ -113,6 +119,9 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	}
 	if c.JoinToken == "" {
 		c.JoinToken = env[envToken]
+	}
+	if err := checkServerURL(c.ServerURL, c.InsecureEnroll); err != nil {
+		return c, err
 	}
 	if c.Name == "" {
 		return c, fmt.Errorf("%s is empty and the OS hostname is unavailable", envName)
@@ -127,6 +136,32 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 		return c, fmt.Errorf("%s must be >= 0", envIdle)
 	}
 	return c, nil
+}
+
+// checkServerURL allows an https:// server URL, and http:// only to a loopback
+// host or with insecure: enrollment sends the join token and receives the pool
+// host key, and the CA pin protects only the tunnel.
+func checkServerURL(raw string, insecure bool) error {
+	if raw == "" {
+		return nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+		return fmt.Errorf("%s: want http(s)://host[:port]", envServer)
+	}
+	if u.Scheme == "https" || insecure || isLoopback(u.Hostname()) {
+		return nil
+	}
+	return fmt.Errorf("%s: http:// sends the join token and the pool host key in cleartext; use https://, a loopback host or --insecure-enroll on a trusted network", envServer)
+}
+
+// isLoopback reports whether host is localhost, 127.0.0.0/8 or ::1.
+func isLoopback(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip, err := netip.ParseAddr(host)
+	return err == nil && ip.IsLoopback()
 }
 
 func envBool(key, v string) (bool, error) {

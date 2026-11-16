@@ -51,7 +51,8 @@ services:
 
   gateway:
     image: werbot-e2e:local
-    command: ["gateway"]
+    # plain http enrollment is allowed only on this private test network
+    command: ["gateway", "--insecure-enroll"]
     profiles: ["gateway"]
     environment:
       WERBOT_GATEWAY_SERVER_URL: http://server:8080

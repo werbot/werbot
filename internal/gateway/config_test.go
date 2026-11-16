@@ -83,3 +83,19 @@ func TestLoadConfigRejectsBadInput(t *testing.T) {
 	_, err = LoadConfig([]string{"--name", ""}, env(nil))
 	require.ErrorContains(t, err, envName)
 }
+
+func TestLoadConfigServerScheme(t *testing.T) {
+	for _, u := range []string{"", "https://werbot.example", "http://127.0.0.1:8080", "http://127.1.2.3", "http://[::1]:8080", "http://localhost:8080"} {
+		_, err := LoadConfig(nil, env(map[string]string{envServer: u}))
+		require.NoError(t, err, u)
+	}
+	for _, u := range []string{"http://werbot.example", "http://10.0.0.5:8080", "http://localhost.evil.example", "ftp://werbot.example", "werbot.example"} {
+		_, err := LoadConfig(nil, env(map[string]string{envServer: u}))
+		require.ErrorContains(t, err, envServer, u)
+		_, err = LoadConfig([]string{"--server", u}, env(nil))
+		require.ErrorContains(t, err, envServer, u)
+	}
+	c, err := LoadConfig([]string{"--insecure-enroll"}, env(map[string]string{envServer: "http://server:8080"}))
+	require.NoError(t, err, "lab networks opt in")
+	require.True(t, c.InsecureEnroll)
+}

@@ -31,7 +31,7 @@ Commands: `./bin/werbot <server|gateway|web|migrate|version>`.
 
 - `server` runs migrations (schema and River job queue) and creates the internal gateway CA on first start, under an advisory lock. Then it serves the API (and the UI when embedded), the gateway tunnel on `WERBOT_GATEWAY_ADDR` and runs the River job client.
 - `server --with-gateway` also runs a gateway instance in the same process. Each replica joins the system pool `local` of the first organization (by creation time) with a single-use system join token; before `Setup` it checks for an organization every 5s. It reaches its own server over loopback (`http://127.0.0.1:<WERBOT_HTTP_ADDR port>`, tunnel `https://127.0.0.1:<WERBOT_GATEWAY_ADDR port>`), keeps its identity in `WERBOT_DATA_DIR/gateway` (or `WERBOT_GATEWAY_DATA_DIR`) and reads the other `WERBOT_GATEWAY_*` variables below; its metrics go to the server's `/metrics`. Database and enrollment errors before the instance is enrolled are logged and retried (the wait doubles up to 5 minutes, a new single-use token each time); a busy SSH port or a failure after enrollment stops the server. On shutdown the gateway drains its sessions before the server closes the tunnel, so allow `WERBOT_GATEWAY_DRAIN_TIMEOUT` plus about 40s for the stop (compose: `stop_grace_period: 70s`).
-- `gateway` runs a standalone gateway instance (`./bin/werbot gateway --help` lists the flags: `--server`, `--join-token`, `--data-dir`, `--ssh-addr`, `--proxy-protocol`, `--name`, `--idle-timeout`, `--http-addr`, `--drain-timeout`, `--max-sessions`).
+- `gateway` runs a standalone gateway instance (`./bin/werbot gateway --help` lists the flags: `--server`, `--join-token`, `--data-dir`, `--ssh-addr`, `--proxy-protocol`, `--name`, `--idle-timeout`, `--http-addr`, `--drain-timeout`, `--max-sessions`, and the flag-only `--insecure-enroll`).
 - Web UI `/gateways` (owners and admins): create pools, see instances (online within 45s of the last heartbeat) and manage join tokens. "Create join token" shows the `werbot gateway --server <origin> --join-token <token>` command once; the token is not shown again. The resource form shows a pool select when more than one pool exists.
 - `migrate` runs migrations (schema and River job queue) and exits.
 - `web` serves the UI and proxies the API to a separate `server`.
@@ -93,7 +93,7 @@ A failed download keeps the previous data.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `WERBOT_GATEWAY_SERVER_URL` | empty | `http(s)://` URL of the server API; needed for the first enrollment only. |
+| `WERBOT_GATEWAY_SERVER_URL` | empty | `https://` URL of the server API; needed for enrollment only. `http://` is accepted only for a loopback host (`127.0.0.0/8`, `::1`, `localhost`) or with the flag `--insecure-enroll`: enrollment sends the join token and receives the pool's private SSH host key, so use it only on a trusted network. |
 | `WERBOT_GATEWAY_JOIN_TOKEN` | empty | Join token of the pool; needed for the first enrollment only. A saved identity wins over it. |
 | `WERBOT_GATEWAY_DATA_DIR` | `./gateway-data` | Instance identity: `gateway.json`, `gateway.key`, `gateway.crt`, `ca.crt`, `ssh_host_ed25519_key`. |
 | `WERBOT_GATEWAY_SSH_ADDR` | `:2222` | SSH listen address. |
