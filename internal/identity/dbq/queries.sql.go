@@ -185,6 +185,20 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UU
 	return id, err
 }
 
+const deleteMembership = `-- name: DeleteMembership :exec
+DELETE FROM membership WHERE org_id = $1 AND user_id = $2
+`
+
+type DeleteMembershipParams struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeleteMembership(ctx context.Context, arg DeleteMembershipParams) error {
+	_, err := q.db.Exec(ctx, deleteMembership, arg.OrgID, arg.UserID)
+	return err
+}
+
 const deleteOtherUserSessions = `-- name: DeleteOtherUserSessions :exec
 DELETE FROM user_session WHERE user_id = $1 AND id <> $2
 `
@@ -430,6 +444,102 @@ func (q *Queries) HasUsers(ctx context.Context) (bool, error) {
 	return exists, err
 }
 
+const isMemberEmail = `-- name: IsMemberEmail :one
+SELECT EXISTS (
+    SELECT 1 FROM membership m JOIN users u ON u.id = m.user_id
+    WHERE m.org_id = $1 AND lower(u.email) = $2
+)
+`
+
+type IsMemberEmailParams struct {
+	OrgID uuid.UUID
+	Email string
+}
+
+func (q *Queries) IsMemberEmail(ctx context.Context, arg IsMemberEmailParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isMemberEmail, arg.OrgID, arg.Email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const listInvites = `-- name: ListInvites :many
+SELECT email::text, role::text, expires_at FROM one_time_token
+WHERE org_id = $1::uuid AND kind = 'invite' AND used_at IS NULL AND expires_at > now()
+ORDER BY created_at
+`
+
+type ListInvitesRow struct {
+	Email     string
+	Role      string
+	ExpiresAt time.Time
+}
+
+func (q *Queries) ListInvites(ctx context.Context, orgID uuid.UUID) ([]ListInvitesRow, error) {
+	rows, err := q.db.Query(ctx, listInvites, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListInvitesRow
+	for rows.Next() {
+		var i ListInvitesRow
+		if err := rows.Scan(&i.Email, &i.Role, &i.ExpiresAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMembers = `-- name: ListMembers :many
+SELECT u.id, u.email, u.login, u.name, u.created_at, m.role, m.created_at AS joined_at
+FROM membership m JOIN users u ON u.id = m.user_id
+WHERE m.org_id = $1
+ORDER BY m.created_at, u.id
+`
+
+type ListMembersRow struct {
+	ID        uuid.UUID
+	Email     string
+	Login     string
+	Name      string
+	CreatedAt time.Time
+	Role      string
+	JoinedAt  time.Time
+}
+
+func (q *Queries) ListMembers(ctx context.Context, orgID uuid.UUID) ([]ListMembersRow, error) {
+	rows, err := q.db.Query(ctx, listMembers, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMembersRow
+	for rows.Next() {
+		var i ListMembersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.Login,
+			&i.Name,
+			&i.CreatedAt,
+			&i.Role,
+			&i.JoinedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSSHKeys = `-- name: ListSSHKeys :many
 SELECT id, name, public_key, fingerprint_sha256, created_at FROM user_ssh_key WHERE user_id = $1 ORDER BY created_at, id
 `
@@ -466,6 +576,23 @@ func (q *Queries) ListSSHKeys(ctx context.Context, userID uuid.UUID) ([]ListSSHK
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockMemberRole = `-- name: LockMemberRole :one
+SELECT role FROM membership WHERE org_id = $1 AND user_id = $2 FOR UPDATE
+`
+
+type LockMemberRoleParams struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+// Callers lock the org's owners first (LockOrgOwners): one lock order for all role changes.
+func (q *Queries) LockMemberRole(ctx context.Context, arg LockMemberRoleParams) (string, error) {
+	row := q.db.QueryRow(ctx, lockMemberRole, arg.OrgID, arg.UserID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
 }
 
 const lockOrgOwners = `-- name: LockOrgOwners :many
@@ -549,6 +676,21 @@ func (q *Queries) LookupSSHKeyUser(ctx context.Context, arg LookupSSHKeyUserPara
 	var i LookupSSHKeyUserRow
 	err := row.Scan(&i.ID, &i.Login, &i.Role)
 	return i, err
+}
+
+const updateMemberRole = `-- name: UpdateMemberRole :exec
+UPDATE membership SET role = $1 WHERE org_id = $2 AND user_id = $3
+`
+
+type UpdateMemberRoleParams struct {
+	Role   string
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) error {
+	_, err := q.db.Exec(ctx, updateMemberRole, arg.Role, arg.OrgID, arg.UserID)
+	return err
 }
 
 const updateProfile = `-- name: UpdateProfile :exec

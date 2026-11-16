@@ -2,10 +2,8 @@ package identity
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
-	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
@@ -18,14 +16,6 @@ func sshKeyToProto(k SSHKey) *werbotv1.SSHKey {
 		Id: k.ID.String(), Name: k.Name, PublicKey: k.PublicKey,
 		FingerprintSha256: k.FingerprintSHA256, CreatedAt: timestamppb.New(k.CreatedAt),
 	}
-}
-
-func parseKeyID(s string) (uuid.UUID, error) {
-	id, err := uuid.Parse(s)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid id: %w", apperr.ErrInvalidArgument)
-	}
-	return id, nil
 }
 
 // ListSSHKeys returns the caller's SSH keys.
@@ -61,7 +51,7 @@ func (h *Handler) UpdateSSHKey(ctx context.Context, req *connect.Request[werbotv
 	if _, err := principal.Require(ctx); err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	id, err := parseKeyID(req.Msg.GetId())
+	id, err := parseID(req.Msg.GetId())
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
@@ -77,7 +67,7 @@ func (h *Handler) DeleteSSHKey(ctx context.Context, req *connect.Request[werbotv
 	if _, err := principal.Require(ctx); err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	id, err := parseKeyID(req.Msg.GetId())
+	id, err := parseID(req.Msg.GetId())
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}

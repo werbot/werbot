@@ -39,4 +39,10 @@ type Store interface {
 	DeleteSSHKey(ctx context.Context, arg dbq.DeleteSSHKeyParams) (string, error)
 	LookupSSHKeyUser(ctx context.Context, arg dbq.LookupSSHKeyUserParams) (dbq.LookupSSHKeyUserRow, error)
 	LookupLoginUser(ctx context.Context, arg dbq.LookupLoginUserParams) (dbq.LookupLoginUserRow, error)
+	ListMembers(ctx context.Context, orgID uuid.UUID) ([]dbq.ListMembersRow, error)
+	ListInvites(ctx context.Context, orgID uuid.UUID) ([]dbq.ListInvitesRow, error)
+	IsMemberEmail(ctx context.Context, arg dbq.IsMemberEmailParams) (bool, error)
+	LockMemberRole(ctx context.Context, arg dbq.LockMemberRoleParams) (string, error)
+	UpdateMemberRole(ctx context.Context, arg dbq.UpdateMemberRoleParams) error
+	DeleteMembership(ctx context.Context, arg dbq.DeleteMembershipParams) error
 }

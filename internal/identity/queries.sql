@@ -117,3 +117,30 @@ WHERE k.fingerprint_sha256 = @fingerprint_sha256;
 SELECT u.id, u.login, m.role FROM users u
 JOIN membership m ON m.user_id = u.id AND m.org_id = @org_id
 WHERE u.login = @login;
+
+-- name: ListMembers :many
+SELECT u.id, u.email, u.login, u.name, u.created_at, m.role, m.created_at AS joined_at
+FROM membership m JOIN users u ON u.id = m.user_id
+WHERE m.org_id = @org_id
+ORDER BY m.created_at, u.id;
+
+-- name: ListInvites :many
+SELECT email::text, role::text, expires_at FROM one_time_token
+WHERE org_id = @org_id::uuid AND kind = 'invite' AND used_at IS NULL AND expires_at > now()
+ORDER BY created_at;
+
+-- name: IsMemberEmail :one
+SELECT EXISTS (
+    SELECT 1 FROM membership m JOIN users u ON u.id = m.user_id
+    WHERE m.org_id = @org_id AND lower(u.email) = @email
+);
+
+-- name: LockMemberRole :one
+-- Callers lock the org's owners first (LockOrgOwners): one lock order for all role changes.
+SELECT role FROM membership WHERE org_id = @org_id AND user_id = @user_id FOR UPDATE;
+
+-- name: UpdateMemberRole :exec
+UPDATE membership SET role = @role WHERE org_id = @org_id AND user_id = @user_id;
+
+-- name: DeleteMembership :exec
+DELETE FROM membership WHERE org_id = @org_id AND user_id = @user_id;
