@@ -18,12 +18,15 @@ const (
 	QueueDefault = river.QueueDefault
 	// QueueEmail is separate so a hung SMTP server cannot occupy other queues' workers.
 	QueueEmail = "email"
+	// QueueFeeds runs blocklist.refresh and geoip.refresh; a hung feed cannot occupy default or email.
+	QueueFeeds = "feeds"
 )
 
 // queues is the only place for MaxWorkers.
 var queues = map[string]river.QueueConfig{
 	QueueDefault: {MaxWorkers: 10},
 	QueueEmail:   {MaxWorkers: 2},
+	QueueFeeds:   {MaxWorkers: 1},
 }
 
 // Migrate applies the River schema. Call it only from bootstrap under
