@@ -25,6 +25,14 @@
 		{ value: 'host_key', label: m.resources_tab_host_key() }
 	]);
 
+	// Connect hint by connector kinds: terminal or exec sessions vs stream-only forwarding.
+	const hint = $derived.by(() => {
+		const kinds = types.find((t) => t.name === resource?.type)?.kinds ?? [];
+		const args = { login: page.data.session?.user?.login ?? '', resource: resource?.name ?? '' };
+		if (kinds.includes('terminal') || kinds.includes('exec')) return m.resources_connect_hint_terminal(args);
+		return kinds.includes('stream') ? m.resources_connect_hint_stream(args) : '';
+	});
+
 	onMount(async () => {
 		try {
 			[{ resource }, { types }] = await Promise.all([
@@ -41,6 +49,7 @@
 {#if error}<Banner tone="alert">{error}</Banner>{/if}
 {#if resource}
 	<h1>{resource.name}</h1>
+	{#if hint}<p><code>{hint}</code></p>{/if}
 	<Tabs options={tabs} bind:value={tab} />
 	{#if tab === 'settings'}
 		<SettingsTab bind:resource {types} />

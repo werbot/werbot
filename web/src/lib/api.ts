@@ -9,6 +9,7 @@ import { TeamService } from '#lib/gen/werbot/v1/team_pb.js';
 import { ResourceService } from '#lib/gen/werbot/v1/resource_pb.js';
 import { AccessService } from '#lib/gen/werbot/v1/access_pb.js';
 import { PolicyService } from '#lib/gen/werbot/v1/policy_pb.js';
+import { GatewayService } from '#lib/gen/werbot/v1/gateway_pb.js';
 
 // Same origin in all-in-one mode and behind `werbot web`.
 // Binary format keeps google.protobuf.Any connector configs opaque, so an
@@ -24,3 +25,4 @@ export const teams: Client<typeof TeamService> = createClient(TeamService, trans
 export const resources: Client<typeof ResourceService> = createClient(ResourceService, transport);
 export const access: Client<typeof AccessService> = createClient(AccessService, transport);
 export const policy: Client<typeof PolicyService> = createClient(PolicyService, transport);
+export const gateways: Client<typeof GatewayService> = createClient(GatewayService, transport);

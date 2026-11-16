@@ -1,11 +1,14 @@
 <script lang="ts" module>
 	import type { ConfigValue } from './forms/index.js';
 
-	export type ResourceValues = ConfigValue & { name: string; type: string; labels: Record<string, string> };
+	export type ResourceValues = ConfigValue & { name: string; type: string; gatewayId: string; labels: Record<string, string> };
 </script>
 
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { Button, Select, TextField } from '#lib/ui/index.js';
+	import { gateways } from '#lib/api.js';
+	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import { configFormFor } from './forms/index.js';
@@ -26,16 +29,28 @@
 	let typeName = $state(initial?.type ?? types[0]?.name ?? '');
 	// svelte-ignore state_referenced_locally
 	let rows = $state(rowsFromLabels(initial?.labels ?? {}));
+	// svelte-ignore state_referenced_locally
+	let gatewayId = $state(initial?.gatewayId ?? '');
+	let pools = $state<Gateway[]>([]);
 	let value = $state.raw<ConfigValue>({});
 
 	let type = $derived(types.find((t) => t.name === typeName));
 	let valid = $derived(!!value.config || value.configJson !== undefined);
 	let Form = $derived(configFormFor(typeName));
 
+	onMount(async () => {
+		try {
+			({ gateways: pools } = await gateways.listGateways({}));
+			if (!gatewayId) gatewayId = pools[0]?.id ?? '';
+		} catch {
+			// no pool list: the server falls back to its default pool
+		}
+	});
+
 	function submit(e: SubmitEvent) {
 		e.preventDefault();
 		if (!valid) return;
-		onsubmit({ ...value, name, type: typeName, labels: labelsFromRows(rows) });
+		onsubmit({ ...value, name, type: typeName, gatewayId, labels: labelsFromRows(rows) });
 	}
 </script>
 
@@ -49,6 +64,9 @@
 			options={types.map((t) => ({ value: t.name, label: t.name }))}
 			bind:value={typeName}
 		/>
+	{/if}
+	{#if pools.length > 1}
+		<Select label={m.resources_gateway_label()} options={pools.map((p) => ({ value: p.id, label: p.name }))} bind:value={gatewayId} />
 	{/if}
 	{#if type}
 		{#key typeName}

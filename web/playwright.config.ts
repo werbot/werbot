@@ -19,6 +19,7 @@ export default defineConfig({
 		timeout: 60_000,
 		env: {
 			WERBOT_ENV: 'development',
+			WERBOT_GATEWAY_ADDR: '127.0.0.1:18443',
 			WERBOT_HTTP_ADDR: '127.0.0.1:18080',
 			WERBOT_PUBLIC_URL: 'http://127.0.0.1:18080',
 			WERBOT_DATABASE_URL: dbURL,

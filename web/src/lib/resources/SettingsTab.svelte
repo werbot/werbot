@@ -25,12 +25,12 @@
 		}
 	}
 
-	async function save({ name, labels, config, configJson }: ResourceValues) {
+	async function save({ name, gatewayId, labels, config, configJson }: ResourceValues) {
 		await run(async () => {
 			const res = await resources.updateResource({
 				id: resource.id,
 				name,
-				gatewayId: resource.gatewayId,
+				gatewayId,
 				labels,
 				config,
 				configJson

@@ -1,0 +1,75 @@
+<script lang="ts">
+	import { durationFromMs } from '@bufbuild/protobuf/wkt';
+	import { Banner, Button, Modal, TextField } from '#lib/ui/index.js';
+	import { gateways } from '#lib/api.js';
+	import { errorMessage } from '#lib/errors.js';
+	import { m } from '#lib/paraglide/messages.js';
+	import { fmt } from './format.js';
+
+	interface Props {
+		gatewayId: string;
+		open: boolean;
+		oncreated: () => void;
+	}
+
+	let { gatewayId, open = $bindable(), oncreated }: Props = $props();
+
+	let hours = $state('24');
+	let maxUses = $state('10');
+	let error = $state('');
+	let copied = $state(false);
+	let created = $state<{ token: string; expires: string; maxUses: number }>();
+
+	let command = $derived(created ? `werbot gateway --server ${location.origin} --join-token ${created.token}` : '');
+
+	async function create(e: SubmitEvent) {
+		e.preventDefault();
+		error = '';
+		try {
+			const res = await gateways.createJoinToken({
+				gatewayId,
+				expiresIn: durationFromMs(Number(hours) * 3_600_000),
+				maxUses: Number(maxUses)
+			});
+			created = { token: res.token, expires: fmt(res.expiresAt), maxUses: Number(maxUses) };
+			oncreated();
+		} catch (err) {
+			error = errorMessage(err);
+		}
+	}
+
+	async function copy() {
+		await navigator.clipboard.writeText(command);
+		copied = true;
+	}
+</script>
+
+<Modal bind:open title={m.gateways_token_create()}>
+	{#if error}<Banner tone="alert">{error}</Banner>{/if}
+	{#if created}
+		<p>{m.gateways_token_hint({ max_uses: created.maxUses, time: created.expires })}</p>
+		<pre><code>{command}</code></pre>
+		<Button onclick={copy}>{copied ? m.gateways_copied() : m.gateways_copy()}</Button>
+	{:else}
+		<form id="token-form" onsubmit={create}>
+			<TextField label={m.gateways_token_expires_in()} type="number" min={1} max={8760} bind:value={hours} required />
+			<TextField label={m.gateways_token_max_uses()} type="number" min={1} max={1000} bind:value={maxUses} required />
+		</form>
+	{/if}
+	{#snippet footer()}
+		{#if !created}<Button type="submit" form="token-form" variant="solid">{m.gateways_token_create()}</Button>{/if}
+	{/snippet}
+</Modal>
+
+<style>
+	form {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	pre {
+		overflow-x: auto;
+		user-select: all;
+	}
+</style>
