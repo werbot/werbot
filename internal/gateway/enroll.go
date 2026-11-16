@@ -45,10 +45,13 @@ func ensureEnrolled(ctx context.Context, cfg Config, hc *http.Client, connectors
 	if err != nil {
 		return state{}, nil, nil, err
 	}
-	pool := x509.NewCertPool()
 	caPEM, err := os.ReadFile(filepath.Join(cfg.DataDir, caFile))
-	if err != nil || !pool.AppendCertsFromPEM(caPEM) {
-		return state{}, nil, nil, fmt.Errorf("read %s: missing or not a certificate", caFile)
+	if err != nil {
+		return state{}, nil, nil, fmt.Errorf("read %s: %w", caFile, err)
+	}
+	pool, _, err := singleCA(caPEM)
+	if err != nil {
+		return state{}, nil, nil, fmt.Errorf("read %s: %w", caFile, err)
 	}
 	if cfg.TunnelURL != "" {
 		st.TunnelURL = cfg.TunnelURL
@@ -76,14 +79,14 @@ func singleCA(caPEM []byte) (*x509.CertPool, []byte, error) {
 func verifyClientCert(certPEM []byte, pool *x509.CertPool) error {
 	blk, _ := pem.Decode(certPEM)
 	if blk == nil || blk.Type != "CERTIFICATE" {
-		return errors.New("enroll: certificate is not PEM")
+		return errors.New("certificate is not PEM")
 	}
 	leaf, err := x509.ParseCertificate(blk.Bytes)
 	if err != nil {
-		return errors.New("enroll: invalid certificate in response")
+		return errors.New("invalid certificate in response")
 	}
 	if _, err := leaf.Verify(x509.VerifyOptions{Roots: pool, KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}}); err != nil {
-		return fmt.Errorf("enroll: certificate does not chain to the pinned CA: %w", err)
+		return fmt.Errorf("certificate does not chain to the pinned CA: %w", err)
 	}
 	return nil
 }
@@ -132,7 +135,7 @@ func enroll(ctx context.Context, cfg Config, hc *http.Client, connectors []strin
 		return state{}, nil, fmt.Errorf("enroll: %w", err)
 	}
 	if err := verifyClientCert([]byte(m.GetCertPem()), caPool); err != nil {
-		return state{}, nil, err
+		return state{}, nil, fmt.Errorf("enroll: %w", err)
 	}
 	st := state{TunnelURL: m.GetTunnelUrl()}
 	if st.GatewayID, err = uuid.Parse(m.GetGatewayId()); err != nil {

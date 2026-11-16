@@ -216,3 +216,23 @@ func TestReplaceRejectsMismatchedKey(t *testing.T) {
 	got, _ := os.ReadFile(filepath.Join(dir, certFile)) //nolint:gosec // path is DataDir + fixed name
 	require.Equal(t, oldCert, got)
 }
+
+func TestEnsureEnrolledPinsSingleCAOnRestart(t *testing.T) {
+	f, srv := newFake(t)
+	dir := t.TempDir()
+	_, _, _, err := ensureEnrolled(t.Context(), Config{ServerURL: srv.URL, DataDir: dir, Name: "gw", JoinToken: testToken(f.ca.Fingerprint())}, srv.Client(), nil)
+	require.NoError(t, err)
+	// a second root appended to ca.crt on disk must not become trusted
+	p := filepath.Join(dir, caFile)
+	require.NoError(t, os.WriteFile(p, append(f.ca.RootPEM(), newCA(t).RootPEM()...), 0o600))
+
+	_, _, pool, err := ensureEnrolled(t.Context(), Config{DataDir: dir}, srv.Client(), nil)
+	require.NoError(t, err)
+	want, _, err := singleCA(f.ca.RootPEM())
+	require.NoError(t, err)
+	require.True(t, want.Equal(pool), "only the first root is trusted")
+
+	require.NoError(t, os.WriteFile(p, []byte("garbage"), 0o600))
+	_, _, _, err = ensureEnrolled(t.Context(), Config{DataDir: dir}, srv.Client(), nil)
+	require.ErrorContains(t, err, caFile)
+}
