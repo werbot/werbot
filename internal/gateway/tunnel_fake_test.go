@@ -28,6 +28,7 @@ import (
 type attempt struct {
 	reject, closeWith error
 	snap              *gatewayv1.Snapshot
+	hold              <-chan struct{} // delays the snapshot until closed
 }
 
 // fakeTunnel is a TunnelService behind real mTLS HTTP/2 that records the calls.
@@ -76,6 +77,13 @@ func (f *fakeTunnel) Connect(ctx context.Context, st *connect.BidiStream[gateway
 	}()
 	send := func(s *gatewayv1.Snapshot) error {
 		return st.Send(&gatewayv1.ConnectResponse{Msg: &gatewayv1.ConnectResponse_Snapshot{Snapshot: s}})
+	}
+	if a.hold != nil {
+		select {
+		case <-a.hold:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	if err := send(a.snap); err != nil {
 		return err

@@ -35,6 +35,7 @@ type tunnelConn struct {
 // tunnelClient keeps the Connect stream to the control plane and makes its unary calls.
 type tunnelClient struct {
 	heartbeatEvery, backoffMin, backoffMax, callTimeout time.Duration
+	reconnectGrace                                      time.Duration // readiness kept across a planned reconnect
 
 	st        state
 	roots     *x509.CertPool
@@ -44,6 +45,7 @@ type tunnelClient struct {
 	conn      atomic.Pointer[tunnelConn]
 	policy    atomic.Pointer[Policy]
 	connected atomic.Bool
+	graceEnd  atomic.Int64 // unix nanoseconds: Connected stays true until then after a planned close
 
 	mu           sync.Mutex
 	cancelStream context.CancelCauseFunc // the current stream
@@ -52,7 +54,8 @@ type tunnelClient struct {
 func newTunnelClient(st state, roots *x509.CertPool, certs *certStore, reg *metrics.Registry, logger *slog.Logger) *tunnelClient {
 	c := &tunnelClient{
 		heartbeatEvery: 15 * time.Second, backoffMin: time.Second, backoffMax: 30 * time.Second, callTimeout: 10 * time.Second,
-		st: st, roots: roots, certs: certs, log: logger,
+		reconnectGrace: 5 * time.Second,
+		st:             st, roots: roots, certs: certs, log: logger,
 		gauge: reg.Gauge("werbot_gateway_tunnel_connected", "1 while the tunnel stream is open and has delivered a snapshot."),
 	}
 	c.dial()
@@ -94,8 +97,11 @@ func (c *tunnelClient) dial() {
 // Policy is the latest snapshot; nil until the first one arrives.
 func (c *tunnelClient) Policy() *Policy { return c.policy.Load() }
 
-// Connected reports whether the stream is open and has delivered a snapshot.
-func (c *tunnelClient) Connected() bool { return c.connected.Load() }
+// Connected reports whether the stream is open and has delivered a snapshot. After a
+// planned close it stays true while the reconnect runs, for at most reconnectGrace.
+func (c *tunnelClient) Connected() bool {
+	return c.connected.Load() || time.Now().UnixNano() < c.graceEnd.Load()
+}
 
 func (c *tunnelClient) setConnected(v bool) {
 	c.connected.Store(v)
@@ -126,6 +132,7 @@ func (c *tunnelClient) Run(ctx context.Context, heartbeat func() *gatewayv1.Hear
 			c.log.InfoContext(ctx, "tunnel: reconnecting", "reason", err)
 			continue
 		}
+		c.graceEnd.Store(0) // unplanned break or failed reconnect: not ready at once
 		d := backoff(failures, c.backoffMin, c.backoffMax)
 		failures++
 		lvl := slog.LevelWarn

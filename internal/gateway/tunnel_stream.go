@@ -29,6 +29,9 @@ func (c *tunnelClient) stream(ctx context.Context, heartbeat func() *gatewayv1.H
 		cancel(nil)
 		wg.Wait()
 		_ = st.CloseResponse()
+		if c.connected.Load() && retryNow(err, got) { // armed before the flag drops: no not-ready gap
+			c.graceEnd.Store(time.Now().Add(c.reconnectGrace).UnixNano())
+		}
 		c.setConnected(false)
 	}()
 
@@ -67,6 +70,7 @@ func (c *tunnelClient) stream(ctx context.Context, heartbeat func() *gatewayv1.H
 		if s := msg.GetSnapshot(); s != nil {
 			got = true
 			c.setConnected(c.apply(s))
+			c.graceEnd.Store(0) // the snapshot decides readiness now
 		}
 	}
 }

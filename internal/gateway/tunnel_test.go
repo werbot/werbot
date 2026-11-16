@@ -108,6 +108,46 @@ func TestTunnelRebalanceReconnectsImmediately(t *testing.T) {
 	require.GreaterOrEqual(t, e.f.starts[3].Sub(e.f.closes[2]), 500*time.Millisecond, "heartbeat timeout")
 }
 
+// A planned close (rebalance, shutdown) keeps the gateway ready while it reconnects,
+// for at most reconnectGrace; a failed reconnect or an unplanned break ends it at once.
+func TestTunnelPlannedCloseKeepsReady(t *testing.T) {
+	planned := connect.NewError(connect.CodeUnavailable, errors.New("rebalance"))
+	env := func(t *testing.T, first error, second attempt, grace time.Duration) *tunnelEnv {
+		e := newTunnelEnv(t, func(n int) attempt {
+			switch n {
+			case 0:
+				return attempt{snap: testSnap("v1"), closeWith: first}
+			case 1:
+				return second
+			}
+			return attempt{snap: testSnap("v1")}
+		}, time.Hour)
+		e.c.reconnectGrace = grace
+		e.run(t, nil)
+		require.Eventually(t, func() bool { return e.f.attempts() == 2 }, 2*time.Second, time.Millisecond)
+		return e
+	}
+	t.Run("ready until the snapshot", func(t *testing.T) {
+		hold := make(chan struct{})
+		e := env(t, planned, attempt{snap: testSnap("v1"), hold: hold}, time.Hour)
+		require.Never(t, func() bool { return !e.c.Connected() }, 200*time.Millisecond, time.Millisecond)
+		close(hold)
+		require.Eventually(t, func() bool { return e.c.Connected() && e.f.attempts() == 2 }, 2*time.Second, time.Millisecond)
+	})
+	t.Run("grace expires", func(t *testing.T) {
+		e := env(t, planned, attempt{snap: testSnap("v1"), hold: make(chan struct{})}, 100*time.Millisecond)
+		require.Eventually(t, func() bool { return !e.c.Connected() }, 2*time.Second, time.Millisecond)
+	})
+	t.Run("failed reconnect", func(t *testing.T) {
+		e := env(t, planned, attempt{reject: connect.NewError(connect.CodeInternal, errors.New("no"))}, time.Hour)
+		require.Eventually(t, func() bool { return !e.c.Connected() }, 2*time.Second, time.Millisecond)
+	})
+	t.Run("unplanned break", func(t *testing.T) {
+		e := env(t, connect.NewError(connect.CodeInternal, errors.New("boom")), attempt{snap: testSnap("v1"), hold: make(chan struct{})}, time.Hour)
+		require.Eventually(t, func() bool { return !e.c.Connected() }, 2*time.Second, time.Millisecond)
+	})
+}
+
 func TestTunnelSkipsSameVersion(t *testing.T) {
 	e := newTunnelEnv(t, nil, time.Hour)
 	e.run(t, nil)
