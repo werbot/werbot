@@ -1,0 +1,563 @@
+/*
+ * miso-ui design tokens
+ * Recreated from the Miso visual language (light theme).
+ * Naming: --miso-<family>-<step> for palette, --miso-<role>-* for semantics.
+ */
+
+:root {
+	/* ---------------------------------------------------------------- */
+	/* Palette: graphite (neutrals)                                      */
+	/* ---------------------------------------------------------------- */
+	--miso-graphite-0: #ffffff;
+	--miso-graphite-50: #f9fafb;
+	--miso-graphite-100: #f2f4f6;
+	--miso-graphite-200: #e7ebee;
+	--miso-graphite-300: #dce1e5;
+	--miso-graphite-400: #c8d0d5;
+	--miso-graphite-500: #b7c1c8;
+	--miso-graphite-600: #a3adb8;
+	--miso-graphite-700: #8f99a3;
+	--miso-graphite-800: #6e7a86;
+	--miso-graphite-900: #5a6672;
+	--miso-graphite-920: #46525d;
+	--miso-graphite-960: #272f37;
+	--miso-graphite-990: #12181c;
+
+	/* graphite alpha (cool translucent neutrals) */
+	--miso-graphite-a50: #001f3d05;
+	--miso-graphite-a100: #001f3d0d;
+	--miso-graphite-a200: #001f3d1a;
+	--miso-graphite-a300: #00223d24;
+	--miso-graphite-a400: #00253d36;
+	--miso-graphite-a500: #00253d47;
+	--miso-graphite-a600: #031d3a5c;
+	--miso-graphite-a700: #09203475;
+	--miso-graphite-a800: #0b203296;
+	--miso-graphite-a900: #021627a6;
+	--miso-graphite-a920: #041625bd;
+	--miso-graphite-a960: #020c12d9;
+	--miso-graphite-a990: #02090df0;
+
+	/* pure black / white alphas */
+	--miso-dark-a05: #0000000d;
+	--miso-dark-a10: #0000001a;
+	--miso-dark-a15: #00000026;
+	--miso-dark-a20: #00000033;
+	--miso-dark-a30: #0000004d;
+	--miso-dark-a40: #00000066;
+	--miso-dark-a50: #00000080;
+	--miso-dark-a60: #00000099;
+	--miso-dark-a70: #000000b3;
+	--miso-dark-a80: #000000cc;
+	--miso-dark-a90: #000000e6;
+	--miso-light-a10: #ffffff1a;
+	--miso-light-a20: #ffffff33;
+	--miso-light-a40: #ffffff66;
+	--miso-light-a60: #ffffff99;
+	--miso-light-a70: #ffffffb3;
+	--miso-light-a80: #ffffffcc;
+	--miso-light-a90: #ffffffe6;
+	--miso-light-a95: #fffffff2;
+
+	/* ---------------------------------------------------------------- */
+	/* Palette: interblue (interactive blue)                             */
+	/* ---------------------------------------------------------------- */
+	--miso-interblue-50: #f0f9ff;
+	--miso-interblue-100: #e5f5ff;
+	--miso-interblue-200: #d6efff;
+	--miso-interblue-300: #c2e8ff;
+	--miso-interblue-400: #a3dcff;
+	--miso-interblue-500: #75caff;
+	--miso-interblue-600: #33b1ff;
+	--miso-interblue-700: #0099ff;
+	--miso-interblue-750: #0088f0;
+	--miso-interblue-800: #0079e0;
+	--miso-interblue-850: #006cd1;
+	--miso-interblue-900: #005ebd;
+	--miso-interblue-920: #0052a3;
+	--miso-interblue-a50: #0099ff0d;
+	--miso-interblue-a100: #0099ff1a;
+	--miso-interblue-a200: #0099ff29;
+	--miso-interblue-a300: #0099ff3d;
+	--miso-interblue-a400: #00a2ff5c;
+	--miso-interblue-a500: #00a2ff8f;
+	--miso-interblue-a600: #00a2ffcc;
+
+	/* ---------------------------------------------------------------- */
+	/* Palette: blue (task blue) + desaturated                          */
+	/* ---------------------------------------------------------------- */
+	--miso-blue-50: #f5f9ff;
+	--miso-blue-300: #c7e6ff;
+	--miso-blue-400: #a3d6ff;
+	--miso-blue-500: #80c6ff;
+	--miso-blue-600: #55aef6;
+	--miso-blue-700: #2496f4;
+	--miso-blue-750: #1989e5;
+	--miso-blue-900: #1366aa;
+	--miso-blue-930: #114a78;
+	--miso-blue-desat-100: #ebf2f7;
+	--miso-blue-desat-300: #dde6ee;
+	--miso-blue-desat-400: #c2d5e5;
+	--miso-blue-desat-500: #a0bdd4;
+	--miso-blue-desat-600: #82a9c9;
+	--miso-blue-desat-750: #6088a9;
+	--miso-blue-desat-900: #365d7d;
+	--miso-blue-easy-700: #549ad4;
+
+	/* ---------------------------------------------------------------- */
+	/* Palette: red (alert)                                              */
+	/* ---------------------------------------------------------------- */
+	--miso-red-50: #fff5f7;
+	--miso-red-100: #ffebee;
+	--miso-red-200: #ffe0e6;
+	--miso-red-300: #ffd1d5;
+	--miso-red-400: #ffbdc2;
+	--miso-red-500: #ff99a2;
+	--miso-red-600: #fc7984;
+	--miso-red-700: #f75f6c;
+	--miso-red-750: #ea4351;
+	--miso-red-800: #d93643;
+	--miso-red-850: #c92639;
+	--miso-red-900: #ba0331;
+	--miso-red-920: #a30029;
+	--miso-red-easy-750: #e05252;
+	--miso-red-a50: #ff57660f;
+	--miso-red-a100: #ff57661f;
+	--miso-red-a200: #ff576630;
+	--miso-red-a300: #ff576647;
+	--miso-red-a400: #ff576666;
+	--miso-red-a500: #fb5b699e;
+	--miso-red-deep-500: #ac4c58;
+
+	/* ---------------------------------------------------------------- */
+	/* Palette: teal / green / lime (money, fresh, success)              */
+	/* ---------------------------------------------------------------- */
+	--miso-teal-200: #cef3f0;
+	--miso-teal-300: #adebe6;
+	--miso-teal-400: #85e0dc;
+	--miso-teal-500: #5bc8c8;
+	--miso-teal-600: #3cb4b4;
+	--miso-teal-750: #009999;
+	--miso-teal-900: #006c6c;
+	--miso-teal-easy-500: #70c2bb;
+	--miso-teal-a400: #84e0dc80;
+	--miso-green-300: #d0eba0;
+	--miso-green-500: #93ce2c;
+	--miso-green-600: #77bb00;
+	--miso-green-750: #529400;
+	--miso-green-easy-500: #94c238;
+	--miso-lime-50: #e9fce0;
+	--miso-lime-200: #c5f6ac;
+	--miso-lime-500: #66cc33;
+	--miso-lime-600: #4bb814;
+	--miso-lime-700: #43a512;
+
+	/* ---------------------------------------------------------------- */
+	/* Palette: amber / yellow (dates, notices)                          */
+	/* ---------------------------------------------------------------- */
+	--miso-amber-10: #fffdf4;
+	--miso-amber-50: #fff7ce;
+	--miso-amber-100: #fff0a6;
+	--miso-amber-300: #ffe066;
+	--miso-amber-400: #ffc61a;
+	--miso-amber-500: #ff9900;
+	--miso-amber-600: #f2780d;
+	--miso-amber-700: #e06900;
+	--miso-amber-a300: #ffe06666;
+	--miso-amber-a600: #f2780d99;
+	--miso-lbl-lightgrey: #b0c2cf;
+	--miso-lime-viv-a10: #00ff001a;
+	--miso-sand-300: #eae8e1;
+	--miso-sand-400: #cdc7b7;
+	--miso-yellow-100: #fff700;
+	--miso-yellow-a20: #fff70033;
+	--miso-yellow-a40: #fff70066;
+
+	/* ---------------------------------------------------------------- */
+	/* Palette: purple / violet / pink / pine / brown                    */
+	/* ---------------------------------------------------------------- */
+	--miso-purple-300: #ead6ea;
+	--miso-purple-400: #ddbbdd;
+	--miso-purple-600: #cc99cc;
+	--miso-purple-700: #b67cb6;
+	--miso-purple-800: #996699;
+	--miso-purple-920: #6d486d;
+	--miso-violet-50: #f8f6fe;
+	--miso-violet-100: #f1effb;
+	--miso-violet-200: #e8e2f8;
+	--miso-violet-300: #e2d9f7;
+	--miso-violet-400: #d4c9f4;
+	--miso-violet-500: #c0b1ee;
+	--miso-violet-600: #ae9aea;
+	--miso-violet-700: #9d85e5;
+	--miso-violet-750: #8e74dc;
+	--miso-violet-800: #8162e0;
+	--miso-violet-850: #7755dd;
+	--miso-violet-900: #6644cc;
+	--miso-violet-920: #5734c0;
+	--miso-violet-a50: #9d85e514;
+	--miso-violet-a100: #9d85e521;
+	--miso-violet-a200: #9d85e53d;
+	--miso-violet-a300: #9d85e552;
+	--miso-violet-a400: #9d85e570;
+	--miso-violet-a500: #9d85e5a3;
+	--miso-pink-300: #fbdbed;
+	--miso-pink-400: #f5c5e1;
+	--miso-pink-700: #df68ad;
+	--miso-pink-800: #c2478e;
+	--miso-pink-920: #9a1b65;
+	--miso-pine-500: #25d0a4;
+	--miso-pine-600: #21ba93;
+	--miso-pine-700: #18a581;
+	--miso-pine-800: #148a6c;
+	--miso-pine-900: #066f55;
+	--miso-brown-300: #ebe0d6;
+	--miso-brown-400: #decbba;
+	--miso-brown-600: #c29e80;
+	--miso-brown-800: #957050;
+	--miso-brown-920: #674d37;
+
+	/* ---------------------------------------------------------------- */
+	/* Palette: titan (dark sidebar blues)                               */
+	/* ---------------------------------------------------------------- */
+	--miso-titan-300: #d2e6f6;
+	--miso-titan-500: #a9c3d8;
+	--miso-titan-700: #7a91a7;
+	--miso-titan-800: #667b90;
+	--miso-titan-850: #566b7e;
+	--miso-titan-920: #425567;
+	--miso-titan-930: #314557;
+	--miso-titan-940: #2c3d4f;
+	--miso-titan-950: #283848;
+	--miso-titan-960: #253341;
+	--miso-titan-970: #202b37;
+	--miso-titan-980: #161f27;
+
+	/* ---------------------------------------------------------------- */
+	/* Typography                                                        */
+	/* ---------------------------------------------------------------- */
+	--miso-font-base:
+		-apple-system, system-ui, 'Segoe UI', BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial,
+		'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+	--miso-font-mono:
+		'SF Mono', 'Segoe UI Mono', Consolas, 'Fira Mono', Menlo, Monaco, 'Liberation Mono',
+		'Courier New', monospace;
+
+	--miso-font-ui-10-reg: 400 0.625rem/16px var(--miso-font-base);
+	--miso-font-ui-10-semi: 600 0.625rem/16px var(--miso-font-base);
+	--miso-font-ui-10-bold: 700 0.625rem/16px var(--miso-font-base);
+	--miso-font-ui-11-reg: 400 0.6875rem/16px var(--miso-font-base);
+	--miso-font-ui-11-med: 500 0.6875rem/16px var(--miso-font-base);
+	--miso-font-ui-11-semi: 600 0.6875rem/16px var(--miso-font-base);
+	--miso-font-ui-12-reg: 400 0.75rem/20px var(--miso-font-base);
+	--miso-font-ui-12-med: 500 0.75rem/20px var(--miso-font-base);
+	--miso-font-ui-12-semi: 600 0.75rem/20px var(--miso-font-base);
+	--miso-font-ui-13-reg: 400 0.8125rem/20px var(--miso-font-base);
+	--miso-font-ui-13-med: 500 0.8125rem/20px var(--miso-font-base);
+	--miso-font-ui-13-semi: 600 0.8125rem/20px var(--miso-font-base);
+	--miso-font-ui-13-bold: 700 0.8125rem/20px var(--miso-font-base);
+	--miso-font-ui-14-reg: 400 0.875rem/20px var(--miso-font-base);
+	--miso-font-ui-14-med: 500 0.875rem/20px var(--miso-font-base);
+	--miso-font-ui-14-semi: 600 0.875rem/20px var(--miso-font-base);
+	--miso-font-ui-15-reg: 400 0.9375rem/20px var(--miso-font-base);
+	--miso-font-ui-15-semi: 600 0.9375rem/20px var(--miso-font-base);
+	--miso-font-ui-16-reg: 400 1rem/20px var(--miso-font-base);
+	--miso-font-ui-16-med: 500 1rem/20px var(--miso-font-base);
+	--miso-font-ui-16-semi: 600 1rem/20px var(--miso-font-base);
+	--miso-font-ui-18-reg: 400 1.125rem/24px var(--miso-font-base);
+	--miso-font-ui-18-semi: 600 1.125rem/24px var(--miso-font-base);
+	--miso-font-ui-18-bold: 700 1.125rem/24px var(--miso-font-base);
+	--miso-font-ui-22-reg: 400 1.375rem/28px var(--miso-font-base);
+	--miso-font-ui-22-semi: 600 1.375rem/28px var(--miso-font-base);
+	--miso-font-ui-22-bold: 700 1.375rem/28px var(--miso-font-base);
+	--miso-font-ui-32-reg: 400 2rem/40px var(--miso-font-base);
+	--miso-font-ui-32-med: 500 2rem/40px var(--miso-font-base);
+	--miso-font-ui-32-bold: 700 2rem/40px var(--miso-font-base);
+	--miso-font-txt-13-reg: 400 0.8125rem/1.4 var(--miso-font-base);
+	--miso-font-txt-15-reg: 400 0.9375rem/1.6 var(--miso-font-base);
+	--miso-font-caption-11-upper: 500 0.6875rem/12px var(--miso-font-base);
+
+	/* ---------------------------------------------------------------- */
+	/* Spacing / radii / sizes                                           */
+	/* ---------------------------------------------------------------- */
+	--miso-sp-01: 1px;
+	--miso-sp-02: 2px;
+	--miso-sp-04: 4px;
+	--miso-sp-06: 6px;
+	--miso-sp-08: 8px;
+	--miso-sp-12: 12px;
+	--miso-sp-16: 16px;
+	--miso-sp-20: 20px;
+	--miso-sp-24: 24px;
+	--miso-sp-32: 32px;
+	--miso-sp-40: 40px;
+
+	--miso-radius-04: 4px;
+	--miso-radius-06: 6px;
+	--miso-radius-07: 7px;
+	--miso-radius-08: 8px;
+	--miso-radius-12: 12px;
+	--miso-radius-16: 16px;
+	--miso-radius-full: 100px;
+
+	/* ---------------------------------------------------------------- */
+	/* Semantic: containers and surfaces                                 */
+	/* ---------------------------------------------------------------- */
+	--miso-cont-top: var(--miso-graphite-0);
+	--miso-cont-mid: var(--miso-graphite-50);
+	--miso-cont-low: var(--miso-graphite-100);
+	--miso-cont-trans-mid: var(--miso-graphite-a50);
+	--miso-cont-trans-low: var(--miso-graphite-a100);
+	--miso-cont-note: var(--miso-amber-50);
+	--miso-surf-top: var(--miso-graphite-200);
+	--miso-surf-low: var(--miso-graphite-400);
+	--miso-surf-sidebar: var(--miso-blue-desat-750);
+
+	/* Semantic: text */
+	--miso-txt-max: #000000;
+	--miso-txt-accent: var(--miso-graphite-a990);
+	--miso-txt-primary: var(--miso-graphite-a960);
+	--miso-txt-secondary: var(--miso-graphite-a900);
+	--miso-txt-tertiary: var(--miso-graphite-a700);
+	--miso-txt-muted: var(--miso-graphite-a500);
+	--miso-txt-ghost: var(--miso-graphite-a300);
+	--miso-txt-link: var(--miso-interblue-700);
+	--miso-txt-link-major: var(--miso-interblue-800);
+	--miso-txt-alert: var(--miso-red-700);
+	--miso-txt-alert-major: var(--miso-red-850);
+	--miso-txt-new: var(--miso-pine-700);
+	--miso-txt-new-major: var(--miso-pine-800);
+	--miso-txt-notice: var(--miso-amber-600);
+	--miso-txt-notice-major: var(--miso-amber-700);
+	--miso-txt-flip: var(--miso-light-a95);
+	--miso-txt-btn-a: var(--miso-interblue-800);
+	--miso-txt-btn-b: var(--miso-violet-900);
+	--miso-hlt-alt-fresh: var(--miso-lime-viv-a10);
+
+	/* Semantic: lines */
+	--miso-line-accent: var(--miso-graphite-a500);
+	--miso-line-primary: var(--miso-graphite-a400);
+	--miso-line-secondary: var(--miso-graphite-a300);
+	--miso-line-tertiary: var(--miso-graphite-a200);
+	--miso-line-ghost: var(--miso-graphite-a100);
+	--miso-line-act: var(--miso-interblue-700);
+	--miso-line-alert: var(--miso-red-750);
+
+	/* Semantic: highlight scheme A (interactive blue) */
+	--miso-hlt-easy: var(--miso-interblue-a50);
+	--miso-hlt-hover: var(--miso-interblue-a100);
+	--miso-hlt-selected: var(--miso-interblue-a200);
+	--miso-hlt-pressed: var(--miso-interblue-a300);
+	--miso-hlt-active: var(--miso-interblue-a400);
+	--miso-hlt-focus: var(--miso-interblue-a500);
+	--miso-hlt-invert: var(--miso-interblue-700);
+	--miso-hlt-invert-minor: var(--miso-interblue-600);
+	--miso-hlt-invert-major: var(--miso-interblue-800);
+
+	/* Semantic: highlight scheme B (violet) */
+	--miso-hlt-b-easy: var(--miso-violet-a50);
+	--miso-hlt-b-hover: var(--miso-violet-a100);
+	--miso-hlt-b-selected: var(--miso-violet-a200);
+	--miso-hlt-b-pressed: var(--miso-violet-a300);
+	--miso-hlt-b-active: var(--miso-violet-a400);
+	--miso-hlt-b-focus: var(--miso-violet-a500);
+	--miso-hlt-b-invert: var(--miso-violet-800);
+	--miso-hlt-b-invert-minor: var(--miso-violet-700);
+	--miso-hlt-b-invert-major: var(--miso-violet-900);
+
+	/* Semantic: highlight scheme G (graphite) */
+	--miso-hlt-g-easy: var(--miso-graphite-a50);
+	--miso-hlt-g-hover: var(--miso-graphite-a100);
+	--miso-hlt-g-selected: var(--miso-graphite-a200);
+	--miso-hlt-g-pressed: var(--miso-graphite-a300);
+	--miso-hlt-g-active: var(--miso-graphite-a400);
+	--miso-hlt-g-focus: var(--miso-graphite-a600);
+	--miso-hlt-g-invert: var(--miso-graphite-a960);
+	--miso-hlt-g-invert-minor: var(--miso-graphite-a920);
+	--miso-hlt-g-invert-major: var(--miso-graphite-a990);
+
+	/* Semantic: highlight scheme W (warning red) */
+	--miso-hlt-w-easy: var(--miso-red-a50);
+	--miso-hlt-w-hover: var(--miso-red-a100);
+	--miso-hlt-w-selected: var(--miso-red-a200);
+	--miso-hlt-w-pressed: var(--miso-red-a300);
+	--miso-hlt-w-active: var(--miso-red-a400);
+	--miso-hlt-w-focus: var(--miso-red-a500);
+	--miso-hlt-w-invert: var(--miso-red-800);
+	--miso-hlt-w-invert-minor: var(--miso-red-700);
+	--miso-hlt-w-invert-major: var(--miso-red-900);
+
+	/* Semantic: buttons */
+	--miso-btn-a-txt: var(--miso-interblue-800);
+	--miso-btn-b-txt: var(--miso-violet-900);
+	--miso-btn-g-txt: var(--miso-txt-secondary);
+	--miso-btn-w-txt: var(--miso-red-800);
+	--miso-btn-togg-on: var(--miso-lime-500);
+	--miso-btn-togg-off: var(--miso-red-700);
+	--miso-btn-togg-ghost: var(--miso-txt-muted);
+	--miso-btn-notice-major: var(--miso-amber-600);
+	--miso-btn-notice-minor: var(--miso-amber-500);
+
+	/* Semantic: inputs */
+	--miso-inp-cont: var(--miso-cont-top);
+	--miso-inp-selection: var(--miso-interblue-400);
+
+	/* Semantic: menu */
+	--miso-menu-cont: var(--miso-cont-top);
+	--miso-menu-item-hover: var(--miso-hlt-hover);
+	--miso-menu-item-selected: var(--miso-hlt-selected);
+	--miso-menu-item-alert: var(--miso-hlt-w-hover);
+
+	/* Semantic: date labels */
+	--miso-lbl-today-major: var(--miso-amber-400);
+	--miso-lbl-today-minor: var(--miso-amber-300);
+	--miso-lbl-yesterday-major: var(--miso-purple-600);
+	--miso-lbl-yesterday-minor: var(--miso-purple-300);
+	--miso-lbl-overdue-major: var(--miso-red-easy-750);
+	--miso-lbl-overdue-minor: var(--miso-red-300);
+	--miso-lbl-upcoming-major: var(--miso-blue-easy-700);
+	--miso-lbl-upcoming-minor: var(--miso-blue-300);
+	--miso-lbl-date: var(--miso-sand-300);
+
+	/* Semantic: costs / progress */
+	--miso-costs-task-major: var(--miso-blue-750);
+	--miso-costs-task-minor: var(--miso-blue-500);
+	--miso-costs-money-major: var(--miso-teal-750);
+	--miso-costs-money-minor: var(--miso-teal-500);
+	--miso-costs-time-major: var(--miso-purple-800);
+	--miso-costs-time-minor: var(--miso-purple-600);
+	--miso-costs-overrun: var(--miso-red-700);
+	--miso-progbar-track: var(--miso-graphite-a100);
+	--miso-progbar-track-major: var(--miso-graphite-a200);
+
+	/* Semantic: priorities 0..10 */
+	--miso-prior-0: var(--miso-dark-a20);
+	--miso-prior-1: var(--miso-dark-a10);
+	--miso-prior-2: #aa9fcb;
+	--miso-prior-3: var(--miso-blue-desat-600);
+	--miso-prior-4: var(--miso-teal-easy-500);
+	--miso-prior-5: var(--miso-green-easy-500);
+	--miso-prior-6: var(--miso-amber-400);
+	--miso-prior-7: var(--miso-amber-500);
+	--miso-prior-8: var(--miso-amber-600);
+	--miso-prior-9: var(--miso-red-easy-750);
+	--miso-prior-10: var(--miso-red-850);
+	--miso-prior-txt: var(--miso-light-a90);
+
+	/* Semantic: app sidebar */
+	--miso-sidebar-base: var(--miso-titan-960);
+	--miso-sidebar-hover: var(--miso-titan-930);
+	--miso-sidebar-active: var(--miso-titan-980);
+	--miso-sidebar-ico-base: var(--miso-titan-500);
+	--miso-sidebar-ico-hover: var(--miso-titan-300);
+	--miso-sidebar-ico-active: var(--miso-interblue-500);
+	--miso-sidebar-badge-alert: var(--miso-red-deep-500);
+	--miso-sidebar-badge-base: var(--miso-pine-800);
+	--miso-sidebar-badge-upcoming: var(--miso-violet-800);
+	--miso-sidebar-badge-ghost: var(--miso-titan-850);
+	--miso-sidebar-badge-txt: var(--miso-light-a95);
+
+	/* Semantic: label colors (colorize) */
+	--miso-lblc-none: #e5ebf0;
+	--miso-lblc-lightgrey: #b0c2cf;
+	--miso-lblc-coolgrey: #809db3;
+	--miso-lblc-lightpink: #ffb3cc;
+	--miso-lblc-pink: #ff668c;
+	--miso-lblc-red: #d22d39;
+	--miso-lblc-yellow: #f4d125;
+	--miso-lblc-yelloworange: #f2a60d;
+	--miso-lblc-orange: #eb7e47;
+	--miso-lblc-yellowgreen: #b2d742;
+	--miso-lblc-green: #4fbe29;
+	--miso-lblc-darkgreen: #1d8613;
+	--miso-lblc-lightaqua: #79e6dd;
+	--miso-lblc-aqua: #1eb9b9;
+	--miso-lblc-darkaqua: #008a8a;
+	--miso-lblc-lightblue: #80caff;
+	--miso-lblc-blue: #1ca0ff;
+	--miso-lblc-darkblue: #0077cc;
+	--miso-lblc-lightindigo: #c6b3ff;
+	--miso-lblc-indigo: #9475f0;
+	--miso-lblc-darkindigo: #6b3df5;
+	--miso-lblc-beige: #d6bfa9;
+	--miso-lblc-brown: #a17345;
+	--miso-lblc-darkbrown: #594026;
+	--miso-lblc-txt-accent: var(--miso-dark-a90);
+	--miso-lblc-txt-primary: var(--miso-dark-a70);
+
+	/* Semantic: project colors */
+	--miso-prj-none: var(--miso-hlt-g-selected);
+	--miso-prj-red: #f0757f;
+	--miso-prj-orange: #eb7e47;
+	--miso-prj-yelloworange: #f2a60d;
+	--miso-prj-yellow: #f4d125;
+	--miso-prj-yellowgreen: #b2d742;
+	--miso-prj-green: #72c059;
+	--miso-prj-bluegreen: #36e2c6;
+	--miso-prj-aqua: #a0f0f7;
+	--miso-prj-lightblue: #6ebef7;
+	--miso-prj-blue: #5a80f2;
+	--miso-prj-indigo: #a68cf2;
+	--miso-prj-purple: #e7bcf5;
+	--miso-prj-magenta: #e085c2;
+	--miso-prj-pink: #ef8fa7;
+	--miso-prj-beige: #d6bfa9;
+	--miso-prj-lightgrey: #b6c1c9;
+	--miso-prj-coolgrey: #809db3;
+
+	/* Semantic: avatar colors 1..10 */
+	--miso-av-1: #ed6d84;
+	--miso-av-2: #f9a921;
+	--miso-av-3: #ffce00;
+	--miso-av-4: #c4bd00;
+	--miso-av-5: #97b023;
+	--miso-av-6: #74a9a4;
+	--miso-av-7: #64b3e5;
+	--miso-av-8: #bd9ac8;
+	--miso-av-9: #f39ec3;
+	--miso-av-10: #b3b3b3;
+
+	/* ---------------------------------------------------------------- */
+	/* Shadows and focus rings                                           */
+	/* ---------------------------------------------------------------- */
+	--miso-shadow-cont-minor: 0 2px 8px -2px var(--miso-graphite-a300);
+	--miso-shadow-cont-major: 0 2px 8px -2px var(--miso-graphite-a500);
+	--miso-shadow-cont-minor-outline:
+		0 0 0 1px var(--miso-line-ghost), 0 2px 8px -2px var(--miso-graphite-a300);
+	--miso-shadow-cont-major-outline:
+		0 0 0 1px var(--miso-line-tertiary), 0 2px 8px -2px var(--miso-graphite-a500);
+	--miso-shadow-mod-minor:
+		0 0 0 1px var(--miso-graphite-300), 0 4px 8px -2px var(--miso-graphite-a200),
+		0 12px 20px -6px var(--miso-graphite-a100);
+	--miso-shadow-mod-major:
+		0 0 0 1px var(--miso-line-tertiary), 0 6px 12px -4px var(--miso-graphite-a300),
+		0 6px 48px -4px var(--miso-graphite-a200), 0 20px 56px -8px var(--miso-graphite-a200);
+	--miso-brd-enable: 0 0 0 1px var(--miso-line-secondary) inset;
+	--miso-brd-enable-hover: 0 0 0 1px var(--miso-line-accent) inset;
+	--miso-brd-focus: 0 0 0 1px var(--miso-btn-a-txt), 0 0 0 4px var(--miso-hlt-pressed);
+	--miso-brd-error: 0 0 0 1px var(--miso-btn-w-txt) inset;
+	--miso-brd-error-focus: 0 0 0 1px var(--miso-btn-w-txt), 0 0 0 4px var(--miso-hlt-w-pressed);
+
+	/* Scrollbars */
+	--miso-scroll-minor: var(--miso-graphite-a300);
+	--miso-scroll-major: var(--miso-graphite-a500);
+
+	/* ---------------------------------------------------------------- */
+	/* Z-index layers (mirrors the original app scale)                   */
+	/* Popovers open above modals, like the original .menu (1030).       */
+	/* ---------------------------------------------------------------- */
+	--miso-z-sticky: 100;
+	--miso-z-panel: 1014; /* task view / side panels */
+	--miso-z-drawer: 1021;
+	--miso-z-modal: 1024;
+	--miso-z-dropdown: 1030;
+	--miso-z-tooltip: 1035;
+	--miso-z-toast: 1040;
+	--miso-z-banner: 1050;
+	--miso-z-dropzone: 1025;
+
+	/* Filled input surface (original --base-cont-mod-trans-low) */
+	--miso-inp-filled: var(--miso-graphite-a100);
+	/* Modal overlay tint (original --colors-alpha-dark-15) */
+	--miso-overlay: var(--miso-dark-a15);
+}

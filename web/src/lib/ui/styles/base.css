@@ -1,0 +1,32 @@
+/* miso-ui base: opt-in helpers applied to the consuming app */
+
+.miso-app {
+	font: var(--miso-font-ui-13-reg);
+	color: var(--miso-txt-primary);
+	background: var(--miso-cont-top);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+.miso-app ::selection {
+	background: var(--miso-inp-selection);
+}
+
+.miso-scroll {
+	scrollbar-width: thin;
+	scrollbar-color: var(--miso-scroll-minor) transparent;
+}
+
+.miso-scroll::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.miso-scroll::-webkit-scrollbar-thumb {
+	background: var(--miso-scroll-minor);
+	border-radius: 4px;
+}
+
+.miso-scroll::-webkit-scrollbar-thumb:hover {
+	background: var(--miso-scroll-major);
+}

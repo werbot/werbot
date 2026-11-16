@@ -1,0 +1,7 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"app_title": "Werbot",
+	"version_label": "Version {version}",
+	"version_unavailable": "Server is unavailable",
+	"version_mismatch": "This page is version {ui}, the server is version {server}. Reload the page; if this stays, upgrade the web UI and the server together."
+}

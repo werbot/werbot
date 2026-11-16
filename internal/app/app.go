@@ -23,6 +23,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/version"
 	"github.com/werbot/werbot/internal/system"
 	"github.com/werbot/werbot/sdk"
+	"github.com/werbot/werbot/web"
 )
 
 // Run executes the command in args and returns when it is done or ctx ends.
@@ -59,7 +60,7 @@ func Run(ctx context.Context, args []string, getenv func(string) string, stdout 
 		return err
 	}
 	defer pool.Close()
-	return serve(ctx, cfg, logger, pool, sdk.Modules(), nil)
+	return serve(ctx, cfg, logger, pool, sdk.Modules(), web.FS())
 }
 
 // host is the Community sdk.Host: no feature is ever entitled.
@@ -75,7 +76,6 @@ func (host) Entitled(string) bool                     { return false }
 // serve runs the main HTTP server (and the metrics server when cfg.MetricsAddr
 // is set) until ctx ends, then drains and shuts both down within 10s.
 func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS) error {
-	_ = ui // Task 8 mounts httpserver.SPA(ui) on "/".
 	var draining atomic.Bool
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", httpserver.Health())
@@ -91,7 +91,11 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 			return fmt.Errorf("module %s: %w", m.Name, err)
 		}
 	}
-	mux.Handle("/", http.NotFoundHandler())
+	if cfg.WebEmbedded {
+		mux.Handle("/", httpserver.SPA(ui))
+	} else {
+		mux.Handle("/", http.NotFoundHandler())
+	}
 
 	reg := metrics.NewRegistry()
 	reg.GaugeFunc("werbot_db_pool_acquired_conns", "Database pool connections in use.",
