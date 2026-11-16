@@ -172,15 +172,17 @@ func TestServeDrain(t *testing.T) {
 
 	start := time.Now()
 	e.cancel()
+	var readyAtClose int
 	require.Eventually(t, func() bool {
 		c, err := net.Dial("tcp", e.sshAddr)
 		if err == nil {
 			_ = c.Close()
 			return false
 		}
-		require.Equal(t, http.StatusServiceUnavailable, e.readyz(), "/readyz turns 503 before the listener closes")
+		readyAtClose = e.readyz()
 		return true
 	}, 100*time.Millisecond, time.Millisecond, "the SSH listener is closed")
+	require.Equal(t, http.StatusServiceUnavailable, readyAtClose, "/readyz turns 503 before the listener closes")
 	require.Empty(t, e.ends(), "the session lives until DrainTimeout")
 
 	require.NoError(t, e.stop())

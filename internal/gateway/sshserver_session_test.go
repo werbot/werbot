@@ -49,12 +49,14 @@ func TestKindMapping(t *testing.T) {
 	require.Equal(t, "spy:spy kind=stream target=10.0.0.1:80\n", string(b))
 }
 
-// The initial window comes with pty-req; Resize carries only later changes.
+// The initial window comes with pty-req; Resize carries only changes after shell or exec.
 func TestResizeSkipsInitialWindow(t *testing.T) {
 	e := newSSHEnv(t, Config{})
 	s, err := e.client(t, "alice+spy").NewSession()
 	require.NoError(t, err)
 	require.NoError(t, s.RequestPty("xterm", 40, 120, gossh.TerminalModes{}))
+	require.NoError(t, s.WindowChange(30, 80)) // before exec: dropped
+	require.NoError(t, s.WindowChange(31, 81))
 	out := &syncBuffer{}
 	s.Stdout = out
 	require.NoError(t, s.Start("resize"))

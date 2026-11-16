@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"bytes"
 	"io"
 	"net"
 	"runtime"
@@ -140,9 +141,9 @@ func TestHandshakeTimeout(t *testing.T) {
 	require.NoError(t, err, "an authenticated connection outlives the handshake limit")
 }
 
-// Every channel of a not ready connection still drains window changes; a stuck
-// request loop would leak its goroutine and stall the connection.
-func TestNotReadyDrainsWindowChanges(t *testing.T) {
+// Window changes before shell or exec must not hang the channel's request loop:
+// gliderlabs would block on them forever, even after the connection closes.
+func TestEarlyWindowChangesDoNotLeak(t *testing.T) {
 	e := newSSHEnv(t, Config{})
 	e.f.with(func(f *fakeControl) { f.authErr = connect.NewError(connect.CodeUnavailable, nil) })
 	before := runtime.NumGoroutine()
@@ -151,13 +152,24 @@ func TestNotReadyDrainsWindowChanges(t *testing.T) {
 		s, err := c.NewSession()
 		require.NoError(t, err)
 		require.NoError(t, s.RequestPty("xterm", 40, 120, gossh.TerminalModes{}))
+		require.NoError(t, s.WindowChange(30, 80))
+		require.NoError(t, s.WindowChange(31, 81))
+		var out bytes.Buffer
+		s.Stdout = &out
 		require.NoError(t, s.Shell())
-		for i := range 3 {
-			_ = s.WindowChange(40+i, 100) // races the server closing the channel
-		}
-		_ = s.Wait()
+		_ = s.WindowChange(40, 100) // races the server closing the channel
+		require.Equal(t, 1, exitCode(t, s.Wait()))
+		require.Equal(t, "Gateway is not ready, try again later\r\n", out.String())
 		require.NoError(t, c.Close())
 	}
 	require.Eventually(t, func() bool { return runtime.NumGoroutine() <= before+2 }, 2*time.Second, 20*time.Millisecond,
 		"goroutines left behind by closed connections")
+}
+
+func TestHandshakeConnCloseStopsTimer(t *testing.T) {
+	a, b := net.Pipe()
+	defer b.Close() //nolint:errcheck // test pipe
+	c := &handshakeConn{Conn: a, timer: time.AfterFunc(time.Hour, func() {})}
+	require.NoError(t, c.Close())
+	require.False(t, c.timer.Stop(), "Close already stopped the timer")
 }

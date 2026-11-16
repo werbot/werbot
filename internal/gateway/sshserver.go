@@ -45,20 +45,11 @@ func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) erro
 		IdleTimeout:      f.cfg.IdleTimeout,
 		PublicKeyHandler: h.auth,
 		Handler:          h.session,
-		ChannelHandlers:  map[string]ssh.ChannelHandler{"session": ssh.DefaultSessionHandler, "direct-tcpip": h.forward},
-		// gliderlabs resets conn deadlines on every read, so the handshake limit is a timer
+		ChannelHandlers:  map[string]ssh.ChannelHandler{"session": sessionChannel, "direct-tcpip": h.forward},
 		ConnCallback: func(ctx ssh.Context, conn net.Conn) net.Conn {
-			ctx.SetValue(handshakeKey{}, time.AfterFunc(f.handshakeTimeout, func() { _ = conn.Close() }))
-			return conn
+			return newHandshakeConn(ctx, conn, f.handshakeTimeout)
 		},
-		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
-			return &gossh.ServerConfig{VerifiedPublicKeyCallback: func(_ gossh.ConnMetadata, _ gossh.PublicKey, perms *gossh.Permissions, _ string) (*gossh.Permissions, error) {
-				if t, ok := ctx.Value(handshakeKey{}).(*time.Timer); ok {
-					t.Stop() // the signature is verified: authenticated
-				}
-				return perms, nil
-			}}
-		},
+		ServerConfigCallback: authenticated,
 	}
 	srv.AddHostKey(f.hostKey)
 	served := make(chan error, 1)
@@ -86,9 +77,6 @@ func wrapListener(ln net.Listener, proxyProtocol bool) net.Listener {
 
 // userKey holds the *User accepted at the handshake; nil while the control plane was unreachable.
 type userKey struct{}
-
-// handshakeKey holds the *time.Timer that closes a connection still unauthenticated.
-type handshakeKey struct{}
 
 type sshHandler struct {
 	p   *Pipeline
