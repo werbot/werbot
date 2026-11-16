@@ -36,6 +36,7 @@ jobs:
       - if: github.event_name == 'pull_request'
         run: go tool -modfile=tools/go.mod buf breaking --against ".git#branch=origin/v2"
       - run: go tool -modfile=tools/go.mod buf generate && git diff --exit-code
+      - run: go tool -modfile=tools/go.mod sqlc diff
       - run: go mod tidy -diff
       - run: go mod tidy -modfile=tools/go.mod -diff
       - run: go test -count=1 ./...

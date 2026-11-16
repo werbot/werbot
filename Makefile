@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto web
+.PHONY: build test lint dev-db proto sqlc web
 
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
@@ -17,6 +17,9 @@ dev-db:
 
 proto:
 	go tool -modfile=tools/go.mod buf lint && go tool -modfile=tools/go.mod buf generate
+
+sqlc:
+	go tool -modfile=tools/go.mod sqlc generate
 
 web:
 	cd web && bun install && VITE_WERBOT_VERSION=$(VERSION) bun run build

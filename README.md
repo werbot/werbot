@@ -82,9 +82,10 @@ The stack listens on http://localhost:8080 (`/healthz`, `/readyz`).
 ```sh
 make test   # needs `make dev-db`
 make lint
+make sqlc   # regenerates internal/<domain>/dbq from migrations/ and internal/<domain>/queries.sql
 ```
 
-Go tools (buf, protoc-gen-go, protoc-gen-connect-go) live in `tools/go.mod`: `go tool -modfile=tools/go.mod buf ...`.
+Go tools (buf, protoc-gen-go, protoc-gen-connect-go, sqlc) live in `tools/go.mod`: `go tool -modfile=tools/go.mod buf ...`. The first sqlc build compiles `pg_query_go` with cgo (needs a C compiler). Generated `dbq` code is committed and never edited by hand; CI fails when `go tool -modfile=tools/go.mod sqlc diff` is not empty.
 
 ## License
 
