@@ -16,3 +16,5 @@ Requirements: Go 1.27, Bun.
 docker compose -f deploy/docker-compose.test.yaml up -d
 make test
 ```
+
+Run `bun install` in `web/` before `make proto`: buf uses `web/node_modules/.bin/protoc-gen-es`.
