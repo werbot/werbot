@@ -40,6 +40,7 @@ test.describe.serial('identity', () => {
 		await bobPage.getByLabel(en.field_password, { exact: true }).fill(bob.password);
 		await bobPage.getByRole('button', { name: en.invite_accept_submit }).click();
 		await expect(bobPage).toHaveURL('/');
+		await expect(bobPage.getByText(en.nav_profile)).toBeVisible();
 		await expect(bobPage.getByText(en.nav_members)).toBeHidden();
 		await ctx.close();
 	});
