@@ -123,19 +123,41 @@ func TestWithLockSerializes(t *testing.T) {
 }
 
 func TestWithLockReleases(t *testing.T) {
-	pool, _ := dbtest.New(t)
+	pool, dsn := dbtest.New(t)
 	errBoom := errors.New("boom")
 
+	// Advisory locks are reentrant within a session and the pool reuses the
+	// same idle connection, so release is checked from a separate session.
+	other, err := db.Open(context.Background(), dsn)
+	require.NoError(t, err)
+	defer other.Close()
 	assertReleased := func() {
 		t.Helper()
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		assert.NoError(t, db.WithLock(ctx, pool, db.BootstrapLock, func(context.Context) error { return nil }))
+		conn, err := other.Acquire(ctx)
+		require.NoError(t, err)
+		defer conn.Release()
+		var locked, unlocked bool
+		require.NoError(t, conn.QueryRow(ctx, "SELECT pg_try_advisory_lock($1)", db.BootstrapLock).Scan(&locked))
+		require.True(t, locked, "lock still held by another session")
+		require.NoError(t, conn.QueryRow(ctx, "SELECT pg_advisory_unlock($1)", db.BootstrapLock).Scan(&unlocked))
+		require.True(t, unlocked)
 	}
+	// A failed unlock closes the session, which also frees the lock, but only
+	// asynchronously; the unlock must succeed on the same session instead.
+	backendPID := func() int32 {
+		t.Helper()
+		var pid int32
+		require.NoError(t, pool.QueryRow(context.Background(), "SELECT pg_backend_pid()").Scan(&pid))
+		return pid
+	}
+	pid := backendPID()
 
-	err := db.WithLock(context.Background(), pool, db.BootstrapLock, func(context.Context) error { return errBoom })
+	err = db.WithLock(context.Background(), pool, db.BootstrapLock, func(context.Context) error { return errBoom })
 	assert.ErrorIs(t, err, errBoom)
 	assertReleased()
+	assert.Equal(t, pid, backendPID(), "connection was dropped instead of unlocked")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -145,6 +167,7 @@ func TestWithLockReleases(t *testing.T) {
 	})
 	assert.Error(t, err)
 	assertReleased()
+	assert.Equal(t, pid, backendPID(), "connection was dropped instead of unlocked")
 }
 
 func TestWithLockWaitHonorsContext(t *testing.T) {
