@@ -4,11 +4,14 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
@@ -122,4 +125,45 @@ func TestMiddlewareExtendsStaleSession(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, c.Value, again.Value)
 	assert.Equal(t, 604800, again.MaxAge)
+}
+
+// publicMethods are the only RPCs served without a session.
+var publicMethods = map[string]bool{
+	"GetSetupState": true, "Setup": true, "Login": true,
+	"RequestPasswordReset": true, "ResetPassword": true, "AcceptInvite": true,
+}
+
+func TestRPCRequiresSession(t *testing.T) {
+	svc, _, _ := newTestService(t)
+	h := NewHandler(svc)
+	mux := http.NewServeMux()
+	mux.Handle(werbotv1connect.NewAuthServiceHandler(h))
+	mux.Handle(werbotv1connect.NewProfileServiceHandler(h))
+	mux.Handle(werbotv1connect.NewSSHKeyServiceHandler(h))
+	mux.Handle(werbotv1connect.NewMemberServiceHandler(h))
+	mux.Handle(werbotv1connect.NewTeamServiceHandler(h))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	checked := 0
+	for _, name := range []string{
+		werbotv1connect.AuthServiceName, werbotv1connect.ProfileServiceName, werbotv1connect.SSHKeyServiceName,
+		werbotv1connect.MemberServiceName, werbotv1connect.TeamServiceName,
+	} {
+		d, err := protoregistry.GlobalFiles.FindDescriptorByName(protoreflect.FullName(name))
+		require.NoError(t, err)
+		methods := d.(protoreflect.ServiceDescriptor).Methods()
+		for i := range methods.Len() {
+			m := methods.Get(i)
+			if publicMethods[string(m.Name())] {
+				continue
+			}
+			res, err := srv.Client().Post(srv.URL+"/"+name+"/"+string(m.Name()), "application/json", strings.NewReader("{}"))
+			require.NoError(t, err)
+			require.NoError(t, res.Body.Close())
+			assert.Equal(t, http.StatusUnauthorized, res.StatusCode, "%s/%s", name, m.Name())
+			checked++
+		}
+	}
+	assert.Equal(t, 21, checked)
 }

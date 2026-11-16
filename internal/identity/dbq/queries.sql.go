@@ -13,6 +13,21 @@ import (
 	"github.com/google/uuid"
 )
 
+const addTeamMember = `-- name: AddTeamMember :exec
+INSERT INTO team_member (team_id, org_id, user_id) VALUES ($1, $2, $3)
+`
+
+type AddTeamMemberParams struct {
+	TeamID uuid.UUID
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) AddTeamMember(ctx context.Context, arg AddTeamMemberParams) error {
+	_, err := q.db.Exec(ctx, addTeamMember, arg.TeamID, arg.OrgID, arg.UserID)
+	return err
+}
+
 const consumeOneTimeToken = `-- name: ConsumeOneTimeToken :one
 UPDATE one_time_token SET used_at = now()
 WHERE token_hash = $1 AND kind = $2 AND used_at IS NULL AND expires_at > now()
@@ -160,6 +175,27 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 	return err
 }
 
+const createTeam = `-- name: CreateTeam :one
+INSERT INTO team (org_id, name) VALUES ($1, $2) RETURNING id, created_at
+`
+
+type CreateTeamParams struct {
+	OrgID uuid.UUID
+	Name  string
+}
+
+type CreateTeamRow struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+}
+
+func (q *Queries) CreateTeam(ctx context.Context, arg CreateTeamParams) (CreateTeamRow, error) {
+	row := q.db.QueryRow(ctx, createTeam, arg.OrgID, arg.Name)
+	var i CreateTeamRow
+	err := row.Scan(&i.ID, &i.CreatedAt)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, login, name, password_hash)
 VALUES ($1, $2, $3, $4)
@@ -241,6 +277,22 @@ type DeleteSessionParams struct {
 func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) error {
 	_, err := q.db.Exec(ctx, deleteSession, arg.ID, arg.OrgID)
 	return err
+}
+
+const deleteTeam = `-- name: DeleteTeam :one
+DELETE FROM team WHERE id = $1 AND org_id = $2 RETURNING name
+`
+
+type DeleteTeamParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+func (q *Queries) DeleteTeam(ctx context.Context, arg DeleteTeamParams) (string, error) {
+	row := q.db.QueryRow(ctx, deleteTeam, arg.ID, arg.OrgID)
+	var name string
+	err := row.Scan(&name)
+	return name, err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
@@ -578,6 +630,47 @@ func (q *Queries) ListSSHKeys(ctx context.Context, userID uuid.UUID) ([]ListSSHK
 	return items, nil
 }
 
+const listTeams = `-- name: ListTeams :many
+SELECT t.id, t.name, t.created_at,
+    COALESCE(array_agg(tm.user_id ORDER BY tm.user_id) FILTER (WHERE tm.user_id IS NOT NULL), '{}')::uuid[] AS member_user_ids
+FROM team t LEFT JOIN team_member tm ON tm.team_id = t.id
+WHERE t.org_id = $1
+GROUP BY t.id
+ORDER BY t.created_at, t.id
+`
+
+type ListTeamsRow struct {
+	ID            uuid.UUID
+	Name          string
+	CreatedAt     time.Time
+	MemberUserIds []uuid.UUID
+}
+
+func (q *Queries) ListTeams(ctx context.Context, orgID uuid.UUID) ([]ListTeamsRow, error) {
+	rows, err := q.db.Query(ctx, listTeams, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTeamsRow
+	for rows.Next() {
+		var i ListTeamsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.MemberUserIds,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockMemberRole = `-- name: LockMemberRole :one
 SELECT role FROM membership WHERE org_id = $1 AND user_id = $2 FOR UPDATE
 `
@@ -711,6 +804,76 @@ func (q *Queries) LookupSSHKeyUser(ctx context.Context, arg LookupSSHKeyUserPara
 	return i, err
 }
 
+const removeTeamMember = `-- name: RemoveTeamMember :execrows
+DELETE FROM team_member WHERE team_id = $1 AND org_id = $2 AND user_id = $3
+`
+
+type RemoveTeamMemberParams struct {
+	TeamID uuid.UUID
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) RemoveTeamMember(ctx context.Context, arg RemoveTeamMemberParams) (int64, error) {
+	result, err := q.db.Exec(ctx, removeTeamMember, arg.TeamID, arg.OrgID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const renameTeam = `-- name: RenameTeam :one
+UPDATE team SET name = $1 WHERE id = $2 AND org_id = $3 RETURNING id, name, created_at
+`
+
+type RenameTeamParams struct {
+	Name  string
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+type RenameTeamRow struct {
+	ID        uuid.UUID
+	Name      string
+	CreatedAt time.Time
+}
+
+func (q *Queries) RenameTeam(ctx context.Context, arg RenameTeamParams) (RenameTeamRow, error) {
+	row := q.db.QueryRow(ctx, renameTeam, arg.Name, arg.ID, arg.OrgID)
+	var i RenameTeamRow
+	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	return i, err
+}
+
+const teamMemberIDs = `-- name: TeamMemberIDs :many
+SELECT user_id FROM team_member WHERE team_id = $1 AND org_id = $2 ORDER BY user_id
+`
+
+type TeamMemberIDsParams struct {
+	TeamID uuid.UUID
+	OrgID  uuid.UUID
+}
+
+func (q *Queries) TeamMemberIDs(ctx context.Context, arg TeamMemberIDsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, teamMemberIDs, arg.TeamID, arg.OrgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var user_id uuid.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateMemberRole = `-- name: UpdateMemberRole :exec
 UPDATE membership SET role = $1 WHERE org_id = $2 AND user_id = $3
 `
@@ -785,4 +948,33 @@ type UpdateUserPasswordParams struct {
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
 	_, err := q.db.Exec(ctx, updateUserPassword, arg.PasswordHash, arg.ID)
 	return err
+}
+
+const userTeams = `-- name: UserTeams :many
+SELECT team_id FROM team_member WHERE org_id = $1 AND user_id = $2 ORDER BY team_id
+`
+
+type UserTeamsParams struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) UserTeams(ctx context.Context, arg UserTeamsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, userTeams, arg.OrgID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var team_id uuid.UUID
+		if err := rows.Scan(&team_id); err != nil {
+			return nil, err
+		}
+		items = append(items, team_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -46,4 +46,12 @@ type Store interface {
 	LockMemberRole(ctx context.Context, arg dbq.LockMemberRoleParams) (string, error)
 	UpdateMemberRole(ctx context.Context, arg dbq.UpdateMemberRoleParams) error
 	DeleteMembership(ctx context.Context, arg dbq.DeleteMembershipParams) error
+	ListTeams(ctx context.Context, orgID uuid.UUID) ([]dbq.ListTeamsRow, error)
+	TeamMemberIDs(ctx context.Context, arg dbq.TeamMemberIDsParams) ([]uuid.UUID, error)
+	CreateTeam(ctx context.Context, arg dbq.CreateTeamParams) (dbq.CreateTeamRow, error)
+	RenameTeam(ctx context.Context, arg dbq.RenameTeamParams) (dbq.RenameTeamRow, error)
+	DeleteTeam(ctx context.Context, arg dbq.DeleteTeamParams) (string, error)
+	AddTeamMember(ctx context.Context, arg dbq.AddTeamMemberParams) error
+	RemoveTeamMember(ctx context.Context, arg dbq.RemoveTeamMemberParams) (int64, error)
+	UserTeams(ctx context.Context, arg dbq.UserTeamsParams) ([]uuid.UUID, error)
 }

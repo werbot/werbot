@@ -19,3 +19,9 @@ func isUniqueViolation(err error) bool {
 	pgErr, ok := errors.AsType[*pgconn.PgError](err)
 	return ok && pgErr.Code == "23505"
 }
+
+// isForeignKeyViolation reports a foreign_key_violation (SQLSTATE 23503).
+func isForeignKeyViolation(err error) bool {
+	pgErr, ok := errors.AsType[*pgconn.PgError](err)
+	return ok && pgErr.Code == "23503"
+}

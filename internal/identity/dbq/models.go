@@ -49,6 +49,19 @@ type Organization struct {
 	CreatedAt time.Time
 }
 
+type Team struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	Name      string
+	CreatedAt time.Time
+}
+
+type TeamMember struct {
+	TeamID uuid.UUID
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
 type User struct {
 	ID           uuid.UUID
 	Email        string

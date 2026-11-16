@@ -151,3 +151,32 @@ DELETE FROM membership WHERE org_id = @org_id AND user_id = @user_id;
 SELECT m.org_id, m.user_id FROM membership m
 WHERE m.role = 'owner' AND m.org_id IN (SELECT o.org_id FROM membership o WHERE o.user_id = @user_id AND o.role = 'owner')
 ORDER BY m.org_id, m.user_id FOR UPDATE OF m;
+
+-- name: ListTeams :many
+SELECT t.id, t.name, t.created_at,
+    COALESCE(array_agg(tm.user_id ORDER BY tm.user_id) FILTER (WHERE tm.user_id IS NOT NULL), '{}')::uuid[] AS member_user_ids
+FROM team t LEFT JOIN team_member tm ON tm.team_id = t.id
+WHERE t.org_id = @org_id
+GROUP BY t.id
+ORDER BY t.created_at, t.id;
+
+-- name: TeamMemberIDs :many
+SELECT user_id FROM team_member WHERE team_id = @team_id AND org_id = @org_id ORDER BY user_id;
+
+-- name: CreateTeam :one
+INSERT INTO team (org_id, name) VALUES (@org_id, @name) RETURNING id, created_at;
+
+-- name: RenameTeam :one
+UPDATE team SET name = @name WHERE id = @id AND org_id = @org_id RETURNING id, name, created_at;
+
+-- name: DeleteTeam :one
+DELETE FROM team WHERE id = @id AND org_id = @org_id RETURNING name;
+
+-- name: AddTeamMember :exec
+INSERT INTO team_member (team_id, org_id, user_id) VALUES (@team_id, @org_id, @user_id);
+
+-- name: RemoveTeamMember :execrows
+DELETE FROM team_member WHERE team_id = @team_id AND org_id = @org_id AND user_id = @user_id;
+
+-- name: UserTeams :many
+SELECT team_id FROM team_member WHERE org_id = @org_id AND user_id = @user_id ORDER BY team_id;
