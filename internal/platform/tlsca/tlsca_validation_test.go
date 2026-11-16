@@ -3,6 +3,7 @@ package tlsca
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -73,5 +74,18 @@ func TestFingerprintPEMRejectsNonCertificate(t *testing.T) {
 		if _, err := FingerprintPEM(in); !errors.Is(err, apperr.ErrInvalidArgument) {
 			t.Errorf("%s: err = %v", name, err)
 		}
+	}
+}
+
+func TestFingerprintPEMRejectsTrailingData(t *testing.T) {
+	a, b := newTestCA(t).RootPEM(), newTestCA(t).RootPEM()
+	if _, err := FingerprintPEM(append(slices.Clone(a), b...)); !errors.Is(err, apperr.ErrInvalidArgument) {
+		t.Fatalf("two certs: err = %v, want ErrInvalidArgument", err)
+	}
+	if _, err := FingerprintPEM(append(slices.Clone(a), "junk"...)); !errors.Is(err, apperr.ErrInvalidArgument) {
+		t.Fatalf("trailing junk: err = %v, want ErrInvalidArgument", err)
+	}
+	if _, err := FingerprintPEM(append(slices.Clone(a), " \n"...)); err != nil {
+		t.Fatalf("trailing whitespace: %v", err)
 	}
 }

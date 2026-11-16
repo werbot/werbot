@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -54,6 +56,38 @@ func ensureEnrolled(ctx context.Context, cfg Config, hc *http.Client, connectors
 	return st, cs, pool, nil
 }
 
+// singleCA parses the first PEM block as the only trusted root and returns the pool plus its canonical PEM.
+// Trailing blocks are ignored, never trusted.
+func singleCA(caPEM []byte) (*x509.CertPool, []byte, error) {
+	blk, _ := pem.Decode(caPEM)
+	if blk == nil || blk.Type != "CERTIFICATE" {
+		return nil, nil, errors.New("not a PEM certificate")
+	}
+	ca, err := x509.ParseCertificate(blk.Bytes)
+	if err != nil {
+		return nil, nil, errors.New("invalid CA certificate")
+	}
+	pool := x509.NewCertPool()
+	pool.AddCert(ca)
+	return pool, pem.EncodeToMemory(blk), nil
+}
+
+// verifyClientCert checks that certPEM chains to pool for client auth.
+func verifyClientCert(certPEM []byte, pool *x509.CertPool) error {
+	blk, _ := pem.Decode(certPEM)
+	if blk == nil || blk.Type != "CERTIFICATE" {
+		return errors.New("enroll: certificate is not PEM")
+	}
+	leaf, err := x509.ParseCertificate(blk.Bytes)
+	if err != nil {
+		return errors.New("enroll: invalid certificate in response")
+	}
+	if _, err := leaf.Verify(x509.VerifyOptions{Roots: pool, KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}}); err != nil {
+		return fmt.Errorf("enroll: certificate does not chain to the pinned CA: %w", err)
+	}
+	return nil
+}
+
 func loadIdentity(dir string) (state, *certStore, error) {
 	var st state
 	b, err := os.ReadFile(filepath.Join(dir, stateFile)) //nolint:gosec // path is DataDir + fixed name
@@ -71,7 +105,7 @@ func enroll(ctx context.Context, cfg Config, hc *http.Client, connectors []strin
 	if cfg.ServerURL == "" || cfg.JoinToken == "" {
 		return state{}, nil, errors.New("instance is not enrolled: WERBOT_GATEWAY_SERVER_URL and WERBOT_GATEWAY_JOIN_TOKEN are required")
 	}
-	secret, wantFP, err := ParseJoinToken(cfg.JoinToken)
+	wantFP, err := ParseJoinToken(cfg.JoinToken)
 	if err != nil {
 		return state{}, nil, err
 	}
@@ -80,7 +114,7 @@ func enroll(ctx context.Context, cfg Config, hc *http.Client, connectors []strin
 		return state{}, nil, err
 	}
 	resp, err := werbotv1connect.NewGatewayEnrollServiceClient(hc, cfg.ServerURL).Enroll(ctx, connect.NewRequest(&werbotv1.EnrollRequest{
-		JoinToken: secret + "." + wantFP, CsrDer: csr, Hostname: cfg.Name, Version: version.Version, Connectors: connectors,
+		JoinToken: strings.TrimSpace(cfg.JoinToken), CsrDer: csr, Hostname: cfg.Name, Version: version.Version, Connectors: connectors,
 	}))
 	if err != nil {
 		return state{}, nil, fmt.Errorf("enroll: %w", err)
@@ -92,6 +126,13 @@ func enroll(ctx context.Context, cfg Config, hc *http.Client, connectors []strin
 	}
 	if gotFP != wantFP {
 		return state{}, nil, errors.New("enroll: CA fingerprint mismatch: server CA does not match the join token")
+	}
+	caPool, caPEM, err := singleCA([]byte(m.GetCaPem()))
+	if err != nil {
+		return state{}, nil, fmt.Errorf("enroll: %w", err)
+	}
+	if err := verifyClientCert([]byte(m.GetCertPem()), caPool); err != nil {
+		return state{}, nil, err
 	}
 	st := state{TunnelURL: m.GetTunnelUrl()}
 	if st.GatewayID, err = uuid.Parse(m.GetGatewayId()); err != nil {
@@ -106,11 +147,14 @@ func enroll(ctx context.Context, cfg Config, hc *http.Client, connectors []strin
 	if err := os.MkdirAll(cfg.DataDir, 0o700); err != nil {
 		return state{}, nil, err
 	}
+	if err := os.Chmod(cfg.DataDir, 0o700); err != nil { //nolint:gosec // directory needs the x bit; fixes pre-existing dirs/volumes
+		return state{}, nil, err
+	}
 	cs := &certStore{dir: cfg.DataDir}
 	if err := cs.Replace([]byte(m.GetCertPem()), keyPEM); err != nil {
 		return state{}, nil, err
 	}
-	if err := writeAtomic(filepath.Join(cfg.DataDir, caFile), []byte(m.GetCaPem()), 0o644); err != nil {
+	if err := writeAtomic(filepath.Join(cfg.DataDir, caFile), caPEM, 0o644); err != nil {
 		return state{}, nil, err
 	}
 	if err := writeAtomic(filepath.Join(cfg.DataDir, hostKeyFile), []byte(m.GetHostKeyPem()), 0o600); err != nil {

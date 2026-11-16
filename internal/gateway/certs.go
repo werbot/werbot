@@ -50,6 +50,9 @@ func (s *certStore) GetClientCertificate(*tls.CertificateRequestInfo) (*tls.Cert
 func (s *certStore) Leaf() *x509.Certificate { return s.cur.Load().Leaf }
 
 // Replace validates the pair, writes it atomically and swaps it in.
+// Crash window: the key is renamed before the cert. A crash between the two leaves the new key
+// next to the old cert, and the pair no longer loads. Task 9 decides whether renewal reuses
+// the enrolled key (no window) or rotates it (window accepted, instance re-enrolls).
 func (s *certStore) Replace(certPEM, keyPEM []byte) error {
 	c, err := tls.X509KeyPair(certPEM, keyPEM)
 	if err != nil {
@@ -65,7 +68,8 @@ func (s *certStore) Replace(certPEM, keyPEM []byte) error {
 	return nil
 }
 
-// writeAtomic writes via tmp + rename so a crash never leaves a torn file.
+// writeAtomic writes via tmp + fsync + rename + parent-dir fsync, so neither a crash
+// nor a power loss leaves a torn or vanished file.
 func writeAtomic(path string, data []byte, mode os.FileMode) error {
 	tmp, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".tmp*")
 	if err != nil {
@@ -80,10 +84,22 @@ func writeAtomic(path string, data []byte, mode os.FileMode) error {
 		_ = tmp.Close()
 		return err
 	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return err
+	}
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmp.Name(), path)
+	if err := os.Rename(tmp.Name(), path); err != nil {
+		return err
+	}
+	d, err := os.Open(filepath.Dir(path))
+	if err != nil {
+		return err
+	}
+	defer d.Close() //nolint:errcheck // read-only handle
+	return d.Sync()
 }
 
 // newCSR makes an ed25519 key (PKCS8 PEM) and a CSR for it; the server sets the subject.

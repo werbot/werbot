@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
@@ -22,6 +23,7 @@ import (
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
+	"github.com/werbot/werbot/internal/platform/version"
 )
 
 type memCAStore struct {
@@ -59,6 +61,7 @@ func newCA(t *testing.T) *tlsca.CA {
 type fakeEnroll struct {
 	werbotv1connect.UnimplementedGatewayEnrollServiceHandler
 	ca      *tlsca.CA
+	extraCA []byte // appended to ca_pem
 	hostKey []byte
 	mu      sync.Mutex
 	reqs    []*werbotv1.EnrollRequest
@@ -74,7 +77,7 @@ func (f *fakeEnroll) Enroll(_ context.Context, r *connect.Request[werbotv1.Enrol
 	}
 	return connect.NewResponse(&werbotv1.EnrollResponse{
 		GatewayId: "0198a000-0000-7000-8000-000000000001", InstanceId: "0198a000-0000-7000-8000-000000000002",
-		CertPem: string(cert), CaPem: string(f.ca.RootPEM()), TunnelUrl: "https://tunnel.test", HostKeyPem: string(f.hostKey),
+		CertPem: string(cert), CaPem: string(f.ca.RootPEM()) + string(f.extraCA), TunnelUrl: "https://tunnel.test", HostKeyPem: string(f.hostKey),
 	}), nil
 }
 
@@ -102,6 +105,14 @@ func TestEnrollVerifiesCAFingerprint(t *testing.T) {
 	require.ErrorContains(t, err, "CA fingerprint mismatch")
 	require.NoDirExists(t, dir)
 
+	f.extraCA = newCA(t).RootPEM() // CA A + CA B, token pins A: the appended root must not slip in
+	cfg.JoinToken = testToken(f.ca.Fingerprint())
+	_, _, _, err = ensureEnrolled(t.Context(), cfg, srv.Client(), nil)
+	require.ErrorContains(t, err, "exactly one certificate")
+	require.NoDirExists(t, dir)
+	f.extraCA = nil
+	f.reqs = nil
+
 	cfg.JoinToken = "  " + testToken(f.ca.Fingerprint()) + "\n" // pasted with whitespace
 	st, cs, pool, err := ensureEnrolled(t.Context(), cfg, srv.Client(), []string{"ssh", "rdp"})
 	require.NoError(t, err)
@@ -128,7 +139,19 @@ func TestEnrollVerifiesCAFingerprint(t *testing.T) {
 	csr, err := x509.ParseCertificateRequest(r.GetCsrDer())
 	require.NoError(t, err)
 	require.Equal(t, x509.Ed25519, csr.PublicKeyAlgorithm)
-	require.Len(t, f.reqs, 2) // mismatch call + success call
+	require.Len(t, f.reqs, 1)
+	require.Equal(t, version.Version, r.GetVersion())
+	require.Equal(t, testToken(f.ca.Fingerprint()), r.GetJoinToken()) // trimmed
+	var saved state
+	raw, err := os.ReadFile(filepath.Join(dir, stateFile)) //nolint:gosec // test path
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(raw, &saved))
+	require.Equal(t, st, saved)
+	require.Equal(t, "0198a000-0000-7000-8000-000000000001", saved.GatewayID.String())
+	require.Equal(t, "0198a000-0000-7000-8000-000000000002", saved.InstanceID.String())
+	ca, err := os.ReadFile(filepath.Join(dir, caFile)) //nolint:gosec // test path
+	require.NoError(t, err)
+	require.Equal(t, f.ca.RootPEM(), ca)
 }
 
 func TestEnsureEnrolledSkipsWhenEnrolled(t *testing.T) {
@@ -148,6 +171,9 @@ func TestEnsureEnrolledSkipsWhenEnrolled(t *testing.T) {
 	require.Len(t, f.reqs, 1)
 	require.Equal(t, "https://embedded", st.TunnelURL)
 	require.NotNil(t, cs.Leaf())
+	st, _, _, err = ensureEnrolled(t.Context(), Config{DataDir: dir}, srv.Client(), nil)
+	require.NoError(t, err)
+	require.Equal(t, "https://tunnel.test", st.TunnelURL)
 	after, _ := os.Stat(p)
 	body2, _ := os.ReadFile(p) //nolint:gosec // test path
 	require.Equal(t, body, body2)

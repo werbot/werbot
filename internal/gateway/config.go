@@ -85,7 +85,7 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	}
 	name := env[envName]
 	if name == "" {
-		name, _ = os.Hostname()
+		name, _ = os.Hostname() // an error leaves name empty, rejected below
 	}
 
 	fs := flag.NewFlagSet("gateway", flag.ContinueOnError)
@@ -102,6 +102,12 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	fs.IntVar(&c.MaxSessions, "max-sessions", c.MaxSessions, "concurrent session limit")
 	if err := fs.Parse(args); err != nil {
 		return c, fmt.Errorf("gateway flags: %w", err)
+	}
+	if fs.NArg() > 0 {
+		return c, fmt.Errorf("unexpected arguments: %q", fs.Args())
+	}
+	if c.Name == "" {
+		return c, fmt.Errorf("%s is empty and the OS hostname is unavailable", envName)
 	}
 	if c.MaxSessions < 1 {
 		return c, fmt.Errorf("%s must be >= 1", envMaxSess)
@@ -139,14 +145,15 @@ func envDuration(key, v string, def time.Duration) (time.Duration, error) {
 
 var joinTokenRE = regexp.MustCompile(`^wjt_([A-Za-z0-9_-]{43})\.([0-9a-f]{64})$`)
 
-// ParseJoinToken splits wjt_<secret>.<CA fingerprint>; surrounding whitespace is ignored.
+// ParseJoinToken validates wjt_<secret>.<CA fingerprint> (surrounding whitespace is ignored)
+// and returns the pinned CA fingerprint. The secret is sent as is, so it is not returned.
 // Errors never contain the token.
-func ParseJoinToken(s string) (secret, caFingerprint string, err error) {
+func ParseJoinToken(s string) (caFingerprint string, err error) {
 	m := joinTokenRE.FindStringSubmatch(strings.TrimSpace(s))
 	if m == nil {
-		return "", "", errors.New("malformed join token: want wjt_<43 chars>.<64 hex>")
+		return "", errors.New("malformed join token: want wjt_<43 chars>.<64 hex>")
 	}
-	return "wjt_" + m[1], m[2], nil
+	return m[2], nil
 }
 
 // Enrolled reports whether dataDir holds an instance identity.

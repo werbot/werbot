@@ -2,6 +2,7 @@
 package tlsca
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -219,10 +220,15 @@ func (c *CA) RootPEM() []byte { return c.rootPEM }
 func (c *CA) Fingerprint() string { return fingerprint(c.cert.Raw) }
 
 // FingerprintPEM computes Fingerprint for a root certificate in PEM form.
+// The input must be exactly one CERTIFICATE block: anything else after it is rejected,
+// so a pinned fingerprint covers every byte that a caller may later trust.
 func FingerprintPEM(rootPEM []byte) (string, error) {
-	blk, _ := pem.Decode(rootPEM)
+	blk, rest := pem.Decode(rootPEM)
 	if blk == nil || blk.Type != "CERTIFICATE" {
 		return "", fmt.Errorf("%w: root is not a PEM certificate", apperr.ErrInvalidArgument)
+	}
+	if len(bytes.TrimSpace(rest)) != 0 {
+		return "", fmt.Errorf("%w: root must be exactly one certificate", apperr.ErrInvalidArgument)
 	}
 	return fingerprint(blk.Bytes), nil
 }

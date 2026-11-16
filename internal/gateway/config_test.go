@@ -56,14 +56,21 @@ func testToken(fp string) string {
 
 func TestParseJoinTokenTrimsSpace(t *testing.T) {
 	fp := strings.Repeat("ab", 32)
-	secret, got, err := ParseJoinToken("  " + testToken(fp) + "\n")
+	got, err := ParseJoinToken("  " + testToken(fp) + "\n")
 	require.NoError(t, err)
-	require.Equal(t, "wjt_"+strings.Repeat("a", 43), secret)
 	require.Equal(t, fp, got)
 
 	for _, bad := range []string{"wjt_abc", "xyz_" + strings.Repeat("a", 43) + "." + fp, testToken(fp[:63])} {
-		_, _, err := ParseJoinToken(bad)
+		_, err := ParseJoinToken(bad)
 		require.Error(t, err)
 		require.NotContains(t, err.Error(), bad)
 	}
+}
+
+func TestLoadConfigRejectsBadInput(t *testing.T) {
+	_, err := LoadConfig([]string{"stray"}, env(nil))
+	require.ErrorContains(t, err, "unexpected arguments")
+	// a non-empty name is always set (env or hostname), so empty-name is reachable only via --name ""
+	_, err = LoadConfig([]string{"--name", ""}, env(nil))
+	require.ErrorContains(t, err, envName)
 }
