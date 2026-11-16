@@ -115,6 +115,9 @@ func (f *fakeTunnel) StartSession(ctx context.Context, r *connect.Request[gatewa
 		<-ctx.Done()
 		return nil, ctx.Err()
 	}
+	if r.Msg.GetResourceId() == uuid.Nil.String() { // no credential
+		return connect.NewResponse(&gatewayv1.StartSessionResponse{SessionId: testSessionID.String()}), nil
+	}
 	return connect.NewResponse(&gatewayv1.StartSessionResponse{SessionId: testSessionID.String(),
 		Credential: &gatewayv1.Credential{Kind: "password", Value: []byte("pw")}}), nil
 }

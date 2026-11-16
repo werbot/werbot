@@ -133,9 +133,13 @@ forbid (principal, action, resource) when { context.ip_blocked };`
 	require.False(t, allow, "a forbid that fails to evaluate must deny")
 	require.Contains(t, reasons, "error:policy2")
 
-	var none *Policy
+	var none *Policy // no snapshot yet
 	allow, _ = none.Authorize(AccessRequest{User: u1, Resource: r1, IP: netip.MustParseAddr("198.51.100.1")})
 	require.False(t, allow)
+	require.Empty(t, none.Version())
+	require.Nil(t, none.Permitted(u1, netip.MustParseAddr("198.51.100.1"), time.Now()))
+	_, ok := none.Resource("r1")
+	require.False(t, ok)
 }
 
 func TestAuthorizeUsesTypeAction(t *testing.T) {

@@ -122,7 +122,7 @@ func (c *tunnelClient) Run(ctx context.Context, heartbeat func() *gatewayv1.Hear
 		if got {
 			failures = 0
 		}
-		if retryNow(err) {
+		if retryNow(err, got) {
 			c.log.InfoContext(ctx, "tunnel: reconnecting", "reason", err)
 			continue
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/netip"
 
 	"connectrpc.com/connect"
@@ -20,6 +21,9 @@ type Secret struct {
 	Kind  string
 	Value []byte
 }
+
+// LogValue keeps the credential out of logs.
+func (Secret) LogValue() slog.Value { return slog.StringValue("[redacted]") }
 
 // Each unary call runs under callTimeout.
 
@@ -63,6 +67,9 @@ func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid
 		return uuid.Nil, Secret{}, errors.New("start session: invalid session_id in response")
 	}
 	cred := resp.Msg.GetCredential()
+	if cred == nil {
+		return uuid.Nil, Secret{}, errors.New("start session: no credential in response")
+	}
 	return id, Secret{Kind: cred.GetKind(), Value: cred.GetValue()}, nil
 }
 

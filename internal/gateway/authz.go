@@ -85,10 +85,18 @@ func CompilePolicy(s *gatewayv1.Snapshot) (*Policy, error) {
 }
 
 // Version is the snapshot version.
-func (p *Policy) Version() string { return p.version }
+func (p *Policy) Version() string {
+	if p == nil {
+		return ""
+	}
+	return p.version
+}
 
 // Resource finds a resource of the pool by name.
 func (p *Policy) Resource(name string) (Resource, bool) {
+	if p == nil {
+		return Resource{}, false
+	}
 	i, ok := slices.BinarySearchFunc(p.resources, name, func(r Resource, n string) int { return cmp.Compare(r.Name, n) })
 	if !ok {
 		return Resource{}, false
@@ -98,6 +106,9 @@ func (p *Policy) Resource(name string) (Resource, bool) {
 
 // Permitted lists the resources u may connect to, by ascending Name.
 func (p *Policy) Permitted(u User, ip netip.Addr, now time.Time) []Resource {
+	if p == nil {
+		return nil
+	}
 	var out []Resource
 	for _, r := range p.resources {
 		if ok, _ := p.Authorize(AccessRequest{User: u, Resource: r, IP: ip, Time: now}); ok {

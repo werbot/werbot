@@ -1,9 +1,11 @@
 package gateway
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"log/slog"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -30,6 +32,8 @@ func TestTunnelUnaryCalls(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testSessionID, id)
 	require.Equal(t, Secret{Kind: "password", Value: []byte("pw")}, sec)
+	_, _, err = e.c.StartSession(t.Context(), testUserID, uuid.Nil, ip)
+	require.ErrorContains(t, err, "no credential")
 
 	require.NoError(t, e.c.EndSession(t.Context(), id, "closed"))
 	e.f.with(func(f *fakeTunnel) {
@@ -125,4 +129,12 @@ func TestPinHostKeyMismatch(t *testing.T) {
 	err = e.c.PinHostKey(t.Context(), rid, "ssh-ed25519", []byte("other"))
 	require.Error(t, err)
 	require.NotErrorIs(t, err, ErrHostKeyMismatch)
+}
+
+func TestSecretRedactedInLogs(t *testing.T) {
+	var buf bytes.Buffer
+	slog.New(slog.NewTextHandler(&buf, nil)).Info("start", "secret", Secret{Kind: "password", Value: []byte("hunter2")})
+	require.Contains(t, buf.String(), "[redacted]")
+	require.NotContains(t, buf.String(), "hunter2")
+	require.NotContains(t, buf.String(), "password")
 }

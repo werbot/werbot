@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"errors"
-	"strings"
 	"testing"
 	"time"
 
@@ -54,6 +53,7 @@ func TestTunnelReconnectKeepsSnapshot(t *testing.T) {
 	p := e.c.Policy()
 	require.NotNil(t, p)
 	require.False(t, e.c.Connected())
+	require.Contains(t, e.metrics(t), "werbot_gateway_tunnel_connected 0")
 	require.Eventually(t, func() bool { return e.f.attempts() == 4 && e.c.Connected() }, 2*time.Second, time.Millisecond)
 	require.Same(t, p, e.c.Policy())
 
@@ -119,11 +119,42 @@ func TestTunnelSkipsSameVersion(t *testing.T) {
 	require.Eventually(t, func() bool { return e.c.Policy() != p }, 2*time.Second, time.Millisecond)
 	require.Equal(t, "v2", e.c.Policy().Version())
 	require.NotContains(t, e.log.String(), "compile")
+}
 
-	p2 := e.c.Policy()
+func TestTunnelBrokenSnapshotNotReady(t *testing.T) {
+	e := newTunnelEnv(t, nil, time.Hour)
+	e.run(t, nil)
+	require.Eventually(t, e.c.Connected, 2*time.Second, time.Millisecond)
+	p := e.c.Policy()
+
+	// a revoke the gateway cannot compile: keep v1 for active sessions, refuse new ones
 	e.f.push <- &gatewayv1.Snapshot{Version: "v3", CedarPolicies: "garbage ((("}
-	require.Eventually(t, func() bool { return strings.Contains(e.log.String(), "compile") }, 2*time.Second, time.Millisecond)
-	require.Same(t, p2, e.c.Policy(), "a broken snapshot keeps the previous one")
+	require.Eventually(t, func() bool { return !e.c.Connected() }, 2*time.Second, time.Millisecond)
+	require.Contains(t, e.log.String(), "compile")
+	require.Contains(t, e.metrics(t), "werbot_gateway_tunnel_connected 0")
+	require.Same(t, p, e.c.Policy())
+	require.Equal(t, "v1", e.c.Policy().Version())
+
+	e.f.push <- testSnap("v4")
+	require.Eventually(t, e.c.Connected, 2*time.Second, time.Millisecond)
+	require.Equal(t, "v4", e.c.Policy().Version())
+	require.Contains(t, e.metrics(t), "werbot_gateway_tunnel_connected 1")
+}
+
+func TestTunnelShutdownRejectBacksOff(t *testing.T) {
+	// a replica after Hub.Shutdown rejects every new stream before any snapshot
+	e := newTunnelEnv(t, func(int) attempt {
+		return attempt{reject: connect.NewError(connect.CodeUnavailable, errors.New("shutdown"))}
+	}, time.Hour)
+	e.c.backoffMin = 50 * time.Millisecond
+	e.run(t, nil)
+	require.Eventually(t, func() bool { return e.f.attempts() >= 4 }, 3*time.Second, time.Millisecond)
+
+	e.f.mu.Lock()
+	defer e.f.mu.Unlock()
+	for i := range 3 {
+		require.GreaterOrEqual(t, e.f.starts[i+1].Sub(e.f.closes[i]), e.c.backoffMin, "pause before attempt %d", i+1)
+	}
 }
 
 func TestTunnelBackoff(t *testing.T) {

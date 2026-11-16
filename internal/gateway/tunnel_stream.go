@@ -48,7 +48,9 @@ func (c *tunnelClient) stream(ctx context.Context, heartbeat func() *gatewayv1.H
 				return
 			case <-t.C:
 				if err := send(); err != nil {
-					cancel(err)
+					if !errors.Is(err, io.EOF) { // on EOF the server's close error from Receive wins
+						cancel(err)
+					}
 					return
 				}
 			}
@@ -63,35 +65,38 @@ func (c *tunnelClient) stream(ctx context.Context, heartbeat func() *gatewayv1.H
 			return got, err
 		}
 		if s := msg.GetSnapshot(); s != nil {
-			c.apply(s)
 			got = true
-			c.setConnected(true)
+			c.setConnected(c.apply(s))
 		}
 	}
 }
 
-// apply compiles s unless it has the current version; a snapshot that does not
-// compile is logged and the previous one stays.
-func (c *tunnelClient) apply(s *gatewayv1.Snapshot) {
+// apply compiles s unless it has the current version and reports whether the
+// current Policy is s. A snapshot that does not compile is logged and the previous
+// Policy stays for active sessions, but the gateway is not ready: it may miss a revoke.
+func (c *tunnelClient) apply(s *gatewayv1.Snapshot) bool {
 	if p := c.policy.Load(); p != nil && p.Version() == s.GetVersion() {
-		return
+		return true
 	}
 	p, err := CompilePolicy(s)
 	if err != nil {
-		c.log.Error("tunnel: snapshot does not compile, keeping the previous one", "version", s.GetVersion(), "error", err)
-		return
+		c.log.Error("tunnel: snapshot does not compile, not ready until one does", "version", s.GetVersion(), "error", err)
+		return false
 	}
 	c.policy.Store(p)
+	return true
 }
 
-// retryNow reports a stream end that calls for an immediate reconnect: the server
-// rebalances or shuts down, or the certificate was renewed.
-func retryNow(err error) bool {
+// retryNow reports a stream end that calls for an immediate reconnect: the
+// certificate was renewed, or a stream that delivered a snapshot was closed for
+// rebalance or shutdown. A replica that rejects new streams with "shutdown" before
+// any snapshot gets the backoff, not a reconnect loop.
+func retryNow(err error, got bool) bool {
 	if errors.Is(err, errRenewed) {
 		return true
 	}
 	var ce *connect.Error
-	return errors.As(err, &ce) && ce.Code() == connect.CodeUnavailable && (ce.Message() == "rebalance" || ce.Message() == "shutdown")
+	return got && errors.As(err, &ce) && ce.Code() == connect.CodeUnavailable && (ce.Message() == "rebalance" || ce.Message() == "shutdown")
 }
 
 // backoff is backoffMin·2ⁿ capped at backoffMax with ±20 % jitter, never below backoffMin.
