@@ -1,0 +1,44 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service AccessService {
+  rpc ListBindings(ListBindingsRequest) returns (ListBindingsResponse);
+  rpc CreateBinding(CreateBindingRequest) returns (CreateBindingResponse);
+  rpc DeleteBinding(DeleteBindingRequest) returns (DeleteBindingResponse);
+}
+
+// Binding grants a user or a team access to one resource or to every resource matching a label selector.
+message Binding {
+  string id = 1;
+  string subject_type = 2; // "user" | "team"
+  string subject_id = 3;
+  string resource_id = 4; // empty for a selector binding
+  map<string, string> label_selector = 5;
+  string created_by = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message ListBindingsRequest {
+  // Set: bindings to this resource plus every selector binding.
+  optional string resource_id = 1;
+}
+message ListBindingsResponse {
+  repeated Binding bindings = 1;
+}
+
+message CreateBindingRequest {
+  string subject_type = 1;
+  string subject_id = 2;
+  string resource_id = 3; // exactly one of resource_id and label_selector
+  map<string, string> label_selector = 4;
+}
+message CreateBindingResponse {
+  Binding binding = 1;
+}
+
+message DeleteBindingRequest {
+  string id = 1;
+}
+message DeleteBindingResponse {}

@@ -1,0 +1,51 @@
+package access_test
+
+import (
+	"context"
+	"testing"
+
+	"connectrpc.com/connect"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
+	"github.com/werbot/werbot/internal/access"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
+	"github.com/werbot/werbot/internal/platform/principal"
+)
+
+func TestRPCMemberDenied(t *testing.T) {
+	e := setup(t)
+	h := access.NewHandler(e.svc)
+	member := dbtest.User(t, e.pool, e.org, "member")
+	ctx := principal.With(context.Background(), principal.Principal{UserID: member, OrgID: e.org, Role: "member"})
+
+	_, err := h.ListBindings(ctx, connect.NewRequest(&werbotv1.ListBindingsRequest{}))
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+	_, err = h.CreateBinding(ctx, connect.NewRequest(&werbotv1.CreateBindingRequest{}))
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+	_, err = h.DeleteBinding(ctx, connect.NewRequest(&werbotv1.DeleteBindingRequest{}))
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+}
+
+func TestRPCRoundTrip(t *testing.T) {
+	e := setup(t)
+	h := access.NewHandler(e.svc)
+	r := dbtest.Resource(t, e.pool, e.org, "web", nil)
+
+	_, err := h.CreateBinding(e.ctx, connect.NewRequest(&werbotv1.CreateBindingRequest{
+		SubjectType: "user", SubjectId: "", ResourceId: r.String()}))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "bad subject id")
+	created, err := h.CreateBinding(e.ctx, connect.NewRequest(&werbotv1.CreateBindingRequest{
+		SubjectType: "user", SubjectId: e.owner.String(), ResourceId: r.String()}))
+	require.NoError(t, err)
+	assert.Equal(t, r.String(), created.Msg.GetBinding().GetResourceId())
+
+	id := r.String()
+	list, err := h.ListBindings(e.ctx, connect.NewRequest(&werbotv1.ListBindingsRequest{ResourceId: &id}))
+	require.NoError(t, err)
+	require.Len(t, list.Msg.GetBindings(), 1)
+
+	_, err = h.DeleteBinding(e.ctx, connect.NewRequest(&werbotv1.DeleteBindingRequest{Id: created.Msg.GetBinding().GetId()}))
+	require.NoError(t, err)
+}
