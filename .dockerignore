@@ -1,0 +1,9 @@
+.git
+.github
+.superpowers/
+bin/
+data/
+.env
+web/node_modules/
+web/.svelte-kit/
+web/build/*

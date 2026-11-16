@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: werbot
+      POSTGRES_PASSWORD: werbot
+      POSTGRES_DB: werbot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U werbot -d werbot"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  werbot:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    environment:
+      WERBOT_DATABASE_URL: postgres://werbot:werbot@postgres:5432/werbot?sslmode=disable
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
