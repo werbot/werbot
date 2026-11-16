@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/gliderlabs/ssh"
 	"github.com/pires/go-proxyproto"
 	gossh "golang.org/x/crypto/ssh"
@@ -21,15 +22,16 @@ import (
 
 // sshFront is the SSH entry: public key login, the resource menu, shell, exec and direct-tcpip.
 type sshFront struct {
-	cfg     Config
-	hostKey gossh.Signer
-	log     *slog.Logger
+	cfg              Config
+	hostKey          gossh.Signer
+	log              *slog.Logger
+	handshakeTimeout time.Duration // closes a connection that has not authenticated by then
 }
 
 var _ Front = (*sshFront)(nil)
 
 func newSSHFront(cfg Config, hostKey gossh.Signer, logger *slog.Logger) *sshFront {
-	return &sshFront{cfg: cfg, hostKey: hostKey, log: logger}
+	return &sshFront{cfg: cfg, hostKey: hostKey, log: logger, handshakeTimeout: 30 * time.Second}
 }
 
 func (*sshFront) Name() string { return "ssh" }
@@ -44,6 +46,19 @@ func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) erro
 		PublicKeyHandler: h.auth,
 		Handler:          h.session,
 		ChannelHandlers:  map[string]ssh.ChannelHandler{"session": ssh.DefaultSessionHandler, "direct-tcpip": h.forward},
+		// gliderlabs resets conn deadlines on every read, so the handshake limit is a timer
+		ConnCallback: func(ctx ssh.Context, conn net.Conn) net.Conn {
+			ctx.SetValue(handshakeKey{}, time.AfterFunc(f.handshakeTimeout, func() { _ = conn.Close() }))
+			return conn
+		},
+		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
+			return &gossh.ServerConfig{VerifiedPublicKeyCallback: func(_ gossh.ConnMetadata, _ gossh.PublicKey, perms *gossh.Permissions, _ string) (*gossh.Permissions, error) {
+				if t, ok := ctx.Value(handshakeKey{}).(*time.Timer); ok {
+					t.Stop() // the signature is verified: authenticated
+				}
+				return perms, nil
+			}}
+		},
 	}
 	srv.AddHostKey(f.hostKey)
 	served := make(chan error, 1)
@@ -72,6 +87,9 @@ func wrapListener(ln net.Listener, proxyProtocol bool) net.Listener {
 // userKey holds the *User accepted at the handshake; nil while the control plane was unreachable.
 type userKey struct{}
 
+// handshakeKey holds the *time.Timer that closes a connection still unauthenticated.
+type handshakeKey struct{}
+
 type sshHandler struct {
 	p   *Pipeline
 	log *slog.Logger
@@ -90,11 +108,20 @@ func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
 	}
 	actx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	u, err := h.p.ctl.AuthenticateUser(actx, gossh.FingerprintSHA256(key), clientIP(ctx.RemoteAddr()))
+	ip := clientIP(ctx.RemoteAddr())
+	u, err := h.p.ctl.AuthenticateUser(actx, gossh.FingerprintSHA256(key), ip)
 	switch {
 	case unreachable(err):
 		return true
-	case err != nil || u.Login != login:
+	case err != nil:
+		lvl := slog.LevelWarn
+		if c := connect.CodeOf(err); c == connect.CodeNotFound || c == connect.CodePermissionDenied || c == connect.CodeUnauthenticated {
+			lvl = slog.LevelInfo // an unknown or refused key
+		}
+		h.log.Log(ctx, lvl, "ssh: key refused", "login", login, "client_ip", ip, "error", err)
+		return false
+	case u.Login != login:
+		h.log.Info("ssh: key belongs to another login", "login", login, "client_ip", ip)
 		return false
 	}
 	ctx.SetValue(userKey{}, &u)
@@ -123,7 +150,7 @@ func (h *sshHandler) forward(_ *ssh.Server, conn *gossh.ServerConn, nc gossh.New
 	_, resource, _ := ParseLogin(conn.User()) // checked at the handshake
 	switch {
 	case handshakeUser(ctx) == nil:
-		_ = nc.Reject(gossh.Prohibited, openText(ErrNotReady, resource, KindStream, nil))
+		_ = nc.Reject(gossh.Prohibited, openText(h.p.reject(ErrNotReady), resource, KindStream, nil))
 		return
 	case resource == "":
 		_ = nc.Reject(gossh.Prohibited, usageText)

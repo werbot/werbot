@@ -20,14 +20,14 @@ func (h *sshHandler) session(s ssh.Session) {
 // through the pipeline, not through it.
 func (h *sshHandler) serveSession(s ssh.Session) int {
 	sctx := s.Context()
-	if handshakeUser(sctx) == nil {
-		say(s, openText(ErrNotReady, "", "", nil))
-		return 1
-	}
 	ctx, cancel := context.WithCancel(sctx)
 	defer cancel()
 	pty, winch, isPty := s.Pty()
-	resize := windowChanges(winch, cancel)
+	resize := windowChanges(winch, cancel) // first: winch must drain on every path
+	if handshakeUser(sctx) == nil {
+		say(s, openText(h.p.reject(ErrNotReady), "", "", nil))
+		return 1
+	}
 	_, resource, _ := ParseLogin(s.User()) // checked at the handshake
 	if resource == "" {
 		if !isPty || s.RawCommand() != "" {

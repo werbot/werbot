@@ -172,14 +172,15 @@ func TestServeDrain(t *testing.T) {
 
 	start := time.Now()
 	e.cancel()
-	require.Eventually(t, func() bool { return e.readyz() == http.StatusServiceUnavailable }, 100*time.Millisecond, 5*time.Millisecond)
 	require.Eventually(t, func() bool {
 		c, err := net.Dial("tcp", e.sshAddr)
 		if err == nil {
 			_ = c.Close()
+			return false
 		}
-		return err != nil
-	}, 100*time.Millisecond, 5*time.Millisecond, "the SSH listener is closed")
+		require.Equal(t, http.StatusServiceUnavailable, e.readyz(), "/readyz turns 503 before the listener closes")
+		return true
+	}, 100*time.Millisecond, time.Millisecond, "the SSH listener is closed")
 	require.Empty(t, e.ends(), "the session lives until DrainTimeout")
 
 	require.NoError(t, e.stop())

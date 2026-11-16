@@ -17,7 +17,7 @@ const menuPromptText = "Select resource or press Enter to exit > "
 func (h *sshHandler) menu(s ssh.Session, u User) (string, int) {
 	pol := h.p.ctl.Policy()
 	if pol == nil || !h.p.ctl.Connected() {
-		say(s, openText(ErrNotReady, "", "", nil))
+		say(s, openText(h.p.reject(ErrNotReady), "", "", nil))
 		return "", 1
 	}
 	rs := pol.Permitted(u, clientIP(s.RemoteAddr()), time.Now())

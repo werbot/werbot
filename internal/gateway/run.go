@@ -74,16 +74,23 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 		}()
 	}
 
-	frontCtx, stopFront := context.WithCancel(ctx)
-	drained := make(chan struct{})
+	// the front stops only after /readyz turned 503, so balancers see it first
+	frontCtx, stopFront := context.WithCancel(context.WithoutCancel(ctx))
+	defer stopFront()
+	frontDone, drained := make(chan struct{}), make(chan struct{})
 	go func() {
-		<-frontCtx.Done()
+		select {
+		case <-ctx.Done():
+		case <-frontDone: // a failed front drains too
+		}
+		p.active.startDrain()
+		stopFront()
 		p.drain(cfg.DrainTimeout)
 		close(drained)
 	}()
 	logger.Info("gateway: serving", "ssh_addr", sshLn.Addr().String(), "instance_id", st.InstanceID)
 	err = newSSHFront(cfg, hostKey, logger).Serve(frontCtx, wrapListener(sshLn, cfg.ProxyProtocol), p)
-	stopFront() // a failed front drains too
+	close(frontDone)
 	<-drained
 
 	stopTunnel()

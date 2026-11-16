@@ -11,6 +11,8 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 	"time"
@@ -18,6 +20,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	gossh "golang.org/x/crypto/ssh"
+
+	"github.com/werbot/werbot/internal/platform/metrics"
 )
 
 // spy prints what the front handed to the connector. A terminal running
@@ -58,6 +62,8 @@ type sshEnv struct {
 	keys map[string]gossh.Signer // "alice", "bob": users of the same name
 	host gossh.Signer
 	addr string
+	reg  *metrics.Registry
+	log  *syncBuffer // the fronts' log
 }
 
 func newKey(t *testing.T) gossh.Signer {
@@ -78,15 +84,17 @@ func newSSHEnv(t *testing.T, cfg Config) *sshEnv {
 		cfg.MaxSessions = 10
 	}
 	m := newIDs("u1", "u2", "rdb", "rweb", "rdenied", "rblocker", "rnope", "rtcp", "rspy")
-	e := &sshEnv{m: m, keys: map[string]gossh.Signer{"alice": newKey(t), "bob": newKey(t)}, host: newKey(t)}
+	e := &sshEnv{m: m, keys: map[string]gossh.Signer{"alice": newKey(t), "bob": newKey(t)}, host: newKey(t), log: &syncBuffer{}}
 	e.f = &fakeControl{policy: e.compile(t, res{"rdb", "db", "fake"}, res{"rweb", "web", "fake"}, res{"rdenied", "denied", "fake"},
 		res{"rblocker", "blocker", "blocker"}, res{"rnope", "nope", "nope"}, res{"rtcp", "tcp", "streamonly"}, res{"rspy", "spy", "spy"}),
 		connected: true, keyErrs: map[string]error{},
 		byKey: map[string]User{fp(e.keys["alice"]): {ID: m["u1"], Login: "alice"}, fp(e.keys["bob"]): {ID: m["u2"], Login: "bob"}}}
+	e.reg = metrics.NewRegistry()
+	cfg.Metrics = e.reg
 	e.p = newPipeline(e.f, cfg, slog.New(slog.DiscardHandler))
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	e.addr = e.serve(t, cfg, e.host, ln)
+	e.addr = e.serve(t, e.front(cfg, e.host), ln)
 	t.Cleanup(func() { e.p.retries.Wait() })
 	return e
 }
@@ -96,12 +104,16 @@ func (e *sshEnv) compile(t *testing.T, rs ...res) *Policy {
 	return compileTest(t, e.m, sshPolicies, nil, rs...)
 }
 
-// serve runs another front of e.p on ln until the test ends and returns its address.
-func (e *sshEnv) serve(t *testing.T, cfg Config, host gossh.Signer, ln net.Listener) string {
+func (e *sshEnv) front(cfg Config, host gossh.Signer) *sshFront {
+	return newSSHFront(cfg, host, slog.New(slog.NewTextHandler(e.log, nil)))
+}
+
+// serve runs front f of e.p on ln until the test ends and returns its address.
+func (e *sshEnv) serve(t *testing.T, f *sshFront, ln net.Listener) string {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- newSSHFront(cfg, host, slog.New(slog.DiscardHandler)).Serve(ctx, ln, e.p) }()
+	go func() { done <- f.Serve(ctx, ln, e.p) }()
 	t.Cleanup(func() {
 		cancel()
 		e.p.stopNow() // the front closes its connections once the pipeline stops
@@ -247,6 +259,14 @@ func TestNotReadyFailsClosed(t *testing.T) {
 	_, err := c.Dial("tcp", "10.0.0.1:80")
 	require.ErrorContains(t, err, "prohibited")
 	require.Zero(t, e.startCalls())
+	require.Contains(t, e.metrics(t), `werbot_gateway_sessions_rejected_total{reason="not_ready"} 4`, "every refusal counts")
+}
+
+func (e *sshEnv) metrics(t *testing.T) string {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	e.reg.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	return rec.Body.String()
 }
 
 func TestPoolHostKey(t *testing.T) {
@@ -264,7 +284,7 @@ func TestPoolHostKey(t *testing.T) {
 		require.NoError(t, err)
 		ln, err := net.Listen("tcp", "127.0.0.1:0")
 		require.NoError(t, err)
-		addr := e.serve(t, Config{MaxSessions: 10}, hk, ln)
+		addr := e.serve(t, e.front(Config{}, hk), ln)
 		c, err := gossh.Dial("tcp", addr, &gossh.ClientConfig{User: "alice+db", Auth: []gossh.AuthMethod{gossh.PublicKeys(e.keys["alice"])},
 			HostKeyCallback: func(_ string, _ net.Addr, k gossh.PublicKey) error {
 				seen = append(seen, gossh.FingerprintSHA256(k))

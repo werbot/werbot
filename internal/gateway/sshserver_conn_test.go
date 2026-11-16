@@ -3,12 +3,23 @@ package gateway
 import (
 	"io"
 	"net"
+	"runtime"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	gossh "golang.org/x/crypto/ssh"
 )
+
+func TestRefusedKeyLogged(t *testing.T) {
+	e := newSSHEnv(t, Config{})
+	k := newKey(t)
+	_, err := e.dial("alice+db", k)
+	require.Error(t, err)
+	require.Contains(t, e.log.String(), `msg="ssh: key refused" login=alice client_ip=127.0.0.1`)
+	require.NotContains(t, e.log.String(), fp(k), "no key material in the log")
+}
 
 func TestForwardRequiresResource(t *testing.T) {
 	e := newSSHEnv(t, Config{})
@@ -79,7 +90,7 @@ func TestProxyProtocol(t *testing.T) {
 	e := newSSHEnv(t, Config{})
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	addr := e.serve(t, Config{MaxSessions: 10}, e.host, wrapListener(ln, true))
+	addr := e.serve(t, e.front(Config{}, e.host), wrapListener(ln, true))
 	cfg := &gossh.ClientConfig{User: "alice+db", Auth: []gossh.AuthMethod{gossh.PublicKeys(e.keys["alice"])},
 		HostKeyCallback: gossh.FixedHostKey(e.host.PublicKey()), Timeout: 5 * time.Second}
 
@@ -102,4 +113,51 @@ func TestProxyProtocol(t *testing.T) {
 	require.NoError(t, err)
 	_, _, _, err = gossh.NewClientConn(conn, addr, cfg)
 	require.Error(t, err, "a connection without the header is refused")
+}
+
+func TestHandshakeTimeout(t *testing.T) {
+	e := newSSHEnv(t, Config{})
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	f := e.front(Config{}, e.host)
+	f.handshakeTimeout = 200 * time.Millisecond
+	e.addr = e.serve(t, f, ln)
+
+	silent, err := net.Dial("tcp", e.addr)
+	require.NoError(t, err)
+	defer silent.Close() //nolint:errcheck // test client
+	require.NoError(t, silent.SetReadDeadline(time.Now().Add(2*time.Second)))
+	start := time.Now()
+	_, err = io.ReadAll(silent) // the server banner, then EOF
+	require.NoError(t, err, "closed by the server, not by the read deadline")
+	require.Less(t, time.Since(start), time.Second)
+
+	s, err := e.client(t, "alice+blocker").NewSession()
+	require.NoError(t, err)
+	require.NoError(t, s.Shell())
+	time.Sleep(400 * time.Millisecond)
+	_, err = s.SendRequest("ping@werbot", true, nil)
+	require.NoError(t, err, "an authenticated connection outlives the handshake limit")
+}
+
+// Every channel of a not ready connection still drains window changes; a stuck
+// request loop would leak its goroutine and stall the connection.
+func TestNotReadyDrainsWindowChanges(t *testing.T) {
+	e := newSSHEnv(t, Config{})
+	e.f.with(func(f *fakeControl) { f.authErr = connect.NewError(connect.CodeUnavailable, nil) })
+	before := runtime.NumGoroutine()
+	for range 5 {
+		c := e.client(t, "alice+db")
+		s, err := c.NewSession()
+		require.NoError(t, err)
+		require.NoError(t, s.RequestPty("xterm", 40, 120, gossh.TerminalModes{}))
+		require.NoError(t, s.Shell())
+		for i := range 3 {
+			_ = s.WindowChange(40+i, 100) // races the server closing the channel
+		}
+		_ = s.Wait()
+		require.NoError(t, c.Close())
+	}
+	require.Eventually(t, func() bool { return runtime.NumGoroutine() <= before+2 }, 2*time.Second, 20*time.Millisecond,
+		"goroutines left behind by closed connections")
 }
