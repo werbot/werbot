@@ -140,7 +140,8 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	river.AddWorker(workers, placeholderWorker{})
 	rc, err := jobs.NewClient(pool, workers, nil, logger)
 	if err == nil {
-		err = rc.Start(ctx)
+		// Not ctx: cancelling it aborts running jobs; only Stop below ends River.
+		err = rc.Start(context.WithoutCancel(ctx))
 	}
 	if err != nil {
 		for _, ln := range lns {
