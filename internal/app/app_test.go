@@ -34,6 +34,13 @@ const (
 	testSecretKey = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=" //nolint:gosec // test key, not a credential
 )
 
+// withSecretKey fills the key serve requires when a test built cfg by hand.
+func withSecretKey(cfg *config.Config) {
+	if len(cfg.SecretKey) == 0 {
+		cfg.SecretKey = bytes.Repeat([]byte{1}, 32)
+	}
+}
+
 func env(kv map[string]string) func(string) string {
 	return func(k string) string { return kv[k] }
 }
@@ -61,6 +68,7 @@ func get(t *testing.T, url string) (int, string) {
 // func that cancels ctx and asserts serve returns nil within 10s.
 func startServe(t *testing.T, cfg config.Config, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS) (stop func()) {
 	t.Helper()
+	withSecretKey(&cfg)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
@@ -351,6 +359,7 @@ func TestServeAddrInUse(t *testing.T) {
 
 	var logs bytes.Buffer
 	cfg := config.Config{HTTPAddr: freeAddr(t), MetricsAddr: addr, WebEmbedded: true}
+	withSecretKey(&cfg)
 	done := make(chan error, 1)
 	go func() {
 		done <- serve(context.Background(), cfg, slog.New(slog.NewTextHandler(&logs, nil)), pool, nil, fstest.MapFS{})

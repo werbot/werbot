@@ -39,6 +39,20 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/notify, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import other domains }
+        notify:
+          files: ["**/internal/notify/*.go", "**/internal/notify/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: domains must not import the composition root }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import other domains }
         webui:
           files: ["**/internal/webui/*.go", "**/internal/webui/**/*.go"]
           deny:

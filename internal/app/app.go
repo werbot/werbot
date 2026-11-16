@@ -16,6 +16,7 @@ import (
 	"github.com/riverqueue/river"
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/notify"
 	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/db"
@@ -23,6 +24,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/jobs"
 	"github.com/werbot/werbot/internal/platform/logging"
 	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/version"
 	"github.com/werbot/werbot/internal/system"
 	"github.com/werbot/werbot/internal/webui"
@@ -83,22 +85,18 @@ func (h host) DB() *pgxpool.Pool                      { return h.pool }
 func (h host) Handle(pattern string, hd http.Handler) { h.mux.Handle(pattern, hd) }
 func (host) Entitled(string) bool                     { return false }
 
-// placeholderArgs exists because River refuses to start without a worker.
-// Delete it when the first real worker (stage 3 e-mail) is registered.
-type placeholderArgs struct{}
-
-func (placeholderArgs) Kind() string { return "placeholder" }
-
-type placeholderWorker struct {
-	river.WorkerDefaults[placeholderArgs]
-}
-
-func (placeholderWorker) Work(context.Context, *river.Job[placeholderArgs]) error { return nil }
-
 // serve runs the main HTTP server (and the metrics server when cfg.MetricsAddr
 // is set) and the River client until ctx ends, then drains and shuts the HTTP
 // servers down, then stops River, each within 10s.
 func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS) error {
+	box, err := secretbox.New(cfg.SecretKey, cfg.PreviousSecretKeys)
+	if err != nil {
+		return err
+	}
+	mailer, err := notify.NewMailer(cfg.SMTP, cfg.Env == "development", logger)
+	if err != nil {
+		return err
+	}
 	var draining atomic.Bool
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", httpserver.Health())
@@ -137,7 +135,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 		return err
 	}
 	workers := river.NewWorkers()
-	river.AddWorker(workers, placeholderWorker{})
+	river.AddWorker(workers, notify.NewWorker(mailer, box))
 	rc, err := jobs.NewClient(pool, workers, nil, logger)
 	if err == nil {
 		// Not ctx: cancelling it aborts running jobs; only Stop below ends River.

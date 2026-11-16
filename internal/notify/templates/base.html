@@ -1,0 +1,13 @@
+{{define "layout"}}<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:24px;background:#f4f4f5;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#18181b">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:8px;padding:32px">
+<tr><td style="font-size:20px;font-weight:600;padding-bottom:16px">Werbot</td></tr>
+<tr><td style="font-size:15px;line-height:1.5">{{template "content" .}}</td></tr>
+<tr><td style="font-size:12px;color:#71717a;padding-top:24px">If you did not expect this email, you can ignore it.</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>{{end}}
