@@ -5,12 +5,14 @@ package tunnel
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/netip"
 	"time"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/validate"
 	"github.com/google/uuid"
 	gossh "golang.org/x/crypto/ssh"
 
@@ -128,9 +130,13 @@ func New(d Deps, hub *Hub) *Handler {
 
 // Mount registers TunnelService behind the mTLS middleware.
 func (h *Handler) Mount(mux *http.ServeMux) {
-	path, handler := gatewayv1connect.NewTunnelServiceHandler(h, connect.WithCompressMinBytes(CompressMinBytes))
+	path, handler := gatewayv1connect.NewTunnelServiceHandler(h, connect.WithCompressMinBytes(CompressMinBytes),
+		connect.WithReadMaxBytes(readMaxBytes), connect.WithInterceptors(validate.NewInterceptor()))
 	mux.Handle(path, h.mtls(handler))
 }
+
+// readMaxBytes caps one tunnel message; a snapshot only travels server → gateway.
+const readMaxBytes = 1 << 20
 
 type ctxKey int
 
@@ -152,11 +158,11 @@ func gatewayFrom(ctx context.Context) (Gateway, bool) {
 // CN names the pool and instance, the serial must match the enrolled one.
 func (h *Handler) mtls(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 {
-			http.Error(w, "client certificate required", http.StatusUnauthorized)
+		if r.TLS == nil || len(r.TLS.VerifiedChains) == 0 || len(r.TLS.VerifiedChains[0]) == 0 {
+			http.Error(w, "verified client certificate required", http.StatusUnauthorized)
 			return
 		}
-		cert := r.TLS.PeerCertificates[0]
+		cert := r.TLS.VerifiedChains[0][0]
 		gatewayID, instanceID, err := tlsca.ParseGatewayCN(cert.Subject.CommonName)
 		if err != nil {
 			http.Error(w, "unknown gateway", http.StatusUnauthorized)
@@ -166,12 +172,30 @@ func (h *Handler) mtls(next http.Handler) http.Handler {
 		g, err := h.d.Gateways.Authenticate(r.Context(), gatewayID, instanceID, serial)
 		if err != nil {
 			h.log.Warn("tunnel: gateway rejected", "gateway_id", gatewayID, "instance_id", instanceID, "error", err)
-			http.Error(w, "unknown gateway", http.StatusUnauthorized)
+			if revoked(err) {
+				http.Error(w, "unknown gateway", http.StatusUnauthorized)
+			} else {
+				http.Error(w, "try again later", http.StatusServiceUnavailable)
+			}
 			return
 		}
 		ctx := context.WithValue(withGateway(r.Context(), g), serialKey, serial)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// revoked reports whether an Authenticate or Heartbeat error means the
+// instance is gone (Unauthenticated) rather than a retryable failure (Unavailable).
+func revoked(err error) bool {
+	return errors.Is(err, apperr.ErrUnauthenticated) || errors.Is(err, apperr.ErrNotFound)
+}
+
+// authError is the stream error for a failed re-authentication.
+func authError(err error) error {
+	if revoked(err) {
+		return connect.NewError(connect.CodeUnauthenticated, errors.New("gateway is not authenticated"))
+	}
+	return unavailable("gateway authentication unavailable")
 }
 
 // caller returns the authenticated gateway; every handler takes org, pool and

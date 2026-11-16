@@ -96,7 +96,7 @@ func (hd *Handler) Connect(ctx context.Context, st *connect.BidiStream[gatewayv1
 	var lastBeat atomic.Int64
 	lastBeat.Store(time.Now().UnixNano())
 	received := make(chan error, 1)
-	go func() { received <- hd.receive(ctx, st, g, &lastBeat) }()
+	go func() { received <- hd.receive(ctx, st, s, &lastBeat) }()
 
 	maxAge := time.Duration(float64(hd.hub.maxAge) * (1 + StreamMaxAgeJitter*(2*rand.Float64()-1))) //nolint:gosec // jitter, not security
 	age := time.NewTimer(maxAge)
@@ -134,7 +134,7 @@ func (hd *Handler) Connect(ctx context.Context, st *connect.BidiStream[gatewayv1
 }
 
 // receive handles heartbeats until the gateway closes its side.
-func (hd *Handler) receive(ctx context.Context, st *connect.BidiStream[gatewayv1.ConnectRequest, gatewayv1.ConnectResponse], g Gateway, lastBeat *atomic.Int64) error {
+func (hd *Handler) receive(ctx context.Context, st *connect.BidiStream[gatewayv1.ConnectRequest, gatewayv1.ConnectResponse], s *stream, lastBeat *atomic.Int64) error {
 	for {
 		msg, err := st.Receive()
 		if err != nil {
@@ -142,15 +142,21 @@ func (hd *Handler) receive(ctx context.Context, st *connect.BidiStream[gatewayv1
 		}
 		if hb := msg.GetHeartbeat(); hb != nil {
 			lastBeat.Store(time.Now().UnixNano())
-			hd.heartbeat(ctx, g, hb)
+			hd.heartbeat(ctx, s, hb)
 		}
 	}
 }
 
-// heartbeat marks the instance alive and ends its sessions the gateway no longer reports.
-func (hd *Handler) heartbeat(ctx context.Context, g Gateway, hb *gatewayv1.Heartbeat) {
+// heartbeat marks the instance alive and ends its sessions the gateway no
+// longer reports; a deleted instance loses its stream.
+func (hd *Handler) heartbeat(ctx context.Context, s *stream, hb *gatewayv1.Heartbeat) {
+	g := s.gw
 	if err := hd.d.Gateways.Heartbeat(ctx, g.InstanceID, hb.GetVersion(), hb.GetConnectors()); err != nil {
 		hd.log.Warn("tunnel: heartbeat", "instance_id", g.InstanceID, "error", err)
+		if revoked(err) {
+			s.close(authError(err))
+			return
+		}
 	}
 	active := make([]uuid.UUID, 0, len(hb.GetActiveSessionIds()))
 	for _, v := range hb.GetActiveSessionIds() {

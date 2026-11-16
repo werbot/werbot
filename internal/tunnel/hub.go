@@ -32,13 +32,20 @@ type Hub struct {
 	closed  bool
 	streams map[uuid.UUID]map[*stream]struct{} // org -> streams
 	timers  map[uuid.UUID]*time.Timer          // org (uuid.Nil: every org) -> pending refresh
+	backoff map[uuid.UUID]time.Duration        // org -> next retry delay after a failed build
 }
+
+// Refresh limits: one organization's refresh deadline and the longest build retry delay.
+const (
+	refreshTimeout = 10 * time.Second
+	maxRetryDelay  = 30 * time.Second
+)
 
 // NewHub returns an empty hub; New attaches it to a handler.
 func NewHub() *Hub {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Hub{debounce: SnapshotDebounce, maxAge: StreamMaxAge, hbTimeout: HeartbeatTimeout, ctx: ctx, cancel: cancel,
-		streams: map[uuid.UUID]map[*stream]struct{}{}, timers: map[uuid.UUID]*time.Timer{}}
+		streams: map[uuid.UUID]map[*stream]struct{}{}, timers: map[uuid.UUID]*time.Timer{}, backoff: map[uuid.UUID]time.Duration{}}
 }
 
 func (h *Hub) attach(hd *Handler) {
@@ -59,7 +66,7 @@ func (h *Hub) logger() *slog.Logger {
 // OrgChanged schedules a refresh of one organization's streams ("*": all of them).
 func (h *Hub) OrgChanged(payload string) {
 	if payload == "*" {
-		h.arm(uuid.Nil)
+		h.arm(uuid.Nil, false)
 		return
 	}
 	org, err := uuid.Parse(payload)
@@ -67,7 +74,7 @@ func (h *Hub) OrgChanged(payload string) {
 		h.logger().Warn("tunnel: ignoring org_changed payload", "payload", payload)
 		return
 	}
-	h.arm(org)
+	h.arm(org, false)
 }
 
 // Resync refreshes every stream; call it after the LISTEN connection reconnects.
@@ -90,14 +97,20 @@ func (h *Hub) Shutdown() {
 	h.cancel()
 }
 
-// arm starts the debounce timer of key unless one is already pending.
-func (h *Hub) arm(key uuid.UUID) {
+// arm starts the refresh timer of key unless one is already pending. A retry
+// waits debounce, then twice as long after each failure, up to maxRetryDelay.
+func (h *Hub) arm(key uuid.UUID, retry bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.closed || h.timers[key] != nil {
 		return
 	}
-	h.timers[key] = time.AfterFunc(h.debounce, func() { h.refresh(key) })
+	delay := h.debounce
+	if retry {
+		delay = max(h.backoff[key], h.debounce)
+		h.backoff[key] = min(2*delay, maxRetryDelay)
+	}
+	h.timers[key] = time.AfterFunc(delay, func() { h.refresh(key) })
 }
 
 // refresh re-authenticates and re-snapshots the streams of key; an
@@ -117,9 +130,16 @@ func (h *Hub) refresh(key uuid.UUID) {
 	h.mu.Unlock()
 	gen := h.gen.Add(1)
 	for org, ss := range byOrg {
-		if !hd.refreshOrg(h.ctx, org, ss, gen) {
-			h.arm(org)
+		ctx, cancel := context.WithTimeout(h.ctx, refreshTimeout)
+		ok := hd.refreshOrg(ctx, org, ss, gen)
+		cancel()
+		if !ok {
+			h.arm(org, true)
+			continue
 		}
+		h.mu.Lock()
+		delete(h.backoff, org)
+		h.mu.Unlock()
 	}
 }
 
@@ -154,7 +174,7 @@ func (hd *Handler) refreshOrg(ctx context.Context, org uuid.UUID, ss []*stream, 
 	for _, s := range ss {
 		if _, err := hd.d.Gateways.Authenticate(ctx, s.gw.ID, s.gw.InstanceID, s.serial); err != nil {
 			hd.log.Info("tunnel: closing stream of a rejected gateway", "instance_id", s.gw.InstanceID, "error", err)
-			s.close(connect.NewError(connect.CodeUnauthenticated, errors.New("gateway is not authenticated")))
+			s.close(authError(err))
 			continue
 		}
 		pools[s.gw.ID] = append(pools[s.gw.ID], s)

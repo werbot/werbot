@@ -36,6 +36,7 @@ type fake struct {
 	authErr   map[uuid.UUID]error   // instance id -> forced Authenticate error
 	auths     []authCall
 	hbs       []hbCall
+	hbErr     error
 
 	renewed  []uuid.UUID
 	renewCSR []byte
@@ -84,7 +85,7 @@ func (f *fake) Heartbeat(_ context.Context, instanceID uuid.UUID, version string
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.hbs = append(f.hbs, hbCall{instanceID, version, connectors})
-	return nil
+	return f.hbErr
 }
 
 func (f *fake) Renew(_ context.Context, instanceID uuid.UUID, csrDER []byte) ([]byte, error) {

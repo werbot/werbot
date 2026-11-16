@@ -45,7 +45,6 @@ func TestDebounceBuildsOncePerPool(t *testing.T) {
 	org := b.org.String()
 	for range 50 {
 		b.hub.OrgChanged(org)
-		time.Sleep(time.Millisecond)
 	}
 	for _, c := range conns {
 		c.next(t, 2*time.Second)
@@ -99,6 +98,23 @@ func TestBuildErrorRetries(t *testing.T) {
 		t.Fatalf("builds = %d, want connect + failed + retry = 3", n)
 	}
 
+	// Repeated failures back off: debounce, 2×, 4× before the fourth build succeeds.
+	b.f.with(func(f *fake) { f.buildFail = 3 })
+	start := time.Now()
+	b.hub.OrgChanged(b.org.String())
+	c.next(t, 3*time.Second)
+	if d := time.Since(start); d < 350*time.Millisecond {
+		t.Fatalf("three retries took %v, want backoff 50+50+100+200ms", d)
+	}
+	// Success resets the backoff.
+	b.f.with(func(f *fake) { f.buildFail = 1 })
+	start = time.Now()
+	b.hub.OrgChanged(b.org.String())
+	c.next(t, 3*time.Second)
+	if d := time.Since(start); d > 300*time.Millisecond {
+		t.Fatalf("retry after reset took %v, want about 100ms", d)
+	}
+
 	// No snapshot at connect: the stream fails closed.
 	b.f.with(func(f *fake) { f.buildFail = 1 })
 	wantCode(t, b.instance(t, b.org, pool).connect(t, nil).closed(t, 2*time.Second), connect.CodeUnavailable, "")
@@ -117,4 +133,29 @@ func TestHubOrgChangedWithoutHandler(t *testing.T) {
 	if len(h.timers) != 0 {
 		t.Fatal("a refresh was scheduled after Shutdown")
 	}
+}
+
+func TestMailboxKeepsNewestBuild(t *testing.T) {
+	s := &stream{wake: make(chan struct{}, 1)}
+	older, newer := &gatewayv1.Snapshot{Version: "a"}, &gatewayv1.Snapshot{Version: "b"}
+	s.offer(newer, 2)
+	s.offer(older, 1)
+	if got := s.take(); got != newer {
+		t.Fatalf("take() = %v, want the newer build", got)
+	}
+	if s.take() != nil {
+		t.Fatal("mailbox not empty after take")
+	}
+}
+
+func TestHeartbeatOfDeletedInstanceClosesStream(t *testing.T) {
+	b := newBench(t, nil)
+	g := b.instance(t, b.org, uuid.New())
+	c := g.connect(t, nil)
+	c.next(t, 2*time.Second)
+	b.f.with(func(f *fake) { f.hbErr = apperr.ErrNotFound })
+	if err := c.send(&gatewayv1.Heartbeat{Version: "1.0"}); err != nil {
+		t.Fatal(err)
+	}
+	wantCode(t, c.closed(t, 2*time.Second), connect.CodeUnauthenticated, "")
 }

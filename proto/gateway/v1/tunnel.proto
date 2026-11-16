@@ -1,6 +1,8 @@
 syntax = "proto3";
 package gateway.v1;
 
+import "buf/validate/validate.proto";
+
 // TunnelService is the gateway-to-core control plane. The caller is a gateway
 // instance identified by its mTLS client certificate, never by request fields.
 service TunnelService {
@@ -20,9 +22,16 @@ message ConnectRequest {
 }
 
 message Heartbeat {
-  string version = 1;
-  repeated string connectors = 2;
-  repeated string active_session_ids = 3;
+  string version = 1 [(buf.validate.field).string.max_len = 64];
+  repeated string connectors = 2 [(buf.validate.field).repeated = {
+    max_items: 64
+    items: {string: {min_len: 1, max_len: 64}}
+  }];
+  // bounded by the WERBOT_GATEWAY_MAX_SESSIONS ceiling
+  repeated string active_session_ids = 3 [(buf.validate.field).repeated = {
+    max_items: 10000
+    items: {string: {uuid: true}}
+  }];
 }
 
 message ConnectResponse {
@@ -50,10 +59,11 @@ message Resource {
 
 message AuthenticateUserRequest {
   oneof by {
-    string fingerprint_sha256 = 1;
-    string login = 2;
+    option (buf.validate.oneof).required = true;
+    string fingerprint_sha256 = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+    string login = 2 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
   }
-  string client_ip = 3;
+  string client_ip = 3 [(buf.validate.field).string.ip = true];
 }
 
 message AuthenticateUserResponse {
@@ -64,9 +74,9 @@ message AuthenticateUserResponse {
 }
 
 message StartSessionRequest {
-  string user_id = 1;
-  string resource_id = 2;
-  string client_ip = 3;
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string resource_id = 2 [(buf.validate.field).string.uuid = true];
+  string client_ip = 3 [(buf.validate.field).string.ip = true];
 }
 
 message StartSessionResponse {
@@ -80,23 +90,26 @@ message Credential {
 }
 
 message EndSessionRequest {
-  string session_id = 1;
-  string reason = 2;
+  string session_id = 1 [(buf.validate.field).string.uuid = true];
+  // gateway-side end reasons; gateway_lost is set only by the server
+  string reason = 2 [(buf.validate.field).string = {
+    in: ["closed", "error", "internal_error", "gateway_shutdown"]
+  }];
 }
 
 message EndSessionResponse {}
 
 message PinHostKeyRequest {
-  string resource_id = 1;
+  string resource_id = 1 [(buf.validate.field).string.uuid = true];
   // SSH: alg = PublicKey.Type(), public_key = PublicKey.Marshal()
-  bytes public_key = 2;
-  string alg = 3;
+  bytes public_key = 2 [(buf.validate.field).bytes = {min_len: 1, max_len: 8192}];
+  string alg = 3 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
 }
 
 message PinHostKeyResponse {}
 
 message RenewCertificateRequest {
-  bytes csr_der = 1;
+  bytes csr_der = 1 [(buf.validate.field).bytes = {min_len: 1, max_len: 4096}];
 }
 
 message RenewCertificateResponse {

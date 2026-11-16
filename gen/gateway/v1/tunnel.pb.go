@@ -7,6 +7,7 @@
 package gatewayv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -88,10 +89,11 @@ type ConnectRequest_Heartbeat struct {
 func (*ConnectRequest_Heartbeat) isConnectRequest_Msg() {}
 
 type Heartbeat struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Version          string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
-	Connectors       []string               `protobuf:"bytes,2,rep,name=connectors,proto3" json:"connectors,omitempty"`
-	ActiveSessionIds []string               `protobuf:"bytes,3,rep,name=active_session_ids,json=activeSessionIds,proto3" json:"active_session_ids,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Version    string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	Connectors []string               `protobuf:"bytes,2,rep,name=connectors,proto3" json:"connectors,omitempty"`
+	// bounded by the WERBOT_GATEWAY_MAX_SESSIONS ceiling
+	ActiveSessionIds []string `protobuf:"bytes,3,rep,name=active_session_ids,json=activeSessionIds,proto3" json:"active_session_ids,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -682,9 +684,10 @@ func (x *Credential) GetValue() []byte {
 }
 
 type EndSessionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// gateway-side end reasons; gateway_lost is set only by the server
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -959,16 +962,18 @@ var File_gateway_v1_tunnel_proto protoreflect.FileDescriptor
 const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"\x17gateway/v1/tunnel.proto\x12\n" +
-	"gateway.v1\"N\n" +
+	"gateway.v1\x1a\x1bbuf/validate/validate.proto\"N\n" +
 	"\x0eConnectRequest\x125\n" +
 	"\theartbeat\x18\x01 \x01(\v2\x15.gateway.v1.HeartbeatH\x00R\theartbeatB\x05\n" +
-	"\x03msg\"s\n" +
-	"\tHeartbeat\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1e\n" +
+	"\x03msg\"\xa0\x01\n" +
+	"\tHeartbeat\x12!\n" +
+	"\aversion\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x18@R\aversion\x120\n" +
 	"\n" +
-	"connectors\x18\x02 \x03(\tR\n" +
-	"connectors\x12,\n" +
-	"\x12active_session_ids\x18\x03 \x03(\tR\x10activeSessionIds\"L\n" +
+	"connectors\x18\x02 \x03(\tB\x10\xbaH\r\x92\x01\n" +
+	"\x10@\"\x06r\x04\x10\x01\x18@R\n" +
+	"connectors\x12>\n" +
+	"\x12active_session_ids\x18\x03 \x03(\tB\x10\xbaH\r\x92\x01\n" +
+	"\x10\x90N\"\x05r\x03\xb0\x01\x01R\x10activeSessionIds\"L\n" +
 	"\x0fConnectResponse\x122\n" +
 	"\bsnapshot\x18\x01 \x01(\v2\x14.gateway.v1.SnapshotH\x00R\bsnapshotB\x05\n" +
 	"\x03msg\"\xc2\x01\n" +
@@ -983,22 +988,24 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12\x1f\n" +
 	"\vconfig_json\x18\x04 \x01(\fR\n" +
-	"configJson\"\x85\x01\n" +
-	"\x17AuthenticateUserRequest\x12/\n" +
-	"\x12fingerprint_sha256\x18\x01 \x01(\tH\x00R\x11fingerprintSha256\x12\x16\n" +
-	"\x05login\x18\x02 \x01(\tH\x00R\x05login\x12\x1b\n" +
-	"\tclient_ip\x18\x03 \x01(\tR\bclientIpB\x04\n" +
-	"\x02by\"~\n" +
+	"configJson\"\xad\x01\n" +
+	"\x17AuthenticateUserRequest\x12;\n" +
+	"\x12fingerprint_sha256\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01H\x00R\x11fingerprintSha256\x12\"\n" +
+	"\x05login\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\xff\x01H\x00R\x05login\x12$\n" +
+	"\tclient_ip\x18\x03 \x01(\tB\a\xbaH\x04r\x02p\x01R\bclientIpB\v\n" +
+	"\x02by\x12\x05\xbaH\x02\b\x01\"~\n" +
 	"\x18AuthenticateUserResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05login\x18\x02 \x01(\tR\x05login\x12\x19\n" +
 	"\bteam_ids\x18\x03 \x03(\tR\ateamIds\x12\x18\n" +
-	"\acountry\x18\x04 \x01(\tR\acountry\"l\n" +
-	"\x13StartSessionRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1f\n" +
-	"\vresource_id\x18\x02 \x01(\tR\n" +
-	"resourceId\x12\x1b\n" +
-	"\tclient_ip\x18\x03 \x01(\tR\bclientIp\"m\n" +
+	"\acountry\x18\x04 \x01(\tR\acountry\"\x89\x01\n" +
+	"\x13StartSessionRequest\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12)\n" +
+	"\vresource_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
+	"resourceId\x12$\n" +
+	"\tclient_ip\x18\x03 \x01(\tB\a\xbaH\x04r\x02p\x01R\bclientIp\"m\n" +
 	"\x14StartSessionResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x126\n" +
@@ -1008,21 +1015,23 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"Credential\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value\"J\n" +
-	"\x11EndSessionRequest\x12\x1d\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value\"\x8c\x01\n" +
+	"\x11EndSessionRequest\x12'\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"\x14\n" +
-	"\x12EndSessionResponse\"e\n" +
-	"\x11PinHostKeyRequest\x12\x1f\n" +
-	"\vresource_id\x18\x01 \x01(\tR\n" +
-	"resourceId\x12\x1d\n" +
+	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\x12N\n" +
+	"\x06reason\x18\x02 \x01(\tB6\xbaH3r1R\x06closedR\x05errorR\x0einternal_errorR\x10gateway_shutdownR\x06reason\"\x14\n" +
+	"\x12EndSessionResponse\"\x86\x01\n" +
+	"\x11PinHostKeyRequest\x12)\n" +
+	"\vresource_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
+	"resourceId\x12)\n" +
 	"\n" +
-	"public_key\x18\x02 \x01(\fR\tpublicKey\x12\x10\n" +
-	"\x03alg\x18\x03 \x01(\tR\x03alg\"\x14\n" +
-	"\x12PinHostKeyResponse\"2\n" +
-	"\x17RenewCertificateRequest\x12\x17\n" +
-	"\acsr_der\x18\x01 \x01(\fR\x06csrDer\"5\n" +
+	"public_key\x18\x02 \x01(\fB\n" +
+	"\xbaH\az\x05\x10\x01\x18\x80@R\tpublicKey\x12\x1b\n" +
+	"\x03alg\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x03alg\"\x14\n" +
+	"\x12PinHostKeyResponse\">\n" +
+	"\x17RenewCertificateRequest\x12#\n" +
+	"\acsr_der\x18\x01 \x01(\fB\n" +
+	"\xbaH\az\x05\x10\x01\x18\x80 R\x06csrDer\"5\n" +
 	"\x18RenewCertificateResponse\x12\x19\n" +
 	"\bcert_pem\x18\x01 \x01(\fR\acertPem2\x82\x04\n" +
 	"\rTunnelService\x12F\n" +

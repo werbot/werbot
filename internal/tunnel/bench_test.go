@@ -53,6 +53,12 @@ type bench struct {
 
 func newBench(t *testing.T, tune func(h *Hub)) *bench {
 	t.Helper()
+	return newBenchTLS(t, tune, nil)
+}
+
+// newBenchTLS lets a test weaken the server TLS config to reach the middleware.
+func newBenchTLS(t *testing.T, tune func(h *Hub), tweak func(*tls.Config)) *bench {
+	t.Helper()
 	box, err := secretbox.New(make([]byte, 32), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -64,6 +70,9 @@ func newBench(t *testing.T, tune func(h *Hub)) *bench {
 	cfg, err := ca.ServerTLS([]string{"127.0.0.1"})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if tweak != nil {
+		tweak(cfg)
 	}
 	b := &bench{ca: ca, f: newFake(), hub: NewHub(), reg: metrics.NewRegistry(), org: uuid.New()}
 	if tune != nil {
