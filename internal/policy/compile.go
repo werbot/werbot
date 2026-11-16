@@ -140,6 +140,9 @@ func writeRules(b *strings.Builder, r ResourceRules) error {
 	if len(r.Schedule) > 0 {
 		hours := make([]int, len(r.Schedule))
 		for i, s := range r.Schedule {
+			if s.Weekday < 0 || s.Weekday > 6 || s.Hour < 0 || s.Hour > 23 {
+				return fmt.Errorf("policy: resource %s: invalid slot %d/%d", r.ResourceID, s.Weekday, s.Hour)
+			}
 			hours[i] = s.Weekday*24 + s.Hour
 		}
 		slices.Sort(hours)

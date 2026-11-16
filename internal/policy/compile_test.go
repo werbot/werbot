@@ -141,10 +141,12 @@ func TestInvalidIPDenies(t *testing.T) {
 }
 
 func TestEvaluationErrorDenies(t *testing.T) {
-	policies, err := parse(`@id("ok") permit (principal, action, resource);
+	ps, _, err := Compile(snap()) // the resource entity: Authorize denies unknown resources first
+	require.NoError(t, err)
+	ps.policies, err = parse(`@id("ok") permit (principal, action, resource);
 @id("bad") forbid (principal, action, resource) when { context.missing };`)
 	require.NoError(t, err)
-	d := (&PolicySet{policies: policies}).Authorize(req("10.1.2.3", "DE", ""))
+	d := ps.Authorize(req("10.1.2.3", "DE", ""))
 	assert.False(t, d.Allow)
 	assert.Equal(t, []string{"ok", "error:bad"}, d.Reasons)
 }
@@ -156,6 +158,10 @@ func TestCompileRejectsInvalidInput(t *testing.T) {
 		"cidr":         snap(ResourceRules{ResourceID: resID, Networks: []NetworkRule{{Effect: EffectAllow}}}),
 		"subject":      {Bindings: []SnapshotBinding{{ID: bindID, SubjectType: "robot", SubjectID: userID}}},
 		"duplicate id": snap(ResourceRules{ResourceID: resID, Schedule: []Slot{{1, 9}}}, ResourceRules{ResourceID: resID, Schedule: []Slot{{2, 9}}}),
+		"weekday 7":    snap(ResourceRules{ResourceID: resID, Schedule: []Slot{{7, 0}}}),
+		"weekday -1":   snap(ResourceRules{ResourceID: resID, Schedule: []Slot{{-1, 0}}}),
+		"hour 24":      snap(ResourceRules{ResourceID: resID, Schedule: []Slot{{0, 24}}}),
+		"hour -1":      snap(ResourceRules{ResourceID: resID, Schedule: []Slot{{0, -1}}}),
 	}
 	for name, s := range bad {
 		ps, _, err := Compile(s)
@@ -199,9 +205,44 @@ func TestExpandBindings(t *testing.T) {
 		{ID: bindID, SubjectType: "user", SubjectID: userID, LabelSelector: map[string]string{"env": "prod"}},
 		{ID: otherID, SubjectType: "team", SubjectID: teamID, LabelSelector: map[string]string{"env": "prod", "tier": "db"}},
 		{ID: teamID, SubjectType: "user", SubjectID: userID, ResourceID: &r3.ID},
+		{ID: resID, SubjectType: "user", SubjectID: userID}, // neither resource nor selector
 	})
-	require.Len(t, got, 3)
+	require.Len(t, got, 4)
 	assert.Equal(t, SnapshotBinding{ID: bindID, SubjectType: "user", SubjectID: userID, ResourceIDs: []uuid.UUID{r1.ID, r2.ID}}, got[0])
 	assert.Equal(t, []uuid.UUID{r1.ID}, got[1].ResourceIDs)
 	assert.Equal(t, []uuid.UUID{r3.ID}, got[2].ResourceIDs)
+	assert.Empty(t, got[3].ResourceIDs)
+}
+
+func TestCountryIsCaseInsensitive(t *testing.T) {
+	denyCN := snap(ResourceRules{ResourceID: resID, Countries: []CountryRule{{Country: "CN", Effect: EffectDeny}}})
+	d := authorize(t, denyCN, req("10.1.2.3", "cn", ""))
+	assert.False(t, d.Allow)
+	assert.Contains(t, d.Reasons, "rule:country:"+resID.String())
+}
+
+func TestZeroTimeMeansNow(t *testing.T) {
+	// Only the current and the next hour are allowed: a zero time (Monday 00:00)
+	// would be evaluated as is and denied.
+	now := time.Now().UTC()
+	slot := func(t time.Time) Slot { return Slot{Weekday: int(t.Weekday()), Hour: t.Hour()} }
+	s := snap(ResourceRules{ResourceID: resID, Schedule: []Slot{slot(now), slot(now.Add(time.Hour))}})
+	r := req("10.1.2.3", "DE", "")
+	r.Time = time.Time{}
+	assert.True(t, authorize(t, s, r).Allow)
+}
+
+func TestActionMustBelongToResourceType(t *testing.T) {
+	invalid := Decision{Allow: false, Reasons: []string{"invalid_action"}}
+	r := req("10.1.2.3", "DE", "")
+	r.Action = "rdp.connect"
+	assert.Equal(t, invalid, authorize(t, snap(), r), "action of another type")
+
+	unknown := snap()
+	unknown.Resources[0].Type = "telnet"
+	assert.Equal(t, invalid, authorize(t, unknown, req("10.1.2.3", "DE", "")), "unregistered type")
+
+	r = req("10.1.2.3", "DE", "")
+	r.ResourceID = otherID
+	assert.Equal(t, invalid, authorize(t, snap(), r), "resource not in snapshot")
 }

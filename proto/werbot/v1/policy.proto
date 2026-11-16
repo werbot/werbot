@@ -1,0 +1,57 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service PolicyService {
+  rpc GetResourceRules(GetResourceRulesRequest) returns (GetResourceRulesResponse);
+  rpc SetResourceRules(SetResourceRulesRequest) returns (SetResourceRulesResponse);
+  // CheckAccess evaluates the organization policy for one request (probe).
+  rpc CheckAccess(CheckAccessRequest) returns (CheckAccessResponse);
+}
+
+// NetworkRule allows or denies a client CIDR.
+message NetworkRule {
+  string cidr = 1;
+  string effect = 2; // "allow" | "deny"
+}
+
+// CountryRule allows or denies an ISO 3166-1 alpha-2 country.
+message CountryRule {
+  string country = 1;
+  string effect = 2; // "allow" | "deny"
+}
+
+// ScheduleSlot is one allowed hour of the week in UTC; weekday 0 is Sunday.
+message ScheduleSlot {
+  int32 weekday = 1;
+  int32 hour = 2;
+}
+
+message GetResourceRulesRequest {
+  string resource_id = 1;
+}
+message GetResourceRulesResponse {
+  repeated NetworkRule networks = 1;
+  repeated CountryRule countries = 2;
+  repeated ScheduleSlot schedule = 3;
+}
+
+message SetResourceRulesRequest {
+  string resource_id = 1;
+  repeated NetworkRule networks = 2;
+  repeated CountryRule countries = 3;
+  repeated ScheduleSlot schedule = 4;
+}
+message SetResourceRulesResponse {}
+
+message CheckAccessRequest {
+  string user_id = 1;
+  string resource_id = 2;
+  string ip = 3;
+  google.protobuf.Timestamp time = 4; // unset: now
+}
+message CheckAccessResponse {
+  bool allow = 1;
+  repeated string reasons = 2;
+}

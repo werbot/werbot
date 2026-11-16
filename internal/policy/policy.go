@@ -4,10 +4,14 @@ package policy
 
 import (
 	"net/netip"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/cedar-policy/cedar-go"
 	"github.com/google/uuid"
+
+	"github.com/werbot/werbot/internal/connector"
 )
 
 // Effect of a network or country rule.
@@ -111,7 +115,7 @@ func ExpandBindings(resources []SnapshotResource, bindings []Binding) []Snapshot
 		sb := SnapshotBinding{ID: b.ID, SubjectType: b.SubjectType, SubjectID: b.SubjectID}
 		if b.ResourceID != nil {
 			sb.ResourceIDs = []uuid.UUID{*b.ResourceID}
-		} else {
+		} else if len(b.LabelSelector) > 0 { // an empty selector matches nothing, not everything
 			for _, r := range resources {
 				if matches(r.Labels, b.LabelSelector) {
 					sb.ResourceIDs = append(sb.ResourceIDs, r.ID)
@@ -132,13 +136,22 @@ func matches(labels, selector map[string]string) bool {
 	return true
 }
 
-// Authorize decides r. An invalid IP or any policy evaluation error denies.
+// Authorize decides r. An invalid IP, an action that is not one of the
+// resource type's actions or any policy evaluation error denies. A zero
+// r.Time means now.
 func (ps *PolicySet) Authorize(r Request) Decision {
 	if !r.IP.IsValid() {
 		return Decision{Reasons: []string{"invalid_ip"}}
 	}
+	if !ps.typeHasAction(r.ResourceID, r.Action) {
+		return Decision{Reasons: []string{"invalid_action"}}
+	}
 	ip := r.IP.Unmap()
-	t := r.Time.UTC()
+	t := r.Time
+	if t.IsZero() {
+		t = time.Now()
+	}
+	t = t.UTC()
 	teams := make([]cedar.EntityUID, len(r.TeamIDs))
 	for i, id := range r.TeamIDs {
 		teams[i] = cedar.NewEntityUID("Werbot::Team", cedar.String(id.String()))
@@ -153,7 +166,7 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 		Resource:  cedar.NewEntityUID("Werbot::Resource", cedar.String(r.ResourceID.String())),
 		Context: cedar.NewRecord(cedar.RecordMap{
 			"ip":         cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
-			"country":    cedar.String(r.Country),
+			"country":    cedar.String(strings.ToUpper(r.Country)),
 			"weekday":    cedar.Long(t.Weekday()),
 			"hour":       cedar.Long(t.Hour()),
 			"ip_blocked": cedar.Boolean(r.IPBlocked),
@@ -169,6 +182,19 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 		out.Reasons = append(out.Reasons, "error:"+string(e.PolicyID))
 	}
 	return out
+}
+
+// typeHasAction reports whether action is one of the actions of the registered
+// type of resource id; a resource outside the snapshot has none.
+func (ps *PolicySet) typeHasAction(id uuid.UUID, action string) bool {
+	e, ok := ps.entities[cedar.NewEntityUID("Werbot::Resource", cedar.String(id.String()))]
+	if !ok {
+		return false
+	}
+	v, _ := e.Attributes.Get("type")
+	typ, _ := v.(cedar.String)
+	t, ok := connector.Lookup(string(typ))
+	return ok && slices.Contains(t.Actions, action)
 }
 
 // entityGetter adds the request principal to the compiled entities without copying them.
