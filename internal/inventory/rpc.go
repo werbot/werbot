@@ -226,6 +226,9 @@ func (h *Handler) ClearCredential(ctx context.Context, req *connect.Request[werb
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
+	if _, err := h.svc.Get(ctx, org, id); err != nil {
+		return nil, apperr.ToConnect(err)
+	}
 	if err := h.creds.Clear(ctx, org, id); err != nil {
 		return nil, apperr.ToConnect(err)
 	}

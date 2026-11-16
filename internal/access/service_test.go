@@ -141,6 +141,24 @@ func TestDelete(t *testing.T) {
 	assert.ErrorIs(t, e.svc.Delete(e.ctx, orgB, b.ID), apperr.ErrNotFound)
 	require.NoError(t, e.svc.Delete(e.ctx, e.org, b.ID))
 	assert.ErrorIs(t, e.svc.Delete(e.ctx, e.org, b.ID), apperr.ErrNotFound)
+
+	var data map[string]any
+	require.NoError(t, e.pool.QueryRow(context.Background(),
+		`SELECT data FROM audit_event WHERE org_id = $1 AND action = 'access.binding.delete' AND target_id = $2`,
+		e.org, b.ID.String()).Scan(&data))
+	assert.Equal(t, map[string]any{"subject_type": "user", "subject_id": in.SubjectID.String(),
+		"label_selector": map[string]any{"a": "b"}}, data)
+
+	r := dbtest.Resource(t, e.pool, e.org, "web", nil)
+	in.LabelSelector, in.ResourceID = nil, &r
+	b, err = e.svc.Create(e.ctx, e.org, in)
+	require.NoError(t, err)
+	require.NoError(t, e.svc.Delete(e.ctx, e.org, b.ID))
+	data = nil
+	require.NoError(t, e.pool.QueryRow(context.Background(),
+		`SELECT data FROM audit_event WHERE org_id = $1 AND action = 'access.binding.delete' AND target_id = $2`,
+		e.org, b.ID.String()).Scan(&data))
+	assert.Equal(t, map[string]any{"subject_type": "user", "subject_id": in.SubjectID.String(), "resource_id": r.String()}, data)
 }
 
 func count(t *testing.T, e env, org uuid.UUID) (n int) {

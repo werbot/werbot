@@ -27,7 +27,7 @@ func TestCrossOrgIsolation(t *testing.T) {
 	_, err = s.res.SetCredential(bctx, connect.NewRequest(&werbotv1.SetCredentialRequest{ResourceId: rb.GetId(), Kind: "password", Value: []byte("pw")}))
 	require.NoError(t, err)
 	s.bind(actx, t, &werbotv1.CreateBindingRequest{SubjectType: "user", SubjectId: userA.String(), ResourceId: ra.GetId()})
-	s.bind(bctx, t, &werbotv1.CreateBindingRequest{SubjectType: "user", SubjectId: userB.String(), ResourceId: rb.GetId()})
+	bindB := s.bind(bctx, t, &werbotv1.CreateBindingRequest{SubjectType: "user", SubjectId: userB.String(), ResourceId: rb.GetId()})
 
 	id := rb.GetId()
 	for name, call := range map[string]func() error{
@@ -47,12 +47,24 @@ func TestCrossOrgIsolation(t *testing.T) {
 			_, err := s.res.SetCredential(actx, connect.NewRequest(&werbotv1.SetCredentialRequest{ResourceId: id, Kind: "password", Value: []byte("x")}))
 			return err
 		},
+		"ClearCredential": func() error {
+			_, err := s.res.ClearCredential(actx, connect.NewRequest(&werbotv1.ClearCredentialRequest{ResourceId: id}))
+			return err
+		},
 		"ClearHostKey": func() error {
 			_, err := s.res.ClearHostKey(actx, connect.NewRequest(&werbotv1.ClearHostKeyRequest{ResourceId: id}))
 			return err
 		},
 		"CreateBinding": func() error {
 			_, err := s.acc.CreateBinding(actx, connect.NewRequest(&werbotv1.CreateBindingRequest{SubjectType: "user", SubjectId: userA.String(), ResourceId: id}))
+			return err
+		},
+		"DeleteBinding": func() error {
+			_, err := s.acc.DeleteBinding(actx, connect.NewRequest(&werbotv1.DeleteBindingRequest{Id: bindB}))
+			return err
+		},
+		"SetResourceRules": func() error {
+			_, err := s.pol.SetResourceRules(actx, connect.NewRequest(&werbotv1.SetResourceRulesRequest{ResourceId: id}))
 			return err
 		},
 		"GetResourceRules": func() error {

@@ -86,7 +86,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 		return Resource{}, invalid("unknown resource type %q", in.Type)
 	}
 	if err := errors.Join(validateName(in.Name), validateLabels(in.Labels)); err != nil {
-		return Resource{}, invalid("%v", err)
+		return Resource{}, err
 	}
 	cfg, err := validateConfig(t, in.Config)
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 // Update replaces name, gateway and labels; a non-nil Config replaces the config.
 func (s *Service) Update(ctx context.Context, orgID uuid.UUID, in UpdateInput) (Resource, error) {
 	if err := errors.Join(validateName(in.Name), validateLabels(in.Labels)); err != nil {
-		return Resource{}, invalid("%v", err)
+		return Resource{}, err
 	}
 	var res Resource
 	err := s.tx(ctx, orgID, func(st Store, tx pgx.Tx) error {

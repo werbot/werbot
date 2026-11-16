@@ -9,6 +9,6 @@ import (
 // Store is the persistence the use cases need.
 type Store interface {
 	CreateBinding(ctx context.Context, arg dbq.CreateBindingParams) (dbq.AccessBinding, error)
-	DeleteBinding(ctx context.Context, arg dbq.DeleteBindingParams) (int64, error)
+	DeleteBinding(ctx context.Context, arg dbq.DeleteBindingParams) (dbq.DeleteBindingRow, error)
 	ListBindings(ctx context.Context, arg dbq.ListBindingsParams) ([]dbq.AccessBinding, error)
 }

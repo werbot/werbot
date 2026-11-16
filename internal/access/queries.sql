@@ -8,8 +8,9 @@ WHERE CASE @subject_type::text
 END
 RETURNING id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at;
 
--- name: DeleteBinding :execrows
-DELETE FROM access_binding WHERE id = @id AND org_id = @org_id;
+-- name: DeleteBinding :one
+DELETE FROM access_binding WHERE id = @id AND org_id = @org_id
+RETURNING subject_type, subject_id, resource_id, label_selector;
 
 -- name: ListBindings :many
 -- A set resource_id keeps the bindings to it and every selector binding.

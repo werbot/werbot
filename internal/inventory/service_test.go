@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -81,7 +82,8 @@ func TestCreateRejects(t *testing.T) {
 		"bad value":   {Name: "a", Type: "ssh", Config: good, Labels: map[string]string{"env": "a b"}},
 	} {
 		_, err := e.svc.Create(e.ctx, e.org, in)
-		assert.ErrorIs(t, err, apperr.ErrInvalidArgument, name)
+		require.ErrorIs(t, err, apperr.ErrInvalidArgument, name)
+		assert.Equal(t, 1, strings.Count(err.Error(), apperr.ErrInvalidArgument.Error()), "single prefix: %s", err)
 	}
 	many := map[string]string{}
 	for i := range 33 {
@@ -117,6 +119,9 @@ func TestUpdateAndDelete(t *testing.T) {
 
 	_, err = e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: r.ID, Name: "web2", Config: wrapperspb.String("x")})
 	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
+	_, err = e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: r.ID, Name: "Bad_Name"})
+	require.ErrorIs(t, err, apperr.ErrInvalidArgument)
+	assert.Equal(t, 1, strings.Count(err.Error(), apperr.ErrInvalidArgument.Error()), "single prefix: %s", err)
 
 	require.NoError(t, e.svc.Delete(e.ctx, e.org, r.ID))
 	_, err = e.svc.Get(e.ctx, e.org, r.ID)

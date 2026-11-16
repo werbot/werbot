@@ -54,8 +54,9 @@ func (q *Queries) CreateBinding(ctx context.Context, arg CreateBindingParams) (A
 	return i, err
 }
 
-const deleteBinding = `-- name: DeleteBinding :execrows
+const deleteBinding = `-- name: DeleteBinding :one
 DELETE FROM access_binding WHERE id = $1 AND org_id = $2
+RETURNING subject_type, subject_id, resource_id, label_selector
 `
 
 type DeleteBindingParams struct {
@@ -63,12 +64,23 @@ type DeleteBindingParams struct {
 	OrgID uuid.UUID
 }
 
-func (q *Queries) DeleteBinding(ctx context.Context, arg DeleteBindingParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteBinding, arg.ID, arg.OrgID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+type DeleteBindingRow struct {
+	SubjectType   string
+	SubjectID     uuid.UUID
+	ResourceID    *uuid.UUID
+	LabelSelector []byte
+}
+
+func (q *Queries) DeleteBinding(ctx context.Context, arg DeleteBindingParams) (DeleteBindingRow, error) {
+	row := q.db.QueryRow(ctx, deleteBinding, arg.ID, arg.OrgID)
+	var i DeleteBindingRow
+	err := row.Scan(
+		&i.SubjectType,
+		&i.SubjectID,
+		&i.ResourceID,
+		&i.LabelSelector,
+	)
+	return i, err
 }
 
 const listBindings = `-- name: ListBindings :many

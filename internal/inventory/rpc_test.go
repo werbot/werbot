@@ -181,4 +181,8 @@ func TestOtherOrgIsNotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	_, err = h.SetCredential(e.ctx, connect.NewRequest(&werbotv1.SetCredentialRequest{ResourceId: id, Kind: "password", Value: []byte("x")}))
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	_, err = h.ClearCredential(e.ctx, connect.NewRequest(&werbotv1.ClearCredentialRequest{ResourceId: id}))
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	_, err = h.ClearCredential(e.ctx, connect.NewRequest(&werbotv1.ClearCredentialRequest{ResourceId: uuid.NewString()}))
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }

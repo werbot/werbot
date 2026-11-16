@@ -137,6 +137,20 @@ func TestEchoTypeNeedsNoMigrationOrDomainChanges(t *testing.T) {
 	assert.False(t, s.allowed(ctx, t, owner, r.GetId()))
 }
 
+// The gateway builds snapshots without a user principal (stage 5).
+func TestSnapshotWithoutPrincipal(t *testing.T) {
+	s := newStage4(t, slog.New(slog.DiscardHandler))
+	ctx, org, owner := s.org(t, "owner")
+	r, err := s.echo(ctx, t, wrapperspb.String("x"), nil)
+	require.NoError(t, err)
+	s.bind(ctx, t, &werbotv1.CreateBindingRequest{SubjectType: "user", SubjectId: owner.String(), ResourceId: r.GetId()})
+
+	snap, err := s.d.pol.Snapshot(context.Background(), org)
+	require.NoError(t, err)
+	require.Len(t, snap.Bindings, 1)
+	assert.Equal(t, owner, snap.Bindings[0].SubjectID)
+}
+
 // Every replica loads the stored GeoIP database at start: without it country
 // rules deny everything until the next geoip.refresh.
 func TestNewDomainsReloadsGeoIP(t *testing.T) {

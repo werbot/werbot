@@ -83,26 +83,30 @@ func (s *Service) Delete(ctx context.Context, orgID, id uuid.UUID) error {
 		return err
 	}
 	return s.tx(ctx, orgID, p.UserID, func(st Store, tx pgx.Tx) error {
-		n, err := st.DeleteBinding(ctx, dbq.DeleteBindingParams{ID: id, OrgID: orgID})
+		row, err := st.DeleteBinding(ctx, dbq.DeleteBindingParams{ID: id, OrgID: orgID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("binding not found: %w", apperr.ErrNotFound)
+		}
 		if err != nil {
 			return err
 		}
-		if n == 0 {
-			return fmt.Errorf("binding not found: %w", apperr.ErrNotFound)
+		data := map[string]any{"subject_type": row.SubjectType, "subject_id": row.SubjectID}
+		if row.ResourceID != nil {
+			data["resource_id"] = row.ResourceID
+		} else {
+			data["label_selector"] = json.RawMessage(row.LabelSelector)
 		}
-		return audit(ctx, tx, orgID, p.UserID, "access.binding.delete", id, nil)
+		return audit(ctx, tx, orgID, p.UserID, "access.binding.delete", id, data)
 	})
 }
 
 // List returns the bindings of the organization; with resourceID only those to
-// that resource plus every selector binding.
+// that resource plus every selector binding. It needs no principal: the policy
+// snapshot reads it from the gateway too.
 func (s *Service) List(ctx context.Context, orgID uuid.UUID, resourceID *uuid.UUID) ([]Binding, error) {
-	p, err := principal.Require(ctx)
-	if err != nil {
-		return nil, err
-	}
+	p, _ := principal.From(ctx)
 	var out []Binding
-	err = s.tx(ctx, orgID, p.UserID, func(st Store, _ pgx.Tx) error {
+	err := s.tx(ctx, orgID, p.UserID, func(st Store, _ pgx.Tx) error {
 		rows, err := st.ListBindings(ctx, dbq.ListBindingsParams{OrgID: orgID, ResourceID: resourceID})
 		if err != nil {
 			return err
