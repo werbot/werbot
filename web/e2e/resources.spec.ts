@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page, type Route } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
 import { OWNER, loginAsOwner } from './support/auth';
 
@@ -46,4 +46,50 @@ test('resource, credential, rule, binding and access check', async ({ page }) =>
 	await expect(page.getByText(/^rule:network:/)).toBeVisible();
 
 	await expect(page.getByRole('link', { name: en.geoip_attribution })).toHaveAttribute('href', 'https://db-ip.com');
+});
+
+test.describe('pool list load on the resource form', () => {
+	const listGateways = '**/werbot.v1.GatewayService/ListGateways';
+	const fail = (route: Route, code: string) =>
+		route.fulfill({ status: code === 'permission_denied' ? 403 : 500, contentType: 'application/json', body: JSON.stringify({ code, message: code }) });
+
+	async function fillValid(page: Page) {
+		await page.getByLabel(en.resources_name).fill('e2e-pool-load');
+		await page.getByLabel(en.resources_ssh_host).fill('10.0.0.5');
+		await page.getByLabel(en.resources_ssh_login).fill('root');
+	}
+
+	test.beforeEach(async ({ page }) => {
+		await loginAsOwner(page);
+	});
+
+	test('other error shows a banner', async ({ page }) => {
+		await page.route(listGateways, (r) => fail(r, 'internal'));
+		await page.goto('/resources/new');
+		await expect(page.getByText(en.error_unknown)).toBeVisible();
+	});
+
+	test('Save stays disabled until the pool list settles', async ({ page }) => {
+		let release!: () => void;
+		const gate = new Promise<void>((r) => (release = r));
+		await page.route(listGateways, async (r) => {
+			await gate;
+			await r.continue();
+		});
+		await page.goto('/resources/new');
+		await fillValid(page);
+		const save = page.getByRole('button', { name: en.resources_save, exact: true });
+		await expect(save).toBeDisabled();
+		release();
+		await expect(save).toBeEnabled();
+	});
+
+	test('permission denied shows no banner and still saves', async ({ page }) => {
+		await page.route(listGateways, (r) => fail(r, 'permission_denied'));
+		await page.goto('/resources/new');
+		await fillValid(page);
+		await expect(page.getByRole('button', { name: en.resources_save, exact: true })).toBeEnabled();
+		await expect(page.getByText(en.error_permission_denied)).toHaveCount(0);
+		await expect(page.getByText(en.error_unknown)).toHaveCount(0);
+	});
 });
