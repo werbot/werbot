@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -269,6 +270,9 @@ func TestParseGatewayCN(t *testing.T) {
 		"gateway:" + gw.String(),
 		"user:" + gw.String() + ":" + inst.String(),
 		"gateway:xyz:" + inst.String(),
+		"gateway:{" + gw.String() + "}:" + inst.String(),
+		"gateway:" + strings.ToUpper(gw.String()) + ":" + inst.String(),
+		"gateway:" + strings.ReplaceAll(gw.String(), "-", "") + ":" + inst.String(),
 		"gateway:" + gw.String() + ":" + inst.String() + ":" + gw.String(),
 	} {
 		if _, _, err := ParseGatewayCN(cn); err == nil {

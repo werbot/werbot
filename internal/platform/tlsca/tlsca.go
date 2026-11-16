@@ -125,8 +125,18 @@ func open(st StoredCA, box *secretbox.Box) (*CA, error) {
 // IssueClient signs a client-auth certificate for the CSR public key.
 // The CSR subject is ignored: the certificate carries commonName.
 func (c *CA) IssueClient(csrDER []byte, commonName string, ttl time.Duration) ([]byte, error) {
+	if ttl <= 0 || commonName == "" {
+		return nil, fmt.Errorf("%w: ttl and common name are required", apperr.ErrInvalidArgument)
+	}
 	now := time.Now()
-	return c.issue(csrDER, commonName, now.Add(-skew), now.Add(ttl))
+	return c.issue(csrDER, commonName, now.Add(-skew), minTime(now.Add(ttl), c.cert.NotAfter))
+}
+
+func minTime(a, b time.Time) time.Time {
+	if b.Before(a) {
+		return b
+	}
+	return a
 }
 
 func (c *CA) issue(csrDER []byte, cn string, notBefore, notAfter time.Time) ([]byte, error) {
@@ -169,6 +179,9 @@ func (c *CA) sign(pub ed25519.PublicKey, cn string, notBefore, notAfter time.Tim
 // ServerTLS returns a TLS 1.3 config with a fresh leaf for hosts that demands
 // a client certificate issued by this CA.
 func (c *CA) ServerTLS(hosts []string) (*tls.Config, error) {
+	if len(hosts) == 0 {
+		return nil, fmt.Errorf("%w: server hosts are required", apperr.ErrInvalidArgument)
+	}
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("tlsca: generate server key: %w", err)
@@ -208,8 +221,8 @@ func (c *CA) Fingerprint() string { return fingerprint(c.cert.Raw) }
 // FingerprintPEM computes Fingerprint for a root certificate in PEM form.
 func FingerprintPEM(rootPEM []byte) (string, error) {
 	blk, _ := pem.Decode(rootPEM)
-	if blk == nil {
-		return "", fmt.Errorf("%w: root is not PEM", apperr.ErrInvalidArgument)
+	if blk == nil || blk.Type != "CERTIFICATE" {
+		return "", fmt.Errorf("%w: root is not a PEM certificate", apperr.ErrInvalidArgument)
 	}
 	return fingerprint(blk.Bytes), nil
 }
@@ -235,6 +248,9 @@ func ParseGatewayCN(cn string) (gatewayID, instanceID uuid.UUID, err error) {
 	}
 	if instanceID, err = uuid.Parse(parts[2]); err != nil {
 		return uuid.Nil, uuid.Nil, fmt.Errorf("%w: bad instance id", apperr.ErrInvalidArgument)
+	}
+	if GatewayCN(gatewayID, instanceID) != cn {
+		return uuid.Nil, uuid.Nil, fmt.Errorf("%w: non-canonical gateway common name", apperr.ErrInvalidArgument)
 	}
 	return gatewayID, instanceID, nil
 }
