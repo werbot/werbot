@@ -39,5 +39,21 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/notify, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import other domains }
+        webui:
+          files: ["**/internal/webui/*.go", "**/internal/webui/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: webui must not import the composition root }
+            - { pkg: github.com/werbot/werbot/internal/platform/db, desc: werbot web has no database access }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: webui must not import domains }
 formatters:
   enable: [goimports]

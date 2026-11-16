@@ -22,6 +22,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/version"
 	"github.com/werbot/werbot/internal/system"
+	"github.com/werbot/werbot/internal/webui"
 	"github.com/werbot/werbot/sdk"
 	"github.com/werbot/werbot/web"
 )
@@ -36,9 +37,15 @@ func Run(ctx context.Context, args []string, getenv func(string) string, stdout 
 	case "version":
 		_, err := fmt.Fprintf(stdout, "werbot %s (commit %s, built %s)\n", version.Version, version.Commit, version.BuildDate)
 		return err
+	case "web":
+		cfg, err := webui.LoadConfig(getenv)
+		if err != nil {
+			return err
+		}
+		return webui.Run(ctx, cfg, web.FS(), logging.New(stdout, cfg.LogLevel, cfg.LogFormat))
 	case "migrate", "server":
 	default:
-		return errors.New("usage: werbot <server|migrate|version>")
+		return errors.New("usage: werbot <server|web|migrate|version>")
 	}
 
 	cfg, err := config.Load(getenv)
