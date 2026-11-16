@@ -45,14 +45,15 @@ func (h blockingHandler) Handle(ctx context.Context, r slog.Record) error {
 func TestServeRunningJobSurvivesCancel(t *testing.T) {
 	pool, _ := dbtest.New(t)
 	cfg := config.Config{HTTPAddr: freeAddr(t), WebEmbedded: true}
-	withSecretKey(&cfg)
+	withTestDefaults(t, &cfg)
+	o := testServeOpts(t, cfg, pool)
 	var ctxErr error
 	h := blockingHandler{Handler: slog.NewTextHandler(io.Discard, nil), started: make(chan struct{}), release: make(chan struct{}), ctxErr: &ctxErr}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	done := make(chan error, 1)
-	go func() { done <- serve(ctx, cfg, slog.New(h), pool, nil, fstest.MapFS{}) }()
+	go func() { done <- serve(ctx, cfg, slog.New(h), pool, nil, fstest.MapFS{}, o) }()
 	require.Eventually(t, func() bool {
 		res, err := http.Get("http://" + cfg.HTTPAddr + "/healthz")
 		if err != nil {

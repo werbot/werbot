@@ -30,13 +30,9 @@ import (
 	"github.com/werbot/werbot/internal/policy"
 )
 
-type noTeams struct{}
-
-func (noTeams) UserTeams(context.Context, uuid.UUID, uuid.UUID) ([]uuid.UUID, error) { return nil, nil }
-
-// stage4 is newDomains on a test database with its three Connect handlers.
+// stage4 is newServices on a test database with its three Connect handlers.
 type stage4 struct {
-	d    domains
+	d    *services
 	pool *pgxpool.Pool
 	res  *inventory.Handler
 	acc  *access.Handler
@@ -53,8 +49,9 @@ func stage4Of(t *testing.T, pool *pgxpool.Pool, logger *slog.Logger) stage4 {
 	t.Helper()
 	box, err := secretbox.New(bytes.Repeat([]byte{1}, 32), nil)
 	require.NoError(t, err)
-	d := newDomains(context.Background(), pool, box, noTeams{}, logger)
-	return stage4{d: d, pool: pool, res: inventory.NewHandler(d.inv, d.cred), acc: access.NewHandler(d.acc), pol: policy.NewHandler(d.pol)}
+	d, err := newServices(context.Background(), config.Config{}, pool, box, nil, logger)
+	require.NoError(t, err)
+	return stage4{d: d, pool: pool, res: inventory.NewHandler(d.Inventory, d.Credential), acc: access.NewHandler(d.Access), pol: policy.NewHandler(d.Policy)}
 }
 
 // org creates an organization with one user of role and returns the user's ctx.
@@ -122,7 +119,7 @@ func TestEchoTypeNeedsNoMigrationOrDomainChanges(t *testing.T) {
 	assert.Contains(t, policy.Schema(), `action "echo.connect"`)
 
 	bid := s.bind(ctx, t, &werbotv1.CreateBindingRequest{SubjectType: "user", SubjectId: owner.String(), ResourceId: r.GetId()})
-	snap, err := s.d.pol.Snapshot(ctx, org)
+	snap, err := s.d.Policy.Snapshot(ctx, org)
 	require.NoError(t, err)
 	ps, text, err := policy.Compile(snap)
 	require.NoError(t, err)
@@ -145,7 +142,7 @@ func TestSnapshotWithoutPrincipal(t *testing.T) {
 	require.NoError(t, err)
 	s.bind(ctx, t, &werbotv1.CreateBindingRequest{SubjectType: "user", SubjectId: owner.String(), ResourceId: r.GetId()})
 
-	snap, err := s.d.pol.Snapshot(context.Background(), org)
+	snap, err := s.d.Policy.Snapshot(context.Background(), org)
 	require.NoError(t, err)
 	require.Len(t, snap.Bindings, 1)
 	assert.Equal(t, owner, snap.Bindings[0].SubjectID)
@@ -153,7 +150,7 @@ func TestSnapshotWithoutPrincipal(t *testing.T) {
 
 // Every replica loads the stored GeoIP database at start: without it country
 // rules deny everything until the next geoip.refresh.
-func TestNewDomainsReloadsGeoIP(t *testing.T) {
+func TestNewServicesReloadsGeoIP(t *testing.T) {
 	pool, _ := dbtest.New(t)
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&logs, nil))

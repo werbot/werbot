@@ -8,30 +8,29 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
 	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/riverqueue/river"
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/identity"
-	"github.com/werbot/werbot/internal/notify"
+	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/db"
 	"github.com/werbot/werbot/internal/platform/httpserver"
-	"github.com/werbot/werbot/internal/platform/jobs"
 	"github.com/werbot/werbot/internal/platform/logging"
 	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/secretbox"
+	"github.com/werbot/werbot/internal/platform/tlsca"
 	"github.com/werbot/werbot/internal/platform/version"
-	"github.com/werbot/werbot/internal/policy"
 	"github.com/werbot/werbot/internal/system"
+	"github.com/werbot/werbot/internal/tunnel"
 	"github.com/werbot/werbot/internal/webui"
 	"github.com/werbot/werbot/sdk"
 	"github.com/werbot/werbot/web"
@@ -63,11 +62,17 @@ func Run(ctx context.Context, args []string, getenv func(string) string, stdout 
 		return err
 	}
 	if cmd == "migrate" {
-		return bootstrap(ctx, cfg.DatabaseURL)
+		_, err := bootstrap(ctx, cfg.DatabaseURL, nil)
+		return err
 	}
 
 	logger := logging.New(stdout, cfg.LogLevel, cfg.LogFormat)
-	if err := bootstrap(ctx, cfg.DatabaseURL); err != nil {
+	box, err := secretbox.New(cfg.SecretKey, cfg.PreviousSecretKeys)
+	if err != nil {
+		return err
+	}
+	boot, err := bootstrap(ctx, cfg.DatabaseURL, box)
+	if err != nil {
 		return err
 	}
 	octx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -77,7 +82,7 @@ func Run(ctx context.Context, args []string, getenv func(string) string, stdout 
 		return err
 	}
 	defer pool.Close()
-	return serve(ctx, cfg, logger, pool, sdk.Modules(), web.FS())
+	return serve(ctx, cfg, logger, pool, sdk.Modules(), web.FS(), serveOpts{CA: boot.CA, Box: box})
 }
 
 // host is the Community sdk.Host: no feature is ever entitled.
@@ -90,35 +95,27 @@ func (h host) DB() *pgxpool.Pool                      { return h.pool }
 func (h host) Handle(pattern string, hd http.Handler) { h.mux.Handle(pattern, hd) }
 func (host) Entitled(string) bool                     { return false }
 
+// serveOpts are what Run hands serve besides the config: the tunnel CA from
+// bootstrap and the secret box it was opened with.
+type serveOpts struct {
+	CA  *tlsca.CA
+	Box *secretbox.Box
+}
+
 // serve runs the main HTTP server (and the metrics server when cfg.MetricsAddr
-// is set) and the River client until ctx ends, then drains and shuts the HTTP
-// servers down, then stops River, each within 10s.
-func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS) error {
-	box, err := secretbox.New(cfg.SecretKey, cfg.PreviousSecretKeys)
+// is set), the gateway tunnel on cfg.GatewayAddr, the NOTIFY listener and the
+// River client until ctx ends. Then it drains /readyz, closes the tunnel
+// streams, shuts the HTTP servers down and stops River, each within 10s.
+func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS, o serveOpts) error {
+	turl, err := tunnelURL(cfg.PublicURL, cfg.GatewayAddr)
 	if err != nil {
 		return err
 	}
-	mailer, err := notify.NewMailer(cfg.SMTP, cfg.Env == "development", logger)
+	s, err := newServices(ctx, cfg, pool, o.Box, o.CA, logger)
 	if err != nil {
 		return err
 	}
-	// identity needs the River client, which needs the policy jobs: teams
-	// reads ids, which is set below, before any request is served.
-	var ids *identity.Service
-	d := newDomains(ctx, pool, box, teamsFunc(func(ctx context.Context, orgID, userID uuid.UUID) ([]uuid.UUID, error) {
-		return ids.UserTeams(ctx, orgID, userID)
-	}), logger)
-	workers := river.NewWorkers()
-	river.AddWorker(workers, notify.NewWorker(mailer, box))
-	periodic := policy.RegisterJobs(workers, d.pol, feedsConfig)
-	rc, err := jobs.NewClient(pool, workers, periodic, logger)
-	if err != nil {
-		return err
-	}
-	ids = identity.New(pool, notify.NewQueue(rc, box), identity.Config{
-		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger,
-	})
-	idh := identity.NewHandler(ids)
+	idh := identity.NewHandler(s.Identity)
 	opts := connect.WithHandlerOptions(
 		connect.WithInterceptors(validate.NewInterceptor(), logInternalErrors(logger)),
 		connect.WithReadMaxBytes(1<<20), // public RPCs: no body is read past 1 MiB
@@ -134,7 +131,12 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	mux.Handle(werbotv1connect.NewSSHKeyServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewMemberServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewTeamServiceHandler(idh, opts))
-	d.mount(mux, opts)
+	s.mount(mux, opts)
+	// Enroll returns the pool's private host key: opts log no bodies, only
+	// the masked cause of CodeInternal.
+	gw := inventory.NewGatewayRPC(s.Gateways, turl)
+	mux.Handle(werbotv1connect.NewGatewayServiceHandler(gw, opts))
+	mux.Handle(werbotv1connect.NewGatewayEnrollServiceHandler(gw, opts))
 	h := host{pool: pool, mux: mux}
 	for _, m := range modules {
 		if m.Feature != "" && !h.Entitled(m.Feature) {
@@ -157,7 +159,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	reg.GaugeFunc("werbot_db_pool_total_conns", "Database pool connections open.",
 		func() int64 { return int64(pool.Stat().TotalConns()) })
 
-	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, clientip.Middleware(cfg.TrustedProxies)(identity.Middleware(ids)(mux)))}
+	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, clientip.Middleware(cfg.TrustedProxies)(identity.Middleware(s.Identity)(mux)))}
 	if cfg.MetricsAddr != "" {
 		mmux := http.NewServeMux()
 		mmux.Handle("/metrics", reg.Handler())
@@ -167,37 +169,64 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	if err != nil {
 		return err
 	}
+	gln, err := net.Listen("tcp", cfg.GatewayAddr)
+	if err != nil {
+		closeAll(lns)
+		return err
+	}
 	// Not ctx: cancelling it aborts running jobs; only Stop below ends River.
-	if err := rc.Start(context.WithoutCancel(ctx)); err != nil {
-		for _, ln := range lns {
-			_ = ln.Close()
-		}
+	if err := s.Jobs.Start(context.WithoutCancel(ctx)); err != nil {
+		closeAll(append(lns, gln))
 		return err
 	}
 	errc := make(chan error, len(servers))
-	for i, s := range servers {
-		go func() { errc <- s.Serve(lns[i]) }()
+	for i, srv := range servers {
+		go func() { errc <- srv.Serve(lns[i]) }()
 	}
-	logger.Info("server started", "addr", cfg.HTTPAddr, "metrics_addr", cfg.MetricsAddr)
+	// pctx ends the tunnel and the NOTIFY listener also when a server fails.
+	pctx, pcancel := context.WithCancel(ctx)
+	defer pcancel()
+	hub := tunnel.NewHub()
+	plane := make(chan error, 1)
+	go func() { plane <- runGatewayPlane(pctx, gln, cfg, s, hub, reg, logger) }()
+	listening := listenNotify(pctx, pool, hub, s.Policy.ReloadGeoIP, logger)
+	logger.Info("server started", "addr", cfg.HTTPAddr, "metrics_addr", cfg.MetricsAddr, "gateway_addr", cfg.GatewayAddr)
 
+	planeDone := false
 	select {
 	case err = <-errc:
+	case err = <-plane:
+		planeDone = true
 	case <-ctx.Done():
-		draining.Store(true)
 	}
+	draining.Store(true)
+	hub.Shutdown()
+	pcancel()
 	sctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancel()
-	for _, s := range servers {
-		if serr := s.Shutdown(sctx); serr != nil {
-			logger.Error("server shutdown", "addr", s.Addr, "error", serr)
+	for _, srv := range servers {
+		if serr := srv.Shutdown(sctx); serr != nil {
+			logger.Error("server shutdown", "addr", srv.Addr, "error", serr)
 		}
 	}
+	if !planeDone {
+		if perr := <-plane; perr != nil {
+			logger.Error("gateway tunnel shutdown", "addr", cfg.GatewayAddr, "error", perr)
+		}
+	}
+	<-listening
 	rctx, rcancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer rcancel()
-	if rerr := rc.Stop(rctx); rerr != nil {
+	if rerr := s.Jobs.Stop(rctx); rerr != nil {
 		logger.Error("river stop", "error", rerr)
 	}
 	return err
+}
+
+func closeAll(lns []net.Listener) {
+	for _, ln := range lns {
+		_ = ln.Close()
+	}
 }
 
 // logInternalErrors logs the masked cause of every CodeInternal response.

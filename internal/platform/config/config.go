@@ -37,6 +37,9 @@ type Config struct {
 	SMTP               SMTP           // WERBOT_SMTP_*: HOST empty -> log mailer; PORT default 587; FROM required with HOST
 	SecretKey          []byte         // WERBOT_SECRET_KEY, required: base64, 32 bytes
 	PreviousSecretKeys [][]byte       // WERBOT_SECRET_KEY_PREVIOUS: comma-separated base64 keys, 32 bytes each
+
+	DataDir     string // WERBOT_DATA_DIR, default "./data": embedded gateway state
+	GatewayAddr string // WERBOT_GATEWAY_ADDR, default ":8443": mTLS listener of the gateway tunnel
 }
 
 // Vars lists every environment variable Load reads, in contract order.
@@ -45,7 +48,7 @@ func Vars() []string {
 		"WERBOT_ENV", "WERBOT_HTTP_ADDR", "WERBOT_DATABASE_URL", "WERBOT_LOG_LEVEL", "WERBOT_LOG_FORMAT",
 		"WERBOT_METRICS_ADDR", "WERBOT_WEB_EMBEDDED", "WERBOT_PUBLIC_URL", "WERBOT_WEB_URL", "WERBOT_TRUSTED_PROXIES",
 		"WERBOT_SMTP_HOST", "WERBOT_SMTP_PORT", "WERBOT_SMTP_USERNAME", "WERBOT_SMTP_PASSWORD", "WERBOT_SMTP_FROM",
-		"WERBOT_SECRET_KEY", "WERBOT_SECRET_KEY_PREVIOUS",
+		"WERBOT_SECRET_KEY", "WERBOT_SECRET_KEY_PREVIOUS", "WERBOT_DATA_DIR", "WERBOT_GATEWAY_ADDR",
 	}
 }
 
@@ -59,6 +62,8 @@ func Load(getenv func(string) string) (Config, error) {
 		LogFormat:   or(getenv("WERBOT_LOG_FORMAT"), "json"),
 		MetricsAddr: getenv("WERBOT_METRICS_ADDR"),
 		WebEmbedded: true,
+		DataDir:     or(getenv("WERBOT_DATA_DIR"), "./data"),
+		GatewayAddr: or(getenv("WERBOT_GATEWAY_ADDR"), ":8443"),
 	}
 	if c.DatabaseURL == "" {
 		return Config{}, errors.New("WERBOT_DATABASE_URL: required")

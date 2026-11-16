@@ -9,24 +9,30 @@ import (
 
 	"github.com/werbot/werbot/internal/platform/db"
 	"github.com/werbot/werbot/internal/platform/jobs"
+	"github.com/werbot/werbot/internal/platform/secretbox"
+	"github.com/werbot/werbot/internal/platform/tlsca"
 	"github.com/werbot/werbot/migrations"
 )
+
+// bootstrapped is what werbot server takes from bootstrap.
+type bootstrapped struct{ CA *tlsca.CA }
 
 // bootstrap is the only place for one-off startup work (contract §1.6). It runs
 // the steps under db.BootstrapLock, so replicas starting together take turns:
 // waiting for the lock is bounded only by ctx, and a second replica sees the
 // finished schema instead of failing. Later stages append steps to the closure
 // in this order: (1) goose Up, (2) jobs.Migrate, (3) tlsca.LoadOrCreate,
-// (4) session.LoadSigner.
-func bootstrap(ctx context.Context, databaseURL string) error {
+// (4) session.LoadSigner. box == nil is werbot migrate: steps (1)-(2) only.
+func bootstrap(ctx context.Context, databaseURL string, box *secretbox.Box) (bootstrapped, error) {
 	octx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	bpool, err := db.OpenBootstrap(octx, databaseURL)
 	cancel()
 	if err != nil {
-		return fmt.Errorf("bootstrap: %w", err)
+		return bootstrapped{}, fmt.Errorf("bootstrap: %w", err)
 	}
 	defer bpool.Close()
-	return db.WithLock(ctx, bpool, db.BootstrapLock, func(ctx context.Context) error {
+	var out bootstrapped
+	err = db.WithLock(ctx, bpool, db.BootstrapLock, func(ctx context.Context) error {
 		// (1) goose Up. sqlDB is closed before the closure returns, otherwise
 		// bpool.Close waits for its connection.
 		sqlDB := stdlib.OpenDBFromPool(bpool)
@@ -41,6 +47,17 @@ func bootstrap(ctx context.Context, databaseURL string) error {
 		if err := jobs.Migrate(ctx, bpool); err != nil {
 			return fmt.Errorf("bootstrap: river migrate: %w", err)
 		}
+		if box == nil {
+			return nil
+		}
+		// (3) gateway tunnel CA: the first replica creates it, the others load it.
+		if out.CA, err = tlsca.LoadOrCreate(ctx, tlsca.PostgresStore(bpool), box); err != nil {
+			return fmt.Errorf("bootstrap: %w", err)
+		}
 		return nil
 	})
+	if err != nil {
+		return bootstrapped{}, err
+	}
+	return out, nil
 }

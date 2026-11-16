@@ -26,6 +26,8 @@ import (
 	"github.com/werbot/werbot/internal/platform/db"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/jobs"
+	"github.com/werbot/werbot/internal/platform/secretbox"
+	"github.com/werbot/werbot/internal/platform/tlsca"
 	"github.com/werbot/werbot/sdk"
 )
 
@@ -43,11 +45,29 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// withSecretKey fills the key serve requires when a test built cfg by hand.
-func withSecretKey(cfg *config.Config) {
+// withTestDefaults fills what serve requires when a test built cfg by hand:
+// the secret key, the public URL and a free tunnel address.
+func withTestDefaults(t *testing.T, cfg *config.Config) {
+	t.Helper()
 	if len(cfg.SecretKey) == 0 {
 		cfg.SecretKey = bytes.Repeat([]byte{1}, 32)
 	}
+	if cfg.PublicURL == "" {
+		cfg.PublicURL = testPublicURL
+	}
+	if cfg.GatewayAddr == "" {
+		cfg.GatewayAddr = freeAddr(t)
+	}
+}
+
+// testServeOpts loads the tunnel CA as bootstrap does for werbot server.
+func testServeOpts(t *testing.T, cfg config.Config, pool *pgxpool.Pool) serveOpts {
+	t.Helper()
+	box, err := secretbox.New(cfg.SecretKey, nil)
+	require.NoError(t, err)
+	ca, err := tlsca.LoadOrCreate(context.Background(), tlsca.PostgresStore(pool), box)
+	require.NoError(t, err)
+	return serveOpts{CA: ca, Box: box}
 }
 
 func env(kv map[string]string) func(string) string {
@@ -77,11 +97,12 @@ func get(t *testing.T, url string) (int, string) {
 // func that cancels ctx and asserts serve returns nil within 10s.
 func startServe(t *testing.T, cfg config.Config, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS, logger *slog.Logger) (stop func()) {
 	t.Helper()
-	withSecretKey(&cfg)
+	withTestDefaults(t, &cfg)
+	o := testServeOpts(t, cfg, pool)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
-		done <- serve(ctx, cfg, logger, pool, modules, ui)
+		done <- serve(ctx, cfg, logger, pool, modules, ui, o)
 	}()
 	require.Eventually(t, func() bool {
 		res, err := http.Get("http://" + cfg.HTTPAddr + "/healthz")
@@ -186,7 +207,7 @@ func TestBootstrapConcurrent(t *testing.T) {
 	errs := make([]error, 4)
 	var wg sync.WaitGroup
 	for i := range errs {
-		wg.Go(func() { errs[i] = bootstrap(bctx, url) })
+		wg.Go(func() { _, errs[i] = bootstrap(bctx, url, nil) })
 	}
 	wg.Wait()
 	for _, err := range errs {
@@ -231,7 +252,10 @@ func TestBootstrapWaitsForLock(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	done := make(chan error, 1)
-	go func() { done <- bootstrap(ctx, url) }()
+	go func() {
+		_, err := bootstrap(ctx, url, nil)
+		done <- err
+	}()
 
 	time.Sleep(300 * time.Millisecond) // give bootstrap time to reach the lock
 	select {
@@ -258,7 +282,7 @@ func TestBootstrapLockWaitCanceled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	start := time.Now()
-	err := bootstrap(ctx, url)
+	_, err := bootstrap(ctx, url, nil)
 	assert.ErrorIs(t, err, context.DeadlineExceeded)
 	assert.Less(t, time.Since(start), 5*time.Second)
 	assert.False(t, gooseTableExists(t, pool), "migrations ran while the lock was held")
@@ -368,10 +392,11 @@ func TestServeAddrInUse(t *testing.T) {
 
 	var logs bytes.Buffer
 	cfg := config.Config{HTTPAddr: freeAddr(t), MetricsAddr: addr, WebEmbedded: true}
-	withSecretKey(&cfg)
+	withTestDefaults(t, &cfg)
+	o := testServeOpts(t, cfg, pool)
 	done := make(chan error, 1)
 	go func() {
-		done <- serve(context.Background(), cfg, slog.New(slog.NewTextHandler(&logs, nil)), pool, nil, fstest.MapFS{})
+		done <- serve(context.Background(), cfg, slog.New(slog.NewTextHandler(&logs, nil)), pool, nil, fstest.MapFS{}, o)
 	}()
 	select {
 	case err := <-done:

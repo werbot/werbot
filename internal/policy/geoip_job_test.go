@@ -108,7 +108,7 @@ func assertKept(t *testing.T, e jobsEnv, conn *pgx.Conn, de []byte, msg string) 
 	month, data := stored(t, e)
 	assert.Equal(t, "2026-10-01", month, msg)
 	assert.Equal(t, de, data, msg)
-	assert.Equal(t, "DE", e.svc.country(geoTestIP), msg)
+	assert.Equal(t, "DE", e.svc.Country(geoTestIP), msg)
 	noNotification(t, conn)
 }
 
@@ -129,7 +129,7 @@ func TestGeoIPRefreshWritesRowAndNotifies(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "werbot_geoip_changed", n.Channel)
 	assert.Empty(t, n.Payload)
-	assert.Equal(t, "DE", e.svc.country(geoTestIP))
+	assert.Equal(t, "DE", e.svc.Country(geoTestIP))
 }
 
 func TestGeoIPRefreshFallsBackToPreviousMonth(t *testing.T) {
@@ -141,7 +141,7 @@ func TestGeoIPRefreshFallsBackToPreviousMonth(t *testing.T) {
 	require.NoError(t, runGeoIP(e))
 	month, _ := stored(t, e)
 	assert.Equal(t, "2026-10-01", month)
-	assert.Equal(t, "FR", e.svc.country(geoTestIP))
+	assert.Equal(t, "FR", e.svc.Country(geoTestIP))
 	assert.Equal(t, []string{pathNov, pathOct}, f.asked())
 
 	require.NoError(t, runGeoIP(e))
@@ -195,7 +195,7 @@ func TestGeoIPRefreshSkipsCurrentMonth(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, runGeoIP(e))
 	assert.Empty(t, f.asked())
-	assert.Equal(t, "DE", e.svc.country(geoTestIP), "the skip path retries a failed reload")
+	assert.Equal(t, "DE", e.svc.Country(geoTestIP), "the skip path retries a failed reload")
 }
 
 func TestGeoIPRefreshFailsWhenNothingPublished(t *testing.T) {

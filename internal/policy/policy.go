@@ -3,6 +3,7 @@
 package policy
 
 import (
+	"encoding/json"
 	"net/netip"
 	"slices"
 	"strings"
@@ -106,6 +107,12 @@ type Decision struct {
 type PolicySet struct { //nolint:revive // name fixed by contract §3.2
 	policies *cedar.PolicySet
 	entities cedar.EntityMap
+}
+
+// EntitiesJSON is the Cedar JSON of the compiled entities; cedar sorts them
+// by UID, so equal snapshots encode to equal bytes.
+func (ps *PolicySet) EntitiesJSON() ([]byte, error) {
+	return json.Marshal(ps.entities)
 }
 
 // ExpandBindings resolves label selectors: a resource matches when it has every pair.

@@ -88,7 +88,7 @@ func TestCrossOrgIsolation(t *testing.T) {
 	require.Len(t, binds.Msg.GetBindings(), 1)
 	assert.Equal(t, ra.GetId(), binds.Msg.GetBindings()[0].GetResourceId())
 
-	_, err = s.d.cred.Reveal(actx, orgA, uuid.MustParse(id))
+	_, err = s.d.Credential.Reveal(actx, orgA, uuid.MustParse(id))
 	assert.ErrorIs(t, err, apperr.ErrNotFound)
 }
 
@@ -101,7 +101,7 @@ func TestLabelSelectorIsOrgScopedAndFollowsLabels(t *testing.T) {
 	rb, err := s.echo(bctx, t, wrapperspb.String("b"), prod)
 	require.NoError(t, err)
 
-	snap, err := s.d.pol.Snapshot(actx, orgA)
+	snap, err := s.d.Policy.Snapshot(actx, orgA)
 	require.NoError(t, err)
 	foreign := uuid.MustParse(rb.GetId())
 	assert.False(t, slices.ContainsFunc(snap.Resources, func(r policy.SnapshotResource) bool { return r.ID == foreign }))

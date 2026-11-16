@@ -112,19 +112,19 @@ func TestReloadGeoIPFromDB(t *testing.T) {
 	ip := netip.MustParseAddr("10.1.2.3")
 
 	svc := New(Deps{Pool: pool, Logger: slog.New(slog.DiscardHandler)})
-	assert.Empty(t, svc.country(ip))
+	assert.Empty(t, svc.Country(ip))
 	_, err := pool.Exec(ctx, "INSERT INTO geoip_db (id, month, data) VALUES (1, '2026-10-01', $1)", de)
 	require.NoError(t, err)
 	require.NoError(t, svc.ReloadGeoIP(ctx))
-	assert.Equal(t, "DE", svc.country(ip))
+	assert.Equal(t, "DE", svc.Country(ip))
 
 	_, err = pool.Exec(ctx, `UPDATE geoip_db SET data = '\x00'`)
 	require.NoError(t, err)
 	assert.Error(t, svc.ReloadGeoIP(ctx))
-	assert.Equal(t, "DE", svc.country(ip), "a broken database keeps the previous one")
+	assert.Equal(t, "DE", svc.Country(ip), "a broken database keeps the previous one")
 
 	_, err = pool.Exec(ctx, "DELETE FROM geoip_db")
 	require.NoError(t, err)
 	require.NoError(t, svc.ReloadGeoIP(ctx))
-	assert.Equal(t, "DE", svc.country(ip), "no row keeps the current database")
+	assert.Equal(t, "DE", svc.Country(ip), "no row keeps the current database")
 }

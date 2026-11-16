@@ -33,7 +33,19 @@ func TestLoadDefaults(t *testing.T) {
 	assert.Equal(t, config.Config{
 		Env: "production", HTTPAddr: ":8080", DatabaseURL: "postgres://x", LogLevel: "info", LogFormat: "json", MetricsAddr: "", WebEmbedded: true,
 		PublicURL: "https://werbot.example.com", WebURL: "https://werbot.example.com", SMTP: config.SMTP{Port: 587}, SecretKey: bytes.Repeat([]byte{1}, 32),
+		DataDir: "./data", GatewayAddr: ":8443",
 	}, c)
+}
+
+func TestLoadGatewayAddrAndDataDir(t *testing.T) {
+	c, err := config.Load(base(nil))
+	require.NoError(t, err)
+	assert.Equal(t, ":8443", c.GatewayAddr)
+	assert.Equal(t, "./data", c.DataDir)
+	c, err = config.Load(base(map[string]string{"WERBOT_GATEWAY_ADDR": "127.0.0.1:9443", "WERBOT_DATA_DIR": "/var/lib/werbot"}))
+	require.NoError(t, err)
+	assert.Equal(t, "127.0.0.1:9443", c.GatewayAddr)
+	assert.Equal(t, "/var/lib/werbot", c.DataDir)
 }
 
 func TestLoadStage3(t *testing.T) {

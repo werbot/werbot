@@ -86,8 +86,8 @@ func (s *Service) ReloadGeoIP(ctx context.Context) error {
 	return nil
 }
 
-// country resolves ip with the current GeoIP database; "" without one.
-func (s *Service) country(ip netip.Addr) string {
+// Country resolves ip with the current GeoIP database; "" without one.
+func (s *Service) Country(ip netip.Addr) string {
 	if g := s.geo.Load(); g != nil {
 		return (*g).Country(ip)
 	}
@@ -164,5 +164,5 @@ func (s *Service) CheckAccess(ctx context.Context, orgID, userID, resourceID uui
 		return Decision{Reasons: []string{"error:compile"}}, nil
 	}
 	return ps.Authorize(Request{UserID: userID, TeamIDs: teams, ResourceID: resourceID, Action: typ.Actions[0],
-		IP: ip, Country: s.country(ip), Time: at, IPBlocked: blocked}), nil
+		IP: ip, Country: s.Country(ip), Time: at, IPBlocked: blocked}), nil
 }

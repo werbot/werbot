@@ -29,7 +29,7 @@ WERBOT_PUBLIC_URL=http://localhost:8080 ./bin/werbot server
 
 Commands: `./bin/werbot <server|web|migrate|version>`.
 
-- `server` runs migrations (schema and River job queue) under an advisory lock, then serves the API (and the UI when embedded) and runs the River job client.
+- `server` runs migrations (schema and River job queue) and creates the internal gateway CA on first start, under an advisory lock. Then it serves the API (and the UI when embedded), the gateway tunnel on `WERBOT_GATEWAY_ADDR` and runs the River job client.
 - `migrate` runs migrations (schema and River job queue) and exits.
 - `web` serves the UI and proxies the API to a separate `server`.
 - `version` prints the build version.
@@ -39,6 +39,9 @@ The API covers identity (auth, profile, SSH keys, members, teams) and, for owner
 - `ResourceService`: resources of registered types (`ssh` today) with labels, write-only credentials (sealed with `WERBOT_SECRET_KEY`) and pinned SSH host keys.
 - `AccessService`: bindings that grant a user or team one resource or every resource matching a label selector.
 - `PolicyService`: per-resource network, country and schedule (UTC) rules, and `CheckAccess` to test a decision. Decisions use Cedar and fail closed.
+- `GatewayService`: gateway pools, their instances and join tokens. A gateway joins with `GatewayEnrollService/Enroll` (the join token is its only credential) and then talks to the server only over the mTLS tunnel (`https://<WERBOT_PUBLIC_URL host>:<WERBOT_GATEWAY_ADDR port>`). The server never connects to a gateway.
+
+Maintenance jobs run on the River `maintenance` queue: `session.end_lost` (every 30s) closes sessions of gateways that stopped reporting, `gateway.gc` (hourly) removes instances whose certificate expired over 24h ago and join tokens expired over 7 days ago.
 
 Background jobs on the River `feeds` queue (one worker) need outbound HTTPS from the server:
 
@@ -69,6 +72,8 @@ A failed download keeps the previous data.
 | `WERBOT_SMTP_FROM` | empty | Sender address; required when `WERBOT_SMTP_HOST` is set. |
 | `WERBOT_SECRET_KEY` | required | Base64 of 32 random bytes (`openssl rand -base64 32`); encrypts stored secrets. |
 | `WERBOT_SECRET_KEY_PREVIOUS` | empty | Comma-separated base64 keys kept for decrypting data sealed before a key rotation. |
+| `WERBOT_DATA_DIR` | `./data` | Local state directory (embedded gateway). |
+| `WERBOT_GATEWAY_ADDR` | `:8443` | mTLS listener of the gateway tunnel (TLS 1.3, HTTP/2). Its port is the port in the tunnel URL given to gateways. |
 
 `werbot web` (no database access):
 
@@ -84,6 +89,7 @@ A failed download keeps the previous data.
 ## Deployment modes
 
 - All-in-one (default): `werbot server` serves the API and the UI on one address.
+- Several server replicas: put an L4 (TCP passthrough) load balancer in front of the tunnel port (`8443` by default) with the same external port; mTLS ends on the replica, so a TLS-terminating proxy breaks the tunnel. The API port works behind any HTTP load balancer.
 - Separate UI: run `werbot server` with `WERBOT_WEB_EMBEDDED=false` and `werbot web` with `WERBOT_WEB_API_URL` pointing to the server. Set `WERBOT_WEB_URL` on the server to the UI address (links in emails) and `WERBOT_TRUSTED_PROXIES` to the `werbot web` address (client IPs in sessions and audit).
 
 Docker:

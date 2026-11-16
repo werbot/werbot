@@ -123,6 +123,11 @@ SELECT u.id, u.login, m.role FROM users u
 JOIN membership m ON m.user_id = u.id AND m.org_id = @org_id
 WHERE u.login = @login;
 
+-- name: LookupMemberUser :one
+SELECT u.id, u.login, m.role FROM users u
+JOIN membership m ON m.user_id = u.id AND m.org_id = @org_id
+WHERE u.id = @user_id;
+
 -- name: ListMembers :many
 SELECT u.id, u.email, u.login, u.name, u.created_at, m.role, m.created_at AS joined_at
 FROM membership m JOIN users u ON u.id = m.user_id
