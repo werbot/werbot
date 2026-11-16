@@ -17,6 +17,8 @@ services:
       dockerfile: deploy/Dockerfile
     environment:
       WERBOT_DATABASE_URL: postgres://werbot:werbot@postgres:5432/werbot?sslmode=disable
+      WERBOT_PUBLIC_URL: http://localhost:8080
+      WERBOT_SECRET_KEY: ${WERBOT_SECRET_KEY:?generate with: openssl rand -base64 32}
     ports:
       - "8080:8080"
     depends_on:

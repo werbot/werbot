@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/werbot/werbot/internal/platform/clientip"
+	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/httpserver"
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
@@ -48,18 +49,12 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 		LogFormat:   or(getenv("WERBOT_LOG_FORMAT"), "json"),
 		MetricsAddr: getenv("WERBOT_METRICS_ADDR"),
 	}
-	proxies := getenv("WERBOT_TRUSTED_PROXIES")
 	if _, err := parseAPIURL(c.APIURL); err != nil {
 		return Config{}, err
 	}
-	if proxies != "" {
-		for s := range strings.SplitSeq(proxies, ",") {
-			p, err := netip.ParsePrefix(strings.TrimSpace(s))
-			if err != nil {
-				return Config{}, fmt.Errorf("WERBOT_TRUSTED_PROXIES: %w", err)
-			}
-			c.TrustedProxies = append(c.TrustedProxies, p)
-		}
+	var err error
+	if c.TrustedProxies, err = config.ParseTrustedProxies(getenv("WERBOT_TRUSTED_PROXIES")); err != nil {
+		return Config{}, err
 	}
 	// Same values and messages as config.Load.
 	if !slices.Contains([]string{"debug", "info", "warn", "error"}, c.LogLevel) {

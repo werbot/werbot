@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/db"
 	"github.com/werbot/werbot/internal/platform/httpserver"
@@ -110,7 +111,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	reg.GaugeFunc("werbot_db_pool_total_conns", "Database pool connections open.",
 		func() int64 { return int64(pool.Stat().TotalConns()) })
 
-	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, mux)}
+	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, clientip.Middleware(cfg.TrustedProxies)(mux))}
 	if cfg.MetricsAddr != "" {
 		mmux := http.NewServeMux()
 		mmux.Handle("/metrics", reg.Handler())

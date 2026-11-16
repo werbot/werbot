@@ -27,6 +27,12 @@ import (
 	"github.com/werbot/werbot/sdk"
 )
 
+// Valid stage 3 values: Load requires both.
+const (
+	testPublicURL = "http://localhost:8080"
+	testSecretKey = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=" //nolint:gosec // test key, not a credential
+)
+
 func env(kv map[string]string) func(string) string {
 	return func(k string) string { return kv[k] }
 }
@@ -110,6 +116,8 @@ func TestRunServerUnreachableDB(t *testing.T) {
 	err := Run(context.Background(), []string{"server"}, env(map[string]string{
 		"WERBOT_DATABASE_URL": "postgres://postgres@127.0.0.1:1/x?sslmode=disable",
 		"WERBOT_HTTP_ADDR":    freeAddr(t),
+		"WERBOT_PUBLIC_URL":   testPublicURL,
+		"WERBOT_SECRET_KEY":   testSecretKey,
 	}), io.Discard)
 	assert.ErrorContains(t, err, "bootstrap")
 	assert.Less(t, time.Since(start), 15*time.Second)
@@ -117,7 +125,7 @@ func TestRunServerUnreachableDB(t *testing.T) {
 
 func TestRunMigrateTwice(t *testing.T) {
 	_, url := dbtest.New(t)
-	getenv := env(map[string]string{"WERBOT_DATABASE_URL": url})
+	getenv := env(map[string]string{"WERBOT_DATABASE_URL": url, "WERBOT_PUBLIC_URL": testPublicURL, "WERBOT_SECRET_KEY": testSecretKey})
 	require.NoError(t, Run(context.Background(), []string{"migrate"}, getenv, io.Discard))
 	require.NoError(t, Run(context.Background(), []string{"migrate"}, getenv, io.Discard))
 }

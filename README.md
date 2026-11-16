@@ -19,7 +19,8 @@ make dev-db                      # Postgres 18 on localhost:5433 (postgres/passw
 (cd web && bun install)          # web/node_modules is required by `make proto`
 make proto                       # buf lint + generate (Go and TypeScript)
 make build                       # builds the UI and bin/werbot
-WERBOT_DATABASE_URL='postgres://postgres:password@localhost:5433/postgres?sslmode=disable' ./bin/werbot server
+WERBOT_DATABASE_URL='postgres://postgres:password@localhost:5433/postgres?sslmode=disable' \
+WERBOT_PUBLIC_URL=http://localhost:8080 WERBOT_SECRET_KEY="$(openssl rand -base64 32)" ./bin/werbot server
 ```
 
 Commands: `./bin/werbot <server|web|migrate|version>`.
@@ -42,6 +43,15 @@ Commands: `./bin/werbot <server|web|migrate|version>`.
 | `WERBOT_LOG_FORMAT` | `json` | `json` or `text`. |
 | `WERBOT_METRICS_ADDR` | empty (disabled) | Listen address for `/metrics`. |
 | `WERBOT_WEB_EMBEDDED` | `true` | Serve the UI from the server. |
+| `WERBOT_PUBLIC_URL` | required | Public `http(s)://` address of the server, for example `https://werbot.example.com`. |
+| `WERBOT_WEB_URL` | `WERBOT_PUBLIC_URL` | Public address of the UI; base for links in emails. |
+| `WERBOT_TRUSTED_PROXIES` | empty | Comma-separated CIDRs whose `X-Forwarded-For` is trusted. |
+| `WERBOT_SMTP_HOST` | empty | SMTP server. Empty: emails go to the log only (the full text, with links, only when `WERBOT_ENV=development`). |
+| `WERBOT_SMTP_PORT` | `587` | SMTP port, 1-65535. |
+| `WERBOT_SMTP_USERNAME`, `WERBOT_SMTP_PASSWORD` | empty | SMTP credentials. |
+| `WERBOT_SMTP_FROM` | empty | Sender address; required when `WERBOT_SMTP_HOST` is set. |
+| `WERBOT_SECRET_KEY` | required | Base64 of 32 random bytes (`openssl rand -base64 32`); encrypts stored secrets. |
+| `WERBOT_SECRET_KEY_PREVIOUS` | empty | Comma-separated base64 keys kept for decrypting data sealed before a key rotation. |
 
 `werbot web` (no database access):
 
