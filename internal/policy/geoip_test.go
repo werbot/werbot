@@ -149,3 +149,20 @@ func TestReloadGeoIPSkipsUnchangedMonth(t *testing.T) {
 	assert.Error(t, svc.ReloadGeoIP(ctx), "another month: blob read and rejected")
 	assert.Equal(t, "DE", svc.Country(ip))
 }
+
+func TestReloadGeoIPEmptyBlobIsAnError(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	ctx := context.Background()
+	de := testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "DE")
+	ip := netip.MustParseAddr("10.1.2.3")
+	_, err := pool.Exec(ctx, "INSERT INTO geoip_db (id, month, data) VALUES (1, '2026-10-01', $1)", de)
+	require.NoError(t, err)
+	svc := New(Deps{Pool: pool, Logger: slog.New(slog.DiscardHandler)})
+	require.NoError(t, svc.ReloadGeoIP(ctx))
+
+	// A new month with an empty blob must fail, not look like "month unchanged".
+	_, err = pool.Exec(ctx, `UPDATE geoip_db SET data = '\x', month = '2026-11-01'`)
+	require.NoError(t, err)
+	assert.Error(t, svc.ReloadGeoIP(ctx))
+	assert.Equal(t, "DE", svc.Country(ip))
+}

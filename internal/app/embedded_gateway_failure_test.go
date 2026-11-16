@@ -180,6 +180,61 @@ func TestEmbeddedGatewayRetriesEnrollment(t *testing.T) {
 	}
 }
 
+// runEmbeddedWithoutServer starts the embedded gateway against a server that is
+// not up yet and waits for its first failed attempt (one join token minted).
+func runEmbeddedWithoutServer(t *testing.T, cfg config.Config, pool *pgxpool.Pool, gws *inventory.Gateways) {
+	t.Helper()
+	old := orgPollInterval
+	orgPollInterval = 50 * time.Millisecond
+	logs := &syncBuffer{}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- runEmbeddedGateway(ctx, cfg, env(map[string]string{"WERBOT_GATEWAY_SSH_ADDR": "127.0.0.1:0"}), pool, gws,
+			metrics.NewRegistry(), slog.New(slog.NewTextHandler(logs, nil)))
+	}()
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(15 * time.Second):
+			t.Error("embedded gateway did not return within 15s")
+		}
+		orgPollInterval = old
+	})
+	require.Eventually(t, func() bool { return strings.Contains(logs.String(), "enrollment failed, retrying") },
+		5*time.Second, 10*time.Millisecond, "no server yet")
+}
+
+func countTokens(t *testing.T, pool *pgxpool.Pool) (n int) {
+	t.Helper()
+	require.NoError(t, pool.QueryRow(context.Background(), "SELECT count(*) FROM gateway_join_token").Scan(&n))
+	return n
+}
+
+func TestEmbeddedGatewayRemintsRejectedToken(t *testing.T) {
+	pool, cfg, gws := embeddedSetup(t)
+	runEmbeddedWithoutServer(t, cfg, pool, gws)
+	require.Equal(t, 1, countTokens(t, pool))
+	_, err := pool.Exec(context.Background(), "UPDATE gateway_join_token SET expires_at = now() - interval '1 second'")
+	require.NoError(t, err)
+
+	startServe(t, cfg, pool, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
+	require.Eventually(t, func() bool { return gateway.Enrolled(filepath.Join(cfg.DataDir, "gateway")) },
+		10*time.Second, 20*time.Millisecond, "the rejected token is replaced")
+	assert.Equal(t, 2, countTokens(t, pool))
+}
+
+func TestEmbeddedGatewayRemintsAgedToken(t *testing.T) {
+	pool, cfg, gws := embeddedSetup(t)
+	old := tokenRefresh
+	tokenRefresh = 100 * time.Millisecond
+	t.Cleanup(func() { tokenRefresh = old })
+	runEmbeddedWithoutServer(t, cfg, pool, gws)
+	require.Eventually(t, func() bool { return countTokens(t, pool) >= 2 }, 5*time.Second, 20*time.Millisecond,
+		"a token older than tokenRefresh is replaced while the server stays down")
+}
+
 func TestEmbeddedGatewayListenErrorIsFatal(t *testing.T) {
 	pool, cfg, gws := embeddedSetup(t)
 	busy, err := net.Listen("tcp", "127.0.0.1:0")

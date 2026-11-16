@@ -232,7 +232,7 @@ func TestHeartbeatEOFKeepsServerError(t *testing.T) {
 }
 
 // Once the client certificate expired no stream can open and renewal is impossible:
-// Run returns errCertExpired so the process restarts and enrolls again.
+// Run returns ErrCertExpired so the process restarts and enrolls again.
 func TestTunnelStopsOnExpiredCert(t *testing.T) {
 	e := newTunnelEnv(t, func(int) attempt {
 		return attempt{reject: connect.NewError(connect.CodeInternal, errors.New("no"))}
@@ -246,7 +246,7 @@ func TestTunnelStopsOnExpiredCert(t *testing.T) {
 	}()
 	select {
 	case err := <-done:
-		require.ErrorIs(t, err, errCertExpired)
+		require.ErrorIs(t, err, ErrCertExpired)
 	case <-time.After(3 * time.Second):
 		t.Fatal("Run did not return after the certificate expired")
 	}

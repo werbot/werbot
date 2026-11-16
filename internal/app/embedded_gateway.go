@@ -30,6 +30,10 @@ var orgPollInterval = 5 * time.Second
 // is reused until the server rejects it or it is half way to expiry.
 const maxEnrollRetry = 5 * time.Minute
 
+// tokenRefresh is the age at which an unused join token is replaced; tests
+// shorten it.
+var tokenRefresh = inventory.SystemJoinTokenTTL / 2
+
 // embeddedGateway is what serve runs for --with-gateway; tests replace it.
 var embeddedGateway = runEmbeddedGateway
 
@@ -58,7 +62,7 @@ func runEmbeddedGateway(ctx context.Context, cfg config.Config, getenv func(stri
 	gcfg.Metrics = reg
 	var minted time.Time // when gcfg.JoinToken was issued; zero without one
 	for wait := orgPollInterval; ; wait = min(2*wait, maxEnrollRetry) {
-		if !gateway.Enrolled(gcfg.DataDir) && (gcfg.JoinToken == "" || time.Since(minted) > inventory.SystemJoinTokenTTL/2) {
+		if !gateway.Enrolled(gcfg.DataDir) && (gcfg.JoinToken == "" || time.Since(minted) > tokenRefresh) {
 			org := firstOrganization(ctx, pool, logger)
 			if org == uuid.Nil {
 				return nil // ctx ended while waiting
@@ -74,13 +78,18 @@ func runEmbeddedGateway(ctx context.Context, cfg config.Config, getenv func(stri
 			minted = time.Now()
 		}
 		err = gateway.Run(ctx, gcfg, logger)
-		if connect.CodeOf(err) == connect.CodePermissionDenied {
-			gcfg.JoinToken = "" // rejected or spent: mint a new one
+		expired := errors.Is(err, gateway.ErrCertExpired)
+		if expired || connect.CodeOf(err) == connect.CodePermissionDenied {
+			gcfg.JoinToken = "" // spent or rejected, or a new identity is needed: mint a new one
 		}
 		if ctx.Err() != nil || gateway.Enrolled(gcfg.DataDir) || isListenError(err) {
 			return err
 		}
-		logger.Warn("embedded gateway: enrollment failed, retrying", "error", err, "retry_in", wait)
+		if expired {
+			logger.Warn("embedded gateway: certificate expired, enrolling again", "retry_in", wait)
+		} else {
+			logger.Warn("embedded gateway: enrollment failed, retrying", "error", err, "retry_in", wait)
+		}
 		if !sleep(ctx, wait) {
 			return nil
 		}

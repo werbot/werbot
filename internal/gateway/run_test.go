@@ -212,7 +212,7 @@ func TestServeReturnsWhenCertExpires(t *testing.T) {
 		enr.ttl = ttl
 		tun.renewErr = connect.NewError(connect.CodeUnavailable, errors.New("down"))
 	})
-	e.wantErr = errCertExpired
+	e.wantErr = ErrCertExpired
 	time.Sleep(ttl) // the open stream outlives the certificate; its end reveals the expiry
 	e.tun.kill <- connect.NewError(connect.CodeInternal, errors.New("boom"))
 
@@ -220,7 +220,7 @@ func TestServeReturnsWhenCertExpires(t *testing.T) {
 	go func() { done <- e.wait() }()
 	select {
 	case err := <-done:
-		require.ErrorIs(t, err, errCertExpired)
+		require.ErrorIs(t, err, ErrCertExpired)
 	case <-time.After(3 * time.Second):
 		t.Fatal("serve did not return after the certificate expired")
 	}

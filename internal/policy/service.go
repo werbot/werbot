@@ -79,6 +79,7 @@ func (s *Service) ReloadGeoIP(ctx context.Context) error {
 	var (
 		month pgtype.Date
 		data  []byte
+		same  bool // the stored month is the loaded one: no blob read
 	)
 	err := dbx.System(ctx, s.deps.Pool, dbx.ReasonMaintenance, func(tx pgx.Tx) (err error) {
 		st := newStore(tx)
@@ -86,6 +87,7 @@ func (s *Service) ReloadGeoIP(ctx context.Context) error {
 			return err
 		}
 		if cur := s.geo.Load(); cur != nil && cur.month.Equal(month.Time) {
+			same = true
 			return nil
 		}
 		data, err = st.GetGeoIPData(ctx)
@@ -97,8 +99,8 @@ func (s *Service) ReloadGeoIP(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("policy: reload geoip: %w", err)
 	}
-	if data == nil {
-		return nil // month unchanged
+	if same {
+		return nil
 	}
 	g, err := OpenGeoIP(data)
 	if err != nil {

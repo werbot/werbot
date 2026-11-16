@@ -26,9 +26,9 @@ const renewRetry = time.Minute
 // errRenewed cancels the stream that still runs on the replaced certificate.
 var errRenewed = errors.New("client certificate renewed")
 
-// errCertExpired ends Run: an expired client certificate opens no stream and cannot be
+// ErrCertExpired ends Run: an expired client certificate opens no stream and cannot be
 // renewed, so the instance has to enroll again.
-var errCertExpired = errors.New("gateway certificate expired; the instance must enroll again")
+var ErrCertExpired = errors.New("gateway certificate expired; the instance must enroll again")
 
 // tunnelConn is one transport with its client; renewal swaps both.
 type tunnelConn struct {
@@ -118,7 +118,7 @@ func (c *tunnelClient) setConnected(v bool) {
 
 // Run keeps the stream open and the certificate fresh until ctx ends, then returns nil.
 // A broken stream leaves active sessions and the last snapshot alone. Once the client
-// certificate has expired, the next stream end returns errCertExpired.
+// certificate has expired, the next stream end returns ErrCertExpired.
 func (c *tunnelClient) Run(ctx context.Context, heartbeat func() *gatewayv1.Heartbeat) error {
 	ctx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
@@ -134,7 +134,7 @@ func (c *tunnelClient) Run(ctx context.Context, heartbeat func() *gatewayv1.Hear
 		}
 		if exp := c.certs.Leaf().NotAfter; !time.Now().Before(exp) {
 			c.log.ErrorContext(ctx, "tunnel: client certificate expired", "expired_at", exp, "error", err)
-			return errCertExpired
+			return ErrCertExpired
 		}
 		if got {
 			failures = 0
