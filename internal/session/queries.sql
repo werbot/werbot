@@ -17,7 +17,7 @@ UPDATE session
 SET ended_at = now(), end_reason = @reason::text
 WHERE org_id = @org_id AND gateway_instance_id = @instance_id::uuid AND ended_at IS NULL
   AND started_at < now() - interval '1 minute'
-  AND id <> ALL(@active::uuid[])
+  AND id <> ALL(coalesce(@active::uuid[], '{}'))
 RETURNING id, resource_id;
 
 -- name: EndLostSessions :many

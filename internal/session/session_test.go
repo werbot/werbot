@@ -122,6 +122,11 @@ func TestEndMissingScopedToInstance(t *testing.T) {
 	assert.Nil(t, e.ended(t, a3), "started under a minute ago")
 	assert.Nil(t, e.ended(t, b1), "other instance")
 	assert.Equal(t, 1, e.endAudits(t, "gateway"))
+
+	n, err = e.svc.EndMissing(bg, e.org, e.b, nil, "gateway_lost")
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, n, "nil active closes every stale session")
+	assert.NotNil(t, e.ended(t, b1))
 }
 
 func TestEndLost(t *testing.T) {

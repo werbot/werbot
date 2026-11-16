@@ -55,7 +55,7 @@ UPDATE session
 SET ended_at = now(), end_reason = $1::text
 WHERE org_id = $2 AND gateway_instance_id = $3::uuid AND ended_at IS NULL
   AND started_at < now() - interval '1 minute'
-  AND id <> ALL($4::uuid[])
+  AND id <> ALL(coalesce($4::uuid[], '{}'))
 RETURNING id, resource_id
 `
 
