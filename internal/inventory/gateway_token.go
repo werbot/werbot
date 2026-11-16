@@ -61,7 +61,7 @@ func (g *Gateways) issueJoinToken(ctx context.Context, st Store, tx pgx.Tx, a ac
 		return uuid.Nil, "", time.Time{}, err
 	}
 	row, err := st.CreateJoinToken(ctx, dbq.CreateJoinTokenParams{TokenHash: hash, OrgID: orgID, GatewayID: gatewayID,
-		MaxUses: maxUses, ExpiresAt: time.Now().Add(ttl), CreatedBy: a.user})
+		MaxUses: maxUses, TtlSeconds: ttl.Seconds(), CreatedBy: a.user})
 	if isForeignKeyViolation(err) {
 		return uuid.Nil, "", time.Time{}, errGatewayNotFound
 	}
@@ -121,45 +121,35 @@ func (g *Gateways) ListJoinTokens(ctx context.Context, gatewayID uuid.UUID) ([]J
 	return out, err
 }
 
-// RevokeJoinToken stops a token from enrolling; revoking twice keeps the first time.
+// RevokeJoinToken stops a token from enrolling; revoking twice keeps the
+// first time and audits only the first.
 func (g *Gateways) RevokeJoinToken(ctx context.Context, id uuid.UUID) error {
 	return g.admin(ctx, func(p principal.Principal, st Store, tx pgx.Tx) error {
-		gatewayID, err := st.RevokeJoinToken(ctx, dbq.RevokeJoinTokenParams{ID: id, OrgID: p.OrgID})
+		row, err := st.RevokeJoinToken(ctx, dbq.RevokeJoinTokenParams{ID: id, OrgID: p.OrgID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return fmt.Errorf("join token not found: %w", apperr.ErrNotFound)
 		}
-		if err != nil {
+		if err != nil || !row.RevokedNow {
 			return err
 		}
 		return userActor(ctx, p).audit(ctx, tx, p.OrgID, "gateway.join_token.revoke", "gateway_join_token", id,
-			map[string]any{"gateway_id": gatewayID.String()})
+			map[string]any{"gateway_id": row.GatewayID.String()})
 	})
 }
 
 // CreateSystemJoinToken issues a single-use token of the pool "local" of
 // orgID for the built-in gateway, creating the pool on first use.
 func (g *Gateways) CreateSystemJoinToken(ctx context.Context, orgID uuid.UUID) (string, error) {
-	ct, keyID, err := g.newHostKey()
-	if err != nil {
-		return "", err
-	}
 	sys := actor{kind: "system"}
 	var token string
-	err = dbx.InOrg(ctx, g.pool, orgID, uuid.Nil, func(tx pgx.Tx) error {
+	err := dbx.InOrg(ctx, g.pool, orgID, uuid.Nil, func(tx pgx.Tx) error {
 		st := newStore(tx)
-		id, err := st.CreateGatewayIfAbsent(ctx, dbq.CreateGatewayIfAbsentParams{
-			OrgID: orgID, Name: SystemPoolName, HostKeyCiphertext: ct, HostKeyKeyID: keyID})
-		switch {
-		case errors.Is(err, pgx.ErrNoRows):
-			if id, err = st.GetGatewayIDByName(ctx, dbq.GetGatewayIDByNameParams{OrgID: orgID, Name: SystemPoolName}); err != nil {
-				return err
-			}
-		case err != nil:
+		id, err := st.GetGatewayIDByName(ctx, dbq.GetGatewayIDByNameParams{OrgID: orgID, Name: SystemPoolName})
+		if errors.Is(err, pgx.ErrNoRows) {
+			id, err = g.createSystemPool(ctx, st, tx, sys, orgID)
+		}
+		if err != nil {
 			return err
-		default:
-			if err := poolCreated(ctx, st, tx, sys, orgID, id, SystemPoolName); err != nil {
-				return err
-			}
 		}
 		_, token, _, err = g.issueJoinToken(ctx, st, tx, sys, orgID, id, SystemJoinTokenTTL, 1)
 		return err
@@ -168,4 +158,21 @@ func (g *Gateways) CreateSystemJoinToken(ctx context.Context, orgID uuid.UUID) (
 		return "", err
 	}
 	return token, nil
+}
+
+// createSystemPool creates the pool "local"; a concurrent creator may win the race.
+func (g *Gateways) createSystemPool(ctx context.Context, st Store, tx pgx.Tx, sys actor, orgID uuid.UUID) (uuid.UUID, error) {
+	ct, keyID, err := g.newHostKey()
+	if err != nil {
+		return uuid.Nil, err
+	}
+	id, err := st.CreateGatewayIfAbsent(ctx, dbq.CreateGatewayIfAbsentParams{
+		OrgID: orgID, Name: SystemPoolName, HostKeyCiphertext: ct, HostKeyKeyID: keyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return st.GetGatewayIDByName(ctx, dbq.GetGatewayIDByNameParams{OrgID: orgID, Name: SystemPoolName})
+	}
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return id, poolCreated(ctx, st, tx, sys, orgID, id, SystemPoolName)
 }

@@ -2,11 +2,14 @@ package session
 
 import (
 	"context"
+	"errors"
 	"net/netip"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/stretchr/testify/assert"
@@ -15,6 +18,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/jobs"
+	"github.com/werbot/werbot/internal/session/dbq"
 )
 
 var bg = context.Background()
@@ -129,6 +133,61 @@ func TestEndMissingScopedToInstance(t *testing.T) {
 	assert.NotNil(t, e.ended(t, b1))
 }
 
+// sqlOf records the text of the first query instead of running it.
+type sqlOf struct {
+	dbq.DBTX
+	sql string
+}
+
+func (s *sqlOf) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+	s.sql = sql
+	return nil, errors.New("recorded")
+}
+
+// The active-set check must stay O(rows + ids) under a generic plan too.
+func TestEndMissingPlanIsHashed(t *testing.T) {
+	e := setup(t)
+	rec := &sqlOf{}
+	_, _ = dbq.New(rec).EndMissingSessions(bg, dbq.EndMissingSessionsParams{})
+	require.NotEmpty(t, rec.sql)
+	conn, err := e.pool.Acquire(bg)
+	require.NoError(t, err)
+	defer conn.Release()
+	// The simple protocol sends $n unbound, as GENERIC_PLAN needs.
+	res, err := conn.Conn().PgConn().Exec(bg, "EXPLAIN (GENERIC_PLAN, COSTS OFF) "+rec.sql).ReadAll()
+	require.NoError(t, err)
+	var plan strings.Builder
+	for _, row := range res[0].Rows {
+		plan.Write(row[0])
+		plan.WriteByte('\n')
+	}
+	assert.Contains(t, plan.String(), "hashed SubPlan", plan.String())
+}
+
+func TestEndMissingLargeActiveSet(t *testing.T) {
+	e := setup(t)
+	rows, err := e.pool.Query(bg,
+		`INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, started_at)
+		 SELECT $1, $2, $3, $4, $5, '10.0.0.1', now() - interval '2 minutes' FROM generate_series(1, 600)
+		 RETURNING id`, e.org, e.user, e.res, e.gw, e.a)
+	require.NoError(t, err)
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	require.NoError(t, err)
+	active := append([]uuid.UUID{}, ids[:500]...)
+	for range 9500 {
+		active = append(active, uuid.New())
+	}
+	absent := ids[500:]
+
+	n, err := e.svc.EndMissing(bg, e.org, e.a, active, "gateway_lost")
+	require.NoError(t, err)
+	assert.EqualValues(t, 100, n)
+	var closed int
+	require.NoError(t, e.pool.QueryRow(bg,
+		"SELECT count(*) FROM session WHERE id = ANY($1) AND ended_at IS NOT NULL", absent).Scan(&closed))
+	assert.Equal(t, 100, closed, "exactly the absent ones")
+}
+
 func TestEndLost(t *testing.T) {
 	e := setup(t)
 	e.exec(t, "UPDATE gateway_instance SET last_seen_at = now() - interval '3 minutes' WHERE id = $1", e.a)
@@ -165,4 +224,14 @@ func TestEndLostJobStartupGrace(t *testing.T) {
 
 	assert.Equal(t, "session.end_lost", EndLostArgs{}.Kind())
 	assert.Equal(t, jobs.QueueMaintenance, EndLostArgs{}.InsertOpts().Queue)
+}
+
+func TestEndLostPeriodicJob(t *testing.T) {
+	e := setup(t)
+	workers := river.NewWorkers()
+	c, err := jobs.NewClient(e.pool, workers, RegisterJobs(workers, e.svc, time.Now()), nil)
+	require.NoError(t, err)
+	assert.True(t, c.PeriodicJobs().RemoveByID("session.end_lost"))
+	t0 := time.Date(2026, 11, 16, 10, 0, 0, 0, time.UTC)
+	assert.Equal(t, t0.Add(30*time.Second), endLostSchedule.Next(t0))
 }

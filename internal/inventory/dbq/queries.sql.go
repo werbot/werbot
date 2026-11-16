@@ -179,17 +179,17 @@ func (q *Queries) CreateInstance(ctx context.Context, arg CreateInstanceParams) 
 
 const createJoinToken = `-- name: CreateJoinToken :one
 INSERT INTO gateway_join_token (token_hash, org_id, gateway_id, max_uses, expires_at, created_by)
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES ($1, $2, $3, $4, now() + make_interval(secs => $5::float8), $6)
 RETURNING id, expires_at
 `
 
 type CreateJoinTokenParams struct {
-	TokenHash []byte
-	OrgID     uuid.UUID
-	GatewayID uuid.UUID
-	MaxUses   int32
-	ExpiresAt time.Time
-	CreatedBy *uuid.UUID
+	TokenHash  []byte
+	OrgID      uuid.UUID
+	GatewayID  uuid.UUID
+	MaxUses    int32
+	TtlSeconds float64
+	CreatedBy  *uuid.UUID
 }
 
 type CreateJoinTokenRow struct {
@@ -203,7 +203,7 @@ func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams
 		arg.OrgID,
 		arg.GatewayID,
 		arg.MaxUses,
-		arg.ExpiresAt,
+		arg.TtlSeconds,
 		arg.CreatedBy,
 	)
 	var i CreateJoinTokenRow
@@ -742,6 +742,27 @@ func (q *Queries) ListResources(ctx context.Context, arg ListResourcesParams) ([
 	return items, nil
 }
 
+const lockOrgPools = `-- name: LockOrgPools :exec
+SELECT pg_advisory_xact_lock(1464160834, hashtext(CAST($1::uuid AS text)))
+`
+
+// Held from the creation of the first pool to commit, so a resource saved
+// meanwhile either sees the pool or is assigned to it. The two-key form
+// (namespace WERB) never collides with the bigint keys of db.BootstrapLock.
+func (q *Queries) LockOrgPools(ctx context.Context, orgID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, lockOrgPools, orgID)
+	return err
+}
+
+const lockOrgPoolsShared = `-- name: LockOrgPoolsShared :exec
+SELECT pg_advisory_xact_lock_shared(1464160834, hashtext(CAST($1::uuid AS text)))
+`
+
+func (q *Queries) LockOrgPoolsShared(ctx context.Context, orgID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, lockOrgPoolsShared, orgID)
+	return err
+}
+
 const orgGatewayIDs = `-- name: OrgGatewayIDs :many
 SELECT id FROM gateway WHERE org_id = $1 ORDER BY created_at, id LIMIT 2
 `
@@ -789,7 +810,7 @@ func (q *Queries) RenewInstanceCert(ctx context.Context, arg RenewInstanceCertPa
 const revokeJoinToken = `-- name: RevokeJoinToken :one
 UPDATE gateway_join_token SET revoked_at = coalesce(revoked_at, now())
 WHERE id = $1 AND org_id = $2
-RETURNING gateway_id
+RETURNING gateway_id, (revoked_at = now())::bool AS revoked_now
 `
 
 type RevokeJoinTokenParams struct {
@@ -797,11 +818,17 @@ type RevokeJoinTokenParams struct {
 	OrgID uuid.UUID
 }
 
-func (q *Queries) RevokeJoinToken(ctx context.Context, arg RevokeJoinTokenParams) (uuid.UUID, error) {
+type RevokeJoinTokenRow struct {
+	GatewayID  uuid.UUID
+	RevokedNow bool
+}
+
+// revoked_now: this transaction set revoked_at (an earlier revoke has an earlier time).
+func (q *Queries) RevokeJoinToken(ctx context.Context, arg RevokeJoinTokenParams) (RevokeJoinTokenRow, error) {
 	row := q.db.QueryRow(ctx, revokeJoinToken, arg.ID, arg.OrgID)
-	var gateway_id uuid.UUID
-	err := row.Scan(&gateway_id)
-	return gateway_id, err
+	var i RevokeJoinTokenRow
+	err := row.Scan(&i.GatewayID, &i.RevokedNow)
+	return i, err
 }
 
 const spendJoinToken = `-- name: SpendJoinToken :one

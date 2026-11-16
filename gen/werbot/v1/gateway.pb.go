@@ -1137,12 +1137,12 @@ const file_werbot_v1_gateway_proto_rawDesc = "" +
 	"\bgateways\x18\x01 \x03(\v2\x12.werbot.v1.GatewayR\bgateways\"0\n" +
 	"\x14DeleteGatewayRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\x17\n" +
-	"\x15DeleteGatewayResponse\"\xa2\x01\n" +
+	"\x15DeleteGatewayResponse\"\xb6\x01\n" +
 	"\x16CreateJoinTokenRequest\x12'\n" +
 	"\n" +
-	"gateway_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tgatewayId\x128\n" +
+	"gateway_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tgatewayId\x12L\n" +
 	"\n" +
-	"expires_in\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\texpiresIn\x12%\n" +
+	"expires_in\x18\x02 \x01(\v2\x19.google.protobuf.DurationB\x12\xbaH\x0f\xaa\x01\f\"\x05\b\x80\xe7\x84\x0f2\x03\b\x90\x1cR\texpiresIn\x12%\n" +
 	"\bmax_uses\x18\x03 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\amaxUses\"z\n" +
 	"\x17CreateJoinTokenResponse\x12\x0e\n" +

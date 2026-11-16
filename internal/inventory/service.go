@@ -55,10 +55,14 @@ func notFound(err error) error {
 }
 
 // pickGateway keeps an explicit pool; without one: no pools → NULL,
-// the only pool → it, several → ErrInvalidArgument.
+// the only pool → it, several → ErrInvalidArgument. The shared lock makes a
+// concurrent first pool wait for this transaction, then take its resource.
 func pickGateway(ctx context.Context, st Store, orgID uuid.UUID, id *uuid.UUID) (*uuid.UUID, error) {
 	if id != nil {
 		return id, nil
+	}
+	if err := st.LockOrgPoolsShared(ctx, orgID); err != nil {
+		return nil, err
 	}
 	ids, err := st.OrgGatewayIDs(ctx, orgID)
 	switch {

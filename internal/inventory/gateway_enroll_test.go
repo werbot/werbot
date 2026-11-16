@@ -172,69 +172,6 @@ func TestEnrollRejects(t *testing.T) {
 	assert.Equal(t, before, e.count(t, "SELECT count(*) FROM gateway_instance"))
 }
 
-func TestAuthenticateChecksSerial(t *testing.T) {
-	e := gwSetup(t)
-	g := e.newPool(t, "edge")
-	en := e.enroll(t, e.token(t, g.ID, 0), "gw-a")
-	serial := parseCert(t, en.CertPEM).SerialNumber.Text(16)
-	bg := context.Background()
-
-	inst, err := e.gw.Authenticate(bg, g.ID, en.InstanceID, serial)
-	require.NoError(t, err)
-	assert.Equal(t, en.InstanceID, inst.ID)
-	assert.Equal(t, g.ID, inst.GatewayID)
-	assert.Equal(t, e.org, inst.OrgID)
-
-	other := e.newPool(t, "other")
-	enOther := e.enroll(t, e.token(t, other.ID, 0), "gw-o")
-	_, err = e.gw.Authenticate(bg, g.ID, enOther.InstanceID, parseCert(t, enOther.CertPEM).SerialNumber.Text(16))
-	assert.ErrorIs(t, err, apperr.ErrUnauthenticated, "instance of another pool")
-	_, err = e.gw.Authenticate(bg, g.ID, en.InstanceID, "00")
-	assert.ErrorIs(t, err, apperr.ErrUnauthenticated)
-
-	renewed, err := e.gw.Renew(bg, en.InstanceID, csr(t))
-	require.NoError(t, err)
-	newCert := parseCert(t, renewed)
-	assert.Equal(t, tlsca.GatewayCN(g.ID, en.InstanceID), newCert.Subject.CommonName)
-	_, err = e.gw.Authenticate(bg, g.ID, en.InstanceID, newCert.SerialNumber.Text(16))
-	require.NoError(t, err)
-	_, err = e.gw.Authenticate(bg, g.ID, en.InstanceID, serial)
-	assert.ErrorIs(t, err, apperr.ErrUnauthenticated, "old serial after the new one was used")
-	assert.Equal(t, 1, e.count(t, "SELECT count(*) FROM audit_event WHERE target_id = $1", en.InstanceID.String()),
-		"Renew writes no audit")
-
-	_, err = e.gw.Renew(bg, uuid.New(), csr(t))
-	assert.ErrorIs(t, err, apperr.ErrUnauthenticated)
-}
-
-// A lost RenewCertificate response must not lock the instance out: the old
-// serial stays valid until the new one is first used, across repeated renewals.
-func TestRenewKeepsPreviousSerialUntilNewUsed(t *testing.T) {
-	e := gwSetup(t)
-	g := e.newPool(t, "edge")
-	en := e.enroll(t, e.token(t, g.ID, 0), "gw-a")
-	old := parseCert(t, en.CertPEM).SerialNumber.Text(16)
-	bg := context.Background()
-	auth := func(serial string) error {
-		_, err := e.gw.Authenticate(bg, g.ID, en.InstanceID, serial)
-		return err
-	}
-
-	lost, err := e.gw.Renew(bg, en.InstanceID, csr(t)) // response never reached the instance
-	require.NoError(t, err)
-	require.NoError(t, auth(old))
-	require.NoError(t, auth(old), "still valid: the new serial is unused")
-	renewed, err := e.gw.Renew(bg, en.InstanceID, csr(t)) // retried with the old certificate
-	require.NoError(t, err)
-	require.NoError(t, auth(old), "a second renewal keeps the serial the instance holds")
-	assert.ErrorIs(t, auth(parseCert(t, lost).SerialNumber.Text(16)), apperr.ErrUnauthenticated, "lost serial")
-
-	current := parseCert(t, renewed).SerialNumber.Text(16)
-	require.NoError(t, auth(current))
-	assert.ErrorIs(t, auth(old), apperr.ErrUnauthenticated, "first use of the new serial ends the old one")
-	require.NoError(t, auth(current))
-}
-
 func TestHeartbeatMarksOnline(t *testing.T) {
 	e := gwSetup(t)
 	g := e.newPool(t, "edge")

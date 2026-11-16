@@ -121,7 +121,11 @@ func (g *Gateways) newHostKey() (ciphertext []byte, keyID string, err error) {
 }
 
 // poolCreated hands unassigned resources to the first pool of the organization and audits the pool.
+// The lock waits for transactions that saved a resource without a pool (see pickGateway).
 func poolCreated(ctx context.Context, st Store, tx pgx.Tx, a actor, orgID, id uuid.UUID, name string) error {
+	if err := st.LockOrgPools(ctx, orgID); err != nil {
+		return err
+	}
 	if _, err := st.AssignUnpooledResources(ctx, dbq.AssignUnpooledResourcesParams{GatewayID: id, OrgID: orgID}); err != nil {
 		return err
 	}
@@ -134,12 +138,12 @@ func (g *Gateways) Create(ctx context.Context, name string) (Gateway, error) {
 	if n := utf8.RuneCountInString(name); n < 1 || n > maxGatewayName {
 		return Gateway{}, invalid("gateway name must be 1 to %d characters", maxGatewayName)
 	}
-	ct, keyID, err := g.newHostKey()
-	if err != nil {
-		return Gateway{}, err
-	}
 	var out Gateway
-	err = g.admin(ctx, func(p principal.Principal, st Store, tx pgx.Tx) error {
+	err := g.admin(ctx, func(p principal.Principal, st Store, tx pgx.Tx) error {
+		ct, keyID, err := g.newHostKey()
+		if err != nil {
+			return err
+		}
 		row, err := st.CreateGateway(ctx, dbq.CreateGatewayParams{OrgID: p.OrgID, Name: name, HostKeyCiphertext: ct, HostKeyKeyID: keyID})
 		if isUniqueViolation(err) {
 			return fmt.Errorf("gateway name already used: %w", apperr.ErrAlreadyExists)

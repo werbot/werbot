@@ -2,12 +2,15 @@ package inventory_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	validatepb "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	"buf.build/go/protovalidate"
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
 	"github.com/stretchr/testify/assert"
@@ -139,6 +142,12 @@ func TestGatewayRPCErrors(t *testing.T) {
 	_, err = e.admin.CreateJoinToken(ctx, connect.NewRequest(&werbotv1.CreateJoinTokenRequest{
 		GatewayId: gwID, ExpiresIn: durationpb.New(30 * time.Minute)}))
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "expires_in 30m")
+	for _, d := range []time.Duration{8761 * time.Hour, -time.Hour} {
+		_, err = e.admin.CreateJoinToken(ctx, connect.NewRequest(&werbotv1.CreateJoinTokenRequest{
+			GatewayId: gwID, ExpiresIn: durationpb.New(d)}))
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "expires_in %v", d)
+		assert.Equal(t, []string{"expires_in"}, violationFields(err), "rejected by the proto rule, %v", d)
+	}
 	_, err = e.admin.CreateJoinToken(ctx, connect.NewRequest(&werbotv1.CreateJoinTokenRequest{GatewayId: gwID, MaxUses: 1001}))
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "max_uses 1001")
 	_, err = e.admin.DeleteGateway(ctx, connect.NewRequest(&werbotv1.DeleteGatewayRequest{Id: "xyz"}))
@@ -163,7 +172,34 @@ func TestGatewayRPCErrors(t *testing.T) {
 	_, err = e.enroller.Enroll(ctx, connect.NewRequest(many))
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "connectors over 64")
 
+	fresh, err := e.admin.CreateJoinToken(ctx, connect.NewRequest(&werbotv1.CreateJoinTokenRequest{GatewayId: gwID, MaxUses: 1}))
+	require.NoError(t, err)
+	long = e.enrollMsg(t, fresh.Msg.GetToken())
+	long.Version = strings.Repeat("v", 65)
+	_, err = e.enroller.Enroll(ctx, connect.NewRequest(long))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "version over 64, fresh token")
+	_, err = e.enroller.Enroll(ctx, connect.NewRequest(e.enrollMsg(t, fresh.Msg.GetToken())))
+	require.NoError(t, err, "the rejected request did not spend the single use")
+
 	e.create(t, "res", nil)
 	_, err = e.admin.DeleteGateway(ctx, connect.NewRequest(&werbotv1.DeleteGatewayRequest{Id: gwID}))
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err), "pool with resources")
+}
+
+// violationFields returns the field paths of the protovalidate violations in err.
+func violationFields(err error) []string {
+	ce, ok := errors.AsType[*connect.Error](err)
+	if !ok {
+		return nil
+	}
+	var out []string
+	for _, d := range ce.Details() {
+		v, err := d.Value()
+		if vs, ok := v.(*validatepb.Violations); ok && err == nil {
+			for _, x := range vs.GetViolations() {
+				out = append(out, protovalidate.FieldPathString(x.GetField()))
+			}
+		}
+	}
+	return out
 }

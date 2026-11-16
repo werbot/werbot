@@ -55,8 +55,14 @@ ALTER TABLE resource ADD CONSTRAINT resource_gateway_fk
 -- Only deletions change snapshots: heartbeats update gateway_instance every 15s.
 CREATE TRIGGER gateway_org_changed AFTER DELETE ON gateway FOR EACH ROW EXECUTE FUNCTION werbot_notify_org_changed();
 CREATE TRIGGER gateway_instance_org_changed AFTER DELETE ON gateway_instance FOR EACH ROW EXECUTE FUNCTION werbot_notify_org_changed();
+-- The first use of a renewed serial ends the previous one: the tunnel hub
+-- re-authenticates its streams and closes those still on the old serial.
+CREATE TRIGGER gateway_instance_serial_used AFTER UPDATE OF prev_cert_serial ON gateway_instance FOR EACH ROW
+    WHEN (OLD.prev_cert_serial IS NOT NULL AND NEW.prev_cert_serial IS NULL)
+    EXECUTE FUNCTION werbot_notify_org_changed();
 
 -- +goose Down
+DROP TRIGGER gateway_instance_serial_used ON gateway_instance;
 DROP TRIGGER gateway_instance_org_changed ON gateway_instance;
 DROP TRIGGER gateway_org_changed ON gateway;
 ALTER TABLE resource DROP CONSTRAINT resource_gateway_fk;

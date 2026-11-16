@@ -72,7 +72,10 @@ message DeleteGatewayResponse {}
 message CreateJoinTokenRequest {
   string gateway_id = 1 [(buf.validate.field).string.uuid = true];
   // Unset: the server default.
-  google.protobuf.Duration expires_in = 2;
+  google.protobuf.Duration expires_in = 2 [(buf.validate.field).duration = {
+    gte: {seconds: 3600}
+    lte: {seconds: 31536000}
+  }];
   // 0: the server default.
   int32 max_uses = 3 [(buf.validate.field).int32 = {gte: 0, lte: 1000}];
 }

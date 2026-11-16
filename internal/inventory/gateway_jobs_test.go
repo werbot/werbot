@@ -3,6 +3,7 @@ package inventory_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/riverqueue/river"
 	"github.com/stretchr/testify/assert"
@@ -45,4 +46,14 @@ func TestGC(t *testing.T) {
 	assert.Equal(t, "gateway.gc", inventory.GCArgs{}.Kind())
 	assert.Equal(t, jobs.QueueMaintenance, inventory.GCArgs{}.InsertOpts().Queue)
 	assert.Len(t, inventory.RegisterGatewayJobs(river.NewWorkers(), e.gw), 1)
+}
+
+func TestGCPeriodicJob(t *testing.T) {
+	e := gwSetup(t)
+	workers := river.NewWorkers()
+	c, err := jobs.NewClient(e.pool, workers, inventory.RegisterGatewayJobs(workers, e.gw), nil)
+	require.NoError(t, err)
+	assert.True(t, c.PeriodicJobs().RemoveByID("gateway.gc"))
+	t0 := time.Date(2026, 11, 16, 10, 0, 0, 0, time.UTC)
+	assert.Equal(t, t0.Add(time.Hour), inventory.GCSchedule.Next(t0))
 }

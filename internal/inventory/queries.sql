@@ -57,6 +57,15 @@ DELETE FROM resource_host_key WHERE resource_id = @resource_id AND org_id = @org
 -- Two rows are enough to tell "none", "the only one" and "several".
 SELECT id FROM gateway WHERE org_id = @org_id ORDER BY created_at, id LIMIT 2;
 
+-- name: LockOrgPools :exec
+-- Held from the creation of the first pool to commit, so a resource saved
+-- meanwhile either sees the pool or is assigned to it. The two-key form
+-- (namespace WERB) never collides with the bigint keys of db.BootstrapLock.
+SELECT pg_advisory_xact_lock(1464160834, hashtext(CAST(@org_id::uuid AS text)));
+
+-- name: LockOrgPoolsShared :exec
+SELECT pg_advisory_xact_lock_shared(1464160834, hashtext(CAST(@org_id::uuid AS text)));
+
 -- name: CreateGateway :one
 INSERT INTO gateway (org_id, name, host_key_ciphertext, host_key_key_id)
 VALUES (@org_id, @name, @host_key_ciphertext, @host_key_key_id)
@@ -133,7 +142,7 @@ DELETE FROM gateway_instance WHERE cert_expires_at < now() - interval '24 hours'
 
 -- name: CreateJoinToken :one
 INSERT INTO gateway_join_token (token_hash, org_id, gateway_id, max_uses, expires_at, created_by)
-VALUES (@token_hash, @org_id, @gateway_id, @max_uses, @expires_at, @created_by)
+VALUES (@token_hash, @org_id, @gateway_id, @max_uses, now() + make_interval(secs => @ttl_seconds::float8), @created_by)
 RETURNING id, expires_at;
 
 -- name: ListJoinTokens :many
@@ -143,9 +152,10 @@ WHERE gateway_id = @gateway_id AND org_id = @org_id
 ORDER BY created_at, id;
 
 -- name: RevokeJoinToken :one
+-- revoked_now: this transaction set revoked_at (an earlier revoke has an earlier time).
 UPDATE gateway_join_token SET revoked_at = coalesce(revoked_at, now())
 WHERE id = @id AND org_id = @org_id
-RETURNING gateway_id;
+RETURNING gateway_id, (revoked_at = now())::bool AS revoked_now;
 
 -- name: SpendJoinToken :one
 UPDATE gateway_join_token SET uses = uses + 1

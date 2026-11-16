@@ -2,10 +2,13 @@ package inventory_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,6 +17,7 @@ import (
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
+	"github.com/werbot/werbot/internal/platform/dbx"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
@@ -76,6 +80,39 @@ func TestFirstPoolAssignsResources(t *testing.T) {
 	d, err := e.svc.Create(e.ctx, e.org, inventory.CreateInput{Name: "d", Type: "ssh", Config: sshCfg("h"), GatewayID: &second.ID})
 	require.NoError(t, err)
 	assert.Equal(t, &second.ID, d.GatewayID)
+}
+
+// A resource inserted with no pool while the first pool is created still gets it.
+func TestFirstPoolAssignsConcurrentResource(t *testing.T) {
+	e := gwSetup(t)
+	bg := context.Background()
+	var resID uuid.UUID
+	var g inventory.Gateway
+	created := make(chan error, 1)
+	err := dbx.InOrg(bg, e.pool, e.org, e.owner, func(tx pgx.Tx) error {
+		gw, err := inventory.PickGateway(bg, tx, e.org)
+		require.NoError(t, err)
+		require.Nil(t, gw, "no pools yet")
+		require.NoError(t, tx.QueryRow(bg,
+			"INSERT INTO resource (org_id, name, type, category, config) VALUES ($1, 'race', 'ssh', 'servers', '{}') RETURNING id",
+			e.org).Scan(&resID))
+		go func() {
+			var err error
+			g, err = e.gw.Create(e.ctx, "p")
+			created <- err
+		}()
+		select {
+		case err := <-created:
+			return fmt.Errorf("Create returned (%v) while the resource transaction was open", err)
+		case <-time.After(300 * time.Millisecond):
+			return nil
+		}
+	})
+	require.NoError(t, err)
+	require.NoError(t, <-created)
+	got, err := e.svc.Get(e.ctx, e.org, resID)
+	require.NoError(t, err)
+	assert.Equal(t, &g.ID, got.GatewayID)
 }
 
 func TestResourceRejectsForeignGateway(t *testing.T) {

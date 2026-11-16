@@ -37,6 +37,8 @@ func (GCArgs) Kind() string { return "gateway.gc" }
 // InsertOpts runs the job in the maintenance queue.
 func (GCArgs) InsertOpts() river.InsertOpts { return river.InsertOpts{Queue: jobs.QueueMaintenance} }
 
+var gcSchedule = river.PeriodicInterval(time.Hour)
+
 type gcWorker struct {
 	river.WorkerDefaults[GCArgs]
 	g *Gateways
@@ -52,7 +54,7 @@ func (w *gcWorker) Work(ctx context.Context, _ *river.Job[GCArgs]) error {
 func RegisterGatewayJobs(workers *river.Workers, g *Gateways) []*river.PeriodicJob {
 	river.AddWorker(workers, &gcWorker{g: g})
 	return []*river.PeriodicJob{
-		river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
+		river.NewPeriodicJob(gcSchedule,
 			func() (river.JobArgs, *river.InsertOpts) { return GCArgs{}, nil },
 			&river.PeriodicJobOpts{ID: "gateway.gc"}),
 	}

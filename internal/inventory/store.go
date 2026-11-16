@@ -22,6 +22,8 @@ type Store interface {
 	DeleteHostKey(ctx context.Context, arg dbq.DeleteHostKeyParams) (int64, error)
 
 	OrgGatewayIDs(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error)
+	LockOrgPools(ctx context.Context, orgID uuid.UUID) error
+	LockOrgPoolsShared(ctx context.Context, orgID uuid.UUID) error
 	CreateGateway(ctx context.Context, arg dbq.CreateGatewayParams) (dbq.CreateGatewayRow, error)
 	CreateGatewayIfAbsent(ctx context.Context, arg dbq.CreateGatewayIfAbsentParams) (uuid.UUID, error)
 	GetGatewayIDByName(ctx context.Context, arg dbq.GetGatewayIDByNameParams) (uuid.UUID, error)
@@ -41,7 +43,7 @@ type Store interface {
 
 	CreateJoinToken(ctx context.Context, arg dbq.CreateJoinTokenParams) (dbq.CreateJoinTokenRow, error)
 	ListJoinTokens(ctx context.Context, arg dbq.ListJoinTokensParams) ([]dbq.ListJoinTokensRow, error)
-	RevokeJoinToken(ctx context.Context, arg dbq.RevokeJoinTokenParams) (uuid.UUID, error)
+	RevokeJoinToken(ctx context.Context, arg dbq.RevokeJoinTokenParams) (dbq.RevokeJoinTokenRow, error)
 	SpendJoinToken(ctx context.Context, tokenHash []byte) (dbq.SpendJoinTokenRow, error)
 	DeleteExpiredJoinTokens(ctx context.Context) (int64, error)
 }

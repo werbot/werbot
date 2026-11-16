@@ -20,6 +20,8 @@ func (EndLostArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueMaintenance}
 }
 
+var endLostSchedule = river.PeriodicInterval(EndLostInterval)
+
 type endLostWorker struct {
 	river.WorkerDefaults[EndLostArgs]
 	s       *Service
@@ -40,7 +42,7 @@ func (w *endLostWorker) Work(ctx context.Context, _ *river.Job[EndLostArgs]) err
 func RegisterJobs(workers *river.Workers, s *Service, started time.Time) []*river.PeriodicJob {
 	river.AddWorker(workers, &endLostWorker{s: s, started: started})
 	return []*river.PeriodicJob{
-		river.NewPeriodicJob(river.PeriodicInterval(EndLostInterval),
+		river.NewPeriodicJob(endLostSchedule,
 			func() (river.JobArgs, *river.InsertOpts) { return EndLostArgs{}, nil },
 			&river.PeriodicJobOpts{ID: "session.end_lost"}),
 	}

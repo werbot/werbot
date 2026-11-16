@@ -161,3 +161,27 @@ func TestCreateSystemJoinToken(t *testing.T) {
 	_, err = e.gw.Enroll(context.Background(), enrollReq(toks[0], csr(t), "local-2"))
 	assert.ErrorIs(t, err, apperr.ErrPermissionDenied, "system tokens are single-use")
 }
+
+// expires_at and created_at come from the same transaction clock.
+func TestJoinTokenExpiryFromDBClock(t *testing.T) {
+	e := gwSetup(t)
+	g := e.newPool(t, "edge")
+	_, _, exp, err := e.gw.CreateJoinToken(e.ctx, g.ID, 2*time.Hour, 1)
+	require.NoError(t, err)
+	list, err := e.gw.ListJoinTokens(e.ctx, g.ID)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, 2*time.Hour, list[0].ExpiresAt.Sub(list[0].CreatedAt))
+	assert.True(t, exp.Equal(list[0].ExpiresAt), "the returned expiry is the stored one")
+}
+
+func TestRevokeJoinTokenAuditsOnce(t *testing.T) {
+	e := gwSetup(t)
+	g := e.newPool(t, "edge")
+	id, _, _, err := e.gw.CreateJoinToken(e.ctx, g.ID, 0, 0)
+	require.NoError(t, err)
+	require.NoError(t, e.gw.RevokeJoinToken(e.ctx, id))
+	require.NoError(t, e.gw.RevokeJoinToken(e.ctx, id))
+	assert.Equal(t, 1, e.count(t,
+		"SELECT count(*) FROM audit_event WHERE action = 'gateway.join_token.revoke' AND target_id = $1", id.String()))
+}
