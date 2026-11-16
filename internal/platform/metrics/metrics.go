@@ -3,6 +3,7 @@ package metrics
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"slices"
 	"strings"
@@ -110,6 +111,9 @@ func (r *Registry) Gauge(name, help string, labels ...string) *Gauge {
 func (r *Registry) GaugeFunc(name, help string, fn func() int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if fn == nil {
+		panic("metrics: nil GaugeFunc for " + name)
+	}
 	if _, ok := r.fams[name]; ok {
 		panic("metrics: " + name + " already registered")
 	}
@@ -118,27 +122,29 @@ func (r *Registry) GaugeFunc(name, help string, fn func() int64) {
 
 // Handler serves the Prometheus text format.
 func (r *Registry) Handler() http.Handler {
+	type snap struct {
+		name, help, typ string
+		labels          []string
+		vals            map[string]func() int64
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// Snapshot under the lock; run value funcs and format outside it.
 		r.mu.Lock()
-		var b strings.Builder
-		names := make([]string, 0, len(r.fams))
-		for n := range r.fams {
-			names = append(names, n)
-		}
-		slices.Sort(names)
-		for _, n := range names {
-			f := r.fams[n]
-			fmt.Fprintf(&b, "# HELP %s %s\n# TYPE %s %s\n", n, f.help, n, f.typ)
-			ls := make([]string, 0, len(f.series))
-			for l := range f.series {
-				ls = append(ls, l)
-			}
-			slices.Sort(ls)
-			for _, l := range ls {
-				fmt.Fprintf(&b, "%s%s %d\n", n, l, f.series[l]())
-			}
+		snaps := make([]snap, 0, len(r.fams))
+		for n, f := range r.fams {
+			sn := snap{name: n, help: f.help, typ: f.typ, vals: maps.Clone(f.series)}
+			sn.labels = slices.Sorted(maps.Keys(sn.vals))
+			snaps = append(snaps, sn)
 		}
 		r.mu.Unlock()
+		slices.SortFunc(snaps, func(a, b snap) int { return strings.Compare(a.name, b.name) })
+		var b strings.Builder
+		for _, sn := range snaps {
+			fmt.Fprintf(&b, "# HELP %s %s\n# TYPE %s %s\n", sn.name, sn.help, sn.name, sn.typ)
+			for _, l := range sn.labels {
+				fmt.Fprintf(&b, "%s%s %d\n", sn.name, l, sn.vals[l]())
+			}
+		}
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 		_, _ = w.Write([]byte(b.String()))
 	})

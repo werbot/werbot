@@ -4,6 +4,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -45,6 +46,7 @@ func TestRegistryPanics(t *testing.T) {
 	assert.Panics(t, func() { r.Counter("werbot_y_total", "y", "reason") })
 	r.GaugeFunc("werbot_f", "f", func() int64 { return 0 })
 	assert.Panics(t, func() { r.GaugeFunc("werbot_f", "f", func() int64 { return 0 }) })
+	assert.Panics(t, func() { r.GaugeFunc("werbot_nil", "n", nil) })
 }
 
 func TestConcurrentUpdates(t *testing.T) {
@@ -63,4 +65,22 @@ func TestConcurrentUpdates(t *testing.T) {
 	r.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
 	assert.Contains(t, rec.Body.String(), "werbot_c_total 100000\n")
 	assert.Contains(t, rec.Body.String(), "werbot_g 100000\n")
+}
+
+func TestPanickingGaugeFuncDoesNotWedgeRegistry(t *testing.T) {
+	r := metrics.NewRegistry()
+	r.GaugeFunc("werbot_bad", "bad", func() int64 { panic("boom") })
+	assert.Panics(t, func() {
+		r.Handler().ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/metrics", nil))
+	})
+	done := make(chan struct{})
+	go func() {
+		r.Counter("werbot_after_total", "after").Inc()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("registry locked after panicking GaugeFunc")
+	}
 }
