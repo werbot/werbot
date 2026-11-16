@@ -10,8 +10,6 @@ import (
 
 	"github.com/werbot/werbot/internal/identity/dbq"
 	"github.com/werbot/werbot/internal/platform/apperr"
-	"github.com/werbot/werbot/internal/platform/auditlog"
-	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/dbx"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
@@ -92,7 +90,5 @@ func (s *Service) Setup(ctx context.Context, in SetupInput, userAgent string) (s
 
 // writeAudit records action by userID in orgID inside tx.
 func writeAudit(ctx context.Context, tx pgx.Tx, action string, orgID, userID uuid.UUID) error {
-	return auditlog.Write(ctx, tx, auditlog.Event{
-		OrgID: &orgID, ActorUserID: &userID, ActorKind: "user", Action: action, IP: clientip.From(ctx),
-	})
+	return writeUserAudit(ctx, tx, action, &orgID, userID)
 }

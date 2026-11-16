@@ -72,3 +72,22 @@ SELECT org_id FROM membership WHERE user_id = @user_id ORDER BY created_at LIMIT
 
 -- name: DeleteUserSessions :exec
 DELETE FROM user_session WHERE user_id = @user_id;
+
+-- name: GetProfile :one
+SELECT id, email, login, name, created_at FROM users WHERE id = @id;
+
+-- name: UpdateProfile :exec
+UPDATE users SET name = @name, email = @email, updated_at = now() WHERE id = @id;
+
+-- name: GetPasswordHash :one
+SELECT password_hash FROM users WHERE id = @id;
+
+-- name: DeleteOtherUserSessions :exec
+DELETE FROM user_session WHERE user_id = @user_id AND id <> @keep_id;
+
+-- name: LockOrgOwners :many
+-- Fixed lock order (user_id) keeps concurrent owner changes deadlock-free.
+SELECT user_id FROM membership WHERE org_id = @org_id AND role = 'owner' ORDER BY user_id FOR UPDATE;
+
+-- name: DeleteUser :exec
+DELETE FROM users WHERE id = @id;

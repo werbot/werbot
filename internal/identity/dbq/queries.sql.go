@@ -146,6 +146,20 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UU
 	return id, err
 }
 
+const deleteOtherUserSessions = `-- name: DeleteOtherUserSessions :exec
+DELETE FROM user_session WHERE user_id = $1 AND id <> $2
+`
+
+type DeleteOtherUserSessionsParams struct {
+	UserID uuid.UUID
+	KeepID uuid.UUID
+}
+
+func (q *Queries) DeleteOtherUserSessions(ctx context.Context, arg DeleteOtherUserSessionsParams) error {
+	_, err := q.db.Exec(ctx, deleteOtherUserSessions, arg.UserID, arg.KeepID)
+	return err
+}
+
 const deleteSession = `-- name: DeleteSession :exec
 DELETE FROM user_session WHERE id = $1 AND org_id = $2
 `
@@ -157,6 +171,15 @@ type DeleteSessionParams struct {
 
 func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) error {
 	_, err := q.db.Exec(ctx, deleteSession, arg.ID, arg.OrgID)
+	return err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM users WHERE id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
 }
 
@@ -203,6 +226,42 @@ func (q *Queries) GetLoginUser(ctx context.Context, email string) (GetLoginUserR
 	row := q.db.QueryRow(ctx, getLoginUser, email)
 	var i GetLoginUserRow
 	err := row.Scan(&i.ID, &i.PasswordHash, &i.OrgID)
+	return i, err
+}
+
+const getPasswordHash = `-- name: GetPasswordHash :one
+SELECT password_hash FROM users WHERE id = $1
+`
+
+func (q *Queries) GetPasswordHash(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, getPasswordHash, id)
+	var password_hash string
+	err := row.Scan(&password_hash)
+	return password_hash, err
+}
+
+const getProfile = `-- name: GetProfile :one
+SELECT id, email, login, name, created_at FROM users WHERE id = $1
+`
+
+type GetProfileRow struct {
+	ID        uuid.UUID
+	Email     string
+	Login     string
+	Name      string
+	CreatedAt time.Time
+}
+
+func (q *Queries) GetProfile(ctx context.Context, id uuid.UUID) (GetProfileRow, error) {
+	row := q.db.QueryRow(ctx, getProfile, id)
+	var i GetProfileRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Login,
+		&i.Name,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
@@ -316,12 +375,52 @@ func (q *Queries) HasUsers(ctx context.Context) (bool, error) {
 	return exists, err
 }
 
+const lockOrgOwners = `-- name: LockOrgOwners :many
+SELECT user_id FROM membership WHERE org_id = $1 AND role = 'owner' ORDER BY user_id FOR UPDATE
+`
+
+// Fixed lock order (user_id) keeps concurrent owner changes deadlock-free.
+func (q *Queries) LockOrgOwners(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, lockOrgOwners, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var user_id uuid.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockSetup = `-- name: LockSetup :exec
 SELECT pg_advisory_xact_lock($1::bigint)
 `
 
 func (q *Queries) LockSetup(ctx context.Context, key int64) error {
 	_, err := q.db.Exec(ctx, lockSetup, key)
+	return err
+}
+
+const updateProfile = `-- name: UpdateProfile :exec
+UPDATE users SET name = $1, email = $2, updated_at = now() WHERE id = $3
+`
+
+type UpdateProfileParams struct {
+	Name  string
+	Email string
+	ID    uuid.UUID
+}
+
+func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) error {
+	_, err := q.db.Exec(ctx, updateProfile, arg.Name, arg.Email, arg.ID)
 	return err
 }
 

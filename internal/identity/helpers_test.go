@@ -72,7 +72,7 @@ func seedUser(t *testing.T, pool *pgxpool.Pool, orgID uuid.UUID, login, role str
 }
 
 // loginCtx logs login in and returns a context carrying its principal and the session token.
-func loginCtx(t *testing.T, svc *Service, login string) (context.Context, string) { //nolint:unparam // later tasks log in other users
+func loginCtx(t *testing.T, svc *Service, login string) (context.Context, string) {
 	t.Helper()
 	ctx := context.Background()
 	token, err := svc.Login(ctx, login+"@example.com", testPassword, "test")
