@@ -197,7 +197,7 @@ func (c *CA) ServerTLS(hosts []string) (*tls.Config, error) {
 		}
 	}
 	now := time.Now()
-	certPEM, err := c.sign(pub, "werbot-core", now.Add(-skew), now.Add(serverTTL), x509.ExtKeyUsageServerAuth, ips, dns)
+	certPEM, err := c.sign(pub, "werbot-core", now.Add(-skew), minTime(now.Add(serverTTL), c.cert.NotAfter), x509.ExtKeyUsageServerAuth, ips, dns)
 	if err != nil {
 		return nil, err
 	}

@@ -25,9 +25,19 @@ const (
 	maxBackoff = 30 * time.Second
 )
 
+// closeTimeout bounds the connection close: a stalled socket must not hang session.
+var closeTimeout = 5 * time.Second
+
+func closeConn(ctx context.Context, conn *pgx.Conn) {
+	cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), closeTimeout)
+	defer cancel()
+	_ = conn.Close(cctx)
+}
+
 // Listen holds one dedicated connection outside the pool with LISTEN on every
 // channel of handlers. onReconnect runs after each successful LISTEN of all
 // channels (the first one included): notifications sent during a gap may be lost.
+// handlers values and onReconnect must be non-nil.
 // Handlers run sequentially in the Listen goroutine and must be fast.
 // Returns nil after ctx.Done.
 func Listen(ctx context.Context, pool *pgxpool.Pool, handlers map[string]func(payload string), onReconnect func()) error {
@@ -55,7 +65,7 @@ func session(ctx context.Context, pool *pgxpool.Pool, channels []string, handler
 	if err != nil {
 		return err
 	}
-	defer func() { _ = conn.Close(context.WithoutCancel(ctx)) }()
+	defer closeConn(ctx, conn)
 
 	for _, ch := range channels {
 		if _, err := conn.Exec(ctx, "LISTEN "+pgx.Identifier{ch}.Sanitize()); err != nil {

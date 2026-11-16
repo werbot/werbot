@@ -2,6 +2,7 @@ package tlsca
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"slices"
 	"testing"
@@ -87,5 +88,21 @@ func TestFingerprintPEMRejectsTrailingData(t *testing.T) {
 	}
 	if _, err := FingerprintPEM(append(slices.Clone(a), " \n"...)); err != nil {
 		t.Fatalf("trailing whitespace: %v", err)
+	}
+}
+
+func TestServerTLSCapsLeafAtRoot(t *testing.T) {
+	ca := newTestCA(t)
+	ca.cert.NotAfter = time.Now().Add(time.Hour)
+	cfg, err := ca.ServerTLS([]string{"127.0.0.1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaf, err := x509.ParseCertificate(cfg.Certificates[0].Certificate[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if leaf.NotAfter.After(ca.cert.NotAfter) {
+		t.Fatalf("leaf NotAfter %v after root %v", leaf.NotAfter, ca.cert.NotAfter)
 	}
 }
