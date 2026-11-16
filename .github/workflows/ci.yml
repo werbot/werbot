@@ -92,3 +92,9 @@ jobs:
           path: |
             web/playwright-report
             web/e2e/.server.log
+
+  e2e-network:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: make e2e-network

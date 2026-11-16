@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto sqlc web e2e
+.PHONY: build test lint dev-db proto sqlc web e2e e2e-network
 
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
@@ -27,3 +27,10 @@ web:
 e2e: build
 	docker compose -f deploy/docker-compose.test.yaml exec -T testdb psql -U postgres -c 'DROP DATABASE IF EXISTS werbot_e2e WITH (FORCE)' -c 'CREATE DATABASE werbot_e2e'
 	cd web && bunx playwright test
+
+E2E_NETWORK = docker compose -p werbot-e2e -f deploy/e2e/docker-compose.yaml
+
+# run.sh tears the stack down on exit; a failed `up` tears it down here
+e2e-network:
+	$(E2E_NETWORK) up -d --build --wait postgres server target || { $(E2E_NETWORK) down -v; exit 1; }
+	deploy/e2e/run.sh

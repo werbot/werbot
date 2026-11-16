@@ -129,9 +129,12 @@ The stack runs `werbot server --with-gateway` and listens on http://localhost:80
 make test   # needs `make dev-db`
 make lint
 make e2e    # Playwright e2e on DB `werbot_e2e` (needs `make dev-db`; first run: `cd web && bunx playwright install chromium`)
+make e2e-network  # Docker Compose e2e: SSH through a gateway pool to a target on an internal-only network
 (cd web && bun run test:unit)  # Vitest unit tests for the web UI
 make sqlc   # regenerates internal/<domain>/dbq from migrations/ and internal/<domain>/queries.sql
 ```
+
+`make e2e-network` needs docker, curl, jq, ssh and ssh-keygen. It builds the `werbot-e2e:local` image, publishes ports `8080`, `8081` and `2222` on localhost, and removes the `werbot-e2e` project (containers, networks, volumes) on exit.
 
 Go tools (buf, protoc-gen-go, protoc-gen-connect-go, sqlc) live in `tools/go.mod`: `go tool -modfile=tools/go.mod buf ...`. The first sqlc build compiles `pg_query_go` with cgo (needs a C compiler). Generated `dbq` code is committed and never edited by hand; CI fails when `go tool -modfile=tools/go.mod sqlc diff` is not empty.
 

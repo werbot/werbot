@@ -1,0 +1,65 @@
+# Network e2e: the SSH target sits on an internal-only network that only the
+# gateway joins, so every SSH session must go through the gateway pool.
+# Run with `make e2e-network`; deploy/e2e/run.sh drives the scenario.
+name: werbot-e2e
+
+networks:
+  public: {}
+  private:
+    internal: true
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: werbot
+      POSTGRES_PASSWORD: werbot
+      POSTGRES_DB: werbot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U werbot -d werbot"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [public]
+
+  server:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile
+    image: werbot-e2e:local
+    command: ["server"]
+    environment:
+      WERBOT_ENV: development
+      WERBOT_DATABASE_URL: postgres://werbot:werbot@postgres:5432/werbot?sslmode=disable
+      WERBOT_PUBLIC_URL: http://server:8080
+      WERBOT_SECRET_KEY: d2VyYm90LWUyZS1uZXR3b3JrLXNlY3JldC1rZXktMzI= # test-only key
+      WERBOT_GATEWAY_ADDR: ":8443"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [public]
+
+  target:
+    image: lscr.io/linuxserver/openssh-server:10.3_p1-r1-ls241@sha256:0b46c755aac07057908077f2c7ff14f0ad923970bb6a3a67bcd008e72fa60050
+    environment:
+      USER_NAME: werbot
+      USER_PASSWORD: e2e-password
+      PASSWORD_ACCESS: "true"
+    networks: [private]
+
+  gateway:
+    image: werbot-e2e:local
+    command: ["gateway"]
+    profiles: ["gateway"]
+    environment:
+      WERBOT_GATEWAY_SERVER_URL: http://server:8080
+      WERBOT_GATEWAY_JOIN_TOKEN: ${JOIN_TOKEN:-}
+      # distroless :nonroot cannot write to "/"; the container FS survives `docker compose restart`
+      WERBOT_GATEWAY_DATA_DIR: /home/nonroot/gateway
+      WERBOT_GATEWAY_HTTP_ADDR: ":8081"
+    ports:
+      - "2222:2222"
+      - "8081:8081"
+    networks: [public, private]
