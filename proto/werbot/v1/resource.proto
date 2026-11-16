@@ -1,0 +1,116 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+service ResourceService {
+  rpc ListResourceTypes(ListResourceTypesRequest) returns (ListResourceTypesResponse);
+  rpc ListResources(ListResourcesRequest) returns (ListResourcesResponse);
+  rpc GetResource(GetResourceRequest) returns (GetResourceResponse);
+  rpc CreateResource(CreateResourceRequest) returns (CreateResourceResponse);
+  rpc UpdateResource(UpdateResourceRequest) returns (UpdateResourceResponse);
+  rpc DeleteResource(DeleteResourceRequest) returns (DeleteResourceResponse);
+  rpc SetCredential(SetCredentialRequest) returns (SetCredentialResponse);
+  rpc ClearCredential(ClearCredentialRequest) returns (ClearCredentialResponse);
+  rpc ClearHostKey(ClearHostKeyRequest) returns (ClearHostKeyResponse);
+}
+
+message ResourceType {
+  string name = 1;
+  string category = 2;
+  repeated string credential_kinds = 3;
+  repeated string actions = 4;
+  string level = 5;
+  string config_type_url = 6; // "type.googleapis.com/<FullName>"
+  repeated string kinds = 7;  // connector.Type.Kinds in registration order: "terminal" | "exec" | "stream"
+}
+
+message HostKey {
+  string key_type = 1;
+  string fingerprint_sha256 = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message Resource {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string category = 4;
+  string gateway_id = 5;
+  google.protobuf.Any config = 6;
+  string config_json = 7; // protojson of the same config, for the JSON editor
+  map<string, string> labels = 8;
+  string credential_kind = 9; // "" means no credential; the value is never returned
+  HostKey host_key = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message ListResourceTypesRequest {}
+message ListResourceTypesResponse {
+  repeated ResourceType types = 1;
+}
+
+message ListResourcesRequest {
+  map<string, string> label_filter = 1;
+}
+message ListResourcesResponse {
+  repeated Resource resources = 1;
+}
+
+message GetResourceRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetResourceResponse {
+  Resource resource = 1;
+}
+
+// Exactly one of config / config_json is set.
+message CreateResourceRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  string type = 2 [(buf.validate.field).string = {min_len: 1, max_len: 32}];
+  string gateway_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  google.protobuf.Any config = 4;
+  string config_json = 5 [(buf.validate.field).string.max_len = 65536];
+  map<string, string> labels = 6;
+}
+message CreateResourceResponse {
+  Resource resource = 1;
+}
+
+// Like Create without type; both config fields empty keeps the current config.
+message UpdateResourceRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  string gateway_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  google.protobuf.Any config = 4;
+  string config_json = 5 [(buf.validate.field).string.max_len = 65536];
+  map<string, string> labels = 6;
+}
+message UpdateResourceResponse {
+  Resource resource = 1;
+}
+
+message DeleteResourceRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteResourceResponse {}
+
+message SetCredentialRequest {
+  string resource_id = 1 [(buf.validate.field).string.uuid = true];
+  string kind = 2 [(buf.validate.field).string = {min_len: 1, max_len: 32}];
+  bytes value = 3 [(buf.validate.field).bytes = {min_len: 1, max_len: 65536}];
+}
+message SetCredentialResponse {}
+
+message ClearCredentialRequest {
+  string resource_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message ClearCredentialResponse {}
+
+message ClearHostKeyRequest {
+  string resource_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message ClearHostKeyResponse {}
