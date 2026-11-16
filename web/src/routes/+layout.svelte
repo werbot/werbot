@@ -18,6 +18,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>{m.app_title()}</title>
+</svelte:head>
+
 <div class="miso-app">
 	{#if serverVersion && serverVersion !== buildVersion}
 		<Banner tone="info">{m.version_mismatch({ ui: buildVersion, server: serverVersion })}</Banner>
