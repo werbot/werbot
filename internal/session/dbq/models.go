@@ -65,17 +65,18 @@ type Gateway struct {
 }
 
 type GatewayInstance struct {
-	ID            uuid.UUID
-	GatewayID     uuid.UUID
-	OrgID         uuid.UUID
-	Hostname      string
-	CertSerial    string
-	CertExpiresAt time.Time
-	Version       string
-	Connectors    []string
-	LastSeenAt    *time.Time
-	ClientIp      *netip.Addr
-	CreatedAt     time.Time
+	ID             uuid.UUID
+	GatewayID      uuid.UUID
+	OrgID          uuid.UUID
+	Hostname       string
+	CertSerial     string
+	PrevCertSerial *string
+	CertExpiresAt  time.Time
+	Version        string
+	Connectors     []string
+	LastSeenAt     *time.Time
+	ClientIp       *netip.Addr
+	CreatedAt      time.Time
 }
 
 type GatewayJoinToken struct {

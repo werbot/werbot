@@ -240,7 +240,7 @@ func TestServeGatewayPlane(t *testing.T) {
 		return regexp.MustCompile(`(?m)^werbot_tunnel_streams 1$`).MatchString(body)
 	}, 5*time.Second, 20*time.Millisecond)
 
-	// Renewal: the old serial stops authenticating at once.
+	// Renewal: the old serial authenticates until the new one is first used.
 	key, csr := newCSR(t)
 	renewed, err := gw.client.RenewCertificate(ctx, connect.NewRequest(&gatewayv1.RenewCertificateRequest{CsrDer: csr}))
 	require.NoError(t, err)
@@ -249,9 +249,10 @@ func TestServeGatewayPlane(t *testing.T) {
 			By: &gatewayv1.AuthenticateUserRequest_Login{Login: "nobody"}, ClientIp: "10.0.0.1"}))
 		return err
 	}
-	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(auth(gw.client)), "old certificate")
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(auth(gw.client)), "old certificate, new one unused")
 	fresh, _ := tunnelClient(t, gw.res.GetTunnelUrl(), []byte(gw.res.GetCaPem()), withCert(t, key, renewed.Msg.GetCertPem()))
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(auth(fresh)), "new certificate")
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(auth(gw.client)), "old certificate after the new one was used")
 	gw.closeTransport()
 	assert.Error(t, streamEnd(t, done, 5*time.Second))
 

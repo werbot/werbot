@@ -34,11 +34,15 @@ func (q *Queries) AssignUnpooledResources(ctx context.Context, arg AssignUnpoole
 }
 
 const authenticateInstance = `-- name: AuthenticateInstance :one
-SELECT id, gateway_id, org_id, hostname, version, cert_serial, connectors, client_ip,
-       cert_expires_at, created_at, last_seen_at,
-       coalesce(last_seen_at > now() - interval '45 seconds', false)::bool AS online
-FROM gateway_instance
-WHERE id = $1 AND gateway_id = $2 AND cert_serial = $3
+WITH first_use AS (
+    UPDATE gateway_instance u SET prev_cert_serial = NULL
+    WHERE u.id = $1 AND u.gateway_id = $2 AND u.cert_serial = $3 AND u.prev_cert_serial IS NOT NULL
+)
+SELECT i.id, i.gateway_id, i.org_id, i.hostname, i.version, i.cert_serial, i.connectors, i.client_ip,
+       i.cert_expires_at, i.created_at, i.last_seen_at,
+       coalesce(i.last_seen_at > now() - interval '45 seconds', false)::bool AS online
+FROM gateway_instance i
+WHERE i.id = $1 AND i.gateway_id = $2 AND $3 IN (i.cert_serial, i.prev_cert_serial)
 `
 
 type AuthenticateInstanceParams struct {
@@ -62,7 +66,8 @@ type AuthenticateInstanceRow struct {
 	Online        bool
 }
 
-// The instance id comes from a verified certificate: no org filter.
+// The instance id comes from a verified certificate: no org filter. The previous
+// serial matches until the current one is first used; that use clears it.
 func (q *Queries) AuthenticateInstance(ctx context.Context, arg AuthenticateInstanceParams) (AuthenticateInstanceRow, error) {
 	row := q.db.QueryRow(ctx, authenticateInstance, arg.ID, arg.GatewayID, arg.CertSerial)
 	var i AuthenticateInstanceRow
@@ -763,7 +768,9 @@ func (q *Queries) OrgGatewayIDs(ctx context.Context, orgID uuid.UUID) ([]uuid.UU
 }
 
 const renewInstanceCert = `-- name: RenewInstanceCert :exec
-UPDATE gateway_instance SET cert_serial = $1, cert_expires_at = $2 WHERE id = $3
+UPDATE gateway_instance
+SET prev_cert_serial = coalesce(prev_cert_serial, cert_serial), cert_serial = $1, cert_expires_at = $2
+WHERE id = $3
 `
 
 type RenewInstanceCertParams struct {
@@ -772,6 +779,8 @@ type RenewInstanceCertParams struct {
 	ID            uuid.UUID
 }
 
+// A set prev_cert_serial means the current serial was never used: the instance
+// still holds the previous one, so it stays valid.
 func (q *Queries) RenewInstanceCert(ctx context.Context, arg RenewInstanceCertParams) error {
 	_, err := q.db.Exec(ctx, renewInstanceCert, arg.CertSerial, arg.CertExpiresAt, arg.ID)
 	return err

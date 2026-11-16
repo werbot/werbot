@@ -113,7 +113,8 @@ func (g *Gateways) Enroll(ctx context.Context, r EnrollRequest) (Enrollment, err
 	return out, nil
 }
 
-// Renew issues a new certificate with the same common name; the old serial stops authenticating.
+// Renew issues a new certificate with the same common name. The serial the
+// instance holds keeps authenticating until the new one is first used.
 func (g *Gateways) Renew(ctx context.Context, instanceID uuid.UUID, csrDER []byte) ([]byte, error) {
 	var certPEM []byte
 	err := dbx.System(ctx, g.pool, dbx.ReasonEnroll, func(tx pgx.Tx) error {

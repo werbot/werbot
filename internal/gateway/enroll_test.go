@@ -7,6 +7,8 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -63,6 +65,7 @@ type fakeEnroll struct {
 	ca      *tlsca.CA
 	extraCA []byte // appended to ca_pem
 	hostKey []byte
+	spent   bool // the token is exhausted
 	mu      sync.Mutex
 	reqs    []*werbotv1.EnrollRequest
 }
@@ -71,6 +74,9 @@ func (f *fakeEnroll) Enroll(_ context.Context, r *connect.Request[werbotv1.Enrol
 	f.mu.Lock()
 	f.reqs = append(f.reqs, r.Msg)
 	f.mu.Unlock()
+	if f.spent {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("invalid join token"))
+	}
 	cert, err := f.ca.IssueClient(r.Msg.GetCsrDer(), "gateway:x:y", time.Hour)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -178,6 +184,46 @@ func TestEnsureEnrolledSkipsWhenEnrolled(t *testing.T) {
 	body2, _ := os.ReadFile(p) //nolint:gosec // test path
 	require.Equal(t, body, body2)
 	require.Equal(t, before.ModTime(), after.ModTime())
+}
+
+// writeExpiredCert replaces the client certificate in dir with one that expired an hour ago.
+func writeExpiredCert(t *testing.T, dir string) {
+	t.Helper()
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	tmpl := &x509.Certificate{SerialNumber: big.NewInt(1), NotBefore: time.Now().Add(-48 * time.Hour), NotAfter: time.Now().Add(-time.Hour)}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, pub, priv)
+	require.NoError(t, err)
+	key, err := x509.MarshalPKCS8PrivateKey(priv)
+	require.NoError(t, err)
+	require.NoError(t, (&certStore{dir: dir}).Replace(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}),
+		pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: key})))
+}
+
+func TestEnsureEnrolledReenrollsStaleIdentity(t *testing.T) {
+	f, srv := newFake(t)
+	dir := t.TempDir()
+	cfg := Config{ServerURL: srv.URL, DataDir: dir, Name: "gw", JoinToken: testToken(f.ca.Fingerprint())}
+	_, _, _, err := ensureEnrolled(t.Context(), cfg, srv.Client(), nil)
+	require.NoError(t, err)
+	writeExpiredCert(t, dir)
+	require.False(t, Enrolled(dir), "expired certificate")
+
+	f.spent = true // a standalone gateway restarted with its old token
+	_, _, _, err = ensureEnrolled(t.Context(), cfg, srv.Client(), nil)
+	require.ErrorContains(t, err, "expired")
+	require.ErrorContains(t, err, "new join token")
+	require.ErrorContains(t, err, "invalid join token")
+
+	f.spent = false
+	_, cs, _, err := ensureEnrolled(t.Context(), cfg, srv.Client(), nil)
+	require.NoError(t, err)
+	require.Len(t, f.reqs, 3, "Enroll is called for the stale identity")
+	require.True(t, cs.Leaf().NotAfter.After(time.Now()))
+	require.True(t, Enrolled(dir))
+
+	require.NoError(t, os.WriteFile(filepath.Join(dir, certFile), []byte("garbage"), 0o600))
+	require.False(t, Enrolled(dir), "unloadable certificate")
 }
 
 func TestEnsureEnrolledRequiresServerAndToken(t *testing.T) {

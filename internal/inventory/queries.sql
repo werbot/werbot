@@ -96,12 +96,17 @@ WHERE org_id = @org_id
 ORDER BY created_at, id;
 
 -- name: AuthenticateInstance :one
--- The instance id comes from a verified certificate: no org filter.
-SELECT id, gateway_id, org_id, hostname, version, cert_serial, connectors, client_ip,
-       cert_expires_at, created_at, last_seen_at,
-       coalesce(last_seen_at > now() - interval '45 seconds', false)::bool AS online
-FROM gateway_instance
-WHERE id = @id AND gateway_id = @gateway_id AND cert_serial = @cert_serial;
+-- The instance id comes from a verified certificate: no org filter. The previous
+-- serial matches until the current one is first used; that use clears it.
+WITH first_use AS (
+    UPDATE gateway_instance u SET prev_cert_serial = NULL
+    WHERE u.id = @id AND u.gateway_id = @gateway_id AND u.cert_serial = @cert_serial AND u.prev_cert_serial IS NOT NULL
+)
+SELECT i.id, i.gateway_id, i.org_id, i.hostname, i.version, i.cert_serial, i.connectors, i.client_ip,
+       i.cert_expires_at, i.created_at, i.last_seen_at,
+       coalesce(i.last_seen_at > now() - interval '45 seconds', false)::bool AS online
+FROM gateway_instance i
+WHERE i.id = @id AND i.gateway_id = @gateway_id AND @cert_serial IN (i.cert_serial, i.prev_cert_serial);
 
 -- name: CreateInstance :exec
 INSERT INTO gateway_instance (id, gateway_id, org_id, hostname, cert_serial, cert_expires_at, version, connectors, client_ip)
@@ -111,7 +116,11 @@ VALUES (@id, @gateway_id, @org_id, @hostname, @cert_serial, @cert_expires_at, @v
 SELECT gateway_id FROM gateway_instance WHERE id = @id FOR UPDATE;
 
 -- name: RenewInstanceCert :exec
-UPDATE gateway_instance SET cert_serial = @cert_serial, cert_expires_at = @cert_expires_at WHERE id = @id;
+-- A set prev_cert_serial means the current serial was never used: the instance
+-- still holds the previous one, so it stays valid.
+UPDATE gateway_instance
+SET prev_cert_serial = coalesce(prev_cert_serial, cert_serial), cert_serial = @cert_serial, cert_expires_at = @cert_expires_at
+WHERE id = @id;
 
 -- name: HeartbeatInstance :execrows
 UPDATE gateway_instance SET last_seen_at = now(), version = @version, connectors = @connectors WHERE id = @id;

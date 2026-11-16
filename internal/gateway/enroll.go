@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,15 +33,20 @@ type state struct {
 }
 
 // ensureEnrolled returns the persisted identity, enrolling through the join token on first start.
-// A saved identity wins: the token is not read, so an exhausted one in env is harmless.
+// A usable saved identity wins: the token is not read, so an exhausted one in env is harmless.
+// An identity whose certificate expired or does not load is replaced by a new enrollment.
 func ensureEnrolled(ctx context.Context, cfg Config, hc *http.Client, connectors []string) (state, *certStore, *x509.CertPool, error) {
 	var st state
 	var cs *certStore
 	var err error
-	if Enrolled(cfg.DataDir) {
+	stale := identityError(cfg.DataDir)
+	if stale == nil {
 		st, cs, err = loadIdentity(cfg.DataDir)
 	} else {
 		st, cs, err = enroll(ctx, cfg, hc, connectors)
+		if err != nil && !errors.Is(stale, errNoIdentity) {
+			err = fmt.Errorf("saved identity is unusable (%v), re-enrollment needs a new join token: %w", stale, err)
+		}
 	}
 	if err != nil {
 		return state{}, nil, nil, err
@@ -151,6 +157,10 @@ func enroll(ctx context.Context, cfg Config, hc *http.Client, connectors []strin
 		return state{}, nil, err
 	}
 	if err := os.Chmod(cfg.DataDir, 0o700); err != nil { //nolint:gosec // directory needs the x bit; fixes pre-existing dirs/volumes
+		return state{}, nil, err
+	}
+	// gateway.json marks a complete identity: drop the stale one before overwriting its files
+	if err := os.Remove(filepath.Join(cfg.DataDir, stateFile)); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return state{}, nil, err
 	}
 	cs := &certStore{dir: cfg.DataDir}

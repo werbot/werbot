@@ -164,8 +164,25 @@ func ParseJoinToken(s string) (caFingerprint string, err error) {
 	return m[2], nil
 }
 
-// Enrolled reports whether dataDir holds an instance identity.
-func Enrolled(dataDir string) bool {
-	_, err := os.Stat(filepath.Join(dataDir, stateFile))
-	return err == nil
+// errNoIdentity means dataDir has never held a complete identity.
+var errNoIdentity = errors.New("no instance identity")
+
+// identityError reports why dataDir holds no usable instance identity: none was saved,
+// or its client certificate does not load or has expired. nil means enrolled.
+func identityError(dataDir string) error {
+	if _, err := os.Stat(filepath.Join(dataDir, stateFile)); err != nil {
+		return errNoIdentity
+	}
+	cs, err := loadCertStore(dataDir)
+	if err != nil {
+		return err
+	}
+	if exp := cs.Leaf().NotAfter; !time.Now().Before(exp) {
+		return fmt.Errorf("gateway certificate expired at %s", exp.UTC().Format(time.RFC3339))
+	}
+	return nil
 }
+
+// Enrolled reports whether dataDir holds a usable instance identity: an expired or
+// unloadable certificate counts as not enrolled, so the instance enrolls again.
+func Enrolled(dataDir string) bool { return identityError(dataDir) == nil }

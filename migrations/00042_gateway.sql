@@ -18,6 +18,9 @@ CREATE TABLE gateway_instance (
     org_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     hostname text NOT NULL,
     cert_serial text NOT NULL,
+    -- the serial before the last renewal: valid until cert_serial is first used,
+    -- so a lost renewal response does not lock the instance out
+    prev_cert_serial text,
     cert_expires_at timestamptz NOT NULL,
     version text NOT NULL DEFAULT '',
     connectors text[] NOT NULL DEFAULT '{}',

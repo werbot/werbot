@@ -106,7 +106,7 @@ A failed download keeps the previous data.
 
 The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR`; it connects out to the server tunnel. Users log in with their SSH key: `ssh <login>+<resource>@<gateway> -p 2222` runs a shell or a command on the resource, `ssh -L <port>:<host>:<port> <login>+<resource>@<gateway> -p 2222` forwards a port, and `ssh <login>@<gateway> -p 2222` (interactive terminal only) shows a menu of the resources the user may open. Without the server or a policy snapshot the gateway refuses new sessions (`Gateway is not ready, try again later`); running sessions continue. `/readyz` returns 200 only while the tunnel is up with a snapshot, a session slot is free and no drain runs. On SIGTERM `/readyz` returns 503 at once and the SSH port stops accepting connections.
 
-The instance renews its certificate before it expires. If the process crashes during a renewal, `gateway.key` and `gateway.crt` may no longer match and the instance fails to start: clear `WERBOT_GATEWAY_DATA_DIR` and enroll again with a new join token.
+The instance renews its 24h certificate after 16h; until the renewed certificate is first used, the previous one stays valid, so a lost renewal response does not lock the instance out. A saved identity whose certificate has expired or no longer loads (the instance was offline for more than 24h, or crashed during a renewal) counts as not enrolled, and the next enrollment overwrites it. The embedded gateway enrolls again by itself. A standalone gateway offline for more than 24h needs a new join token in `WERBOT_GATEWAY_JOIN_TOKEN`; a spent token fails at start with `invalid join token`.
 
 ## Deployment modes
 
