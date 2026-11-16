@@ -29,24 +29,32 @@
 
 	const date = (ts?: Parameters<typeof timestampDate>[0]) => (ts ? timestampDate(ts).toLocaleDateString() : '');
 
-	async function run(action: () => Promise<unknown>) {
+	async function refresh() {
+		({ members: list, invites } = await members.listMembers({}));
+	}
+
+	async function run(action: () => Promise<unknown>, message = m.common_saved()) {
 		error = '';
 		try {
 			await action();
-			({ members: list, invites } = await members.listMembers({}));
-			return true;
+			toast({ tone: 'success', text: message });
 		} catch (e) {
 			error = errorMessage(e);
+			await refresh().catch(() => {});
 			return false;
 		}
+		await refresh().catch((e) => (error = errorMessage(e)));
+		return true;
 	}
+
+	// Only an owner may change or remove an owner.
+	const locked = (member: Member) => member.role === Role.OWNER && data.session.role !== Role.OWNER;
 
 	async function invite(e: SubmitEvent) {
 		e.preventDefault();
-		if (await run(() => members.inviteMember({ email: inviteEmail, role: Number(inviteRole) }))) {
+		if (await run(() => members.inviteMember({ email: inviteEmail, role: Number(inviteRole) }), m.members_invite_sent())) {
 			inviting = false;
 			inviteEmail = '';
-			toast({ tone: 'success', text: m.common_saved() });
 		}
 	}
 
@@ -56,11 +64,11 @@
 		if (member?.user) await run(() => members.removeMember({ userId: member.user!.id }));
 	}
 
-	onMount(() => run(async () => {}));
+	onMount(() => refresh().catch((e) => (error = errorMessage(e))));
 </script>
 
 <h1>{m.members_title()}</h1>
-{#if error}<Banner tone="alert">{error}</Banner>{/if}
+{#if error && !inviting}<Banner tone="alert">{error}</Banner>{/if}
 <Button variant="solid" onclick={() => (inviting = true)}>{m.members_invite()}</Button>
 
 <Table>
@@ -78,14 +86,21 @@
 			<td>{member.user?.email}</td>
 			<td>{member.user?.login}</td>
 			<td>
-				<Select
-					options={roleOptions}
-					value={String(member.role)}
-					onchange={(value) => run(() => members.updateMemberRole({ userId: member.user!.id, role: Number(value) }))}
-				/>
+				{#if locked(member)}
+					{roleLabels[member.role as keyof typeof roleLabels]()}
+				{:else}
+					<!-- remount on refetch so a rejected pick does not linger -->
+					{#key member}
+						<Select
+							options={roleOptions}
+							value={String(member.role)}
+							onchange={(value) => run(() => members.updateMemberRole({ userId: member.user!.id, role: Number(value) }))}
+						/>
+					{/key}
+				{/if}
 			</td>
 			<td>{date(member.joinedAt)}</td>
-			<td><Button scheme="w" variant="plain" onclick={() => (removing = member)}>{m.members_remove()}</Button></td>
+			<td><Button scheme="w" variant="plain" disabled={locked(member)} onclick={() => (removing = member)}>{m.members_remove()}</Button></td>
 		</tr>
 	{/each}
 </Table>

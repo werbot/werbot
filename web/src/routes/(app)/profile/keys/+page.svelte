@@ -14,16 +14,22 @@
 	let publicKey = $state('');
 	let removing = $state<SSHKey | null>(null);
 
+	async function refresh() {
+		keys = (await sshKeys.listSSHKeys({})).keys;
+	}
+
 	async function run(action: () => Promise<unknown>) {
 		error = '';
 		try {
 			await action();
-			keys = (await sshKeys.listSSHKeys({})).keys;
-			return true;
+			toast({ tone: 'success', text: m.common_saved() });
 		} catch (e) {
 			error = errorMessage(e);
+			await refresh().catch(() => {});
 			return false;
 		}
+		await refresh().catch((e) => (error = errorMessage(e)));
+		return true;
 	}
 
 	async function add(e: SubmitEvent) {
@@ -31,7 +37,6 @@
 		if (await run(() => sshKeys.addSSHKey({ name, publicKey }))) {
 			adding = false;
 			name = publicKey = '';
-			toast({ tone: 'success', text: m.common_saved() });
 		}
 	}
 
@@ -41,11 +46,11 @@
 		if (key) await run(() => sshKeys.deleteSSHKey({ id: key.id }));
 	}
 
-	onMount(() => run(async () => {}));
+	onMount(() => refresh().catch((e) => (error = errorMessage(e))));
 </script>
 
 <h1>{m.keys_title()}</h1>
-{#if error}<Banner tone="alert">{error}</Banner>{/if}
+{#if error && !adding}<Banner tone="alert">{error}</Banner>{/if}
 <Button variant="solid" onclick={() => (adding = true)}>{m.keys_add()}</Button>
 
 {#if keys.length === 0}

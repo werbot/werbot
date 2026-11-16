@@ -80,5 +80,6 @@
 	"teams_add_member": "Add member",
 	"teams_empty": "No teams yet.",
 	"common_cancel": "Cancel",
-	"common_saved": "Saved"
+	"common_saved": "Saved",
+	"members_invite_sent": "Invitation sent"
 }

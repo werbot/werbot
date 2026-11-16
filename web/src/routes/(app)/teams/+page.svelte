@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Banner, Button, Chip, EmptyState, InlineEdit, Select, SettingsCard, TextField } from '#lib/ui/index.js';
+	import { Banner, Button, Chip, EmptyState, InlineEdit, Select, SettingsCard, TextField, toast } from '#lib/ui/index.js';
 	import { members, teams } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
@@ -14,16 +14,22 @@
 
 	let byId = $derived(new Map(people.map((p) => [p.user?.id, p.user])));
 
+	async function refresh() {
+		[{ teams: list }, { members: people }] = await Promise.all([teams.listTeams({}), members.listMembers({})]);
+	}
+
 	async function run(action: () => Promise<unknown>) {
 		error = '';
 		try {
 			await action();
-			[{ teams: list }, { members: people }] = await Promise.all([teams.listTeams({}), members.listMembers({})]);
-			return true;
+			toast({ tone: 'success', text: m.common_saved() });
 		} catch (e) {
 			error = errorMessage(e);
+			await refresh().catch(() => {});
 			return false;
 		}
+		await refresh().catch((e) => (error = errorMessage(e)));
+		return true;
 	}
 
 	async function create(e: SubmitEvent) {
@@ -31,7 +37,7 @@
 		if (await run(() => teams.createTeam({ name: newName }))) newName = '';
 	}
 
-	onMount(() => run(async () => {}));
+	onMount(() => refresh().catch((e) => (error = errorMessage(e))));
 </script>
 
 <h1>{m.teams_title()}</h1>
