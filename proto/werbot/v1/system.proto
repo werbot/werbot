@@ -1,0 +1,12 @@
+syntax = "proto3";
+package werbot.v1;
+
+service SystemService {
+  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+}
+message GetVersionRequest {}
+message GetVersionResponse {
+  string version = 1;
+  string commit = 2;
+  string build_date = 3;
+}
