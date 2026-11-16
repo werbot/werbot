@@ -157,7 +157,7 @@
 	"access_remove": "Remove",
 	"access_check": "Check access",
 	"access_check_ip": "IP address",
-	"access_check_time": "Time (optional)",
+	"access_check_time": "Time, UTC (optional)",
 	"access_check_run": "Check",
 	"access_allowed": "Allowed",
 	"access_denied": "Denied",

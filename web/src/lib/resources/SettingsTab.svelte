@@ -27,7 +27,14 @@
 
 	async function save({ name, labels, config, configJson }: ResourceValues) {
 		await run(async () => {
-			const res = await resources.updateResource({ id: resource.id, name, labels, config, configJson });
+			const res = await resources.updateResource({
+				id: resource.id,
+				name,
+				gatewayId: resource.gatewayId,
+				labels,
+				config,
+				configJson
+			});
 			if (res.resource) resource = res.resource;
 		}, m.common_saved());
 	}

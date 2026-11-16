@@ -30,7 +30,7 @@
 				userId,
 				resourceId,
 				ip,
-				time: time ? timestampFromDate(new Date(time)) : undefined
+				time: time ? timestampFromDate(new Date(`${time}Z`)) : undefined // schedules are UTC
 			});
 		} catch (e) {
 			result = undefined;
