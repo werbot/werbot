@@ -22,6 +22,7 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/platform/config"
+	"github.com/werbot/werbot/internal/platform/db"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/sdk"
 )
@@ -146,6 +147,70 @@ func TestBootstrapConcurrent(t *testing.T) {
 	assert.Equal(t, 0, n)
 }
 
+// emptySchemaLocked returns a test DB with an empty public schema and a
+// connection that holds db.BootstrapLock until the returned unlock is called.
+func emptySchemaLocked(t *testing.T) (pool *pgxpool.Pool, url string, unlock func()) {
+	t.Helper()
+	pool, url = dbtest.New(t)
+	ctx := context.Background()
+	_, err := pool.Exec(ctx, "DROP SCHEMA public CASCADE; CREATE SCHEMA public")
+	require.NoError(t, err)
+	conn, err := pool.Acquire(ctx)
+	require.NoError(t, err)
+	t.Cleanup(conn.Release)
+	_, err = conn.Exec(ctx, "SELECT pg_advisory_lock($1)", db.BootstrapLock)
+	require.NoError(t, err)
+	return pool, url, func() {
+		_, err := conn.Exec(ctx, "SELECT pg_advisory_unlock($1)", db.BootstrapLock)
+		require.NoError(t, err)
+	}
+}
+
+func gooseTableExists(t *testing.T, pool *pgxpool.Pool) bool {
+	t.Helper()
+	var ok bool
+	require.NoError(t, pool.QueryRow(context.Background(), "SELECT to_regclass('goose_db_version') IS NOT NULL").Scan(&ok))
+	return ok
+}
+
+func TestBootstrapWaitsForLock(t *testing.T) {
+	pool, url, unlock := emptySchemaLocked(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- bootstrap(ctx, url) }()
+
+	time.Sleep(300 * time.Millisecond) // give bootstrap time to reach the lock
+	select {
+	case err := <-done:
+		t.Fatalf("bootstrap returned while the lock was held: %v", err)
+	default:
+	}
+	assert.False(t, gooseTableExists(t, pool), "migrations ran while the lock was held")
+
+	unlock()
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(10 * time.Second):
+		t.Fatal("bootstrap did not finish after the lock was released")
+	}
+	var n int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM goose_db_version WHERE version_id = 1").Scan(&n))
+	assert.Equal(t, 1, n)
+}
+
+func TestBootstrapLockWaitCanceled(t *testing.T) {
+	pool, url, _ := emptySchemaLocked(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	err := bootstrap(ctx, url)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.Less(t, time.Since(start), 5*time.Second)
+	assert.False(t, gooseTableExists(t, pool), "migrations ran while the lock was held")
+}
+
 func TestServeHealthVersionShutdown(t *testing.T) {
 	pool, _ := dbtest.New(t)
 	cfg := config.Config{HTTPAddr: freeAddr(t), WebEmbedded: true}
@@ -239,4 +304,26 @@ func TestServeWebNotEmbedded(t *testing.T) {
 	_, err := werbotv1connect.NewSystemServiceClient(http.DefaultClient, "http://"+cfg.HTTPAddr).
 		GetVersion(context.Background(), connect.NewRequest(&werbotv1.GetVersionRequest{}))
 	require.NoError(t, err)
+}
+
+func TestServeAddrInUse(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	busy, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer func() { _ = busy.Close() }()
+	addr := busy.Addr().String()
+
+	var logs bytes.Buffer
+	cfg := config.Config{HTTPAddr: freeAddr(t), MetricsAddr: addr, WebEmbedded: true}
+	done := make(chan error, 1)
+	go func() {
+		done <- serve(context.Background(), cfg, slog.New(slog.NewTextHandler(&logs, nil)), pool, nil, fstest.MapFS{})
+	}()
+	select {
+	case err := <-done:
+		assert.ErrorContains(t, err, addr)
+	case <-time.After(5 * time.Second):
+		t.Fatal("serve did not return on a busy address")
+	}
+	assert.NotContains(t, logs.String(), "server started")
 }

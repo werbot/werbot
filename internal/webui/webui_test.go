@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -14,6 +15,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
@@ -91,7 +93,7 @@ func TestConfigVarsMatchLoadConfig(t *testing.T) {
 }
 
 // newWeb serves webui.Handler for cfg (APIURL defaults to upstream) and returns its URL.
-func newWeb(t *testing.T, cfg webui.Config, ui fstest.MapFS, reg *metrics.Registry, logger *slog.Logger) *httptest.Server {
+func newWeb(t *testing.T, cfg webui.Config, ui fstest.MapFS, reg *metrics.Registry) *httptest.Server {
 	t.Helper()
 	if ui == nil {
 		ui = fstest.MapFS{}
@@ -99,10 +101,7 @@ func newWeb(t *testing.T, cfg webui.Config, ui fstest.MapFS, reg *metrics.Regist
 	if reg == nil {
 		reg = metrics.NewRegistry()
 	}
-	if logger == nil {
-		logger = slog.New(slog.DiscardHandler)
-	}
-	h, err := webui.Handler(cfg, ui, new(atomic.Bool), reg, logger)
+	h, err := webui.Handler(cfg, ui, new(atomic.Bool), reg, slog.New(slog.DiscardHandler))
 	require.NoError(t, err)
 	web := httptest.NewServer(h)
 	t.Cleanup(web.Close)
@@ -145,7 +144,7 @@ func TestProxyForwardsClientIP(t *testing.T) {
 		{local, "198.51.100.7", []string{"198.51.100.7"}},
 		{local, "203.0.113.1, 198.51.100.7", []string{"198.51.100.7"}},
 	} {
-		web := newWeb(t, webui.Config{APIURL: upstream.URL, TrustedProxies: c.trusted}, nil, nil, nil)
+		web := newWeb(t, webui.Config{APIURL: upstream.URL, TrustedProxies: c.trusted}, nil, nil)
 		code, _, _ := do(t, http.MethodPost, web.URL+"/werbot.v1.SystemService/GetVersion", map[string]string{"X-Forwarded-For": c.xff}, "{}")
 		assert.Equal(t, http.StatusOK, code)
 		mu.Lock()
@@ -170,7 +169,7 @@ func TestProxyPrefixes(t *testing.T) {
 	}))
 	defer upstream.Close()
 	ui := fstest.MapFS{"index.html": {Data: []byte("<html>app</html>")}}
-	web := newWeb(t, webui.Config{APIURL: upstream.URL}, ui, nil, nil)
+	web := newWeb(t, webui.Config{APIURL: upstream.URL}, ui, nil)
 	lastURI := func() string { mu.Lock(); defer mu.Unlock(); return uri }
 
 	_, hdr, body := do(t, http.MethodPost, web.URL+"/werbot.v1.SystemService/GetVersion", map[string]string{"Content-Type": "application/json"}, "{}")
@@ -205,7 +204,7 @@ func metricsText(t *testing.T, reg *metrics.Registry) string {
 
 func TestUpstreamDown(t *testing.T) {
 	reg := metrics.NewRegistry()
-	web := newWeb(t, webui.Config{APIURL: "http://127.0.0.1:1"}, nil, reg, nil)
+	web := newWeb(t, webui.Config{APIURL: "http://127.0.0.1:1"}, nil, reg)
 
 	code, hdr, body := do(t, http.MethodPost, web.URL+"/werbot.v1.SystemService/GetVersion", map[string]string{"Content-Type": "application/json"}, "{}")
 	assert.Equal(t, http.StatusServiceUnavailable, code)
@@ -278,4 +277,35 @@ func TestRunRedactsAPIURL(t *testing.T) {
 	require.NoError(t, webui.Run(ctx, cfg, fstest.MapFS{}, slog.New(slog.NewTextHandler(&logs, nil))))
 	assert.Contains(t, logs.String(), "web started")
 	assert.NotContains(t, logs.String(), "s3cret")
+}
+
+func TestConnectRejected(t *testing.T) {
+	reg := metrics.NewRegistry()
+	web := newWeb(t, webui.Config{APIURL: "http://127.0.0.1:1"}, nil, reg)
+
+	code, hdr, _ := do(t, http.MethodConnect, web.URL+"/werbot.v1.SystemService/GetVersion", nil, "")
+	assert.Equal(t, http.StatusMethodNotAllowed, code)
+	assert.NotEmpty(t, hdr.Get("Allow"))
+	assert.Contains(t, metricsText(t, reg), "\nwerbot_web_upstream_errors_total 0\n")
+}
+
+func TestRunAddrInUse(t *testing.T) {
+	busy, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer func() { _ = busy.Close() }()
+	addr := busy.Addr().String()
+
+	var logs syncBuffer
+	done := make(chan error, 1)
+	go func() {
+		cfg := webui.Config{Addr: "127.0.0.1:0", MetricsAddr: addr, APIURL: apiURL}
+		done <- webui.Run(context.Background(), cfg, fstest.MapFS{}, slog.New(slog.NewTextHandler(&logs, nil)))
+	}()
+	select {
+	case err := <-done:
+		assert.ErrorContains(t, err, addr)
+	case <-time.After(5 * time.Second):
+		t.Fatal("webui.Run did not return on a busy address")
+	}
+	assert.NotContains(t, logs.String(), "web started")
 }

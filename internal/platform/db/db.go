@@ -66,9 +66,11 @@ func Migrate(ctx context.Context, sqlDB *sql.DB, fsys fs.FS) error {
 
 // WithLock runs fn while holding the session advisory lock key on one pooled
 // connection and returns fn's error. Waiting for the connection and the lock
-// is bounded only by ctx. The lock is always released: unlock runs with
-// context.WithoutCancel(ctx), and if locking or unlocking fails the connection
-// is closed before Release, so the lock dies with the session.
+// is bounded only by ctx when the pool has no statement_timeout (use
+// OpenBootstrap); on an Open pool the server aborts the lock wait after
+// statement_timeout with SQLSTATE 57014. The lock is always released: unlock
+// runs with context.WithoutCancel(ctx), and if locking or unlocking fails the
+// connection is closed before Release, so the lock dies with the session.
 func WithLock(ctx context.Context, pool *pgxpool.Pool, key int64, fn func(context.Context) error) error {
 	conn, err := pool.Acquire(ctx)
 	if err != nil {

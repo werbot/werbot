@@ -105,6 +105,8 @@ func Handler(cfg Config, ui fs.FS, draining *atomic.Bool, reg *metrics.Registry,
 	tr := http.DefaultTransport.(*http.Transport).Clone()
 	tr.DialContext = (&net.Dialer{Timeout: 5 * time.Second}).DialContext
 	tr.ResponseHeaderTimeout = 30 * time.Second
+	tr.Proxy = nil // web->server traffic (session cookies) never goes via HTTP_PROXY
+	tr.MaxIdleConnsPerHost = 64
 	proxy := &httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {
 			r.SetURL(api)
@@ -136,6 +138,11 @@ func Handler(cfg Config, ui fs.FS, draining *atomic.Bool, reg *metrics.Registry,
 	mux.Handle("/healthz", httpserver.Health())
 	mux.Handle("/readyz", httpserver.Ready(func(context.Context) error { return nil }, draining))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodConnect {
+			w.Header().Set("Allow", "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS")
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, connectPrefix) || strings.HasPrefix(r.URL.Path, "/api/") {
 			proxy.ServeHTTP(w, r)
 			return
@@ -160,9 +167,13 @@ func Run(ctx context.Context, cfg Config, ui fs.FS, logger *slog.Logger) error {
 		mmux.Handle("/metrics", reg.Handler())
 		servers = append(servers, httpserver.New(cfg.MetricsAddr, mmux))
 	}
+	lns, err := httpserver.Listen(servers)
+	if err != nil {
+		return err
+	}
 	errc := make(chan error, len(servers))
-	for _, s := range servers {
-		go func() { errc <- s.ListenAndServe() }()
+	for i, s := range servers {
+		go func() { errc <- s.Serve(lns[i]) }()
 	}
 	api, _ := url.Parse(cfg.APIURL) // already validated by Handler
 	logger.Info("web started", "addr", cfg.Addr, "api_url", api.Redacted(), "metrics_addr", cfg.MetricsAddr)

@@ -3,6 +3,7 @@ package httpserver
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -20,6 +21,23 @@ func New(addr string, h http.Handler) *http.Server {
 		IdleTimeout:       120 * time.Second,
 		Protocols:         p,
 	}
+}
+
+// Listen binds every server's Addr. On error it closes the listeners already
+// bound and returns the error, which names the address.
+func Listen(servers []*http.Server) ([]net.Listener, error) {
+	lns := make([]net.Listener, 0, len(servers))
+	for _, s := range servers {
+		ln, err := net.Listen("tcp", s.Addr)
+		if err != nil {
+			for _, l := range lns {
+				_ = l.Close()
+			}
+			return nil, err
+		}
+		lns = append(lns, ln)
+	}
+	return lns, nil
 }
 
 // Health is the liveness probe: always 200. It never pings the DB and ignores drain.

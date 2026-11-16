@@ -116,13 +116,16 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 		mmux.Handle("/metrics", reg.Handler())
 		servers = append(servers, httpserver.New(cfg.MetricsAddr, mmux))
 	}
+	lns, err := httpserver.Listen(servers)
+	if err != nil {
+		return err
+	}
 	errc := make(chan error, len(servers))
-	for _, s := range servers {
-		go func() { errc <- s.ListenAndServe() }()
+	for i, s := range servers {
+		go func() { errc <- s.Serve(lns[i]) }()
 	}
 	logger.Info("server started", "addr", cfg.HTTPAddr, "metrics_addr", cfg.MetricsAddr)
 
-	var err error
 	select {
 	case err = <-errc:
 	case <-ctx.Done():
