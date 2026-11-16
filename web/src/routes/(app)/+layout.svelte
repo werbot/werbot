@@ -40,7 +40,10 @@
 			<SidebarItem icon="logout" onclick={logout}>{m.auth_logout()}</SidebarItem>
 		{/snippet}
 	</Sidebar>
-	<main>{@render children()}</main>
+	<main>
+		{@render children()}
+		<footer><a href="https://db-ip.com">{m.geoip_attribution()}</a></footer>
+	</main>
 </div>
 <Toaster />
 
@@ -55,5 +58,10 @@
 		min-width: 0;
 		padding: 24px;
 		overflow: auto;
+	}
+
+	footer {
+		margin-top: 32px;
+		font-size: 12px;
 	}
 </style>

@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { Banner, Breadcrumbs, EmptyState, Tabs } from '#lib/ui/index.js';
+	import { Banner, Breadcrumbs, Tabs } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
+	import AccessTab from '#lib/resources/AccessTab.svelte';
+	import CredentialsTab from '#lib/resources/CredentialsTab.svelte';
+	import HostKeyTab from '#lib/resources/HostKeyTab.svelte';
+	import RulesTab from '#lib/resources/RulesTab.svelte';
 	import SettingsTab from '#lib/resources/SettingsTab.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -40,7 +44,13 @@
 	<Tabs options={tabs} bind:value={tab} />
 	{#if tab === 'settings'}
 		<SettingsTab bind:resource {types} />
+	{:else if tab === 'credentials'}
+		<CredentialsTab bind:resource type={types.find((t) => t.name === resource?.type)} />
+	{:else if tab === 'rules'}
+		<RulesTab resourceId={resource.id} />
+	{:else if tab === 'access'}
+		<AccessTab {resource} />
 	{:else}
-		<EmptyState title={m.resources_tab_pending()} />
+		<HostKeyTab bind:resource />
 	{/if}
 {/if}
