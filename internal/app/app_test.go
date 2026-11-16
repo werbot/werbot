@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"sync"
 	"testing"
@@ -33,6 +34,14 @@ const (
 	testPublicURL = "http://localhost:8080"
 	testSecretKey = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=" //nolint:gosec // test key, not a credential
 )
+
+// TestMain points the feed jobs at a closed port: serve runs them on start
+// and they must neither reach the network nor hold River's Stop.
+func TestMain(m *testing.M) {
+	feedsConfig.BlocklistURL = "http://127.0.0.1:1/"
+	feedsConfig.GeoIPURL = "http://127.0.0.1:1/%s"
+	os.Exit(m.Run())
+}
 
 // withSecretKey fills the key serve requires when a test built cfg by hand.
 func withSecretKey(cfg *config.Config) {

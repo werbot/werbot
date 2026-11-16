@@ -14,6 +14,7 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 
@@ -29,6 +30,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/version"
+	"github.com/werbot/werbot/internal/policy"
 	"github.com/werbot/werbot/internal/system"
 	"github.com/werbot/werbot/internal/webui"
 	"github.com/werbot/werbot/sdk"
@@ -100,13 +102,20 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	if err != nil {
 		return err
 	}
+	// identity needs the River client, which needs the policy jobs: teams
+	// reads ids, which is set below, before any request is served.
+	var ids *identity.Service
+	d := newDomains(ctx, pool, box, teamsFunc(func(ctx context.Context, orgID, userID uuid.UUID) ([]uuid.UUID, error) {
+		return ids.UserTeams(ctx, orgID, userID)
+	}), logger)
 	workers := river.NewWorkers()
 	river.AddWorker(workers, notify.NewWorker(mailer, box))
-	rc, err := jobs.NewClient(pool, workers, nil, logger)
+	periodic := policy.RegisterJobs(workers, d.pol, feedsConfig)
+	rc, err := jobs.NewClient(pool, workers, periodic, logger)
 	if err != nil {
 		return err
 	}
-	ids := identity.New(pool, notify.NewQueue(rc, box), identity.Config{
+	ids = identity.New(pool, notify.NewQueue(rc, box), identity.Config{
 		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger,
 	})
 	idh := identity.NewHandler(ids)
@@ -125,6 +134,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	mux.Handle(werbotv1connect.NewSSHKeyServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewMemberServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewTeamServiceHandler(idh, opts))
+	d.mount(mux, opts)
 	h := host{pool: pool, mux: mux}
 	for _, m := range modules {
 		if m.Feature != "" && !h.Entitled(m.Feature) {

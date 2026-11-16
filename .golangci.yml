@@ -82,6 +82,62 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: connector may import only platform and gen }
             - { pkg: github.com/werbot/werbot/internal/system, desc: connector may import only platform and gen }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: connector may import only platform and gen }
+        inventory:
+          files: ["**/internal/inventory/*.go", "**/internal/inventory/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
+        credential:
+          files: ["**/internal/credential/*.go", "**/internal/credential/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
+        access:
+          files: ["**/internal/access/*.go", "**/internal/access/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
+        policy:
+          files: ["**/internal/policy/*.go", "**/internal/policy/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
         webui:
           files: ["**/internal/webui/*.go", "**/internal/webui/**/*.go"]
           deny:

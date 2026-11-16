@@ -19,7 +19,7 @@ make dev-db                      # Postgres 18 on localhost:5433 (postgres/passw
 (cd web && bun install)          # web/node_modules is required by `make proto`
 make proto                       # buf lint + generate (Go and TypeScript)
 make build                       # builds the UI and bin/werbot
-export WERBOT_SECRET_KEY="$(openssl rand -base64 32)"  # generate once and keep: it decrypts queued email jobs
+export WERBOT_SECRET_KEY="$(openssl rand -base64 32)"  # generate once and keep: it decrypts resource credentials and queued email jobs
 WERBOT_ENV=development \
 WERBOT_DATABASE_URL='postgres://postgres:password@localhost:5433/postgres?sslmode=disable' \
 WERBOT_PUBLIC_URL=http://localhost:8080 ./bin/werbot server
@@ -33,6 +33,19 @@ Commands: `./bin/werbot <server|web|migrate|version>`.
 - `migrate` runs migrations (schema and River job queue) and exits.
 - `web` serves the UI and proxies the API to a separate `server`.
 - `version` prints the build version.
+
+The API covers identity (auth, profile, SSH keys, members, teams) and, for owners and admins:
+
+- `ResourceService`: resources of registered types (`ssh` today) with labels, write-only credentials (sealed with `WERBOT_SECRET_KEY`) and pinned SSH host keys.
+- `AccessService`: bindings that grant a user or team one resource or every resource matching a label selector.
+- `PolicyService`: per-resource network, country and schedule (UTC) rules, and `CheckAccess` to test a decision. Decisions use Cedar and fail closed.
+
+Background jobs on the River `feeds` queue (one worker) need outbound HTTPS from the server:
+
+- `blocklist.refresh` (on start, then daily) downloads the FireHOL level 1 list from `raw.githubusercontent.com`; listed IPs are always denied.
+- `geoip.refresh` (on start, then daily at 04:00 UTC) downloads the monthly DB-IP Country Lite database from `download.db-ip.com`. The database is stored in Postgres (no files on disk), and every server loads it on start. Without it, country rules deny. IP geolocation by [DB-IP](https://db-ip.com).
+
+A failed download keeps the previous data.
 
 ## Configuration
 
