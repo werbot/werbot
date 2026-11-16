@@ -23,6 +23,7 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	await dialog.getByLabel(en.gateways_token_max_uses).fill('2');
 	await dialog.getByRole('button', { name: en.gateways_token_create }).click();
 	const command = (await dialog.locator('code').textContent()) ?? '';
+	expect(command).toMatch(/^WERBOT_GATEWAY_JOIN_TOKEN=wjt_\S+ werbot gateway --server \S+$/); // token not in argv
 	const token = command.match(/wjt_\S+/)?.[0];
 	expect(token).toBeTruthy();
 	await dialog.getByRole('button', { name: 'Close', exact: true }).click();

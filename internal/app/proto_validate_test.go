@@ -1,6 +1,7 @@
 package app
 
 import (
+	"strings"
 	"testing"
 
 	"buf.build/go/protovalidate"
@@ -16,4 +17,12 @@ func TestRequestValidation(t *testing.T) {
 	assert.Error(t, protovalidate.Validate(&werbotv1.InviteMemberRequest{Email: "a@example.com"})) // ROLE_UNSPECIFIED
 	assert.NoError(t, protovalidate.Validate(&werbotv1.AcceptInviteRequest{Token: "t"}))
 	assert.Error(t, protovalidate.Validate(&werbotv1.AcceptInviteRequest{Token: "t", Login: "UPPER"}))
+
+	// public, unauthenticated Enroll: bounded token and CSR
+	enroll := func(token, csr int) *werbotv1.EnrollRequest {
+		return &werbotv1.EnrollRequest{JoinToken: strings.Repeat("a", token), CsrDer: make([]byte, csr), Hostname: "gw"}
+	}
+	assert.NoError(t, protovalidate.Validate(enroll(256, 4096)))
+	assert.Error(t, protovalidate.Validate(enroll(257, 1)))
+	assert.Error(t, protovalidate.Validate(enroll(1, 4097)))
 }

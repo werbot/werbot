@@ -1160,11 +1160,13 @@ const file_werbot_v1_gateway_proto_rawDesc = "" +
 	"\x17RevokeJoinTokenResponse\"8\n" +
 	"\x1cDeleteGatewayInstanceRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\x1f\n" +
-	"\x1dDeleteGatewayInstanceResponse\"\xd6\x01\n" +
-	"\rEnrollRequest\x12&\n" +
+	"\x1dDeleteGatewayInstanceResponse\"\xdc\x01\n" +
+	"\rEnrollRequest\x12)\n" +
 	"\n" +
-	"join_token\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tjoinToken\x12 \n" +
-	"\acsr_der\x18\x02 \x01(\fB\a\xbaH\x04z\x02\x10\x01R\x06csrDer\x12&\n" +
+	"join_token\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\tjoinToken\x12#\n" +
+	"\acsr_der\x18\x02 \x01(\fB\n" +
+	"\xbaH\az\x05\x10\x01\x18\x80 R\x06csrDer\x12&\n" +
 	"\bhostname\x18\x03 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\xff\x01R\bhostname\x12!\n" +
 	"\aversion\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x18@R\aversion\x120\n" +

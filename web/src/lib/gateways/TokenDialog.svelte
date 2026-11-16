@@ -20,7 +20,8 @@
 	let copied = $state(false);
 	let created = $state<{ token: string; expires: string; maxUses: number }>();
 
-	let command = $derived(created ? `werbot gateway --server ${location.origin} --join-token ${created.token}` : '');
+	// env form: a token in argv shows up in ps output and shell history
+	let command = $derived(created ? `WERBOT_GATEWAY_JOIN_TOKEN=${created.token} werbot gateway --server ${location.origin}` : '');
 
 	async function create(e: SubmitEvent) {
 		e.preventDefault();

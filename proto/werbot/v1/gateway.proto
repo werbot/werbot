@@ -101,8 +101,8 @@ message DeleteGatewayInstanceRequest {
 message DeleteGatewayInstanceResponse {}
 
 message EnrollRequest {
-  string join_token = 1 [(buf.validate.field).string.min_len = 1];
-  bytes csr_der = 2 [(buf.validate.field).bytes.min_len = 1];
+  string join_token = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  bytes csr_der = 2 [(buf.validate.field).bytes = {min_len: 1, max_len: 4096}];
   string hostname = 3 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
   string version = 4 [(buf.validate.field).string.max_len = 64];
   repeated string connectors = 5 [(buf.validate.field).repeated = {
