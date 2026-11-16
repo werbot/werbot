@@ -27,5 +27,5 @@
 	<TextField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
 	<TextField type="password" label={m.field_password()} bind:value={password} required autocomplete="current-password" />
 	<Button type="submit" variant="solid">{m.auth_login_submit()}</Button>
-	<Button variant="plain" onclick={() => goto('/forgot-password')}>{m.auth_forgot_link()}</Button>
+	<Button type="button" variant="plain" onclick={() => goto('/forgot-password')}>{m.auth_forgot_link()}</Button>
 </form>
