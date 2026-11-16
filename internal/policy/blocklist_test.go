@@ -3,6 +3,7 @@ package policy
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/netip"
 	"testing"
@@ -64,4 +65,25 @@ func TestBlocklistRefreshKeepsPreviousOnFailure(t *testing.T) {
 		assert.Error(t, runBlocklist(e.serve(t, h)), name)
 		assert.Equal(t, []netip.Prefix{netip.MustParsePrefix("1.2.3.0/24")}, prefixes(t, e), name)
 	}
+}
+
+func TestBlocklistRefreshRejectsOversizedFeed(t *testing.T) {
+	e := newJobsEnv(t).serve(t, feed(200, "1.2.3.0/24\n"))
+	require.NoError(t, runBlocklist(e))
+	big := e.serve(t, func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("9.9.9.0/24\n"))
+		_, _ = io.Copy(w, io.LimitReader(zeros{}, maxBlocklistBytes))
+	})
+	assert.ErrorContains(t, runBlocklist(big), "exceeds")
+	assert.Equal(t, []netip.Prefix{netip.MustParsePrefix("1.2.3.0/24")}, prefixes(t, e), "a partial list never replaces the full one")
+}
+
+// zeros is an endless stream of newlines.
+type zeros struct{}
+
+func (zeros) Read(p []byte) (int, error) {
+	for i := range p {
+		p[i] = '\n'
+	}
+	return len(p), nil
 }

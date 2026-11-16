@@ -73,6 +73,7 @@ func testMMDB(t testing.TB, prefix netip.Prefix, country string) []byte {
 		mmdbString("binary_format_major_version"), mmdbUint(mmdbTypeUint16, 2),
 		mmdbString("binary_format_minor_version"), mmdbUint(mmdbTypeUint16, 0),
 		mmdbString("database_type"), mmdbString("DBIP-Country-Lite"),
+		mmdbString("description"), mmdbMap(mmdbString("en"), mmdbString("test")),
 		mmdbString("ip_version"), mmdbUint(mmdbTypeUint16, 4),
 		mmdbString("node_count"), mmdbUint(mmdbTypeUint32, nodes),
 		mmdbString("record_size"), mmdbUint(mmdbTypeUint16, 24),

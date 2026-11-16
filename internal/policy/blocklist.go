@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/netip"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
@@ -16,7 +17,11 @@ import (
 	"github.com/werbot/werbot/internal/policy/dbq"
 )
 
-const blocklistSource = "firehol_level1"
+const (
+	blocklistSource = "firehol_level1"
+	// maxBlocklistBytes caps the feed (level1 is about 0.3 MiB); a larger one is an error, never truncated.
+	maxBlocklistBytes = 32 << 20
+)
 
 // internalRanges are never blocked: firehol_level1 lists fullbogons, and
 // clients of private networks must not get "Access denied".
@@ -44,6 +49,11 @@ func NewBlocklistRefreshWorker(s *Service, cfg JobsConfig) *BlocklistRefreshWork
 	return &BlocklistRefreshWorker{svc: s, cfg: cfg}
 }
 
+// Timeout overrides River's 1 minute default, which would cut the download.
+func (w *BlocklistRefreshWorker) Timeout(*river.Job[BlocklistRefreshArgs]) time.Duration {
+	return jobTimeout(w.cfg)
+}
+
 // Work replaces the blocklist; any failure keeps the previous one.
 func (w *BlocklistRefreshWorker) Work(ctx context.Context, _ *river.Job[BlocklistRefreshArgs]) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, w.cfg.BlocklistURL, nil)
@@ -58,9 +68,13 @@ func (w *BlocklistRefreshWorker) Work(ctx context.Context, _ *river.Job[Blocklis
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("blocklist: status %d", resp.StatusCode)
 	}
-	prefixes, bad, err := parseNetset(resp.Body)
+	lr := &io.LimitedReader{R: resp.Body, N: maxBlocklistBytes + 1}
+	prefixes, bad, err := parseNetset(lr)
 	if err != nil {
 		return fmt.Errorf("blocklist: %w", err)
+	}
+	if lr.N <= 0 {
+		return fmt.Errorf("blocklist: feed exceeds %d bytes", maxBlocklistBytes)
 	}
 	if bad > 0 {
 		w.svc.deps.Logger.WarnContext(ctx, "blocklist: unparsable lines", "count", bad)

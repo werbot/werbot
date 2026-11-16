@@ -29,6 +29,11 @@ func NewGeoIPRefreshWorker(s *Service, cfg JobsConfig) *GeoIPRefreshWorker {
 	return &GeoIPRefreshWorker{svc: s, cfg: cfg}
 }
 
+// Timeout overrides River's 1 minute default, which would cut the download.
+func (w *GeoIPRefreshWorker) Timeout(*river.Job[GeoIPRefreshArgs]) time.Duration {
+	return jobTimeout(w.cfg)
+}
+
 // Work stores this month's database, or last month's when DB-IP has not
 // published it yet. Any failure before the commit keeps the stored one.
 func (w *GeoIPRefreshWorker) Work(ctx context.Context, _ *river.Job[GeoIPRefreshArgs]) error {
@@ -44,7 +49,7 @@ func (w *GeoIPRefreshWorker) Work(ctx context.Context, _ *river.Job[GeoIPRefresh
 		return err
 	}
 	if err == nil && stored.Time.Equal(cur) {
-		return nil
+		return w.svc.ReloadGeoIP(ctx) // retries a reload that failed after an earlier commit
 	}
 
 	month := cur

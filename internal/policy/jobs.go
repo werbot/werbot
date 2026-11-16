@@ -20,7 +20,7 @@ func (BlocklistRefreshArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueFeeds}
 }
 
-// GeoIPRefreshArgs is the monthly DB-IP download.
+// GeoIPRefreshArgs is the daily DB-IP check; it downloads once a month.
 type GeoIPRefreshArgs struct{}
 
 // Kind implements river.JobArgs.
@@ -51,17 +51,24 @@ func DefaultJobsConfig() JobsConfig {
 	}
 }
 
-// monthly fires on the 1st of every month at 04:00 UTC.
-type monthly struct{}
+// dailyAt4 fires every day at 04:00 UTC.
+type dailyAt4 struct{}
 
 // Next implements river.PeriodicSchedule.
-func (monthly) Next(t time.Time) time.Time {
+func (dailyAt4) Next(t time.Time) time.Time {
 	t = t.UTC()
-	return time.Date(t.Year(), t.Month()+1, 1, 4, 0, 0, 0, time.UTC)
+	next := time.Date(t.Year(), t.Month(), t.Day(), 4, 0, 0, 0, time.UTC)
+	if !next.After(t) {
+		next = next.AddDate(0, 0, 1)
+	}
+	return next
 }
 
+// jobTimeout covers two downloads (GeoIP may fall back a month) plus the database work.
+func jobTimeout(cfg JobsConfig) time.Duration { return 2*cfg.HTTP.Timeout + time.Minute }
+
 // RegisterJobs adds the feed workers and returns their periodic jobs for
-// jobs.NewClient. Both run once at start.
+// jobs.NewClient. Both run once at start; geoip.refresh then daily, a no-op once the month is stored.
 func RegisterJobs(workers *river.Workers, s *Service, cfg JobsConfig) []*river.PeriodicJob {
 	river.AddWorker(workers, NewBlocklistRefreshWorker(s, cfg))
 	river.AddWorker(workers, NewGeoIPRefreshWorker(s, cfg))
@@ -69,7 +76,7 @@ func RegisterJobs(workers *river.Workers, s *Service, cfg JobsConfig) []*river.P
 		river.NewPeriodicJob(river.PeriodicInterval(24*time.Hour),
 			func() (river.JobArgs, *river.InsertOpts) { return BlocklistRefreshArgs{}, nil },
 			&river.PeriodicJobOpts{ID: "blocklist.refresh", RunOnStart: true}),
-		river.NewPeriodicJob(monthly{},
+		river.NewPeriodicJob(dailyAt4{},
 			func() (river.JobArgs, *river.InsertOpts) { return GeoIPRefreshArgs{}, nil },
 			&river.PeriodicJobOpts{ID: "geoip.refresh", RunOnStart: true}),
 	}

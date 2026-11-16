@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"net/netip"
 	"testing"
 	"time"
 
@@ -58,9 +57,16 @@ func listen(t *testing.T, pool *pgxpool.Pool) *pgx.Conn {
 	return conn
 }
 
-func TestMonthlySchedule(t *testing.T) {
-	assert.Equal(t, time.Date(2026, 12, 1, 4, 0, 0, 0, time.UTC), monthly{}.Next(jobsNow))
-	assert.Equal(t, time.Date(2027, 1, 1, 4, 0, 0, 0, time.UTC), monthly{}.Next(time.Date(2026, 12, 15, 0, 0, 0, 0, time.UTC)))
+func TestDailySchedule(t *testing.T) {
+	assert.Equal(t, time.Date(2026, 11, 7, 4, 0, 0, 0, time.UTC), dailyAt4{}.Next(jobsNow))
+	assert.Equal(t, time.Date(2026, 11, 6, 4, 0, 0, 0, time.UTC), dailyAt4{}.Next(time.Date(2026, 11, 6, 1, 0, 0, 0, time.UTC)))
+	assert.Equal(t, time.Date(2027, 1, 1, 4, 0, 0, 0, time.UTC), dailyAt4{}.Next(time.Date(2026, 12, 31, 4, 0, 0, 0, time.UTC)))
+}
+
+func TestWorkerTimeoutExceedsHTTPTimeout(t *testing.T) {
+	cfg := DefaultJobsConfig()
+	assert.Greater(t, NewBlocklistRefreshWorker(nil, cfg).Timeout(nil), cfg.HTTP.Timeout)
+	assert.Greater(t, NewGeoIPRefreshWorker(nil, cfg).Timeout(nil), cfg.HTTP.Timeout)
 }
 
 func TestRegisterJobs(t *testing.T) {
@@ -68,9 +74,4 @@ func TestRegisterJobs(t *testing.T) {
 	assert.Len(t, periodic, 2)
 	assert.Equal(t, jobs.QueueFeeds, BlocklistRefreshArgs{}.InsertOpts().Queue)
 	assert.Equal(t, jobs.QueueFeeds, GeoIPRefreshArgs{}.InsertOpts().Queue)
-}
-
-func TestAuthorizeNilSetDenies(t *testing.T) {
-	var ps *PolicySet
-	assert.Equal(t, []string{"error:compile"}, ps.Authorize(Request{IP: netip.MustParseAddr("1.2.3.4")}).Reasons)
 }

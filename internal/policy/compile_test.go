@@ -246,3 +246,10 @@ func TestActionMustBelongToResourceType(t *testing.T) {
 	r.ResourceID = otherID
 	assert.Equal(t, invalid, authorize(t, snap(), r), "resource not in snapshot")
 }
+
+func TestAuthorizeNilSetDenies(t *testing.T) {
+	var ps *PolicySet
+	d := ps.Authorize(Request{IP: netip.MustParseAddr("1.2.3.4")})
+	assert.False(t, d.Allow)
+	assert.Equal(t, []string{"error:compile"}, d.Reasons)
+}

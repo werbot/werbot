@@ -21,6 +21,9 @@ func OpenGeoIP(data []byte) (GeoIP, error) {
 	if err != nil {
 		return nil, fmt.Errorf("policy: open geoip: %w", err)
 	}
+	if err := r.Verify(); err != nil {
+		return nil, fmt.Errorf("policy: open geoip: %w", err)
+	}
 	return mmdb{r}, nil
 }
 

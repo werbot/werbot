@@ -123,7 +123,9 @@ func TestGeoIPRefreshWritesRowAndNotifies(t *testing.T) {
 	month, data := stored(t, e)
 	assert.Equal(t, "2026-11-01", month)
 	assert.Equal(t, de, data)
-	n, err := conn.WaitForNotification(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	n, err := conn.WaitForNotification(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, "werbot_geoip_changed", n.Channel)
 	assert.Empty(t, n.Payload)
@@ -188,8 +190,32 @@ func TestGeoIPRefreshRejectsBadArchive(t *testing.T) {
 func TestGeoIPRefreshSkipsCurrentMonth(t *testing.T) {
 	f := &geoFeed{}
 	e := newJobsEnv(t).serve(t, f.ServeHTTP)
-	_, err := e.pool.Exec(context.Background(), "INSERT INTO geoip_db (id, month, data) VALUES (1, '2026-11-01', '\\x00')")
+	de := testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "DE")
+	_, err := e.pool.Exec(context.Background(), "INSERT INTO geoip_db (id, month, data) VALUES (1, '2026-11-01', $1)", de)
 	require.NoError(t, err)
 	require.NoError(t, runGeoIP(e))
 	assert.Empty(t, f.asked())
+	assert.Equal(t, "DE", e.svc.country(geoTestIP), "the skip path retries a failed reload")
+}
+
+func TestGeoIPRefreshFailsWhenNothingPublished(t *testing.T) {
+	f := &geoFeed{}
+	e := newJobsEnv(t).serve(t, f.ServeHTTP)
+	assert.Error(t, runGeoIP(e))
+	assert.Equal(t, []string{pathNov, pathOct}, f.asked())
+	var n int
+	require.NoError(t, e.pool.QueryRow(context.Background(), "SELECT count(*) FROM geoip_db").Scan(&n))
+	assert.Zero(t, n)
+}
+
+func TestGeoIPRefreshRejectsCorruptTree(t *testing.T) {
+	f := &geoFeed{}
+	e := newJobsEnv(t).serve(t, f.ServeHTTP)
+	de := withStoredDE(t, e)
+	conn := listen(t, e.pool)
+	bad := testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "FR")
+	copy(bad, "\xFF\xFF\xFF") // first record points far outside the data section
+	f.set(pathNov, 200, gz(t, bad))
+	assert.Error(t, runGeoIP(e))
+	assertKept(t, e, conn, de, "corrupt tree")
 }
