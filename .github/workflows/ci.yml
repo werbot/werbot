@@ -39,7 +39,7 @@ jobs:
       - run: go mod tidy -diff
       - run: go mod tidy -modfile=tools/go.mod -diff
       - run: go test -count=1 ./...
-      - uses: golangci/golangci-lint-action@v8
+      - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.15.0
       - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
