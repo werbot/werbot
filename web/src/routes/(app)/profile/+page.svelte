@@ -8,6 +8,9 @@
 
 	let name = $state('');
 	let email = $state('');
+	let savedEmail = $state('');
+	let emailPassword = $state('');
+	const emailChanged = $derived(email.trim().toLowerCase() !== savedEmail);
 	let current = $state('');
 	let next = $state('');
 	let error = $state('');
@@ -24,9 +27,13 @@
 		}
 	}
 
-	function save(e: SubmitEvent) {
+	async function save(e: SubmitEvent) {
 		e.preventDefault();
-		return run(() => profile.updateProfile({ name, email }), m.common_saved());
+		const currentPassword = emailChanged ? emailPassword : '';
+		if (await run(() => profile.updateProfile({ name, email, currentPassword }), m.common_saved())) {
+			savedEmail = email.trim().toLowerCase();
+			emailPassword = '';
+		}
 	}
 
 	async function changePassword(e: SubmitEvent) {
@@ -40,7 +47,7 @@
 		try {
 			const { user } = await profile.getProfile({});
 			name = user?.name ?? '';
-			email = user?.email ?? '';
+			email = savedEmail = user?.email ?? '';
 		} catch (e) {
 			error = errorMessage(e);
 		}
@@ -65,6 +72,9 @@
 		<form onsubmit={save}>
 			<TextField label={m.field_name()} bind:value={name} required autocomplete="name" />
 			<TextField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
+			{#if emailChanged}
+				<TextField type="password" label={m.profile_password_current()} bind:value={emailPassword} required autocomplete="current-password" />
+			{/if}
 			<Button type="submit" variant="solid">{m.profile_save()}</Button>
 		</form>
 	</SettingsCard>

@@ -890,15 +890,16 @@ func (q *Queries) UpdateMemberRole(ctx context.Context, arg UpdateMemberRolePara
 }
 
 const updateProfile = `-- name: UpdateProfile :exec
-UPDATE users SET name = $1, email = $2, updated_at = now() WHERE id = $3
+UPDATE users SET name = $1, email = coalesce($2, email), updated_at = now() WHERE id = $3
 `
 
 type UpdateProfileParams struct {
 	Name  string
-	Email string
+	Email *string
 	ID    uuid.UUID
 }
 
+// A NULL email keeps the current one.
 func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) error {
 	_, err := q.db.Exec(ctx, updateProfile, arg.Name, arg.Email, arg.ID)
 	return err
@@ -977,4 +978,14 @@ func (q *Queries) UserTeams(ctx context.Context, arg UserTeamsParams) ([]uuid.UU
 		return nil, err
 	}
 	return items, nil
+}
+
+const voidPasswordResetTokens = `-- name: VoidPasswordResetTokens :exec
+UPDATE one_time_token SET used_at = now()
+WHERE user_id = $1::uuid AND kind = 'password_reset' AND used_at IS NULL
+`
+
+func (q *Queries) VoidPasswordResetTokens(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, voidPasswordResetTokens, userID)
+	return err
 }

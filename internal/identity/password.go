@@ -95,6 +95,19 @@ func verifyPassword(ctx context.Context, encoded, pw string) (bool, error) {
 	return subtle.ConstantTimeCompare(got, key) == 1, nil
 }
 
+// checkCurrentPassword verifies a password the user re-enters to confirm a
+// change: a mismatch is ErrInvalidArgument.
+func checkCurrentPassword(ctx context.Context, hash, pw string) error {
+	ok, err := verifyPassword(ctx, hash, pw)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("current password is wrong: %w", apperr.ErrInvalidArgument)
+	}
+	return nil
+}
+
 // loginPattern is the users.login CHECK (migrations/00003_users.sql).
 var loginPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{1,31}$`)
 

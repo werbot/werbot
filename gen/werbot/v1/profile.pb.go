@@ -103,11 +103,13 @@ func (x *GetProfileResponse) GetUser() *User {
 }
 
 type UpdateProfileRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Email string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	// Required, and checked, only when email changes.
+	CurrentPassword string `protobuf:"bytes,3,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdateProfileRequest) Reset() {
@@ -150,6 +152,13 @@ func (x *UpdateProfileRequest) GetName() string {
 func (x *UpdateProfileRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
+	}
+	return ""
+}
+
+func (x *UpdateProfileRequest) GetCurrentPassword() string {
+	if x != nil {
+		return x.CurrentPassword
 	}
 	return ""
 }
@@ -445,12 +454,13 @@ const file_werbot_v1_profile_proto_rawDesc = "" +
 	"\x17werbot/v1/profile.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x14werbot/v1/user.proto\"\x13\n" +
 	"\x11GetProfileRequest\"9\n" +
 	"\x12GetProfileResponse\x12#\n" +
-	"\x04user\x18\x01 \x01(\v2\x0f.werbot.v1.UserR\x04user\"X\n" +
+	"\x04user\x18\x01 \x01(\v2\x0f.werbot.v1.UserR\x04user\"\x90\x01\n" +
 	"\x14UpdateProfileRequest\x12\x1e\n" +
 	"\x04name\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12 \n" +
 	"\x05email\x18\x02 \x01(\tB\n" +
-	"\xbaH\ar\x05\x18\xfe\x01`\x01R\x05email\"<\n" +
+	"\xbaH\ar\x05\x18\xfe\x01`\x01R\x05email\x126\n" +
+	"\x10current_password\x18\x03 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\x18\x80\x02R\x0fcurrentPassword\"<\n" +
 	"\x15UpdateProfileResponse\x12#\n" +
 	"\x04user\x18\x01 \x01(\v2\x0f.werbot.v1.UserR\x04user\"}\n" +
 	"\x15ChangePasswordRequest\x125\n" +

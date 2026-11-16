@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -22,7 +23,7 @@ func TestUpdateProfile(t *testing.T) {
 	seedUser(t, pool, org, "bob", principal.RoleMember)
 	ctx, _ := loginCtx(t, svc, "alice")
 
-	u, err := svc.UpdateProfile(ctx, "Alice New", "  Alice.New@Example.com ")
+	u, err := svc.UpdateProfile(ctx, "Alice New", "  Alice.New@Example.com ", testPassword)
 	require.NoError(t, err)
 	assert.Equal(t, "Alice New", u.Name)
 	assert.Equal(t, "alice.new@example.com", u.Email)
@@ -30,9 +31,64 @@ func TestUpdateProfile(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, u, got)
 
-	_, err = svc.UpdateProfile(ctx, "Alice", "BOB@example.com")
+	_, err = svc.UpdateProfile(ctx, "Alice", "BOB@example.com", testPassword)
 	assert.ErrorIs(t, err, apperr.ErrAlreadyExists)
 	assert.Contains(t, auditActions(t, pool), "profile.update")
+}
+
+// profileAuditData returns the data of the only profile.update audit event.
+func profileAuditData(t *testing.T, pool *pgxpool.Pool) map[string]any {
+	t.Helper()
+	var data map[string]any
+	require.NoError(t, pool.QueryRow(context.Background(),
+		"SELECT data FROM audit_event WHERE action = 'profile.update'").Scan(&data))
+	return data
+}
+
+func TestUpdateProfileEmailRequiresPassword(t *testing.T) {
+	svc, pool, q := newTestService(t)
+	seedUser(t, pool, seedOrg(t, pool, "Acme"), "alice", principal.RoleOwner)
+	resetToken := requestReset(t, svc, q)
+	ctx, _ := loginCtx(t, svc, "alice")
+	_, other := loginCtx(t, svc, "alice")
+	audit := auditActions(t, pool)
+
+	for _, pw := range []string{"", "wrong password!"} {
+		_, err := svc.UpdateProfile(ctx, "Alice", "new@example.com", pw)
+		require.ErrorIs(t, err, apperr.ErrInvalidArgument, "password %q", pw)
+	}
+	got, err := svc.Profile(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, "alice@example.com", got.Email)
+	assert.Equal(t, audit, auditActions(t, pool), "a refused change writes no audit event")
+
+	u, err := svc.UpdateProfile(ctx, "Alice", "New@Example.com", testPassword)
+	require.NoError(t, err)
+	assert.Equal(t, "new@example.com", u.Email)
+	assert.Equal(t, map[string]any{"email_changed": true}, profileAuditData(t, pool))
+
+	bg := context.Background()
+	_, err = svc.AuthenticateSession(bg, other)
+	assert.ErrorIs(t, err, apperr.ErrUnauthenticated, "other sessions are revoked")
+	_, err = svc.CurrentSession(ctx)
+	require.NoError(t, err, "the current session survives")
+	assert.ErrorIs(t, svc.ResetPassword(bg, resetToken, "new correct horse"), apperr.ErrNotFound,
+		"a reset link sent to the old address is void")
+}
+
+func TestUpdateProfileNameOnlyNoPassword(t *testing.T) {
+	svc, pool, _ := newTestService(t)
+	seedUser(t, pool, seedOrg(t, pool, "Acme"), "alice", principal.RoleOwner)
+	ctx, _ := loginCtx(t, svc, "alice")
+	_, other := loginCtx(t, svc, "alice")
+
+	u, err := svc.UpdateProfile(ctx, "Alice New", "  ALICE@Example.com ", "")
+	require.NoError(t, err)
+	assert.Equal(t, "Alice New", u.Name)
+	assert.Equal(t, "alice@example.com", u.Email)
+	assert.Empty(t, profileAuditData(t, pool))
+	_, err = svc.AuthenticateSession(context.Background(), other)
+	assert.NoError(t, err, "a name change keeps other sessions")
 }
 
 func TestChangePassword(t *testing.T) {

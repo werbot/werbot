@@ -31,6 +31,7 @@ type Store interface {
 	UpdateProfile(ctx context.Context, arg dbq.UpdateProfileParams) error
 	GetPasswordHash(ctx context.Context, id uuid.UUID) (string, error)
 	DeleteOtherUserSessions(ctx context.Context, arg dbq.DeleteOtherUserSessionsParams) error
+	VoidPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
 	LockOrgOwners(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error)
 	LockUserOwnedOrgs(ctx context.Context, userID uuid.UUID) ([]dbq.LockUserOwnedOrgsRow, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error

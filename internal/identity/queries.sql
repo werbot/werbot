@@ -77,13 +77,18 @@ DELETE FROM user_session WHERE user_id = @user_id;
 SELECT id, email, login, name, created_at FROM users WHERE id = @id;
 
 -- name: UpdateProfile :exec
-UPDATE users SET name = @name, email = @email, updated_at = now() WHERE id = @id;
+-- A NULL email keeps the current one.
+UPDATE users SET name = @name, email = coalesce(sqlc.narg(email), email), updated_at = now() WHERE id = @id;
 
 -- name: GetPasswordHash :one
 SELECT password_hash FROM users WHERE id = @id;
 
 -- name: DeleteOtherUserSessions :exec
 DELETE FROM user_session WHERE user_id = @user_id AND id <> @keep_id;
+
+-- name: VoidPasswordResetTokens :exec
+UPDATE one_time_token SET used_at = now()
+WHERE user_id = @user_id::uuid AND kind = 'password_reset' AND used_at IS NULL;
 
 -- name: LockOrgOwners :many
 -- Fixed lock order (user_id) keeps concurrent owner changes deadlock-free.

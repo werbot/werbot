@@ -9,6 +9,8 @@ import (
 
 	"github.com/werbot/werbot/internal/identity/dbq"
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/auditlog"
+	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/dbx"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
@@ -35,28 +37,71 @@ func (s *Service) Profile(ctx context.Context) (User, error) {
 	return u, err
 }
 
-// UpdateProfile sets the caller's name and email. An email used by another
-// user is ErrAlreadyExists.
-func (s *Service) UpdateProfile(ctx context.Context, name, email string) (User, error) {
+// UpdateProfile sets the caller's name and email. A new email needs the
+// current password; it ends the caller's other sessions and voids the reset
+// links sent to the old address. An email used by another user is
+// ErrAlreadyExists.
+func (s *Service) UpdateProfile(ctx context.Context, name, email, currentPassword string) (User, error) {
 	p, err := principal.Require(ctx)
+	if err != nil {
+		return User{}, err
+	}
+	newEmail, err := s.checkEmailChange(ctx, p, normalizeEmail(email), currentPassword)
 	if err != nil {
 		return User{}, err
 	}
 	var u User
 	err = dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
 		st := newStore(tx)
-		if err := st.UpdateProfile(ctx, dbq.UpdateProfileParams{ID: p.UserID, Name: name, Email: normalizeEmail(email)}); err != nil {
+		if err := st.UpdateProfile(ctx, dbq.UpdateProfileParams{ID: p.UserID, Name: name, Email: newEmail}); err != nil {
 			return err
+		}
+		var data map[string]any
+		if newEmail != nil {
+			if err := st.DeleteOtherUserSessions(ctx, dbq.DeleteOtherUserSessionsParams{UserID: p.UserID, KeepID: p.SessionID}); err != nil {
+				return err
+			}
+			if err := st.VoidPasswordResetTokens(ctx, p.UserID); err != nil {
+				return err
+			}
+			data = map[string]any{"email_changed": true}
 		}
 		if u, err = readProfile(ctx, st, p); err != nil {
 			return err
 		}
-		return writeAudit(ctx, tx, "profile.update", p.OrgID, p.UserID)
+		return auditlog.Write(ctx, tx, auditlog.Event{
+			OrgID: &p.OrgID, ActorUserID: &p.UserID, ActorKind: "user", Action: "profile.update", IP: clientip.From(ctx), Data: data,
+		})
 	})
 	if isUniqueViolation(err) {
 		return User{}, fmt.Errorf("email already in use: %w", apperr.ErrAlreadyExists)
 	}
 	return u, err
+}
+
+// checkEmailChange returns &email when it differs from the caller's email and
+// password is the current one, or nil when the email stays. The password is
+// verified outside any transaction: argon2 holds no connection.
+func (s *Service) checkEmailChange(ctx context.Context, p principal.Principal, email, password string) (*string, error) {
+	var hash string
+	changed := false
+	err := dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
+		st := newStore(tx)
+		u, err := readProfile(ctx, st, p)
+		if err != nil || u.Email == email {
+			return err
+		}
+		changed = true
+		hash, err = st.GetPasswordHash(ctx, p.UserID)
+		return err
+	})
+	if err != nil || !changed {
+		return nil, err
+	}
+	if err := checkCurrentPassword(ctx, hash, password); err != nil {
+		return nil, err
+	}
+	return &email, nil
 }
 
 // ChangePassword sets a new password after checking the current one and
@@ -75,12 +120,8 @@ func (s *Service) ChangePassword(ctx context.Context, current, next string) erro
 		if err != nil {
 			return err
 		}
-		ok, err := verifyPassword(ctx, hash, current)
-		if err != nil {
+		if err := checkCurrentPassword(ctx, hash, current); err != nil {
 			return err
-		}
-		if !ok {
-			return fmt.Errorf("current password is wrong: %w", apperr.ErrInvalidArgument)
 		}
 		if hash, err = hashPassword(ctx, next); err != nil {
 			return err

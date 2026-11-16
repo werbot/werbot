@@ -22,12 +22,12 @@ func (h *Handler) GetProfile(ctx context.Context, _ *connect.Request[werbotv1.Ge
 	return connect.NewResponse(&werbotv1.GetProfileResponse{User: userToProto(u)}), nil
 }
 
-// UpdateProfile sets the caller's name and email.
+// UpdateProfile sets the caller's name and email; a new email needs the current password.
 func (h *Handler) UpdateProfile(ctx context.Context, req *connect.Request[werbotv1.UpdateProfileRequest]) (*connect.Response[werbotv1.UpdateProfileResponse], error) {
 	if _, err := principal.Require(ctx); err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	u, err := h.svc.UpdateProfile(ctx, req.Msg.GetName(), req.Msg.GetEmail())
+	u, err := h.svc.UpdateProfile(ctx, req.Msg.GetName(), req.Msg.GetEmail(), req.Msg.GetCurrentPassword())
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
