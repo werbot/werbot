@@ -99,9 +99,9 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	stopTunnel()
 	<-tunnelDone
 	if hs != nil {
-		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = hs.Shutdown(sctx)
+		// Close, not Shutdown: the drain is over, and Shutdown waits up to 5s for a
+		// probe connection that was opened but never sent a request (StateNew).
+		_ = hs.Close()
 	}
 	return errors.Join(err, tunnelErr)
 }
