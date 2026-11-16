@@ -103,7 +103,7 @@ func TestCreateDuplicateName(t *testing.T) {
 func TestUpdateAndDelete(t *testing.T) {
 	e := setup(t)
 	r := e.create(t, "web", map[string]string{"env": "prod"})
-	g := uuid.New()
+	g := dbtest.Gateway(t, e.pool, e.org, "edge")
 	u, err := e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: r.ID, Name: "web2", GatewayID: &g, Labels: map[string]string{"tier": "db"}})
 	require.NoError(t, err)
 	assert.Equal(t, "web2", u.Name)
@@ -114,7 +114,7 @@ func TestUpdateAndDelete(t *testing.T) {
 	u, err = e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: r.ID, Name: "web2", Config: sshCfg("h2")})
 	require.NoError(t, err)
 	assert.Equal(t, "h2", u.Config.(*sshv1.Config).Host)
-	assert.Nil(t, u.GatewayID)
+	assert.Equal(t, &g, u.GatewayID, "no gateway: the only pool")
 	assert.Empty(t, u.Labels)
 
 	_, err = e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: r.ID, Name: "web2", Config: wrapperspb.String("x")})
@@ -170,9 +170,9 @@ func TestCrossOrgInvisible(t *testing.T) {
 
 func TestResourcesForGateway(t *testing.T) {
 	e := setup(t)
-	g1 := uuid.New()
 	a := e.create(t, "a", nil)
 	e.create(t, "b", nil)
+	g1 := dbtest.Gateway(t, e.pool, e.org, "edge")
 	_, err := e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: a.ID, Name: "a", GatewayID: &g1})
 	require.NoError(t, err)
 	got, err := e.svc.ResourcesForGateway(e.ctx, e.org, g1)

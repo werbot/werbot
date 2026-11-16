@@ -52,3 +52,96 @@ SELECT fingerprint_sha256 FROM resource_host_key WHERE resource_id = @resource_i
 
 -- name: DeleteHostKey :execrows
 DELETE FROM resource_host_key WHERE resource_id = @resource_id AND org_id = @org_id;
+
+-- name: OrgGatewayIDs :many
+-- Two rows are enough to tell "none", "the only one" and "several".
+SELECT id FROM gateway WHERE org_id = @org_id ORDER BY created_at, id LIMIT 2;
+
+-- name: CreateGateway :one
+INSERT INTO gateway (org_id, name, host_key_ciphertext, host_key_key_id)
+VALUES (@org_id, @name, @host_key_ciphertext, @host_key_key_id)
+RETURNING id, created_at;
+
+-- name: CreateGatewayIfAbsent :one
+-- No row when the pool already exists.
+INSERT INTO gateway (org_id, name, host_key_ciphertext, host_key_key_id)
+VALUES (@org_id, @name, @host_key_ciphertext, @host_key_key_id)
+ON CONFLICT (org_id, name) DO NOTHING
+RETURNING id;
+
+-- name: GetGatewayIDByName :one
+SELECT id FROM gateway WHERE org_id = @org_id AND name = @name;
+
+-- name: AssignUnpooledResources :execrows
+-- Only while gateway_id is the single pool of the organization.
+UPDATE resource r SET gateway_id = @gateway_id::uuid, updated_at = now()
+WHERE r.org_id = @org_id AND r.gateway_id IS NULL
+  AND (SELECT count(*) FROM gateway g WHERE g.org_id = @org_id) = 1;
+
+-- name: ListGateways :many
+SELECT id, org_id, name, created_at FROM gateway WHERE org_id = @org_id ORDER BY name;
+
+-- name: DeleteGateway :execrows
+DELETE FROM gateway WHERE id = @id AND org_id = @org_id;
+
+-- name: GetGatewayHostKey :one
+SELECT host_key_ciphertext, host_key_key_id FROM gateway WHERE id = @id AND org_id = @org_id;
+
+-- name: ListInstances :many
+SELECT id, gateway_id, org_id, hostname, version, cert_serial, connectors, client_ip,
+       cert_expires_at, created_at, last_seen_at,
+       coalesce(last_seen_at > now() - interval '45 seconds', false)::bool AS online
+FROM gateway_instance
+WHERE org_id = @org_id
+ORDER BY created_at, id;
+
+-- name: AuthenticateInstance :one
+-- The instance id comes from a verified certificate: no org filter.
+SELECT id, gateway_id, org_id, hostname, version, cert_serial, connectors, client_ip,
+       cert_expires_at, created_at, last_seen_at,
+       coalesce(last_seen_at > now() - interval '45 seconds', false)::bool AS online
+FROM gateway_instance
+WHERE id = @id AND gateway_id = @gateway_id AND cert_serial = @cert_serial;
+
+-- name: CreateInstance :exec
+INSERT INTO gateway_instance (id, gateway_id, org_id, hostname, cert_serial, cert_expires_at, version, connectors, client_ip)
+VALUES (@id, @gateway_id, @org_id, @hostname, @cert_serial, @cert_expires_at, @version, @connectors, @client_ip);
+
+-- name: GetInstanceGatewayID :one
+SELECT gateway_id FROM gateway_instance WHERE id = @id FOR UPDATE;
+
+-- name: RenewInstanceCert :exec
+UPDATE gateway_instance SET cert_serial = @cert_serial, cert_expires_at = @cert_expires_at WHERE id = @id;
+
+-- name: HeartbeatInstance :execrows
+UPDATE gateway_instance SET last_seen_at = now(), version = @version, connectors = @connectors WHERE id = @id;
+
+-- name: DeleteInstance :one
+DELETE FROM gateway_instance WHERE id = @id AND org_id = @org_id RETURNING gateway_id;
+
+-- name: DeleteExpiredInstances :execrows
+DELETE FROM gateway_instance WHERE cert_expires_at < now() - interval '24 hours';
+
+-- name: CreateJoinToken :one
+INSERT INTO gateway_join_token (token_hash, org_id, gateway_id, max_uses, expires_at, created_by)
+VALUES (@token_hash, @org_id, @gateway_id, @max_uses, @expires_at, @created_by)
+RETURNING id, expires_at;
+
+-- name: ListJoinTokens :many
+SELECT id, max_uses, uses, expires_at, revoked_at, created_by, created_at
+FROM gateway_join_token
+WHERE gateway_id = @gateway_id AND org_id = @org_id
+ORDER BY created_at, id;
+
+-- name: RevokeJoinToken :one
+UPDATE gateway_join_token SET revoked_at = coalesce(revoked_at, now())
+WHERE id = @id AND org_id = @org_id
+RETURNING gateway_id;
+
+-- name: SpendJoinToken :one
+UPDATE gateway_join_token SET uses = uses + 1
+WHERE token_hash = @token_hash AND uses < max_uses AND expires_at > now() AND revoked_at IS NULL
+RETURNING id, org_id, gateway_id;
+
+-- name: DeleteExpiredJoinTokens :execrows
+DELETE FROM gateway_join_token WHERE expires_at < now() - interval '7 days';

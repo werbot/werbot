@@ -20,13 +20,16 @@ const (
 	QueueEmail = "email"
 	// QueueFeeds runs blocklist.refresh and geoip.refresh; a hung feed cannot occupy default or email.
 	QueueFeeds = "feeds"
+	// QueueMaintenance runs housekeeping such as gateway.gc.
+	QueueMaintenance = "maintenance"
 )
 
 // queues is the only place for MaxWorkers.
 var queues = map[string]river.QueueConfig{
-	QueueDefault: {MaxWorkers: 10},
-	QueueEmail:   {MaxWorkers: 2},
-	QueueFeeds:   {MaxWorkers: 1},
+	QueueDefault:     {MaxWorkers: 10},
+	QueueEmail:       {MaxWorkers: 2},
+	QueueFeeds:       {MaxWorkers: 1},
+	QueueMaintenance: {MaxWorkers: 2},
 }
 
 // Migrate applies the River schema. Call it only from bootstrap under

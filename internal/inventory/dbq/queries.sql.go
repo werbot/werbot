@@ -7,10 +7,204 @@ package dbq
 
 import (
 	"context"
+	"net/netip"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+const assignUnpooledResources = `-- name: AssignUnpooledResources :execrows
+UPDATE resource r SET gateway_id = $1::uuid, updated_at = now()
+WHERE r.org_id = $2 AND r.gateway_id IS NULL
+  AND (SELECT count(*) FROM gateway g WHERE g.org_id = $2) = 1
+`
+
+type AssignUnpooledResourcesParams struct {
+	GatewayID uuid.UUID
+	OrgID     uuid.UUID
+}
+
+// Only while gateway_id is the single pool of the organization.
+func (q *Queries) AssignUnpooledResources(ctx context.Context, arg AssignUnpooledResourcesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, assignUnpooledResources, arg.GatewayID, arg.OrgID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const authenticateInstance = `-- name: AuthenticateInstance :one
+SELECT id, gateway_id, org_id, hostname, version, cert_serial, connectors, client_ip,
+       cert_expires_at, created_at, last_seen_at,
+       coalesce(last_seen_at > now() - interval '45 seconds', false)::bool AS online
+FROM gateway_instance
+WHERE id = $1 AND gateway_id = $2 AND cert_serial = $3
+`
+
+type AuthenticateInstanceParams struct {
+	ID         uuid.UUID
+	GatewayID  uuid.UUID
+	CertSerial string
+}
+
+type AuthenticateInstanceRow struct {
+	ID            uuid.UUID
+	GatewayID     uuid.UUID
+	OrgID         uuid.UUID
+	Hostname      string
+	Version       string
+	CertSerial    string
+	Connectors    []string
+	ClientIp      *netip.Addr
+	CertExpiresAt time.Time
+	CreatedAt     time.Time
+	LastSeenAt    *time.Time
+	Online        bool
+}
+
+// The instance id comes from a verified certificate: no org filter.
+func (q *Queries) AuthenticateInstance(ctx context.Context, arg AuthenticateInstanceParams) (AuthenticateInstanceRow, error) {
+	row := q.db.QueryRow(ctx, authenticateInstance, arg.ID, arg.GatewayID, arg.CertSerial)
+	var i AuthenticateInstanceRow
+	err := row.Scan(
+		&i.ID,
+		&i.GatewayID,
+		&i.OrgID,
+		&i.Hostname,
+		&i.Version,
+		&i.CertSerial,
+		&i.Connectors,
+		&i.ClientIp,
+		&i.CertExpiresAt,
+		&i.CreatedAt,
+		&i.LastSeenAt,
+		&i.Online,
+	)
+	return i, err
+}
+
+const createGateway = `-- name: CreateGateway :one
+INSERT INTO gateway (org_id, name, host_key_ciphertext, host_key_key_id)
+VALUES ($1, $2, $3, $4)
+RETURNING id, created_at
+`
+
+type CreateGatewayParams struct {
+	OrgID             uuid.UUID
+	Name              string
+	HostKeyCiphertext []byte
+	HostKeyKeyID      string
+}
+
+type CreateGatewayRow struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+}
+
+func (q *Queries) CreateGateway(ctx context.Context, arg CreateGatewayParams) (CreateGatewayRow, error) {
+	row := q.db.QueryRow(ctx, createGateway,
+		arg.OrgID,
+		arg.Name,
+		arg.HostKeyCiphertext,
+		arg.HostKeyKeyID,
+	)
+	var i CreateGatewayRow
+	err := row.Scan(&i.ID, &i.CreatedAt)
+	return i, err
+}
+
+const createGatewayIfAbsent = `-- name: CreateGatewayIfAbsent :one
+INSERT INTO gateway (org_id, name, host_key_ciphertext, host_key_key_id)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (org_id, name) DO NOTHING
+RETURNING id
+`
+
+type CreateGatewayIfAbsentParams struct {
+	OrgID             uuid.UUID
+	Name              string
+	HostKeyCiphertext []byte
+	HostKeyKeyID      string
+}
+
+// No row when the pool already exists.
+func (q *Queries) CreateGatewayIfAbsent(ctx context.Context, arg CreateGatewayIfAbsentParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, createGatewayIfAbsent,
+		arg.OrgID,
+		arg.Name,
+		arg.HostKeyCiphertext,
+		arg.HostKeyKeyID,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const createInstance = `-- name: CreateInstance :exec
+INSERT INTO gateway_instance (id, gateway_id, org_id, hostname, cert_serial, cert_expires_at, version, connectors, client_ip)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+`
+
+type CreateInstanceParams struct {
+	ID            uuid.UUID
+	GatewayID     uuid.UUID
+	OrgID         uuid.UUID
+	Hostname      string
+	CertSerial    string
+	CertExpiresAt time.Time
+	Version       string
+	Connectors    []string
+	ClientIp      *netip.Addr
+}
+
+func (q *Queries) CreateInstance(ctx context.Context, arg CreateInstanceParams) error {
+	_, err := q.db.Exec(ctx, createInstance,
+		arg.ID,
+		arg.GatewayID,
+		arg.OrgID,
+		arg.Hostname,
+		arg.CertSerial,
+		arg.CertExpiresAt,
+		arg.Version,
+		arg.Connectors,
+		arg.ClientIp,
+	)
+	return err
+}
+
+const createJoinToken = `-- name: CreateJoinToken :one
+INSERT INTO gateway_join_token (token_hash, org_id, gateway_id, max_uses, expires_at, created_by)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, expires_at
+`
+
+type CreateJoinTokenParams struct {
+	TokenHash []byte
+	OrgID     uuid.UUID
+	GatewayID uuid.UUID
+	MaxUses   int32
+	ExpiresAt time.Time
+	CreatedBy *uuid.UUID
+}
+
+type CreateJoinTokenRow struct {
+	ID        uuid.UUID
+	ExpiresAt time.Time
+}
+
+func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams) (CreateJoinTokenRow, error) {
+	row := q.db.QueryRow(ctx, createJoinToken,
+		arg.TokenHash,
+		arg.OrgID,
+		arg.GatewayID,
+		arg.MaxUses,
+		arg.ExpiresAt,
+		arg.CreatedBy,
+	)
+	var i CreateJoinTokenRow
+	err := row.Scan(&i.ID, &i.ExpiresAt)
+	return i, err
+}
 
 const createResource = `-- name: CreateResource :one
 INSERT INTO resource (org_id, name, type, category, gateway_id, config)
@@ -41,6 +235,47 @@ func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) 
 	return id, err
 }
 
+const deleteExpiredInstances = `-- name: DeleteExpiredInstances :execrows
+DELETE FROM gateway_instance WHERE cert_expires_at < now() - interval '24 hours'
+`
+
+func (q *Queries) DeleteExpiredInstances(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredInstances)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteExpiredJoinTokens = `-- name: DeleteExpiredJoinTokens :execrows
+DELETE FROM gateway_join_token WHERE expires_at < now() - interval '7 days'
+`
+
+func (q *Queries) DeleteExpiredJoinTokens(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredJoinTokens)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteGateway = `-- name: DeleteGateway :execrows
+DELETE FROM gateway WHERE id = $1 AND org_id = $2
+`
+
+type DeleteGatewayParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+func (q *Queries) DeleteGateway(ctx context.Context, arg DeleteGatewayParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteGateway, arg.ID, arg.OrgID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteHostKey = `-- name: DeleteHostKey :execrows
 DELETE FROM resource_host_key WHERE resource_id = $1 AND org_id = $2
 `
@@ -56,6 +291,22 @@ func (q *Queries) DeleteHostKey(ctx context.Context, arg DeleteHostKeyParams) (i
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const deleteInstance = `-- name: DeleteInstance :one
+DELETE FROM gateway_instance WHERE id = $1 AND org_id = $2 RETURNING gateway_id
+`
+
+type DeleteInstanceParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+func (q *Queries) DeleteInstance(ctx context.Context, arg DeleteInstanceParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, deleteInstance, arg.ID, arg.OrgID)
+	var gateway_id uuid.UUID
+	err := row.Scan(&gateway_id)
+	return gateway_id, err
 }
 
 const deleteLabels = `-- name: DeleteLabels :exec
@@ -89,6 +340,43 @@ func (q *Queries) DeleteResource(ctx context.Context, arg DeleteResourceParams) 
 	return result.RowsAffected(), nil
 }
 
+const getGatewayHostKey = `-- name: GetGatewayHostKey :one
+SELECT host_key_ciphertext, host_key_key_id FROM gateway WHERE id = $1 AND org_id = $2
+`
+
+type GetGatewayHostKeyParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+type GetGatewayHostKeyRow struct {
+	HostKeyCiphertext []byte
+	HostKeyKeyID      string
+}
+
+func (q *Queries) GetGatewayHostKey(ctx context.Context, arg GetGatewayHostKeyParams) (GetGatewayHostKeyRow, error) {
+	row := q.db.QueryRow(ctx, getGatewayHostKey, arg.ID, arg.OrgID)
+	var i GetGatewayHostKeyRow
+	err := row.Scan(&i.HostKeyCiphertext, &i.HostKeyKeyID)
+	return i, err
+}
+
+const getGatewayIDByName = `-- name: GetGatewayIDByName :one
+SELECT id FROM gateway WHERE org_id = $1 AND name = $2
+`
+
+type GetGatewayIDByNameParams struct {
+	OrgID uuid.UUID
+	Name  string
+}
+
+func (q *Queries) GetGatewayIDByName(ctx context.Context, arg GetGatewayIDByNameParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getGatewayIDByName, arg.OrgID, arg.Name)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getHostKeyFingerprint = `-- name: GetHostKeyFingerprint :one
 SELECT fingerprint_sha256 FROM resource_host_key WHERE resource_id = $1 AND org_id = $2
 `
@@ -103,6 +391,17 @@ func (q *Queries) GetHostKeyFingerprint(ctx context.Context, arg GetHostKeyFinge
 	var fingerprint_sha256 string
 	err := row.Scan(&fingerprint_sha256)
 	return fingerprint_sha256, err
+}
+
+const getInstanceGatewayID = `-- name: GetInstanceGatewayID :one
+SELECT gateway_id FROM gateway_instance WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetInstanceGatewayID(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getInstanceGatewayID, id)
+	var gateway_id uuid.UUID
+	err := row.Scan(&gateway_id)
+	return gateway_id, err
 }
 
 const getResource = `-- name: GetResource :one
@@ -158,6 +457,24 @@ func (q *Queries) GetResource(ctx context.Context, arg GetResourceParams) (GetRe
 	return i, err
 }
 
+const heartbeatInstance = `-- name: HeartbeatInstance :execrows
+UPDATE gateway_instance SET last_seen_at = now(), version = $1, connectors = $2 WHERE id = $3
+`
+
+type HeartbeatInstanceParams struct {
+	Version    string
+	Connectors []string
+	ID         uuid.UUID
+}
+
+func (q *Queries) HeartbeatInstance(ctx context.Context, arg HeartbeatInstanceParams) (int64, error) {
+	result, err := q.db.Exec(ctx, heartbeatInstance, arg.Version, arg.Connectors, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const insertHostKey = `-- name: InsertHostKey :execrows
 INSERT INTO resource_host_key (resource_id, org_id, key_type, public_key, fingerprint_sha256)
 VALUES ($1, $2, $3, $4, $5)
@@ -200,6 +517,149 @@ type InsertLabelsParams struct {
 func (q *Queries) InsertLabels(ctx context.Context, arg InsertLabelsParams) error {
 	_, err := q.db.Exec(ctx, insertLabels, arg.ResourceID, arg.OrgID, arg.Labels)
 	return err
+}
+
+const listGateways = `-- name: ListGateways :many
+SELECT id, org_id, name, created_at FROM gateway WHERE org_id = $1 ORDER BY name
+`
+
+type ListGatewaysRow struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	Name      string
+	CreatedAt time.Time
+}
+
+func (q *Queries) ListGateways(ctx context.Context, orgID uuid.UUID) ([]ListGatewaysRow, error) {
+	rows, err := q.db.Query(ctx, listGateways, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListGatewaysRow
+	for rows.Next() {
+		var i ListGatewaysRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInstances = `-- name: ListInstances :many
+SELECT id, gateway_id, org_id, hostname, version, cert_serial, connectors, client_ip,
+       cert_expires_at, created_at, last_seen_at,
+       coalesce(last_seen_at > now() - interval '45 seconds', false)::bool AS online
+FROM gateway_instance
+WHERE org_id = $1
+ORDER BY created_at, id
+`
+
+type ListInstancesRow struct {
+	ID            uuid.UUID
+	GatewayID     uuid.UUID
+	OrgID         uuid.UUID
+	Hostname      string
+	Version       string
+	CertSerial    string
+	Connectors    []string
+	ClientIp      *netip.Addr
+	CertExpiresAt time.Time
+	CreatedAt     time.Time
+	LastSeenAt    *time.Time
+	Online        bool
+}
+
+func (q *Queries) ListInstances(ctx context.Context, orgID uuid.UUID) ([]ListInstancesRow, error) {
+	rows, err := q.db.Query(ctx, listInstances, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListInstancesRow
+	for rows.Next() {
+		var i ListInstancesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.GatewayID,
+			&i.OrgID,
+			&i.Hostname,
+			&i.Version,
+			&i.CertSerial,
+			&i.Connectors,
+			&i.ClientIp,
+			&i.CertExpiresAt,
+			&i.CreatedAt,
+			&i.LastSeenAt,
+			&i.Online,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listJoinTokens = `-- name: ListJoinTokens :many
+SELECT id, max_uses, uses, expires_at, revoked_at, created_by, created_at
+FROM gateway_join_token
+WHERE gateway_id = $1 AND org_id = $2
+ORDER BY created_at, id
+`
+
+type ListJoinTokensParams struct {
+	GatewayID uuid.UUID
+	OrgID     uuid.UUID
+}
+
+type ListJoinTokensRow struct {
+	ID        uuid.UUID
+	MaxUses   int32
+	Uses      int32
+	ExpiresAt time.Time
+	RevokedAt *time.Time
+	CreatedBy *uuid.UUID
+	CreatedAt time.Time
+}
+
+func (q *Queries) ListJoinTokens(ctx context.Context, arg ListJoinTokensParams) ([]ListJoinTokensRow, error) {
+	rows, err := q.db.Query(ctx, listJoinTokens, arg.GatewayID, arg.OrgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListJoinTokensRow
+	for rows.Next() {
+		var i ListJoinTokensRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.MaxUses,
+			&i.Uses,
+			&i.ExpiresAt,
+			&i.RevokedAt,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listResources = `-- name: ListResources :many
@@ -275,6 +735,83 @@ func (q *Queries) ListResources(ctx context.Context, arg ListResourcesParams) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const orgGatewayIDs = `-- name: OrgGatewayIDs :many
+SELECT id FROM gateway WHERE org_id = $1 ORDER BY created_at, id LIMIT 2
+`
+
+// Two rows are enough to tell "none", "the only one" and "several".
+func (q *Queries) OrgGatewayIDs(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, orgGatewayIDs, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const renewInstanceCert = `-- name: RenewInstanceCert :exec
+UPDATE gateway_instance SET cert_serial = $1, cert_expires_at = $2 WHERE id = $3
+`
+
+type RenewInstanceCertParams struct {
+	CertSerial    string
+	CertExpiresAt time.Time
+	ID            uuid.UUID
+}
+
+func (q *Queries) RenewInstanceCert(ctx context.Context, arg RenewInstanceCertParams) error {
+	_, err := q.db.Exec(ctx, renewInstanceCert, arg.CertSerial, arg.CertExpiresAt, arg.ID)
+	return err
+}
+
+const revokeJoinToken = `-- name: RevokeJoinToken :one
+UPDATE gateway_join_token SET revoked_at = coalesce(revoked_at, now())
+WHERE id = $1 AND org_id = $2
+RETURNING gateway_id
+`
+
+type RevokeJoinTokenParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+func (q *Queries) RevokeJoinToken(ctx context.Context, arg RevokeJoinTokenParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, revokeJoinToken, arg.ID, arg.OrgID)
+	var gateway_id uuid.UUID
+	err := row.Scan(&gateway_id)
+	return gateway_id, err
+}
+
+const spendJoinToken = `-- name: SpendJoinToken :one
+UPDATE gateway_join_token SET uses = uses + 1
+WHERE token_hash = $1 AND uses < max_uses AND expires_at > now() AND revoked_at IS NULL
+RETURNING id, org_id, gateway_id
+`
+
+type SpendJoinTokenRow struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	GatewayID uuid.UUID
+}
+
+func (q *Queries) SpendJoinToken(ctx context.Context, tokenHash []byte) (SpendJoinTokenRow, error) {
+	row := q.db.QueryRow(ctx, spendJoinToken, tokenHash)
+	var i SpendJoinTokenRow
+	err := row.Scan(&i.ID, &i.OrgID, &i.GatewayID)
+	return i, err
 }
 
 const updateResource = `-- name: UpdateResource :execrows

@@ -22,5 +22,11 @@ func pgCode(err error, code string) bool {
 // isUniqueViolation reports SQLSTATE 23505.
 func isUniqueViolation(err error) bool { return pgCode(err, "23505") }
 
+// isConstraintViolation reports a violation of the named constraint.
+func isConstraintViolation(err error, name string) bool {
+	pgErr, ok := errors.AsType[*pgconn.PgError](err)
+	return ok && pgErr.ConstraintName == name
+}
+
 // isForeignKeyViolation reports SQLSTATE 23503.
 func isForeignKeyViolation(err error) bool { return pgCode(err, "23503") }

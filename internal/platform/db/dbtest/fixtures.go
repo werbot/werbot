@@ -63,3 +63,20 @@ func Resource(t testing.TB, pool *pgxpool.Pool, orgID uuid.UUID, name string, la
 	}
 	return id
 }
+
+// Gateway inserts a pool named name in orgID with a dummy host key (not a sealed key).
+func Gateway(t testing.TB, pool *pgxpool.Pool, orgID uuid.UUID, name string) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		"INSERT INTO gateway (org_id, name, host_key_ciphertext, host_key_key_id) VALUES ($1, $2, '\\x00', 'test') RETURNING id",
+		orgID, name)
+}
+
+// Instance inserts a never-seen instance of gatewayID with a random certificate serial valid for 24h.
+func Instance(t testing.TB, pool *pgxpool.Pool, orgID, gatewayID uuid.UUID) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		`INSERT INTO gateway_instance (gateway_id, org_id, hostname, cert_serial, cert_expires_at)
+		 VALUES ($1, $2, 'test', $3, now() + interval '24 hours') RETURNING id`,
+		gatewayID, orgID, strings.ReplaceAll(uuid.NewString(), "-", ""))
+}

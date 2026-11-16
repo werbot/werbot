@@ -136,7 +136,12 @@ func TestEmailQueueDoesNotStarveDefault(t *testing.T) {
 	assert.Equal(t, map[string]int{"email": 2}, running())
 }
 
-func TestFeedsQueueRunsJobs(t *testing.T) {
+func TestFeedsQueueRunsJobs(t *testing.T) { assertQueueRunsJobs(t, jobs.QueueFeeds) }
+
+func TestMaintenanceQueueRunsJobs(t *testing.T) { assertQueueRunsJobs(t, jobs.QueueMaintenance) }
+
+func assertQueueRunsJobs(t *testing.T, queue string) {
+	t.Helper()
 	pool, _ := dbtest.New(t)
 	ctx := context.Background()
 	ping := &pingWorker{done: make(chan string, 1)}
@@ -147,12 +152,12 @@ func TestFeedsQueueRunsJobs(t *testing.T) {
 	require.NoError(t, client.Start(ctx))
 	t.Cleanup(func() { _ = client.Stop(ctx) })
 
-	_, err = client.Insert(ctx, pingArgs{Msg: "feeds"}, &river.InsertOpts{Queue: jobs.QueueFeeds})
+	_, err = client.Insert(ctx, pingArgs{Msg: queue}, &river.InsertOpts{Queue: queue})
 	require.NoError(t, err)
 	select {
 	case msg := <-ping.done:
-		assert.Equal(t, "feeds", msg)
+		assert.Equal(t, queue, msg)
 	case <-time.After(5 * time.Second):
-		t.Fatal("feeds job did not run")
+		t.Fatalf("%s job did not run", queue)
 	}
 }

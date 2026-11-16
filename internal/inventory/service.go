@@ -41,15 +41,33 @@ func audit(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, action string, id uu
 }
 
 // notFound maps no rows and a foreign-key miss (resource of another org) to ErrNotFound,
-// a duplicate name to ErrAlreadyExists.
+// a duplicate name to ErrAlreadyExists, a pool outside the org to ErrInvalidArgument.
 func notFound(err error) error {
 	switch {
+	case isConstraintViolation(err, "resource_gateway_fk"):
+		return invalid("gateway not found")
 	case errors.Is(err, pgx.ErrNoRows), isForeignKeyViolation(err):
 		return fmt.Errorf("resource not found: %w", apperr.ErrNotFound)
 	case isUniqueViolation(err):
 		return fmt.Errorf("resource name already used: %w", apperr.ErrAlreadyExists)
 	}
 	return err
+}
+
+// pickGateway keeps an explicit pool; without one: no pools → NULL,
+// the only pool → it, several → ErrInvalidArgument.
+func pickGateway(ctx context.Context, st Store, orgID uuid.UUID, id *uuid.UUID) (*uuid.UUID, error) {
+	if id != nil {
+		return id, nil
+	}
+	ids, err := st.OrgGatewayIDs(ctx, orgID)
+	switch {
+	case err != nil || len(ids) == 0:
+		return nil, err
+	case len(ids) == 1:
+		return &ids[0], nil
+	}
+	return nil, invalid("gateway_id is required")
 }
 
 func (s *Service) get(ctx context.Context, st Store, orgID, id uuid.UUID) (Resource, error) {
@@ -94,8 +112,12 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 	}
 	var res Resource
 	err = s.tx(ctx, orgID, func(st Store, tx pgx.Tx) error {
+		gw, err := pickGateway(ctx, st, orgID, in.GatewayID)
+		if err != nil {
+			return err
+		}
 		id, err := st.CreateResource(ctx, dbq.CreateResourceParams{
-			OrgID: orgID, Name: in.Name, Type: t.Name, Category: string(t.Category), GatewayID: in.GatewayID, Config: cfg})
+			OrgID: orgID, Name: in.Name, Type: t.Name, Category: string(t.Category), GatewayID: gw, Config: cfg})
 		if err != nil {
 			return err
 		}
@@ -131,8 +153,12 @@ func (s *Service) Update(ctx context.Context, orgID uuid.UUID, in UpdateInput) (
 				return err
 			}
 		}
+		gw, err := pickGateway(ctx, st, orgID, in.GatewayID)
+		if err != nil {
+			return err
+		}
 		if _, err := st.UpdateResource(ctx, dbq.UpdateResourceParams{
-			ID: in.ID, OrgID: orgID, Name: in.Name, GatewayID: in.GatewayID, Config: cfg}); err != nil {
+			ID: in.ID, OrgID: orgID, Name: in.Name, GatewayID: gw, Config: cfg}); err != nil {
 			return err
 		}
 		if err := setLabels(ctx, st, orgID, in.ID, in.Labels); err != nil {

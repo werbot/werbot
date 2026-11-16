@@ -36,6 +36,14 @@ type AuditEvent struct {
 	CreatedAt   time.Time
 }
 
+type CaKey struct {
+	ID         int16
+	Ciphertext []byte
+	KeyID      string
+	CertPem    string
+	CreatedAt  time.Time
+}
+
 type Credential struct {
 	ID         uuid.UUID
 	OrgID      uuid.UUID
@@ -45,6 +53,42 @@ type Credential struct {
 	KeyID      string
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+}
+
+type Gateway struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	Name              string
+	HostKeyCiphertext []byte
+	HostKeyKeyID      string
+	CreatedAt         time.Time
+}
+
+type GatewayInstance struct {
+	ID            uuid.UUID
+	GatewayID     uuid.UUID
+	OrgID         uuid.UUID
+	Hostname      string
+	CertSerial    string
+	CertExpiresAt time.Time
+	Version       string
+	Connectors    []string
+	LastSeenAt    *time.Time
+	ClientIp      *netip.Addr
+	CreatedAt     time.Time
+}
+
+type GatewayJoinToken struct {
+	ID        uuid.UUID
+	TokenHash []byte
+	OrgID     uuid.UUID
+	GatewayID uuid.UUID
+	MaxUses   int32
+	Uses      int32
+	ExpiresAt time.Time
+	RevokedAt *time.Time
+	CreatedBy *uuid.UUID
+	CreatedAt time.Time
 }
 
 type GeoipDb struct {
