@@ -10,7 +10,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -72,10 +71,9 @@ type Pipeline struct {
 
 	busy, notReady, panics *metrics.Counter
 
-	draining atomic.Bool
-	stop     context.Context // canceled at the end of drain: stops EndSession retries
-	stopNow  context.CancelFunc
-	retries  sync.WaitGroup
+	stop    context.Context // canceled at the end of drain: stops EndSession retries
+	stopNow context.CancelFunc
+	retries sync.WaitGroup
 
 	backoffMin, backoffMax, flushTimeout time.Duration
 }
@@ -93,7 +91,7 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 	stop, stopNow := context.WithCancel(context.Background())
 	return &Pipeline{
 		ctl: ctl, cfg: cfg, log: logger, stop: stop, stopNow: stopNow,
-		active:     newActiveSessions(reg.Gauge("werbot_gateway_sessions_active", "Sessions holding a MaxSessions slot.")),
+		active:     newActiveSessions(reg.Gauge("werbot_gateway_sessions_active", "Sessions holding a MaxSessions slot."), logger),
 		busy:       reg.Counter("werbot_gateway_sessions_rejected_total", rejectedHelp, "reason", "busy"),
 		notReady:   reg.Counter("werbot_gateway_sessions_rejected_total", rejectedHelp, "reason", "not_ready"),
 		panics:     reg.Counter("werbot_gateway_panics_total", "Connector panics recovered by the pipeline."),
@@ -104,11 +102,8 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 // Open checks the request in contract order and starts the session on the server.
 // Any error frees the slot.
 func (p *Pipeline) Open(ctx context.Context, r OpenRequest) (*Session, error) {
-	if p.draining.Load() {
-		return nil, p.reject(ErrNotReady)
-	}
-	if !p.active.reserve(p.cfg.MaxSessions) {
-		return nil, p.reject(ErrBusy)
+	if err := p.active.reserve(p.cfg.MaxSessions); err != nil {
+		return nil, p.reject(err)
 	}
 	s, err := p.open(ctx, r)
 	if err != nil {
@@ -177,8 +172,11 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	sctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 	p.active.bind(s.ID, cancel)
-	err := p.serve(sctx, s, c, cancel)
+	panicked, err := p.serve(sctx, s, c, cancel)
 	reason := endReason(sctx, err)
+	if panicked { // also after a client cancel or drain
+		reason = string(causeInternal)
+	}
 	if reason == "error" {
 		p.log.Warn("session: connector failed", "session_id", s.ID, "type", c.Type(), "error", redact(err.Error(), s.Secret))
 	}
@@ -186,17 +184,17 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	return err
 }
 
-func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel context.CancelCauseFunc) (err error) {
+func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel context.CancelCauseFunc) (panicked bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			cancel(causeInternal)
 			p.panics.Inc()
 			p.log.Error("session: connector panic", "session_id", s.ID, "type", c.Type(),
 				"panic", redact(fmt.Sprint(r), s.Secret), "stack", redact(string(debug.Stack()), s.Secret))
-			err = fmt.Errorf("connector %q panicked", c.Type())
+			panicked, err = true, fmt.Errorf("connector %q panicked", c.Type())
 		}
 	}()
-	return c.Serve(ctx, s)
+	return false, c.Serve(ctx, s)
 }
 
 // abort ends a session that Open returned but no connector ran.
@@ -242,7 +240,7 @@ func (p *Pipeline) heartbeat() *gatewayv1.Heartbeat {
 // ready is the /readyz state: a reason is "not_ready", "busy" or "draining".
 func (p *Pipeline) ready() (bool, string) {
 	switch {
-	case p.draining.Load():
+	case p.active.isDraining():
 		return false, "draining"
 	case p.ctl.Policy() == nil || !p.ctl.Connected():
 		return false, "not_ready"

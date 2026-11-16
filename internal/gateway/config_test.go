@@ -32,7 +32,7 @@ func TestLoadConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.Zero(t, c.DrainTimeout)
 
-	for _, tc := range []struct{ k, v string }{{envProxy, "maybe"}, {envMaxSess, "0"}, {envDrain, "-1s"}} {
+	for _, tc := range []struct{ k, v string }{{envProxy, "maybe"}, {envMaxSess, "0"}, {envMaxSess, "10001"}, {envDrain, "-1s"}} {
 		_, err = LoadConfig(nil, env(map[string]string{tc.k: tc.v}))
 		require.ErrorContains(t, err, tc.k)
 	}

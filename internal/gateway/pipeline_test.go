@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/version"
 )
 
@@ -144,4 +147,34 @@ func TestReadyAndHeartbeat(t *testing.T) {
 	require.Equal(t, version.Version, hb.GetVersion())
 	require.Equal(t, connectors(), hb.GetConnectors())
 	require.Equal(t, []string{s.ID.String()}, hb.GetActiveSessionIds())
+}
+
+func TestActiveSessionsIDsCapped(t *testing.T) {
+	log := &syncBuffer{}
+	a := newActiveSessions(metrics.NewRegistry().Gauge("g", "g"), slog.New(slog.NewTextHandler(log, nil)))
+	opened := map[string]bool{}
+	for range maxSessionIDs - 2 {
+		id := uuid.New()
+		a.add(id)
+		opened[id.String()] = true
+	}
+	for range 5 {
+		id := uuid.New()
+		a.add(id)
+		a.done(id, true)
+	}
+	ids := a.ids()
+	require.Len(t, ids, maxSessionIDs)
+	n := 0
+	for _, id := range ids {
+		if opened[id] {
+			n++
+		}
+	}
+	require.Equal(t, len(opened), n, "every opened session is listed")
+	require.Contains(t, log.String(), "omitted=3")
+
+	a.release() // no slot taken
+	require.Zero(t, a.used())
+	require.Contains(t, log.String(), "slot released twice")
 }

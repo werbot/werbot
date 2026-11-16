@@ -84,7 +84,8 @@ type fakeControl struct {
 	user       User
 	authErr    error
 	startErr   error
-	endErrs    []error // returned by the next EndSession calls in order, then nil
+	endErrs    []error // returned by the next EndSession calls in order, then endErr
+	endErr     error
 	onEnd      func(n int)
 	pinErr     error
 	authCalls  []string
@@ -120,7 +121,7 @@ func (f *fakeControl) EndSession(_ context.Context, id uuid.UUID, reason string)
 	f.ends = append(f.ends, endCall{id, reason})
 	f.events = append(f.events, "end:"+reason)
 	n, hook := len(f.ends), f.onEnd
-	var err error
+	err := f.endErr
 	if len(f.endErrs) > 0 {
 		err, f.endErrs = f.endErrs[0], f.endErrs[1:]
 	}

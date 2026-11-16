@@ -109,8 +109,8 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	if c.Name == "" {
 		return c, fmt.Errorf("%s is empty and the OS hostname is unavailable", envName)
 	}
-	if c.MaxSessions < 1 {
-		return c, fmt.Errorf("%s must be >= 1", envMaxSess)
+	if c.MaxSessions < 1 || c.MaxSessions > maxSessionIDs {
+		return c, fmt.Errorf("%s must be between 1 and %d", envMaxSess, maxSessionIDs)
 	}
 	if c.DrainTimeout < 0 {
 		return c, fmt.Errorf("%s must be >= 0", envDrain)

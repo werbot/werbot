@@ -67,6 +67,19 @@ func TestPanicEndsOnlyOwnSession(t *testing.T) {
 	require.True(t, e.inHeartbeat(blocker.ID))
 }
 
+func TestPanicAfterCancelIsInternalError(t *testing.T) {
+	e := newPipeEnv(t, 10)
+	s := e.open(t, "panicky", KindTerminal)
+	ctx, cancel := context.WithCancel(t.Context())
+	time.AfterFunc(20*time.Millisecond, cancel)
+	c := funcConn{typ: "panicky", kinds: []Kind{KindTerminal}, serve: func(ctx context.Context, _ *Session) error {
+		<-ctx.Done()
+		panic("boom on close")
+	}}
+	require.Error(t, e.p.Run(ctx, s, c))
+	require.Equal(t, []string{"internal_error"}, e.f.endsOf(s.ID))
+}
+
 func TestEndSessionRetriedUntilDelivered(t *testing.T) {
 	e := newPipeEnv(t, 10)
 	unavailable := connect.NewError(connect.CodeUnavailable, errors.New("down"))
@@ -157,6 +170,56 @@ func TestDrain(t *testing.T) {
 		e.p.drain(0)
 		require.Less(t, time.Since(start), 100*time.Millisecond)
 		require.Equal(t, []string{"gateway_shutdown"}, e.f.endsOf(s.ID))
+	})
+
+	t.Run("waits for a pending end", func(t *testing.T) {
+		e := newPipeEnv(t, 10)
+		e.p.flushTimeout = time.Second
+		s := e.open(t, "fake", KindExec)
+		e.f.with(func(f *fakeControl) {
+			f.endErrs = []error{connect.NewError(connect.CodeUnavailable, errors.New("down"))}
+		})
+		require.NoError(t, e.p.Run(t.Context(), s, fakeConn{}))
+		start := time.Now()
+		e.p.drain(0)
+		require.Less(t, time.Since(start), 500*time.Millisecond)
+		require.Len(t, e.f.endsOf(s.ID), 2, "drain returned after the retry delivered the end")
+		require.False(t, e.inHeartbeat(s.ID))
+	})
+
+	t.Run("gives up a pending end after flushTimeout", func(t *testing.T) {
+		e := newPipeEnv(t, 10)
+		e.p.flushTimeout = 100 * time.Millisecond
+		s := e.open(t, "fake", KindExec)
+		e.f.with(func(f *fakeControl) { f.endErr = connect.NewError(connect.CodeUnavailable, errors.New("down")) })
+		require.NoError(t, e.p.Run(t.Context(), s, fakeConn{}))
+		start := time.Now()
+		e.p.drain(0)
+		took := time.Since(start)
+		require.GreaterOrEqual(t, took, 100*time.Millisecond)
+		require.Less(t, took, 300*time.Millisecond)
+		waited := make(chan struct{})
+		go func() { e.p.retries.Wait(); close(waited) }()
+		select {
+		case <-waited:
+		case <-time.After(time.Second):
+			t.Fatal("the retry goroutine outlived drain")
+		}
+		n := len(e.f.endsOf(s.ID))
+		require.Greater(t, n, 1)
+		time.Sleep(50 * time.Millisecond)
+		require.Len(t, e.f.endsOf(s.ID), n, "no retry after stop")
+		require.True(t, e.inHeartbeat(s.ID), "an undelivered end keeps its id")
+	})
+
+	t.Run("bounds the wait for sessions that ignore the cancel", func(t *testing.T) {
+		e := newPipeEnv(t, 10)
+		e.p.flushTimeout = 50 * time.Millisecond
+		s := e.open(t, "fake", KindExec) // never run nor aborted
+		start := time.Now()
+		e.p.drain(0)
+		require.Less(t, time.Since(start), 300*time.Millisecond)
+		require.Contains(t, e.log.String(), s.ID.String())
 	})
 
 	t.Run("opened before drain, run after", func(t *testing.T) {
