@@ -28,8 +28,9 @@ services:
       - "2222:2222"
     volumes:
       - werbot-home:/home/nonroot
-    # WERBOT_GATEWAY_DRAIN_TIMEOUT (30s) + 10s
-    stop_grace_period: 40s
+    # SIGTERM: the embedded gateway drains (WERBOT_GATEWAY_DRAIN_TIMEOUT, 30s),
+    # then the server stops HTTP, the tunnel and River (up to 10s each) + margin
+    stop_grace_period: 70s
     ulimits:
       nofile: 65536
     depends_on:

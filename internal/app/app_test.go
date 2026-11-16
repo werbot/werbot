@@ -38,10 +38,12 @@ const (
 )
 
 // TestMain points the feed jobs at a closed port: serve runs them on start
-// and they must neither reach the network nor hold River's Stop.
+// and they must neither reach the network nor hold River's Stop. The embedded
+// gateway looks for the first organization every 100ms instead of 5s.
 func TestMain(m *testing.M) {
 	feedsConfig.BlocklistURL = "http://127.0.0.1:1/"
 	feedsConfig.GeoIPURL = "http://127.0.0.1:1/%s"
+	orgPollInterval = 100 * time.Millisecond
 	os.Exit(m.Run())
 }
 

@@ -220,8 +220,9 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	for i, srv := range servers {
 		go func() { errc <- srv.Serve(lns[i]) }()
 	}
-	// pctx ends the tunnel and the NOTIFY listener also when a server fails.
-	pctx, pcancel := context.WithCancel(ctx)
+	// pctx ends the tunnel and the NOTIFY listener, after the embedded gateway
+	// drained (its EndSession calls need the tunnel) or when a server fails.
+	pctx, pcancel := context.WithCancel(context.WithoutCancel(ctx))
 	defer pcancel()
 	hub := tunnel.NewHub()
 	plane := make(chan error, 1)
@@ -231,7 +232,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	defer gcancel()
 	embedded := make(chan error, 1)
 	if o.WithGateway {
-		go func() { embedded <- runEmbeddedGateway(gctx, cfg, o.Getenv, pool, s.Gateways, reg, logger) }()
+		go func() { embedded <- embeddedGateway(gctx, cfg, o.Getenv, pool, s.Gateways, reg, logger) }()
 	}
 	logger.Info("server started", "addr", cfg.HTTPAddr, "metrics_addr", cfg.MetricsAddr, "gateway_addr", cfg.GatewayAddr,
 		"with_gateway", o.WithGateway)
@@ -243,6 +244,9 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 		planeDone = true
 	case err = <-embedded:
 		embeddedDone = true
+		if err == nil && ctx.Err() == nil {
+			err = errors.New("embedded gateway stopped")
+		}
 	case <-ctx.Done():
 	}
 	draining.Store(true)

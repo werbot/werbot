@@ -1,0 +1,188 @@
+package app
+
+import (
+	"context"
+	"log/slog"
+	"net"
+	"net/http"
+	"path/filepath"
+	"strings"
+	"testing"
+	"testing/fstest"
+	"time"
+
+	"connectrpc.com/connect"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/gen/gateway/v1/gatewayv1connect"
+	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
+	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/gateway"
+	"github.com/werbot/werbot/internal/inventory"
+	"github.com/werbot/werbot/internal/platform/config"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
+	"github.com/werbot/werbot/internal/platform/metrics"
+)
+
+// fakeEmbedded replaces the embedded gateway with fn until the test ends.
+func fakeEmbedded(t *testing.T, fn func(ctx context.Context) error) {
+	t.Helper()
+	embeddedGateway = func(ctx context.Context, _ config.Config, _ func(string) string, _ *pgxpool.Pool,
+		_ *inventory.Gateways, _ *metrics.Registry, _ *slog.Logger) error {
+		return fn(ctx)
+	}
+	t.Cleanup(func() { embeddedGateway = runEmbeddedGateway })
+}
+
+// serveWithGateway runs serve with WithGateway and waits for /healthz.
+func serveWithGateway(t *testing.T, pool *pgxpool.Pool) (cfg config.Config, cancel context.CancelFunc, done <-chan error) {
+	t.Helper()
+	httpAddr := freeAddr(t)
+	cfg = config.Config{HTTPAddr: httpAddr, PublicURL: "http://" + httpAddr, Env: "development", WebEmbedded: true}
+	withTestDefaults(t, &cfg)
+	o := testServeOpts(t, cfg, pool)
+	o.WithGateway, o.Getenv = true, env(nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	errc := make(chan error, 1)
+	go func() { errc <- serve(ctx, cfg, slog.New(slog.DiscardHandler), pool, nil, fstest.MapFS{}, o) }()
+	require.Eventually(t, func() bool {
+		res, err := http.Get("http://" + httpAddr + "/healthz")
+		if err != nil {
+			return false
+		}
+		_ = res.Body.Close()
+		return res.StatusCode == http.StatusOK
+	}, 5*time.Second, 20*time.Millisecond)
+	return cfg, cancel, errc
+}
+
+func waitErr(t *testing.T, done <-chan error) error {
+	t.Helper()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(15 * time.Second):
+		t.Fatal("serve did not return within 15s")
+		return nil
+	}
+}
+
+// The embedded gateway drains after ctx ends and still sends EndSession
+// through the tunnel: the tunnel plane must serve until it returned. A unary
+// call on a fresh connection after cancel stands in for the drain's EndSession.
+func TestServeKeepsTunnelUntilEmbeddedGatewayReturns(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	clients := make(chan gatewayv1connect.TunnelServiceClient, 1)
+	codes := make(chan connect.Code, 1)
+	fakeEmbedded(t, func(ctx context.Context) error {
+		<-ctx.Done()
+		_, err := (<-clients).AuthenticateUser(context.Background(), connect.NewRequest(&gatewayv1.AuthenticateUserRequest{
+			By: &gatewayv1.AuthenticateUserRequest_Login{Login: "nobody"}, ClientIp: "10.0.0.1"}))
+		codes <- connect.CodeOf(err)
+		return nil
+	})
+	cfg, cancel, done := serveWithGateway(t, pool)
+
+	ctx, api := context.Background(), "http://"+cfg.HTTPAddr
+	hc, _ := jarClient(t, http.DefaultTransport)
+	_, err := werbotv1connect.NewAuthServiceClient(hc, api).Setup(ctx, connect.NewRequest(ownerSetup))
+	require.NoError(t, err)
+	gws := werbotv1connect.NewGatewayServiceClient(hc, api)
+	created, err := gws.CreateGateway(ctx, connect.NewRequest(&werbotv1.CreateGatewayRequest{Name: "edge"}))
+	require.NoError(t, err)
+	tok, err := gws.CreateJoinToken(ctx, connect.NewRequest(&werbotv1.CreateJoinTokenRequest{GatewayId: created.Msg.GetGateway().GetId()}))
+	require.NoError(t, err)
+	clients <- enroll(t, werbotv1connect.NewGatewayEnrollServiceClient(http.DefaultClient, api), tok.Msg.GetToken()).client
+
+	cancel()
+	assert.Equal(t, connect.CodeNotFound, <-codes, "the tunnel answered after cancel")
+	assert.NoError(t, waitErr(t, done))
+}
+
+func TestServeFailsWhenEmbeddedGatewayStops(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	fakeEmbedded(t, func(context.Context) error { return nil })
+	httpAddr := freeAddr(t)
+	cfg := config.Config{HTTPAddr: httpAddr, PublicURL: "http://" + httpAddr, WebEmbedded: true}
+	withTestDefaults(t, &cfg)
+	o := testServeOpts(t, cfg, pool)
+	o.WithGateway, o.Getenv = true, env(nil)
+	err := serve(context.Background(), cfg, slog.New(slog.DiscardHandler), pool, nil, fstest.MapFS{}, o)
+	assert.EqualError(t, err, "embedded gateway stopped")
+}
+
+func TestFirstOrganizationRetriesDBErrors(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	ctx := context.Background()
+	var org uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO organization (name) VALUES ('Acme') RETURNING id").Scan(&org))
+	_, err := pool.Exec(ctx, "ALTER TABLE organization RENAME TO organization_away")
+	require.NoError(t, err)
+	logs := &syncBuffer{}
+	got := make(chan uuid.UUID, 1)
+	go func() { got <- firstOrganization(ctx, pool, slog.New(slog.NewTextHandler(logs, nil))) }()
+	require.Eventually(t, func() bool { return strings.Contains(logs.String(), "organization lookup failed") },
+		5*time.Second, 20*time.Millisecond)
+	_, err = pool.Exec(ctx, "ALTER TABLE organization_away RENAME TO organization")
+	require.NoError(t, err)
+	select {
+	case id := <-got:
+		assert.Equal(t, org, id)
+	case <-time.After(5 * time.Second):
+		t.Fatal("firstOrganization did not retry")
+	}
+}
+
+// embeddedSetup is an organization and the server config of an embedded
+// gateway whose server is not started yet.
+func embeddedSetup(t *testing.T) (*pgxpool.Pool, config.Config, *inventory.Gateways) {
+	t.Helper()
+	pool, _ := dbtest.New(t)
+	httpAddr := freeAddr(t)
+	cfg := config.Config{HTTPAddr: httpAddr, PublicURL: "http://" + httpAddr, DataDir: t.TempDir(), WebEmbedded: true}
+	withTestDefaults(t, &cfg)
+	o := testServeOpts(t, cfg, pool)
+	_, err := pool.Exec(context.Background(), "INSERT INTO organization (name) VALUES ('Acme')")
+	require.NoError(t, err)
+	return pool, cfg, inventory.NewGateways(pool, o.CA, o.Box)
+}
+
+func TestEmbeddedGatewayRetriesEnrollment(t *testing.T) {
+	pool, cfg, gws := embeddedSetup(t)
+	logs := &syncBuffer{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		done <- runEmbeddedGateway(ctx, cfg, env(map[string]string{"WERBOT_GATEWAY_SSH_ADDR": "127.0.0.1:0"}), pool, gws,
+			metrics.NewRegistry(), slog.New(slog.NewTextHandler(logs, nil)))
+	}()
+	require.Eventually(t, func() bool { return strings.Contains(logs.String(), "enrollment failed, retrying") },
+		5*time.Second, 20*time.Millisecond, "no server yet")
+
+	startServe(t, cfg, pool, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
+	require.Eventually(t, func() bool { return gateway.Enrolled(filepath.Join(cfg.DataDir, "gateway")) },
+		10*time.Second, 20*time.Millisecond)
+	cancel()
+	select {
+	case err := <-done:
+		assert.NoError(t, err)
+	case <-time.After(15 * time.Second):
+		t.Fatal("embedded gateway did not return within 15s")
+	}
+}
+
+func TestEmbeddedGatewayListenErrorIsFatal(t *testing.T) {
+	pool, cfg, gws := embeddedSetup(t)
+	busy, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer func() { _ = busy.Close() }()
+	err = runEmbeddedGateway(context.Background(), cfg, env(map[string]string{"WERBOT_GATEWAY_SSH_ADDR": busy.Addr().String()}),
+		pool, gws, metrics.NewRegistry(), slog.New(slog.DiscardHandler))
+	assert.ErrorContains(t, err, "gateway ssh listen")
+}
