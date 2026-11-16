@@ -91,7 +91,8 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	fs := flag.NewFlagSet("gateway", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&c.ServerURL, "server", env[envServer], "werbot server URL")
-	fs.StringVar(&c.JoinToken, "join-token", env[envToken], "pool join token")
+	// no env default: --help would print the secret
+	fs.StringVar(&c.JoinToken, "join-token", "", "pool join token (default $"+envToken+")")
 	fs.StringVar(&c.DataDir, "data-dir", orDefault(env[envDataDir], "./gateway-data"), "identity directory")
 	fs.StringVar(&c.SSHAddr, "ssh-addr", orDefault(env[envSSHAddr], ":2222"), "SSH listen address")
 	fs.BoolVar(&c.ProxyProtocol, "proxy-protocol", c.ProxyProtocol, "accept PROXY protocol")
@@ -101,10 +102,17 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	fs.DurationVar(&c.DrainTimeout, "drain-timeout", c.DrainTimeout, "shutdown drain timeout")
 	fs.IntVar(&c.MaxSessions, "max-sessions", c.MaxSessions, "concurrent session limit")
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) { // parse errors are returned, help is printed
+			fs.SetOutput(os.Stderr)
+			fs.Usage()
+		}
 		return c, fmt.Errorf("gateway flags: %w", err)
 	}
 	if fs.NArg() > 0 {
 		return c, fmt.Errorf("unexpected arguments: %q", fs.Args())
+	}
+	if c.JoinToken == "" {
+		c.JoinToken = env[envToken]
 	}
 	if c.Name == "" {
 		return c, fmt.Errorf("%s is empty and the OS hostname is unavailable", envName)

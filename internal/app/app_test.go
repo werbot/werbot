@@ -138,9 +138,9 @@ func TestRunVersion(t *testing.T) {
 
 func TestRunUnknownCommand(t *testing.T) {
 	err := Run(context.Background(), []string{"bogus"}, env(nil), io.Discard)
-	assert.ErrorContains(t, err, "usage: werbot")
+	assert.ErrorContains(t, err, "usage: werbot <server|gateway|web|migrate|version>")
 	err = Run(context.Background(), nil, env(nil), io.Discard)
-	assert.ErrorContains(t, err, "usage: werbot")
+	assert.ErrorContains(t, err, "usage: werbot <server|gateway|web|migrate|version>")
 }
 
 func TestRunServerMissingDatabaseURL(t *testing.T) {

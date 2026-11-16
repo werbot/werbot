@@ -15,12 +15,26 @@ services:
     build:
       context: ../
       dockerfile: deploy/Dockerfile
+    command: ["server", "--with-gateway"]
     environment:
       WERBOT_DATABASE_URL: postgres://werbot:werbot@postgres:5432/werbot?sslmode=disable
       WERBOT_PUBLIC_URL: http://localhost:8080
-      WERBOT_SECRET_KEY: ${WERBOT_SECRET_KEY:?generate with: openssl rand -base64 32}
+      WERBOT_SECRET_KEY: "${WERBOT_SECRET_KEY:?generate with: openssl rand -base64 32}"
+      # distroless :nonroot cannot write to its working directory "/"
+      WERBOT_DATA_DIR: /home/nonroot/data
     ports:
       - "8080:8080"
+      - "8443:8443"
+      - "2222:2222"
+    volumes:
+      - werbot-home:/home/nonroot
+    # WERBOT_GATEWAY_DRAIN_TIMEOUT (30s) + 10s
+    stop_grace_period: 40s
+    ulimits:
+      nofile: 65536
     depends_on:
       postgres:
         condition: service_healthy
+
+volumes:
+  werbot-home:

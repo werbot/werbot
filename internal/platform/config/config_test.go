@@ -151,3 +151,18 @@ func TestLoadInvalidEnv(t *testing.T) {
 	_, err := config.Load(base(map[string]string{"WERBOT_ENV": "staging"}))
 	assert.ErrorContains(t, err, "WERBOT_ENV")
 }
+
+func TestLoadLogging(t *testing.T) {
+	level, format, err := config.LoadLogging(env(nil))
+	require.NoError(t, err)
+	assert.Equal(t, "info", level)
+	assert.Equal(t, "json", format)
+	level, format, err = config.LoadLogging(env(map[string]string{"WERBOT_LOG_LEVEL": "debug", "WERBOT_LOG_FORMAT": "text"}))
+	require.NoError(t, err)
+	assert.Equal(t, "debug", level)
+	assert.Equal(t, "text", format)
+	_, _, err = config.LoadLogging(env(map[string]string{"WERBOT_LOG_LEVEL": "verbose"}))
+	assert.EqualError(t, err, `WERBOT_LOG_LEVEL: unsupported value "verbose"`)
+	_, _, err = config.LoadLogging(env(map[string]string{"WERBOT_LOG_FORMAT": "xml"}))
+	assert.EqualError(t, err, `WERBOT_LOG_FORMAT: unsupported value "xml"`)
+}

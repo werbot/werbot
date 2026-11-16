@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -18,6 +19,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/gateway"
+	_ "github.com/werbot/werbot/internal/gateway/sshconnector" // registers the ssh gateway connector
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/clientip"
@@ -37,7 +40,15 @@ import (
 )
 
 // Run executes the command in args and returns when it is done or ctx ends.
+// A -help flag is not an error.
 func Run(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) error {
+	if err := run(ctx, args, getenv, stdout); !errors.Is(err, flag.ErrHelp) {
+		return err
+	}
+	return nil
+}
+
+func run(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) error {
 	cmd := ""
 	if len(args) > 0 {
 		cmd = args[0]
@@ -52,9 +63,30 @@ func Run(ctx context.Context, args []string, getenv func(string) string, stdout 
 			return err
 		}
 		return webui.Run(ctx, cfg, web.FS(), logging.New(stdout, cfg.LogLevel, cfg.LogFormat))
+	case "gateway":
+		gcfg, err := gateway.LoadConfig(args[1:], getenv)
+		if err != nil {
+			return err
+		}
+		level, format, err := config.LoadLogging(getenv)
+		if err != nil {
+			return err
+		}
+		return gateway.Run(ctx, gcfg, logging.New(stdout, level, format))
 	case "migrate", "server":
 	default:
-		return errors.New("usage: werbot <server|web|migrate|version>")
+		return errors.New("usage: werbot <server|gateway|web|migrate|version>")
+	}
+	var withGateway bool
+	if cmd == "server" {
+		fs := flag.NewFlagSet("server", flag.ContinueOnError)
+		fs.BoolVar(&withGateway, "with-gateway", false, `also run an instance of the system gateway pool "local"`)
+		if err := fs.Parse(args[1:]); err != nil {
+			return err
+		}
+		if fs.NArg() > 0 {
+			return fmt.Errorf("unexpected arguments: %q", fs.Args())
+		}
 	}
 
 	cfg, err := config.Load(getenv)
@@ -82,7 +114,7 @@ func Run(ctx context.Context, args []string, getenv func(string) string, stdout 
 		return err
 	}
 	defer pool.Close()
-	return serve(ctx, cfg, logger, pool, sdk.Modules(), web.FS(), serveOpts{CA: boot.CA, Box: box})
+	return serve(ctx, cfg, logger, pool, sdk.Modules(), web.FS(), serveOpts{CA: boot.CA, Box: box, WithGateway: withGateway, Getenv: getenv})
 }
 
 // host is the Community sdk.Host: no feature is ever entitled.
@@ -96,16 +128,21 @@ func (h host) Handle(pattern string, hd http.Handler) { h.mux.Handle(pattern, hd
 func (host) Entitled(string) bool                     { return false }
 
 // serveOpts are what Run hands serve besides the config: the tunnel CA from
-// bootstrap and the secret box it was opened with.
+// bootstrap, the secret box it was opened with and, for --with-gateway, the
+// environment of the embedded gateway.
 type serveOpts struct {
-	CA  *tlsca.CA
-	Box *secretbox.Box
+	CA          *tlsca.CA
+	Box         *secretbox.Box
+	WithGateway bool
+	Getenv      func(string) string
 }
 
 // serve runs the main HTTP server (and the metrics server when cfg.MetricsAddr
-// is set), the gateway tunnel on cfg.GatewayAddr, the NOTIFY listener and the
-// River client until ctx ends. Then it drains /readyz, closes the tunnel
-// streams, shuts the HTTP servers down and stops River, each within 10s.
+// is set), the gateway tunnel on cfg.GatewayAddr, the NOTIFY listener, the
+// River client and, with o.WithGateway, the embedded gateway until ctx ends.
+// Then it drains /readyz, lets the embedded gateway drain its sessions (it
+// still needs the tunnel), closes the tunnel streams, shuts the HTTP servers
+// down and stops River, each within 10s.
 func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS, o serveOpts) error {
 	turl, err := tunnelURL(cfg.PublicURL, cfg.GatewayAddr)
 	if err != nil {
@@ -190,16 +227,31 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	plane := make(chan error, 1)
 	go func() { plane <- runGatewayPlane(pctx, gln, cfg, s, hub, reg, logger) }()
 	listening := listenNotify(pctx, pool, hub, s.Policy.ReloadGeoIP, logger)
-	logger.Info("server started", "addr", cfg.HTTPAddr, "metrics_addr", cfg.MetricsAddr, "gateway_addr", cfg.GatewayAddr)
+	gctx, gcancel := context.WithCancel(ctx)
+	defer gcancel()
+	embedded := make(chan error, 1)
+	if o.WithGateway {
+		go func() { embedded <- runEmbeddedGateway(gctx, cfg, o.Getenv, pool, s.Gateways, reg, logger) }()
+	}
+	logger.Info("server started", "addr", cfg.HTTPAddr, "metrics_addr", cfg.MetricsAddr, "gateway_addr", cfg.GatewayAddr,
+		"with_gateway", o.WithGateway)
 
-	planeDone := false
+	planeDone, embeddedDone := false, !o.WithGateway
 	select {
 	case err = <-errc:
 	case err = <-plane:
 		planeDone = true
+	case err = <-embedded:
+		embeddedDone = true
 	case <-ctx.Done():
 	}
 	draining.Store(true)
+	gcancel()
+	if !embeddedDone {
+		if gerr := <-embedded; gerr != nil {
+			logger.Error("embedded gateway shutdown", "error", gerr)
+		}
+	}
 	hub.Shutdown()
 	pcancel()
 	sctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)

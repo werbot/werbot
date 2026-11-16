@@ -38,6 +38,15 @@ func TestLoadConfig(t *testing.T) {
 	}
 }
 
+func TestLoadConfigJoinToken(t *testing.T) {
+	c, err := LoadConfig(nil, env(map[string]string{envToken: "from-env"}))
+	require.NoError(t, err)
+	require.Equal(t, "from-env", c.JoinToken)
+	c, err = LoadConfig([]string{"--join-token", "from-flag"}, env(map[string]string{envToken: "from-env"}))
+	require.NoError(t, err)
+	require.Equal(t, "from-flag", c.JoinToken)
+}
+
 func TestConfigVarsMatchLoadConfig(t *testing.T) {
 	var asked []string
 	_, err := LoadConfig(nil, func(k string) string { asked = append(asked, k); return "" })

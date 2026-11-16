@@ -27,9 +27,11 @@ WERBOT_PUBLIC_URL=http://localhost:8080 ./bin/werbot server
 
 `WERBOT_ENV=development` is for local plain-http runs: the session cookie is `werbot_session` without `Secure`, and without SMTP the log shows the full email text with reset and invite links. Production mode uses `__Host-werbot_session` with `Secure`, which browsers drop over plain http on any host but `localhost` (Safari drops it on `localhost` too).
 
-Commands: `./bin/werbot <server|web|migrate|version>`.
+Commands: `./bin/werbot <server|gateway|web|migrate|version>`.
 
 - `server` runs migrations (schema and River job queue) and creates the internal gateway CA on first start, under an advisory lock. Then it serves the API (and the UI when embedded), the gateway tunnel on `WERBOT_GATEWAY_ADDR` and runs the River job client.
+- `server --with-gateway` also runs a gateway instance in the same process. Each replica joins the system pool `local` of the first organization (by creation time) with a single-use system join token; before `Setup` it checks for an organization every 5s. It reaches its own server over loopback (`http://127.0.0.1:<WERBOT_HTTP_ADDR port>`, tunnel `https://127.0.0.1:<WERBOT_GATEWAY_ADDR port>`), keeps its identity in `WERBOT_DATA_DIR/gateway` (or `WERBOT_GATEWAY_DATA_DIR`) and reads the other `WERBOT_GATEWAY_*` variables below; its metrics go to the server's `/metrics`. On shutdown the gateway drains its sessions before the server closes the tunnel.
+- `gateway` runs a standalone gateway instance (`./bin/werbot gateway --help` lists the flags: `--server`, `--join-token`, `--data-dir`, `--ssh-addr`, `--proxy-protocol`, `--name`, `--idle-timeout`, `--http-addr`, `--drain-timeout`, `--max-sessions`).
 - `migrate` runs migrations (schema and River job queue) and exits.
 - `web` serves the UI and proxies the API to a separate `server`.
 - `version` prints the build version.
@@ -118,7 +120,7 @@ export WERBOT_SECRET_KEY="$(openssl rand -base64 32)"  # required; keep the same
 docker compose -f deploy/docker-compose.yaml up --build
 ```
 
-The stack listens on http://localhost:8080 (`/healthz`, `/readyz`).
+The stack runs `werbot server --with-gateway` and listens on http://localhost:8080 (`/healthz`, `/readyz`), SSH on port `2222` (pool `local`, after `Setup`) and the gateway tunnel on port `8443` (for external gateways). State lives in the `werbot-home` volume (`WERBOT_DATA_DIR=/home/nonroot/data`).
 
 ## Development
 

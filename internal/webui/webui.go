@@ -14,7 +14,6 @@ import (
 	"net/http/httputil"
 	"net/netip"
 	"net/url"
-	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -45,8 +44,6 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 	c := Config{
 		Addr:        or(getenv("WERBOT_WEB_ADDR"), ":8090"),
 		APIURL:      strings.TrimSuffix(getenv("WERBOT_WEB_API_URL"), "/"),
-		LogLevel:    or(getenv("WERBOT_LOG_LEVEL"), "info"),
-		LogFormat:   or(getenv("WERBOT_LOG_FORMAT"), "json"),
 		MetricsAddr: getenv("WERBOT_METRICS_ADDR"),
 	}
 	if _, err := parseAPIURL(c.APIURL); err != nil {
@@ -56,12 +53,8 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 	if c.TrustedProxies, err = config.ParseTrustedProxies(getenv("WERBOT_TRUSTED_PROXIES")); err != nil {
 		return Config{}, err
 	}
-	// Same values and messages as config.Load.
-	if !slices.Contains([]string{"debug", "info", "warn", "error"}, c.LogLevel) {
-		return Config{}, fmt.Errorf("WERBOT_LOG_LEVEL: unsupported value %q", c.LogLevel)
-	}
-	if !slices.Contains([]string{"json", "text"}, c.LogFormat) {
-		return Config{}, fmt.Errorf("WERBOT_LOG_FORMAT: unsupported value %q", c.LogFormat)
+	if c.LogLevel, c.LogFormat, err = config.LoadLogging(getenv); err != nil {
+		return Config{}, err
 	}
 	return c, nil
 }

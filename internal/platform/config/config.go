@@ -58,8 +58,6 @@ func Load(getenv func(string) string) (Config, error) {
 		Env:         or(getenv("WERBOT_ENV"), "production"),
 		HTTPAddr:    or(getenv("WERBOT_HTTP_ADDR"), ":8080"),
 		DatabaseURL: getenv("WERBOT_DATABASE_URL"),
-		LogLevel:    or(getenv("WERBOT_LOG_LEVEL"), "info"),
-		LogFormat:   or(getenv("WERBOT_LOG_FORMAT"), "json"),
 		MetricsAddr: getenv("WERBOT_METRICS_ADDR"),
 		WebEmbedded: true,
 		DataDir:     or(getenv("WERBOT_DATA_DIR"), "./data"),
@@ -71,10 +69,8 @@ func Load(getenv func(string) string) (Config, error) {
 	if err := oneOf("WERBOT_ENV", c.Env, "production", "development"); err != nil {
 		return Config{}, err
 	}
-	if err := oneOf("WERBOT_LOG_LEVEL", c.LogLevel, "debug", "info", "warn", "error"); err != nil {
-		return Config{}, err
-	}
-	if err := oneOf("WERBOT_LOG_FORMAT", c.LogFormat, "json", "text"); err != nil {
+	var err error
+	if c.LogLevel, c.LogFormat, err = LoadLogging(getenv); err != nil {
 		return Config{}, err
 	}
 	if v := getenv("WERBOT_WEB_EMBEDDED"); v != "" {
@@ -84,7 +80,6 @@ func Load(getenv func(string) string) (Config, error) {
 		}
 		c.WebEmbedded = b
 	}
-	var err error
 	if c.PublicURL, err = httpURL("WERBOT_PUBLIC_URL", getenv("WERBOT_PUBLIC_URL")); err != nil {
 		return Config{}, err
 	}
@@ -113,6 +108,19 @@ func Load(getenv func(string) string) (Config, error) {
 		}
 	}
 	return c, nil
+}
+
+// LoadLogging reads and validates WERBOT_LOG_LEVEL (debug|info|warn|error,
+// default "info") and WERBOT_LOG_FORMAT (json|text, default "json").
+func LoadLogging(getenv func(string) string) (level, format string, err error) {
+	level, format = or(getenv("WERBOT_LOG_LEVEL"), "info"), or(getenv("WERBOT_LOG_FORMAT"), "json")
+	if err := oneOf("WERBOT_LOG_LEVEL", level, "debug", "info", "warn", "error"); err != nil {
+		return "", "", err
+	}
+	if err := oneOf("WERBOT_LOG_FORMAT", format, "json", "text"); err != nil {
+		return "", "", err
+	}
+	return level, format, nil
 }
 
 // ParseTrustedProxies parses comma-separated CIDRs; empty input gives nil.
