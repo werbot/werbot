@@ -85,8 +85,8 @@ func (g *Gateways) CreateJoinToken(ctx context.Context, gatewayID uuid.UUID, ttl
 	if maxUses == 0 {
 		maxUses = JoinTokenMaxUsesDefault
 	}
-	if ttl < JoinTokenTTLMin || ttl > JoinTokenTTLMax {
-		return uuid.Nil, "", time.Time{}, invalid("join token TTL must be between %v and %v", JoinTokenTTLMin, JoinTokenTTLMax)
+	if ttl < JoinTokenMinTTL || ttl > JoinTokenMaxTTL {
+		return uuid.Nil, "", time.Time{}, invalid("join token TTL must be between %v and %v", JoinTokenMinTTL, JoinTokenMaxTTL)
 	}
 	if maxUses < 1 || maxUses > JoinTokenMaxUsesMax {
 		return uuid.Nil, "", time.Time{}, invalid("join token max uses must be between 1 and %d", JoinTokenMaxUsesMax)

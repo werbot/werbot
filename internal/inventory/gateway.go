@@ -30,8 +30,8 @@ import (
 const (
 	CertTTL                 = 24 * time.Hour
 	JoinTokenTTLDefault     = 24 * time.Hour
-	JoinTokenTTLMin         = time.Hour //nolint:revive // name fixed by contract (stage 5)
-	JoinTokenTTLMax         = 8760 * time.Hour
+	JoinTokenMinTTL         = time.Hour
+	JoinTokenMaxTTL         = 8760 * time.Hour
 	JoinTokenMaxUsesDefault = 10
 	JoinTokenMaxUsesMax     = 1000
 	SystemPoolName          = "local"
