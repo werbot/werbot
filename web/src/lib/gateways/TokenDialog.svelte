@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { durationFromMs } from '@bufbuild/protobuf/wkt';
-	import { Banner, Button, Modal, TextField } from '#lib/ui/index.js';
+	import { Banner, Button, Modal, TextField, toast } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -40,8 +40,12 @@
 	}
 
 	async function copy() {
-		await navigator.clipboard.writeText(command);
-		copied = true;
+		try {
+			await navigator.clipboard.writeText(command);
+			copied = true;
+		} catch {
+			toast({ tone: 'alert', text: m.gateways_copy_failed() });
+		}
 	}
 </script>
 

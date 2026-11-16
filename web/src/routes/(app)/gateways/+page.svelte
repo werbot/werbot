@@ -11,15 +11,17 @@
 	let list = $state<Gateway[]>([]);
 	let name = $state('');
 	let error = $state('');
+	let pollError = $state('');
 	let open = $state('');
-	let confirm = $state<{ title: string; text: string; run: () => Promise<unknown> }>();
+	let confirm = $state<{ title: string; text: string; run: () => Promise<unknown>; precondition?: string }>();
 	let confirming = $state(false);
 
 	async function refresh() {
 		try {
 			({ gateways: list } = await gateways.listGateways({}));
+			pollError = '';
 		} catch (e) {
-			error = errorMessage(e);
+			pollError = errorMessage(e);
 		}
 	}
 
@@ -35,8 +37,8 @@
 		}
 	}
 
-	function ask(title: string, text: string, run: () => Promise<unknown>) {
-		confirm = { title, text, run };
+	function ask(title: string, text: string, run: () => Promise<unknown>, precondition?: string) {
+		confirm = { title, text, run, precondition };
 		confirming = true;
 	}
 
@@ -47,7 +49,7 @@
 			toast({ tone: 'success', text: m.common_saved() });
 			await refresh();
 		} catch (e) {
-			error = ConnectError.from(e).code === Code.FailedPrecondition ? m.gateways_delete_has_resources() : errorMessage(e);
+			error = confirm?.precondition && ConnectError.from(e).code === Code.FailedPrecondition ? confirm.precondition : errorMessage(e);
 		}
 		confirming = false;
 	}
@@ -60,7 +62,7 @@
 </script>
 
 <h1>{m.gateways_title()}</h1>
-{#if error}<Banner tone="alert">{error}</Banner>{/if}
+{#if error || pollError}<Banner tone="alert">{error || pollError}</Banner>{/if}
 
 <form class="create" onsubmit={create}>
 	<TextField label={m.gateways_name_label()} bind:value={name} required maxlength={63} />
@@ -83,7 +85,13 @@
 			<Button
 				scheme="w"
 				variant="plain"
-				onclick={() => ask(m.gateways_delete(), m.gateways_delete_confirm(), () => gateways.deleteGateway({ id: pool.id }))}
+				onclick={() =>
+					ask(
+						m.gateways_delete(),
+						m.gateways_delete_confirm(),
+						() => gateways.deleteGateway({ id: pool.id }),
+						m.gateways_delete_has_resources()
+					)}
 			>
 				{m.gateways_delete()}
 			</Button>

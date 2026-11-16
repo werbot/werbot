@@ -6,8 +6,10 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Button, Select, TextField } from '#lib/ui/index.js';
+	import { Code, ConnectError } from '@connectrpc/connect';
+	import { Banner, Button, Select, TextField } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
+	import { errorMessage } from '#lib/errors.js';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -32,6 +34,8 @@
 	// svelte-ignore state_referenced_locally
 	let gatewayId = $state(initial?.gatewayId ?? '');
 	let pools = $state<Gateway[]>([]);
+	let loaded = $state(false);
+	let poolError = $state('');
 	let value = $state.raw<ConfigValue>({});
 
 	let type = $derived(types.find((t) => t.name === typeName));
@@ -42,9 +46,11 @@
 		try {
 			({ gateways: pools } = await gateways.listGateways({}));
 			if (!gatewayId) gatewayId = pools[0]?.id ?? '';
-		} catch {
-			// no pool list: the server falls back to its default pool
+		} catch (e) {
+			// members may lack the role: the server then picks the pool
+			if (ConnectError.from(e).code !== Code.PermissionDenied) poolError = errorMessage(e);
 		}
+		loaded = true;
 	});
 
 	function submit(e: SubmitEvent) {
@@ -65,6 +71,7 @@
 			bind:value={typeName}
 		/>
 	{/if}
+	{#if poolError}<Banner tone="alert">{poolError}</Banner>{/if}
 	{#if pools.length > 1}
 		<Select label={m.resources_gateway_label()} options={pools.map((p) => ({ value: p.id, label: p.name }))} bind:value={gatewayId} />
 	{/if}
@@ -74,7 +81,7 @@
 		{/key}
 	{/if}
 	<LabelsEditor bind:rows />
-	<div><Button type="submit" variant="solid" disabled={!valid}>{m.resources_save()}</Button></div>
+	<div><Button type="submit" variant="solid" disabled={!valid || !loaded}>{m.resources_save()}</Button></div>
 </form>
 
 <style>

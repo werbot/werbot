@@ -24,6 +24,7 @@ export default defineConfig({
 			WERBOT_PUBLIC_URL: 'http://127.0.0.1:18080',
 			WERBOT_DATABASE_URL: dbURL,
 			WERBOT_SECRET_KEY: 'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=',
+			HTTPS_PROXY: 'http://127.0.0.1:9', // feed jobs fail fast; loopback is never proxied
 			WERBOT_LOG_FORMAT: 'json' // SMTP unset: LogMailer prints emails to the log
 		}
 	}

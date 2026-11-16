@@ -173,7 +173,6 @@
 	"gateways_name_label": "Pool name",
 	"gateways_online": "Online",
 	"gateways_offline": "Offline",
-	"gateways_connectors": "Connectors",
 	"gateways_delete": "Delete pool",
 	"gateways_delete_confirm": "Delete this pool? Its instances and join tokens are removed.",
 	"gateways_delete_has_resources": "The pool still has resources. Move or delete them first.",
@@ -201,6 +200,7 @@
 	"gateways_token_col_uses": "Uses",
 	"gateways_copy": "Copy",
 	"gateways_copied": "Copied",
+	"gateways_copy_failed": "Copy failed, select the command and copy it",
 	"resources_gateway_label": "Gateway pool",
 	"resources_connect_hint_terminal": "ssh {login}+{resource}@<gateway-host>",
 	"resources_connect_hint_stream": "ssh -L <local-port>:<host>:<port> {login}+{resource}@<gateway-host>"
