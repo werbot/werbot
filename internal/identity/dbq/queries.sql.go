@@ -13,6 +13,36 @@ import (
 	"github.com/google/uuid"
 )
 
+const consumeOneTimeToken = `-- name: ConsumeOneTimeToken :one
+UPDATE one_time_token SET used_at = now()
+WHERE token_hash = $1 AND kind = $2 AND used_at IS NULL AND expires_at > now()
+RETURNING org_id, user_id, email, role
+`
+
+type ConsumeOneTimeTokenParams struct {
+	TokenHash []byte
+	Kind      string
+}
+
+type ConsumeOneTimeTokenRow struct {
+	OrgID  *uuid.UUID
+	UserID *uuid.UUID
+	Email  *string
+	Role   *string
+}
+
+func (q *Queries) ConsumeOneTimeToken(ctx context.Context, arg ConsumeOneTimeTokenParams) (ConsumeOneTimeTokenRow, error) {
+	row := q.db.QueryRow(ctx, consumeOneTimeToken, arg.TokenHash, arg.Kind)
+	var i ConsumeOneTimeTokenRow
+	err := row.Scan(
+		&i.OrgID,
+		&i.UserID,
+		&i.Email,
+		&i.Role,
+	)
+	return i, err
+}
+
 const createMembership = `-- name: CreateMembership :exec
 INSERT INTO membership (org_id, user_id, role) VALUES ($1, $2, $3)
 `
@@ -25,6 +55,34 @@ type CreateMembershipParams struct {
 
 func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipParams) error {
 	_, err := q.db.Exec(ctx, createMembership, arg.OrgID, arg.UserID, arg.Role)
+	return err
+}
+
+const createOneTimeToken = `-- name: CreateOneTimeToken :exec
+INSERT INTO one_time_token (token_hash, kind, org_id, user_id, email, role, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, now() + make_interval(secs => $7::float8))
+`
+
+type CreateOneTimeTokenParams struct {
+	TokenHash  []byte
+	Kind       string
+	OrgID      *uuid.UUID
+	UserID     *uuid.UUID
+	Email      *string
+	Role       *string
+	TtlSeconds float64
+}
+
+func (q *Queries) CreateOneTimeToken(ctx context.Context, arg CreateOneTimeTokenParams) error {
+	_, err := q.db.Exec(ctx, createOneTimeToken,
+		arg.TokenHash,
+		arg.Kind,
+		arg.OrgID,
+		arg.UserID,
+		arg.Email,
+		arg.Role,
+		arg.TtlSeconds,
+	)
 	return err
 }
 
@@ -102,6 +160,15 @@ func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) er
 	return err
 }
 
+const deleteUserSessions = `-- name: DeleteUserSessions :exec
+DELETE FROM user_session WHERE user_id = $1
+`
+
+func (q *Queries) DeleteUserSessions(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUserSessions, userID)
+	return err
+}
+
 const extendSession = `-- name: ExtendSession :exec
 UPDATE user_session SET last_seen_at = now(), expires_at = now() + interval '7 days'
 WHERE id = $1 AND org_id = $2
@@ -136,6 +203,28 @@ func (q *Queries) GetLoginUser(ctx context.Context, email string) (GetLoginUserR
 	row := q.db.QueryRow(ctx, getLoginUser, email)
 	var i GetLoginUserRow
 	err := row.Scan(&i.ID, &i.PasswordHash, &i.OrgID)
+	return i, err
+}
+
+const getResetUser = `-- name: GetResetUser :one
+SELECT u.id, u.name, m.org_id
+FROM users u LEFT JOIN membership m ON m.user_id = u.id
+WHERE lower(u.email) = $1
+ORDER BY m.created_at
+LIMIT 1
+`
+
+type GetResetUserRow struct {
+	ID    uuid.UUID
+	Name  string
+	OrgID *uuid.UUID
+}
+
+// The audit event of a reset goes to the user's first organization, if any.
+func (q *Queries) GetResetUser(ctx context.Context, email string) (GetResetUserRow, error) {
+	row := q.db.QueryRow(ctx, getResetUser, email)
+	var i GetResetUserRow
+	err := row.Scan(&i.ID, &i.Name, &i.OrgID)
 	return i, err
 }
 
@@ -205,6 +294,17 @@ func (q *Queries) GetSessionInfo(ctx context.Context, arg GetSessionInfoParams) 
 	return i, err
 }
 
+const getUserOrg = `-- name: GetUserOrg :one
+SELECT org_id FROM membership WHERE user_id = $1 ORDER BY created_at LIMIT 1
+`
+
+func (q *Queries) GetUserOrg(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getUserOrg, userID)
+	var org_id uuid.UUID
+	err := row.Scan(&org_id)
+	return org_id, err
+}
+
 const hasUsers = `-- name: HasUsers :one
 SELECT EXISTS (SELECT 1 FROM users)
 `
@@ -222,5 +322,19 @@ SELECT pg_advisory_xact_lock($1::bigint)
 
 func (q *Queries) LockSetup(ctx context.Context, key int64) error {
 	_, err := q.db.Exec(ctx, lockSetup, key)
+	return err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2
+`
+
+type UpdateUserPasswordParams struct {
+	PasswordHash string
+	ID           uuid.UUID
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.Exec(ctx, updateUserPassword, arg.PasswordHash, arg.ID)
 	return err
 }

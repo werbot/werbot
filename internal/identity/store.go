@@ -21,4 +21,10 @@ type Store interface {
 	ExtendSession(ctx context.Context, arg dbq.ExtendSessionParams) error
 	DeleteSession(ctx context.Context, arg dbq.DeleteSessionParams) error
 	GetSessionInfo(ctx context.Context, arg dbq.GetSessionInfoParams) (dbq.GetSessionInfoRow, error)
+	CreateOneTimeToken(ctx context.Context, arg dbq.CreateOneTimeTokenParams) error
+	ConsumeOneTimeToken(ctx context.Context, arg dbq.ConsumeOneTimeTokenParams) (dbq.ConsumeOneTimeTokenRow, error)
+	GetResetUser(ctx context.Context, email string) (dbq.GetResetUserRow, error)
+	UpdateUserPassword(ctx context.Context, arg dbq.UpdateUserPasswordParams) error
+	GetUserOrg(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
+	DeleteUserSessions(ctx context.Context, userID uuid.UUID) error
 }

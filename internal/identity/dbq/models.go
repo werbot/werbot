@@ -31,6 +31,18 @@ type Membership struct {
 	CreatedAt time.Time
 }
 
+type OneTimeToken struct {
+	TokenHash []byte
+	Kind      string
+	OrgID     *uuid.UUID
+	UserID    *uuid.UUID
+	Email     *string
+	Role      *string
+	ExpiresAt time.Time
+	UsedAt    *time.Time
+	CreatedAt time.Time
+}
+
 type Organization struct {
 	ID        uuid.UUID
 	Name      string

@@ -66,13 +66,13 @@ func get(t *testing.T, url string) (int, string) {
 
 // startServe runs serve in a goroutine, waits for /healthz and returns a stop
 // func that cancels ctx and asserts serve returns nil within 10s.
-func startServe(t *testing.T, cfg config.Config, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS) (stop func()) {
+func startServe(t *testing.T, cfg config.Config, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS, logger *slog.Logger) (stop func()) {
 	t.Helper()
 	withSecretKey(&cfg)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
-		done <- serve(ctx, cfg, slog.New(slog.DiscardHandler), pool, modules, ui)
+		done <- serve(ctx, cfg, logger, pool, modules, ui)
 	}()
 	require.Eventually(t, func() bool {
 		res, err := http.Get("http://" + cfg.HTTPAddr + "/healthz")
@@ -258,7 +258,7 @@ func TestBootstrapLockWaitCanceled(t *testing.T) {
 func TestServeHealthVersionShutdown(t *testing.T) {
 	pool, _ := dbtest.New(t)
 	cfg := config.Config{HTTPAddr: freeAddr(t), WebEmbedded: true}
-	stop := startServe(t, cfg, pool, nil, fstest.MapFS{})
+	stop := startServe(t, cfg, pool, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
 
 	code, body := get(t, "http://"+cfg.HTTPAddr+"/readyz")
 	assert.Equal(t, http.StatusOK, code)
@@ -274,7 +274,7 @@ func TestServeHealthVersionShutdown(t *testing.T) {
 func TestServeMetrics(t *testing.T) {
 	pool, _ := dbtest.New(t)
 	cfg := config.Config{HTTPAddr: freeAddr(t), MetricsAddr: freeAddr(t), WebEmbedded: true}
-	startServe(t, cfg, pool, nil, fstest.MapFS{})
+	startServe(t, cfg, pool, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
 
 	var (
 		code       int
@@ -307,7 +307,7 @@ func TestServeSkipsUnentitledModule(t *testing.T) {
 		{Name: "paid", Feature: "saml", Init: func(_ context.Context, h sdk.Host) error { h.Handle("/x/paid", ok); return nil }},
 	}
 	cfg := config.Config{HTTPAddr: freeAddr(t), WebEmbedded: true}
-	startServe(t, cfg, pool, modules, fstest.MapFS{})
+	startServe(t, cfg, pool, modules, fstest.MapFS{}, slog.New(slog.DiscardHandler))
 
 	code, _ := get(t, "http://"+cfg.HTTPAddr+"/x/free")
 	assert.Equal(t, http.StatusOK, code)
@@ -333,14 +333,14 @@ func TestServeWebNotEmbedded(t *testing.T) {
 	ui := fstest.MapFS{"index.html": {Data: []byte("<html>app</html>")}}
 
 	cfg := config.Config{HTTPAddr: freeAddr(t), WebEmbedded: true}
-	stop := startServe(t, cfg, pool, nil, ui)
+	stop := startServe(t, cfg, pool, nil, ui, slog.New(slog.DiscardHandler))
 	code, body := getHTML(t, "http://"+cfg.HTTPAddr+"/")
 	assert.Equal(t, http.StatusOK, code)
 	assert.Equal(t, "<html>app</html>", body)
 	stop()
 
 	cfg = config.Config{HTTPAddr: freeAddr(t), WebEmbedded: false}
-	startServe(t, cfg, pool, nil, ui)
+	startServe(t, cfg, pool, nil, ui, slog.New(slog.DiscardHandler))
 	code, _ = getHTML(t, "http://"+cfg.HTTPAddr+"/")
 	assert.Equal(t, http.StatusNotFound, code)
 	code, _ = get(t, "http://"+cfg.HTTPAddr+"/healthz")

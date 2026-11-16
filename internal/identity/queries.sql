@@ -46,3 +46,29 @@ FROM membership m
 JOIN users u ON u.id = m.user_id
 JOIN organization o ON o.id = m.org_id
 WHERE m.org_id = @org_id AND m.user_id = @user_id;
+
+-- name: CreateOneTimeToken :exec
+INSERT INTO one_time_token (token_hash, kind, org_id, user_id, email, role, expires_at)
+VALUES (@token_hash, @kind, @org_id, @user_id, @email, @role, now() + make_interval(secs => @ttl_seconds::float8));
+
+-- name: ConsumeOneTimeToken :one
+UPDATE one_time_token SET used_at = now()
+WHERE token_hash = @token_hash AND kind = @kind AND used_at IS NULL AND expires_at > now()
+RETURNING org_id, user_id, email, role;
+
+-- name: GetResetUser :one
+-- The audit event of a reset goes to the user's first organization, if any.
+SELECT u.id, u.name, m.org_id
+FROM users u LEFT JOIN membership m ON m.user_id = u.id
+WHERE lower(u.email) = @email
+ORDER BY m.created_at
+LIMIT 1;
+
+-- name: UpdateUserPassword :exec
+UPDATE users SET password_hash = @password_hash, updated_at = now() WHERE id = @id;
+
+-- name: GetUserOrg :one
+SELECT org_id FROM membership WHERE user_id = @user_id ORDER BY created_at LIMIT 1;
+
+-- name: DeleteUserSessions :exec
+DELETE FROM user_session WHERE user_id = @user_id;

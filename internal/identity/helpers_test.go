@@ -43,7 +43,7 @@ func (q *fakeQueue) EnqueueTx(_ context.Context, _ pgx.Tx, to, template string, 
 	return nil
 }
 
-func newTestService(t *testing.T) (*Service, *pgxpool.Pool, *fakeQueue) { //nolint:unparam // the queue is asserted by the email use cases (invite, password reset)
+func newTestService(t *testing.T) (*Service, *pgxpool.Pool, *fakeQueue) {
 	t.Helper()
 	pool, _ := dbtest.New(t)
 	q := &fakeQueue{}
@@ -72,7 +72,7 @@ func seedUser(t *testing.T, pool *pgxpool.Pool, orgID uuid.UUID, login, role str
 }
 
 // loginCtx logs login in and returns a context carrying its principal and the session token.
-func loginCtx(t *testing.T, svc *Service, login string) (context.Context, string) {
+func loginCtx(t *testing.T, svc *Service, login string) (context.Context, string) { //nolint:unparam // later tasks log in other users
 	t.Helper()
 	ctx := context.Background()
 	token, err := svc.Login(ctx, login+"@example.com", testPassword, "test")

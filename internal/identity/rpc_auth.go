@@ -72,3 +72,19 @@ func (h *Handler) GetSession(ctx context.Context, _ *connect.Request[werbotv1.Ge
 		Role:         roleToProto(info.Role),
 	}), nil
 }
+
+// RequestPasswordReset is public and answers the same for known and unknown emails.
+func (h *Handler) RequestPasswordReset(ctx context.Context, req *connect.Request[werbotv1.RequestPasswordResetRequest]) (*connect.Response[werbotv1.RequestPasswordResetResponse], error) {
+	if err := h.svc.RequestPasswordReset(ctx, req.Msg.GetEmail()); err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.RequestPasswordResetResponse{}), nil
+}
+
+// ResetPassword is public: the one-time token is the credential.
+func (h *Handler) ResetPassword(ctx context.Context, req *connect.Request[werbotv1.ResetPasswordRequest]) (*connect.Response[werbotv1.ResetPasswordResponse], error) {
+	if err := h.svc.ResetPassword(ctx, req.Msg.GetToken(), req.Msg.GetNewPassword()); err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.ResetPasswordResponse{}), nil
+}

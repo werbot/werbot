@@ -11,9 +11,12 @@ import (
 	"net/netip"
 	"net/url"
 	"slices"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -59,7 +62,7 @@ func TestServeAuthFlow(t *testing.T) {
 	pool, _ := dbtest.New(t)
 	// development: cookie without Secure, which the jar sends over plain http.
 	cfg := config.Config{HTTPAddr: freeAddr(t), Env: "development", WebEmbedded: true}
-	startServe(t, cfg, pool, nil, fstest.MapFS{})
+	startServe(t, cfg, pool, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
 	hc, _ := jarClient(t, http.DefaultTransport)
 	auth := werbotv1connect.NewAuthServiceClient(hc, "http://"+cfg.HTTPAddr)
 	ctx := context.Background()
@@ -116,7 +119,7 @@ func TestWebLoginThroughProxy(t *testing.T) {
 
 	pool, _ := dbtest.New(t)
 	cfg := config.Config{HTTPAddr: freeAddr(t), Env: "development", WebEmbedded: false, TrustedProxies: loopback}
-	startServe(t, cfg, pool, nil, fstest.MapFS{})
+	startServe(t, cfg, pool, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
 	auth, jar, webURL := webClient(t, cfg.HTTPAddr)
 
 	_, err := auth.Setup(ctx, connect.NewRequest(ownerSetup))
@@ -144,7 +147,7 @@ func TestWebLoginThroughProxy(t *testing.T) {
 	// Server without web's subnet in WERBOT_TRUSTED_PROXIES sees web's own address.
 	pool2, _ := dbtest.New(t)
 	cfg2 := config.Config{HTTPAddr: freeAddr(t), Env: "development", WebEmbedded: false}
-	startServe(t, cfg2, pool2, nil, fstest.MapFS{})
+	startServe(t, cfg2, pool2, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
 	auth2, _, _ := webClient(t, cfg2.HTTPAddr)
 	_, err = auth2.Setup(ctx, connect.NewRequest(ownerSetup))
 	require.NoError(t, err)
@@ -166,4 +169,69 @@ func TestLogInternalErrors(t *testing.T) {
 	call(apperr.ToConnect(errors.New("db exploded")))
 	assert.Contains(t, logs.String(), "rpc failed")
 	assert.Contains(t, logs.String(), "db exploded")
+}
+
+// syncBuffer is a log sink safe for serve's goroutines and the test.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+func TestServeResetEmailArgsAreSealed(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	cfg := config.Config{HTTPAddr: freeAddr(t), Env: "development", WebEmbedded: true}
+	startServe(t, cfg, pool, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
+	auth := werbotv1connect.NewAuthServiceClient(http.DefaultClient, "http://"+cfg.HTTPAddr)
+	ctx := context.Background()
+
+	_, err := auth.Setup(ctx, connect.NewRequest(ownerSetup))
+	require.NoError(t, err)
+	_, err = auth.RequestPasswordReset(ctx, connect.NewRequest(&werbotv1.RequestPasswordResetRequest{Email: ownerSetup.GetEmail()}))
+	require.NoError(t, err)
+
+	var args string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT args::text FROM river_job WHERE kind = 'send_email'").Scan(&args))
+	assert.NotContains(t, args, "reset-password/")
+}
+
+func TestServeResetLinkUsesWebURL(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	cfg := config.Config{
+		HTTPAddr: freeAddr(t), Env: "development", WebEmbedded: true,
+		PublicURL: "http://api.werbot.test", WebURL: "http://ui.werbot.test",
+	}
+	logs := &syncBuffer{}
+	startServe(t, cfg, pool, nil, fstest.MapFS{}, slog.New(slog.NewTextHandler(logs, nil)))
+	auth := werbotv1connect.NewAuthServiceClient(http.DefaultClient, "http://"+cfg.HTTPAddr)
+	ctx := context.Background()
+
+	_, err := auth.Setup(ctx, connect.NewRequest(ownerSetup))
+	require.NoError(t, err)
+	_, err = auth.RequestPasswordReset(ctx, connect.NewRequest(&werbotv1.RequestPasswordResetRequest{Email: ownerSetup.GetEmail()}))
+	require.NoError(t, err)
+
+	var line string
+	require.Eventually(t, func() bool {
+		for l := range strings.SplitSeq(logs.String(), "\n") {
+			if strings.Contains(l, "email (log mailer)") {
+				line = l
+				return true
+			}
+		}
+		return false
+	}, 10*time.Second, 50*time.Millisecond)
+	assert.Contains(t, line, "http://ui.werbot.test/reset-password/")
+	assert.NotContains(t, line, "api.werbot.test")
 }

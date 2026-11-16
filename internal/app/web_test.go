@@ -24,7 +24,7 @@ import (
 func TestWebProxiesGetVersion(t *testing.T) {
 	pool, _ := dbtest.New(t)
 	scfg := config.Config{HTTPAddr: freeAddr(t), WebEmbedded: false}
-	stopServer := startServe(t, scfg, pool, nil, fstest.MapFS{})
+	stopServer := startServe(t, scfg, pool, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
 
 	ui := fstest.MapFS{"index.html": {Data: []byte("<html>app</html>")}}
 	wcfg := webui.Config{Addr: freeAddr(t), APIURL: "http://" + scfg.HTTPAddr}
