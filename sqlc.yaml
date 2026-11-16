@@ -9,7 +9,7 @@ sql:
         out: internal/identity/dbq
         sql_package: pgx/v5
         emit_pointers_for_null_types: true
-        overrides:
+        overrides: &overrides
           - db_type: uuid
             go_type: github.com/google/uuid.UUID
           - db_type: uuid
@@ -25,3 +25,13 @@ sql:
             go_type:
               type: time.Time
               pointer: true
+  - engine: postgresql
+    schema: migrations
+    queries: internal/inventory/queries.sql
+    gen:
+      go:
+        package: dbq
+        out: internal/inventory/dbq
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+        overrides: *overrides
