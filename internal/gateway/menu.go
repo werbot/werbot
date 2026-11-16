@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -46,9 +47,19 @@ func (h *sshHandler) menu(s ssh.Session, u User) (string, int) {
 	return rs[n-1].Name, 0
 }
 
+// errMenuInputTooLong ends a menu whose input filled term.Terminal's buffer.
+var errMenuInputTooLong = errors.New("menu input too long")
+
 // byteReader reads one byte at a time, so term.Terminal never buffers bytes
 // past the selected line: the input typed after it reaches the connector. A
-// client that ends the line with CRLF passes the LF to the target.
+// client that ends the line with CRLF passes the LF to the target. An escape
+// sequence that never completes fills the buffer, and term then reads into an
+// empty slice; an SSH channel returns 0, nil for it, so ReadLine would spin.
 type byteReader struct{ io.ReadWriter }
 
-func (r byteReader) Read(p []byte) (int, error) { return r.ReadWriter.Read(p[:min(len(p), 1)]) }
+func (r byteReader) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, errMenuInputTooLong
+	}
+	return r.ReadWriter.Read(p[:1])
+}

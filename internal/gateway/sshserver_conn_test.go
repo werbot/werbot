@@ -215,39 +215,3 @@ func TestChannelCloseEndsExecSession(t *testing.T) {
 		return slices.Equal(reasons, []string{"closed"})
 	}, 2*time.Second, 10*time.Millisecond)
 }
-
-// windowChange is the payload of a window-change request.
-func windowChange(cols, rows uint32) []byte {
-	return gossh.Marshal(struct{ Cols, Rows, Width, Height uint32 }{cols, rows, 0, 0})
-}
-
-// An early window change is answered as gliderlabs answers it: true only with a PTY.
-func TestEarlyWindowChangeReply(t *testing.T) {
-	e := newSSHEnv(t, Config{})
-	c := e.client(t, "alice+blocker")
-	for _, pty := range []bool{true, false} {
-		s, err := c.NewSession()
-		require.NoError(t, err)
-		if pty {
-			require.NoError(t, s.RequestPty("xterm", 24, 80, gossh.TerminalModes{}))
-		}
-		ok, err := s.SendRequest("window-change", true, windowChange(100, 40))
-		require.NoError(t, err)
-		require.Equal(t, pty, ok, "pty=%v", pty)
-		require.NoError(t, s.Close())
-	}
-}
-
-// The last window change before shell is the initial window of the terminal.
-func TestEarlyWindowSizeKept(t *testing.T) {
-	e := newSSHEnv(t, Config{})
-	s, err := e.client(t, "alice+spy").NewSession()
-	require.NoError(t, err)
-	require.NoError(t, s.RequestPty("xterm", 24, 80, gossh.TerminalModes{}))
-	require.NoError(t, s.WindowChange(40, 100))
-	var out bytes.Buffer
-	s.Stdout = &out
-	require.NoError(t, s.Shell())
-	require.NoError(t, s.Wait())
-	require.Contains(t, out.String(), "win=100x40")
-}

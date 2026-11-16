@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/binary"
 	"net"
 	"sync/atomic"
 	"time"
@@ -54,9 +55,20 @@ type channelContext struct {
 	window atomic.Pointer[Window] // the last window change before shell or exec
 }
 
+func newChannelContext(ctx ssh.Context) *channelContext {
+	c := &channelContext{Context: ctx}
+	c.done, c.cancel = context.WithCancel(ctx)
+	return c
+}
+
 func (c *channelContext) Deadline() (time.Time, bool) { return c.done.Deadline() }
 func (c *channelContext) Done() <-chan struct{}       { return c.done.Done() }
 func (c *channelContext) Err() error                  { return c.done.Err() }
+
+// Value goes through the channel's cancel context, so a derived context finds
+// it (context.Cause is per channel); other keys reach the connection's values,
+// SetValue included.
+func (c *channelContext) Value(k any) any { return c.done.Value(k) }
 
 // earlyWindow is the last window change sent before shell or exec, nil when none.
 func earlyWindow(ctx ssh.Context) *Window {
@@ -73,8 +85,7 @@ func earlyWindow(ctx ssh.Context) *Window {
 // forever, even after the connection closes. The session gets a context canceled
 // when its channel closes, with or without a PTY.
 func sessionChannel(srv *ssh.Server, conn *gossh.ServerConn, nc gossh.NewChannel, ctx ssh.Context) {
-	cctx := &channelContext{Context: ctx}
-	cctx.done, cctx.cancel = context.WithCancel(ctx)
+	cctx := newChannelContext(ctx)
 	ssh.DefaultSessionHandler(srv, conn, earlyWindowFilter{nc, cctx}, cctx)
 }
 
@@ -116,14 +127,17 @@ func (f earlyWindowFilter) Accept() (gossh.Channel, <-chan *gossh.Request, error
 }
 
 // earlyWindowChange keeps the size of a window change sent before shell or exec
-// and answers it. Replies go in request order, so before replying it hands
+// and answers it. Like gliderlabs, it reads cols and rows from the first 8 bytes. Replies go in request order, so before replying it hands
 // gliderlabs a sentinel: once gliderlabs takes it, every earlier request is
 // answered (the sentinel wants no reply, so gliderlabs answers it with nothing).
 func (f earlyWindowFilter) earlyWindowChange(req *gossh.Request, sawPty bool, out chan<- *gossh.Request) {
-	var w struct{ Cols, Rows, Width, Height uint32 }
-	ok := sawPty && gossh.Unmarshal(req.Payload, &w) == nil && w.Cols > 0 && w.Rows > 0
+	var cols, rows uint32
+	if p := req.Payload; len(p) >= 8 {
+		cols, rows = binary.BigEndian.Uint32(p), binary.BigEndian.Uint32(p[4:])
+	}
+	ok := sawPty && cols > 0 && rows > 0
 	if ok {
-		f.ctx.window.Store(&Window{Cols: int(w.Cols), Rows: int(w.Rows)})
+		f.ctx.window.Store(&Window{Cols: int(cols), Rows: int(rows)})
 	}
 	if req.WantReply {
 		out <- &gossh.Request{Type: "werbot-sync"}

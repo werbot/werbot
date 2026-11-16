@@ -136,7 +136,11 @@ func menu(t *testing.T, c *gossh.Client, input string) (string, int) {
 		_, err = io.WriteString(in, input)
 		require.NoError(t, err)
 		require.NoError(t, in.Close()) // EOF after the input: a menu that waits for more ends
-		waitErr = <-done
+		select {
+		case waitErr = <-done:
+		case <-time.After(2 * time.Second):
+			t.Fatalf("the menu did not end after input %q", input)
+		}
 	}
 	return out.String(), exitCode(t, waitErr)
 }
@@ -176,4 +180,14 @@ func TestMenuKeepsTypeahead(t *testing.T) {
 	out, code := menu(t, e.client(t, "alice"), "1\rhello\r")
 	require.Contains(t, out, `typed="hello\r"`)
 	require.Equal(t, 0, code)
+}
+
+// An escape sequence that never completes fills term.Terminal's buffer; the
+// menu ends instead of spinning on empty reads.
+func TestMenuEndsOnOverlongInput(t *testing.T) {
+	e := newSSHEnv(t, Config{})
+	out, code := menu(t, e.client(t, "alice"), "\x1b"+strings.Repeat("1", 300))
+	require.Contains(t, out, "Bye\r\n")
+	require.Equal(t, 0, code)
+	require.Zero(t, e.startCalls())
 }
