@@ -35,10 +35,12 @@ type Hub struct {
 	backoff map[uuid.UUID]time.Duration        // org -> next retry delay after a failed build
 }
 
-// Refresh limits: one organization's refresh deadline and the longest build retry delay.
+// Refresh limits: one organization's refresh deadline, the longest build retry
+// delay and how many organizations a "*" refresh rebuilds at once.
 const (
-	refreshTimeout = 10 * time.Second
-	maxRetryDelay  = 30 * time.Second
+	refreshTimeout  = 10 * time.Second
+	maxRetryDelay   = 30 * time.Second
+	refreshParallel = 8
 )
 
 // NewHub returns an empty hub; New attaches it to a handler.
@@ -98,11 +100,12 @@ func (h *Hub) Shutdown() {
 }
 
 // arm starts the refresh timer of key unless one is already pending. A retry
-// waits debounce, then twice as long after each failure, up to maxRetryDelay.
+// waits debounce, then twice as long after each failure, up to maxRetryDelay;
+// it is dropped once the organization has no streams left.
 func (h *Hub) arm(key uuid.UUID, retry bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if h.closed || h.timers[key] != nil {
+	if h.closed || h.timers[key] != nil || retry && h.streams[key] == nil {
 		return
 	}
 	delay := h.debounce
@@ -113,8 +116,9 @@ func (h *Hub) arm(key uuid.UUID, retry bool) {
 	h.timers[key] = time.AfterFunc(delay, func() { h.refresh(key) })
 }
 
-// refresh re-authenticates and re-snapshots the streams of key; an
-// organization whose build failed is re-armed, so it never keeps a stale snapshot.
+// refresh re-authenticates and re-snapshots the streams of key, up to
+// refreshParallel organizations at once; an organization whose build failed
+// is re-armed, so it never keeps a stale snapshot.
 func (h *Hub) refresh(key uuid.UUID) {
 	h.mu.Lock()
 	delete(h.timers, key)
@@ -129,18 +133,25 @@ func (h *Hub) refresh(key uuid.UUID) {
 	}
 	h.mu.Unlock()
 	gen := h.gen.Add(1)
+	sem := make(chan struct{}, refreshParallel)
+	var wg sync.WaitGroup
 	for org, ss := range byOrg {
-		ctx, cancel := context.WithTimeout(h.ctx, refreshTimeout)
-		ok := hd.refreshOrg(ctx, org, ss, gen)
-		cancel()
-		if !ok {
-			h.arm(org, true)
-			continue
-		}
-		h.mu.Lock()
-		delete(h.backoff, org)
-		h.mu.Unlock()
+		sem <- struct{}{}
+		wg.Go(func() {
+			defer func() { <-sem }()
+			ctx, cancel := context.WithTimeout(h.ctx, refreshTimeout)
+			ok := hd.refreshOrg(ctx, org, ss, gen)
+			cancel()
+			if !ok {
+				h.arm(org, true)
+				return
+			}
+			h.mu.Lock()
+			delete(h.backoff, org)
+			h.mu.Unlock()
+		})
 	}
+	wg.Wait()
 }
 
 func (h *Hub) register(g Gateway, serial string) (*stream, error) {
@@ -163,6 +174,7 @@ func (h *Hub) unregister(s *stream) {
 	delete(h.streams[s.gw.OrgID], s)
 	if len(h.streams[s.gw.OrgID]) == 0 {
 		delete(h.streams, s.gw.OrgID)
+		delete(h.backoff, s.gw.OrgID) // a pending retry finds no streams and stops
 	}
 }
 

@@ -259,9 +259,10 @@ func wantCode(t *testing.T, err error, code connect.Code, msg string) {
 	}
 }
 
-func eventually(t *testing.T, within time.Duration, cond func() bool, what string) {
+// eventually polls cond for up to 2s.
+func eventually(t *testing.T, cond func() bool, what string) {
 	t.Helper()
-	deadline := time.Now().Add(within)
+	deadline := time.Now().Add(2 * time.Second)
 	for !cond() {
 		if time.Now().After(deadline) {
 			t.Fatalf("timed out waiting for %s", what)

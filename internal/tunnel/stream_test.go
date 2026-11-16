@@ -28,7 +28,7 @@ func TestConnectPushesSnapshot(t *testing.T) {
 	if !regexp.MustCompile(`^[0-9a-f]{64}$`).MatchString(snap.GetVersion()) || snap.GetVersion() != snapshotVersion(snap) {
 		t.Fatalf("version %q", snap.GetVersion())
 	}
-	eventually(t, 2*time.Second, func() (ok bool) {
+	eventually(t, func() (ok bool) {
 		b.f.with(func(f *fake) { ok = len(f.hbs) > 0 && len(f.missing) > 0 })
 		return ok
 	}, "heartbeat processing")
@@ -48,7 +48,7 @@ func TestConnectPushesSnapshot(t *testing.T) {
 		t.Fatalf("werbot_snapshot_pushes_total = %d", n)
 	}
 	c.close()
-	eventually(t, 2*time.Second, func() bool { return hasLine(b.metric(t), "werbot_tunnel_streams 0") }, "streams gauge 0")
+	eventually(t, func() bool { return hasLine(b.metric(t), "werbot_tunnel_streams 0") }, "streams gauge 0")
 }
 
 func metricValue(body, name string) int {

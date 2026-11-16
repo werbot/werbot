@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/netip"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/google/uuid"
 	gossh "golang.org/x/crypto/ssh"
@@ -60,6 +62,10 @@ type fake struct {
 	builds    map[[2]uuid.UUID]int // (org, pool) -> count
 	buildFail int                  // fail the next N builds
 	snapshot  func(orgID, gatewayID uuid.UUID) *gatewayv1.Snapshot
+
+	buildDelay  atomic.Int64 // nanoseconds every Build sleeps outside the lock
+	inflight    atomic.Int32 // Build calls running now
+	maxInflight atomic.Int32 // highest inflight seen
 }
 
 func newFake() *fake {
@@ -161,6 +167,14 @@ func (f *fake) EndMissing(_ context.Context, orgID, instanceID uuid.UUID, active
 }
 
 func (f *fake) Build(_ context.Context, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error) {
+	n := f.inflight.Add(1)
+	defer f.inflight.Add(-1)
+	for m := f.maxInflight.Load(); n > m; m = f.maxInflight.Load() {
+		if f.maxInflight.CompareAndSwap(m, n) {
+			break
+		}
+	}
+	time.Sleep(time.Duration(f.buildDelay.Load()))
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.builds[[2]uuid.UUID{orgID, gatewayID}]++

@@ -159,3 +159,55 @@ func TestHeartbeatOfDeletedInstanceClosesStream(t *testing.T) {
 	}
 	wantCode(t, c.closed(t, 2*time.Second), connect.CodeUnauthenticated, "")
 }
+
+func TestBackoffDroppedWithLastStream(t *testing.T) {
+	b := newBench(t, func(h *Hub) { h.debounce = 20 * time.Millisecond })
+	c := b.instance(t, b.org, uuid.New()).connect(t, nil)
+	c.next(t, 2*time.Second)
+
+	b.f.with(func(f *fake) { f.buildFail = 1 << 20 })
+	b.hub.OrgChanged(b.org.String())
+	backoff := func() (int, time.Duration) {
+		b.hub.mu.Lock()
+		defer b.hub.mu.Unlock()
+		return len(b.hub.backoff), b.hub.backoff[b.org]
+	}
+	eventually(t, func() bool { _, d := backoff(); return d > 0 }, "a failed refresh")
+
+	c.close()
+	eventually(t, func() bool { n, _ := backoff(); return n == 0 }, "backoff dropped with the last stream")
+
+	// A refresh still in flight when the last stream left does not re-arm.
+	eventually(t, func() bool {
+		b.hub.mu.Lock()
+		defer b.hub.mu.Unlock()
+		return b.hub.timers[b.org] == nil
+	}, "the pending retry to fire")
+	b.hub.arm(b.org, true)
+	if n, _ := backoff(); n != 0 {
+		t.Fatal("a retry was armed for an organization without streams")
+	}
+}
+
+func TestStarRefreshBoundedParallel(t *testing.T) {
+	b := newBench(t, func(h *Hub) { h.debounce = 10 * time.Millisecond })
+	conns := make([]*conn, 20)
+	for i := range conns {
+		conns[i] = b.instance(t, uuid.New(), uuid.New()).connect(t, nil)
+		conns[i].next(t, 2*time.Second)
+	}
+
+	b.f.buildDelay.Store(int64(100 * time.Millisecond))
+	b.f.maxInflight.Store(0)
+	start := time.Now()
+	b.hub.OrgChanged("*")
+	for _, c := range conns {
+		c.next(t, 2*time.Second)
+	}
+	if d := time.Since(start); d >= time.Second {
+		t.Fatalf("20 org refreshes took %v, want < 1s (sequential needs 2s)", d)
+	}
+	if m := b.f.maxInflight.Load(); m < 2 || m > refreshParallel {
+		t.Fatalf("max in-flight builds = %d, want 2..%d", m, refreshParallel)
+	}
+}
