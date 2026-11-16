@@ -164,7 +164,7 @@ func TestTunnelBackoff(t *testing.T) {
 			n = 100 // capped, no overflow
 		}
 		for range 50 {
-			d := c.backoff(n)
+			d := backoff(n, c.backoffMin, c.backoffMax)
 			require.GreaterOrEqual(t, d, max(want*8/10, c.backoffMin))
 			require.LessOrEqual(t, d, want*12/10)
 		}

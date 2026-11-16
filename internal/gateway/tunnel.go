@@ -126,7 +126,7 @@ func (c *tunnelClient) Run(ctx context.Context, heartbeat func() *gatewayv1.Hear
 			c.log.InfoContext(ctx, "tunnel: reconnecting", "reason", err)
 			continue
 		}
-		d := c.backoff(failures)
+		d := backoff(failures, c.backoffMin, c.backoffMax)
 		failures++
 		lvl := slog.LevelWarn
 		if connect.CodeOf(err) == connect.CodeUnauthenticated { // revoked instance or unknown serial

@@ -99,13 +99,13 @@ func retryNow(err error, got bool) bool {
 	return got && errors.As(err, &ce) && ce.Code() == connect.CodeUnavailable && (ce.Message() == "rebalance" || ce.Message() == "shutdown")
 }
 
-// backoff is backoffMin·2ⁿ capped at backoffMax with ±20 % jitter, never below backoffMin.
-func (c *tunnelClient) backoff(n int) time.Duration {
-	d := c.backoffMin
-	for i := 0; i < n && d < c.backoffMax; i++ {
+// backoff is lo·2ⁿ capped at hi with ±20 % jitter, never below lo.
+func backoff(n int, lo, hi time.Duration) time.Duration {
+	d := lo
+	for i := 0; i < n && d < hi; i++ {
 		d *= 2
 	}
-	d = min(d, c.backoffMax)
+	d = min(d, hi)
 	j := time.Duration(float64(d) * (1 + 0.2*(2*rand.Float64()-1))) //nolint:gosec // jitter, not security
-	return max(j, c.backoffMin)
+	return max(j, lo)
 }
