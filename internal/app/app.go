@@ -12,10 +12,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"connectrpc.com/connect"
+	"connectrpc.com/validate"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/notify"
 	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/config"
@@ -97,11 +100,26 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	if err != nil {
 		return err
 	}
+	workers := river.NewWorkers()
+	river.AddWorker(workers, notify.NewWorker(mailer, box))
+	rc, err := jobs.NewClient(pool, workers, nil, logger)
+	if err != nil {
+		return err
+	}
+	ids := identity.New(pool, notify.NewQueue(rc, box), identity.Config{WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development"})
+	idh := identity.NewHandler(ids)
+	opts := connect.WithInterceptors(validate.NewInterceptor(), logInternalErrors(logger))
+
 	var draining atomic.Bool
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", httpserver.Health())
 	mux.Handle("/readyz", httpserver.Ready(pool.Ping, &draining))
-	mux.Handle(werbotv1connect.NewSystemServiceHandler(system.New()))
+	mux.Handle(werbotv1connect.NewSystemServiceHandler(system.New(), opts))
+	mux.Handle(werbotv1connect.NewAuthServiceHandler(idh, opts))
+	mux.Handle(werbotv1connect.NewProfileServiceHandler(idh, opts))
+	mux.Handle(werbotv1connect.NewSSHKeyServiceHandler(idh, opts))
+	mux.Handle(werbotv1connect.NewMemberServiceHandler(idh, opts))
+	mux.Handle(werbotv1connect.NewTeamServiceHandler(idh, opts))
 	h := host{pool: pool, mux: mux}
 	for _, m := range modules {
 		if m.Feature != "" && !h.Entitled(m.Feature) {
@@ -124,7 +142,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	reg.GaugeFunc("werbot_db_pool_total_conns", "Database pool connections open.",
 		func() int64 { return int64(pool.Stat().TotalConns()) })
 
-	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, clientip.Middleware(cfg.TrustedProxies)(mux))}
+	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, clientip.Middleware(cfg.TrustedProxies)(identity.Middleware(ids)(mux)))}
 	if cfg.MetricsAddr != "" {
 		mmux := http.NewServeMux()
 		mmux.Handle("/metrics", reg.Handler())
@@ -134,14 +152,8 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	if err != nil {
 		return err
 	}
-	workers := river.NewWorkers()
-	river.AddWorker(workers, notify.NewWorker(mailer, box))
-	rc, err := jobs.NewClient(pool, workers, nil, logger)
-	if err == nil {
-		// Not ctx: cancelling it aborts running jobs; only Stop below ends River.
-		err = rc.Start(context.WithoutCancel(ctx))
-	}
-	if err != nil {
+	// Not ctx: cancelling it aborts running jobs; only Stop below ends River.
+	if err := rc.Start(context.WithoutCancel(ctx)); err != nil {
 		for _, ln := range lns {
 			_ = ln.Close()
 		}
@@ -171,4 +183,17 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 		logger.Error("river stop", "error", rerr)
 	}
 	return err
+}
+
+// logInternalErrors logs the masked cause of every CodeInternal response.
+func logInternalErrors(logger *slog.Logger) connect.UnaryInterceptorFunc {
+	return func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			res, err := next(ctx, req)
+			if ce := (*connect.Error)(nil); errors.As(err, &ce) && ce.Code() == connect.CodeInternal {
+				logger.Error("rpc failed", "procedure", req.Spec().Procedure, "err", errors.Unwrap(ce.Unwrap()))
+			}
+			return res, err
+		}
+	}
 }

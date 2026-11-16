@@ -38,6 +38,8 @@ connectrpc.com/grpcreflect/v2 v2.0.0 h1:Ah7U5kSd/kslH5KFNS8jh/e3u6UYVoX7lwkjcIfS
 connectrpc.com/grpcreflect/v2 v2.0.0/go.mod h1:V7Hj+ibxuZH3667Ng2zKKvxJQJIri20iG50vzG7i8GM=
 connectrpc.com/otelconnect v0.11.0 h1:n1HjvoZLzsGJ5nb2PGnFH2msXPQLf4j3EWzLDylhdWQ=
 connectrpc.com/otelconnect v0.11.0/go.mod h1:xE0w5pyAk519Nub9zP63x9oOIBwcKofv5IYKQAhzQF4=
+connectrpc.com/validate v0.7.0 h1:E4wQiBymFW+GGWMwV4fO4yrvhIdzEVXlgRiZaSer/Hs=
+connectrpc.com/validate v0.7.0/go.mod h1:BD3Onoa126tmoI3YG13UGFjBylgkd5LJ5whrAwi/wgg=
 filippo.io/edwards25519 v1.2.0 h1:crnVqOiS4jqYleHd9vaKZ+HKtHfllngJIiOpNpoJsjo=
 filippo.io/edwards25519 v1.2.0/go.mod h1:xzAOLCNug/yB62zG1bQ8uziwrIqIuxhctzJT18Q77mc=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
