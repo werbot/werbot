@@ -235,6 +235,47 @@ func TestEmbeddedGatewayRemintsAgedToken(t *testing.T) {
 		"a token older than tokenRefresh is replaced while the server stays down")
 }
 
+func TestEmbeddedGatewayReenrollsOnExpiredCert(t *testing.T) {
+	pool, cfg, gws := embeddedSetup(t)
+	old, oldRun := orgPollInterval, runGateway
+	orgPollInterval = 20 * time.Millisecond
+	t.Cleanup(func() { orgPollInterval, runGateway = old, oldRun })
+	var tokens []string // the join token of each attempt
+	secondRun := make(chan struct{})
+	runGateway = func(ctx context.Context, c gateway.Config, _ *slog.Logger) error {
+		tokens = append(tokens, c.JoinToken)
+		if len(tokens) == 1 {
+			return gateway.ErrCertExpired
+		}
+		close(secondRun)
+		<-ctx.Done()
+		return nil
+	}
+	logs := &syncBuffer{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		done <- runEmbeddedGateway(ctx, cfg, env(nil), pool, gws, metrics.NewRegistry(), slog.New(slog.NewTextHandler(logs, nil)))
+	}()
+	select {
+	case <-secondRun:
+	case <-time.After(10 * time.Second):
+		t.Fatal("no second attempt after an expired certificate")
+	}
+	cancel()
+	require.NoError(t, <-done)
+
+	require.Len(t, tokens, 2)
+	assert.NotEmpty(t, tokens[0])
+	assert.NotEqual(t, tokens[0], tokens[1], "the held token is dropped")
+	assert.Equal(t, 2, countTokens(t, pool))
+	assert.Contains(t, logs.String(), "certificate expired, enrolling again")
+	assert.NotContains(t, logs.String(), "enrollment failed")
+	assert.NotContains(t, logs.String(), tokens[0])
+	assert.NotContains(t, logs.String(), tokens[1])
+}
+
 func TestEmbeddedGatewayListenErrorIsFatal(t *testing.T) {
 	pool, cfg, gws := embeddedSetup(t)
 	busy, err := net.Listen("tcp", "127.0.0.1:0")

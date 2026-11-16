@@ -34,6 +34,9 @@ const maxEnrollRetry = 5 * time.Minute
 // shorten it.
 var tokenRefresh = inventory.SystemJoinTokenTTL / 2
 
+// runGateway runs the gateway instance; tests replace it.
+var runGateway = gateway.Run
+
 // embeddedGateway is what serve runs for --with-gateway; tests replace it.
 var embeddedGateway = runEmbeddedGateway
 
@@ -77,7 +80,7 @@ func runEmbeddedGateway(ctx context.Context, cfg config.Config, getenv func(stri
 			}
 			minted = time.Now()
 		}
-		err = gateway.Run(ctx, gcfg, logger)
+		err = runGateway(ctx, gcfg, logger)
 		expired := errors.Is(err, gateway.ErrCertExpired)
 		if expired || connect.CodeOf(err) == connect.CodePermissionDenied {
 			gcfg.JoinToken = "" // spent or rejected, or a new identity is needed: mint a new one
