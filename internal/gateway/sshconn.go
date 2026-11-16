@@ -127,8 +127,9 @@ func (f earlyWindowFilter) Accept() (gossh.Channel, <-chan *gossh.Request, error
 }
 
 // earlyWindowChange keeps the size of a window change sent before shell or exec
-// and answers it. Like gliderlabs, it reads cols and rows from the first 8 bytes. Replies go in request order, so before replying it hands
-// gliderlabs a sentinel: once gliderlabs takes it, every earlier request is
+// and answers it. Like gliderlabs, it reads cols and rows from the first 8
+// bytes. Replies go in request order, so before replying it hands gliderlabs a
+// sentinel: once gliderlabs takes it, every earlier request is
 // answered (the sentinel wants no reply, so gliderlabs answers it with nothing).
 func (f earlyWindowFilter) earlyWindowChange(req *gossh.Request, sawPty bool, out chan<- *gossh.Request) {
 	var cols, rows uint32
