@@ -1,0 +1,128 @@
+// Package app is the composition root of the werbot binary.
+package app
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"io/fs"
+	"log/slog"
+	"net/http"
+	"sync/atomic"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/platform/config"
+	"github.com/werbot/werbot/internal/platform/db"
+	"github.com/werbot/werbot/internal/platform/httpserver"
+	"github.com/werbot/werbot/internal/platform/logging"
+	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/version"
+	"github.com/werbot/werbot/internal/system"
+	"github.com/werbot/werbot/sdk"
+)
+
+// Run executes the command in args and returns when it is done or ctx ends.
+func Run(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) error {
+	cmd := ""
+	if len(args) > 0 {
+		cmd = args[0]
+	}
+	switch cmd {
+	case "version":
+		_, err := fmt.Fprintf(stdout, "werbot %s (commit %s, built %s)\n", version.Version, version.Commit, version.BuildDate)
+		return err
+	case "migrate", "server":
+	default:
+		return errors.New("usage: werbot <server|migrate|version>")
+	}
+
+	cfg, err := config.Load(getenv)
+	if err != nil {
+		return err
+	}
+	if cmd == "migrate" {
+		return bootstrap(ctx, cfg.DatabaseURL)
+	}
+
+	logger := logging.New(stdout, cfg.LogLevel, cfg.LogFormat)
+	if err := bootstrap(ctx, cfg.DatabaseURL); err != nil {
+		return err
+	}
+	octx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	pool, err := db.Open(octx, cfg.DatabaseURL)
+	cancel()
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	return serve(ctx, cfg, logger, pool, sdk.Modules(), nil)
+}
+
+// host is the Community sdk.Host: no feature is ever entitled.
+type host struct {
+	pool *pgxpool.Pool
+	mux  *http.ServeMux
+}
+
+func (h host) DB() *pgxpool.Pool                      { return h.pool }
+func (h host) Handle(pattern string, hd http.Handler) { h.mux.Handle(pattern, hd) }
+func (host) Entitled(string) bool                     { return false }
+
+// serve runs the main HTTP server (and the metrics server when cfg.MetricsAddr
+// is set) until ctx ends, then drains and shuts both down within 10s.
+func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS) error {
+	_ = ui // Task 8 mounts httpserver.SPA(ui) on "/".
+	var draining atomic.Bool
+	mux := http.NewServeMux()
+	mux.Handle("/healthz", httpserver.Health())
+	mux.Handle("/readyz", httpserver.Ready(pool.Ping, &draining))
+	mux.Handle(werbotv1connect.NewSystemServiceHandler(system.New()))
+	h := host{pool: pool, mux: mux}
+	for _, m := range modules {
+		if m.Feature != "" && !h.Entitled(m.Feature) {
+			logger.Info("module skipped: not entitled", "module", m.Name, "feature", m.Feature)
+			continue
+		}
+		if err := m.Init(ctx, h); err != nil {
+			return fmt.Errorf("module %s: %w", m.Name, err)
+		}
+	}
+	mux.Handle("/", http.NotFoundHandler())
+
+	reg := metrics.NewRegistry()
+	reg.GaugeFunc("werbot_db_pool_acquired_conns", "Database pool connections in use.",
+		func() int64 { return int64(pool.Stat().AcquiredConns()) })
+	reg.GaugeFunc("werbot_db_pool_total_conns", "Database pool connections open.",
+		func() int64 { return int64(pool.Stat().TotalConns()) })
+
+	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, mux)}
+	if cfg.MetricsAddr != "" {
+		mmux := http.NewServeMux()
+		mmux.Handle("/metrics", reg.Handler())
+		servers = append(servers, httpserver.New(cfg.MetricsAddr, mmux))
+	}
+	errc := make(chan error, len(servers))
+	for _, s := range servers {
+		go func() { errc <- s.ListenAndServe() }()
+	}
+	logger.Info("server started", "addr", cfg.HTTPAddr, "metrics_addr", cfg.MetricsAddr)
+
+	var err error
+	select {
+	case err = <-errc:
+	case <-ctx.Done():
+		draining.Store(true)
+	}
+	sctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+	for _, s := range servers {
+		if serr := s.Shutdown(sctx); serr != nil {
+			logger.Error("server shutdown", "addr", s.Addr, "error", serr)
+		}
+	}
+	return err
+}
