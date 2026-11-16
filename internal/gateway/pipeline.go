@@ -8,7 +8,6 @@ import (
 	"net/netip"
 	"runtime/debug"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
@@ -178,7 +177,7 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 		reason = string(causeInternal)
 	}
 	if reason == "error" {
-		p.log.Warn("session: connector failed", "session_id", s.ID, "type", c.Type(), "error", redact(err.Error(), s.Secret))
+		p.log.Warn("session: connector failed", "session_id", s.ID, "type", c.Type(), "error", s.Secret.Redact(err.Error()))
 	}
 	p.finish(ctx, s, reason)
 	return err
@@ -190,7 +189,7 @@ func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel co
 			cancel(causeInternal)
 			p.panics.Inc()
 			p.log.Error("session: connector panic", "session_id", s.ID, "type", c.Type(),
-				"panic", redact(fmt.Sprint(r), s.Secret), "stack", redact(string(debug.Stack()), s.Secret))
+				"panic", s.Secret.Redact(fmt.Sprint(r)), "stack", s.Secret.Redact(string(debug.Stack())))
 			panicked, err = true, fmt.Errorf("connector %q panicked", c.Type())
 		}
 	}()
@@ -222,14 +221,6 @@ func endReason(ctx context.Context, err error) string {
 		return "closed"
 	}
 	return "error"
-}
-
-// redact removes the credential value from text bound for the log.
-func redact(text string, s Secret) string {
-	if len(s.Value) == 0 {
-		return text
-	}
-	return strings.ReplaceAll(text, string(s.Value), "[redacted]")
 }
 
 // heartbeat is the instance state sent on the tunnel.

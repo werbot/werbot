@@ -14,9 +14,9 @@ var bufPool = sync.Pool{New: func() any { b := make([]byte, 32<<10); return &b }
 // pipe relays a stream between the client and the target until both directions
 // end. EOF on one side half-closes the other (CloseWrite, or Close when the
 // side has none). Only the recorder sees the traffic: nothing is echoed.
-func pipe(client, target io.ReadWriteCloser, rec gateway.RecordingSink) error {
+func pipe(client, target io.ReadWriteCloser, rec gateway.RecordingSink, secret gateway.Secret) error {
 	closeBoth := func() { _ = client.Close(); _ = target.Close() }
-	g := &guard{stop: closeBoth}
+	g := &guard{stop: closeBoth, secret: secret}
 	g.spawn(func() error { return relay(target, client, rec.Input) })
 	g.spawn(func() error { return relay(client, target, rec.Output) })
 	err := g.done()

@@ -33,7 +33,7 @@ type activeSessions struct {
 	cancels  map[uuid.UUID]context.CancelCauseFunc // opened sessions; nil until Run binds
 	pending  map[uuid.UUID]struct{}                // EndSession not delivered yet
 	shutdown error                                 // set by cancelAll: a later bind cancels at once
-	// retriesClosed is set by drain before it waits on the retries: no retry starts after
+	// retriesClosed is set by drain before it waits on the retries: no retry starts after it is set
 	retriesClosed bool
 	lastOmitted   int // pending ids left out of the last heartbeat; the cap warning fires when it changes
 }

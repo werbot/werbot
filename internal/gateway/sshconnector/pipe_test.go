@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/werbot/werbot/internal/gateway"
 )
 
 func TestPipeNoEcho(t *testing.T) {
@@ -14,7 +16,7 @@ func TestPipeNoEcho(t *testing.T) {
 	targetUser, target := net.Pipe()
 	rec := &recSink{}
 	piped := make(chan error, 1)
-	go func() { piped <- pipe(client, target, rec) }()
+	go func() { piped <- pipe(client, target, rec, gateway.Secret{}) }()
 	echoed := &lockedBuffer{}
 	clientDone := make(chan struct{})
 	go func() { _, _ = io.Copy(echoed, clientUser); close(clientDone) }()
@@ -38,7 +40,7 @@ func TestPipeNoEcho(t *testing.T) {
 // A panic in a relay closes both sides and re-panics on the pipe caller.
 func TestPipeRelayPanic(t *testing.T) {
 	targetUser, target := net.Pipe()
-	p := recovered(func() { _ = pipe(panicConn{}, target, &recSink{}) })
+	p := recovered(func() { _ = pipe(panicConn{}, target, &recSink{}, gateway.Secret{}) })
 	require.Contains(t, fmt.Sprint(p), "fault injected")
 	_, err := targetUser.Read(make([]byte, 1))
 	require.ErrorIs(t, err, io.EOF, "the target side is not closed")

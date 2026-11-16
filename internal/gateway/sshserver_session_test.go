@@ -167,3 +167,13 @@ func TestMenuSelectsResource(t *testing.T) {
 	require.Equal(t, 1, code)
 	require.Equal(t, 1, e.startCalls())
 }
+
+// Bytes typed after the selection reach the connector: the menu reads one byte
+// at a time, so it never buffers past the selected line.
+func TestMenuKeepsTypeahead(t *testing.T) {
+	e := newSSHEnv(t, Config{})
+	e.f.with(func(f *fakeControl) { f.policy = e.compile(t, res{"rspy", "typeahead", "spy"}) })
+	out, code := menu(t, e.client(t, "alice"), "1\rhello\r")
+	require.Contains(t, out, `typed="hello\r"`)
+	require.Equal(t, 0, code)
+}

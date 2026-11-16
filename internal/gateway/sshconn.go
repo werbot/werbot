@@ -1,7 +1,9 @@
 package gateway
 
 import (
+	"context"
 	"net"
+	"sync/atomic"
 	"time"
 
 	"github.com/gliderlabs/ssh"
@@ -31,46 +33,100 @@ func (c *handshakeConn) Close() error {
 	return c.Conn.Close()
 }
 
-// authenticated stops the handshake timer once a signature is verified.
+// authenticated stops the handshake timer once a signature is verified for a
+// user. A connection the control plane could not check (no user) keeps the
+// timer: every channel gets only the not ready text, so the limit closes it.
 func authenticated(ctx ssh.Context) *gossh.ServerConfig {
 	return &gossh.ServerConfig{VerifiedPublicKeyCallback: func(_ gossh.ConnMetadata, _ gossh.PublicKey, perms *gossh.Permissions, _ string) (*gossh.Permissions, error) {
-		if t, ok := ctx.Value(handshakeKey{}).(*time.Timer); ok {
+		if t, ok := ctx.Value(handshakeKey{}).(*time.Timer); ok && handshakeUser(ctx) != nil {
 			t.Stop()
 		}
 		return perms, nil
 	}}
 }
 
+// channelContext is the context of one session channel: the connection's values
+// and metadata, canceled when the channel closes or the connection ends.
+type channelContext struct {
+	ssh.Context
+	done   context.Context
+	cancel context.CancelFunc
+	window atomic.Pointer[Window] // the last window change before shell or exec
+}
+
+func (c *channelContext) Deadline() (time.Time, bool) { return c.done.Deadline() }
+func (c *channelContext) Done() <-chan struct{}       { return c.done.Done() }
+func (c *channelContext) Err() error                  { return c.done.Err() }
+
+// earlyWindow is the last window change sent before shell or exec, nil when none.
+func earlyWindow(ctx ssh.Context) *Window {
+	if c, ok := ctx.(*channelContext); ok {
+		return c.window.Load()
+	}
+	return nil
+}
+
 // sessionChannel serves a session channel with gliderlabs, minus window changes
 // sent before shell or exec. gliderlabs buffers one window (the pty-req one) and
 // blocks its request loop on the next until our handler drains them; the handler
 // starts only on shell or exec, so an early window change would hang the channel
-// forever, even after the connection closes.
+// forever, even after the connection closes. The session gets a context canceled
+// when its channel closes, with or without a PTY.
 func sessionChannel(srv *ssh.Server, conn *gossh.ServerConn, nc gossh.NewChannel, ctx ssh.Context) {
-	ssh.DefaultSessionHandler(srv, conn, earlyWindowFilter{nc}, ctx)
+	cctx := &channelContext{Context: ctx}
+	cctx.done, cctx.cancel = context.WithCancel(ctx)
+	ssh.DefaultSessionHandler(srv, conn, earlyWindowFilter{nc, cctx}, cctx)
 }
 
-type earlyWindowFilter struct{ gossh.NewChannel }
+type earlyWindowFilter struct {
+	gossh.NewChannel
+	ctx *channelContext
+}
 
-// Accept relays the channel requests; until a shell or exec passes, a window
-// change is acknowledged and dropped. The relay ends when the channel closes.
+// Accept relays the channel requests. Until a shell or exec passes, a window
+// change is answered here as gliderlabs would (true only after a pty-req), and
+// its size is kept as the initial window. The relay ends, and cancels the
+// channel context, when the channel closes.
 func (f earlyWindowFilter) Accept() (gossh.Channel, <-chan *gossh.Request, error) {
 	ch, in, err := f.NewChannel.Accept()
 	if err != nil {
+		f.ctx.cancel()
 		return ch, in, err
 	}
 	out := make(chan *gossh.Request)
 	go func() {
 		defer close(out)
-		started := false
+		defer f.ctx.cancel() // x/crypto closes in on channel close and connection end
+		started, sawPty := false, false
 		for req := range in {
-			if !started && req.Type == "window-change" {
-				_ = req.Reply(true, nil) // no-op unless the client wants a reply
+			switch {
+			case started:
+			case req.Type == "window-change":
+				f.earlyWindowChange(req, sawPty, out)
 				continue
+			case req.Type == "pty-req":
+				sawPty = true
+			case req.Type == "shell" || req.Type == "exec":
+				started = true
 			}
-			started = started || req.Type == "shell" || req.Type == "exec"
 			out <- req
 		}
 	}()
 	return ch, out, nil
+}
+
+// earlyWindowChange keeps the size of a window change sent before shell or exec
+// and answers it. Replies go in request order, so before replying it hands
+// gliderlabs a sentinel: once gliderlabs takes it, every earlier request is
+// answered (the sentinel wants no reply, so gliderlabs answers it with nothing).
+func (f earlyWindowFilter) earlyWindowChange(req *gossh.Request, sawPty bool, out chan<- *gossh.Request) {
+	var w struct{ Cols, Rows, Width, Height uint32 }
+	ok := sawPty && gossh.Unmarshal(req.Payload, &w) == nil && w.Cols > 0 && w.Rows > 0
+	if ok {
+		f.ctx.window.Store(&Window{Cols: int(w.Cols), Rows: int(w.Rows)})
+	}
+	if req.WantReply {
+		out <- &gossh.Request{Type: "werbot-sync"}
+		_ = req.Reply(ok, nil)
+	}
 }

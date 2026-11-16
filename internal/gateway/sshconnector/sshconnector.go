@@ -74,15 +74,15 @@ func (c Connector) serve(ctx context.Context, s *gateway.Session) error {
 
 	switch s.Kind {
 	case gateway.KindTerminal:
-		return terminalCommand(s.Terminal).run(ctx, client, s.Recording)
+		return terminalCommand(s.Terminal).run(ctx, client, s.Recording, s.Secret)
 	case gateway.KindExec:
-		return execCommand(s.Exec).run(ctx, client, s.Recording)
+		return execCommand(s.Exec).run(ctx, client, s.Recording, s.Secret)
 	case gateway.KindStream:
 		target, err := client.Dial("tcp", s.Target) // direct-tcpip at the target
 		if err != nil {
 			return fmt.Errorf("ssh: open %s through the target: %w", s.Target, err)
 		}
-		return pipe(s.Stream, target, s.Recording)
+		return pipe(s.Stream, target, s.Recording, s.Secret)
 	default:
 		return fmt.Errorf("ssh: unsupported session kind %q", s.Kind)
 	}

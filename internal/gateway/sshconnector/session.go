@@ -35,9 +35,9 @@ func execCommand(e *gateway.Exec) command {
 }
 
 // run starts cmd in a new target session, relays its streams until it ends and
-// reports the exit status. Every relay goroutine is guarded: a panic closes the
-// client and becomes the error of run.
-func (cmd command) run(ctx context.Context, client *gossh.Client, rec gateway.RecordingSink) error {
+// reports the exit status. Every relay goroutine is guarded: a panic stops the
+// session and guard.done re-panics it on the calling goroutine.
+func (cmd command) run(ctx context.Context, client *gossh.Client, rec gateway.RecordingSink, secret gateway.Secret) error {
 	sess, err := client.NewSession()
 	if err != nil {
 		return fmt.Errorf("ssh: open session: %w", err)
@@ -69,7 +69,7 @@ func (cmd command) run(ctx context.Context, client *gossh.Client, rec gateway.Re
 		return fmt.Errorf("ssh: start: %w", err)
 	}
 
-	g := &guard{stop: func() { _ = client.Close() }}
+	g := &guard{stop: func() { _ = client.Close() }, secret: secret}
 	live := &liveSink{rec: rec}
 	defer live.end()
 	ended := make(chan struct{})

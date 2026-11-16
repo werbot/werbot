@@ -118,6 +118,34 @@ func TestRelayPanicEndsSession(t *testing.T) {
 	waitEvent(t, tg, "closed")
 }
 
+// A relay panic after the cancel still reaches Serve: the cancel does not hide it.
+func TestRelayPanicAfterCancel(t *testing.T) {
+	tg := sshtest.StartTarget(t, "pw", nil)
+	s := newSession(t, tg, gateway.KindStream)
+	ctx, cancel := context.WithCancel(t.Context())
+	reading := make(chan struct{})
+	s.Stream, s.Target = cancelPanicConn{ctx, reading}, tg.EchoAddr
+	go func() { <-reading; cancel() }()
+	p := recovered(func() { _ = Connector{DialTimeout: waitFor}.Serve(ctx, s) })
+	require.NotNil(t, p, "the relay panic did not reach Serve")
+	require.Contains(t, fmt.Sprint(p), "fault injected")
+}
+
+// cancelPanicConn is a client stream read once: Read closes reading, then
+// panics once ctx is canceled.
+type cancelPanicConn struct {
+	ctx     context.Context
+	reading chan struct{}
+}
+
+func (c cancelPanicConn) Read([]byte) (int, error) {
+	close(c.reading)
+	<-c.ctx.Done()
+	panic("fault injected")
+}
+func (cancelPanicConn) Write(p []byte) (int, error) { return len(p), nil }
+func (cancelPanicConn) Close() error                { return nil }
+
 // recovered runs fn and returns what it panicked with.
 func recovered(fn func()) (p any) {
 	defer func() { p = recover() }()

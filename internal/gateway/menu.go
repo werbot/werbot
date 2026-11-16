@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -31,7 +32,7 @@ func (h *sshHandler) menu(s ssh.Session, u User) (string, int) {
 		fmt.Fprintf(&b, "\n  %d  %s", i+1, r.Name)
 	}
 	say(s, b.String())
-	line, err := term.NewTerminal(s, menuPromptText).ReadLine()
+	line, err := term.NewTerminal(byteReader{s}, menuPromptText).ReadLine()
 	line = strings.TrimSpace(line)
 	if err != nil || line == "" { // Enter, or Ctrl-D
 		say(s, "Bye")
@@ -44,3 +45,10 @@ func (h *sshHandler) menu(s ssh.Session, u User) (string, int) {
 	}
 	return rs[n-1].Name, 0
 }
+
+// byteReader reads one byte at a time, so term.Terminal never buffers bytes
+// past the selected line: the input typed after it reaches the connector. A
+// client that ends the line with CRLF passes the LF to the target.
+type byteReader struct{ io.ReadWriter }
+
+func (r byteReader) Read(p []byte) (int, error) { return r.ReadWriter.Read(p[:min(len(p), 1)]) }

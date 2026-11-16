@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -23,31 +22,6 @@ import (
 
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
-
-// spy prints what the front handed to the connector. A terminal running
-// "resize" also prints the first Resize; an exec exits with 7.
-func spy(ctx context.Context, s *Session) error {
-	switch {
-	case s.Terminal != nil:
-		t := s.Terminal
-		_, _ = fmt.Fprintf(t, "spy:%s kind=terminal term=%q cmd=%q win=%dx%d\n", s.Resource.Name, t.Term, t.Command, t.Window.Cols, t.Window.Rows)
-		if t.Command == "resize" {
-			select {
-			case w := <-t.Resize:
-				_, _ = fmt.Fprintf(t, "resize=%dx%d\n", w.Cols, w.Rows)
-			case <-time.After(2 * time.Second):
-				_, _ = fmt.Fprintln(t, "resize=none")
-			case <-ctx.Done():
-			}
-		}
-	case s.Exec != nil:
-		_, _ = fmt.Fprintf(s.Exec.Stdout, "spy:%s kind=exec cmd=%q\n", s.Resource.Name, s.Exec.Command)
-		s.Exec.SetExitStatus(7)
-	case s.Stream != nil:
-		_, _ = fmt.Fprintf(s.Stream, "spy:%s kind=stream target=%s\n", s.Resource.Name, s.Target)
-	}
-	return nil
-}
 
 // sshPolicies permits every user everything except the resource "denied".
 const sshPolicies = `

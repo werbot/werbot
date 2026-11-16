@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"context"
 	"sync/atomic"
 
 	"github.com/gliderlabs/ssh"
@@ -15,15 +14,13 @@ func (h *sshHandler) session(s ssh.Session) {
 
 // serveSession maps the channel to a session kind: a shell is a terminal, an exec
 // with a PTY a terminal running Command, an exec without one an exec. The session
-// context comes from the connection's, canceled when the client goes away or, with
-// a PTY, closes the channel (a target PTY ignores EOF); drain cancels the session
-// through the pipeline, not through it.
+// context is the channel's, canceled when the client closes the channel or goes
+// away (a target PTY ignores EOF); drain cancels the session through the
+// pipeline, not through it.
 func (h *sshHandler) serveSession(s ssh.Session) int {
 	sctx := s.Context()
-	ctx, cancel := context.WithCancel(sctx)
-	defer cancel()
 	pty, winch, isPty := s.Pty()
-	resize := windowChanges(winch, cancel) // first: winch must drain on every path
+	resize := windowChanges(winch) // first: winch must drain on every path
 	if handshakeUser(sctx) == nil {
 		say(s, openText(h.p.reject(ErrNotReady), "", "", nil))
 		return 1
@@ -43,8 +40,11 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 	if isPty || s.RawCommand() == "" {
 		kind = KindTerminal
 		w = Window{Cols: pty.Window.Width, Rows: pty.Window.Height}
+		if early := earlyWindow(sctx); isPty && early != nil {
+			w = *early
+		}
 	}
-	sess, err := h.p.Open(ctx, h.request(sctx, resource, kind, w, ""))
+	sess, err := h.p.Open(sctx, h.request(sctx, resource, kind, w, ""))
 	if err != nil {
 		say(s, openText(err, resource, kind, h.p.ctl.Policy()))
 		return 1
@@ -62,7 +62,7 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 	} else {
 		sess.Exec = &Exec{Command: s.RawCommand(), Stdin: s, Stdout: s, Stderr: s.Stderr(), SetExitStatus: setExit}
 	}
-	if err := h.p.Run(ctx, sess, c); err != nil {
+	if err := h.p.Run(sctx, sess, c); err != nil {
 		say(s, runText(err, resource))
 		return 1
 	}
@@ -72,15 +72,14 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 // windowChanges relays the window changes after the initial one, which comes
 // with pty-req. It always drains winch, so the request loop never blocks; only
 // the latest size waits for the connector. Once the channel closes, the result
-// closes and closed runs.
-func windowChanges(winch <-chan ssh.Window, closed func()) <-chan Window {
+// closes.
+func windowChanges(winch <-chan ssh.Window) <-chan Window {
 	out := make(chan Window, 1)
 	if winch == nil {
 		close(out)
 		return out
 	}
 	go func() {
-		defer closed()
 		defer close(out)
 		<-winch // the initial window
 		for w := range winch {

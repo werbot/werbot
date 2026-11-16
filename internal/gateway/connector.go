@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/netip"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -85,6 +86,14 @@ type Session struct {
 	Target    string                             // KindStream: the requested host:port
 	PinKey    func(alg string, key []byte) error // pins the target host key through the server; mismatch is ErrHostKeyMismatch
 	Recording RecordingSink
+}
+
+// Redact removes the credential value from text bound for the log.
+func (s Secret) Redact(text string) string {
+	if len(s.Value) == 0 {
+		return text
+	}
+	return strings.ReplaceAll(text, string(s.Value), "[redacted]")
 }
 
 // Window is a terminal size.

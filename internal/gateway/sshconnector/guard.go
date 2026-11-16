@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"runtime/debug"
 	"sync"
+
+	"github.com/werbot/werbot/internal/gateway"
 )
 
 // guard runs the relay goroutines of one session. The pipeline recovers only
@@ -13,6 +15,7 @@ import (
 // goroutine, so the pipeline ends the session as "internal_error".
 type guard struct {
 	stop     func()
+	secret   gateway.Secret // redacted from the log
 	wg       sync.WaitGroup
 	mu       sync.Mutex
 	err      error
@@ -53,13 +56,14 @@ func (g *guard) call(fn func() error) {
 }
 
 // fail keeps the first failure and stops the session. A panic after done
-// returned is only logged (the stack, never relayed data).
+// returned is only logged (the stack, never relayed data), the secret redacted.
 func (g *guard) fail(err error, p *relayPanic) {
 	g.mu.Lock()
 	switch {
 	case g.finished:
 		if p != nil {
-			slog.Error("ssh connector: relay panic after the session ended", "panic", fmt.Sprint(p.value), "stack", string(p.stack))
+			slog.Error("ssh connector: relay panic after the session ended",
+				"panic", g.secret.Redact(fmt.Sprint(p.value)), "stack", g.secret.Redact(string(p.stack)))
 		}
 	case g.err == nil && g.panicked == nil:
 		g.err, g.panicked = err, p
