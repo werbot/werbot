@@ -1,0 +1,120 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+message Gateway {
+  string id = 1;
+  string name = 2;
+  bool online = 3;
+  repeated string connectors = 4;
+  google.protobuf.Timestamp created_at = 5;
+  repeated GatewayInstance instances = 6;
+}
+
+message GatewayInstance {
+  string id = 1;
+  string hostname = 2;
+  string version = 3;
+  repeated string connectors = 4;
+  bool online = 5;
+  google.protobuf.Timestamp last_seen_at = 6;
+  google.protobuf.Timestamp cert_expires_at = 7;
+  string client_ip = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message JoinToken {
+  string id = 1;
+  int32 max_uses = 2;
+  int32 uses = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  google.protobuf.Timestamp revoked_at = 5;
+  string created_by = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+// GatewayService manages gateway pools; owners and admins only.
+service GatewayService {
+  rpc CreateGateway(CreateGatewayRequest) returns (CreateGatewayResponse);
+  rpc ListGateways(ListGatewaysRequest) returns (ListGatewaysResponse);
+  rpc DeleteGateway(DeleteGatewayRequest) returns (DeleteGatewayResponse);
+  rpc CreateJoinToken(CreateJoinTokenRequest) returns (CreateJoinTokenResponse);
+  rpc ListJoinTokens(ListJoinTokensRequest) returns (ListJoinTokensResponse);
+  rpc RevokeJoinToken(RevokeJoinTokenRequest) returns (RevokeJoinTokenResponse);
+  rpc DeleteGatewayInstance(DeleteGatewayInstanceRequest) returns (DeleteGatewayInstanceResponse);
+}
+
+// GatewayEnrollService is public: the join token authorizes the call.
+service GatewayEnrollService {
+  rpc Enroll(EnrollRequest) returns (EnrollResponse);
+}
+
+message CreateGatewayRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+}
+message CreateGatewayResponse {
+  Gateway gateway = 1;
+}
+
+message ListGatewaysRequest {}
+message ListGatewaysResponse {
+  repeated Gateway gateways = 1;
+}
+
+message DeleteGatewayRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteGatewayResponse {}
+
+message CreateJoinTokenRequest {
+  string gateway_id = 1 [(buf.validate.field).string.uuid = true];
+  // Unset: the server default.
+  google.protobuf.Duration expires_in = 2;
+  // 0: the server default.
+  int32 max_uses = 3 [(buf.validate.field).int32 = {gte: 0, lte: 1000}];
+}
+message CreateJoinTokenResponse {
+  string id = 1;
+  // Shown once.
+  string token = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message ListJoinTokensRequest {
+  string gateway_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message ListJoinTokensResponse {
+  repeated JoinToken tokens = 1;
+}
+
+message RevokeJoinTokenRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message RevokeJoinTokenResponse {}
+
+message DeleteGatewayInstanceRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteGatewayInstanceResponse {}
+
+message EnrollRequest {
+  string join_token = 1 [(buf.validate.field).string.min_len = 1];
+  bytes csr_der = 2 [(buf.validate.field).bytes.min_len = 1];
+  string hostname = 3 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
+  string version = 4 [(buf.validate.field).string.max_len = 64];
+  repeated string connectors = 5 [(buf.validate.field).repeated = {
+    max_items: 64
+    items: {string: {min_len: 1, max_len: 64}}
+  }];
+}
+message EnrollResponse {
+  string gateway_id = 1;
+  string instance_id = 2;
+  string cert_pem = 3;
+  string ca_pem = 4;
+  string tunnel_url = 5;
+  string host_key_pem = 6;
+}
