@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -25,8 +26,8 @@ import (
 // a failed enrollment; tests shorten it.
 var orgPollInterval = 5 * time.Second
 
-// maxEnrollRetry caps the doubling wait between failed enrollments: each
-// attempt issues a new single-use token.
+// maxEnrollRetry caps the doubling wait between failed enrollments. The token
+// is reused until the server rejects it or it is half way to expiry.
 const maxEnrollRetry = 5 * time.Minute
 
 // embeddedGateway is what serve runs for --with-gateway; tests replace it.
@@ -55,21 +56,27 @@ func runEmbeddedGateway(ctx context.Context, cfg config.Config, getenv func(stri
 		gcfg.DataDir = filepath.Join(cfg.DataDir, "gateway") // one identity per replica
 	}
 	gcfg.Metrics = reg
+	var minted time.Time // when gcfg.JoinToken was issued; zero without one
 	for wait := orgPollInterval; ; wait = min(2*wait, maxEnrollRetry) {
-		if !gateway.Enrolled(gcfg.DataDir) {
+		if !gateway.Enrolled(gcfg.DataDir) && (gcfg.JoinToken == "" || time.Since(minted) > inventory.SystemJoinTokenTTL/2) {
 			org := firstOrganization(ctx, pool, logger)
 			if org == uuid.Nil {
 				return nil // ctx ended while waiting
 			}
 			if gcfg.JoinToken, err = gws.CreateSystemJoinToken(ctx, org); err != nil {
+				gcfg.JoinToken = ""
 				logger.Warn("embedded gateway: join token failed, retrying", "error", err, "retry_in", wait)
 				if !sleep(ctx, wait) {
 					return nil
 				}
 				continue
 			}
+			minted = time.Now()
 		}
 		err = gateway.Run(ctx, gcfg, logger)
+		if connect.CodeOf(err) == connect.CodePermissionDenied {
+			gcfg.JoinToken = "" // rejected or spent: mint a new one
+		}
 		if ctx.Err() != nil || gateway.Enrolled(gcfg.DataDir) || isListenError(err) {
 			return err
 		}

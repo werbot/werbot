@@ -118,7 +118,7 @@ func TestReloadGeoIPFromDB(t *testing.T) {
 	require.NoError(t, svc.ReloadGeoIP(ctx))
 	assert.Equal(t, "DE", svc.Country(ip))
 
-	_, err = pool.Exec(ctx, `UPDATE geoip_db SET data = '\x00'`)
+	_, err = pool.Exec(ctx, `UPDATE geoip_db SET data = '\x00', month = '2026-11-01'`)
 	require.NoError(t, err)
 	assert.Error(t, svc.ReloadGeoIP(ctx))
 	assert.Equal(t, "DE", svc.Country(ip), "a broken database keeps the previous one")
@@ -127,4 +127,25 @@ func TestReloadGeoIPFromDB(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, svc.ReloadGeoIP(ctx))
 	assert.Equal(t, "DE", svc.Country(ip), "no row keeps the current database")
+}
+
+func TestReloadGeoIPSkipsUnchangedMonth(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	ctx := context.Background()
+	de := testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "DE")
+	ip := netip.MustParseAddr("10.1.2.3")
+	_, err := pool.Exec(ctx, "INSERT INTO geoip_db (id, month, data) VALUES (1, '2026-10-01', $1)", de)
+	require.NoError(t, err)
+	svc := New(Deps{Pool: pool, Logger: slog.New(slog.DiscardHandler)})
+	require.NoError(t, svc.ReloadGeoIP(ctx))
+
+	_, err = pool.Exec(ctx, `UPDATE geoip_db SET data = '\x00'`)
+	require.NoError(t, err)
+	require.NoError(t, svc.ReloadGeoIP(ctx), "same month: blob not read")
+	assert.Equal(t, "DE", svc.Country(ip))
+
+	_, err = pool.Exec(ctx, `UPDATE geoip_db SET month = '2026-09-01'`)
+	require.NoError(t, err)
+	assert.Error(t, svc.ReloadGeoIP(ctx), "another month: blob read and rejected")
+	assert.Equal(t, "DE", svc.Country(ip))
 }

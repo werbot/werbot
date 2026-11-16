@@ -74,6 +74,7 @@ func TestE2EShellExecForward(t *testing.T) {
 
 	c, _, err := s.dial(s.gwSSH, "alice+srv", s.key)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = c.Close() })
 	sess, err := c.NewSession()
 	require.NoError(t, err)
 	require.NoError(t, sess.RequestPty("xterm", 40, 120, gossh.TerminalModes{}))
@@ -160,6 +161,10 @@ func TestE2EDenies(t *testing.T) {
 func TestE2EUnknownKeyRejected(t *testing.T) {
 	s := startStack(t)
 	s.addResource(t, "srv", "ssh")
+	require.Eventually(t, func() bool { // positive control: the gateway serves alice's key
+		out, code := s.exec(t, s.gwSSH, "alice+srv", "echo ok")
+		return out == "ok\n" && code == 0
+	}, settle, 100*time.Millisecond)
 	_, _, err := s.dial(s.gwSSH, "alice+srv", newSigner(t))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unable to authenticate")

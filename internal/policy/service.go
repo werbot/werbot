@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/werbot/werbot/internal/connector"
@@ -48,7 +49,13 @@ type Deps struct {
 // Service owns resource rules and decides access requests.
 type Service struct {
 	deps Deps
-	geo  atomic.Pointer[GeoIP] // nil until ReloadGeoIP finds a database
+	geo  atomic.Pointer[loadedGeoIP] // nil until ReloadGeoIP finds a database
+}
+
+// loadedGeoIP is a database and the month of the geoip_db row it came from.
+type loadedGeoIP struct {
+	GeoIP
+	month time.Time
 }
 
 // New creates a Service. It reads nothing: the GeoIP database stays empty
@@ -65,11 +72,23 @@ func actor(ctx context.Context) uuid.UUID {
 }
 
 // ReloadGeoIP replaces the GeoIP database with the geoip_db row. No row keeps
-// the current database; a broken one keeps it too and returns the error.
+// the current database, and so does a row of the month already loaded (the
+// blob is not read). A broken one keeps the current database too and returns
+// the error; the next call retries.
 func (s *Service) ReloadGeoIP(ctx context.Context) error {
-	var data []byte
+	var (
+		month pgtype.Date
+		data  []byte
+	)
 	err := dbx.System(ctx, s.deps.Pool, dbx.ReasonMaintenance, func(tx pgx.Tx) (err error) {
-		data, err = newStore(tx).GetGeoIPData(ctx)
+		st := newStore(tx)
+		if month, err = st.GetGeoIPMonth(ctx); err != nil {
+			return err
+		}
+		if cur := s.geo.Load(); cur != nil && cur.month.Equal(month.Time) {
+			return nil
+		}
+		data, err = st.GetGeoIPData(ctx)
 		return err
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -78,18 +97,21 @@ func (s *Service) ReloadGeoIP(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("policy: reload geoip: %w", err)
 	}
+	if data == nil {
+		return nil // month unchanged
+	}
 	g, err := OpenGeoIP(data)
 	if err != nil {
 		return fmt.Errorf("policy: reload geoip: %w", err)
 	}
-	s.geo.Store(&g)
+	s.geo.Store(&loadedGeoIP{GeoIP: g, month: month.Time})
 	return nil
 }
 
 // Country resolves ip with the current GeoIP database; "" without one.
 func (s *Service) Country(ip netip.Addr) string {
 	if g := s.geo.Load(); g != nil {
-		return (*g).Country(ip)
+		return g.Country(ip)
 	}
 	return ""
 }

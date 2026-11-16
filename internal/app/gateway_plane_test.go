@@ -95,7 +95,7 @@ func TestGeoIPReloaderSingleFlight(t *testing.T) {
 	defer cancel()
 	var running, peak, calls atomic.Int32
 	release := make(chan struct{})
-	kick := geoIPReloader(ctx, func(context.Context) error {
+	kick, _ := geoIPReloader(ctx, func(context.Context) error {
 		calls.Add(1)
 		if n := running.Add(1); n > peak.Load() {
 			peak.Store(n)
@@ -117,15 +117,41 @@ func TestGeoIPReloaderSingleFlight(t *testing.T) {
 	assert.Equal(t, int32(1), peak.Load())
 }
 
-func TestOnReconnectSkipsFirstGeoIPReload(t *testing.T) {
+// The reload after the first LISTEN is deliberate: it closes the window
+// between newServices and LISTEN, and an unchanged month costs one small query.
+func TestOnReconnectReloadsGeoIP(t *testing.T) {
 	var resyncs, reloads int
 	on := onReconnect(func() { resyncs++ }, func(string) { reloads++ })
-	on() // first LISTEN: newServices already loaded GeoIP
-	assert.Equal(t, 0, reloads)
+	on()
 	on()
 	on()
 	assert.Equal(t, 3, resyncs)
-	assert.Equal(t, 2, reloads, "a reconnect may have lost a NOTIFY")
+	assert.Equal(t, 3, reloads)
+}
+
+func TestGeoIPReloaderWaitsForReload(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	entered, release := make(chan struct{}), make(chan struct{})
+	kick, done := geoIPReloader(ctx, func(context.Context) error {
+		close(entered)
+		<-release
+		return nil
+	}, slog.New(slog.DiscardHandler))
+	kick("")
+	<-entered
+	cancel()
+	select {
+	case <-done:
+		t.Fatal("done closed while a reload ran")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("done not closed after the reload returned")
+	}
 }
 
 // enrolled is a gateway instance: its key, certificate and tunnel client.

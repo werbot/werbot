@@ -168,6 +168,9 @@ func TestEmbeddedGatewayRetriesEnrollment(t *testing.T) {
 	startServe(t, cfg, pool, nil, fstest.MapFS{}, slog.New(slog.DiscardHandler))
 	require.Eventually(t, func() bool { return gateway.Enrolled(filepath.Join(cfg.DataDir, "gateway")) },
 		10*time.Second, 20*time.Millisecond)
+	var tokens int
+	require.NoError(t, pool.QueryRow(context.Background(), "SELECT count(*) FROM gateway_join_token").Scan(&tokens))
+	assert.Equal(t, 1, tokens, "failed attempts reused one token")
 	cancel()
 	select {
 	case err := <-done:

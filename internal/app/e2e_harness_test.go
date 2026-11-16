@@ -228,6 +228,9 @@ func (s *stack) exec(t *testing.T, addr, user, cmd string) (out string, code int
 		return err.Error(), -1
 	}
 	defer c.Close() //nolint:errcheck // test client
+	// a hung session returns -1 instead of waiting for the global timeout
+	hung := time.AfterFunc(15*time.Second, func() { _ = c.Close() })
+	defer hung.Stop()
 	sess, err := c.NewSession()
 	if err != nil {
 		return err.Error(), -1
