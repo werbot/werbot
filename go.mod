@@ -8,6 +8,7 @@ require (
 	connectrpc.com/connect v1.21.1
 	connectrpc.com/validate v0.7.0
 	github.com/cedar-policy/cedar-go v1.9.0
+	github.com/gliderlabs/ssh v0.3.8
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/oschwald/maxminddb-golang/v2 v2.9.0
@@ -24,6 +25,7 @@ require (
 require (
 	cel.dev/cel-go v0.32.0 // indirect
 	cel.dev/expr v0.25.3 // indirect
+	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/go-json-experiment/json v0.0.0-20260820222146-c27c302e5fc3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

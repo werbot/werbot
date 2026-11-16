@@ -15,6 +15,7 @@ require (
 	connectrpc.com/connect v1.21.1
 	connectrpc.com/validate v0.7.0
 	github.com/cedar-policy/cedar-go v1.9.0
+	github.com/gliderlabs/ssh v0.3.8
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/oschwald/maxminddb-golang/v2 v2.9.0
@@ -47,6 +48,7 @@ require (
 	connectrpc.com/otelconnect v0.11.0 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/Microsoft/go-winio v0.6.4 // indirect
+	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/bufbuild/buf v1.75.0 // indirect
 	github.com/bufbuild/protocompile v0.14.2-0.20261020145055-56248e843b50 // indirect
