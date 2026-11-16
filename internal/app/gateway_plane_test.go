@@ -197,12 +197,12 @@ func streamEnd(t *testing.T, done <-chan error, within time.Duration) error {
 	}
 }
 
-// foreignCert is a self-signed client certificate with a valid gateway CN.
-func foreignCert(t *testing.T) tls.Certificate {
+// foreignCert is a self-signed client certificate with the gateway CN cn.
+func foreignCert(t *testing.T, cn string) tls.Certificate {
 	t.Helper()
 	pub, key, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
-	tmpl := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: tlsca.GatewayCN(uuid.New(), uuid.New())},
+	tmpl := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: cn},
 		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour), ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}}
 	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, pub, key)
 	require.NoError(t, err)
@@ -256,7 +256,7 @@ func TestServeGatewayPlane(t *testing.T) {
 	assert.Error(t, streamEnd(t, done, 5*time.Second))
 
 	// A certificate of another CA fails the TLS handshake: no server answer.
-	other, _ := tunnelClient(t, gw.res.GetTunnelUrl(), []byte(gw.res.GetCaPem()), foreignCert(t))
+	other, _ := tunnelClient(t, gw.res.GetTunnelUrl(), []byte(gw.res.GetCaPem()), foreignCert(t, tlsca.GatewayCN(uuid.New(), uuid.New())))
 	err = auth(other)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "tls:")

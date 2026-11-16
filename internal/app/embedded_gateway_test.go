@@ -48,10 +48,17 @@ func startReplica(t *testing.T, dbURL, dataDir string) replica {
 		"WERBOT_SECRET_KEY": testSecretKey, "WERBOT_GATEWAY_ADDR": freeAddr(t), "WERBOT_DATA_DIR": dataDir,
 		"WERBOT_ENV": "development", "WERBOT_GATEWAY_SSH_ADDR": "127.0.0.1:0",
 	})
+	return startRun(t, []string{"server", "--with-gateway"}, getenv)
+}
+
+// startRun runs `werbot <args>` with getenv in a goroutine; it does not wait
+// for the server (see healthy).
+func startRun(t *testing.T, args []string, getenv func(string) string) replica {
+	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- Run(ctx, []string{"server", "--with-gateway"}, getenv, io.Discard) }()
-	r := replica{api: "http://" + httpAddr}
+	go func() { done <- Run(ctx, args, getenv, io.Discard) }()
+	r := replica{api: "http://" + getenv("WERBOT_HTTP_ADDR")}
 	stopped := false
 	r.stop = func() {
 		if stopped {
