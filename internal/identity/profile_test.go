@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,10 +40,12 @@ func TestUpdateProfile(t *testing.T) {
 // profileAuditData returns the data of the only profile.update audit event.
 func profileAuditData(t *testing.T, pool *pgxpool.Pool) map[string]any {
 	t.Helper()
-	var data map[string]any
-	require.NoError(t, pool.QueryRow(context.Background(),
-		"SELECT data FROM audit_event WHERE action = 'profile.update'").Scan(&data))
-	return data
+	rows, err := pool.Query(context.Background(), "SELECT data FROM audit_event WHERE action = 'profile.update'")
+	require.NoError(t, err)
+	data, err := pgx.CollectRows(rows, pgx.RowTo[map[string]any])
+	require.NoError(t, err)
+	require.Len(t, data, 1)
+	return data[0]
 }
 
 func TestUpdateProfileEmailRequiresPassword(t *testing.T) {
@@ -60,6 +63,7 @@ func TestUpdateProfileEmailRequiresPassword(t *testing.T) {
 	got, err := svc.Profile(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, "alice@example.com", got.Email)
+	assert.Equal(t, "alice", got.Name, "a refused change keeps the name too")
 	assert.Equal(t, audit, auditActions(t, pool), "a refused change writes no audit event")
 
 	u, err := svc.UpdateProfile(ctx, "Alice", "New@Example.com", testPassword)

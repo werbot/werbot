@@ -27,12 +27,26 @@
 		}
 	}
 
+	// A stale tab may hold an old email: re-read it so the password field shows.
+	async function refreshSavedEmail() {
+		try {
+			savedEmail = (await profile.getProfile({})).user?.email ?? savedEmail;
+		} catch {
+			// keep savedEmail: the save error is already shown
+		}
+	}
+
 	async function save(e: SubmitEvent) {
 		e.preventDefault();
-		const currentPassword = emailChanged ? emailPassword : '';
-		if (await run(() => profile.updateProfile({ name, email, currentPassword }), m.common_saved())) {
-			savedEmail = email.trim().toLowerCase();
+		error = '';
+		try {
+			const { user } = await profile.updateProfile({ name, email, currentPassword: emailChanged ? emailPassword : '' });
+			savedEmail = user?.email ?? '';
 			emailPassword = '';
+			toast({ tone: 'success', text: m.common_saved() });
+		} catch (e) {
+			error = errorMessage(e);
+			if (ConnectError.from(e).code === Code.InvalidArgument) await refreshSavedEmail();
 		}
 	}
 
@@ -73,7 +87,7 @@
 			<TextField label={m.field_name()} bind:value={name} required autocomplete="name" />
 			<TextField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
 			{#if emailChanged}
-				<TextField type="password" label={m.profile_password_current()} bind:value={emailPassword} required autocomplete="current-password" />
+				<TextField type="password" label={m.profile_email_password()} bind:value={emailPassword} required autocomplete="current-password" />
 			{/if}
 			<Button type="submit" variant="solid">{m.profile_save()}</Button>
 		</form>

@@ -41,6 +41,7 @@
 	"error_unknown": "Something went wrong.",
 	"profile_title": "Profile",
 	"profile_save": "Save",
+	"profile_email_password": "Current password to confirm email change",
 	"profile_password_title": "Password",
 	"profile_password_current": "Current password",
 	"profile_password_new": "New password",
