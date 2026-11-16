@@ -72,16 +72,31 @@ func runGatewayPlane(ctx context.Context, ln net.Listener, cfg config.Config, s 
 
 // listenNotify runs the process's only pgnotify.Listen until ctx ends: org
 // changes go to hub, GeoIP changes reload the database. A reconnect may have
-// lost notifications, so it refreshes both. The channel closes on return.
+// lost notifications, so it refreshes both (see onReconnect). The channel
+// closes on return.
 func listenNotify(ctx context.Context, pool *pgxpool.Pool, hub *tunnel.Hub, reload func(context.Context) error, logger *slog.Logger) <-chan struct{} {
 	geoip := geoIPReloader(ctx, reload, logger)
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		_ = pgnotify.Listen(ctx, pool, map[string]func(string){pgnotify.OrgChanged: hub.OrgChanged, pgnotify.GeoIPChanged: geoip},
-			func() { hub.Resync(); geoip("") })
+			onReconnect(hub.Resync, geoip))
 	}()
 	return done
+}
+
+// onReconnect resyncs the hub after every LISTEN and reloads GeoIP after every
+// one but the first: newServices loaded it just before. pgnotify calls it from
+// one goroutine.
+func onReconnect(resync func(), geoip func(string)) func() {
+	first := true
+	return func() {
+		resync()
+		if !first {
+			geoip("")
+		}
+		first = false
+	}
 }
 
 // geoIPReloader returns a trigger that never blocks: one goroutine runs

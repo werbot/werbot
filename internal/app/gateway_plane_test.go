@@ -117,6 +117,17 @@ func TestGeoIPReloaderSingleFlight(t *testing.T) {
 	assert.Equal(t, int32(1), peak.Load())
 }
 
+func TestOnReconnectSkipsFirstGeoIPReload(t *testing.T) {
+	var resyncs, reloads int
+	on := onReconnect(func() { resyncs++ }, func(string) { reloads++ })
+	on() // first LISTEN: newServices already loaded GeoIP
+	assert.Equal(t, 0, reloads)
+	on()
+	on()
+	assert.Equal(t, 3, resyncs)
+	assert.Equal(t, 2, reloads, "a reconnect may have lost a NOTIFY")
+}
+
 // enrolled is a gateway instance: its key, certificate and tunnel client.
 type enrolled struct {
 	key            ed25519.PrivateKey
