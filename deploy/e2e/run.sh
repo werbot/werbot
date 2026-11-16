@@ -21,8 +21,13 @@ trap cleanup EXIT
 
 # rpc Service/Method JSON: Connect unary call with the session cookie.
 rpc() {
-  curl -sS --fail-with-body -b "$TMP/cookies" -c "$TMP/cookies" -H 'Content-Type: application/json' \
-    -d "$2" "$API/werbot.v1.$1"
+  local body
+  body=$(curl -sS --fail-with-body -b "$TMP/cookies" -c "$TMP/cookies" -H 'Content-Type: application/json' \
+    -d "$2" "$API/werbot.v1.$1") || {
+    echo "rpc $1 failed: $body" >&2
+    return 1
+  }
+  printf '%s\n' "$body"
 }
 
 # wait_for SECONDS CMD...: retry CMD once a second until it succeeds.

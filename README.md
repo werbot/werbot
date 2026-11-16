@@ -93,8 +93,8 @@ A failed download keeps the previous data.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `WERBOT_GATEWAY_SERVER_URL` | empty | `https://` URL of the server API; needed for enrollment only. `http://` is accepted only for a loopback host (`127.0.0.0/8`, `::1`, `localhost`) or with the flag `--insecure-enroll`: enrollment sends the join token and receives the pool's private SSH host key, so use it only on a trusted network. |
-| `WERBOT_GATEWAY_JOIN_TOKEN` | empty | Join token of the pool; needed for the first enrollment only. A saved identity wins over it. |
+| `WERBOT_GATEWAY_SERVER_URL` | empty | `https://` URL of the server API; needed for enrollment only (a start with a valid saved identity does not check it). `http://` is accepted only for a loopback host (`127.0.0.0/8`, `::1`, `localhost`) or with the flag `--insecure-enroll`: enrollment sends the join token and receives the pool's private SSH host key, so use it only on a trusted network. |
+| `WERBOT_GATEWAY_JOIN_TOKEN` | empty | Join token of the pool; needed for enrollment: the first start or a start with a stale identity (see below). A valid saved identity wins over it. |
 | `WERBOT_GATEWAY_DATA_DIR` | `./gateway-data` | Instance identity: `gateway.json`, `gateway.key`, `gateway.crt`, `ca.crt`, `ssh_host_ed25519_key`. |
 | `WERBOT_GATEWAY_SSH_ADDR` | `:2222` | SSH listen address. |
 | `WERBOT_GATEWAY_PROXY_PROTOCOL` | `false` | Require a PROXY protocol header on every SSH connection; expose the port to the load balancer only. |
@@ -104,9 +104,9 @@ A failed download keeps the previous data.
 | `WERBOT_GATEWAY_DRAIN_TIMEOUT` | `30s` | On SIGTERM, how long running sessions may continue before they end with `gateway_shutdown`. |
 | `WERBOT_GATEWAY_MAX_SESSIONS` | `10000` | Concurrent session limit, 1-10000; above it users get `Gateway is busy, try again later`. |
 
-The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR`; it connects out to the server tunnel. Users log in with their SSH key: `ssh <login>+<resource>@<gateway> -p 2222` runs a shell or a command on the resource, `ssh -L <port>:<host>:<port> <login>+<resource>@<gateway> -p 2222` forwards a port, and `ssh <login>@<gateway> -p 2222` (interactive terminal only) shows a menu of the resources the user may open. Without the server or a policy snapshot the gateway refuses new sessions (`Gateway is not ready, try again later`); running sessions continue. `/readyz` returns 200 only while the tunnel is up with a snapshot (a planned reconnect for `rebalance` or a server `shutdown` keeps it for up to 5s), a session slot is free and no drain runs. On SIGTERM `/readyz` returns 503 at once and the SSH port stops accepting connections.
+The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR`; it connects out to the server tunnel. Users log in with their SSH key: `ssh <login>+<resource>@<gateway> -p 2222` runs a shell or a command on the resource, `ssh -L <port>:<host>:<port> <login>+<resource>@<gateway> -p 2222` forwards a port, and `ssh <login>@<gateway> -p 2222` (interactive terminal only) shows a menu of the resources the user may open. Without the server or a policy snapshot the gateway refuses new sessions (`Gateway is not ready, try again later`) and closes that SSH connection after 30 s; running sessions continue. A connection must authenticate within 30 s, and the control-plane lookup of each offered key counts toward it, so a slow control plane may cut a client that offers many keys. `/readyz` returns 200 only while the tunnel is up with a snapshot (a planned reconnect for `rebalance` or a server `shutdown` keeps it for up to 5s), a session slot is free and no drain runs. On SIGTERM `/readyz` returns 503 at once and the SSH port stops accepting connections.
 
-The instance renews its 24h certificate after 16h; until the renewed certificate is first used, the previous one stays valid, so a lost renewal response does not lock the instance out. A saved identity whose certificate has expired or no longer loads (the instance was offline for more than 24h, or crashed during a renewal) counts as not enrolled, and the next enrollment overwrites it. The embedded gateway enrolls again by itself. A standalone gateway offline for more than 24h needs a new join token in `WERBOT_GATEWAY_JOIN_TOKEN`; a spent token fails at start with `invalid join token`.
+The instance renews its 24h certificate after 16h; until the renewed certificate is first used, the previous one stays valid, so a lost renewal response does not lock the instance out. A saved identity whose certificate has expired or no longer loads (the instance was offline for more than 24h, or crashed during a renewal) counts as not enrolled, and the next enrollment overwrites it. An instance whose certificate expires while running stops (`gateway certificate expired`). The embedded gateway enrolls again by itself. A standalone gateway offline for more than 24h needs a new join token in `WERBOT_GATEWAY_JOIN_TOKEN`; a spent token fails at start with `invalid join token`.
 
 ## Deployment modes
 
@@ -128,7 +128,7 @@ The stack runs `werbot server --with-gateway` and listens on http://localhost:80
 ```sh
 make test   # needs `make dev-db`
 make lint
-make e2e    # Playwright e2e on DB `werbot_e2e` (needs `make dev-db`; first run: `cd web && bunx playwright install chromium`)
+make e2e    # Playwright e2e on DB `werbot_e2e`, no internet feeds (the server runs with `HTTPS_PROXY` pointing at a closed port) (needs `make dev-db`; first run: `cd web && bunx playwright install chromium`)
 make e2e-network  # Docker Compose e2e: SSH through a gateway pool to a target on an internal-only network
 (cd web && bun run test:unit)  # Vitest unit tests for the web UI
 make sqlc   # regenerates internal/<domain>/dbq from migrations/ and internal/<domain>/queries.sql
