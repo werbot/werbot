@@ -18,15 +18,18 @@ func (s *Spool) writeState(id uuid.UUID, st state) error {
 // probeFile is the write Writable tries while the spool is failing.
 const probeFile = ".probe"
 
+// probeData is as large as a chunk file: an empty file still fits on a full disk.
+var probeData = make([]byte, hashLen+MaxChunkRaw)
+
 // Writable reports whether the last disk write succeeded. While it failed, each
-// call tries a small write first, so a disk with room again admits sessions.
+// call first tries a chunk-sized write, so a disk with room again admits sessions.
 func (s *Spool) Writable() bool {
 	if !s.writeFailed.Load() {
 		return true
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.write(probeFile) == nil {
+	if s.write(probeFile, probeData) == nil {
 		_ = s.root.Remove(probeFile)
 	}
 	return !s.writeFailed.Load()
