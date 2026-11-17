@@ -4,10 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
+	"github.com/werbot/werbot/migrations"
 )
 
 func TestOrganizationIDIsUUIDv7(t *testing.T) {
@@ -41,4 +44,26 @@ func TestUUIDKeysDefaultToUUIDv7(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx,
 		"INSERT INTO audit_event (actor_kind, action) VALUES ('system', 'test') RETURNING uuid_extract_version(id)").Scan(&version))
 	assert.Equal(t, 7, version)
+}
+
+func TestRecordingMigrationsDownUp(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	ctx := context.Background()
+	sqlDB := stdlib.OpenDBFromPool(pool)
+	defer func() { _ = sqlDB.Close() }()
+	p, err := goose.NewProvider(goose.DialectPostgres, sqlDB, migrations.FS)
+	require.NoError(t, err)
+
+	exists := func(table string) bool {
+		var ok bool
+		require.NoError(t, sqlDB.QueryRowContext(ctx, "SELECT to_regclass($1) IS NOT NULL", table).Scan(&ok))
+		return ok
+	}
+	require.True(t, exists("recording") && exists("signing_key"))
+	_, err = p.DownTo(ctx, 59)
+	require.NoError(t, err)
+	assert.False(t, exists("recording") || exists("signing_key"))
+	_, err = p.Up(ctx)
+	require.NoError(t, err)
+	assert.True(t, exists("recording") && exists("signing_key"))
 }

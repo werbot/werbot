@@ -1,6 +1,7 @@
 package session_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"strings"
@@ -45,7 +46,12 @@ func TestLoadSignerPersists(t *testing.T) {
 
 	var ct []byte
 	require.NoError(t, pool.QueryRow(ctx, `SELECT ciphertext FROM signing_key`).Scan(&ct))
-	assert.Greater(t, len(ct), 32, "seed must be sealed (nonce + tag), not stored raw")
+	var keyID string
+	require.NoError(t, pool.QueryRow(ctx, `SELECT key_id FROM signing_key`).Scan(&keyID))
+	seed, err := box.Open(ct, keyID)
+	require.NoError(t, err)
+	assert.Len(t, seed, 32)
+	assert.False(t, bytes.Contains(ct, seed), "seed must be sealed, not stored raw")
 
 	m := []byte("manifest")
 	sig := s1.Sign(m)
@@ -93,4 +99,18 @@ func TestLoadSignerConcurrent(t *testing.T) {
 		require.NoError(t, errs[i])
 		assert.Equal(t, keys[0], keys[i])
 	}
+}
+
+func TestLoadSignerRejectsForeignPublicKey(t *testing.T) {
+	ctx := context.Background()
+	pool, _ := dbtest.New(t)
+	box, err := secretbox.New(key(t), nil)
+	require.NoError(t, err)
+	_, err = session.LoadSigner(ctx, pool, box)
+	require.NoError(t, err)
+
+	_, err = pool.Exec(ctx, `UPDATE signing_key SET public_key = $1`, key(t))
+	require.NoError(t, err)
+	_, err = session.LoadSigner(ctx, pool, box)
+	require.ErrorContains(t, err, "does not match")
 }

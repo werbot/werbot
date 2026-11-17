@@ -58,6 +58,20 @@ func TestChildRowsCannotCrossOrgs(t *testing.T) {
 	}
 }
 
+func TestRecordingCannotCrossOrgs(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	ctx := context.Background()
+	orgA, orgB := dbtest.Org(t, pool), dbtest.Org(t, pool)
+	var sess uuid.UUID
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO session (org_id, client_ip) VALUES ($1, '10.0.0.1') RETURNING id", orgA).Scan(&sess))
+	const q = "INSERT INTO recording (session_id, org_id, store) VALUES ($1, $2, 'fs')"
+	_, err := pool.Exec(ctx, q, sess, orgB)
+	pgCode(t, err, "23503")
+	_, err = pool.Exec(ctx, q, sess, orgA)
+	require.NoError(t, err)
+}
+
 func TestBindingNeedsExactlyOneTarget(t *testing.T) {
 	pool, _ := dbtest.New(t)
 	ctx := context.Background()
