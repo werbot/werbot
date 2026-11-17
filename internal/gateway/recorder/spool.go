@@ -87,6 +87,9 @@ type Spool struct {
 	wake  chan struct{} // any new work
 	ended chan struct{} // a new session end: also cuts a retry pause short
 	total atomic.Int64
+	// writeFailed: the last write or mkdir failed (disk full or not writable);
+	// set under mu, read without it on every Pipeline.Open
+	writeFailed atomic.Bool
 
 	// ponytail: one lock covers the disk writes of all sessions (an fsync per chunk
 	// serialises appends); per-session locks if stage 7a shows contention.
@@ -95,9 +98,8 @@ type Spool struct {
 	ends     map[uuid.UUID]string // reason of an EndSession not delivered yet
 	// ponytail: rejected is kept for the process lifetime (16 bytes per refused
 	// session, rare); prune it once the spool learns of a session's Recording.Close.
-	rejected    map[uuid.UUID]struct{} // refused sessions: their later chunks fail
-	shut        bool                   // Shutdown ran: the directory may belong to a new Spool
-	writeFailed bool                   // the last write or mkdir failed: disk full or not writable
+	rejected map[uuid.UUID]struct{} // refused sessions: their later chunks fail
+	shut     bool                   // Shutdown ran: the directory may belong to a new Spool
 }
 
 // errShutdown is a write to a spool after Shutdown.
