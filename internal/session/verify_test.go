@@ -123,3 +123,11 @@ func TestVerifyStoreKindMismatch(t *testing.T) {
 	assert.ErrorContains(t, err, `kept in "fs" store`)
 }
 
+// A server built without a signer cannot check a finished recording: it answers
+// Unavailable instead of panicking.
+func TestVerifyWithoutSigner(t *testing.T) {
+	e, _ := finishedEnv(t)
+	unsigned := session.NewRecordings(e.pool, e.store, "fs", nil)
+	_, err := unsigned.Verify(t.Context(), e.f.Principal(e.f.OwnerID), e.sid)
+	require.ErrorIs(t, err, apperr.ErrUnavailable)
+}

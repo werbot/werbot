@@ -83,6 +83,8 @@ func (r *Recordings) copyChain(ctx context.Context, p principal.Principal, sessi
 		return Verification{Reason: ReasonChunkMissing}, nil
 	case rec.FinalHash == nil:
 		return Verification{Reason: ReasonNotFinished}, nil
+	case r.signer == nil:
+		return Verification{}, fmt.Errorf("recording signer not loaded: %w", apperr.ErrUnavailable)
 	case !r.signer.Verify(NewManifest(sessionID, int(rec.Chunks), rec.Bytes, rec.FinalHash).Canonical(), rec.ManifestSignature):
 		return Verification{Reason: ReasonSignatureInvalid}, nil
 	case !bytes.Equal(prev, rec.FinalHash) || size != rec.Bytes:
