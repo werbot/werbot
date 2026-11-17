@@ -27,6 +27,9 @@ const DefaultSpoolLimit = 64 << 20
 // ErrSpoolFull is an Append over the session's spool limit.
 var ErrSpoolFull = errors.New("recorder: session spool limit exceeded")
 
+// errRejected is an Append to a session whose recording the server refused.
+var errRejected = errors.New("recorder: the server refused this session's recording")
+
 // Manifest closes a recording on the server.
 type Manifest struct {
 	SessionID uuid.UUID
@@ -87,11 +90,14 @@ type Spool struct {
 
 	// ponytail: one lock covers the disk writes of all sessions (an fsync per chunk
 	// serialises appends); per-session locks if stage 7a shows contention.
-	mu          sync.Mutex
-	sessions    map[uuid.UUID]*session
-	ends        map[uuid.UUID]string // reason of an EndSession not delivered yet
-	shut        bool                 // Shutdown ran: the directory may belong to a new Spool
-	writeFailed bool                 // the last write or mkdir failed: disk full or not writable
+	mu       sync.Mutex
+	sessions map[uuid.UUID]*session
+	ends     map[uuid.UUID]string // reason of an EndSession not delivered yet
+	// ponytail: rejected is kept for the process lifetime (16 bytes per refused
+	// session, rare); prune it once the spool learns of a session's Recording.Close.
+	rejected    map[uuid.UUID]struct{} // refused sessions: their later chunks fail
+	shut        bool                   // Shutdown ran: the directory may belong to a new Spool
+	writeFailed bool                   // the last write or mkdir failed: disk full or not writable
 }
 
 // errShutdown is a write to a spool after Shutdown.
@@ -117,7 +123,7 @@ func OpenSpool(dir string, up Uploader, opts SpoolOptions, logger *slog.Logger) 
 		return nil, fmt.Errorf("spool: %w", err)
 	}
 	s := &Spool{root: root, up: up, opts: opts, log: logger, wake: make(chan struct{}, 1), ended: make(chan struct{}, 1),
-		sessions: map[uuid.UUID]*session{}, ends: map[uuid.UUID]string{}}
+		sessions: map[uuid.UUID]*session{}, ends: map[uuid.UUID]string{}, rejected: map[uuid.UUID]struct{}{}}
 	entries, err := fs.ReadDir(root.FS(), ".")
 	if err != nil {
 		_ = root.Close()
@@ -142,6 +148,9 @@ func (s *Spool) Append(sessionID uuid.UUID, seq int, hash, gz []byte) error {
 	defer s.mu.Unlock()
 	if s.shut {
 		return errShutdown
+	}
+	if _, ok := s.rejected[sessionID]; ok {
+		return errRejected
 	}
 	ss := s.sessions[sessionID]
 	var pending int64

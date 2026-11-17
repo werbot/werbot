@@ -196,6 +196,7 @@ func (s *Spool) reject(id uuid.UUID, cause error) {
 	}
 	delete(s.sessions, id)
 	delete(s.ends, id)
+	s.rejected[id] = struct{}{}
 }
 
 // refused reports an answer that a retry cannot change.

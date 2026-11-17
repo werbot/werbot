@@ -159,8 +159,10 @@ func TestSpoolEndCutsRetryPause(t *testing.T) {
 	require.EqualValues(t, 3, up.calls.Load(), "chunk a, end b, chunk a")
 }
 
-// A second refusal of the same session keeps the first rejected copy.
-func TestSpoolRejectedTwiceKeepsBoth(t *testing.T) {
+// After a refusal, later chunks of the session fail at once, so the recorder ends
+// it; no new session directory appears. Its end still goes out, and a second
+// refusal keeps the first rejected copy.
+func TestSpoolRejectedSessionRefusesAppend(t *testing.T) {
 	dir := t.TempDir()
 	up := &fakeUploader{}
 	up.code.Store(uint32(connect.CodeInvalidArgument))
@@ -169,7 +171,12 @@ func TestSpoolRejectedTwiceKeepsBoth(t *testing.T) {
 	id := uuid.New()
 	_, _ = appendN(t, sp, id, 1)
 	require.Eventually(t, func() bool { return sp.Pending(id) == 0 }, 5*time.Second, 5*time.Millisecond)
-	_, _ = appendN(t, sp, id, 1) // the session goes on and is refused again
+	require.DirExists(t, filepath.Join(dir, "rejected", id.String()))
+
+	require.Error(t, sp.Append(id, 1, make([]byte, 32), []byte("gz")), "the session goes on")
+	require.NoDirExists(t, filepath.Join(dir, id.String()))
+	require.Zero(t, sp.Total())
+	require.NoError(t, sp.End(id, "recording_unavailable"))
 	require.Eventually(t, func() bool {
 		entries, _ := os.ReadDir(filepath.Join(dir, "rejected"))
 		return len(entries) == 2
