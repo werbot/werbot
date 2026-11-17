@@ -182,3 +182,28 @@ func TestSpoolRejectedSessionRefusesAppend(t *testing.T) {
 		return len(entries) == 2
 	}, 5*time.Second, 5*time.Millisecond)
 }
+
+// A session the server keeps failing with a code that is neither a refusal nor
+// an outage (Internal, Unimplemented) does not hold back the sessions after it.
+func TestSpoolFailingSessionDoesNotBlockOthers(t *testing.T) {
+	dir := t.TempDir()
+	up := &fakeUploader{}
+	a, b := uuid.MustParse("00000000-0000-4000-8000-000000000001"), uuid.MustParse("00000000-0000-4000-8000-000000000002")
+	up.setChunkCode(func(seq int) connect.Code {
+		if seq == 5 { // only a starts at seq 5
+			return connect.CodeInternal
+		}
+		return 0
+	})
+	sp := openSpool(t, dir, up, 0)
+	require.NoError(t, sp.Append(a, 5, make([]byte, 32), []byte("gz")))
+	require.NoError(t, sp.Close(a))
+	_, _ = appendN(t, sp, b, 1)
+	require.NoError(t, sp.Close(b))
+	runSpool(t, sp)
+
+	require.Eventually(t, func() bool { return up.count(fmt.Sprintf("finish %s 1", b)) == 1 }, 5*time.Second, 5*time.Millisecond)
+	require.FileExists(t, filepath.Join(dir, a.String(), "00000005.chunk"), "a is kept for a retry")
+	require.NoDirExists(t, filepath.Join(dir, "rejected"))
+	require.EqualValues(t, 2, sp.Total())
+}

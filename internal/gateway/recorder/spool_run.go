@@ -1,6 +1,7 @@
 package recorder
 
 import (
+	"cmp"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -57,7 +58,8 @@ func jitter(d time.Duration) time.Duration {
 	return time.Duration(float64(d) * (0.8 + 0.4*rand.Float64())) //nolint:gosec // jitter, not security
 }
 
-// pass makes one delivery round; it stops at the first retryable failure.
+// pass makes one delivery round and returns its first failure. It stops when the
+// server is out of reach; a session that fails otherwise waits for the next pass.
 func (s *Spool) pass(ctx context.Context) error {
 	for _, id := range s.PendingEnds() {
 		s.mu.Lock()
@@ -78,15 +80,21 @@ func (s *Spool) pass(ctx context.Context) error {
 	s.mu.Lock()
 	ids := sortedKeys(s.sessions)
 	s.mu.Unlock()
+	var first error
 	for _, id := range ids {
-		if err := s.upload(ctx, id); err != nil {
-			if !refused(err) {
-				return err
-			}
+		err := s.upload(ctx, id)
+		switch {
+		case err == nil:
+		case refused(err):
 			s.reject(id, err)
+		case unreachable(err):
+			return err
+		default:
+			s.log.Warn("spool: session upload failed", "session_id", id, "error", err)
+			first = cmp.Or(first, err)
 		}
 	}
-	return nil
+	return first
 }
 
 // upload sends the unsent chunks of a session, then finishes a closed recording
@@ -206,4 +214,14 @@ func refused(err error) bool {
 		return true
 	}
 	return errors.Is(err, errUnreadable)
+}
+
+// unreachable reports a failure no other session would escape: the server or the
+// tunnel is down, or the pass is cancelled.
+func unreachable(err error) bool {
+	switch connect.CodeOf(err) {
+	case connect.CodeUnavailable, connect.CodeDeadlineExceeded, connect.CodeCanceled:
+		return true
+	}
+	return false
 }
