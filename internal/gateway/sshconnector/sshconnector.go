@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	gossh "golang.org/x/crypto/ssh"
@@ -78,7 +79,7 @@ func (c Connector) serve(ctx context.Context, s *gateway.Session) error {
 	case gateway.KindExec:
 		return execCommand(s.Exec).run(ctx, client, s.Recording, s.Secret)
 	case gateway.KindStream:
-		target, err := client.Dial("tcp", s.Target) // direct-tcpip at the target
+		target, err := client.Dial("tcp", dialTarget(s.Resource.Name, s.Target)) // direct-tcpip at the target
 		if err != nil {
 			return fmt.Errorf("ssh: open %s through the target: %w", s.Target, err)
 		}
@@ -86,6 +87,16 @@ func (c Connector) serve(ctx context.Context, s *gateway.Session) error {
 	default:
 		return fmt.Errorf("ssh: unsupported session kind %q", s.Kind)
 	}
+}
+
+// dialTarget is the address the target dials for a stream: a host equal to the
+// resource name (as `werbot connect` sends it) is the target itself, localhost.
+func dialTarget(resourceName, target string) string {
+	host, port, err := net.SplitHostPort(target)
+	if err != nil || !strings.EqualFold(host, resourceName) {
+		return target
+	}
+	return net.JoinHostPort("localhost", port)
 }
 
 // handshake runs the SSH handshake on conn within DialTimeout. A host key the

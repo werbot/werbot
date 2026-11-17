@@ -97,6 +97,20 @@ func TestE2EConnect(t *testing.T) {
 		}
 	})
 
+	t.Run("ssh resource name is the target itself", func(t *testing.T) {
+		s.addResource(t, "srv", "ssh") // port_forwarding: true
+		s.resourceReady(t, "srv")
+		_, echoPort, err := net.SplitHostPort(s.target.EchoAddr)
+		require.NoError(t, err)
+		port := freePort(t)
+		r := runConnect(t, cfg(s.gwSSH, port+":srv:"+echoPort))
+		c, err := net.Dial("tcp", r.ready(t, "srv", port, "tcp"))
+		require.NoError(t, err)
+		echoPing(t, c)
+		require.NoError(t, c.Close())
+		assert.NoError(t, r.stop(t))
+	})
+
 	t.Run("access denied", func(t *testing.T) {
 		r := runConnect(t, cfg(s.gwSSH, "closed"))
 		assert.EqualError(t, r.wait(t), "closed: refused by the gateway")

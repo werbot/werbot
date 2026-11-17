@@ -50,6 +50,31 @@ func TestStreamTarget(t *testing.T) {
 	user, conn := net.Pipe()
 	s.Stream, s.Target = conn, tg.EchoAddr
 	served := serve(t.Context(), s)
+	requireEcho(t, user, served)
+
+	s = newSession(t, tg, gateway.KindStream)
+	user, conn = net.Pipe()
+	s.Stream, s.Target = conn, "127.0.0.1:1"
+	require.Error(t, wait(t, serve(t.Context(), s)))
+	_, err := user.Read(make([]byte, 1))
+	require.ErrorIs(t, err, io.EOF, "the stream is not closed")
+}
+
+// A target host equal to the resource name is the target's own localhost (G22).
+func TestStreamTargetResourceName(t *testing.T) {
+	tg := sshtest.StartTarget(t, "pw", nil)
+	_, port, err := net.SplitHostPort(tg.EchoAddr)
+	require.NoError(t, err)
+	s := newSession(t, tg, gateway.KindStream)
+	user, conn := net.Pipe()
+	s.Stream, s.Target = conn, net.JoinHostPort("TARGET", port)
+	served := serve(t.Context(), s)
+	requireEcho(t, user, served)
+}
+
+// requireEcho checks that user reaches the echo, then closes it and waits for Serve.
+func requireEcho(t *testing.T, user net.Conn, served <-chan error) {
+	t.Helper()
 	require.NoError(t, user.SetDeadline(time.Now().Add(waitFor)))
 	_, err := io.WriteString(user, "ping")
 	require.NoError(t, err)
@@ -59,13 +84,6 @@ func TestStreamTarget(t *testing.T) {
 	require.Equal(t, "ping", string(got))
 	require.NoError(t, user.Close())
 	require.NoError(t, wait(t, served))
-
-	s = newSession(t, tg, gateway.KindStream)
-	user, conn = net.Pipe()
-	s.Stream, s.Target = conn, "127.0.0.1:1"
-	require.Error(t, wait(t, serve(t.Context(), s)))
-	_, err = user.Read(make([]byte, 1))
-	require.ErrorIs(t, err, io.EOF, "the stream is not closed")
 }
 
 func TestHostKeyTOFU(t *testing.T) {
