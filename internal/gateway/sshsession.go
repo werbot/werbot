@@ -20,6 +20,7 @@ func (h *sshHandler) session(s ssh.Session) {
 func (h *sshHandler) serveSession(s ssh.Session) int {
 	sctx := s.Context()
 	pty, winch, isPty := s.Pty()
+	ptyRead(sctx)
 	resize := windowChanges(winch) // first: winch must drain on every path
 	if handshakeUser(sctx) == nil {
 		say(s, openText(h.p.reject(ErrNotReady), "", "", nil))

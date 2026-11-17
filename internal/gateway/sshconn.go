@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -53,10 +54,13 @@ type channelContext struct {
 	done   context.Context
 	cancel context.CancelFunc
 	window atomic.Pointer[Window] // the last window change before shell or exec
+
+	ptyTaken     chan struct{} // closed once the handler has read the session's PTY
+	ptyTakenOnce sync.Once
 }
 
 func newChannelContext(ctx ssh.Context) *channelContext {
-	c := &channelContext{Context: ctx}
+	c := &channelContext{Context: ctx, ptyTaken: make(chan struct{})}
 	c.done, c.cancel = context.WithCancel(ctx)
 	return c
 }
@@ -78,6 +82,14 @@ func earlyWindow(ctx ssh.Context) *Window {
 	return nil
 }
 
+// ptyRead tells the channel's relay that the handler has read the session's PTY,
+// so later window changes may reach gliderlabs, which writes them into it.
+func ptyRead(ctx ssh.Context) {
+	if c, ok := ctx.(*channelContext); ok {
+		c.ptyTakenOnce.Do(func() { close(c.ptyTaken) })
+	}
+}
+
 // sessionChannel serves a session channel with gliderlabs, minus window changes
 // sent before shell or exec. gliderlabs buffers one window (the pty-req one) and
 // blocks its request loop on the next until our handler drains them; the handler
@@ -96,7 +108,9 @@ type earlyWindowFilter struct {
 
 // Accept relays the channel requests. Until a shell or exec passes, a window
 // change is answered here as gliderlabs would (true only after a pty-req), and
-// its size is kept as the initial window. The relay ends, and cancels the
+// its size is kept as the initial window. After shell or exec a window change
+// waits until the handler has read the PTY (ptyRead) or the channel ends: gliderlabs
+// writes the window into the PTY the handler copies. The relay ends, and cancels the
 // channel context, when the channel closes.
 func (f earlyWindowFilter) Accept() (gossh.Channel, <-chan *gossh.Request, error) {
 	ch, in, err := f.NewChannel.Accept()
@@ -112,6 +126,12 @@ func (f earlyWindowFilter) Accept() (gossh.Channel, <-chan *gossh.Request, error
 		for req := range in {
 			switch {
 			case started:
+				if req.Type == "window-change" {
+					select {
+					case <-f.ctx.ptyTaken:
+					case <-f.ctx.Done():
+					}
+				}
 			case req.Type == "window-change":
 				f.earlyWindowChange(req, sawPty, out)
 				continue

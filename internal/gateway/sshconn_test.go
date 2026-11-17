@@ -121,3 +121,40 @@ func TestChannelContextValuesAndCause(t *testing.T) {
 	cancelConn(errGone)
 	require.ErrorIs(t, context.Cause(c), errGone)
 }
+
+type fakeNewChannel struct {
+	gossh.NewChannel
+	in chan *gossh.Request
+}
+
+func (f fakeNewChannel) Accept() (gossh.Channel, <-chan *gossh.Request, error) {
+	return nil, f.in, nil
+}
+
+// After shell, a window change reaches gliderlabs only once the handler has read
+// the PTY (gliderlabs writes the window into it), or when the channel ends.
+func TestWindowChangeWaitsForPtyRead(t *testing.T) {
+	for _, release := range []string{"pty read", "channel end"} {
+		cctx := newChannelContext(&fakeConnContext{ctx: t.Context()})
+		in := make(chan *gossh.Request)
+		_, out, err := earlyWindowFilter{fakeNewChannel{in: in}, cctx}.Accept()
+		require.NoError(t, err)
+
+		in <- &gossh.Request{Type: "shell"}
+		require.Equal(t, "shell", (<-out).Type, "other requests are not delayed")
+		go func() { in <- &gossh.Request{Type: "window-change"} }()
+		select {
+		case <-out:
+			t.Fatal("window change forwarded before the PTY was read")
+		case <-time.After(100 * time.Millisecond):
+		}
+		if release == "pty read" {
+			ptyRead(cctx)
+			ptyRead(cctx) // once only
+			require.Equal(t, "window-change", (<-out).Type)
+		} else {
+			cctx.cancel()
+			require.Equal(t, "window-change", (<-out).Type)
+		}
+	}
+}
