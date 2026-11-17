@@ -130,6 +130,19 @@ type Organization struct {
 	CreatedAt time.Time
 }
 
+type Recording struct {
+	SessionID         uuid.UUID
+	OrgID             uuid.UUID
+	Store             string
+	Chunks            int32
+	Bytes             int64
+	LastHash          []byte
+	FinalHash         []byte
+	ManifestSignature []byte
+	VerifiedAt        *time.Time
+	CreatedAt         time.Time
+}
+
 type Resource struct {
 	ID        uuid.UUID
 	OrgID     uuid.UUID
@@ -192,6 +205,13 @@ type Session struct {
 	StartedAt         time.Time
 	EndedAt           *time.Time
 	EndReason         *string
+}
+
+type SigningKey struct {
+	ID         int16
+	Ciphertext []byte
+	KeyID      string
+	PublicKey  []byte
 }
 
 type Team struct {

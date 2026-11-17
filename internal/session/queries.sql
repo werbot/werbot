@@ -31,3 +31,11 @@ WHERE s.ended_at IS NULL
         WHERE i.id = s.gateway_instance_id
           AND coalesce(i.last_seen_at, i.created_at) < now() - make_interval(secs => @lost_after_secs::float8)))
 RETURNING s.id, s.org_id, s.resource_id;
+
+-- name: GetSigningKey :one
+SELECT ciphertext, key_id, public_key FROM signing_key WHERE id = 1;
+
+-- name: InsertSigningKey :exec
+INSERT INTO signing_key (id, ciphertext, key_id, public_key)
+VALUES (1, @ciphertext, @key_id, @public_key)
+ON CONFLICT (id) DO NOTHING;

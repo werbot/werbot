@@ -123,6 +123,40 @@ func (q *Queries) EndSession(ctx context.Context, arg EndSessionParams) (*uuid.U
 	return resource_id, err
 }
 
+const getSigningKey = `-- name: GetSigningKey :one
+SELECT ciphertext, key_id, public_key FROM signing_key WHERE id = 1
+`
+
+type GetSigningKeyRow struct {
+	Ciphertext []byte
+	KeyID      string
+	PublicKey  []byte
+}
+
+func (q *Queries) GetSigningKey(ctx context.Context) (GetSigningKeyRow, error) {
+	row := q.db.QueryRow(ctx, getSigningKey)
+	var i GetSigningKeyRow
+	err := row.Scan(&i.Ciphertext, &i.KeyID, &i.PublicKey)
+	return i, err
+}
+
+const insertSigningKey = `-- name: InsertSigningKey :exec
+INSERT INTO signing_key (id, ciphertext, key_id, public_key)
+VALUES (1, $1, $2, $3)
+ON CONFLICT (id) DO NOTHING
+`
+
+type InsertSigningKeyParams struct {
+	Ciphertext []byte
+	KeyID      string
+	PublicKey  []byte
+}
+
+func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyParams) error {
+	_, err := q.db.Exec(ctx, insertSigningKey, arg.Ciphertext, arg.KeyID, arg.PublicKey)
+	return err
+}
+
 const sessionOfInstanceExists = `-- name: SessionOfInstanceExists :one
 SELECT EXISTS (SELECT 1 FROM session WHERE id = $1 AND org_id = $2 AND gateway_instance_id = $3::uuid)
 `

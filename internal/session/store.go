@@ -16,6 +16,8 @@ type Store interface {
 	SessionOfInstanceExists(ctx context.Context, arg dbq.SessionOfInstanceExistsParams) (bool, error)
 	EndMissingSessions(ctx context.Context, arg dbq.EndMissingSessionsParams) ([]dbq.EndMissingSessionsRow, error)
 	EndLostSessions(ctx context.Context, lostAfterSecs float64) ([]dbq.EndLostSessionsRow, error)
+	GetSigningKey(ctx context.Context) (dbq.GetSigningKeyRow, error)
+	InsertSigningKey(ctx context.Context, arg dbq.InsertSigningKeyParams) error
 }
 
 // newStore binds the queries to a dbx transaction.
