@@ -152,11 +152,12 @@ func (g *outageRig) verified(t *testing.T) bool {
 	return err == nil && v.Verified
 }
 
-// endReason is the session's end_reason, "" while it is open.
+// endReason is the session's end_reason, "" while it is open. It uses assert,
+// not require: it also runs inside require.Eventually, off the test goroutine.
 func (g *outageRig) endReason(t *testing.T) string {
 	var reason *string
-	require.NoError(t, g.pool.QueryRow(t.Context(), "SELECT end_reason FROM session WHERE id = $1", g.sid).Scan(&reason))
-	if reason == nil {
+	err := g.pool.QueryRow(t.Context(), "SELECT end_reason FROM session WHERE id = $1", g.sid).Scan(&reason)
+	if !assert.NoError(t, err) || reason == nil {
 		return ""
 	}
 	return *reason

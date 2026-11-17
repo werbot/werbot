@@ -81,6 +81,7 @@ type services struct {
 	Gateways   *inventory.Gateways
 	Sessions   *session.Service
 	Recordings *session.Recordings
+	Logger     *slog.Logger // replay errors; nil is slog.Default()
 	Jobs       *river.Client[pgx.Tx]
 }
 
@@ -99,7 +100,7 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	}
 	s := &services{Inventory: inventory.New(pool), Credential: credential.New(pool, box), Access: access.New(pool),
 		Box: box, CA: ca, Gateways: inventory.NewGateways(pool, ca, box), Sessions: session.New(pool),
-		Recordings: session.NewRecordings(pool, store, kind, signer)}
+		Recordings: session.NewRecordings(pool, store, kind, signer), Logger: logger}
 	// identity needs the River client, which needs the policy jobs: teams
 	// reads s.Identity, which is set below, before any request is served.
 	s.Policy = policy.New(policy.Deps{Pool: pool, Resources: policyResources{s.Inventory}, Bindings: policyBindings{s.Access},
@@ -131,5 +132,5 @@ func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
 	mux.Handle(werbotv1connect.NewAccessServiceHandler(access.NewHandler(s.Access), opts...))
 	mux.Handle(werbotv1connect.NewPolicyServiceHandler(policy.NewHandler(s.Policy), opts...))
 	mux.Handle(werbotv1connect.NewSessionServiceHandler(session.NewSessionHandler(s.Sessions, s.Recordings), opts...))
-	mux.Handle("GET /api/recordings/{file}", session.NewReplayHandler(s.Sessions, s.Recordings))
+	mux.Handle("GET /api/recordings/{file}", session.NewReplayHandler(s.Sessions, s.Recordings, s.Logger))
 }
