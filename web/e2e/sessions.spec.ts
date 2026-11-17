@@ -49,6 +49,7 @@ test('ssh session is listed, replayed and audited', async ({ page }) => {
 	await expect.poll(ssh, { timeout: 15_000 }).toContain('werbot-e2e-marker');
 
 	await page.goto('/sessions');
+	await expect(page.getByRole('columnheader', { name: en.sessions_col_traffic })).toBeVisible();
 	await page.getByRole('link', { name: 'e2e-target' }).first().click();
 	await expect(page).toHaveURL(/\/sessions\/[0-9a-f-]{36}$/);
 	const castURL = `/api/recordings/${page.url().split('/').pop()}.cast`;

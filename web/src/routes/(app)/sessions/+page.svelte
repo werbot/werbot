@@ -5,7 +5,7 @@
 	import { errorMessage } from '#lib/errors.js';
 	import type { Session } from '#lib/gen/werbot/v1/session_pb.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
-	import { fmt } from '#lib/format.js';
+	import { bytes, fmt } from '#lib/format.js';
 	import Pager from '#lib/Pager.svelte';
 	import { dayStart } from '#lib/period.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -90,6 +90,7 @@
 			<th>{m.sessions_col_started()}</th>
 			<th>{m.sessions_col_ended()}</th>
 			<th>{m.sessions_col_status()}</th>
+			<th>{m.sessions_col_traffic()}</th>
 		{/snippet}
 		{#each list as s (s.id)}
 			<tr>
@@ -102,6 +103,7 @@
 						{s.endedAt ? m.sessions_status_ended() : m.sessions_status_active()}
 					</Badge>
 				</td>
+				<td>↑ {bytes(s.bytesUp)} ↓ {bytes(s.bytesDown)}</td>
 			</tr>
 		{/each}
 	</Table>

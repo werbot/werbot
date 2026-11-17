@@ -1,12 +1,22 @@
 <script lang="ts" module>
+	import type { Duration } from '@bufbuild/protobuf/wkt';
 	import type { ConfigValue } from './forms/index.js';
 
-	export type ResourceValues = ConfigValue & { name: string; type: string; gatewayId: string; labels: Record<string, string> };
+	export type ResourceValues = ConfigValue & {
+		name: string;
+		type: string;
+		gatewayId: string;
+		labels: Record<string, string>;
+		idleTimeout?: Duration;
+		maxDuration?: Duration;
+	};
 </script>
 
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Code, ConnectError } from '@connectrpc/connect';
+	import { create } from '@bufbuild/protobuf';
+	import { DurationSchema } from '@bufbuild/protobuf/wkt';
 	import { Banner, Button, Select, TextField } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
@@ -37,6 +47,11 @@
 	let loaded = $state(false);
 	let poolError = $state('');
 	let value = $state.raw<ConfigValue>({});
+	// timeouts are edited in minutes; empty means the gateway default
+	// svelte-ignore state_referenced_locally
+	let idleMinutes = $state(minutes(initial?.idleTimeout));
+	// svelte-ignore state_referenced_locally
+	let maxMinutes = $state(minutes(initial?.maxDuration));
 
 	let type = $derived(types.find((t) => t.name === typeName));
 	let valid = $derived(!!value.config || value.configJson !== undefined);
@@ -53,10 +68,24 @@
 		loaded = true;
 	});
 
+	function minutes(d?: Duration) {
+		return d ? String(Number(d.seconds) / 60) : '';
+	}
+
+	const duration = (min: string) => (min ? create(DurationSchema, { seconds: BigInt(Math.round(Number(min) * 60)) }) : undefined);
+
 	function submit(e: SubmitEvent) {
 		e.preventDefault();
 		if (!valid) return;
-		onsubmit({ ...value, name, type: typeName, gatewayId, labels: labelsFromRows(rows) });
+		onsubmit({
+			...value,
+			name,
+			type: typeName,
+			gatewayId,
+			labels: labelsFromRows(rows),
+			idleTimeout: duration(idleMinutes),
+			maxDuration: duration(maxMinutes)
+		});
 	}
 </script>
 
@@ -80,6 +109,8 @@
 			<Form {type} {initial} onchange={(v) => (value = v)} />
 		{/key}
 	{/if}
+	<TextField label={m.resources_idle_timeout()} bind:value={idleMinutes} type="number" min={1} max={1440} hint={m.resources_timeout_hint()} />
+	<TextField label={m.resources_max_duration()} bind:value={maxMinutes} type="number" min={1} max={10080} hint={m.resources_timeout_hint()} />
 	<LabelsEditor bind:rows />
 	<div><Button type="submit" variant="solid" disabled={!valid || !loaded}>{m.resources_save()}</Button></div>
 </form>

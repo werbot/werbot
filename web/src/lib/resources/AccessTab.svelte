@@ -7,6 +7,7 @@
 	import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import CheckAccess from './CheckAccess.svelte';
+	import { formatPorts, parsePorts } from './forms/ports.js';
 
 	let { resource }: { resource: Resource } = $props();
 
@@ -18,7 +19,10 @@
 	let subjectId = $state('');
 	let target = $state('resource');
 	let selector = $state('');
+	let ports = $state('');
 
+	// ports only limit stream and datagram sessions, which only tcp and udp resources open
+	const withPorts = $derived(resource.type === 'tcp' || resource.type === 'udp');
 	const subjects = $derived(subjectType === 'user' ? users : teamOptions);
 	const names = $derived(new Map([...users, ...teamOptions].map((o) => [o.value, o.label])));
 	const targets = $derived([
@@ -62,10 +66,18 @@
 			error = m.access_selector_invalid();
 			return;
 		}
+		let portRanges;
+		try {
+			portRanges = withPorts ? parsePorts(ports) : [];
+		} catch {
+			error = m.resources_ports_invalid();
+			return;
+		}
 		return run(() =>
 			access.createBinding({
 				subjectType,
 				subjectId,
+				ports: portRanges,
 				...(target === 'resource' ? { resourceId: resource.id } : { labelSelector: { [key]: rest.join('=') } })
 			})
 		);
@@ -84,12 +96,14 @@
 		{#snippet header()}
 			<th>{m.access_subject()}</th>
 			<th>{m.access_target()}</th>
+			{#if withPorts}<th>{m.access_col_ports()}</th>{/if}
 			<th></th>
 		{/snippet}
 		{#each visible as b (b.id)}
 			<tr>
 				<td>{names.get(b.subjectId) ?? b.subjectId}</td>
 				<td>{describe(b)}</td>
+				{#if withPorts}<td>{formatPorts(b.ports) || m.access_all_ports()}</td>{/if}
 				<td><Button scheme="w" variant="plain" onclick={() => run(() => access.deleteBinding({ id: b.id }))}>{m.access_remove()}</Button></td>
 			</tr>
 		{/each}
@@ -106,10 +120,11 @@
 	<Select label={m.access_subject()} options={subjects} bind:value={subjectId} />
 	<Select label={m.access_target()} options={targets} bind:value={target} />
 	{#if target === 'selector'}<TextField label={m.access_selector()} bind:value={selector} placeholder="env=prod" />{/if}
+	{#if withPorts}<TextField label={m.access_ports()} bind:value={ports} placeholder="22, 8000-8100" hint={m.access_ports_hint()} />{/if}
 	<div><Button type="submit" variant="solid" disabled={!subjectId}>{m.access_add()}</Button></div>
 </form>
 
-<CheckAccess resourceId={resource.id} {users} />
+<CheckAccess resourceId={resource.id} {users} {withPorts} />
 
 <style>
 	form {

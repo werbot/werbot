@@ -25,12 +25,15 @@
 		{ value: 'host_key', label: m.resources_tab_host_key() }
 	]);
 
-	// Connect hint by connector kinds: terminal or exec sessions vs stream-only forwarding.
-	const hint = $derived.by(() => {
+	// Connect hints by connector kinds: terminal or exec sessions, stream forwarding, datagram access.
+	const hints = $derived.by(() => {
 		const kinds = types.find((t) => t.name === resource?.type)?.kinds ?? [];
 		const args = { login: page.data.session?.user?.login ?? '', resource: resource?.name ?? '' };
-		if (kinds.includes('terminal') || kinds.includes('exec')) return m.resources_connect_hint_terminal(args);
-		return kinds.includes('stream') ? m.resources_connect_hint_stream(args) : '';
+		const out: string[] = [];
+		if (kinds.includes('terminal') || kinds.includes('exec')) out.push(m.resources_connect_hint_terminal(args));
+		if (kinds.includes('stream')) out.push(m.resources_connect_hint_stream(args));
+		if (kinds.includes('stream') || kinds.includes('datagram')) out.push(m.resources_connect_hint_connect(args));
+		return out;
 	});
 
 	onMount(async () => {
@@ -49,7 +52,8 @@
 {#if error}<Banner tone="alert">{error}</Banner>{/if}
 {#if resource}
 	<h1>{resource.name}</h1>
-	{#if hint}<p><code>{hint}</code></p>{/if}
+	{#if resource.health?.error}<Banner tone="alert">{m.resources_health_error({ error: resource.health.error })}</Banner>{/if}
+	{#each hints as h (h)}<p><code>{h}</code></p>{/each}
 	<Tabs options={tabs} bind:value={tab} />
 	{#if tab === 'settings'}
 		<SettingsTab bind:resource {types} />

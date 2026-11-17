@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
-	import { TextField } from '#lib/ui/index.js';
+	import { TextField, Toggle } from '#lib/ui/index.js';
 	import { ConfigSchema } from '#lib/gen/werbot/connector/ssh/v1/ssh_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import { sshConfigValue, type ConfigFormProps } from './index.js';
@@ -12,10 +12,12 @@
 	let host = $state(current?.host ?? '');
 	let port = $state(String(current?.port ?? 22));
 	let login = $state(current?.login ?? '');
+	let portForwarding = $state(current?.portForwarding ?? false);
 
-	$effect(() => onchange(sshConfigValue({ host, port: Number(port) || 0, login })));
+	$effect(() => onchange(sshConfigValue({ host, port: Number(port) || 0, login, portForwarding })));
 </script>
 
 <TextField label={m.resources_ssh_host()} bind:value={host} required />
 <TextField label={m.resources_ssh_port()} bind:value={port} type="number" min={1} max={65535} required />
 <TextField label={m.resources_ssh_login()} bind:value={login} required />
+<Toggle bind:checked={portForwarding}>{m.resources_ssh_port_forwarding()}</Toggle>

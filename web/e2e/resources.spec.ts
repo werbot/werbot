@@ -48,6 +48,33 @@ test('resource, credential, rule, binding and access check', async ({ page }) =>
 	await expect(page.getByRole('link', { name: en.geoip_attribution })).toHaveAttribute('href', 'https://db-ip.com');
 });
 
+test('tcp resource with ports, port binding, hints and health', async ({ page }) => {
+	await loginAsOwner(page);
+	await page.goto('/resources/new');
+	await page.getByRole('button', { name: 'ssh', exact: true }).click();
+	await page.getByRole('menuitem', { name: 'tcp' }).click();
+	await page.getByLabel(en.resources_name).fill('e2e-tcp');
+	await page.getByLabel(en.resources_ssh_host).fill('10.0.0.6');
+	await page.getByLabel(en.resources_ports, { exact: true }).fill('0');
+	await expect(page.getByText(en.resources_ports_invalid)).toBeVisible();
+	await expect(page.getByRole('button', { name: en.resources_save, exact: true })).toBeDisabled();
+	await page.getByLabel(en.resources_ports, { exact: true }).fill('22, 8000-8100');
+	await page.getByRole('button', { name: en.resources_save, exact: true }).click();
+	await expect(page).toHaveURL(/\/resources\/[0-9a-f-]{36}$/);
+	await expect(page.getByText(/^ssh -L <port>:e2e-tcp:<port> /)).toBeVisible();
+	await expect(page.getByText(/^werbot connect --gateway /)).toBeVisible();
+
+	await page.getByRole('tab', { name: en.resources_tab_access }).click();
+	await page.getByRole('button', { name: 'Select…' }).first().click();
+	await page.getByRole('menuitem', { name: new RegExp(OWNER.login) }).click();
+	await page.getByLabel(en.access_ports).fill('22');
+	await page.getByRole('button', { name: en.access_add }).click();
+	await expect(page.getByRole('cell', { name: '22', exact: true })).toBeVisible();
+
+	await page.goto('/resources');
+	await expect(page.getByRole('row', { name: /e2e-tcp/ }).getByRole('img', { name: en.resources_health_unknown })).toBeVisible();
+});
+
 test.describe('pool list load on the resource form', () => {
 	const listGateways = '**/werbot.v1.GatewayService/ListGateways';
 	const fail = (route: Route, code: string) =>

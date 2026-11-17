@@ -5,6 +5,7 @@
 	import { resources } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
+	import HealthDot from '#lib/resources/HealthDot.svelte';
 	import { parseLabelFilter } from '#lib/resources/labels.js';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -49,6 +50,7 @@
 			<th>{m.resources_category()}</th>
 			<th>{m.resources_labels()}</th>
 			<th>{m.resources_credentials()}</th>
+			<th>{m.resources_col_health()}</th>
 		{/snippet}
 		{#each list as r (r.id)}
 			<tr>
@@ -63,6 +65,7 @@
 				<td>
 					<Badge tone={r.credentialKind ? 'accent' : 'ghost'}>{r.credentialKind || m.resources_cred_none()}</Badge>
 				</td>
+				<td><HealthDot health={r.health} /></td>
 			</tr>
 		{/each}
 	</Table>

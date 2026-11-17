@@ -25,7 +25,7 @@
 		}
 	}
 
-	async function save({ name, gatewayId, labels, config, configJson }: ResourceValues) {
+	async function save({ name, gatewayId, labels, config, configJson, idleTimeout, maxDuration }: ResourceValues) {
 		await run(async () => {
 			const res = await resources.updateResource({
 				id: resource.id,
@@ -33,7 +33,9 @@
 				gatewayId,
 				labels,
 				config,
-				configJson
+				configJson,
+				idleTimeout,
+				maxDuration
 			});
 			if (res.resource) resource = res.resource;
 		}, m.common_saved());

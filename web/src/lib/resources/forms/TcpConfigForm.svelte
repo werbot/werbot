@@ -1,0 +1,27 @@
+<script lang="ts">
+	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
+	import { TextField } from '#lib/ui/index.js';
+	import { ConfigSchema } from '#lib/gen/werbot/connector/tcp/v1/tcp_pb.js';
+	import { m } from '#lib/paraglide/messages.js';
+	import { tcpConfigValue, type ConfigFormProps } from './index.js';
+	import PortRangesField from './PortRangesField.svelte';
+	import { formatPorts } from './ports.js';
+
+	let { initial, onchange }: ConfigFormProps = $props();
+
+	// svelte-ignore state_referenced_locally
+	const current = initial?.config && anyIs(initial.config, ConfigSchema) ? anyUnpack(initial.config, ConfigSchema) : undefined;
+	let host = $state(current?.host ?? '');
+	let ports = $state(formatPorts(current?.ports ?? []));
+
+	$effect(() => {
+		try {
+			onchange(tcpConfigValue({ host, ports }));
+		} catch {
+			onchange({});
+		}
+	});
+</script>
+
+<TextField label={m.resources_ssh_host()} bind:value={host} required />
+<PortRangesField label={m.resources_ports()} bind:value={ports} required />

@@ -1,0 +1,29 @@
+<script lang="ts">
+	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
+	import { TextField } from '#lib/ui/index.js';
+	import { ConfigSchema } from '#lib/gen/werbot/connector/udp/v1/udp_pb.js';
+	import { m } from '#lib/paraglide/messages.js';
+	import { udpConfigValue, type ConfigFormProps } from './index.js';
+	import PortRangesField from './PortRangesField.svelte';
+	import { formatPorts } from './ports.js';
+
+	let { initial, onchange }: ConfigFormProps = $props();
+
+	// svelte-ignore state_referenced_locally
+	const current = initial?.config && anyIs(initial.config, ConfigSchema) ? anyUnpack(initial.config, ConfigSchema) : undefined;
+	let host = $state(current?.host ?? '');
+	let ports = $state(formatPorts(current?.ports ?? []));
+	let flowIdle = $state(current?.flowIdle ? String(current.flowIdle.seconds) : '');
+
+	$effect(() => {
+		try {
+			onchange(udpConfigValue({ host, ports, flowIdle }));
+		} catch {
+			onchange({});
+		}
+	});
+</script>
+
+<TextField label={m.resources_ssh_host()} bind:value={host} required />
+<PortRangesField label={m.resources_ports()} bind:value={ports} required />
+<TextField label={m.resources_flow_idle()} bind:value={flowIdle} type="number" min={1} max={3600} hint={m.resources_flow_idle_hint()} />
