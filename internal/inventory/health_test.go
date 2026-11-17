@@ -58,22 +58,22 @@ func TestReportHealthAndState(t *testing.T) {
 	assert.Equal(t, inventory.HealthUnknown, h.state(t).State)
 	assert.Nil(t, h.state(t).CheckedAt)
 
-	h.report(t, h.inst[0], true, "", 0)
-	h.report(t, h.inst[1], false, "dial: refused", 0)
+	h.report(t, h.inst[0], true, "", 10*time.Second)
+	h.report(t, h.inst[1], false, "dial: refused", 5*time.Second)
 	assert.Equal(t, inventory.HealthHealthy, h.state(t).State, "one ok is enough")
 
-	h.report(t, h.inst[0], false, "timeout", time.Second)
+	h.report(t, h.inst[0], false, "timeout", 7*time.Second)
 	got := h.state(t)
 	assert.Equal(t, inventory.HealthUnhealthy, got.State)
 	assert.Equal(t, "dial: refused", got.Error, "the error of the freshest failure")
 	assert.NotNil(t, got.CheckedAt)
 
-	h.report(t, h.inst[0], true, "", 4*time.Minute)
-	h.report(t, h.inst[1], false, "x", 4*time.Minute)
+	_, err := h.pool.Exec(context.Background(), "UPDATE resource_health SET checked_at = now() - interval '4 minutes'")
+	require.NoError(t, err)
 	assert.Equal(t, inventory.HealthUnknown, h.state(t).State, "older than 3 min")
 
 	h.report(t, h.inst[0], true, "", 0)
-	_, err := h.pool.Exec(context.Background(), "UPDATE gateway_instance SET last_seen_at = now() - interval '2 minutes' WHERE id = $1", h.inst[0])
+	_, err = h.pool.Exec(context.Background(), "UPDATE gateway_instance SET last_seen_at = now() - interval '2 minutes' WHERE id = $1", h.inst[0])
 	require.NoError(t, err)
 	h.report(t, h.inst[1], false, "down", 0)
 	assert.Equal(t, inventory.HealthUnhealthy, h.state(t).State, "an offline instance does not count")
@@ -116,4 +116,26 @@ func TestOnlineInstances(t *testing.T) {
 	ids, err = h.gw.OnlineInstances(ctx, uuid.New())
 	require.NoError(t, err)
 	assert.Empty(t, ids)
+}
+
+func TestReportHealthOrderAndClock(t *testing.T) {
+	h := healthSetup(t, 1)
+	h.report(t, h.inst[0], true, "", 10*time.Second)
+	h.report(t, h.inst[0], false, "late", time.Minute) // older: ignored
+	got := h.state(t)
+	assert.Equal(t, inventory.HealthHealthy, got.State)
+	assert.WithinDuration(t, time.Now().Add(-10*time.Second), *got.CheckedAt, 5*time.Second)
+
+	h.report(t, h.inst[0], true, "", -time.Hour) // future: clamped to now
+	assert.WithinDuration(t, time.Now(), *h.state(t).CheckedAt, 5*time.Second)
+}
+
+func TestHealthIgnoresOldPool(t *testing.T) {
+	h := healthSetup(t, 1)
+	h.report(t, h.inst[0], true, "", 0)
+	require.Equal(t, inventory.HealthHealthy, h.state(t).State)
+	other := h.newPool(t, "other")
+	_, err := h.svc.Update(h.ctx, h.org, inventory.UpdateInput{ID: h.res.ID, Name: "web", GatewayID: &other.ID})
+	require.NoError(t, err)
+	assert.Equal(t, inventory.HealthUnknown, h.state(t).State, "probes of the old pool do not count")
 }

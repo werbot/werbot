@@ -235,6 +235,20 @@ func TestResourceTimeouts(t *testing.T) {
 	_, err = e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: r.ID, Name: "web", IdleTimeout: &short})
 	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
 
+	frac := 90*time.Second + time.Millisecond
+	in.MaxDuration = &frac
+	_, err = e.svc.Create(e.ctx, e.org, in)
+	assert.ErrorIs(t, err, apperr.ErrInvalidArgument, "fractional seconds")
+
+	lo, hi, hi7 := time.Minute, 24*time.Hour, 168*time.Hour
+	b, err := e.svc.Create(e.ctx, e.org, inventory.CreateInput{Name: "edge", Type: "ssh", Config: sshCfg("h"), IdleTimeout: &lo, MaxDuration: &hi7})
+	require.NoError(t, err)
+	assert.Equal(t, &hi7, b.MaxDuration)
+	b, err = e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: b.ID, Name: "edge", IdleTimeout: &hi, MaxDuration: &lo})
+	require.NoError(t, err)
+	assert.Equal(t, &hi, b.IdleTimeout)
+	assert.Equal(t, &lo, b.MaxDuration)
+
 	up, err := e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: r.ID, Name: "web", MaxDuration: &maxDur})
 	require.NoError(t, err)
 	assert.Nil(t, up.IdleTimeout, "nil clears the timeout")

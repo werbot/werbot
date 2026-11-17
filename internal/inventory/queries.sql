@@ -202,16 +202,18 @@ DELETE FROM gateway_join_token WHERE expires_at < now() - interval '7 days';
 
 -- name: UpsertResourceHealth :exec
 -- Rows of resources outside the instance's pool or organization are skipped;
--- the newest of repeated resource ids wins.
+-- the newest of repeated resource ids wins. checked_at is clamped to now() and an
+-- older result never replaces a newer one.
 INSERT INTO resource_health (resource_id, gateway_instance_id, org_id, ok, error, checked_at)
-SELECT DISTINCT ON (r.id) r.id, i.id, r.org_id, h.ok, h.error, h.checked_at
+SELECT DISTINCT ON (r.id) r.id, i.id, r.org_id, h.ok, h.error, least(h.checked_at, now())
 FROM (SELECT unnest(@resource_ids::uuid[]) AS resource_id, unnest(@oks::bool[]) AS ok,
              unnest(@errors::text[]) AS error, unnest(@checked_ats::timestamptz[]) AS checked_at) h
 JOIN resource r ON r.id = h.resource_id AND r.org_id = @org_id
 JOIN gateway_instance i ON i.id = @instance_id AND i.org_id = @org_id AND i.gateway_id = r.gateway_id
 ORDER BY r.id, h.checked_at DESC
 ON CONFLICT (resource_id, gateway_instance_id)
-DO UPDATE SET ok = EXCLUDED.ok, error = EXCLUDED.error, checked_at = EXCLUDED.checked_at;
+DO UPDATE SET ok = EXCLUDED.ok, error = EXCLUDED.error, checked_at = EXCLUDED.checked_at
+WHERE resource_health.checked_at <= EXCLUDED.checked_at;
 
 -- name: OnlineInstanceIDs :many
 SELECT id FROM gateway_instance

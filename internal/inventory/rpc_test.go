@@ -213,6 +213,15 @@ func TestResourceTimeoutsAndHealthOverRPC(t *testing.T) {
 	assert.Equal(t, werbotv1.ResourceHealth_STATE_UNKNOWN, got.GetHealth().GetState())
 	assert.Nil(t, got.GetHealth().GetCheckedAt())
 
+	upd := &werbotv1.UpdateResourceRequest{Id: got.GetId(), Name: "one", IdleTimeout: durationpb.New(24 * time.Hour), MaxDuration: durationpb.New(168 * time.Hour)}
+	ur, err := c.UpdateResource(context.Background(), connect.NewRequest(upd))
+	require.NoError(t, err)
+	assert.Equal(t, 24*time.Hour, ur.Msg.GetResource().GetIdleTimeout().AsDuration())
+	assert.Equal(t, 168*time.Hour, ur.Msg.GetResource().GetMaxDuration().AsDuration())
+	upd.MaxDuration = durationpb.New(169 * time.Hour)
+	_, err = c.UpdateResource(context.Background(), connect.NewRequest(upd))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
 	for _, d := range []time.Duration{30 * time.Second, 25 * time.Hour} {
 		bad := createReq("two", sshCfg("h")).Msg
 		bad.IdleTimeout = durationpb.New(d)

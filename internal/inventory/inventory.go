@@ -97,6 +97,9 @@ func timeoutSecs(idle, maxDur *time.Duration) (idleSecs, maxSecs *int64, err err
 		if *d < minTimeout || *d > hi {
 			return nil, invalid("%s must be between %s and %s", name, minTimeout, hi)
 		}
+		if *d%time.Second != 0 {
+			return nil, invalid("%s must be a whole number of seconds", name)
+		}
 		n := int64(*d / time.Second)
 		return &n, nil
 	}

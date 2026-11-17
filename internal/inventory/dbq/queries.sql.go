@@ -969,7 +969,7 @@ func (q *Queries) UpdateResource(ctx context.Context, arg UpdateResourceParams) 
 
 const upsertResourceHealth = `-- name: UpsertResourceHealth :exec
 INSERT INTO resource_health (resource_id, gateway_instance_id, org_id, ok, error, checked_at)
-SELECT DISTINCT ON (r.id) r.id, i.id, r.org_id, h.ok, h.error, h.checked_at
+SELECT DISTINCT ON (r.id) r.id, i.id, r.org_id, h.ok, h.error, least(h.checked_at, now())
 FROM (SELECT unnest($1::uuid[]) AS resource_id, unnest($2::bool[]) AS ok,
              unnest($3::text[]) AS error, unnest($4::timestamptz[]) AS checked_at) h
 JOIN resource r ON r.id = h.resource_id AND r.org_id = $5
@@ -977,6 +977,7 @@ JOIN gateway_instance i ON i.id = $6 AND i.org_id = $5 AND i.gateway_id = r.gate
 ORDER BY r.id, h.checked_at DESC
 ON CONFLICT (resource_id, gateway_instance_id)
 DO UPDATE SET ok = EXCLUDED.ok, error = EXCLUDED.error, checked_at = EXCLUDED.checked_at
+WHERE resource_health.checked_at <= EXCLUDED.checked_at
 `
 
 type UpsertResourceHealthParams struct {
@@ -989,7 +990,8 @@ type UpsertResourceHealthParams struct {
 }
 
 // Rows of resources outside the instance's pool or organization are skipped;
-// the newest of repeated resource ids wins.
+// the newest of repeated resource ids wins. checked_at is clamped to now() and an
+// older result never replaces a newer one.
 func (q *Queries) UpsertResourceHealth(ctx context.Context, arg UpsertResourceHealthParams) error {
 	_, err := q.db.Exec(ctx, upsertResourceHealth,
 		arg.ResourceIds,
