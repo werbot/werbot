@@ -76,8 +76,11 @@ func (r *Recordings) IngestChunk(ctx context.Context, orgID, instanceID, session
 
 // FinishRecording checks the gateway's totals against the ingested chain,
 // signs the manifest and audits "recording.finish". A repeat with the same
-// final hash is a no-op.
+// final hash is a no-op. Without a signer it is apperr.ErrUnavailable.
 func (r *Recordings) FinishRecording(ctx context.Context, orgID, instanceID, sessionID uuid.UUID, chunks int, size int64, finalHash []byte) error {
+	if r.signer == nil {
+		return fmt.Errorf("recording signer not loaded: %w", apperr.ErrUnavailable)
+	}
 	return dbx.InOrg(ctx, r.pool, orgID, uuid.Nil, func(tx pgx.Tx) error {
 		st := newStore(tx)
 		if err := checkInstance(ctx, st, orgID, instanceID, sessionID); err != nil {

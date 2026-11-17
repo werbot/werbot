@@ -135,3 +135,13 @@ func TestIngestRetryAfterPutCommittedTxRolledBack(t *testing.T) {
 	require.NoError(t, e.finish(t, 3, sumLen(gz), hashes[2]))
 	assert.True(t, e.signer.Verify(session.NewManifest(e.sid, 3, sumLen(gz), hashes[2]).Canonical(), e.signature(t)))
 }
+
+func TestFinishWithoutSignerUnavailable(t *testing.T) {
+	e := newRecEnv(t)
+	gz, hashes := makeChunks(t, 1)
+	e.ingestAll(t, gz, hashes)
+	rec := session.NewRecordings(e.pool, e.store, "fs", nil)
+	err := rec.FinishRecording(t.Context(), e.f.OrgID, e.f.InstanceID, e.sid, 1, sumLen(gz), hashes[0])
+	require.ErrorIs(t, err, apperr.ErrUnavailable)
+	assert.Nil(t, e.signature(t))
+}
