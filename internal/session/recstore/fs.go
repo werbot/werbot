@@ -66,7 +66,18 @@ func (f *FS) Put(_ context.Context, orgID, sessionID uuid.UUID, seq int, gz []by
 		_ = r.Remove(tmp)
 		return fmt.Errorf("recording chunk %s: %w", key, err)
 	}
+	if err = syncDir(r, dir); err != nil { // makes the rename durable: the gateway drops its copy on success
+		return fmt.Errorf("recording chunk %s: %w", key, err)
+	}
 	return nil
+}
+
+func syncDir(r *os.Root, name string) error {
+	d, err := r.Open(name)
+	if err != nil {
+		return err
+	}
+	return errors.Join(d.Sync(), d.Close())
 }
 
 // Get opens the chunk file; a missing file wraps fs.ErrNotExist.
