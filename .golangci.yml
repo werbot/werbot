@@ -10,7 +10,6 @@ linters:
           deny:
             - pkg: github.com/werbot/werbot/internal
               desc: sdk is a public contract and must not import internal packages
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         platform:
           files: ["**/internal/platform/**/*.go"]
           deny:
@@ -27,7 +26,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: platform must not import domains }
             - { pkg: github.com/werbot/werbot/internal/system, desc: platform must not import domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: platform must not import domains }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         system:
           files: ["**/internal/system/*.go", "**/internal/system/**/*.go"]
           deny:
@@ -43,7 +41,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/notify, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import other domains }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         notify:
           files: ["**/internal/notify/*.go", "**/internal/notify/**/*.go"]
           deny:
@@ -59,7 +56,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import other domains }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         identity:
           files: ["**/internal/identity/*.go", "**/internal/identity/**/*.go"]
           deny:
@@ -75,7 +71,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import other domains }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         connector:
           files: ["**/internal/connector/*.go", "**/internal/connector/**/*.go"]
           deny:
@@ -92,7 +87,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: connector may import only platform and gen }
             - { pkg: github.com/werbot/werbot/internal/system, desc: connector may import only platform and gen }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: connector may import only platform and gen }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         inventory:
           files: ["**/internal/inventory/*.go", "**/internal/inventory/**/*.go"]
           deny:
@@ -108,7 +102,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         credential:
           files: ["**/internal/credential/*.go", "**/internal/credential/**/*.go"]
           deny:
@@ -124,7 +117,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         access:
           files: ["**/internal/access/*.go", "**/internal/access/**/*.go"]
           deny:
@@ -140,7 +132,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         policy:
           files: ["**/internal/policy/*.go", "**/internal/policy/**/*.go"]
           deny:
@@ -156,25 +147,8 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         session:
-          files: ["**/internal/session/*.go", "**/internal/session/**/*.go", "!**/internal/session/recstore/**"]
-          deny:
-            - { pkg: github.com/werbot/werbot/internal/app, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/tunnel, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/identity, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/inventory, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/credential, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/policy, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/access, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/audit, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/notify, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
-            - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
-        session-recstore:
-          files: ["**/internal/session/recstore/*.go", "**/internal/session/recstore/**/*.go"]
+          files: ["**/internal/session/*.go", "**/internal/session/**/*.go"]
           deny:
             - { pkg: github.com/werbot/werbot/internal/app, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/tunnel, desc: domains must not import each other }
@@ -203,7 +177,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         tunnel:
           files: ["**/internal/tunnel/*.go", "**/internal/tunnel/**/*.go"]
           deny:
@@ -221,7 +194,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: tunnel may import only platform and gen }
             - { pkg: github.com/werbot/werbot/internal/connector, desc: tunnel may import only platform and gen }
             - { pkg: github.com/werbot/werbot/internal/webui, desc: tunnel may import only platform and gen }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         gateway:
           files: ["**/internal/gateway/*.go", "**/internal/gateway/**/*.go"]
           deny:
@@ -238,7 +210,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/system, desc: gateway may import only platform+connector+gen }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: gateway may import only platform+connector+gen }
             - { pkg: github.com/werbot/werbot/internal/webui, desc: gateway may import only platform+connector+gen }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         webui:
           files: ["**/internal/webui/*.go", "**/internal/webui/**/*.go"]
           deny:
@@ -256,7 +227,6 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: webui must not import domains }
             - { pkg: github.com/werbot/werbot/internal/system, desc: webui must not import domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: webui must not import domains }
-            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
         aws-sdk-recstore-only:
           files: ["**/*.go", "!**/internal/session/recstore/**"]
           deny:
