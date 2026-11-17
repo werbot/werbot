@@ -20,7 +20,6 @@ import (
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/gateway"
-	_ "github.com/werbot/werbot/internal/gateway/sshconnector" // registers the ssh gateway connector
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/clientip"
