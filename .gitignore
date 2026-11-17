@@ -11,3 +11,4 @@ CLAUDE.md
 web/test-results/
 web/playwright-report/
 web/e2e/.server.log
+/deploy/e2e/.bin/

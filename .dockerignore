@@ -13,3 +13,4 @@ web/node_modules/
 web/.svelte-kit/
 web/build/*
 CLAUDE.md
+deploy/e2e/

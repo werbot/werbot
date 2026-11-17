@@ -1,5 +1,6 @@
-# Network e2e: the SSH target sits on an internal-only network that only the
-# gateway joins, so every SSH session must go through the gateway pool.
+# Network e2e: the SSH, telnet, TCP and UDP targets sit on an internal-only
+# network that only the gateway joins, so every session must go through the
+# gateway pool.
 # Run with `make e2e-network`; deploy/e2e/run.sh drives the scenario.
 name: werbot-e2e
 
@@ -34,6 +35,8 @@ services:
       WERBOT_PUBLIC_URL: http://server:8080
       WERBOT_SECRET_KEY: d2VyYm90LWUyZS1uZXR3b3JrLXNlY3JldC1rZXktMzI= # test-only key
       WERBOT_GATEWAY_ADDR: ":8443"
+      # distroless :nonroot cannot write to "/"; session recordings go here
+      WERBOT_DATA_DIR: /home/nonroot/data
     ports:
       - "8080:8080"
     depends_on:
@@ -47,6 +50,26 @@ services:
       USER_NAME: werbot
       USER_PASSWORD: e2e-password
       PASSWORD_ACCESS: "true"
+    networks: [private]
+
+  router:
+    image: busybox:1.37@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
+    command: ["sh", "-c", "adduser -D werbot && echo werbot:e2e-password | chpasswd && exec telnetd -F -l /bin/login"]
+    networks: [private]
+
+  echo:
+    image: busybox:1.37@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
+    # built on the host by `make e2e-network` (internal/e2e/echotarget)
+    command: ["/echotarget"]
+    volumes:
+      - ./.bin/echotarget:/echotarget:ro
+    networks: [private]
+
+  dns:
+    image: coredns/coredns:1.12.1@sha256:e8c262566636e6bc340ece6473b0eed193cad045384401529721ddbe6463d31c
+    command: ["-conf", "/Corefile"]
+    volumes:
+      - ./Corefile:/Corefile:ro
     networks: [private]
 
   gateway:

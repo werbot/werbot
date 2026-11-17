@@ -163,14 +163,14 @@ The stack runs `werbot server --with-gateway` and listens on http://localhost:80
 make test   # needs `make dev-db`
 make lint
 make e2e    # Playwright e2e on DB `werbot_e2e`, no internet feeds (the server runs with `HTTPS_PROXY` pointing at a closed port; needs `make dev-db`, Go, ssh and ssh-keygen; first run: `cd web && bunx playwright install chromium`)
-make e2e-network  # Docker Compose e2e: SSH through a gateway pool to a target on an internal-only network
+make e2e-network  # Docker Compose e2e: SSH, telnet, TCP and UDP through a gateway pool to targets on an internal-only network
 (cd web && bun run test:unit)  # Vitest unit tests for the web UI
 make sqlc   # regenerates internal/<domain>/dbq from migrations/ and internal/<domain>/queries.sql
 ```
 
 `make e2e` starts `werbot server --with-gateway` (gateway SSH on `127.0.0.1:2222`, a fresh `WERBOT_DATA_DIR` per run) and the SSH target `go run ./internal/e2e/sshtarget` on `127.0.0.1:2022`; both ports must be free.
 
-`make e2e-network` needs docker, curl, jq, ssh and ssh-keygen. It builds the `werbot-e2e:local` image, publishes ports `8080`, `8081` and `2222` on localhost, and removes the `werbot-e2e` project (containers, networks, volumes) on exit.
+`make e2e-network` needs docker, curl, jq, ssh, ssh-keygen, Go, nc and dig. It builds the `werbot-e2e:local` image and the TCP/UDP echo target (`internal/e2e/echotarget`, into the gitignored `deploy/e2e/.bin`), publishes ports `8080`, `8081` and `2222` on localhost, and removes the `werbot-e2e` project (containers, networks, volumes) on exit. The targets sit on the internal-only network that only the gateway pool joins: an OpenSSH server, a busybox `telnetd` with a real `/bin/login` (`router`), the echo target on TCP and UDP port 7 (`echo`) and CoreDNS answering `probe.werbot.test` (`dns`). The scenario checks SSH through the pool and a gateway restart; a telnet session through the SSH bridge (the router password never reaches the user, the session is `terminal` and its recording verifies); `werbot connect` with `echo`, `router` and `dns` on `127.0.0.1:10007`, `10023` (telnet stream with autologin) and `10053` (UDP, two flows); a forward to a port outside the resource refused and audited as `session.deny` with `target_not_allowed`; and the health of the TCP and telnet resources turning `healthy` within 180s while the UDP one stays `unknown`. It also uses local ports `10007`, `10023` and `10053`.
 
 Go tools (buf, protoc-gen-go, protoc-gen-connect-go, sqlc) live in `tools/go.mod`: `go tool -modfile=tools/go.mod buf ...`. The first sqlc build compiles `pg_query_go` with cgo (needs a C compiler). Generated `dbq` code is committed and never edited by hand; CI fails when `go tool -modfile=tools/go.mod sqlc diff` is not empty.
 

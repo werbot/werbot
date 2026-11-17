@@ -246,6 +246,11 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/notify, desc: connectcli knows only SSH and the gateway answer }
             - { pkg: github.com/werbot/werbot/internal/system, desc: connectcli knows only SSH and the gateway answer }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: connectcli knows only SSH and the gateway answer }
+        e2e:
+          files: ["**/internal/e2e/*.go", "**/internal/e2e/**/*.go"]
+          deny:
+            - pkg: github.com/werbot/werbot/internal
+              desc: e2e targets are standalone test programs and must not import werbot packages
         aws-sdk-recstore-only:
           files: ["**/*.go", "!**/internal/session/recstore/**"]
           deny:
