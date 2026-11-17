@@ -141,6 +141,9 @@ func TestHeartbeatPayloadValidated(t *testing.T) {
 		"ip":           {Denials: []*gatewayv1.Denial{{ClientIp: "x", Reason: "denied"}}},
 		"session":      {Counters: []*gatewayv1.SessionCounters{{SessionId: "x"}}},
 		"health error": {Health: []*gatewayv1.ResourceHealth{{ResourceId: uuid.NewString(), Error: strings.Repeat("e", 101)}}},
+		// bounds count bytes: 76 four-byte characters are 304 bytes
+		"target bytes":  {Denials: []*gatewayv1.Denial{{Target: strings.Repeat("😀", 76), Reason: "denied"}}},
+		"version bytes": {Version: strings.Repeat("😀", 17)},
 	} {
 		c := b.instance(t, b.org, uuid.New()).connect(t, hb)
 		if err := c.closed(t, 2*time.Second); err.Code() != connect.CodeInvalidArgument {
@@ -149,12 +152,15 @@ func TestHeartbeatPayloadValidated(t *testing.T) {
 	}
 }
 
+// fill is n bytes of four-byte characters (plus ASCII for the rest).
+func fill(n int) string { return strings.Repeat("😀", n/4) + strings.Repeat("x", n%4) }
+
 // The largest heartbeat validation lets through still fits the read limit.
 func TestHeartbeatMaxSizeFitsReadLimit(t *testing.T) {
 	id, ts := uuid.NewString(), &timestamppb.Timestamp{Seconds: math.MinInt64, Nanos: math.MinInt32}
-	hb := &gatewayv1.Heartbeat{Version: strings.Repeat("v", 64)}
+	hb := &gatewayv1.Heartbeat{Version: fill(64)}
 	for range 64 {
-		hb.Connectors = append(hb.Connectors, strings.Repeat("c", 64))
+		hb.Connectors = append(hb.Connectors, fill(64))
 	}
 	for range 10000 {
 		hb.ActiveSessionIds = append(hb.ActiveSessionIds, id)
@@ -164,12 +170,12 @@ func TestHeartbeatMaxSizeFitsReadLimit(t *testing.T) {
 			BytesUp: math.MinInt64, BytesDown: math.MinInt64, DatagramsUp: math.MinInt64, DatagramsDown: math.MinInt64})
 	}
 	for range 100 {
-		hb.Denials = append(hb.Denials, &gatewayv1.Denial{UserId: id, KeyFingerprint: strings.Repeat("k", 128),
-			Resource: strings.Repeat("r", 63), Kind: strings.Repeat("k", 16), Target: strings.Repeat("t", 300),
+		hb.Denials = append(hb.Denials, &gatewayv1.Denial{UserId: id, KeyFingerprint: fill(128),
+			Resource: fill(63), Kind: fill(16), Target: fill(300),
 			ClientIp: "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255", Reason: "target_not_allowed", At: ts})
 	}
 	for range 1000 {
-		hb.Health = append(hb.Health, &gatewayv1.ResourceHealth{ResourceId: id, Ok: true, Error: strings.Repeat("e", 100), CheckedAt: ts})
+		hb.Health = append(hb.Health, &gatewayv1.ResourceHealth{ResourceId: id, Ok: true, Error: fill(100), CheckedAt: ts})
 	}
 	msg := &gatewayv1.ConnectRequest{Msg: &gatewayv1.ConnectRequest_Heartbeat{Heartbeat: hb}}
 	if err := protovalidate.Validate(msg); err != nil {
@@ -261,4 +267,16 @@ func (c *poolConn) nextPool(t *testing.T) []string {
 		t.Fatal("no pool list within 2s")
 	}
 	return nil
+}
+
+func TestHeartbeatHealthCountsDropped(t *testing.T) {
+	at := timestamppb.Now()
+	hs, dropped := heartbeatHealth([]*gatewayv1.ResourceHealth{
+		{ResourceId: uuid.NewString(), CheckedAt: at},
+		{ResourceId: uuid.NewString()},
+		{ResourceId: uuid.NewString(), CheckedAt: &timestamppb.Timestamp{Nanos: -1}},
+	})
+	if len(hs) != 1 || dropped != 2 {
+		t.Fatalf("kept %d, dropped %d; want 1, 2", len(hs), dropped)
+	}
 }

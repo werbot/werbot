@@ -26,10 +26,10 @@ message ConnectRequest {
 }
 
 message Heartbeat {
-  string version = 1 [(buf.validate.field).string.max_len = 64];
+  string version = 1 [(buf.validate.field).string.max_bytes = 64];
   repeated string connectors = 2 [(buf.validate.field).repeated = {
     max_items: 64
-    items: {string: {min_len: 1, max_len: 64}}
+    items: {string: {min_len: 1, max_bytes: 64}}
   }];
   // bounded by the WERBOT_GATEWAY_MAX_SESSIONS ceiling
   repeated string active_session_ids = 3 [(buf.validate.field).repeated = {
@@ -52,14 +52,16 @@ message SessionCounters {
   int64 datagrams_down = 5;
 }
 
-// Denial is a connection attempt the gateway refused.
+// Denial is a connection attempt the gateway refused. String bounds count
+// bytes; one invalid item rejects the whole heartbeat, so the gateway truncates
+// strings (keeping UTF-8 whole) and sends user_id and client_ip only when well-formed.
 message Denial {
   string user_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
-  string key_fingerprint = 2 [(buf.validate.field).string.max_len = 128];
+  string key_fingerprint = 2 [(buf.validate.field).string.max_bytes = 128];
   // resource name from the login; the server resolves the id when it exists
-  string resource = 3 [(buf.validate.field).string.max_len = 63];
-  string kind = 4 [(buf.validate.field).string.max_len = 16];
-  string target = 5 [(buf.validate.field).string.max_len = 300];
+  string resource = 3 [(buf.validate.field).string.max_bytes = 63];
+  string kind = 4 [(buf.validate.field).string.max_bytes = 16];
+  string target = 5 [(buf.validate.field).string.max_bytes = 300];
   string client_ip = 6 [(buf.validate.field).string.ip = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   string reason = 7 [(buf.validate.field).string = {
     in: ["denied", "target_not_allowed", "unsupported_type", "unsupported_kind", "busy", "spool_full", "auth_failed"]
@@ -140,7 +142,7 @@ message StartSessionRequest {
     in: ["terminal", "exec", "stream", "datagram"]
   }];
   // host:port the gateway connects to; empty for terminal and exec
-  string target = 5 [(buf.validate.field).string.max_len = 300];
+  string target = 5 [(buf.validate.field).string.max_bytes = 300];
 }
 
 message StartSessionResponse {
@@ -159,7 +161,7 @@ message EndSessionRequest {
   string reason = 2 [(buf.validate.field).string = {
     in: ["closed", "error", "internal_error", "gateway_shutdown", "recording_unavailable", "idle_timeout", "max_duration", "access_revoked"]
   }];
-  // final totals; unset keeps the stored ones
+  // final totals; unset keeps the stored ones; session_id must equal session_id above
   SessionCounters counters = 3;
 }
 

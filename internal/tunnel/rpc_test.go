@@ -178,6 +178,9 @@ func TestEndSessionCountersAndReasons(t *testing.T) {
 	}
 	_, err := g.client.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{SessionId: id.String(), Reason: "gateway_lost"}))
 	wantCode(t, err, connect.CodeInvalidArgument, "")
+	_, err = g.client.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{SessionId: id.String(), Reason: "closed",
+		Counters: &gatewayv1.SessionCounters{SessionId: uuid.NewString(), BytesUp: 1}}))
+	wantCode(t, err, connect.CodeInvalidArgument, "invalid counters.session_id")
 	b.f.with(func(f *fake) {
 		want := Counters{SessionID: id, BytesUp: 7, BytesDown: 8, DatagramsUp: 9, DatagramsDown: 10}
 		if len(f.ends) != 3 || f.ends[2].reason != "access_revoked" || f.ends[2].c == nil || *f.ends[2].c != want {

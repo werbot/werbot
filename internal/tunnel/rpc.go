@@ -131,6 +131,9 @@ func (h *Handler) EndSession(ctx context.Context, req *connect.Request[gatewayv1
 	}
 	var c *Counters
 	if m := req.Msg.GetCounters(); m != nil {
+		if cid, err := uuid.Parse(m.GetSessionId()); err != nil || cid != id {
+			return nil, invalid("counters.session_id")
+		}
 		v := countersOf(id, m)
 		c = &v
 	}

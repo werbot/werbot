@@ -254,7 +254,9 @@ func (x *SessionCounters) GetDatagramsDown() int64 {
 	return 0
 }
 
-// Denial is a connection attempt the gateway refused.
+// Denial is a connection attempt the gateway refused. String bounds count
+// bytes; one invalid item rejects the whole heartbeat, so the gateway truncates
+// strings (keeping UTF-8 whole) and sends user_id and client_ip only when well-formed.
 type Denial struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	UserId         string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -1122,7 +1124,7 @@ type EndSessionRequest struct {
 	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// gateway-side end reasons; gateway_lost is set only by the server
 	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
-	// final totals; unset keeps the stored ones
+	// final totals; unset keeps the stored ones; session_id must equal session_id above
 	Counters      *SessionCounters `protobuf:"bytes,3,opt,name=counters,proto3" json:"counters,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1622,10 +1624,10 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\theartbeat\x18\x01 \x01(\v2\x15.gateway.v1.HeartbeatH\x00R\theartbeatB\x05\n" +
 	"\x03msg\"\xdb\x02\n" +
 	"\tHeartbeat\x12!\n" +
-	"\aversion\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x18@R\aversion\x120\n" +
+	"\aversion\x18\x01 \x01(\tB\a\xbaH\x04r\x02(@R\aversion\x120\n" +
 	"\n" +
 	"connectors\x18\x02 \x03(\tB\x10\xbaH\r\x92\x01\n" +
-	"\x10@\"\x06r\x04\x10\x01\x18@R\n" +
+	"\x10@\"\x06r\x04\x10\x01(@R\n" +
 	"connectors\x12>\n" +
 	"\x12active_session_ids\x18\x03 \x03(\tB\x10\xbaH\r\x92\x01\n" +
 	"\x10\x90N\"\x05r\x03\xb0\x01\x01R\x10activeSessionIds\x12B\n" +
@@ -1642,10 +1644,10 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\x0edatagrams_down\x18\x05 \x01(\x03R\rdatagramsDown\"\x98\x03\n" +
 	"\x06Denial\x12$\n" +
 	"\auser_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\x121\n" +
-	"\x0fkey_fingerprint\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x0ekeyFingerprint\x12#\n" +
-	"\bresource\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x18?R\bresource\x12\x1b\n" +
-	"\x04kind\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x18\x10R\x04kind\x12 \n" +
-	"\x06target\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\x06target\x12'\n" +
+	"\x0fkey_fingerprint\x18\x02 \x01(\tB\b\xbaH\x05r\x03(\x80\x01R\x0ekeyFingerprint\x12#\n" +
+	"\bresource\x18\x03 \x01(\tB\a\xbaH\x04r\x02(?R\bresource\x12\x1b\n" +
+	"\x04kind\x18\x04 \x01(\tB\a\xbaH\x04r\x02(\x10R\x04kind\x12 \n" +
+	"\x06target\x18\x05 \x01(\tB\b\xbaH\x05r\x03(\xac\x02R\x06target\x12'\n" +
 	"\tclient_ip\x18\x06 \x01(\tB\n" +
 	"\xbaH\a\xd8\x01\x01r\x02p\x01R\bclientIp\x12|\n" +
 	"\x06reason\x18\a \x01(\tBd\xbaHar_R\x06deniedR\x12target_not_allowedR\x10unsupported_typeR\x10unsupported_kindR\x04busyR\n" +
@@ -1700,7 +1702,7 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"resourceId\x12$\n" +
 	"\tclient_ip\x18\x03 \x01(\tB\a\xbaH\x04r\x02p\x01R\bclientIp\x12;\n" +
 	"\x04kind\x18\x04 \x01(\tB'\xbaH$r\"R\bterminalR\x04execR\x06streamR\bdatagramR\x04kind\x12 \n" +
-	"\x06target\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\x06target\"m\n" +
+	"\x06target\x18\x05 \x01(\tB\b\xbaH\x05r\x03(\xac\x02R\x06target\"m\n" +
 	"\x14StartSessionResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x126\n" +

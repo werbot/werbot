@@ -208,7 +208,11 @@ func (hd *Handler) heartbeat(ctx context.Context, s *stream, hb *gatewayv1.Heart
 			hd.log.Warn("tunnel: store denials", "instance_id", g.InstanceID, "error", err)
 		}
 	}
-	if hs := heartbeatHealth(hb.GetHealth()); len(hs) > 0 {
+	hs, dropped := heartbeatHealth(hb.GetHealth())
+	if dropped > 0 {
+		hd.log.Debug("tunnel: dropped probe results without a valid checked_at", "instance_id", g.InstanceID, "count", dropped)
+	}
+	if len(hs) > 0 {
 		if err := hd.d.Health.ReportHealth(ctx, g.OrgID, g.InstanceID, hs); err != nil {
 			hd.log.Warn("tunnel: store resource health", "instance_id", g.InstanceID, "error", err)
 		}
@@ -246,15 +250,16 @@ func denialOf(d *gatewayv1.Denial) Denial {
 	return out
 }
 
-// heartbeatHealth converts the probe results; one without a valid time is dropped.
-func heartbeatHealth(in []*gatewayv1.ResourceHealth) []ResourceHealth {
-	out := make([]ResourceHealth, 0, len(in))
+// heartbeatHealth converts the probe results and counts the dropped ones:
+// a result without a valid time cannot be ordered against stored ones.
+func heartbeatHealth(in []*gatewayv1.ResourceHealth) (out []ResourceHealth, dropped int) {
 	for _, h := range in {
 		id, err := uuid.Parse(h.GetResourceId())
 		if err != nil || h.GetCheckedAt().CheckValid() != nil {
+			dropped++
 			continue
 		}
 		out = append(out, ResourceHealth{ResourceID: id, OK: h.GetOk(), Error: h.GetError(), CheckedAt: h.GetCheckedAt().AsTime()})
 	}
-	return out
+	return out, dropped
 }

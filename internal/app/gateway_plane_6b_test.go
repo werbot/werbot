@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
 
@@ -108,14 +110,16 @@ func TestSnapshotResourceTimeouts(t *testing.T) {
 	}
 }
 
-// Removing a user from a team changes the snapshot (and so its version): the
-// gateway re-evaluates that user's sessions.
+// Removing a user from a team or the organization changes the snapshot (and
+// so its version): the gateway re-evaluates that user's sessions. Unchanged
+// data keeps it; the deny-all snapshot carries the members too.
 func TestSnapshotMembersVersion(t *testing.T) {
 	s := newStage4(t, slog.New(slog.DiscardHandler))
 	ctx, org, owner := s.org(t, "owner")
 	gw, _ := s.gatewayPool(ctx, t, owner)
 	_, otherOrg, _ := s.org(t, "owner")
 	require.NotEqual(t, org, otherOrg)
+	bob := dbtest.User(t, s.pool, org, "member")
 	ops, err := s.d.Identity.CreateTeam(ctx, "ops")
 	require.NoError(t, err)
 	dev, err := s.d.Identity.CreateTeam(ctx, "dev")
@@ -128,16 +132,40 @@ func TestSnapshotMembersVersion(t *testing.T) {
 		require.NoError(t, err)
 		return snap
 	}
+	member := func(snap *gatewayv1.Snapshot, user uuid.UUID) *gatewayv1.Member {
+		for _, m := range snap.GetMembers() {
+			if m.GetUserId() == user.String() {
+				return m
+			}
+		}
+		return nil
+	}
 	teams := []string{ops.ID.String(), dev.ID.String()}
 	slices.Sort(teams)
 
 	before := build()
-	require.Len(t, before.GetMembers(), 1, "members of the pool's organization only")
-	assert.Equal(t, owner.String(), before.GetMembers()[0].GetUserId())
-	assert.Equal(t, teams, before.GetMembers()[0].GetTeamIds())
+	assert.True(t, proto.Equal(before, build()), "unchanged data, same snapshot and version")
+	require.Len(t, before.GetMembers(), 2, "members of the pool's organization only")
+	assert.True(t, slices.IsSortedFunc(before.GetMembers(), func(a, b *gatewayv1.Member) int { return strings.Compare(a.GetUserId(), b.GetUserId()) }))
+	assert.Equal(t, teams, member(before, owner).GetTeamIds())
+	assert.Empty(t, member(before, bob).GetTeamIds())
 
 	require.NoError(t, s.d.Identity.RemoveTeamMember(ctx, ops.ID, owner))
 	after := build()
 	assert.False(t, proto.Equal(before, after), "the snapshot version changes")
-	assert.Equal(t, []string{dev.ID.String()}, after.GetMembers()[0].GetTeamIds())
+	assert.Equal(t, []string{dev.ID.String()}, member(after, owner).GetTeamIds())
+
+	require.NoError(t, s.d.Identity.RemoveMember(ctx, bob))
+	removed := build()
+	assert.False(t, proto.Equal(after, removed), "an org removal changes the version")
+	assert.Nil(t, member(removed, bob), "a removed user is absent from members")
+
+	// A policy that does not compile still carries the members.
+	_, err = s.pool.Exec(ctx, `ALTER TABLE access_binding DROP CONSTRAINT access_binding_subject_type_check`)
+	require.NoError(t, err)
+	_, err = s.pool.Exec(ctx, `UPDATE access_binding SET subject_type = 'robot' WHERE org_id = $1`, org)
+	require.NoError(t, err)
+	denyAll := build()
+	assert.Empty(t, denyAll.GetCedarPolicies())
+	assert.True(t, proto.Equal(&gatewayv1.Snapshot{Members: removed.GetMembers()}, &gatewayv1.Snapshot{Members: denyAll.GetMembers()}))
 }
