@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
+	"github.com/werbot/werbot/internal/connectcli"
 	"github.com/werbot/werbot/internal/gateway"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/logging"
@@ -13,10 +15,10 @@ import (
 	"github.com/werbot/werbot/web"
 )
 
-const usageText = "usage: werbot <server|gateway|web|migrate|version>"
+const usageText = "usage: werbot <server|gateway|web|connect|migrate|version>"
 
 // runRole runs the commands that need neither the server config nor its
-// database: version, web and gateway. ok is false for any other cmd.
+// database: version, web, gateway and connect. ok is false for any other cmd.
 func runRole(ctx context.Context, cmd string, args []string, getenv func(string) string, stdout io.Writer) (ok bool, err error) {
 	switch cmd {
 	case "version":
@@ -38,6 +40,12 @@ func runRole(ctx context.Context, cmd string, args []string, getenv func(string)
 			return true, err
 		}
 		return true, gateway.Run(ctx, gcfg, logging.New(stdout, level, format))
+	case "connect":
+		cfg, err := connectcli.LoadConfig(args[1:], getenv)
+		if err != nil {
+			return true, err
+		}
+		return true, connectcli.Run(ctx, cfg, stdout, os.Stderr)
 	}
 	return false, nil
 }
