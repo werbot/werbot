@@ -207,17 +207,22 @@ func TestCreateBindingPorts(t *testing.T) {
 	require.NoError(t, err)
 	want := []connector.PortRange{{Port: 8000, EndPort: 8100}, {Port: 5432}, {Port: 65535}} // EndPort equal to Port reads back as 0
 	assert.Equal(t, want, b.Ports)
-	var stored, audited string
-	require.NoError(t, e.pool.QueryRow(context.Background(), `SELECT ports::text FROM access_binding WHERE id = $1`, b.ID).Scan(&stored))
-	assert.Equal(t, `{"[8000,8101)","[5432,5433)","[65535,65536)"}`, stored)
+	var ranges, audited string
+	require.NoError(t, e.pool.QueryRow(context.Background(), `SELECT ports::text FROM access_binding WHERE id = $1`, b.ID).Scan(&ranges))
+	assert.Equal(t, `{"[8000,8101)","[5432,5433)","[65535,65536)"}`, ranges)
 	require.NoError(t, e.pool.QueryRow(context.Background(),
 		`SELECT data->>'ports' FROM audit_event WHERE org_id = $1 AND action = 'access.binding.create'`, e.org).Scan(&audited))
-	assert.JSONEq(t, `[{"port":8000,"end_port":8100},{"port":5432,"end_port":5432},{"port":65535,"end_port":0}]`, audited)
+	stored := `[{"port":8000,"end_port":8100},{"port":5432,"end_port":0},{"port":65535,"end_port":0}]`
+	assert.JSONEq(t, stored, audited, "the stored form")
 
 	all, err := e.svc.List(e.ctx, e.org, nil)
 	require.NoError(t, err)
 	require.Len(t, all, 1)
 	assert.Equal(t, want, all[0].Ports)
+	require.NoError(t, e.svc.Delete(e.ctx, e.org, b.ID))
+	require.NoError(t, e.pool.QueryRow(context.Background(),
+		`SELECT data->>'ports' FROM audit_event WHERE org_id = $1 AND action = 'access.binding.delete'`, e.org).Scan(&audited))
+	assert.JSONEq(t, stored, audited, "delete")
 
 	in.Ports = nil // no ports: every port
 	b, err = e.svc.Create(e.ctx, e.org, in)

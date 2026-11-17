@@ -66,8 +66,8 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 		} else {
 			data["label_selector"] = in.LabelSelector
 		}
-		if len(in.Ports) > 0 {
-			data["ports"] = in.Ports
+		if len(out.Ports) > 0 {
+			data["ports"] = out.Ports
 		}
 		return audit(ctx, tx, orgID, p.UserID, "access.binding.create", out.ID, data)
 	})
@@ -99,6 +99,13 @@ func (s *Service) Delete(ctx context.Context, orgID, id uuid.UUID) error {
 			data["resource_id"] = row.ResourceID
 		} else {
 			data["label_selector"] = json.RawMessage(row.LabelSelector)
+		}
+		ports, err := portRanges(row.Ports, row.EndPorts)
+		if err != nil {
+			return fmt.Errorf("access: ports of %s: %w", id, err)
+		}
+		if len(ports) > 0 {
+			data["ports"] = ports
 		}
 		return audit(ctx, tx, orgID, p.UserID, "access.binding.delete", id, data)
 	})

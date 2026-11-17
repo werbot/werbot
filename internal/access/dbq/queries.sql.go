@@ -82,7 +82,9 @@ func (q *Queries) CreateBinding(ctx context.Context, arg CreateBindingParams) (C
 
 const deleteBinding = `-- name: DeleteBinding :one
 DELETE FROM access_binding WHERE id = $1 AND org_id = $2
-RETURNING subject_type, subject_id, resource_id, label_selector
+RETURNING subject_type, subject_id, resource_id, label_selector,
+    ARRAY(SELECT lower(r) FROM unnest(ports) WITH ORDINALITY AS u(r, o) ORDER BY o)::int4[] AS ports,
+    ARRAY(SELECT upper(r) - 1 FROM unnest(ports) WITH ORDINALITY AS u(r, o) ORDER BY o)::int4[] AS end_ports
 `
 
 type DeleteBindingParams struct {
@@ -95,6 +97,8 @@ type DeleteBindingRow struct {
 	SubjectID     uuid.UUID
 	ResourceID    *uuid.UUID
 	LabelSelector []byte
+	Ports         []int32
+	EndPorts      []int32
 }
 
 func (q *Queries) DeleteBinding(ctx context.Context, arg DeleteBindingParams) (DeleteBindingRow, error) {
@@ -105,6 +109,8 @@ func (q *Queries) DeleteBinding(ctx context.Context, arg DeleteBindingParams) (D
 		&i.SubjectID,
 		&i.ResourceID,
 		&i.LabelSelector,
+		&i.Ports,
+		&i.EndPorts,
 	)
 	return i, err
 }

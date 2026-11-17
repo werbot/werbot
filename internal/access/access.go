@@ -92,18 +92,30 @@ func toBinding(r dbq.ListBindingsRow) (Binding, error) {
 			return Binding{}, fmt.Errorf("access: decode selector of %s: %w", r.ID, err)
 		}
 	}
-	if len(r.Ports) != len(r.EndPorts) {
-		return Binding{}, fmt.Errorf("access: ports of %s: %d starts, %d ends", r.ID, len(r.Ports), len(r.EndPorts))
+	ports, err := portRanges(r.Ports, r.EndPorts)
+	if err != nil {
+		return Binding{}, fmt.Errorf("access: ports of %s: %w", r.ID, err)
 	}
-	for i, p := range r.Ports {
-		end := r.EndPorts[i]
+	b.Ports = ports
+	return b, nil
+}
+
+// portRanges joins the parallel arrays the queries read back; an end equal
+// to its start is the single port (EndPort 0).
+func portRanges(starts, ends []int32) ([]connector.PortRange, error) {
+	if len(starts) != len(ends) {
+		return nil, fmt.Errorf("%d starts, %d ends", len(starts), len(ends))
+	}
+	var out []connector.PortRange
+	for i, p := range starts {
+		end := ends[i]
 		if p < 1 || p > math.MaxUint16 || end < p || end > math.MaxUint16 {
-			return Binding{}, fmt.Errorf("access: ports of %s: invalid range %d-%d", r.ID, p, end)
+			return nil, fmt.Errorf("invalid range %d-%d", p, end)
 		}
 		if end == p {
 			end = 0
 		}
-		b.Ports = append(b.Ports, connector.PortRange{Port: uint16(p), EndPort: uint16(end)})
+		out = append(out, connector.PortRange{Port: uint16(p), EndPort: uint16(end)})
 	}
-	return b, nil
+	return out, nil
 }

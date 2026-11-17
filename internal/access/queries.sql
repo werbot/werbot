@@ -16,7 +16,9 @@ RETURNING id, org_id, subject_type, subject_id, resource_id, label_selector, cre
 
 -- name: DeleteBinding :one
 DELETE FROM access_binding WHERE id = @id AND org_id = @org_id
-RETURNING subject_type, subject_id, resource_id, label_selector;
+RETURNING subject_type, subject_id, resource_id, label_selector,
+    ARRAY(SELECT lower(r) FROM unnest(ports) WITH ORDINALITY AS u(r, o) ORDER BY o)::int4[] AS ports,
+    ARRAY(SELECT upper(r) - 1 FROM unnest(ports) WITH ORDINALITY AS u(r, o) ORDER BY o)::int4[] AS end_ports;
 
 -- name: ListBindings :many
 -- A set resource_id keeps the bindings to it and every selector binding.

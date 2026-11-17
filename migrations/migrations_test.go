@@ -2,8 +2,11 @@ package migrations_test
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -117,4 +120,27 @@ func TestMigrations6b(t *testing.T) {
 	require.NoError(t, err)
 	_, err = p.Up(ctx)
 	require.NoError(t, err)
+}
+
+func TestBindingPortsCheck(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	ctx := context.Background()
+	org := dbtest.Org(t, pool)
+	res := dbtest.Resource(t, pool, org, "db", nil)
+	const q = "INSERT INTO access_binding (org_id, subject_type, subject_id, created_by, resource_id, ports) VALUES ($1, 'user', $2, $2, $3, $4)"
+	seventeen := make([]string, 17)
+	for i := range seventeen {
+		seventeen[i] = fmt.Sprintf(`"[%d,%d]"`, i+1, i+1)
+	}
+	for _, ok := range []string{`{}`, `{"[5432,5432]"}`, `{"[1,65535]"}`, "{" + strings.Join(seventeen[:16], ",") + "}"} {
+		_, err := pool.Exec(ctx, q, org, uuid.New(), res, ok)
+		require.NoError(t, err, ok)
+	}
+	for _, bad := range []string{`{empty}`, `{NULL}`, `{"[0,5)"}`, `{"[65535,65537)"}`, `{"(,5)"}`, "{" + strings.Join(seventeen, ",") + "}"} {
+		_, err := pool.Exec(ctx, q, org, uuid.New(), res, bad)
+		var pgErr *pgconn.PgError
+		require.ErrorAs(t, err, &pgErr, bad)
+		assert.Equal(t, "23514", pgErr.Code, bad)
+		assert.Equal(t, "access_binding_ports_check", pgErr.ConstraintName, bad)
+	}
 }
