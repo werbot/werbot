@@ -104,9 +104,10 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 }
 
 // Open checks the request in contract order and starts the session on the server.
-// Any error frees the slot. A spool at SpoolMax refuses every new session.
+// Any error frees the slot. A spool at SpoolMax, or one that cannot write,
+// refuses every new session: recording is mandatory.
 func (p *Pipeline) Open(ctx context.Context, r OpenRequest) (*Session, error) {
-	if p.spool.Total() >= p.cfg.SpoolMax {
+	if p.spool.Total() >= p.cfg.SpoolMax || !p.spool.Writable() {
 		p.spoolFull.Inc()
 		return nil, ErrSpoolMax
 	}

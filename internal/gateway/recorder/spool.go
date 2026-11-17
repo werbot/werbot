@@ -87,10 +87,11 @@ type Spool struct {
 
 	// ponytail: one lock covers the disk writes of all sessions (an fsync per chunk
 	// serialises appends); per-session locks if stage 7a shows contention.
-	mu       sync.Mutex
-	sessions map[uuid.UUID]*session
-	ends     map[uuid.UUID]string // reason of an EndSession not delivered yet
-	shut     bool                 // Shutdown ran: the directory may belong to a new Spool
+	mu          sync.Mutex
+	sessions    map[uuid.UUID]*session
+	ends        map[uuid.UUID]string // reason of an EndSession not delivered yet
+	shut        bool                 // Shutdown ran: the directory may belong to a new Spool
+	writeFailed bool                 // the last write or mkdir failed: disk full or not writable
 }
 
 // errShutdown is a write to a spool after Shutdown.

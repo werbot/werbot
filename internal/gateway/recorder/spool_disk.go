@@ -15,8 +15,23 @@ func (s *Spool) writeState(id uuid.UUID, st state) error {
 	return s.write(path.Join(id.String(), stateFile), b)
 }
 
+// probeFile is the write Writable tries while the spool is failing.
+const probeFile = ".probe"
+
+// Writable reports whether the last disk write succeeded. While it failed, each
+// call tries a small write first, so a disk with room again admits sessions.
+func (s *Spool) Writable() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.writeFailed && s.write(probeFile) == nil {
+		_ = s.root.Remove(probeFile)
+	}
+	return !s.writeFailed
+}
+
 // write replaces name with parts: a synced temp file renamed over it.
-func (s *Spool) write(name string, parts ...[]byte) error {
+func (s *Spool) write(name string, parts ...[]byte) (err error) {
+	defer func() { s.writeFailed = err != nil }()
 	tmp := name + tmpExt
 	f, err := s.root.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
@@ -44,7 +59,8 @@ func (s *Spool) write(name string, parts ...[]byte) error {
 }
 
 // mkdir creates a session directory durably.
-func (s *Spool) mkdir(id uuid.UUID) error {
+func (s *Spool) mkdir(id uuid.UUID) (err error) {
+	defer func() { s.writeFailed = err != nil }()
 	if err := s.root.MkdirAll(id.String(), 0o700); err != nil {
 		return err
 	}

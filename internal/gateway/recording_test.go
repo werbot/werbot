@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 
@@ -120,6 +121,30 @@ func TestOpenRejectsWhenSpoolFull(t *testing.T) {
 	case <-time.After(50 * time.Millisecond):
 	}
 	require.NoError(t, e.p.spool.Append(a.ID, 0, h, make([]byte, 1<<10)), "a running session keeps its own limit")
+}
+
+// A spool that cannot write refuses new sessions like a full one, until a write
+// succeeds again.
+func TestOpenRejectsWhileSpoolCannotWrite(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory permissions")
+	}
+	e := newPipeEnv(t, 10)
+	dir := t.TempDir()
+	sp, err := recorder.OpenSpool(dir, e.f, recorder.SpoolOptions{}, slog.New(slog.DiscardHandler))
+	require.NoError(t, err)
+	e.p.spool = sp
+	require.NoError(t, os.Chmod(dir, 0o500))       //nolint:gosec // a directory: read and search only
+	t.Cleanup(func() { _ = os.Chmod(dir, 0o700) }) //nolint:gosec // a directory, as the spool makes it
+	require.Error(t, sp.End(uuid.New(), "closed"), "the session directory cannot be created")
+
+	_, err = e.p.Open(t.Context(), e.req("fake", KindTerminal))
+	require.ErrorIs(t, err, ErrSpoolMax)
+	require.Contains(t, e.metrics(t), `werbot_gateway_sessions_rejected_total{reason="spool_full"} 1`)
+	require.Zero(t, e.p.active.used())
+
+	require.NoError(t, os.Chmod(dir, 0o700)) //nolint:gosec // a directory, as the spool makes it
+	e.open(t, "fake", KindTerminal)
 }
 
 func TestSSHFrontSpoolFull(t *testing.T) {
