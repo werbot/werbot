@@ -81,6 +81,7 @@ type Pipeline struct {
 	denials                           *denials
 	beats                             atomic.Uint64 // heartbeats built
 	guard                             localGuard
+	health                            *prober
 	dial                              func(ctx context.Context, network, address string) (net.Conn, error)
 
 	stop    context.Context // canceled at the end of drain: the front closes its connections
@@ -117,6 +118,7 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 		flushTimeout: 10 * time.Second,
 	}
 	p.dial = p.guard.dialer()
+	p.health = newProber(ctl.Policy, tcpProbe(p.dial), reg)
 	return p
 }
 

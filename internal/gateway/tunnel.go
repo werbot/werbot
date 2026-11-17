@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/gen/gateway/v1/gatewayv1connect"
@@ -48,7 +49,8 @@ type tunnelClient struct {
 	gauge     *metrics.Gauge
 	conn      atomic.Pointer[tunnelConn]
 	policy    atomic.Pointer[Policy]
-	changed   chan struct{} // capacity 1: a new Policy was stored
+	pool      atomic.Pointer[[]uuid.UUID] // online instances of the pool; nil until the server sent them
+	changed   chan struct{}               // capacity 1: a new Policy was stored
 	connected atomic.Bool
 	graceEnd  atomic.Int64 // unix nanoseconds: Connected stays true until then after a planned close
 

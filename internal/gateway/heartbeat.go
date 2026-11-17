@@ -14,12 +14,12 @@ const (
 )
 
 // heartbeat is the instance state sent on the tunnel: the session ids, the
-// refused connections since the last one and, every countersEvery-th time, the
+// refused connections and changed health results since the last one and, every countersEvery-th time, the
 // counters that changed since they were last sent.
 func (p *Pipeline) heartbeat() *gatewayv1.Heartbeat {
 	hb := &gatewayv1.Heartbeat{
 		Version: version.Version, Connectors: connectors(), ActiveSessionIds: heartbeatSessionIDs(p.active, p.spool),
-		Denials: p.denials.take(),
+		Denials: p.denials.take(), Health: p.health.take(),
 	}
 	if p.beats.Add(1)%countersEvery == 0 {
 		hb.Counters = p.active.changedCounters(maxCounters)

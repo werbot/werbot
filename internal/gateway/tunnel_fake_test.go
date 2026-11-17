@@ -28,6 +28,7 @@ import (
 type attempt struct {
 	reject, closeWith error
 	snap              *gatewayv1.Snapshot
+	pool              []string        // sent as pool_instances after the snapshot when set
 	hold              <-chan struct{} // delays the snapshot until closed
 	closeAfter        time.Duration   // delays closeWith after the snapshot
 }
@@ -90,6 +91,11 @@ func (f *fakeTunnel) Connect(ctx context.Context, st *connect.BidiStream[gateway
 	}
 	if err := send(a.snap); err != nil {
 		return err
+	}
+	if a.pool != nil {
+		if err := st.Send(&gatewayv1.ConnectResponse{Msg: &gatewayv1.ConnectResponse_PoolInstances{PoolInstances: &gatewayv1.PoolInstances{Ids: a.pool}}}); err != nil {
+			return err
+		}
 	}
 	if a.closeWith != nil {
 		time.Sleep(a.closeAfter) // short: no need to watch ctx

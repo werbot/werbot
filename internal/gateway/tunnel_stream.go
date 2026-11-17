@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 )
@@ -72,7 +73,30 @@ func (c *tunnelClient) stream(ctx context.Context, heartbeat func() *gatewayv1.H
 			c.setConnected(c.apply(s))
 			c.graceEnd.Store(0) // the snapshot decides readiness now
 		}
+		if pi := msg.GetPoolInstances(); pi != nil {
+			c.setPool(pi.GetIds())
+		}
 	}
+}
+
+// setPool stores the online instances of the pool; an id that does not parse is skipped.
+func (c *tunnelClient) setPool(ids []string) {
+	pool := make([]uuid.UUID, 0, len(ids))
+	for _, s := range ids {
+		if id, err := uuid.Parse(s); err == nil {
+			pool = append(pool, id)
+		}
+	}
+	c.pool.Store(&pool)
+}
+
+// poolInstances lists the online instances of the pool as the server last sent them;
+// empty until it did.
+func (c *tunnelClient) poolInstances() []uuid.UUID {
+	if p := c.pool.Load(); p != nil {
+		return *p
+	}
+	return nil
 }
 
 // apply compiles s unless it has the current version and reports whether the
