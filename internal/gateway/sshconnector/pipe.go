@@ -4,12 +4,9 @@ import (
 	"errors"
 	"io"
 	"net"
-	"sync"
 
 	"github.com/werbot/werbot/internal/gateway"
 )
-
-var bufPool = sync.Pool{New: func() any { b := make([]byte, 32<<10); return &b }}
 
 // pipe relays a stream between the client and the target until both directions
 // end. EOF on one side half-closes the other (CloseWrite, or Close when the
@@ -44,27 +41,23 @@ func relay(dst io.WriteCloser, src io.Reader) error {
 	return nil
 }
 
-// copyRec copies src to dst through a pooled 32 KB buffer and hands every chunk
-// to record first (nil: none). EOF is a nil error.
+// copyRec copies src to dst and hands every chunk to record first (nil: none).
+// EOF is a nil error.
 func copyRec(dst io.Writer, src io.Reader, record func([]byte)) error {
-	bp := bufPool.Get().(*[]byte)
-	defer bufPool.Put(bp)
-	buf := *bp
-	for {
-		n, err := src.Read(buf)
-		if n > 0 {
-			if record != nil {
-				record(buf[:n])
-			}
-			if _, werr := dst.Write(buf[:n]); werr != nil {
-				return werr
-			}
-		}
-		if errors.Is(err, io.EOF) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
+	if record != nil {
+		dst = recordWriter{dst, record}
 	}
+	_, err := gateway.CopyBuffer(dst, src)
+	return err
+}
+
+// recordWriter hands every chunk to record before it writes it.
+type recordWriter struct {
+	io.Writer
+	record func([]byte)
+}
+
+func (w recordWriter) Write(p []byte) (int, error) {
+	w.record(p)
+	return w.Writer.Write(p)
 }
