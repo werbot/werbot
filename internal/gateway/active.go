@@ -13,7 +13,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 
-	"github.com/werbot/werbot/internal/gateway/recorder"
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
 
@@ -24,21 +23,35 @@ const maxSessionIDs = 10000
 // closedCh is returned by idle when no slot is taken.
 var closedCh = func() chan struct{} { c := make(chan struct{}); close(c); return c }()
 
-// activeSessions holds the MaxSessions slots and the cancel of every opened session.
+// activeSessions holds the MaxSessions slots and the state of every opened session.
 type activeSessions struct {
 	mu          sync.Mutex
 	gauge       *metrics.Gauge
 	log         *slog.Logger
 	draining    bool
 	slots       int
-	idleCh      chan struct{}                         // closed when slots drops to 0; nil while 0
-	cancels     map[uuid.UUID]context.CancelCauseFunc // opened sessions; nil until Run binds
-	shutdown    error                                 // set by cancelAll: a later bind cancels at once
-	lastOmitted int                                   // ids left out of the last heartbeat; the cap warning fires when it changes
+	idleCh      chan struct{}          // closed when slots drops to 0; nil while 0
+	sessions    map[uuid.UUID]*tracked // opened sessions
+	shutdown    error                  // set by cancelAll: a later bind cancels at once
+	lastOmitted int                    // ids left out of the last heartbeat; the cap warning fires when it changes
+}
+
+// tracked is an opened session as the sweeper and the heartbeat see it.
+type tracked struct {
+	cancel    context.CancelCauseFunc // nil until Run binds
+	cause     error                   // the first cancel before bind; bind applies it
+	req       AccessRequest           // the PDP input, re-evaluated by the sweeper
+	kind      Kind
+	host      string // the target host of a stream or datagram
+	version   string // the policy version req was last allowed on
+	started   time.Time
+	idle, max time.Duration // 0: no limit
+	c         *counters
+	sent      [4]int64 // the counters in the last heartbeat
 }
 
 func newActiveSessions(gauge *metrics.Gauge, logger *slog.Logger) *activeSessions {
-	return &activeSessions{gauge: gauge, log: logger, cancels: map[uuid.UUID]context.CancelCauseFunc{}}
+	return &activeSessions{gauge: gauge, log: logger, sessions: map[uuid.UUID]*tracked{}}
 }
 
 // reserve takes a slot: ErrNotReady while draining, ErrBusy when limit are taken.
@@ -103,19 +116,48 @@ func (a *activeSessions) idle() <-chan struct{} {
 	return a.idleCh
 }
 
-func (a *activeSessions) add(id uuid.UUID) {
+// add tracks an opened session; t.c is set when nil.
+func (a *activeSessions) add(id uuid.UUID, t *tracked) {
+	if t.c == nil {
+		t.c = newCounters(t.started)
+	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.cancels[id] = nil
+	a.sessions[id] = t
 }
 
-// bind stores the cancel of a running session; after cancelAll it cancels at once.
-func (a *activeSessions) bind(id uuid.UUID, cancel context.CancelCauseFunc) {
+// bind stores the cancel of a running session and returns its counters. A cancel
+// that came before (cancel, cancelAll) is applied at once.
+func (a *activeSessions) bind(id uuid.UUID, cancel context.CancelCauseFunc) *counters {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.cancels[id] = cancel
+	t := a.sessions[id] // added by Open
+	t.cancel = cancel
+	if t.cause != nil {
+		cancel(t.cause)
+	}
 	if a.shutdown != nil {
 		cancel(a.shutdown)
+	}
+	return t.c
+}
+
+// cancel ends a session with cause; before bind the cause waits for it. The
+// first cause wins.
+func (a *activeSessions) cancel(id uuid.UUID, cause error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.cancelLocked(id, cause)
+}
+
+func (a *activeSessions) cancelLocked(id uuid.UUID, cause error) {
+	t := a.sessions[id]
+	switch {
+	case t == nil:
+	case t.cancel != nil:
+		t.cancel(cause)
+	case t.cause == nil:
+		t.cause = cause
 	}
 }
 
@@ -124,36 +166,41 @@ func (a *activeSessions) cancelAll(cause error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.shutdown = cause
-	for _, cancel := range a.cancels {
-		if cancel != nil {
-			cancel(cause)
+	for _, t := range a.sessions {
+		if t.cancel != nil {
+			t.cancel(cause)
 		}
 	}
 }
 
-// Terminate ends a running session with reason (recorder.Options.Terminate); an
-// unknown or not yet running session is left alone.
+// Terminate ends a session with reason (recorder.Options.Terminate); an unknown
+// session is left alone.
 func (a *activeSessions) Terminate(sessionID uuid.UUID, reason string) {
+	a.cancel(sessionID, endCause(reason))
+}
+
+// countersOf returns the counters of a session; nil when it is unknown.
+func (a *activeSessions) countersOf(id uuid.UUID) *counters {
 	a.mu.Lock()
-	cancel := a.cancels[sessionID]
-	a.mu.Unlock()
-	if cancel != nil {
-		cancel(endCause(reason))
+	defer a.mu.Unlock()
+	if t := a.sessions[id]; t != nil {
+		return t.c
 	}
+	return nil
 }
 
 // done drops a finished session.
 func (a *activeSessions) done(id uuid.UUID) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	delete(a.cancels, id)
+	delete(a.sessions, id)
 }
 
 // ids lists the opened sessions.
 func (a *activeSessions) ids() []uuid.UUID {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return slices.Collect(maps.Keys(a.cancels))
+	return slices.Collect(maps.Keys(a.sessions))
 }
 
 // noteOmitted warns when the number of ids left out of the heartbeat changes.
@@ -164,31 +211,6 @@ func (a *activeSessions) noteOmitted(n int) {
 		a.log.Warn("session: heartbeat full, undelivered ends left out", "omitted", n)
 	}
 	a.lastOmitted = n
-}
-
-// heartbeatSessionIDs lists the opened sessions, then those whose end waits in the
-// spool, without repeats; the server closes any other session of this instance as
-// lost. Opened sessions are read first: a session moves from them to the spool, so
-// it cannot slip between the two reads. Ids beyond maxSessionIDs (pending ends only,
-// as MaxSessions is capped by it) wait for a later heartbeat.
-func heartbeatSessionIDs(a *activeSessions, sp *recorder.Spool) []string {
-	ids := a.ids()
-	seen := make(map[uuid.UUID]bool, len(ids))
-	for _, id := range ids {
-		seen[id] = true
-	}
-	for _, id := range sp.PendingEnds() {
-		if !seen[id] {
-			seen[id] = true
-			ids = append(ids, id)
-		}
-	}
-	a.noteOmitted(max(len(ids)-maxSessionIDs, 0))
-	out := make([]string, min(len(ids), maxSessionIDs))
-	for i := range out {
-		out[i] = ids[i].String()
-	}
-	return out
 }
 
 // unreachable reports a control plane outage, as opposed to a refusal.

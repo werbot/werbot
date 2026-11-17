@@ -60,6 +60,21 @@ func TestLoadConfigSpoolMax(t *testing.T) {
 	}
 }
 
+func TestLoadConfigMaxDuration(t *testing.T) {
+	for v, want := range map[string]time.Duration{"": 12 * time.Hour, "0": 0, "90m": 90 * time.Minute} {
+		c, err := LoadConfig(nil, env(map[string]string{envMaxDur: v}))
+		require.NoError(t, err, v)
+		require.Equal(t, want, c.MaxDuration, v)
+	}
+	c, err := LoadConfig([]string{"--max-duration", "1h"}, env(map[string]string{envMaxDur: "2h"}))
+	require.NoError(t, err)
+	require.Equal(t, time.Hour, c.MaxDuration)
+	for _, v := range []string{"-1h", "soon"} {
+		_, err = LoadConfig(nil, env(map[string]string{envMaxDur: v}))
+		require.ErrorContains(t, err, "WERBOT_GATEWAY_MAX_DURATION", v)
+	}
+}
+
 func TestLoadConfigJoinToken(t *testing.T) {
 	c, err := LoadConfig(nil, env(map[string]string{envToken: "from-env"}))
 	require.NoError(t, err)
@@ -76,7 +91,7 @@ func TestConfigVarsMatchLoadConfig(t *testing.T) {
 	slices.Sort(asked)
 	asked = slices.Compact(asked)
 	want := ConfigVars()
-	require.Len(t, want, 11)
+	require.Len(t, want, 12)
 	slices.Sort(want)
 	require.Equal(t, want, asked)
 }

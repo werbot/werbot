@@ -33,14 +33,18 @@ type Config struct {
 	HTTPAddr      string // empty: disabled
 	DrainTimeout  time.Duration
 	MaxSessions   int
-	SpoolMax      int64 // recording spool size cap in bytes
+	SpoolMax      int64         // recording spool size cap in bytes
+	MaxDuration   time.Duration // session length limit when the resource sets none; 0: no limit
 	// InsecureEnroll allows an http:// ServerURL to a non-loopback host (flag only:
 	// enrollment then sends the join token and the pool host key in cleartext).
 	InsecureEnroll bool
 
-	TunnelURL string            // not from env: overrides the tunnel_url of enrollment (embedded gateway)
-	Recording RecordingFactory  // not from env: nil means NopRecording
-	Metrics   *metrics.Registry // not from env: nil means a private registry
+	TunnelURL string // not from env: overrides the tunnel_url of enrollment (embedded gateway)
+	// DenyLocalTargets (not from env) makes Session.Dial refuse loopback, link-local
+	// and unspecified addresses: the embedded gateway runs inside the server process.
+	DenyLocalTargets bool
+	Recording        RecordingFactory  // not from env: nil means NopRecording
+	Metrics          *metrics.Registry // not from env: nil means a private registry
 }
 
 const (
@@ -55,6 +59,7 @@ const (
 	envDrain    = "WERBOT_GATEWAY_DRAIN_TIMEOUT"
 	envMaxSess  = "WERBOT_GATEWAY_MAX_SESSIONS"
 	envSpoolMax = "WERBOT_GATEWAY_SPOOL_MAX"
+	envMaxDur   = "WERBOT_GATEWAY_MAX_DURATION"
 )
 
 // DefaultSpoolMax is the spool size cap when none is configured: 1 GiB.
@@ -62,7 +67,7 @@ const DefaultSpoolMax int64 = 1 << 30
 
 // ConfigVars lists the WERBOT_GATEWAY_* variables in Config field order.
 func ConfigVars() []string {
-	return []string{envServer, envToken, envDataDir, envSSHAddr, envProxy, envName, envIdle, envHTTPAddr, envDrain, envMaxSess, envSpoolMax}
+	return []string{envServer, envToken, envDataDir, envSSHAddr, envProxy, envName, envIdle, envHTTPAddr, envDrain, envMaxSess, envSpoolMax, envMaxDur}
 }
 
 func orDefault(s, def string) string {
@@ -90,6 +95,9 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	if c.DrainTimeout, err = envDuration(envDrain, env[envDrain], 30*time.Second); err != nil {
 		return c, err
 	}
+	if c.MaxDuration, err = envDuration(envMaxDur, env[envMaxDur], 12*time.Hour); err != nil {
+		return c, err
+	}
 	c.MaxSessions = 10000
 	if s := env[envMaxSess]; s != "" {
 		if c.MaxSessions, err = strconv.Atoi(s); err != nil {
@@ -115,6 +123,7 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	fs.DurationVar(&c.DrainTimeout, "drain-timeout", c.DrainTimeout, "shutdown drain timeout")
 	fs.IntVar(&c.MaxSessions, "max-sessions", c.MaxSessions, "concurrent session limit")
 	spoolMax := fs.String("spool-max", orDefault(env[envSpoolMax], strconv.FormatInt(DefaultSpoolMax, 10)), "recording spool size cap: bytes or KiB/MiB/GiB")
+	fs.DurationVar(&c.MaxDuration, "max-duration", c.MaxDuration, "session length limit when the resource sets none; 0 disables")
 	fs.BoolVar(&c.InsecureEnroll, "insecure-enroll", false, "allow an http:// server URL to a non-loopback host (trusted lab networks only)")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) { // parse errors are returned, help is printed
@@ -143,6 +152,9 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	}
 	if c.IdleTimeout < 0 {
 		return c, fmt.Errorf("%s must be >= 0", envIdle)
+	}
+	if c.MaxDuration < 0 {
+		return c, fmt.Errorf("%s must be >= 0", envMaxDur)
 	}
 	return c, nil
 }

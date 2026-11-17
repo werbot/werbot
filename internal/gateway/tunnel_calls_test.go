@@ -15,6 +15,9 @@ import (
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+
+	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 )
 
 func TestTunnelUnaryCalls(t *testing.T) {
@@ -35,10 +38,15 @@ func TestTunnelUnaryCalls(t *testing.T) {
 	_, _, err = e.c.StartSession(t.Context(), testUserID, uuid.Nil, ip, KindTerminal, "")
 	require.ErrorContains(t, err, "no credential")
 
-	require.NoError(t, e.c.EndSession(t.Context(), id, "closed"))
+	require.NoError(t, e.c.EndSession(t.Context(), id, "closed", nil))
+	require.NoError(t, e.c.EndSession(t.Context(), id, "idle_timeout", &gatewayv1.SessionCounters{BytesUp: 3, DatagramsDown: 1}))
 	e.f.with(func(f *fakeTunnel) {
 		require.Equal(t, testSessionID.String(), f.ends[0].GetSessionId())
 		require.Equal(t, "closed", f.ends[0].GetReason())
+		require.Nil(t, f.ends[0].GetCounters())
+		require.Equal(t, "idle_timeout", f.ends[1].GetReason())
+		require.True(t, proto.Equal(&gatewayv1.SessionCounters{SessionId: testSessionID.String(), BytesUp: 3, DatagramsDown: 1}, f.ends[1].GetCounters()),
+			"the counters carry the session id")
 	})
 }
 

@@ -75,11 +75,17 @@ func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid
 	return id, Secret{Kind: cred.GetKind(), Value: cred.GetValue()}, nil
 }
 
-// EndSession closes a session with a gateway-side reason.
-func (c *tunnelClient) EndSession(ctx context.Context, sessionID uuid.UUID, reason string) error {
+// EndSession closes a session with a gateway-side reason and its final counters
+// (nil: none); the counters get the session id the server requires.
+func (c *tunnelClient) EndSession(ctx context.Context, sessionID uuid.UUID, reason string, counters *gatewayv1.SessionCounters) error {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
-	_, err := c.conn.Load().rpc.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{SessionId: sessionID.String(), Reason: reason}))
+	if counters != nil {
+		counters.SessionId = sessionID.String()
+	}
+	_, err := c.conn.Load().rpc.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{
+		SessionId: sessionID.String(), Reason: reason, Counters: counters,
+	}))
 	return err
 }
 

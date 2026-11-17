@@ -17,14 +17,17 @@ type handshakeKey struct{}
 
 // handshakeConn is closed by its timer unless authentication stops it first;
 // gliderlabs resets conn deadlines on every read, so a deadline cannot do this.
-// Close stops the timer, so a failed or finished connection releases it at once.
+// Close stops the timer, so a failed or finished connection releases it at once,
+// and runs closed once: x/crypto closes the conn when the handshake fails.
 type handshakeConn struct {
 	net.Conn
-	timer *time.Timer
+	timer  *time.Timer
+	closed func() // nil: none
+	once   sync.Once
 }
 
-func newHandshakeConn(ctx ssh.Context, conn net.Conn, timeout time.Duration) net.Conn {
-	c := &handshakeConn{Conn: conn}
+func newHandshakeConn(ctx ssh.Context, conn net.Conn, timeout time.Duration, closed func()) net.Conn {
+	c := &handshakeConn{Conn: conn, closed: closed}
 	c.timer = time.AfterFunc(timeout, func() { _ = conn.Close() })
 	ctx.SetValue(handshakeKey{}, c.timer)
 	return c
@@ -32,6 +35,9 @@ func newHandshakeConn(ctx ssh.Context, conn net.Conn, timeout time.Duration) net
 
 func (c *handshakeConn) Close() error {
 	c.timer.Stop()
+	if c.closed != nil {
+		c.once.Do(c.closed)
+	}
 	return c.Conn.Close()
 }
 
@@ -40,6 +46,7 @@ func (c *handshakeConn) Close() error {
 // timer: every channel gets only the not ready text, so the limit closes it.
 func authenticated(ctx ssh.Context) *gossh.ServerConfig {
 	return &gossh.ServerConfig{VerifiedPublicKeyCallback: func(_ gossh.ConnMetadata, _ gossh.PublicKey, perms *gossh.Permissions, _ string) (*gossh.Permissions, error) {
+		ctx.SetValue(verifiedKey{}, true)
 		if t, ok := ctx.Value(handshakeKey{}).(*time.Timer); ok && handshakeUser(ctx) != nil {
 			t.Stop()
 		}

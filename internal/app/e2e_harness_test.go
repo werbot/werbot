@@ -189,7 +189,7 @@ func (s *stack) addResource(t *testing.T, name, typ string) uuid.UUID {
 	require.NoError(t, err)
 	p, err := strconv.ParseUint(port, 10, 16)
 	require.NoError(t, err)
-	var cfg proto.Message = &sshv1.Config{Host: host, Port: uint32(p), Login: "root"}
+	var cfg proto.Message = &sshv1.Config{Host: host, Port: uint32(p), Login: "root", PortForwarding: true}
 	if typ == "echo" {
 		cfg = &wrapperspb.StringValue{Value: "echo"} // the echo type requires a non-empty value
 	}

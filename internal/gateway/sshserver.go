@@ -14,6 +14,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/gliderlabs/ssh"
+	"github.com/google/uuid"
 	"github.com/pires/go-proxyproto"
 	gossh "golang.org/x/crypto/ssh"
 
@@ -47,7 +48,7 @@ func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) erro
 		Handler:          h.session,
 		ChannelHandlers:  map[string]ssh.ChannelHandler{"session": sessionChannel, "direct-tcpip": h.forward},
 		ConnCallback: func(ctx ssh.Context, conn net.Conn) net.Conn {
-			return newHandshakeConn(ctx, conn, f.handshakeTimeout)
+			return newHandshakeConn(ctx, conn, f.handshakeTimeout, func() { h.authFailed(ctx) })
 		},
 		ServerConfigCallback: authenticated,
 	}
@@ -78,6 +79,30 @@ func wrapListener(ln net.Listener, proxyProtocol bool) net.Listener {
 // userKey holds the *User accepted at the handshake; nil while the control plane was unreachable.
 type userKey struct{}
 
+// refusedKey holds the *refusal of the last key auth refused; verifiedKey is set
+// once a key signature is verified.
+type (
+	refusedKey  struct{}
+	verifiedKey struct{}
+)
+
+type refusal struct {
+	fingerprint, user string
+	ip                netip.Addr
+}
+
+// authFailed reports one auth_failed denial for a connection that ends without a
+// verified key after a key was refused; a port scan or a client that offered no
+// key reports nothing.
+func (h *sshHandler) authFailed(ctx ssh.Context) {
+	r, _ := ctx.Value(refusedKey{}).(*refusal)
+	if r == nil || ctx.Value(verifiedKey{}) != nil {
+		return
+	}
+	_, resource, _ := ParseLogin(r.user)
+	h.p.denials.add(newDenial("auth_failed", uuid.Nil, r.fingerprint, resource, "", "", r.ip))
+}
+
 type sshHandler struct {
 	p   *Pipeline
 	log *slog.Logger
@@ -97,7 +122,8 @@ func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
 	actx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	ip := clientIP(ctx.RemoteAddr())
-	u, err := h.p.ctl.AuthenticateUser(actx, gossh.FingerprintSHA256(key), ip)
+	fp := gossh.FingerprintSHA256(key)
+	u, err := h.p.ctl.AuthenticateUser(actx, fp, ip)
 	switch {
 	case unreachable(err):
 		return true
@@ -107,9 +133,11 @@ func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
 			lvl = slog.LevelInfo // an unknown or refused key
 		}
 		h.log.Log(ctx, lvl, "ssh: key refused", "login", login, "client_ip", ip, "error", err)
+		ctx.SetValue(refusedKey{}, &refusal{fingerprint: fp, user: ctx.User(), ip: ip})
 		return false
 	case u.Login != login:
 		h.log.Info("ssh: key belongs to another login", "login", login, "client_ip", ip)
+		ctx.SetValue(refusedKey{}, &refusal{fingerprint: fp, user: ctx.User(), ip: ip})
 		return false
 	}
 	ctx.SetValue(userKey{}, &u)

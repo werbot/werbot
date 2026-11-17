@@ -154,12 +154,19 @@ func TestTunnelSkipsSameVersion(t *testing.T) {
 	e.run(t, nil)
 	require.Eventually(t, func() bool { return e.c.Connected() }, 2*time.Second, time.Millisecond)
 	p := e.c.Policy()
+	<-e.c.PolicyChanged() // the first snapshot
 
 	e.f.push <- &gatewayv1.Snapshot{Version: "v1", CedarPolicies: "garbage ((("}
 	e.f.push <- testSnap("v2")
 	require.Eventually(t, func() bool { return e.c.Policy() != p }, 2*time.Second, time.Millisecond)
 	require.Equal(t, "v2", e.c.Policy().Version())
 	require.NotContains(t, e.log.String(), "compile")
+	select {
+	case <-e.c.PolicyChanged(): // v2; the repeated v1 signalled nothing
+	default:
+		t.Fatal("a new snapshot does not signal PolicyChanged")
+	}
+	require.Empty(t, e.c.PolicyChanged())
 }
 
 func TestTunnelBrokenSnapshotNotReady(t *testing.T) {

@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/gateway/recorder"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
@@ -74,7 +75,7 @@ func (u *ingestUploader) UploadChunk(ctx context.Context, sid uuid.UUID, seq int
 	return apperr.ToConnect(u.rec.IngestChunk(ctx, u.orgID, u.instanceID, sid, seq, hash, gz))
 }
 
-func (u *ingestUploader) EndSession(ctx context.Context, sid uuid.UUID, reason string) error {
+func (u *ingestUploader) EndSession(ctx context.Context, sid uuid.UUID, reason string, _ *gatewayv1.SessionCounters) error {
 	if err := u.unavailable(); err != nil {
 		return err
 	}
@@ -142,7 +143,7 @@ func (g *outageRig) record(t *testing.T) {
 	t.Helper()
 	r := recorder.New(g.sid, 80, 24, g.sink, recorder.Options{})
 	r.Output([]byte(strings.Repeat(recordedLine, 200<<10/len(recordedLine))))
-	require.NoError(t, g.sink.End(g.sid, "closed"))
+	require.NoError(t, g.sink.End(g.sid, "closed", nil))
 	require.NoError(t, r.Close(t.Context()))
 	require.Greater(t, g.sink.n.Load(), int64(1))
 }

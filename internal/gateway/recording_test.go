@@ -55,7 +55,8 @@ func TestRecorderSatisfiesSink(*testing.T) {
 func bound(a *activeSessions, id uuid.UUID) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return a.cancels[id] != nil
+	t := a.sessions[id]
+	return t != nil && t.cancel != nil
 }
 
 func TestTerminateEndsSessionWithReason(t *testing.T) {
@@ -136,7 +137,7 @@ func TestOpenRejectsWhileSpoolCannotWrite(t *testing.T) {
 	e.p.spool = sp
 	require.NoError(t, os.Chmod(dir, 0o500))       //nolint:gosec // a directory: read and search only
 	t.Cleanup(func() { _ = os.Chmod(dir, 0o700) }) //nolint:gosec // a directory, as the spool makes it
-	require.Error(t, sp.End(uuid.New(), "closed"), "the session directory cannot be created")
+	require.Error(t, sp.End(uuid.New(), "closed", nil), "the session directory cannot be created")
 
 	_, err = e.p.Open(t.Context(), e.req("fake", KindTerminal))
 	require.ErrorIs(t, err, ErrSpoolMax)
@@ -164,7 +165,7 @@ func TestEndReasonFallback(t *testing.T) {
 	id := uuid.New()
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
-	a.add(id)
+	a.add(id, &tracked{})
 	a.bind(id, cancel)
 	a.Terminate(id, recorder.EndReasonRecordingUnavailable)
 	require.Equal(t, "recording_unavailable", endReason(ctx, context.Canceled))

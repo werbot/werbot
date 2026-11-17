@@ -32,11 +32,11 @@ func (s *Spool) restore(id uuid.UUID) error {
 			}
 			ss.st.Closed, ss.stored = true, true
 		case n == endFile:
-			var e struct{ Reason string }
-			if err := s.readJSON(name, &e); err != nil {
+			e, err := s.readEnd(name)
+			if err != nil {
 				return err
 			}
-			s.ends[id] = e.Reason
+			s.ends[id] = e
 		case strings.HasSuffix(n, chunkExt):
 			seq, err := strconv.Atoi(strings.TrimSuffix(n, chunkExt))
 			info, ierr := f.Info()

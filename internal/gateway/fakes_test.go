@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -12,13 +11,13 @@ import (
 	"slices"
 	"sync"
 	"testing"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
@@ -42,36 +41,6 @@ func init() {
 func block(ctx context.Context, _ *Session) error {
 	<-ctx.Done()
 	return ctx.Err()
-}
-
-// spy prints what the front handed to the connector. A terminal running
-// "resize" also prints the first Resize, a terminal of the resource "typeahead"
-// the first input line; an exec exits with 7.
-func spy(ctx context.Context, s *Session) error {
-	switch {
-	case s.Terminal != nil:
-		t := s.Terminal
-		_, _ = fmt.Fprintf(t, "spy:%s kind=terminal term=%q cmd=%q win=%dx%d\n", s.Resource.Name, t.Term, t.Command, t.Window.Cols, t.Window.Rows)
-		if t.Command == "resize" {
-			select {
-			case w := <-t.Resize:
-				_, _ = fmt.Fprintf(t, "resize=%dx%d\n", w.Cols, w.Rows)
-			case <-time.After(2 * time.Second):
-				_, _ = fmt.Fprintln(t, "resize=none")
-			case <-ctx.Done():
-			}
-		}
-		if s.Resource.Name == "typeahead" {
-			line, _ := bufio.NewReader(t).ReadString('\r')
-			_, _ = fmt.Fprintf(t, "typed=%q\n", line)
-		}
-	case s.Exec != nil:
-		_, _ = fmt.Fprintf(s.Exec.Stdout, "spy:%s kind=exec cmd=%q\n", s.Resource.Name, s.Exec.Command)
-		s.Exec.SetExitStatus(7)
-	case s.Stream != nil:
-		_, _ = fmt.Fprintf(s.Stream, "spy:%s kind=stream target=%s\n", s.Resource.Name, s.Target)
-	}
-	return nil
 }
 
 // fakeConn serves every kind and writes one line naming the session.
@@ -105,8 +74,9 @@ func (c funcConn) Kinds() []Kind                               { return c.kinds 
 func (c funcConn) Serve(ctx context.Context, s *Session) error { return c.serve(ctx, s) }
 
 type endCall struct {
-	id     uuid.UUID
-	reason string
+	id       uuid.UUID
+	reason   string
+	counters *gatewayv1.SessionCounters
 }
 
 // fakeControl is the control plane of a pipeline and the uploader of its spool;
@@ -122,6 +92,8 @@ type fakeControl struct {
 	startErr   error
 	upErr      error // returned by every uploader call: the server is down
 	pinErr     error
+	onStart    func() // runs inside StartSession, without the lock
+	changed    chan struct{}
 	authCalls  []string
 	startCalls int
 	starts     []string // "<user id> <resource id> <ip>"
@@ -149,6 +121,9 @@ func (f *fakeControl) AuthenticateUser(_ context.Context, fp string, ip netip.Ad
 }
 
 func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _ string) (uuid.UUID, Secret, error) {
+	if f.onStart != nil {
+		f.onStart()
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.startCalls++
@@ -163,13 +138,13 @@ func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UU
 }
 
 // EndSession records a delivered end.
-func (f *fakeControl) EndSession(_ context.Context, id uuid.UUID, reason string) error {
+func (f *fakeControl) EndSession(_ context.Context, id uuid.UUID, reason string, c *gatewayv1.SessionCounters) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.upErr != nil {
 		return f.upErr
 	}
-	f.ends = append(f.ends, endCall{id, reason})
+	f.ends = append(f.ends, endCall{id, reason, c})
 	f.events = append(f.events, "end:"+reason)
 	return nil
 }
@@ -185,6 +160,27 @@ func (f *fakeControl) Policy() *Policy {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.policy
+}
+
+// PolicyChanged is signalled by setPolicy.
+func (f *fakeControl) PolicyChanged() <-chan struct{} {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.changed == nil {
+		f.changed = make(chan struct{}, 1)
+	}
+	return f.changed
+}
+
+// setPolicy stores p and signals PolicyChanged, as the tunnel does on a new snapshot.
+func (f *fakeControl) setPolicy(p *Policy) {
+	f.PolicyChanged()
+	var ch chan struct{}
+	f.with(func(f *fakeControl) { f.policy, ch = p, f.changed })
+	select {
+	case ch <- struct{}{}:
+	default:
+	}
 }
 
 func (f *fakeControl) Connected() bool {
@@ -210,26 +206,6 @@ func (f *fakeControl) endsOf(id uuid.UUID) []string {
 		}
 	}
 	return out
-}
-
-// spySink notes its Close in the control's event log: "close" when the session
-// end was spooled (pending or already delivered) before, "close-before-end" otherwise.
-type spySink struct {
-	f  *fakeControl
-	p  *Pipeline
-	id uuid.UUID
-}
-
-func (spySink) Output([]byte)   {}
-func (spySink) Input([]byte)    {}
-func (spySink) Resize(int, int) {}
-func (s spySink) Close(context.Context) error {
-	ev := "close-before-end"
-	if slices.Contains(s.p.spool.PendingEnds(), s.id) || len(s.f.endsOf(s.id)) > 0 { // delivery records before it leaves PendingEnds
-		ev = "close"
-	}
-	s.f.with(func(f *fakeControl) { f.events = append(f.events, ev) })
-	return nil
 }
 
 // pipeEnv is a pipeline on a fake control plane with the test snapshot.

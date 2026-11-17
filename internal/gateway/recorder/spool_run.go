@@ -63,12 +63,12 @@ func jitter(d time.Duration) time.Duration {
 func (s *Spool) pass(ctx context.Context) error {
 	for _, id := range s.PendingEnds() {
 		s.mu.Lock()
-		reason, ok := s.ends[id]
+		e, ok := s.ends[id]
 		s.mu.Unlock()
 		if !ok {
 			continue
 		}
-		if err := s.up.EndSession(ctx, id, reason); err != nil {
+		if err := s.up.EndSession(ctx, id, e.reason, e.counters); err != nil {
 			if !refused(err) {
 				return err
 			}

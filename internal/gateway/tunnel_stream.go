@@ -88,6 +88,10 @@ func (c *tunnelClient) apply(s *gatewayv1.Snapshot) bool {
 		return false
 	}
 	c.policy.Store(p)
+	select {
+	case c.changed <- struct{}{}:
+	default:
+	}
 	return true
 }
 

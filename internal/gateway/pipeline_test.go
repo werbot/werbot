@@ -40,7 +40,7 @@ func TestOpenChecksInOrder(t *testing.T) {
 		{name: "unknown key", setup: func(f *fakeControl) { f.authErr = connect.NewError(connect.CodeNotFound, errors.New("no key")) },
 			resource: "fake", want: ErrDenied, wantAuth: 1},
 		{name: "forbidden resource", resource: "denied", want: ErrDenied, wantAuth: 1},
-		{name: "missing resource", resource: "missing", want: ErrDenied, wantAuth: 1},
+		{name: "missing resource", resource: "missing", want: ErrDenied}, // refused before AuthenticateUser
 		{name: "no connector", resource: "nope", want: ErrUnsupportedType, wantAuth: 1},
 		{name: "kind not served", resource: "streamonly", want: ErrUnsupportedKind, wantAuth: 1},
 		{name: "start unavailable", setup: func(f *fakeControl) { f.startErr = unavailable }, resource: "fake", want: ErrNotReady, wantAuth: 1, wantStart: 1},
@@ -112,7 +112,7 @@ func TestRegisterConnector(t *testing.T) {
 	require.Equal(t, "fake", c.Type())
 	_, ok = LookupConnector("nope")
 	require.False(t, ok)
-	require.Equal(t, []string{"blocker", "fake", "panicky", "spy", "streamonly"}, connectors())
+	require.Equal(t, []string{"blocker", "fake", "panicky", "plainstream", "spy", "streamonly"}, connectors())
 }
 
 func TestPinKeyCallsServer(t *testing.T) {
@@ -156,13 +156,13 @@ func TestActiveSessionsIDsCapped(t *testing.T) {
 	opened := map[string]bool{}
 	for range maxSessionIDs - 2 {
 		id := uuid.New()
-		a.add(id)
+		a.add(id, &tracked{})
 		opened[id.String()] = true
 	}
 	for range 5 {
 		id := uuid.New()
-		a.add(id)
-		require.NoError(t, sp.End(id, "closed"))
+		a.add(id, &tracked{})
+		require.NoError(t, sp.End(id, "closed", nil))
 		a.done(id)
 	}
 	ids := heartbeatSessionIDs(a, sp)

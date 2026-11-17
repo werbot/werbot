@@ -165,7 +165,7 @@ func resource(t *testing.T, tg *sshtest.Target) gateway.Resource {
 	require.NoError(t, err)
 	p, err := strconv.ParseUint(port, 10, 16)
 	require.NoError(t, err)
-	cfg, err := protojson.Marshal(&sshv1.Config{Host: host, Port: uint32(p), Login: "werbot"})
+	cfg, err := protojson.Marshal(&sshv1.Config{Host: host, Port: uint32(p), Login: "werbot", PortForwarding: true})
 	require.NoError(t, err)
 	return gateway.Resource{ID: uuid.New(), Name: "target", Type: "ssh", Config: cfg}
 }

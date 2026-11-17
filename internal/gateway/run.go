@@ -81,6 +81,13 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 		defer close(spoolDone)
 		_ = sp.Run(spoolCtx) // nil once spoolCtx ends
 	}()
+	// the sweeper ends sessions until the drain is over, then stops before the spool closes
+	sweepCtx, stopSweep := context.WithCancel(context.WithoutCancel(ctx))
+	sweepDone := make(chan struct{})
+	go func() {
+		defer close(sweepDone)
+		p.sweep(sweepCtx)
+	}()
 
 	// the tunnel outlives ctx: the spool still sends EndSession through it after the drain
 	tunnelCtx, stopTunnel := context.WithCancel(context.WithoutCancel(ctx))
@@ -120,6 +127,8 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	err = newSSHFront(cfg, hostKey, logger).Serve(frontCtx, wrapListener(sshLn, cfg.ProxyProtocol), p)
 	close(frontDone)
 	<-drained
+	stopSweep()
+	<-sweepDone
 
 	select {
 	case <-tunnelDone: // the tunnel stopped for good: nothing gets through

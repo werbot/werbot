@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/gateway/recorder"
 )
 
@@ -25,7 +26,7 @@ func TestSpoolRecoversAfterRestart(t *testing.T) {
 			id := uuid.New()
 			total, last := appendN(t, old, id, 2)
 			if ended {
-				require.NoError(t, old.End(id, "gateway_shutdown"))
+				require.NoError(t, old.End(id, "gateway_shutdown", nil))
 			}
 
 			up := &fakeUploader{}
@@ -135,4 +136,26 @@ func TestSpoolRestoreDropsChunkAboveGap(t *testing.T) {
 	require.Eventually(t, func() bool { return up.count(fmt.Sprintf("finish %s 2", id)) == 1 }, 5*time.Second, 5*time.Millisecond)
 	require.Equal(t, last, up.finishes[0].FinalHash)
 	require.Zero(t, sp.Total())
+}
+
+// end.json keeps the final counters across a restart; one written before counters
+// existed restores without them.
+func TestSpoolEndCountersSurviveRestart(t *testing.T) {
+	dir := t.TempDir()
+	down := &fakeUploader{}
+	down.down.Store(true)
+	old := openSpool(t, dir, down, 0)
+	a, b := uuid.New(), uuid.New()
+	require.NoError(t, old.End(a, "idle_timeout", &gatewayv1.SessionCounters{SessionId: a.String(), BytesUp: 5, BytesDown: 6, DatagramsUp: 1, DatagramsDown: 2}))
+	require.NoError(t, os.Mkdir(filepath.Join(dir, b.String()), 0o700))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, b.String(), "end.json"), []byte(`{"reason":"closed"}`), 0o600))
+
+	up := &fakeUploader{}
+	sp := openSpool(t, dir, up, 0)
+	runSpool(t, sp)
+	want := []string{fmt.Sprintf("end %s idle_timeout %s 5/6/1/2", a, a), fmt.Sprintf("end %s closed", b)}
+	require.Eventually(t, func() bool {
+		return slices.Equal(slices.Sorted(slices.Values(up.journal())), slices.Sorted(slices.Values(want)))
+	},
+		5*time.Second, 5*time.Millisecond)
 }

@@ -20,3 +20,16 @@ func newHTTPHandler(p *Pipeline, reg *metrics.Registry) http.Handler {
 	mux.Handle("GET /metrics", reg.Handler())
 	return mux
 }
+
+// ready is the /readyz state: a reason is "not_ready", "busy" or "draining".
+func (p *Pipeline) ready() (bool, string) {
+	switch {
+	case p.active.isDraining():
+		return false, "draining"
+	case p.ctl.Policy() == nil || !p.ctl.Connected():
+		return false, "not_ready"
+	case p.active.used() >= p.cfg.MaxSessions:
+		return false, "busy"
+	}
+	return true, ""
+}

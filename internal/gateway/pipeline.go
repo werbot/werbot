@@ -5,17 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/netip"
 	"runtime/debug"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/gateway/recorder"
 	"github.com/werbot/werbot/internal/platform/metrics"
-	"github.com/werbot/werbot/internal/platform/version"
 )
 
 // Errors of Pipeline.Open; the front turns them into user messages.
@@ -37,7 +39,7 @@ type OpenRequest struct {
 	Kind     Kind
 	Identity Identity
 	Resource string // resource name
-	Target   string // KindStream
+	Target   string // KindStream, KindDatagram: host:port
 	ClientIP netip.Addr
 	Window   Window // KindTerminal: initial size for the recorder
 }
@@ -48,6 +50,7 @@ type control interface {
 	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target string) (uuid.UUID, Secret, error)
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
 	Policy() *Policy
+	PolicyChanged() <-chan struct{} // receives after a new Policy is stored
 	Connected() bool
 }
 
@@ -61,6 +64,10 @@ const (
 	causeInternal endCause = "internal_error"
 )
 
+// errServed cancels a session context once Serve returned: a later cancel
+// (revoke, idle) no longer changes the end reason.
+var errServed = errors.New("session served")
+
 // Pipeline opens sessions against the control plane and runs them on connectors.
 type Pipeline struct {
 	ctl    control
@@ -70,6 +77,10 @@ type Pipeline struct {
 	log    *slog.Logger
 
 	busy, notReady, spoolFull, panics *metrics.Counter
+	meters                            meters
+	denials                           *denials
+	beats                             atomic.Uint64 // heartbeats built
+	dial                              func(ctx context.Context, network, address string) (net.Conn, error)
 
 	stop    context.Context // canceled at the end of drain: the front closes its connections
 	stopNow context.CancelFunc
@@ -99,24 +110,26 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 		notReady:     reg.Counter("werbot_gateway_sessions_rejected_total", rejectedHelp, "reason", "not_ready"),
 		spoolFull:    reg.Counter("werbot_gateway_sessions_rejected_total", rejectedHelp, "reason", "spool_full"),
 		panics:       reg.Counter("werbot_gateway_panics_total", "Connector panics recovered by the pipeline."),
+		meters:       newMeters(reg),
+		denials:      newDenials(reg),
+		dial:         newDialer(cfg.DenyLocalTargets),
 		flushTimeout: 10 * time.Second,
 	}
 }
 
 // Open checks the request in contract order and starts the session on the server.
-// Any error frees the slot. A spool at SpoolMax, or one that cannot write,
-// refuses every new session: recording is mandatory.
+// Any error frees the slot and, unless it is ErrNotReady, goes to the next
+// heartbeat as a denial. A spool at SpoolMax, or one that cannot write, refuses
+// the kinds the resource type records: recording is mandatory for them.
 func (p *Pipeline) Open(ctx context.Context, r OpenRequest) (*Session, error) {
-	if p.spool.Total() >= p.cfg.SpoolMax || !p.spool.Writable() {
-		p.spoolFull.Inc()
-		return nil, ErrSpoolMax
-	}
 	if err := p.active.reserve(p.cfg.MaxSessions); err != nil {
+		p.deny(r, uuid.Nil, err)
 		return nil, p.reject(err)
 	}
-	s, err := p.open(ctx, r)
+	s, user, err := p.open(ctx, r)
 	if err != nil {
 		p.active.release()
+		p.deny(r, user, err)
 		return nil, p.reject(err)
 	}
 	return s, nil
@@ -128,43 +141,65 @@ func (p *Pipeline) reject(err error) error {
 		p.busy.Inc()
 	case errors.Is(err, ErrNotReady):
 		p.notReady.Inc()
+	case errors.Is(err, ErrSpoolMax):
+		p.spoolFull.Inc()
 	}
 	return err
 }
 
-func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, error) {
+// open returns the user it authenticated, also with an error, for the denial.
+func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID, error) {
 	pol := p.ctl.Policy()
 	if pol == nil || !p.ctl.Connected() {
-		return nil, ErrNotReady
-	}
-	u, err := p.ctl.AuthenticateUser(ctx, r.Identity.Value, r.ClientIP)
-	if err != nil {
-		return nil, controlErr(err)
+		return nil, uuid.Nil, ErrNotReady
 	}
 	res, ok := pol.Resource(r.Resource)
 	if !ok {
-		return nil, ErrDenied
+		return nil, uuid.Nil, ErrDenied
 	}
-	if allow, _ := pol.Authorize(AccessRequest{User: u, Resource: res, IP: r.ClientIP}); !allow {
-		return nil, ErrDenied
+	typ, _ := connector.Lookup(res.Type)
+	recorded := typ.Records(r.Kind)
+	if recorded && (p.spool.Total() >= p.cfg.SpoolMax || !p.spool.Writable()) {
+		return nil, uuid.Nil, ErrSpoolMax
+	}
+	u, err := p.ctl.AuthenticateUser(ctx, r.Identity.Value, r.ClientIP)
+	if err != nil {
+		return nil, uuid.Nil, controlErr(err)
+	}
+	req := AccessRequest{User: u, Resource: res, IP: r.ClientIP}
+	var host string
+	if r.Kind == KindStream || r.Kind == KindDatagram {
+		if host, req.Port, err = allowTarget(res, r.Target); err != nil {
+			return nil, u.ID, err
+		}
+	}
+	if allow, _ := pol.Authorize(req); !allow {
+		return nil, u.ID, ErrDenied
 	}
 	c, ok := LookupConnector(res.Type)
 	if !ok {
-		return nil, ErrUnsupportedType
+		return nil, u.ID, ErrUnsupportedType
 	}
 	if !slices.Contains(c.Kinds(), r.Kind) {
-		return nil, ErrUnsupportedKind
+		return nil, u.ID, ErrUnsupportedKind
 	}
 	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target)
 	if err != nil {
-		return nil, controlErr(err)
+		return nil, u.ID, controlErr(err)
 	}
-	p.active.add(id) // reported in heartbeats from now on, so the server keeps the session
+	rec := NopRecording(id, 0, 0)
+	if recorded {
+		rec = p.cfg.Recording(id, r.Window.Cols, r.Window.Rows)
+	}
+	t := &tracked{req: req, kind: r.Kind, host: host, version: pol.Version(), started: time.Now()}
+	t.idle, t.max = limits(res, p.cfg)
+	p.active.add(id, t) // reported in heartbeats from now on, so the server keeps the session
 	return &Session{
 		ID: id, Kind: r.Kind, Front: r.Front, User: u, Resource: res, Secret: secret, ClientIP: r.ClientIP, Target: r.Target,
 		PinKey:    func(alg string, key []byte) error { return p.ctl.PinHostKey(p.stop, res.ID, alg, key) },
-		Recording: p.cfg.Recording(id, r.Window.Cols, r.Window.Rows),
-	}, nil
+		Dial:      p.dial,
+		Recording: rec,
+	}, u.ID, nil
 }
 
 // controlErr maps a control plane error: an outage is ErrNotReady, anything else ErrDenied.
@@ -175,13 +210,15 @@ func controlErr(err error) error {
 	return fmt.Errorf("%w: %w", ErrDenied, err)
 }
 
-// Run serves s on c until it ends, then spools the session end, closes the
-// recording and frees the slot. A connector panic ends only this session.
+// Run serves s on c until it ends, then spools the session end with its counters,
+// closes the recording and frees the slot. A connector panic ends only this
+// session. A terminal ended by the sweeper is told why.
 func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	sctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
-	p.active.bind(s.ID, cancel)
+	meter{p.active.bind(s.ID, cancel), p.meters}.wrap(s)
 	panicked, err := p.serve(sctx, s, c, cancel)
+	cancel(errServed)
 	reason := endReason(sctx, err)
 	if panicked { // also after a client cancel or drain
 		reason = string(causeInternal)
@@ -189,8 +226,17 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	if reason == "error" {
 		p.log.Warn("session: connector failed", "session_id", s.ID, "type", c.Type(), "error", s.Secret.Redact(err.Error()))
 	}
+	if text := closeText[reason]; text != "" && s.Terminal != nil {
+		say(s.Terminal, text) // after Serve: never concurrent with the connector's writes
+	}
 	p.finish(ctx, s, reason)
 	return err
+}
+
+// closeText is what a terminal reads when the sweeper ends it.
+var closeText = map[string]string{
+	string(causeIdle): "Session closed: idle timeout",
+	string(causeMax):  "Session closed: max duration reached",
 }
 
 func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel context.CancelCauseFunc) (panicked bool, err error) {
@@ -213,7 +259,11 @@ func (p *Pipeline) abort(s *Session) { p.finish(context.Background(), s, "error"
 // before the recording is closed, so FinishRecording never overtakes the end, and the
 // id stays in the heartbeat (active or a pending end) throughout. Then it frees the slot.
 func (p *Pipeline) finish(ctx context.Context, s *Session, reason string) {
-	if err := p.spool.End(s.ID, reason); err != nil {
+	var final *gatewayv1.SessionCounters
+	if c := p.active.countersOf(s.ID); c != nil {
+		final = countersProto(s.ID, c.load())
+	}
+	if err := p.spool.End(s.ID, reason, final); err != nil {
 		p.log.Error("session: end not spooled; the server closes it as lost", "session_id", s.ID, "reason", reason, "error", err)
 	}
 	cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
@@ -226,32 +276,15 @@ func (p *Pipeline) finish(ctx context.Context, s *Session, reason string) {
 }
 
 // endReason is the cause the session context was canceled with; a normal end or
-// a client cancel is "closed", a connector error "error".
+// a client cancel is "closed", a connector error "error". errServed is no cause.
 func endReason(ctx context.Context, err error) string {
+	cause := context.Cause(ctx)
 	var c endCause
-	if errors.As(context.Cause(ctx), &c) {
+	if errors.As(cause, &c) {
 		return string(c)
 	}
-	if err == nil || ctx.Err() != nil {
+	if err == nil || (ctx.Err() != nil && !errors.Is(cause, errServed)) {
 		return "closed"
 	}
 	return "error"
-}
-
-// heartbeat is the instance state sent on the tunnel.
-func (p *Pipeline) heartbeat() *gatewayv1.Heartbeat {
-	return &gatewayv1.Heartbeat{Version: version.Version, Connectors: connectors(), ActiveSessionIds: heartbeatSessionIDs(p.active, p.spool)}
-}
-
-// ready is the /readyz state: a reason is "not_ready", "busy" or "draining".
-func (p *Pipeline) ready() (bool, string) {
-	switch {
-	case p.active.isDraining():
-		return false, "draining"
-	case p.ctl.Policy() == nil || !p.ctl.Connected():
-		return false, "not_ready"
-	case p.active.used() >= p.cfg.MaxSessions:
-		return false, "busy"
-	}
-	return true, ""
 }

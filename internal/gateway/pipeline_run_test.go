@@ -181,14 +181,14 @@ func TestIDsCapWarnsOnce(t *testing.T) {
 	a := newActiveSessions(metrics.NewRegistry().Gauge("werbot_test_sessions", "test"), slog.New(slog.NewTextHandler(log, nil)))
 	sp := newTestSpool(t, &fakeControl{upErr: connect.NewError(connect.CodeUnavailable, errors.New("down"))})
 	for range maxSessionIDs {
-		a.add(uuid.New())
+		a.add(uuid.New(), &tracked{})
 	}
-	require.NoError(t, sp.End(uuid.New(), "closed"))
+	require.NoError(t, sp.End(uuid.New(), "closed", nil))
 	for range 3 {
 		require.Len(t, heartbeatSessionIDs(a, sp), maxSessionIDs)
 	}
 	require.Equal(t, 1, strings.Count(log.String(), "heartbeat full"))
-	require.NoError(t, sp.End(uuid.New(), "closed"))
+	require.NoError(t, sp.End(uuid.New(), "closed", nil))
 	heartbeatSessionIDs(a, sp)
 	require.Equal(t, 2, strings.Count(log.String(), "heartbeat full"), "the omitted count changed")
 }

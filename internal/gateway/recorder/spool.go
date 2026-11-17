@@ -4,19 +4,19 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
-	"path"
 	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
+
+	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
@@ -41,7 +41,7 @@ type Manifest struct {
 // Uploader delivers the spool to the server; the gateway tunnel client implements it.
 type Uploader interface {
 	UploadChunk(ctx context.Context, sessionID uuid.UUID, seq int, hash, gz []byte) error
-	EndSession(ctx context.Context, sessionID uuid.UUID, reason string) error // a repeat returns nil
+	EndSession(ctx context.Context, sessionID uuid.UUID, reason string, c *gatewayv1.SessionCounters) error // a repeat returns nil; nil c keeps the stored counters
 	FinishRecording(ctx context.Context, m Manifest) error
 }
 
@@ -95,7 +95,7 @@ type Spool struct {
 	// serialises appends); per-session locks if stage 7a shows contention.
 	mu       sync.Mutex
 	sessions map[uuid.UUID]*session
-	ends     map[uuid.UUID]string // reason of an EndSession not delivered yet
+	ends     map[uuid.UUID]sessionEnd // EndSession not delivered yet
 	// ponytail: rejected is kept for the process lifetime (16 bytes per refused
 	// session, rare); prune it once the spool learns of a session's Recording.Close.
 	rejected map[uuid.UUID]struct{} // refused sessions: their later chunks fail
@@ -125,7 +125,7 @@ func OpenSpool(dir string, up Uploader, opts SpoolOptions, logger *slog.Logger) 
 		return nil, fmt.Errorf("spool: %w", err)
 	}
 	s := &Spool{root: root, up: up, opts: opts, log: logger, wake: make(chan struct{}, 1), ended: make(chan struct{}, 1),
-		sessions: map[uuid.UUID]*session{}, ends: map[uuid.UUID]string{}, rejected: map[uuid.UUID]struct{}{}}
+		sessions: map[uuid.UUID]*session{}, ends: map[uuid.UUID]sessionEnd{}, rejected: map[uuid.UUID]struct{}{}}
 	entries, err := fs.ReadDir(root.FS(), ".")
 	if err != nil {
 		_ = root.Close()
@@ -206,34 +206,6 @@ func (s *Spool) Close(sessionID uuid.UUID) error {
 	return nil
 }
 
-// End spools EndSession(sessionID, reason); the id is in PendingEnds until it is delivered.
-func (s *Spool) End(sessionID uuid.UUID, reason string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.shut {
-		return errShutdown
-	}
-	if s.sessions[sessionID] == nil {
-		if err := s.mkdir(sessionID); err != nil {
-			return err
-		}
-		s.sessions[sessionID] = &session{}
-	}
-	b, _ := json.Marshal(struct {
-		Reason string `json:"reason"`
-	}{reason})
-	if err := s.write(path.Join(sessionID.String(), endFile), b); err != nil {
-		return err
-	}
-	s.ends[sessionID] = reason
-	s.notify()
-	select {
-	case s.ended <- struct{}{}:
-	default:
-	}
-	return nil
-}
-
 // Shutdown closes the spool directory; later Append, Close and End fail. Run must
 // have returned.
 func (s *Spool) Shutdown() error {
@@ -251,13 +223,6 @@ func (s *Spool) Pending(sessionID uuid.UUID) int64 {
 		return ss.pending
 	}
 	return 0
-}
-
-// PendingEnds lists the sessions whose EndSession is not delivered yet, in ascending order.
-func (s *Spool) PendingEnds() []uuid.UUID {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return sortedKeys(s.ends)
 }
 
 // Total is the unsent gz bytes of all sessions, spool/rejected excluded.

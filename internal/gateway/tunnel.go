@@ -48,6 +48,7 @@ type tunnelClient struct {
 	gauge     *metrics.Gauge
 	conn      atomic.Pointer[tunnelConn]
 	policy    atomic.Pointer[Policy]
+	changed   chan struct{} // capacity 1: a new Policy was stored
 	connected atomic.Bool
 	graceEnd  atomic.Int64 // unix nanoseconds: Connected stays true until then after a planned close
 
@@ -59,7 +60,7 @@ func newTunnelClient(st state, roots *x509.CertPool, certs *certStore, reg *metr
 	c := &tunnelClient{
 		heartbeatEvery: 15 * time.Second, backoffMin: time.Second, backoffMax: 30 * time.Second, callTimeout: 10 * time.Second,
 		reconnectGrace: 5 * time.Second,
-		st:             st, roots: roots, certs: certs, log: logger,
+		st:             st, roots: roots, certs: certs, log: logger, changed: make(chan struct{}, 1),
 		gauge: reg.Gauge("werbot_gateway_tunnel_connected", "1 while the tunnel stream is open and its latest snapshot compiled."),
 	}
 	c.dial()
@@ -100,6 +101,9 @@ func (c *tunnelClient) dial() {
 
 // Policy is the latest snapshot; nil until the first one arrives.
 func (c *tunnelClient) Policy() *Policy { return c.policy.Load() }
+
+// PolicyChanged receives after a new Policy is stored; signals in between coalesce.
+func (c *tunnelClient) PolicyChanged() <-chan struct{} { return c.changed }
 
 // Connected reports whether the stream is open and its latest snapshot compiled. After a
 // planned close it stays true while the reconnect runs, for at most reconnectGrace.

@@ -23,7 +23,17 @@ const (
 	KindTerminal = connector.KindTerminal
 	KindExec     = connector.KindExec
 	KindStream   = connector.KindStream
+	KindDatagram = connector.KindDatagram
 )
+
+// Datagrams are the datagrams of one session. flow numbers a client flow (its
+// source address on the client): a DNS client sends each query from a new port,
+// and the answers must go back to their flow.
+type Datagrams interface {
+	Recv(buf []byte) (flow uint32, n int, err error) // one datagram from the client
+	Send(flow uint32, p []byte) error                // one datagram to the client
+	Close() error
+}
 
 // Connector serves the sessions of one resource type. It does not log: Serve
 // returns its errors and the pipeline writes them. Nothing runs before the first Serve.
@@ -71,21 +81,25 @@ func connectors() []string {
 	return out
 }
 
-// Session is one opened session; the front fills Terminal, Exec or Stream by Kind.
+// Session is one opened session; the front fills Terminal, Exec, Stream or Datagram by Kind.
 type Session struct {
-	ID        uuid.UUID
-	Kind      Kind
-	Front     string // "ssh"
-	User      User
-	Resource  Resource
-	Secret    Secret
-	ClientIP  netip.Addr
-	Terminal  *Terminal                          // KindTerminal
-	Exec      *Exec                              // KindExec
-	Stream    io.ReadWriteCloser                 // KindStream; half-close through CloseWrite when the stream has it
-	Target    string                             // KindStream: the requested host:port
-	PinKey    func(alg string, key []byte) error // pins the target host key through the server; mismatch is ErrHostKeyMismatch
-	Recording RecordingSink
+	ID       uuid.UUID
+	Kind     Kind
+	Front    string // "ssh"
+	User     User
+	Resource Resource
+	Secret   Secret
+	ClientIP netip.Addr
+	Terminal *Terminal                          // KindTerminal
+	Exec     *Exec                              // KindExec
+	Stream   io.ReadWriteCloser                 // KindStream; half-close through CloseWrite when the stream has it
+	Datagram Datagrams                          // KindDatagram
+	Target   string                             // KindStream, KindDatagram: the requested host:port
+	PinKey   func(alg string, key []byte) error // pins the target host key through the server; mismatch is ErrHostKeyMismatch
+	// Dial connects to the target; on the embedded gateway it refuses local
+	// addresses with ErrTargetNotAllowed.
+	Dial      func(ctx context.Context, network, address string) (net.Conn, error)
+	Recording RecordingSink // a no-op sink for kinds the type does not record
 }
 
 // Redact removes the credential value from text bound for the log.
