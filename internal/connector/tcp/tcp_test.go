@@ -42,6 +42,9 @@ func TestTCPValidate(t *testing.T) {
 	assert.Error(t, Validate(&tcpv1.Config{Host: "h", Ports: []*connectorv1.PortRange{{Port: 70000}}}))
 	assert.Error(t, Validate(&tcpv1.Config{Host: "h", Ports: []*connectorv1.PortRange{{Port: 10, EndPort: 5}}}))
 	assert.Error(t, Validate(&tcpv1.Config{Host: "h", Ports: []*connectorv1.PortRange{{Port: 10, EndPort: 20}, {Port: 15}}}))
+	assert.Error(t, Validate(&tcpv1.Config{Host: "[::1]", Ports: ok}))
+	assert.Error(t, Validate(&tcpv1.Config{Host: "h:80", Ports: ok}))
+	require.NoError(t, Validate(&tcpv1.Config{Host: "::1", Ports: ok}))
 	assert.Error(t, Validate(wrapperspb.String("x")))
 }
 
@@ -49,4 +52,16 @@ func TestTCPEndpointFailsClosedOnBadPorts(t *testing.T) {
 	ty, _ := connector.Lookup(TypeName)
 	e := ty.Endpoint(&tcpv1.Config{Host: "h", Ports: []*connectorv1.PortRange{{Port: 70000}}})
 	assert.False(t, e.Allow("r", "h", 80))
+}
+
+func TestRangeLimit(t *testing.T) {
+	rs := func(n int) []*connectorv1.PortRange {
+		out := make([]*connectorv1.PortRange, n)
+		for i := range out {
+			out[i] = &connectorv1.PortRange{Port: uint32(i + 1)}
+		}
+		return out
+	}
+	require.NoError(t, Validate(&tcpv1.Config{Host: "h", Ports: rs(16)}))
+	assert.Error(t, Validate(&tcpv1.Config{Host: "h", Ports: rs(17)}))
 }

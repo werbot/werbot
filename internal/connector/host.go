@@ -1,14 +1,29 @@
 package connector
 
 import (
+	"net/netip"
 	"strings"
+	"unicode"
 
 	connectorv1 "github.com/werbot/werbot/gen/werbot/connector/v1"
 )
 
-// ValidHost reports whether h is a usable target host: 1–253 bytes, no spaces or slashes.
+// ValidHost reports whether h is a bare hostname or IP: 1–253 bytes, no spaces,
+// slashes, brackets or control characters; a colon only in an IPv6 literal.
 func ValidHost(h string) bool {
-	return h != "" && len(h) <= 253 && !strings.ContainsAny(h, " /")
+	if h == "" || len(h) > 253 || strings.ContainsAny(h, " /[]") || strings.ContainsFunc(h, unicode.IsControl) {
+		return false
+	}
+	if strings.Contains(h, ":") {
+		_, err := netip.ParseAddr(h)
+		return err == nil
+	}
+	return true
+}
+
+// ValidLogin reports whether l is a login of at most 64 bytes without spaces or control characters.
+func ValidLogin(l string) bool {
+	return len(l) <= 64 && !strings.Contains(l, " ") && !strings.ContainsFunc(l, unicode.IsControl)
 }
 
 // CheckPorts converts wire ranges and validates them with ValidatePorts.

@@ -43,7 +43,7 @@ func Validate(m proto.Message) error {
 	if !ok {
 		return fmt.Errorf("ssh: unexpected config type %T", m)
 	}
-	if c.Host == "" || len(c.Host) > 253 || strings.ContainsAny(c.Host, " /") {
+	if !connector.ValidHost(c.Host) {
 		return errors.New("ssh: invalid host")
 	}
 	if c.Port == 0 {

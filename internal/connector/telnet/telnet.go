@@ -4,7 +4,6 @@ package telnet
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"google.golang.org/protobuf/proto"
 
@@ -52,7 +51,7 @@ func Validate(m proto.Message) error {
 	if c.Port > 65535 {
 		return errors.New("telnet: invalid port")
 	}
-	if len(c.Login) > 64 || strings.Contains(c.Login, " ") {
+	if !connector.ValidLogin(c.Login) {
 		return errors.New("telnet: invalid login")
 	}
 	return nil

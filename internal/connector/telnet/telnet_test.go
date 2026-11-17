@@ -45,5 +45,9 @@ func TestTelnetValidate(t *testing.T) {
 	assert.Error(t, Validate(&telnetv1.Config{Host: "h", Port: 65536}))
 	assert.Error(t, Validate(&telnetv1.Config{Host: "h", Login: "a b"}))
 	assert.Error(t, Validate(&telnetv1.Config{Host: "h", Login: strings.Repeat("a", 65)}))
+	assert.Error(t, Validate(&telnetv1.Config{Host: "h", Login: "admin\r\n"}))
+	assert.Error(t, Validate(&telnetv1.Config{Host: "h\n"}))
+	assert.Error(t, Validate(&telnetv1.Config{Host: "[::1]"}))
+	require.NoError(t, Validate(&telnetv1.Config{Host: "fe80::1"}))
 	assert.Error(t, Validate(wrapperspb.String("x")))
 }
