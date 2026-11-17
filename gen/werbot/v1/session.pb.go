@@ -265,7 +265,7 @@ type ListSessionsRequest struct {
 	To            *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=to,proto3" json:"to,omitempty"`
 	Status        SessionStatus          `protobuf:"varint,5,opt,name=status,proto3,enum=werbot.v1.SessionStatus" json:"status,omitempty"`
 	Page          int32                  `protobuf:"varint,6,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,7,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageSize      int32                  `protobuf:"varint,7,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"` // above 200 is clamped to 200
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -611,7 +611,7 @@ const file_werbot_v1_session_proto_rawDesc = "" +
 	"\n" +
 	"end_reason\x18\n" +
 	" \x01(\tR\tendReason\x122\n" +
-	"\trecording\x18\v \x01(\v2\x14.werbot.v1.RecordingR\trecording\"\xcc\x02\n" +
+	"\trecording\x18\v \x01(\v2\x14.werbot.v1.RecordingR\trecording\"\xc9\x02\n" +
 	"\x13ListSessionsRequest\x12$\n" +
 	"\auser_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\x12,\n" +
 	"\vresource_id\x18\x02 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\n" +
@@ -619,9 +619,8 @@ const file_werbot_v1_session_proto_rawDesc = "" +
 	"\x04from\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
 	"\x02to\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12:\n" +
 	"\x06status\x18\x05 \x01(\x0e2\x18.werbot.v1.SessionStatusB\b\xbaH\x05\x82\x01\x02\x10\x01R\x06status\x12 \n" +
-	"\x04page\x18\x06 \x01(\x05B\f\xbaH\t\x1a\a\x18\x80\xad\xe2\x04(\x00R\x04page\x12'\n" +
-	"\tpage_size\x18\a \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xc8\x01(\x00R\bpageSize\"c\n" +
+	"\x04page\x18\x06 \x01(\x05B\f\xbaH\t\x1a\a\x18\x80\xad\xe2\x04(\x00R\x04page\x12$\n" +
+	"\tpage_size\x18\a \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\"c\n" +
 	"\x14ListSessionsResponse\x12.\n" +
 	"\bsessions\x18\x01 \x03(\v2\x12.werbot.v1.SessionR\bsessions\x12\x1b\n" +
 	"\tnext_page\x18\x02 \x01(\x05R\bnextPage\";\n" +

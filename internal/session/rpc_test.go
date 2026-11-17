@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/validate"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ import (
 func rpcClient(t *testing.T, e recEnv, users map[string]principal.Principal) werbotv1connect.SessionServiceClient {
 	t.Helper()
 	mux := http.NewServeMux()
-	mux.Handle(werbotv1connect.NewSessionServiceHandler(session.NewSessionHandler(session.New(e.pool), e.rec)))
+	mux.Handle(werbotv1connect.NewSessionServiceHandler(session.NewSessionHandler(session.New(e.pool), e.rec), connect.WithInterceptors(validate.NewInterceptor())))
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if p, ok := users[r.Header.Get("X-User")]; ok {
 			r = r.WithContext(principal.With(r.Context(), p))
@@ -94,4 +95,16 @@ func TestSessionRPC(t *testing.T) {
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	_, err = c.VerifyRecording(ctx, connect.NewRequest(&werbotv1.VerifyRecordingRequest{SessionId: e.sid.String()}))
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+}
+
+func TestSessionRPCValidation(t *testing.T) {
+	e, _ := finishedEnv(t)
+	c := rpcClient(t, e, map[string]principal.Principal{"admin": e.f.Principal(e.f.AdminID)})
+	for name, req := range map[string]*werbotv1.ListSessionsRequest{
+		"undefined status": {Status: 99}, "negative page": {Page: -1}, "huge page": {Page: 1 << 30}, "bad user": {UserId: "x"}} {
+		_, err := c.ListSessions(t.Context(), as("admin", req))
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), name)
+	}
+	_, err := c.ListSessions(t.Context(), as("admin", &werbotv1.ListSessionsRequest{PageSize: 500}))
+	assert.NoError(t, err, "page size above the max is clamped, not rejected")
 }
