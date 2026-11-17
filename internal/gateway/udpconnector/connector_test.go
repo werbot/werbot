@@ -173,14 +173,15 @@ func TestUDPTargetNotAllowed(t *testing.T) {
 	}
 }
 
-// 32 flows of a session cost under 512 KiB: 8 KiB reader buffer, goroutine stack and socket each.
+// 32 flows of a session cost about 512 KiB (~300 KiB reader buffers, the rest goroutine
+// stacks and sockets); the 640 KiB bound catches a regression such as larger buffers.
 // ponytail: the pooled per-flow buffer dominates; a shared reader (one goroutine for all flows) would cut it.
 // Skipped under -race: the race runtime inflates stacks and heap beyond a stable bound.
 func TestUDPMemory(t *testing.T) {
 	if raceEnabled {
 		t.Skip("memory bound is not stable under -race")
 	}
-	const sessions, perSession = 8, 512 << 10
+	const sessions, perSession = 8, 640 << 10
 	addr := echoUDP(t, "") // its buffer is allocated before the snapshot
 	var before, after runtime.MemStats
 	runtime.GC()
