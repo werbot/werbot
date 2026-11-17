@@ -227,5 +227,9 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: webui must not import domains }
             - { pkg: github.com/werbot/werbot/internal/system, desc: webui must not import domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: webui must not import domains }
+        aws-sdk-recstore-only:
+          files: ["**/*.go", "!**/internal/session/recstore/**"]
+          deny:
+            - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
 formatters:
   enable: [goimports]
