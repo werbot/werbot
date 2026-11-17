@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
@@ -101,7 +102,9 @@ func TestSessionRPCValidation(t *testing.T) {
 	e, _ := finishedEnv(t)
 	c := rpcClient(t, e, map[string]principal.Principal{"admin": e.f.Principal(e.f.AdminID)})
 	for name, req := range map[string]*werbotv1.ListSessionsRequest{
-		"undefined status": {Status: 99}, "negative page": {Page: -1}, "huge page": {Page: 1 << 30}, "bad user": {UserId: "x"}} {
+		"undefined status": {Status: 99}, "negative page": {Page: -1}, "huge page": {Page: 1 << 30}, "bad user": {UserId: "x"},
+		"from out of range": {From: &timestamppb.Timestamp{Seconds: 1 << 50}}, "to out of range": {To: &timestamppb.Timestamp{Seconds: 1 << 50}},
+		"bad nanos": {From: &timestamppb.Timestamp{Nanos: -1}}} {
 		_, err := c.ListSessions(t.Context(), as("admin", req))
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), name)
 	}

@@ -2,7 +2,9 @@ package session
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -46,13 +48,11 @@ func (h *SessionHandler) ListSessions(ctx context.Context, req *connect.Request[
 	if f.ResourceID, err = optionalID(m.GetResourceId()); err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	if m.From != nil {
-		t := m.From.AsTime()
-		f.From = &t
+	if f.From, err = optionalTime(m.GetFrom()); err != nil {
+		return nil, apperr.ToConnect(err)
 	}
-	if m.To != nil {
-		t := m.To.AsTime()
-		f.To = &t
+	if f.To, err = optionalTime(m.GetTo()); err != nil {
+		return nil, apperr.ToConnect(err)
 	}
 	items, next, err := h.svc.ListSessions(ctx, p, f)
 	if err != nil {
@@ -116,6 +116,18 @@ func optionalID(s string) (*uuid.UUID, error) {
 		return nil, fmt.Errorf("invalid id %q: %w", s, apperr.ErrInvalidArgument)
 	}
 	return &id, nil
+}
+
+// optionalTime is nil for an absent timestamp and apperr.ErrInvalidArgument for an out-of-range one.
+func optionalTime(ts *timestamppb.Timestamp) (*time.Time, error) {
+	if ts == nil {
+		return nil, nil //nolint:nilnil // no filter
+	}
+	if err := ts.CheckValid(); err != nil {
+		return nil, fmt.Errorf("invalid timestamp: %w", errors.Join(apperr.ErrInvalidArgument, err))
+	}
+	t := ts.AsTime()
+	return &t, nil
 }
 
 func idString(id *uuid.UUID) string {
