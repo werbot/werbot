@@ -3,6 +3,7 @@ package session
 import (
 	"net/netip"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -28,6 +29,10 @@ func TestStartStoresKindTarget(t *testing.T) {
 	var kind, target string
 	require.NoError(t, e.pool.QueryRow(bg, `SELECT kind, target FROM session WHERE id = $1`, id).Scan(&kind, &target))
 	assert.Equal(t, [2]string{"stream", "db.internal:5432"}, [2]string{kind, target})
+	var data string
+	require.NoError(t, e.pool.QueryRow(bg, `SELECT data::text FROM audit_event WHERE action = 'session.start' AND data->>'session_id' = $1`,
+		id.String()).Scan(&data))
+	assert.JSONEq(t, `{"session_id":"`+id.String()+`","kind":"stream","target":"db.internal:5432"}`, data)
 
 	st.Kind, st.Target = "", ""
 	id, err = e.svc.Start(bg, st)
@@ -76,7 +81,8 @@ func TestDenyWritesAudit(t *testing.T) {
 	e := setup(t)
 	stranger := uuid.New()
 	ds := []Denial{
-		{UserID: &e.user, KeyFingerprint: "SHA256:x", Resource: "web", Kind: "terminal", Reason: "no_access", ClientIP: netip.MustParseAddr("10.0.0.9")},
+		{UserID: &e.user, KeyFingerprint: "SHA256:x", Resource: "web", Kind: "terminal", Reason: "no_access", ClientIP: netip.MustParseAddr("10.0.0.9"),
+			At: time.Date(2026, 11, 17, 12, 30, 0, 0, time.FixedZone("CET", 3600))},
 		{UserID: &stranger, Resource: "ghost", Kind: "stream", Target: "db:5432", Reason: "no_access"},
 		{Resource: "web", Kind: "exec", Reason: "unknown_key"},
 	}
@@ -101,7 +107,7 @@ func TestDenyWritesAudit(t *testing.T) {
 	require.Len(t, got, 3)
 	// a known name maps to the resource id, an unknown one stays; a non-member user is dropped
 	want := []row{
-		{&e.user, e.res.String(), "10.0.0.9", `{"kind":"terminal","target":"","reason":"no_access","key_fingerprint":"SHA256:x"}`},
+		{&e.user, e.res.String(), "10.0.0.9", `{"kind":"terminal","target":"","reason":"no_access","key_fingerprint":"SHA256:x","at":"2026-11-17T11:30:00Z"}`},
 		{nil, "ghost", "", `{"kind":"stream","target":"db:5432","reason":"no_access","key_fingerprint":""}`},
 		{nil, e.res.String(), "", `{"kind":"exec","target":"","reason":"unknown_key","key_fingerprint":""}`},
 	}

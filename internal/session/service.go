@@ -41,7 +41,7 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 		return auditlog.Write(ctx, tx, auditlog.Event{
 			OrgID: &p.OrgID, ActorUserID: &p.UserID, ActorKind: "user", Action: "session.start",
 			TargetType: "resource", TargetID: p.ResourceID.String(), IP: p.ClientIP,
-			Data: map[string]any{"session_id": id.String()},
+			Data: map[string]any{"session_id": id.String(), "kind": p.Kind, "target": p.Target},
 		})
 	})
 	if err != nil {

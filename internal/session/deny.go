@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"slices"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -14,7 +15,8 @@ import (
 
 // Deny audits refused attempts as "session.deny". The gateway is not trusted
 // with identities: a user id that is no member of orgID is stored as nil. The
-// target is the resource id when the name matches a resource, else the name.
+// target is the resource id when the name matches a resource, else the name;
+// a set At is stored as "at" (RFC 3339, UTC).
 func (s *Service) Deny(ctx context.Context, orgID uuid.UUID, ds []Denial) error {
 	if len(ds) == 0 {
 		return nil
@@ -50,10 +52,13 @@ func (s *Service) Deny(ctx context.Context, orgID uuid.UUID, ds []Denial) error 
 			if actor != nil && !slices.Contains(members, *actor) {
 				actor = nil
 			}
+			data := map[string]any{"kind": d.Kind, "target": d.Target, "reason": d.Reason, "key_fingerprint": d.KeyFingerprint}
+			if !d.At.IsZero() {
+				data["at"] = d.At.UTC().Format(time.RFC3339) // when the gateway refused; created_at is when it arrived
+			}
 			if err := auditlog.Write(ctx, tx, auditlog.Event{
 				OrgID: &orgID, ActorUserID: actor, ActorKind: "gateway", Action: "session.deny",
-				TargetType: "resource", TargetID: target, IP: d.ClientIP,
-				Data: map[string]any{"kind": d.Kind, "target": d.Target, "reason": d.Reason, "key_fingerprint": d.KeyFingerprint},
+				TargetType: "resource", TargetID: target, IP: d.ClientIP, Data: data,
 			}); err != nil {
 				return err
 			}
