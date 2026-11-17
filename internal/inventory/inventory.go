@@ -42,8 +42,11 @@ type Resource struct {
 	Config    proto.Message // nil when the type is no longer registered
 	Labels    map[string]string
 	HostKey   *HostKey // nil: no key pinned
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	// IdleTimeout and MaxDuration are nil when the gateway default applies.
+	IdleTimeout, MaxDuration *time.Duration
+	Health                   HealthStatus
+	CreatedAt                time.Time
+	UpdatedAt                time.Time
 }
 
 // CreateInput describes a new resource.
@@ -52,15 +55,19 @@ type CreateInput struct {
 	GatewayID  *uuid.UUID
 	Config     proto.Message
 	Labels     map[string]string
+	// IdleTimeout and MaxDuration: nil means the gateway default.
+	IdleTimeout, MaxDuration *time.Duration
 }
 
-// UpdateInput replaces name, gateway and labels; the type never changes and a nil Config keeps the old one.
+// UpdateInput replaces name, gateway, timeouts and labels; the type never changes and a nil Config keeps the old one.
 type UpdateInput struct {
 	ID        uuid.UUID
 	Name      string
 	GatewayID *uuid.UUID
 	Config    proto.Message
 	Labels    map[string]string
+	// IdleTimeout and MaxDuration replace the stored values; nil means the gateway default.
+	IdleTimeout, MaxDuration *time.Duration
 }
 
 func invalid(format string, a ...any) error {
@@ -72,6 +79,41 @@ func validateName(name string) error {
 		return invalid("resource name must match %s", nameRe)
 	}
 	return nil
+}
+
+// Timeout bounds, repeated in the resource table checks and in resource.proto.
+const (
+	minTimeout     = time.Minute
+	maxIdleTimeout = 24 * time.Hour
+	maxMaxDuration = 168 * time.Hour
+)
+
+// timeoutSecs validates idle and maxDur and returns them in whole seconds.
+func timeoutSecs(idle, maxDur *time.Duration) (idleSecs, maxSecs *int64, err error) {
+	one := func(name string, d *time.Duration, hi time.Duration) (*int64, error) {
+		if d == nil {
+			return nil, nil
+		}
+		if *d < minTimeout || *d > hi {
+			return nil, invalid("%s must be between %s and %s", name, minTimeout, hi)
+		}
+		n := int64(*d / time.Second)
+		return &n, nil
+	}
+	if idleSecs, err = one("idle_timeout", idle, maxIdleTimeout); err != nil {
+		return nil, nil, err
+	}
+	maxSecs, err = one("max_duration", maxDur, maxMaxDuration)
+	return idleSecs, maxSecs, err
+}
+
+// secsToDuration maps the stored seconds (0: unset) back to a duration.
+func secsToDuration(n int64) *time.Duration {
+	if n == 0 {
+		return nil
+	}
+	d := time.Duration(n) * time.Second
+	return &d
 }
 
 func validateLabels(labels map[string]string) error {
@@ -104,6 +146,8 @@ func toResource(r dbq.GetResourceRow) (Resource, error) {
 	res := Resource{
 		ID: r.ID, OrgID: r.OrgID, Name: r.Name, Type: r.Type, Category: connector.Category(r.Category),
 		GatewayID: r.GatewayID, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+		IdleTimeout: secsToDuration(r.IdleSecs), MaxDuration: secsToDuration(r.MaxSecs),
+		Health: healthStatus(r.HealthState, r.HealthCheckedAt, r.HealthError),
 	}
 	if err := json.Unmarshal(r.Labels, &res.Labels); err != nil {
 		return Resource{}, fmt.Errorf("inventory: decode labels: %w", err)

@@ -2,18 +2,18 @@
 // @generated from file werbot/v1/resource.proto (package werbot.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../buf/validate/validate_pb";
-import type { Any, Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_any, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { Any, Duration, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_any, file_google_protobuf_duration, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file werbot/v1/resource.proto.
  */
 export const file_werbot_v1_resource: GenFile = /*@__PURE__*/
-  fileDesc("Chh3ZXJib3QvdjEvcmVzb3VyY2UucHJvdG8SCXdlcmJvdC52MSKQAQoMUmVzb3VyY2VUeXBlEgwKBG5hbWUYASABKAkSEAoIY2F0ZWdvcnkYAiABKAkSGAoQY3JlZGVudGlhbF9raW5kcxgDIAMoCRIPCgdhY3Rpb25zGAQgAygJEg0KBWxldmVsGAUgASgJEhcKD2NvbmZpZ190eXBlX3VybBgGIAEoCRINCgVraW5kcxgHIAMoCSJnCgdIb3N0S2V5EhAKCGtleV90eXBlGAEgASgJEhoKEmZpbmdlcnByaW50X3NoYTI1NhgCIAEoCRIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKSAwoIUmVzb3VyY2USCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIMCgR0eXBlGAMgASgJEhAKCGNhdGVnb3J5GAQgASgJEhIKCmdhdGV3YXlfaWQYBSABKAkSJAoGY29uZmlnGAYgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueRITCgtjb25maWdfanNvbhgHIAEoCRIvCgZsYWJlbHMYCCADKAsyHy53ZXJib3QudjEuUmVzb3VyY2UuTGFiZWxzRW50cnkSFwoPY3JlZGVudGlhbF9raW5kGAkgASgJEiQKCGhvc3Rfa2V5GAogASgLMhIud2VyYm90LnYxLkhvc3RLZXkSLgoKY3JlYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIaChhMaXN0UmVzb3VyY2VUeXBlc1JlcXVlc3QiQwoZTGlzdFJlc291cmNlVHlwZXNSZXNwb25zZRImCgV0eXBlcxgBIAMoCzIXLndlcmJvdC52MS5SZXNvdXJjZVR5cGUikgEKFExpc3RSZXNvdXJjZXNSZXF1ZXN0EkYKDGxhYmVsX2ZpbHRlchgBIAMoCzIwLndlcmJvdC52MS5MaXN0UmVzb3VyY2VzUmVxdWVzdC5MYWJlbEZpbHRlckVudHJ5GjIKEExhYmVsRmlsdGVyRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI/ChVMaXN0UmVzb3VyY2VzUmVzcG9uc2USJgoJcmVzb3VyY2VzGAEgAygLMhMud2VyYm90LnYxLlJlc291cmNlIioKEkdldFJlc291cmNlUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQEiPAoTR2V0UmVzb3VyY2VSZXNwb25zZRIlCghyZXNvdXJjZRgBIAEoCzITLndlcmJvdC52MS5SZXNvdXJjZSKdAgoVQ3JlYXRlUmVzb3VyY2VSZXF1ZXN0EhcKBG5hbWUYASABKAlCCbpIBnIEEAEYPxIXCgR0eXBlGAIgASgJQgm6SAZyBBABGCASHwoKZ2F0ZXdheV9pZBgDIAEoCUILukgI2AEBcgOwAQESJAoGY29uZmlnGAQgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueRIeCgtjb25maWdfanNvbhgFIAEoCUIJukgGcgQYgIAEEjwKBmxhYmVscxgGIAMoCzIsLndlcmJvdC52MS5DcmVhdGVSZXNvdXJjZVJlcXVlc3QuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI/ChZDcmVhdGVSZXNvdXJjZVJlc3BvbnNlEiUKCHJlc291cmNlGAEgASgLMhMud2VyYm90LnYxLlJlc291cmNlIpoCChVVcGRhdGVSZXNvdXJjZVJlcXVlc3QSFAoCaWQYASABKAlCCLpIBXIDsAEBEhcKBG5hbWUYAiABKAlCCbpIBnIEEAEYPxIfCgpnYXRld2F5X2lkGAMgASgJQgu6SAjYAQFyA7ABARIkCgZjb25maWcYBCABKAsyFC5nb29nbGUucHJvdG9idWYuQW55Eh4KC2NvbmZpZ19qc29uGAUgASgJQgm6SAZyBBiAgAQSPAoGbGFiZWxzGAYgAygLMiwud2VyYm90LnYxLlVwZGF0ZVJlc291cmNlUmVxdWVzdC5MYWJlbHNFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIj8KFlVwZGF0ZVJlc291cmNlUmVzcG9uc2USJQoIcmVzb3VyY2UYASABKAsyEy53ZXJib3QudjEuUmVzb3VyY2UiLQoVRGVsZXRlUmVzb3VyY2VSZXF1ZXN0EhQKAmlkGAEgASgJQgi6SAVyA7ABASIYChZEZWxldGVSZXNvdXJjZVJlc3BvbnNlImoKFFNldENyZWRlbnRpYWxSZXF1ZXN0Eh0KC3Jlc291cmNlX2lkGAEgASgJQgi6SAVyA7ABARIXCgRraW5kGAIgASgJQgm6SAZyBBABGCASGgoFdmFsdWUYAyABKAxCC7pICHoGEAEYgIAEIhcKFVNldENyZWRlbnRpYWxSZXNwb25zZSI3ChZDbGVhckNyZWRlbnRpYWxSZXF1ZXN0Eh0KC3Jlc291cmNlX2lkGAEgASgJQgi6SAVyA7ABASIZChdDbGVhckNyZWRlbnRpYWxSZXNwb25zZSI0ChNDbGVhckhvc3RLZXlSZXF1ZXN0Eh0KC3Jlc291cmNlX2lkGAEgASgJQgi6SAVyA7ABASIWChRDbGVhckhvc3RLZXlSZXNwb25zZTKXBgoPUmVzb3VyY2VTZXJ2aWNlEl4KEUxpc3RSZXNvdXJjZVR5cGVzEiMud2VyYm90LnYxLkxpc3RSZXNvdXJjZVR5cGVzUmVxdWVzdBokLndlcmJvdC52MS5MaXN0UmVzb3VyY2VUeXBlc1Jlc3BvbnNlElIKDUxpc3RSZXNvdXJjZXMSHy53ZXJib3QudjEuTGlzdFJlc291cmNlc1JlcXVlc3QaIC53ZXJib3QudjEuTGlzdFJlc291cmNlc1Jlc3BvbnNlEkwKC0dldFJlc291cmNlEh0ud2VyYm90LnYxLkdldFJlc291cmNlUmVxdWVzdBoeLndlcmJvdC52MS5HZXRSZXNvdXJjZVJlc3BvbnNlElUKDkNyZWF0ZVJlc291cmNlEiAud2VyYm90LnYxLkNyZWF0ZVJlc291cmNlUmVxdWVzdBohLndlcmJvdC52MS5DcmVhdGVSZXNvdXJjZVJlc3BvbnNlElUKDlVwZGF0ZVJlc291cmNlEiAud2VyYm90LnYxLlVwZGF0ZVJlc291cmNlUmVxdWVzdBohLndlcmJvdC52MS5VcGRhdGVSZXNvdXJjZVJlc3BvbnNlElUKDkRlbGV0ZVJlc291cmNlEiAud2VyYm90LnYxLkRlbGV0ZVJlc291cmNlUmVxdWVzdBohLndlcmJvdC52MS5EZWxldGVSZXNvdXJjZVJlc3BvbnNlElIKDVNldENyZWRlbnRpYWwSHy53ZXJib3QudjEuU2V0Q3JlZGVudGlhbFJlcXVlc3QaIC53ZXJib3QudjEuU2V0Q3JlZGVudGlhbFJlc3BvbnNlElgKD0NsZWFyQ3JlZGVudGlhbBIhLndlcmJvdC52MS5DbGVhckNyZWRlbnRpYWxSZXF1ZXN0GiIud2VyYm90LnYxLkNsZWFyQ3JlZGVudGlhbFJlc3BvbnNlEk8KDENsZWFySG9zdEtleRIeLndlcmJvdC52MS5DbGVhckhvc3RLZXlSZXF1ZXN0Gh8ud2VyYm90LnYxLkNsZWFySG9zdEtleVJlc3BvbnNlQpQBCg1jb20ud2VyYm90LnYxQg1SZXNvdXJjZVByb3RvUAFaL2dpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vd2VyYm90L3YxO3dlcmJvdHYxogIDV1hYqgIJV2VyYm90LlYxygIJV2VyYm90XFYx4gIVV2VyYm90XFYxXEdQQk1ldGFkYXRh6gIKV2VyYm90OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_any, file_google_protobuf_timestamp]);
+  fileDesc("Chh3ZXJib3QvdjEvcmVzb3VyY2UucHJvdG8SCXdlcmJvdC52MSKQAQoMUmVzb3VyY2VUeXBlEgwKBG5hbWUYASABKAkSEAoIY2F0ZWdvcnkYAiABKAkSGAoQY3JlZGVudGlhbF9raW5kcxgDIAMoCRIPCgdhY3Rpb25zGAQgAygJEg0KBWxldmVsGAUgASgJEhcKD2NvbmZpZ190eXBlX3VybBgGIAEoCRINCgVraW5kcxgHIAMoCSJnCgdIb3N0S2V5EhAKCGtleV90eXBlGAEgASgJEhoKEmZpbmdlcnByaW50X3NoYTI1NhgCIAEoCRIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCLaAQoOUmVzb3VyY2VIZWFsdGgSLgoFc3RhdGUYASABKA4yHy53ZXJib3QudjEuUmVzb3VyY2VIZWFsdGguU3RhdGUSLgoKY2hlY2tlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFZXJyb3IYAyABKAkiWQoFU3RhdGUSFQoRU1RBVEVfVU5TUEVDSUZJRUQQABIRCg1TVEFURV9VTktOT1dOEAESEQoNU1RBVEVfSEVBTFRIWRACEhMKD1NUQVRFX1VOSEVBTFRIWRADIp8ECghSZXNvdXJjZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBHR5cGUYAyABKAkSEAoIY2F0ZWdvcnkYBCABKAkSEgoKZ2F0ZXdheV9pZBgFIAEoCRIkCgZjb25maWcYBiABKAsyFC5nb29nbGUucHJvdG9idWYuQW55EhMKC2NvbmZpZ19qc29uGAcgASgJEi8KBmxhYmVscxgIIAMoCzIfLndlcmJvdC52MS5SZXNvdXJjZS5MYWJlbHNFbnRyeRIXCg9jcmVkZW50aWFsX2tpbmQYCSABKAkSJAoIaG9zdF9rZXkYCiABKAsyEi53ZXJib3QudjEuSG9zdEtleRIuCgpjcmVhdGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgxpZGxlX3RpbWVvdXQYDSABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SLwoMbWF4X2R1cmF0aW9uGA4gASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEikKBmhlYWx0aBgPIAEoCzIZLndlcmJvdC52MS5SZXNvdXJjZUhlYWx0aBotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIhoKGExpc3RSZXNvdXJjZVR5cGVzUmVxdWVzdCJDChlMaXN0UmVzb3VyY2VUeXBlc1Jlc3BvbnNlEiYKBXR5cGVzGAEgAygLMhcud2VyYm90LnYxLlJlc291cmNlVHlwZSKSAQoUTGlzdFJlc291cmNlc1JlcXVlc3QSRgoMbGFiZWxfZmlsdGVyGAEgAygLMjAud2VyYm90LnYxLkxpc3RSZXNvdXJjZXNSZXF1ZXN0LkxhYmVsRmlsdGVyRW50cnkaMgoQTGFiZWxGaWx0ZXJFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIj8KFUxpc3RSZXNvdXJjZXNSZXNwb25zZRImCglyZXNvdXJjZXMYASADKAsyEy53ZXJib3QudjEuUmVzb3VyY2UiKgoSR2V0UmVzb3VyY2VSZXF1ZXN0EhQKAmlkGAEgASgJQgi6SAVyA7ABASI8ChNHZXRSZXNvdXJjZVJlc3BvbnNlEiUKCHJlc291cmNlGAEgASgLMhMud2VyYm90LnYxLlJlc291cmNlIqMDChVDcmVhdGVSZXNvdXJjZVJlcXVlc3QSFwoEbmFtZRgBIAEoCUIJukgGcgQQARg/EhcKBHR5cGUYAiABKAlCCbpIBnIEEAEYIBIfCgpnYXRld2F5X2lkGAMgASgJQgu6SAjYAQFyA7ABARIkCgZjb25maWcYBCABKAsyFC5nb29nbGUucHJvdG9idWYuQW55Eh4KC2NvbmZpZ19qc29uGAUgASgJQgm6SAZyBBiAgAQSPAoGbGFiZWxzGAYgAygLMiwud2VyYm90LnYxLkNyZWF0ZVJlc291cmNlUmVxdWVzdC5MYWJlbHNFbnRyeRJBCgxpZGxlX3RpbWVvdXQYByABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb25CELpIDaoBCiIECICjBTICCDwSQQoMbWF4X2R1cmF0aW9uGAggASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uQhC6SA2qAQoiBAiA9SQyAgg8Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiPwoWQ3JlYXRlUmVzb3VyY2VSZXNwb25zZRIlCghyZXNvdXJjZRgBIAEoCzITLndlcmJvdC52MS5SZXNvdXJjZSKgAwoVVXBkYXRlUmVzb3VyY2VSZXF1ZXN0EhQKAmlkGAEgASgJQgi6SAVyA7ABARIXCgRuYW1lGAIgASgJQgm6SAZyBBABGD8SHwoKZ2F0ZXdheV9pZBgDIAEoCUILukgI2AEBcgOwAQESJAoGY29uZmlnGAQgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueRIeCgtjb25maWdfanNvbhgFIAEoCUIJukgGcgQYgIAEEjwKBmxhYmVscxgGIAMoCzIsLndlcmJvdC52MS5VcGRhdGVSZXNvdXJjZVJlcXVlc3QuTGFiZWxzRW50cnkSQQoMaWRsZV90aW1lb3V0GAcgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uQhC6SA2qAQoiBAiAowUyAgg8EkEKDG1heF9kdXJhdGlvbhgIIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbkIQukgNqgEKIgQIgPUkMgIIPBotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIj8KFlVwZGF0ZVJlc291cmNlUmVzcG9uc2USJQoIcmVzb3VyY2UYASABKAsyEy53ZXJib3QudjEuUmVzb3VyY2UiLQoVRGVsZXRlUmVzb3VyY2VSZXF1ZXN0EhQKAmlkGAEgASgJQgi6SAVyA7ABASIYChZEZWxldGVSZXNvdXJjZVJlc3BvbnNlImoKFFNldENyZWRlbnRpYWxSZXF1ZXN0Eh0KC3Jlc291cmNlX2lkGAEgASgJQgi6SAVyA7ABARIXCgRraW5kGAIgASgJQgm6SAZyBBABGCASGgoFdmFsdWUYAyABKAxCC7pICHoGEAEYgIAEIhcKFVNldENyZWRlbnRpYWxSZXNwb25zZSI3ChZDbGVhckNyZWRlbnRpYWxSZXF1ZXN0Eh0KC3Jlc291cmNlX2lkGAEgASgJQgi6SAVyA7ABASIZChdDbGVhckNyZWRlbnRpYWxSZXNwb25zZSI0ChNDbGVhckhvc3RLZXlSZXF1ZXN0Eh0KC3Jlc291cmNlX2lkGAEgASgJQgi6SAVyA7ABASIWChRDbGVhckhvc3RLZXlSZXNwb25zZTKXBgoPUmVzb3VyY2VTZXJ2aWNlEl4KEUxpc3RSZXNvdXJjZVR5cGVzEiMud2VyYm90LnYxLkxpc3RSZXNvdXJjZVR5cGVzUmVxdWVzdBokLndlcmJvdC52MS5MaXN0UmVzb3VyY2VUeXBlc1Jlc3BvbnNlElIKDUxpc3RSZXNvdXJjZXMSHy53ZXJib3QudjEuTGlzdFJlc291cmNlc1JlcXVlc3QaIC53ZXJib3QudjEuTGlzdFJlc291cmNlc1Jlc3BvbnNlEkwKC0dldFJlc291cmNlEh0ud2VyYm90LnYxLkdldFJlc291cmNlUmVxdWVzdBoeLndlcmJvdC52MS5HZXRSZXNvdXJjZVJlc3BvbnNlElUKDkNyZWF0ZVJlc291cmNlEiAud2VyYm90LnYxLkNyZWF0ZVJlc291cmNlUmVxdWVzdBohLndlcmJvdC52MS5DcmVhdGVSZXNvdXJjZVJlc3BvbnNlElUKDlVwZGF0ZVJlc291cmNlEiAud2VyYm90LnYxLlVwZGF0ZVJlc291cmNlUmVxdWVzdBohLndlcmJvdC52MS5VcGRhdGVSZXNvdXJjZVJlc3BvbnNlElUKDkRlbGV0ZVJlc291cmNlEiAud2VyYm90LnYxLkRlbGV0ZVJlc291cmNlUmVxdWVzdBohLndlcmJvdC52MS5EZWxldGVSZXNvdXJjZVJlc3BvbnNlElIKDVNldENyZWRlbnRpYWwSHy53ZXJib3QudjEuU2V0Q3JlZGVudGlhbFJlcXVlc3QaIC53ZXJib3QudjEuU2V0Q3JlZGVudGlhbFJlc3BvbnNlElgKD0NsZWFyQ3JlZGVudGlhbBIhLndlcmJvdC52MS5DbGVhckNyZWRlbnRpYWxSZXF1ZXN0GiIud2VyYm90LnYxLkNsZWFyQ3JlZGVudGlhbFJlc3BvbnNlEk8KDENsZWFySG9zdEtleRIeLndlcmJvdC52MS5DbGVhckhvc3RLZXlSZXF1ZXN0Gh8ud2VyYm90LnYxLkNsZWFySG9zdEtleVJlc3BvbnNlQpQBCg1jb20ud2VyYm90LnYxQg1SZXNvdXJjZVByb3RvUAFaL2dpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vd2VyYm90L3YxO3dlcmJvdHYxogIDV1hYqgIJV2VyYm90LlYxygIJV2VyYm90XFYx4gIVV2VyYm90XFYxXEdQQk1ldGFkYXRh6gIKV2VyYm90OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_any, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message werbot.v1.ResourceType
@@ -94,6 +94,70 @@ export const HostKeySchema: GenMessage<HostKey> = /*@__PURE__*/
   messageDesc(file_werbot_v1_resource, 1);
 
 /**
+ * Aggregated probe result of the online gateway instances of the pool.
+ *
+ * @generated from message werbot.v1.ResourceHealth
+ */
+export type ResourceHealth = Message<"werbot.v1.ResourceHealth"> & {
+  /**
+   * @generated from field: werbot.v1.ResourceHealth.State state = 1;
+   */
+  state: ResourceHealth_State;
+
+  /**
+   * unset while the state is unknown
+   *
+   * @generated from field: google.protobuf.Timestamp checked_at = 2;
+   */
+  checkedAt?: Timestamp | undefined;
+
+  /**
+   * reason of the latest failed probe; empty unless unhealthy
+   *
+   * @generated from field: string error = 3;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message werbot.v1.ResourceHealth.
+ * Use `create(ResourceHealthSchema)` to create a new message.
+ */
+export const ResourceHealthSchema: GenMessage<ResourceHealth> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_resource, 2);
+
+/**
+ * @generated from enum werbot.v1.ResourceHealth.State
+ */
+export enum ResourceHealth_State {
+  /**
+   * @generated from enum value: STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: STATE_UNKNOWN = 1;
+   */
+  UNKNOWN = 1,
+
+  /**
+   * @generated from enum value: STATE_HEALTHY = 2;
+   */
+  HEALTHY = 2,
+
+  /**
+   * @generated from enum value: STATE_UNHEALTHY = 3;
+   */
+  UNHEALTHY = 3,
+}
+
+/**
+ * Describes the enum werbot.v1.ResourceHealth.State.
+ */
+export const ResourceHealth_StateSchema: GenEnum<ResourceHealth_State> = /*@__PURE__*/
+  enumDesc(file_werbot_v1_resource, 2, 0);
+
+/**
  * @generated from message werbot.v1.Resource
  */
 export type Resource = Message<"werbot.v1.Resource"> & {
@@ -160,6 +224,25 @@ export type Resource = Message<"werbot.v1.Resource"> & {
    * @generated from field: google.protobuf.Timestamp updated_at = 12;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * unset: the gateway default
+   *
+   * @generated from field: google.protobuf.Duration idle_timeout = 13;
+   */
+  idleTimeout?: Duration | undefined;
+
+  /**
+   * unset: the gateway default
+   *
+   * @generated from field: google.protobuf.Duration max_duration = 14;
+   */
+  maxDuration?: Duration | undefined;
+
+  /**
+   * @generated from field: werbot.v1.ResourceHealth health = 15;
+   */
+  health?: ResourceHealth | undefined;
 };
 
 /**
@@ -167,7 +250,7 @@ export type Resource = Message<"werbot.v1.Resource"> & {
  * Use `create(ResourceSchema)` to create a new message.
  */
 export const ResourceSchema: GenMessage<Resource> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 2);
+  messageDesc(file_werbot_v1_resource, 3);
 
 /**
  * @generated from message werbot.v1.ListResourceTypesRequest
@@ -180,7 +263,7 @@ export type ListResourceTypesRequest = Message<"werbot.v1.ListResourceTypesReque
  * Use `create(ListResourceTypesRequestSchema)` to create a new message.
  */
 export const ListResourceTypesRequestSchema: GenMessage<ListResourceTypesRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 3);
+  messageDesc(file_werbot_v1_resource, 4);
 
 /**
  * @generated from message werbot.v1.ListResourceTypesResponse
@@ -197,7 +280,7 @@ export type ListResourceTypesResponse = Message<"werbot.v1.ListResourceTypesResp
  * Use `create(ListResourceTypesResponseSchema)` to create a new message.
  */
 export const ListResourceTypesResponseSchema: GenMessage<ListResourceTypesResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 4);
+  messageDesc(file_werbot_v1_resource, 5);
 
 /**
  * @generated from message werbot.v1.ListResourcesRequest
@@ -214,7 +297,7 @@ export type ListResourcesRequest = Message<"werbot.v1.ListResourcesRequest"> & {
  * Use `create(ListResourcesRequestSchema)` to create a new message.
  */
 export const ListResourcesRequestSchema: GenMessage<ListResourcesRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 5);
+  messageDesc(file_werbot_v1_resource, 6);
 
 /**
  * @generated from message werbot.v1.ListResourcesResponse
@@ -231,7 +314,7 @@ export type ListResourcesResponse = Message<"werbot.v1.ListResourcesResponse"> &
  * Use `create(ListResourcesResponseSchema)` to create a new message.
  */
 export const ListResourcesResponseSchema: GenMessage<ListResourcesResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 6);
+  messageDesc(file_werbot_v1_resource, 7);
 
 /**
  * @generated from message werbot.v1.GetResourceRequest
@@ -248,7 +331,7 @@ export type GetResourceRequest = Message<"werbot.v1.GetResourceRequest"> & {
  * Use `create(GetResourceRequestSchema)` to create a new message.
  */
 export const GetResourceRequestSchema: GenMessage<GetResourceRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 7);
+  messageDesc(file_werbot_v1_resource, 8);
 
 /**
  * @generated from message werbot.v1.GetResourceResponse
@@ -265,7 +348,7 @@ export type GetResourceResponse = Message<"werbot.v1.GetResourceResponse"> & {
  * Use `create(GetResourceResponseSchema)` to create a new message.
  */
 export const GetResourceResponseSchema: GenMessage<GetResourceResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 8);
+  messageDesc(file_werbot_v1_resource, 9);
 
 /**
  * Exactly one of config / config_json is set.
@@ -302,6 +385,18 @@ export type CreateResourceRequest = Message<"werbot.v1.CreateResourceRequest"> &
    * @generated from field: map<string, string> labels = 6;
    */
   labels: { [key: string]: string };
+
+  /**
+   * Unset: the gateway default.
+   *
+   * @generated from field: google.protobuf.Duration idle_timeout = 7;
+   */
+  idleTimeout?: Duration | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Duration max_duration = 8;
+   */
+  maxDuration?: Duration | undefined;
 };
 
 /**
@@ -309,7 +404,7 @@ export type CreateResourceRequest = Message<"werbot.v1.CreateResourceRequest"> &
  * Use `create(CreateResourceRequestSchema)` to create a new message.
  */
 export const CreateResourceRequestSchema: GenMessage<CreateResourceRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 9);
+  messageDesc(file_werbot_v1_resource, 10);
 
 /**
  * @generated from message werbot.v1.CreateResourceResponse
@@ -326,7 +421,7 @@ export type CreateResourceResponse = Message<"werbot.v1.CreateResourceResponse">
  * Use `create(CreateResourceResponseSchema)` to create a new message.
  */
 export const CreateResourceResponseSchema: GenMessage<CreateResourceResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 10);
+  messageDesc(file_werbot_v1_resource, 11);
 
 /**
  * Like Create without type; both config fields empty keeps the current config.
@@ -363,6 +458,18 @@ export type UpdateResourceRequest = Message<"werbot.v1.UpdateResourceRequest"> &
    * @generated from field: map<string, string> labels = 6;
    */
   labels: { [key: string]: string };
+
+  /**
+   * Unset: the gateway default.
+   *
+   * @generated from field: google.protobuf.Duration idle_timeout = 7;
+   */
+  idleTimeout?: Duration | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Duration max_duration = 8;
+   */
+  maxDuration?: Duration | undefined;
 };
 
 /**
@@ -370,7 +477,7 @@ export type UpdateResourceRequest = Message<"werbot.v1.UpdateResourceRequest"> &
  * Use `create(UpdateResourceRequestSchema)` to create a new message.
  */
 export const UpdateResourceRequestSchema: GenMessage<UpdateResourceRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 11);
+  messageDesc(file_werbot_v1_resource, 12);
 
 /**
  * @generated from message werbot.v1.UpdateResourceResponse
@@ -387,7 +494,7 @@ export type UpdateResourceResponse = Message<"werbot.v1.UpdateResourceResponse">
  * Use `create(UpdateResourceResponseSchema)` to create a new message.
  */
 export const UpdateResourceResponseSchema: GenMessage<UpdateResourceResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 12);
+  messageDesc(file_werbot_v1_resource, 13);
 
 /**
  * @generated from message werbot.v1.DeleteResourceRequest
@@ -404,7 +511,7 @@ export type DeleteResourceRequest = Message<"werbot.v1.DeleteResourceRequest"> &
  * Use `create(DeleteResourceRequestSchema)` to create a new message.
  */
 export const DeleteResourceRequestSchema: GenMessage<DeleteResourceRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 13);
+  messageDesc(file_werbot_v1_resource, 14);
 
 /**
  * @generated from message werbot.v1.DeleteResourceResponse
@@ -417,7 +524,7 @@ export type DeleteResourceResponse = Message<"werbot.v1.DeleteResourceResponse">
  * Use `create(DeleteResourceResponseSchema)` to create a new message.
  */
 export const DeleteResourceResponseSchema: GenMessage<DeleteResourceResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 14);
+  messageDesc(file_werbot_v1_resource, 15);
 
 /**
  * @generated from message werbot.v1.SetCredentialRequest
@@ -444,7 +551,7 @@ export type SetCredentialRequest = Message<"werbot.v1.SetCredentialRequest"> & {
  * Use `create(SetCredentialRequestSchema)` to create a new message.
  */
 export const SetCredentialRequestSchema: GenMessage<SetCredentialRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 15);
+  messageDesc(file_werbot_v1_resource, 16);
 
 /**
  * @generated from message werbot.v1.SetCredentialResponse
@@ -457,7 +564,7 @@ export type SetCredentialResponse = Message<"werbot.v1.SetCredentialResponse"> &
  * Use `create(SetCredentialResponseSchema)` to create a new message.
  */
 export const SetCredentialResponseSchema: GenMessage<SetCredentialResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 16);
+  messageDesc(file_werbot_v1_resource, 17);
 
 /**
  * @generated from message werbot.v1.ClearCredentialRequest
@@ -474,7 +581,7 @@ export type ClearCredentialRequest = Message<"werbot.v1.ClearCredentialRequest">
  * Use `create(ClearCredentialRequestSchema)` to create a new message.
  */
 export const ClearCredentialRequestSchema: GenMessage<ClearCredentialRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 17);
+  messageDesc(file_werbot_v1_resource, 18);
 
 /**
  * @generated from message werbot.v1.ClearCredentialResponse
@@ -487,7 +594,7 @@ export type ClearCredentialResponse = Message<"werbot.v1.ClearCredentialResponse
  * Use `create(ClearCredentialResponseSchema)` to create a new message.
  */
 export const ClearCredentialResponseSchema: GenMessage<ClearCredentialResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 18);
+  messageDesc(file_werbot_v1_resource, 19);
 
 /**
  * @generated from message werbot.v1.ClearHostKeyRequest
@@ -504,7 +611,7 @@ export type ClearHostKeyRequest = Message<"werbot.v1.ClearHostKeyRequest"> & {
  * Use `create(ClearHostKeyRequestSchema)` to create a new message.
  */
 export const ClearHostKeyRequestSchema: GenMessage<ClearHostKeyRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 19);
+  messageDesc(file_werbot_v1_resource, 20);
 
 /**
  * @generated from message werbot.v1.ClearHostKeyResponse
@@ -517,7 +624,7 @@ export type ClearHostKeyResponse = Message<"werbot.v1.ClearHostKeyResponse"> & {
  * Use `create(ClearHostKeyResponseSchema)` to create a new message.
  */
 export const ClearHostKeyResponseSchema: GenMessage<ClearHostKeyResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_resource, 20);
+  messageDesc(file_werbot_v1_resource, 21);
 
 /**
  * @generated from service werbot.v1.ResourceService

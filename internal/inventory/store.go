@@ -40,6 +40,8 @@ type Store interface {
 	HeartbeatInstance(ctx context.Context, arg dbq.HeartbeatInstanceParams) (int64, error)
 	DeleteInstance(ctx context.Context, arg dbq.DeleteInstanceParams) (uuid.UUID, error)
 	DeleteExpiredInstances(ctx context.Context) (int64, error)
+	OnlineInstanceIDs(ctx context.Context, gatewayID uuid.UUID) ([]uuid.UUID, error)
+	UpsertResourceHealth(ctx context.Context, arg dbq.UpsertResourceHealthParams) error
 
 	CreateJoinToken(ctx context.Context, arg dbq.CreateJoinTokenParams) (dbq.CreateJoinTokenRow, error)
 	ListJoinTokens(ctx context.Context, arg dbq.ListJoinTokensParams) ([]dbq.ListJoinTokensRow, error)

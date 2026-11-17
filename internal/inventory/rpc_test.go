@@ -2,19 +2,25 @@ package inventory_test
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/validate"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	sshv1 "github.com/werbot/werbot/gen/werbot/connector/ssh/v1"
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
+	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
@@ -185,4 +191,32 @@ func TestOtherOrgIsNotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	_, err = h.ClearCredential(e.ctx, connect.NewRequest(&werbotv1.ClearCredentialRequest{ResourceId: uuid.NewString()}))
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
+
+func TestResourceTimeoutsAndHealthOverRPC(t *testing.T) {
+	h, e := newHandler(t)
+	mux := http.NewServeMux()
+	mux.Handle(werbotv1connect.NewResourceServiceHandler(h, connect.WithInterceptors(validate.NewInterceptor())))
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mux.ServeHTTP(w, r.WithContext(principal.With(r.Context(), principal.Principal{UserID: e.owner, OrgID: e.org, Role: "owner"})))
+	}))
+	t.Cleanup(srv.Close)
+	c := werbotv1connect.NewResourceServiceClient(srv.Client(), srv.URL)
+
+	req := createReq("one", sshCfg("h")).Msg
+	req.IdleTimeout, req.MaxDuration = durationpb.New(10*time.Minute), durationpb.New(2*time.Hour)
+	res, err := c.CreateResource(context.Background(), connect.NewRequest(req))
+	require.NoError(t, err)
+	got := res.Msg.GetResource()
+	assert.Equal(t, 10*time.Minute, got.GetIdleTimeout().AsDuration())
+	assert.Equal(t, 2*time.Hour, got.GetMaxDuration().AsDuration())
+	assert.Equal(t, werbotv1.ResourceHealth_STATE_UNKNOWN, got.GetHealth().GetState())
+	assert.Nil(t, got.GetHealth().GetCheckedAt())
+
+	for _, d := range []time.Duration{30 * time.Second, 25 * time.Hour} {
+		bad := createReq("two", sshCfg("h")).Msg
+		bad.IdleTimeout = durationpb.New(d)
+		_, err = c.CreateResource(context.Background(), connect.NewRequest(bad))
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), d.String())
+	}
 }

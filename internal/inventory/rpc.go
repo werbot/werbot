@@ -125,7 +125,9 @@ func (h *Handler) CreateResource(ctx context.Context, req *connect.Request[werbo
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	r, err := h.svc.Create(ctx, org, CreateInput{Name: m.GetName(), Type: t.Name, GatewayID: gw, Config: cfg, Labels: m.GetLabels()})
+	idle, maxDur := timeouts(m.GetIdleTimeout(), m.GetMaxDuration())
+	r, err := h.svc.Create(ctx, org, CreateInput{Name: m.GetName(), Type: t.Name, GatewayID: gw, Config: cfg, Labels: m.GetLabels(),
+		IdleTimeout: idle, MaxDuration: maxDur})
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
@@ -136,7 +138,7 @@ func (h *Handler) CreateResource(ctx context.Context, req *connect.Request[werbo
 	return connect.NewResponse(&werbotv1.CreateResourceResponse{Resource: out[0]}), nil
 }
 
-// UpdateResource replaces name, gateway and labels; no config keeps the current one.
+// UpdateResource replaces name, gateway, timeouts and labels; no config keeps the current one.
 func (h *Handler) UpdateResource(ctx context.Context, req *connect.Request[werbotv1.UpdateResourceRequest]) (*connect.Response[werbotv1.UpdateResourceResponse], error) {
 	org, err := admin(ctx)
 	if err != nil {
@@ -151,7 +153,8 @@ func (h *Handler) UpdateResource(ctx context.Context, req *connect.Request[werbo
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	in := UpdateInput{ID: id, Name: m.GetName(), GatewayID: gw, Labels: m.GetLabels()}
+	idle, maxDur := timeouts(m.GetIdleTimeout(), m.GetMaxDuration())
+	in := UpdateInput{ID: id, Name: m.GetName(), GatewayID: gw, Labels: m.GetLabels(), IdleTimeout: idle, MaxDuration: maxDur}
 	if m.GetConfig() != nil || m.GetConfigJson() != "" {
 		cur, err := h.svc.Get(ctx, org, id)
 		if err != nil {

@@ -114,6 +114,10 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 	if err != nil {
 		return Resource{}, err
 	}
+	idleSecs, maxSecs, err := timeoutSecs(in.IdleTimeout, in.MaxDuration)
+	if err != nil {
+		return Resource{}, err
+	}
 	var res Resource
 	err = s.tx(ctx, orgID, func(st Store, tx pgx.Tx) error {
 		gw, err := pickGateway(ctx, st, orgID, in.GatewayID)
@@ -121,7 +125,8 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 			return err
 		}
 		id, err := st.CreateResource(ctx, dbq.CreateResourceParams{
-			OrgID: orgID, Name: in.Name, Type: t.Name, Category: string(t.Category), GatewayID: gw, Config: cfg})
+			OrgID: orgID, Name: in.Name, Type: t.Name, Category: string(t.Category), GatewayID: gw, Config: cfg,
+			IdleSecs: idleSecs, MaxSecs: maxSecs})
 		if err != nil {
 			return err
 		}
@@ -136,13 +141,17 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 	return res, notFound(err)
 }
 
-// Update replaces name, gateway and labels; a non-nil Config replaces the config.
+// Update replaces name, gateway, timeouts and labels; a non-nil Config replaces the config.
 func (s *Service) Update(ctx context.Context, orgID uuid.UUID, in UpdateInput) (Resource, error) {
 	if err := errors.Join(validateName(in.Name), validateLabels(in.Labels)); err != nil {
 		return Resource{}, err
 	}
+	idleSecs, maxSecs, err := timeoutSecs(in.IdleTimeout, in.MaxDuration)
+	if err != nil {
+		return Resource{}, err
+	}
 	var res Resource
-	err := s.tx(ctx, orgID, func(st Store, tx pgx.Tx) error {
+	err = s.tx(ctx, orgID, func(st Store, tx pgx.Tx) error {
 		cur, err := s.get(ctx, st, orgID, in.ID)
 		if err != nil {
 			return err
@@ -162,7 +171,8 @@ func (s *Service) Update(ctx context.Context, orgID uuid.UUID, in UpdateInput) (
 			return err
 		}
 		if _, err := st.UpdateResource(ctx, dbq.UpdateResourceParams{
-			ID: in.ID, OrgID: orgID, Name: in.Name, GatewayID: gw, Config: cfg}); err != nil {
+			ID: in.ID, OrgID: orgID, Name: in.Name, GatewayID: gw, Config: cfg,
+			IdleSecs: idleSecs, MaxSecs: maxSecs}); err != nil {
 			return err
 		}
 		if err := setLabels(ctx, st, orgID, in.ID, in.Labels); err != nil {

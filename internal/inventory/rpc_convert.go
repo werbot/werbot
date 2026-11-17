@@ -3,11 +3,13 @@ package inventory
 import (
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
@@ -68,6 +70,35 @@ func typeToProto(t connector.Type) *werbotv1.ResourceType {
 	return out
 }
 
+var healthStates = map[string]werbotv1.ResourceHealth_State{
+	HealthHealthy:   werbotv1.ResourceHealth_STATE_HEALTHY,
+	HealthUnhealthy: werbotv1.ResourceHealth_STATE_UNHEALTHY,
+}
+
+func healthToProto(h HealthStatus) *werbotv1.ResourceHealth {
+	state, ok := healthStates[h.State]
+	if !ok {
+		state = werbotv1.ResourceHealth_STATE_UNKNOWN
+	}
+	out := &werbotv1.ResourceHealth{State: state, Error: h.Error}
+	if h.CheckedAt != nil {
+		out.CheckedAt = timestamppb.New(*h.CheckedAt)
+	}
+	return out
+}
+
+// timeouts converts the optional request durations; unset stays nil.
+func timeouts(idle, maxDur *durationpb.Duration) (*time.Duration, *time.Duration) {
+	conv := func(d *durationpb.Duration) *time.Duration {
+		if d == nil {
+			return nil
+		}
+		v := d.AsDuration()
+		return &v
+	}
+	return conv(idle), conv(maxDur)
+}
+
 // resourceToProto never carries a credential value, only its kind.
 func resourceToProto(r Resource, kinds map[uuid.UUID]connector.CredentialKind) (*werbotv1.Resource, error) {
 	out := &werbotv1.Resource{
@@ -88,6 +119,13 @@ func resourceToProto(r Resource, kinds map[uuid.UUID]connector.CredentialKind) (
 		}
 		out.ConfigJson = string(js)
 	}
+	if r.IdleTimeout != nil {
+		out.IdleTimeout = durationpb.New(*r.IdleTimeout)
+	}
+	if r.MaxDuration != nil {
+		out.MaxDuration = durationpb.New(*r.MaxDuration)
+	}
+	out.Health = healthToProto(r.Health)
 	if h := r.HostKey; h != nil {
 		out.HostKey = &werbotv1.HostKey{KeyType: h.KeyType, FingerprintSha256: h.FingerprintSHA256, CreatedAt: timestamppb.New(h.CreatedAt)}
 	}

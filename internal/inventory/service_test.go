@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -210,4 +211,32 @@ func TestPinHostKeyTOFU(t *testing.T) {
 		"SELECT count(*) FROM audit_event WHERE action IN ('resource.host_key.pin','resource.host_key.clear') AND target_id = $1",
 		r.ID.String()).Scan(&n))
 	assert.Equal(t, 3, n)
+}
+
+func TestResourceTimeouts(t *testing.T) {
+	e := setup(t)
+	idle, maxDur := 10*time.Minute, 2*time.Hour
+	in := inventory.CreateInput{Name: "web", Type: "ssh", Config: sshCfg("h"), IdleTimeout: &idle, MaxDuration: &maxDur}
+	r, err := e.svc.Create(e.ctx, e.org, in)
+	require.NoError(t, err)
+	got, err := e.svc.Get(e.ctx, e.org, r.ID)
+	require.NoError(t, err)
+	assert.Equal(t, &idle, got.IdleTimeout)
+	assert.Equal(t, &maxDur, got.MaxDuration)
+
+	short, long := 30*time.Second, 169*time.Hour
+	in.Name = "web-2"
+	in.IdleTimeout = &short
+	_, err = e.svc.Create(e.ctx, e.org, in)
+	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
+	in.IdleTimeout, in.MaxDuration = &idle, &long
+	_, err = e.svc.Create(e.ctx, e.org, in)
+	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
+	_, err = e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: r.ID, Name: "web", IdleTimeout: &short})
+	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
+
+	up, err := e.svc.Update(e.ctx, e.org, inventory.UpdateInput{ID: r.ID, Name: "web", MaxDuration: &maxDur})
+	require.NoError(t, err)
+	assert.Nil(t, up.IdleTimeout, "nil clears the timeout")
+	assert.Equal(t, &maxDur, up.MaxDuration)
 }

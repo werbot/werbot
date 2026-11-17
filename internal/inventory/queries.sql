@@ -1,31 +1,66 @@
 -- name: CreateResource :one
-INSERT INTO resource (org_id, name, type, category, gateway_id, config)
-VALUES (@org_id, @name, @type, @category, @gateway_id, @config)
+INSERT INTO resource (org_id, name, type, category, gateway_id, config, idle_timeout, max_duration)
+VALUES (@org_id, @name, @type, @category, @gateway_id, @config,
+        make_interval(secs => sqlc.narg(idle_secs)::bigint), make_interval(secs => sqlc.narg(max_secs)::bigint))
 RETURNING id;
 
 -- name: UpdateResource :execrows
 UPDATE resource
-SET name = @name, gateway_id = @gateway_id, config = coalesce(sqlc.narg(config)::jsonb, config), updated_at = now()
+SET name = @name, gateway_id = @gateway_id, config = coalesce(sqlc.narg(config)::jsonb, config),
+    idle_timeout = make_interval(secs => sqlc.narg(idle_secs)::bigint),
+    max_duration = make_interval(secs => sqlc.narg(max_secs)::bigint), updated_at = now()
 WHERE id = @id AND org_id = @org_id;
 
 -- name: DeleteResource :execrows
 DELETE FROM resource WHERE id = @id AND org_id = @org_id;
 
 -- name: GetResource :one
+-- idle_secs and max_secs are 0 when unset (the valid minimum is 60);
+-- health_checked_at is the epoch while the health is unknown.
 SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.created_at, r.updated_at,
        coalesce((SELECT jsonb_object_agg(l.key, l.value) FROM resource_label l WHERE l.resource_id = r.id), '{}')::jsonb AS labels,
-       h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at
+       h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at,
+       coalesce(extract(epoch FROM r.idle_timeout), 0)::bigint AS idle_secs,
+       coalesce(extract(epoch FROM r.max_duration), 0)::bigint AS max_secs,
+       CASE WHEN hs.n = 0 THEN 'unknown' WHEN hs.any_ok THEN 'healthy' ELSE 'unhealthy' END::text AS health_state,
+       coalesce(hs.checked_at, 'epoch'::timestamptz)::timestamptz AS health_checked_at,
+       coalesce(hs.last_error, '')::text AS health_error
 FROM resource r
 LEFT JOIN resource_host_key h ON h.resource_id = r.id
+-- Fresh (3 min) probes of the online instances of the resource's pool.
+LEFT JOIN LATERAL (
+    SELECT count(*) AS n, coalesce(bool_or(rh.ok), false) AS any_ok, max(rh.checked_at) AS checked_at,
+           (array_agg(rh.error ORDER BY rh.checked_at DESC) FILTER (WHERE NOT rh.ok))[1] AS last_error
+    FROM resource_health rh
+    JOIN gateway_instance gi ON gi.id = rh.gateway_instance_id AND gi.org_id = r.org_id AND gi.gateway_id = r.gateway_id
+    WHERE rh.resource_id = r.id AND rh.org_id = r.org_id
+      AND gi.last_seen_at > now() - interval '45 seconds'
+      AND rh.checked_at > now() - interval '3 minutes'
+) hs ON true
 WHERE r.id = @id AND r.org_id = @org_id;
 
 -- name: ListResources :many
 -- An empty label_filter matches everything; a NULL gateway_id means any gateway.
 SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.created_at, r.updated_at,
        coalesce((SELECT jsonb_object_agg(l.key, l.value) FROM resource_label l WHERE l.resource_id = r.id), '{}')::jsonb AS labels,
-       h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at
+       h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at,
+       coalesce(extract(epoch FROM r.idle_timeout), 0)::bigint AS idle_secs,
+       coalesce(extract(epoch FROM r.max_duration), 0)::bigint AS max_secs,
+       CASE WHEN hs.n = 0 THEN 'unknown' WHEN hs.any_ok THEN 'healthy' ELSE 'unhealthy' END::text AS health_state,
+       coalesce(hs.checked_at, 'epoch'::timestamptz)::timestamptz AS health_checked_at,
+       coalesce(hs.last_error, '')::text AS health_error
 FROM resource r
 LEFT JOIN resource_host_key h ON h.resource_id = r.id
+-- Fresh (3 min) probes of the online instances of the resource's pool.
+LEFT JOIN LATERAL (
+    SELECT count(*) AS n, coalesce(bool_or(rh.ok), false) AS any_ok, max(rh.checked_at) AS checked_at,
+           (array_agg(rh.error ORDER BY rh.checked_at DESC) FILTER (WHERE NOT rh.ok))[1] AS last_error
+    FROM resource_health rh
+    JOIN gateway_instance gi ON gi.id = rh.gateway_instance_id AND gi.org_id = r.org_id AND gi.gateway_id = r.gateway_id
+    WHERE rh.resource_id = r.id AND rh.org_id = r.org_id
+      AND gi.last_seen_at > now() - interval '45 seconds'
+      AND rh.checked_at > now() - interval '3 minutes'
+) hs ON true
 WHERE r.org_id = @org_id
   AND (sqlc.narg(gateway_id)::uuid IS NULL OR r.gateway_id = sqlc.narg(gateway_id)::uuid)
   AND NOT EXISTS (
@@ -164,3 +199,21 @@ RETURNING id, org_id, gateway_id;
 
 -- name: DeleteExpiredJoinTokens :execrows
 DELETE FROM gateway_join_token WHERE expires_at < now() - interval '7 days';
+
+-- name: UpsertResourceHealth :exec
+-- Rows of resources outside the instance's pool or organization are skipped;
+-- the newest of repeated resource ids wins.
+INSERT INTO resource_health (resource_id, gateway_instance_id, org_id, ok, error, checked_at)
+SELECT DISTINCT ON (r.id) r.id, i.id, r.org_id, h.ok, h.error, h.checked_at
+FROM (SELECT unnest(@resource_ids::uuid[]) AS resource_id, unnest(@oks::bool[]) AS ok,
+             unnest(@errors::text[]) AS error, unnest(@checked_ats::timestamptz[]) AS checked_at) h
+JOIN resource r ON r.id = h.resource_id AND r.org_id = @org_id
+JOIN gateway_instance i ON i.id = @instance_id AND i.org_id = @org_id AND i.gateway_id = r.gateway_id
+ORDER BY r.id, h.checked_at DESC
+ON CONFLICT (resource_id, gateway_instance_id)
+DO UPDATE SET ok = EXCLUDED.ok, error = EXCLUDED.error, checked_at = EXCLUDED.checked_at;
+
+-- name: OnlineInstanceIDs :many
+SELECT id FROM gateway_instance
+WHERE gateway_id = @gateway_id AND last_seen_at > now() - interval '45 seconds'
+ORDER BY id;

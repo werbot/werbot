@@ -3,6 +3,7 @@ package werbot.v1;
 
 import "buf/validate/validate.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 service ResourceService {
@@ -33,6 +34,19 @@ message HostKey {
   google.protobuf.Timestamp created_at = 3;
 }
 
+// Aggregated probe result of the online gateway instances of the pool.
+message ResourceHealth {
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_UNKNOWN = 1;
+    STATE_HEALTHY = 2;
+    STATE_UNHEALTHY = 3;
+  }
+  State state = 1;
+  google.protobuf.Timestamp checked_at = 2; // unset while the state is unknown
+  string error = 3;                         // reason of the latest failed probe; empty unless unhealthy
+}
+
 message Resource {
   string id = 1;
   string name = 2;
@@ -46,6 +60,9 @@ message Resource {
   HostKey host_key = 10;
   google.protobuf.Timestamp created_at = 11;
   google.protobuf.Timestamp updated_at = 12;
+  google.protobuf.Duration idle_timeout = 13; // unset: the gateway default
+  google.protobuf.Duration max_duration = 14; // unset: the gateway default
+  ResourceHealth health = 15;
 }
 
 message ListResourceTypesRequest {}
@@ -75,6 +92,15 @@ message CreateResourceRequest {
   google.protobuf.Any config = 4;
   string config_json = 5 [(buf.validate.field).string.max_len = 65536];
   map<string, string> labels = 6;
+  // Unset: the gateway default.
+  google.protobuf.Duration idle_timeout = 7 [(buf.validate.field).duration = {
+    gte: {seconds: 60}
+    lte: {seconds: 86400}
+  }];
+  google.protobuf.Duration max_duration = 8 [(buf.validate.field).duration = {
+    gte: {seconds: 60}
+    lte: {seconds: 604800}
+  }];
 }
 message CreateResourceResponse {
   Resource resource = 1;
@@ -88,6 +114,15 @@ message UpdateResourceRequest {
   google.protobuf.Any config = 4;
   string config_json = 5 [(buf.validate.field).string.max_len = 65536];
   map<string, string> labels = 6;
+  // Unset: the gateway default.
+  google.protobuf.Duration idle_timeout = 7 [(buf.validate.field).duration = {
+    gte: {seconds: 60}
+    lte: {seconds: 86400}
+  }];
+  google.protobuf.Duration max_duration = 8 [(buf.validate.field).duration = {
+    gte: {seconds: 60}
+    lte: {seconds: 604800}
+  }];
 }
 message UpdateResourceResponse {
   Resource resource = 1;

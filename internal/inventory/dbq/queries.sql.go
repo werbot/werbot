@@ -212,8 +212,9 @@ func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams
 }
 
 const createResource = `-- name: CreateResource :one
-INSERT INTO resource (org_id, name, type, category, gateway_id, config)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO resource (org_id, name, type, category, gateway_id, config, idle_timeout, max_duration)
+VALUES ($1, $2, $3, $4, $5, $6,
+        make_interval(secs => $7::bigint), make_interval(secs => $8::bigint))
 RETURNING id
 `
 
@@ -224,6 +225,8 @@ type CreateResourceParams struct {
 	Category  string
 	GatewayID *uuid.UUID
 	Config    []byte
+	IdleSecs  *int64
+	MaxSecs   *int64
 }
 
 func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) (uuid.UUID, error) {
@@ -234,6 +237,8 @@ func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) 
 		arg.Category,
 		arg.GatewayID,
 		arg.Config,
+		arg.IdleSecs,
+		arg.MaxSecs,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
@@ -412,9 +417,23 @@ func (q *Queries) GetInstanceGatewayID(ctx context.Context, id uuid.UUID) (uuid.
 const getResource = `-- name: GetResource :one
 SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.created_at, r.updated_at,
        coalesce((SELECT jsonb_object_agg(l.key, l.value) FROM resource_label l WHERE l.resource_id = r.id), '{}')::jsonb AS labels,
-       h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at
+       h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at,
+       coalesce(extract(epoch FROM r.idle_timeout), 0)::bigint AS idle_secs,
+       coalesce(extract(epoch FROM r.max_duration), 0)::bigint AS max_secs,
+       CASE WHEN hs.n = 0 THEN 'unknown' WHEN hs.any_ok THEN 'healthy' ELSE 'unhealthy' END::text AS health_state,
+       coalesce(hs.checked_at, 'epoch'::timestamptz)::timestamptz AS health_checked_at,
+       coalesce(hs.last_error, '')::text AS health_error
 FROM resource r
 LEFT JOIN resource_host_key h ON h.resource_id = r.id
+LEFT JOIN LATERAL (
+    SELECT count(*) AS n, coalesce(bool_or(rh.ok), false) AS any_ok, max(rh.checked_at) AS checked_at,
+           (array_agg(rh.error ORDER BY rh.checked_at DESC) FILTER (WHERE NOT rh.ok))[1] AS last_error
+    FROM resource_health rh
+    JOIN gateway_instance gi ON gi.id = rh.gateway_instance_id AND gi.org_id = r.org_id AND gi.gateway_id = r.gateway_id
+    WHERE rh.resource_id = r.id AND rh.org_id = r.org_id
+      AND gi.last_seen_at > now() - interval '45 seconds'
+      AND rh.checked_at > now() - interval '3 minutes'
+) hs ON true
 WHERE r.id = $1 AND r.org_id = $2
 `
 
@@ -438,8 +457,16 @@ type GetResourceRow struct {
 	PublicKey         *string
 	FingerprintSha256 *string
 	HostKeyCreatedAt  *time.Time
+	IdleSecs          int64
+	MaxSecs           int64
+	HealthState       string
+	HealthCheckedAt   time.Time
+	HealthError       string
 }
 
+// idle_secs and max_secs are 0 when unset (the valid minimum is 60);
+// health_checked_at is the epoch while the health is unknown.
+// Fresh (3 min) probes of the online instances of the resource's pool.
 func (q *Queries) GetResource(ctx context.Context, arg GetResourceParams) (GetResourceRow, error) {
 	row := q.db.QueryRow(ctx, getResource, arg.ID, arg.OrgID)
 	var i GetResourceRow
@@ -458,6 +485,11 @@ func (q *Queries) GetResource(ctx context.Context, arg GetResourceParams) (GetRe
 		&i.PublicKey,
 		&i.FingerprintSha256,
 		&i.HostKeyCreatedAt,
+		&i.IdleSecs,
+		&i.MaxSecs,
+		&i.HealthState,
+		&i.HealthCheckedAt,
+		&i.HealthError,
 	)
 	return i, err
 }
@@ -670,9 +702,23 @@ func (q *Queries) ListJoinTokens(ctx context.Context, arg ListJoinTokensParams) 
 const listResources = `-- name: ListResources :many
 SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.created_at, r.updated_at,
        coalesce((SELECT jsonb_object_agg(l.key, l.value) FROM resource_label l WHERE l.resource_id = r.id), '{}')::jsonb AS labels,
-       h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at
+       h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at,
+       coalesce(extract(epoch FROM r.idle_timeout), 0)::bigint AS idle_secs,
+       coalesce(extract(epoch FROM r.max_duration), 0)::bigint AS max_secs,
+       CASE WHEN hs.n = 0 THEN 'unknown' WHEN hs.any_ok THEN 'healthy' ELSE 'unhealthy' END::text AS health_state,
+       coalesce(hs.checked_at, 'epoch'::timestamptz)::timestamptz AS health_checked_at,
+       coalesce(hs.last_error, '')::text AS health_error
 FROM resource r
 LEFT JOIN resource_host_key h ON h.resource_id = r.id
+LEFT JOIN LATERAL (
+    SELECT count(*) AS n, coalesce(bool_or(rh.ok), false) AS any_ok, max(rh.checked_at) AS checked_at,
+           (array_agg(rh.error ORDER BY rh.checked_at DESC) FILTER (WHERE NOT rh.ok))[1] AS last_error
+    FROM resource_health rh
+    JOIN gateway_instance gi ON gi.id = rh.gateway_instance_id AND gi.org_id = r.org_id AND gi.gateway_id = r.gateway_id
+    WHERE rh.resource_id = r.id AND rh.org_id = r.org_id
+      AND gi.last_seen_at > now() - interval '45 seconds'
+      AND rh.checked_at > now() - interval '3 minutes'
+) hs ON true
 WHERE r.org_id = $1
   AND ($2::uuid IS NULL OR r.gateway_id = $2::uuid)
   AND NOT EXISTS (
@@ -704,9 +750,15 @@ type ListResourcesRow struct {
 	PublicKey         *string
 	FingerprintSha256 *string
 	HostKeyCreatedAt  *time.Time
+	IdleSecs          int64
+	MaxSecs           int64
+	HealthState       string
+	HealthCheckedAt   time.Time
+	HealthError       string
 }
 
 // An empty label_filter matches everything; a NULL gateway_id means any gateway.
+// Fresh (3 min) probes of the online instances of the resource's pool.
 func (q *Queries) ListResources(ctx context.Context, arg ListResourcesParams) ([]ListResourcesRow, error) {
 	rows, err := q.db.Query(ctx, listResources, arg.OrgID, arg.GatewayID, arg.LabelFilter)
 	if err != nil {
@@ -731,6 +783,11 @@ func (q *Queries) ListResources(ctx context.Context, arg ListResourcesParams) ([
 			&i.PublicKey,
 			&i.FingerprintSha256,
 			&i.HostKeyCreatedAt,
+			&i.IdleSecs,
+			&i.MaxSecs,
+			&i.HealthState,
+			&i.HealthCheckedAt,
+			&i.HealthError,
 		); err != nil {
 			return nil, err
 		}
@@ -761,6 +818,32 @@ SELECT pg_advisory_xact_lock_shared(1464160834, hashtext(CAST($1::uuid AS text))
 func (q *Queries) LockOrgPoolsShared(ctx context.Context, orgID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, lockOrgPoolsShared, orgID)
 	return err
+}
+
+const onlineInstanceIDs = `-- name: OnlineInstanceIDs :many
+SELECT id FROM gateway_instance
+WHERE gateway_id = $1 AND last_seen_at > now() - interval '45 seconds'
+ORDER BY id
+`
+
+func (q *Queries) OnlineInstanceIDs(ctx context.Context, gatewayID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, onlineInstanceIDs, gatewayID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const orgGatewayIDs = `-- name: OrgGatewayIDs :many
@@ -852,14 +935,18 @@ func (q *Queries) SpendJoinToken(ctx context.Context, tokenHash []byte) (SpendJo
 
 const updateResource = `-- name: UpdateResource :execrows
 UPDATE resource
-SET name = $1, gateway_id = $2, config = coalesce($3::jsonb, config), updated_at = now()
-WHERE id = $4 AND org_id = $5
+SET name = $1, gateway_id = $2, config = coalesce($3::jsonb, config),
+    idle_timeout = make_interval(secs => $4::bigint),
+    max_duration = make_interval(secs => $5::bigint), updated_at = now()
+WHERE id = $6 AND org_id = $7
 `
 
 type UpdateResourceParams struct {
 	Name      string
 	GatewayID *uuid.UUID
 	Config    []byte
+	IdleSecs  *int64
+	MaxSecs   *int64
 	ID        uuid.UUID
 	OrgID     uuid.UUID
 }
@@ -869,6 +956,8 @@ func (q *Queries) UpdateResource(ctx context.Context, arg UpdateResourceParams) 
 		arg.Name,
 		arg.GatewayID,
 		arg.Config,
+		arg.IdleSecs,
+		arg.MaxSecs,
 		arg.ID,
 		arg.OrgID,
 	)
@@ -876,4 +965,39 @@ func (q *Queries) UpdateResource(ctx context.Context, arg UpdateResourceParams) 
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const upsertResourceHealth = `-- name: UpsertResourceHealth :exec
+INSERT INTO resource_health (resource_id, gateway_instance_id, org_id, ok, error, checked_at)
+SELECT DISTINCT ON (r.id) r.id, i.id, r.org_id, h.ok, h.error, h.checked_at
+FROM (SELECT unnest($1::uuid[]) AS resource_id, unnest($2::bool[]) AS ok,
+             unnest($3::text[]) AS error, unnest($4::timestamptz[]) AS checked_at) h
+JOIN resource r ON r.id = h.resource_id AND r.org_id = $5
+JOIN gateway_instance i ON i.id = $6 AND i.org_id = $5 AND i.gateway_id = r.gateway_id
+ORDER BY r.id, h.checked_at DESC
+ON CONFLICT (resource_id, gateway_instance_id)
+DO UPDATE SET ok = EXCLUDED.ok, error = EXCLUDED.error, checked_at = EXCLUDED.checked_at
+`
+
+type UpsertResourceHealthParams struct {
+	ResourceIds []uuid.UUID
+	Oks         []bool
+	Errors      []string
+	CheckedAts  []time.Time
+	OrgID       uuid.UUID
+	InstanceID  uuid.UUID
+}
+
+// Rows of resources outside the instance's pool or organization are skipped;
+// the newest of repeated resource ids wins.
+func (q *Queries) UpsertResourceHealth(ctx context.Context, arg UpsertResourceHealthParams) error {
+	_, err := q.db.Exec(ctx, upsertResourceHealth,
+		arg.ResourceIds,
+		arg.Oks,
+		arg.Errors,
+		arg.CheckedAts,
+		arg.OrgID,
+		arg.InstanceID,
+	)
+	return err
 }

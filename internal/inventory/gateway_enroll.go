@@ -175,3 +175,13 @@ func (g *Gateways) Heartbeat(ctx context.Context, instanceID uuid.UUID, version 
 		return err
 	})
 }
+
+// OnlineInstances returns the ids of the instances of gatewayID seen within the last 45 s.
+func (g *Gateways) OnlineInstances(ctx context.Context, gatewayID uuid.UUID) ([]uuid.UUID, error) {
+	var ids []uuid.UUID
+	err := dbx.System(ctx, g.pool, dbx.ReasonTunnel, func(tx pgx.Tx) (err error) {
+		ids, err = newStore(tx).OnlineInstanceIDs(ctx, gatewayID)
+		return err
+	})
+	return ids, err
+}
