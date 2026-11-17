@@ -46,8 +46,9 @@ export function tcpConfigValue(v: { host: string; ports: string }): ConfigValue 
 	return { config: anyPack(TcpConfigSchema, create(TcpConfigSchema, { host: v.host, ports: requiredPorts(v.ports) })) };
 }
 
-// flowIdle is whole seconds, empty for the gateway default.
+// flowIdle is whole seconds, empty for the gateway default; anything else throws.
 export function udpConfigValue(v: { host: string; ports: string; flowIdle: string }): ConfigValue {
+	if (v.flowIdle && !/^\d+$/.test(v.flowIdle)) throw new Error('flow idle must be whole seconds');
 	const flowIdle = v.flowIdle ? create(DurationSchema, { seconds: BigInt(v.flowIdle) }) : undefined;
 	return { config: anyPack(UdpConfigSchema, create(UdpConfigSchema, { host: v.host, ports: requiredPorts(v.ports), flowIdle })) };
 }

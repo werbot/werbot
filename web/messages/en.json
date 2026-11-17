@@ -209,6 +209,7 @@
 	"resources_ports_invalid": "Use ports and ranges like 22, 8000-8100: 1 to 65535, up to 16, no overlaps.",
 	"resources_ssh_port_forwarding": "Allow port forwarding (ssh -L)",
 	"resources_flow_idle": "Flow idle timeout, seconds",
+	"resources_flow_idle_invalid": "Use whole seconds.",
 	"resources_flow_idle_hint": "1 to 3600. Empty: 120.",
 	"resources_idle_timeout": "Idle timeout, minutes",
 	"resources_max_duration": "Maximum duration, minutes",

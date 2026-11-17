@@ -15,6 +15,8 @@
 	let ports = $state(formatPorts(current?.ports ?? []));
 	let flowIdle = $state(current?.flowIdle ? String(current.flowIdle.seconds) : '');
 
+	const flowError = $derived(flowIdle && !/^\d+$/.test(flowIdle) ? m.resources_flow_idle_invalid() : '');
+
 	$effect(() => {
 		try {
 			onchange(udpConfigValue({ host, ports, flowIdle }));
@@ -26,4 +28,4 @@
 
 <TextField label={m.resources_ssh_host()} bind:value={host} required />
 <PortRangesField label={m.resources_ports()} bind:value={ports} required />
-<TextField label={m.resources_flow_idle()} bind:value={flowIdle} type="number" min={1} max={3600} hint={m.resources_flow_idle_hint()} />
+<TextField label={m.resources_flow_idle()} bind:value={flowIdle} type="number" min={1} max={3600} hint={m.resources_flow_idle_hint()} error={flowError} />

@@ -1,5 +1,6 @@
 import { anyUnpack } from '@bufbuild/protobuf/wkt';
 import { expect, test } from 'vitest';
+import { ConfigSchema as UdpConfigSchema } from '#lib/gen/werbot/connector/udp/v1/udp_pb.js';
 import { ConfigSchema as TcpConfigSchema } from '#lib/gen/werbot/connector/tcp/v1/tcp_pb.js';
 import { configForms, configFormFor, sshConfigValue, tcpConfigValue, telnetConfigValue, udpConfigValue } from './index';
 import { parsePorts } from './ports';
@@ -48,4 +49,14 @@ test('at most 16 ranges', () => {
 
 test('an empty list is valid for binding ports', () => {
 	expect(parsePorts('')).toEqual([]);
+});
+
+test('udp flow idle is packed in seconds and must be whole', () => {
+	const { config } = udpConfigValue({ host: 'h', ports: '53', flowIdle: '30' });
+	expect(anyUnpack(config!, UdpConfigSchema)).toMatchObject({ flowIdle: { seconds: 30n } });
+	expect(() => udpConfigValue({ host: 'h', ports: '53', flowIdle: '1.5' })).toThrow();
+});
+
+test('spaces inside a range are rejected', () => {
+	expect(() => parsePorts('22 - 80')).toThrow();
 });
