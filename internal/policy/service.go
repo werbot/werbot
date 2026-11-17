@@ -163,9 +163,9 @@ func (s *Service) load(ctx context.Context, orgID uuid.UUID, ip netip.Addr) (sna
 }
 
 // CheckAccess decides whether userID may use resourceID from ip at the time at
-// (zero: now) with the first action of the resource type. A snapshot that
-// fails to compile denies.
-func (s *Service) CheckAccess(ctx context.Context, orgID, userID, resourceID uuid.UUID, ip netip.Addr, at time.Time) (Decision, error) {
+// (zero: now) on the target port (0: terminal or exec) with the first action of
+// the resource type. A snapshot that fails to compile denies.
+func (s *Service) CheckAccess(ctx context.Context, orgID, userID, resourceID uuid.UUID, ip netip.Addr, at time.Time, port uint16) (Decision, error) {
 	snap, blocked, err := s.load(ctx, orgID, ip)
 	if err != nil {
 		return Decision{}, err
@@ -188,5 +188,5 @@ func (s *Service) CheckAccess(ctx context.Context, orgID, userID, resourceID uui
 		return Decision{Reasons: []string{"error:compile"}}, nil
 	}
 	return ps.Authorize(Request{UserID: userID, TeamIDs: teams, ResourceID: resourceID, Action: typ.Actions[0],
-		IP: ip, Country: s.Country(ip), Time: at, IPBlocked: blocked}), nil
+		IP: ip, Country: s.Country(ip), Time: at, IPBlocked: blocked, Port: port}), nil
 }

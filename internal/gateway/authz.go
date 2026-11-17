@@ -31,12 +31,14 @@ type Resource struct {
 	Config     []byte // protojson of the connector config
 }
 
-// AccessRequest asks whether User may connect to Resource; a zero Time means now.
+// AccessRequest asks whether User may connect to Resource; a zero Time means
+// now, Port is the target port of a stream or datagram (0: terminal or exec).
 type AccessRequest struct {
 	User     User
 	Resource Resource
 	IP       netip.Addr
 	Time     time.Time
+	Port     uint16
 }
 
 // Policy is a compiled snapshot: the local policy decision point.
@@ -157,6 +159,7 @@ func (p *Policy) Authorize(r AccessRequest) (allow bool, reasons []string) {
 			"weekday":    cedar.Long(t.Weekday()),
 			"hour":       cedar.Long(t.Hour()),
 			"ip_blocked": cedar.Boolean(slices.ContainsFunc(p.blocklist, func(b netip.Prefix) bool { return b.Contains(ip) })),
+			"port":       cedar.Long(r.Port),
 		}),
 	}
 	d, diag := cedar.Authorize(p.policies, entityGetter{p.entities, user}, req)

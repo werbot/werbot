@@ -7,6 +7,8 @@
 package werbotv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	v1 "github.com/werbot/werbot/gen/werbot/connector/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -32,6 +34,8 @@ type Binding struct {
 	LabelSelector map[string]string      `protobuf:"bytes,5,rep,name=label_selector,json=labelSelector,proto3" json:"label_selector,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CreatedBy     string                 `protobuf:"bytes,6,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Allowed target ports of stream and datagram sessions; empty: every port.
+	Ports         []*v1.PortRange `protobuf:"bytes,8,rep,name=ports,proto3" json:"ports,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -111,6 +115,13 @@ func (x *Binding) GetCreatedBy() string {
 func (x *Binding) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Binding) GetPorts() []*v1.PortRange {
+	if x != nil {
+		return x.Ports
 	}
 	return nil
 }
@@ -210,6 +221,8 @@ type CreateBindingRequest struct {
 	SubjectId     string                 `protobuf:"bytes,2,opt,name=subject_id,json=subjectId,proto3" json:"subject_id,omitempty"`
 	ResourceId    string                 `protobuf:"bytes,3,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"` // exactly one of resource_id and label_selector
 	LabelSelector map[string]string      `protobuf:"bytes,4,rep,name=label_selector,json=labelSelector,proto3" json:"label_selector,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Empty: every port; terminal and exec sessions are never restricted.
+	Ports         []*v1.PortRange `protobuf:"bytes,5,rep,name=ports,proto3" json:"ports,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -268,6 +281,13 @@ func (x *CreateBindingRequest) GetResourceId() string {
 func (x *CreateBindingRequest) GetLabelSelector() map[string]string {
 	if x != nil {
 		return x.LabelSelector
+	}
+	return nil
+}
+
+func (x *CreateBindingRequest) GetPorts() []*v1.PortRange {
+	if x != nil {
+		return x.Ports
 	}
 	return nil
 }
@@ -400,7 +420,7 @@ var File_werbot_v1_access_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_access_proto_rawDesc = "" +
 	"\n" +
-	"\x16werbot/v1/access.proto\x12\twerbot.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe6\x02\n" +
+	"\x16werbot/v1/access.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1fwerbot/connector/v1/ports.proto\"\x9c\x03\n" +
 	"\aBinding\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fsubject_type\x18\x02 \x01(\tR\vsubjectType\x12\x1d\n" +
@@ -412,7 +432,8 @@ const file_werbot_v1_access_proto_rawDesc = "" +
 	"\n" +
 	"created_by\x18\x06 \x01(\tR\tcreatedBy\x129\n" +
 	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x1a@\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x124\n" +
+	"\x05ports\x18\b \x03(\v2\x1e.werbot.connector.v1.PortRangeR\x05ports\x1a@\n" +
 	"\x12LabelSelectorEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"K\n" +
@@ -421,14 +442,15 @@ const file_werbot_v1_access_proto_rawDesc = "" +
 	"resourceId\x88\x01\x01B\x0e\n" +
 	"\f_resource_id\"F\n" +
 	"\x14ListBindingsResponse\x12.\n" +
-	"\bbindings\x18\x01 \x03(\v2\x12.werbot.v1.BindingR\bbindings\"\x96\x02\n" +
+	"\bbindings\x18\x01 \x03(\v2\x12.werbot.v1.BindingR\bbindings\"\xd6\x02\n" +
 	"\x14CreateBindingRequest\x12!\n" +
 	"\fsubject_type\x18\x01 \x01(\tR\vsubjectType\x12\x1d\n" +
 	"\n" +
 	"subject_id\x18\x02 \x01(\tR\tsubjectId\x12\x1f\n" +
 	"\vresource_id\x18\x03 \x01(\tR\n" +
 	"resourceId\x12Y\n" +
-	"\x0elabel_selector\x18\x04 \x03(\v22.werbot.v1.CreateBindingRequest.LabelSelectorEntryR\rlabelSelector\x1a@\n" +
+	"\x0elabel_selector\x18\x04 \x03(\v22.werbot.v1.CreateBindingRequest.LabelSelectorEntryR\rlabelSelector\x12>\n" +
+	"\x05ports\x18\x05 \x03(\v2\x1e.werbot.connector.v1.PortRangeB\b\xbaH\x05\x92\x01\x02\x10\x10R\x05ports\x1a@\n" +
 	"\x12LabelSelectorEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"E\n" +
@@ -468,24 +490,27 @@ var file_werbot_v1_access_proto_goTypes = []any{
 	nil,                           // 7: werbot.v1.Binding.LabelSelectorEntry
 	nil,                           // 8: werbot.v1.CreateBindingRequest.LabelSelectorEntry
 	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
+	(*v1.PortRange)(nil),          // 10: werbot.connector.v1.PortRange
 }
 var file_werbot_v1_access_proto_depIdxs = []int32{
-	7, // 0: werbot.v1.Binding.label_selector:type_name -> werbot.v1.Binding.LabelSelectorEntry
-	9, // 1: werbot.v1.Binding.created_at:type_name -> google.protobuf.Timestamp
-	0, // 2: werbot.v1.ListBindingsResponse.bindings:type_name -> werbot.v1.Binding
-	8, // 3: werbot.v1.CreateBindingRequest.label_selector:type_name -> werbot.v1.CreateBindingRequest.LabelSelectorEntry
-	0, // 4: werbot.v1.CreateBindingResponse.binding:type_name -> werbot.v1.Binding
-	1, // 5: werbot.v1.AccessService.ListBindings:input_type -> werbot.v1.ListBindingsRequest
-	3, // 6: werbot.v1.AccessService.CreateBinding:input_type -> werbot.v1.CreateBindingRequest
-	5, // 7: werbot.v1.AccessService.DeleteBinding:input_type -> werbot.v1.DeleteBindingRequest
-	2, // 8: werbot.v1.AccessService.ListBindings:output_type -> werbot.v1.ListBindingsResponse
-	4, // 9: werbot.v1.AccessService.CreateBinding:output_type -> werbot.v1.CreateBindingResponse
-	6, // 10: werbot.v1.AccessService.DeleteBinding:output_type -> werbot.v1.DeleteBindingResponse
-	8, // [8:11] is the sub-list for method output_type
-	5, // [5:8] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	7,  // 0: werbot.v1.Binding.label_selector:type_name -> werbot.v1.Binding.LabelSelectorEntry
+	9,  // 1: werbot.v1.Binding.created_at:type_name -> google.protobuf.Timestamp
+	10, // 2: werbot.v1.Binding.ports:type_name -> werbot.connector.v1.PortRange
+	0,  // 3: werbot.v1.ListBindingsResponse.bindings:type_name -> werbot.v1.Binding
+	8,  // 4: werbot.v1.CreateBindingRequest.label_selector:type_name -> werbot.v1.CreateBindingRequest.LabelSelectorEntry
+	10, // 5: werbot.v1.CreateBindingRequest.ports:type_name -> werbot.connector.v1.PortRange
+	0,  // 6: werbot.v1.CreateBindingResponse.binding:type_name -> werbot.v1.Binding
+	1,  // 7: werbot.v1.AccessService.ListBindings:input_type -> werbot.v1.ListBindingsRequest
+	3,  // 8: werbot.v1.AccessService.CreateBinding:input_type -> werbot.v1.CreateBindingRequest
+	5,  // 9: werbot.v1.AccessService.DeleteBinding:input_type -> werbot.v1.DeleteBindingRequest
+	2,  // 10: werbot.v1.AccessService.ListBindings:output_type -> werbot.v1.ListBindingsResponse
+	4,  // 11: werbot.v1.AccessService.CreateBinding:output_type -> werbot.v1.CreateBindingResponse
+	6,  // 12: werbot.v1.AccessService.DeleteBinding:output_type -> werbot.v1.DeleteBindingResponse
+	10, // [10:13] is the sub-list for method output_type
+	7,  // [7:10] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_werbot_v1_access_proto_init() }

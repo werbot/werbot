@@ -1,6 +1,7 @@
 syntax = "proto3";
 package werbot.v1;
 
+import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
 service PolicyService {
@@ -50,6 +51,7 @@ message CheckAccessRequest {
   string resource_id = 2;
   string ip = 3;
   google.protobuf.Timestamp time = 4; // unset: now
+  uint32 port = 5 [(buf.validate.field).uint32.lte = 65535]; // target port; 0: terminal or exec
 }
 message CheckAccessResponse {
   bool allow = 1;

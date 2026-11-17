@@ -2,6 +2,7 @@ package policy
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"regexp"
 	"slices"
@@ -11,6 +12,8 @@ import (
 	"github.com/cedar-policy/cedar-go"
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/google/uuid"
+
+	"github.com/werbot/werbot/internal/connector"
 )
 
 var countryRe = regexp.MustCompile(`^[A-Z]{2}$`)
@@ -87,9 +90,31 @@ func writeBinding(b *strings.Builder, bd SnapshotBinding) error {
 	for _, id := range slices.SortedFunc(slices.Values(bd.ResourceIDs), compareIDs) {
 		refs = append(refs, fmt.Sprintf("Werbot::Resource::%q", id))
 	}
-	fmt.Fprintf(b, "@id(\"binding:%s\")\npermit (%s, action, resource)\nwhen { [%s].contains(resource) };\n\n",
+	fmt.Fprintf(b, "@id(\"binding:%s\")\npermit (%s, action, resource)\nwhen { [%s].contains(resource) }",
 		bd.ID, principal, strings.Join(refs, ", "))
+	if len(bd.Ports) > 0 {
+		cond, err := portCondition(bd)
+		if err != nil {
+			return err
+		}
+		b.WriteString("\nwhen { " + cond + " }")
+	}
+	b.WriteString(";\n\n")
 	return nil
+}
+
+// portCondition limits a binding to its ports, ranges by ascending port;
+// port 0 (terminal, exec) has no target and passes.
+func portCondition(bd SnapshotBinding) (string, error) {
+	if err := connector.ValidatePorts(bd.Ports); err != nil {
+		return "", fmt.Errorf("policy: binding %s: %w", bd.ID, err)
+	}
+	terms := []string{"context.port == 0"}
+	for _, r := range slices.SortedFunc(slices.Values(bd.Ports), func(x, y connector.PortRange) int { return cmp.Compare(x.Port, y.Port) }) {
+		last := cmp.Or(r.EndPort, r.Port)
+		terms = append(terms, fmt.Sprintf("(context.port >= %d && context.port <= %d)", r.Port, last))
+	}
+	return strings.Join(terms, " || "), nil
 }
 
 // writeRules emits one forbid per non-empty rule list of r.

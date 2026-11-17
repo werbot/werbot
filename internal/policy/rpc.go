@@ -2,6 +2,7 @@ package policy
 
 import (
 	"context"
+	"math"
 	"net/netip"
 	"time"
 
@@ -114,11 +115,14 @@ func (h *Handler) CheckAccess(ctx context.Context, req *connect.Request[werbotv1
 	if err != nil {
 		return nil, apperr.ToConnect(invalid("invalid ip %q", m.GetIp()))
 	}
+	if m.GetPort() > math.MaxUint16 {
+		return nil, apperr.ToConnect(invalid("invalid port %d", m.GetPort()))
+	}
 	var at time.Time
 	if m.GetTime() != nil {
 		at = m.GetTime().AsTime()
 	}
-	d, err := h.svc.CheckAccess(ctx, org, user, resource, ip, at)
+	d, err := h.svc.CheckAccess(ctx, org, user, resource, ip, at, uint16(m.GetPort())) //nolint:gosec // checked above
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}

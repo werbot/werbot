@@ -66,6 +66,7 @@ type Binding struct {
 	SubjectID     uuid.UUID
 	ResourceID    *uuid.UUID
 	LabelSelector map[string]string
+	Ports         []connector.PortRange // empty: every port
 }
 
 // SnapshotBinding is a binding with its selector expanded to resource ids.
@@ -74,6 +75,8 @@ type SnapshotBinding struct {
 	SubjectType string      `json:"subject_type"`
 	SubjectID   uuid.UUID   `json:"subject_id"`
 	ResourceIDs []uuid.UUID `json:"resource_ids"`
+	// Ports restrict stream and datagram sessions; empty: every port.
+	Ports []connector.PortRange `json:"ports,omitempty"`
 }
 
 // Snapshot is everything the policy of one organization depends on.
@@ -94,6 +97,7 @@ type Request struct {
 	Country    string // ISO 3166-1 alpha-2 or ""
 	Time       time.Time
 	IPBlocked  bool
+	Port       uint16 // target port of a stream or datagram; 0: terminal or exec
 }
 
 // Decision lists the ids of the policies that decided it; "error:<id>" marks
@@ -119,7 +123,7 @@ func (ps *PolicySet) EntitiesJSON() ([]byte, error) {
 func ExpandBindings(resources []SnapshotResource, bindings []Binding) []SnapshotBinding {
 	out := make([]SnapshotBinding, 0, len(bindings))
 	for _, b := range bindings {
-		sb := SnapshotBinding{ID: b.ID, SubjectType: b.SubjectType, SubjectID: b.SubjectID}
+		sb := SnapshotBinding{ID: b.ID, SubjectType: b.SubjectType, SubjectID: b.SubjectID, Ports: b.Ports}
 		if b.ResourceID != nil {
 			sb.ResourceIDs = []uuid.UUID{*b.ResourceID}
 		} else if len(b.LabelSelector) > 0 { // an empty selector matches nothing, not everything
@@ -180,6 +184,7 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 			"weekday":    cedar.Long(t.Weekday()),
 			"hour":       cedar.Long(t.Hour()),
 			"ip_blocked": cedar.Boolean(r.IPBlocked),
+			"port":       cedar.Long(r.Port),
 		}),
 	}
 	d, diag := cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)

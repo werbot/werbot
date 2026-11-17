@@ -8,6 +8,7 @@ import (
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
@@ -63,7 +64,11 @@ func (h *Handler) CreateBinding(ctx context.Context, req *connect.Request[werbot
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	in := CreateInput{SubjectType: m.GetSubjectType(), SubjectID: subject, LabelSelector: m.GetLabelSelector()}
+	ports, err := connector.PortsFromProto(m.GetPorts())
+	if err != nil {
+		return nil, apperr.ToConnect(invalid("%v", err))
+	}
+	in := CreateInput{SubjectType: m.GetSubjectType(), SubjectID: subject, LabelSelector: m.GetLabelSelector(), Ports: ports}
 	if m.GetResourceId() != "" {
 		id, err := parseID(m.GetResourceId())
 		if err != nil {

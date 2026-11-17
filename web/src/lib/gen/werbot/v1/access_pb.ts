@@ -4,15 +4,18 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { file_buf_validate_validate } from "../../buf/validate/validate_pb";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { PortRange } from "../connector/v1/ports_pb";
+import { file_werbot_connector_v1_ports } from "../connector/v1/ports_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file werbot/v1/access.proto.
  */
 export const file_werbot_v1_access: GenFile = /*@__PURE__*/
-  fileDesc("ChZ3ZXJib3QvdjEvYWNjZXNzLnByb3RvEgl3ZXJib3QudjEijQIKB0JpbmRpbmcSCgoCaWQYASABKAkSFAoMc3ViamVjdF90eXBlGAIgASgJEhIKCnN1YmplY3RfaWQYAyABKAkSEwoLcmVzb3VyY2VfaWQYBCABKAkSPQoObGFiZWxfc2VsZWN0b3IYBSADKAsyJS53ZXJib3QudjEuQmluZGluZy5MYWJlbFNlbGVjdG9yRW50cnkSEgoKY3JlYXRlZF9ieRgGIAEoCRIuCgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBo0ChJMYWJlbFNlbGVjdG9yRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI/ChNMaXN0QmluZGluZ3NSZXF1ZXN0EhgKC3Jlc291cmNlX2lkGAEgASgJSACIAQFCDgoMX3Jlc291cmNlX2lkIjwKFExpc3RCaW5kaW5nc1Jlc3BvbnNlEiQKCGJpbmRpbmdzGAEgAygLMhIud2VyYm90LnYxLkJpbmRpbmci1wEKFENyZWF0ZUJpbmRpbmdSZXF1ZXN0EhQKDHN1YmplY3RfdHlwZRgBIAEoCRISCgpzdWJqZWN0X2lkGAIgASgJEhMKC3Jlc291cmNlX2lkGAMgASgJEkoKDmxhYmVsX3NlbGVjdG9yGAQgAygLMjIud2VyYm90LnYxLkNyZWF0ZUJpbmRpbmdSZXF1ZXN0LkxhYmVsU2VsZWN0b3JFbnRyeRo0ChJMYWJlbFNlbGVjdG9yRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI8ChVDcmVhdGVCaW5kaW5nUmVzcG9uc2USIwoHYmluZGluZxgBIAEoCzISLndlcmJvdC52MS5CaW5kaW5nIiIKFERlbGV0ZUJpbmRpbmdSZXF1ZXN0EgoKAmlkGAEgASgJIhcKFURlbGV0ZUJpbmRpbmdSZXNwb25zZTKIAgoNQWNjZXNzU2VydmljZRJPCgxMaXN0QmluZGluZ3MSHi53ZXJib3QudjEuTGlzdEJpbmRpbmdzUmVxdWVzdBofLndlcmJvdC52MS5MaXN0QmluZGluZ3NSZXNwb25zZRJSCg1DcmVhdGVCaW5kaW5nEh8ud2VyYm90LnYxLkNyZWF0ZUJpbmRpbmdSZXF1ZXN0GiAud2VyYm90LnYxLkNyZWF0ZUJpbmRpbmdSZXNwb25zZRJSCg1EZWxldGVCaW5kaW5nEh8ud2VyYm90LnYxLkRlbGV0ZUJpbmRpbmdSZXF1ZXN0GiAud2VyYm90LnYxLkRlbGV0ZUJpbmRpbmdSZXNwb25zZUKSAQoNY29tLndlcmJvdC52MUILQWNjZXNzUHJvdG9QAVovZ2l0aHViLmNvbS93ZXJib3Qvd2VyYm90L2dlbi93ZXJib3QvdjE7d2VyYm90djGiAgNXWFiqAglXZXJib3QuVjHKAglXZXJib3RcVjHiAhVXZXJib3RcVjFcR1BCTWV0YWRhdGHqAgpXZXJib3Q6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChZ3ZXJib3QvdjEvYWNjZXNzLnByb3RvEgl3ZXJib3QudjEivAIKB0JpbmRpbmcSCgoCaWQYASABKAkSFAoMc3ViamVjdF90eXBlGAIgASgJEhIKCnN1YmplY3RfaWQYAyABKAkSEwoLcmVzb3VyY2VfaWQYBCABKAkSPQoObGFiZWxfc2VsZWN0b3IYBSADKAsyJS53ZXJib3QudjEuQmluZGluZy5MYWJlbFNlbGVjdG9yRW50cnkSEgoKY3JlYXRlZF9ieRgGIAEoCRIuCgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBItCgVwb3J0cxgIIAMoCzIeLndlcmJvdC5jb25uZWN0b3IudjEuUG9ydFJhbmdlGjQKEkxhYmVsU2VsZWN0b3JFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIj8KE0xpc3RCaW5kaW5nc1JlcXVlc3QSGAoLcmVzb3VyY2VfaWQYASABKAlIAIgBAUIOCgxfcmVzb3VyY2VfaWQiPAoUTGlzdEJpbmRpbmdzUmVzcG9uc2USJAoIYmluZGluZ3MYASADKAsyEi53ZXJib3QudjEuQmluZGluZyKQAgoUQ3JlYXRlQmluZGluZ1JlcXVlc3QSFAoMc3ViamVjdF90eXBlGAEgASgJEhIKCnN1YmplY3RfaWQYAiABKAkSEwoLcmVzb3VyY2VfaWQYAyABKAkSSgoObGFiZWxfc2VsZWN0b3IYBCADKAsyMi53ZXJib3QudjEuQ3JlYXRlQmluZGluZ1JlcXVlc3QuTGFiZWxTZWxlY3RvckVudHJ5EjcKBXBvcnRzGAUgAygLMh4ud2VyYm90LmNvbm5lY3Rvci52MS5Qb3J0UmFuZ2VCCLpIBZIBAhAQGjQKEkxhYmVsU2VsZWN0b3JFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIjwKFUNyZWF0ZUJpbmRpbmdSZXNwb25zZRIjCgdiaW5kaW5nGAEgASgLMhIud2VyYm90LnYxLkJpbmRpbmciIgoURGVsZXRlQmluZGluZ1JlcXVlc3QSCgoCaWQYASABKAkiFwoVRGVsZXRlQmluZGluZ1Jlc3BvbnNlMogCCg1BY2Nlc3NTZXJ2aWNlEk8KDExpc3RCaW5kaW5ncxIeLndlcmJvdC52MS5MaXN0QmluZGluZ3NSZXF1ZXN0Gh8ud2VyYm90LnYxLkxpc3RCaW5kaW5nc1Jlc3BvbnNlElIKDUNyZWF0ZUJpbmRpbmcSHy53ZXJib3QudjEuQ3JlYXRlQmluZGluZ1JlcXVlc3QaIC53ZXJib3QudjEuQ3JlYXRlQmluZGluZ1Jlc3BvbnNlElIKDURlbGV0ZUJpbmRpbmcSHy53ZXJib3QudjEuRGVsZXRlQmluZGluZ1JlcXVlc3QaIC53ZXJib3QudjEuRGVsZXRlQmluZGluZ1Jlc3BvbnNlQpIBCg1jb20ud2VyYm90LnYxQgtBY2Nlc3NQcm90b1ABWi9naXRodWIuY29tL3dlcmJvdC93ZXJib3QvZ2VuL3dlcmJvdC92MTt3ZXJib3R2MaICA1dYWKoCCVdlcmJvdC5WMcoCCVdlcmJvdFxWMeICFVdlcmJvdFxWMVxHUEJNZXRhZGF0YeoCCldlcmJvdDo6VjFiBnByb3RvMw", [file_buf_validate_validate, file_google_protobuf_timestamp, file_werbot_connector_v1_ports]);
 
 /**
  * Binding grants a user or a team access to one resource or to every resource matching a label selector.
@@ -58,6 +61,13 @@ export type Binding = Message<"werbot.v1.Binding"> & {
    * @generated from field: google.protobuf.Timestamp created_at = 7;
    */
   createdAt?: Timestamp | undefined;
+
+  /**
+   * Allowed target ports of stream and datagram sessions; empty: every port.
+   *
+   * @generated from field: repeated werbot.connector.v1.PortRange ports = 8;
+   */
+  ports: PortRange[];
 };
 
 /**
@@ -128,6 +138,13 @@ export type CreateBindingRequest = Message<"werbot.v1.CreateBindingRequest"> & {
    * @generated from field: map<string, string> label_selector = 4;
    */
   labelSelector: { [key: string]: string };
+
+  /**
+   * Empty: every port; terminal and exec sessions are never restricted.
+   *
+   * @generated from field: repeated werbot.connector.v1.PortRange ports = 5;
+   */
+  ports: PortRange[];
 };
 
 /**

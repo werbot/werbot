@@ -16,7 +16,10 @@ import (
 const maxPortRanges = 16
 
 // PortRange is a target port or an inclusive range; EndPort 0 means one port.
-type PortRange struct{ Port, EndPort uint16 }
+type PortRange struct {
+	Port    uint16 `json:"port"`
+	EndPort uint16 `json:"end_port"`
+}
 
 func (r PortRange) last() uint16 {
 	if r.EndPort == 0 {

@@ -1,7 +1,9 @@
 syntax = "proto3";
 package werbot.v1;
 
+import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
+import "werbot/connector/v1/ports.proto";
 
 service AccessService {
   rpc ListBindings(ListBindingsRequest) returns (ListBindingsResponse);
@@ -18,6 +20,8 @@ message Binding {
   map<string, string> label_selector = 5;
   string created_by = 6;
   google.protobuf.Timestamp created_at = 7;
+  // Allowed target ports of stream and datagram sessions; empty: every port.
+  repeated werbot.connector.v1.PortRange ports = 8;
 }
 
 message ListBindingsRequest {
@@ -33,6 +37,8 @@ message CreateBindingRequest {
   string subject_id = 2;
   string resource_id = 3; // exactly one of resource_id and label_selector
   map<string, string> label_selector = 4;
+  // Empty: every port; terminal and exec sessions are never restricted.
+  repeated werbot.connector.v1.PortRange ports = 5 [(buf.validate.field).repeated.max_items = 16];
 }
 message CreateBindingResponse {
   Binding binding = 1;

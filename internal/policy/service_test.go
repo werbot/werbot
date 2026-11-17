@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/werbot/werbot/internal/connector"
 	_ "github.com/werbot/werbot/internal/connector/ssh"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
@@ -127,12 +128,12 @@ func TestSetRulesRejects(t *testing.T) {
 func TestOwnerWithoutBindingIsDenied(t *testing.T) {
 	e := setup(t)
 	r := e.resource(t, e.org)
-	d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{})
+	d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
 	require.NoError(t, err)
 	assert.False(t, d.Allow)
 
 	e.bind(e.org, e.owner, r)
-	d, err = e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{})
+	d, err = e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
 	require.NoError(t, err)
 	assert.True(t, d.Allow)
 }
@@ -144,7 +145,7 @@ func TestCheckAccessFailsClosedWithoutGeoIP(t *testing.T) {
 	require.NoError(t, e.svc.SetRules(e.ctx, e.org, ResourceRules{ResourceID: r, Countries: []CountryRule{{"DE", EffectAllow}}}))
 
 	require.NoError(t, e.svc.ReloadGeoIP(e.ctx)) // no geoip_db row
-	d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{})
+	d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
 	require.NoError(t, err)
 	assert.False(t, d.Allow)
 	assert.Contains(t, d.Reasons, "rule:country:"+r.String())
@@ -153,7 +154,7 @@ func TestCheckAccessFailsClosedWithoutGeoIP(t *testing.T) {
 		testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "DE"))
 	require.NoError(t, err)
 	require.NoError(t, e.svc.ReloadGeoIP(e.ctx))
-	d, err = e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{})
+	d, err = e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
 	require.NoError(t, err)
 	assert.True(t, d.Allow)
 }
@@ -166,7 +167,7 @@ func TestCheckAccessBlocklisted(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, ip := range []string{"203.0.113.7", "::ffff:203.0.113.7"} {
-		d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, netip.MustParseAddr(ip), time.Time{})
+		d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, netip.MustParseAddr(ip), time.Time{}, 0)
 		require.NoError(t, err, ip)
 		assert.Equal(t, Decision{Allow: false, Reasons: []string{"blocklist"}}, d, ip)
 	}
@@ -182,7 +183,7 @@ func TestCheckAccessOtherOrgResource(t *testing.T) {
 	e.resource(t, orgB)
 	e.bind(orgB, e.owner, r)
 
-	_, err := e.svc.CheckAccess(e.ctx, orgB, e.owner, r, ip10, time.Time{})
+	_, err := e.svc.CheckAccess(e.ctx, orgB, e.owner, r, ip10, time.Time{}, 0)
 	assert.ErrorIs(t, err, apperr.ErrNotFound)
 	_, err = e.svc.GetRules(e.ctx, orgB, r)
 	assert.ErrorIs(t, err, apperr.ErrNotFound)
@@ -194,7 +195,7 @@ func TestCheckAccessCompileErrorDenies(t *testing.T) {
 	e := setup(t)
 	r := e.resource(t, e.org)
 	e.binds[e.org] = []Binding{{ID: uuid.New(), SubjectType: "robot", SubjectID: e.owner, ResourceID: &r}}
-	d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{})
+	d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
 	require.NoError(t, err)
 	assert.Equal(t, Decision{Allow: false, Reasons: []string{"error:compile"}}, d)
 }
@@ -203,6 +204,18 @@ func TestCheckAccessUnregisteredType(t *testing.T) {
 	e := setup(t)
 	r := e.resource(t, e.org)
 	e.res[e.org][0].Type = "telnet"
-	_, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{})
+	_, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
 	assert.ErrorIs(t, err, apperr.ErrFailedPrecondition)
+}
+
+func TestCheckAccessPort(t *testing.T) {
+	e := setup(t)
+	r := e.resource(t, e.org)
+	e.binds[e.org] = []Binding{{ID: uuid.New(), SubjectType: "user", SubjectID: e.owner, ResourceID: &r,
+		Ports: []connector.PortRange{{Port: 5432}}}}
+	for port, allow := range map[uint16]bool{5432: true, 5433: false, 0: true} {
+		d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, port)
+		require.NoError(t, err, port)
+		assert.Equal(t, allow, d.Allow, port)
+	}
 }

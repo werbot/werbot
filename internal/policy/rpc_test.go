@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
@@ -26,6 +27,10 @@ func TestRPCCheckAccess(t *testing.T) {
 
 	_, err := h.CheckAccess(e.ctx, req("bad"))
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	tooHigh := req("10.1.2.3")
+	tooHigh.Msg.Port = 65536
+	_, err = h.CheckAccess(e.ctx, tooHigh)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "port above 65535")
 
 	member := dbtest.User(t, e.pool, e.org, "member")
 	mctx := principal.With(context.Background(), principal.Principal{UserID: member, OrgID: e.org, Role: "member"})
@@ -41,11 +46,20 @@ func TestRPCCheckAccess(t *testing.T) {
 	for _, ip := range []string{"10.1.2.3", "203.0.113.7"} {
 		res, err := h.CheckAccess(e.ctx, req(ip))
 		require.NoError(t, err, ip)
-		want, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, netip.MustParseAddr(ip), time.Time{})
+		want, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, netip.MustParseAddr(ip), time.Time{}, 0)
 		require.NoError(t, err, ip)
 		assert.Equal(t, ip == "10.1.2.3", res.Msg.GetAllow(), ip)
 		assert.Equal(t, want.Allow, res.Msg.GetAllow(), ip)
 		assert.Equal(t, want.Reasons, res.Msg.GetReasons(), ip)
+	}
+
+	e.binds[e.org][0].Ports = []connector.PortRange{{Port: 5432}}
+	for port, allow := range map[uint32]bool{5432: true, 5433: false} {
+		pr := req("10.1.2.3")
+		pr.Msg.Port = port
+		res, err := h.CheckAccess(e.ctx, pr)
+		require.NoError(t, err, port)
+		assert.Equal(t, allow, res.Msg.GetAllow(), port)
 	}
 }
 

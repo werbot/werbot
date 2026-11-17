@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"log/slog"
+	"math/rand/v2"
 	"net/netip"
 	"slices"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	connectorv1 "github.com/werbot/werbot/gen/werbot/connector/v1"
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/gateway"
@@ -98,11 +100,40 @@ func TestPolicyParity(t *testing.T) {
 			if when.IsZero() {
 				when = monday10
 			}
-			server, gw := p.decide(ctx, t, tc.resource, tc.ip, tc.country, when)
+			server, gw := p.decide(ctx, t, tc.resource, tc.ip, tc.country, when, 0)
 			assert.Equal(t, tc.allow, server, "server")
 			assert.Equal(t, tc.allow, gw, "gateway")
 		})
 	}
+
+	// A binding with ports on a second ssh resource: 200 requests (the range
+	// edges, then random ports, half of them near the ranges) decide the same
+	// on both sides and as the ranges say; port 0 (terminal, exec) passes.
+	t.Run("ports", func(t *testing.T) {
+		require.NoError(t, s.d.Policy.SetRules(ctx, org, policy.ResourceRules{ResourceID: p.srv}))
+		_, err := s.pool.Exec(ctx, "DELETE FROM ip_blocklist")
+		require.NoError(t, err)
+		id := dbtest.Resource(t, s.pool, org, "pg", nil)
+		_, err = s.pool.Exec(ctx, "UPDATE resource SET gateway_id = $2, type = 'ssh' WHERE id = $1", id, p.gw)
+		require.NoError(t, err)
+		s.bind(ctx, t, &werbotv1.CreateBindingRequest{SubjectType: "user", SubjectId: user.String(), ResourceId: id.String(),
+			Ports: []*connectorv1.PortRange{{Port: 8000, EndPort: 8100}, {Port: 5432}}})
+		rng := rand.New(rand.NewPCG(6, 2)) //nolint:gosec // reproducible test ports
+		edges := []uint16{0, 1, 5431, 5432, 5433, 7999, 8000, 8100, 8101, 65535}
+		for i := range 200 {
+			port := uint16(rng.Uint32()) //nolint:gosec // any port
+			switch {
+			case i < len(edges):
+				port = edges[i]
+			case i%2 == 0:
+				port = 5400 + uint16(rng.Uint32()%2800) // 5400–8199
+			}
+			want := port == 0 || port == 5432 || (port >= 8000 && port <= 8100)
+			server, gw := p.decide(ctx, t, "pg", v4, "", monday10, port)
+			require.Equal(t, want, server, "server, port %d", port)
+			require.Equal(t, want, gw, "gateway, port %d", port)
+		}
+	})
 
 	// A stored rule that does not compile denies on both sides: the server
 	// (CheckAccess too) and the deny-all snapshot of the tunnel. Compiled,
@@ -114,10 +145,10 @@ func TestPolicyParity(t *testing.T) {
 		_, err = s.pool.Exec(ctx, "INSERT INTO resource_country_rule (org_id, resource_id, country, effect) VALUES ($1, $2, 'nl', 'deny')",
 			org, p.srv)
 		require.NoError(t, err)
-		d, err := s.d.Policy.CheckAccess(ctx, org, user, p.srv, v4, monday10)
+		d, err := s.d.Policy.CheckAccess(ctx, org, user, p.srv, v4, monday10, 0)
 		require.NoError(t, err)
 		assert.Equal(t, []string{"error:compile"}, d.Reasons)
-		server, gw := p.decide(ctx, t, "srv", v4, "US", monday10)
+		server, gw := p.decide(ctx, t, "srv", v4, "US", monday10, 0)
 		assert.False(t, server, "server")
 		assert.False(t, gw, "gateway")
 		// a snapshot the gateway cannot compile leaves it without a policy (not ready): deny
@@ -147,9 +178,9 @@ type parity struct {
 
 // decide asks the server PolicySet (with the action "<type>.connect", as the
 // gateway asks) and the gateway Policy of the pool snapshot whether user may
-// connect to the resource name. For the ssh resource and no country it also
-// checks that CheckAccess agrees with the server decision.
-func (p parity) decide(ctx context.Context, t *testing.T, name string, ip netip.Addr, country string, when time.Time) (server, gw bool) {
+// connect to the resource name on port. For an ssh resource and no country it
+// also checks that CheckAccess agrees with the server decision.
+func (p parity) decide(ctx context.Context, t *testing.T, name string, ip netip.Addr, country string, when time.Time, port uint16) (server, gw bool) {
 	t.Helper()
 	teams, err := p.s.d.Identity.UserTeams(ctx, p.org, p.user)
 	require.NoError(t, err)
@@ -164,9 +195,9 @@ func (p parity) decide(ctx context.Context, t *testing.T, name string, ip netip.
 	require.NoError(t, err)
 	blocked := ip.IsValid() && slices.ContainsFunc(bl, func(b netip.Prefix) bool { return b.Contains(ip.Unmap()) })
 	server = ps.Authorize(policy.Request{UserID: p.user, TeamIDs: teams, ResourceID: res.ID, Action: res.Type + ".connect",
-		IP: ip, Country: country, Time: when, IPBlocked: blocked}).Allow
+		IP: ip, Country: country, Time: when, IPBlocked: blocked, Port: port}).Allow
 	if country == "" && res.Type == "ssh" {
-		d, err := p.s.d.Policy.CheckAccess(ctx, p.org, p.user, res.ID, ip, when)
+		d, err := p.s.d.Policy.CheckAccess(ctx, p.org, p.user, res.ID, ip, when, port)
 		require.NoError(t, err)
 		require.Equal(t, server, d.Allow, "CheckAccess")
 	}
@@ -178,6 +209,6 @@ func (p parity) decide(ctx context.Context, t *testing.T, name string, ip netip.
 	r, ok := pol.Resource(name)
 	require.True(t, ok, "resource in the snapshot")
 	gw, _ = pol.Authorize(gateway.AccessRequest{User: gateway.User{ID: p.user, TeamIDs: teams, Country: country},
-		Resource: r, IP: ip, Time: when})
+		Resource: r, IP: ip, Time: when, Port: port})
 	return server, gw
 }

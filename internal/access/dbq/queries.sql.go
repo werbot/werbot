@@ -7,18 +7,23 @@ package dbq
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const createBinding = `-- name: CreateBinding :one
-INSERT INTO access_binding (org_id, subject_type, subject_id, resource_id, label_selector, created_by)
-SELECT $1::uuid, $2::text, $3::uuid, $4::uuid, $5::jsonb, $6::uuid
+INSERT INTO access_binding (org_id, subject_type, subject_id, resource_id, label_selector, created_by, ports)
+SELECT $1::uuid, $2::text, $3::uuid, $4::uuid, $5::jsonb, $6::uuid,
+    ARRAY(SELECT int4range(($7::int4[])[i], coalesce(nullif(($8::int4[])[i], 0), ($7::int4[])[i]), '[]')
+          FROM generate_subscripts($7::int4[], 1) AS i ORDER BY i)
 WHERE CASE $2::text
     WHEN 'user' THEN EXISTS (SELECT 1 FROM membership WHERE org_id = $1 AND user_id = $3)
     ELSE EXISTS (SELECT 1 FROM team WHERE org_id = $1 AND id = $3)
 END
-RETURNING id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at, ports
+RETURNING id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at,
+    ARRAY(SELECT lower(r) FROM unnest(ports) WITH ORDINALITY AS u(r, o) ORDER BY o)::int4[] AS ports,
+    ARRAY(SELECT upper(r) - 1 FROM unnest(ports) WITH ORDINALITY AS u(r, o) ORDER BY o)::int4[] AS end_ports
 `
 
 type CreateBindingParams struct {
@@ -28,10 +33,27 @@ type CreateBindingParams struct {
 	ResourceID    *uuid.UUID
 	LabelSelector []byte
 	CreatedBy     uuid.UUID
+	Ports         []int32
+	EndPorts      []int32
+}
+
+type CreateBindingRow struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	SubjectType   string
+	SubjectID     uuid.UUID
+	ResourceID    *uuid.UUID
+	LabelSelector []byte
+	CreatedBy     uuid.UUID
+	CreatedAt     time.Time
+	Ports         []int32
+	EndPorts      []int32
 }
 
 // Inserts nothing (no row) when the subject is not in the organization.
-func (q *Queries) CreateBinding(ctx context.Context, arg CreateBindingParams) (AccessBinding, error) {
+// Ports travel as two parallel arrays (end_port 0: the single port), are
+// stored as closed int4range values and read back as lower and upper - 1.
+func (q *Queries) CreateBinding(ctx context.Context, arg CreateBindingParams) (CreateBindingRow, error) {
 	row := q.db.QueryRow(ctx, createBinding,
 		arg.OrgID,
 		arg.SubjectType,
@@ -39,8 +61,10 @@ func (q *Queries) CreateBinding(ctx context.Context, arg CreateBindingParams) (A
 		arg.ResourceID,
 		arg.LabelSelector,
 		arg.CreatedBy,
+		arg.Ports,
+		arg.EndPorts,
 	)
-	var i AccessBinding
+	var i CreateBindingRow
 	err := row.Scan(
 		&i.ID,
 		&i.OrgID,
@@ -51,6 +75,7 @@ func (q *Queries) CreateBinding(ctx context.Context, arg CreateBindingParams) (A
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.Ports,
+		&i.EndPorts,
 	)
 	return i, err
 }
@@ -85,7 +110,9 @@ func (q *Queries) DeleteBinding(ctx context.Context, arg DeleteBindingParams) (D
 }
 
 const listBindings = `-- name: ListBindings :many
-SELECT id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at, ports
+SELECT id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at,
+    ARRAY(SELECT lower(r) FROM unnest(ports) WITH ORDINALITY AS u(r, o) ORDER BY o)::int4[] AS ports,
+    ARRAY(SELECT upper(r) - 1 FROM unnest(ports) WITH ORDINALITY AS u(r, o) ORDER BY o)::int4[] AS end_ports
 FROM access_binding
 WHERE org_id = $1
   AND ($2::uuid IS NULL OR resource_id = $2::uuid OR label_selector IS NOT NULL)
@@ -97,16 +124,29 @@ type ListBindingsParams struct {
 	ResourceID *uuid.UUID
 }
 
+type ListBindingsRow struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	SubjectType   string
+	SubjectID     uuid.UUID
+	ResourceID    *uuid.UUID
+	LabelSelector []byte
+	CreatedBy     uuid.UUID
+	CreatedAt     time.Time
+	Ports         []int32
+	EndPorts      []int32
+}
+
 // A set resource_id keeps the bindings to it and every selector binding.
-func (q *Queries) ListBindings(ctx context.Context, arg ListBindingsParams) ([]AccessBinding, error) {
+func (q *Queries) ListBindings(ctx context.Context, arg ListBindingsParams) ([]ListBindingsRow, error) {
 	rows, err := q.db.Query(ctx, listBindings, arg.OrgID, arg.ResourceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []AccessBinding
+	var items []ListBindingsRow
 	for rows.Next() {
-		var i AccessBinding
+		var i ListBindingsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrgID,
@@ -117,6 +157,7 @@ func (q *Queries) ListBindings(ctx context.Context, arg ListBindingsParams) ([]A
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.Ports,
+			&i.EndPorts,
 		); err != nil {
 			return nil, err
 		}

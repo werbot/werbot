@@ -57,7 +57,7 @@ func (p policyBindings) PolicyBindings(ctx context.Context, orgID uuid.UUID) ([]
 	out := make([]policy.Binding, len(bs))
 	for i, b := range bs {
 		out[i] = policy.Binding{ID: b.ID, SubjectType: b.SubjectType, SubjectID: b.SubjectID,
-			ResourceID: b.ResourceID, LabelSelector: b.LabelSelector}
+			ResourceID: b.ResourceID, LabelSelector: b.LabelSelector, Ports: b.Ports}
 	}
 	return out, nil
 }

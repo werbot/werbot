@@ -7,7 +7,9 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
+	connectorv1 "github.com/werbot/werbot/gen/werbot/connector/v1"
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/access"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
@@ -40,6 +42,20 @@ func TestRPCRoundTrip(t *testing.T) {
 		SubjectType: "user", SubjectId: e.owner.String(), ResourceId: r.String()}))
 	require.NoError(t, err)
 	assert.Equal(t, r.String(), created.Msg.GetBinding().GetResourceId())
+
+	_, err = h.CreateBinding(e.ctx, connect.NewRequest(&werbotv1.CreateBindingRequest{SubjectType: "user",
+		SubjectId: e.owner.String(), ResourceId: r.String(), Ports: []*connectorv1.PortRange{{Port: 70000}}}))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "port above 65535")
+	_, err = h.CreateBinding(e.ctx, connect.NewRequest(&werbotv1.CreateBindingRequest{SubjectType: "user",
+		SubjectId: e.owner.String(), ResourceId: r.String(), Ports: []*connectorv1.PortRange{{Port: 0}}}))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "port 0")
+	ported, err := h.CreateBinding(e.ctx, connect.NewRequest(&werbotv1.CreateBindingRequest{SubjectType: "user",
+		SubjectId: e.owner.String(), ResourceId: r.String(), Ports: []*connectorv1.PortRange{{Port: 5432}, {Port: 8000, EndPort: 8100}}}))
+	require.NoError(t, err)
+	assert.True(t, proto.Equal(&werbotv1.Binding{Ports: []*connectorv1.PortRange{{Port: 5432}, {Port: 8000, EndPort: 8100}}},
+		&werbotv1.Binding{Ports: ported.Msg.GetBinding().GetPorts()}))
+	_, err = h.DeleteBinding(e.ctx, connect.NewRequest(&werbotv1.DeleteBindingRequest{Id: ported.Msg.GetBinding().GetId()}))
+	require.NoError(t, err)
 
 	id := r.String()
 	list, err := h.ListBindings(e.ctx, connect.NewRequest(&werbotv1.ListBindingsRequest{ResourceId: &id}))

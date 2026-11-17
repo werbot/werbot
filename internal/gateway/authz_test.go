@@ -200,3 +200,23 @@ func TestCompilePolicyRejectsGarbage(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, p.Permitted(User{ID: uuid.New()}, netip.MustParseAddr("198.51.100.1"), time.Now()))
 }
+
+func TestAuthorizePort(t *testing.T) {
+	m := newIDs("u1", "r1", "r2")
+	// compiled shape of a binding with ports {5432} on r1 and one without ports on r2
+	bind := `permit (principal == Werbot::User::"u1", action, resource) when { [Werbot::Resource::"r1"].contains(resource) }
+when { context.port == 0 || (context.port >= 5432 && context.port <= 5432) };
+permit (principal == Werbot::User::"u1", action, resource) when { [Werbot::Resource::"r2"].contains(resource) };`
+	p := compileTest(t, m, bind, nil, res{"r1", "db", "ssh"}, res{"r2", "any", "ssh"})
+	u1 := User{ID: m["u1"]}
+	ip := netip.MustParseAddr("198.51.100.1")
+	db, _ := p.Resource("db")
+	anyPort, _ := p.Resource("any")
+	for port, allow := range map[uint16]bool{5432: true, 5433: false, 0: true, 65535: false} {
+		got, reasons := p.Authorize(AccessRequest{User: u1, Resource: db, IP: ip, Port: port})
+		require.Equal(t, allow, got, port)
+		require.NotContains(t, reasons, "error:policy0", port)
+		got, _ = p.Authorize(AccessRequest{User: u1, Resource: anyPort, IP: ip, Port: port})
+		require.True(t, got, port)
+	}
+}

@@ -7,6 +7,7 @@
 package werbotv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -394,7 +395,8 @@ type CheckAccessRequest struct {
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	ResourceId    string                 `protobuf:"bytes,2,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	Ip            string                 `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"`
-	Time          *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=time,proto3" json:"time,omitempty"` // unset: now
+	Time          *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=time,proto3" json:"time,omitempty"`  // unset: now
+	Port          uint32                 `protobuf:"varint,5,opt,name=port,proto3" json:"port,omitempty"` // target port; 0: terminal or exec
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -457,6 +459,13 @@ func (x *CheckAccessRequest) GetTime() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *CheckAccessRequest) GetPort() uint32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
 type CheckAccessResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Allow         bool                   `protobuf:"varint,1,opt,name=allow,proto3" json:"allow,omitempty"`
@@ -513,7 +522,7 @@ var File_werbot_v1_policy_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_policy_proto_rawDesc = "" +
 	"\n" +
-	"\x16werbot/v1/policy.proto\x12\twerbot.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"9\n" +
+	"\x16werbot/v1/policy.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"9\n" +
 	"\vNetworkRule\x12\x12\n" +
 	"\x04cidr\x18\x01 \x01(\tR\x04cidr\x12\x16\n" +
 	"\x06effect\x18\x02 \x01(\tR\x06effect\"?\n" +
@@ -536,13 +545,14 @@ const file_werbot_v1_policy_proto_rawDesc = "" +
 	"\bnetworks\x18\x02 \x03(\v2\x16.werbot.v1.NetworkRuleR\bnetworks\x124\n" +
 	"\tcountries\x18\x03 \x03(\v2\x16.werbot.v1.CountryRuleR\tcountries\x123\n" +
 	"\bschedule\x18\x04 \x03(\v2\x17.werbot.v1.ScheduleSlotR\bschedule\"\x1a\n" +
-	"\x18SetResourceRulesResponse\"\x8e\x01\n" +
+	"\x18SetResourceRulesResponse\"\xad\x01\n" +
 	"\x12CheckAccessRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1f\n" +
 	"\vresource_id\x18\x02 \x01(\tR\n" +
 	"resourceId\x12\x0e\n" +
 	"\x02ip\x18\x03 \x01(\tR\x02ip\x12.\n" +
-	"\x04time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\"E\n" +
+	"\x04time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x1d\n" +
+	"\x04port\x18\x05 \x01(\rB\t\xbaH\x06*\x04\x18\xff\xff\x03R\x04port\"E\n" +
 	"\x13CheckAccessResponse\x12\x14\n" +
 	"\x05allow\x18\x01 \x01(\bR\x05allow\x12\x18\n" +
 	"\areasons\x18\x02 \x03(\tR\areasons2\x97\x02\n" +

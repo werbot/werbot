@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/access"
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
@@ -194,4 +195,47 @@ func TestTeamDeletionDropsBindings(t *testing.T) {
 	_, err = e.pool.Exec(context.Background(), `DELETE FROM team WHERE id = $1`, team)
 	require.NoError(t, err)
 	assert.Equal(t, 0, count(t, e, e.org))
+}
+
+func TestCreateBindingPorts(t *testing.T) {
+	e := setup(t)
+	r := dbtest.Resource(t, e.pool, e.org, "db", nil)
+	in := e.user(t)
+	in.ResourceID = &r
+	in.Ports = []connector.PortRange{{Port: 8000, EndPort: 8100}, {Port: 5432, EndPort: 5432}, {Port: 65535}}
+	b, err := e.svc.Create(e.ctx, e.org, in)
+	require.NoError(t, err)
+	want := []connector.PortRange{{Port: 8000, EndPort: 8100}, {Port: 5432}, {Port: 65535}} // EndPort equal to Port reads back as 0
+	assert.Equal(t, want, b.Ports)
+	var stored, audited string
+	require.NoError(t, e.pool.QueryRow(context.Background(), `SELECT ports::text FROM access_binding WHERE id = $1`, b.ID).Scan(&stored))
+	assert.Equal(t, `{"[8000,8101)","[5432,5433)","[65535,65536)"}`, stored)
+	require.NoError(t, e.pool.QueryRow(context.Background(),
+		`SELECT data->>'ports' FROM audit_event WHERE org_id = $1 AND action = 'access.binding.create'`, e.org).Scan(&audited))
+	assert.JSONEq(t, `[{"port":8000,"end_port":8100},{"port":5432,"end_port":5432},{"port":65535,"end_port":0}]`, audited)
+
+	all, err := e.svc.List(e.ctx, e.org, nil)
+	require.NoError(t, err)
+	require.Len(t, all, 1)
+	assert.Equal(t, want, all[0].Ports)
+
+	in.Ports = nil // no ports: every port
+	b, err = e.svc.Create(e.ctx, e.org, in)
+	require.NoError(t, err)
+	assert.Empty(t, b.Ports)
+
+	many := make([]connector.PortRange, 17)
+	for i := range many {
+		many[i] = connector.PortRange{Port: uint16(i + 1)}
+	}
+	for name, ports := range map[string][]connector.PortRange{
+		"zero":      {{Port: 0}},
+		"reversed":  {{Port: 9000, EndPort: 8000}},
+		"overlap":   {{Port: 5432}, {Port: 5000, EndPort: 6000}},
+		"17 ranges": many,
+	} {
+		in.Ports = ports
+		_, err := e.svc.Create(e.ctx, e.org, in)
+		assert.ErrorIs(t, err, apperr.ErrInvalidArgument, name)
+	}
 }

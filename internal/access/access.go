@@ -5,12 +5,14 @@ package access
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"regexp"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/werbot/werbot/internal/access/dbq"
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/apperr"
 )
 
@@ -29,6 +31,7 @@ type Binding struct {
 	SubjectID     uuid.UUID
 	ResourceID    *uuid.UUID
 	LabelSelector map[string]string
+	Ports         []connector.PortRange // target ports of stream and datagram sessions; empty: every port
 	CreatedBy     uuid.UUID
 	CreatedAt     time.Time
 }
@@ -39,6 +42,7 @@ type CreateInput struct {
 	SubjectID     uuid.UUID
 	ResourceID    *uuid.UUID
 	LabelSelector map[string]string
+	Ports         []connector.PortRange // empty: every port
 }
 
 func invalid(format string, a ...any) error {
@@ -63,16 +67,43 @@ func (in CreateInput) validate() error {
 			return invalid("label value of %q must match %s", k, labelValueRe)
 		}
 	}
+	if len(in.Ports) > 0 {
+		if err := connector.ValidatePorts(in.Ports); err != nil {
+			return invalid("%v", err)
+		}
+	}
 	return nil
 }
 
-func toBinding(r dbq.AccessBinding) (Binding, error) {
+// portArrays splits ranges into the parallel port and end_port arrays of the queries.
+func portArrays(rs []connector.PortRange) (ports, ends []int32) {
+	ports, ends = make([]int32, len(rs)), make([]int32, len(rs))
+	for i, r := range rs {
+		ports[i], ends[i] = int32(r.Port), int32(r.EndPort)
+	}
+	return ports, ends
+}
+
+func toBinding(r dbq.ListBindingsRow) (Binding, error) {
 	b := Binding{ID: r.ID, OrgID: r.OrgID, SubjectType: r.SubjectType, SubjectID: r.SubjectID,
 		ResourceID: r.ResourceID, CreatedBy: r.CreatedBy, CreatedAt: r.CreatedAt}
 	if r.LabelSelector != nil {
 		if err := json.Unmarshal(r.LabelSelector, &b.LabelSelector); err != nil {
 			return Binding{}, fmt.Errorf("access: decode selector of %s: %w", r.ID, err)
 		}
+	}
+	if len(r.Ports) != len(r.EndPorts) {
+		return Binding{}, fmt.Errorf("access: ports of %s: %d starts, %d ends", r.ID, len(r.Ports), len(r.EndPorts))
+	}
+	for i, p := range r.Ports {
+		end := r.EndPorts[i]
+		if p < 1 || p > math.MaxUint16 || end < p || end > math.MaxUint16 {
+			return Binding{}, fmt.Errorf("access: ports of %s: invalid range %d-%d", r.ID, p, end)
+		}
+		if end == p {
+			end = 0
+		}
+		b.Ports = append(b.Ports, connector.PortRange{Port: uint16(p), EndPort: uint16(end)})
 	}
 	return b, nil
 }

@@ -44,6 +44,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 	}
 	arg := dbq.CreateBindingParams{OrgID: orgID, SubjectType: in.SubjectType, SubjectID: in.SubjectID,
 		ResourceID: in.ResourceID, CreatedBy: p.UserID}
+	arg.Ports, arg.EndPorts = portArrays(in.Ports)
 	if len(in.LabelSelector) > 0 {
 		if arg.LabelSelector, err = json.Marshal(in.LabelSelector); err != nil {
 			return Binding{}, err
@@ -55,7 +56,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 		if err != nil {
 			return err
 		}
-		if out, err = toBinding(row); err != nil {
+		if out, err = toBinding(dbq.ListBindingsRow(row)); err != nil {
 			return err
 		}
 		data := map[string]any{"subject_type": in.SubjectType, "subject_id": in.SubjectID,
@@ -64,6 +65,9 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 			data["resource_id"] = in.ResourceID
 		} else {
 			data["label_selector"] = in.LabelSelector
+		}
+		if len(in.Ports) > 0 {
+			data["ports"] = in.Ports
 		}
 		return audit(ctx, tx, orgID, p.UserID, "access.binding.create", out.ID, data)
 	})

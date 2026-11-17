@@ -11,7 +11,7 @@ const schemaHead = `namespace Werbot {
   entity Team;
   entity User in [Team];
   entity Resource { name: String, type: String } tags String;
-  type Context = { ip: ipaddr, country: String, weekday: Long, hour: Long, ip_blocked: Bool };
+  type Context = { ip: ipaddr, country: String, weekday: Long, hour: Long, ip_blocked: Bool, port: Long };
 `
 
 // Schema returns the Cedar schema with one action per action of every registered resource type.
