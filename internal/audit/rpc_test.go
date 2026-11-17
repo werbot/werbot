@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/validate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
@@ -72,6 +73,12 @@ func TestAuditRPCValidation(t *testing.T) {
 	c := rpcClient(t, e, map[string]principal.Principal{"owner": e.a.Principal(e.a.OwnerID)})
 	for name, req := range map[string]*werbotv1.ListEventsRequest{
 		"bad actor": {ActorUserId: "nope"}, "negative page": {Page: -1}, "huge page": {Page: 1 << 30}, "negative size": {PageSize: -1}} {
+		_, err := c.ListEvents(t.Context(), as("owner", req))
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), name)
+	}
+	bad := &timestamppb.Timestamp{Seconds: 1 << 50}
+	for name, req := range map[string]*werbotv1.ListEventsRequest{"from out of range": {From: bad}, "to out of range": {To: bad},
+		"bad nanos": {From: &timestamppb.Timestamp{Nanos: -1}}} {
 		_, err := c.ListEvents(t.Context(), as("owner", req))
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), name)
 	}

@@ -1,6 +1,8 @@
 package audit_test
 
 import (
+	"bytes"
+	"slices"
 	"testing"
 	"time"
 
@@ -159,4 +161,25 @@ func TestAuditServiceDeniesNonAdmin(t *testing.T) {
 	p.Role = ""
 	_, _, err = e.svc.ListEvents(t.Context(), p, audit.Filter{})
 	assert.ErrorIs(t, err, apperr.ErrPermissionDenied)
+}
+
+func TestListEventsTieBreak(t *testing.T) {
+	e := newEnv(t)
+	at := time.Now().Add(-time.Hour).Truncate(time.Second)
+	want := make([]uuid.UUID, 5)
+	for i := range want {
+		want[i] = e.write(t, e.a, nil, "x.tie", "", "", at)
+	}
+	slices.SortFunc(want, func(a, b uuid.UUID) int { return bytes.Compare(b[:], a[:]) }) // id DESC
+
+	var got []uuid.UUID
+	for page := 1; page != 0; {
+		evs, next, err := e.svc.ListEvents(t.Context(), e.a.Principal(e.a.AdminID), audit.Filter{Page: page, PageSize: 2})
+		require.NoError(t, err)
+		for _, ev := range evs {
+			got = append(got, ev.ID)
+		}
+		page = next
+	}
+	assert.Equal(t, want, got, "equal created_at: id DESC, no repeat, no gap")
 }

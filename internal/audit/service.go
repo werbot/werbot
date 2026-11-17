@@ -3,7 +3,6 @@ package audit
 import (
 	"context"
 	"fmt"
-	"math"
 
 	"github.com/google/uuid"
 
@@ -14,7 +13,7 @@ import (
 const (
 	defaultPageSize = 50
 	maxPageSize     = 200
-	maxPage         = math.MaxInt32 / maxPageSize // keeps (page-1)*size inside int32
+	maxPage         = 10_000_000 // as the proto rule; (maxPage-1)*maxPageSize fits int32
 )
 
 // Service reads the audit journal.

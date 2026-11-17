@@ -2,7 +2,9 @@ package audit
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -40,13 +42,11 @@ func (h *Handler) ListEvents(ctx context.Context, req *connect.Request[werbotv1.
 		}
 		f.ActorUserID = &u
 	}
-	if m.From != nil {
-		t := m.From.AsTime()
-		f.From = &t
+	if f.From, err = optionalTime(m.GetFrom()); err != nil {
+		return nil, apperr.ToConnect(err)
 	}
-	if m.To != nil {
-		t := m.To.AsTime()
-		f.To = &t
+	if f.To, err = optionalTime(m.GetTo()); err != nil {
+		return nil, apperr.ToConnect(err)
 	}
 	events, next, err := h.svc.ListEvents(ctx, p, f)
 	if err != nil {
@@ -98,4 +98,16 @@ func toProto(e Event) (*werbotv1.AuditEvent, error) {
 		out.Ip = e.IP.String()
 	}
 	return out, nil
+}
+
+// optionalTime is nil for an absent timestamp and apperr.ErrInvalidArgument for an out-of-range one.
+func optionalTime(ts *timestamppb.Timestamp) (*time.Time, error) {
+	if ts == nil {
+		return nil, nil //nolint:nilnil // no filter
+	}
+	if err := ts.CheckValid(); err != nil {
+		return nil, fmt.Errorf("invalid timestamp: %w", errors.Join(apperr.ErrInvalidArgument, err))
+	}
+	t := ts.AsTime()
+	return &t, nil
 }
