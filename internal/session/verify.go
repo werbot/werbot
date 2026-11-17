@@ -14,6 +14,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/dbx"
 	"github.com/werbot/werbot/internal/platform/hashchain"
+	"github.com/werbot/werbot/internal/platform/principal"
 	"github.com/werbot/werbot/internal/session/dbq"
 )
 
@@ -34,17 +35,19 @@ const (
 
 // Verify re-reads every chunk from the store and checks the hash chain, the
 // totals and the manifest signature. Tampering is a Verification, not an error;
-// an error means the database or the store failed.
-func (r *Recordings) Verify(ctx context.Context, orgID, sessionID uuid.UUID) (Verification, error) {
-	return r.copyChain(ctx, orgID, sessionID, io.Discard)
+// an error means the database or the store failed. p is the caller, who may see
+// the session.
+func (r *Recordings) Verify(ctx context.Context, p principal.Principal, sessionID uuid.UUID) (Verification, error) {
+	return r.copyChain(ctx, p, sessionID, io.Discard)
 }
 
 // copyChain verifies like Verify and writes the compressed chunks to w in order,
 // stopping at the first missing one. The chain is recomputed from store objects
 // and recording.chunks; last_hash is ingest state and takes no part.
-func (r *Recordings) copyChain(ctx context.Context, orgID, sessionID uuid.UUID, w io.Writer) (Verification, error) {
+func (r *Recordings) copyChain(ctx context.Context, p principal.Principal, sessionID uuid.UUID, w io.Writer) (Verification, error) {
+	orgID := p.OrgID
 	var rec dbq.GetRecordingRow
-	err := dbx.InOrg(ctx, r.pool, orgID, uuid.Nil, func(tx pgx.Tx) (err error) {
+	err := dbx.InOrg(ctx, r.pool, orgID, p.UserID, func(tx pgx.Tx) (err error) {
 		rec, err = newStore(tx).GetRecording(ctx, dbq.GetRecordingParams{SessionID: sessionID, OrgID: orgID})
 		return err
 	})

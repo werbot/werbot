@@ -57,7 +57,7 @@ func NewReplayHandler(svc *Service, rec *Recordings, logger *slog.Logger) http.H
 			return
 		}
 		defer func() { _ = tmp.Close(); _ = os.Remove(tmp.Name()) }()
-		v, err := rec.copyChain(ctx, p.OrgID, id, tmp)
+		v, err := rec.copyChain(ctx, p, id, tmp)
 		if err == nil && v.Reason == ReasonNoRecording {
 			err = fmt.Errorf("session has no recording: %w", apperr.ErrNotFound)
 		}

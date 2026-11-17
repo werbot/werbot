@@ -148,7 +148,7 @@ func (g *outageRig) record(t *testing.T) {
 }
 
 func (g *outageRig) verified(t *testing.T) bool {
-	v, err := g.rec.Verify(t.Context(), g.f.OrgID, g.sid)
+	v, err := g.rec.Verify(t.Context(), g.f.Principal(g.f.OwnerID), g.sid)
 	return err == nil && v.Verified
 }
 

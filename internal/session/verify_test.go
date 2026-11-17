@@ -30,7 +30,7 @@ func finishedEnv(t *testing.T) (e recEnv, dir string) {
 
 func (e recEnv) verify(t *testing.T) session.Verification {
 	t.Helper()
-	v, err := e.rec.Verify(t.Context(), e.f.OrgID, e.sid)
+	v, err := e.rec.Verify(t.Context(), e.f.Principal(e.f.OwnerID), e.sid)
 	require.NoError(t, err)
 	return v
 }
@@ -93,7 +93,7 @@ func TestVerifyNoRecording(t *testing.T) {
 func TestVerifyOtherOrg(t *testing.T) {
 	e, _ := finishedEnv(t)
 	other := dbtest.Seed(t, e.pool)
-	v, err := e.rec.Verify(t.Context(), other.OrgID, e.sid)
+	v, err := e.rec.Verify(t.Context(), other.Principal(other.OwnerID), e.sid)
 	require.NoError(t, err)
 	assert.Equal(t, session.Verification{Reason: session.ReasonNoRecording}, v)
 }
@@ -101,7 +101,7 @@ func TestVerifyOtherOrg(t *testing.T) {
 func TestVerifyStoreUnavailable(t *testing.T) {
 	e, _ := finishedEnv(t)
 	e.store.down.Store(true)
-	_, err := e.rec.Verify(t.Context(), e.f.OrgID, e.sid)
+	_, err := e.rec.Verify(t.Context(), e.f.Principal(e.f.OwnerID), e.sid)
 	require.ErrorIs(t, err, apperr.ErrUnavailable)
 }
 
@@ -118,7 +118,8 @@ func TestVerifyReasonOrder(t *testing.T) {
 func TestVerifyStoreKindMismatch(t *testing.T) {
 	e, _ := finishedEnv(t)
 	s3 := session.NewRecordings(e.pool, e.store, "s3", e.signer)
-	_, err := s3.Verify(t.Context(), e.f.OrgID, e.sid)
+	_, err := s3.Verify(t.Context(), e.f.Principal(e.f.OwnerID), e.sid)
 	require.ErrorIs(t, err, apperr.ErrUnavailable)
 	assert.ErrorContains(t, err, `kept in "fs" store`)
 }
+

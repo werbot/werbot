@@ -87,7 +87,7 @@ func (h *SessionHandler) VerifyRecording(ctx context.Context, req *connect.Reque
 	if _, err := h.svc.GetSession(ctx, p, id); err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	v, err := h.rec.Verify(ctx, p.OrgID, id)
+	v, err := h.rec.Verify(ctx, p, id)
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
