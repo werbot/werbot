@@ -1,0 +1,9 @@
+syntax = "proto3";
+package werbot.connector.tcp.v1;
+
+import "werbot/connector/v1/ports.proto";
+
+message Config {
+  string host = 1;
+  repeated werbot.connector.v1.PortRange ports = 2;
+}

@@ -41,7 +41,7 @@ Commands: `./bin/werbot <server|gateway|web|migrate|version>`.
 
 The API covers identity (auth, profile, SSH keys, members, teams) and, for owners and admins:
 
-- `ResourceService`: resources of registered types (`ssh` today) with labels, write-only credentials (sealed with `WERBOT_SECRET_KEY`) and pinned SSH host keys.
+- `ResourceService`: resources of registered types (`ssh`, `telnet` (default port 23, login optional, `password` credential), `tcp` (host plus 1–16 non-overlapping port ranges), `udp` (like `tcp` plus `flow_idle`, default `2m`, allowed `1s`–`1h`); `tcp` and `udp` take no credentials; the gateway side of `telnet`, `tcp` and `udp` is not available yet) with labels, write-only credentials (sealed with `WERBOT_SECRET_KEY`) and pinned SSH host keys.
 - `AccessService`: bindings that grant a user or team one resource or every resource matching a label selector.
 - `PolicyService`: per-resource network, country and schedule (UTC) rules, and `CheckAccess` to test a decision. Decisions use Cedar and fail closed.
 - `SessionService`: session list (filters by user, resource, period, status; paging), session card and `VerifyRecording` (hash chain and signature check). Members see only their own sessions.

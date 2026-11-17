@@ -1,0 +1,12 @@
+syntax = "proto3";
+package werbot.connector.udp.v1;
+
+import "google/protobuf/duration.proto";
+import "werbot/connector/v1/ports.proto";
+
+message Config {
+  string host = 1;
+  repeated werbot.connector.v1.PortRange ports = 2;
+  // unset or 0 → 2m; otherwise 1s–1h
+  google.protobuf.Duration flow_idle = 3;
+}
