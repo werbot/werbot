@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/netip"
 	"slices"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -86,7 +87,8 @@ func TestStartSessionOnlyOwnPool(t *testing.T) {
 	b := newBench(t, nil)
 	g := b.instance(t, b.org, uuid.New())
 	user, res := uuid.New(), uuid.New()
-	req := &gatewayv1.StartSessionRequest{UserId: user.String(), ResourceId: res.String(), ClientIp: "10.1.2.3"}
+	req := &gatewayv1.StartSessionRequest{UserId: user.String(), ResourceId: res.String(), ClientIp: "10.1.2.3",
+		Kind: "stream", Target: "db:5432"}
 
 	_, err := g.client.StartSession(ctx, connect.NewRequest(req))
 	wantCode(t, err, connect.CodePermissionDenied, "")
@@ -119,7 +121,7 @@ func TestStartSessionOnlyOwnPool(t *testing.T) {
 		t.Fatalf("response %+v", resp.Msg)
 	}
 	want := SessionStart{OrgID: b.org, GatewayID: g.ID, InstanceID: g.InstanceID, UserID: user, ResourceID: res,
-		ClientIP: netip.MustParseAddr("10.1.2.3")}
+		ClientIP: netip.MustParseAddr("10.1.2.3"), Kind: "stream", Target: "db:5432"}
 	b.f.with(func(f *fake) {
 		if len(f.starts) != 1 || f.starts[0] != want {
 			t.Fatalf("Start(%+v), want %+v", f.starts, want)
@@ -127,13 +129,61 @@ func TestStartSessionOnlyOwnPool(t *testing.T) {
 	})
 
 	for _, bad := range []*gatewayv1.StartSessionRequest{
-		{UserId: "x", ResourceId: res.String(), ClientIp: "10.1.2.3"},
-		{UserId: user.String(), ResourceId: "x", ClientIp: "10.1.2.3"},
-		{UserId: user.String(), ResourceId: res.String(), ClientIp: "x"},
+		{UserId: "x", ResourceId: res.String(), ClientIp: "10.1.2.3", Kind: "terminal"},
+		{UserId: user.String(), ResourceId: "x", ClientIp: "10.1.2.3", Kind: "terminal"},
+		{UserId: user.String(), ResourceId: res.String(), ClientIp: "x", Kind: "terminal"},
 	} {
 		_, err := g.client.StartSession(ctx, connect.NewRequest(bad))
 		wantCode(t, err, connect.CodeInvalidArgument, "")
 	}
+}
+
+func TestStartSessionKindRequired(t *testing.T) {
+	b := newBench(t, nil)
+	g := b.instance(t, b.org, uuid.New())
+	b.f.with(func(f *fake) { f.owned = true })
+	user, res := uuid.NewString(), uuid.NewString()
+	for _, bad := range []*gatewayv1.StartSessionRequest{
+		{UserId: user, ResourceId: res, ClientIp: "10.1.2.3"},
+		{UserId: user, ResourceId: res, ClientIp: "10.1.2.3", Kind: "shell"},
+		{UserId: user, ResourceId: res, ClientIp: "10.1.2.3", Kind: "stream", Target: strings.Repeat("h", 301)},
+	} {
+		_, err := g.client.StartSession(ctx, connect.NewRequest(bad))
+		wantCode(t, err, connect.CodeInvalidArgument, "")
+	}
+	b.f.with(func(f *fake) {
+		if len(f.starts) != 0 {
+			t.Fatalf("Start called: %+v", f.starts)
+		}
+	})
+	for _, kind := range []string{"terminal", "exec", "stream", "datagram"} {
+		_, err := g.client.StartSession(ctx, connect.NewRequest(&gatewayv1.StartSessionRequest{
+			UserId: user, ResourceId: res, ClientIp: "10.1.2.3", Kind: kind}))
+		if err != nil {
+			t.Fatalf("%s: %v", kind, err)
+		}
+	}
+}
+
+func TestEndSessionCountersAndReasons(t *testing.T) {
+	b := newBench(t, nil)
+	g := b.instance(t, b.org, uuid.New())
+	id := uuid.New()
+	for _, reason := range []string{"idle_timeout", "max_duration", "access_revoked"} {
+		_, err := g.client.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{SessionId: id.String(), Reason: reason,
+			Counters: &gatewayv1.SessionCounters{SessionId: id.String(), BytesUp: 7, BytesDown: 8, DatagramsUp: 9, DatagramsDown: 10}}))
+		if err != nil {
+			t.Fatalf("%s: %v", reason, err)
+		}
+	}
+	_, err := g.client.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{SessionId: id.String(), Reason: "gateway_lost"}))
+	wantCode(t, err, connect.CodeInvalidArgument, "")
+	b.f.with(func(f *fake) {
+		want := Counters{SessionID: id, BytesUp: 7, BytesDown: 8, DatagramsUp: 9, DatagramsDown: 10}
+		if len(f.ends) != 3 || f.ends[2].reason != "access_revoked" || f.ends[2].c == nil || *f.ends[2].c != want {
+			t.Fatalf("End(%+v), want counters %+v", f.ends, want)
+		}
+	})
 }
 
 func TestEndSessionScopedToInstance(t *testing.T) {
@@ -146,7 +196,7 @@ func TestEndSessionScopedToInstance(t *testing.T) {
 	b.f.with(func(f *fake) {
 		want := endCall{orgID: b.org, instanceID: g.InstanceID, id: id, reason: "closed"}
 		if len(f.ends) != 1 || f.ends[0].orgID != want.orgID || f.ends[0].instanceID != want.instanceID ||
-			f.ends[0].id != want.id || f.ends[0].reason != want.reason {
+			f.ends[0].id != want.id || f.ends[0].reason != want.reason || f.ends[0].c != nil {
 			t.Fatalf("End(%+v), want %+v", f.ends, want)
 		}
 		f.endErr = apperr.ErrNotFound

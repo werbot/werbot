@@ -5,13 +5,15 @@
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../buf/validate/validate_pb";
+import type { Duration, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_duration, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file gateway/v1/tunnel.proto.
  */
 export const file_gateway_v1_tunnel: GenFile = /*@__PURE__*/
-  fileDesc("ChdnYXRld2F5L3YxL3R1bm5lbC5wcm90bxIKZ2F0ZXdheS52MSJDCg5Db25uZWN0UmVxdWVzdBIqCgloZWFydGJlYXQYASABKAsyFS5nYXRld2F5LnYxLkhlYXJ0YmVhdEgAQgUKA21zZyJ5CglIZWFydGJlYXQSGAoHdmVyc2lvbhgBIAEoCUIHukgEcgIYQBIkCgpjb25uZWN0b3JzGAIgAygJQhC6SA2SAQoQQCIGcgQQARhAEiwKEmFjdGl2ZV9zZXNzaW9uX2lkcxgDIAMoCUIQukgNkgEKEJBOIgVyA7ABASJCCg9Db25uZWN0UmVzcG9uc2USKAoIc25hcHNob3QYASABKAsyFC5nYXRld2F5LnYxLlNuYXBzaG90SABCBQoDbXNnIoYBCghTbmFwc2hvdBIWCg5jZWRhcl9wb2xpY2llcxgBIAEoCRIVCg1lbnRpdGllc19qc29uGAIgASgMEicKCXJlc291cmNlcxgDIAMoCzIULmdhdGV3YXkudjEuUmVzb3VyY2USEQoJYmxvY2tsaXN0GAQgAygJEg8KB3ZlcnNpb24YBSABKAkiRwoIUmVzb3VyY2USCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIMCgR0eXBlGAMgASgJEhMKC2NvbmZpZ19qc29uGAQgASgMIokBChdBdXRoZW50aWNhdGVVc2VyUmVxdWVzdBIoChJmaW5nZXJwcmludF9zaGEyNTYYASABKAlCCrpIB3IFEAEYgAFIABIbCgVsb2dpbhgCIAEoCUIKukgHcgUQARj/AUgAEhoKCWNsaWVudF9pcBgDIAEoCUIHukgEcgJwAUILCgJieRIFukgCCAEiXQoYQXV0aGVudGljYXRlVXNlclJlc3BvbnNlEg8KB3VzZXJfaWQYASABKAkSDQoFbG9naW4YAiABKAkSEAoIdGVhbV9pZHMYAyADKAkSDwoHY291bnRyeRgEIAEoCSJrChNTdGFydFNlc3Npb25SZXF1ZXN0EhkKB3VzZXJfaWQYASABKAlCCLpIBXIDsAEBEh0KC3Jlc291cmNlX2lkGAIgASgJQgi6SAVyA7ABARIaCgljbGllbnRfaXAYAyABKAlCB7pIBHICcAEiVgoUU3RhcnRTZXNzaW9uUmVzcG9uc2USEgoKc2Vzc2lvbl9pZBgBIAEoCRIqCgpjcmVkZW50aWFsGAIgASgLMhYuZ2F0ZXdheS52MS5DcmVkZW50aWFsIikKCkNyZWRlbnRpYWwSDAoEa2luZBgBIAEoCRINCgV2YWx1ZRgCIAEoDCKQAQoRRW5kU2Vzc2lvblJlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESXQoGcmVhc29uGAIgASgJQk26SEpySFIGY2xvc2VkUgVlcnJvclIOaW50ZXJuYWxfZXJyb3JSEGdhdGV3YXlfc2h1dGRvd25SFXJlY29yZGluZ191bmF2YWlsYWJsZSIUChJFbmRTZXNzaW9uUmVzcG9uc2UiagoRUGluSG9zdEtleVJlcXVlc3QSHQoLcmVzb3VyY2VfaWQYASABKAlCCLpIBXIDsAEBEh4KCnB1YmxpY19rZXkYAiABKAxCCrpIB3oFEAEYgEASFgoDYWxnGAMgASgJQgm6SAZyBBABGEAiFAoSUGluSG9zdEtleVJlc3BvbnNlIjYKF1JlbmV3Q2VydGlmaWNhdGVSZXF1ZXN0EhsKB2Nzcl9kZXIYASABKAxCCrpIB3oFEAEYgCAiLAoYUmVuZXdDZXJ0aWZpY2F0ZVJlc3BvbnNlEhAKCGNlcnRfcGVtGAEgASgMIoEBChtVcGxvYWRSZWNvcmRpbmdDaHVua1JlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESFAoDc2VxGAIgASgFQge6SAQaAigAEhUKBGhhc2gYAyABKAxCB7pIBHoCaCASFwoCZ3oYBCABKAxCC7pICHoGEAEYgIAIIh4KHFVwbG9hZFJlY29yZGluZ0NodW5rUmVzcG9uc2UihAEKFkZpbmlzaFJlY29yZGluZ1JlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESFwoGY2h1bmtzGAIgASgFQge6SAQaAigBEhYKBWJ5dGVzGAMgASgDQge6SAQiAigBEhsKCmZpbmFsX2hhc2gYBCABKAxCB7pIBHoCaCAiGQoXRmluaXNoUmVjb3JkaW5nUmVzcG9uc2UyyQUKDVR1bm5lbFNlcnZpY2USRgoHQ29ubmVjdBIaLmdhdGV3YXkudjEuQ29ubmVjdFJlcXVlc3QaGy5nYXRld2F5LnYxLkNvbm5lY3RSZXNwb25zZSgBMAESXQoQQXV0aGVudGljYXRlVXNlchIjLmdhdGV3YXkudjEuQXV0aGVudGljYXRlVXNlclJlcXVlc3QaJC5nYXRld2F5LnYxLkF1dGhlbnRpY2F0ZVVzZXJSZXNwb25zZRJRCgxTdGFydFNlc3Npb24SHy5nYXRld2F5LnYxLlN0YXJ0U2Vzc2lvblJlcXVlc3QaIC5nYXRld2F5LnYxLlN0YXJ0U2Vzc2lvblJlc3BvbnNlEksKCkVuZFNlc3Npb24SHS5nYXRld2F5LnYxLkVuZFNlc3Npb25SZXF1ZXN0Gh4uZ2F0ZXdheS52MS5FbmRTZXNzaW9uUmVzcG9uc2USSwoKUGluSG9zdEtleRIdLmdhdGV3YXkudjEuUGluSG9zdEtleVJlcXVlc3QaHi5nYXRld2F5LnYxLlBpbkhvc3RLZXlSZXNwb25zZRJdChBSZW5ld0NlcnRpZmljYXRlEiMuZ2F0ZXdheS52MS5SZW5ld0NlcnRpZmljYXRlUmVxdWVzdBokLmdhdGV3YXkudjEuUmVuZXdDZXJ0aWZpY2F0ZVJlc3BvbnNlEmkKFFVwbG9hZFJlY29yZGluZ0NodW5rEicuZ2F0ZXdheS52MS5VcGxvYWRSZWNvcmRpbmdDaHVua1JlcXVlc3QaKC5nYXRld2F5LnYxLlVwbG9hZFJlY29yZGluZ0NodW5rUmVzcG9uc2USWgoPRmluaXNoUmVjb3JkaW5nEiIuZ2F0ZXdheS52MS5GaW5pc2hSZWNvcmRpbmdSZXF1ZXN0GiMuZ2F0ZXdheS52MS5GaW5pc2hSZWNvcmRpbmdSZXNwb25zZUKZAQoOY29tLmdhdGV3YXkudjFCC1R1bm5lbFByb3RvUAFaMWdpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vZ2F0ZXdheS92MTtnYXRld2F5djGiAgNHWFiqAgpHYXRld2F5LlYxygIKR2F0ZXdheVxWMeICFkdhdGV3YXlcVjFcR1BCTWV0YWRhdGHqAgtHYXRld2F5OjpWMWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("ChdnYXRld2F5L3YxL3R1bm5lbC5wcm90bxIKZ2F0ZXdheS52MSJDCg5Db25uZWN0UmVxdWVzdBIqCgloZWFydGJlYXQYASABKAsyFS5nYXRld2F5LnYxLkhlYXJ0YmVhdEgAQgUKA21zZyKZAgoJSGVhcnRiZWF0EhgKB3ZlcnNpb24YASABKAlCB7pIBHICGEASJAoKY29ubmVjdG9ycxgCIAMoCUIQukgNkgEKEEAiBnIEEAEYQBIsChJhY3RpdmVfc2Vzc2lvbl9pZHMYAyADKAlCELpIDZIBChCQTiIFcgOwAQESOAoIY291bnRlcnMYBCADKAsyGy5nYXRld2F5LnYxLlNlc3Npb25Db3VudGVyc0IJukgGkgEDEIgnEi0KB2RlbmlhbHMYBSADKAsyEi5nYXRld2F5LnYxLkRlbmlhbEIIukgFkgECEGQSNQoGaGVhbHRoGAYgAygLMhouZ2F0ZXdheS52MS5SZXNvdXJjZUhlYWx0aEIJukgGkgEDEOgHIoMBCg9TZXNzaW9uQ291bnRlcnMSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESEAoIYnl0ZXNfdXAYAiABKAMSEgoKYnl0ZXNfZG93bhgDIAEoAxIUCgxkYXRhZ3JhbXNfdXAYBCABKAMSFgoOZGF0YWdyYW1zX2Rvd24YBSABKAMi0gIKBkRlbmlhbBIcCgd1c2VyX2lkGAEgASgJQgu6SAjYAQFyA7ABARIhCg9rZXlfZmluZ2VycHJpbnQYAiABKAlCCLpIBXIDGIABEhkKCHJlc291cmNlGAMgASgJQge6SARyAhg/EhUKBGtpbmQYBCABKAlCB7pIBHICGBASGAoGdGFyZ2V0GAUgASgJQgi6SAVyAxisAhIdCgljbGllbnRfaXAYBiABKAlCCrpIB9gBAXICcAESdAoGcmVhc29uGAcgASgJQmS6SGFyX1IGZGVuaWVkUhJ0YXJnZXRfbm90X2FsbG93ZWRSEHVuc3VwcG9ydGVkX3R5cGVSEHVuc3VwcG9ydGVkX2tpbmRSBGJ1c3lSCnNwb29sX2Z1bGxSC2F1dGhfZmFpbGVkEiYKAmF0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKDAQoOUmVzb3VyY2VIZWFsdGgSHQoLcmVzb3VyY2VfaWQYASABKAlCCLpIBXIDsAEBEgoKAm9rGAIgASgIEhYKBWVycm9yGAMgASgJQge6SARyAihkEi4KCmNoZWNrZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIhwKDVBvb2xJbnN0YW5jZXMSCwoDaWRzGAEgAygJIncKD0Nvbm5lY3RSZXNwb25zZRIoCghzbmFwc2hvdBgBIAEoCzIULmdhdGV3YXkudjEuU25hcHNob3RIABIzCg5wb29sX2luc3RhbmNlcxgCIAEoCzIZLmdhdGV3YXkudjEuUG9vbEluc3RhbmNlc0gAQgUKA21zZyKrAQoIU25hcHNob3QSFgoOY2VkYXJfcG9saWNpZXMYASABKAkSFQoNZW50aXRpZXNfanNvbhgCIAEoDBInCglyZXNvdXJjZXMYAyADKAsyFC5nYXRld2F5LnYxLlJlc291cmNlEhEKCWJsb2NrbGlzdBgEIAMoCRIPCgd2ZXJzaW9uGAUgASgJEiMKB21lbWJlcnMYBiADKAsyEi5nYXRld2F5LnYxLk1lbWJlciIrCgZNZW1iZXISDwoHdXNlcl9pZBgBIAEoCRIQCgh0ZWFtX2lkcxgCIAMoCSKpAQoIUmVzb3VyY2USCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIMCgR0eXBlGAMgASgJEhMKC2NvbmZpZ19qc29uGAQgASgMEi8KDGlkbGVfdGltZW91dBgFIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIvCgxtYXhfZHVyYXRpb24YBiABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24iiQEKF0F1dGhlbnRpY2F0ZVVzZXJSZXF1ZXN0EigKEmZpbmdlcnByaW50X3NoYTI1NhgBIAEoCUIKukgHcgUQARiAAUgAEhsKBWxvZ2luGAIgASgJQgq6SAdyBRABGP8BSAASGgoJY2xpZW50X2lwGAMgASgJQge6SARyAnABQgsKAmJ5EgW6SAIIASJdChhBdXRoZW50aWNhdGVVc2VyUmVzcG9uc2USDwoHdXNlcl9pZBgBIAEoCRINCgVsb2dpbhgCIAEoCRIQCgh0ZWFtX2lkcxgDIAMoCRIPCgdjb3VudHJ5GAQgASgJIrwBChNTdGFydFNlc3Npb25SZXF1ZXN0EhkKB3VzZXJfaWQYASABKAlCCLpIBXIDsAEBEh0KC3Jlc291cmNlX2lkGAIgASgJQgi6SAVyA7ABARIaCgljbGllbnRfaXAYAyABKAlCB7pIBHICcAESNQoEa2luZBgEIAEoCUInukgkciJSCHRlcm1pbmFsUgRleGVjUgZzdHJlYW1SCGRhdGFncmFtEhgKBnRhcmdldBgFIAEoCUIIukgFcgMYrAIiVgoUU3RhcnRTZXNzaW9uUmVzcG9uc2USEgoKc2Vzc2lvbl9pZBgBIAEoCRIqCgpjcmVkZW50aWFsGAIgASgLMhYuZ2F0ZXdheS52MS5DcmVkZW50aWFsIikKCkNyZWRlbnRpYWwSDAoEa2luZBgBIAEoCRINCgV2YWx1ZRgCIAEoDCLsAQoRRW5kU2Vzc2lvblJlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESiQEKBnJlYXNvbhgCIAEoCUJ5ukh2cnRSBmNsb3NlZFIFZXJyb3JSDmludGVybmFsX2Vycm9yUhBnYXRld2F5X3NodXRkb3duUhVyZWNvcmRpbmdfdW5hdmFpbGFibGVSDGlkbGVfdGltZW91dFIMbWF4X2R1cmF0aW9uUg5hY2Nlc3NfcmV2b2tlZBItCghjb3VudGVycxgDIAEoCzIbLmdhdGV3YXkudjEuU2Vzc2lvbkNvdW50ZXJzIhQKEkVuZFNlc3Npb25SZXNwb25zZSJqChFQaW5Ib3N0S2V5UmVxdWVzdBIdCgtyZXNvdXJjZV9pZBgBIAEoCUIIukgFcgOwAQESHgoKcHVibGljX2tleRgCIAEoDEIKukgHegUQARiAQBIWCgNhbGcYAyABKAlCCbpIBnIEEAEYQCIUChJQaW5Ib3N0S2V5UmVzcG9uc2UiNgoXUmVuZXdDZXJ0aWZpY2F0ZVJlcXVlc3QSGwoHY3NyX2RlchgBIAEoDEIKukgHegUQARiAICIsChhSZW5ld0NlcnRpZmljYXRlUmVzcG9uc2USEAoIY2VydF9wZW0YASABKAwigQEKG1VwbG9hZFJlY29yZGluZ0NodW5rUmVxdWVzdBIcCgpzZXNzaW9uX2lkGAEgASgJQgi6SAVyA7ABARIUCgNzZXEYAiABKAVCB7pIBBoCKAASFQoEaGFzaBgDIAEoDEIHukgEegJoIBIXCgJnehgEIAEoDEILukgIegYQARiAgAgiHgocVXBsb2FkUmVjb3JkaW5nQ2h1bmtSZXNwb25zZSKEAQoWRmluaXNoUmVjb3JkaW5nUmVxdWVzdBIcCgpzZXNzaW9uX2lkGAEgASgJQgi6SAVyA7ABARIXCgZjaHVua3MYAiABKAVCB7pIBBoCKAESFgoFYnl0ZXMYAyABKANCB7pIBCICKAESGwoKZmluYWxfaGFzaBgEIAEoDEIHukgEegJoICIZChdGaW5pc2hSZWNvcmRpbmdSZXNwb25zZTLJBQoNVHVubmVsU2VydmljZRJGCgdDb25uZWN0EhouZ2F0ZXdheS52MS5Db25uZWN0UmVxdWVzdBobLmdhdGV3YXkudjEuQ29ubmVjdFJlc3BvbnNlKAEwARJdChBBdXRoZW50aWNhdGVVc2VyEiMuZ2F0ZXdheS52MS5BdXRoZW50aWNhdGVVc2VyUmVxdWVzdBokLmdhdGV3YXkudjEuQXV0aGVudGljYXRlVXNlclJlc3BvbnNlElEKDFN0YXJ0U2Vzc2lvbhIfLmdhdGV3YXkudjEuU3RhcnRTZXNzaW9uUmVxdWVzdBogLmdhdGV3YXkudjEuU3RhcnRTZXNzaW9uUmVzcG9uc2USSwoKRW5kU2Vzc2lvbhIdLmdhdGV3YXkudjEuRW5kU2Vzc2lvblJlcXVlc3QaHi5nYXRld2F5LnYxLkVuZFNlc3Npb25SZXNwb25zZRJLCgpQaW5Ib3N0S2V5Eh0uZ2F0ZXdheS52MS5QaW5Ib3N0S2V5UmVxdWVzdBoeLmdhdGV3YXkudjEuUGluSG9zdEtleVJlc3BvbnNlEl0KEFJlbmV3Q2VydGlmaWNhdGUSIy5nYXRld2F5LnYxLlJlbmV3Q2VydGlmaWNhdGVSZXF1ZXN0GiQuZ2F0ZXdheS52MS5SZW5ld0NlcnRpZmljYXRlUmVzcG9uc2USaQoUVXBsb2FkUmVjb3JkaW5nQ2h1bmsSJy5nYXRld2F5LnYxLlVwbG9hZFJlY29yZGluZ0NodW5rUmVxdWVzdBooLmdhdGV3YXkudjEuVXBsb2FkUmVjb3JkaW5nQ2h1bmtSZXNwb25zZRJaCg9GaW5pc2hSZWNvcmRpbmcSIi5nYXRld2F5LnYxLkZpbmlzaFJlY29yZGluZ1JlcXVlc3QaIy5nYXRld2F5LnYxLkZpbmlzaFJlY29yZGluZ1Jlc3BvbnNlQpkBCg5jb20uZ2F0ZXdheS52MUILVHVubmVsUHJvdG9QAVoxZ2l0aHViLmNvbS93ZXJib3Qvd2VyYm90L2dlbi9nYXRld2F5L3YxO2dhdGV3YXl2MaICA0dYWKoCCkdhdGV3YXkuVjHKAgpHYXRld2F5XFYx4gIWR2F0ZXdheVxWMVxHUEJNZXRhZGF0YeoCC0dhdGV3YXk6OlYxYgZwcm90bzM", [file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message gateway.v1.ConnectRequest
@@ -56,6 +58,25 @@ export type Heartbeat = Message<"gateway.v1.Heartbeat"> & {
    * @generated from field: repeated string active_session_ids = 3;
    */
   activeSessionIds: string[];
+
+  /**
+   * sessions whose counters changed; the gateway sends the rest next time
+   *
+   * @generated from field: repeated gateway.v1.SessionCounters counters = 4;
+   */
+  counters: SessionCounters[];
+
+  /**
+   * @generated from field: repeated gateway.v1.Denial denials = 5;
+   */
+  denials: Denial[];
+
+  /**
+   * probe results that changed; the first heartbeat after start carries all
+   *
+   * @generated from field: repeated gateway.v1.ResourceHealth health = 6;
+   */
+  health: ResourceHealth[];
 };
 
 /**
@@ -64,6 +85,156 @@ export type Heartbeat = Message<"gateway.v1.Heartbeat"> & {
  */
 export const HeartbeatSchema: GenMessage<Heartbeat> = /*@__PURE__*/
   messageDesc(file_gateway_v1_tunnel, 1);
+
+/**
+ * SessionCounters are a session's traffic totals; up is client to target.
+ *
+ * @generated from message gateway.v1.SessionCounters
+ */
+export type SessionCounters = Message<"gateway.v1.SessionCounters"> & {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: int64 bytes_up = 2;
+   */
+  bytesUp: bigint;
+
+  /**
+   * @generated from field: int64 bytes_down = 3;
+   */
+  bytesDown: bigint;
+
+  /**
+   * @generated from field: int64 datagrams_up = 4;
+   */
+  datagramsUp: bigint;
+
+  /**
+   * @generated from field: int64 datagrams_down = 5;
+   */
+  datagramsDown: bigint;
+};
+
+/**
+ * Describes the message gateway.v1.SessionCounters.
+ * Use `create(SessionCountersSchema)` to create a new message.
+ */
+export const SessionCountersSchema: GenMessage<SessionCounters> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 2);
+
+/**
+ * Denial is a connection attempt the gateway refused.
+ *
+ * @generated from message gateway.v1.Denial
+ */
+export type Denial = Message<"gateway.v1.Denial"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string key_fingerprint = 2;
+   */
+  keyFingerprint: string;
+
+  /**
+   * resource name from the login; the server resolves the id when it exists
+   *
+   * @generated from field: string resource = 3;
+   */
+  resource: string;
+
+  /**
+   * @generated from field: string kind = 4;
+   */
+  kind: string;
+
+  /**
+   * @generated from field: string target = 5;
+   */
+  target: string;
+
+  /**
+   * @generated from field: string client_ip = 6;
+   */
+  clientIp: string;
+
+  /**
+   * @generated from field: string reason = 7;
+   */
+  reason: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp at = 8;
+   */
+  at?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message gateway.v1.Denial.
+ * Use `create(DenialSchema)` to create a new message.
+ */
+export const DenialSchema: GenMessage<Denial> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 3);
+
+/**
+ * ResourceHealth is one probe result of a resource.
+ *
+ * @generated from message gateway.v1.ResourceHealth
+ */
+export type ResourceHealth = Message<"gateway.v1.ResourceHealth"> & {
+  /**
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+
+  /**
+   * @generated from field: bool ok = 2;
+   */
+  ok: boolean;
+
+  /**
+   * the gateway truncates; the bound keeps a full heartbeat under the 1 MiB read limit
+   *
+   * @generated from field: string error = 3;
+   */
+  error: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp checked_at = 4;
+   */
+  checkedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message gateway.v1.ResourceHealth.
+ * Use `create(ResourceHealthSchema)` to create a new message.
+ */
+export const ResourceHealthSchema: GenMessage<ResourceHealth> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 4);
+
+/**
+ * PoolInstances are the online instances of the caller's pool, sorted.
+ *
+ * @generated from message gateway.v1.PoolInstances
+ */
+export type PoolInstances = Message<"gateway.v1.PoolInstances"> & {
+  /**
+   * @generated from field: repeated string ids = 1;
+   */
+  ids: string[];
+};
+
+/**
+ * Describes the message gateway.v1.PoolInstances.
+ * Use `create(PoolInstancesSchema)` to create a new message.
+ */
+export const PoolInstancesSchema: GenMessage<PoolInstances> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 5);
 
 /**
  * @generated from message gateway.v1.ConnectResponse
@@ -78,6 +249,12 @@ export type ConnectResponse = Message<"gateway.v1.ConnectResponse"> & {
      */
     value: Snapshot;
     case: "snapshot";
+  } | {
+    /**
+     * @generated from field: gateway.v1.PoolInstances pool_instances = 2;
+     */
+    value: PoolInstances;
+    case: "poolInstances";
   } | { case: undefined; value?: undefined };
 };
 
@@ -86,7 +263,7 @@ export type ConnectResponse = Message<"gateway.v1.ConnectResponse"> & {
  * Use `create(ConnectResponseSchema)` to create a new message.
  */
 export const ConnectResponseSchema: GenMessage<ConnectResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 2);
+  messageDesc(file_gateway_v1_tunnel, 6);
 
 /**
  * @generated from message gateway.v1.Snapshot
@@ -118,6 +295,13 @@ export type Snapshot = Message<"gateway.v1.Snapshot"> & {
    * @generated from field: string version = 5;
    */
   version: string;
+
+  /**
+   * organization members sorted by user_id; a change revokes sessions on the gateway
+   *
+   * @generated from field: repeated gateway.v1.Member members = 6;
+   */
+  members: Member[];
 };
 
 /**
@@ -125,7 +309,31 @@ export type Snapshot = Message<"gateway.v1.Snapshot"> & {
  * Use `create(SnapshotSchema)` to create a new message.
  */
 export const SnapshotSchema: GenMessage<Snapshot> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 3);
+  messageDesc(file_gateway_v1_tunnel, 7);
+
+/**
+ * Member is an organization member and its teams, sorted.
+ *
+ * @generated from message gateway.v1.Member
+ */
+export type Member = Message<"gateway.v1.Member"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: repeated string team_ids = 2;
+   */
+  teamIds: string[];
+};
+
+/**
+ * Describes the message gateway.v1.Member.
+ * Use `create(MemberSchema)` to create a new message.
+ */
+export const MemberSchema: GenMessage<Member> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 8);
 
 /**
  * @generated from message gateway.v1.Resource
@@ -152,6 +360,18 @@ export type Resource = Message<"gateway.v1.Resource"> & {
    * @generated from field: bytes config_json = 4;
    */
   configJson: Uint8Array;
+
+  /**
+   * unset: the gateway default
+   *
+   * @generated from field: google.protobuf.Duration idle_timeout = 5;
+   */
+  idleTimeout?: Duration | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Duration max_duration = 6;
+   */
+  maxDuration?: Duration | undefined;
 };
 
 /**
@@ -159,7 +379,7 @@ export type Resource = Message<"gateway.v1.Resource"> & {
  * Use `create(ResourceSchema)` to create a new message.
  */
 export const ResourceSchema: GenMessage<Resource> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 4);
+  messageDesc(file_gateway_v1_tunnel, 9);
 
 /**
  * @generated from message gateway.v1.AuthenticateUserRequest
@@ -193,7 +413,7 @@ export type AuthenticateUserRequest = Message<"gateway.v1.AuthenticateUserReques
  * Use `create(AuthenticateUserRequestSchema)` to create a new message.
  */
 export const AuthenticateUserRequestSchema: GenMessage<AuthenticateUserRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 5);
+  messageDesc(file_gateway_v1_tunnel, 10);
 
 /**
  * @generated from message gateway.v1.AuthenticateUserResponse
@@ -225,7 +445,7 @@ export type AuthenticateUserResponse = Message<"gateway.v1.AuthenticateUserRespo
  * Use `create(AuthenticateUserResponseSchema)` to create a new message.
  */
 export const AuthenticateUserResponseSchema: GenMessage<AuthenticateUserResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 6);
+  messageDesc(file_gateway_v1_tunnel, 11);
 
 /**
  * @generated from message gateway.v1.StartSessionRequest
@@ -245,6 +465,18 @@ export type StartSessionRequest = Message<"gateway.v1.StartSessionRequest"> & {
    * @generated from field: string client_ip = 3;
    */
   clientIp: string;
+
+  /**
+   * @generated from field: string kind = 4;
+   */
+  kind: string;
+
+  /**
+   * host:port the gateway connects to; empty for terminal and exec
+   *
+   * @generated from field: string target = 5;
+   */
+  target: string;
 };
 
 /**
@@ -252,7 +484,7 @@ export type StartSessionRequest = Message<"gateway.v1.StartSessionRequest"> & {
  * Use `create(StartSessionRequestSchema)` to create a new message.
  */
 export const StartSessionRequestSchema: GenMessage<StartSessionRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 7);
+  messageDesc(file_gateway_v1_tunnel, 12);
 
 /**
  * @generated from message gateway.v1.StartSessionResponse
@@ -274,7 +506,7 @@ export type StartSessionResponse = Message<"gateway.v1.StartSessionResponse"> & 
  * Use `create(StartSessionResponseSchema)` to create a new message.
  */
 export const StartSessionResponseSchema: GenMessage<StartSessionResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 8);
+  messageDesc(file_gateway_v1_tunnel, 13);
 
 /**
  * @generated from message gateway.v1.Credential
@@ -296,7 +528,7 @@ export type Credential = Message<"gateway.v1.Credential"> & {
  * Use `create(CredentialSchema)` to create a new message.
  */
 export const CredentialSchema: GenMessage<Credential> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 9);
+  messageDesc(file_gateway_v1_tunnel, 14);
 
 /**
  * @generated from message gateway.v1.EndSessionRequest
@@ -313,6 +545,13 @@ export type EndSessionRequest = Message<"gateway.v1.EndSessionRequest"> & {
    * @generated from field: string reason = 2;
    */
   reason: string;
+
+  /**
+   * final totals; unset keeps the stored ones
+   *
+   * @generated from field: gateway.v1.SessionCounters counters = 3;
+   */
+  counters?: SessionCounters | undefined;
 };
 
 /**
@@ -320,7 +559,7 @@ export type EndSessionRequest = Message<"gateway.v1.EndSessionRequest"> & {
  * Use `create(EndSessionRequestSchema)` to create a new message.
  */
 export const EndSessionRequestSchema: GenMessage<EndSessionRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 10);
+  messageDesc(file_gateway_v1_tunnel, 15);
 
 /**
  * @generated from message gateway.v1.EndSessionResponse
@@ -333,7 +572,7 @@ export type EndSessionResponse = Message<"gateway.v1.EndSessionResponse"> & {
  * Use `create(EndSessionResponseSchema)` to create a new message.
  */
 export const EndSessionResponseSchema: GenMessage<EndSessionResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 11);
+  messageDesc(file_gateway_v1_tunnel, 16);
 
 /**
  * @generated from message gateway.v1.PinHostKeyRequest
@@ -362,7 +601,7 @@ export type PinHostKeyRequest = Message<"gateway.v1.PinHostKeyRequest"> & {
  * Use `create(PinHostKeyRequestSchema)` to create a new message.
  */
 export const PinHostKeyRequestSchema: GenMessage<PinHostKeyRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 12);
+  messageDesc(file_gateway_v1_tunnel, 17);
 
 /**
  * @generated from message gateway.v1.PinHostKeyResponse
@@ -375,7 +614,7 @@ export type PinHostKeyResponse = Message<"gateway.v1.PinHostKeyResponse"> & {
  * Use `create(PinHostKeyResponseSchema)` to create a new message.
  */
 export const PinHostKeyResponseSchema: GenMessage<PinHostKeyResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 13);
+  messageDesc(file_gateway_v1_tunnel, 18);
 
 /**
  * @generated from message gateway.v1.RenewCertificateRequest
@@ -392,7 +631,7 @@ export type RenewCertificateRequest = Message<"gateway.v1.RenewCertificateReques
  * Use `create(RenewCertificateRequestSchema)` to create a new message.
  */
 export const RenewCertificateRequestSchema: GenMessage<RenewCertificateRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 14);
+  messageDesc(file_gateway_v1_tunnel, 19);
 
 /**
  * @generated from message gateway.v1.RenewCertificateResponse
@@ -409,7 +648,7 @@ export type RenewCertificateResponse = Message<"gateway.v1.RenewCertificateRespo
  * Use `create(RenewCertificateResponseSchema)` to create a new message.
  */
 export const RenewCertificateResponseSchema: GenMessage<RenewCertificateResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 15);
+  messageDesc(file_gateway_v1_tunnel, 20);
 
 /**
  * UploadRecordingChunk stores chunk seq of a session served by the caller.
@@ -446,7 +685,7 @@ export type UploadRecordingChunkRequest = Message<"gateway.v1.UploadRecordingChu
  * Use `create(UploadRecordingChunkRequestSchema)` to create a new message.
  */
 export const UploadRecordingChunkRequestSchema: GenMessage<UploadRecordingChunkRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 16);
+  messageDesc(file_gateway_v1_tunnel, 21);
 
 /**
  * @generated from message gateway.v1.UploadRecordingChunkResponse
@@ -459,7 +698,7 @@ export type UploadRecordingChunkResponse = Message<"gateway.v1.UploadRecordingCh
  * Use `create(UploadRecordingChunkResponseSchema)` to create a new message.
  */
 export const UploadRecordingChunkResponseSchema: GenMessage<UploadRecordingChunkResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 17);
+  messageDesc(file_gateway_v1_tunnel, 22);
 
 /**
  * FinishRecording closes a recording: the totals must match the ingested chain.
@@ -493,7 +732,7 @@ export type FinishRecordingRequest = Message<"gateway.v1.FinishRecordingRequest"
  * Use `create(FinishRecordingRequestSchema)` to create a new message.
  */
 export const FinishRecordingRequestSchema: GenMessage<FinishRecordingRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 18);
+  messageDesc(file_gateway_v1_tunnel, 23);
 
 /**
  * @generated from message gateway.v1.FinishRecordingResponse
@@ -506,7 +745,7 @@ export type FinishRecordingResponse = Message<"gateway.v1.FinishRecordingRespons
  * Use `create(FinishRecordingResponseSchema)` to create a new message.
  */
 export const FinishRecordingResponseSchema: GenMessage<FinishRecordingResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 19);
+  messageDesc(file_gateway_v1_tunnel, 24);
 
 /**
  * TunnelService is the gateway-to-core control plane. The caller is a gateway

@@ -29,6 +29,7 @@ type endCall struct {
 	orgID, instanceID, id uuid.UUID
 	active                []uuid.UUID
 	reason                string
+	c                     *Counters
 }
 
 // fake implements every dependency interface and records the calls.
@@ -68,6 +69,7 @@ type fake struct {
 	maxInflight atomic.Int32 // highest inflight seen
 
 	ingest fakeIngest
+	beat   beatRecord
 }
 
 // recCall is one IngestChunk (seq, hash, gz) or FinishRecording (chunks, bytes, hash) call.
@@ -191,10 +193,10 @@ func (f *fake) Start(_ context.Context, s SessionStart) (uuid.UUID, error) {
 	return f.sessionID, nil
 }
 
-func (f *fake) End(_ context.Context, orgID, instanceID, id uuid.UUID, reason string) error {
+func (f *fake) End(_ context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.ends = append(f.ends, endCall{orgID: orgID, instanceID: instanceID, id: id, reason: reason})
+	f.ends = append(f.ends, endCall{orgID: orgID, instanceID: instanceID, id: id, reason: reason, c: c})
 	return f.endErr
 }
 
@@ -241,6 +243,6 @@ func (f *fake) with(fn func(f *fake)) {
 }
 
 func (f *fake) deps() Deps {
-	return Deps{Gateways: f, Users: f, Resources: f, Credentials: f, Snapshots: f, Sessions: f, Recordings: &f.ingest,
+	return Deps{Gateways: f, Users: f, Resources: f, Credentials: f, Snapshots: f, Sessions: f, Recordings: &f.ingest, Health: f, Pools: f,
 		Country: func(netip.Addr) string { return "NL" }}
 }

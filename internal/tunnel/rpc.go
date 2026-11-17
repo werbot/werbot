@@ -72,8 +72,8 @@ func (h *Handler) AuthenticateUser(ctx context.Context, req *connect.Request[gat
 		UserId: u.ID.String(), Login: u.Login, TeamIds: teams, Country: h.d.Country(ip)}), nil
 }
 
-// StartSession reveals the credential first, so a resource without one never
-// leaves an open session row, then records the session.
+// StartSession reveals the credential first, so a failed reveal never leaves
+// an open session row, then records the session with its kind and target.
 func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gatewayv1.StartSessionRequest]) (*connect.Response[gatewayv1.StartSessionResponse], error) {
 	g, err := caller(ctx)
 	if err != nil {
@@ -99,7 +99,7 @@ func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gateway
 		return nil, h.fail(ctx, "reveal credential", err)
 	}
 	id, err := h.d.Sessions.Start(ctx, SessionStart{OrgID: g.OrgID, GatewayID: g.ID, InstanceID: g.InstanceID,
-		UserID: userID, ResourceID: resourceID, ClientIP: ip})
+		UserID: userID, ResourceID: resourceID, ClientIP: ip, Kind: req.Msg.GetKind(), Target: req.Msg.GetTarget()})
 	if err != nil {
 		return nil, h.fail(ctx, "start session", err)
 	}
@@ -119,7 +119,7 @@ func (h *Handler) ownResource(ctx context.Context, g Gateway, resourceID uuid.UU
 	return nil
 }
 
-// EndSession closes a session of the calling instance.
+// EndSession closes a session of the calling instance with its final counters, if sent.
 func (h *Handler) EndSession(ctx context.Context, req *connect.Request[gatewayv1.EndSessionRequest]) (*connect.Response[gatewayv1.EndSessionResponse], error) {
 	g, err := caller(ctx)
 	if err != nil {
@@ -129,7 +129,12 @@ func (h *Handler) EndSession(ctx context.Context, req *connect.Request[gatewayv1
 	if err != nil {
 		return nil, err
 	}
-	if err := h.d.Sessions.End(ctx, g.OrgID, g.InstanceID, id, req.Msg.GetReason()); err != nil {
+	var c *Counters
+	if m := req.Msg.GetCounters(); m != nil {
+		v := countersOf(id, m)
+		c = &v
+	}
+	if err := h.d.Sessions.End(ctx, g.OrgID, g.InstanceID, id, req.Msg.GetReason(), c); err != nil {
 		return nil, h.fail(ctx, "end session", err)
 	}
 	return connect.NewResponse(&gatewayv1.EndSessionResponse{}), nil

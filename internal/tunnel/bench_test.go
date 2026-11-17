@@ -185,7 +185,9 @@ func (g *gw) connect(t *testing.T, hb *gatewayv1.Heartbeat) *conn {
 				c.err <- err
 				return
 			}
-			c.snaps <- m.GetSnapshot()
+			if snap := m.GetSnapshot(); snap != nil {
+				c.snaps <- snap
+			}
 		}
 	}()
 	return c

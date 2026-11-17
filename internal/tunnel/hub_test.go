@@ -140,10 +140,12 @@ func TestMailboxKeepsNewestBuild(t *testing.T) {
 	older, newer := &gatewayv1.Snapshot{Version: "a"}, &gatewayv1.Snapshot{Version: "b"}
 	s.offer(newer, 2)
 	s.offer(older, 1)
-	if got := s.take(); got != newer {
-		t.Fatalf("take() = %v, want the newer build", got)
+	pool := &gatewayv1.PoolInstances{}
+	s.offerPool(pool)
+	if got, p := s.take(); got != newer || p != pool {
+		t.Fatalf("take() = %v, %v, want the newer build and the pool list", got, p)
 	}
-	if s.take() != nil {
+	if snap, p := s.take(); snap != nil || p != nil {
 		t.Fatal("mailbox not empty after take")
 	}
 }

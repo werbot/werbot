@@ -45,7 +45,7 @@ type OpenRequest struct {
 // control is the control plane of the pipeline; *tunnelClient implements it.
 type control interface {
 	AuthenticateUser(ctx context.Context, fingerprint string, ip netip.Addr) (User, error)
-	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr) (uuid.UUID, Secret, error)
+	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target string) (uuid.UUID, Secret, error)
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
 	Policy() *Policy
 	Connected() bool
@@ -155,7 +155,7 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, error) {
 	if !slices.Contains(c.Kinds(), r.Kind) {
 		return nil, ErrUnsupportedKind
 	}
-	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP)
+	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target)
 	if err != nil {
 		return nil, controlErr(err)
 	}

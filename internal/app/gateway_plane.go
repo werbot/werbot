@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -39,9 +40,9 @@ func tunnelHosts(publicURL string) []string {
 	return []string{u.Hostname(), "localhost", "127.0.0.1", "::1"}
 }
 
-// runGatewayPlane serves TunnelService over mTLS (HTTP/2 only) on ln until
-// ctx ends, then shuts the server down within 10s. Streams must be closed
-// with hub.Shutdown first, or the shutdown waits for them.
+// runGatewayPlane serves TunnelService over mTLS (HTTP/2 only) on ln and runs
+// the pool list ticker until ctx ends, then shuts the server down within 10s.
+// Streams must be closed with hub.Shutdown first, or the shutdown waits for them.
 func runGatewayPlane(ctx context.Context, ln net.Listener, cfg config.Config, s *services, hub *tunnel.Hub, reg *metrics.Registry, logger *slog.Logger) error {
 	tlsCfg, err := s.CA.ServerTLS(tunnelHosts(cfg.PublicURL))
 	if err != nil {
@@ -49,7 +50,13 @@ func runGatewayPlane(ctx context.Context, ln net.Listener, cfg config.Config, s 
 		return err
 	}
 	mux := http.NewServeMux()
-	tunnel.New(newTunnelDeps(s, reg, logger), hub).Mount(mux)
+	h := tunnel.New(newTunnelDeps(s, reg, logger), hub)
+	h.Mount(mux)
+	runCtx, stopRun := context.WithCancel(ctx)
+	var run sync.WaitGroup
+	run.Go(func() { _ = h.Run(runCtx) })
+	defer run.Wait()
+	defer stopRun()
 	var protos http.Protocols
 	protos.SetHTTP2(true)
 	srv := &http.Server{Handler: mux, TLSConfig: tlsCfg, Protocols: &protos, ReadHeaderTimeout: 10 * time.Second,

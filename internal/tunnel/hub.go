@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"log/slog"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -224,6 +225,64 @@ func snapshotVersion(s *gatewayv1.Snapshot) string {
 	b, _ := proto.MarshalOptions{Deterministic: true}.Marshal(c)
 	sum := sha256.Sum256(b)
 	return hex.EncodeToString(sum[:])
+}
+
+// PoolInterval is how often Run sends every pool its online instances.
+const PoolInterval = 60 * time.Second
+
+// Run sends the online instances of every pool with streams on this replica
+// once per PoolInterval until ctx ends, then returns nil.
+func (hd *Handler) Run(ctx context.Context) error {
+	t := time.NewTicker(PoolInterval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-t.C:
+			hd.sendPools(ctx)
+		}
+	}
+}
+
+// sendPools is one Run pass: one OnlineInstances query per pool.
+func (hd *Handler) sendPools(ctx context.Context) {
+	for pool, ss := range hd.hub.byPool() {
+		hd.offerPool(ctx, pool, ss)
+	}
+}
+
+// offerPool offers the sorted online instances of pool to ss; a failed query
+// only logs, the next pass retries.
+func (hd *Handler) offerPool(ctx context.Context, pool uuid.UUID, ss []*stream) {
+	ctx, cancel := context.WithTimeout(ctx, refreshTimeout)
+	defer cancel()
+	ids, err := hd.d.Pools.OnlineInstances(ctx, pool)
+	if err != nil {
+		hd.log.Warn("tunnel: online pool instances", "gateway_id", pool, "error", err)
+		return
+	}
+	p := &gatewayv1.PoolInstances{Ids: make([]string, len(ids))}
+	for i, id := range ids {
+		p.Ids[i] = id.String()
+	}
+	slices.Sort(p.Ids)
+	for _, s := range ss {
+		s.offerPool(p)
+	}
+}
+
+// byPool returns the streams of this replica by pool.
+func (h *Hub) byPool() map[uuid.UUID][]*stream {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	out := map[uuid.UUID][]*stream{}
+	for _, set := range h.streams {
+		for s := range set {
+			out[s.gw.ID] = append(out[s.gw.ID], s)
+		}
+	}
+	return out
 }
 
 func unavailable(msg string) error {

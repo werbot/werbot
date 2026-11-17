@@ -148,7 +148,7 @@ func (f *fakeControl) AuthenticateUser(_ context.Context, fp string, ip netip.Ad
 	return u, nil
 }
 
-func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr) (uuid.UUID, Secret, error) {
+func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _ string) (uuid.UUID, Secret, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.startCalls++

@@ -55,6 +55,28 @@ type SessionStart struct {
 	Kind, Target                                     string
 }
 
+// Counters are a session's traffic totals since it began; up is client to target.
+type Counters struct {
+	SessionID                                      uuid.UUID
+	BytesUp, BytesDown, DatagramsUp, DatagramsDown int64
+}
+
+// Denial is a connection attempt a gateway refused; UserID is nil when unknown.
+type Denial struct {
+	UserID                                         *uuid.UUID
+	KeyFingerprint, Resource, Kind, Target, Reason string
+	ClientIP                                       netip.Addr
+	At                                             time.Time
+}
+
+// ResourceHealth is one probe result of a resource.
+type ResourceHealth struct {
+	ResourceID uuid.UUID
+	OK         bool
+	Error      string
+	CheckedAt  time.Time
+}
+
 // Gateways authenticates instances by their verified client certificate.
 type Gateways interface {
 	Authenticate(ctx context.Context, gatewayID, instanceID uuid.UUID, certSerial string) (Gateway, error)
@@ -84,11 +106,23 @@ type Snapshots interface {
 	Build(ctx context.Context, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error)
 }
 
-// Sessions records sessions per instance.
+// Sessions records sessions per instance and the attempts gateways refused.
 type Sessions interface {
 	Start(ctx context.Context, s SessionStart) (uuid.UUID, error)
-	End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string) error
+	End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters) error // nil c keeps the stored counters
 	EndMissing(ctx context.Context, orgID, instanceID uuid.UUID, active []uuid.UUID, reason string) (int64, error)
+	UpdateCounters(ctx context.Context, orgID, instanceID uuid.UUID, cs []Counters) error
+	Deny(ctx context.Context, orgID uuid.UUID, ds []Denial) error
+}
+
+// Health stores the probe results of an instance.
+type Health interface {
+	ReportHealth(ctx context.Context, orgID, instanceID uuid.UUID, hs []ResourceHealth) error
+}
+
+// Pools lists the online instances of a pool.
+type Pools interface {
+	OnlineInstances(ctx context.Context, gatewayID uuid.UUID) ([]uuid.UUID, error)
 }
 
 // RecordingIngest stores recording chunks and closes recordings of a session
@@ -107,6 +141,8 @@ type Deps struct {
 	Snapshots   Snapshots
 	Sessions    Sessions
 	Recordings  RecordingIngest
+	Health      Health
+	Pools       Pools
 	Country     func(netip.Addr) string
 	Metrics     *metrics.Registry // nil: a private registry
 	Logger      *slog.Logger      // nil: slog.Default()

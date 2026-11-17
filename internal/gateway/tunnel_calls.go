@@ -53,12 +53,13 @@ func (c *tunnelClient) AuthenticateUser(ctx context.Context, fingerprint string,
 	return u, nil
 }
 
-// StartSession records a session and reveals the resource credential.
-func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr) (uuid.UUID, Secret, error) {
+// StartSession records a session of kind (target: host:port for a stream)
+// and reveals the resource credential.
+func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target string) (uuid.UUID, Secret, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
 	resp, err := c.conn.Load().rpc.StartSession(ctx, connect.NewRequest(&gatewayv1.StartSessionRequest{
-		UserId: userID.String(), ResourceId: resourceID.String(), ClientIp: ip.String(),
+		UserId: userID.String(), ResourceId: resourceID.String(), ClientIp: ip.String(), Kind: string(kind), Target: target,
 	}))
 	if err != nil {
 		return uuid.Nil, Secret{}, err

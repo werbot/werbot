@@ -57,7 +57,7 @@ func TestE2ECredentialIsolation(t *testing.T) {
 	enrollSvc := werbotv1connect.NewGatewayEnrollServiceClient(http.DefaultClient, s.url)
 	start := func(e enrolled) error {
 		_, err := e.client.StartSession(ctx, connect.NewRequest(&gatewayv1.StartSessionRequest{
-			UserId: s.alice, ResourceId: res.String(), ClientIp: "127.0.0.1"}))
+			UserId: s.alice, ResourceId: res.String(), ClientIp: "127.0.0.1", Kind: "terminal"}))
 		return err
 	}
 

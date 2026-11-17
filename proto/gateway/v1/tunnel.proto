@@ -2,6 +2,8 @@ syntax = "proto3";
 package gateway.v1;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 
 // TunnelService is the gateway-to-core control plane. The caller is a gateway
 // instance identified by its mTLS client certificate, never by request fields.
@@ -34,11 +36,55 @@ message Heartbeat {
     max_items: 10000
     items: {string: {uuid: true}}
   }];
+  // sessions whose counters changed; the gateway sends the rest next time
+  repeated SessionCounters counters = 4 [(buf.validate.field).repeated.max_items = 5000];
+  repeated Denial denials = 5 [(buf.validate.field).repeated.max_items = 100];
+  // probe results that changed; the first heartbeat after start carries all
+  repeated ResourceHealth health = 6 [(buf.validate.field).repeated.max_items = 1000];
+}
+
+// SessionCounters are a session's traffic totals; up is client to target.
+message SessionCounters {
+  string session_id = 1 [(buf.validate.field).string.uuid = true];
+  int64 bytes_up = 2;
+  int64 bytes_down = 3;
+  int64 datagrams_up = 4;
+  int64 datagrams_down = 5;
+}
+
+// Denial is a connection attempt the gateway refused.
+message Denial {
+  string user_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string key_fingerprint = 2 [(buf.validate.field).string.max_len = 128];
+  // resource name from the login; the server resolves the id when it exists
+  string resource = 3 [(buf.validate.field).string.max_len = 63];
+  string kind = 4 [(buf.validate.field).string.max_len = 16];
+  string target = 5 [(buf.validate.field).string.max_len = 300];
+  string client_ip = 6 [(buf.validate.field).string.ip = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string reason = 7 [(buf.validate.field).string = {
+    in: ["denied", "target_not_allowed", "unsupported_type", "unsupported_kind", "busy", "spool_full", "auth_failed"]
+  }];
+  google.protobuf.Timestamp at = 8;
+}
+
+// ResourceHealth is one probe result of a resource.
+message ResourceHealth {
+  string resource_id = 1 [(buf.validate.field).string.uuid = true];
+  bool ok = 2;
+  // the gateway truncates; the bound keeps a full heartbeat under the 1 MiB read limit
+  string error = 3 [(buf.validate.field).string.max_bytes = 100];
+  google.protobuf.Timestamp checked_at = 4;
+}
+
+// PoolInstances are the online instances of the caller's pool, sorted.
+message PoolInstances {
+  repeated string ids = 1;
 }
 
 message ConnectResponse {
   oneof msg {
     Snapshot snapshot = 1;
+    PoolInstances pool_instances = 2;
   }
 }
 
@@ -49,6 +95,14 @@ message Snapshot {
   repeated string blocklist = 4;
   // hex SHA-256 of the deterministic encoding without this field
   string version = 5;
+  // organization members sorted by user_id; a change revokes sessions on the gateway
+  repeated Member members = 6;
+}
+
+// Member is an organization member and its teams, sorted.
+message Member {
+  string user_id = 1;
+  repeated string team_ids = 2;
 }
 
 message Resource {
@@ -57,6 +111,9 @@ message Resource {
   string type = 3;
   // protojson of the connector config
   bytes config_json = 4;
+  // unset: the gateway default
+  google.protobuf.Duration idle_timeout = 5;
+  google.protobuf.Duration max_duration = 6;
 }
 
 message AuthenticateUserRequest {
@@ -79,6 +136,11 @@ message StartSessionRequest {
   string user_id = 1 [(buf.validate.field).string.uuid = true];
   string resource_id = 2 [(buf.validate.field).string.uuid = true];
   string client_ip = 3 [(buf.validate.field).string.ip = true];
+  string kind = 4 [(buf.validate.field).string = {
+    in: ["terminal", "exec", "stream", "datagram"]
+  }];
+  // host:port the gateway connects to; empty for terminal and exec
+  string target = 5 [(buf.validate.field).string.max_len = 300];
 }
 
 message StartSessionResponse {
@@ -95,8 +157,10 @@ message EndSessionRequest {
   string session_id = 1 [(buf.validate.field).string.uuid = true];
   // gateway-side end reasons; gateway_lost is set only by the server
   string reason = 2 [(buf.validate.field).string = {
-    in: ["closed", "error", "internal_error", "gateway_shutdown", "recording_unavailable"]
+    in: ["closed", "error", "internal_error", "gateway_shutdown", "recording_unavailable", "idle_timeout", "max_duration", "access_revoked"]
   }];
+  // final totals; unset keeps the stored ones
+  SessionCounters counters = 3;
 }
 
 message EndSessionResponse {}

@@ -2,16 +2,19 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"slices"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/inventory"
+	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/policy"
 	"github.com/werbot/werbot/internal/session"
@@ -28,6 +31,8 @@ func newTunnelDeps(s *services, reg *metrics.Registry, logger *slog.Logger) tunn
 		Snapshots:   tunnelSnapshots{s: s, logger: logger},
 		Sessions:    tunnelSessions{Service: s.Sessions, ids: s.Identity},
 		Recordings:  s.Recordings,
+		Health:      tunnelResources{s.Inventory},
+		Pools:       tunnelGateways{s.Gateways},
 		Country:     s.Policy.Country,
 		Metrics:     reg,
 		Logger:      logger,
@@ -69,7 +74,8 @@ func (u tunnelUsers) user(ctx context.Context, orgID uuid.UUID, ref identity.Use
 	return tunnel.User{ID: ref.UserID, Login: ref.Login, TeamIDs: teams}, nil
 }
 
-// tunnelResources adds the pool ownership check to inventory.Service.
+// tunnelResources adds the pool ownership check and tunnel-typed health
+// reports to inventory.Service.
 type tunnelResources struct{ *inventory.Service }
 
 // OwnedBy reports whether resourceID is served by the pool gatewayID.
@@ -82,10 +88,23 @@ func (r tunnelResources) OwnedBy(ctx context.Context, orgID, gatewayID, resource
 	return slices.ContainsFunc(rs, func(res inventory.Resource) bool { return res.ID == resourceID }), nil
 }
 
+func (r tunnelResources) ReportHealth(ctx context.Context, orgID, instanceID uuid.UUID, hs []tunnel.ResourceHealth) error {
+	out := make([]inventory.Health, len(hs))
+	for i, h := range hs {
+		out[i] = inventory.Health(h)
+	}
+	return r.Service.ReportHealth(ctx, orgID, instanceID, out)
+}
+
 type tunnelCredentials struct{ c *credential.Service }
 
+// Reveal returns an empty secret for a resource without a credential (tcp,
+// udp, telnet without a password); the connector decides whether it needs one.
 func (c tunnelCredentials) Reveal(ctx context.Context, orgID, resourceID uuid.UUID) (tunnel.Secret, error) {
 	sec, err := c.c.Reveal(ctx, orgID, resourceID)
+	if errors.Is(err, apperr.ErrNotFound) {
+		return tunnel.Secret{}, nil
+	}
 	if err != nil {
 		return tunnel.Secret{}, err
 	}
@@ -107,14 +126,29 @@ func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid
 		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Target: st.Target})
 }
 
-// End closes a session without counters until the tunnel carries them.
-func (s tunnelSessions) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string) error {
-	return s.Service.End(ctx, orgID, instanceID, id, reason, nil)
+func (s tunnelSessions) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *tunnel.Counters) error {
+	return s.Service.End(ctx, orgID, instanceID, id, reason, (*session.Counters)(c))
+}
+
+func (s tunnelSessions) UpdateCounters(ctx context.Context, orgID, instanceID uuid.UUID, cs []tunnel.Counters) error {
+	out := make([]session.Counters, len(cs))
+	for i, c := range cs {
+		out[i] = session.Counters(c)
+	}
+	return s.Service.UpdateCounters(ctx, orgID, instanceID, out)
+}
+
+func (s tunnelSessions) Deny(ctx context.Context, orgID uuid.UUID, ds []tunnel.Denial) error {
+	out := make([]session.Denial, len(ds))
+	for i, d := range ds {
+		out[i] = session.Denial(d)
+	}
+	return s.Service.Deny(ctx, orgID, out)
 }
 
 // tunnelSnapshots builds a pool's snapshot: the organization's compiled
-// policy, the pool's resources by name and the blocklist, sorted, so equal
-// data gives an equal version.
+// policy, its members with their teams, the pool's resources by name and the
+// blocklist, sorted, so equal data gives an equal version.
 type tunnelSnapshots struct {
 	s      *services
 	logger *slog.Logger
@@ -136,6 +170,18 @@ func (t tunnelSnapshots) Build(ctx context.Context, orgID, gatewayID uuid.UUID) 
 		}
 		out.CedarPolicies = text
 	}
+	// Also in the deny-all snapshot: a membership change must reach the gateway.
+	members, err := t.s.Identity.OrgMembers(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range members { // sorted by user id, teams sorted
+		pm := &gatewayv1.Member{UserId: m.UserID.String(), TeamIds: make([]string, len(m.TeamIDs))}
+		for i, id := range m.TeamIDs {
+			pm.TeamIds[i] = id.String()
+		}
+		out.Members = append(out.Members, pm)
+	}
 	rs, err := t.s.Inventory.ResourcesForGateway(ctx, orgID, gatewayID)
 	if err != nil {
 		return nil, err
@@ -148,7 +194,14 @@ func (t tunnelSnapshots) Build(ctx context.Context, orgID, gatewayID uuid.UUID) 
 		if err != nil {
 			return nil, err
 		}
-		out.Resources = append(out.Resources, &gatewayv1.Resource{Id: r.ID.String(), Name: r.Name, Type: r.Type, ConfigJson: cfg})
+		res := &gatewayv1.Resource{Id: r.ID.String(), Name: r.Name, Type: r.Type, ConfigJson: cfg}
+		if r.IdleTimeout != nil {
+			res.IdleTimeout = durationpb.New(*r.IdleTimeout)
+		}
+		if r.MaxDuration != nil {
+			res.MaxDuration = durationpb.New(*r.MaxDuration)
+		}
+		out.Resources = append(out.Resources, res)
 	}
 	bl, err := t.s.Policy.Blocklist(ctx)
 	if err != nil {
