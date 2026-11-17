@@ -152,7 +152,8 @@ func (u *session) recv() error {
 
 // flow returns the flow id, dialing it on first use. nil, nil means the datagram is dropped: the flow
 // limit is reached (counted) or the dial failed (the next datagram of the flow retries). Only a
-// refused target is an error. The dial runs unlocked; a flow made meanwhile by another call wins.
+// refused target is an error. Only the recv loop calls flow, so nothing adds a flow during
+// the unlocked dial; the idle reaper only removes them.
 func (u *session) flow(id uint32) (*flow, error) {
 	u.mu.Lock()
 	f, ok := u.flows[id]
@@ -172,20 +173,11 @@ func (u *session) flow(id uint32) (*flow, error) {
 		}
 		return nil, nil
 	}
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	if f, ok := u.flows[id]; ok {
-		_ = conn.Close()
-		return f, nil
-	}
-	if len(u.flows) >= maxFlows {
-		_ = conn.Close()
-		u.dropFlows.Inc()
-		return nil, nil
-	}
 	f = &flow{conn: conn}
 	f.touch()
+	u.mu.Lock()
 	u.flows[id] = f
+	u.mu.Unlock()
 	u.g.Detach(func() error { return u.read(id, f) })
 	return f, nil
 }
