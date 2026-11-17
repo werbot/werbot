@@ -96,7 +96,9 @@ func TestOpenRejectsWhenSpoolFull(t *testing.T) {
 	a := e.open(t, "blocker", KindTerminal)
 	c, _ := LookupConnector("blocker")
 	done := make(chan error, 1)
-	go func() { done <- e.p.Run(t.Context(), a, c) }()
+	ran := make(chan struct{})
+	go func() { done <- e.p.Run(t.Context(), a, c); close(ran) }()
+	t.Cleanup(func() { <-ran }) // t.Context ends first; the end is spooled before TempDir goes
 
 	h := make([]byte, 32)
 	require.NoError(t, e.p.spool.Append(uuid.New(), 0, h, make([]byte, 100)))

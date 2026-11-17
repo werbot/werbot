@@ -52,7 +52,9 @@ func TestPanicEndsOnlyOwnSession(t *testing.T) {
 	blocker := e.open(t, "blocker", KindTerminal)
 	c, _ := LookupConnector("blocker")
 	done := make(chan error, 1)
-	go func() { done <- e.p.Run(t.Context(), blocker, c) }()
+	ran := make(chan struct{})
+	go func() { done <- e.p.Run(t.Context(), blocker, c); close(ran) }()
+	t.Cleanup(func() { <-ran }) // t.Context ends first; the end is spooled before TempDir goes
 
 	pc, _ := LookupConnector("panicky")
 	require.Error(t, e.p.Run(t.Context(), panicky, pc))
