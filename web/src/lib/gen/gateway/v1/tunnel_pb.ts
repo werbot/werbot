@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file gateway/v1/tunnel.proto.
  */
 export const file_gateway_v1_tunnel: GenFile = /*@__PURE__*/
-  fileDesc("ChdnYXRld2F5L3YxL3R1bm5lbC5wcm90bxIKZ2F0ZXdheS52MSJDCg5Db25uZWN0UmVxdWVzdBIqCgloZWFydGJlYXQYASABKAsyFS5nYXRld2F5LnYxLkhlYXJ0YmVhdEgAQgUKA21zZyJ5CglIZWFydGJlYXQSGAoHdmVyc2lvbhgBIAEoCUIHukgEcgIYQBIkCgpjb25uZWN0b3JzGAIgAygJQhC6SA2SAQoQQCIGcgQQARhAEiwKEmFjdGl2ZV9zZXNzaW9uX2lkcxgDIAMoCUIQukgNkgEKEJBOIgVyA7ABASJCCg9Db25uZWN0UmVzcG9uc2USKAoIc25hcHNob3QYASABKAsyFC5nYXRld2F5LnYxLlNuYXBzaG90SABCBQoDbXNnIoYBCghTbmFwc2hvdBIWCg5jZWRhcl9wb2xpY2llcxgBIAEoCRIVCg1lbnRpdGllc19qc29uGAIgASgMEicKCXJlc291cmNlcxgDIAMoCzIULmdhdGV3YXkudjEuUmVzb3VyY2USEQoJYmxvY2tsaXN0GAQgAygJEg8KB3ZlcnNpb24YBSABKAkiRwoIUmVzb3VyY2USCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIMCgR0eXBlGAMgASgJEhMKC2NvbmZpZ19qc29uGAQgASgMIokBChdBdXRoZW50aWNhdGVVc2VyUmVxdWVzdBIoChJmaW5nZXJwcmludF9zaGEyNTYYASABKAlCCrpIB3IFEAEYgAFIABIbCgVsb2dpbhgCIAEoCUIKukgHcgUQARj/AUgAEhoKCWNsaWVudF9pcBgDIAEoCUIHukgEcgJwAUILCgJieRIFukgCCAEiXQoYQXV0aGVudGljYXRlVXNlclJlc3BvbnNlEg8KB3VzZXJfaWQYASABKAkSDQoFbG9naW4YAiABKAkSEAoIdGVhbV9pZHMYAyADKAkSDwoHY291bnRyeRgEIAEoCSJrChNTdGFydFNlc3Npb25SZXF1ZXN0EhkKB3VzZXJfaWQYASABKAlCCLpIBXIDsAEBEh0KC3Jlc291cmNlX2lkGAIgASgJQgi6SAVyA7ABARIaCgljbGllbnRfaXAYAyABKAlCB7pIBHICcAEiVgoUU3RhcnRTZXNzaW9uUmVzcG9uc2USEgoKc2Vzc2lvbl9pZBgBIAEoCRIqCgpjcmVkZW50aWFsGAIgASgLMhYuZ2F0ZXdheS52MS5DcmVkZW50aWFsIikKCkNyZWRlbnRpYWwSDAoEa2luZBgBIAEoCRINCgV2YWx1ZRgCIAEoDCJ5ChFFbmRTZXNzaW9uUmVxdWVzdBIcCgpzZXNzaW9uX2lkGAEgASgJQgi6SAVyA7ABARJGCgZyZWFzb24YAiABKAlCNrpIM3IxUgZjbG9zZWRSBWVycm9yUg5pbnRlcm5hbF9lcnJvclIQZ2F0ZXdheV9zaHV0ZG93biIUChJFbmRTZXNzaW9uUmVzcG9uc2UiagoRUGluSG9zdEtleVJlcXVlc3QSHQoLcmVzb3VyY2VfaWQYASABKAlCCLpIBXIDsAEBEh4KCnB1YmxpY19rZXkYAiABKAxCCrpIB3oFEAEYgEASFgoDYWxnGAMgASgJQgm6SAZyBBABGEAiFAoSUGluSG9zdEtleVJlc3BvbnNlIjYKF1JlbmV3Q2VydGlmaWNhdGVSZXF1ZXN0EhsKB2Nzcl9kZXIYASABKAxCCrpIB3oFEAEYgCAiLAoYUmVuZXdDZXJ0aWZpY2F0ZVJlc3BvbnNlEhAKCGNlcnRfcGVtGAEgASgMMoIECg1UdW5uZWxTZXJ2aWNlEkYKB0Nvbm5lY3QSGi5nYXRld2F5LnYxLkNvbm5lY3RSZXF1ZXN0GhsuZ2F0ZXdheS52MS5Db25uZWN0UmVzcG9uc2UoATABEl0KEEF1dGhlbnRpY2F0ZVVzZXISIy5nYXRld2F5LnYxLkF1dGhlbnRpY2F0ZVVzZXJSZXF1ZXN0GiQuZ2F0ZXdheS52MS5BdXRoZW50aWNhdGVVc2VyUmVzcG9uc2USUQoMU3RhcnRTZXNzaW9uEh8uZ2F0ZXdheS52MS5TdGFydFNlc3Npb25SZXF1ZXN0GiAuZ2F0ZXdheS52MS5TdGFydFNlc3Npb25SZXNwb25zZRJLCgpFbmRTZXNzaW9uEh0uZ2F0ZXdheS52MS5FbmRTZXNzaW9uUmVxdWVzdBoeLmdhdGV3YXkudjEuRW5kU2Vzc2lvblJlc3BvbnNlEksKClBpbkhvc3RLZXkSHS5nYXRld2F5LnYxLlBpbkhvc3RLZXlSZXF1ZXN0Gh4uZ2F0ZXdheS52MS5QaW5Ib3N0S2V5UmVzcG9uc2USXQoQUmVuZXdDZXJ0aWZpY2F0ZRIjLmdhdGV3YXkudjEuUmVuZXdDZXJ0aWZpY2F0ZVJlcXVlc3QaJC5nYXRld2F5LnYxLlJlbmV3Q2VydGlmaWNhdGVSZXNwb25zZUKZAQoOY29tLmdhdGV3YXkudjFCC1R1bm5lbFByb3RvUAFaMWdpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vZ2F0ZXdheS92MTtnYXRld2F5djGiAgNHWFiqAgpHYXRld2F5LlYxygIKR2F0ZXdheVxWMeICFkdhdGV3YXlcVjFcR1BCTWV0YWRhdGHqAgtHYXRld2F5OjpWMWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("ChdnYXRld2F5L3YxL3R1bm5lbC5wcm90bxIKZ2F0ZXdheS52MSJDCg5Db25uZWN0UmVxdWVzdBIqCgloZWFydGJlYXQYASABKAsyFS5nYXRld2F5LnYxLkhlYXJ0YmVhdEgAQgUKA21zZyJ5CglIZWFydGJlYXQSGAoHdmVyc2lvbhgBIAEoCUIHukgEcgIYQBIkCgpjb25uZWN0b3JzGAIgAygJQhC6SA2SAQoQQCIGcgQQARhAEiwKEmFjdGl2ZV9zZXNzaW9uX2lkcxgDIAMoCUIQukgNkgEKEJBOIgVyA7ABASJCCg9Db25uZWN0UmVzcG9uc2USKAoIc25hcHNob3QYASABKAsyFC5nYXRld2F5LnYxLlNuYXBzaG90SABCBQoDbXNnIoYBCghTbmFwc2hvdBIWCg5jZWRhcl9wb2xpY2llcxgBIAEoCRIVCg1lbnRpdGllc19qc29uGAIgASgMEicKCXJlc291cmNlcxgDIAMoCzIULmdhdGV3YXkudjEuUmVzb3VyY2USEQoJYmxvY2tsaXN0GAQgAygJEg8KB3ZlcnNpb24YBSABKAkiRwoIUmVzb3VyY2USCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIMCgR0eXBlGAMgASgJEhMKC2NvbmZpZ19qc29uGAQgASgMIokBChdBdXRoZW50aWNhdGVVc2VyUmVxdWVzdBIoChJmaW5nZXJwcmludF9zaGEyNTYYASABKAlCCrpIB3IFEAEYgAFIABIbCgVsb2dpbhgCIAEoCUIKukgHcgUQARj/AUgAEhoKCWNsaWVudF9pcBgDIAEoCUIHukgEcgJwAUILCgJieRIFukgCCAEiXQoYQXV0aGVudGljYXRlVXNlclJlc3BvbnNlEg8KB3VzZXJfaWQYASABKAkSDQoFbG9naW4YAiABKAkSEAoIdGVhbV9pZHMYAyADKAkSDwoHY291bnRyeRgEIAEoCSJrChNTdGFydFNlc3Npb25SZXF1ZXN0EhkKB3VzZXJfaWQYASABKAlCCLpIBXIDsAEBEh0KC3Jlc291cmNlX2lkGAIgASgJQgi6SAVyA7ABARIaCgljbGllbnRfaXAYAyABKAlCB7pIBHICcAEiVgoUU3RhcnRTZXNzaW9uUmVzcG9uc2USEgoKc2Vzc2lvbl9pZBgBIAEoCRIqCgpjcmVkZW50aWFsGAIgASgLMhYuZ2F0ZXdheS52MS5DcmVkZW50aWFsIikKCkNyZWRlbnRpYWwSDAoEa2luZBgBIAEoCRINCgV2YWx1ZRgCIAEoDCKQAQoRRW5kU2Vzc2lvblJlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESXQoGcmVhc29uGAIgASgJQk26SEpySFIGY2xvc2VkUgVlcnJvclIOaW50ZXJuYWxfZXJyb3JSEGdhdGV3YXlfc2h1dGRvd25SFXJlY29yZGluZ191bmF2YWlsYWJsZSIUChJFbmRTZXNzaW9uUmVzcG9uc2UiagoRUGluSG9zdEtleVJlcXVlc3QSHQoLcmVzb3VyY2VfaWQYASABKAlCCLpIBXIDsAEBEh4KCnB1YmxpY19rZXkYAiABKAxCCrpIB3oFEAEYgEASFgoDYWxnGAMgASgJQgm6SAZyBBABGEAiFAoSUGluSG9zdEtleVJlc3BvbnNlIjYKF1JlbmV3Q2VydGlmaWNhdGVSZXF1ZXN0EhsKB2Nzcl9kZXIYASABKAxCCrpIB3oFEAEYgCAiLAoYUmVuZXdDZXJ0aWZpY2F0ZVJlc3BvbnNlEhAKCGNlcnRfcGVtGAEgASgMIoEBChtVcGxvYWRSZWNvcmRpbmdDaHVua1JlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESFAoDc2VxGAIgASgFQge6SAQaAigAEhUKBGhhc2gYAyABKAxCB7pIBHoCaCASFwoCZ3oYBCABKAxCC7pICHoGEAEYgIAIIh4KHFVwbG9hZFJlY29yZGluZ0NodW5rUmVzcG9uc2UihAEKFkZpbmlzaFJlY29yZGluZ1JlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESFwoGY2h1bmtzGAIgASgFQge6SAQaAigBEhYKBWJ5dGVzGAMgASgDQge6SAQiAigBEhsKCmZpbmFsX2hhc2gYBCABKAxCB7pIBHoCaCAiGQoXRmluaXNoUmVjb3JkaW5nUmVzcG9uc2UyyQUKDVR1bm5lbFNlcnZpY2USRgoHQ29ubmVjdBIaLmdhdGV3YXkudjEuQ29ubmVjdFJlcXVlc3QaGy5nYXRld2F5LnYxLkNvbm5lY3RSZXNwb25zZSgBMAESXQoQQXV0aGVudGljYXRlVXNlchIjLmdhdGV3YXkudjEuQXV0aGVudGljYXRlVXNlclJlcXVlc3QaJC5nYXRld2F5LnYxLkF1dGhlbnRpY2F0ZVVzZXJSZXNwb25zZRJRCgxTdGFydFNlc3Npb24SHy5nYXRld2F5LnYxLlN0YXJ0U2Vzc2lvblJlcXVlc3QaIC5nYXRld2F5LnYxLlN0YXJ0U2Vzc2lvblJlc3BvbnNlEksKCkVuZFNlc3Npb24SHS5nYXRld2F5LnYxLkVuZFNlc3Npb25SZXF1ZXN0Gh4uZ2F0ZXdheS52MS5FbmRTZXNzaW9uUmVzcG9uc2USSwoKUGluSG9zdEtleRIdLmdhdGV3YXkudjEuUGluSG9zdEtleVJlcXVlc3QaHi5nYXRld2F5LnYxLlBpbkhvc3RLZXlSZXNwb25zZRJdChBSZW5ld0NlcnRpZmljYXRlEiMuZ2F0ZXdheS52MS5SZW5ld0NlcnRpZmljYXRlUmVxdWVzdBokLmdhdGV3YXkudjEuUmVuZXdDZXJ0aWZpY2F0ZVJlc3BvbnNlEmkKFFVwbG9hZFJlY29yZGluZ0NodW5rEicuZ2F0ZXdheS52MS5VcGxvYWRSZWNvcmRpbmdDaHVua1JlcXVlc3QaKC5nYXRld2F5LnYxLlVwbG9hZFJlY29yZGluZ0NodW5rUmVzcG9uc2USWgoPRmluaXNoUmVjb3JkaW5nEiIuZ2F0ZXdheS52MS5GaW5pc2hSZWNvcmRpbmdSZXF1ZXN0GiMuZ2F0ZXdheS52MS5GaW5pc2hSZWNvcmRpbmdSZXNwb25zZUKZAQoOY29tLmdhdGV3YXkudjFCC1R1bm5lbFByb3RvUAFaMWdpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vZ2F0ZXdheS92MTtnYXRld2F5djGiAgNHWFiqAgpHYXRld2F5LlYxygIKR2F0ZXdheVxWMeICFkdhdGV3YXlcVjFcR1BCTWV0YWRhdGHqAgtHYXRld2F5OjpWMWIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
  * @generated from message gateway.v1.ConnectRequest
@@ -412,6 +412,103 @@ export const RenewCertificateResponseSchema: GenMessage<RenewCertificateResponse
   messageDesc(file_gateway_v1_tunnel, 15);
 
 /**
+ * UploadRecordingChunk stores chunk seq of a session served by the caller.
+ * hash = SHA-256(previous hash || gz); the first chunk chains from 32 zero bytes.
+ *
+ * @generated from message gateway.v1.UploadRecordingChunkRequest
+ */
+export type UploadRecordingChunkRequest = Message<"gateway.v1.UploadRecordingChunkRequest"> & {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: int32 seq = 2;
+   */
+  seq: number;
+
+  /**
+   * @generated from field: bytes hash = 3;
+   */
+  hash: Uint8Array;
+
+  /**
+   * gzip of at most 64 KiB of asciicast v2 lines
+   *
+   * @generated from field: bytes gz = 4;
+   */
+  gz: Uint8Array;
+};
+
+/**
+ * Describes the message gateway.v1.UploadRecordingChunkRequest.
+ * Use `create(UploadRecordingChunkRequestSchema)` to create a new message.
+ */
+export const UploadRecordingChunkRequestSchema: GenMessage<UploadRecordingChunkRequest> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 16);
+
+/**
+ * @generated from message gateway.v1.UploadRecordingChunkResponse
+ */
+export type UploadRecordingChunkResponse = Message<"gateway.v1.UploadRecordingChunkResponse"> & {
+};
+
+/**
+ * Describes the message gateway.v1.UploadRecordingChunkResponse.
+ * Use `create(UploadRecordingChunkResponseSchema)` to create a new message.
+ */
+export const UploadRecordingChunkResponseSchema: GenMessage<UploadRecordingChunkResponse> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 17);
+
+/**
+ * FinishRecording closes a recording: the totals must match the ingested chain.
+ *
+ * @generated from message gateway.v1.FinishRecordingRequest
+ */
+export type FinishRecordingRequest = Message<"gateway.v1.FinishRecordingRequest"> & {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: int32 chunks = 2;
+   */
+  chunks: number;
+
+  /**
+   * @generated from field: int64 bytes = 3;
+   */
+  bytes: bigint;
+
+  /**
+   * @generated from field: bytes final_hash = 4;
+   */
+  finalHash: Uint8Array;
+};
+
+/**
+ * Describes the message gateway.v1.FinishRecordingRequest.
+ * Use `create(FinishRecordingRequestSchema)` to create a new message.
+ */
+export const FinishRecordingRequestSchema: GenMessage<FinishRecordingRequest> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 18);
+
+/**
+ * @generated from message gateway.v1.FinishRecordingResponse
+ */
+export type FinishRecordingResponse = Message<"gateway.v1.FinishRecordingResponse"> & {
+};
+
+/**
+ * Describes the message gateway.v1.FinishRecordingResponse.
+ * Use `create(FinishRecordingResponseSchema)` to create a new message.
+ */
+export const FinishRecordingResponseSchema: GenMessage<FinishRecordingResponse> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 19);
+
+/**
  * TunnelService is the gateway-to-core control plane. The caller is a gateway
  * instance identified by its mTLS client certificate, never by request fields.
  *
@@ -467,6 +564,22 @@ export const TunnelService: GenService<{
     methodKind: "unary";
     input: typeof RenewCertificateRequestSchema;
     output: typeof RenewCertificateResponseSchema;
+  },
+  /**
+   * @generated from rpc gateway.v1.TunnelService.UploadRecordingChunk
+   */
+  uploadRecordingChunk: {
+    methodKind: "unary";
+    input: typeof UploadRecordingChunkRequestSchema;
+    output: typeof UploadRecordingChunkResponseSchema;
+  },
+  /**
+   * @generated from rpc gateway.v1.TunnelService.FinishRecording
+   */
+  finishRecording: {
+    methodKind: "unary";
+    input: typeof FinishRecordingRequestSchema;
+    output: typeof FinishRecordingResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_gateway_v1_tunnel, 0);

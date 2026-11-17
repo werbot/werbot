@@ -66,6 +66,45 @@ type fake struct {
 	buildDelay  atomic.Int64 // nanoseconds every Build sleeps outside the lock
 	inflight    atomic.Int32 // Build calls running now
 	maxInflight atomic.Int32 // highest inflight seen
+
+	ingest fakeIngest
+}
+
+// recCall is one IngestChunk (seq, hash, gz) or FinishRecording (chunks, bytes, hash) call.
+type recCall struct {
+	orgID, instanceID, sessionID uuid.UUID
+	n                            int
+	bytes                        int64
+	hash, gz                     []byte
+}
+
+// fakeIngest implements RecordingIngest and returns err from every call.
+type fakeIngest struct {
+	mu       sync.Mutex
+	err      error
+	chunks   []recCall
+	finishes []recCall
+}
+
+func (r *fakeIngest) IngestChunk(_ context.Context, orgID, instanceID, sessionID uuid.UUID, seq int, hash, gz []byte) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.chunks = append(r.chunks, recCall{orgID: orgID, instanceID: instanceID, sessionID: sessionID, n: seq, hash: hash, gz: gz})
+	return r.err
+}
+
+func (r *fakeIngest) FinishRecording(_ context.Context, orgID, instanceID, sessionID uuid.UUID, chunks int, bytes int64, finalHash []byte) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.finishes = append(r.finishes, recCall{orgID: orgID, instanceID: instanceID, sessionID: sessionID, n: chunks, bytes: bytes, hash: finalHash})
+	return r.err
+}
+
+// with runs fn under the fake's lock to read or change its state.
+func (r *fakeIngest) with(fn func(r *fakeIngest)) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	fn(r)
 }
 
 func newFake() *fake {
@@ -202,6 +241,6 @@ func (f *fake) with(fn func(f *fake)) {
 }
 
 func (f *fake) deps() Deps {
-	return Deps{Gateways: f, Users: f, Resources: f, Credentials: f, Snapshots: f, Sessions: f,
+	return Deps{Gateways: f, Users: f, Resources: f, Credentials: f, Snapshots: f, Sessions: f, Recordings: &f.ingest,
 		Country: func(netip.Addr) string { return "NL" }}
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
+	"github.com/werbot/werbot/internal/session"
 	"github.com/werbot/werbot/sdk"
 )
 
@@ -45,7 +46,7 @@ func TestMain(m *testing.M) {
 }
 
 // withTestDefaults fills what serve requires when a test built cfg by hand:
-// the secret key, the public URL and a free tunnel address.
+// the secret key, the public URL, a free tunnel address and a temp data dir.
 func withTestDefaults(t *testing.T, cfg *config.Config) {
 	t.Helper()
 	if len(cfg.SecretKey) == 0 {
@@ -57,16 +58,21 @@ func withTestDefaults(t *testing.T, cfg *config.Config) {
 	if cfg.GatewayAddr == "" {
 		cfg.GatewayAddr = freeAddr(t)
 	}
+	if cfg.DataDir == "" {
+		cfg.DataDir = t.TempDir()
+	}
 }
 
-// testServeOpts loads the tunnel CA as bootstrap does for werbot server.
+// testServeOpts loads the tunnel CA and the signer as bootstrap does for werbot server.
 func testServeOpts(t *testing.T, cfg config.Config, pool *pgxpool.Pool) serveOpts {
 	t.Helper()
 	box, err := secretbox.New(cfg.SecretKey, nil)
 	require.NoError(t, err)
 	ca, err := tlsca.LoadOrCreate(context.Background(), tlsca.PostgresStore(pool), box)
 	require.NoError(t, err)
-	return serveOpts{CA: ca, Box: box}
+	signer, err := session.LoadSigner(context.Background(), pool, box)
+	require.NoError(t, err)
+	return serveOpts{CA: ca, Signer: signer, Box: box}
 }
 
 func env(kv map[string]string) func(string) string {

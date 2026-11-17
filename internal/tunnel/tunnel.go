@@ -90,6 +90,13 @@ type Sessions interface {
 	EndMissing(ctx context.Context, orgID, instanceID uuid.UUID, active []uuid.UUID, reason string) (int64, error)
 }
 
+// RecordingIngest stores recording chunks and closes recordings of a session
+// served by instanceID; *session.Recordings implements it.
+type RecordingIngest interface {
+	IngestChunk(ctx context.Context, orgID, instanceID, sessionID uuid.UUID, seq int, hash, gz []byte) error
+	FinishRecording(ctx context.Context, orgID, instanceID, sessionID uuid.UUID, chunks int, bytes int64, finalHash []byte) error
+}
+
 // Deps are the domain adapters the handler calls.
 type Deps struct {
 	Gateways    Gateways
@@ -98,6 +105,7 @@ type Deps struct {
 	Credentials Credentials
 	Snapshots   Snapshots
 	Sessions    Sessions
+	Recordings  RecordingIngest
 	Country     func(netip.Addr) string
 	Metrics     *metrics.Registry // nil: a private registry
 	Logger      *slog.Logger      // nil: slog.Default()

@@ -27,6 +27,7 @@ func newTunnelDeps(s *services, reg *metrics.Registry, logger *slog.Logger) tunn
 		Credentials: tunnelCredentials{s.Credential},
 		Snapshots:   tunnelSnapshots{s: s, logger: logger},
 		Sessions:    tunnelSessions{Service: s.Sessions, ids: s.Identity},
+		Recordings:  s.Recordings,
 		Country:     s.Policy.Country,
 		Metrics:     reg,
 		Logger:      logger,

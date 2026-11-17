@@ -957,6 +957,218 @@ func (x *RenewCertificateResponse) GetCertPem() []byte {
 	return nil
 }
 
+// UploadRecordingChunk stores chunk seq of a session served by the caller.
+// hash = SHA-256(previous hash || gz); the first chunk chains from 32 zero bytes.
+type UploadRecordingChunkRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Seq       int32                  `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
+	Hash      []byte                 `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
+	// gzip of at most 64 KiB of asciicast v2 lines
+	Gz            []byte `protobuf:"bytes,4,opt,name=gz,proto3" json:"gz,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadRecordingChunkRequest) Reset() {
+	*x = UploadRecordingChunkRequest{}
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadRecordingChunkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadRecordingChunkRequest) ProtoMessage() {}
+
+func (x *UploadRecordingChunkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadRecordingChunkRequest.ProtoReflect.Descriptor instead.
+func (*UploadRecordingChunkRequest) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *UploadRecordingChunkRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *UploadRecordingChunkRequest) GetSeq() int32 {
+	if x != nil {
+		return x.Seq
+	}
+	return 0
+}
+
+func (x *UploadRecordingChunkRequest) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+func (x *UploadRecordingChunkRequest) GetGz() []byte {
+	if x != nil {
+		return x.Gz
+	}
+	return nil
+}
+
+type UploadRecordingChunkResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadRecordingChunkResponse) Reset() {
+	*x = UploadRecordingChunkResponse{}
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadRecordingChunkResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadRecordingChunkResponse) ProtoMessage() {}
+
+func (x *UploadRecordingChunkResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadRecordingChunkResponse.ProtoReflect.Descriptor instead.
+func (*UploadRecordingChunkResponse) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{17}
+}
+
+// FinishRecording closes a recording: the totals must match the ingested chain.
+type FinishRecordingRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Chunks        int32                  `protobuf:"varint,2,opt,name=chunks,proto3" json:"chunks,omitempty"`
+	Bytes         int64                  `protobuf:"varint,3,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	FinalHash     []byte                 `protobuf:"bytes,4,opt,name=final_hash,json=finalHash,proto3" json:"final_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishRecordingRequest) Reset() {
+	*x = FinishRecordingRequest{}
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishRecordingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishRecordingRequest) ProtoMessage() {}
+
+func (x *FinishRecordingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishRecordingRequest.ProtoReflect.Descriptor instead.
+func (*FinishRecordingRequest) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *FinishRecordingRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *FinishRecordingRequest) GetChunks() int32 {
+	if x != nil {
+		return x.Chunks
+	}
+	return 0
+}
+
+func (x *FinishRecordingRequest) GetBytes() int64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
+func (x *FinishRecordingRequest) GetFinalHash() []byte {
+	if x != nil {
+		return x.FinalHash
+	}
+	return nil
+}
+
+type FinishRecordingResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinishRecordingResponse) Reset() {
+	*x = FinishRecordingResponse{}
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinishRecordingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinishRecordingResponse) ProtoMessage() {}
+
+func (x *FinishRecordingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinishRecordingResponse.ProtoReflect.Descriptor instead.
+func (*FinishRecordingResponse) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{19}
+}
+
 var File_gateway_v1_tunnel_proto protoreflect.FileDescriptor
 
 const file_gateway_v1_tunnel_proto_rawDesc = "" +
@@ -1015,11 +1227,11 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"Credential\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value\"\x8c\x01\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value\"\xa3\x01\n" +
 	"\x11EndSessionRequest\x12'\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\x12N\n" +
-	"\x06reason\x18\x02 \x01(\tB6\xbaH3r1R\x06closedR\x05errorR\x0einternal_errorR\x10gateway_shutdownR\x06reason\"\x14\n" +
+	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\x12e\n" +
+	"\x06reason\x18\x02 \x01(\tBM\xbaHJrHR\x06closedR\x05errorR\x0einternal_errorR\x10gateway_shutdownR\x15recording_unavailableR\x06reason\"\x14\n" +
 	"\x12EndSessionResponse\"\x86\x01\n" +
 	"\x11PinHostKeyRequest\x12)\n" +
 	"\vresource_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
@@ -1033,7 +1245,22 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\acsr_der\x18\x01 \x01(\fB\n" +
 	"\xbaH\az\x05\x10\x01\x18\x80 R\x06csrDer\"5\n" +
 	"\x18RenewCertificateResponse\x12\x19\n" +
-	"\bcert_pem\x18\x01 \x01(\fR\acertPem2\x82\x04\n" +
+	"\bcert_pem\x18\x01 \x01(\fR\acertPem\"\x9b\x01\n" +
+	"\x1bUploadRecordingChunkRequest\x12'\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\x12\x19\n" +
+	"\x03seq\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x03seq\x12\x1b\n" +
+	"\x04hash\x18\x03 \x01(\fB\a\xbaH\x04z\x02h R\x04hash\x12\x1b\n" +
+	"\x02gz\x18\x04 \x01(\fB\v\xbaH\bz\x06\x10\x01\x18\x80\x80\bR\x02gz\"\x1e\n" +
+	"\x1cUploadRecordingChunkResponse\"\xa9\x01\n" +
+	"\x16FinishRecordingRequest\x12'\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\x12\x1f\n" +
+	"\x06chunks\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x01R\x06chunks\x12\x1d\n" +
+	"\x05bytes\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x01R\x05bytes\x12&\n" +
+	"\n" +
+	"final_hash\x18\x04 \x01(\fB\a\xbaH\x04z\x02h R\tfinalHash\"\x19\n" +
+	"\x17FinishRecordingResponse2\xc9\x05\n" +
 	"\rTunnelService\x12F\n" +
 	"\aConnect\x12\x1a.gateway.v1.ConnectRequest\x1a\x1b.gateway.v1.ConnectResponse(\x010\x01\x12]\n" +
 	"\x10AuthenticateUser\x12#.gateway.v1.AuthenticateUserRequest\x1a$.gateway.v1.AuthenticateUserResponse\x12Q\n" +
@@ -1042,7 +1269,9 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"EndSession\x12\x1d.gateway.v1.EndSessionRequest\x1a\x1e.gateway.v1.EndSessionResponse\x12K\n" +
 	"\n" +
 	"PinHostKey\x12\x1d.gateway.v1.PinHostKeyRequest\x1a\x1e.gateway.v1.PinHostKeyResponse\x12]\n" +
-	"\x10RenewCertificate\x12#.gateway.v1.RenewCertificateRequest\x1a$.gateway.v1.RenewCertificateResponseB\x99\x01\n" +
+	"\x10RenewCertificate\x12#.gateway.v1.RenewCertificateRequest\x1a$.gateway.v1.RenewCertificateResponse\x12i\n" +
+	"\x14UploadRecordingChunk\x12'.gateway.v1.UploadRecordingChunkRequest\x1a(.gateway.v1.UploadRecordingChunkResponse\x12Z\n" +
+	"\x0fFinishRecording\x12\".gateway.v1.FinishRecordingRequest\x1a#.gateway.v1.FinishRecordingResponseB\x99\x01\n" +
 	"\x0ecom.gateway.v1B\vTunnelProtoP\x01Z1github.com/werbot/werbot/gen/gateway/v1;gatewayv1\xa2\x02\x03GXX\xaa\x02\n" +
 	"Gateway.V1\xca\x02\n" +
 	"Gateway\\V1\xe2\x02\x16Gateway\\V1\\GPBMetadata\xea\x02\vGateway::V1b\x06proto3"
@@ -1059,24 +1288,28 @@ func file_gateway_v1_tunnel_proto_rawDescGZIP() []byte {
 	return file_gateway_v1_tunnel_proto_rawDescData
 }
 
-var file_gateway_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_gateway_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_gateway_v1_tunnel_proto_goTypes = []any{
-	(*ConnectRequest)(nil),           // 0: gateway.v1.ConnectRequest
-	(*Heartbeat)(nil),                // 1: gateway.v1.Heartbeat
-	(*ConnectResponse)(nil),          // 2: gateway.v1.ConnectResponse
-	(*Snapshot)(nil),                 // 3: gateway.v1.Snapshot
-	(*Resource)(nil),                 // 4: gateway.v1.Resource
-	(*AuthenticateUserRequest)(nil),  // 5: gateway.v1.AuthenticateUserRequest
-	(*AuthenticateUserResponse)(nil), // 6: gateway.v1.AuthenticateUserResponse
-	(*StartSessionRequest)(nil),      // 7: gateway.v1.StartSessionRequest
-	(*StartSessionResponse)(nil),     // 8: gateway.v1.StartSessionResponse
-	(*Credential)(nil),               // 9: gateway.v1.Credential
-	(*EndSessionRequest)(nil),        // 10: gateway.v1.EndSessionRequest
-	(*EndSessionResponse)(nil),       // 11: gateway.v1.EndSessionResponse
-	(*PinHostKeyRequest)(nil),        // 12: gateway.v1.PinHostKeyRequest
-	(*PinHostKeyResponse)(nil),       // 13: gateway.v1.PinHostKeyResponse
-	(*RenewCertificateRequest)(nil),  // 14: gateway.v1.RenewCertificateRequest
-	(*RenewCertificateResponse)(nil), // 15: gateway.v1.RenewCertificateResponse
+	(*ConnectRequest)(nil),               // 0: gateway.v1.ConnectRequest
+	(*Heartbeat)(nil),                    // 1: gateway.v1.Heartbeat
+	(*ConnectResponse)(nil),              // 2: gateway.v1.ConnectResponse
+	(*Snapshot)(nil),                     // 3: gateway.v1.Snapshot
+	(*Resource)(nil),                     // 4: gateway.v1.Resource
+	(*AuthenticateUserRequest)(nil),      // 5: gateway.v1.AuthenticateUserRequest
+	(*AuthenticateUserResponse)(nil),     // 6: gateway.v1.AuthenticateUserResponse
+	(*StartSessionRequest)(nil),          // 7: gateway.v1.StartSessionRequest
+	(*StartSessionResponse)(nil),         // 8: gateway.v1.StartSessionResponse
+	(*Credential)(nil),                   // 9: gateway.v1.Credential
+	(*EndSessionRequest)(nil),            // 10: gateway.v1.EndSessionRequest
+	(*EndSessionResponse)(nil),           // 11: gateway.v1.EndSessionResponse
+	(*PinHostKeyRequest)(nil),            // 12: gateway.v1.PinHostKeyRequest
+	(*PinHostKeyResponse)(nil),           // 13: gateway.v1.PinHostKeyResponse
+	(*RenewCertificateRequest)(nil),      // 14: gateway.v1.RenewCertificateRequest
+	(*RenewCertificateResponse)(nil),     // 15: gateway.v1.RenewCertificateResponse
+	(*UploadRecordingChunkRequest)(nil),  // 16: gateway.v1.UploadRecordingChunkRequest
+	(*UploadRecordingChunkResponse)(nil), // 17: gateway.v1.UploadRecordingChunkResponse
+	(*FinishRecordingRequest)(nil),       // 18: gateway.v1.FinishRecordingRequest
+	(*FinishRecordingResponse)(nil),      // 19: gateway.v1.FinishRecordingResponse
 }
 var file_gateway_v1_tunnel_proto_depIdxs = []int32{
 	1,  // 0: gateway.v1.ConnectRequest.heartbeat:type_name -> gateway.v1.Heartbeat
@@ -1089,14 +1322,18 @@ var file_gateway_v1_tunnel_proto_depIdxs = []int32{
 	10, // 7: gateway.v1.TunnelService.EndSession:input_type -> gateway.v1.EndSessionRequest
 	12, // 8: gateway.v1.TunnelService.PinHostKey:input_type -> gateway.v1.PinHostKeyRequest
 	14, // 9: gateway.v1.TunnelService.RenewCertificate:input_type -> gateway.v1.RenewCertificateRequest
-	2,  // 10: gateway.v1.TunnelService.Connect:output_type -> gateway.v1.ConnectResponse
-	6,  // 11: gateway.v1.TunnelService.AuthenticateUser:output_type -> gateway.v1.AuthenticateUserResponse
-	8,  // 12: gateway.v1.TunnelService.StartSession:output_type -> gateway.v1.StartSessionResponse
-	11, // 13: gateway.v1.TunnelService.EndSession:output_type -> gateway.v1.EndSessionResponse
-	13, // 14: gateway.v1.TunnelService.PinHostKey:output_type -> gateway.v1.PinHostKeyResponse
-	15, // 15: gateway.v1.TunnelService.RenewCertificate:output_type -> gateway.v1.RenewCertificateResponse
-	10, // [10:16] is the sub-list for method output_type
-	4,  // [4:10] is the sub-list for method input_type
+	16, // 10: gateway.v1.TunnelService.UploadRecordingChunk:input_type -> gateway.v1.UploadRecordingChunkRequest
+	18, // 11: gateway.v1.TunnelService.FinishRecording:input_type -> gateway.v1.FinishRecordingRequest
+	2,  // 12: gateway.v1.TunnelService.Connect:output_type -> gateway.v1.ConnectResponse
+	6,  // 13: gateway.v1.TunnelService.AuthenticateUser:output_type -> gateway.v1.AuthenticateUserResponse
+	8,  // 14: gateway.v1.TunnelService.StartSession:output_type -> gateway.v1.StartSessionResponse
+	11, // 15: gateway.v1.TunnelService.EndSession:output_type -> gateway.v1.EndSessionResponse
+	13, // 16: gateway.v1.TunnelService.PinHostKey:output_type -> gateway.v1.PinHostKeyResponse
+	15, // 17: gateway.v1.TunnelService.RenewCertificate:output_type -> gateway.v1.RenewCertificateResponse
+	17, // 18: gateway.v1.TunnelService.UploadRecordingChunk:output_type -> gateway.v1.UploadRecordingChunkResponse
+	19, // 19: gateway.v1.TunnelService.FinishRecording:output_type -> gateway.v1.FinishRecordingResponse
+	12, // [12:20] is the sub-list for method output_type
+	4,  // [4:12] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -1123,7 +1360,7 @@ func file_gateway_v1_tunnel_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_v1_tunnel_proto_rawDesc), len(file_gateway_v1_tunnel_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -11,11 +11,15 @@ import (
 	"github.com/werbot/werbot/internal/platform/jobs"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
+	"github.com/werbot/werbot/internal/session"
 	"github.com/werbot/werbot/migrations"
 )
 
 // bootstrapped is what werbot server takes from bootstrap.
-type bootstrapped struct{ CA *tlsca.CA }
+type bootstrapped struct {
+	CA     *tlsca.CA
+	Signer *session.Signer
+}
 
 // bootstrap is the only place for one-off startup work (contract §1.6). It runs
 // the steps under db.BootstrapLock, so replicas starting together take turns:
@@ -52,6 +56,10 @@ func bootstrap(ctx context.Context, databaseURL string, box *secretbox.Box) (boo
 		}
 		// (3) gateway tunnel CA: the first replica creates it, the others load it.
 		if out.CA, err = tlsca.LoadOrCreate(ctx, tlsca.PostgresStore(bpool), box); err != nil {
+			return fmt.Errorf("bootstrap: %w", err)
+		}
+		// (4) recording manifest signing key: created once, loaded by every replica.
+		if out.Signer, err = session.LoadSigner(ctx, bpool, box); err != nil {
 			return fmt.Errorf("bootstrap: %w", err)
 		}
 		return nil

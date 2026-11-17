@@ -13,6 +13,8 @@ service TunnelService {
   rpc EndSession(EndSessionRequest) returns (EndSessionResponse);
   rpc PinHostKey(PinHostKeyRequest) returns (PinHostKeyResponse);
   rpc RenewCertificate(RenewCertificateRequest) returns (RenewCertificateResponse);
+  rpc UploadRecordingChunk(UploadRecordingChunkRequest) returns (UploadRecordingChunkResponse);
+  rpc FinishRecording(FinishRecordingRequest) returns (FinishRecordingResponse);
 }
 
 message ConnectRequest {
@@ -93,7 +95,7 @@ message EndSessionRequest {
   string session_id = 1 [(buf.validate.field).string.uuid = true];
   // gateway-side end reasons; gateway_lost is set only by the server
   string reason = 2 [(buf.validate.field).string = {
-    in: ["closed", "error", "internal_error", "gateway_shutdown"]
+    in: ["closed", "error", "internal_error", "gateway_shutdown", "recording_unavailable"]
   }];
 }
 
@@ -115,3 +117,25 @@ message RenewCertificateRequest {
 message RenewCertificateResponse {
   bytes cert_pem = 1;
 }
+
+// UploadRecordingChunk stores chunk seq of a session served by the caller.
+// hash = SHA-256(previous hash || gz); the first chunk chains from 32 zero bytes.
+message UploadRecordingChunkRequest {
+  string session_id = 1 [(buf.validate.field).string.uuid = true];
+  int32 seq = 2 [(buf.validate.field).int32.gte = 0];
+  bytes hash = 3 [(buf.validate.field).bytes.len = 32];
+  // gzip of at most 64 KiB of asciicast v2 lines
+  bytes gz = 4 [(buf.validate.field).bytes = {min_len: 1, max_len: 131072}];
+}
+
+message UploadRecordingChunkResponse {}
+
+// FinishRecording closes a recording: the totals must match the ingested chain.
+message FinishRecordingRequest {
+  string session_id = 1 [(buf.validate.field).string.uuid = true];
+  int32 chunks = 2 [(buf.validate.field).int32.gte = 1];
+  int64 bytes = 3 [(buf.validate.field).int64.gte = 1];
+  bytes final_hash = 4 [(buf.validate.field).bytes.len = 32];
+}
+
+message FinishRecordingResponse {}

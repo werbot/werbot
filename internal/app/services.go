@@ -25,6 +25,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/tlsca"
 	"github.com/werbot/werbot/internal/policy"
 	"github.com/werbot/werbot/internal/session"
+	"github.com/werbot/werbot/internal/session/recstore"
 )
 
 // feedsConfig is where the feed jobs download; tests point it at a closed port.
@@ -79,19 +80,26 @@ type services struct {
 	CA         *tlsca.CA
 	Gateways   *inventory.Gateways
 	Sessions   *session.Service
+	Recordings *session.Recordings
 	Jobs       *river.Client[pgx.Tx]
 }
 
 // newServices wires the services, registers every worker and periodic job on
 // one River client (not started) and loads the stored GeoIP database, so every
 // replica decides country rules from start. A broken database is logged, not fatal.
-func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box *secretbox.Box, ca *tlsca.CA, logger *slog.Logger) (*services, error) {
+// signer comes from bootstrap; recordings go to cfg.RecordingsS3 or cfg.DataDir.
+func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box *secretbox.Box, ca *tlsca.CA, signer *session.Signer, logger *slog.Logger) (*services, error) {
 	mailer, err := notify.NewMailer(cfg.SMTP, cfg.Env == "development", logger)
 	if err != nil {
 		return nil, err
 	}
+	store, kind, err := recstore.Open(ctx, cfg.RecordingsS3, cfg.DataDir)
+	if err != nil {
+		return nil, err
+	}
 	s := &services{Inventory: inventory.New(pool), Credential: credential.New(pool, box), Access: access.New(pool),
-		Box: box, CA: ca, Gateways: inventory.NewGateways(pool, ca, box), Sessions: session.New(pool)}
+		Box: box, CA: ca, Gateways: inventory.NewGateways(pool, ca, box), Sessions: session.New(pool),
+		Recordings: session.NewRecordings(pool, store, kind, signer)}
 	// identity needs the River client, which needs the policy jobs: teams
 	// reads s.Identity, which is set below, before any request is served.
 	s.Policy = policy.New(policy.Deps{Pool: pool, Resources: policyResources{s.Inventory}, Bindings: policyBindings{s.Access},

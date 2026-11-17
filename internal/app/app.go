@@ -32,6 +32,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
 	"github.com/werbot/werbot/internal/platform/version"
+	"github.com/werbot/werbot/internal/session"
 	"github.com/werbot/werbot/internal/system"
 	"github.com/werbot/werbot/internal/tunnel"
 	"github.com/werbot/werbot/internal/webui"
@@ -114,7 +115,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 		return err
 	}
 	defer pool.Close()
-	return serve(ctx, cfg, logger, pool, sdk.Modules(), web.FS(), serveOpts{CA: boot.CA, Box: box, WithGateway: withGateway, Getenv: getenv})
+	return serve(ctx, cfg, logger, pool, sdk.Modules(), web.FS(), serveOpts{CA: boot.CA, Signer: boot.Signer, Box: box, WithGateway: withGateway, Getenv: getenv})
 }
 
 // host is the Community sdk.Host: no feature is ever entitled.
@@ -127,11 +128,12 @@ func (h host) DB() *pgxpool.Pool                      { return h.pool }
 func (h host) Handle(pattern string, hd http.Handler) { h.mux.Handle(pattern, hd) }
 func (host) Entitled(string) bool                     { return false }
 
-// serveOpts are what Run hands serve besides the config: the tunnel CA from
-// bootstrap, the secret box it was opened with and, for --with-gateway, the
-// environment of the embedded gateway.
+// serveOpts are what Run hands serve besides the config: the tunnel CA and
+// recording signer from bootstrap, the secret box it was opened with and,
+// for --with-gateway, the environment of the embedded gateway.
 type serveOpts struct {
 	CA          *tlsca.CA
+	Signer      *session.Signer
 	Box         *secretbox.Box
 	WithGateway bool
 	Getenv      func(string) string
@@ -148,7 +150,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	if err != nil {
 		return err
 	}
-	s, err := newServices(ctx, cfg, pool, o.Box, o.CA, logger)
+	s, err := newServices(ctx, cfg, pool, o.Box, o.CA, o.Signer, logger)
 	if err != nil {
 		return err
 	}

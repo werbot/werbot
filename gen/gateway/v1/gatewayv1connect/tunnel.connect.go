@@ -50,6 +50,12 @@ const (
 	// TunnelServiceRenewCertificateProcedure is the fully-qualified name of the TunnelService's
 	// RenewCertificate RPC.
 	TunnelServiceRenewCertificateProcedure = "/gateway.v1.TunnelService/RenewCertificate"
+	// TunnelServiceUploadRecordingChunkProcedure is the fully-qualified name of the TunnelService's
+	// UploadRecordingChunk RPC.
+	TunnelServiceUploadRecordingChunkProcedure = "/gateway.v1.TunnelService/UploadRecordingChunk"
+	// TunnelServiceFinishRecordingProcedure is the fully-qualified name of the TunnelService's
+	// FinishRecording RPC.
+	TunnelServiceFinishRecordingProcedure = "/gateway.v1.TunnelService/FinishRecording"
 )
 
 // TunnelServiceClient is a client for the gateway.v1.TunnelService service.
@@ -61,6 +67,8 @@ type TunnelServiceClient interface {
 	EndSession(context.Context, *connect.Request[v1.EndSessionRequest]) (*connect.Response[v1.EndSessionResponse], error)
 	PinHostKey(context.Context, *connect.Request[v1.PinHostKeyRequest]) (*connect.Response[v1.PinHostKeyResponse], error)
 	RenewCertificate(context.Context, *connect.Request[v1.RenewCertificateRequest]) (*connect.Response[v1.RenewCertificateResponse], error)
+	UploadRecordingChunk(context.Context, *connect.Request[v1.UploadRecordingChunkRequest]) (*connect.Response[v1.UploadRecordingChunkResponse], error)
+	FinishRecording(context.Context, *connect.Request[v1.FinishRecordingRequest]) (*connect.Response[v1.FinishRecordingResponse], error)
 }
 
 // NewTunnelServiceClient constructs a client for the gateway.v1.TunnelService service. By default,
@@ -110,17 +118,31 @@ func NewTunnelServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(tunnelServiceMethods.ByName("RenewCertificate")),
 			connect.WithClientOptions(opts...),
 		),
+		uploadRecordingChunk: connect.NewClient[v1.UploadRecordingChunkRequest, v1.UploadRecordingChunkResponse](
+			httpClient,
+			baseURL+TunnelServiceUploadRecordingChunkProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("UploadRecordingChunk")),
+			connect.WithClientOptions(opts...),
+		),
+		finishRecording: connect.NewClient[v1.FinishRecordingRequest, v1.FinishRecordingResponse](
+			httpClient,
+			baseURL+TunnelServiceFinishRecordingProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("FinishRecording")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // tunnelServiceClient implements TunnelServiceClient.
 type tunnelServiceClient struct {
-	connect          *connect.Client[v1.ConnectRequest, v1.ConnectResponse]
-	authenticateUser *connect.Client[v1.AuthenticateUserRequest, v1.AuthenticateUserResponse]
-	startSession     *connect.Client[v1.StartSessionRequest, v1.StartSessionResponse]
-	endSession       *connect.Client[v1.EndSessionRequest, v1.EndSessionResponse]
-	pinHostKey       *connect.Client[v1.PinHostKeyRequest, v1.PinHostKeyResponse]
-	renewCertificate *connect.Client[v1.RenewCertificateRequest, v1.RenewCertificateResponse]
+	connect              *connect.Client[v1.ConnectRequest, v1.ConnectResponse]
+	authenticateUser     *connect.Client[v1.AuthenticateUserRequest, v1.AuthenticateUserResponse]
+	startSession         *connect.Client[v1.StartSessionRequest, v1.StartSessionResponse]
+	endSession           *connect.Client[v1.EndSessionRequest, v1.EndSessionResponse]
+	pinHostKey           *connect.Client[v1.PinHostKeyRequest, v1.PinHostKeyResponse]
+	renewCertificate     *connect.Client[v1.RenewCertificateRequest, v1.RenewCertificateResponse]
+	uploadRecordingChunk *connect.Client[v1.UploadRecordingChunkRequest, v1.UploadRecordingChunkResponse]
+	finishRecording      *connect.Client[v1.FinishRecordingRequest, v1.FinishRecordingResponse]
 }
 
 // Connect calls gateway.v1.TunnelService.Connect.
@@ -153,6 +175,16 @@ func (c *tunnelServiceClient) RenewCertificate(ctx context.Context, req *connect
 	return c.renewCertificate.CallUnary(ctx, req)
 }
 
+// UploadRecordingChunk calls gateway.v1.TunnelService.UploadRecordingChunk.
+func (c *tunnelServiceClient) UploadRecordingChunk(ctx context.Context, req *connect.Request[v1.UploadRecordingChunkRequest]) (*connect.Response[v1.UploadRecordingChunkResponse], error) {
+	return c.uploadRecordingChunk.CallUnary(ctx, req)
+}
+
+// FinishRecording calls gateway.v1.TunnelService.FinishRecording.
+func (c *tunnelServiceClient) FinishRecording(ctx context.Context, req *connect.Request[v1.FinishRecordingRequest]) (*connect.Response[v1.FinishRecordingResponse], error) {
+	return c.finishRecording.CallUnary(ctx, req)
+}
+
 // TunnelServiceHandler is an implementation of the gateway.v1.TunnelService service.
 type TunnelServiceHandler interface {
 	// Connect carries heartbeats up and policy snapshots down.
@@ -162,6 +194,8 @@ type TunnelServiceHandler interface {
 	EndSession(context.Context, *connect.Request[v1.EndSessionRequest]) (*connect.Response[v1.EndSessionResponse], error)
 	PinHostKey(context.Context, *connect.Request[v1.PinHostKeyRequest]) (*connect.Response[v1.PinHostKeyResponse], error)
 	RenewCertificate(context.Context, *connect.Request[v1.RenewCertificateRequest]) (*connect.Response[v1.RenewCertificateResponse], error)
+	UploadRecordingChunk(context.Context, *connect.Request[v1.UploadRecordingChunkRequest]) (*connect.Response[v1.UploadRecordingChunkResponse], error)
+	FinishRecording(context.Context, *connect.Request[v1.FinishRecordingRequest]) (*connect.Response[v1.FinishRecordingResponse], error)
 }
 
 // NewTunnelServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -207,6 +241,18 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(tunnelServiceMethods.ByName("RenewCertificate")),
 		connect.WithHandlerOptions(opts...),
 	)
+	tunnelServiceUploadRecordingChunkHandler := connect.NewUnaryHandler(
+		TunnelServiceUploadRecordingChunkProcedure,
+		svc.UploadRecordingChunk,
+		connect.WithSchema(tunnelServiceMethods.ByName("UploadRecordingChunk")),
+		connect.WithHandlerOptions(opts...),
+	)
+	tunnelServiceFinishRecordingHandler := connect.NewUnaryHandler(
+		TunnelServiceFinishRecordingProcedure,
+		svc.FinishRecording,
+		connect.WithSchema(tunnelServiceMethods.ByName("FinishRecording")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gateway.v1.TunnelService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TunnelServiceConnectProcedure:
@@ -221,6 +267,10 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 			tunnelServicePinHostKeyHandler.ServeHTTP(w, r)
 		case TunnelServiceRenewCertificateProcedure:
 			tunnelServiceRenewCertificateHandler.ServeHTTP(w, r)
+		case TunnelServiceUploadRecordingChunkProcedure:
+			tunnelServiceUploadRecordingChunkHandler.ServeHTTP(w, r)
+		case TunnelServiceFinishRecordingProcedure:
+			tunnelServiceFinishRecordingHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -252,4 +302,12 @@ func (UnimplementedTunnelServiceHandler) PinHostKey(context.Context, *connect.Re
 
 func (UnimplementedTunnelServiceHandler) RenewCertificate(context.Context, *connect.Request[v1.RenewCertificateRequest]) (*connect.Response[v1.RenewCertificateResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.RenewCertificate is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) UploadRecordingChunk(context.Context, *connect.Request[v1.UploadRecordingChunkRequest]) (*connect.Response[v1.UploadRecordingChunkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.UploadRecordingChunk is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) FinishRecording(context.Context, *connect.Request[v1.FinishRecordingRequest]) (*connect.Response[v1.FinishRecordingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.FinishRecording is not implemented"))
 }

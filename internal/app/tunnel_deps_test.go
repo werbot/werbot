@@ -126,3 +126,10 @@ func TestTunnelURL(t *testing.T) {
 	_, err := tunnelURL("https://w.example.com", "8443")
 	assert.ErrorContains(t, err, "WERBOT_GATEWAY_ADDR")
 }
+
+func TestTunnelDepsRecordings(t *testing.T) {
+	s := newStage4(t, slog.New(slog.DiscardHandler))
+	require.NotNil(t, s.d.Recordings)
+	d := newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler))
+	assert.Same(t, s.d.Recordings, d.Recordings)
+}

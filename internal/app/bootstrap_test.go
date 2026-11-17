@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"sync"
@@ -14,6 +15,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/db"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/jobs"
+	"github.com/werbot/werbot/internal/platform/secretbox"
 )
 
 func TestBootstrapConcurrentRiverMigrate(t *testing.T) {
@@ -130,4 +132,34 @@ func TestBootstrapLockWaitCanceled(t *testing.T) {
 	assert.ErrorIs(t, err, context.DeadlineExceeded)
 	assert.Less(t, time.Since(start), 5*time.Second)
 	assert.False(t, gooseTableExists(t, pool), "migrations ran while the lock was held")
+}
+
+func TestBootstrapLoadsSignerOnce(t *testing.T) {
+	pool, url := dbtest.New(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	getenv := env(map[string]string{"WERBOT_DATABASE_URL": url, "WERBOT_PUBLIC_URL": testPublicURL, "WERBOT_SECRET_KEY": testSecretKey})
+	require.NoError(t, Run(ctx, []string{"migrate"}, getenv, io.Discard))
+	countKeys := func() int {
+		var n int
+		require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM signing_key").Scan(&n))
+		return n
+	}
+	assert.Equal(t, 0, countKeys(), "werbot migrate must not create the signing key")
+
+	box, err := secretbox.New(bytes.Repeat([]byte{1}, 32), nil)
+	require.NoError(t, err)
+	boots := make([]bootstrapped, 2)
+	errs := make([]error, 2)
+	var wg sync.WaitGroup
+	for i := range boots {
+		wg.Go(func() { boots[i], errs[i] = bootstrap(ctx, url, box) })
+	}
+	wg.Wait()
+	for i := range boots {
+		require.NoError(t, errs[i])
+		require.NotNil(t, boots[i].Signer)
+	}
+	assert.Equal(t, 1, countKeys())
+	assert.Equal(t, boots[0].Signer.PublicKey(), boots[1].Signer.PublicKey())
 }
