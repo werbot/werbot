@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"net/netip"
 	"net/url"
 	"os"
@@ -32,6 +33,7 @@ type Config struct {
 	HTTPAddr      string // empty: disabled
 	DrainTimeout  time.Duration
 	MaxSessions   int
+	SpoolMax      int64 // recording spool size cap in bytes
 	// InsecureEnroll allows an http:// ServerURL to a non-loopback host (flag only:
 	// enrollment then sends the join token and the pool host key in cleartext).
 	InsecureEnroll bool
@@ -52,11 +54,15 @@ const (
 	envHTTPAddr = "WERBOT_GATEWAY_HTTP_ADDR"
 	envDrain    = "WERBOT_GATEWAY_DRAIN_TIMEOUT"
 	envMaxSess  = "WERBOT_GATEWAY_MAX_SESSIONS"
+	envSpoolMax = "WERBOT_GATEWAY_SPOOL_MAX"
 )
+
+// DefaultSpoolMax is the spool size cap when none is configured: 1 GiB.
+const DefaultSpoolMax int64 = 1 << 30
 
 // ConfigVars lists the WERBOT_GATEWAY_* variables in Config field order.
 func ConfigVars() []string {
-	return []string{envServer, envToken, envDataDir, envSSHAddr, envProxy, envName, envIdle, envHTTPAddr, envDrain, envMaxSess}
+	return []string{envServer, envToken, envDataDir, envSSHAddr, envProxy, envName, envIdle, envHTTPAddr, envDrain, envMaxSess, envSpoolMax}
 }
 
 func orDefault(s, def string) string {
@@ -108,6 +114,7 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	fs.StringVar(&c.HTTPAddr, "http-addr", env[envHTTPAddr], "readyz/metrics address; empty disables")
 	fs.DurationVar(&c.DrainTimeout, "drain-timeout", c.DrainTimeout, "shutdown drain timeout")
 	fs.IntVar(&c.MaxSessions, "max-sessions", c.MaxSessions, "concurrent session limit")
+	spoolMax := fs.String("spool-max", orDefault(env[envSpoolMax], strconv.FormatInt(DefaultSpoolMax, 10)), "recording spool size cap: bytes or KiB/MiB/GiB")
 	fs.BoolVar(&c.InsecureEnroll, "insecure-enroll", false, "allow an http:// server URL to a non-loopback host (trusted lab networks only)")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) { // parse errors are returned, help is printed
@@ -118,6 +125,9 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	}
 	if fs.NArg() > 0 {
 		return c, fmt.Errorf("unexpected arguments: %q", fs.Args())
+	}
+	if c.SpoolMax, err = parseByteSize(*spoolMax); err != nil {
+		return c, fmt.Errorf("%s: %w", envSpoolMax, err)
 	}
 	if c.JoinToken == "" {
 		c.JoinToken = env[envToken]
@@ -161,6 +171,25 @@ func isLoopback(host string) bool {
 	}
 	ip, err := netip.ParseAddr(host)
 	return err == nil && ip.IsLoopback()
+}
+
+// parseByteSize parses a positive byte count with an optional KiB, MiB or GiB suffix.
+func parseByteSize(s string) (int64, error) {
+	mult := int64(1)
+	for suffix, m := range map[string]int64{"KiB": 1 << 10, "MiB": 1 << 20, "GiB": 1 << 30} {
+		if num, ok := strings.CutSuffix(s, suffix); ok {
+			s, mult = num, m
+			break
+		}
+	}
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid size: want bytes or KiB/MiB/GiB")
+	}
+	if n <= 0 || n > math.MaxInt64/mult {
+		return 0, errors.New("size must be positive and fit int64")
+	}
+	return n * mult, nil
 }
 
 func envBool(key, v string) (bool, error) {

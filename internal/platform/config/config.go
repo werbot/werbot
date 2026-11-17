@@ -19,6 +19,15 @@ type SMTP struct {
 	From               string
 }
 
+// RecordingsS3 selects the recordings store: an empty Bucket means the file system under DataDir/recordings.
+type RecordingsS3 struct {
+	Endpoint  string // WERBOT_RECORDINGS_S3_ENDPOINT; "" -> standard AWS
+	Bucket    string // WERBOT_RECORDINGS_S3_BUCKET; "" -> file system DataDir/recordings
+	Region    string // WERBOT_RECORDINGS_S3_REGION; "us-east-1" when Bucket is set and Region empty
+	AccessKey string // WERBOT_RECORDINGS_S3_ACCESS_KEY
+	SecretKey string // WERBOT_RECORDINGS_S3_SECRET_KEY; both keys or neither
+}
+
 const secretKeyLen = 32
 
 // Config is the validated server configuration.
@@ -40,6 +49,8 @@ type Config struct {
 
 	DataDir     string // WERBOT_DATA_DIR, default "./data": embedded gateway state
 	GatewayAddr string // WERBOT_GATEWAY_ADDR, default ":8443": mTLS listener of the gateway tunnel
+
+	RecordingsS3 RecordingsS3 // WERBOT_RECORDINGS_S3_*
 }
 
 // Vars lists every environment variable Load reads, in contract order.
@@ -49,6 +60,8 @@ func Vars() []string {
 		"WERBOT_METRICS_ADDR", "WERBOT_WEB_EMBEDDED", "WERBOT_PUBLIC_URL", "WERBOT_WEB_URL", "WERBOT_TRUSTED_PROXIES",
 		"WERBOT_SMTP_HOST", "WERBOT_SMTP_PORT", "WERBOT_SMTP_USERNAME", "WERBOT_SMTP_PASSWORD", "WERBOT_SMTP_FROM",
 		"WERBOT_SECRET_KEY", "WERBOT_SECRET_KEY_PREVIOUS", "WERBOT_DATA_DIR", "WERBOT_GATEWAY_ADDR",
+		"WERBOT_RECORDINGS_S3_ENDPOINT", "WERBOT_RECORDINGS_S3_BUCKET", "WERBOT_RECORDINGS_S3_REGION",
+		"WERBOT_RECORDINGS_S3_ACCESS_KEY", "WERBOT_RECORDINGS_S3_SECRET_KEY",
 	}
 }
 
@@ -107,7 +120,30 @@ func Load(getenv func(string) string) (Config, error) {
 			c.PreviousSecretKeys = append(c.PreviousSecretKeys, k)
 		}
 	}
+	if c.RecordingsS3, err = loadRecordingsS3(getenv); err != nil {
+		return Config{}, err
+	}
 	return c, nil
+}
+
+func loadRecordingsS3(getenv func(string) string) (RecordingsS3, error) {
+	r := RecordingsS3{
+		Endpoint:  getenv("WERBOT_RECORDINGS_S3_ENDPOINT"),
+		Bucket:    getenv("WERBOT_RECORDINGS_S3_BUCKET"),
+		Region:    getenv("WERBOT_RECORDINGS_S3_REGION"),
+		AccessKey: getenv("WERBOT_RECORDINGS_S3_ACCESS_KEY"),
+		SecretKey: getenv("WERBOT_RECORDINGS_S3_SECRET_KEY"),
+	}
+	switch {
+	case r.AccessKey != "" && r.SecretKey == "":
+		return RecordingsS3{}, errors.New("WERBOT_RECORDINGS_S3_SECRET_KEY: required when WERBOT_RECORDINGS_S3_ACCESS_KEY is set")
+	case r.SecretKey != "" && r.AccessKey == "":
+		return RecordingsS3{}, errors.New("WERBOT_RECORDINGS_S3_ACCESS_KEY: required when WERBOT_RECORDINGS_S3_SECRET_KEY is set")
+	}
+	if r.Bucket != "" && r.Region == "" {
+		r.Region = "us-east-1"
+	}
+	return r, nil
 }
 
 // LoadLogging reads and validates WERBOT_LOG_LEVEL (debug|info|warn|error,

@@ -166,3 +166,22 @@ func TestLoadLogging(t *testing.T) {
 	_, _, err = config.LoadLogging(env(map[string]string{"WERBOT_LOG_FORMAT": "xml"}))
 	assert.EqualError(t, err, `WERBOT_LOG_FORMAT: unsupported value "xml"`)
 }
+
+func TestLoadRecordingsS3Empty(t *testing.T) {
+	c, err := config.Load(base(nil))
+	require.NoError(t, err)
+	assert.Equal(t, config.RecordingsS3{}, c.RecordingsS3)
+}
+
+func TestLoadRecordingsS3RegionDefault(t *testing.T) {
+	c, err := config.Load(base(map[string]string{"WERBOT_RECORDINGS_S3_BUCKET": "rec"}))
+	require.NoError(t, err)
+	assert.Equal(t, config.RecordingsS3{Bucket: "rec", Region: "us-east-1"}, c.RecordingsS3)
+}
+
+func TestLoadRecordingsS3PartialCredentials(t *testing.T) {
+	_, err := config.Load(base(map[string]string{"WERBOT_RECORDINGS_S3_BUCKET": "rec", "WERBOT_RECORDINGS_S3_ACCESS_KEY": "ak"}))
+	require.ErrorContains(t, err, "WERBOT_RECORDINGS_S3_SECRET_KEY")
+	_, err = config.Load(base(map[string]string{"WERBOT_RECORDINGS_S3_BUCKET": "rec", "WERBOT_RECORDINGS_S3_SECRET_KEY": "sk"}))
+	require.ErrorContains(t, err, "WERBOT_RECORDINGS_S3_ACCESS_KEY")
+}

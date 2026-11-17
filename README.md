@@ -76,6 +76,10 @@ A failed download keeps the previous data.
 | `WERBOT_SECRET_KEY` | required | Base64 of 32 random bytes (`openssl rand -base64 32`); encrypts stored secrets. |
 | `WERBOT_SECRET_KEY_PREVIOUS` | empty | Comma-separated base64 keys kept for decrypting data sealed before a key rotation. |
 | `WERBOT_DATA_DIR` | `./data` | Local state directory (embedded gateway). |
+| `WERBOT_RECORDINGS_S3_BUCKET` | empty | S3 bucket for session recordings. Empty: recordings go to the file system under `WERBOT_DATA_DIR/recordings`; use that only with one replica or a ReadWriteMany volume. |
+| `WERBOT_RECORDINGS_S3_ENDPOINT` | empty | S3-compatible endpoint URL. Empty: standard AWS. |
+| `WERBOT_RECORDINGS_S3_REGION` | `us-east-1` when the bucket is set | S3 region. |
+| `WERBOT_RECORDINGS_S3_ACCESS_KEY`, `WERBOT_RECORDINGS_S3_SECRET_KEY` | empty | S3 credentials; set both or neither. |
 | `WERBOT_GATEWAY_ADDR` | `:8443` | mTLS listener of the gateway tunnel (TLS 1.3, HTTP/2). Its port is the port in the tunnel URL given to gateways. |
 
 `werbot web` (no database access):
@@ -102,6 +106,7 @@ A failed download keeps the previous data.
 | `WERBOT_GATEWAY_IDLE_TIMEOUT` | `5m` | Closes an SSH connection without traffic; `0` disables. |
 | `WERBOT_GATEWAY_HTTP_ADDR` | empty (disabled) | Listen address for `/readyz` and `/metrics`. |
 | `WERBOT_GATEWAY_DRAIN_TIMEOUT` | `30s` | On SIGTERM, how long running sessions may continue before they end with `gateway_shutdown`. |
+| `WERBOT_GATEWAY_SPOOL_MAX` | `1GiB` | Size cap of the recording spool: bytes or a `KiB`, `MiB`, `GiB` suffix; must be above 0. Flag `--spool-max`. |
 | `WERBOT_GATEWAY_MAX_SESSIONS` | `10000` | Concurrent session limit, 1-10000; above it users get `Gateway is busy, try again later`. |
 
 The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR`; it connects out to the server tunnel. Users log in with their SSH key: `ssh <login>+<resource>@<gateway> -p 2222` runs a shell or a command on the resource, `ssh -L <port>:<host>:<port> <login>+<resource>@<gateway> -p 2222` forwards a port, and `ssh <login>@<gateway> -p 2222` (interactive terminal only) shows a menu of the resources the user may open. Without the server or a policy snapshot the gateway refuses new sessions (`Gateway is not ready, try again later`) and closes that SSH connection after 30 s; running sessions continue. A connection must authenticate within 30 s, and the control-plane lookup of each offered key counts toward it, so a slow control plane may cut a client that offers many keys. `/readyz` returns 200 only while the tunnel is up with a snapshot (a planned reconnect for `rebalance` or a server `shutdown` keeps it for up to 5s), a session slot is free and no drain runs. On SIGTERM `/readyz` returns 503 at once and the SSH port stops accepting connections.

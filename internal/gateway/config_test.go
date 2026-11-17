@@ -38,6 +38,28 @@ func TestLoadConfig(t *testing.T) {
 	}
 }
 
+func TestLoadConfigSpoolMax(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		env  string
+		want int64
+	}{
+		{nil, "", 1073741824},
+		{nil, "1048576", 1048576},
+		{nil, "512MiB", 536870912},
+		{nil, "64KiB", 65536},
+		{[]string{"--spool-max", "2GiB"}, "1GiB", 2147483648},
+	} {
+		c, err := LoadConfig(tc.args, env(map[string]string{envSpoolMax: tc.env}))
+		require.NoError(t, err)
+		require.Equal(t, tc.want, c.SpoolMax)
+	}
+	for _, bad := range []string{"0", "-1KiB", "1GB", "1.5GiB", "x", "9223372036854775807GiB"} {
+		_, err := LoadConfig(nil, env(map[string]string{envSpoolMax: bad}))
+		require.ErrorContains(t, err, envSpoolMax, bad)
+	}
+}
+
 func TestLoadConfigJoinToken(t *testing.T) {
 	c, err := LoadConfig(nil, env(map[string]string{envToken: "from-env"}))
 	require.NoError(t, err)
@@ -54,7 +76,7 @@ func TestConfigVarsMatchLoadConfig(t *testing.T) {
 	slices.Sort(asked)
 	asked = slices.Compact(asked)
 	want := ConfigVars()
-	require.Len(t, want, 10)
+	require.Len(t, want, 11)
 	slices.Sort(want)
 	require.Equal(t, want, asked)
 }
