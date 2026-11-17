@@ -8,4 +8,5 @@ import (
 	_ "github.com/werbot/werbot/internal/gateway/sshconnector"    // registers the ssh gateway connector
 	_ "github.com/werbot/werbot/internal/gateway/tcpconnector"    // registers the tcp gateway connector
 	_ "github.com/werbot/werbot/internal/gateway/telnetconnector" // registers the telnet gateway connector
+	_ "github.com/werbot/werbot/internal/gateway/udpconnector"    // registers the udp gateway connector
 )

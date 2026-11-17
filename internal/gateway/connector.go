@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/werbot/werbot/internal/connector"
+	"github.com/werbot/werbot/internal/platform/metrics"
 )
 
 // Kind is a session kind: what the front asked the connector to serve.
@@ -104,7 +105,8 @@ type Session struct {
 	// Dial connects to the target; on the embedded gateway it refuses local
 	// addresses with ErrTargetNotAllowed.
 	Dial      func(ctx context.Context, network, address string) (net.Conn, error)
-	Recording RecordingSink // a no-op sink for kinds the type does not record
+	Recording RecordingSink     // a no-op sink for kinds the type does not record
+	Metrics   *metrics.Registry // for connector counters; nil means a private registry
 }
 
 // Redact removes the credential value from text bound for the log.

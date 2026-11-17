@@ -191,6 +191,7 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID
 		PinKey:    func(alg string, key []byte) error { return p.ctl.PinHostKey(p.stop, res.ID, alg, key) },
 		Dial:      p.dial,
 		Recording: rec,
+		Metrics:   p.cfg.Metrics,
 	}, u.ID, nil
 }
 
