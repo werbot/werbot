@@ -35,7 +35,7 @@ func (g localGuard) control(ctx context.Context, _, address string, _ syscall.Ra
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrTargetNotAllowed, address)
 	}
-	return g.allowIP(ctx, ap.Addr())
+	return g.allowIPs(ctx, ap.Addr())
 }
 
 // allowHost is the check of Open, before StartSession: every address host resolves
@@ -48,25 +48,28 @@ func (g localGuard) allowHost(ctx context.Context, host string) error {
 	if err != nil {
 		return nil //nolint:nilerr // the dial fails the same way and its check still runs
 	}
-	for _, ip := range ips {
-		if err := g.allowIP(ctx, ip); err != nil {
-			return err
-		}
-	}
-	return nil
+	return g.allowIPs(ctx, ips...)
 }
 
-func (g localGuard) allowIP(ctx context.Context, ip netip.Addr) error {
-	ip = ip.Unmap().WithZone("")
-	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsMulticast() || ip.IsUnspecified() {
-		return fmt.Errorf("%w: %s is a local address", ErrTargetNotAllowed, ip)
-	}
+// allowIPs refuses any of ips that is local or an address of the database hosts,
+// which it resolves once.
+func (g localGuard) allowIPs(ctx context.Context, ips ...netip.Addr) error {
+	var own []netip.Addr
 	for _, h := range g.hosts {
-		own, err := net.DefaultResolver.LookupNetIP(ctx, "ip", h)
+		as, err := net.DefaultResolver.LookupNetIP(ctx, "ip", h)
 		if err != nil { // fail closed: the target could be the database
 			return fmt.Errorf("%w: resolve the server database host %s: %w", ErrTargetNotAllowed, h, err)
 		}
-		if slices.ContainsFunc(own, func(a netip.Addr) bool { return a.Unmap().WithZone("") == ip }) {
+		for _, a := range as {
+			own = append(own, a.Unmap().WithZone(""))
+		}
+	}
+	for _, ip := range ips {
+		ip = ip.Unmap().WithZone("")
+		if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsMulticast() || ip.IsUnspecified() {
+			return fmt.Errorf("%w: %s is a local address", ErrTargetNotAllowed, ip)
+		}
+		if slices.Contains(own, ip) {
 			return fmt.Errorf("%w: %s is the server database host", ErrTargetNotAllowed, ip)
 		}
 	}

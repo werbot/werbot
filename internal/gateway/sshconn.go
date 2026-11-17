@@ -45,7 +45,7 @@ func (c *handshakeConn) Close() error {
 type connIdleKey struct{}
 
 // connIdle closes a connection that runs no session for d (Config.IdleTimeout),
-// keepalives or not. A running session keeps it open: the sweeper ends idle
+// keepalives or not; menu input restarts it. A running session keeps it open: the sweeper ends idle
 // sessions by their resource's idle_timeout, which may be longer than d.
 type connIdle struct {
 	mu      sync.Mutex
@@ -80,6 +80,20 @@ func session(ctx ssh.Context) (done func()) {
 		if c.running--; c.running == 0 && !c.closed {
 			c.timer.Reset(c.d)
 		}
+	}
+}
+
+// touch restarts the idle limit of the connection of ctx while it runs no
+// session: input in the resource menu is activity.
+func touch(ctx ssh.Context) {
+	c, _ := ctx.Value(connIdleKey{}).(*connIdle)
+	if c == nil || c.timer == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.running == 0 && !c.closed {
+		c.timer.Reset(c.d)
 	}
 }
 

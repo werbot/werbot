@@ -52,7 +52,7 @@ func TestDenyDatabaseHost(t *testing.T) {
 	require.NoError(t, g.allowHost(ctx, "10.1.2.4"))
 
 	g.hosts = []string{"db.invalid"}
-	require.ErrorIs(t, g.allowIP(ctx, netip.MustParseAddr("10.1.2.4")), ErrTargetNotAllowed)
+	require.ErrorIs(t, g.allowIPs(ctx, netip.MustParseAddr("10.1.2.4")), ErrTargetNotAllowed)
 
 	g.deny = false
 	require.NoError(t, g.allowHost(ctx, "10.1.2.3"), "off: nothing is checked")

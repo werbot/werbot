@@ -33,7 +33,7 @@ func (h *sshHandler) menu(s ssh.Session, u User) (string, int) {
 		fmt.Fprintf(&b, "\n  %d  %s", i+1, r.Name)
 	}
 	say(s, b.String())
-	line, err := term.NewTerminal(byteReader{s}, menuPromptText).ReadLine()
+	line, err := term.NewTerminal(byteReader{s, func() { touch(s.Context()) }}, menuPromptText).ReadLine()
 	line = strings.TrimSpace(line)
 	if err != nil || line == "" { // Enter, or Ctrl-D
 		say(s, "Bye")
@@ -55,11 +55,18 @@ var errMenuInputTooLong = errors.New("menu input too long")
 // client that ends the line with CRLF passes the LF to the target. An escape
 // sequence that never completes fills the buffer, and term then reads into an
 // empty slice; an SSH channel returns 0, nil for it, so ReadLine would spin.
-type byteReader struct{ io.ReadWriter }
+type byteReader struct {
+	io.ReadWriter
+	touch func() // each byte read is activity on the connection
+}
 
 func (r byteReader) Read(p []byte) (int, error) {
 	if len(p) == 0 {
 		return 0, errMenuInputTooLong
 	}
-	return r.ReadWriter.Read(p[:1])
+	n, err := r.ReadWriter.Read(p[:1])
+	if n > 0 {
+		r.touch()
+	}
+	return n, err
 }
