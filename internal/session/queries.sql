@@ -61,3 +61,8 @@ WHERE session_id = @session_id AND org_id = @org_id;
 UPDATE recording
 SET final_hash = @final_hash, manifest_signature = @manifest_signature, verified_at = now()
 WHERE session_id = @session_id AND org_id = @org_id;
+
+-- name: GetRecording :one
+SELECT chunks, bytes, final_hash, manifest_signature
+FROM recording
+WHERE session_id = @session_id AND org_id = @org_id;

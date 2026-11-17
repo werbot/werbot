@@ -186,6 +186,36 @@ func (q *Queries) FinishRecording(ctx context.Context, arg FinishRecordingParams
 	return err
 }
 
+const getRecording = `-- name: GetRecording :one
+SELECT chunks, bytes, final_hash, manifest_signature
+FROM recording
+WHERE session_id = $1 AND org_id = $2
+`
+
+type GetRecordingParams struct {
+	SessionID uuid.UUID
+	OrgID     uuid.UUID
+}
+
+type GetRecordingRow struct {
+	Chunks            int32
+	Bytes             int64
+	FinalHash         []byte
+	ManifestSignature []byte
+}
+
+func (q *Queries) GetRecording(ctx context.Context, arg GetRecordingParams) (GetRecordingRow, error) {
+	row := q.db.QueryRow(ctx, getRecording, arg.SessionID, arg.OrgID)
+	var i GetRecordingRow
+	err := row.Scan(
+		&i.Chunks,
+		&i.Bytes,
+		&i.FinalHash,
+		&i.ManifestSignature,
+	)
+	return i, err
+}
+
 const getSigningKey = `-- name: GetSigningKey :one
 SELECT ciphertext, key_id, public_key FROM signing_key WHERE id = 1
 `
