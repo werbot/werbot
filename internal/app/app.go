@@ -19,7 +19,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
-	"github.com/werbot/werbot/internal/gateway"
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/clientip"
@@ -30,11 +29,9 @@ import (
 	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
-	"github.com/werbot/werbot/internal/platform/version"
 	"github.com/werbot/werbot/internal/session"
 	"github.com/werbot/werbot/internal/system"
 	"github.com/werbot/werbot/internal/tunnel"
-	"github.com/werbot/werbot/internal/webui"
 	"github.com/werbot/werbot/sdk"
 	"github.com/werbot/werbot/web"
 )
@@ -53,29 +50,11 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 	if len(args) > 0 {
 		cmd = args[0]
 	}
-	switch cmd {
-	case "version":
-		_, err := fmt.Fprintf(stdout, "werbot %s (commit %s, built %s)\n", version.Version, version.Commit, version.BuildDate)
+	if ok, err := runRole(ctx, cmd, args, getenv, stdout); ok {
 		return err
-	case "web":
-		cfg, err := webui.LoadConfig(getenv)
-		if err != nil {
-			return err
-		}
-		return webui.Run(ctx, cfg, web.FS(), logging.New(stdout, cfg.LogLevel, cfg.LogFormat))
-	case "gateway":
-		gcfg, err := gateway.LoadConfig(args[1:], getenv)
-		if err != nil {
-			return err
-		}
-		level, format, err := config.LoadLogging(getenv)
-		if err != nil {
-			return err
-		}
-		return gateway.Run(ctx, gcfg, logging.New(stdout, level, format))
-	case "migrate", "server":
-	default:
-		return errors.New("usage: werbot <server|gateway|web|migrate|version>")
+	}
+	if cmd != "migrate" && cmd != "server" {
+		return errors.New(usageText)
 	}
 	var withGateway bool
 	if cmd == "server" {
