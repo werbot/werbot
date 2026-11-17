@@ -1,0 +1,67 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service SessionService {
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  // GetSessionRequest/Response belong to AuthService, hence the service prefix.
+  rpc GetSession(SessionServiceGetSessionRequest) returns (SessionServiceGetSessionResponse);
+  rpc VerifyRecording(VerifyRecordingRequest) returns (VerifyRecordingResponse);
+}
+
+enum SessionStatus {
+  SESSION_STATUS_UNSPECIFIED = 0;
+  SESSION_STATUS_ACTIVE = 1;
+  SESSION_STATUS_ENDED = 2;
+}
+
+message Recording {
+  int32 chunks = 1;
+  int64 bytes = 2;
+  bool finished = 3;
+}
+
+// Session ids of a deleted user, resource or gateway are empty.
+message Session {
+  string id = 1;
+  string user_id = 2;
+  string user_login = 3;
+  string resource_id = 4;
+  string resource_name = 5;
+  string gateway_id = 6;
+  string client_ip = 7;
+  google.protobuf.Timestamp started_at = 8;
+  google.protobuf.Timestamp ended_at = 9;
+  string end_reason = 10;
+  Recording recording = 11;
+}
+
+message ListSessionsRequest {
+  string user_id = 1;
+  string resource_id = 2;
+  google.protobuf.Timestamp from = 3;
+  google.protobuf.Timestamp to = 4;
+  SessionStatus status = 5;
+  int32 page = 6;
+  int32 page_size = 7;
+}
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+  int32 next_page = 2; // 0: no further pages
+}
+
+message SessionServiceGetSessionRequest {
+  string id = 1;
+}
+message SessionServiceGetSessionResponse {
+  Session session = 1;
+}
+
+message VerifyRecordingRequest {
+  string session_id = 1;
+}
+message VerifyRecordingResponse {
+  bool verified = 1;
+  string reason = 2;
+}

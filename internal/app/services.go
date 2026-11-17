@@ -124,9 +124,10 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	return s, nil
 }
 
-// mount registers ResourceService, AccessService and PolicyService on mux.
+// mount registers ResourceService, AccessService, PolicyService and SessionService on mux.
 func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
 	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential), opts...))
 	mux.Handle(werbotv1connect.NewAccessServiceHandler(access.NewHandler(s.Access), opts...))
 	mux.Handle(werbotv1connect.NewPolicyServiceHandler(policy.NewHandler(s.Policy), opts...))
+	mux.Handle(werbotv1connect.NewSessionServiceHandler(session.NewSessionHandler(s.Sessions, s.Recordings), opts...))
 }

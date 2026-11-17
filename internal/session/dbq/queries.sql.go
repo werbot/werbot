@@ -8,6 +8,7 @@ package dbq
 import (
 	"context"
 	"net/netip"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -250,6 +251,102 @@ type InsertSigningKeyParams struct {
 func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyParams) error {
 	_, err := q.db.Exec(ctx, insertSigningKey, arg.Ciphertext, arg.KeyID, arg.PublicKey)
 	return err
+}
+
+const listSessions = `-- name: ListSessions :many
+SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
+       coalesce(u.login, '')::text AS user_login,
+       coalesce(r.name, '')::text AS resource_name,
+       coalesce(s.end_reason, '')::text AS end_reason,
+       coalesce(rec.chunks, 0)::int AS chunks,
+       coalesce(rec.bytes, 0)::bigint AS bytes,
+       (rec.manifest_signature IS NOT NULL)::bool AS finished
+FROM session s
+LEFT JOIN users u ON u.id = s.user_id
+LEFT JOIN resource r ON r.id = s.resource_id
+LEFT JOIN recording rec ON rec.session_id = s.id AND rec.org_id = s.org_id
+WHERE s.org_id = $1
+  AND ($2::uuid IS NULL OR s.user_id = $2)
+  AND ($3::uuid IS NULL OR s.resource_id = $3)
+  AND ($4::timestamptz IS NULL OR s.started_at >= $4)
+  AND ($5::timestamptz IS NULL OR s.started_at < $5)
+  AND ($6::text = '' OR ($6::text = 'active') = (s.ended_at IS NULL))
+  AND ($7::uuid IS NULL OR s.id = $7)
+ORDER BY s.started_at DESC, s.id DESC
+LIMIT $9::int OFFSET $8::int
+`
+
+type ListSessionsParams struct {
+	OrgID      uuid.UUID
+	UserID     *uuid.UUID
+	ResourceID *uuid.UUID
+	FromTs     *time.Time
+	ToTs       *time.Time
+	Status     string
+	ID         *uuid.UUID
+	RowOffset  int32
+	RowLimit   int32
+}
+
+type ListSessionsRow struct {
+	ID           uuid.UUID
+	UserID       *uuid.UUID
+	ResourceID   *uuid.UUID
+	GatewayID    *uuid.UUID
+	ClientIp     netip.Addr
+	StartedAt    time.Time
+	EndedAt      *time.Time
+	UserLogin    string
+	ResourceName string
+	EndReason    string
+	Chunks       int32
+	Bytes        int64
+	Finished     bool
+}
+
+// LEFT JOINs keep the history of deleted users and resources.
+func (q *Queries) ListSessions(ctx context.Context, arg ListSessionsParams) ([]ListSessionsRow, error) {
+	rows, err := q.db.Query(ctx, listSessions,
+		arg.OrgID,
+		arg.UserID,
+		arg.ResourceID,
+		arg.FromTs,
+		arg.ToTs,
+		arg.Status,
+		arg.ID,
+		arg.RowOffset,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSessionsRow
+	for rows.Next() {
+		var i ListSessionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ResourceID,
+			&i.GatewayID,
+			&i.ClientIp,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.UserLogin,
+			&i.ResourceName,
+			&i.EndReason,
+			&i.Chunks,
+			&i.Bytes,
+			&i.Finished,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const lockRecording = `-- name: LockRecording :one

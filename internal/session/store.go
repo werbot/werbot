@@ -22,6 +22,7 @@ type Store interface {
 	LockRecording(ctx context.Context, arg dbq.LockRecordingParams) (dbq.LockRecordingRow, error)
 	AppendRecordingChunk(ctx context.Context, arg dbq.AppendRecordingChunkParams) error
 	FinishRecording(ctx context.Context, arg dbq.FinishRecordingParams) error
+	ListSessions(ctx context.Context, arg dbq.ListSessionsParams) ([]dbq.ListSessionsRow, error)
 	GetRecording(ctx context.Context, arg dbq.GetRecordingParams) (dbq.GetRecordingRow, error)
 }
 

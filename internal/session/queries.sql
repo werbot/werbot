@@ -66,3 +66,26 @@ WHERE session_id = @session_id AND org_id = @org_id;
 SELECT store, chunks, bytes, final_hash, manifest_signature
 FROM recording
 WHERE session_id = @session_id AND org_id = @org_id;
+
+-- name: ListSessions :many
+-- LEFT JOINs keep the history of deleted users and resources.
+SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
+       coalesce(u.login, '')::text AS user_login,
+       coalesce(r.name, '')::text AS resource_name,
+       coalesce(s.end_reason, '')::text AS end_reason,
+       coalesce(rec.chunks, 0)::int AS chunks,
+       coalesce(rec.bytes, 0)::bigint AS bytes,
+       (rec.manifest_signature IS NOT NULL)::bool AS finished
+FROM session s
+LEFT JOIN users u ON u.id = s.user_id
+LEFT JOIN resource r ON r.id = s.resource_id
+LEFT JOIN recording rec ON rec.session_id = s.id AND rec.org_id = s.org_id
+WHERE s.org_id = @org_id
+  AND (sqlc.narg(user_id)::uuid IS NULL OR s.user_id = sqlc.narg(user_id))
+  AND (sqlc.narg(resource_id)::uuid IS NULL OR s.resource_id = sqlc.narg(resource_id))
+  AND (sqlc.narg(from_ts)::timestamptz IS NULL OR s.started_at >= sqlc.narg(from_ts))
+  AND (sqlc.narg(to_ts)::timestamptz IS NULL OR s.started_at < sqlc.narg(to_ts))
+  AND (@status::text = '' OR (@status::text = 'active') = (s.ended_at IS NULL))
+  AND (sqlc.narg(id)::uuid IS NULL OR s.id = sqlc.narg(id))
+ORDER BY s.started_at DESC, s.id DESC
+LIMIT @row_limit::int OFFSET @row_offset::int;

@@ -42,6 +42,7 @@ The API covers identity (auth, profile, SSH keys, members, teams) and, for owner
 - `ResourceService`: resources of registered types (`ssh` today) with labels, write-only credentials (sealed with `WERBOT_SECRET_KEY`) and pinned SSH host keys.
 - `AccessService`: bindings that grant a user or team one resource or every resource matching a label selector.
 - `PolicyService`: per-resource network, country and schedule (UTC) rules, and `CheckAccess` to test a decision. Decisions use Cedar and fail closed.
+- `SessionService`: session list (filters by user, resource, period, status; paging), session card and `VerifyRecording` (hash chain and signature check). Members see only their own sessions.
 - `GatewayService`: gateway pools, their instances and join tokens. A gateway joins with `GatewayEnrollService/Enroll` (the join token is its only credential) and then talks to the server only over the mTLS tunnel (`https://<WERBOT_PUBLIC_URL host>:<WERBOT_GATEWAY_ADDR port>`). The server never connects to a gateway.
 
 Maintenance jobs run on the River `maintenance` queue: `session.end_lost` (every 30s) closes sessions of gateways that stopped reporting, `gateway.gc` (hourly) removes instances whose certificate expired over 24h ago and join tokens expired over 7 days ago.
