@@ -103,6 +103,7 @@ func TestE2ETunnelRejectsBadCerts(t *testing.T) {
 	require.Error(t, err)
 	// the alert, a reset or a failed HTTP/2 preface, depending on timing; never a server code
 	assert.Contains(t, []connect.Code{connect.CodeUnavailable, connect.CodeCanceled}, connect.CodeOf(err), err)
+	assert.False(t, connect.IsWireError(err), "the server never answered")
 
 	// A deleted instance is cut off: its stream closes and its calls fail.
 	_, dir2, err := s.startGateway(t, s.token)
