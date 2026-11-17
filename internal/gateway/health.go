@@ -22,8 +22,7 @@ const (
 	probersPerResource = 2                // instances that probe one resource
 	healthEvery        = 60 * time.Second // ±healthJitter
 	healthJitter       = 0.2
-	healthRefresh      = 90 * time.Second // an unchanged result is queued again: the server counts results younger than 3 min
-	healthRetry        = time.Second      // pause while no snapshot has arrived
+	healthRetry        = time.Second // pause while no snapshot has arrived
 	probeTimeout       = 5 * time.Second
 	probeParallel      = 8    // concurrent dials
 	maxHealth          = 1000 // max_items of Heartbeat.health; the rest waits for the next one
@@ -58,14 +57,8 @@ type healthResult struct {
 	err string
 }
 
-// queued is a result and when it was last queued.
-type queued struct {
-	r  healthResult
-	at time.Time
-}
-
 // prober checks the TCP targets of the pool resources this instance is a prober
-// of and keeps the changed results until the next heartbeat takes them.
+// of and keeps the latest result of each until the next heartbeat takes them.
 type prober struct {
 	policy func() *Policy
 	dial   func(ctx context.Context, addr string) error
@@ -73,7 +66,6 @@ type prober struct {
 	fail   *metrics.Counter
 
 	mu      sync.Mutex
-	last    map[uuid.UUID]queued // what was last queued, per probed resource
 	pending map[uuid.UUID]*gatewayv1.ResourceHealth
 }
 
@@ -83,7 +75,6 @@ func newProber(policy func() *Policy, dial func(ctx context.Context, addr string
 		policy: policy, dial: dial,
 		ok:      reg.Counter("werbot_gateway_health_checks_total", help, "result", "ok"),
 		fail:    reg.Counter("werbot_gateway_health_checks_total", help, "result", "fail"),
-		last:    map[uuid.UUID]queued{},
 		pending: map[uuid.UUID]*gatewayv1.ResourceHealth{},
 	}
 }
@@ -126,7 +117,7 @@ type probeTarget struct {
 }
 
 // pass checks the resources of the snapshot this instance is a prober of, at most
-// probeParallel at a time, and records the changed results.
+// probeParallel at a time, and queues every result.
 // It reports false when there is no snapshot yet.
 func (h *prober) pass(ctx context.Context, self uuid.UUID, pool []uuid.UUID) bool {
 	pol := h.policy()
@@ -180,31 +171,21 @@ func (h *prober) check(ctx context.Context, t probeTarget) healthResult {
 	return healthResult{ok: true}
 }
 
-// record counts the results and queues those that differ from the last queued or
-// were queued healthRefresh ago;
-// resources no longer probed here are forgotten, so they report again if they return.
+// record counts the results and queues each, replacing an earlier one the heartbeat
+// has not taken: the server counts only results younger than 3 minutes, so every pass
+// reports every resource.
 func (h *prober) record(mine []probeTarget, results []healthResult) {
-	seen := make(map[uuid.UUID]bool, len(mine))
-	now := time.Now()
+	now := timestamppb.Now()
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for i, t := range mine {
-		seen[t.id] = true
 		r := results[i]
 		if r.ok {
 			h.ok.Inc()
 		} else {
 			h.fail.Inc()
 		}
-		if prev, known := h.last[t.id]; !known || prev.r != r || now.Sub(prev.at) >= healthRefresh {
-			h.last[t.id] = queued{r, now}
-			h.pending[t.id] = &gatewayv1.ResourceHealth{ResourceId: t.id.String(), Ok: r.ok, Error: r.err, CheckedAt: timestamppb.New(now)}
-		}
-	}
-	for id := range h.last {
-		if !seen[id] {
-			delete(h.last, id)
-		}
+		h.pending[t.id] = &gatewayv1.ResourceHealth{ResourceId: t.id.String(), Ok: r.ok, Error: r.err, CheckedAt: now}
 	}
 }
 
