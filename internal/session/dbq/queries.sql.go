@@ -187,7 +187,7 @@ func (q *Queries) FinishRecording(ctx context.Context, arg FinishRecordingParams
 }
 
 const getRecording = `-- name: GetRecording :one
-SELECT chunks, bytes, final_hash, manifest_signature
+SELECT store, chunks, bytes, final_hash, manifest_signature
 FROM recording
 WHERE session_id = $1 AND org_id = $2
 `
@@ -198,6 +198,7 @@ type GetRecordingParams struct {
 }
 
 type GetRecordingRow struct {
+	Store             string
 	Chunks            int32
 	Bytes             int64
 	FinalHash         []byte
@@ -208,6 +209,7 @@ func (q *Queries) GetRecording(ctx context.Context, arg GetRecordingParams) (Get
 	row := q.db.QueryRow(ctx, getRecording, arg.SessionID, arg.OrgID)
 	var i GetRecordingRow
 	err := row.Scan(
+		&i.Store,
 		&i.Chunks,
 		&i.Bytes,
 		&i.FinalHash,

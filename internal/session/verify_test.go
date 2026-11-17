@@ -104,3 +104,21 @@ func TestVerifyStoreUnavailable(t *testing.T) {
 	_, err := e.rec.Verify(t.Context(), e.f.OrgID, e.sid)
 	require.ErrorIs(t, err, apperr.ErrUnavailable)
 }
+
+func TestVerifyReasonOrder(t *testing.T) {
+	e := newRecEnv(t)
+	dir := t.TempDir()
+	e.store.RecordingStore = recstore.NewFS(dir)
+	gz, hashes := makeChunks(t, 2)
+	e.ingestAll(t, gz, hashes)
+	require.NoError(t, os.Remove(e.path(dir, 1)))
+	assert.Equal(t, session.Verification{Reason: session.ReasonChunkMissing}, e.verify(t)) // unfinished and missing
+}
+
+func TestVerifyStoreKindMismatch(t *testing.T) {
+	e, _ := finishedEnv(t)
+	s3 := session.NewRecordings(e.pool, e.store, "s3", e.signer)
+	_, err := s3.Verify(t.Context(), e.f.OrgID, e.sid)
+	require.ErrorIs(t, err, apperr.ErrUnavailable)
+	assert.ErrorContains(t, err, `kept in "fs" store`)
+}

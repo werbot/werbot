@@ -55,6 +55,10 @@ func (r *Recordings) copyChain(ctx context.Context, orgID, sessionID uuid.UUID, 
 		return Verification{}, err
 	}
 
+	if rec.Store != r.kind {
+		return Verification{}, fmt.Errorf("recording kept in %q store, server configured for %q: %w", rec.Store, r.kind, apperr.ErrUnavailable)
+	}
+
 	prev, size, missing := hashchain.Genesis(), int64(0), false
 	for seq := range int(rec.Chunks) {
 		gz, err := r.readChunk(ctx, orgID, sessionID, seq)
