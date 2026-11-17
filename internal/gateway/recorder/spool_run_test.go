@@ -2,6 +2,7 @@ package recorder_test
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -136,4 +137,41 @@ func TestSpoolRejectedMovesAside(t *testing.T) {
 	again := openSpool(t, dir, up, 0)
 	require.Zero(t, again.Total(), "spool/rejected is not counted after a restart")
 	require.Empty(t, again.PendingEnds())
+}
+
+// An End during a long retry pause (the server's store is down, the server is up)
+// is delivered at once, not after the pause.
+func TestSpoolEndCutsRetryPause(t *testing.T) {
+	up := &fakeUploader{}
+	up.setChunkCode(func(int) connect.Code { return connect.CodeUnavailable })
+	sp, err := recorder.OpenSpool(t.TempDir(), up, recorder.SpoolOptions{RetryMin: 5 * time.Second, RetryMax: 10 * time.Second},
+		slog.New(slog.DiscardHandler))
+	require.NoError(t, err)
+	a, b := uuid.New(), uuid.New()
+	_, _ = appendN(t, sp, a, 1)
+	runSpool(t, sp)
+	require.Eventually(t, func() bool { return up.calls.Load() >= 1 }, 2*time.Second, time.Millisecond, "the first pass failed")
+
+	require.NoError(t, sp.End(b, "closed"))
+	require.Eventually(t, func() bool { return up.count(fmt.Sprintf("end %s closed", b)) == 1 }, 200*time.Millisecond, time.Millisecond)
+	_, _ = appendN(t, sp, uuid.New(), 1) // new chunks do not cut the pause
+	time.Sleep(50 * time.Millisecond)
+	require.EqualValues(t, 3, up.calls.Load(), "chunk a, end b, chunk a")
+}
+
+// A second refusal of the same session keeps the first rejected copy.
+func TestSpoolRejectedTwiceKeepsBoth(t *testing.T) {
+	dir := t.TempDir()
+	up := &fakeUploader{}
+	up.code.Store(uint32(connect.CodeInvalidArgument))
+	sp := openSpool(t, dir, up, 0)
+	runSpool(t, sp)
+	id := uuid.New()
+	_, _ = appendN(t, sp, id, 1)
+	require.Eventually(t, func() bool { return sp.Pending(id) == 0 }, 5*time.Second, 5*time.Millisecond)
+	_, _ = appendN(t, sp, id, 1) // the session goes on and is refused again
+	require.Eventually(t, func() bool {
+		entries, _ := os.ReadDir(filepath.Join(dir, "rejected"))
+		return len(entries) == 2
+	}, 5*time.Second, 5*time.Millisecond)
 }

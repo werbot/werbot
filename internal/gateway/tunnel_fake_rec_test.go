@@ -17,13 +17,23 @@ import (
 type recCalls struct {
 	chunks   []*gatewayv1.UploadRecordingChunkRequest
 	finishes []*gatewayv1.FinishRecordingRequest
-	err      error // returned by both RPCs when set
+	order    []string // "end", "chunk", "finish": the spool RPCs in call order
+	err      error    // returned by both recording RPCs when set
+}
+
+func (f *fakeTunnel) EndSession(_ context.Context, r *connect.Request[gatewayv1.EndSessionRequest]) (*connect.Response[gatewayv1.EndSessionResponse], error) {
+	f.mu.Lock()
+	f.ends = append(f.ends, r.Msg)
+	f.rec.order = append(f.rec.order, "end")
+	f.mu.Unlock()
+	return connect.NewResponse(&gatewayv1.EndSessionResponse{}), nil
 }
 
 func (f *fakeTunnel) UploadRecordingChunk(_ context.Context, r *connect.Request[gatewayv1.UploadRecordingChunkRequest]) (*connect.Response[gatewayv1.UploadRecordingChunkResponse], error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.rec.chunks = append(f.rec.chunks, r.Msg)
+	f.rec.order = append(f.rec.order, "chunk")
 	if f.rec.err != nil {
 		return nil, f.rec.err
 	}
@@ -34,6 +44,7 @@ func (f *fakeTunnel) FinishRecording(_ context.Context, r *connect.Request[gatew
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.rec.finishes = append(f.rec.finishes, r.Msg)
+	f.rec.order = append(f.rec.order, "finish")
 	if f.rec.err != nil {
 		return nil, f.rec.err
 	}

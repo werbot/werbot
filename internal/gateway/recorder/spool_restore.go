@@ -2,9 +2,7 @@ package recorder
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"path"
 	"strconv"
@@ -21,7 +19,7 @@ func (s *Spool) restore(id uuid.UUID) error {
 	if err != nil {
 		return err
 	}
-	ss := &session{st: state{Closed: true}, sent: -1}
+	ss := &session{st: state{Closed: true}}
 	sizes := map[int]int64{}
 	for _, f := range files {
 		name := path.Join(dir, f.Name())
@@ -46,10 +44,6 @@ func (s *Spool) restore(id uuid.UUID) error {
 				return fmt.Errorf("bad chunk file %s", n)
 			}
 			sizes[seq] = info.Size() - hashLen
-			ss.pending += sizes[seq]
-			if ss.sent < 0 || seq < ss.sent {
-				ss.sent = seq
-			}
 		}
 	}
 	for seq := ss.st.Chunks; sizes[seq] > 0; seq++ {
@@ -59,29 +53,20 @@ func (s *Spool) restore(id uuid.UUID) error {
 		}
 		ss.st.Chunks, ss.st.Bytes, ss.st.FinalHash, ss.stored = seq+1, ss.st.Bytes+sizes[seq], hex.EncodeToString(hash), true
 	}
-	if ss.sent < 0 {
-		ss.sent = ss.st.Chunks
+	// Uploads run in order and remove their file, so the unsent chunks are the run
+	// that ends at the last one; files below a gap were sent but not removed.
+	ss.sent = ss.st.Chunks
+	for sizes[ss.sent-1] > 0 {
+		ss.sent--
+	}
+	for seq, n := range sizes {
+		if seq < ss.sent {
+			_ = s.root.Remove(chunkName(id, seq))
+		} else {
+			ss.pending += n
+		}
 	}
 	s.sessions[id] = ss
 	s.total.Add(ss.pending)
 	return nil
-}
-
-func (s *Spool) readJSON(name string, v any) error {
-	b, err := s.root.ReadFile(name)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, v)
-}
-
-func (s *Spool) readHash(id uuid.UUID, seq int) ([]byte, error) {
-	f, err := s.root.Open(chunkName(id, seq))
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close() //nolint:errcheck // read only
-	hash := make([]byte, hashLen)
-	_, err = io.ReadFull(f, hash)
-	return hash, err
 }

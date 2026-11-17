@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -221,6 +222,8 @@ func TestServeRecordsSessions(t *testing.T) {
 		require.Equal(t, "closed", f.ends[0].GetReason())
 		require.Equal(t, testSessionID.String(), f.rec.chunks[0].GetSessionId())
 		require.EqualValues(t, len(f.rec.chunks), f.rec.finishes[0].GetChunks())
+		want := append([]string{"end"}, slices.Repeat([]string{"chunk"}, len(f.rec.chunks))...)
+		require.Equal(t, append(want, "finish"), f.rec.order)
 	})
 	resp, err := http.Get(e.httpURL + "/metrics") //nolint:noctx // test probe
 	require.NoError(t, err)

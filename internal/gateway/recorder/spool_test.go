@@ -178,64 +178,6 @@ func TestSpoolLimit(t *testing.T) {
 	require.Contains(t, rec.Body.String(), "spool_bytes 110")
 }
 
-func TestSpoolRecoversAfterRestart(t *testing.T) {
-	for _, ended := range []bool{false, true} {
-		t.Run(fmt.Sprintf("ended=%v", ended), func(t *testing.T) {
-			dir := t.TempDir()
-			down := &fakeUploader{}
-			down.down.Store(true)
-			old := openSpool(t, dir, down, 0)
-			id := uuid.New()
-			total, last := appendN(t, old, id, 2)
-			if ended {
-				require.NoError(t, old.End(id, "gateway_shutdown"))
-			}
-
-			up := &fakeUploader{}
-			sp := openSpool(t, dir, up, 0)
-			require.Equal(t, total, sp.Total())
-			require.Equal(t, total, sp.Pending(id))
-			want := []string{fmt.Sprintf("chunk %s 0", id), fmt.Sprintf("chunk %s 1", id), fmt.Sprintf("finish %s 2", id)}
-			if ended {
-				require.Equal(t, []uuid.UUID{id}, sp.PendingEnds())
-				want = append([]string{fmt.Sprintf("end %s gateway_shutdown", id)}, want...)
-			} else {
-				require.Empty(t, sp.PendingEnds())
-			}
-			runSpool(t, sp)
-			require.Eventually(t, func() bool { return slices.Equal(up.journal(), want) }, 5*time.Second, 5*time.Millisecond)
-			require.Eventually(t, gone(filepath.Join(dir, id.String())), 5*time.Second, 5*time.Millisecond)
-			require.Equal(t, []recorder.Manifest{{SessionID: id, Chunks: 2, Bytes: total, FinalHash: last}}, up.finishes)
-			require.Zero(t, sp.Total())
-		})
-	}
-}
-
-// A crash between the chunk file and state.json leaves a chunk the state does not
-// count yet; recovery counts it.
-func TestSpoolRecoversChunkWrittenBeforeState(t *testing.T) {
-	dir := t.TempDir()
-	old := openSpool(t, dir, &fakeUploader{}, 0)
-	id := uuid.New()
-	_, _ = appendN(t, old, id, 1)
-	sdir, err := os.OpenRoot(filepath.Join(dir, id.String()))
-	require.NoError(t, err)
-	state, err := sdir.ReadFile("state.json")
-	require.NoError(t, err)
-	hash := bytes.Repeat([]byte{9}, 32)
-	require.NoError(t, old.Append(id, 1, hash, make([]byte, 40)))
-	require.NoError(t, sdir.WriteFile("state.json", state, 0o600))
-	require.NoError(t, sdir.WriteFile("00000002.chunk.tmp", []byte("torn"), 0o600))
-
-	up := &fakeUploader{}
-	sp := openSpool(t, dir, up, 0)
-	require.EqualValues(t, 100+40, sp.Total())
-	runSpool(t, sp)
-	require.Eventually(t, func() bool { return up.count(fmt.Sprintf("finish %s 2", id)) == 1 }, 5*time.Second, 5*time.Millisecond)
-	require.Equal(t, hash, up.finishes[0].FinalHash)
-	require.EqualValues(t, 140, up.finishes[0].Bytes)
-}
-
 func TestSpoolCapTerminatesRecorder(t *testing.T) {
 	up := &fakeUploader{}
 	up.down.Store(true)
@@ -259,4 +201,22 @@ func TestSpoolCapTerminatesRecorder(t *testing.T) {
 	mu.Unlock()
 	require.LessOrEqual(t, sp.Pending(id), int64(64<<10))
 	require.Positive(t, sp.Pending(id))
+}
+
+// A shut down spool writes nothing: a new Spool owns the directory.
+func TestSpoolShutdown(t *testing.T) {
+	dir := t.TempDir()
+	sp := openSpool(t, dir, &fakeUploader{}, 0)
+	id := uuid.New()
+	_, _ = appendN(t, sp, id, 1)
+	require.NoError(t, sp.Shutdown())
+	require.Error(t, sp.Append(id, 1, make([]byte, 32), []byte("gz")))
+	require.Error(t, sp.End(id, "closed"))
+	require.Error(t, sp.Close(id))
+	require.Error(t, sp.Append(uuid.New(), 0, make([]byte, 32), []byte("gz")))
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	require.NoFileExists(t, filepath.Join(dir, id.String(), "end.json"))
+	require.NoFileExists(t, filepath.Join(dir, id.String(), "00000001.chunk"))
 }

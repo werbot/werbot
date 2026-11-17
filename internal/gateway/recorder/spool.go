@@ -81,7 +81,8 @@ type Spool struct {
 	up    Uploader
 	opts  SpoolOptions
 	log   *slog.Logger
-	wake  chan struct{}
+	wake  chan struct{} // any new work
+	ended chan struct{} // a new session end: also cuts a retry pause short
 	total atomic.Int64
 
 	// ponytail: one lock covers the disk writes of all sessions (an fsync per chunk
@@ -89,7 +90,11 @@ type Spool struct {
 	mu       sync.Mutex
 	sessions map[uuid.UUID]*session
 	ends     map[uuid.UUID]string // reason of an EndSession not delivered yet
+	shut     bool                 // Shutdown ran: the directory may belong to a new Spool
 }
+
+// errShutdown is a write to a spool after Shutdown.
+var errShutdown = errors.New("recorder: spool is shut down")
 
 // OpenSpool opens (or creates) the spool in dir and restores what an earlier
 // process left there; every restored session counts as closed.
@@ -110,7 +115,7 @@ func OpenSpool(dir string, up Uploader, opts SpoolOptions, logger *slog.Logger) 
 	if err != nil {
 		return nil, fmt.Errorf("spool: %w", err)
 	}
-	s := &Spool{root: root, up: up, opts: opts, log: logger, wake: make(chan struct{}, 1),
+	s := &Spool{root: root, up: up, opts: opts, log: logger, wake: make(chan struct{}, 1), ended: make(chan struct{}, 1),
 		sessions: map[uuid.UUID]*session{}, ends: map[uuid.UUID]string{}}
 	entries, err := fs.ReadDir(root.FS(), ".")
 	if err != nil {
@@ -133,6 +138,9 @@ func OpenSpool(dir string, up Uploader, opts SpoolOptions, logger *slog.Logger) 
 func (s *Spool) Append(sessionID uuid.UUID, seq int, hash, gz []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.shut {
+		return errShutdown
+	}
 	ss := s.sessions[sessionID]
 	var pending int64
 	if ss != nil {
@@ -143,7 +151,7 @@ func (s *Spool) Append(sessionID uuid.UUID, seq int, hash, gz []byte) error {
 		return ErrSpoolFull
 	}
 	if ss == nil {
-		if err := s.root.MkdirAll(sessionID.String(), 0o700); err != nil {
+		if err := s.mkdir(sessionID); err != nil {
 			return err
 		}
 		ss = &session{sent: seq}
@@ -169,6 +177,9 @@ func (s *Spool) Append(sessionID uuid.UUID, seq int, hash, gz []byte) error {
 func (s *Spool) Close(sessionID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.shut {
+		return errShutdown
+	}
 	ss := s.sessions[sessionID]
 	if ss == nil {
 		return nil // nothing was recorded
@@ -187,8 +198,11 @@ func (s *Spool) Close(sessionID uuid.UUID) error {
 func (s *Spool) End(sessionID uuid.UUID, reason string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.shut {
+		return errShutdown
+	}
 	if s.sessions[sessionID] == nil {
-		if err := s.root.MkdirAll(sessionID.String(), 0o700); err != nil {
+		if err := s.mkdir(sessionID); err != nil {
 			return err
 		}
 		s.sessions[sessionID] = &session{}
@@ -201,7 +215,20 @@ func (s *Spool) End(sessionID uuid.UUID, reason string) error {
 	}
 	s.ends[sessionID] = reason
 	s.notify()
+	select {
+	case s.ended <- struct{}{}:
+	default:
+	}
 	return nil
+}
+
+// Shutdown closes the spool directory; later Append, Close and End fail. Run must
+// have returned.
+func (s *Spool) Shutdown() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.shut = true
+	return s.root.Close()
 }
 
 // Pending is the unsent gz bytes of a session.
@@ -236,42 +263,6 @@ func (s *Spool) notify() {
 	case s.wake <- struct{}{}:
 	default:
 	}
-}
-
-func (s *Spool) writeState(id uuid.UUID, st state) error {
-	b, _ := json.Marshal(st)
-	return s.write(path.Join(id.String(), stateFile), b)
-}
-
-// write replaces name with parts: a synced temp file renamed over it.
-func (s *Spool) write(name string, parts ...[]byte) error {
-	tmp := name + tmpExt
-	f, err := s.root.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
-	if err != nil {
-		return err
-	}
-	for _, p := range parts {
-		if _, err = f.Write(p); err != nil {
-			break
-		}
-	}
-	if err == nil {
-		err = f.Sync()
-	}
-	if cerr := f.Close(); err == nil {
-		err = cerr
-	}
-	if err == nil {
-		err = s.root.Rename(tmp, name)
-	}
-	if err != nil {
-		_ = s.root.Remove(tmp)
-	}
-	return err
-}
-
-func chunkName(id uuid.UUID, seq int) string {
-	return path.Join(id.String(), fmt.Sprintf("%08d%s", seq, chunkExt))
 }
 
 func sortedKeys[V any](m map[uuid.UUID]V) []uuid.UUID {

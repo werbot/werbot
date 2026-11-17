@@ -51,7 +51,7 @@ type fakeTunnel struct {
 	pinErr     error
 	renewErr   error // returned by RenewCertificate when set
 	ends       []*gatewayv1.EndSessionRequest
-	rec        recCalls // the recording RPCs, tunnel_fake_rec_test.go
+	rec        recCalls // the spool RPCs, tunnel_fake_rec_test.go
 	csrs       [][]byte
 	startCalls int
 	unaryIP    []string
@@ -142,13 +142,6 @@ func (f *fakeTunnel) StartSession(ctx context.Context, r *connect.Request[gatewa
 	}
 	return connect.NewResponse(&gatewayv1.StartSessionResponse{SessionId: testSessionID.String(),
 		Credential: &gatewayv1.Credential{Kind: "password", Value: []byte("pw")}}), nil
-}
-
-func (f *fakeTunnel) EndSession(_ context.Context, r *connect.Request[gatewayv1.EndSessionRequest]) (*connect.Response[gatewayv1.EndSessionResponse], error) {
-	f.mu.Lock()
-	f.ends = append(f.ends, r.Msg)
-	f.mu.Unlock()
-	return connect.NewResponse(&gatewayv1.EndSessionResponse{}), nil
 }
 
 func (f *fakeTunnel) PinHostKey(_ context.Context, r *connect.Request[gatewayv1.PinHostKeyRequest]) (*connect.Response[gatewayv1.PinHostKeyResponse], error) {

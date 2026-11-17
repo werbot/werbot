@@ -128,6 +128,9 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	}
 	stopSpool()
 	<-spoolDone
+	if err := sp.Shutdown(); err != nil { // a session that ignored the drain cannot write into the next serve's spool
+		logger.Warn("gateway: close spool", "error", err)
+	}
 	stopTunnel()
 	<-tunnelDone
 	if hs != nil {

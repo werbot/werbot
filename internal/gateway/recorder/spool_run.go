@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"path"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -32,8 +34,11 @@ func (s *Spool) Run(ctx context.Context) error {
 		wake, retry := s.wake, (<-chan time.Time)(nil)
 		if err != nil {
 			pause = min(max(2*pause, s.opts.RetryMin), s.opts.RetryMax)
-			s.log.Warn("spool: upload failed, retrying", "error", err, "retry_in", pause)
-			wake, retry = nil, time.After(pause) // new data must not cut the pause short
+			wait := jitter(pause)
+			s.log.Warn("spool: upload failed, retrying", "error", err, "retry_in", wait)
+			// new chunks do not cut the pause short, a new session end does: a pass
+			// delivers the ends first, even while the server cannot store chunks
+			wake, retry = nil, time.After(wait)
 		} else {
 			pause = 0
 		}
@@ -41,9 +46,15 @@ func (s *Spool) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-wake:
+		case <-s.ended:
 		case <-retry:
 		}
 	}
+}
+
+// jitter spreads d by ±20 %, so gateways do not retry in step after a server restart.
+func jitter(d time.Duration) time.Duration {
+	return time.Duration(float64(d) * (0.8 + 0.4*rand.Float64())) //nolint:gosec // jitter, not security
 }
 
 // pass makes one delivery round; it stops at the first retryable failure.
@@ -172,9 +183,11 @@ func (s *Spool) reject(id uuid.UUID, cause error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	dst := path.Join(rejectedDir, id.String())
+	if _, err := s.root.Lstat(dst); err == nil { // refused before: keep that copy too
+		dst += "." + strconv.FormatInt(time.Now().UnixNano(), 10)
+	}
 	err := s.root.MkdirAll(rejectedDir, 0o700)
 	if err == nil {
-		_ = s.root.RemoveAll(dst) // refused before
 		err = s.root.Rename(id.String(), dst)
 	}
 	s.log.Error("spool: session refused, moved to "+rejectedDir, "session_id", id, "cause", cause, "error", err)
