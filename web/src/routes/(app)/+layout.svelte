@@ -14,12 +14,14 @@
 		{ href: '/', icon: 'dashboard', label: m.nav_dashboard() },
 		{ href: '/profile', icon: 'user', label: m.nav_profile() },
 		{ href: '/profile/keys', icon: 'key', label: m.nav_keys() },
+		{ href: '/sessions', icon: 'history', label: m.nav_sessions() },
 		...(manager
 			? [
 					{ href: '/members', icon: 'users', label: m.nav_members() },
 					{ href: '/teams', icon: 'workspace', label: m.nav_teams() },
 					{ href: '/resources', icon: 'server', label: m.nav_resources() },
-					{ href: '/gateways', icon: 'shield', label: m.nav_gateways() }
+					{ href: '/gateways', icon: 'shield', label: m.nav_gateways() },
+					{ href: '/audit', icon: 'report_detailed', label: m.nav_audit() }
 				]
 			: [])
 	]);

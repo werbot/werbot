@@ -74,8 +74,10 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	await expect(page.locator('code', { hasText: '+e2e-pool-res@' })).toBeVisible();
 
 	await pickPool('e2e-pool-2');
+	// wait for the answer: the "Saved" toast of the create may still be visible
+	const updated = page.waitForResponse('**/werbot.v1.ResourceService/UpdateResource');
 	await page.getByRole('button', { name: en.resources_save, exact: true }).click();
-	await expect(page.getByText(en.common_saved)).toBeVisible();
+	expect((await updated).ok()).toBe(true);
 	await page.reload();
 	await expect(poolSelect).toHaveText(/e2e-pool-2/);
 

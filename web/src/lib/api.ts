@@ -10,6 +10,8 @@ import { ResourceService } from '#lib/gen/werbot/v1/resource_pb.js';
 import { AccessService } from '#lib/gen/werbot/v1/access_pb.js';
 import { PolicyService } from '#lib/gen/werbot/v1/policy_pb.js';
 import { GatewayService } from '#lib/gen/werbot/v1/gateway_pb.js';
+import { SessionService } from '#lib/gen/werbot/v1/session_pb.js';
+import { AuditService } from '#lib/gen/werbot/v1/audit_pb.js';
 
 // Same origin in all-in-one mode and behind `werbot web`.
 // Binary format keeps google.protobuf.Any connector configs opaque, so an
@@ -26,3 +28,5 @@ export const resources: Client<typeof ResourceService> = createClient(ResourceSe
 export const access: Client<typeof AccessService> = createClient(AccessService, transport);
 export const policy: Client<typeof PolicyService> = createClient(PolicyService, transport);
 export const gateways: Client<typeof GatewayService> = createClient(GatewayService, transport);
+export const sessions: Client<typeof SessionService> = createClient(SessionService, transport);
+export const audit: Client<typeof AuditService> = createClient(AuditService, transport);

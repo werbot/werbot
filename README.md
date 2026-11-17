@@ -33,6 +33,8 @@ Commands: `./bin/werbot <server|gateway|web|migrate|version>`.
 - `server --with-gateway` also runs a gateway instance in the same process. Each replica joins the system pool `local` of the first organization (by creation time) with a single-use system join token; before `Setup` it checks for an organization every 5s. It reaches its own server over loopback (`http://127.0.0.1:<WERBOT_HTTP_ADDR port>`, tunnel `https://127.0.0.1:<WERBOT_GATEWAY_ADDR port>`), so both addresses must accept connections on 127.0.0.1: leave the host empty (`:8080`) or use `0.0.0.0` or `127.0.0.1`, not a single non-loopback IP. It keeps its identity in `WERBOT_DATA_DIR/gateway` (or `WERBOT_GATEWAY_DATA_DIR`) and reads the other `WERBOT_GATEWAY_*` variables below; its metrics go to the server's `/metrics`. Database and enrollment errors before the instance is enrolled are logged and retried (the wait doubles up to 5 minutes, a new single-use token each time); a busy SSH port or a failure after enrollment stops the server. On shutdown the gateway drains its sessions before the server closes the tunnel, so allow `WERBOT_GATEWAY_DRAIN_TIMEOUT` plus about 40s for the stop (compose: `stop_grace_period: 70s`).
 - `gateway` runs a standalone gateway instance (`./bin/werbot gateway --help` lists the flags: `--server`, `--join-token`, `--data-dir`, `--ssh-addr`, `--proxy-protocol`, `--name`, `--idle-timeout`, `--http-addr`, `--drain-timeout`, `--max-sessions`, and the flag-only `--insecure-enroll`).
 - Web UI `/gateways` (owners and admins): create pools, see instances (online within 45s of the last heartbeat) and manage join tokens. "Create join token" shows the `WERBOT_GATEWAY_JOIN_TOKEN=<token> werbot gateway --server <origin>` command once (the env form keeps the token out of `ps` output and shell history); the token is not shown again. The resource form shows a pool select when more than one pool exists.
+- Web UI `/sessions` (every user; members see only their own): session list filtered by status and period (owners and admins also by user and resource) and, per session, its details, the recording integrity badge (`Recording verified` when `X-Werbot-Recording-Verified` is `true`, a failure banner otherwise, a notice while the recording is unfinished) and an asciinema player of `/api/recordings/{session_id}.cast`.
+- Web UI `/audit` (owners and admins): the audit log filtered by action, actor and period; the filter lives in the query string (`/audit?action=session&actor=<user id>&from=YYYY-MM-DD&to=YYYY-MM-DD`, `to` inclusive). A click on an event opens its fields and `data`.
 - `migrate` runs migrations (schema and River job queue) and exits.
 - `web` serves the UI and proxies the API to a separate `server`.
 - `version` prints the build version.
@@ -138,11 +140,13 @@ The stack runs `werbot server --with-gateway` and listens on http://localhost:80
 ```sh
 make test   # needs `make dev-db`
 make lint
-make e2e    # Playwright e2e on DB `werbot_e2e`, no internet feeds (the server runs with `HTTPS_PROXY` pointing at a closed port; needs `make dev-db`; first run: `cd web && bunx playwright install chromium`)
+make e2e    # Playwright e2e on DB `werbot_e2e`, no internet feeds (the server runs with `HTTPS_PROXY` pointing at a closed port; needs `make dev-db`, Go, ssh and ssh-keygen; first run: `cd web && bunx playwright install chromium`)
 make e2e-network  # Docker Compose e2e: SSH through a gateway pool to a target on an internal-only network
 (cd web && bun run test:unit)  # Vitest unit tests for the web UI
 make sqlc   # regenerates internal/<domain>/dbq from migrations/ and internal/<domain>/queries.sql
 ```
+
+`make e2e` starts `werbot server --with-gateway` (gateway SSH on `127.0.0.1:2222`, a fresh `WERBOT_DATA_DIR` per run) and the SSH target `go run ./internal/e2e/sshtarget` on `127.0.0.1:2022`; both ports must be free.
 
 `make e2e-network` needs docker, curl, jq, ssh and ssh-keygen. It builds the `werbot-e2e:local` image, publishes ports `8080`, `8081` and `2222` on localhost, and removes the `werbot-e2e` project (containers, networks, volumes) on exit.
 

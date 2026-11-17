@@ -33,6 +33,7 @@
 	"dependencies": {
 		"@bufbuild/protobuf": "^2.17.0",
 		"@connectrpc/connect": "^2.3.0",
-		"@connectrpc/connect-web": "^2.3.0"
+		"@connectrpc/connect-web": "^2.3.0",
+		"asciinema-player": "3.17.0"
 	}
 }
