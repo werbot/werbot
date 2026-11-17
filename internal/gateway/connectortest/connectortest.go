@@ -34,7 +34,7 @@ const (
 type Target struct {
 	Resource gateway.Resource // Type == c.Type()
 	Secret   gateway.Secret   // a unique marker: it must not appear in logs or errors
-	Stream   string           // host:port of an echo service, for KindStream
+	Stream   string           // host:port of a service that echoes the probe (other bytes may come first), for KindStream
 	Datagram string           // host:port of a UDP echo service, for KindDatagram
 	// Accepts counts the connections the target's TCP listeners accepted (see
 	// CountAccepts); nil skips the checks that need it. A TargetDialer must reach
@@ -129,14 +129,14 @@ func runKind(t *testing.T, c gateway.Connector, target Target, k gateway.Kind) {
 		defer user.Close()
 		s.Stream, s.Target = conn, target.Stream
 		requireEndpointAllows(t, c.Type(), target.Resource, target.Stream)
+		out := &lockedBuffer{}
+		go func() { _, _ = io.Copy(out, user) }() // a protocol may write first (telnet negotiation)
 		drive = func(t *testing.T) {
-			require.NoError(t, user.SetDeadline(time.Now().Add(waitFor)))
+			require.NoError(t, user.SetWriteDeadline(time.Now().Add(waitFor)))
 			_, err := io.WriteString(user, probe)
 			require.NoError(t, err)
-			got := make([]byte, len(probe))
-			_, err = io.ReadFull(user, got)
-			require.NoError(t, err)
-			require.Equal(t, probe, string(got))
+			require.Eventually(t, func() bool { return strings.Contains(out.String(), probe) }, waitFor, 10*time.Millisecond,
+				"stream output lacks the probe: %q", out.String())
 		}
 	case gateway.KindDatagram:
 		client, peer := Datagrams()

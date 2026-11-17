@@ -246,6 +246,9 @@ func openText(err error, resource string, kind Kind, pol *Policy) string {
 
 // runText is the user text for a connector error.
 func runText(err error, resource string) string {
+	if errors.Is(err, ErrLoginFailed) {
+		return "Login to " + resource + " failed"
+	}
 	if errors.Is(err, ErrHostKeyMismatch) {
 		return "SSH host key mismatch for " + resource
 	}

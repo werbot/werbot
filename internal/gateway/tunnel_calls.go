@@ -17,6 +17,9 @@ import (
 // ErrHostKeyMismatch is a target host key that differs from the pinned one.
 var ErrHostKeyMismatch = errors.New("SSH host key mismatch")
 
+// ErrLoginFailed is a refused or timed-out automatic login to the target (telnet).
+var ErrLoginFailed = errors.New("login to the target failed")
+
 // Secret is a revealed resource credential; it is never logged or stored.
 type Secret struct {
 	Kind  string

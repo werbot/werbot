@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -194,4 +195,11 @@ func TestMenuEndsOnOverlongInput(t *testing.T) {
 	require.Contains(t, out, "Bye\r\n")
 	require.Equal(t, 0, code)
 	require.Zero(t, e.startCalls())
+}
+
+// A connector error is shown as text: login and host key failures have their own.
+func TestRunText(t *testing.T) {
+	require.Equal(t, "Login to router failed", runText(fmt.Errorf("telnet: %w", ErrLoginFailed), "router"))
+	require.Equal(t, "SSH host key mismatch for db", runText(fmt.Errorf("pin: %w", ErrHostKeyMismatch), "db"))
+	require.Equal(t, "Connection to db failed", runText(io.EOF, "db"))
 }
