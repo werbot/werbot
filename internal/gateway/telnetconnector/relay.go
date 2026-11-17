@@ -2,9 +2,7 @@ package telnetconnector
 
 import (
 	"context"
-	"errors"
 	"io"
-	"net"
 
 	"github.com/werbot/werbot/internal/gateway"
 )
@@ -45,7 +43,7 @@ func relay(ctx context.Context, g *gateway.Guard, tc *Conn, in io.Reader, out io
 	})
 
 	_, err := io.Copy(out, tc)
-	if errors.Is(err, net.ErrClosed) || errors.Is(err, io.ErrClosedPipe) || errors.Is(err, io.EOF) {
+	if gateway.IsClosed(err) {
 		return nil // closed by the user's end or the cancel; an SSH channel write after close is io.EOF
 	}
 	return err

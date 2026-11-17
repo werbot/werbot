@@ -54,7 +54,7 @@ func info(res Resource) sshdgram.ResourceInfo {
 	}
 	if ep, ok, _ := res.Endpoint(); ok {
 		for _, p := range ep.Ports {
-			out.Ports = append(out.Ports, sshdgram.Port{Port: p.Port, EndPort: p.EndPort})
+			out.Ports = append(out.Ports, sshdgram.Port(p))
 		}
 	}
 	return out

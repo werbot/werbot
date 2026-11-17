@@ -67,7 +67,7 @@ func Login(ctx context.Context, c *Conn, login, password string) ([]byte, error)
 	}
 
 	prompt := &promptBuffer{}
-	leftover, err := readPrompt(ctx, c, prompt, loginPromptRe, deadline)
+	leftover, err := readPromptWith(ctx, c, prompt, loginPromptRe, deadline, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -95,10 +95,6 @@ func Login(ctx context.Context, c *Conn, login, password string) ([]byte, error)
 
 	_ = c.SetDeadline(time.Time{})
 	return out, nil
-}
-
-func readPrompt(ctx context.Context, c *Conn, prompt *promptBuffer, re *regexp.Regexp, deadline time.Time) ([]byte, error) {
-	return readPromptWith(ctx, c, prompt, re, deadline, nil)
 }
 
 func readPromptWith(ctx context.Context, c *Conn, prompt *promptBuffer, re *regexp.Regexp, deadline time.Time, initial []byte) ([]byte, error) {

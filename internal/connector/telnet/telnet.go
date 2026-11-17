@@ -14,6 +14,9 @@ import (
 // TypeName is the registry name of the type.
 const TypeName = "telnet"
 
+// DefaultPort is the telnet port used when the config has none.
+const DefaultPort = 23
+
 func init() {
 	connector.Register(connector.Type{
 		Name:        TypeName,
@@ -29,7 +32,7 @@ func init() {
 			c := m.(*telnetv1.Config)
 			port := uint16(c.Port) //nolint:gosec // Validate caps the port at 65535
 			if port == 0 {
-				port = 23
+				port = DefaultPort
 			}
 			return connector.Endpoint{Host: c.Host, Ports: []connector.PortRange{{Port: port}}}
 		},
@@ -46,7 +49,7 @@ func Validate(m proto.Message) error {
 		return errors.New("telnet: invalid host")
 	}
 	if c.Port == 0 {
-		c.Port = 23
+		c.Port = DefaultPort
 	}
 	if c.Port > 65535 {
 		return errors.New("telnet: invalid port")

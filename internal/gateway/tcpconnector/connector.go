@@ -82,7 +82,7 @@ func dial(ctx context.Context, s *gateway.Session) (net.Conn, error) {
 // A side closed by the other direction or by the session end is a normal end.
 func relay(dst io.WriteCloser, src io.Reader) error {
 	_, err := gateway.CopyBuffer(dst, src)
-	if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) || errors.Is(err, io.ErrClosedPipe) {
+	if gateway.IsClosed(err) {
 		return nil
 	}
 	if err != nil {

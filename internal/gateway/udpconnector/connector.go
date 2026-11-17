@@ -132,7 +132,7 @@ func (u *session) recv() error {
 			u.dropBig.Inc()
 			continue
 		case err == nil:
-		case u.ctx.Err() != nil, errors.Is(err, io.EOF), errors.Is(err, net.ErrClosed), errors.Is(err, io.ErrClosedPipe):
+		case u.ctx.Err() != nil, gateway.IsClosed(err):
 			return nil
 		default:
 			return fmt.Errorf("udp: client: %w", err)
@@ -207,7 +207,7 @@ func (u *session) read(id uint32, f *flow) error {
 		case err == nil:
 			f.touch()
 			if err := u.s.Datagram.Send(id, (*bp)[:n]); err != nil {
-				if u.ctx.Err() != nil || errors.Is(err, net.ErrClosed) || errors.Is(err, io.ErrClosedPipe) || errors.Is(err, io.EOF) {
+				if u.ctx.Err() != nil || gateway.IsClosed(err) {
 					return nil
 				}
 				return fmt.Errorf("udp: client: %w", err)

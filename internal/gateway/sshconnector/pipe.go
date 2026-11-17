@@ -1,9 +1,7 @@
 package sshconnector
 
 import (
-	"errors"
 	"io"
-	"net"
 
 	"github.com/werbot/werbot/internal/gateway"
 )
@@ -27,7 +25,7 @@ func pipe(client, target io.ReadWriteCloser, secret gateway.Secret) error {
 // the remote close is io.EOF).
 func relay(dst io.WriteCloser, src io.Reader) error {
 	err := copyRec(dst, src, nil)
-	if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) || errors.Is(err, io.ErrClosedPipe) {
+	if gateway.IsClosed(err) {
 		return nil
 	}
 	if err != nil {

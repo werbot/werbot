@@ -21,6 +21,7 @@ import (
 
 	telnetv1 "github.com/werbot/werbot/gen/werbot/connector/telnet/v1"
 	"github.com/werbot/werbot/internal/connector"
+	"github.com/werbot/werbot/internal/connector/telnet"
 	"github.com/werbot/werbot/internal/gateway"
 )
 
@@ -30,7 +31,6 @@ const (
 	loginTimeout  = 10 * time.Second // the whole automatic login
 	negotiateWait = time.Second      // a stream client's TERM and window before the dial
 	defaultTerm   = "xterm"
-	defaultPort   = 23
 )
 
 // Connector serves "telnet" sessions.
@@ -108,7 +108,7 @@ func terminal(ctx context.Context, s *gateway.Session, g *gateway.Guard, cfg *te
 // dial connects to the target through Session.Dial and stores the window to
 // send once the target asks for NAWS.
 func dial(ctx context.Context, s *gateway.Session, cfg *telnetv1.Config, term string, w gateway.Window) (*Conn, error) {
-	port := cmp.Or(cfg.GetPort(), defaultPort)
+	port := cmp.Or(cfg.GetPort(), telnet.DefaultPort)
 	conn, err := s.Dial(ctx, "tcp", net.JoinHostPort(cfg.GetHost(), strconv.FormatUint(uint64(port), 10)))
 	if err != nil {
 		return nil, fmt.Errorf("telnet: dial target: %w", err)
