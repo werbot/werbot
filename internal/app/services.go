@@ -124,10 +124,12 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	return s, nil
 }
 
-// mount registers ResourceService, AccessService, PolicyService and SessionService on mux.
+// mount registers ResourceService, AccessService, PolicyService, SessionService
+// and the recording replay route on mux.
 func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
 	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential), opts...))
 	mux.Handle(werbotv1connect.NewAccessServiceHandler(access.NewHandler(s.Access), opts...))
 	mux.Handle(werbotv1connect.NewPolicyServiceHandler(policy.NewHandler(s.Policy), opts...))
 	mux.Handle(werbotv1connect.NewSessionServiceHandler(session.NewSessionHandler(s.Sessions, s.Recordings), opts...))
+	mux.Handle("GET /api/recordings/{file}", session.NewReplayHandler(s.Sessions, s.Recordings))
 }
