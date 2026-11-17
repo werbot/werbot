@@ -95,8 +95,11 @@ func (r *udpRelay) channel(ctx context.Context, wg *sync.WaitGroup, from net.Add
 	ch, reqs, err := r.b.openChannel(ctx, sshdgram.ChannelType, from)
 	if err != nil {
 		if ctx.Err() == nil {
-			r.wait = min(max(2*r.wait, backoffFirst), backoffMax)
-			r.retryAt = time.Now().Add(r.wait)
+			// only a gateway refusal backs off: a link that is down retries on the next datagram
+			if _, refused := errors.AsType[*ssh.OpenChannelError](err); refused {
+				r.wait = min(max(2*r.wait, backoffFirst), backoffMax)
+				r.retryAt = time.Now().Add(r.wait)
+			}
 			if text := r.b.openText(err); text != r.lastText {
 				r.lastText = text
 				_, _ = fmt.Fprintln(r.b.stderr, text)
