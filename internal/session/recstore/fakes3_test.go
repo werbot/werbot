@@ -22,7 +22,19 @@ func newFakeS3(t *testing.T, bucket string) *fakeS3 {
 	t.Helper()
 	f := &fakeS3{objects: map[string][]byte{}}
 	mux := http.NewServeMux()
+	noBucket := func(w http.ResponseWriter, r *http.Request) bool {
+		if r.PathValue("bucket") == bucket {
+			return false
+		}
+		w.Header().Set("Content-Type", "application/xml")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = fmt.Fprint(w, `<Error><Code>NoSuchBucket</Code><Message>The specified bucket does not exist.</Message></Error>`)
+		return true
+	}
 	mux.HandleFunc("PUT /{bucket}/{key...}", func(w http.ResponseWriter, r *http.Request) {
+		if noBucket(w, r) {
+			return
+		}
 		body, _ := io.ReadAll(r.Body)
 		f.mu.Lock()
 		f.objects[r.PathValue("bucket")+"/"+r.PathValue("key")] = body
@@ -31,6 +43,9 @@ func newFakeS3(t *testing.T, bucket string) *fakeS3 {
 		w.WriteHeader(http.StatusOK)
 	})
 	mux.HandleFunc("GET /{bucket}/{key...}", func(w http.ResponseWriter, r *http.Request) {
+		if noBucket(w, r) {
+			return
+		}
 		f.mu.Lock()
 		body, ok := f.objects[r.PathValue("bucket")+"/"+r.PathValue("key")]
 		f.record(r)
@@ -45,7 +60,6 @@ func newFakeS3(t *testing.T, bucket string) *fakeS3 {
 	})
 	f.Server = httptest.NewServer(mux)
 	t.Cleanup(f.Close)
-	_ = bucket
 	return f
 }
 

@@ -65,15 +65,32 @@ func TestFSRejectsBadKey(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestS3Fake(t *testing.T) {
-	f := newFakeS3(t, "werbot-test")
-	s, err := recstore.NewS3(t.Context(), config.RecordingsS3{
-		Endpoint: f.URL, Bucket: "werbot-test", Region: "us-east-1", AccessKey: "ak", SecretKey: "sk",
-	})
+func checkS3Fake(t *testing.T, cfg config.RecordingsS3, f *fakeS3) {
+	t.Helper()
+	s, err := recstore.NewS3(t.Context(), cfg)
 	require.NoError(t, err)
 	org, sess := runSuite(t, s)
 	assert.Contains(t, f.requests(), "PUT /werbot-test/"+recstore.Key(org, sess, 0))
 	assert.False(t, f.sawAWSChunked())
+}
+
+func TestS3Fake(t *testing.T) {
+	f := newFakeS3(t, "werbot-test")
+	checkS3Fake(t, config.RecordingsS3{
+		Endpoint: f.URL, Bucket: "werbot-test", Region: "us-east-1", AccessKey: "ak", SecretKey: "sk",
+	}, f)
+}
+
+func TestS3FakeDefaultCredentials(t *testing.T) {
+	empty := filepath.Join(t.TempDir(), "empty")
+	require.NoError(t, os.WriteFile(empty, nil, 0o600))
+	t.Setenv("AWS_ACCESS_KEY_ID", "ak")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "sk")
+	t.Setenv("AWS_CONFIG_FILE", empty)
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", empty)
+	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	f := newFakeS3(t, "werbot-test")
+	checkS3Fake(t, config.RecordingsS3{Endpoint: f.URL, Bucket: "werbot-test", Region: "us-east-1"}, f)
 }
 
 func TestS3Real(t *testing.T) {
