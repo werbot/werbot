@@ -9,14 +9,14 @@ import (
 )
 
 // ValidHost reports whether h is a bare hostname or IP: 1–253 bytes, no spaces,
-// slashes, brackets or control characters; a colon only in an IPv6 literal.
+// slashes, brackets or control characters; a colon only in an unzoned IPv6 literal.
 func ValidHost(h string) bool {
 	if h == "" || len(h) > 253 || strings.ContainsAny(h, " /[]") || strings.ContainsFunc(h, unicode.IsControl) {
 		return false
 	}
 	if strings.Contains(h, ":") {
-		_, err := netip.ParseAddr(h)
-		return err == nil
+		a, err := netip.ParseAddr(h)
+		return err == nil && a.Zone() == ""
 	}
 	return true
 }

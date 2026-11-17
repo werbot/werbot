@@ -15,10 +15,6 @@ import (
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/access"
 	"github.com/werbot/werbot/internal/audit"
-	_ "github.com/werbot/werbot/internal/connector/ssh"    // registers the ssh resource type
-	_ "github.com/werbot/werbot/internal/connector/tcp"    // registers the tcp resource type
-	_ "github.com/werbot/werbot/internal/connector/telnet" // registers the telnet resource type
-	_ "github.com/werbot/werbot/internal/connector/udp"    // registers the udp resource type
 	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/inventory"

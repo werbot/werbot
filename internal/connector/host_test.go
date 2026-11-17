@@ -15,7 +15,7 @@ func TestValidHost(t *testing.T) {
 	assert.True(t, ValidHost(strings.Repeat("a", 253)))
 	assert.True(t, ValidHost("::1"))
 	assert.True(t, ValidHost("fe80::1"))
-	for _, h := range []string{"", "a b", "a/b", strings.Repeat("a", 254), "[::1]", "h:80", "[::1]:22", "h\r\n", "h\x00", "a\tb"} {
+	for _, h := range []string{"", "a b", "a/b", strings.Repeat("a", 254), "[::1]", "h:80", "[::1]:22", "fe80::1%eth0", "h\r\n", "h\x00", "a\tb"} {
 		assert.False(t, ValidHost(h), h)
 	}
 }

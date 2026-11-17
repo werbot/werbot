@@ -30,6 +30,7 @@ func TestSSHValidate(t *testing.T) {
 	assert.Error(t, Validate(&sshv1.Config{Host: "h", Port: 70000, Login: "root"}))
 	assert.Error(t, Validate(&sshv1.Config{Host: "h"}))
 	assert.Error(t, Validate(&sshv1.Config{Host: "a b", Login: "root"}))
+	assert.Error(t, Validate(&sshv1.Config{Host: "h", Login: "root\r\n"}))
 	assert.Error(t, Validate(wrapperspb.String("x")))
 }
 

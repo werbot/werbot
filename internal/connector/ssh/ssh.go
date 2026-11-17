@@ -4,7 +4,6 @@ package ssh
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"google.golang.org/protobuf/proto"
 
@@ -52,7 +51,7 @@ func Validate(m proto.Message) error {
 	if c.Port > 65535 {
 		return errors.New("ssh: invalid port")
 	}
-	if c.Login == "" || len(c.Login) > 64 || strings.ContainsAny(c.Login, " ") {
+	if c.Login == "" || !connector.ValidLogin(c.Login) {
 		return errors.New("ssh: invalid login")
 	}
 	return nil
