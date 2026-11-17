@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/werbot/werbot/internal/platform/principal"
 )
 
 func insertID(t testing.TB, pool *pgxpool.Pool, sql string, args ...any) uuid.UUID {
@@ -79,4 +81,53 @@ func Instance(t testing.TB, pool *pgxpool.Pool, orgID, gatewayID uuid.UUID) uuid
 		`INSERT INTO gateway_instance (gateway_id, org_id, hostname, cert_serial, cert_expires_at)
 		 VALUES ($1, $2, 'test', $3, now() + interval '24 hours') RETURNING id`,
 		gatewayID, orgID, strings.ReplaceAll(uuid.NewString(), "-", ""))
+}
+
+// Fixture is a seeded organization: an owner, an admin, two members, two
+// gateway pools with one instance each and a resource served by GatewayID.
+type Fixture struct {
+	OrgID, OwnerID, AdminID, MemberID, OtherMemberID uuid.UUID
+	// InstanceID is an instance of GatewayID, OtherInstanceID of OtherGatewayID.
+	GatewayID, OtherGatewayID, InstanceID, OtherInstanceID, ResourceID uuid.UUID
+}
+
+// Seed inserts a new Fixture.
+func Seed(t testing.TB, pool *pgxpool.Pool) Fixture {
+	t.Helper()
+	org := Org(t, pool)
+	f := Fixture{
+		OrgID:         org,
+		OwnerID:       User(t, pool, org, principal.RoleOwner),
+		AdminID:       User(t, pool, org, principal.RoleAdmin),
+		MemberID:      User(t, pool, org, principal.RoleMember),
+		OtherMemberID: User(t, pool, org, principal.RoleMember),
+		GatewayID:     Gateway(t, pool, org, "gw-a"),
+		ResourceID:    Resource(t, pool, org, "web", nil),
+	}
+	f.OtherGatewayID = Gateway(t, pool, org, "gw-b")
+	f.InstanceID = Instance(t, pool, org, f.GatewayID)
+	f.OtherInstanceID = Instance(t, pool, org, f.OtherGatewayID)
+	exec(t, pool, "UPDATE resource SET gateway_id = $1 WHERE id = $2", f.GatewayID, f.ResourceID)
+	return f
+}
+
+// StartSession inserts an open session of userID on ResourceID, served by InstanceID.
+func (f Fixture) StartSession(t testing.TB, pool *pgxpool.Pool, userID uuid.UUID) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		`INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip)
+		 VALUES ($1, $2, $3, $4, $5, '10.0.0.1') RETURNING id`,
+		f.OrgID, userID, f.ResourceID, f.GatewayID, f.InstanceID)
+}
+
+// Principal returns userID acting in OrgID with its seeded role.
+func (f Fixture) Principal(userID uuid.UUID) principal.Principal {
+	role := principal.RoleMember
+	switch userID {
+	case f.OwnerID:
+		role = principal.RoleOwner
+	case f.AdminID:
+		role = principal.RoleAdmin
+	}
+	return principal.Principal{UserID: userID, OrgID: f.OrgID, Role: role}
 }

@@ -12,6 +12,46 @@ import (
 	"github.com/google/uuid"
 )
 
+const appendRecordingChunk = `-- name: AppendRecordingChunk :exec
+UPDATE recording
+SET chunks = chunks + 1, bytes = bytes + $1::bigint, last_hash = $2
+WHERE session_id = $3 AND org_id = $4
+`
+
+type AppendRecordingChunkParams struct {
+	Size      int64
+	LastHash  []byte
+	SessionID uuid.UUID
+	OrgID     uuid.UUID
+}
+
+func (q *Queries) AppendRecordingChunk(ctx context.Context, arg AppendRecordingChunkParams) error {
+	_, err := q.db.Exec(ctx, appendRecordingChunk,
+		arg.Size,
+		arg.LastHash,
+		arg.SessionID,
+		arg.OrgID,
+	)
+	return err
+}
+
+const createRecording = `-- name: CreateRecording :exec
+INSERT INTO recording (session_id, org_id, store)
+VALUES ($1, $2, $3)
+ON CONFLICT DO NOTHING
+`
+
+type CreateRecordingParams struct {
+	SessionID uuid.UUID
+	OrgID     uuid.UUID
+	Store     string
+}
+
+func (q *Queries) CreateRecording(ctx context.Context, arg CreateRecordingParams) error {
+	_, err := q.db.Exec(ctx, createRecording, arg.SessionID, arg.OrgID, arg.Store)
+	return err
+}
+
 const endLostSessions = `-- name: EndLostSessions :many
 UPDATE session s
 SET ended_at = now(), end_reason = 'gateway_lost'
@@ -123,6 +163,29 @@ func (q *Queries) EndSession(ctx context.Context, arg EndSessionParams) (*uuid.U
 	return resource_id, err
 }
 
+const finishRecording = `-- name: FinishRecording :exec
+UPDATE recording
+SET final_hash = $1, manifest_signature = $2, verified_at = now()
+WHERE session_id = $3 AND org_id = $4
+`
+
+type FinishRecordingParams struct {
+	FinalHash         []byte
+	ManifestSignature []byte
+	SessionID         uuid.UUID
+	OrgID             uuid.UUID
+}
+
+func (q *Queries) FinishRecording(ctx context.Context, arg FinishRecordingParams) error {
+	_, err := q.db.Exec(ctx, finishRecording,
+		arg.FinalHash,
+		arg.ManifestSignature,
+		arg.SessionID,
+		arg.OrgID,
+	)
+	return err
+}
+
 const getSigningKey = `-- name: GetSigningKey :one
 SELECT ciphertext, key_id, public_key FROM signing_key WHERE id = 1
 `
@@ -155,6 +218,38 @@ type InsertSigningKeyParams struct {
 func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyParams) error {
 	_, err := q.db.Exec(ctx, insertSigningKey, arg.Ciphertext, arg.KeyID, arg.PublicKey)
 	return err
+}
+
+const lockRecording = `-- name: LockRecording :one
+SELECT chunks, bytes, last_hash, final_hash
+FROM recording
+WHERE session_id = $1 AND org_id = $2
+FOR UPDATE
+`
+
+type LockRecordingParams struct {
+	SessionID uuid.UUID
+	OrgID     uuid.UUID
+}
+
+type LockRecordingRow struct {
+	Chunks    int32
+	Bytes     int64
+	LastHash  []byte
+	FinalHash []byte
+}
+
+// The row lock orders concurrent ingest of one session across server replicas.
+func (q *Queries) LockRecording(ctx context.Context, arg LockRecordingParams) (LockRecordingRow, error) {
+	row := q.db.QueryRow(ctx, lockRecording, arg.SessionID, arg.OrgID)
+	var i LockRecordingRow
+	err := row.Scan(
+		&i.Chunks,
+		&i.Bytes,
+		&i.LastHash,
+		&i.FinalHash,
+	)
+	return i, err
 }
 
 const sessionOfInstanceExists = `-- name: SessionOfInstanceExists :one

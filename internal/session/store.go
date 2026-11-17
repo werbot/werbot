@@ -18,6 +18,10 @@ type Store interface {
 	EndLostSessions(ctx context.Context, lostAfterSecs float64) ([]dbq.EndLostSessionsRow, error)
 	GetSigningKey(ctx context.Context) (dbq.GetSigningKeyRow, error)
 	InsertSigningKey(ctx context.Context, arg dbq.InsertSigningKeyParams) error
+	CreateRecording(ctx context.Context, arg dbq.CreateRecordingParams) error
+	LockRecording(ctx context.Context, arg dbq.LockRecordingParams) (dbq.LockRecordingRow, error)
+	AppendRecordingChunk(ctx context.Context, arg dbq.AppendRecordingChunkParams) error
+	FinishRecording(ctx context.Context, arg dbq.FinishRecordingParams) error
 }
 
 // newStore binds the queries to a dbx transaction.

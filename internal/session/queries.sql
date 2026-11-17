@@ -39,3 +39,25 @@ SELECT ciphertext, key_id, public_key FROM signing_key WHERE id = 1;
 INSERT INTO signing_key (id, ciphertext, key_id, public_key)
 VALUES (1, @ciphertext, @key_id, @public_key)
 ON CONFLICT (id) DO NOTHING;
+
+-- name: CreateRecording :exec
+INSERT INTO recording (session_id, org_id, store)
+VALUES (@session_id, @org_id, @store)
+ON CONFLICT DO NOTHING;
+
+-- name: LockRecording :one
+-- The row lock orders concurrent ingest of one session across server replicas.
+SELECT chunks, bytes, last_hash, final_hash
+FROM recording
+WHERE session_id = @session_id AND org_id = @org_id
+FOR UPDATE;
+
+-- name: AppendRecordingChunk :exec
+UPDATE recording
+SET chunks = chunks + 1, bytes = bytes + @size::bigint, last_hash = @last_hash
+WHERE session_id = @session_id AND org_id = @org_id;
+
+-- name: FinishRecording :exec
+UPDATE recording
+SET final_hash = @final_hash, manifest_signature = @manifest_signature, verified_at = now()
+WHERE session_id = @session_id AND org_id = @org_id;
