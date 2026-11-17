@@ -190,3 +190,13 @@ DELETE FROM team_member WHERE team_id = @team_id AND org_id = @org_id AND user_i
 
 -- name: UserTeams :many
 SELECT team_id FROM team_member WHERE org_id = @org_id AND user_id = @user_id ORDER BY team_id;
+
+-- name: ListOrgMembers :many
+-- uuid order equals the order of the lowercase text form.
+SELECT m.user_id,
+       coalesce(array_agg(tm.team_id ORDER BY tm.team_id) FILTER (WHERE tm.team_id IS NOT NULL), '{}')::uuid[] AS team_ids
+FROM membership m
+LEFT JOIN team_member tm ON tm.org_id = m.org_id AND tm.user_id = m.user_id
+WHERE m.org_id = @org_id
+GROUP BY m.user_id
+ORDER BY m.user_id;

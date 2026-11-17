@@ -2,6 +2,8 @@ package identity
 
 import (
 	"context"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -114,4 +116,31 @@ func TestRemovedMemberLeavesTeams(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, teams, 1)
 	assert.Empty(t, teams[0].MemberUserIDs)
+}
+
+func TestOrgMembers(t *testing.T) {
+	svc, pool, _ := newTestService(t)
+	org, other := seedOrg(t, pool, "Acme"), seedOrg(t, pool, "Beta")
+	alice := seedUser(t, pool, org, "alice", principal.RoleOwner)
+	bob := seedUser(t, pool, org, "bob", principal.RoleMember)
+	seedUser(t, pool, other, "zed", principal.RoleOwner)
+	ctx, _ := loginCtx(t, svc, "alice")
+	ops, err := svc.CreateTeam(ctx, "ops")
+	require.NoError(t, err)
+	dev, err := svc.CreateTeam(ctx, "dev")
+	require.NoError(t, err)
+	for _, team := range []uuid.UUID{ops.ID, dev.ID} {
+		require.NoError(t, svc.AddTeamMember(ctx, team, bob))
+	}
+
+	got, err := svc.OrgMembers(context.Background(), org)
+	require.NoError(t, err)
+	want := []OrgMember{{UserID: alice, TeamIDs: []uuid.UUID{}}, {UserID: bob, TeamIDs: sortedIDs(ops.ID, dev.ID)}}
+	slices.SortFunc(want, func(a, b OrgMember) int { return strings.Compare(a.UserID.String(), b.UserID.String()) })
+	assert.Equal(t, want, got, "members of org only, by user id, teams sorted")
+}
+
+func sortedIDs(ids ...uuid.UUID) []uuid.UUID {
+	slices.SortFunc(ids, func(a, b uuid.UUID) int { return strings.Compare(a.String(), b.String()) })
+	return ids
 }

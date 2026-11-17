@@ -171,3 +171,25 @@ func (s *Service) UserTeams(ctx context.Context, orgID, userID uuid.UUID) ([]uui
 	})
 	return ids, err
 }
+
+// OrgMember is a member of an organization with its teams, for gateway snapshots.
+type OrgMember struct {
+	UserID  uuid.UUID
+	TeamIDs []uuid.UUID
+}
+
+// OrgMembers returns every member of orgID by user id, each with its sorted team ids.
+func (s *Service) OrgMembers(ctx context.Context, orgID uuid.UUID) ([]OrgMember, error) {
+	var out []OrgMember
+	err := dbx.InOrg(ctx, s.pool, orgID, uuid.Nil, func(tx pgx.Tx) error {
+		rows, err := newStore(tx).ListOrgMembers(ctx, orgID)
+		if err != nil {
+			return err
+		}
+		for _, r := range rows {
+			out = append(out, OrgMember{UserID: r.UserID, TeamIDs: r.TeamIds})
+		}
+		return nil
+	})
+	return out, err
+}

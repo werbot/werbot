@@ -592,6 +592,42 @@ func (q *Queries) ListMembers(ctx context.Context, orgID uuid.UUID) ([]ListMembe
 	return items, nil
 }
 
+const listOrgMembers = `-- name: ListOrgMembers :many
+SELECT m.user_id,
+       coalesce(array_agg(tm.team_id ORDER BY tm.team_id) FILTER (WHERE tm.team_id IS NOT NULL), '{}')::uuid[] AS team_ids
+FROM membership m
+LEFT JOIN team_member tm ON tm.org_id = m.org_id AND tm.user_id = m.user_id
+WHERE m.org_id = $1
+GROUP BY m.user_id
+ORDER BY m.user_id
+`
+
+type ListOrgMembersRow struct {
+	UserID  uuid.UUID
+	TeamIds []uuid.UUID
+}
+
+// uuid order equals the order of the lowercase text form.
+func (q *Queries) ListOrgMembers(ctx context.Context, orgID uuid.UUID) ([]ListOrgMembersRow, error) {
+	rows, err := q.db.Query(ctx, listOrgMembers, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOrgMembersRow
+	for rows.Next() {
+		var i ListOrgMembersRow
+		if err := rows.Scan(&i.UserID, &i.TeamIds); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSSHKeys = `-- name: ListSSHKeys :many
 SELECT id, name, public_key, fingerprint_sha256, created_at FROM user_ssh_key WHERE user_id = $1 ORDER BY created_at, id
 `
