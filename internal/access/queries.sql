@@ -6,7 +6,7 @@ WHERE CASE @subject_type::text
     WHEN 'user' THEN EXISTS (SELECT 1 FROM membership WHERE org_id = @org_id AND user_id = @subject_id)
     ELSE EXISTS (SELECT 1 FROM team WHERE org_id = @org_id AND id = @subject_id)
 END
-RETURNING *;
+RETURNING id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at, ports;
 
 -- name: DeleteBinding :one
 DELETE FROM access_binding WHERE id = @id AND org_id = @org_id
@@ -14,7 +14,7 @@ RETURNING subject_type, subject_id, resource_id, label_selector;
 
 -- name: ListBindings :many
 -- A set resource_id keeps the bindings to it and every selector binding.
-SELECT *
+SELECT id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at, ports
 FROM access_binding
 WHERE org_id = @org_id
   AND (sqlc.narg(resource_id)::uuid IS NULL OR resource_id = sqlc.narg(resource_id)::uuid OR label_selector IS NOT NULL)

@@ -84,21 +84,33 @@ func TestDenyWritesAudit(t *testing.T) {
 	require.NoError(t, e.svc.Deny(bg, e.org, nil))
 
 	type row struct {
-		actor        *uuid.UUID
-		target, kind string
+		Actor      *uuid.UUID
+		Target, IP string
+		Data       string
 	}
-	rows, err := e.pool.Query(bg, `SELECT actor_user_id, target_id, data->>'kind' FROM audit_event
+	rows, err := e.pool.Query(bg, `SELECT actor_user_id, target_id, coalesce(host(ip), ''), data::text FROM audit_event
 		WHERE org_id = $1 AND action = 'session.deny' AND actor_kind = 'gateway' AND target_type = 'resource' ORDER BY id`, e.org)
 	require.NoError(t, err)
 	var got []row
 	for rows.Next() {
 		var r row
-		require.NoError(t, rows.Scan(&r.actor, &r.target, &r.kind))
+		require.NoError(t, rows.Scan(&r.Actor, &r.Target, &r.IP, &r.Data))
 		got = append(got, r)
 	}
 	require.NoError(t, rows.Err())
-	assert.Equal(t, []row{{&e.user, e.res.String(), "terminal"}, {nil, "ghost", "stream"}, {nil, e.res.String(), "exec"}}, got,
-		"a known name maps to the resource id, an unknown one stays; a non-member user is dropped")
+	require.Len(t, got, 3)
+	// a known name maps to the resource id, an unknown one stays; a non-member user is dropped
+	want := []row{
+		{&e.user, e.res.String(), "10.0.0.9", `{"kind":"terminal","target":"","reason":"no_access","key_fingerprint":"SHA256:x"}`},
+		{nil, "ghost", "", `{"kind":"stream","target":"db:5432","reason":"no_access","key_fingerprint":""}`},
+		{nil, e.res.String(), "", `{"kind":"exec","target":"","reason":"unknown_key","key_fingerprint":""}`},
+	}
+	for i := range want {
+		assert.Equal(t, want[i].Actor, got[i].Actor)
+		assert.Equal(t, want[i].Target, got[i].Target)
+		assert.Equal(t, want[i].IP, got[i].IP)
+		assert.JSONEq(t, want[i].Data, got[i].Data)
+	}
 }
 
 func TestListShowsKindAndCounters(t *testing.T) {

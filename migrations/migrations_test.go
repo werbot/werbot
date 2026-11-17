@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
@@ -102,9 +103,15 @@ func TestMigrations6b(t *testing.T) {
 	_, err = pool.Exec(ctx, "INSERT INTO resource_health (resource_id, gateway_instance_id, org_id, ok, checked_at) VALUES ($1, $2, $3, true, now())",
 		f.ResourceID, f.InstanceID, f.OrgID)
 	require.NoError(t, err)
+	// A row naming another organization's resource breaks the composite FK.
+	otherOrg := dbtest.Org(t, pool)
+	otherRes := dbtest.Resource(t, pool, otherOrg, "other", nil)
 	_, err = pool.Exec(ctx, "INSERT INTO resource_health (resource_id, gateway_instance_id, org_id, ok, checked_at) VALUES ($1, $2, $3, true, now())",
-		f.ResourceID, f.OtherInstanceID, f.OtherGatewayID)
-	require.Error(t, err, "the organization must match the resource")
+		otherRes, f.OtherInstanceID, f.OrgID)
+	var pgErr *pgconn.PgError
+	require.ErrorAs(t, err, &pgErr)
+	assert.Equal(t, "23503", pgErr.Code)
+	assert.Equal(t, "resource_health_resource_id_org_id_fkey", pgErr.ConstraintName)
 
 	_, err = p.DownTo(ctx, 79)
 	require.NoError(t, err)
