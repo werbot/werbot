@@ -35,12 +35,18 @@ type Target struct {
 	Secret   gateway.Secret   // a unique marker: it must not appear in logs or errors
 	Stream   string           // host:port of an echo service, for KindStream
 	Datagram string           // host:port of a UDP echo service, for KindDatagram
+	// Accepts counts the connections the target's TCP listeners accepted (see
+	// CountAccepts); nil skips the checks that need it. A TargetDialer must reach
+	// the target only through Session.Dial, so Accepts must grow with the dials.
+	Accepts func() int
 }
 
-// Run checks c: nothing starts before the first session, Kinds match the server
+// Run checks c: nothing starts before the first session (no goroutine, no
+// connection to the target), Kinds match the server
 // type, every declared kind works with target, a cancel ends Serve within 1 s,
 // the recorder sees the traffic of the recorded kinds only, a TargetDialer dials
-// through Session.Dial, the endpoint allows the targets, the secret never leaks and no goroutine is left.
+// through Session.Dial on every kind and opens no other connection to the target,
+// the endpoint allows the targets, the secret never leaks and no goroutine is left.
 // It replaces slog.Default, so the calling test must not be parallel.
 func Run(t *testing.T, c gateway.Connector, target Target) {
 	t.Helper()
@@ -49,6 +55,9 @@ func Run(t *testing.T, c gateway.Connector, target Target) {
 	kinds := c.Kinds()
 	time.Sleep(100 * time.Millisecond)
 	require.LessOrEqual(t, runtime.NumGoroutine(), base, "the connector starts goroutines before its first session")
+	if target.Accepts != nil {
+		require.Zero(t, target.Accepts(), "the connector connects to its target before its first session")
+	}
 	if typ, ok := connector.Lookup(c.Type()); ok {
 		require.ElementsMatch(t, typ.Kinds, kinds, "Kinds differ from the server type %q", c.Type())
 	}
@@ -73,6 +82,10 @@ func Run(t *testing.T, c gateway.Connector, target Target) {
 func runKind(t *testing.T, c gateway.Connector, target Target, k gateway.Kind) {
 	rec := &spySink{}
 	var dials atomic.Int32
+	acceptsBefore := 0
+	if target.Accepts != nil {
+		acceptsBefore = target.Accepts()
+	}
 	dialer := &net.Dialer{Timeout: waitFor}
 	s := &gateway.Session{
 		ID: uuid.New(), Kind: k, Front: "test", User: gateway.User{ID: uuid.New(), Login: "probe"},
@@ -147,9 +160,40 @@ func runKind(t *testing.T, c gateway.Connector, target Target, k gateway.Kind) {
 		t.Fatal("Serve did not return within 1s of the cancel")
 	}
 	requireRecorded(t, c.Type(), k, rec)
-	if k == gateway.KindStream || k == gateway.KindDatagram {
-		requireDialsThroughSession(t, c, int(dials.Load()))
+	requireDialsThroughSession(t, c, int(dials.Load()))
+	if _, marked := c.(gateway.TargetDialer); marked && target.Accepts != nil {
+		requireTargetConnections(t, target.Accepts, acceptsBefore, int(dials.Load()))
 	}
+}
+
+// requireTargetConnections checks that every connection the target accepted since
+// before came through Session.Dial (dials). Accepts lag the dials, so it waits
+// for them to catch up and for a short settle before it compares.
+func requireTargetConnections(t require.TestingT, accepts func() int, before, dials int) {
+	for deadline := time.Now().Add(waitFor); accepts()-before < dials && time.Now().Before(deadline); {
+		time.Sleep(10 * time.Millisecond)
+	}
+	time.Sleep(50 * time.Millisecond) // lets a stray extra connection reach Accept
+	require.Equal(t, dials, accepts()-before, "the target accepted connections that did not come through Session.Dial")
+}
+
+// CountAccepts wraps l and counts the connections it accepts.
+func CountAccepts(l net.Listener) (net.Listener, func() int) {
+	c := &countListener{Listener: l}
+	return c, func() int { return int(c.n.Load()) }
+}
+
+type countListener struct {
+	net.Listener
+	n atomic.Int32
+}
+
+func (l *countListener) Accept() (net.Conn, error) {
+	c, err := l.Listener.Accept()
+	if err == nil {
+		l.n.Add(1)
+	}
+	return c, err
 }
 
 // requireRecorded checks that the recorder saw traffic exactly for the kinds the
@@ -177,8 +221,7 @@ func requireDialsThroughSession(t require.TestingT, c gateway.Connector, dials i
 
 // requireEndpointAllows checks that the registered type's endpoint, if it has one,
 // allows addr under the resource name.
-func requireEndpointAllows(t *testing.T, typ string, res gateway.Resource, addr string) {
-	t.Helper()
+func requireEndpointAllows(t require.TestingT, typ string, res gateway.Resource, addr string) {
 	registered, ok := connector.Lookup(typ)
 	if !ok {
 		return

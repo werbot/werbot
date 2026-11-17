@@ -1,45 +1,47 @@
 package connectortest_test
 
 import (
-	"context"
 	"crypto/rand"
+	"net"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/gateway"
 	"github.com/werbot/werbot/internal/gateway/connectortest"
 )
 
+func secret() gateway.Secret {
+	return gateway.Secret{Kind: "password", Value: []byte("werbot-secret-" + rand.Text())}
+}
+
 func TestEchoPassesContract(t *testing.T) {
 	connectortest.Run(t, connectortest.Echo{}, connectortest.Target{
-		Resource: gateway.Resource{Name: "echo1", Type: "echo"},
-		Secret:   gateway.Secret{Kind: "password", Value: []byte("werbot-secret-" + rand.Text())},
+		Resource: gateway.Resource{Name: "echo1", Type: "echo"}, Secret: secret(),
 	})
 }
 
-// udpEcho is a fake datagram connector: it sends every datagram back to its flow.
-type udpEcho struct{}
-
-func (udpEcho) Type() string          { return "udpecho" }
-func (udpEcho) Kinds() []gateway.Kind { return []gateway.Kind{gateway.KindDatagram} }
-func (udpEcho) Serve(ctx context.Context, s *gateway.Session) error {
-	defer s.Datagram.Close()
-	defer context.AfterFunc(ctx, func() { _ = s.Datagram.Close() })()
-	buf := make([]byte, 2048)
-	for {
-		flow, n, err := s.Datagram.Recv(buf)
-		if err != nil {
-			return nil //nolint:nilerr // the client end closed: a normal end
-		}
-		if err := s.Datagram.Send(flow, buf[:n]); err != nil {
-			return nil //nolint:nilerr // the client end closed: a normal end
-		}
-	}
+// A TargetDialer that reaches a real TCP target only through Session.Dial passes.
+func TestRunTargetDialer(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	l, accepts := connectortest.CountAccepts(l)
+	t.Cleanup(func() { _ = l.Close() })
+	go echoTCP(l)
+	connectortest.Run(t, tcpPipe{}, connectortest.Target{
+		Resource: gateway.Resource{Name: "db1", Type: "tcppipe"}, Secret: secret(),
+		Stream: l.Addr().String(), Accepts: accepts,
+	})
 }
 
+// Datagrams of several flows, an empty one and a maximum-size one come back in their flow.
 func TestRunDatagramFlows(t *testing.T) {
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = pc.Close() })
+	go echoUDP(pc)
 	connectortest.Run(t, udpEcho{}, connectortest.Target{
-		Resource: gateway.Resource{Name: "dns1", Type: "udpecho"},
-		Secret:   gateway.Secret{Kind: "password", Value: []byte("werbot-secret-" + rand.Text())},
-		Datagram: "192.0.2.53:53",
+		Resource: gateway.Resource{Name: "dns1", Type: "udpecho"}, Secret: secret(),
+		Datagram: pc.LocalAddr().String(),
 	})
 }

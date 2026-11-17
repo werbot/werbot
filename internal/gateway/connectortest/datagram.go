@@ -12,6 +12,9 @@ import (
 	"github.com/werbot/werbot/internal/gateway"
 )
 
+// maxDatagram is the largest probe: a full Ethernet UDP payload.
+const maxDatagram = 1472
+
 type packet struct {
 	flow uint32
 	p    []byte
@@ -63,29 +66,40 @@ func (p *DatagramPeer) Send(flow uint32, d []byte) {
 	}
 }
 
-// Recv returns the next datagram the session sent to the client.
-func (p *DatagramPeer) Recv() (flow uint32, d []byte, err error) {
+// Recv returns the next datagram the session sent to the client, or an error after wait.
+func (p *DatagramPeer) Recv(wait time.Duration) (flow uint32, d []byte, err error) {
 	select {
 	case m := <-p.fromConn:
 		return m.flow, m.p, nil
 	case <-p.done:
 		return 0, nil, net.ErrClosed
-	case <-time.After(waitFor):
-		return 0, nil, errors.New("no datagram within " + waitFor.String())
+	case <-time.After(wait):
+		return 0, nil, errors.New("no datagram within " + wait.String())
 	}
 }
 
-// driveDatagrams sends one probe into each of two flows and expects each back in its own flow.
+// quiet is how long driveDatagrams waits for a reply nobody asked for.
+const quiet = 100 * time.Millisecond
+
+// driveDatagrams sends probes into flows 1 and 2, an empty datagram into flow 3 and
+// a maximum-size one into flow 4. Each must come back once, in its own flow.
 func driveDatagrams(t *testing.T, peer *DatagramPeer) {
 	t.Helper()
-	for flow := uint32(1); flow <= 2; flow++ {
-		peer.Send(flow, []byte(probe+"-"+string(rune('0'+flow))))
+	big := make([]byte, maxDatagram)
+	for i := range big {
+		big[i] = byte(i)
+	}
+	want := map[uint32]string{1: probe + "-1", 2: probe + "-2", 3: "", 4: string(big)}
+	for flow, d := range want {
+		peer.Send(flow, []byte(d))
 	}
 	got := map[uint32]string{}
-	for range 2 {
-		flow, d, err := peer.Recv()
+	for range want {
+		flow, d, err := peer.Recv(waitFor)
 		require.NoError(t, err)
 		got[flow] = string(d)
 	}
-	require.Equal(t, map[uint32]string{1: probe + "-1", 2: probe + "-2"}, got, "a datagram came back in the wrong flow")
+	require.Equal(t, want, got, "a datagram came back in the wrong flow")
+	flow, d, err := peer.Recv(quiet)
+	require.Error(t, err, "an extra datagram came back in flow %d: %q", flow, d)
 }
