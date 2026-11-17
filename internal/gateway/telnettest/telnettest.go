@@ -93,7 +93,13 @@ func Start(t testing.TB, password string) *Server {
 // Resource is resource "router" of type telnet at the server with the given login.
 func (s *Server) Resource(t testing.TB, login string) gateway.Resource {
 	t.Helper()
-	host, port, _ := net.SplitHostPort(s.Addr)
+	return Resource(t, s.Addr, login)
+}
+
+// Resource is resource "router" of type telnet at addr (host:port) with the given login.
+func Resource(t testing.TB, addr, login string) gateway.Resource {
+	t.Helper()
+	host, port, _ := net.SplitHostPort(addr)
 	p, _ := strconv.ParseUint(port, 10, 16)
 	cfg, err := protojson.Marshal(&telnetv1.Config{Host: host, Port: uint32(p), Login: login})
 	if err != nil {

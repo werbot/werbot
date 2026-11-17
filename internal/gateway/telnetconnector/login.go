@@ -25,8 +25,9 @@ var (
 )
 
 const (
-	loginTailLimit  = 4096
-	loginQuietPause = time.Second
+	loginTailLimit   = 4096
+	loginQuietPause  = time.Second
+	loginOutputLimit = 64 << 10 // the output after the password prompt; the rest goes through the relay
 )
 
 type promptBuffer struct {
@@ -84,7 +85,7 @@ func Login(ctx context.Context, c *Conn, login, password string) ([]byte, error)
 		return nil, err
 	}
 
-	out, err := readAfterPassword(ctx, c, deadline, leftover)
+	out, err := readAfterPassword(ctx, c, deadline, leftover, []byte(password))
 	if password != "" {
 		out = bytes.ReplaceAll(out, []byte(password), nil)
 	}
@@ -134,12 +135,15 @@ func readPromptWith(ctx context.Context, c *Conn, prompt *promptBuffer, re *rege
 	}
 }
 
-func readAfterPassword(ctx context.Context, c *Conn, deadline time.Time, initial []byte) ([]byte, error) {
+// readAfterPassword reads until a login result, a quiet pause or
+// loginOutputLimit bytes. A shell prompt is not a result while the output ends
+// with a prefix of the password: the target may still be echoing it.
+func readAfterPassword(ctx context.Context, c *Conn, deadline time.Time, initial, password []byte) ([]byte, error) {
 	out := append([]byte(nil), initial...)
 	prompt := &promptBuffer{}
 	prompt.append(initial)
 
-	if done, err := loginResult(prompt.tail); done {
+	if done, err := loginResult(prompt.tail); done && (err != nil || heldPrefix(out, password) == 0) {
 		return out, err
 	}
 
@@ -163,8 +167,11 @@ func readAfterPassword(ctx context.Context, c *Conn, deadline time.Time, initial
 			prompt.append(buf[:n])
 			lastData = time.Now()
 
-			if done, resultErr := loginResult(prompt.tail); done {
+			if done, resultErr := loginResult(prompt.tail); done && (resultErr != nil || heldPrefix(out, password) == 0) {
 				return out, resultErr
+			}
+			if len(out) >= loginOutputLimit {
+				return out, nil
 			}
 		}
 

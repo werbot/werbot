@@ -200,3 +200,67 @@ func TestLoginOutputExcludesPassword(t *testing.T) {
 		t.Fatalf("output = %q, want shell prompt suffix", out)
 	}
 }
+
+// A shell-prompt-like piece of the password echo is not the prompt: Login reads
+// on until the echo completes and strips it.
+func TestLoginSplitPasswordEcho(t *testing.T) {
+	t.Parallel()
+
+	c, target := loginPipe(t)
+	go func() {
+		writeAll(t, target, []byte("login: "))
+		_ = readLine(t, target)
+		writeAll(t, target, []byte("Password: "))
+		_ = readLine(t, target)
+		writeAll(t, target, []byte("ab#"))
+		writeAll(t, target, []byte("cd\r\nWelcome\r\n$ "))
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), testDeadline)
+	defer cancel()
+
+	out, err := Login(ctx, c, "ubuntu1", "ab#cd")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+	if string(out) != "\r\nWelcome\r\n$ " {
+		t.Fatalf("output = %q, want %q", out, "\r\nWelcome\r\n$ ")
+	}
+}
+
+// A target that streams output without a prompt ends the login at
+// loginOutputLimit, at once, instead of growing the buffer for the whole window.
+func TestLoginOutputLimit(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		c, target := loginPipe(t)
+		go func() {
+			writeAll(t, target, []byte("login: "))
+			_ = readLine(t, target)
+			writeAll(t, target, []byte("Password: "))
+			_ = readLine(t, target)
+			chunk := bytes.Repeat([]byte("x"), 1024)
+			for range 2 * loginOutputLimit / len(chunk) {
+				if _, err := target.Write(chunk); err != nil {
+					return // Login stopped reading; the cleanup closed the pipe
+				}
+			}
+		}()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		defer cancel()
+
+		start := time.Now()
+		out, err := Login(ctx, c, "ubuntu1", "secret12")
+		if err != nil {
+			t.Fatalf("Login: %v", err)
+		}
+		if len(out) < loginOutputLimit || len(out) > loginOutputLimit+4096 {
+			t.Fatalf("output is %d bytes, want %d up to one more read", len(out), loginOutputLimit)
+		}
+		if elapsed := time.Since(start); elapsed != 0 {
+			t.Fatalf("Login took %v, want no wait", elapsed)
+		}
+		_ = c.Close()
+		_ = target.Close()
+	})
+}

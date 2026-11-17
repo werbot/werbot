@@ -48,29 +48,37 @@ func (Connector) Kinds() []gateway.Kind {
 func (Connector) DialsTarget() {}
 
 // Serve connects to the target and serves s until either side ends; a cancel
-// of ctx closes the target connection (and the stream) and is not an error.
+// of ctx closes the target connection (and the stream) and is not an error. A
+// relay goroutine panic stops the session and re-panics here for the pipeline.
 func (Connector) Serve(ctx context.Context, s *gateway.Session) error {
+	sctx, stop := context.WithCancel(ctx)
+	defer stop()
+	g := gateway.NewGuard(stop, s.Secret)
 	if s.Kind == gateway.KindStream {
 		defer s.Stream.Close()
-		defer context.AfterFunc(ctx, func() { _ = s.Stream.Close() })()
+		defer context.AfterFunc(sctx, func() { _ = s.Stream.Close() })()
 	}
-	err := serve(ctx, s)
+	err := serve(sctx, s, g)
+	stop() // ends the guarded goroutines
+	if werr := g.Wait(); err == nil {
+		err = werr
+	}
 	if ctx.Err() != nil {
 		return nil
 	}
 	return err
 }
 
-func serve(ctx context.Context, s *gateway.Session) error {
+func serve(ctx context.Context, s *gateway.Session, g *gateway.Guard) error {
 	var cfg telnetv1.Config
 	if err := protojson.Unmarshal(s.Resource.Config, &cfg); err != nil {
 		return fmt.Errorf("telnet: resource config: %w", err)
 	}
 	switch s.Kind {
 	case gateway.KindTerminal:
-		return terminal(ctx, s, &cfg)
+		return terminal(ctx, s, g, &cfg)
 	case gateway.KindStream:
-		return stream(ctx, s, &cfg)
+		return stream(ctx, s, g, &cfg)
 	default:
 		return fmt.Errorf("telnet: unsupported session kind %q", s.Kind)
 	}
@@ -78,7 +86,7 @@ func serve(ctx context.Context, s *gateway.Session) error {
 
 // terminal bridges the SSH terminal to the target: TERM and the window from
 // pty-req, window changes as NAWS.
-func terminal(ctx context.Context, s *gateway.Session, cfg *telnetv1.Config) error {
+func terminal(ctx context.Context, s *gateway.Session, g *gateway.Guard, cfg *telnetv1.Config) error {
 	t := s.Terminal
 	if t.Command != "" {
 		return errors.New("telnet: commands are not supported")
@@ -89,10 +97,12 @@ func terminal(ctx context.Context, s *gateway.Session, cfg *telnetv1.Config) err
 	}
 	defer tc.Close()
 	defer context.AfterFunc(ctx, func() { _ = tc.Close() })()
-	if err := autologin(ctx, s, cfg.GetLogin(), tc, t); err != nil {
+	pw := password(s, cfg.GetLogin())
+	out := newRedactor(io.MultiWriter(recordFunc(s.Recording.Output), t), pw)
+	if err := autologin(ctx, tc, cfg.GetLogin(), pw, out); err != nil {
 		return err
 	}
-	return relay(tc, t, t, s.Recording, t.Resize)
+	return relay(ctx, g, tc, t, out, s.Recording, t.Resize, t.Window)
 }
 
 // dial connects to the target through Session.Dial and stores the window to
@@ -110,24 +120,32 @@ func dial(ctx context.Context, s *gateway.Session, cfg *telnetv1.Config, term st
 	return tc, nil
 }
 
-// autologin logs in with login and the password credential when both are set
-// and shows the output after the password prompt (the password stripped). The
-// login and password lines are not recorded. A refused or timed-out login is
-// gateway.ErrLoginFailed.
-func autologin(ctx context.Context, s *gateway.Session, login string, tc *Conn, user io.Writer) error {
-	if login == "" || connector.CredentialKind(s.Secret.Kind) != connector.CredentialPassword || len(s.Secret.Value) == 0 {
+// password is the password the gateway logs in with: set only when the
+// resource has a login and the credential is a password.
+func password(s *gateway.Session, login string) string {
+	if login == "" || connector.CredentialKind(s.Secret.Kind) != connector.CredentialPassword {
+		return ""
+	}
+	return string(s.Secret.Value)
+}
+
+// autologin logs in when pw is set and writes the output after the password
+// prompt to out (the recorded, redacted user output). The login and password
+// lines go to the target only, so they are not recorded. A refused or
+// timed-out login is gateway.ErrLoginFailed.
+func autologin(ctx context.Context, tc *Conn, login, pw string, out io.Writer) error {
+	if pw == "" {
 		return nil
 	}
 	lctx, cancel := context.WithTimeout(ctx, loginTimeout)
 	defer cancel()
-	out, err := Login(lctx, tc, login, string(s.Secret.Value))
+	text, err := Login(lctx, tc, login, pw)
 	if errors.Is(err, ErrLoginFailed) || errors.Is(err, ErrLoginTimeout) {
 		return fmt.Errorf("telnet: %w: %w", gateway.ErrLoginFailed, err)
 	}
 	if err != nil {
 		return fmt.Errorf("telnet: login: %w", err)
 	}
-	s.Recording.Output(out)
-	_, err = user.Write(out)
+	_, err = out.Write(text)
 	return err
 }

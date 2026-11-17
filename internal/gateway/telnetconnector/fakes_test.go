@@ -5,6 +5,7 @@ import (
 	"context"
 	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -32,10 +33,19 @@ type spyRec struct {
 	mu      sync.Mutex
 	out, in bytes.Buffer
 	resizes [][2]int
+
+	panicInput atomic.Bool // Input panics
 }
 
 func (r *spyRec) Output(p []byte) { r.mu.Lock(); r.out.Write(p); r.mu.Unlock() }
-func (r *spyRec) Input(p []byte)  { r.mu.Lock(); r.in.Write(p); r.mu.Unlock() }
+func (r *spyRec) Input(p []byte) {
+	if r.panicInput.Load() {
+		panic("fault injected")
+	}
+	r.mu.Lock()
+	r.in.Write(p)
+	r.mu.Unlock()
+}
 func (r *spyRec) Resize(c, w int) {
 	r.mu.Lock()
 	r.resizes = append(r.resizes, [2]int{c, w})
@@ -66,4 +76,37 @@ func (b *lockedBuffer) String() string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.b.String()
+}
+
+// scripted starts a target that runs script on its first connection; the
+// script must return once the connection closes.
+func scripted(t *testing.T, script func(c net.Conn)) string {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		c, err := l.Accept()
+		if err != nil {
+			return
+		}
+		defer c.Close()
+		script(c)
+	}()
+	t.Cleanup(func() { _ = l.Close(); <-done })
+	return l.Addr().String()
+}
+
+// skipLine reads up to and including the next LF.
+func skipLine(c net.Conn) error {
+	b := make([]byte, 1)
+	for {
+		if _, err := c.Read(b); err != nil {
+			return err
+		}
+		if b[0] == '\n' {
+			return nil
+		}
+	}
 }

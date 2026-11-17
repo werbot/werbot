@@ -2,11 +2,9 @@ package telnetconnector_test
 
 import (
 	"context"
-	"crypto/rand"
 	"io"
 	"log/slog"
 	"net"
-	"net/netip"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -21,119 +19,11 @@ import (
 	"github.com/werbot/werbot/internal/gateway/telnettest"
 )
 
-const waitFor = 5 * time.Second
-
 func TestContract(t *testing.T) {
 	registered, ok := gateway.LookupConnector("telnet")
 	require.True(t, ok)
 	require.Equal(t, telnetconnector.Connector{}, registered)
 	connectortest.Run(t, telnetconnector.Connector{}, telnettest.Target(t))
-}
-
-// env is one session against a telnet target, driven as a user.
-type env struct {
-	srv   *telnettest.Server
-	s     *gateway.Session
-	rec   *spyRec
-	out   *lockedBuffer // what the user sees
-	in    io.Writer     // what the user types
-	resz  func(cols, rows int)
-	dials atomic.Int32
-	err   chan error
-}
-
-// start serves a session of kind with the resource login and secret; the user
-// window is 132×40 with TERM vt100. A stream user is a telnet client.
-func start(t *testing.T, kind gateway.Kind, login, secret string) *env {
-	t.Helper()
-	pw := "werbot-telnet-secret-" + rand.Text()
-	e := &env{srv: telnettest.Start(t, pw), rec: &spyRec{}, out: &lockedBuffer{}, err: make(chan error, 1)}
-	if secret == "<target>" {
-		secret = pw
-	}
-	dialer := &net.Dialer{Timeout: waitFor}
-	e.s = &gateway.Session{
-		ID: uuid.New(), Kind: kind, Front: "test", User: gateway.User{ID: uuid.New(), Login: "alice"},
-		Resource: e.srv.Resource(t, login), ClientIP: netip.MustParseAddr("192.0.2.1"), Recording: e.rec,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			e.dials.Add(1)
-			return dialer.DialContext(ctx, network, address)
-		},
-	}
-	if secret != "" {
-		e.s.Secret = gateway.Secret{Kind: "password", Value: []byte(secret)}
-	}
-	user, conn := net.Pipe()
-	if kind == gateway.KindStream {
-		user, conn = tcpPair(t) // buffered like an SSH channel: both telnet sides write while the other writes
-	}
-	t.Cleanup(func() { _ = user.Close() })
-	switch kind {
-	case gateway.KindTerminal:
-		resize := make(chan gateway.Window, 1)
-		e.s.Terminal = &gateway.Terminal{ReadWriter: conn, Term: "vt100", Window: gateway.Window{Cols: 132, Rows: 40},
-			Resize: resize, SetExitStatus: func(int) {}}
-		e.in = user
-		e.resz = func(cols, rows int) { resize <- gateway.Window{Cols: cols, Rows: rows} }
-		go func() { _, _ = io.Copy(e.out, user) }()
-	case gateway.KindStream:
-		e.s.Stream, e.s.Target = conn, e.srv.Addr
-		client := telnetconnector.NewClient(user, "vt100")
-		require.NoError(t, client.SetWindowSize(132, 40))
-		e.in = client
-		e.resz = func(cols, rows int) { require.NoError(t, client.SetWindowSize(cols, rows)) }
-		go func() { _, _ = io.Copy(e.out, client) }()
-	}
-	ctx, cancel := context.WithCancel(t.Context())
-	go func() { e.err <- telnetconnector.Connector{}.Serve(ctx, e.s) }()
-	t.Cleanup(func() {
-		cancel()
-		select {
-		case <-e.err:
-		case <-time.After(waitFor):
-			t.Error("Serve did not return after the cancel")
-		}
-	})
-	return e
-}
-
-func (e *env) waitOutput(t *testing.T, want string) {
-	t.Helper()
-	require.Eventually(t, func() bool { return strings.Contains(e.out.String(), want) }, waitFor, 5*time.Millisecond,
-		"the user output lacks %q: %q", want, e.out.String())
-}
-
-func (e *env) waitEvent(t *testing.T, want string) {
-	t.Helper()
-	timeout := time.After(waitFor)
-	for {
-		select {
-		case ev := <-e.srv.Events:
-			if ev == want {
-				return
-			}
-		case <-timeout:
-			t.Fatalf("no target event %q", want)
-		}
-	}
-}
-
-func (e *env) serveErr(t *testing.T) error {
-	t.Helper()
-	select {
-	case err := <-e.err:
-		e.err <- err // for the cleanup
-		return err
-	case <-time.After(waitFor):
-		t.Fatal("Serve did not return")
-		return nil
-	}
-}
-
-func kinds(t *testing.T, f func(t *testing.T, kind gateway.Kind)) {
-	for _, k := range []gateway.Kind{gateway.KindTerminal, gateway.KindStream} {
-		t.Run(string(k), func(t *testing.T) { f(t, k) })
-	}
 }
 
 // The password reaches the target only: not the user, the recording, the log or an error.
@@ -200,7 +90,7 @@ func TestTelnetStreamNAWSBeforeLogin(t *testing.T) {
 func TestTelnetLoginFailed(t *testing.T) {
 	kinds(t, func(t *testing.T, kind gateway.Kind) {
 		e := start(t, kind, telnettest.Login, "wrong-password-marker")
-		err := e.serveErr(t)
+		err := e.serveErr(t, waitFor)
 		require.ErrorIs(t, err, gateway.ErrLoginFailed)
 		require.ErrorIs(t, err, telnetconnector.ErrLoginFailed)
 		require.NotContains(t, err.Error(), "wrong-password-marker")
