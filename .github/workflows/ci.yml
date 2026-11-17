@@ -39,11 +39,21 @@ jobs:
       - run: go tool -modfile=tools/go.mod sqlc diff
       - run: go mod tidy -diff
       - run: go mod tidy -modfile=tools/go.mod -diff
+      - run: GOOS=windows go build ./...
       - run: go test -count=1 ./...
       - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.15.0
       - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go test -count=1 ./internal/connectcli/...
 
   web:
     runs-on: ubuntu-latest
