@@ -31,7 +31,7 @@ const (
 
 const droppedName, droppedHelp = "werbot_gateway_datagrams_dropped_total", "Datagrams dropped by the udp connector, by reason."
 
-var bufPool = sync.Pool{New: func() any { b := make([]byte, maxDatagram); return &b }}
+var bufPool = sync.Pool{New: func() any { b := make([]byte, maxDatagram+1); return &b }}
 
 func init() { gateway.RegisterConnector(Connector{}) }
 
@@ -126,7 +126,7 @@ func (u *session) recv() error {
 	bp := bufPool.Get().(*[]byte)
 	defer bufPool.Put(bp)
 	for {
-		id, n, err := u.s.Datagram.Recv(*bp)
+		id, n, err := u.s.Datagram.Recv((*bp)[:maxDatagram])
 		switch {
 		case errors.Is(err, io.ErrShortBuffer):
 			u.dropBig.Inc()
@@ -142,8 +142,7 @@ func (u *session) recv() error {
 			return err
 		}
 		if f == nil {
-			u.dropFlows.Inc()
-			continue
+			continue // dropped: flow limit or a failed dial
 		}
 		f.touch()
 		// ECONNREFUSED (an earlier datagram found the port closed) and any other write error drop this datagram only.
@@ -151,14 +150,19 @@ func (u *session) recv() error {
 	}
 }
 
-// flow returns the flow id, dialing it on first use; nil means the flow limit is reached.
+// flow returns the flow id, dialing it on first use. nil, nil means the datagram is dropped: the flow
+// limit is reached (counted) or the dial failed (the next datagram of the flow retries). Only a
+// refused target is an error. The dial runs unlocked; a flow made meanwhile by another call wins.
 func (u *session) flow(id uint32) (*flow, error) {
 	u.mu.Lock()
-	defer u.mu.Unlock()
-	if f, ok := u.flows[id]; ok {
+	f, ok := u.flows[id]
+	full := len(u.flows) >= maxFlows
+	u.mu.Unlock()
+	if ok {
 		return f, nil
 	}
-	if len(u.flows) >= maxFlows {
+	if full {
+		u.dropFlows.Inc()
 		return nil, nil
 	}
 	conn, err := u.s.Dial(u.ctx, "udp", u.addr)
@@ -166,12 +170,20 @@ func (u *session) flow(id uint32) (*flow, error) {
 		if errors.Is(err, gateway.ErrTargetNotAllowed) {
 			return nil, fmt.Errorf("udp: dial target: %w", gateway.ErrTargetNotAllowed)
 		}
-		if oe, ok := errors.AsType[*net.OpError](err); ok {
-			err = oe.Err
-		}
-		return nil, fmt.Errorf("udp: dial target: %w", err)
+		return nil, nil
 	}
-	f := &flow{conn: conn}
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	if f, ok := u.flows[id]; ok {
+		_ = conn.Close()
+		return f, nil
+	}
+	if len(u.flows) >= maxFlows {
+		_ = conn.Close()
+		u.dropFlows.Inc()
+		return nil, nil
+	}
+	f = &flow{conn: conn}
 	f.touch()
 	u.flows[id] = f
 	u.g.Detach(func() error { return u.read(id, f) })
@@ -198,6 +210,8 @@ func (u *session) read(id uint32, f *flow) error {
 		_ = f.conn.SetReadDeadline(time.Unix(0, f.last.Load()).Add(u.idle))
 		n, err := f.conn.Read(*bp)
 		switch {
+		case err == nil && n > maxDatagram: // the buffer holds one byte more: a longer reply is cut, not relayed
+			u.dropBig.Inc()
 		case err == nil:
 			f.touch()
 			if err := u.s.Datagram.Send(id, (*bp)[:n]); err != nil {

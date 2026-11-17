@@ -2,6 +2,7 @@ package connectortest_test
 
 import (
 	"crypto/rand"
+	"io"
 	"net"
 	"testing"
 
@@ -44,4 +45,13 @@ func TestRunDatagramFlows(t *testing.T) {
 		Resource: gateway.Resource{Name: "dns1", Type: "udpecho"}, Secret: secret(),
 		Datagram: pc.LocalAddr().String(),
 	})
+}
+
+// A datagram larger than buf is dropped with io.ErrShortBuffer, as on the SSH channel.
+func TestDatagramsOversize(t *testing.T) {
+	client, peer := connectortest.Datagrams()
+	peer.Send(1, make([]byte, 10))
+	flow, _, err := client.Recv(make([]byte, 4))
+	require.ErrorIs(t, err, io.ErrShortBuffer)
+	require.EqualValues(t, 1, flow)
 }

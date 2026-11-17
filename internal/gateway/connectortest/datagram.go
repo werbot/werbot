@@ -2,6 +2,7 @@ package connectortest
 
 import (
 	"errors"
+	"io"
 	"net"
 	"sync"
 	"testing"
@@ -41,6 +42,9 @@ func Datagrams() (client gateway.Datagrams, peer *DatagramPeer) {
 func (c datagramConn) Recv(buf []byte) (uint32, int, error) {
 	select {
 	case m := <-c.p.toConn:
+		if len(m.p) > len(buf) {
+			return m.flow, 0, io.ErrShortBuffer // dropped, like channelDatagrams
+		}
 		return m.flow, copy(buf, m.p), nil
 	case <-c.p.done:
 		return 0, 0, net.ErrClosed
