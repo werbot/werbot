@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
 	import { page } from '$app/state';
 	import { Banner, Breadcrumbs, Tabs } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
+	import { ConfigSchema as SshConfigSchema } from '#lib/gen/werbot/connector/ssh/v1/ssh_pb.js';
 	import AccessTab from '#lib/resources/AccessTab.svelte';
 	import CredentialsTab from '#lib/resources/CredentialsTab.svelte';
 	import HostKeyTab from '#lib/resources/HostKeyTab.svelte';
@@ -29,10 +31,13 @@
 	const hints = $derived.by(() => {
 		const kinds = types.find((t) => t.name === resource?.type)?.kinds ?? [];
 		const args = { login: page.data.session?.user?.login ?? '', resource: resource?.name ?? '' };
+		// an ssh resource without port forwarding refuses every stream
+		const ssh = resource?.config && anyIs(resource.config, SshConfigSchema) ? anyUnpack(resource.config, SshConfigSchema) : undefined;
+		const stream = kinds.includes('stream') && (!ssh || ssh.portForwarding);
 		const out: string[] = [];
 		if (kinds.includes('terminal') || kinds.includes('exec')) out.push(m.resources_connect_hint_terminal(args));
-		if (kinds.includes('stream')) out.push(m.resources_connect_hint_stream(args));
-		if (kinds.includes('stream') || kinds.includes('datagram')) out.push(m.resources_connect_hint_connect(args));
+		if (stream) out.push(m.resources_connect_hint_stream(args));
+		if (stream || kinds.includes('datagram')) out.push(m.resources_connect_hint_connect(args));
 		return out;
 	});
 
