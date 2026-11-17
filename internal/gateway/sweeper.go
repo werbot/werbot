@@ -108,9 +108,11 @@ func (a *activeSessions) reevaluated(id uuid.UUID, version string, req AccessReq
 	}
 }
 
-// recheck is the Open decision against pol: the resource by id (a rename keeps the
-// session), the membership and teams of the user (when the snapshot lists them),
-// the stream or datagram target and the PDP at now.
+// recheck is the Open decision against pol: the resource by id (a rename keeps a
+// terminal or exec session; a stream or datagram session opened by the old name
+// fails the target check and ends with access_revoked), the membership and teams
+// of the user (when the snapshot lists them), the stream or datagram target and
+// the PDP at now.
 func recheck(pol *Policy, e evaluation, now time.Time) (AccessRequest, bool) {
 	req := e.req
 	res, ok := pol.resourceByID(req.Resource.ID)
