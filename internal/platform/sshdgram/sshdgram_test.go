@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"testing/iotest"
 )
 
 func TestFrameRoundTrip(t *testing.T) {
@@ -28,6 +29,30 @@ func TestFrameRoundTrip(t *testing.T) {
 		}
 	}
 	if _, _, err := ReadFrame(&wire, buf); err != io.EOF {
+		t.Fatalf("after the last frame: %v, want io.EOF", err)
+	}
+}
+
+// A reader that returns one byte per call still yields whole frames.
+func TestReadFrameOneByteReader(t *testing.T) {
+	var wire bytes.Buffer
+	_ = WriteFrame(&wire, 0x01020304, []byte("first"))
+	_ = WriteFrame(&wire, 9, nil)
+	_ = WriteFrame(&wire, 5, []byte("dropped"))
+	_ = WriteFrame(&wire, 6, []byte("last"))
+	r := iotest.OneByteReader(&wire)
+	buf := make([]byte, 5)
+	for _, want := range []struct {
+		flow uint32
+		p    string
+		err  error
+	}{{0x01020304, "first", nil}, {9, "", nil}, {5, "", io.ErrShortBuffer}, {6, "last", nil}} {
+		flow, n, err := ReadFrame(r, buf)
+		if !errors.Is(err, want.err) || flow != want.flow || string(buf[:n]) != want.p {
+			t.Fatalf("flow %d, %q, %v; want flow %d, %q, %v", flow, buf[:n], err, want.flow, want.p, want.err)
+		}
+	}
+	if _, _, err := ReadFrame(r, buf); err != io.EOF {
 		t.Fatalf("after the last frame: %v, want io.EOF", err)
 	}
 }

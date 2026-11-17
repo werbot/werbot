@@ -54,7 +54,7 @@ func WriteFrame(w io.Writer, flow uint32, p []byte) error {
 // longer than buf is read to its end and dropped with io.ErrShortBuffer, so the
 // next frame stays readable. A clean end between frames is io.EOF; a frame cut
 // short is io.ErrUnexpectedEOF. It never reads past the frame's length (at most
-// MaxPayload) and allocates nothing.
+// MaxPayload), and what it allocates does not grow with that length.
 func ReadFrame(r io.Reader, buf []byte) (flow uint32, n int, err error) {
 	var h [headerLen]byte
 	if _, err := io.ReadFull(r, h[:]); err != nil {

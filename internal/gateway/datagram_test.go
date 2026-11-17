@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
+	"strconv"
 	"testing"
 	"time"
 
@@ -39,14 +41,18 @@ func echoDatagrams(ctx context.Context, d Datagrams) error {
 }
 
 // withPortResources replaces the snapshot of e with "denied", "tcp" (streamonly),
-// "pg" (plainstream on 10.0.0.5, ports 5432-5433) and "pgdb" (tcp 10.0.0.5:5432).
+// "pg" (plainstream on 10.0.0.5, ports 5432-5433), "pgdb" (tcp 10.0.0.5:5432),
+// "multi" (tcp 10.0.0.5, ports 6000-6010 and 5432) and "any" (fake: any target, no ports).
 func (e *sshEnv) withPortResources(t *testing.T) {
 	t.Helper()
-	e.m["rpg"], e.m["rpgdb"] = uuid.New(), uuid.New()
+	for _, id := range []string{"rpg", "rpgdb", "rmulti", "rany"} {
+		e.m[id] = uuid.New()
+	}
 	s := testSnapshot(t, e.m, sshPolicies, nil, res{"rdenied", "denied", "fake"}, res{"rtcp", "tcp", "streamonly"},
-		res{"rpg", "pg", "plainstream"}, res{"rpgdb", "pgdb", "tcp"})
+		res{"rpg", "pg", "plainstream"}, res{"rpgdb", "pgdb", "tcp"}, res{"rmulti", "multi", "tcp"}, res{"rany", "any", "fake"})
 	s.Resources[2].ConfigJson = []byte(`"10.0.0.5"`)
 	s.Resources[3].ConfigJson = []byte(`{"host":"10.0.0.5","ports":[{"port":5432}]}`)
+	s.Resources[4].ConfigJson = []byte(`{"host":"10.0.0.5","ports":[{"port":6000,"end_port":6010},{"port":5432}]}`)
 	p, err := CompilePolicy(s)
 	require.NoError(t, err)
 	e.f.setPolicy(p)
@@ -97,27 +103,34 @@ func TestDatagramChannelDenied(t *testing.T) {
 	e := newSSHEnv(t, Config{})
 	e.withPortResources(t)
 	for _, tc := range []struct {
-		user, host string
-		port       uint32
-		text       string
+		user, host   string
+		port         uint32
+		text, reason string // reason "": no denial
 	}{
-		{"alice+denied", "10.0.0.5", 53, "Access denied"},
-		{"alice+missing", "10.0.0.5", 53, "Access denied"},
-		{"alice+pg", "10.0.0.5", 0, "Access denied"},
-		{"alice+pg", "10.0.0.6", 5432, "Access denied"},
-		{"alice+tcp", "10.0.0.5", 53, "Resource tcp does not support datagram sessions"},
-		{"alice", "10.0.0.5", 5432, usageText},
+		{"alice+denied", "10.0.0.5", 53, "Access denied", "denied"},
+		{"alice+missing", "10.0.0.5", 53, "Access denied", "denied"},
+		{"alice+pg", "10.0.0.5", 0, "Access denied", "target_not_allowed"},
+		{"alice+pg", "10.0.0.6", 5432, "Access denied", "target_not_allowed"},
+		{"alice+tcp", "10.0.0.5", 53, "Resource tcp does not support datagram sessions", "unsupported_kind"},
+		{"alice", "10.0.0.5", 5432, usageText, ""},
 	} {
 		_, err := openDatagram(e.client(t, tc.user), tc.host, tc.port)
 		var oe *gossh.OpenChannelError
 		require.ErrorAs(t, err, &oe, tc.user)
 		require.Equal(t, gossh.Prohibited, oe.Reason, tc.user)
 		require.Equal(t, tc.text, oe.Message, tc.user)
+		got := e.p.denials.take()
+		if tc.reason == "" {
+			require.Empty(t, got, "the menu login opens nothing")
+			continue
+		}
+		require.Len(t, got, 1, tc.user)
+		require.Equal(t, tc.reason, got[0].GetReason(), tc.user)
+		require.Equal(t, string(KindDatagram), got[0].GetKind(), tc.user)
+		require.Equal(t, net.JoinHostPort(tc.host, strconv.Itoa(int(tc.port))), got[0].GetTarget(), tc.user)
+		requireValid(t, &gatewayv1.Heartbeat{Denials: got})
 	}
 	require.Zero(t, e.startCalls())
-	got := e.p.denials.take()
-	require.Len(t, got, 5, "every refused Open is reported; the menu login opens nothing")
-	requireValid(t, &gatewayv1.Heartbeat{Denials: got})
 }
 
 func TestDatagramChannelMalformedOpenData(t *testing.T) {
@@ -133,10 +146,17 @@ func TestDatagramChannelMalformedOpenData(t *testing.T) {
 func TestResourceRequest(t *testing.T) {
 	e := newSSHEnv(t, Config{})
 	e.withPortResources(t)
-	ok, payload, err := e.client(t, "alice+pgdb").SendRequest(sshdgram.ResourceRequest, true, nil)
-	require.NoError(t, err)
-	require.True(t, ok)
-	require.JSONEq(t, `{"type":"tcp","kinds":["stream"],"ports":[{"port":5432,"end_port":0}]}`, string(payload))
+	for user, want := range map[string]string{
+		"alice+pgdb":  `{"type":"tcp","kinds":["stream"],"ports":[{"port":5432,"end_port":0}]}`,
+		"alice+multi": `{"type":"tcp","kinds":["stream"],"ports":[{"port":6000,"end_port":6010},{"port":5432,"end_port":0}]}`,
+		"alice+pg":    `{"type":"plainstream","kinds":["stream","datagram"],"ports":[{"port":5432,"end_port":5433}]}`,
+		"alice+any":   `{"type":"fake","kinds":["terminal","exec","stream"],"ports":[]}`,
+	} {
+		ok, payload, err := e.client(t, user).SendRequest(sshdgram.ResourceRequest, true, nil)
+		require.NoError(t, err, user)
+		require.True(t, ok, user)
+		require.Equal(t, want, string(payload), user) // exact: order, end_port 0 and [] not null
+	}
 
 	// forbidden, missing and menu logins read the same: false, no payload
 	for _, user := range []string{"alice+denied", "alice+missing", "alice"} {
