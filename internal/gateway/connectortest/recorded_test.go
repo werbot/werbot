@@ -117,3 +117,23 @@ func TestRequireTargetConnections(t *testing.T) {
 	require.True(t, f.failed)
 	require.Contains(t, f.msg, "did not come through Session.Dial")
 }
+
+type udpOnly struct{ Echo }
+
+func (udpOnly) Kinds() []gateway.Kind { return []gateway.Kind{gateway.KindDatagram} }
+func (udpOnly) DialsTarget()          {}
+
+func TestRequireAcceptsFit(t *testing.T) {
+	tcp := []gateway.Kind{gateway.KindStream}
+	udp := []gateway.Kind{gateway.KindDatagram}
+	counter := func() int { return 0 }
+	f := check(func(f *failT) { requireAcceptsFit(f, marked{}, tcp, nil) })
+	require.True(t, f.failed)
+	require.Contains(t, f.msg, "needs Target.Accepts")
+	require.False(t, check(func(f *failT) { requireAcceptsFit(f, marked{}, tcp, counter) }).failed)
+	require.False(t, check(func(f *failT) { requireAcceptsFit(f, Echo{}, tcp, nil) }).failed) // not a TargetDialer
+	require.False(t, check(func(f *failT) { requireAcceptsFit(f, udpOnly{}, udp, nil) }).failed)
+	f = check(func(f *failT) { requireAcceptsFit(f, udpOnly{}, udp, counter) })
+	require.True(t, f.failed)
+	require.Contains(t, f.msg, "UDP-only")
+}

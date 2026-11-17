@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/netip"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -55,6 +56,7 @@ func Run(t *testing.T, c gateway.Connector, target Target) {
 	kinds := c.Kinds()
 	time.Sleep(100 * time.Millisecond)
 	require.LessOrEqual(t, runtime.NumGoroutine(), base, "the connector starts goroutines before its first session")
+	requireAcceptsFit(t, c, kinds, target.Accepts)
 	if target.Accepts != nil {
 		require.Zero(t, target.Accepts(), "the connector connects to its target before its first session")
 	}
@@ -161,8 +163,21 @@ func runKind(t *testing.T, c gateway.Connector, target Target, k gateway.Kind) {
 	}
 	requireRecorded(t, c.Type(), k, rec)
 	requireDialsThroughSession(t, c, int(dials.Load()))
-	if _, marked := c.(gateway.TargetDialer); marked && target.Accepts != nil {
+	if _, marked := c.(gateway.TargetDialer); marked && target.Accepts != nil && k != gateway.KindDatagram {
 		requireTargetConnections(t, target.Accepts, acceptsBefore, int(dials.Load()))
+	}
+}
+
+// requireAcceptsFit checks that Target.Accepts is given exactly when it can be
+// used: a TargetDialer with a TCP kind needs it (the dial-around checks must not
+// be silently off); a UDP-only type has no TCP accepts to count.
+func requireAcceptsFit(t require.TestingT, c gateway.Connector, kinds []gateway.Kind, accepts func() int) {
+	tcp := slices.ContainsFunc(kinds, func(k gateway.Kind) bool { return k != gateway.KindDatagram })
+	if _, marked := c.(gateway.TargetDialer); marked && tcp {
+		require.NotNil(t, accepts, "a TargetDialer with a TCP kind needs Target.Accepts (CountAccepts on the target listener)")
+	}
+	if !tcp {
+		require.Nil(t, accepts, "Target.Accepts counts TCP accepts: a UDP-only type must not set it")
 	}
 }
 
