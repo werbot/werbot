@@ -104,6 +104,9 @@ func check(t Type) {
 			bad(fmt.Sprintf("unknown kind %q", k))
 		}
 	}
+	if hasDup(t.Kinds) || hasDup(t.Recorded) {
+		bad("duplicate kind")
+	}
 	for _, k := range t.Recorded {
 		if !slices.Contains(t.Kinds, k) {
 			bad(fmt.Sprintf("recorded kind %q not in Kinds", k))
@@ -112,6 +115,15 @@ func check(t Type) {
 	if t.Endpoint == nil && (slices.Contains(t.Kinds, KindStream) || slices.Contains(t.Kinds, KindDatagram)) {
 		bad("Endpoint is required for stream and datagram kinds")
 	}
+}
+
+func hasDup(ks []Kind) bool {
+	for i, k := range ks {
+		if slices.Contains(ks[:i], k) {
+			return true
+		}
+	}
+	return false
 }
 
 // Lookup returns the registered type by name.

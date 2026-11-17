@@ -51,3 +51,9 @@ func TestSSHEndpointAndRecorded(t *testing.T) {
 	assert.True(t, e.AnyTarget)
 	assert.Equal(t, []connector.PortRange{{Port: 2200}}, e.Ports)
 }
+
+func TestSSHEndpointDefaultsPortWithoutValidate(t *testing.T) {
+	ty, _ := connector.Lookup("ssh")
+	e := ty.Endpoint(&sshv1.Config{Host: "h"})
+	assert.Equal(t, []connector.PortRange{{Port: 22}}, e.Ports)
+}

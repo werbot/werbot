@@ -3,6 +3,7 @@ package connector
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 
@@ -45,19 +46,17 @@ func ValidatePorts(rs []PortRange) error {
 	return nil
 }
 
-// PortsFromProto converts wire ranges; values above 65535 become 0 and fail ValidatePorts.
-func PortsFromProto(ps []*connectorv1.PortRange) []PortRange {
-	u16 := func(v uint32) uint16 {
-		if v > 65535 {
-			return 0
-		}
-		return uint16(v)
-	}
+// PortsFromProto converts wire ranges; a port above 65535 is an error.
+func PortsFromProto(ps []*connectorv1.PortRange) ([]PortRange, error) {
 	out := make([]PortRange, len(ps))
 	for i, p := range ps {
-		out[i] = PortRange{Port: u16(p.GetPort()), EndPort: u16(p.GetEndPort())}
+		if p.GetPort() > math.MaxUint16 || p.GetEndPort() > math.MaxUint16 {
+			return nil, fmt.Errorf("ports: range %d out of range", i)
+		}
+		//nolint:gosec // both values checked above
+		out[i] = PortRange{Port: uint16(p.GetPort()), EndPort: uint16(p.GetEndPort())}
 	}
-	return out
+	return out, nil
 }
 
 // Endpoint is where a stream or datagram resource may connect.
@@ -73,7 +72,7 @@ func (e Endpoint) Allow(resourceName, host string, port uint16) bool {
 	if e.AnyTarget {
 		return true
 	}
-	if !strings.EqualFold(host, e.Host) && !strings.EqualFold(host, resourceName) {
+	if host == "" || (!strings.EqualFold(host, e.Host) && !strings.EqualFold(host, resourceName)) {
 		return false
 	}
 	return slices.ContainsFunc(e.Ports, func(r PortRange) bool { return r.Contains(port) })

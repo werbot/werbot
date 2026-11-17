@@ -28,6 +28,12 @@ func TestRegisterRejectsBadRecordedAndEndpoint(t *testing.T) {
 	assert.Panics(t, func() { a := valid("a"); a.Recorded = []Kind{KindExec}; Register(a) })
 	assert.Panics(t, func() { b := valid("b"); b.Endpoint = nil; Register(b) })
 	assert.NotPanics(t, func() { c := valid("c"); c.Kinds = []Kind{KindDatagram}; Register(c) })
+	assert.Panics(t, func() { e := valid("e"); e.Kinds = []Kind{KindStream, KindStream}; Register(e) })
+	assert.Panics(t, func() {
+		f := valid("f")
+		f.Kinds, f.Recorded = []Kind{KindStream, KindTerminal}, []Kind{KindTerminal, KindTerminal}
+		Register(f)
+	})
 	d := valid("d")
 	d.Kinds, d.Recorded = []Kind{KindStream, KindTerminal}, []Kind{KindTerminal}
 	Register(d)
