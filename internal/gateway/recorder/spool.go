@@ -45,7 +45,7 @@ type Uploader interface {
 // SpoolOptions tune a Spool.
 type SpoolOptions struct {
 	Limit              int64          // unsent bytes per session; 0 → DefaultSpoolLimit
-	RetryMin, RetryMax time.Duration  // pause after a failed upload pass; 0 → 1s and 30s
+	RetryMin, RetryMax time.Duration  // pause after a failed upload pass (doubling, jittered, at most RetryMax); 0 → 1s and 30s
 	Gauge              *metrics.Gauge // set to Total() on every change; nil → none
 }
 
@@ -119,6 +119,7 @@ func OpenSpool(dir string, up Uploader, opts SpoolOptions, logger *slog.Logger) 
 		sessions: map[uuid.UUID]*session{}, ends: map[uuid.UUID]string{}}
 	entries, err := fs.ReadDir(root.FS(), ".")
 	if err != nil {
+		_ = root.Close()
 		return nil, fmt.Errorf("spool: %w", err)
 	}
 	for _, e := range entries {
@@ -164,8 +165,7 @@ func (s *Spool) Append(sessionID uuid.UUID, seq int, hash, gz []byte) error {
 	st := ss.st
 	st.Chunks, st.Bytes, st.FinalHash = seq+1, st.Bytes+n, hex.EncodeToString(hash)
 	if err := s.writeState(sessionID, st); err != nil {
-		_ = s.root.Remove(name)
-		return err
+		return err // the chunk file stays: restore counts a chunk the state lacks, while deleting it could lose the chain
 	}
 	ss.st, ss.stored, ss.pending = st, true, ss.pending+n
 	s.addTotal(n)

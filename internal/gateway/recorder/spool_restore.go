@@ -54,15 +54,20 @@ func (s *Spool) restore(id uuid.UUID) error {
 		ss.st.Chunks, ss.st.Bytes, ss.st.FinalHash, ss.stored = seq+1, ss.st.Bytes+sizes[seq], hex.EncodeToString(hash), true
 	}
 	// Uploads run in order and remove their file, so the unsent chunks are the run
-	// that ends at the last one; files below a gap were sent but not removed.
+	// that ends at the last one; files below a gap were sent but not removed. Files
+	// above the chain (past a gap) have no predecessor and can never be sent.
 	ss.sent = ss.st.Chunks
 	for sizes[ss.sent-1] > 0 {
 		ss.sent--
 	}
 	for seq, n := range sizes {
-		if seq < ss.sent {
+		switch {
+		case seq >= ss.st.Chunks:
+			s.log.Warn("spool: chunk past a gap dropped", "session_id", id, "seq", seq)
+			fallthrough
+		case seq < ss.sent:
 			_ = s.root.Remove(chunkName(id, seq))
-		} else {
+		default:
 			ss.pending += n
 		}
 	}

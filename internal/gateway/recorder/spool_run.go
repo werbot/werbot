@@ -34,7 +34,7 @@ func (s *Spool) Run(ctx context.Context) error {
 		wake, retry := s.wake, (<-chan time.Time)(nil)
 		if err != nil {
 			pause = min(max(2*pause, s.opts.RetryMin), s.opts.RetryMax)
-			wait := jitter(pause)
+			wait := min(jitter(pause), s.opts.RetryMax)
 			s.log.Warn("spool: upload failed, retrying", "error", err, "retry_in", wait)
 			// new chunks do not cut the pause short, a new session end does: a pass
 			// delivers the ends first, even while the server cannot store chunks
