@@ -1,0 +1,49 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// AuditService is the read-only event journal of an organization (owner and admin only).
+service AuditService {
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+  rpc GetEvent(GetEventRequest) returns (GetEventResponse);
+}
+
+// actor_user_id and ip are empty when the event has no user or address.
+message AuditEvent {
+  string id = 1;
+  string actor_user_id = 2;
+  string actor_login = 3;
+  string actor_kind = 4;
+  string action = 5;
+  string target_type = 6;
+  string target_id = 7;
+  string ip = 8;
+  google.protobuf.Struct data = 9;
+  google.protobuf.Timestamp created_at = 10;
+}
+
+message ListEventsRequest {
+  // A domain ("session") matches every "session.*"; a full action matches itself.
+  string action = 1 [(buf.validate.field).string.max_len = 64];
+  string actor_user_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string target_type = 3 [(buf.validate.field).string.max_len = 64];
+  string target_id = 4 [(buf.validate.field).string.max_len = 128];
+  google.protobuf.Timestamp from = 5;
+  google.protobuf.Timestamp to = 6;
+  int32 page = 7 [(buf.validate.field).int32 = {gte: 0, lte: 10000000}];
+  int32 page_size = 8 [(buf.validate.field).int32.gte = 0]; // above 200 is clamped to 200
+}
+message ListEventsResponse {
+  repeated AuditEvent events = 1;
+  int32 next_page = 2; // 0: no further pages
+}
+
+message GetEventRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetEventResponse {
+  AuditEvent event = 1;
+}

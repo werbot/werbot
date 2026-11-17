@@ -14,6 +14,7 @@ import (
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/access"
+	"github.com/werbot/werbot/internal/audit"
 	_ "github.com/werbot/werbot/internal/connector/ssh" // registers the ssh resource type
 	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
@@ -81,6 +82,7 @@ type services struct {
 	Gateways   *inventory.Gateways
 	Sessions   *session.Service
 	Recordings *session.Recordings
+	Audit      *audit.Service
 	Logger     *slog.Logger // replay errors; nil is slog.Default()
 	Jobs       *river.Client[pgx.Tx]
 }
@@ -100,7 +102,7 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	}
 	s := &services{Inventory: inventory.New(pool), Credential: credential.New(pool, box), Access: access.New(pool),
 		Box: box, CA: ca, Gateways: inventory.NewGateways(pool, ca, box), Sessions: session.New(pool),
-		Recordings: session.NewRecordings(pool, store, kind, signer), Logger: logger}
+		Recordings: session.NewRecordings(pool, store, kind, signer), Audit: audit.New(audit.NewPostgres(pool)), Logger: logger}
 	// identity needs the River client, which needs the policy jobs: teams
 	// reads s.Identity, which is set below, before any request is served.
 	s.Policy = policy.New(policy.Deps{Pool: pool, Resources: policyResources{s.Inventory}, Bindings: policyBindings{s.Access},
@@ -125,12 +127,13 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	return s, nil
 }
 
-// mount registers ResourceService, AccessService, PolicyService, SessionService
-// and the recording replay route on mux.
+// mount registers ResourceService, AccessService, PolicyService, SessionService,
+// AuditService and the recording replay route on mux.
 func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
 	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential), opts...))
 	mux.Handle(werbotv1connect.NewAccessServiceHandler(access.NewHandler(s.Access), opts...))
 	mux.Handle(werbotv1connect.NewPolicyServiceHandler(policy.NewHandler(s.Policy), opts...))
 	mux.Handle(werbotv1connect.NewSessionServiceHandler(session.NewSessionHandler(s.Sessions, s.Recordings), opts...))
+	mux.Handle(werbotv1connect.NewAuditServiceHandler(audit.NewHandler(s.Audit), opts...))
 	mux.Handle("GET /api/recordings/{file}", session.NewReplayHandler(s.Sessions, s.Recordings, s.Logger))
 }
