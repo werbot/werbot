@@ -92,14 +92,27 @@ func gunzipChunks(w io.Writer, src io.Reader) error {
 	for err == nil {
 		zr.Multistream(false)
 		var n int64
-		if n, err = io.Copy(w, io.LimitReader(zr, maxReplayChunk+1)); err == nil && n > maxReplayChunk {
-			err = errChunkTooLarge
+		if n, err = io.Copy(w, io.LimitReader(zr, maxReplayChunk)); err == nil && n == maxReplayChunk {
+			err = endOfMember(zr)
 		}
 		if err == nil {
 			err = zr.Reset(br)
 		}
 	}
 	if errors.Is(err, io.EOF) { // no more members (or none: no chunk could be read)
+		return nil
+	}
+	return err
+}
+
+// endOfMember is nil when zr has no byte left in its member (it reads one past
+// the cap without serving it), errChunkTooLarge when it has.
+func endOfMember(zr io.Reader) error {
+	_, err := io.ReadFull(zr, make([]byte, 1))
+	switch {
+	case err == nil:
+		return errChunkTooLarge
+	case errors.Is(err, io.EOF):
 		return nil
 	}
 	return err

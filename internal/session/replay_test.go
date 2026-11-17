@@ -132,11 +132,12 @@ func TestReplayTampered(t *testing.T) {
 	}
 }
 
-// A forged chunk that inflates past the per-chunk cap ends the response there.
-func TestReplayBombChunk(t *testing.T) {
+// withMiddleChunk is a finished recording "chunk-0", raw, "chunk-2" with a valid chain.
+func withMiddleChunk(t *testing.T, raw []byte) recEnv {
+	t.Helper()
 	e := newRecEnv(t)
 	gz, _ := makeChunks(t, 3)
-	gz[1] = gzipOf(t, make([]byte, 4<<20))
+	gz[1] = gzipOf(t, raw)
 	require.LessOrEqual(t, len(gz[1]), session.MaxChunkGz)
 	prev, hashes := hashchain.Genesis(), [][]byte{}
 	for _, g := range gz {
@@ -145,16 +146,32 @@ func TestReplayBombChunk(t *testing.T) {
 	}
 	e.ingestAll(t, gz, hashes)
 	require.NoError(t, e.finish(t, 3, sumLen(gz), hashes[2]))
+	return e
+}
 
+// A forged chunk that inflates past the per-chunk cap ends the response there.
+func TestReplayBombChunk(t *testing.T) {
+	e := withMiddleChunk(t, make([]byte, 4<<20))
 	var logs bytes.Buffer
 	w := e.serve(t, request(t.Context(), e.as(e.f.OwnerID), castPath(e.sid)), &logs)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "true", w.Header().Get(verifiedHeader))
 	body := w.Body.String()
 	assert.True(t, strings.HasPrefix(body, "chunk-0\x00"))
-	assert.Less(t, len(body), 2<<20)
+	assert.Equal(t, len("chunk-0")+1<<20, len(body), "at most 1 MiB of the bomb chunk")
 	assert.NotContains(t, body, "chunk-2")
 	assert.Contains(t, logs.String(), "recording cut short")
+}
+
+// A chunk that inflates to exactly the cap is served whole.
+func TestReplayChunkAtCap(t *testing.T) {
+	e := withMiddleChunk(t, make([]byte, 1<<20))
+	var logs bytes.Buffer
+	w := e.serve(t, request(t.Context(), e.as(e.f.OwnerID), castPath(e.sid)), &logs)
+	want := "chunk-0" + string(make([]byte, 1<<20)) + "chunk-2"
+	assert.Equal(t, len(want), w.Body.Len())
+	assert.True(t, w.Body.String() == want, "the whole recording")
+	assert.Empty(t, logs.String())
 }
 
 // A client that went away is not a server error worth a log line.
