@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func valid(name string) Type {
@@ -18,7 +19,36 @@ func valid(name string) Type {
 		Actions:     []string{name + ".open"},
 		Level:       "L1",
 		Kinds:       []Kind{KindStream},
+		Endpoint:    func(proto.Message) Endpoint { return Endpoint{} },
 	}
+}
+
+func TestRegisterRejectsBadRecordedAndEndpoint(t *testing.T) {
+	t.Cleanup(func() { registry = nil })
+	assert.Panics(t, func() { a := valid("a"); a.Recorded = []Kind{KindExec}; Register(a) })
+	assert.Panics(t, func() { b := valid("b"); b.Endpoint = nil; Register(b) })
+	assert.NotPanics(t, func() { c := valid("c"); c.Kinds = []Kind{KindDatagram}; Register(c) })
+	d := valid("d")
+	d.Kinds, d.Recorded = []Kind{KindStream, KindTerminal}, []Kind{KindTerminal}
+	Register(d)
+	assert.True(t, d.Records(KindTerminal))
+	assert.False(t, d.Records(KindStream))
+}
+
+func TestEndpointOf(t *testing.T) {
+	ty := valid("e")
+	ty.NewConfig = func() proto.Message { return &wrapperspb.StringValue{} }
+	ty.Endpoint = func(m proto.Message) Endpoint { return Endpoint{Host: m.(*wrapperspb.StringValue).Value} }
+	e, ok, err := ty.EndpointOf([]byte(`"h"`))
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, "h", e.Host)
+	_, _, err = ty.EndpointOf([]byte(`{`))
+	assert.Error(t, err)
+	ty.Endpoint = nil
+	_, ok, err = ty.EndpointOf([]byte(`"h"`))
+	assert.NoError(t, err)
+	assert.False(t, ok)
 }
 
 func TestRegisterRejectsDuplicateAndBadTypes(t *testing.T) {

@@ -30,7 +30,8 @@ func init() {
 		NewConfig:   func() proto.Message { return &emptypb.Empty{} },
 		Validate:    func(proto.Message) error { return nil },
 		Credentials: []connector.CredentialKind{connector.CredentialPassword}, Actions: []string{"noconnect.exec"},
-		Kinds: []connector.Kind{connector.KindStream}})
+		Kinds:    []connector.Kind{connector.KindStream},
+		Endpoint: func(proto.Message) connector.Endpoint { return connector.Endpoint{AnyTarget: true, NoHealth: true} }})
 }
 
 // TestPolicyParity decides the same requests on the server (policy.PolicySet)

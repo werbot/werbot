@@ -23,5 +23,6 @@ func init() {
 			return nil
 		},
 		Credentials: []connector.CredentialKind{connector.CredentialPassword}, Actions: []string{"echo.connect"},
-		Kinds: []connector.Kind{connector.KindStream}})
+		Kinds:    []connector.Kind{connector.KindStream},
+		Endpoint: func(proto.Message) connector.Endpoint { return connector.Endpoint{AnyTarget: true, NoHealth: true} }})
 }

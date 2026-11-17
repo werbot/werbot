@@ -6,4 +6,6 @@ message Config {
   // 0 → 22
   uint32 port = 2;
   string login = 3;
+  // allow streams (ssh -L) to any host:port
+  bool port_forwarding = 4;
 }

@@ -1,0 +1,9 @@
+syntax = "proto3";
+package werbot.connector.v1;
+
+// PortRange is a target port or an inclusive port range.
+message PortRange {
+  uint32 port = 1;
+  // 0 → the single port
+  uint32 end_port = 2;
+}

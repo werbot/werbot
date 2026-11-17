@@ -41,10 +41,11 @@ const (
 	KindTerminal Kind = "terminal"
 	KindExec     Kind = "exec"
 	KindStream   Kind = "stream"
+	KindDatagram Kind = "datagram"
 )
 
 // allowedKinds grows together with the gateway entry of a new kind.
-var allowedKinds = []Kind{KindTerminal, KindExec, KindStream}
+var allowedKinds = []Kind{KindTerminal, KindExec, KindStream, KindDatagram}
 
 var nameRe = regexp.MustCompile(`^[a-z][a-z0-9]{0,31}$`)
 
@@ -58,6 +59,8 @@ type Type struct {
 	Actions     []string
 	Level       string // "L1" | "L2" | "L3"
 	Kinds       []Kind
+	Recorded    []Kind                           // ⊆ Kinds: kinds whose sessions are recorded
+	Endpoint    func(cfg proto.Message) Endpoint // required when Kinds has stream or datagram
 }
 
 var (
@@ -100,6 +103,14 @@ func check(t Type) {
 		if !slices.Contains(allowedKinds, k) {
 			bad(fmt.Sprintf("unknown kind %q", k))
 		}
+	}
+	for _, k := range t.Recorded {
+		if !slices.Contains(t.Kinds, k) {
+			bad(fmt.Sprintf("recorded kind %q not in Kinds", k))
+		}
+	}
+	if t.Endpoint == nil && (slices.Contains(t.Kinds, KindStream) || slices.Contains(t.Kinds, KindDatagram)) {
+		bad("Endpoint is required for stream and datagram kinds")
 	}
 }
 

@@ -32,3 +32,22 @@ func TestSSHValidate(t *testing.T) {
 	assert.Error(t, Validate(&sshv1.Config{Host: "a b", Login: "root"}))
 	assert.Error(t, Validate(wrapperspb.String("x")))
 }
+
+func TestSSHEndpointAndRecorded(t *testing.T) {
+	ty, ok := connector.Lookup("ssh")
+	require.True(t, ok)
+	assert.Equal(t, []connector.Kind{connector.KindTerminal, connector.KindExec}, ty.Recorded)
+	assert.False(t, ty.Records(connector.KindStream))
+
+	e, ok, err := ty.EndpointOf([]byte(`{"host":"h","login":"u"}`))
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.False(t, e.AnyTarget)
+	assert.Equal(t, "h", e.Host)
+	assert.Equal(t, []connector.PortRange{{Port: 22}}, e.Ports)
+
+	e, _, err = ty.EndpointOf([]byte(`{"host":"h","login":"u","port":2200,"portForwarding":true}`))
+	require.NoError(t, err)
+	assert.True(t, e.AnyTarget)
+	assert.Equal(t, []connector.PortRange{{Port: 2200}}, e.Ports)
+}

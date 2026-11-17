@@ -25,6 +25,12 @@ func init() {
 		Actions:     []string{"ssh.connect"},
 		Level:       "L2",
 		Kinds:       []connector.Kind{connector.KindTerminal, connector.KindExec, connector.KindStream},
+		Recorded:    []connector.Kind{connector.KindTerminal, connector.KindExec},
+		Endpoint: func(m proto.Message) connector.Endpoint {
+			c := m.(*sshv1.Config)
+			port := uint16(c.Port) //nolint:gosec // Validate caps the port at 65535
+			return connector.Endpoint{Host: c.Host, Ports: []connector.PortRange{{Port: port}}, AnyTarget: c.PortForwarding}
+		},
 	})
 }
 
