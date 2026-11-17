@@ -89,6 +89,8 @@ func TestS3FakeDefaultCredentials(t *testing.T) {
 	t.Setenv("AWS_CONFIG_FILE", empty)
 	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", empty)
 	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	t.Setenv("AWS_PROFILE", "")      // a developer profile is missing from the empty config
+	t.Setenv("AWS_ENDPOINT_URL", "") // must not redirect calls away from the fake
 	f := newFakeS3(t, "werbot-test")
 	checkS3Fake(t, config.RecordingsS3{Endpoint: f.URL, Bucket: "werbot-test", Region: "us-east-1"}, f)
 }
