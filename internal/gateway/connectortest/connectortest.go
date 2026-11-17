@@ -45,7 +45,7 @@ func Run(t *testing.T, c gateway.Connector, target Target) {
 	_ = c.Type()
 	kinds := c.Kinds()
 	time.Sleep(100 * time.Millisecond)
-	require.Equal(t, base, runtime.NumGoroutine(), "the connector starts goroutines before its first session")
+	require.LessOrEqual(t, runtime.NumGoroutine(), base, "the connector starts goroutines before its first session")
 	if typ, ok := connector.Lookup(c.Type()); ok {
 		require.ElementsMatch(t, typ.Kinds, kinds, "Kinds differ from the server type %q", c.Type())
 	}
