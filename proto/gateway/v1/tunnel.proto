@@ -62,7 +62,7 @@ message Denial {
   string resource = 3 [(buf.validate.field).string.max_bytes = 63];
   string kind = 4 [(buf.validate.field).string.max_bytes = 16];
   string target = 5 [(buf.validate.field).string.max_bytes = 300];
-  string client_ip = 6 [(buf.validate.field).string.ip = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string client_ip = 6 [(buf.validate.field).string = {ip: true, max_bytes: 64}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   string reason = 7 [(buf.validate.field).string = {
     in: ["denied", "target_not_allowed", "unsupported_type", "unsupported_kind", "busy", "spool_full", "auth_failed"]
   }];
@@ -124,7 +124,7 @@ message AuthenticateUserRequest {
     string fingerprint_sha256 = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
     string login = 2 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
   }
-  string client_ip = 3 [(buf.validate.field).string.ip = true];
+  string client_ip = 3 [(buf.validate.field).string = {ip: true, max_bytes: 64}];
 }
 
 message AuthenticateUserResponse {
@@ -137,7 +137,7 @@ message AuthenticateUserResponse {
 message StartSessionRequest {
   string user_id = 1 [(buf.validate.field).string.uuid = true];
   string resource_id = 2 [(buf.validate.field).string.uuid = true];
-  string client_ip = 3 [(buf.validate.field).string.ip = true];
+  string client_ip = 3 [(buf.validate.field).string = {ip: true, max_bytes: 64}];
   string kind = 4 [(buf.validate.field).string = {
     in: ["terminal", "exec", "stream", "datagram"]
   }];

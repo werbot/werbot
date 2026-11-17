@@ -1641,15 +1641,14 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"bytes_down\x18\x03 \x01(\x03R\tbytesDown\x12!\n" +
 	"\fdatagrams_up\x18\x04 \x01(\x03R\vdatagramsUp\x12%\n" +
-	"\x0edatagrams_down\x18\x05 \x01(\x03R\rdatagramsDown\"\x98\x03\n" +
+	"\x0edatagrams_down\x18\x05 \x01(\x03R\rdatagramsDown\"\x9a\x03\n" +
 	"\x06Denial\x12$\n" +
 	"\auser_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\x121\n" +
 	"\x0fkey_fingerprint\x18\x02 \x01(\tB\b\xbaH\x05r\x03(\x80\x01R\x0ekeyFingerprint\x12#\n" +
 	"\bresource\x18\x03 \x01(\tB\a\xbaH\x04r\x02(?R\bresource\x12\x1b\n" +
 	"\x04kind\x18\x04 \x01(\tB\a\xbaH\x04r\x02(\x10R\x04kind\x12 \n" +
-	"\x06target\x18\x05 \x01(\tB\b\xbaH\x05r\x03(\xac\x02R\x06target\x12'\n" +
-	"\tclient_ip\x18\x06 \x01(\tB\n" +
-	"\xbaH\a\xd8\x01\x01r\x02p\x01R\bclientIp\x12|\n" +
+	"\x06target\x18\x05 \x01(\tB\b\xbaH\x05r\x03(\xac\x02R\x06target\x12)\n" +
+	"\tclient_ip\x18\x06 \x01(\tB\f\xbaH\t\xd8\x01\x01r\x04(@p\x01R\bclientIp\x12|\n" +
 	"\x06reason\x18\a \x01(\tBd\xbaHar_R\x06deniedR\x12target_not_allowedR\x10unsupported_typeR\x10unsupported_kindR\x04busyR\n" +
 	"spool_fullR\vauth_failedR\x06reason\x12*\n" +
 	"\x02at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"\xa5\x01\n" +
@@ -1683,24 +1682,24 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\vconfig_json\x18\x04 \x01(\fR\n" +
 	"configJson\x12<\n" +
 	"\fidle_timeout\x18\x05 \x01(\v2\x19.google.protobuf.DurationR\vidleTimeout\x12<\n" +
-	"\fmax_duration\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\vmaxDuration\"\xad\x01\n" +
+	"\fmax_duration\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\vmaxDuration\"\xaf\x01\n" +
 	"\x17AuthenticateUserRequest\x12;\n" +
 	"\x12fingerprint_sha256\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01H\x00R\x11fingerprintSha256\x12\"\n" +
 	"\x05login\x18\x02 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\xff\x01H\x00R\x05login\x12$\n" +
-	"\tclient_ip\x18\x03 \x01(\tB\a\xbaH\x04r\x02p\x01R\bclientIpB\v\n" +
+	"\xbaH\ar\x05\x10\x01\x18\xff\x01H\x00R\x05login\x12&\n" +
+	"\tclient_ip\x18\x03 \x01(\tB\t\xbaH\x06r\x04(@p\x01R\bclientIpB\v\n" +
 	"\x02by\x12\x05\xbaH\x02\b\x01\"~\n" +
 	"\x18AuthenticateUserResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05login\x18\x02 \x01(\tR\x05login\x12\x19\n" +
 	"\bteam_ids\x18\x03 \x03(\tR\ateamIds\x12\x18\n" +
-	"\acountry\x18\x04 \x01(\tR\acountry\"\xe8\x01\n" +
+	"\acountry\x18\x04 \x01(\tR\acountry\"\xea\x01\n" +
 	"\x13StartSessionRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12)\n" +
 	"\vresource_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
-	"resourceId\x12$\n" +
-	"\tclient_ip\x18\x03 \x01(\tB\a\xbaH\x04r\x02p\x01R\bclientIp\x12;\n" +
+	"resourceId\x12&\n" +
+	"\tclient_ip\x18\x03 \x01(\tB\t\xbaH\x06r\x04(@p\x01R\bclientIp\x12;\n" +
 	"\x04kind\x18\x04 \x01(\tB'\xbaH$r\"R\bterminalR\x04execR\x06streamR\bdatagramR\x04kind\x12 \n" +
 	"\x06target\x18\x05 \x01(\tB\b\xbaH\x05r\x03(\xac\x02R\x06target\"m\n" +
 	"\x14StartSessionResponse\x12\x1d\n" +

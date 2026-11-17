@@ -20,9 +20,10 @@ func TestTruncateUTF8(t *testing.T) {
 		{"ж😀", 3, "ж"},      // 2 + 4 bytes
 		{"a\xffb", 3, "ab"}, // invalid bytes are dropped
 		{"abc", 0, ""},
+		{"abc", -1, ""},
 	} {
 		got := TruncateUTF8(c.in, c.n)
-		if got != c.want || len(got) > c.n || !utf8.ValidString(got) {
+		if got != c.want || len(got) > max(c.n, 0) || !utf8.ValidString(got) {
 			t.Errorf("TruncateUTF8(%q, %d) = %q, want %q", c.in, c.n, got, c.want)
 		}
 	}

@@ -144,6 +144,7 @@ func TestHeartbeatPayloadValidated(t *testing.T) {
 		// bounds count bytes: 76 four-byte characters are 304 bytes
 		"target bytes":  {Denials: []*gatewayv1.Denial{{Target: strings.Repeat("😀", 76), Reason: "denied"}}},
 		"version bytes": {Version: strings.Repeat("😀", 17)},
+		"ip zone":       {Denials: []*gatewayv1.Denial{{ClientIp: "fe80::1%" + strings.Repeat("z", 57), Reason: "denied"}}},
 	} {
 		c := b.instance(t, b.org, uuid.New()).connect(t, hb)
 		if err := c.closed(t, 2*time.Second); err.Code() != connect.CodeInvalidArgument {
@@ -172,7 +173,7 @@ func TestHeartbeatMaxSizeFitsReadLimit(t *testing.T) {
 	for range 100 {
 		hb.Denials = append(hb.Denials, &gatewayv1.Denial{UserId: id, KeyFingerprint: fill(128),
 			Resource: fill(63), Kind: fill(16), Target: fill(300),
-			ClientIp: "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255", Reason: "target_not_allowed", At: ts})
+			ClientIp: "fe80::ffff:ffff:ffff:ffff%" + strings.Repeat("z", 38), Reason: "target_not_allowed", At: ts}) // 64 bytes
 	}
 	for range 1000 {
 		hb.Health = append(hb.Health, &gatewayv1.ResourceHealth{ResourceId: id, Ok: true, Error: fill(100), CheckedAt: ts})
