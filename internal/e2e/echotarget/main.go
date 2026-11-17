@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	ln, err := net.Listen("tcp", ":7")
+	ln, err := net.Listen("tcp", ":7") //nolint:gosec // the e2e echo target serves every interface of its container
 	if err != nil {
 		log.Fatalf("echotarget: %v", err)
 	}
