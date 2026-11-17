@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -262,4 +263,55 @@ func TestHealthDeniedLocalTarget(t *testing.T) {
 	got := probe(true)
 	require.False(t, got.ok, "denied: no loopback health oracle")
 	require.Contains(t, got.err, ErrTargetNotAllowed.Error())
+}
+
+func TestHealthResendsUnchangedAfterRefresh(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		d := &dialLog{}
+		h, _ := healthEnv(d.dial, hres(1, "hprobe", "10.0.0.1"))
+		ctx, cancel := context.WithCancel(t.Context())
+		done := make(chan struct{})
+		go func() { defer close(done); h.run(ctx, uid(0), func() []uuid.UUID { return nil }) }()
+		defer func() { cancel(); <-done }()
+
+		synctest.Wait()
+		require.Len(t, h.take(), 1)
+		start := time.Now()
+		for time.Since(start) < healthRefresh+healthEvery*2 { // a pass at or after the refresh age queues it again
+			time.Sleep(time.Second)
+			synctest.Wait()
+			if got := h.take(); len(got) > 0 {
+				require.GreaterOrEqual(t, time.Since(start), healthRefresh)
+				require.True(t, got[0].GetOk())
+				return
+			}
+		}
+		t.Fatal("unchanged result was not sent again")
+	})
+}
+
+func TestHealthRetriesWithoutSnapshot(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		d := &dialLog{}
+		h, _ := healthEnv(d.dial, hres(1, "hprobe", "10.0.0.1"))
+		var have atomic.Bool
+		pol := h.policy()
+		h.policy = func() *Policy {
+			if have.Load() {
+				return pol
+			}
+			return nil
+		}
+		ctx, cancel := context.WithCancel(t.Context())
+		done := make(chan struct{})
+		go func() { defer close(done); h.run(ctx, uid(0), func() []uuid.UUID { return nil }) }()
+		defer func() { cancel(); <-done }()
+
+		synctest.Wait()
+		require.Empty(t, d.take())
+		have.Store(true)
+		time.Sleep(2 * healthRetry)
+		synctest.Wait()
+		require.Len(t, d.take(), 2, "the first pass follows the snapshot within seconds")
+	})
 }
