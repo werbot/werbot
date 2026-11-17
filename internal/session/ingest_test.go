@@ -48,17 +48,22 @@ func sumLen(gz [][]byte) (n int64) {
 	return n
 }
 
-// flakyStore fails Put and Get while down is set.
+// flakyStore fails Put and Get while down is set; while lost is set, Put
+// stores the chunk and then fails (the object exists, the tx rolls back).
 type flakyStore struct {
 	session.RecordingStore
-	down atomic.Bool
+	down, lost atomic.Bool
 }
 
 func (s *flakyStore) Put(ctx context.Context, orgID, sessionID uuid.UUID, seq int, gz []byte) error {
 	if s.down.Load() {
 		return errors.New("store down")
 	}
-	return s.RecordingStore.Put(ctx, orgID, sessionID, seq, gz)
+	err := s.RecordingStore.Put(ctx, orgID, sessionID, seq, gz)
+	if err == nil && s.lost.Load() {
+		return errors.New("store response lost")
+	}
+	return err
 }
 
 func (s *flakyStore) Get(ctx context.Context, orgID, sessionID uuid.UUID, seq int) (io.ReadCloser, error) {

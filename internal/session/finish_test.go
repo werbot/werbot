@@ -107,3 +107,31 @@ func TestIngestAfterFinish(t *testing.T) {
 	require.ErrorIs(t, e.ingest(t, 3, hashes[3], gz[3]), apperr.ErrFailedPrecondition)
 	require.ErrorIs(t, e.ingest(t, 2, hashes[2], gz[2]), apperr.ErrAlreadyExists)
 }
+
+func TestIngestRetryAfterPutCommittedTxRolledBack(t *testing.T) {
+	e := newRecEnv(t)
+	gz, hashes := makeChunks(t, 3)
+	e.ingestAll(t, gz[:1], hashes[:1])
+
+	e.store.lost.Store(true)
+	require.ErrorIs(t, e.ingest(t, 1, hashes[1], gz[1]), apperr.ErrUnavailable)
+	chunks, size, last := e.row(t, e.sid)
+	assert.Equal(t, 1, chunks)
+	assert.Equal(t, int64(len(gz[0])), size)
+	assert.Equal(t, hashes[0], last)
+	got, err := e.object(t, 1)
+	require.NoError(t, err)
+	assert.Equal(t, gz[1], got, "Put ran before the tx rolled back")
+
+	// A torn leftover object must be replaced by the retry.
+	e.store.lost.Store(false)
+	require.NoError(t, e.store.RecordingStore.Put(t.Context(), e.f.OrgID, e.sid, 1, gz[1][:3]))
+	require.NoError(t, e.ingest(t, 1, hashes[1], gz[1]))
+	got, err = e.object(t, 1)
+	require.NoError(t, err)
+	assert.Equal(t, gz[1], got)
+
+	require.NoError(t, e.ingest(t, 2, hashes[2], gz[2]))
+	require.NoError(t, e.finish(t, 3, sumLen(gz), hashes[2]))
+	assert.True(t, e.signer.Verify(session.NewManifest(e.sid, 3, sumLen(gz), hashes[2]).Canonical(), e.signature(t)))
+}
