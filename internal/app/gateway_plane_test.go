@@ -293,11 +293,10 @@ func TestServeGatewayPlane(t *testing.T) {
 	gw.closeTransport()
 	assert.Error(t, streamEnd(t, done, 5*time.Second))
 
-	// A certificate of another CA fails the TLS handshake: no server answer.
+	// A certificate of another CA fails the TLS handshake: no server code, only the alert, a reset or a failed HTTP/2 preface (timing).
 	other, _ := tunnelClient(t, gw.res.GetTunnelUrl(), []byte(gw.res.GetCaPem()), foreignCert(t, tlsca.GatewayCN(uuid.New(), uuid.New())))
 	err = auth(other)
 	require.Error(t, err)
-	// the alert, a reset or a failed HTTP/2 preface, depending on timing; never a server code
 	assert.Contains(t, []connect.Code{connect.CodeUnavailable, connect.CodeCanceled}, connect.CodeOf(err), err)
 	assert.False(t, connect.IsWireError(err), "the server never answered")
 
@@ -307,8 +306,7 @@ func TestServeGatewayPlane(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(streamEnd(t, done, 5*time.Second)))
 
-	// Shutdown closes the streams with Unavailable "shutdown" (hub.Shutdown,
-	// not a dropped connection) before the tunnel server stops.
+	// Shutdown closes the streams with Unavailable "shutdown" (hub.Shutdown, not a dropped connection) before the tunnel server stops.
 	second := enroll(t, enrollSvc, tok.Msg.GetToken())
 	_, done = openStream(t, second.client)
 	stop()
