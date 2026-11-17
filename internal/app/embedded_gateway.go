@@ -7,11 +7,14 @@ import (
 	"log/slog"
 	"net"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/werbot/werbot/internal/gateway"
@@ -63,8 +66,8 @@ func runEmbeddedGateway(ctx context.Context, cfg config.Config, getenv func(stri
 		gcfg.DataDir = filepath.Join(cfg.DataDir, "gateway") // one identity per replica
 	}
 	gcfg.Metrics = reg
-	// the server's own loopback services stay out of reach unless the operator opts in
-	gcfg.DenyLocalTargets = !cfg.LocalPoolAllowLoopback
+	// the server's own host and database stay out of reach unless the operator opts in
+	gcfg.DenyLocalTargets, gcfg.DenyHosts = !cfg.LocalPoolAllowLoopback, databaseHosts(cfg.DatabaseURL)
 	var minted time.Time // when gcfg.JoinToken was issued; zero without one
 	for wait := orgPollInterval; ; wait = min(2*wait, maxEnrollRetry) {
 		if !gateway.Enrolled(gcfg.DataDir) && (gcfg.JoinToken == "" || time.Since(minted) > tokenRefresh) {
@@ -150,4 +153,24 @@ func firstOrganization(ctx context.Context, pool *pgxpool.Pool, logger *slog.Log
 			return uuid.Nil
 		}
 	}
+}
+
+// databaseHosts are the network hosts of the server's database URL (unix socket
+// paths left out); an unparsable URL gives none, as the server could not start.
+func databaseHosts(databaseURL string) []string {
+	pc, err := pgconn.ParseConfig(databaseURL)
+	if err != nil {
+		return nil
+	}
+	hosts := []string{pc.Host}
+	for _, f := range pc.Fallbacks {
+		hosts = append(hosts, f.Host)
+	}
+	var out []string
+	for _, h := range hosts {
+		if h != "" && !strings.HasPrefix(h, "/") && !slices.Contains(out, h) {
+			out = append(out, h)
+		}
+	}
+	return out
 }

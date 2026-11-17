@@ -53,7 +53,7 @@ func (a *activeSessions) expire(now time.Time) {
 		switch {
 		case t.max > 0 && now.Sub(t.started) >= t.max:
 			a.cancelLocked(id, causeMax)
-		case t.idle > 0 && now.Sub(time.Unix(0, t.c.last.Load())) >= t.idle:
+		case t.idle > 0 && t.c.idleFor(now) >= t.idle:
 			a.cancelLocked(id, causeIdle)
 		}
 	}

@@ -133,5 +133,6 @@ func TestCountersWrap(t *testing.T) {
 	require.Equal(t, uint32(7), flow)
 	require.NoError(t, s.Datagram.Send(flow, buf[:n+2]))
 	require.Equal(t, [4]int64{6, 8, 1, 1}, c.load())
-	require.Greater(t, c.last.Load(), start.UnixNano(), "traffic moves the idle clock")
+	require.Less(t, c.idleFor(time.Now()), time.Minute, "traffic restarts the idle clock")
+	require.Equal(t, time.Hour, c.idleFor(start.Add(time.Hour+time.Duration(c.last.Load()))), "monotonic offsets from the start")
 }

@@ -43,8 +43,11 @@ type Config struct {
 	// DenyLocalTargets (not from env) makes Session.Dial refuse loopback, link-local
 	// and unspecified addresses: the embedded gateway runs inside the server process.
 	DenyLocalTargets bool
-	Recording        RecordingFactory  // not from env: nil means NopRecording
-	Metrics          *metrics.Registry // not from env: nil means a private registry
+	// DenyHosts (not from env) are the server's own hosts, its database: with
+	// DenyLocalTargets every address they resolve to is refused too.
+	DenyHosts []string
+	Recording RecordingFactory  // not from env: nil means NopRecording
+	Metrics   *metrics.Registry // not from env: nil means a private registry
 }
 
 const (

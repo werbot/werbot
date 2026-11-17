@@ -26,8 +26,13 @@ func init() {
 		Endpoint: func(m proto.Message) connector.Endpoint {
 			return connector.Endpoint{Host: m.(*wrapperspb.StringValue).GetValue(), Ports: []connector.PortRange{{Port: 5432, EndPort: 5433}}}
 		}})
-	RegisterConnector(funcConn{typ: "plainstream", kinds: []Kind{KindStream, KindDatagram}, serve: echo})
+	RegisterConnector(dialingConn{funcConn{typ: "plainstream", kinds: []Kind{KindStream, KindDatagram}, serve: echo}})
 }
+
+// dialingConn dials its target through Session.Dial, like tcp.
+type dialingConn struct{ funcConn }
+
+func (dialingConn) DialsTarget() {}
 
 // echo copies the stream back until the client closes it or ctx ends.
 func echo(ctx context.Context, s *Session) error {
@@ -148,7 +153,7 @@ func TestDenialsCapped(t *testing.T) {
 	hb := e.p.heartbeat()
 	requireValid(t, hb)
 	require.Len(t, hb.GetDenials(), 100)
-	require.Empty(t, hb.GetDenials()[0].GetUserId(), "refused before the user is known")
+	require.Equal(t, e.m["u1"].String(), hb.GetDenials()[0].GetUserId(), "a missing resource is refused after AuthenticateUser")
 	require.Contains(t, e.metrics(t), "werbot_gateway_denials_dropped_total 50")
 	require.Empty(t, e.p.heartbeat().GetDenials())
 
@@ -168,4 +173,23 @@ func TestDenialFitsWire(t *testing.T) {
 	require.Len(t, d.GetResource(), 62, "cut before a split character")
 	d = newDenial("denied", uuid.Nil, "", "", "", "", netip.MustParseAddr("::ffff:192.0.2.7"))
 	require.Equal(t, "192.0.2.7", d.GetClientIp())
+}
+
+// With DenyLocalTargets, Open refuses a dialing connector whose endpoint host is
+// refused before StartSession, and reports it.
+func TestOpenDeniesLocalTarget(t *testing.T) {
+	e := newPlainEnv(t)
+	e.p.guard = localGuard{deny: true, hosts: []string{"10.0.0.5"}} // "pg" is the database host
+	_, err := e.p.Open(t.Context(), e.target(KindStream, "pg:5432"))
+	require.ErrorIs(t, err, ErrTargetNotAllowed)
+	e.f.with(func(f *fakeControl) { require.Zero(t, f.startCalls) })
+	d := e.p.heartbeat().GetDenials()
+	require.Len(t, d, 1)
+	require.Equal(t, "target_not_allowed", d[0].GetReason())
+	require.Equal(t, e.m["u1"].String(), d[0].GetUserId())
+
+	e.p.guard.hosts = nil
+	_, err = e.p.Open(t.Context(), e.target(KindStream, "pg:5432"))
+	require.NoError(t, err)
+	e.open(t, "fake", KindTerminal) // not a dialing connector: not checked
 }

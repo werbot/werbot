@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	gossh "golang.org/x/crypto/ssh"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 func TestRefusedKeyLogged(t *testing.T) {
@@ -73,18 +74,45 @@ func TestChannelCloseEndsPTYSession(t *testing.T) {
 	}, 2*time.Second, 10*time.Millisecond)
 }
 
+// The connection idle limit reaps only connections that run no session: a running
+// session is ended by the sweeper with its resource's idle_timeout (30m here).
 func TestIdleTimeout(t *testing.T) {
-	e := newSSHEnv(t, Config{IdleTimeout: 200 * time.Millisecond})
-	c := e.client(t, "alice+blocker")
-	s, err := c.NewSession()
+	const idle = 200 * time.Millisecond
+	e := newSSHEnv(t, Config{IdleTimeout: idle})
+	snap := testSnapshot(t, e.m, sshPolicies, nil, res{"rblocker", "blocker", "blocker"})
+	snap.Resources[0].IdleTimeout = durationpb.New(30 * time.Minute)
+	pol, err := CompilePolicy(snap)
+	require.NoError(t, err)
+	e.f.setPolicy(pol)
+	startSweeper(t, e.p)
+	closed := func(c *gossh.Client) <-chan error {
+		done := make(chan error, 1)
+		go func() { done <- c.Wait() }()
+		return done
+	}
+
+	busy := e.client(t, "alice+blocker")
+	s, err := busy.NewSession()
 	require.NoError(t, err)
 	require.NoError(t, s.Shell())
-	done := make(chan error, 1)
-	go func() { done <- c.Wait() }()
+	busyDone := closed(busy)
+	bare := closed(e.client(t, "alice+blocker")) // no channel
 	select {
-	case <-done:
-	case <-time.After(time.Second):
-		t.Fatal("idle connection is still open")
+	case <-bare:
+	case <-time.After(5 * idle):
+		t.Fatal("a connection without a session is still open")
+	}
+	select {
+	case <-busyDone:
+		t.Fatal("a connection with a running session was closed")
+	case <-time.After(5 * idle):
+	}
+
+	require.NoError(t, s.Close()) // the session ends; the connection idles out after it
+	select {
+	case <-busyDone:
+	case <-time.After(5 * idle):
+		t.Fatal("the connection outlived its last session by more than the idle timeout")
 	}
 }
 

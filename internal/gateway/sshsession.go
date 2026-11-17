@@ -63,6 +63,7 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 	} else {
 		sess.Exec = &Exec{Command: s.RawCommand(), Stdin: s, Stdout: s, Stderr: s.Stderr(), SetExitStatus: setExit}
 	}
+	defer session(sctx)()
 	if err := h.p.Run(sctx, sess, c); err != nil {
 		say(s, runText(err, resource))
 		return 1

@@ -40,7 +40,7 @@ func TestOpenChecksInOrder(t *testing.T) {
 		{name: "unknown key", setup: func(f *fakeControl) { f.authErr = connect.NewError(connect.CodeNotFound, errors.New("no key")) },
 			resource: "fake", want: ErrDenied, wantAuth: 1},
 		{name: "forbidden resource", resource: "denied", want: ErrDenied, wantAuth: 1},
-		{name: "missing resource", resource: "missing", want: ErrDenied}, // refused before AuthenticateUser
+		{name: "missing resource", resource: "missing", want: ErrDenied, wantAuth: 1}, // reads the same as "forbidden resource"
 		{name: "no connector", resource: "nope", want: ErrUnsupportedType, wantAuth: 1},
 		{name: "kind not served", resource: "streamonly", want: ErrUnsupportedKind, wantAuth: 1},
 		{name: "start unavailable", setup: func(f *fakeControl) { f.startErr = unavailable }, resource: "fake", want: ErrNotReady, wantAuth: 1, wantStart: 1},

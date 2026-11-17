@@ -1,14 +1,9 @@
 package gateway
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"net"
-	"net/netip"
 	"strconv"
-	"syscall"
-	"time"
 )
 
 // ErrTargetNotAllowed is a stream or datagram target outside the resource's
@@ -34,26 +29,12 @@ func allowTarget(res Resource, target string) (string, uint16, error) {
 	return host, uint16(n), nil
 }
 
-// newDialer is Session.Dial: denyLocal refuses loopback, link-local and unspecified
-// targets. The check runs on the resolved address of every attempt, so a name that
-// resolves (or rebinds) to such an address is refused too.
-func newDialer(deny bool) func(ctx context.Context, network, address string) (net.Conn, error) {
-	d := &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}
-	if deny {
-		d.Control = denyLocal
+// dialHost is the host a TargetDialer connector dials: the endpoint host, or the
+// requested host when the endpoint allows any target (or has no host).
+func dialHost(res Resource, requested string) string {
+	ep, _, _ := res.Endpoint()
+	if ep.AnyTarget || ep.Host == "" {
+		return requested
 	}
-	return d.DialContext
-}
-
-// denyLocal is a net.Dialer Control that refuses local addresses with ErrTargetNotAllowed.
-func denyLocal(_, address string, _ syscall.RawConn) error {
-	ap, err := netip.ParseAddrPort(address)
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrTargetNotAllowed, address)
-	}
-	ip := ap.Addr().Unmap()
-	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
-		return fmt.Errorf("%w: %s is a local address", ErrTargetNotAllowed, ip.WithZone(""))
-	}
-	return nil
+	return ep.Host
 }

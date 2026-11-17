@@ -12,13 +12,18 @@ import (
 )
 
 // counters is the traffic of one session: up is client to target, down target to
-// client; last is the unix nano time of the last traffic in either direction.
-type counters struct{ bytesUp, bytesDown, dgUp, dgDown, last atomic.Int64 }
+// client; last is the time of the last traffic in either direction, in nanoseconds
+// since started on the monotonic clock, so a wall clock step does not idle sessions.
+type counters struct {
+	bytesUp, bytesDown, dgUp, dgDown, last atomic.Int64
+	started                                time.Time
+}
 
-func newCounters(started time.Time) *counters {
-	c := &counters{}
-	c.last.Store(started.UnixNano())
-	return c
+func newCounters(started time.Time) *counters { return &counters{started: started} }
+
+// idleFor is how long the session has had no traffic at now.
+func (c *counters) idleFor(now time.Time) time.Duration {
+	return now.Sub(c.started) - time.Duration(c.last.Load())
 }
 
 // load reads bytes up, bytes down, datagrams up, datagrams down.
@@ -67,7 +72,7 @@ func (m meter) down(n int) {
 }
 
 // touch notes traffic now: the idle timeout restarts.
-func (m meter) touch() { m.c.last.Store(time.Now().UnixNano()) }
+func (m meter) touch() { m.c.last.Store(int64(time.Since(m.c.started))) }
 
 // wrap makes the session's client side count its traffic; Run calls it before
 // Serve, once the front has set the streams.

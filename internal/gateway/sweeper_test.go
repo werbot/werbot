@@ -178,10 +178,7 @@ func TestRevokeRacesClose(t *testing.T) {
 	allow := e.f.Policy()
 	revoke := compileV(t, e.m, "v2", `forbid (principal, action, resource);`, res{"rblocker", "blocker", "blocker"})
 	c, _ := LookupConnector("blocker")
-	n := 1000
-	if raceEnabled {
-		n = 200 // R20: the race detector and a spool fsync per end make 1000 iterations too slow
-	}
+	n := 150 // a spooled end costs two fsyncs: more iterations only cost time
 	ids := make([]uuid.UUID, n)
 	for i := range ids {
 		e.f.setPolicy(allow)

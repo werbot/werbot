@@ -43,12 +43,13 @@ func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) erro
 	h := &sshHandler{p: p, log: f.log}
 	srv := &ssh.Server{
 		Version:          "Werbot_" + strings.ReplaceAll(version.Version, "-", "_"),
-		IdleTimeout:      f.cfg.IdleTimeout,
 		PublicKeyHandler: h.auth,
 		Handler:          h.session,
 		ChannelHandlers:  map[string]ssh.ChannelHandler{"session": sessionChannel, "direct-tcpip": h.forward},
 		ConnCallback: func(ctx ssh.Context, conn net.Conn) net.Conn {
-			return newHandshakeConn(ctx, conn, f.handshakeTimeout, func() { h.authFailed(ctx) })
+			idle := newConnIdle(conn, f.cfg.IdleTimeout)
+			ctx.SetValue(connIdleKey{}, idle)
+			return newHandshakeConn(ctx, conn, f.handshakeTimeout, func() { idle.stop(); h.authFailed(ctx) })
 		},
 		ServerConfigCallback: authenticated,
 	}
@@ -192,6 +193,7 @@ func (h *sshHandler) forward(_ *ssh.Server, conn *gossh.ServerConn, nc gossh.New
 	defer ch.Close() //nolint:errcheck // the client may be gone
 	go gossh.DiscardRequests(reqs)
 	sess.Stream = ch
+	defer session(ctx)()
 	_ = h.p.Run(ctx, sess, c) // the pipeline logs connector errors
 }
 

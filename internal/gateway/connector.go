@@ -43,6 +43,11 @@ type Connector interface {
 	Serve(ctx context.Context, s *Session) error // ctx is canceled on terminate and drain
 }
 
+// TargetDialer marks a connector that reaches its target through Session.Dial
+// (telnet, tcp, udp). Open checks the host it dials against Config.DenyLocalTargets
+// before StartSession, so a refusal is a target_not_allowed denial, not a failed session.
+type TargetDialer interface{ DialsTarget() }
+
 var (
 	connMu   sync.RWMutex
 	connRegs = map[string]Connector{}

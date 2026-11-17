@@ -110,7 +110,7 @@ func TestOpenRejectsWhenSpoolFull(t *testing.T) {
 	_, err := e.p.Open(t.Context(), e.req("fake", KindTerminal))
 	require.ErrorIs(t, err, ErrSpoolMax)
 	e.f.with(func(f *fakeControl) {
-		require.Len(t, f.authCalls, auth, "AuthenticateUser is not called")
+		require.Len(t, f.authCalls, auth+1, "checked after the PDP: only an allowed user learns of the full spool")
 		require.Equal(t, starts, f.startCalls, "StartSession is not called")
 	})
 	require.Contains(t, e.metrics(t), `werbot_gateway_sessions_rejected_total{reason="spool_full"} 1`)

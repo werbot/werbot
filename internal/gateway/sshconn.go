@@ -41,6 +41,58 @@ func (c *handshakeConn) Close() error {
 	return c.Conn.Close()
 }
 
+// connIdleKey holds the *connIdle of a connection.
+type connIdleKey struct{}
+
+// connIdle closes a connection that runs no session for d (Config.IdleTimeout),
+// keepalives or not. A running session keeps it open: the sweeper ends idle
+// sessions by their resource's idle_timeout, which may be longer than d.
+type connIdle struct {
+	mu      sync.Mutex
+	d       time.Duration
+	timer   *time.Timer // nil: no limit
+	running int
+	closed  bool
+}
+
+func newConnIdle(conn net.Conn, d time.Duration) *connIdle {
+	c := &connIdle{d: d}
+	if d > 0 {
+		c.timer = time.AfterFunc(d, func() { _ = conn.Close() })
+	}
+	return c
+}
+
+// session marks a session running on the connection of ctx until the returned
+// func is called.
+func session(ctx ssh.Context) (done func()) {
+	c, _ := ctx.Value(connIdleKey{}).(*connIdle)
+	if c == nil || c.timer == nil {
+		return func() {}
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.running++
+	c.timer.Stop()
+	return func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		if c.running--; c.running == 0 && !c.closed {
+			c.timer.Reset(c.d)
+		}
+	}
+}
+
+// stop releases the timer once the connection is closed.
+func (c *connIdle) stop() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.closed = true
+	if c.timer != nil {
+		c.timer.Stop()
+	}
+}
+
 // authenticated stops the handshake timer once a signature is verified for a
 // user. A connection the control plane could not check (no user) keeps the
 // timer: every channel gets only the not ready text, so the limit closes it.

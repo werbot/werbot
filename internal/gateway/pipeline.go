@@ -80,6 +80,7 @@ type Pipeline struct {
 	meters                            meters
 	denials                           *denials
 	beats                             atomic.Uint64 // heartbeats built
+	guard                             localGuard
 	dial                              func(ctx context.Context, network, address string) (net.Conn, error)
 
 	stop    context.Context // canceled at the end of drain: the front closes its connections
@@ -103,7 +104,7 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 	reg := cfg.Metrics
 	const rejectedHelp = "Sessions refused before start, by reason."
 	stop, stopNow := context.WithCancel(context.Background())
-	return &Pipeline{
+	p := &Pipeline{
 		ctl: ctl, cfg: cfg, log: logger, stop: stop, stopNow: stopNow,
 		active:       newActiveSessions(reg.Gauge("werbot_gateway_sessions_active", "Sessions holding a MaxSessions slot."), logger),
 		busy:         reg.Counter("werbot_gateway_sessions_rejected_total", rejectedHelp, "reason", "busy"),
@@ -112,9 +113,11 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 		panics:       reg.Counter("werbot_gateway_panics_total", "Connector panics recovered by the pipeline."),
 		meters:       newMeters(reg),
 		denials:      newDenials(reg),
-		dial:         newDialer(cfg.DenyLocalTargets),
+		guard:        localGuard{deny: cfg.DenyLocalTargets, hosts: cfg.DenyHosts},
 		flushTimeout: 10 * time.Second,
 	}
+	p.dial = p.guard.dialer()
+	return p
 }
 
 // Open checks the request in contract order and starts the session on the server.
@@ -153,18 +156,13 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID
 	if pol == nil || !p.ctl.Connected() {
 		return nil, uuid.Nil, ErrNotReady
 	}
-	res, ok := pol.Resource(r.Resource)
-	if !ok {
-		return nil, uuid.Nil, ErrDenied
-	}
-	typ, _ := connector.Lookup(res.Type)
-	recorded := typ.Records(r.Kind)
-	if recorded && (p.spool.Total() >= p.cfg.SpoolMax || !p.spool.Writable()) {
-		return nil, uuid.Nil, ErrSpoolMax
-	}
 	u, err := p.ctl.AuthenticateUser(ctx, r.Identity.Value, r.ClientIP)
 	if err != nil {
 		return nil, uuid.Nil, controlErr(err)
+	}
+	res, ok := pol.Resource(r.Resource)
+	if !ok {
+		return nil, u.ID, ErrDenied
 	}
 	req := AccessRequest{User: u, Resource: res, IP: r.ClientIP}
 	var host string
@@ -176,12 +174,23 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID
 	if allow, _ := pol.Authorize(req); !allow {
 		return nil, u.ID, ErrDenied
 	}
+	// after the PDP: only an allowed user learns that the spool is full
+	typ, _ := connector.Lookup(res.Type)
+	recorded := typ.Records(r.Kind)
+	if recorded && (p.spool.Total() >= p.cfg.SpoolMax || !p.spool.Writable()) {
+		return nil, u.ID, ErrSpoolMax
+	}
 	c, ok := LookupConnector(res.Type)
 	if !ok {
 		return nil, u.ID, ErrUnsupportedType
 	}
 	if !slices.Contains(c.Kinds(), r.Kind) {
 		return nil, u.ID, ErrUnsupportedKind
+	}
+	if _, dials := c.(TargetDialer); dials {
+		if err := p.guard.allowHost(ctx, dialHost(res, host)); err != nil {
+			return nil, u.ID, err
+		}
 	}
 	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target)
 	if err != nil {
