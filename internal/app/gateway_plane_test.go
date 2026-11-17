@@ -297,7 +297,8 @@ func TestServeGatewayPlane(t *testing.T) {
 	other, _ := tunnelClient(t, gw.res.GetTunnelUrl(), []byte(gw.res.GetCaPem()), foreignCert(t, tlsca.GatewayCN(uuid.New(), uuid.New())))
 	err = auth(other)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "tls:")
+	// the alert, a reset or a failed HTTP/2 preface, depending on timing; never a server code
+	assert.Contains(t, []connect.Code{connect.CodeUnavailable, connect.CodeCanceled}, connect.CodeOf(err), err)
 
 	// Deleting the instance closes its stream: trigger -> NOTIFY -> Hub.
 	_, done = openStream(t, fresh)

@@ -101,7 +101,8 @@ func TestE2ETunnelRejectsBadCerts(t *testing.T) {
 	forged, _ := tunnelClient(t, turl, readData(t, s.gwData, "ca.crt"), foreignCert(t, tlsca.GatewayCN(gw, in1)))
 	err := auth(forged)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "tls:")
+	// the alert, a reset or a failed HTTP/2 preface, depending on timing; never a server code
+	assert.Contains(t, []connect.Code{connect.CodeUnavailable, connect.CodeCanceled}, connect.CodeOf(err), err)
 
 	// A deleted instance is cut off: its stream closes and its calls fail.
 	_, dir2, err := s.startGateway(t, s.token)
