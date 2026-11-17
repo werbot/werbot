@@ -1,8 +1,11 @@
+name: werbot-test
+
 services:
   testdb:
+    container_name: werbot-testdb
     image: postgres:18-alpine
     ports:
-      - "5433:5432"
+      - "27432:5432"
     environment:
       POSTGRES_PASSWORD: password
     healthcheck:

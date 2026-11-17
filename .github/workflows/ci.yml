@@ -15,7 +15,7 @@ jobs:
         env:
           POSTGRES_PASSWORD: password
         ports:
-          - 5433:5432
+          - 27432:5432
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 2s
@@ -79,7 +79,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: werbot_e2e
         ports:
-          - 5433:5432
+          - 27432:5432
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 2s

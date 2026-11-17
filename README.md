@@ -15,13 +15,13 @@ pre-alpha (v2 rewrite)
 ## Quick start
 
 ```sh
-make dev-db                      # Postgres 18 on localhost:5433 (postgres/password)
+make dev-db                      # Postgres 18 on localhost:27432 (postgres/password)
 (cd web && bun install)          # web/node_modules is required by `make proto`
 make proto                       # buf lint + generate (Go and TypeScript)
 make build                       # builds the UI and bin/werbot
 export WERBOT_SECRET_KEY="$(openssl rand -base64 32)"  # generate once and keep: it decrypts resource credentials and queued email jobs
 WERBOT_ENV=development \
-WERBOT_DATABASE_URL='postgres://postgres:password@localhost:5433/postgres?sslmode=disable' \
+WERBOT_DATABASE_URL='postgres://postgres:password@localhost:27432/postgres?sslmode=disable' \
 WERBOT_PUBLIC_URL=http://localhost:8080 ./bin/werbot server
 ```
 

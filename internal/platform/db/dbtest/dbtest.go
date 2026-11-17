@@ -26,7 +26,7 @@ func New(t testing.TB) (pool *pgxpool.Pool, url string) {
 	conf := pgtestdb.Custom(t, pgtestdb.Config{
 		DriverName: "pgx",
 		Host:       "localhost",
-		Port:       "5433",
+		Port:       "27432", // werbot-test (make dev-db); unusual port so other projects cannot hold it
 		User:       "postgres",
 		Password:   "password",
 		Options:    "sslmode=disable",

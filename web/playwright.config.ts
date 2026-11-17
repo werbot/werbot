@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 const dbURL =
-	process.env.WERBOT_E2E_DATABASE_URL ?? 'postgres://postgres:password@localhost:5433/werbot_e2e?sslmode=disable';
+	process.env.WERBOT_E2E_DATABASE_URL ?? 'postgres://postgres:password@localhost:27432/werbot_e2e?sslmode=disable';
 
 export default defineConfig({
 	testDir: 'e2e',
