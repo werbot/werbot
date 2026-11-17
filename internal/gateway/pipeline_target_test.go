@@ -34,8 +34,11 @@ type dialingConn struct{ funcConn }
 
 func (dialingConn) DialsTarget() {}
 
-// echo copies the stream back until the client closes it or ctx ends.
+// echo copies the stream, or each datagram, back until the client closes it or ctx ends.
 func echo(ctx context.Context, s *Session) error {
+	if s.Datagram != nil {
+		return echoDatagrams(ctx, s.Datagram)
+	}
 	stop := context.AfterFunc(ctx, func() { _ = s.Stream.Close() })
 	defer stop()
 	_, err := io.Copy(s.Stream, s.Stream)

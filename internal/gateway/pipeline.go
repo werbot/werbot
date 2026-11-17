@@ -152,27 +152,10 @@ func (p *Pipeline) reject(err error) error {
 
 // open returns the user it authenticated, also with an error, for the denial.
 func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID, error) {
-	pol := p.ctl.Policy()
-	if pol == nil || !p.ctl.Connected() {
-		return nil, uuid.Nil, ErrNotReady
-	}
-	u, err := p.ctl.AuthenticateUser(ctx, r.Identity.Value, r.ClientIP)
+	pol, req, host, err := p.decide(ctx, r)
+	u, res := req.User, req.Resource
 	if err != nil {
-		return nil, uuid.Nil, controlErr(err)
-	}
-	res, ok := pol.Resource(r.Resource)
-	if !ok {
-		return nil, u.ID, ErrDenied
-	}
-	req := AccessRequest{User: u, Resource: res, IP: r.ClientIP}
-	var host string
-	if r.Kind == KindStream || r.Kind == KindDatagram {
-		if host, req.Port, err = allowTarget(res, r.Target); err != nil {
-			return nil, u.ID, err
-		}
-	}
-	if allow, _ := pol.Authorize(req); !allow {
-		return nil, u.ID, ErrDenied
+		return nil, u.ID, err
 	}
 	// after the PDP: only an allowed user learns that the spool is full
 	typ, _ := connector.Lookup(res.Type)

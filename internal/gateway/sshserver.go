@@ -18,10 +18,12 @@ import (
 	"github.com/pires/go-proxyproto"
 	gossh "golang.org/x/crypto/ssh"
 
+	"github.com/werbot/werbot/internal/platform/sshdgram"
 	"github.com/werbot/werbot/internal/platform/version"
 )
 
-// sshFront is the SSH entry: public key login, the resource menu, shell, exec and direct-tcpip.
+// sshFront is the SSH entry: public key login, the resource menu, shell, exec,
+// direct-tcpip, datagram@werbot.com and resource@werbot.com.
 type sshFront struct {
 	cfg              Config
 	hostKey          gossh.Signer
@@ -45,7 +47,10 @@ func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) erro
 		Version:          "Werbot_" + strings.ReplaceAll(version.Version, "-", "_"),
 		PublicKeyHandler: h.auth,
 		Handler:          h.session,
-		ChannelHandlers:  map[string]ssh.ChannelHandler{"session": sessionChannel, "direct-tcpip": h.forward},
+		ChannelHandlers: map[string]ssh.ChannelHandler{
+			"session": sessionChannel, "direct-tcpip": h.forward, sshdgram.ChannelType: h.forward,
+		},
+		RequestHandlers: map[string]ssh.RequestHandler{sshdgram.ResourceRequest: h.resourceInfo},
 		ConnCallback: func(ctx ssh.Context, conn net.Conn) net.Conn {
 			idle := newConnIdle(conn, f.cfg.IdleTimeout)
 			ctx.SetValue(connIdleKey{}, idle)
@@ -151,38 +156,39 @@ func handshakeUser(ctx ssh.Context) *User {
 	return u
 }
 
-// forward serves direct-tcpip: the channel is accepted only after Open succeeded,
-// so an unreachable target closes an accepted channel and a refusal is Prohibited.
+// forward serves direct-tcpip as a stream and datagram@werbot.com as a datagram
+// session; both carry the same open data. The channel is accepted only after
+// Open succeeded, so an unreachable target closes an accepted channel and a
+// refusal is Prohibited.
 func (h *sshHandler) forward(_ *ssh.Server, conn *gossh.ServerConn, nc gossh.NewChannel, ctx ssh.Context) {
-	var d struct {
-		DestAddr   string
-		DestPort   uint32
-		OriginAddr string
-		OriginPort uint32
+	kind := KindStream
+	if nc.ChannelType() == sshdgram.ChannelType {
+		kind = KindDatagram
 	}
+	var d sshdgram.OpenData
 	if err := gossh.Unmarshal(nc.ExtraData(), &d); err != nil {
-		_ = nc.Reject(gossh.ConnectionFailed, "invalid direct-tcpip request")
+		_ = nc.Reject(gossh.ConnectionFailed, "invalid "+nc.ChannelType()+" request")
 		return
 	}
 	_, resource, _ := ParseLogin(conn.User()) // checked at the handshake
 	switch {
 	case handshakeUser(ctx) == nil:
-		_ = nc.Reject(gossh.Prohibited, openText(h.p.reject(ErrNotReady), resource, KindStream, nil))
+		_ = nc.Reject(gossh.Prohibited, openText(h.p.reject(ErrNotReady), resource, kind, nil))
 		return
 	case resource == "":
 		_ = nc.Reject(gossh.Prohibited, usageText)
 		return
 	}
-	target := net.JoinHostPort(d.DestAddr, strconv.FormatUint(uint64(d.DestPort), 10))
-	sess, err := h.p.Open(ctx, h.request(ctx, resource, KindStream, Window{}, target))
+	target := net.JoinHostPort(d.Host, strconv.FormatUint(uint64(d.Port), 10))
+	sess, err := h.p.Open(ctx, h.request(ctx, resource, kind, Window{}, target))
 	if err != nil {
-		_ = nc.Reject(gossh.Prohibited, openText(err, resource, KindStream, h.p.ctl.Policy()))
+		_ = nc.Reject(gossh.Prohibited, openText(err, resource, kind, h.p.ctl.Policy()))
 		return
 	}
 	c, ok := LookupConnector(sess.Resource.Type)
 	if !ok { // Open found it; registrations are never removed
 		h.p.abort(sess)
-		_ = nc.Reject(gossh.Prohibited, openText(ErrUnsupportedType, resource, KindStream, h.p.ctl.Policy()))
+		_ = nc.Reject(gossh.Prohibited, openText(ErrUnsupportedType, resource, kind, h.p.ctl.Policy()))
 		return
 	}
 	ch, reqs, err := nc.Accept()
@@ -192,7 +198,11 @@ func (h *sshHandler) forward(_ *ssh.Server, conn *gossh.ServerConn, nc gossh.New
 	}
 	defer ch.Close() //nolint:errcheck // the client may be gone
 	go gossh.DiscardRequests(reqs)
-	sess.Stream = ch
+	if kind == KindDatagram {
+		sess.Datagram = &channelDatagrams{ch: ch}
+	} else {
+		sess.Stream = ch
+	}
 	defer session(ctx)()
 	_ = h.p.Run(ctx, sess, c) // the pipeline logs connector errors
 }
