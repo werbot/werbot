@@ -243,6 +243,7 @@ func TestEmbeddedGatewayReenrollsOnExpiredCert(t *testing.T) {
 	var tokens []string // the join token of each attempt
 	secondRun := make(chan struct{})
 	runGateway = func(ctx context.Context, c gateway.Config, _ *slog.Logger) error {
+		assert.True(t, c.DenyLocalTargets, "WERBOT_LOCAL_POOL_ALLOW_LOOPBACK is unset")
 		tokens = append(tokens, c.JoinToken)
 		if len(tokens) == 1 {
 			return gateway.ErrCertExpired

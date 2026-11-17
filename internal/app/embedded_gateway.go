@@ -63,6 +63,8 @@ func runEmbeddedGateway(ctx context.Context, cfg config.Config, getenv func(stri
 		gcfg.DataDir = filepath.Join(cfg.DataDir, "gateway") // one identity per replica
 	}
 	gcfg.Metrics = reg
+	// the server's own loopback services stay out of reach unless the operator opts in
+	gcfg.DenyLocalTargets = !cfg.LocalPoolAllowLoopback
 	var minted time.Time // when gcfg.JoinToken was issued; zero without one
 	for wait := orgPollInterval; ; wait = min(2*wait, maxEnrollRetry) {
 		if !gateway.Enrolled(gcfg.DataDir) && (gcfg.JoinToken == "" || time.Since(minted) > tokenRefresh) {

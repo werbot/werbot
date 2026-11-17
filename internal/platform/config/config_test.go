@@ -131,6 +131,16 @@ func TestLoadWebEmbedded(t *testing.T) {
 	assert.ErrorContains(t, err, "WERBOT_WEB_EMBEDDED")
 }
 
+func TestLoadLocalPoolAllowLoopback(t *testing.T) {
+	for v, want := range map[string]bool{"": false, "false": false, "true": true, "1": true} {
+		c, err := config.Load(base(map[string]string{"WERBOT_LOCAL_POOL_ALLOW_LOOPBACK": v}))
+		require.NoError(t, err, v)
+		assert.Equal(t, want, c.LocalPoolAllowLoopback, v)
+	}
+	_, err := config.Load(base(map[string]string{"WERBOT_LOCAL_POOL_ALLOW_LOOPBACK": "yes please"}))
+	assert.ErrorContains(t, err, "WERBOT_LOCAL_POOL_ALLOW_LOOPBACK")
+}
+
 func TestLoadMetricsAddr(t *testing.T) {
 	c, err := config.Load(base(map[string]string{"WERBOT_METRICS_ADDR": "127.0.0.1:9090"}))
 	require.NoError(t, err)

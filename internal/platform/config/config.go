@@ -49,6 +49,9 @@ type Config struct {
 
 	DataDir     string // WERBOT_DATA_DIR, default "./data": embedded gateway state
 	GatewayAddr string // WERBOT_GATEWAY_ADDR, default ":8443": mTLS listener of the gateway tunnel
+	// LocalPoolAllowLoopback (WERBOT_LOCAL_POOL_ALLOW_LOOPBACK, default false) lets the
+	// embedded gateway dial loopback, link-local and unspecified target addresses.
+	LocalPoolAllowLoopback bool
 
 	RecordingsS3 RecordingsS3 // WERBOT_RECORDINGS_S3_*
 }
@@ -60,6 +63,7 @@ func Vars() []string {
 		"WERBOT_METRICS_ADDR", "WERBOT_WEB_EMBEDDED", "WERBOT_PUBLIC_URL", "WERBOT_WEB_URL", "WERBOT_TRUSTED_PROXIES",
 		"WERBOT_SMTP_HOST", "WERBOT_SMTP_PORT", "WERBOT_SMTP_USERNAME", "WERBOT_SMTP_PASSWORD", "WERBOT_SMTP_FROM",
 		"WERBOT_SECRET_KEY", "WERBOT_SECRET_KEY_PREVIOUS", "WERBOT_DATA_DIR", "WERBOT_GATEWAY_ADDR",
+		"WERBOT_LOCAL_POOL_ALLOW_LOOPBACK",
 		"WERBOT_RECORDINGS_S3_ENDPOINT", "WERBOT_RECORDINGS_S3_BUCKET", "WERBOT_RECORDINGS_S3_REGION",
 		"WERBOT_RECORDINGS_S3_ACCESS_KEY", "WERBOT_RECORDINGS_S3_SECRET_KEY",
 	}
@@ -92,6 +96,11 @@ func Load(getenv func(string) string) (Config, error) {
 			return Config{}, fmt.Errorf("WERBOT_WEB_EMBEDDED: unsupported value %q", v)
 		}
 		c.WebEmbedded = b
+	}
+	if v := getenv("WERBOT_LOCAL_POOL_ALLOW_LOOPBACK"); v != "" {
+		if c.LocalPoolAllowLoopback, err = strconv.ParseBool(v); err != nil {
+			return Config{}, fmt.Errorf("WERBOT_LOCAL_POOL_ALLOW_LOOPBACK: unsupported value %q", v)
+		}
 	}
 	if c.PublicURL, err = httpURL("WERBOT_PUBLIC_URL", getenv("WERBOT_PUBLIC_URL")); err != nil {
 		return Config{}, err
