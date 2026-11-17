@@ -7,7 +7,7 @@
 </script>
 
 {#if page > 1 || next}
-	<nav>
+	<nav aria-label={m.pagination_label()}>
 		<Button variant="plain" disabled={page <= 1} onclick={() => (page -= 1)}>{m.pagination_prev()}</Button>
 		<Button variant="plain" disabled={!next} onclick={() => (page = next)}>{m.pagination_next()}</Button>
 	</nav>

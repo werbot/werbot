@@ -3,7 +3,7 @@
 	import { Badge, Button, EmptyState, Table } from '#lib/ui/index.js';
 	import type { JoinToken } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
-	import { fmt } from './format.js';
+	import { fmt } from '#lib/format.js';
 
 	let { tokens, onrevoke }: { tokens: JoinToken[]; onrevoke: (t: JoinToken) => void } = $props();
 

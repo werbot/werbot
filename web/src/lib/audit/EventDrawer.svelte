@@ -3,7 +3,7 @@
 	import { audit } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { AuditEvent } from '#lib/gen/werbot/v1/audit_pb.js';
-	import { fmt } from '#lib/gateways/format.js';
+	import { fmt } from '#lib/format.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	// id of the event to show; the drawer closes by clearing it

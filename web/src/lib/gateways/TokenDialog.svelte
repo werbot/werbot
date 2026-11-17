@@ -4,7 +4,7 @@
 	import { gateways } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
-	import { fmt } from './format.js';
+	import { fmt } from '#lib/format.js';
 
 	interface Props {
 		gatewayId: string;

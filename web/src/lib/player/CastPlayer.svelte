@@ -16,8 +16,9 @@
 					try {
 						const r = await fetch(src, { credentials: 'same-origin' });
 						if (!r.ok) throw new Error(String(r.status));
+						const text = await r.text(); // a broken body must not show "verified"
 						onverified(r.headers.get('X-Werbot-Recording-Verified') === 'true');
-						return await r.text();
+						return text;
 					} catch (e) {
 						failed = true;
 						throw e;

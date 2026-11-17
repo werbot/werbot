@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -7,10 +7,15 @@ import en from '../messages/en.json' with { type: 'json' };
 import { loginAsOwner } from './support/auth';
 import { rpc } from './support/rpc';
 
+let dir = ''; // holds the generated private key
+test.afterAll(() => {
+	if (dir) rmSync(dir, { recursive: true, force: true });
+});
+
 test('ssh session is listed, replayed and audited', async ({ page }) => {
 	test.setTimeout(90_000);
 	await loginAsOwner(page);
-	const dir = mkdtempSync(join(tmpdir(), 'werbot-e2e-'));
+	dir = mkdtempSync(join(tmpdir(), 'werbot-e2e-'));
 	execFileSync('ssh-keygen', ['-q', '-t', 'ed25519', '-N', '', '-f', join(dir, 'id')]);
 	await rpc(page, 'werbot.v1.SSHKeyService/AddSSHKey', { name: 'e2e', publicKey: readFileSync(join(dir, 'id.pub'), 'utf8') });
 	const { gateways } = await rpc(page, 'werbot.v1.GatewayService/ListGateways', {});
@@ -31,9 +36,11 @@ test('ssh session is listed, replayed and audited', async ({ page }) => {
 		try {
 			return execFileSync(
 				'ssh',
-				['-i', join(dir, 'id'), '-p', '2222', '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes', '-o', 'StrictHostKeyChecking=no',
-					'-o', 'UserKnownHostsFile=/dev/null', `${user.login}+e2e-target@127.0.0.1`, 'echo werbot-e2e-marker'],
-				{ encoding: 'utf8', timeout: 20_000, stdio: ['ignore', 'pipe', 'pipe'] }
+				['-F', '/dev/null', '-i', join(dir, 'id'), '-p', '2222', '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes',
+					'-o', 'ConnectTimeout=3', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
+					`${user.login}+e2e-target@127.0.0.1`, 'echo werbot-e2e-marker'],
+				// each attempt fits several times into the poll window
+				{ encoding: 'utf8', timeout: 5_000, stdio: ['ignore', 'pipe', 'pipe'] }
 			);
 		} catch {
 			return '';

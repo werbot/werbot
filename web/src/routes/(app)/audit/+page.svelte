@@ -7,7 +7,7 @@
 	import { errorMessage } from '#lib/errors.js';
 	import type { AuditEvent } from '#lib/gen/werbot/v1/audit_pb.js';
 	import EventDrawer from '#lib/audit/EventDrawer.svelte';
-	import { fmt } from '#lib/gateways/format.js';
+	import { fmt } from '#lib/format.js';
 	import Pager from '#lib/Pager.svelte';
 	import { dayStart } from '#lib/period.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -23,6 +23,7 @@
 	let next = $state(0);
 	let pageNo = $state(1);
 	let error = $state('');
+	let loaded = $state(false);
 	let actors = $state<SelectOption[]>([]);
 	let selected = $state('');
 
@@ -47,6 +48,7 @@
 				if (stale) return;
 				({ events: list, nextPage: next } = r);
 				error = '';
+				loaded = true;
 			},
 			(e) => {
 				if (!stale) error = errorMessage(e);
@@ -78,13 +80,15 @@
 		apply();
 	}}
 >
-	<TextField label={m.audit_filter_action()} placeholder="session" maxlength={64} bind:value={form.action} onchange={apply} />
+	<TextField label={m.audit_filter_action()} placeholder={m.audit_filter_action_hint()} maxlength={64} bind:value={form.action} onchange={apply} />
 	<Select label={m.audit_filter_actor()} options={[all, ...actors]} bind:value={form.actor} onchange={apply} />
 	<TextField type="date" label={m.audit_filter_from()} bind:value={form.from} onchange={apply} />
 	<TextField type="date" label={m.audit_filter_to()} bind:value={form.to} onchange={apply} />
 </form>
 
-{#if list.length === 0}
+{#if !loaded || error}
+	<!-- nothing to show yet, or the error banner above says why -->
+{:else if list.length === 0}
 	<EmptyState title={m.audit_empty()} />
 {:else}
 	<Table>

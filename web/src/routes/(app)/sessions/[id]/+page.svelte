@@ -5,7 +5,7 @@
 	import { sessions } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Session } from '#lib/gen/werbot/v1/session_pb.js';
-	import { fmt } from '#lib/gateways/format.js';
+	import { fmt } from '#lib/format.js';
 	import CastPlayer from '#lib/player/CastPlayer.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -35,7 +35,9 @@
 	<PropertyRow label={m.sessions_col_ended()}>{fmt(session.endedAt)}</PropertyRow>
 	<PropertyRow label={m.sessions_end_reason()}>{session.endReason || '—'}</PropertyRow>
 
-	{#if !finished}
+	{#if !session.recording?.chunks && session.endedAt}
+		<Banner tone="info">{m.sessions_recording_none()}</Banner>
+	{:else if !finished}
 		<Banner tone="info">{m.sessions_recording_pending()}</Banner>
 	{:else if verified === true}
 		<Banner tone="success">{m.sessions_recording_verified()}</Banner>

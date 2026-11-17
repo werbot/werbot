@@ -5,7 +5,7 @@
 	import { errorMessage } from '#lib/errors.js';
 	import type { Session } from '#lib/gen/werbot/v1/session_pb.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
-	import { fmt } from '#lib/gateways/format.js';
+	import { fmt } from '#lib/format.js';
 	import Pager from '#lib/Pager.svelte';
 	import { dayStart } from '#lib/period.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -17,6 +17,7 @@
 	let next = $state(0);
 	let pageNo = $state(1);
 	let error = $state('');
+	let loaded = $state(false);
 	let optionsError = $state('');
 	let userId = $state('');
 	let resourceId = $state('');
@@ -31,7 +32,6 @@
 		{ value: '1', label: m.sessions_status_active() },
 		{ value: '2', label: m.sessions_status_ended() }
 	]);
-	const all = $derived({ value: '', label: m.sessions_status_all() });
 
 	// reloads on every filter or page change; a superseded answer is dropped
 	$effect(() => {
@@ -42,6 +42,7 @@
 				if (stale) return;
 				({ sessions: list, nextPage: next } = r);
 				error = '';
+				loaded = true;
 			},
 			(e) => {
 				if (!stale) error = errorMessage(e);
@@ -69,15 +70,17 @@
 
 <div class="filters">
 	{#if manager}
-		<Select label={m.sessions_filter_user()} options={[all, ...users]} bind:value={userId} onchange={first} />
-		<Select label={m.sessions_filter_resource()} options={[all, ...resourceOptions]} bind:value={resourceId} onchange={first} />
+		<Select label={m.sessions_filter_user()} options={[{ value: '', label: m.sessions_filter_user_all() }, ...users]} bind:value={userId} onchange={first} />
+		<Select label={m.sessions_filter_resource()} options={[{ value: '', label: m.sessions_filter_resource_all() }, ...resourceOptions]} bind:value={resourceId} onchange={first} />
 	{/if}
 	<Select label={m.sessions_filter_status()} options={statuses} bind:value={status} onchange={first} />
 	<TextField type="date" label={m.sessions_filter_from()} bind:value={from} onchange={first} />
 	<TextField type="date" label={m.sessions_filter_to()} bind:value={to} onchange={first} />
 </div>
 
-{#if list.length === 0}
+{#if !loaded || error}
+	<!-- nothing to show yet, or the error banner above says why -->
+{:else if list.length === 0}
 	<EmptyState title={m.sessions_empty()} />
 {:else}
 	<Table>

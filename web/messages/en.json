@@ -216,6 +216,8 @@
 	"sessions_status_all": "All",
 	"sessions_status_active": "Active",
 	"sessions_status_ended": "Ended",
+	"sessions_filter_user_all": "All users",
+	"sessions_filter_resource_all": "All resources",
 	"sessions_col_user": "User",
 	"sessions_col_resource": "Resource",
 	"sessions_col_started": "Started",
@@ -227,10 +229,12 @@
 	"sessions_recording_failed": "Recording integrity check failed",
 	"sessions_recording_pending": "Recording is not finished yet",
 	"sessions_recording_load_error": "Recording could not be loaded",
+	"sessions_recording_none": "This session has no recording",
 	"audit_title": "Audit log",
 	"audit_empty": "No events",
 	"audit_event_title": "Event",
 	"audit_filter_action": "Action",
+	"audit_filter_action_hint": "session or session.start",
 	"audit_filter_actor": "Actor",
 	"audit_filter_actor_all": "Everyone",
 	"audit_filter_from": "From",
@@ -242,5 +246,6 @@
 	"audit_ip": "IP address",
 	"audit_data": "Data",
 	"pagination_prev": "Previous",
-	"pagination_next": "Next"
+	"pagination_next": "Next",
+	"pagination_label": "Pagination"
 }
