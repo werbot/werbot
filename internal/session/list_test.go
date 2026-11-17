@@ -1,6 +1,7 @@
 package session_test
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -151,5 +152,66 @@ func TestGetSessionVisibility(t *testing.T) {
 	_, err = e.svc.GetSession(t.Context(), e.a.Principal(e.a.AdminID), e.ids[1])
 	assert.NoError(t, err)
 	_, err = e.svc.GetSession(t.Context(), e.a.Principal(e.a.AdminID), e.idB)
+	assert.ErrorIs(t, err, apperr.ErrNotFound)
+}
+
+func TestListSessionsHugePage(t *testing.T) {
+	e := newListEnv(t)
+	_, _, err := e.svc.ListSessions(t.Context(), e.a.Principal(e.a.OwnerID), session.ListFilter{Page: math.MaxInt32, PageSize: 200})
+	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
+}
+
+func TestListSessionsPageSize(t *testing.T) {
+	e := newListEnv(t)
+	p := e.a.Principal(e.a.OwnerID)
+	for range 250 {
+		e.a.StartSession(t, e.pool, e.a.MemberID)
+	}
+	items, next, err := e.svc.ListSessions(t.Context(), p, session.ListFilter{})
+	require.NoError(t, err)
+	assert.Len(t, items, 50)
+	assert.Equal(t, 2, next)
+	items, next, err = e.svc.ListSessions(t.Context(), p, session.ListFilter{PageSize: 1000})
+	require.NoError(t, err)
+	assert.Len(t, items, 200)
+	assert.Equal(t, 2, next)
+}
+
+func TestListSessionsTiebreak(t *testing.T) {
+	e := newListEnv(t)
+	_, err := e.pool.Exec(t.Context(), "UPDATE session SET started_at = $1 WHERE org_id = $2", e.started, e.a.OrgID)
+	require.NoError(t, err)
+	items, _, err := e.svc.ListSessions(t.Context(), e.a.Principal(e.a.OwnerID), session.ListFilter{})
+	require.NoError(t, err)
+	require.Len(t, items, 3)
+	assert.Greater(t, items[0].ID.String(), items[1].ID.String())
+	assert.Greater(t, items[1].ID.String(), items[2].ID.String())
+}
+
+func TestListSessionsDeletedUserAndGateway(t *testing.T) {
+	e := newListEnv(t)
+	_, err := e.pool.Exec(t.Context(), "DELETE FROM users WHERE id = $1", e.a.MemberID)
+	require.NoError(t, err)
+	_, err = e.pool.Exec(t.Context(), "UPDATE resource SET gateway_id = NULL WHERE id = $1", e.a.ResourceID)
+	require.NoError(t, err)
+	_, err = e.pool.Exec(t.Context(), "DELETE FROM gateway_instance WHERE gateway_id = $1", e.a.GatewayID)
+	require.NoError(t, err)
+	_, err = e.pool.Exec(t.Context(), "DELETE FROM gateway WHERE id = $1", e.a.GatewayID)
+	require.NoError(t, err)
+	s, err := e.svc.GetSession(t.Context(), e.a.Principal(e.a.OwnerID), e.ids[0])
+	require.NoError(t, err)
+	assert.Nil(t, s.UserID)
+	assert.Empty(t, s.UserLogin)
+	assert.Nil(t, s.GatewayID)
+}
+
+func TestListSessionsNonAdminRoleSeesOwn(t *testing.T) {
+	e := newListEnv(t)
+	p := e.a.Principal(e.a.MemberID)
+	p.Role = "auditor" // an unknown role must not widen visibility
+	items, _, err := e.svc.ListSessions(t.Context(), p, session.ListFilter{ResourceID: &e.a.ResourceID, Status: "active"})
+	require.NoError(t, err)
+	assert.Equal(t, []uuid.UUID{e.ids[0]}, ids(items))
+	_, err = e.svc.GetSession(t.Context(), p, e.ids[1])
 	assert.ErrorIs(t, err, apperr.ErrNotFound)
 }

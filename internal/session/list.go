@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/netip"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 const (
 	defaultPageSize = 50
 	maxPageSize     = 200
+	maxPage         = math.MaxInt32 / maxPageSize // keeps (page-1)*size inside int32
 )
 
 // ListFilter narrows ListSessions. A member sees only their own sessions.
@@ -45,11 +47,11 @@ type Summary struct {
 // ListSessions returns one page of the organization's sessions, newest first,
 // and the next page number (0 after the last).
 func (s *Service) ListSessions(ctx context.Context, p principal.Principal, f ListFilter) ([]Summary, int, error) {
-	if f.Page < 0 || f.PageSize < 0 || (f.Status != "" && f.Status != "active" && f.Status != "ended") ||
+	if f.Page < 0 || f.Page > maxPage || f.PageSize < 0 || (f.Status != "" && f.Status != "active" && f.Status != "ended") ||
 		(f.From != nil && f.To != nil && !f.To.After(*f.From)) {
 		return nil, 0, fmt.Errorf("invalid session filter: %w", apperr.ErrInvalidArgument)
 	}
-	if p.Role == principal.RoleMember {
+	if !seesAll(p) {
 		if f.UserID != nil && *f.UserID != p.UserID {
 			return nil, 0, fmt.Errorf("members see only their own sessions: %w", apperr.ErrPermissionDenied)
 		}
@@ -61,7 +63,7 @@ func (s *Service) ListSessions(ctx context.Context, p principal.Principal, f Lis
 	}
 	rows, err := s.list(ctx, p, dbq.ListSessionsParams{
 		OrgID: p.OrgID, UserID: f.UserID, ResourceID: f.ResourceID, FromTs: f.From, ToTs: f.To, Status: f.Status,
-		RowOffset: int32((page - 1) * size), RowLimit: int32(size + 1), //nolint:gosec // page and size are bounded
+		RowOffset: int32((page - 1) * size), RowLimit: int32(size + 1), //nolint:gosec // page <= maxPage, size <= maxPageSize
 	})
 	if err != nil {
 		return nil, 0, fmt.Errorf("session: list: %w", err)
@@ -77,10 +79,15 @@ func (s *Service) ListSessions(ctx context.Context, p principal.Principal, f Lis
 	return out, next, nil
 }
 
+// seesAll is true for the roles that see every session of the organization; any other role sees its own.
+func seesAll(p principal.Principal) bool {
+	return p.Role == principal.RoleOwner || p.Role == principal.RoleAdmin
+}
+
 // GetSession returns one session; one the principal may not see is apperr.ErrNotFound.
 func (s *Service) GetSession(ctx context.Context, p principal.Principal, id uuid.UUID) (Summary, error) {
 	arg := dbq.ListSessionsParams{OrgID: p.OrgID, ID: &id, RowLimit: 1}
-	if p.Role == principal.RoleMember {
+	if !seesAll(p) {
 		arg.UserID = &p.UserID
 	}
 	rows, err := s.list(ctx, p, arg)

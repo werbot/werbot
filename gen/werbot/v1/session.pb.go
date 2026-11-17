@@ -7,6 +7,7 @@
 package werbotv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -588,7 +589,7 @@ var File_werbot_v1_session_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_session_proto_rawDesc = "" +
 	"\n" +
-	"\x17werbot/v1/session.proto\x12\twerbot.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"U\n" +
+	"\x17werbot/v1/session.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"U\n" +
 	"\tRecording\x12\x16\n" +
 	"\x06chunks\x18\x01 \x01(\x05R\x06chunks\x12\x14\n" +
 	"\x05bytes\x18\x02 \x01(\x03R\x05bytes\x12\x1a\n" +
@@ -610,26 +611,27 @@ const file_werbot_v1_session_proto_rawDesc = "" +
 	"\n" +
 	"end_reason\x18\n" +
 	" \x01(\tR\tendReason\x122\n" +
-	"\trecording\x18\v \x01(\v2\x14.werbot.v1.RecordingR\trecording\"\x8e\x02\n" +
-	"\x13ListSessionsRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1f\n" +
-	"\vresource_id\x18\x02 \x01(\tR\n" +
+	"\trecording\x18\v \x01(\v2\x14.werbot.v1.RecordingR\trecording\"\xcc\x02\n" +
+	"\x13ListSessionsRequest\x12$\n" +
+	"\auser_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\x12,\n" +
+	"\vresource_id\x18\x02 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\n" +
 	"resourceId\x12.\n" +
 	"\x04from\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x120\n" +
-	"\x06status\x18\x05 \x01(\x0e2\x18.werbot.v1.SessionStatusR\x06status\x12\x12\n" +
-	"\x04page\x18\x06 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\a \x01(\x05R\bpageSize\"c\n" +
+	"\x02to\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12:\n" +
+	"\x06status\x18\x05 \x01(\x0e2\x18.werbot.v1.SessionStatusB\b\xbaH\x05\x82\x01\x02\x10\x01R\x06status\x12 \n" +
+	"\x04page\x18\x06 \x01(\x05B\f\xbaH\t\x1a\a\x18\x80\xad\xe2\x04(\x00R\x04page\x12'\n" +
+	"\tpage_size\x18\a \x01(\x05B\n" +
+	"\xbaH\a\x1a\x05\x18\xc8\x01(\x00R\bpageSize\"c\n" +
 	"\x14ListSessionsResponse\x12.\n" +
 	"\bsessions\x18\x01 \x03(\v2\x12.werbot.v1.SessionR\bsessions\x12\x1b\n" +
-	"\tnext_page\x18\x02 \x01(\x05R\bnextPage\"1\n" +
-	"\x1fSessionServiceGetSessionRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"P\n" +
+	"\tnext_page\x18\x02 \x01(\x05R\bnextPage\";\n" +
+	"\x1fSessionServiceGetSessionRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"P\n" +
 	" SessionServiceGetSessionResponse\x12,\n" +
-	"\asession\x18\x01 \x01(\v2\x12.werbot.v1.SessionR\asession\"7\n" +
-	"\x16VerifyRecordingRequest\x12\x1d\n" +
+	"\asession\x18\x01 \x01(\v2\x12.werbot.v1.SessionR\asession\"A\n" +
+	"\x16VerifyRecordingRequest\x12'\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\"M\n" +
+	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\"M\n" +
 	"\x17VerifyRecordingResponse\x12\x1a\n" +
 	"\bverified\x18\x01 \x01(\bR\bverified\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason*d\n" +

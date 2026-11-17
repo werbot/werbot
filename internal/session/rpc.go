@@ -2,7 +2,6 @@ package session
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
@@ -68,7 +67,7 @@ func (h *SessionHandler) ListSessions(ctx context.Context, req *connect.Request[
 
 // GetSession returns one session.
 func (h *SessionHandler) GetSession(ctx context.Context, req *connect.Request[werbotv1.SessionServiceGetSessionRequest]) (*connect.Response[werbotv1.SessionServiceGetSessionResponse], error) {
-	p, id, err := h.visible(ctx, req.Msg.GetId())
+	p, id, err := h.authID(ctx, req.Msg.GetId())
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +80,7 @@ func (h *SessionHandler) GetSession(ctx context.Context, req *connect.Request[we
 
 // VerifyRecording re-checks the recording of a session the caller may see.
 func (h *SessionHandler) VerifyRecording(ctx context.Context, req *connect.Request[werbotv1.VerifyRecordingRequest]) (*connect.Response[werbotv1.VerifyRecordingResponse], error) {
-	p, id, err := h.visible(ctx, req.Msg.GetSessionId())
+	p, id, err := h.authID(ctx, req.Msg.GetSessionId())
 	if err != nil {
 		return nil, err
 	}
@@ -90,16 +89,13 @@ func (h *SessionHandler) VerifyRecording(ctx context.Context, req *connect.Reque
 	}
 	v, err := h.rec.Verify(ctx, p.OrgID, id)
 	if err != nil {
-		if !errors.Is(err, apperr.ErrUnavailable) {
-			err = fmt.Errorf("verify recording: %w: %w", apperr.ErrUnavailable, err)
-		}
 		return nil, apperr.ToConnect(err)
 	}
 	return connect.NewResponse(&werbotv1.VerifyRecordingResponse{Verified: v.Verified, Reason: v.Reason}), nil
 }
 
-// visible authenticates and parses the session id.
-func (h *SessionHandler) visible(ctx context.Context, raw string) (principal.Principal, uuid.UUID, error) {
+// authID authenticates and parses the session id.
+func (h *SessionHandler) authID(ctx context.Context, raw string) (principal.Principal, uuid.UUID, error) {
 	p, err := principal.Require(ctx)
 	if err != nil {
 		return p, uuid.Nil, apperr.ToConnect(err)

@@ -78,7 +78,7 @@ SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, 
        (rec.manifest_signature IS NOT NULL)::bool AS finished
 FROM session s
 LEFT JOIN users u ON u.id = s.user_id
-LEFT JOIN resource r ON r.id = s.resource_id
+LEFT JOIN resource r ON r.id = s.resource_id AND r.org_id = s.org_id
 LEFT JOIN recording rec ON rec.session_id = s.id AND rec.org_id = s.org_id
 WHERE s.org_id = @org_id
   AND (sqlc.narg(user_id)::uuid IS NULL OR s.user_id = sqlc.narg(user_id))
