@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/gliderlabs/ssh"
@@ -14,14 +15,19 @@ import (
 
 // resourceInfo answers resource@werbot.com for a direct login with the type,
 // kinds and ports of the resource, after the check Open makes with port 0. A
-// refusal, an unknown resource, a menu login and a gateway that is not ready all
-// get false without payload: the answer tells nothing about resources the user
-// cannot open. Requests of a connection run one at a time, so the control plane
-// lookup is bounded.
+// refusal, an unknown resource and a menu login get false without payload: the
+// answer tells nothing about resources the user cannot open. A gateway that is
+// not ready says so, as on every channel: that is the state of the instance, not
+// of a resource. Requests of a connection run one at a time, so the control
+// plane lookup is bounded.
 func (h *sshHandler) resourceInfo(ctx ssh.Context, _ *ssh.Server, _ *gossh.Request) (bool, []byte) {
 	_, resource, _ := ParseLogin(ctx.User()) // checked at the handshake
-	if resource == "" || handshakeUser(ctx) == nil {
+	notReady := []byte(openText(ErrNotReady, resource, "", nil))
+	switch {
+	case resource == "":
 		return false, nil
+	case handshakeUser(ctx) == nil:
+		return false, notReady
 	}
 	dctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -29,6 +35,9 @@ func (h *sshHandler) resourceInfo(ctx ssh.Context, _ *ssh.Server, _ *gossh.Reque
 	_, req, _, err := h.p.decide(dctx, r)
 	if err != nil {
 		h.p.deny(r, req.User.ID, err)
+		if errors.Is(err, ErrNotReady) {
+			return false, notReady
+		}
 		return false, nil
 	}
 	b, err := json.Marshal(info(req.Resource))

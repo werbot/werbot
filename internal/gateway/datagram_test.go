@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	gossh "golang.org/x/crypto/ssh"
@@ -176,7 +177,8 @@ func TestResourceRequest(t *testing.T) {
 	require.Zero(t, e.startCalls(), "a resource request starts no session")
 }
 
-// A gateway without a snapshot answers false and reports nothing.
+// A gateway without a snapshot, or one that could not look the key up at the
+// handshake, answers false with the not ready text and reports nothing.
 func TestResourceRequestNotReady(t *testing.T) {
 	e := newSSHEnv(t, Config{})
 	e.withPortResources(t)
@@ -185,6 +187,12 @@ func TestResourceRequestNotReady(t *testing.T) {
 	ok, payload, err := c.SendRequest(sshdgram.ResourceRequest, true, nil)
 	require.NoError(t, err)
 	require.False(t, ok)
-	require.Empty(t, payload)
+	require.Equal(t, "Gateway is not ready, try again later", string(payload))
+
+	e.f.with(func(f *fakeControl) { f.connected = true; f.authErr = connect.NewError(connect.CodeUnavailable, nil) })
+	ok, payload, err = e.client(t, "alice+pgdb").SendRequest(sshdgram.ResourceRequest, true, nil)
+	require.NoError(t, err)
+	require.False(t, ok)
+	require.Equal(t, "Gateway is not ready, try again later", string(payload))
 	require.Empty(t, e.p.denials.take())
 }
