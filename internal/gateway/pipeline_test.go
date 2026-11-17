@@ -152,6 +152,7 @@ func TestReadyAndHeartbeat(t *testing.T) {
 func TestActiveSessionsIDsCapped(t *testing.T) {
 	log := &syncBuffer{}
 	a := newActiveSessions(metrics.NewRegistry().Gauge("g", "g"), slog.New(slog.NewTextHandler(log, nil)))
+	sp := newTestSpool(t, &fakeControl{upErr: connect.NewError(connect.CodeUnavailable, errors.New("down"))})
 	opened := map[string]bool{}
 	for range maxSessionIDs - 2 {
 		id := uuid.New()
@@ -161,9 +162,10 @@ func TestActiveSessionsIDsCapped(t *testing.T) {
 	for range 5 {
 		id := uuid.New()
 		a.add(id)
-		a.done(id, true)
+		require.NoError(t, sp.End(id, "closed"))
+		a.done(id)
 	}
-	ids := a.ids()
+	ids := heartbeatSessionIDs(a, sp)
 	require.Len(t, ids, maxSessionIDs)
 	n := 0
 	for _, id := range ids {

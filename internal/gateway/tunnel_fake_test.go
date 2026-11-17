@@ -51,6 +51,7 @@ type fakeTunnel struct {
 	pinErr     error
 	renewErr   error // returned by RenewCertificate when set
 	ends       []*gatewayv1.EndSessionRequest
+	rec        recCalls // the recording RPCs, tunnel_fake_rec_test.go
 	csrs       [][]byte
 	startCalls int
 	unaryIP    []string

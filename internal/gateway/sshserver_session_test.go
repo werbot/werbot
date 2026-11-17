@@ -17,9 +17,13 @@ func TestDirectExec(t *testing.T) {
 	require.Equal(t, 0, code)
 	e.f.with(func(f *fakeControl) {
 		require.Equal(t, []string{e.m["u1"].String() + " " + e.m["rdb"].String() + " 127.0.0.1"}, f.starts)
-		require.Len(t, f.ends, 1)
-		require.Equal(t, "closed", f.ends[0].reason)
 	})
+	require.Eventually(t, func() bool { // the spool delivers it
+		var n int
+		e.f.with(func(f *fakeControl) { n = len(f.ends) })
+		return n == 1
+	}, 2*time.Second, 5*time.Millisecond)
+	e.f.with(func(f *fakeControl) { require.Equal(t, "closed", f.ends[0].reason) })
 }
 
 func TestKindMapping(t *testing.T) {

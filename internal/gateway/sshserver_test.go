@@ -66,10 +66,10 @@ func newSSHEnv(t *testing.T, cfg Config) *sshEnv {
 	e.reg = metrics.NewRegistry()
 	cfg.Metrics = e.reg
 	e.p = newPipeline(e.f, cfg, slog.New(slog.DiscardHandler))
+	e.p.spool = newTestSpool(t, e.f)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	e.addr = e.serve(t, e.front(cfg, e.host), ln)
-	t.Cleanup(func() { e.p.retries.Wait() })
 	return e
 }
 

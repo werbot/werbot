@@ -8,12 +8,12 @@ import (
 	"net/netip"
 	"runtime/debug"
 	"slices"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/internal/gateway/recorder"
 	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/version"
 )
@@ -25,6 +25,7 @@ var (
 	ErrDenied          = errors.New("access denied")
 	ErrUnsupportedType = errors.New("resource type is not supported by this gateway")
 	ErrUnsupportedKind = errors.New("session kind is not supported by the resource type")
+	ErrSpoolMax        = errors.New("gateway: recording spool is full") // the user sees the ErrBusy text
 )
 
 // Identity is how the front identified the user: "ssh-key" and the SHA256 fingerprint.
@@ -45,7 +46,6 @@ type OpenRequest struct {
 type control interface {
 	AuthenticateUser(ctx context.Context, fingerprint string, ip netip.Addr) (User, error)
 	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr) (uuid.UUID, Secret, error)
-	EndSession(ctx context.Context, sessionID uuid.UUID, reason string) error
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
 	Policy() *Policy
 	Connected() bool
@@ -66,18 +66,19 @@ type Pipeline struct {
 	ctl    control
 	cfg    Config
 	active *activeSessions
+	spool  *recorder.Spool // session ends and recordings on their way to the server; set by serve
 	log    *slog.Logger
 
-	busy, notReady, panics *metrics.Counter
+	busy, notReady, spoolFull, panics *metrics.Counter
 
-	stop    context.Context // canceled at the end of drain: stops EndSession retries
+	stop    context.Context // canceled at the end of drain: the front closes its connections
 	stopNow context.CancelFunc
-	retries sync.WaitGroup
 
-	backoffMin, backoffMax, flushTimeout time.Duration
+	flushTimeout time.Duration
 }
 
-// newPipeline builds a pipeline; nil cfg.Recording is NopRecording, nil cfg.Metrics a private registry.
+// newPipeline builds a pipeline; nil cfg.Recording is NopRecording, nil cfg.Metrics a
+// private registry, zero cfg.SpoolMax DefaultSpoolMax. The caller sets p.spool.
 func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 	if cfg.Recording == nil {
 		cfg.Recording = NopRecording
@@ -85,22 +86,30 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 	if cfg.Metrics == nil {
 		cfg.Metrics = metrics.NewRegistry()
 	}
+	if cfg.SpoolMax == 0 {
+		cfg.SpoolMax = DefaultSpoolMax
+	}
 	reg := cfg.Metrics
 	const rejectedHelp = "Sessions refused before start, by reason."
 	stop, stopNow := context.WithCancel(context.Background())
 	return &Pipeline{
 		ctl: ctl, cfg: cfg, log: logger, stop: stop, stopNow: stopNow,
-		active:     newActiveSessions(reg.Gauge("werbot_gateway_sessions_active", "Sessions holding a MaxSessions slot."), logger),
-		busy:       reg.Counter("werbot_gateway_sessions_rejected_total", rejectedHelp, "reason", "busy"),
-		notReady:   reg.Counter("werbot_gateway_sessions_rejected_total", rejectedHelp, "reason", "not_ready"),
-		panics:     reg.Counter("werbot_gateway_panics_total", "Connector panics recovered by the pipeline."),
-		backoffMin: time.Second, backoffMax: 30 * time.Second, flushTimeout: 10 * time.Second,
+		active:       newActiveSessions(reg.Gauge("werbot_gateway_sessions_active", "Sessions holding a MaxSessions slot."), logger),
+		busy:         reg.Counter("werbot_gateway_sessions_rejected_total", rejectedHelp, "reason", "busy"),
+		notReady:     reg.Counter("werbot_gateway_sessions_rejected_total", rejectedHelp, "reason", "not_ready"),
+		spoolFull:    reg.Counter("werbot_gateway_sessions_rejected_total", rejectedHelp, "reason", "spool_full"),
+		panics:       reg.Counter("werbot_gateway_panics_total", "Connector panics recovered by the pipeline."),
+		flushTimeout: 10 * time.Second,
 	}
 }
 
 // Open checks the request in contract order and starts the session on the server.
-// Any error frees the slot.
+// Any error frees the slot. A spool at SpoolMax refuses every new session.
 func (p *Pipeline) Open(ctx context.Context, r OpenRequest) (*Session, error) {
+	if p.spool.Total() >= p.cfg.SpoolMax {
+		p.spoolFull.Inc()
+		return nil, ErrSpoolMax
+	}
 	if err := p.active.reserve(p.cfg.MaxSessions); err != nil {
 		return nil, p.reject(err)
 	}
@@ -165,8 +174,8 @@ func controlErr(err error) error {
 	return fmt.Errorf("%w: %w", ErrDenied, err)
 }
 
-// Run serves s on c until it ends, then ends the session on the server, closes
-// the recording and frees the slot. A connector panic ends only this session.
+// Run serves s on c until it ends, then spools the session end, closes the
+// recording and frees the slot. A connector panic ends only this session.
 func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	sctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
@@ -199,14 +208,19 @@ func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel co
 // abort ends a session that Open returned but no connector ran.
 func (p *Pipeline) abort(s *Session) { p.finish(context.Background(), s, "error") }
 
-// finish sends EndSession before Recording.Close (contract §3.3), then frees the slot.
+// finish spools EndSession before Recording.Close (contract §3.3): end.json comes
+// before the recording is closed, so FinishRecording never overtakes the end, and the
+// id stays in the heartbeat (active or a pending end) throughout. Then it frees the slot.
 func (p *Pipeline) finish(ctx context.Context, s *Session, reason string) {
-	p.endSession(s.ID, reason)
+	if err := p.spool.End(s.ID, reason); err != nil {
+		p.log.Error("session: end not spooled; the server closes it as lost", "session_id", s.ID, "reason", reason, "error", err)
+	}
 	cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancel()
 	if err := s.Recording.Close(cctx); err != nil {
 		p.log.Warn("session: recording close failed", "session_id", s.ID, "error", err)
 	}
+	p.active.done(s.ID)
 	p.active.release()
 }
 
@@ -225,7 +239,7 @@ func endReason(ctx context.Context, err error) string {
 
 // heartbeat is the instance state sent on the tunnel.
 func (p *Pipeline) heartbeat() *gatewayv1.Heartbeat {
-	return &gatewayv1.Heartbeat{Version: version.Version, Connectors: connectors(), ActiveSessionIds: p.active.ids()}
+	return &gatewayv1.Heartbeat{Version: version.Version, Connectors: connectors(), ActiveSessionIds: heartbeatSessionIDs(p.active, p.spool)}
 }
 
 // ready is the /readyz state: a reason is "not_ready", "busy" or "draining".

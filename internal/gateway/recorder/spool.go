@@ -1,0 +1,284 @@
+package recorder
+
+import (
+	"bytes"
+	"context"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/fs"
+	"log/slog"
+	"os"
+	"path"
+	"slices"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/werbot/werbot/internal/platform/metrics"
+)
+
+// DefaultSpoolLimit is how many unsent chunk bytes one session may keep in the spool.
+const DefaultSpoolLimit = 64 << 20
+
+// ErrSpoolFull is an Append over the session's spool limit.
+var ErrSpoolFull = errors.New("recorder: session spool limit exceeded")
+
+// Manifest closes a recording on the server.
+type Manifest struct {
+	SessionID uuid.UUID
+	Chunks    int
+	Bytes     int64
+	FinalHash []byte
+}
+
+// Uploader delivers the spool to the server; the gateway tunnel client implements it.
+type Uploader interface {
+	UploadChunk(ctx context.Context, sessionID uuid.UUID, seq int, hash, gz []byte) error
+	EndSession(ctx context.Context, sessionID uuid.UUID, reason string) error // a repeat returns nil
+	FinishRecording(ctx context.Context, m Manifest) error
+}
+
+// SpoolOptions tune a Spool.
+type SpoolOptions struct {
+	Limit              int64          // unsent bytes per session; 0 → DefaultSpoolLimit
+	RetryMin, RetryMax time.Duration  // pause after a failed upload pass; 0 → 1s and 30s
+	Gauge              *metrics.Gauge // set to Total() on every change; nil → none
+}
+
+const (
+	hashLen     = 32
+	rejectedDir = "rejected"
+	stateFile   = "state.json"
+	endFile     = "end.json"
+	chunkExt    = ".chunk"
+	tmpExt      = ".tmp"
+)
+
+// state is a session's state.json: the totals of every chunk appended so far.
+type state struct {
+	Chunks    int    `json:"chunks"`
+	Bytes     int64  `json:"bytes"`
+	FinalHash string `json:"final_hash"` // hex
+	Closed    bool   `json:"closed"`
+}
+
+// session is the in-memory view of one session directory.
+type session struct {
+	st      state
+	stored  bool  // state.json exists
+	sent    int   // lowest seq not uploaded yet
+	pending int64 // gz bytes of the unsent chunks
+}
+
+// Spool keeps recording chunks and session ends on disk until Run delivers them:
+// <dir>/<session>/<seq %08d>.chunk (hash + gz), state.json and end.json.
+type Spool struct {
+	root  *os.Root
+	up    Uploader
+	opts  SpoolOptions
+	log   *slog.Logger
+	wake  chan struct{}
+	total atomic.Int64
+
+	// ponytail: one lock covers the disk writes of all sessions (an fsync per chunk
+	// serialises appends); per-session locks if stage 7a shows contention.
+	mu       sync.Mutex
+	sessions map[uuid.UUID]*session
+	ends     map[uuid.UUID]string // reason of an EndSession not delivered yet
+}
+
+// OpenSpool opens (or creates) the spool in dir and restores what an earlier
+// process left there; every restored session counts as closed.
+func OpenSpool(dir string, up Uploader, opts SpoolOptions, logger *slog.Logger) (*Spool, error) {
+	if opts.Limit == 0 {
+		opts.Limit = DefaultSpoolLimit
+	}
+	if opts.RetryMin == 0 {
+		opts.RetryMin = time.Second
+	}
+	if opts.RetryMax == 0 {
+		opts.RetryMax = 30 * time.Second
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return nil, fmt.Errorf("spool: %w", err)
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, fmt.Errorf("spool: %w", err)
+	}
+	s := &Spool{root: root, up: up, opts: opts, log: logger, wake: make(chan struct{}, 1),
+		sessions: map[uuid.UUID]*session{}, ends: map[uuid.UUID]string{}}
+	entries, err := fs.ReadDir(root.FS(), ".")
+	if err != nil {
+		return nil, fmt.Errorf("spool: %w", err)
+	}
+	for _, e := range entries {
+		id, err := uuid.Parse(e.Name())
+		if !e.IsDir() || err != nil || id.String() != e.Name() {
+			continue // rejected/ and anything else
+		}
+		if err := s.restore(id); err != nil {
+			s.reject(id, err) // one unreadable session must not stop the gateway
+		}
+	}
+	s.addTotal(0)
+	return s, nil
+}
+
+// Append stores chunk seq of a session; it does not retain hash or gz.
+func (s *Spool) Append(sessionID uuid.UUID, seq int, hash, gz []byte) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ss := s.sessions[sessionID]
+	var pending int64
+	if ss != nil {
+		pending = ss.pending
+	}
+	n := int64(len(gz))
+	if pending+n > s.opts.Limit {
+		return ErrSpoolFull
+	}
+	if ss == nil {
+		if err := s.root.MkdirAll(sessionID.String(), 0o700); err != nil {
+			return err
+		}
+		ss = &session{sent: seq}
+		s.sessions[sessionID] = ss
+	}
+	name := chunkName(sessionID, seq)
+	if err := s.write(name, hash, gz); err != nil {
+		return err
+	}
+	st := ss.st
+	st.Chunks, st.Bytes, st.FinalHash = seq+1, st.Bytes+n, hex.EncodeToString(hash)
+	if err := s.writeState(sessionID, st); err != nil {
+		_ = s.root.Remove(name)
+		return err
+	}
+	ss.st, ss.stored, ss.pending = st, true, ss.pending+n
+	s.addTotal(n)
+	s.notify()
+	return nil
+}
+
+// Close marks the recording complete: Run finishes it once its chunks and end are delivered.
+func (s *Spool) Close(sessionID uuid.UUID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ss := s.sessions[sessionID]
+	if ss == nil {
+		return nil // nothing was recorded
+	}
+	st := ss.st
+	st.Closed = true
+	if err := s.writeState(sessionID, st); err != nil {
+		return err
+	}
+	ss.st, ss.stored = st, true
+	s.notify()
+	return nil
+}
+
+// End spools EndSession(sessionID, reason); the id is in PendingEnds until it is delivered.
+func (s *Spool) End(sessionID uuid.UUID, reason string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.sessions[sessionID] == nil {
+		if err := s.root.MkdirAll(sessionID.String(), 0o700); err != nil {
+			return err
+		}
+		s.sessions[sessionID] = &session{}
+	}
+	b, _ := json.Marshal(struct {
+		Reason string `json:"reason"`
+	}{reason})
+	if err := s.write(path.Join(sessionID.String(), endFile), b); err != nil {
+		return err
+	}
+	s.ends[sessionID] = reason
+	s.notify()
+	return nil
+}
+
+// Pending is the unsent gz bytes of a session.
+func (s *Spool) Pending(sessionID uuid.UUID) int64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if ss := s.sessions[sessionID]; ss != nil {
+		return ss.pending
+	}
+	return 0
+}
+
+// PendingEnds lists the sessions whose EndSession is not delivered yet, in ascending order.
+func (s *Spool) PendingEnds() []uuid.UUID {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return sortedKeys(s.ends)
+}
+
+// Total is the unsent gz bytes of all sessions, spool/rejected excluded.
+func (s *Spool) Total() int64 { return s.total.Load() }
+
+func (s *Spool) addTotal(d int64) {
+	v := s.total.Add(d)
+	if s.opts.Gauge != nil {
+		s.opts.Gauge.Set(v)
+	}
+}
+
+func (s *Spool) notify() {
+	select {
+	case s.wake <- struct{}{}:
+	default:
+	}
+}
+
+func (s *Spool) writeState(id uuid.UUID, st state) error {
+	b, _ := json.Marshal(st)
+	return s.write(path.Join(id.String(), stateFile), b)
+}
+
+// write replaces name with parts: a synced temp file renamed over it.
+func (s *Spool) write(name string, parts ...[]byte) error {
+	tmp := name + tmpExt
+	f, err := s.root.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return err
+	}
+	for _, p := range parts {
+		if _, err = f.Write(p); err != nil {
+			break
+		}
+	}
+	if err == nil {
+		err = f.Sync()
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = s.root.Rename(tmp, name)
+	}
+	if err != nil {
+		_ = s.root.Remove(tmp)
+	}
+	return err
+}
+
+func chunkName(id uuid.UUID, seq int) string {
+	return path.Join(id.String(), fmt.Sprintf("%08d%s", seq, chunkExt))
+}
+
+func sortedKeys[V any](m map[uuid.UUID]V) []uuid.UUID {
+	ids := make([]uuid.UUID, 0, len(m))
+	for id := range m {
+		ids = append(ids, id)
+	}
+	slices.SortFunc(ids, func(a, b uuid.UUID) int { return bytes.Compare(a[:], b[:]) })
+	return ids
+}

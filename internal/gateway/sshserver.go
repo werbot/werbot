@@ -193,7 +193,7 @@ func openText(err error, resource string, kind Kind, pol *Policy) string {
 	switch {
 	case errors.Is(err, ErrNotReady):
 		return "Gateway is not ready, try again later"
-	case errors.Is(err, ErrBusy):
+	case errors.Is(err, ErrBusy), errors.Is(err, ErrSpoolMax):
 		return "Gateway is busy, try again later"
 	case errors.Is(err, ErrUnsupportedType):
 		r, _ := pol.Resource(resource)

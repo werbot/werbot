@@ -108,8 +108,8 @@ type endCall struct {
 	reason string
 }
 
-// fakeControl is the control plane of a pipeline; events keeps EndSession and
-// Recording.Close in call order.
+// fakeControl is the control plane of a pipeline and the uploader of its spool;
+// events keeps EndSession and Recording.Close in call order.
 type fakeControl struct {
 	mu         sync.Mutex
 	policy     *Policy
@@ -119,9 +119,7 @@ type fakeControl struct {
 	byKey      map[string]User  // AuthenticateUser by fingerprint when set; unknown → NotFound
 	keyErrs    map[string]error // AuthenticateUser error by fingerprint
 	startErr   error
-	endErrs    []error // returned by the next EndSession calls in order, then endErr
-	endErr     error
-	onEnd      func(n int)
+	upErr      error // returned by every uploader call: the server is down
 	pinErr     error
 	authCalls  []string
 	startCalls int
@@ -163,20 +161,16 @@ func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UU
 	return uuid.New(), Secret{Kind: "password", Value: []byte("s3cret-value")}, nil
 }
 
+// EndSession records a delivered end.
 func (f *fakeControl) EndSession(_ context.Context, id uuid.UUID, reason string) error {
 	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.upErr != nil {
+		return f.upErr
+	}
 	f.ends = append(f.ends, endCall{id, reason})
 	f.events = append(f.events, "end:"+reason)
-	n, hook := len(f.ends), f.onEnd
-	err := f.endErr
-	if len(f.endErrs) > 0 {
-		err, f.endErrs = f.endErrs[0], f.endErrs[1:]
-	}
-	f.mu.Unlock()
-	if hook != nil {
-		hook(n)
-	}
-	return err
+	return nil
 }
 
 func (f *fakeControl) PinHostKey(_ context.Context, resourceID uuid.UUID, alg string, key []byte) error {
@@ -217,14 +211,23 @@ func (f *fakeControl) endsOf(id uuid.UUID) []string {
 	return out
 }
 
-// spySink notes its Close in the control's event log.
-type spySink struct{ f *fakeControl }
+// spySink notes its Close in the control's event log: "close" when the session
+// end was spooled (pending or already delivered) before, "close-before-end" otherwise.
+type spySink struct {
+	f  *fakeControl
+	p  *Pipeline
+	id uuid.UUID
+}
 
 func (spySink) Output([]byte)   {}
 func (spySink) Input([]byte)    {}
 func (spySink) Resize(int, int) {}
 func (s spySink) Close(context.Context) error {
-	s.f.with(func(f *fakeControl) { f.events = append(f.events, "close") })
+	ev := "close-before-end"
+	if slices.Contains(s.p.spool.PendingEnds(), s.id) || len(s.f.endsOf(s.id)) > 0 { // delivery records before it leaves PendingEnds
+		ev = "close"
+	}
+	s.f.with(func(f *fakeControl) { f.events = append(f.events, ev) })
 	return nil
 }
 
@@ -251,12 +254,12 @@ func newPipeEnv(t *testing.T, maxSessions int) *pipeEnv {
 	e.f = &fakeControl{policy: pol, connected: true, user: User{ID: m["u1"], Login: "alice", Country: "NL"}}
 	rec := func(id uuid.UUID, cols, rows int) RecordingSink {
 		e.f.with(func(f *fakeControl) { f.recs = append(f.recs, fmt.Sprintf("%s %d %d", id, cols, rows)) })
-		return spySink{e.f}
+		return spySink{f: e.f, p: e.p, id: id}
 	}
 	cfg := Config{MaxSessions: maxSessions, Recording: rec, Metrics: e.reg}
 	e.p = newPipeline(e.f, cfg, slog.New(slog.NewTextHandler(e.log, nil)))
-	e.p.backoffMin, e.p.backoffMax = 10*time.Millisecond, 40*time.Millisecond
-	t.Cleanup(func() { e.p.stopNow(); e.p.retries.Wait() })
+	e.p.spool = newTestSpool(t, e.f)
+	t.Cleanup(e.p.stopNow)
 	return e
 }
 

@@ -7,8 +7,12 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"path/filepath"
 	"time"
 
+	"github.com/google/uuid"
+
+	"github.com/werbot/werbot/internal/gateway/recorder"
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
 
@@ -35,9 +39,11 @@ func Run(ctx context.Context, cfg Config, logger *slog.Logger) error {
 
 // serve enrolls (or loads the identity), keeps the tunnel and serves SSH on sshLn
 // and /readyz, /metrics on httpLn (nil: off) until ctx ends or the tunnel stops for
-// good (expired certificate). Then it drains: new sessions are refused at once,
-// running ones get cfg.DrainTimeout, and the tunnel stays up until their EndSession
-// calls are delivered. The tunnel error, if any, is returned after the drain.
+// good (expired certificate). Session ends and recordings go through the spool in
+// DataDir/spool. On stop it drains: new sessions are refused at once, running ones
+// get cfg.DrainTimeout, and the spool gets up to 10s to deliver their ends; what is
+// left stays on disk for the next start. The tunnel error, if any, is returned after
+// the drain.
 func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *slog.Logger) error {
 	defer sshLn.Close() //nolint:errcheck // closed twice on the normal path
 	if httpLn != nil {
@@ -55,9 +61,28 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 		return err
 	}
 	tc := newTunnelClient(st, roots, certs, cfg.Metrics, logger)
-	p := newPipeline(tc, cfg, logger)
+	// Gauge, not GaugeFunc: the embedded gateway runs serve again on the same registry
+	gauge := cfg.Metrics.Gauge("werbot_gateway_spool_bytes", "Unsent recording bytes in the gateway spool.")
+	sp, err := recorder.OpenSpool(filepath.Join(cfg.DataDir, "spool"), tc, recorder.SpoolOptions{Gauge: gauge}, logger)
+	if err != nil {
+		return err
+	}
+	var p *Pipeline
+	if cfg.Recording == nil { // tests bring their own
+		cfg.Recording = func(id uuid.UUID, cols, rows int) RecordingSink { // called by Pipeline.Open, after p is set
+			return recorder.New(id, cols, rows, sp, recorder.Options{Terminate: p.active.Terminate, Logger: logger})
+		}
+	}
+	p = newPipeline(tc, cfg, logger)
+	p.spool = sp
+	spoolCtx, stopSpool := context.WithCancel(context.WithoutCancel(ctx))
+	spoolDone := make(chan struct{})
+	go func() {
+		defer close(spoolDone)
+		_ = sp.Run(spoolCtx) // nil once spoolCtx ends
+	}()
 
-	// the tunnel outlives ctx: drain still sends EndSession through it
+	// the tunnel outlives ctx: the spool still sends EndSession through it after the drain
 	tunnelCtx, stopTunnel := context.WithCancel(context.WithoutCancel(ctx))
 	tunnelDone := make(chan struct{})
 	var tunnelErr error // read after tunnelDone
@@ -96,6 +121,13 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	close(frontDone)
 	<-drained
 
+	select {
+	case <-tunnelDone: // the tunnel stopped for good: nothing gets through
+	default:
+		waitEnds(sp, p.flushTimeout)
+	}
+	stopSpool()
+	<-spoolDone
 	stopTunnel()
 	<-tunnelDone
 	if hs != nil {
@@ -104,4 +136,14 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 		_ = hs.Close()
 	}
 	return errors.Join(err, tunnelErr)
+}
+
+// waitEnds waits up to d for the spool to deliver every pending session end.
+func waitEnds(sp *recorder.Spool, d time.Duration) {
+	deadline := time.Now().Add(d)
+	tick := time.NewTicker(20 * time.Millisecond)
+	defer tick.Stop()
+	for len(sp.PendingEnds()) > 0 && time.Now().Before(deadline) {
+		<-tick.C
+	}
 }

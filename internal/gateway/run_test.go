@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -202,6 +203,31 @@ func TestServeDrain(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("the SSH session is still open after serve returned")
 	}
+}
+
+// serve records every session through the spool: the end first, then the chunks
+// and FinishRecording; the spool size is exported.
+func TestServeRecordsSessions(t *testing.T) {
+	e := newServeEnv(t, time.Second)
+	s, _ := e.blocker(t)
+	require.NoError(t, s.Close())
+	require.Eventually(t, func() bool {
+		var n int
+		e.tun.with(func(f *fakeTunnel) { n = len(f.rec.finishes) })
+		return n == 1
+	}, 5*time.Second, 10*time.Millisecond)
+	e.tun.with(func(f *fakeTunnel) {
+		require.Len(t, f.ends, 1)
+		require.Equal(t, "closed", f.ends[0].GetReason())
+		require.Equal(t, testSessionID.String(), f.rec.chunks[0].GetSessionId())
+		require.EqualValues(t, len(f.rec.chunks), f.rec.finishes[0].GetChunks())
+	})
+	resp, err := http.Get(e.httpURL + "/metrics") //nolint:noctx // test probe
+	require.NoError(t, err)
+	defer resp.Body.Close() //nolint:errcheck // test
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.Contains(t, string(body), "werbot_gateway_spool_bytes 0")
 }
 
 // A certificate that expired while serving ends serve after the drain: the

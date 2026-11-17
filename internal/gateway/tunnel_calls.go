@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/internal/gateway/recorder"
 )
 
 // ErrHostKeyMismatch is a target host key that differs from the pinned one.
@@ -91,5 +92,25 @@ func (c *tunnelClient) PinHostKey(ctx context.Context, resourceID uuid.UUID, alg
 	if connect.CodeOf(err) == connect.CodeFailedPrecondition {
 		return fmt.Errorf("%w: %w", ErrHostKeyMismatch, err)
 	}
+	return err
+}
+
+// UploadChunk sends one spooled recording chunk.
+func (c *tunnelClient) UploadChunk(ctx context.Context, sessionID uuid.UUID, seq int, hash, gz []byte) error {
+	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
+	defer cancel()
+	_, err := c.conn.Load().rpc.UploadRecordingChunk(ctx, connect.NewRequest(&gatewayv1.UploadRecordingChunkRequest{
+		SessionId: sessionID.String(), Seq: int32(seq), Hash: hash, Gz: gz, //nolint:gosec // seq is bounded by the session's chunk count
+	}))
+	return err
+}
+
+// FinishRecording closes a recording with the totals of its chunks.
+func (c *tunnelClient) FinishRecording(ctx context.Context, m recorder.Manifest) error {
+	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
+	defer cancel()
+	_, err := c.conn.Load().rpc.FinishRecording(ctx, connect.NewRequest(&gatewayv1.FinishRecordingRequest{
+		SessionId: m.SessionID.String(), Chunks: int32(m.Chunks), Bytes: m.Bytes, FinalHash: m.FinalHash, //nolint:gosec // chunks is bounded like seq
+	}))
 	return err
 }
