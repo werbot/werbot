@@ -36,7 +36,7 @@ func execCommand(e *gateway.Exec) command {
 
 // run starts cmd in a new target session, relays its streams until it ends and
 // reports the exit status. Every relay goroutine is guarded: a panic stops the
-// session and guard.done re-panics it on the calling goroutine.
+// session and gateway.Guard.Wait re-panics it on the calling goroutine.
 func (cmd command) run(ctx context.Context, client *gossh.Client, rec gateway.RecordingSink, secret gateway.Secret) error {
 	sess, err := client.NewSession()
 	if err != nil {
@@ -69,29 +69,29 @@ func (cmd command) run(ctx context.Context, client *gossh.Client, rec gateway.Re
 		return fmt.Errorf("ssh: start: %w", err)
 	}
 
-	g := &guard{stop: func() { _ = client.Close() }, secret: secret}
-	live := &liveSink{rec: rec}
-	defer live.end()
+	g := gateway.NewGuard(func() { _ = client.Close() }, secret)
+	live := gateway.NewLiveSink(rec)
+	defer live.End()
 	ended := make(chan struct{})
 	defer close(ended)
-	g.detach(func() error {
-		_ = copyRec(stdin, cmd.stdin, live.input) // a read or write error is the end of the input
+	g.Detach(func() error {
+		_ = copyRec(stdin, cmd.stdin, live.Input) // a read or write error is the end of the input
 		_ = stdin.Close()                         // EOF to the target
 		return nil
 	})
 	if cmd.resize != nil {
-		g.detach(func() error { return relayResize(sess, cmd.resize, live, ended) })
+		g.Detach(func() error { return relayResize(sess, cmd.resize, live, ended) })
 	}
-	g.spawn(func() error { return copyRec(cmd.stdout, stdout, rec.Output) })
-	g.spawn(func() error { return copyRec(cmd.stderr, stderr, rec.Output) })
-	if err := g.done(); err != nil {
+	g.Go(func() error { return copyRec(cmd.stdout, stdout, rec.Output) })
+	g.Go(func() error { return copyRec(cmd.stderr, stderr, rec.Output) })
+	if err := g.Wait(); err != nil {
 		return err
 	}
 	return cmd.exitStatus(ctx, sess.Wait())
 }
 
 // relayResize sends window changes to the target until the session ends.
-func relayResize(sess *gossh.Session, resize <-chan gateway.Window, live *liveSink, ended <-chan struct{}) error {
+func relayResize(sess *gossh.Session, resize <-chan gateway.Window, live *gateway.LiveSink, ended <-chan struct{}) error {
 	for {
 		select {
 		case w, ok := <-resize:
@@ -99,7 +99,7 @@ func relayResize(sess *gossh.Session, resize <-chan gateway.Window, live *liveSi
 				return nil
 			}
 			_ = sess.WindowChange(w.Rows, w.Cols) // fails only once the session is gone
-			live.resize(w.Cols, w.Rows)
+			live.Resize(w.Cols, w.Rows)
 		case <-ended:
 			return nil
 		}
@@ -137,35 +137,4 @@ func (l *lockedWriter) Write(p []byte) (int, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	return l.w.Write(p)
-}
-
-// liveSink passes the detached relays' recorder calls only until run returns:
-// the input relay may still read from the front after that, when the pipeline
-// already closes the recording.
-type liveSink struct {
-	mu    sync.Mutex
-	ended bool
-	rec   gateway.RecordingSink
-}
-
-func (l *liveSink) input(p []byte) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if !l.ended {
-		l.rec.Input(p)
-	}
-}
-
-func (l *liveSink) resize(cols, rows int) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if !l.ended {
-		l.rec.Resize(cols, rows)
-	}
-}
-
-func (l *liveSink) end() {
-	l.mu.Lock()
-	l.ended = true
-	l.mu.Unlock()
 }

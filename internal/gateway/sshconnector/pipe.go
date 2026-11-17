@@ -17,10 +17,10 @@ var bufPool = sync.Pool{New: func() any { b := make([]byte, 32<<10); return &b }
 // nothing is echoed.
 func pipe(client, target io.ReadWriteCloser, secret gateway.Secret) error {
 	closeBoth := func() { _ = client.Close(); _ = target.Close() }
-	g := &guard{stop: closeBoth, secret: secret}
-	g.spawn(func() error { return relay(target, client) })
-	g.spawn(func() error { return relay(client, target) })
-	err := g.done()
+	g := gateway.NewGuard(closeBoth, secret)
+	g.Go(func() error { return relay(target, client) })
+	g.Go(func() error { return relay(client, target) })
+	err := g.Wait()
 	closeBoth()
 	return err
 }
