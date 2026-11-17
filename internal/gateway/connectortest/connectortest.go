@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/netip"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -33,11 +34,13 @@ type Target struct {
 	Resource gateway.Resource // Type == c.Type()
 	Secret   gateway.Secret   // a unique marker: it must not appear in logs or errors
 	Stream   string           // host:port of an echo service, for KindStream
+	Datagram string           // host:port of a UDP echo service, for KindDatagram
 }
 
 // Run checks c: nothing starts before the first session, Kinds match the server
 // type, every declared kind works with target, a cancel ends Serve within 1 s,
-// the recorder sees the traffic, the secret never leaks and no goroutine is left.
+// the recorder sees the traffic of the recorded kinds only, a TargetDialer dials
+// through Session.Dial, the endpoint allows the targets, the secret never leaks and no goroutine is left.
 // It replaces slog.Default, so the calling test must not be parallel.
 func Run(t *testing.T, c gateway.Connector, target Target) {
 	t.Helper()
@@ -69,10 +72,16 @@ func Run(t *testing.T, c gateway.Connector, target Target) {
 // runKind serves one session of kind k, drives the probe, then cancels it.
 func runKind(t *testing.T, c gateway.Connector, target Target, k gateway.Kind) {
 	rec := &spySink{}
+	var dials atomic.Int32
+	dialer := &net.Dialer{Timeout: waitFor}
 	s := &gateway.Session{
 		ID: uuid.New(), Kind: k, Front: "test", User: gateway.User{ID: uuid.New(), Login: "probe"},
 		Resource: target.Resource, Secret: target.Secret, ClientIP: netip.MustParseAddr("192.0.2.1"),
 		PinKey: func(string, []byte) error { return nil }, Recording: rec,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			dials.Add(1)
+			return dialer.DialContext(ctx, network, address)
+		},
 	}
 	var drive func(t *testing.T)
 	switch k {
@@ -104,6 +113,7 @@ func runKind(t *testing.T, c gateway.Connector, target Target, k gateway.Kind) {
 		user, conn := net.Pipe()
 		defer user.Close()
 		s.Stream, s.Target = conn, target.Stream
+		requireEndpointAllows(t, c.Type(), target.Resource, target.Stream)
 		drive = func(t *testing.T) {
 			require.NoError(t, user.SetDeadline(time.Now().Add(waitFor)))
 			_, err := io.WriteString(user, probe)
@@ -113,6 +123,11 @@ func runKind(t *testing.T, c gateway.Connector, target Target, k gateway.Kind) {
 			require.NoError(t, err)
 			require.Equal(t, probe, string(got))
 		}
+	case gateway.KindDatagram:
+		client, peer := Datagrams()
+		s.Datagram, s.Target = client, target.Datagram
+		requireEndpointAllows(t, c.Type(), target.Resource, target.Datagram)
+		drive = func(t *testing.T) { driveDatagrams(t, peer) }
 	default:
 		t.Fatalf("unknown kind %q", k)
 	}
@@ -131,10 +146,53 @@ func runKind(t *testing.T, c gateway.Connector, target Target, k gateway.Kind) {
 	case <-time.After(time.Second):
 		t.Fatal("Serve did not return within 1s of the cancel")
 	}
-	require.True(t, rec.output.Load(), "Recording.Output was not called")
-	if k != gateway.KindExec { // exec sends no input
-		require.True(t, rec.input.Load(), "Recording.Input was not called")
+	requireRecorded(t, c.Type(), k, rec)
+	if k == gateway.KindStream || k == gateway.KindDatagram {
+		requireDialsThroughSession(t, c, int(dials.Load()))
 	}
+}
+
+// requireRecorded checks that the recorder saw traffic exactly for the kinds the
+// registered type records. A type that is not registered records nothing.
+func requireRecorded(t require.TestingT, typ string, k gateway.Kind, rec *spySink) {
+	if registered, ok := connector.Lookup(typ); ok && registered.Records(k) {
+		require.True(t, rec.output.Load(), "Recording.Output was not called")
+		if k != gateway.KindExec { // exec sends no input
+			require.True(t, rec.input.Load(), "Recording.Input was not called")
+		}
+		return
+	}
+	require.False(t, rec.output.Load() || rec.input.Load(), "the connector records kind %q, which its type does not record", k)
+}
+
+// requireDialsThroughSession checks that a connector dials the target through
+// Session.Dial exactly when it is marked a TargetDialer (ssh keeps its own dial).
+func requireDialsThroughSession(t require.TestingT, c gateway.Connector, dials int) {
+	if _, marked := c.(gateway.TargetDialer); marked {
+		require.Positive(t, dials, "a TargetDialer must dial through Session.Dial")
+		return
+	}
+	require.Zero(t, dials, "the connector dials through Session.Dial but lacks DialsTarget")
+}
+
+// requireEndpointAllows checks that the registered type's endpoint, if it has one,
+// allows addr under the resource name.
+func requireEndpointAllows(t *testing.T, typ string, res gateway.Resource, addr string) {
+	t.Helper()
+	registered, ok := connector.Lookup(typ)
+	if !ok {
+		return
+	}
+	ep, has, err := registered.EndpointOf(res.Config)
+	require.NoError(t, err)
+	if !has {
+		return
+	}
+	host, portText, err := net.SplitHostPort(addr)
+	require.NoError(t, err)
+	port, err := strconv.ParseUint(portText, 10, 16)
+	require.NoError(t, err)
+	require.True(t, ep.Allow(res.Name, host, uint16(port)), "the endpoint of %q does not allow %s", typ, addr)
 }
 
 // spySink notes which recorder methods were called.

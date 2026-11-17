@@ -13,12 +13,13 @@ var bufPool = sync.Pool{New: func() any { b := make([]byte, 32<<10); return &b }
 
 // pipe relays a stream between the client and the target until both directions
 // end. EOF on one side half-closes the other (CloseWrite, or Close when the
-// side has none). Only the recorder sees the traffic: nothing is echoed.
-func pipe(client, target io.ReadWriteCloser, rec gateway.RecordingSink, secret gateway.Secret) error {
+// side has none). Streams are not recorded (ssh records terminal and exec only);
+// nothing is echoed.
+func pipe(client, target io.ReadWriteCloser, secret gateway.Secret) error {
 	closeBoth := func() { _ = client.Close(); _ = target.Close() }
 	g := &guard{stop: closeBoth, secret: secret}
-	g.spawn(func() error { return relay(target, client, rec.Input) })
-	g.spawn(func() error { return relay(client, target, rec.Output) })
+	g.spawn(func() error { return relay(target, client) })
+	g.spawn(func() error { return relay(client, target) })
 	err := g.done()
 	closeBoth()
 	return err
@@ -27,8 +28,8 @@ func pipe(client, target io.ReadWriteCloser, rec gateway.RecordingSink, secret g
 // relay copies src to dst, then half-closes dst. A side closed by the other
 // direction or by the session end is a normal end (an SSH channel write after
 // the remote close is io.EOF).
-func relay(dst io.WriteCloser, src io.Reader, record func([]byte)) error {
-	err := copyRec(dst, src, record)
+func relay(dst io.WriteCloser, src io.Reader) error {
+	err := copyRec(dst, src, nil)
 	if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) || errors.Is(err, io.ErrClosedPipe) {
 		return nil
 	}
@@ -44,7 +45,7 @@ func relay(dst io.WriteCloser, src io.Reader, record func([]byte)) error {
 }
 
 // copyRec copies src to dst through a pooled 32 KB buffer and hands every chunk
-// to record first. EOF is a nil error.
+// to record first (nil: none). EOF is a nil error.
 func copyRec(dst io.Writer, src io.Reader, record func([]byte)) error {
 	bp := bufPool.Get().(*[]byte)
 	defer bufPool.Put(bp)
@@ -52,7 +53,9 @@ func copyRec(dst io.Writer, src io.Reader, record func([]byte)) error {
 	for {
 		n, err := src.Read(buf)
 		if n > 0 {
-			record(buf[:n])
+			if record != nil {
+				record(buf[:n])
+			}
 			if _, werr := dst.Write(buf[:n]); werr != nil {
 				return werr
 			}

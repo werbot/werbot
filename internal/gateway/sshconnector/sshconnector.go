@@ -82,7 +82,7 @@ func (c Connector) serve(ctx context.Context, s *gateway.Session) error {
 		if err != nil {
 			return fmt.Errorf("ssh: open %s through the target: %w", s.Target, err)
 		}
-		return pipe(s.Stream, target, s.Recording, s.Secret)
+		return pipe(s.Stream, target, s.Secret)
 	default:
 		return fmt.Errorf("ssh: unsupported session kind %q", s.Kind)
 	}
