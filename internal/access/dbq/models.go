@@ -21,6 +21,7 @@ type AccessBinding struct {
 	LabelSelector []byte
 	CreatedBy     uuid.UUID
 	CreatedAt     time.Time
+	Ports         []pgtype.Range[pgtype.Int4]
 }
 
 type AuditEvent struct {
@@ -144,15 +145,17 @@ type Recording struct {
 }
 
 type Resource struct {
-	ID        uuid.UUID
-	OrgID     uuid.UUID
-	Name      string
-	Type      string
-	Category  string
-	GatewayID *uuid.UUID
-	Config    []byte
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	Name        string
+	Type        string
+	Category    string
+	GatewayID   *uuid.UUID
+	Config      []byte
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	IdleTimeout pgtype.Interval
+	MaxDuration pgtype.Interval
 }
 
 type ResourceCountryRule struct {
@@ -161,6 +164,15 @@ type ResourceCountryRule struct {
 	ResourceID uuid.UUID
 	Country    string
 	Effect     string
+}
+
+type ResourceHealth struct {
+	ResourceID        uuid.UUID
+	GatewayInstanceID uuid.UUID
+	OrgID             uuid.UUID
+	Ok                bool
+	Error             string
+	CheckedAt         time.Time
 }
 
 type ResourceHostKey struct {
@@ -205,6 +217,12 @@ type Session struct {
 	StartedAt         time.Time
 	EndedAt           *time.Time
 	EndReason         *string
+	Kind              string
+	Target            string
+	BytesUp           int64
+	BytesDown         int64
+	DatagramsUp       int64
+	DatagramsDown     int64
 }
 
 type SigningKey struct {

@@ -24,12 +24,16 @@ func New(pool *pgxpool.Pool) *Service { return &Service{pool: pool} }
 
 // Start records a new open session and audits "session.start".
 func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
+	if p.Kind == "" {
+		p.Kind = "terminal"
+	}
 	var id uuid.UUID
 	err := dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
 		var err error
 		id, err = newStore(tx).StartSession(ctx, dbq.StartSessionParams{
 			OrgID: p.OrgID, UserID: &p.UserID, ResourceID: &p.ResourceID,
 			GatewayID: &p.GatewayID, GatewayInstanceID: &p.InstanceID, ClientIp: p.ClientIP,
+			Kind: p.Kind, Target: p.Target,
 		})
 		if err != nil {
 			return err
@@ -47,11 +51,16 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 }
 
 // End closes an open session of instanceID. A repeat call is a no-op; a
-// session of another instance or organization is apperr.ErrNotFound.
-func (s *Service) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string) error {
+// session of another instance or organization is apperr.ErrNotFound. A
+// non-nil c stores the final counters, never below the current ones.
+func (s *Service) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters) error {
+	if c == nil {
+		c = &Counters{}
+	}
 	return dbx.InOrg(ctx, s.pool, orgID, uuid.Nil, func(tx pgx.Tx) error {
 		st := newStore(tx)
-		res, err := st.EndSession(ctx, dbq.EndSessionParams{ID: id, OrgID: orgID, InstanceID: instanceID, Reason: reason})
+		res, err := st.EndSession(ctx, dbq.EndSessionParams{ID: id, OrgID: orgID, InstanceID: instanceID, Reason: reason,
+			BytesUp: c.BytesUp, BytesDown: c.BytesDown, DatagramsUp: c.DatagramsUp, DatagramsDown: c.DatagramsDown})
 		if errors.Is(err, pgx.ErrNoRows) {
 			ok, err := st.SessionOfInstanceExists(ctx, dbq.SessionOfInstanceExistsParams{ID: id, OrgID: orgID, InstanceID: instanceID})
 			if err != nil {
@@ -119,5 +128,24 @@ func auditEnd(ctx context.Context, tx pgx.Tx, actorKind string, orgID uuid.UUID,
 		OrgID: &orgID, ActorKind: actorKind, Action: "session.end",
 		TargetType: "resource", TargetID: targetID,
 		Data: map[string]any{"session_id": id.String(), "reason": reason},
+	})
+}
+
+// UpdateCounters stores the totals of the open sessions of instanceID in one
+// statement; a total never lowers the stored one, other sessions are ignored.
+func (s *Service) UpdateCounters(ctx context.Context, orgID, instanceID uuid.UUID, cs []Counters) error {
+	if len(cs) == 0 {
+		return nil
+	}
+	arg := dbq.UpdateSessionCountersParams{OrgID: orgID, InstanceID: instanceID}
+	for _, c := range cs {
+		arg.Ids = append(arg.Ids, c.SessionID)
+		arg.BytesUp = append(arg.BytesUp, c.BytesUp)
+		arg.BytesDown = append(arg.BytesDown, c.BytesDown)
+		arg.DatagramsUp = append(arg.DatagramsUp, c.DatagramsUp)
+		arg.DatagramsDown = append(arg.DatagramsDown, c.DatagramsDown)
+	}
+	return dbx.InOrg(ctx, s.pool, orgID, uuid.Nil, func(tx pgx.Tx) error {
+		return newStore(tx).UpdateSessionCounters(ctx, arg)
 	})
 }

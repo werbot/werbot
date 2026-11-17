@@ -52,6 +52,7 @@ type Secret struct {
 type SessionStart struct {
 	OrgID, GatewayID, InstanceID, UserID, ResourceID uuid.UUID
 	ClientIP                                         netip.Addr
+	Kind, Target                                     string
 }
 
 // Gateways authenticates instances by their verified client certificate.

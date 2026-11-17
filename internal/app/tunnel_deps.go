@@ -104,7 +104,12 @@ func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid
 		return uuid.Nil, err
 	}
 	return s.Service.Start(ctx, session.Start{OrgID: st.OrgID, UserID: st.UserID, ResourceID: st.ResourceID,
-		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP})
+		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Target: st.Target})
+}
+
+// End closes a session without counters until the tunnel carries them.
+func (s tunnelSessions) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string) error {
+	return s.Service.End(ctx, orgID, instanceID, id, reason, nil)
 }
 
 // tunnelSnapshots builds a pool's snapshot: the organization's compiled

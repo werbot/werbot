@@ -1,13 +1,31 @@
 -- name: StartSession :one
-INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip)
-VALUES (@org_id, @user_id, @resource_id, @gateway_id, @gateway_instance_id, @client_ip)
+INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target)
+VALUES (@org_id, @user_id, @resource_id, @gateway_id, @gateway_instance_id, @client_ip, @kind, @target)
 RETURNING id;
 
 -- name: EndSession :one
 UPDATE session
-SET ended_at = now(), end_reason = @reason::text
+-- Final counters never lower the stored ones; zeros leave them as they are.
+SET ended_at = now(), end_reason = @reason::text,
+    bytes_up = GREATEST(bytes_up, @bytes_up::bigint), bytes_down = GREATEST(bytes_down, @bytes_down::bigint),
+    datagrams_up = GREATEST(datagrams_up, @datagrams_up::bigint), datagrams_down = GREATEST(datagrams_down, @datagrams_down::bigint)
 WHERE id = @id AND org_id = @org_id AND gateway_instance_id = @instance_id::uuid AND ended_at IS NULL
 RETURNING resource_id;
+
+-- name: UpdateSessionCounters :exec
+-- One statement for a batch; only open sessions of the instance, never lowering a counter.
+UPDATE session s
+SET bytes_up = GREATEST(s.bytes_up, c.bytes_up), bytes_down = GREATEST(s.bytes_down, c.bytes_down),
+    datagrams_up = GREATEST(s.datagrams_up, c.datagrams_up), datagrams_down = GREATEST(s.datagrams_down, c.datagrams_down)
+FROM (SELECT unnest(@ids::uuid[]) AS id, unnest(@bytes_up::bigint[]) AS bytes_up, unnest(@bytes_down::bigint[]) AS bytes_down,
+             unnest(@datagrams_up::bigint[]) AS datagrams_up, unnest(@datagrams_down::bigint[]) AS datagrams_down) c
+WHERE s.id = c.id AND s.org_id = @org_id AND s.gateway_instance_id = @instance_id::uuid AND s.ended_at IS NULL;
+
+-- name: ResourceIDsByName :many
+SELECT name, id FROM resource WHERE org_id = @org_id AND name = ANY(@names::text[]);
+
+-- name: MembersAmong :many
+SELECT user_id FROM membership WHERE org_id = @org_id AND user_id = ANY(@user_ids::uuid[]);
 
 -- name: SessionOfInstanceExists :one
 SELECT EXISTS (SELECT 1 FROM session WHERE id = @id AND org_id = @org_id AND gateway_instance_id = @instance_id::uuid);
@@ -70,6 +88,7 @@ WHERE session_id = @session_id AND org_id = @org_id;
 -- name: ListSessions :many
 -- LEFT JOINs keep the history of deleted users and resources.
 SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
+       s.kind, s.target, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
        coalesce(u.login, '')::text AS user_login,
        coalesce(r.name, '')::text AS resource_name,
        coalesce(s.end_reason, '')::text AS end_reason,

@@ -41,6 +41,9 @@ type Summary struct {
 	Chunks                             int
 	Bytes                              int64
 	Finished                           bool
+	Kind, Target                       string
+	BytesUp, BytesDown                 int64
+	DatagramsUp, DatagramsDown         int64
 }
 
 // ListSessions returns one page of the organization's sessions, newest first,
@@ -111,5 +114,7 @@ func summary(r dbq.ListSessionsRow) Summary {
 	return Summary{ID: r.ID, UserID: r.UserID, ResourceID: r.ResourceID, GatewayID: r.GatewayID,
 		UserLogin: r.UserLogin, ResourceName: r.ResourceName, EndReason: r.EndReason,
 		ClientIP: r.ClientIp, StartedAt: r.StartedAt, EndedAt: r.EndedAt,
-		Chunks: int(r.Chunks), Bytes: r.Bytes, Finished: r.Finished}
+		Chunks: int(r.Chunks), Bytes: r.Bytes, Finished: r.Finished,
+		Kind: r.Kind, Target: r.Target, BytesUp: r.BytesUp, BytesDown: r.BytesDown,
+		DatagramsUp: r.DatagramsUp, DatagramsDown: r.DatagramsDown}
 }

@@ -12,6 +12,9 @@ import (
 // Store is the persistence the use cases need.
 type Store interface {
 	StartSession(ctx context.Context, arg dbq.StartSessionParams) (uuid.UUID, error)
+	UpdateSessionCounters(ctx context.Context, arg dbq.UpdateSessionCountersParams) error
+	ResourceIDsByName(ctx context.Context, arg dbq.ResourceIDsByNameParams) ([]dbq.ResourceIDsByNameRow, error)
+	MembersAmong(ctx context.Context, arg dbq.MembersAmongParams) ([]uuid.UUID, error)
 	EndSession(ctx context.Context, arg dbq.EndSessionParams) (*uuid.UUID, error)
 	SessionOfInstanceExists(ctx context.Context, arg dbq.SessionOfInstanceExistsParams) (bool, error)
 	EndMissingSessions(ctx context.Context, arg dbq.EndMissingSessionsParams) ([]dbq.EndMissingSessionsRow, error)

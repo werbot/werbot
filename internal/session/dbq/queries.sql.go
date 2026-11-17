@@ -140,21 +140,32 @@ func (q *Queries) EndMissingSessions(ctx context.Context, arg EndMissingSessions
 
 const endSession = `-- name: EndSession :one
 UPDATE session
-SET ended_at = now(), end_reason = $1::text
-WHERE id = $2 AND org_id = $3 AND gateway_instance_id = $4::uuid AND ended_at IS NULL
+SET ended_at = now(), end_reason = $1::text,
+    bytes_up = GREATEST(bytes_up, $2::bigint), bytes_down = GREATEST(bytes_down, $3::bigint),
+    datagrams_up = GREATEST(datagrams_up, $4::bigint), datagrams_down = GREATEST(datagrams_down, $5::bigint)
+WHERE id = $6 AND org_id = $7 AND gateway_instance_id = $8::uuid AND ended_at IS NULL
 RETURNING resource_id
 `
 
 type EndSessionParams struct {
-	Reason     string
-	ID         uuid.UUID
-	OrgID      uuid.UUID
-	InstanceID uuid.UUID
+	Reason        string
+	BytesUp       int64
+	BytesDown     int64
+	DatagramsUp   int64
+	DatagramsDown int64
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	InstanceID    uuid.UUID
 }
 
+// Final counters never lower the stored ones; zeros leave them as they are.
 func (q *Queries) EndSession(ctx context.Context, arg EndSessionParams) (*uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, endSession,
 		arg.Reason,
+		arg.BytesUp,
+		arg.BytesDown,
+		arg.DatagramsUp,
+		arg.DatagramsDown,
 		arg.ID,
 		arg.OrgID,
 		arg.InstanceID,
@@ -255,6 +266,7 @@ func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyPara
 
 const listSessions = `-- name: ListSessions :many
 SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
+       s.kind, s.target, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
        coalesce(u.login, '')::text AS user_login,
        coalesce(r.name, '')::text AS resource_name,
        coalesce(s.end_reason, '')::text AS end_reason,
@@ -289,19 +301,25 @@ type ListSessionsParams struct {
 }
 
 type ListSessionsRow struct {
-	ID           uuid.UUID
-	UserID       *uuid.UUID
-	ResourceID   *uuid.UUID
-	GatewayID    *uuid.UUID
-	ClientIp     netip.Addr
-	StartedAt    time.Time
-	EndedAt      *time.Time
-	UserLogin    string
-	ResourceName string
-	EndReason    string
-	Chunks       int32
-	Bytes        int64
-	Finished     bool
+	ID            uuid.UUID
+	UserID        *uuid.UUID
+	ResourceID    *uuid.UUID
+	GatewayID     *uuid.UUID
+	ClientIp      netip.Addr
+	StartedAt     time.Time
+	EndedAt       *time.Time
+	Kind          string
+	Target        string
+	BytesUp       int64
+	BytesDown     int64
+	DatagramsUp   int64
+	DatagramsDown int64
+	UserLogin     string
+	ResourceName  string
+	EndReason     string
+	Chunks        int32
+	Bytes         int64
+	Finished      bool
 }
 
 // LEFT JOINs keep the history of deleted users and resources.
@@ -332,6 +350,12 @@ func (q *Queries) ListSessions(ctx context.Context, arg ListSessionsParams) ([]L
 			&i.ClientIp,
 			&i.StartedAt,
 			&i.EndedAt,
+			&i.Kind,
+			&i.Target,
+			&i.BytesUp,
+			&i.BytesDown,
+			&i.DatagramsUp,
+			&i.DatagramsDown,
 			&i.UserLogin,
 			&i.ResourceName,
 			&i.EndReason,
@@ -381,6 +405,69 @@ func (q *Queries) LockRecording(ctx context.Context, arg LockRecordingParams) (L
 	return i, err
 }
 
+const membersAmong = `-- name: MembersAmong :many
+SELECT user_id FROM membership WHERE org_id = $1 AND user_id = ANY($2::uuid[])
+`
+
+type MembersAmongParams struct {
+	OrgID   uuid.UUID
+	UserIds []uuid.UUID
+}
+
+func (q *Queries) MembersAmong(ctx context.Context, arg MembersAmongParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, membersAmong, arg.OrgID, arg.UserIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var user_id uuid.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const resourceIDsByName = `-- name: ResourceIDsByName :many
+SELECT name, id FROM resource WHERE org_id = $1 AND name = ANY($2::text[])
+`
+
+type ResourceIDsByNameParams struct {
+	OrgID uuid.UUID
+	Names []string
+}
+
+type ResourceIDsByNameRow struct {
+	Name string
+	ID   uuid.UUID
+}
+
+func (q *Queries) ResourceIDsByName(ctx context.Context, arg ResourceIDsByNameParams) ([]ResourceIDsByNameRow, error) {
+	rows, err := q.db.Query(ctx, resourceIDsByName, arg.OrgID, arg.Names)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ResourceIDsByNameRow
+	for rows.Next() {
+		var i ResourceIDsByNameRow
+		if err := rows.Scan(&i.Name, &i.ID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sessionOfInstanceExists = `-- name: SessionOfInstanceExists :one
 SELECT EXISTS (SELECT 1 FROM session WHERE id = $1 AND org_id = $2 AND gateway_instance_id = $3::uuid)
 `
@@ -399,8 +486,8 @@ func (q *Queries) SessionOfInstanceExists(ctx context.Context, arg SessionOfInst
 }
 
 const startSession = `-- name: StartSession :one
-INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING id
 `
 
@@ -411,6 +498,8 @@ type StartSessionParams struct {
 	GatewayID         *uuid.UUID
 	GatewayInstanceID *uuid.UUID
 	ClientIp          netip.Addr
+	Kind              string
+	Target            string
 }
 
 func (q *Queries) StartSession(ctx context.Context, arg StartSessionParams) (uuid.UUID, error) {
@@ -421,8 +510,43 @@ func (q *Queries) StartSession(ctx context.Context, arg StartSessionParams) (uui
 		arg.GatewayID,
 		arg.GatewayInstanceID,
 		arg.ClientIp,
+		arg.Kind,
+		arg.Target,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const updateSessionCounters = `-- name: UpdateSessionCounters :exec
+UPDATE session s
+SET bytes_up = GREATEST(s.bytes_up, c.bytes_up), bytes_down = GREATEST(s.bytes_down, c.bytes_down),
+    datagrams_up = GREATEST(s.datagrams_up, c.datagrams_up), datagrams_down = GREATEST(s.datagrams_down, c.datagrams_down)
+FROM (SELECT unnest($3::uuid[]) AS id, unnest($4::bigint[]) AS bytes_up, unnest($5::bigint[]) AS bytes_down,
+             unnest($6::bigint[]) AS datagrams_up, unnest($7::bigint[]) AS datagrams_down) c
+WHERE s.id = c.id AND s.org_id = $1 AND s.gateway_instance_id = $2::uuid AND s.ended_at IS NULL
+`
+
+type UpdateSessionCountersParams struct {
+	OrgID         uuid.UUID
+	InstanceID    uuid.UUID
+	Ids           []uuid.UUID
+	BytesUp       []int64
+	BytesDown     []int64
+	DatagramsUp   []int64
+	DatagramsDown []int64
+}
+
+// One statement for a batch; only open sessions of the instance, never lowering a counter.
+func (q *Queries) UpdateSessionCounters(ctx context.Context, arg UpdateSessionCountersParams) error {
+	_, err := q.db.Exec(ctx, updateSessionCounters,
+		arg.OrgID,
+		arg.InstanceID,
+		arg.Ids,
+		arg.BytesUp,
+		arg.BytesDown,
+		arg.DatagramsUp,
+		arg.DatagramsDown,
+	)
+	return err
 }

@@ -142,6 +142,8 @@ func toProto(s Summary) *werbotv1.Session {
 		Id: s.ID.String(), UserId: idString(s.UserID), UserLogin: s.UserLogin,
 		ResourceId: idString(s.ResourceID), ResourceName: s.ResourceName, GatewayId: idString(s.GatewayID),
 		ClientIp: s.ClientIP.String(), StartedAt: timestamppb.New(s.StartedAt), EndReason: s.EndReason,
+		Kind: s.Kind, Target: s.Target, BytesUp: s.BytesUp, BytesDown: s.BytesDown,
+		DatagramsUp: s.DatagramsUp, DatagramsDown: s.DatagramsDown,
 		Recording: &werbotv1.Recording{Chunks: int32(s.Chunks), Bytes: s.Bytes, Finished: s.Finished}, //nolint:gosec // chunk count is small
 	}
 	if s.EndedAt != nil {

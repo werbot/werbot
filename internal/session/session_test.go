@@ -95,12 +95,12 @@ func TestStartAndEnd(t *testing.T) {
 		Scan(&targetType, &targetID, &sid))
 	assert.Equal(t, [3]string{"resource", e.res.String(), id.String()}, [3]string{targetType, targetID, sid})
 
-	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "closed"))
+	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "closed", nil))
 	require.NotNil(t, e.ended(t, id))
 	assert.Equal(t, "closed", *e.ended(t, id))
 	assert.Equal(t, 1, e.endAudits(t, "gateway"))
 
-	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "again"))
+	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "again", nil))
 	assert.Equal(t, "closed", *e.ended(t, id))
 	assert.Equal(t, 1, e.endAudits(t, "gateway"), "repeat End writes no event")
 }
@@ -108,8 +108,8 @@ func TestStartAndEnd(t *testing.T) {
 func TestEndForeign(t *testing.T) {
 	e := setup(t)
 	id := e.open(t, &e.a, 0)
-	assert.ErrorIs(t, e.svc.End(bg, e.org, e.b, id, "closed"), apperr.ErrNotFound)
-	assert.ErrorIs(t, e.svc.End(bg, uuid.New(), e.a, id, "closed"), apperr.ErrNotFound)
+	assert.ErrorIs(t, e.svc.End(bg, e.org, e.b, id, "closed", nil), apperr.ErrNotFound)
+	assert.ErrorIs(t, e.svc.End(bg, uuid.New(), e.a, id, "closed", nil), apperr.ErrNotFound)
 	assert.Nil(t, e.ended(t, id))
 }
 

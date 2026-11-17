@@ -18,7 +18,7 @@ WHERE CASE $2::text
     WHEN 'user' THEN EXISTS (SELECT 1 FROM membership WHERE org_id = $1 AND user_id = $3)
     ELSE EXISTS (SELECT 1 FROM team WHERE org_id = $1 AND id = $3)
 END
-RETURNING id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at
+RETURNING id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at, ports
 `
 
 type CreateBindingParams struct {
@@ -50,6 +50,7 @@ func (q *Queries) CreateBinding(ctx context.Context, arg CreateBindingParams) (A
 		&i.LabelSelector,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.Ports,
 	)
 	return i, err
 }
@@ -84,7 +85,7 @@ func (q *Queries) DeleteBinding(ctx context.Context, arg DeleteBindingParams) (D
 }
 
 const listBindings = `-- name: ListBindings :many
-SELECT id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at
+SELECT id, org_id, subject_type, subject_id, resource_id, label_selector, created_by, created_at, ports
 FROM access_binding
 WHERE org_id = $1
   AND ($2::uuid IS NULL OR resource_id = $2::uuid OR label_selector IS NOT NULL)
@@ -115,6 +116,7 @@ func (q *Queries) ListBindings(ctx context.Context, arg ListBindingsParams) ([]A
 			&i.LabelSelector,
 			&i.CreatedBy,
 			&i.CreatedAt,
+			&i.Ports,
 		); err != nil {
 			return nil, err
 		}

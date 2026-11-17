@@ -36,6 +36,12 @@ message Session {
   google.protobuf.Timestamp ended_at = 9;
   string end_reason = 10;
   Recording recording = 11;
+  string kind = 12; // terminal | exec | stream | datagram
+  string target = 13;
+  int64 bytes_up = 14;
+  int64 bytes_down = 15;
+  int64 datagrams_up = 16;
+  int64 datagrams_down = 17;
 }
 
 message ListSessionsRequest {

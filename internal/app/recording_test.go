@@ -78,7 +78,7 @@ func (u *ingestUploader) EndSession(ctx context.Context, sid uuid.UUID, reason s
 	if err := u.unavailable(); err != nil {
 		return err
 	}
-	return apperr.ToConnect(u.sessions.End(ctx, u.orgID, u.instanceID, sid, reason))
+	return apperr.ToConnect(u.sessions.End(ctx, u.orgID, u.instanceID, sid, reason, nil))
 }
 
 func (u *ingestUploader) FinishRecording(ctx context.Context, m recorder.Manifest) error {

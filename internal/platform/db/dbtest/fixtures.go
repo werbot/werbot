@@ -115,8 +115,8 @@ func Seed(t testing.TB, pool *pgxpool.Pool) Fixture {
 func (f Fixture) StartSession(t testing.TB, pool *pgxpool.Pool, userID uuid.UUID) uuid.UUID {
 	t.Helper()
 	return insertID(t, pool,
-		`INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip)
-		 VALUES ($1, $2, $3, $4, $5, '10.0.0.1') RETURNING id`,
+		`INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind)
+		 VALUES ($1, $2, $3, $4, $5, '10.0.0.1', 'terminal') RETURNING id`,
 		f.OrgID, userID, f.ResourceID, f.GatewayID, f.InstanceID)
 }
 
