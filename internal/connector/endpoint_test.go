@@ -68,4 +68,7 @@ func TestEndpointAllow(t *testing.T) {
 	assert.False(t, e.Allow("pg", "10.0.0.6", 5432))
 	assert.False(t, e.Allow("pg", "pg", 5433))
 	assert.True(t, Endpoint{AnyTarget: true}.Allow("x", "any", 1))
+	noTarget := Endpoint{Host: "10.0.0.5", Ports: []PortRange{{Port: 22}}, NoTarget: true}
+	assert.False(t, noTarget.Allow("srv", "10.0.0.5", 22))
+	assert.False(t, noTarget.Allow("srv", "srv", 22))
 }

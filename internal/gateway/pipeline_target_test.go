@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/netip"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -126,6 +127,30 @@ func TestOpenTargetNotAllowed(t *testing.T) {
 	s, err := e.p.Open(t.Context(), e.target(KindDatagram, "pg:5432"))
 	require.NoError(t, err)
 	require.Equal(t, KindDatagram, s.Kind)
+}
+
+// An ssh resource without port_forwarding refuses every stream target before
+// the PDP, its own host:port included; with it the target passes both (no ssh
+// connector is registered in this package).
+func TestOpenSSHTargetWithoutPortForwarding(t *testing.T) {
+	e := newPipeEnv(t, 10)
+	e.m["rpg"] = uuid.New()
+	for _, fwd := range []bool{false, true} {
+		s := testSnapshot(t, e.m, pipePolicies, nil, res{"rpg", "pg", "ssh"})
+		s.Resources[0].ConfigJson = []byte(`{"host":"10.0.0.5","login":"u","portForwarding":` + strconv.FormatBool(fwd) + `}`)
+		p, err := CompilePolicy(s)
+		require.NoError(t, err)
+		e.f.setPolicy(p)
+		for _, target := range []string{"pg:22", "10.0.0.5:22", "10.9.9.9:80"} {
+			_, err := e.p.Open(t.Context(), e.target(KindStream, target))
+			if fwd {
+				require.ErrorIs(t, err, ErrUnsupportedType, "past the target check and the PDP: %s", target)
+				continue
+			}
+			require.ErrorIs(t, err, ErrTargetNotAllowed, target)
+		}
+	}
+	e.f.with(func(f *fakeControl) { require.Zero(t, f.startCalls) })
 }
 
 func TestOpenNotRecordedKind(t *testing.T) {

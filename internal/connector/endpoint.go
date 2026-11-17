@@ -67,11 +67,15 @@ type Endpoint struct {
 	Host      string
 	Ports     []PortRange // target ports; the first port of each range is the TCP health check
 	AnyTarget bool        // any host:port (ssh with port forwarding)
+	NoTarget  bool        // no stream or datagram target; Ports stay for health (ssh without port forwarding)
 	NoHealth  bool
 }
 
 // Allow reports whether host:port is a permitted target of the resource.
 func (e Endpoint) Allow(resourceName, host string, port uint16) bool {
+	if e.NoTarget {
+		return false
+	}
 	if e.AnyTarget {
 		return true
 	}

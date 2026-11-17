@@ -31,7 +31,7 @@ func init() {
 			if port == 0 {
 				port = 22
 			}
-			return connector.Endpoint{Host: c.Host, Ports: []connector.PortRange{{Port: port}}, AnyTarget: c.PortForwarding}
+			return connector.Endpoint{Host: c.Host, Ports: []connector.PortRange{{Port: port}}, AnyTarget: c.PortForwarding, NoTarget: !c.PortForwarding}
 		},
 	})
 }

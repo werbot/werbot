@@ -44,12 +44,15 @@ func TestSSHEndpointAndRecorded(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ok)
 	assert.False(t, e.AnyTarget)
+	assert.True(t, e.NoTarget, "no port forwarding: no stream target")
+	assert.False(t, e.Allow("r", "h", 22))
 	assert.Equal(t, "h", e.Host)
-	assert.Equal(t, []connector.PortRange{{Port: 22}}, e.Ports)
+	assert.Equal(t, []connector.PortRange{{Port: 22}}, e.Ports, "the port stays for health")
 
 	e, _, err = ty.EndpointOf([]byte(`{"host":"h","login":"u","port":2200,"portForwarding":true}`))
 	require.NoError(t, err)
 	assert.True(t, e.AnyTarget)
+	assert.False(t, e.NoTarget)
 	assert.Equal(t, []connector.PortRange{{Port: 2200}}, e.Ports)
 }
 
