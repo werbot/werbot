@@ -125,10 +125,11 @@ func assertCastParses(t *testing.T, cast []byte) []event {
 	return events
 }
 
-func joined(events []event, code string) string {
+// output concatenates the data of all "o" events.
+func output(events []event) string {
 	var b strings.Builder
 	for _, e := range events {
-		if e.code == code {
+		if e.code == "o" {
 			b.WriteString(e.data)
 		}
 	}
@@ -181,18 +182,38 @@ func TestRecorderInvalidUTF8(t *testing.T) {
 }
 
 func TestRecorderSplitsLargeOutput(t *testing.T) {
-	sink := &memSink{}
-	r := recorder.New(uuid.Must(uuid.NewV7()), 80, 24, sink, recorder.Options{})
-	in := bytes.Repeat([]byte("a"), 1<<20)
-	r.Output(in)
-	require.NoError(t, r.Close(context.Background()))
-	chunks := sink.snapshot()
-	assert.GreaterOrEqual(t, len(chunks), 16)
-	for i, c := range chunks {
-		assert.LessOrEqual(t, len(gunzip(t, c.gz)), recorder.MaxChunkRaw, "chunk %d", i)
+	for name, b := range map[string]byte{
+		"ascii":        'a',
+		"worst escape": 0x01, // JSON \u0001: ×6
+	} {
+		t.Run(name, func(t *testing.T) {
+			sink := &memSink{}
+			r := recorder.New(uuid.Must(uuid.NewV7()), 80, 24, sink, recorder.Options{})
+			in := bytes.Repeat([]byte{b}, 1<<20)
+			r.Output(in)
+			require.NoError(t, r.Close(context.Background()))
+			chunks := sink.snapshot()
+			assert.GreaterOrEqual(t, len(chunks), 16)
+			for i, c := range chunks {
+				assert.LessOrEqual(t, len(gunzip(t, c.gz)), recorder.MaxChunkRaw, "chunk %d", i)
+			}
+			assert.Equal(t, string(in), output(assertCastParses(t, sink.cast(t))))
+			assertChain(t, sink)
+		})
 	}
-	assert.Equal(t, string(in), joined(assertCastParses(t, sink.cast(t)), "o"))
-	assertChain(t, sink)
+}
+
+func TestRecorderKeepsSplitEmoji(t *testing.T) {
+	emoji := []byte("😀")
+	for cut := 1; cut < len(emoji); cut++ {
+		sink := &memSink{}
+		r := recorder.New(uuid.Must(uuid.NewV7()), 80, 24, sink, recorder.Options{})
+		r.Output(append([]byte("a"), emoji[:cut]...))
+		r.Output(append(emoji[cut:], 'b'))
+		require.NoError(t, r.Close(context.Background()))
+		events := assertCastParses(t, sink.cast(t))
+		assert.Equal(t, "a😀b", output(events), "cut %d", cut)
+	}
 }
 
 func TestRecorderFlushesAfterInterval(t *testing.T) {
@@ -248,7 +269,7 @@ func TestRecorderConcurrentSessions(t *testing.T) {
 	}
 	wg.Wait()
 	for i, s := range sinks {
-		assert.Equal(t, string(inputs[i]), joined(assertCastParses(t, s.cast(t)), "o"), "session %d", i)
+		assert.Equal(t, string(inputs[i]), output(assertCastParses(t, s.cast(t))), "session %d", i)
 		assertChain(t, s)
 	}
 }
