@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 }
 
 // fakeGateway is the gateway's SSH front as werbot connect sees it: it accepts
-// one key, answers resource@werbot.com with info (refuses when nil), echoes
+// one key, answers resource@werbot.com with info (refuses with denial when nil), echoes
 // direct-tcpip streams (half-close included) and datagram@werbot.com frames.
 type fakeGateway struct {
 	addr    string
@@ -39,6 +39,7 @@ type fakeGateway struct {
 
 	down    atomic.Bool  // accepted connections are closed at once
 	stall   atomic.Bool  // keepalives get no reply
+	noKey   atomic.Bool  // the client key is refused
 	dials   atomic.Int64 // connections served
 	streams atomic.Int64 // accepted direct-tcpip channels
 
@@ -47,6 +48,7 @@ type fakeGateway struct {
 	users  []string
 	opens  []sshdgram.OpenData
 	refuse string // channel opens are refused with this text
+	denial string // payload of a refused resource request (info nil)
 }
 
 func startFake(t *testing.T, client gossh.PublicKey, info *sshdgram.ResourceInfo) *fakeGateway {
@@ -55,7 +57,7 @@ func startFake(t *testing.T, client gossh.PublicKey, info *sshdgram.ResourceInfo
 	require.NoError(t, err)
 	f := &fakeGateway{addr: ln.Addr().String(), hostKey: newKey(t), info: info}
 	srv := &ssh.Server{
-		PublicKeyHandler: func(_ ssh.Context, k ssh.PublicKey) bool { return ssh.KeysEqual(k, client) },
+		PublicKeyHandler: func(_ ssh.Context, k ssh.PublicKey) bool { return !f.noKey.Load() && ssh.KeysEqual(k, client) },
 		ChannelHandlers:  map[string]ssh.ChannelHandler{"direct-tcpip": f.stream, sshdgram.ChannelType: f.datagram},
 		RequestHandlers:  map[string]ssh.RequestHandler{sshdgram.ResourceRequest: f.resource, "keepalive@openssh.com": f.keepalive},
 	}
@@ -95,9 +97,10 @@ func (f *fakeGateway) drop() {
 func (f *fakeGateway) resource(ctx ssh.Context, _ *ssh.Server, _ *gossh.Request) (bool, []byte) {
 	f.mu.Lock()
 	f.users = append(f.users, ctx.User())
+	denial := f.denial
 	f.mu.Unlock()
 	if f.info == nil {
-		return false, nil
+		return false, []byte(denial)
 	}
 	b, err := json.Marshal(f.info)
 	return err == nil, b

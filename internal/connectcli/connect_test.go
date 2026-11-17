@@ -151,6 +151,17 @@ func TestConnectAccessDenied(t *testing.T) {
 	assert.Equal(t, "Access denied\n", r.stderr.String())
 }
 
+// A refusal with a text prints it as it is.
+func TestConnectRefusalText(t *testing.T) {
+	f, cfg := testSetup(t, nil, "pg")
+	f.mu.Lock()
+	f.denial = "Gateway is not ready, try again later"
+	f.mu.Unlock()
+	r := startRun(t, cfg)
+	require.EqualError(t, r.wait(t), "pg: refused by the gateway")
+	assert.Equal(t, "Gateway is not ready, try again later\n", r.stderr.String())
+}
+
 func TestConnectNoPortAccess(t *testing.T) {
 	_, cfg := testSetup(t, &sshdgram.ResourceInfo{Type: "ssh", Kinds: []string{"terminal", "exec"}}, "srv")
 	assert.EqualError(t, startRun(t, cfg).wait(t), "Resource srv does not support port access")
@@ -172,4 +183,31 @@ func TestConnectChannelRefused(t *testing.T) {
 	assert.ErrorIs(t, err, io.EOF)
 	assert.Equal(t, "Gateway is busy, try again later\n", r.stderr.String())
 	assert.NoError(t, r.stop(t))
+}
+
+// A refused datagram channel prints its text once and is not opened again for
+// the datagrams that follow within the backoff.
+func TestConnectUDPRefusedBacksOff(t *testing.T) {
+	prev := backoffFirst
+	t.Cleanup(func() { backoffFirst = prev }) // runs after Run stopped
+	backoffFirst = 300 * time.Millisecond
+	port := freePortNum(t)
+	info := &sshdgram.ResourceInfo{Type: "udp", Kinds: []string{"datagram"}, Ports: []sshdgram.Port{{Port: 53}}}
+	f, cfg := testSetup(t, info, strconv.Itoa(int(port))+":dns")
+	f.mu.Lock()
+	f.refuse = "Access denied"
+	f.mu.Unlock()
+	r := startRun(t, cfg)
+	c, err := net.Dial("udp", r.ready(t, "dns", port, "udp"))
+	require.NoError(t, err)
+	defer c.Close() //nolint:errcheck // test client
+	send := func() bool { _, err := c.Write([]byte("q")); return err == nil }
+	require.Eventually(t, func() bool { return send() && r.stderr.String() != "" }, 5*time.Second, 5*time.Millisecond)
+	for range 20 { // inside the backoff: dropped without an open
+		send()
+	}
+	opens := len(f.openData())
+	require.Eventually(t, func() bool { return send() && len(f.openData()) > opens }, 5*time.Second, 5*time.Millisecond)
+	assert.Equal(t, opens+1, len(f.openData()), "the datagrams sent in the backoff opened nothing")
+	assert.Equal(t, "Access denied\n", r.stderr.String(), "the same text is printed once")
 }

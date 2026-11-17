@@ -22,12 +22,13 @@ func TestEncryptedKey(t *testing.T) {
 	assert.EqualError(t, err, "key "+path+" is encrypted; load it into ssh-agent")
 }
 
-// Without -i and SSH_AUTH_SOCK the key is ~/.ssh/id_ed25519.
+// Without -i and a live agent the key is ~/.ssh/id_ed25519: a stale
+// SSH_AUTH_SOCK falls back to it.
 func TestDefaultKey(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
-	t.Setenv("SSH_AUTH_SOCK", "")
+	t.Setenv("SSH_AUTH_SOCK", filepath.Join(home, "gone.sock"))
 	_, _, err := authMethod("")
 	assert.ErrorContains(t, err, filepath.Join(home, ".ssh", "id_ed25519"))
 

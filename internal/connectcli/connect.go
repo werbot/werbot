@@ -157,21 +157,22 @@ func (b *binding) openData(from net.Addr) []byte {
 	return ssh.Marshal(d)
 }
 
-// openChannel opens a channel of typ through the link; a refusal prints the
-// gateway text as it is.
+// openChannel opens a channel of typ through the link.
 func (b *binding) openChannel(ctx context.Context, typ string, from net.Addr) (ssh.Channel, <-chan *ssh.Request, error) {
 	c, err := b.link.get(ctx)
 	if err != nil {
-		if errors.Is(err, errNotConnected) {
-			_, _ = fmt.Fprintf(b.stderr, "%s: %v; connection closed\n", b.link.resource, err)
-		}
 		return nil, nil, err
 	}
-	ch, reqs, err := c.OpenChannel(typ, b.openData(from))
+	return c.OpenChannel(typ, b.openData(from))
+}
+
+// openText is what the user reads about a failed channel open: a gateway
+// refusal as it is, any other error with the resource name.
+func (b *binding) openText(err error) string {
 	if oe, ok := errors.AsType[*ssh.OpenChannelError](err); ok {
-		_, _ = fmt.Fprintln(b.stderr, oe.Message)
+		return oe.Message
 	}
-	return ch, reqs, err
+	return b.link.resource + ": " + err.Error()
 }
 
 // lockedWriter makes one writer safe for the goroutines of all bindings.

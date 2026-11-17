@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -106,8 +107,8 @@ func (l *link) set(c *ssh.Client) {
 	}
 }
 
-// run keeps the link up until ctx ends (nil) or a redial meets a changed host
-// key (that error). Every other redial failure is retried with backoff.
+// run keeps the link up until ctx ends (nil) or a redial gets a final answer
+// (that error). Every other redial failure is retried with backoff.
 func (l *link) run(ctx context.Context) error {
 	for {
 		l.mu.Lock()
@@ -134,9 +135,10 @@ func (l *link) run(ctx context.Context) error {
 	}
 }
 
-// redial dials until it succeeds, ctx ends (nil, nil) or the host key changed.
+// redial dials until it succeeds, ctx ends (nil, nil) or the gateway gave a
+// final answer (that error). Each new error is printed once.
 func (l *link) redial(ctx context.Context) (*ssh.Client, error) {
-	wait := backoffFirst
+	wait, last := backoffFirst, ""
 	for {
 		c, err := dial(ctx, l.addr, l.conf)
 		switch {
@@ -144,8 +146,12 @@ func (l *link) redial(ctx context.Context) (*ssh.Client, error) {
 			return c, nil
 		case ctx.Err() != nil:
 			return nil, nil
-		case errors.Is(err, errHostKeyMismatch):
-			return nil, err
+		case final(err):
+			return nil, fmt.Errorf("%s: %w", l.resource, err)
+		}
+		if err.Error() != last {
+			last = err.Error()
+			_, _ = fmt.Fprintf(l.stderr, "%s: reconnect failed: %v; retrying\n", l.resource, err)
 		}
 		t := time.NewTimer(wait)
 		select {
@@ -156,6 +162,13 @@ func (l *link) redial(ctx context.Context) (*ssh.Client, error) {
 		}
 		wait = min(2*wait, backoffMax)
 	}
+}
+
+// final reports a dial error that a retry cannot fix: a changed host key or a
+// refused key. The gateway checks keys also while it is not ready, so a refusal
+// is its answer, not an outage; x/crypto has no sentinel error for it.
+func final(err error) bool {
+	return errors.Is(err, errHostKeyMismatch) || strings.Contains(err.Error(), "ssh: unable to authenticate")
 }
 
 // keepalive sends keepalive@openssh.com every keepaliveInterval until ctx ends

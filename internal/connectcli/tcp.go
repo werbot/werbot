@@ -2,9 +2,12 @@ package connectcli
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -15,11 +18,22 @@ import (
 func (b *binding) serveTCP(ctx context.Context) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
+	var wait time.Duration
 	for {
 		conn, err := b.ln.Accept()
-		if err != nil {
+		if errors.Is(err, net.ErrClosed) {
 			return
 		}
+		if err != nil { // EMFILE and the like: try again, as net/http does
+			wait = min(max(2*wait, 5*time.Millisecond), time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(wait):
+			}
+			continue
+		}
+		wait = 0
 		wg.Go(func() { b.forward(ctx, conn) })
 	}
 }
@@ -32,6 +46,9 @@ func (b *binding) forward(ctx context.Context, conn net.Conn) {
 	defer conn.Close() //nolint:errcheck // closed either way
 	ch, reqs, err := b.openChannel(ctx, "direct-tcpip", conn.RemoteAddr())
 	if err != nil {
+		if ctx.Err() == nil {
+			_, _ = fmt.Fprintln(b.stderr, b.openText(err))
+		}
 		return
 	}
 	defer context.AfterFunc(ctx, func() { _ = conn.Close(); _ = ch.Close() })()

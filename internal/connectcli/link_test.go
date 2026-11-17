@@ -52,6 +52,8 @@ func TestConnectReconnects(t *testing.T) {
 		return strings.Contains(r.stderr.String(), "pg: connection to the gateway lost; reconnecting\n")
 	},
 		5*time.Second, 5*time.Millisecond)
+	require.Eventually(t, func() bool { return strings.Contains(r.stderr.String(), "pg: reconnect failed: ") },
+		5*time.Second, 5*time.Millisecond, "a failed redial is shown")
 	f.down.Store(false)
 	pingEventually(t, addr)
 	assert.Contains(t, r.stderr.String(), "pg: reconnected\n")
@@ -84,6 +86,32 @@ func TestConnectKeepaliveMisses(t *testing.T) {
 	f.stall.Store(false)
 	pingEventually(t, addr)
 	assert.GreaterOrEqual(t, f.dials.Load(), int64(2))
+}
+
+// A key refused on a redial is the gateway's answer: Run ends with it.
+func TestConnectKeyRefusedOnRedial(t *testing.T) {
+	port := freePortNum(t)
+	f, cfg := testSetup(t, tcpInfo, strconv.Itoa(int(port))+":pg")
+	r := startRun(t, cfg)
+	r.ready(t, "pg", port, "tcp")
+	f.noKey.Store(true)
+	f.drop()
+	err := r.wait(t)
+	assert.ErrorContains(t, err, "pg: ssh: handshake failed: ssh: unable to authenticate")
+}
+
+// A gateway key that changed between two connections ends Run.
+func TestConnectHostKeyChangedOnRedial(t *testing.T) {
+	port := freePortNum(t)
+	f, cfg := testSetup(t, tcpInfo, strconv.Itoa(int(port))+":pg")
+	r := startRun(t, cfg)
+	r.ready(t, "pg", port, "tcp")
+	line := knownhosts.Line([]string{knownhosts.Normalize(f.addr)}, newKey(t).PublicKey())
+	require.NoError(t, os.WriteFile(cfg.KnownHosts, []byte(line+"\n"), 0o600))
+	f.drop()
+	err := r.wait(t)
+	assert.ErrorIs(t, err, errHostKeyMismatch)
+	assert.ErrorContains(t, err, "pg: ssh: handshake failed: host key mismatch for "+f.addr)
 }
 
 // A new local connection waits reconnectWait for a redial, then gives up.

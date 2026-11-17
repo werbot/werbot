@@ -17,17 +17,16 @@ import (
 // errHostKeyMismatch is a gateway host key unlike the one in known_hosts.
 var errHostKeyMismatch = errors.New("host key mismatch")
 
-// authMethod is the key in identity, else the ssh-agent at SSH_AUTH_SOCK, else
-// ~/.ssh/id_ed25519. The agent is only signed with, never forwarded. The closer
+// authMethod is the key in identity, else the ssh-agent at SSH_AUTH_SOCK if it
+// answers, else ~/.ssh/id_ed25519. The agent is only signed with, never forwarded. The closer
 // releases the agent connection.
 func authMethod(identity string) (ssh.AuthMethod, func(), error) {
 	if identity == "" {
 		if sock := os.Getenv("SSH_AUTH_SOCK"); sock != "" {
-			conn, err := net.Dial("unix", sock) //nolint:gosec // SSH_AUTH_SOCK is the user's own agent
-			if err != nil {
-				return nil, nil, fmt.Errorf("ssh-agent: %w", err)
+			// a stale socket (after a re-login, in tmux) falls back to the key file, as in OpenSSH
+			if conn, err := net.Dial("unix", sock); err == nil { //nolint:gosec // SSH_AUTH_SOCK is the user's own agent
+				return ssh.PublicKeysCallback(agent.NewClient(conn).Signers), func() { _ = conn.Close() }, nil
 			}
-			return ssh.PublicKeysCallback(agent.NewClient(conn).Signers), func() { _ = conn.Close() }, nil
 		}
 		home, err := os.UserHomeDir()
 		if err != nil {

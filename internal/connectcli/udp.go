@@ -3,6 +3,7 @@ package connectcli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -30,6 +31,12 @@ type udpRelay struct {
 	flows map[string]*flow // by client address
 	byID  map[uint32]*flow
 	next  uint32
+
+	// after a failed open, datagrams are dropped until retryAt; the wait
+	// doubles from backoffFirst to backoffMax and a text is printed once
+	wait     time.Duration
+	retryAt  time.Time
+	lastText string
 }
 
 type flow struct {
@@ -76,18 +83,28 @@ func (r *udpRelay) serve(ctx context.Context) {
 	}
 }
 
-// channel is the open channel, or a new one opened through the link.
+// channel is the open channel, or a new one opened through the link; nil
+// while a failed open backs off. Only serve calls it.
 func (r *udpRelay) channel(ctx context.Context, wg *sync.WaitGroup, from net.Addr) ssh.Channel {
 	r.mu.Lock()
 	ch := r.ch
 	r.mu.Unlock()
-	if ch != nil {
+	if ch != nil || time.Now().Before(r.retryAt) {
 		return ch
 	}
 	ch, reqs, err := r.b.openChannel(ctx, sshdgram.ChannelType, from)
 	if err != nil {
+		if ctx.Err() == nil {
+			r.wait = min(max(2*r.wait, backoffFirst), backoffMax)
+			r.retryAt = time.Now().Add(r.wait)
+			if text := r.b.openText(err); text != r.lastText {
+				r.lastText = text
+				_, _ = fmt.Fprintln(r.b.stderr, text)
+			}
+		}
 		return nil
 	}
+	r.wait, r.lastText = 0, ""
 	r.mu.Lock()
 	r.ch = ch
 	r.mu.Unlock()
