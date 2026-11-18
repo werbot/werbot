@@ -48,3 +48,28 @@ func TestRefreshBuildsOrgPartOnce(t *testing.T) {
 		}
 	}
 }
+
+// The pools of one refresh build concurrently, at most poolParallel at once,
+// so a slow pool does not delay the others.
+func TestRefreshBuildsPoolsConcurrently(t *testing.T) {
+	b := newBench(t, func(h *Hub) { h.debounce = 10 * time.Millisecond })
+	conns := make([]*conn, 2*poolParallel)
+	for i := range conns {
+		conns[i] = b.instance(t, b.org, uuid.New()).connect(t, nil)
+		conns[i].next(t, 2*time.Second)
+	}
+
+	b.f.buildDelay.Store(int64(200 * time.Millisecond))
+	b.f.maxInflight.Store(0)
+	start := time.Now()
+	b.hub.OrgChanged(b.org.String())
+	for _, c := range conns {
+		c.next(t, 3*time.Second)
+	}
+	if d := time.Since(start); d >= time.Duration(len(conns))*200*time.Millisecond/2 {
+		t.Fatalf("%d pool builds took %v, want concurrent", len(conns), d)
+	}
+	if m := b.f.maxInflight.Load(); m < 2 || m > poolParallel {
+		t.Fatalf("max in-flight pool builds = %d, want 2..%d", m, poolParallel)
+	}
+}

@@ -4,16 +4,19 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"sync/atomic"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 )
 
 // refreshOrg drops streams whose instance no longer authenticates, then reads
-// the organization-wide part once, completes it per pool and offers each
-// snapshot to that pool's streams. It reports false when a build failed.
+// the organization-wide part once, completes it per pool (up to poolParallel
+// pools at once) and offers each snapshot to that pool's streams. It reports
+// false when a build failed.
 func (hd *Handler) refreshOrg(ctx context.Context, org uuid.UUID, ss []*stream, gen uint64) bool {
 	pools := map[uuid.UUID][]*stream{}
 	for _, s := range ss {
@@ -32,19 +35,25 @@ func (hd *Handler) refreshOrg(ctx context.Context, org uuid.UUID, ss []*stream, 
 		hd.log.Error("tunnel: build snapshot, retrying", "org_id", org, "error", err)
 		return false
 	}
-	ok := true
+	var failed atomic.Bool
+	var g errgroup.Group
+	g.SetLimit(poolParallel)
 	for pool, ps := range pools {
-		snap, err := hd.poolSnapshot(ctx, base, org, pool)
-		if err != nil {
-			hd.log.Error("tunnel: build snapshot, retrying", "org_id", org, "gateway_id", pool, "error", err)
-			ok = false
-			continue
-		}
-		for _, s := range ps {
-			s.offer(snap, gen)
-		}
+		g.Go(func() error {
+			snap, err := hd.poolSnapshot(ctx, base, org, pool)
+			if err != nil {
+				hd.log.Error("tunnel: build snapshot, retrying", "org_id", org, "gateway_id", pool, "error", err)
+				failed.Store(true)
+				return nil
+			}
+			for _, s := range ps {
+				s.offer(snap, gen)
+			}
+			return nil
+		})
 	}
-	return ok
+	_ = g.Wait() // every pool reports through failed
+	return !failed.Load()
 }
 
 // build returns the pool snapshot stamped with its version.

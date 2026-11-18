@@ -35,11 +35,13 @@ type Hub struct {
 }
 
 // Refresh limits: one organization's refresh deadline, the longest build retry
-// delay and how many organizations a "*" refresh rebuilds at once.
+// delay, how many organizations a "*" refresh rebuilds at once and how many
+// pools of one organization build at once.
 const (
 	refreshTimeout  = 10 * time.Second
 	maxRetryDelay   = 30 * time.Second
 	refreshParallel = 8
+	poolParallel    = 4
 )
 
 // NewHub returns an empty hub; New attaches it to a handler.
