@@ -54,24 +54,18 @@ func (g tunnelGateways) Authenticate(ctx context.Context, gatewayID, instanceID 
 type tunnelUsers struct{ ids *identity.Service }
 
 func (u tunnelUsers) ByFingerprint(ctx context.Context, orgID uuid.UUID, fingerprint string) (tunnel.User, error) {
-	ref, err := u.ids.LookupSSHKey(ctx, orgID, fingerprint)
-	return u.user(ctx, orgID, ref, err)
+	return tunnelUser(u.ids.LookupSSHKey(ctx, orgID, fingerprint))
 }
 
 func (u tunnelUsers) ByLogin(ctx context.Context, orgID uuid.UUID, login string) (tunnel.User, error) {
-	ref, err := u.ids.LookupLogin(ctx, orgID, login)
-	return u.user(ctx, orgID, ref, err)
+	return tunnelUser(u.ids.LookupLogin(ctx, orgID, login))
 }
 
-func (u tunnelUsers) user(ctx context.Context, orgID uuid.UUID, ref identity.UserRef, err error) (tunnel.User, error) {
+func tunnelUser(ref identity.UserRef, err error) (tunnel.User, error) {
 	if err != nil {
 		return tunnel.User{}, err
 	}
-	teams, err := u.ids.UserTeams(ctx, orgID, ref.UserID)
-	if err != nil {
-		return tunnel.User{}, err
-	}
-	return tunnel.User{ID: ref.UserID, Login: ref.Login, TeamIDs: teams}, nil
+	return tunnel.User{ID: ref.UserID, Login: ref.Login, TeamIDs: ref.TeamIDs}, nil
 }
 
 // tunnelResources adds tunnel-typed health reports to inventory.Service.

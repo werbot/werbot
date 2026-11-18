@@ -113,13 +113,20 @@ RETURNING id, name, public_key, fingerprint_sha256, created_at;
 DELETE FROM user_ssh_key WHERE id = @id AND user_id = @user_id RETURNING fingerprint_sha256;
 
 -- name: LookupSSHKeyUser :one
-SELECT u.id, u.login, m.role FROM user_ssh_key k
+-- team_ids is NULL when the member is in no team, as UserTeams returns no rows.
+SELECT u.id, u.login, m.role,
+       (SELECT array_agg(tm.team_id ORDER BY tm.team_id) FROM team_member tm
+        WHERE tm.org_id = m.org_id AND tm.user_id = u.id)::uuid[] AS team_ids
+FROM user_ssh_key k
 JOIN users u ON u.id = k.user_id
 JOIN membership m ON m.user_id = u.id AND m.org_id = @org_id
 WHERE k.fingerprint_sha256 = @fingerprint_sha256;
 
 -- name: LookupLoginUser :one
-SELECT u.id, u.login, m.role FROM users u
+SELECT u.id, u.login, m.role,
+       (SELECT array_agg(tm.team_id ORDER BY tm.team_id) FROM team_member tm
+        WHERE tm.org_id = m.org_id AND tm.user_id = u.id)::uuid[] AS team_ids
+FROM users u
 JOIN membership m ON m.user_id = u.id AND m.org_id = @org_id
 WHERE u.login = @login;
 

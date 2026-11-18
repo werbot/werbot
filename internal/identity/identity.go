@@ -46,11 +46,13 @@ type SetupInput struct {
 	Email, Login, Name, Password, OrganizationName string
 }
 
-// UserRef identifies an organization member for other domains.
+// UserRef identifies an organization member for other domains. TeamIDs are
+// the member's teams in the organization, sorted; nil when there are none.
 type UserRef struct {
-	UserID uuid.UUID
-	Login  string
-	Role   string
+	UserID  uuid.UUID
+	Login   string
+	Role    string
+	TeamIDs []uuid.UUID
 }
 
 // errInvalidCredentials is the single answer for an unknown email, a wrong

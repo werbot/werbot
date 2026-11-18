@@ -792,7 +792,10 @@ func (q *Queries) LockUserOwnedOrgs(ctx context.Context, userID uuid.UUID) ([]Lo
 }
 
 const lookupLoginUser = `-- name: LookupLoginUser :one
-SELECT u.id, u.login, m.role FROM users u
+SELECT u.id, u.login, m.role,
+       (SELECT array_agg(tm.team_id ORDER BY tm.team_id) FROM team_member tm
+        WHERE tm.org_id = m.org_id AND tm.user_id = u.id)::uuid[] AS team_ids
+FROM users u
 JOIN membership m ON m.user_id = u.id AND m.org_id = $1
 WHERE u.login = $2
 `
@@ -803,20 +806,29 @@ type LookupLoginUserParams struct {
 }
 
 type LookupLoginUserRow struct {
-	ID    uuid.UUID
-	Login string
-	Role  string
+	ID      uuid.UUID
+	Login   string
+	Role    string
+	TeamIds []uuid.UUID
 }
 
 func (q *Queries) LookupLoginUser(ctx context.Context, arg LookupLoginUserParams) (LookupLoginUserRow, error) {
 	row := q.db.QueryRow(ctx, lookupLoginUser, arg.OrgID, arg.Login)
 	var i LookupLoginUserRow
-	err := row.Scan(&i.ID, &i.Login, &i.Role)
+	err := row.Scan(
+		&i.ID,
+		&i.Login,
+		&i.Role,
+		&i.TeamIds,
+	)
 	return i, err
 }
 
 const lookupSSHKeyUser = `-- name: LookupSSHKeyUser :one
-SELECT u.id, u.login, m.role FROM user_ssh_key k
+SELECT u.id, u.login, m.role,
+       (SELECT array_agg(tm.team_id ORDER BY tm.team_id) FROM team_member tm
+        WHERE tm.org_id = m.org_id AND tm.user_id = u.id)::uuid[] AS team_ids
+FROM user_ssh_key k
 JOIN users u ON u.id = k.user_id
 JOIN membership m ON m.user_id = u.id AND m.org_id = $1
 WHERE k.fingerprint_sha256 = $2
@@ -828,15 +840,22 @@ type LookupSSHKeyUserParams struct {
 }
 
 type LookupSSHKeyUserRow struct {
-	ID    uuid.UUID
-	Login string
-	Role  string
+	ID      uuid.UUID
+	Login   string
+	Role    string
+	TeamIds []uuid.UUID
 }
 
+// team_ids is NULL when the member is in no team, as UserTeams returns no rows.
 func (q *Queries) LookupSSHKeyUser(ctx context.Context, arg LookupSSHKeyUserParams) (LookupSSHKeyUserRow, error) {
 	row := q.db.QueryRow(ctx, lookupSSHKeyUser, arg.OrgID, arg.FingerprintSha256)
 	var i LookupSSHKeyUserRow
-	err := row.Scan(&i.ID, &i.Login, &i.Role)
+	err := row.Scan(
+		&i.ID,
+		&i.Login,
+		&i.Role,
+		&i.TeamIds,
+	)
 	return i, err
 }
 

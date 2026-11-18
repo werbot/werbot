@@ -14,11 +14,12 @@ import (
 )
 
 // lookupRef runs a gateway lookup in orgID; no member row is ErrNotFound.
+// One statement returns the member with its teams.
 func (s *Service) lookupRef(ctx context.Context, orgID uuid.UUID, q func(Store) (dbq.LookupLoginUserRow, error)) (UserRef, error) {
 	var ref UserRef
 	err := dbx.InOrg(ctx, s.pool, orgID, uuid.Nil, func(tx pgx.Tx) error {
 		r, err := q(newStore(tx))
-		ref = UserRef{UserID: r.ID, Login: r.Login, Role: r.Role}
+		ref = UserRef{UserID: r.ID, Login: r.Login, Role: r.Role, TeamIDs: r.TeamIds}
 		return err
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
