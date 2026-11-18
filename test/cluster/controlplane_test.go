@@ -3,6 +3,7 @@
 package cluster
 
 import (
+	"context"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -60,8 +61,8 @@ func TestScenario02BindingReachesInstanceOnB(t *testing.T) {
 	t.Cleanup(func() { st.deleteBinding(t, bind) })
 	t0 := time.Now()
 	allowed := func() bool {
-		out, code := Exec(t, c, "hostname")
-		return out == "target\n" && code == 0
+		out, code, err := run(c, "hostname") // no require inside the poll condition
+		return err == nil && out == "target\n" && code == 0
 	}
 	require.Eventually(t, allowed, BindingPropagation, 50*time.Millisecond)
 	t.Logf("propagation %s", time.Since(t0))
@@ -102,18 +103,28 @@ func TestScenario06ConcurrentBootstrapOnEmptyDB(t *testing.T) {
 // geoip.refresh does) changes decisions on both replicas without a restart.
 func TestScenario07GeoIPReloadOnEveryReplica(t *testing.T) {
 	st.Healthy(t)
-	ctx := t.Context()
-	allow := func(api API) bool {
+	ctx := context.Background() // Cleanup runs after t.Context() ends
+	check := func(api API) (bool, error) {
 		res, err := api.Policy.CheckAccess(ctx, connect.NewRequest(&werbotv1.CheckAccessRequest{
 			UserId: st.AliceID.String(), ResourceId: st.Resources["geo"].String(), Ip: "203.0.113.7",
 		}))
-		require.NoError(t, err)
-		return res.Msg.GetAllow()
+		if err != nil {
+			return false, err
+		}
+		return res.Msg.GetAllow(), nil
 	}
-	require.False(t, allow(st.A), "A before")
-	require.False(t, allow(st.B), "B before")
+	allow := func(api API) bool { ok, err := check(api); return err == nil && ok } // poll-safe: no FailNow
+	for name, api := range map[string]API{"A": st.A, "B": st.B} {
+		ok, err := check(api)
+		require.NoError(t, err)
+		require.False(t, ok, name+" before")
+	}
 
-	st.publishGeoIP(t, "203.0.113.0/24", "NL")
+	t.Cleanup(func() { // ReloadGeoIP keeps the old db on a missing row or the same month: publish an unrelated one for the previous month, wait for both denials
+		st.publishGeoIP(t, "198.51.100.0/24", "NL", 1)
+		assert.Eventually(t, func() bool { return !allow(st.A) && !allow(st.B) }, 5*time.Second, 100*time.Millisecond, "geoip restored")
+	})
+	st.publishGeoIP(t, "203.0.113.0/24", "NL", 0)
 	t0 := time.Now()
 	require.Eventually(t, func() bool { return allow(st.A) && allow(st.B) }, 5*time.Second, 100*time.Millisecond)
 	t.Logf("geoip reload %s", time.Since(t0))

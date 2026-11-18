@@ -32,15 +32,15 @@ func (s *Stand) deleteBinding(t testing.TB, id string) {
 }
 
 // publishGeoIP stores a database mapping prefix to country and notifies the
-// replicas in one transaction, as geoip.refresh does (contract §3.2).
-func (s *Stand) publishGeoIP(t testing.TB, prefix, country string) {
+// replicas in one transaction (monthsAgo moves the stored month back: replicas skip a row of the month they already loaded), as geoip.refresh does (contract §3.2).
+func (s *Stand) publishGeoIP(t testing.TB, prefix, country string, monthsAgo int) {
 	t.Helper()
 	data := geoiptest.MMDB(netip.MustParsePrefix(prefix), country)
 	err := pgx.BeginFunc(context.Background(), s.DB, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(context.Background(), `
 INSERT INTO geoip_db (id, month, data, updated_at)
-VALUES (1, date_trunc('month', now() AT TIME ZONE 'UTC')::date, $1, now())
-ON CONFLICT (id) DO UPDATE SET month = EXCLUDED.month, data = EXCLUDED.data, updated_at = now()`, data); err != nil {
+VALUES (1, (date_trunc('month', now() AT TIME ZONE 'UTC') - make_interval(months => $2))::date, $1, now())
+ON CONFLICT (id) DO UPDATE SET month = EXCLUDED.month, data = EXCLUDED.data, updated_at = now()`, data, monthsAgo); err != nil {
 			return err
 		}
 		_, err := tx.Exec(context.Background(), `SELECT pg_notify('werbot_geoip_changed', '')`)
