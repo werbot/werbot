@@ -65,27 +65,59 @@ func startMix(t *testing.T) (tcp string, udp []string) {
 	return st.StartConnect(t, "alice", specs...).Ports["load-tcp"], udp
 }
 
+// mixRun is a running mix: Steady closes once every connection has echoed (or
+// failed, which Results then shows); Results arrives once all have stopped.
+type mixRun struct {
+	Steady  <-chan struct{}
+	Results <-chan [2][]mixResult
+	start   time.Time
+}
+
 // runMix keeps *tcpConns connections to tcp at tcpChunk bytes a second and a
 // datagram a second on each address of udp until ctx ends; connections start
-// at rate per second. The results arrive once every connection has stopped.
-func runMix(ctx context.Context, tcp string, udp []string, rate int) <-chan [2][]mixResult {
-	out := make(chan [2][]mixResult, 1)
+// at rate per second.
+func runMix(ctx context.Context, tcp string, udp []string, rate int) *mixRun {
+	out, steady := make(chan [2][]mixResult, 1), make(chan struct{})
 	res := [2][]mixResult{make([]mixResult, *tcpConns), make([]mixResult, len(udp))}
 	step := time.Second / time.Duration(max(rate, 1))
-	var wg sync.WaitGroup
+	var wg, warm sync.WaitGroup
+	warm.Add(len(res[0]) + len(udp))
 	for i := range res[0] {
-		wg.Go(func() { res[0][i] = echoLoop(ctx, "tcp", tcp, tcpChunk, time.Duration(i)*step) })
+		wg.Go(func() { res[0][i] = echoLoop(ctx, "tcp", tcp, tcpChunk, time.Duration(i)*step, warm.Done) })
 	}
 	for i, addr := range udp {
-		wg.Go(func() { res[1][i] = echoLoop(ctx, "udp", addr, udpPayload, time.Duration(i)*step) })
+		wg.Go(func() { res[1][i] = echoLoop(ctx, "udp", addr, udpPayload, time.Duration(i)*step, warm.Done) })
 	}
+	go func() { warm.Wait(); close(steady) }()
 	go func() { wg.Wait(); out <- res }()
-	return out
+	return &mixRun{Steady: steady, Results: out, start: time.Now()}
+}
+
+// waitSteady waits up to limit for Steady and returns the time since the mix started.
+func (m *mixRun) waitSteady(limit time.Duration) (time.Duration, bool) {
+	select {
+	case <-m.Steady:
+		return time.Since(m.start), true
+	case <-time.After(limit):
+		return time.Since(m.start), false
+	}
+}
+
+// steadyRow is the "mix ramp" row: how long the mix took to reach steady
+// state; a timeout fails it, so a mix that never settled is not a pass.
+func steadyRow(took, limit time.Duration, ok bool) (string, bool) {
+	if !ok {
+		return "not within " + limit.String(), false
+	}
+	return took.Round(10 * time.Millisecond).String(), true
 }
 
 // echoLoop waits delay, then sends size random bytes through addr every
-// second and expects them back within outputGap, until ctx ends.
-func echoLoop(ctx context.Context, network, addr string, size int, delay time.Duration) (r mixResult) {
+// second and expects them back within outputGap, until ctx ends. warm is
+// called once: after the first echo, or when the loop ends without one.
+func echoLoop(ctx context.Context, network, addr string, size int, delay time.Duration, warm func()) (r mixResult) {
+	warm = sync.OnceFunc(warm)
+	defer warm()
 	select {
 	case <-ctx.Done():
 		return r // not started: Echoed 0 fails the row
@@ -116,6 +148,7 @@ func echoLoop(ctx context.Context, network, addr string, size int, delay time.Du
 			return r
 		}
 		r.Echoed += int64(size)
+		warm()
 		select {
 		case <-ctx.Done():
 			return r

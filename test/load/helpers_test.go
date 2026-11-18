@@ -162,12 +162,46 @@ func TestEchoLoop(t *testing.T) {
 		echo := map[string]func(testing.TB, string) uint32{"tcp": tcpEcho, "udp": udpEcho}[network]
 		addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(int(echo(t, "127.0.0.1"))))
 		ctx, cancel := context.WithTimeout(t.Context(), 1500*time.Millisecond)
-		r := echoLoop(ctx, network, addr, 64, 0)
+		r := echoLoop(ctx, network, addr, 64, 0, func() {})
 		cancel()
 		require.NoError(t, r.Err, network)
 		assert.Equal(t, int64(2*64), r.Echoed, "%s: two ticks in 1.5 s", network)
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	assert.Equal(t, mixResult{}, echoLoop(ctx, "tcp", "127.0.0.1:1", 64, time.Hour), "not started")
+	assert.Equal(t, mixResult{}, echoLoop(ctx, "tcp", "127.0.0.1:1", 64, time.Hour, func() {}), "not started")
+}
+
+func TestSteadyRow(t *testing.T) {
+	got, pass := steadyRow(1500*time.Millisecond, 40*time.Second, true)
+	assert.True(t, pass)
+	assert.Equal(t, "1.5s", got)
+	got, pass = steadyRow(40*time.Second, 40*time.Second, false)
+	assert.False(t, pass, "a mix that did not reach steady state must not pass")
+	assert.Equal(t, "not within 40s", got)
+}
+
+// TestRunMixSteady: Steady closes once every connection echoed, before the mix ends.
+func TestRunMixSteady(t *testing.T) {
+	tcp := net.JoinHostPort("127.0.0.1", strconv.Itoa(int(tcpEcho(t, "127.0.0.1"))))
+	udp := net.JoinHostPort("127.0.0.1", strconv.Itoa(int(udpEcho(t, "127.0.0.1"))))
+	defer func(n int) { *tcpConns = n }(*tcpConns)
+	*tcpConns = 3
+	ctx, stop := context.WithCancel(t.Context())
+	mix := runMix(ctx, tcp, []string{udp}, 100)
+	took, ok := mix.waitSteady(10 * time.Second)
+	assert.True(t, ok)
+	assert.Less(t, took, 5*time.Second)
+	stop()
+	res := <-mix.Results
+	for i, rows := range res {
+		_, pass := mixRow(rows)
+		assert.True(t, pass, "kind %d", i)
+	}
+}
+
+func TestWaitSteadyTimeout(t *testing.T) {
+	mix := &mixRun{Steady: make(chan struct{}), start: time.Now()}
+	_, ok := mix.waitSteady(10 * time.Millisecond)
+	assert.False(t, ok)
 }
