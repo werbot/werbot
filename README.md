@@ -164,7 +164,7 @@ make test   # needs `make dev-db`
 make lint
 make e2e    # Playwright e2e on DB `werbot_e2e`, no internet feeds (the server runs with `HTTPS_PROXY` pointing at a closed port; needs `make dev-db`, Go, ssh and ssh-keygen; first run: `cd web && bunx playwright install chromium`)
 make e2e-network  # Docker Compose e2e: SSH, telnet, TCP and UDP through a gateway pool to targets on an internal-only network
-make e2e-cluster  # Go scenarios (test/cluster, tag `cluster`: topology, cross-replica login, binding propagation, bootstrap, GeoIP reload, Postgres restart, shared pool host key, replica kill, lost instance, gateway max sessions, servers down fail-closed, S3 outage, join token revocation and exhaustion) on a stand of 2 server, 2 web and 2 gateway replicas behind nginx
+make e2e-cluster  # Go scenarios (test/cluster, tag `cluster`: topology, cross-replica login, binding propagation, bootstrap, GeoIP reload, Postgres restart, shared pool host key, replica kill, lost instance, gateway max sessions, servers down fail-closed, S3 outage, join token revocation and exhaustion, separate web UI behind `werbot web` replicas) on a stand of 2 server, 2 web and 2 gateway replicas behind nginx
 (cd web && bun run test:unit)  # Vitest unit tests for the web UI
 make sqlc   # regenerates internal/<domain>/dbq from migrations/ and internal/<domain>/queries.sql
 ```
