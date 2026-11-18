@@ -67,7 +67,7 @@ A failed download keeps the previous data.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `WERBOT_DATABASE_URL` | required | Postgres URL. Pool size: `pool_max_conns`; query limit: `statement_timeout` (default `30s`), both as URL parameters. |
+| `WERBOT_DATABASE_URL` | required | Postgres URL. Pool size: `pool_max_conns`; query limit: `statement_timeout` (default `30s`); `jit` (default `off`), all as URL parameters. |
 | `WERBOT_ENV` | `production` | `production` or `development`. |
 | `WERBOT_HTTP_ADDR` | `:8080` | API (and embedded UI) listen address. |
 | `WERBOT_LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. |
