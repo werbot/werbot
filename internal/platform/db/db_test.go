@@ -79,6 +79,28 @@ func TestOpenRuntimeParams(t *testing.T) {
 	assert.Equal(t, "57014", pgErr.Code)
 }
 
+// JIT compile time exceeds the run time of the app's OLTP queries, so Open
+// turns it off unless the URL sets it.
+func TestOpenJITOff(t *testing.T) {
+	ctx := context.Background()
+	_, dsn := dbtest.New(t)
+	show := func(pool *pgxpool.Pool) string {
+		var v string
+		require.NoError(t, pool.QueryRow(ctx, "SHOW jit").Scan(&v))
+		return v
+	}
+
+	pool, err := db.Open(ctx, dsn)
+	require.NoError(t, err)
+	defer pool.Close()
+	assert.Equal(t, "off", show(pool))
+
+	custom, err := db.Open(ctx, withParams(t, dsn, map[string]string{"jit": "on"}))
+	require.NoError(t, err)
+	defer custom.Close()
+	assert.Equal(t, "on", show(custom))
+}
+
 func TestOpenBootstrap(t *testing.T) {
 	ctx := context.Background()
 	_, dsn := dbtest.New(t)

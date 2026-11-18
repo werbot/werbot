@@ -16,12 +16,17 @@ import (
 // "WERBOT" + 1; other project advisory keys share the prefix with the next number.
 const BootstrapLock int64 = 0x574552424f540001
 
-// Open connects a pool and pings it. statement_timeout defaults to 30s
-// unless the URL sets it; pool size comes from pool_max_conns in the URL.
+// Open connects a pool and pings it. statement_timeout defaults to 30s and
+// jit to off unless the URL sets them; pool size comes from pool_max_conns in the URL.
 func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	return open(ctx, url, func(cfg *pgxpool.Config) {
 		if _, ok := cfg.ConnConfig.RuntimeParams["statement_timeout"]; !ok {
 			cfg.ConnConfig.RuntimeParams["statement_timeout"] = "30s"
+		}
+		// OLTP queries: JIT compile cost exceeds the query time (e.g.
+		// ListResources 0.9 s compile vs 20 ms run).
+		if _, ok := cfg.ConnConfig.RuntimeParams["jit"]; !ok {
+			cfg.ConnConfig.RuntimeParams["jit"] = "off"
 		}
 	})
 }
