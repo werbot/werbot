@@ -178,14 +178,15 @@ func OpenShell(t testing.TB, c *gossh.Client) *Shell {
 	return sh
 }
 
-// Mark prints mark through the shell and waits 5 s for it on a line of its own:
-// the echoed input carries the mark after "printf '%s\n' ", never after a newline.
+// Mark prints "mark:<mark>" through the shell and waits 5 s for it. Only the
+// command output carries it: the echoed input reads "mark:%s" (the line may
+// start with terminal escapes, such as bash's bracketed-paste switch).
 func (sh *Shell) Mark(t testing.TB, mark string) {
 	t.Helper()
 	from := len(sh.out.String())
-	_, err := fmt.Fprintf(sh.in, "printf '%%s\\n' %s\r", mark)
+	_, err := fmt.Fprintf(sh.in, "printf 'mark:%%s\\n' %s\r", mark)
 	require.NoError(t, err)
-	seen := func() bool { return strings.Contains(sh.out.String()[from:], "\n"+mark+"\r") }
+	seen := func() bool { return strings.Contains(sh.out.String()[from:], "mark:"+mark+"\r") }
 	if !assert.Eventually(t, seen, 5*time.Second, 50*time.Millisecond) {
 		t.Fatalf("mark %q not printed; output:\n%s", mark, sh.out.String()[from:])
 	}
