@@ -120,12 +120,8 @@ func recheck(pol *Policy, e evaluation, now time.Time) (AccessRequest, bool) {
 		return req, false
 	}
 	req.Resource, req.Time = res, now
-	if pol.hasMembers() {
-		teams, ok := pol.Member(req.User.ID)
-		if !ok {
-			return req, false
-		}
-		req.User.TeamIDs = teams
+	if req.User, ok = pol.withTeams(req.User); !ok {
+		return req, false
 	}
 	if e.kind == KindStream || e.kind == KindDatagram {
 		ep, ok, err := res.Endpoint()

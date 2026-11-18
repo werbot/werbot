@@ -124,19 +124,17 @@ func compileMembers(ms []*gatewayv1.Member) (map[uuid.UUID][]uuid.UUID, error) {
 	return out, nil
 }
 
-// Member returns the teams of an organization member; false when the user is not
-// one. A snapshot without members (an older server) knows no one: callers skip
-// the check when hasMembers is false.
-func (p *Policy) Member(userID uuid.UUID) ([]uuid.UUID, bool) {
-	if p == nil {
-		return nil, false
+// withTeams returns u with the teams the snapshot lists for them; false when u
+// is not an organization member. A snapshot without members (an older server)
+// knows no one: u comes back as it is.
+func (p *Policy) withTeams(u User) (User, bool) {
+	if p == nil || len(p.members) == 0 {
+		return u, true
 	}
-	teams, ok := p.members[userID]
-	return teams, ok
+	teams, ok := p.members[u.ID]
+	u.TeamIDs = teams
+	return u, ok
 }
-
-// hasMembers reports whether the snapshot lists the organization members.
-func (p *Policy) hasMembers() bool { return p != nil && len(p.members) > 0 }
 
 // resourceByID finds a resource of the pool by id.
 // ponytail: linear scan per re-evaluated session; index by id if pools reach thousands of resources.
@@ -274,11 +272,17 @@ func (p *Pipeline) decide(ctx context.Context, r OpenRequest) (pol *Policy, req 
 	if pol = p.ctl.Policy(); pol == nil || !p.ctl.Connected() {
 		return nil, req, "", ErrNotReady
 	}
-	if req.User, err = p.user(ctx, r); err != nil {
+	var reused, ok bool
+	if req.User, reused, err = p.user(ctx, r); err != nil {
 		return nil, AccessRequest{}, "", controlErr(err)
 	}
 	req.IP = r.ClientIP
-	var ok bool
+	// The handshake's teams may predate pol, which stamps the session: take pol's.
+	if reused {
+		if req.User, ok = pol.withTeams(req.User); !ok {
+			return nil, req, "", ErrDenied
+		}
+	}
 	if req.Resource, ok = pol.Resource(r.Resource); !ok {
 		return nil, req, "", ErrDenied
 	}

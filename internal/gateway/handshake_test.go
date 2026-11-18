@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/gliderlabs/ssh"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -115,6 +116,34 @@ func TestHandshakeUserStillChecked(t *testing.T) {
 	s, err := e.p.Open(t.Context(), r)
 	require.NoError(t, err)
 	require.Equal(t, e.m["u1"], s.User.ID)
+	e.f.with(func(f *fakeControl) { require.Empty(t, f.authCalls) })
+}
+
+// A reused handshake user takes the teams of the snapshot the channel is
+// decided on: a team removed (or added) after the handshake counts at once,
+// not at the next full re-evaluation.
+func TestHandshakeUserTakesSnapshotTeams(t *testing.T) {
+	e := newPipeEnv(t, 10)
+	clk := &testClock{t: time.Unix(1_700_000_000, 0)}
+	e.p.now = clk.now
+	e.m["t1"], e.m["u2"] = uuid.New(), uuid.New()
+	r := e.req("fake", KindExec)
+	r.Handshake = &Handshake{User: User{ID: e.m["u1"], Login: "alice", TeamIDs: []uuid.UUID{e.m["t1"]}}, At: clk.now()}
+	e.f.setPolicy(e.memberSnapshot(t, "v2", e.member("u1"), e.member("u2", "t1")))
+	clk.add(handshakeReuse)
+	_, err := e.p.Open(t.Context(), r)
+	require.ErrorIs(t, err, ErrDenied, "the snapshot dropped t1 after the handshake")
+
+	r.Handshake.User.TeamIDs = nil
+	e.f.setPolicy(e.memberSnapshot(t, "v3", e.member("u1", "t1")))
+	s, err := e.p.Open(t.Context(), r)
+	require.NoError(t, err, "the snapshot added t1 after the handshake")
+	require.Equal(t, []uuid.UUID{e.m["t1"]}, s.User.TeamIDs)
+
+	r.Resource = "blocker"
+	e.f.setPolicy(e.memberSnapshot(t, "v4", e.member("u2", "t1")))
+	_, err = e.p.Open(t.Context(), r)
+	require.ErrorIs(t, err, ErrDenied, "u1 left the organization")
 	e.f.with(func(f *fakeControl) { require.Empty(t, f.authCalls) })
 }
 
