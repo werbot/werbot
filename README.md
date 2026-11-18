@@ -4,15 +4,68 @@ Werbot is an open-source access gateway that authorizes every command from peopl
 
 ## Status
 
-pre-alpha (v2 rewrite)
+Pre-release (v0.x): breaking changes are possible, see [docs/upgrading.md](docs/upgrading.md).
 
-## Requirements
+## Quick start (5 minutes)
+
+You need Docker with Compose v2. Run in an empty directory:
+
+```sh
+export WERBOT_VERSION=v0.1.0
+mkdir werbot && cd werbot
+curl -fsSLO https://raw.githubusercontent.com/werbot/werbot/$WERBOT_VERSION/deploy/docker-compose.yaml
+curl -fsSL https://raw.githubusercontent.com/werbot/werbot/$WERBOT_VERSION/deploy/.env.example -o .env
+sed -i.bak \
+  -e "s|^WERBOT_VERSION=.*|WERBOT_VERSION=$WERBOT_VERSION|" \
+  -e "s|^WERBOT_SECRET_KEY=.*|WERBOT_SECRET_KEY=$(openssl rand -base64 32)|" \
+  -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 24)|" \
+  .env && rm .env.bak
+docker compose up -d --wait
+```
+
+On a remote server the login over plain `http://<ip>:8080` does not work (the session cookie is `Secure`): use an SSH tunnel or a TLS proxy, see [docs/install.md](docs/install.md#remote-access).
+
+Open http://localhost:8080 and create the first account. What runs, ports and volumes: [docs/install.md](docs/install.md#docker-compose).
+
+## Other ways to install
+
+- Binary and systemd: [docs/install.md](docs/install.md#binary).
+- Gateway on another host: [docs/gateway.md](docs/gateway.md).
+- Web UI on its own host and domain: [docs/web.md](docs/web.md).
+- Several server replicas and gateway pools: [docs/scaling.md](docs/scaling.md#cluster-example).
+
+## Verify downloads
+
+Releases and images are signed with cosign (keyless) and ship SBOMs. Commands: [docs/security.md](docs/security.md#verifying-releases).
+
+## Documentation
+
+- [install.md](docs/install.md): Docker Compose, remote access, binary.
+- [gateway.md](docs/gateway.md): pools, join tokens, instances, firewall, connections.
+- [web.md](docs/web.md): the web UI on its own host (`werbot web`).
+- [configuration.md](docs/configuration.md): every environment variable.
+- [upgrading.md](docs/upgrading.md): pre-1.0 policy, backup, upgrade order.
+- [security.md](docs/security.md): reporting, release verification, threat model, join tokens.
+- [scaling.md](docs/scaling.md): replicas, load balancing, PostgreSQL, Kubernetes, metrics, cluster example.
+- [failure-modes.md](docs/failure-modes.md): what happens when a part fails.
+- [connectors.md](docs/connectors.md): adding a target type.
+- [connect.md](docs/connect.md): the `werbot connect` client.
+
+Release notes (the changelog): [GitHub Releases](https://github.com/werbot/werbot/releases).
+
+## Security
+
+Report vulnerabilities privately: [docs/security.md](docs/security.md#reporting-a-vulnerability).
+
+## Development
+
+Requirements:
 
 - Go 1.27
 - Bun 1.3
 - Docker (local Postgres 18 and the compose stack)
 
-## Quick start
+### Quick start from source
 
 ```sh
 make dev-db                      # Postgres 18 on localhost:27432 (postgres/password)
@@ -30,13 +83,13 @@ WERBOT_PUBLIC_URL=http://localhost:8080 ./bin/werbot server
 Commands: `./bin/werbot <server|gateway|web|connect|migrate|version|healthcheck>`.
 
 - `server` runs migrations (schema and River job queue) and creates the internal gateway CA and the ed25519 key that signs session recording manifests on first start, under an advisory lock. Then it serves the API (and the UI when embedded), the gateway tunnel on `WERBOT_GATEWAY_ADDR` and runs the River job client.
-- `server --with-gateway` also runs a gateway instance in the same process. Each replica joins the system pool `local` of the first organization (by creation time) with a single-use system join token; before `Setup` it checks for an organization every 5s. It reaches its own server over loopback (`http://127.0.0.1:<WERBOT_HTTP_ADDR port>`, tunnel `https://127.0.0.1:<WERBOT_GATEWAY_ADDR port>`), so both addresses must accept connections on 127.0.0.1: leave the host empty (`:8080`) or use `0.0.0.0` or `127.0.0.1`, not a single non-loopback IP. It keeps its identity in `WERBOT_DATA_DIR/gateway` (or `WERBOT_GATEWAY_DATA_DIR`) and reads the other `WERBOT_GATEWAY_*` variables below; it refuses loopback, link-local (including cloud metadata), multicast and unspecified targets and the resolved addresses of the database host unless `WERBOT_LOCAL_POOL_ALLOW_LOOPBACK=true` (see below), so a same-host database needs that opt-in, while the host's LAN addresses stay reachable (this applies to `telnet`, `tcp` and `udp` sessions and to health probes; `ssh` resources keep their own dial, so a loopback `ssh` resource connects but its health shows `unhealthy`); its metrics go to the server's `/metrics`. Database and enrollment errors before the instance is enrolled are logged and retried (the wait doubles up to 5 minutes, a new single-use token each time); a busy SSH port or a failure after enrollment stops the server. On shutdown the gateway drains its sessions before the server closes the tunnel, so allow `WERBOT_GATEWAY_DRAIN_TIMEOUT` plus about 40s for the stop (compose: `stop_grace_period: 70s`).
+- `server --with-gateway` also runs a gateway instance in the same process. Each replica joins the system pool `local` of the first organization (by creation time) with a system join token (max uses 1); before `Setup` it checks for an organization every 5s. It reaches its own server over loopback (`http://127.0.0.1:<WERBOT_HTTP_ADDR port>`, tunnel `https://127.0.0.1:<WERBOT_GATEWAY_ADDR port>`), so both addresses must accept connections on 127.0.0.1: leave the host empty (`:8080`) or use `0.0.0.0` or `127.0.0.1`, not a single non-loopback IP. It keeps its identity in `WERBOT_DATA_DIR/gateway` (or `WERBOT_GATEWAY_DATA_DIR`) and reads the other `WERBOT_GATEWAY_*` variables ([docs/configuration.md](docs/configuration.md#gateway-werbot-gateway)); it refuses loopback, link-local (including cloud metadata), multicast and unspecified targets and the resolved addresses of the database host unless `WERBOT_LOCAL_POOL_ALLOW_LOOPBACK=true` ([docs/configuration.md](docs/configuration.md#embedded-gateway)), so a same-host database needs that opt-in, while the host's LAN addresses stay reachable (this applies to `telnet`, `tcp` and `udp` sessions and to health probes; `ssh` resources keep their own dial, so a loopback `ssh` resource connects but its health shows `unhealthy`); its metrics go to the server's `/metrics`. Database and enrollment errors before the instance is enrolled are logged and retried (the wait doubles up to 5 minutes, a new system token each time); a busy SSH port or a failure after enrollment stops the server. On shutdown the gateway drains its sessions before the server closes the tunnel, so allow `WERBOT_GATEWAY_DRAIN_TIMEOUT` plus about 40s for the stop (compose: `stop_grace_period: 70s`).
 - Upgrade the server and every standalone gateway to the same release together: the server requires the session kind (`terminal`, `exec`, `stream`, `datagram`) that older gateways do not send, so their new sessions fail until they are upgraded.
 - `gateway` runs a standalone gateway instance (`./bin/werbot gateway --help` lists the flags: `--server`, `--join-token`, `--data-dir`, `--ssh-addr`, `--proxy-protocol`, `--name`, `--idle-timeout`, `--http-addr`, `--drain-timeout`, `--max-sessions`, `--spool-max`, `--max-duration`, and the flag-only `--insecure-enroll`).
 - Web UI `/gateways` (owners and admins): create pools, see instances (online within 45s of the last heartbeat) and manage join tokens. "Create join token" shows the `WERBOT_GATEWAY_JOIN_TOKEN=<token> werbot gateway --server <origin>` command once (the env form keeps the token out of `ps` output and shell history); the token is not shown again. The resource form shows a pool select when more than one pool exists.
 - Web UI `/sessions` (every user; members see only their own): session list filtered by status and period (owners and admins also by user and resource) and, per session, its details, the recording integrity badge (`Recording verified` when `X-Werbot-Recording-Verified` is `true`, a failure banner otherwise, a notice while the recording is unfinished) and an asciinema player of `/api/recordings/{session_id}.cast`. The list shows bytes up and down; the details add kind, target and, for datagram sessions, datagram counts. The resource pages offer `telnet`, `tcp` and `udp` forms (port ranges like `22, 8000-8100`), idle timeout and max duration in minutes, a health dot, connect hints per session kind, and ports on bindings of `tcp` and `udp` resources.
 - Web UI `/audit` (owners and admins): the audit log filtered by action, actor and period; the filter lives in the query string (`/audit?action=session&actor=<user id>&from=YYYY-MM-DD&to=YYYY-MM-DD`, `to` inclusive). A click on an event opens its fields and `data`.
-- `connect` opens local ports that reach `tcp`, `udp` and other port resources through a gateway (see `werbot connect` below).
+- `connect` opens local ports that reach `tcp`, `udp` and other port resources through a gateway ([docs/connect.md](docs/connect.md)).
 - `migrate` runs migrations (schema and River job queue) and exits.
 - `web` serves the UI and proxies the API to a separate `server`.
 - `version` prints the build version.
@@ -62,97 +115,10 @@ Background jobs on the River `feeds` queue (one worker) need outbound HTTPS from
 
 A failed download keeps the previous data.
 
-## Configuration
-
-`werbot server` and `werbot migrate`:
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `WERBOT_DATABASE_URL` | required | Postgres URL. Pool size: `pool_max_conns`; query limit: `statement_timeout` (default `30s`); `jit` (default `off`), all as URL parameters. |
-| `WERBOT_ENV` | `production` | `production` or `development`. |
-| `WERBOT_HTTP_ADDR` | `:8080` | API (and embedded UI) listen address. |
-| `WERBOT_LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. |
-| `WERBOT_LOG_FORMAT` | `json` | `json` or `text`. |
-| `WERBOT_METRICS_ADDR` | empty (disabled) | Listen address for `/metrics`. |
-| `WERBOT_WEB_EMBEDDED` | `true` | Serve the UI from the server. |
-| `WERBOT_PUBLIC_URL` | required | Public `http(s)://` address of the server, for example `https://werbot.example.com`. |
-| `WERBOT_WEB_URL` | `WERBOT_PUBLIC_URL` | Public address of the UI; base for links in emails. |
-| `WERBOT_TRUSTED_PROXIES` | empty | Comma-separated CIDRs whose `X-Forwarded-For` is trusted. |
-| `WERBOT_SMTP_HOST` | empty | SMTP server. Empty: emails go to the log only (the full text, with links, only when `WERBOT_ENV=development`). |
-| `WERBOT_SMTP_PORT` | `587` | SMTP port, 1-65535. |
-| `WERBOT_SMTP_USERNAME`, `WERBOT_SMTP_PASSWORD` | empty | SMTP credentials. |
-| `WERBOT_SMTP_FROM` | empty | Sender address; required when `WERBOT_SMTP_HOST` is set. |
-| `WERBOT_SECRET_KEY` | required | Base64 of 32 random bytes (`openssl rand -base64 32`); encrypts stored secrets. |
-| `WERBOT_SECRET_KEY_PREVIOUS` | empty | Comma-separated base64 keys kept for decrypting data sealed before a key rotation. |
-| `WERBOT_DATA_DIR` | `./data` | Local state directory: the embedded gateway, and session recordings in `recordings/` while `WERBOT_RECORDINGS_S3_BUCKET` is empty. |
-| `WERBOT_RECORDINGS_S3_BUCKET` | empty | S3 bucket for session recordings. Empty: recordings go to the file system under `WERBOT_DATA_DIR/recordings`; use that only with one replica or a ReadWriteMany volume. |
-| `WERBOT_RECORDINGS_S3_ENDPOINT` | empty | S3-compatible endpoint URL. Empty: standard AWS. |
-| `WERBOT_RECORDINGS_S3_REGION` | `us-east-1` when the bucket is set | S3 region. |
-| `WERBOT_RECORDINGS_S3_ACCESS_KEY`, `WERBOT_RECORDINGS_S3_SECRET_KEY` | empty | S3 credentials; set both or neither. |
-| `WERBOT_GATEWAY_ADDR` | `:8443` | mTLS listener of the gateway tunnel (TLS 1.3, HTTP/2). Its port is the port in the tunnel URL given to gateways. |
-| `WERBOT_LOCAL_POOL_ALLOW_LOOPBACK` | `false` | The embedded gateway (`--with-gateway`, pool `local`) runs inside the server process, so by default it refuses target addresses on the server's own host: loopback (`127.0.0.0/8`, `::1`), link-local including cloud metadata (`169.254.0.0/16`, `fe80::/10`), multicast (including interface-local `ff01::/16`), unspecified (`0.0.0.0`, `::`), and every address the host of `WERBOT_DATABASE_URL` resolves to. The check runs on the resolved address when a session opens (the user gets `Access denied`, audited as `target_not_allowed`) and again on every connect. It covers `telnet`, `tcp` and `udp` sessions and health probes, not `ssh` resources: they keep their own dial, so a loopback `ssh` resource connects while its health shows `unhealthy` with the refusal. Other addresses of the host and its LAN stay reachable: restrict them with resource endpoints and access bindings. `true` turns the check off. Standalone gateways are not affected. |
-
-`werbot web` (no database access):
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `WERBOT_WEB_API_URL` | required | `http(s)://` URL of the API server. |
-| `WERBOT_WEB_ADDR` | `:8090` | Listen address. |
-| `WERBOT_TRUSTED_PROXIES` | empty | Comma-separated CIDRs whose `X-Forwarded-For` is trusted. |
-| `WERBOT_LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. |
-| `WERBOT_LOG_FORMAT` | `json` | `json` or `text`. |
-| `WERBOT_METRICS_ADDR` | empty (disabled) | Listen address for `/metrics`. |
-
-`werbot gateway` (an instance of a gateway pool; each variable also has a flag, for example `--ssh-addr`):
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `WERBOT_GATEWAY_SERVER_URL` | empty | `https://` URL of the server API; needed for enrollment only (a start with a valid saved identity does not check it). `http://` is accepted only for a loopback host (`127.0.0.0/8`, `::1`, `localhost`) or with the flag `--insecure-enroll`: enrollment sends the join token and receives the pool's private SSH host key, so use it only on a trusted network. |
-| `WERBOT_GATEWAY_JOIN_TOKEN` | empty | Join token of the pool; needed for enrollment: the first start or a start with a stale identity (see below). A valid saved identity wins over it. |
-| `WERBOT_GATEWAY_DATA_DIR` | `./gateway-data` | Instance identity: `gateway.json`, `gateway.key`, `gateway.crt`, `ca.crt`, `ssh_host_ed25519_key`, and the recording spool `spool/`. Keep it on a persistent volume (a PVC in Kubernetes): undelivered recordings and session ends wait there across restarts. |
-| `WERBOT_GATEWAY_SSH_ADDR` | `:2222` | SSH listen address. |
-| `WERBOT_GATEWAY_PROXY_PROTOCOL` | `false` | Require a PROXY protocol header on every SSH connection; expose the port to the load balancer only. |
-| `WERBOT_GATEWAY_NAME` | OS hostname | Instance hostname shown in the pool. |
-| `WERBOT_GATEWAY_IDLE_TIMEOUT` | `5m` | Ends a session without traffic in either direction (`idle_timeout`) unless its resource sets `idle_timeout`, and closes an SSH connection that runs no session for this long (keepalives do not count; typing in the resource menu does). A running session keeps its connection open; `0` disables both. |
-| `WERBOT_GATEWAY_HTTP_ADDR` | empty (disabled) | Listen address for `/readyz` and `/metrics`. |
-| `WERBOT_GATEWAY_DRAIN_TIMEOUT` | `30s` | On SIGTERM, how long running sessions may continue before they end with `gateway_shutdown`. |
-| `WERBOT_GATEWAY_SPOOL_MAX` | `1GiB` | Size cap of the recording spool: bytes or a `KiB`, `MiB`, `GiB` suffix; must be above 0. Flag `--spool-max`. While the unsent spool is at the cap, new sessions of recorded kinds get `Gateway is busy, try again later`; unrecorded ones (`tcp`, `udp`, `ssh -L`) still open and running sessions continue. The `WERBOT_GATEWAY_DATA_DIR` volume must hold the cap plus headroom. While the spool cannot write (disk full or not writable), new recorded sessions get the same answer and the same metric, and each running session ends with `recording_unavailable` at its next chunk flush (within about 10 s); a command that ends sooner can stay unrecorded. |
-| `WERBOT_GATEWAY_MAX_SESSIONS` | `10000` | Concurrent session limit, 1-10000; above it users get `Gateway is busy, try again later`. |
-| `WERBOT_GATEWAY_MAX_DURATION` | `12h` | Ends a session after this long (`max_duration`) unless its resource sets `max_duration`; `0` means no limit, a negative value fails the start. Flag `--max-duration`. |
-
-`werbot connect` (the client; each variable also has a flag):
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `WERBOT_CONNECT_GATEWAY` | required | Gateway SSH address `host[:port]`; the port defaults to `2222`. Flag `--gateway`. |
-| `WERBOT_CONNECT_LOGIN` | required | Werbot login. Flag `--login`. |
-
-The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR`; it connects out to the server tunnel. Users log in with their SSH key: `ssh <login>+<resource>@<gateway> -p 2222` runs a shell or a command on the resource, `ssh -L <port>:<host>:<port> <login>+<resource>@<gateway> -p 2222` forwards a port (only when the SSH resource sets `port_forwarding`, default `false`; a host equal to the resource name, case-insensitive, as `werbot connect` sends it, is `localhost` on the SSH target, so `<resource>:<port>` reaches that port of the target itself), and `ssh <login>@<gateway> -p 2222` (interactive terminal only) shows a menu of the resources the user may open. Two SSH extensions serve port access for `werbot connect` on the same port and only for a `<login>+<resource>` login: the channel `datagram@werbot.com` opens one datagram session (open data as for `direct-tcpip`; each datagram is one frame `flow uint32 | len uint16 | payload`, big-endian, up to 65535 bytes, and one channel carries many client flows), and the global request `resource@werbot.com` answers the resource type, session kinds and ports as JSON (`{"type":"tcp","kinds":["stream"],"ports":[{"port":5432,"end_port":0}]}`) after the same access check with port 0. A refused, unknown or menu-login request gets `false` without payload, so it reveals nothing about resources the user cannot open; a refused one is audited as `session.deny`. A gateway that is not ready answers `false` with the text `Gateway is not ready, try again later`. Without the server or a policy snapshot the gateway refuses new sessions (`Gateway is not ready, try again later`) and closes that SSH connection after 30 s; running sessions continue. A connection must authenticate within 30 s, and the control-plane lookup of each offered key counts toward it, so a slow control plane may cut a client that offers many keys. `/readyz` returns 200 only while the tunnel is up with a snapshot (a planned reconnect for `rebalance` or a server `shutdown` keeps it for up to 5s), a session slot is free and no drain runs. On SIGTERM `/readyz` returns 503 at once and the SSH port stops accepting connections.
-
-A `telnet` resource opens as a terminal (`ssh -t <login>+<resource>@<gateway> -p 2222`; TERM and window changes go to the target as NAWS; commands are not supported) or as a stream for a local telnet client (`ssh -L 2323:<host>:23 <login>+<resource>@<gateway> -p 2222`, then `telnet 127.0.0.1 2323`): the gateway is the telnet server to that client, waits up to 1 s for its TERM and window, and only then dials the target. When the resource has a `login` and a password credential, the gateway logs in at the target's `login:`/`password:` prompts within 10 s and shows the output after the password prompt with the password removed; the login lines are not recorded. A refused or timed-out login ends the session with `Login to <resource> failed`. Without a login or a password the user answers the target's prompts. The gateway → target leg is plain text, as telnet is: run the gateway next to the equipment, in an isolated segment.
-
-A `tcp` resource opens as a stream (`ssh -L 5432:<host>:5432 <login>+<resource>@<gateway> -p 2222`): the gateway dials the resource `host` at the requested port (it must be inside the resource port ranges) and relays the bytes both ways. A close of one side is passed to the other as a half-close, so a request/response protocol sees the end of its input. The session ends when both sides have closed. Nothing is recorded, only bytes are counted. A failed dial ends the session; the error does not name the target.
-
-Sessions are recorded for the kinds their resource type records: `ssh` terminal and exec sessions, `telnet` terminal and stream sessions. Streams of `ssh` (`ssh -L`), `tcp` and `udp` are not recorded; they only count bytes and datagrams. Recordings are asciicast v2 (gzip chunks of up to 64 KiB raw, flushed at least every 10 s). Chunks and session ends go to the spool in `WERBOT_GATEWAY_DATA_DIR/spool` first and are uploaded through the tunnel in order: the session end first, then the chunks, then the closing manifest. While the server or its recording storage is unreachable, running sessions continue and the spool keeps their data; a session whose unsent data passes 64 MiB ends with the reason `recording_unavailable`. On shutdown the gateway waits up to 10 s for the spool to deliver the session ends; the rest is sent after the next start. Data the server refuses moves to `spool/rejected/`, which no longer counts toward `WERBOT_GATEWAY_SPOOL_MAX`, and a running session whose recording the server refuses ends with `recording_unavailable`; this happens to the old spool of an instance that enrolled again with a new identity (its certificate expired), and those recordings stay unverified. Metrics: `werbot_gateway_spool_bytes` (unsent bytes) and `werbot_gateway_sessions_rejected_total{reason="spool_full"}`.
-
-UDP sessions use one target socket per client flow (a `datagram@werbot.com` flow), dialed on its first datagram. Limits: 32 flows per session (the 33rd flow's datagrams are dropped, the session continues), 8192 bytes per datagram (a larger one, either way, is dropped); a UDP session with 32 flows holds about 512 KiB of memory (an 8 KiB buffer and a reader goroutine per flow). A flow with no traffic for the resource's `flow_idle` (default `2m`) is closed and reopens on its next datagram; an ICMP port-unreachable from the target is ignored. Drops are counted in `werbot_gateway_datagrams_dropped_total{reason="flows"|"size"}`.
-
-Every channel is checked when it opens. A stream or datagram target must be a `host:port` with a port above 0; an `ssh` resource without `port_forwarding` refuses every target; unless the resource allows any target (`ssh` with `port_forwarding`), the host must be the resource's configured host or its name and the port one of its ports, otherwise the user gets `Access denied`. Each session counts bytes and datagrams in both directions (`up` is client to target); every fourth heartbeat (60 s) reports the counters that changed, and the session end carries the final ones (metrics `werbot_gateway_session_bytes_total{direction}`, `werbot_gateway_datagrams_total{direction}`). Every 5 s the gateway ends sessions without traffic for their idle timeout (`idle_timeout`) or older than their maximum duration (`max_duration`); a terminal first prints `Session closed: idle timeout` or `Session closed: max duration reached`. On each new policy snapshot and every 60 s it re-evaluates every running session against the current policy (bindings, resources and their targets, network, country and schedule rules, the IP blocklist, organization and team membership) and ends the refused ones with `access_revoked`; a re-evaluation also applies changed resource timeouts. Refused connections (`denied`, `target_not_allowed`, `unsupported_type`, `unsupported_kind`, `busy`, `spool_full`, and `auth_failed` once per SSH connection that offered only refused keys) go to the server with the next heartbeat and become `session.deny` audit events; `not_ready` is not reported. At most 100 go per heartbeat (15 s), the rest only count in `werbot_gateway_denials_dropped_total`, so a brute force adds at most 100 audit rows per instance every 15 s. Denials are kept in memory and lost if the instance is killed.
-
-`werbot connect [flags] [<local_port>:]<resource>[:<target_port>] ...` opens a local port per resource on `127.0.0.1` and prints `<resource> → 127.0.0.1:<port> (tcp|udp)`, for example `werbot connect --gateway gw.example.com --login alice pg` and then `psql -h 127.0.0.1 -p 5432`. Flags: `--gateway`, `--login`, `-i <key>` (otherwise the ssh-agent at `SSH_AUTH_SOCK` when it answers, otherwise `~/.ssh/id_ed25519`; an encrypted key file fails with `key <path> is encrypted; load it into ssh-agent`; the agent is never forwarded) and `--known-hosts <path>` (default `~/.ssh/known_hosts`). Each resource gets its own SSH connection as `<login>+<resource>`; the client asks `resource@werbot.com` for the resource and opens a UDP port when it has the `datagram` kind, otherwise a TCP port for `stream` (otherwise `Resource <resource> does not support port access`). The target port is `:<target_port>` or the resource's only port; a resource without ports, with several ports or with a range needs `:<target_port>` (`resource web has several ports (8000-8002); use web:<port>`). The local port is `<local_port>` or the target port, plus 10000 below 1024 (`23` → `10023`, `53` → `10053`); a busy one fails with `local port <n> is busy; use <free>:<resource>`. The port listens on `127.0.0.1` only, but, as with `ssh -L`, every local user of the machine can connect to it. Each TCP connection opens its own `direct-tcpip` channel (one gateway session, one access check) and passes half-closes on; a UDP port uses one `datagram@werbot.com` channel where each client address is a flow (at most 32; a new address beyond them is dropped until a flow has had no traffic for 2 minutes). The client frees a flow after 2 minutes whatever the resource's `flow_idle`: with `flow_idle` above 2 minutes and many client addresses, the gateway still holds the old flows, so its 32-flow cap can drop new flows until they age out. After a refused or failed channel open, datagrams are dropped for a backoff of 1 s doubling up to 30 s, and the same text is printed once. The gateway host key is checked like OpenSSH `StrictHostKeyChecking=accept-new`: an unknown key is appended to known_hosts (created `0700`/`0600`), a different key fails with `host key mismatch for <host:port>`. A `keepalive@openssh.com` goes every 30 s; three unanswered in a row count as a drop. After a drop the client dials again with a backoff of 1 s doubling up to 30 s while the local ports stay open, and prints each new dial error (`<resource>: reconnect failed: <error>; retrying`): running TCP connections end, a new one waits up to 10 s for the connection and is closed otherwise, and UDP opens a new channel (a new session with an empty flow table) on the next datagram; a changed host key or a refused key ends the client with an error. Gateway texts (`Access denied`, `Gateway is busy, try again later`, ...) are printed as they are; a refused resource exits with code 1, Ctrl+C closes everything with code 0.
-
-The instance renews its 24h certificate after 16h; until the renewed certificate is first used, the previous one stays valid, so a lost renewal response does not lock the instance out. A saved identity whose certificate has expired or no longer loads (the instance was offline for more than 24h, or crashed during a renewal) counts as not enrolled, and the next enrollment overwrites it. An instance whose certificate expires while running stops (`gateway certificate expired`). The embedded gateway enrolls again by itself. A standalone gateway offline for more than 24h needs a new join token in `WERBOT_GATEWAY_JOIN_TOKEN`; a spent token fails at start with `invalid join token`.
-
-## Deployment modes
-
-- All-in-one (default): `werbot server` serves the API and the UI on one address.
-- Several server replicas: put an L4 (TCP passthrough) load balancer in front of the tunnel port (`8443` by default) with the same external port; mTLS ends on the replica, so a TLS-terminating proxy breaks the tunnel. The API port works behind any HTTP load balancer.
-- Separate UI: run `werbot server` with `WERBOT_WEB_EMBEDDED=false` and `werbot web` with `WERBOT_WEB_API_URL` pointing to the server. Set `WERBOT_WEB_URL` on the server to the UI address (links in emails) and `WERBOT_TRUSTED_PROXIES` to the `werbot web` address (client IPs in sessions and audit).
-
-Docker:
+### Docker image from source
 
 ```sh
-docker build -f deploy/Dockerfile -t ghcr.io/werbot/werbot:dev .  # or set WERBOT_VERSION to a released tag
+docker build -f deploy/Dockerfile -t ghcr.io/werbot/werbot:dev .
 cd deploy && cp .env.example .env && WERBOT_VERSION=dev
 sed -i.bak \
   -e "s|^WERBOT_VERSION=.*|WERBOT_VERSION=$WERBOT_VERSION|" \
@@ -162,9 +128,7 @@ sed -i.bak \
 docker compose up -d --wait
 ```
 
-`deploy/docker-compose.yaml` (project `werbot`) runs Postgres 18 and `werbot server --with-gateway` from `ghcr.io/werbot/werbot:${WERBOT_VERSION}` and listens on http://localhost:8080 (`/healthz`, `/readyz`), SSH on port `2222` (pool `local`, after `Setup`) and the gateway tunnel on port `8443` (for external gateways). `docker compose config` refuses an empty `WERBOT_VERSION`, `WERBOT_SECRET_KEY` or `POSTGRES_PASSWORD` and names the generate command. State lives in the volumes `werbot_postgres-data` and `werbot_werbot-data` (`/var/lib/werbot`); keep `.env`: its `WERBOT_SECRET_KEY` decrypts stored credentials. `deploy/docker-compose.gateway.yaml` (project `werbot-gateway`) runs a standalone gateway (`.env`: `WERBOT_VERSION`, `WERBOT_GATEWAY_SERVER_URL`, `WERBOT_GATEWAY_JOIN_TOKEN`). `deploy/docker-compose.cluster.yaml` with `deploy/nginx.cluster.conf` (project `werbot-cluster`) is a cluster example: 2 server and 2 `werbot web` replicas, Postgres, SeaweedFS for recordings and a pool of 2 gateways (profile `gateways`) behind nginx on ports `8080`, `8443` and `2222`.
-
-## Development
+### Tests and tools
 
 ```sh
 make test   # needs `make dev-db`

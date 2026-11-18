@@ -126,11 +126,11 @@ It needs Docker Compose 2.23.1 or newer. The example and the `test/cluster` test
      .env && rm .env.bak
    ```
 
-3. Set `WERBOT_PUBLIC_URL` in `.env` to a DNS name or IP of this host that containers can reach, for example `http://<host-ip>:8080`. `localhost` does not work: gateways dial the tunnel at that host on port 8443. Find the IP with `hostname -I` (Linux) or `ipconfig getifaddr en0` (macOS).
+3. Set `WERBOT_PUBLIC_URL` in `.env` to a DNS name or IP of this host that containers can reach, for example `http://<host-ip>:8080`. `localhost` does not work: gateways dial the tunnel at that host on port 8443. Find the IP with `hostname -I` (Linux) or `ipconfig getifaddr en0 || ipconfig getifaddr en1` (macOS).
 4. Append the S3 keys: `echo "WERBOT_RECORDINGS_S3_ACCESS_KEY=$(openssl rand -hex 12)" >> .env` and `echo "WERBOT_RECORDINGS_S3_SECRET_KEY=$(openssl rand -hex 24)" >> .env`.
 5. Start: `docker compose -f docker-compose.cluster.yaml up -d --wait`.
 6. Open the UI (on this host `http://localhost:8080`; from another machine see [install.md](install.md#remote-access)) and complete Setup.
-7. Gateways, Create gateway, Create join token with `max uses` of 2 or more. Append `WERBOT_GATEWAY_JOIN_TOKEN=<token>` to `.env`.
+7. Gateways, Create pool, Create join token with `max uses` of 2 or more. Append `WERBOT_GATEWAY_JOIN_TOKEN=<token>` to `.env`.
 8. Start the gateways: `docker compose -f docker-compose.cluster.yaml --profile gateways up -d --wait`. Both instances show online.
 9. Connect: `ssh -p 2222 <login>@<host>`.
 
