@@ -21,6 +21,7 @@ type Store interface {
 	InsertHostKey(ctx context.Context, arg dbq.InsertHostKeyParams) (int64, error)
 	GetHostKeyFingerprint(ctx context.Context, arg dbq.GetHostKeyFingerprintParams) (string, error)
 	DeleteHostKey(ctx context.Context, arg dbq.DeleteHostKeyParams) (int64, error)
+	NotifyHostKeyChanged(ctx context.Context, orgID uuid.UUID) error
 
 	OrgGatewayIDs(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error)
 	LockOrgPools(ctx context.Context, orgID uuid.UUID) error

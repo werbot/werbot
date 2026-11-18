@@ -101,7 +101,7 @@ type Session struct {
 	Stream   io.ReadWriteCloser                 // KindStream; half-close through CloseWrite when the stream has it
 	Datagram Datagrams                          // KindDatagram
 	Target   string                             // KindStream, KindDatagram: the requested host:port
-	PinKey   func(alg string, key []byte) error // pins the target host key through the server; mismatch is ErrHostKeyMismatch
+	PinKey   func(alg string, key []byte) error // pins the target host key through the server unless the snapshot pins it; mismatch is ErrHostKeyMismatch
 	// Dial connects to the target; on the embedded gateway it refuses local
 	// addresses with ErrTargetNotAllowed.
 	Dial      func(ctx context.Context, network, address string) (net.Conn, error)

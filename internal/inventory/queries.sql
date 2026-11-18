@@ -92,6 +92,10 @@ SELECT fingerprint_sha256 FROM resource_host_key WHERE resource_id = @resource_i
 -- name: DeleteHostKey :execrows
 DELETE FROM resource_host_key WHERE resource_id = @resource_id AND org_id = @org_id;
 
+-- name: NotifyHostKeyChanged :exec
+-- resource_host_key has no org_changed trigger; the pool snapshot carries the pin.
+SELECT pg_notify('werbot_org_changed', CAST(@org_id::uuid AS text));
+
 -- name: OrgGatewayIDs :many
 -- Two rows are enough to tell "none", "the only one" and "several".
 SELECT id FROM gateway WHERE org_id = @org_id ORDER BY created_at, id LIMIT 2;

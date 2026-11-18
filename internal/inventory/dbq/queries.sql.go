@@ -820,6 +820,16 @@ func (q *Queries) LockOrgPoolsShared(ctx context.Context, orgID uuid.UUID) error
 	return err
 }
 
+const notifyHostKeyChanged = `-- name: NotifyHostKeyChanged :exec
+SELECT pg_notify('werbot_org_changed', CAST($1::uuid AS text))
+`
+
+// resource_host_key has no org_changed trigger; the pool snapshot carries the pin.
+func (q *Queries) NotifyHostKeyChanged(ctx context.Context, orgID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, notifyHostKeyChanged, orgID)
+	return err
+}
+
 const onlineInstanceIDs = `-- name: OnlineInstanceIDs :many
 SELECT id FROM gateway_instance
 WHERE gateway_id = $1 AND last_seen_at > now() - interval '45 seconds'

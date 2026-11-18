@@ -190,6 +190,9 @@ func (t tunnelSnapshots) Build(ctx context.Context, orgID, gatewayID uuid.UUID) 
 		if r.MaxDuration != nil {
 			res.MaxDuration = durationpb.New(*r.MaxDuration)
 		}
+		if r.HostKey != nil {
+			res.HostKeySha256 = r.HostKey.FingerprintSHA256
+		}
 		out.Resources = append(out.Resources, res)
 	}
 	bl, err := t.s.Policy.Blocklist(ctx)

@@ -702,8 +702,10 @@ type Resource struct {
 	// protojson of the connector config
 	ConfigJson []byte `protobuf:"bytes,4,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
 	// unset: the gateway default
-	IdleTimeout   *durationpb.Duration `protobuf:"bytes,5,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
-	MaxDuration   *durationpb.Duration `protobuf:"bytes,6,opt,name=max_duration,json=maxDuration,proto3" json:"max_duration,omitempty"`
+	IdleTimeout *durationpb.Duration `protobuf:"bytes,5,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
+	MaxDuration *durationpb.Duration `protobuf:"bytes,6,opt,name=max_duration,json=maxDuration,proto3" json:"max_duration,omitempty"`
+	// SHA256 fingerprint of the pinned target host key; empty: none pinned yet
+	HostKeySha256 string `protobuf:"bytes,7,opt,name=host_key_sha256,json=hostKeySha256,proto3" json:"host_key_sha256,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -778,6 +780,13 @@ func (x *Resource) GetMaxDuration() *durationpb.Duration {
 		return x.MaxDuration
 	}
 	return nil
+}
+
+func (x *Resource) GetHostKeySha256() string {
+	if x != nil {
+		return x.HostKeySha256
+	}
+	return ""
 }
 
 type AuthenticateUserRequest struct {
@@ -1674,7 +1683,7 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\amembers\x18\x06 \x03(\v2\x12.gateway.v1.MemberR\amembers\"<\n" +
 	"\x06Member\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
-	"\bteam_ids\x18\x02 \x03(\tR\ateamIds\"\xdf\x01\n" +
+	"\bteam_ids\x18\x02 \x03(\tR\ateamIds\"\x87\x02\n" +
 	"\bResource\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -1682,7 +1691,8 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\vconfig_json\x18\x04 \x01(\fR\n" +
 	"configJson\x12<\n" +
 	"\fidle_timeout\x18\x05 \x01(\v2\x19.google.protobuf.DurationR\vidleTimeout\x12<\n" +
-	"\fmax_duration\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\vmaxDuration\"\xaf\x01\n" +
+	"\fmax_duration\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\vmaxDuration\x12&\n" +
+	"\x0fhost_key_sha256\x18\a \x01(\tR\rhostKeySha256\"\xaf\x01\n" +
 	"\x17AuthenticateUserRequest\x12;\n" +
 	"\x12fingerprint_sha256\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01H\x00R\x11fingerprintSha256\x12\"\n" +

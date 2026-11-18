@@ -32,6 +32,7 @@ type Resource struct {
 	Name, Type               string
 	Config                   []byte        // protojson of the connector config
 	IdleTimeout, MaxDuration time.Duration // 0: the gateway's Config values
+	HostKeySHA256            string        // fingerprint of the pinned target host key; empty: none
 }
 
 // Endpoint is where a stream or datagram of the resource may connect, from its
@@ -90,7 +91,8 @@ func CompilePolicy(s *gatewayv1.Snapshot) (*Policy, error) {
 			return nil, fmt.Errorf("snapshot resource %q: invalid id", r.GetName())
 		}
 		p.resources = append(p.resources, Resource{ID: id, Name: r.GetName(), Type: r.GetType(), Config: r.GetConfigJson(),
-			IdleTimeout: max(r.GetIdleTimeout().AsDuration(), 0), MaxDuration: max(r.GetMaxDuration().AsDuration(), 0)})
+			IdleTimeout: max(r.GetIdleTimeout().AsDuration(), 0), MaxDuration: max(r.GetMaxDuration().AsDuration(), 0),
+			HostKeySHA256: r.GetHostKeySha256()})
 	}
 	if p.members, err = compileMembers(s.GetMembers()); err != nil {
 		return nil, err

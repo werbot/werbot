@@ -13,7 +13,8 @@ import (
 )
 
 // PinHostKey pins key on first use (TOFU). Pinning the same key again is a no-op;
-// a different key is ErrFailedPrecondition until ClearHostKey.
+// a different key is ErrFailedPrecondition until ClearHostKey. A new pin and a
+// clear notify the organization's gateways: their snapshots carry the pin.
 func (s *Service) PinHostKey(ctx context.Context, orgID, resourceID uuid.UUID, key ssh.PublicKey) error {
 	fp := ssh.FingerprintSHA256(key)
 	return notFound(s.tx(ctx, orgID, func(st Store, tx pgx.Tx) error {
@@ -24,6 +25,9 @@ func (s *Service) PinHostKey(ctx context.Context, orgID, resourceID uuid.UUID, k
 			return err
 		}
 		if n == 1 {
+			if err := st.NotifyHostKeyChanged(ctx, orgID); err != nil {
+				return err
+			}
 			return audit(ctx, tx, orgID, "resource.host_key.pin", resourceID, map[string]any{"fingerprint": fp})
 		}
 		pinned, err := st.GetHostKeyFingerprint(ctx, dbq.GetHostKeyFingerprintParams{ResourceID: resourceID, OrgID: orgID})
@@ -45,6 +49,9 @@ func (s *Service) ClearHostKey(ctx context.Context, orgID, resourceID uuid.UUID)
 		}
 		n, err := st.DeleteHostKey(ctx, dbq.DeleteHostKeyParams{ResourceID: resourceID, OrgID: orgID})
 		if err != nil || n == 0 {
+			return err
+		}
+		if err := st.NotifyHostKeyChanged(ctx, orgID); err != nil {
 			return err
 		}
 		return audit(ctx, tx, orgID, "resource.host_key.clear", resourceID, nil)

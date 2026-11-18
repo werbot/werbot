@@ -195,6 +195,38 @@ func TestE2EHostKeyMismatch(t *testing.T) {
 	assert.Equal(t, gossh.FingerprintSHA256(foreign), pinned, "the pinned key is kept")
 }
 
+// The gateway skips the pin call for the key its snapshot carries; ClearHostKey
+// changes the snapshot, so a later connection pins the key again.
+func TestE2EHostKeyRepinnedAfterClear(t *testing.T) {
+	s := startStack(t)
+	id := s.addResource(t, "srv", "ssh")
+	pinned := func() bool {
+		var n int
+		require.NoError(t, s.pool.QueryRow(context.Background(), "SELECT count(*) FROM resource_host_key WHERE resource_id = $1", id).Scan(&n))
+		return n == 1
+	}
+	connected := func() bool {
+		out, code := s.exec(t, s.gwSSH, "alice+srv", "echo ok")
+		return out == "ok\n" && code == 0
+	}
+	require.Eventually(t, connected, settle, 100*time.Millisecond)
+	require.True(t, pinned(), "the first connection pins the key")
+
+	_, err := s.api.res.ClearHostKey(context.Background(), connect.NewRequest(&werbotv1.ClearHostKeyRequest{ResourceId: id.String()}))
+	require.NoError(t, err)
+	require.False(t, pinned())
+	// 5s: the clear reaches the gateway by NOTIFY, the debounce and a snapshot push
+	require.Eventually(t, func() bool { return connected() && pinned() }, 5*time.Second, 100*time.Millisecond)
+
+	// Once the snapshot carries the pin, a connection makes no pin call: a row
+	// removed behind the server's back stays removed.
+	require.Eventually(t, func() bool {
+		_, err := s.pool.Exec(context.Background(), "DELETE FROM resource_host_key WHERE resource_id = $1", id)
+		require.NoError(t, err)
+		return connected() && !pinned()
+	}, 5*time.Second, 100*time.Millisecond)
+}
+
 func TestE2EEchoViaForward(t *testing.T) {
 	s := startStack(t)
 	s.addResource(t, "app", "echo")

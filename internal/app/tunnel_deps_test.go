@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"log/slog"
 	"net/netip"
 	"slices"
@@ -10,9 +12,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gossh "golang.org/x/crypto/ssh"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/metrics"
@@ -60,6 +64,33 @@ func TestSnapshotBuildDeterministic(t *testing.T) {
 	assert.True(t, slices.IsSorted(names), "resources by name: %v", names)
 	assert.True(t, slices.IsSorted(first.GetBlocklist()), "blocklist sorted: %v", first.GetBlocklist())
 	assert.Len(t, first.GetBlocklist(), 3)
+}
+
+// The snapshot carries the pinned host key, so a gateway pins a known key
+// without a call and pins anew after ClearHostKey.
+func TestSnapshotBuildCarriesPinnedHostKey(t *testing.T) {
+	s := newStage4(t, slog.New(slog.DiscardHandler))
+	ctx, org, owner := s.org(t, "owner")
+	gw, ids := s.gatewayPool(ctx, t, owner)
+	id := uuid.MustParse(ids[0])
+	pub, _, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	key, err := gossh.NewPublicKey(pub)
+	require.NoError(t, err)
+	b := newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Snapshots
+	pinned := func() string {
+		snap, err := b.Build(context.Background(), org, gw)
+		require.NoError(t, err)
+		i := slices.IndexFunc(snap.GetResources(), func(r *gatewayv1.Resource) bool { return r.GetId() == ids[0] })
+		require.GreaterOrEqual(t, i, 0)
+		return snap.GetResources()[i].GetHostKeySha256()
+	}
+
+	require.Empty(t, pinned())
+	require.NoError(t, s.d.Inventory.PinHostKey(ctx, org, id, key))
+	assert.Equal(t, gossh.FingerprintSHA256(key), pinned())
+	require.NoError(t, s.d.Inventory.ClearHostKey(ctx, org, id))
+	assert.Empty(t, pinned())
 }
 
 // A policy that does not compile must not leave the gateway on an older,
