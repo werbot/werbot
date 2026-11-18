@@ -25,9 +25,13 @@ type Host interface {
 	Entitled(feature string) bool
 	// Subscribe registers fn for NOTIFY on channel over the server's shared LISTEN connection.
 	// Call it only from Init. channel must match ^[a-z][a-z0-9_]{0,62}$.
-	// Subscriptions to one channel run in registration order, after the core handler of that channel.
-	// fn runs on the LISTEN goroutine and must not block: hand long work to a job.
-	// ctx is the process context. Notifications sent while the connection is being re-established are lost.
+	// Subscribe panics on an invalid channel, a nil fn, or a call after Init.
+	// Several subscribers per channel are allowed, core channels included: they
+	// run in registration order, after the core handler of that channel.
+	// fn runs on the shared LISTEN goroutine and must not block: it delays the
+	// core handlers and every other subscriber. Hand long work to a job.
+	// ctx is the listener context, which ends at shutdown. Notifications sent
+	// while the connection is being re-established are lost.
 	// The payload is not authenticated: any database session can NOTIFY this channel, so validate it.
 	// Subscribe opens no connections and starts no goroutines.
 	Subscribe(channel string, fn func(ctx context.Context, payload string))
