@@ -812,6 +812,8 @@ type LookupLoginUserRow struct {
 	TeamIds []uuid.UUID
 }
 
+// ponytail: the team sub-select runs with werbot.user_id unset (uuid.Nil: the
+// tunnel's ReadInOrg has no user); stage 42 RLS on team_member must allow it.
 func (q *Queries) LookupLoginUser(ctx context.Context, arg LookupLoginUserParams) (LookupLoginUserRow, error) {
 	row := q.db.QueryRow(ctx, lookupLoginUser, arg.OrgID, arg.Login)
 	var i LookupLoginUserRow
@@ -847,6 +849,8 @@ type LookupSSHKeyUserRow struct {
 }
 
 // team_ids is NULL when the member is in no team, as UserTeams returns no rows.
+// ponytail: the team sub-select runs with werbot.user_id unset (uuid.Nil: the
+// tunnel's ReadInOrg has no user); stage 42 RLS on team_member must allow it.
 func (q *Queries) LookupSSHKeyUser(ctx context.Context, arg LookupSSHKeyUserParams) (LookupSSHKeyUserRow, error) {
 	row := q.db.QueryRow(ctx, lookupSSHKeyUser, arg.OrgID, arg.FingerprintSha256)
 	var i LookupSSHKeyUserRow

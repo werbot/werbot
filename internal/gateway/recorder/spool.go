@@ -93,7 +93,10 @@ type Spool struct {
 	writeFailed atomic.Bool
 
 	// ponytail: one lock covers the disk writes of all sessions (an fsync per chunk
-	// serialises appends); per-session locks if stage 7a shows contention.
+	// serialises appends). Stage 7a profiled spool disk work at ~37 % of gateway
+	// CPU in a Docker VM, mostly fsync; 7 fsyncs per short recorded session stay
+	// (durability). Per-session locks if a mutex profile on reference hardware
+	// shows appends waiting on mu.
 	mu       sync.Mutex
 	sessions map[uuid.UUID]*session
 	ends     map[uuid.UUID]sessionEnd // EndSession not delivered yet

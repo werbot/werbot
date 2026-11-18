@@ -23,8 +23,10 @@ var errUnreadable = errors.New("spool: chunk file unreadable")
 // hold back session ends; then it uploads each session's chunks in order and
 // finishes the closed ones. A failed pass is retried after a doubling pause.
 //
-// ponytail: one sequential uploader (about one 64 KiB chunk per round trip);
-// upload sessions in parallel if stage 7a shows the spool growing.
+// ponytail: one sequential uploader (about one 64 KiB chunk per round trip).
+// Stage 7a drained 300 recorded sessions in 5 s (host-scaled L1); upload
+// sessions in parallel if the default L1 profile (5 000 sessions at 100/s) on
+// reference hardware misses the 5-minute drain.
 func (s *Spool) Run(ctx context.Context) error {
 	var pause time.Duration
 	for {

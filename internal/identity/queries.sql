@@ -114,6 +114,8 @@ DELETE FROM user_ssh_key WHERE id = @id AND user_id = @user_id RETURNING fingerp
 
 -- name: LookupSSHKeyUser :one
 -- team_ids is NULL when the member is in no team, as UserTeams returns no rows.
+-- ponytail: the team sub-select runs with werbot.user_id unset (uuid.Nil: the
+-- tunnel's ReadInOrg has no user); stage 42 RLS on team_member must allow it.
 SELECT u.id, u.login, m.role,
        (SELECT array_agg(tm.team_id ORDER BY tm.team_id) FROM team_member tm
         WHERE tm.org_id = m.org_id AND tm.user_id = u.id)::uuid[] AS team_ids
@@ -123,6 +125,8 @@ JOIN membership m ON m.user_id = u.id AND m.org_id = @org_id
 WHERE k.fingerprint_sha256 = @fingerprint_sha256;
 
 -- name: LookupLoginUser :one
+-- ponytail: the team sub-select runs with werbot.user_id unset (uuid.Nil: the
+-- tunnel's ReadInOrg has no user); stage 42 RLS on team_member must allow it.
 SELECT u.id, u.login, m.role,
        (SELECT array_agg(tm.team_id ORDER BY tm.team_id) FROM team_member tm
         WHERE tm.org_id = m.org_id AND tm.user_id = u.id)::uuid[] AS team_ids
