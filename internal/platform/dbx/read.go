@@ -22,16 +22,17 @@ const setContext = "SELECT set_config('werbot.org_id', $1, true), set_config('we
 // call on r (a sqlc DBTX) and scans it; the statement's errors, pgx.ErrNoRows
 // included, come from Scan as in a Tx. A failed statement rolls back. Use it
 // only for a read of one statement.
-func ReadInOrg(pool *pgxpool.Pool, org, user uuid.UUID, fn func(r *Read) error) error {
+func ReadInOrg(pool *pgxpool.Pool, org, user uuid.UUID, fn func(r *Read) error) (err error) {
 	if org == uuid.Nil {
 		return ErrNoOrg
 	}
 	r := &Read{pool: pool, org: org, user: user}
-	err := fn(r)
-	if ferr := r.finish(); err == nil {
-		err = ferr
-	}
-	return err
+	defer func() { // also when fn panics: the connection goes back to the pool
+		if ferr := r.finish(); err == nil {
+			err = ferr
+		}
+	}()
+	return fn(r)
 }
 
 // Read is the statement of a ReadInOrg; only QueryRow works, once.

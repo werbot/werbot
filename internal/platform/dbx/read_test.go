@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -53,9 +55,17 @@ func TestReadInOrgOneRoundTrip(t *testing.T) {
 	}))
 }
 
+// backendPID is the server process of the one connection of a tracedPool.
+func backendPID(t *testing.T, pool *pgxpool.Pool) (pid int) {
+	t.Helper()
+	require.NoError(t, pool.QueryRow(context.Background(), "SELECT pg_backend_pid()").Scan(&pid))
+	return pid
+}
+
 func TestReadInOrgErrorRollsBack(t *testing.T) {
 	pool, _ := tracedPool(t)
 	ctx := context.Background()
+	pid := backendPID(t, pool)
 	err := dbx.ReadInOrg(pool, uuid.New(), uuid.Nil, func(r *dbx.Read) error {
 		var n int
 		return r.QueryRow(ctx, `WITH o AS (INSERT INTO organization (name) VALUES ('o') RETURNING id)
@@ -68,6 +78,24 @@ func TestReadInOrgErrorRollsBack(t *testing.T) {
 	var n int
 	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM organization").Scan(&n))
 	assert.Zero(t, n, "the insert of the failed statement is rolled back")
+	assert.Equal(t, pid, backendPID(t, pool), "ROLLBACK keeps the connection: the pool does not replace it")
+}
+
+// A panic in fn still returns the connection to the pool.
+func TestReadInOrgPanicReleases(t *testing.T) {
+	pool, _ := tracedPool(t)
+	ctx := context.Background()
+	func() {
+		defer func() { require.Equal(t, "boom", recover()) }()
+		_ = dbx.ReadInOrg(pool, uuid.New(), uuid.Nil, func(r *dbx.Read) error {
+			_ = r.QueryRow(ctx, "SELECT 1")
+			panic("boom")
+		})
+	}()
+	assert.Zero(t, pool.Stat().AcquiredConns())
+	qctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	require.NoError(t, pool.QueryRow(qctx, "SELECT 1").Scan(new(int)), "the one connection is usable")
 }
 
 func TestReadInOrgNoRows(t *testing.T) {

@@ -29,15 +29,16 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	if p.Kind == "" {
 		p.Kind = "terminal"
 	}
+	args := []any{p.OrgID, p.UserID, p.ResourceID, p.GatewayID, p.InstanceID, p.ClientIP, p.Kind, p.Target}
 	audit, auditArgs, err := auditlog.InsertFrom(auditlog.Event{
 		OrgID: &p.OrgID, ActorUserID: &p.UserID, ActorKind: "user", Action: "session.start",
 		TargetType: "resource", TargetID: p.ResourceID.String(), IP: p.ClientIP,
 		Data: map[string]any{"kind": p.Kind, "target": p.Target},
-	}, "s", "id", "session_id", 9)
+	}, "s", "id", "session_id", len(args)+1)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("session: start: %w", err)
 	}
-	args := append([]any{p.OrgID, p.UserID, p.ResourceID, p.GatewayID, p.InstanceID, p.ClientIP, p.Kind, p.Target}, auditArgs...)
+	args = append(args, auditArgs...)
 	var id uuid.UUID
 	err = dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
 		err := tx.QueryRow(ctx, startSession+audit+") SELECT id FROM s", args...).Scan(&id)
