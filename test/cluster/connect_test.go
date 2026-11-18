@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	dnsRecovery = 30 * time.Second        // 11 §9: DNS answers again within 30 s of the kill of an instance
+	dnsRecovery = 30 * time.Second        // 11 §9: DNS and the TCP echo answer again within 30 s of the kill of an instance
 	dnsStep     = 1500 * time.Millisecond // ruling R15: at most 20 lookups per wait (client flow table: 32, 2 m)
 	lookupMax   = 3 * time.Second
 	healthMax   = 3 * time.Minute     // health probes run every 60 s ±20 %
@@ -97,9 +97,10 @@ func TestScenario14Connect(t *testing.T) {
 	if !assert.Eventually(t, answers, dnsRecovery-time.Since(t0), dnsStep, "DNS after the kill of %s", gw) {
 		t.Fatalf("last lookup: %v", seen.Load())
 	}
-	t.Logf("DNS answers %s after the kill of %s", time.Since(t0).Round(10*time.Millisecond), gw)
+	_, _, echoOn := st.LastSession(t, echo) // the c-echo link is its own SSH connection: it reconnects only when echoOn == gw
+	t.Logf("DNS answers %s after the kill of %s; c-echo was on %s", time.Since(t0).Round(10*time.Millisecond), gw, echoOn)
 	echoes := func() bool { err := echoProbe(c.Ports["c-echo"]); seen.Store(fmt.Sprint(err)); return err == nil }
-	if !assert.Eventually(t, echoes, 30*time.Second, time.Second, "TCP echo after the kill of %s", gw) {
+	if !assert.Eventually(t, echoes, dnsRecovery-time.Since(t0), time.Second, "TCP echo after the kill of %s", gw) {
 		t.Fatalf("last echo: %v", seen.Load())
 	}
 }

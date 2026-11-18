@@ -56,7 +56,6 @@ func (s *Stand) StartConnect(t testing.TB, user string, specs ...string) *Connec
 	require.NoError(t, os.WriteFile(kh, []byte(knownhosts.Line([]string{knownhosts.Normalize(pool)}, s.HostKey)+"\n"), 0o600))
 	args := append([]string{"connect", "--gateway", pool, "--login", user, "-i", s.KeyFile, "--known-hosts", kh}, specs...)
 	cmd := exec.Command(werbotBin, args...) //nolint:gosec // host build of werbot; no context: Cleanup stops it with SIGINT
-	cmd.Env = os.Environ()
 	var stdout, stderr syncBuffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	require.NoError(t, cmd.Start())
