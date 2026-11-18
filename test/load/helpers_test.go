@@ -115,3 +115,27 @@ func TestSessionAgainstShell(t *testing.T) {
 	assert.GreaterOrEqual(t, r.Bytes, int64(len("ready\r\n")+2*1024), "two ticks of output during the hold")
 	assert.Less(t, time.Since(start), 2500*time.Millisecond+exitWait/2, "exit closes the session")
 }
+
+func TestPGRow(t *testing.T) {
+	both := func(a, b int64) sample { return sample{PGConns: map[string]int64{"server1": a, "server2": b}} }
+	got, pass := pgRow([]sample{both(5, 7), both(22, 3)})
+	assert.True(t, pass)
+	assert.Equal(t, "max 22 / 7", got)
+	_, pass = pgRow([]sample{both(23, 3)})
+	assert.False(t, pass, "over pool_max_conns + 2")
+	got, pass = pgRow([]sample{{PGConns: map[string]int64{"server2": 4}}, {PGConns: map[string]int64{}}})
+	assert.False(t, pass, "server1 never measured")
+	assert.Equal(t, "no samples (server1 0, server2 1)", got)
+	_, pass = pgRow(nil)
+	assert.False(t, pass)
+}
+
+func TestActiveRow(t *testing.T) {
+	samples := []sample{{Active: map[string]int64{"gw1": 1200}}, {Active: map[string]int64{"gw1": 2500}}, {Active: map[string]int64{}}}
+	got, pass := activeRow(samples, "gw1", 2500)
+	assert.True(t, pass)
+	assert.Equal(t, "2500", got)
+	got, pass = activeRow(samples, "gw2", 2500)
+	assert.False(t, pass, "no load on gw2")
+	assert.Equal(t, "0", got)
+}

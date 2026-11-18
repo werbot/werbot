@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/werbot/werbot/test/cluster"
 )
 
@@ -30,6 +32,7 @@ func TestL1(t *testing.T) {
 	ctx, stop := context.WithCancel(t.Context())
 	samples := sampleEvery(ctx, t, st, sampleInterval)
 	res := runSessions(t.Context(), t, st, []string{pool}, *sessions, *rate, *duration, true)
+	s := settle(t, st, resource, from, *sessions) // sampled too: spool upload and ingest (P7-P9)
 	stop()
 	all := <-samples
 
@@ -37,12 +40,11 @@ func TestL1(t *testing.T) {
 	report(t, "L1", "errors", "0", fmt.Sprint(errs), errs == 0)
 	p := p99(connects(res))
 	report(t, "L1", "connect p99", "≤ 1s", p.Round(time.Millisecond).String(), p > 0 && p <= time.Second)
-	s := settle(t, st, resource, from, *sessions)
 	if !s.OK {
 		t.Logf("not settled: %s", s)
 	}
-	report(t, "L1", "spool drained, sessions ended", fmt.Sprintf("≤ %s, %d ended", drainMax, *sessions),
-		fmt.Sprintf("%s, %d ended", s.Took.Round(time.Second), s.Ended), s.OK)
+	report(t, "L1", "spool drained, sessions ended, recordings finished", fmt.Sprintf("≤ %s, %d each", drainMax, *sessions),
+		fmt.Sprintf("%s, %d ended, %d finished", s.Took.Round(time.Second), s.Ended, s.Finished), s.OK)
 	v := verifyAll(t, st, s.Sessions)
 	report(t, "L1", "recordings verified", fmt.Sprintf("all %d", *sessions), fmt.Sprint(v), v == *sessions)
 	reportRSS(t, "L1", all, "gw1", gatewayBudget)
@@ -56,11 +58,15 @@ func TestL1(t *testing.T) {
 // TestL3 is L1 with server1 killed at *duration/2: no session breaks (10 §8.3).
 func TestL3(t *testing.T) {
 	needStand(t)
+	// the kill must land inside every session's hold: the ramp ends before *duration/2
+	ramp := time.Duration(*sessions) * time.Second / time.Duration(max(*rate, 1))
+	require.Less(t, ramp, *duration/2, "ramp sessions/rate must be shorter than duration/2")
 	resource, setOutput := useTarget(t)
 	setOutput(1024)
 	waitTarget(t, st.Addr(t, "nginx", 2201), st.Addr(t, "nginx", 2202))
 	pool := st.Addr(t, "nginx", 2222)
 	server2 := st.Addr(t, "server2", 9100)
+	t.Cleanup(func() { st.Healthy(t) }) // server1 is killed
 
 	from := time.Now()
 	moved := make(chan string, 1)
@@ -118,6 +124,12 @@ func TestL4(t *testing.T) {
 	stop()
 	all := <-samples
 
+	// the load itself: every idle session held a slot (gw1 takes the odd one)
+	for i, gw := range []string{"gw1", "gw2"} {
+		want := int64((*sessions + 1 - i) / 2)
+		result, pass := activeRow(all, gw, want)
+		report(t, "L4", gw+" peak sessions_active", fmt.Sprint(want), result, pass)
+	}
 	reportRSS(t, "L4", all, "gw1", gatewayBudget)
 	reportRSS(t, "L4", all, "gw2", gatewayBudget)
 	report(t, "L4", "errors", "reference", fmt.Sprint(failed(t, res)), true)

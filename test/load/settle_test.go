@@ -24,23 +24,27 @@ const (
 )
 
 // settled is the end state after a run: Took is how long the spools took to
-// empty with every session of the run ended; OK is false when drainMax passed first.
+// empty with every session of the run ended and its recording finished; OK is
+// false when drainMax passed first.
 type settled struct {
 	Took     time.Duration
 	OK       bool
 	Spool    [2]int64 // werbot_gateway_spool_bytes of gw1, gw2 at the last poll
 	Sessions []*werbotv1.Session
 	Ended    int
+	Finished int // recording finished (manifest signed): FinishRecording runs after the spool gauge reads 0
 	LastErr  error
 	Want     int
 }
 
 func (s settled) String() string {
-	return fmt.Sprintf("spool gw1=%d gw2=%d, %d of %d sessions listed, %d ended, last error %v", s.Spool[0], s.Spool[1], len(s.Sessions), s.Want, s.Ended, s.LastErr)
+	return fmt.Sprintf("spool gw1=%d gw2=%d, %d of %d sessions listed, %d ended, %d finished, last error %v",
+		s.Spool[0], s.Spool[1], len(s.Sessions), s.Want, s.Ended, s.Finished, s.LastErr)
 }
 
 // settle polls every 5 s, up to drainMax, until both gateway spools are empty
-// and ListSessions (resource, from) returns want sessions, all ended.
+// and ListSessions (resource, from) returns want sessions, all ended with a
+// finished recording. An OK seen after drainMax does not count (ruling R8).
 func settle(t testing.TB, st *cluster.Stand, resource uuid.UUID, from time.Time, want int) settled {
 	t.Helper()
 	gw := [2]string{st.Addr(t, "gw1", 9090), st.Addr(t, "gw2", 9090)}
@@ -60,19 +64,20 @@ func settle(t testing.TB, st *cluster.Stand, resource uuid.UUID, from time.Time,
 		if list, err := listSessions(context.Background(), st, resource, from); err != nil {
 			s.LastErr = err
 		} else {
-			s.Sessions, s.Ended = list, 0
+			s.Sessions, s.Ended, s.Finished = list, 0, 0
 			for _, x := range list {
 				if x.GetEndedAt() != nil {
 					s.Ended++
 				}
+				if x.GetRecording().GetFinished() {
+					s.Finished++
+				}
 			}
 		}
 		s.Took = time.Since(start)
-		if s.LastErr == nil && s.Spool == [2]int64{} && len(s.Sessions) == want && s.Ended == want {
-			s.OK = true
-			return s
-		}
-		if s.Took >= drainMax {
+		s.OK = s.LastErr == nil && s.Spool == [2]int64{} && len(s.Sessions) == want && s.Ended == want && s.Finished == want &&
+			s.Took <= drainMax
+		if s.OK || s.Took >= drainMax {
 			return s
 		}
 		<-tick.C
@@ -158,16 +163,41 @@ func reportRSS(t testing.TB, load string, samples []sample, service string, budg
 		fmt.Sprintf("max %s, budget %s at %d active; %d of %d samples over", mb(top.RSS[service]), mb(budget(a)), a, over, n), over == 0)
 }
 
+// pgLimit is the Postgres connection budget of a server replica (10 §10.1).
+const pgLimit = cluster.PoolMaxConns + 2
+
 // reportPG reports the most Postgres connections of each server replica in the samples.
 func reportPG(t testing.TB, load string, samples []sample) {
 	t.Helper()
-	var top [2]int64
+	result, pass := pgRow(samples)
+	report(t, load, "Postgres connections server1 / server2", fmt.Sprintf("≤ %d", pgLimit), result, pass)
+}
+
+// pgRow is the PG result: a replica without a single sample fails (each holds
+// at least its LISTEN connection, so 0 means the query did not measure it).
+func pgRow(samples []sample) (string, bool) {
+	var top, n [2]int64
 	for _, s := range samples {
-		top[0], top[1] = max(top[0], s.PGConns["server1"]), max(top[1], s.PGConns["server2"])
+		for i, svc := range []string{"server1", "server2"} {
+			if v, ok := s.PGConns[svc]; ok {
+				top[i], n[i] = max(top[i], v), n[i]+1
+			}
+		}
 	}
-	limit := int64(cluster.PoolMaxConns + 2)
-	report(t, load, "Postgres connections server1 / server2", fmt.Sprintf("≤ %d", limit),
-		fmt.Sprintf("max %d / %d", top[0], top[1]), top[0] <= limit && top[1] <= limit)
+	if n[0] == 0 || n[1] == 0 {
+		return fmt.Sprintf("no samples (server1 %d, server2 %d)", n[0], n[1]), false
+	}
+	return fmt.Sprintf("max %d / %d", top[0], top[1]), top[0] <= pgLimit && top[1] <= pgLimit
+}
+
+// activeRow is the L4 load check: the peak werbot_gateway_sessions_active of
+// service in the samples must equal want (its share of the idle sessions).
+func activeRow(samples []sample, service string, want int64) (string, bool) {
+	var peak int64
+	for _, s := range samples {
+		peak = max(peak, s.Active[service])
+	}
+	return fmt.Sprint(peak), peak == want
 }
 
 // reportSlow counts statements of 250 ms or longer in the Postgres log (ruling R18, reference).

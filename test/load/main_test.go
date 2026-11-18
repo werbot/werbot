@@ -54,16 +54,15 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	ctx := context.Background()
-	keep := fmt.Sprintf("stand left for inspection; remove it with: docker compose -p %s -f test/cluster/docker-compose.yaml down -v\n", cluster.Project())
 	var err error
 	// idle L4 sessions outlive the default 5m gateway idle timeout
 	if st, err = cluster.Up(ctx, cluster.Options{Env: map[string]string{"GW_IDLE_TIMEOUT": "1h"}}); err != nil {
-		fmt.Fprintf(os.Stderr, "cluster stand: %v\n%s", err, keep)
+		fmt.Fprintf(os.Stderr, "cluster stand: %v\n", err)
 		os.Exit(1)
 	}
 	code := m.Run()
 	if code != 0 {
-		fmt.Fprintf(os.Stderr, "%salice's key is in %s; remove it with the stand\n", keep, filepath.Dir(st.KeyFile))
+		_ = os.RemoveAll(filepath.Dir(st.KeyFile)) // alice's key; make load removes the stand next
 		os.Exit(code)
 	}
 	if err := st.Down(ctx); err != nil {
