@@ -178,7 +178,8 @@ func OpenShell(t testing.TB, c *gossh.Client) *Shell {
 	return sh
 }
 
-// Mark prints "mark:<mark>" through the shell and waits 5 s for it. Only the
+// Mark prints "mark:<mark>" through the shell and waits 5 s for it; mark is one
+// plain word (it goes into the command line unquoted). Only the
 // command output carries it: the echoed input reads "mark:%s" (the line may
 // start with terminal escapes, such as bash's bracketed-paste switch).
 func (sh *Shell) Mark(t testing.TB, mark string) {

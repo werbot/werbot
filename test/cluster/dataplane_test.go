@@ -24,9 +24,6 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-// endLostStartupGrace is session.EndLostStartupGrace: test/ imports no internal package.
-const endLostStartupGrace = 2 * time.Minute
-
 // TestScenario03SharedHostKeyStrictKnownHosts: one known_hosts line with the
 // pool host key passes strict checking of OpenSSH on gw1, gw2 and the pool
 // front; a foreign key fails it.
@@ -65,11 +62,11 @@ func TestScenario04KillReplicaKeepsSession(t *testing.T) {
 	id := st.OpenSessionOn(t, "gw1")
 	server2 := st.Addr(t, "server2", 9100)
 
+	t0 := time.Now() // the window includes the docker CLI time of the kill
 	_, err := st.Compose(t.Context(), "kill", "server1")
 	require.NoError(t, err)
-	t0 := time.Now()
 	moved := func() bool { n, err := metric(server2, "werbot_tunnel_streams"); return err == nil && n == 2 }
-	require.Eventually(t, moved, ReconnectMax, 100*time.Millisecond, "gw1 reconnects to server2")
+	require.Eventually(t, moved, ReconnectMax-time.Since(t0), 50*time.Millisecond, "gw1 reconnects to server2")
 	t.Logf("gw1 on server2 after %s", time.Since(t0))
 
 	sh.Mark(t, "after-kill")
@@ -86,7 +83,7 @@ func TestScenario04KillReplicaKeepsSession(t *testing.T) {
 func TestScenario05KillInstanceEndsSessionsLost(t *testing.T) {
 	st.Healthy(t)
 	t.Cleanup(func() { st.Healthy(t) })
-	st.waitUptime(t, endLostStartupGrace, "server1", "server2") // ruling G6: end_lost skips its first runs after a replica start
+	st.waitUptime(t, EndLostStartupGrace, "server1", "server2") // ruling G6: end_lost skips its first runs after a replica start
 
 	keep := OpenShell(t, st.Dial(t, st.Addr(t, "nginx", 2201), "alice+target"))
 	keep.Mark(t, "gw1-open")
@@ -95,9 +92,11 @@ func TestScenario05KillInstanceEndsSessionsLost(t *testing.T) {
 	sh.Mark(t, "gw2-open")
 	id := st.OpenSessionOn(t, "gw2")
 
+	t0 := time.Now() // the window includes the docker CLI time of the kill
 	_, err := st.Compose(t.Context(), "kill", "gw2")
 	require.NoError(t, err)
-	t.Logf("lost after %s", st.WaitEnded(t, id, "gateway_lost", LostMax))
+	st.WaitEnded(t, id, "gateway_lost", LostMax-time.Since(t0))
+	t.Logf("lost after %s", time.Since(t0))
 
 	keep.Mark(t, "gw1-alive")
 	var open bool

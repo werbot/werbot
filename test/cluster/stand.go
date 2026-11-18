@@ -24,16 +24,17 @@ import (
 
 // Spec values (global constraints) and derived ones; change them only together with the spec.
 const (
-	BindingPropagation = 2 * time.Second  // 10 §8.3 #2
-	ReconnectMax       = 5 * time.Second  // 10 §9.1
-	LostMax            = 3 * time.Minute  // 10 §8.3 #5
-	S3Outage           = time.Minute      // 10 §8.3 #12
-	NotReadyMax        = 15 * time.Second // unary call deadline 10 s + 5 s
-	PGRecoverMax       = 30 * time.Second // /readyz of both replicas after a Postgres restart
-	ListenRecoverMax   = 45 * time.Second // pgnotify backoff <= 30 s + 15 s
-	UploadDrain        = 90 * time.Second // spool backoff <= 30 s + FlushInterval 10 s + margin
-	RestoreMax         = 2 * time.Minute
-	PoolMaxConns       = 20 // pool_max_conns in WERBOT_DATABASE_URL of the compose file
+	BindingPropagation  = 2 * time.Second  // 10 §8.3 #2
+	ReconnectMax        = 5 * time.Second  // 10 §9.1
+	LostMax             = 3 * time.Minute  // 10 §8.3 #5
+	S3Outage            = time.Minute      // 10 §8.3 #12
+	NotReadyMax         = 15 * time.Second // unary call deadline 10 s + 5 s
+	PGRecoverMax        = 30 * time.Second // /readyz of both replicas after a Postgres restart
+	ListenRecoverMax    = 45 * time.Second // pgnotify backoff <= 30 s + 15 s
+	UploadDrain         = 90 * time.Second // spool backoff <= 30 s + FlushInterval 10 s + margin
+	RestoreMax          = 2 * time.Minute
+	EndLostStartupGrace = 2 * time.Minute // session.EndLostStartupGrace: test/ imports no internal package
+	PoolMaxConns        = 20              // pool_max_conns in WERBOT_DATABASE_URL of the compose file
 )
 
 // Fixed addresses of the public network (docker-compose.yaml, nginx.conf).
