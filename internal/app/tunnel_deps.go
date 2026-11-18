@@ -29,7 +29,7 @@ func newTunnelDeps(s *services, reg *metrics.Registry, logger *slog.Logger) tunn
 		Resources:   tunnelResources{s.Inventory},
 		Credentials: tunnelCredentials{s.Credential},
 		Snapshots:   tunnelSnapshots{s: s, logger: logger},
-		Sessions:    tunnelSessions{Service: s.Sessions, ids: s.Identity},
+		Sessions:    tunnelSessions{s.Sessions},
 		Recordings:  s.Recordings,
 		Health:      tunnelResources{s.Inventory},
 		Pools:       tunnelGateways{s.Gateways},
@@ -100,17 +100,11 @@ func (c tunnelCredentials) Reveal(ctx context.Context, orgID, resourceID uuid.UU
 	return tunnel.Secret{Kind: string(sec.Kind), Value: sec.Value}, nil
 }
 
-// tunnelSessions records sessions only for members of the organization: the
-// user id comes from the gateway, which the server does not trust with it.
-type tunnelSessions struct {
-	*session.Service
-	ids *identity.Service
-}
+// tunnelSessions adapts session.Service to the tunnel types; Start records
+// sessions only for members of the organization.
+type tunnelSessions struct{ *session.Service }
 
 func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid.UUID, error) {
-	if _, err := s.ids.LookupUser(ctx, st.OrgID, st.UserID); err != nil {
-		return uuid.Nil, err
-	}
 	return s.Service.Start(ctx, session.Start{OrgID: st.OrgID, UserID: st.UserID, ResourceID: st.ResourceID,
 		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Target: st.Target})
 }

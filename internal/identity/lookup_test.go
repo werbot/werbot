@@ -11,7 +11,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
-func TestLookupSSHKeyLoginAndUser(t *testing.T) {
+func TestLookupSSHKeyAndLogin(t *testing.T) {
 	svc, pool, _ := newTestService(t)
 	org1, org2 := seedOrg(t, pool, "One"), seedOrg(t, pool, "Two")
 	alice := seedUser(t, pool, org1, "alice", principal.RoleOwner)
@@ -32,11 +32,5 @@ func TestLookupSSHKeyLoginAndUser(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, want, got)
 	_, err = svc.LookupLogin(bg, org2, "alice")
-	assert.ErrorIs(t, err, apperr.ErrNotFound)
-
-	got, err = svc.LookupUser(bg, org1, alice)
-	require.NoError(t, err)
-	assert.Equal(t, want, got)
-	_, err = svc.LookupUser(bg, org2, alice)
 	assert.ErrorIs(t, err, apperr.ErrNotFound)
 }

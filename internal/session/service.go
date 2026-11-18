@@ -22,7 +22,9 @@ type Service struct{ pool *pgxpool.Pool }
 // New returns a Service over pool.
 func New(pool *pgxpool.Pool) *Service { return &Service{pool: pool} }
 
-// Start records a new open session and audits "session.start".
+// Start records a new open session and audits "session.start". The gateway
+// names the user, which the server does not trust: a user who is not a member
+// of the organization is apperr.ErrNotFound and gets no session.
 func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	if p.Kind == "" {
 		p.Kind = "terminal"
@@ -31,10 +33,13 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	err := dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
 		var err error
 		id, err = newStore(tx).StartSession(ctx, dbq.StartSessionParams{
-			OrgID: p.OrgID, UserID: &p.UserID, ResourceID: &p.ResourceID,
-			GatewayID: &p.GatewayID, GatewayInstanceID: &p.InstanceID, ClientIp: p.ClientIP,
+			OrgID: p.OrgID, UserID: p.UserID, ResourceID: p.ResourceID,
+			GatewayID: p.GatewayID, GatewayInstanceID: p.InstanceID, ClientIp: p.ClientIP,
 			Kind: p.Kind, Target: p.Target,
 		})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errNotMember
+		}
 		if err != nil {
 			return err
 		}
@@ -44,11 +49,16 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 			Data: map[string]any{"session_id": id.String(), "kind": p.Kind, "target": p.Target},
 		})
 	})
+	if errors.Is(err, errNotMember) {
+		return uuid.Nil, err
+	}
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("session: start: %w", err)
 	}
 	return id, nil
 }
+
+var errNotMember = fmt.Errorf("user not found: %w", apperr.ErrNotFound)
 
 // End closes an open session of instanceID. A repeat call is a no-op; a
 // session of another instance or organization is apperr.ErrNotFound. A

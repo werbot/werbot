@@ -815,30 +815,6 @@ func (q *Queries) LookupLoginUser(ctx context.Context, arg LookupLoginUserParams
 	return i, err
 }
 
-const lookupMemberUser = `-- name: LookupMemberUser :one
-SELECT u.id, u.login, m.role FROM users u
-JOIN membership m ON m.user_id = u.id AND m.org_id = $1
-WHERE u.id = $2
-`
-
-type LookupMemberUserParams struct {
-	OrgID  uuid.UUID
-	UserID uuid.UUID
-}
-
-type LookupMemberUserRow struct {
-	ID    uuid.UUID
-	Login string
-	Role  string
-}
-
-func (q *Queries) LookupMemberUser(ctx context.Context, arg LookupMemberUserParams) (LookupMemberUserRow, error) {
-	row := q.db.QueryRow(ctx, lookupMemberUser, arg.OrgID, arg.UserID)
-	var i LookupMemberUserRow
-	err := row.Scan(&i.ID, &i.Login, &i.Role)
-	return i, err
-}
-
 const lookupSSHKeyUser = `-- name: LookupSSHKeyUser :one
 SELECT u.id, u.login, m.role FROM user_ssh_key k
 JOIN users u ON u.id = k.user_id

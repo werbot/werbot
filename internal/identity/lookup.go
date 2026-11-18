@@ -41,11 +41,3 @@ func (s *Service) LookupLogin(ctx context.Context, orgID uuid.UUID, login string
 		return st.LookupLoginUser(ctx, dbq.LookupLoginUserParams{OrgID: orgID, Login: login})
 	})
 }
-
-// LookupUser returns userID if it is a member of orgID.
-func (s *Service) LookupUser(ctx context.Context, orgID, userID uuid.UUID) (UserRef, error) {
-	return s.lookupRef(ctx, orgID, func(st Store) (dbq.LookupLoginUserRow, error) {
-		r, err := st.LookupMemberUser(ctx, dbq.LookupMemberUserParams{OrgID: orgID, UserID: userID})
-		return dbq.LookupLoginUserRow(r), err
-	})
-}

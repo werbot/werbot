@@ -1,6 +1,8 @@
 -- name: StartSession :one
+-- No row when the user is not a member of the organization.
 INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target)
-VALUES (@org_id, @user_id, @resource_id, @gateway_id, @gateway_instance_id, @client_ip, @kind, @target)
+SELECT m.org_id, m.user_id, @resource_id::uuid, @gateway_id::uuid, @gateway_instance_id::uuid, @client_ip::inet, @kind::text, @target::text
+FROM membership m WHERE m.org_id = @org_id AND m.user_id = @user_id
 RETURNING id;
 
 -- name: EndSession :one

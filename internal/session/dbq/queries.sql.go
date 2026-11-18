@@ -487,31 +487,33 @@ func (q *Queries) SessionOfInstanceExists(ctx context.Context, arg SessionOfInst
 
 const startSession = `-- name: StartSession :one
 INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+SELECT m.org_id, m.user_id, $1::uuid, $2::uuid, $3::uuid, $4::inet, $5::text, $6::text
+FROM membership m WHERE m.org_id = $7 AND m.user_id = $8
 RETURNING id
 `
 
 type StartSessionParams struct {
-	OrgID             uuid.UUID
-	UserID            *uuid.UUID
-	ResourceID        *uuid.UUID
-	GatewayID         *uuid.UUID
-	GatewayInstanceID *uuid.UUID
+	ResourceID        uuid.UUID
+	GatewayID         uuid.UUID
+	GatewayInstanceID uuid.UUID
 	ClientIp          netip.Addr
 	Kind              string
 	Target            string
+	OrgID             uuid.UUID
+	UserID            uuid.UUID
 }
 
+// No row when the user is not a member of the organization.
 func (q *Queries) StartSession(ctx context.Context, arg StartSessionParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, startSession,
-		arg.OrgID,
-		arg.UserID,
 		arg.ResourceID,
 		arg.GatewayID,
 		arg.GatewayInstanceID,
 		arg.ClientIp,
 		arg.Kind,
 		arg.Target,
+		arg.OrgID,
+		arg.UserID,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
