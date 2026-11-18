@@ -8,7 +8,7 @@ In `v0.x` an upgrade needs a full stop: every server replica and every gateway i
 
 ## Backup
 
-Back up before every upgrade. For the Docker Compose quick start (`deploy/`):
+Back up before every upgrade. For the Docker Compose quick start, run in its directory (`werbot/`, with `docker-compose.yaml`):
 
 ```sh
 docker compose exec -T postgres pg_dump -U werbot -Fc werbot > werbot-$(date +%F).dump
@@ -16,7 +16,7 @@ docker run --rm -v werbot_werbot-data:/data -v "$PWD":/backup busybox \
   tar -czf /backup/werbot-data-$(date +%F).tar.gz -C /data .
 ```
 
-The cluster example (`deploy/`) keeps recordings in S3 (SeaweedFS), so back up Postgres only:
+The cluster example (`docker-compose.cluster.yaml`, run in its directory) keeps recordings in S3 (SeaweedFS), so back up Postgres only:
 
 ```sh
 docker compose -f docker-compose.cluster.yaml exec -T postgres pg_dump -U werbot -Fc werbot > werbot-$(date +%F).dump

@@ -34,7 +34,7 @@ Variables that are `required` make the process refuse to start when they are emp
 
 ### Embedded gateway
 
-`werbot server --with-gateway` runs a gateway instance in the server process. It reads the `WERBOT_GATEWAY_*` variables of the [gateway table](#gateway-werbot-gateway) below and keeps its identity in `WERBOT_DATA_DIR/gateway` (or `WERBOT_GATEWAY_DATA_DIR`). Each replica joins the system pool `local` of the first organization (by creation time) with a system join token (max uses 1); before `Setup` it checks for an organization every 5s. It reaches its own server over loopback (`http://127.0.0.1:<WERBOT_HTTP_ADDR port>`, tunnel `https://127.0.0.1:<WERBOT_GATEWAY_ADDR port>`), so both addresses must accept connections on 127.0.0.1: leave the host empty (`:8080`) or use `0.0.0.0` or `127.0.0.1`, not a single non-loopback IP.
+`werbot server --with-gateway` runs a gateway instance in the server process (pool, enrollment and shutdown: [gateway.md](gateway.md#embedded-gateway)). It reads the `WERBOT_GATEWAY_*` variables of the [gateway table](#gateway-werbot-gateway) below and keeps its identity in `WERBOT_DATA_DIR/gateway` (or `WERBOT_GATEWAY_DATA_DIR`). It reaches its own server over loopback (`http://127.0.0.1:<WERBOT_HTTP_ADDR port>`, tunnel `https://127.0.0.1:<WERBOT_GATEWAY_ADDR port>`), so both addresses must accept connections on 127.0.0.1: leave the host empty (`:8080`) or use `0.0.0.0` or `127.0.0.1`, not a single non-loopback IP.
 
 Because it runs inside the server process, it refuses by default target addresses on the server's own host: loopback (`127.0.0.0/8`, `::1`), link-local including cloud metadata (`169.254.0.0/16`, `fe80::/10`), multicast (including interface-local `ff01::/16`), unspecified (`0.0.0.0`, `::`), and every address the host of `WERBOT_DATABASE_URL` resolves to. The check runs on the resolved address when a session opens (the user gets `Access denied`, audited as `target_not_allowed`) and again on every connect. It covers `telnet`, `tcp` and `udp` sessions and health probes, not `ssh` resources: they keep their own dial, so a loopback `ssh` resource connects while its health shows `unhealthy` with the refusal. Other addresses of the host and its LAN stay reachable: restrict them with resource endpoints and access bindings.
 
@@ -135,7 +135,7 @@ Run `werbot server` with `WERBOT_WEB_EMBEDDED=false`: it serves only the API, an
 
 An empty `WERBOT_SMTP_HOST` writes emails to the log. With `WERBOT_ENV=development` the log has the full text with links; in production it does not.
 
-`WERBOT_ENV=development` is for local plain-http runs: the session cookie is `werbot_session` without `Secure`. Production mode uses `__Host-werbot_session` with `Secure`, which browsers drop over plain http on any host but `localhost` (Safari drops it on `localhost` too). For remote access over plain http see [install.md](install.md#remote-access).
+`WERBOT_ENV=development` is for local plain-http runs: the session cookie is `werbot_session` without `Secure`. The production cookie and remote access over plain http: [install.md](install.md#remote-access).
 
 ## Session recordings
 

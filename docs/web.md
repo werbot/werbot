@@ -29,7 +29,7 @@ Terminate TLS on the load balancer or ingress in front of web. Web removes incom
 
 - `WERBOT_WEB_EMBEDDED=false`: the server serves only the API, `/api/`, `/healthz` and `/readyz`; UI paths answer 404.
 - `WERBOT_WEB_URL` = the public UI address, for example `https://ui.example.com`. Links in emails (invites, password resets) use it.
-- `WERBOT_PUBLIC_URL` stays the server address that gateways use for enrollment and the tunnel ([gateway.md](gateway.md#firewall)).
+- `WERBOT_PUBLIC_URL` stays the server address: gateways build the tunnel address from it. They enroll at `--server` (`WERBOT_GATEWAY_SERVER_URL`), and the start command in the UI passes the web domain there ([gateway.md](gateway.md#firewall)).
 - Put the subnet of the web replicas into `WERBOT_TRUSTED_PROXIES` of the server. Otherwise audit and IP rules see the address of web, and an "allowed CIDRs" rule denies everyone.
 - Open the server HTTP port only to web and the gateways.
 

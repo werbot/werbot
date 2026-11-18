@@ -15,7 +15,7 @@ A gateway is the bastion users connect to. This guide covers pools, enrollment, 
 | From | To | Port | Purpose |
 | --- | --- | --- | --- |
 | Users | Gateway | TCP `2222` (`WERBOT_GATEWAY_SSH_ADDR`) | SSH sessions. |
-| Gateway | Server | `WERBOT_PUBLIC_URL` (HTTPS) | Enrollment. |
+| Gateway | Server or web | `--server` / `WERBOT_GATEWAY_SERVER_URL` (HTTPS) | Enrollment. The start command in the UI passes the UI address: the server, or the `werbot web` domain, which proxies enrollment to the server. |
 | Gateway | Server | TCP `8443` (`WERBOT_GATEWAY_ADDR`) | Tunnel, mTLS. TCP passthrough only: a proxy must not terminate TLS, and the external port must equal the port of `WERBOT_GATEWAY_ADDR`. |
 | Gateway | Resources | Their SSH, Telnet, TCP or UDP ports | Sessions and health checks. |
 | Monitoring | Gateway | Port of `WERBOT_GATEWAY_HTTP_ADDR`, when set | `/readyz` and `/metrics`. Never open it to users. |
@@ -141,7 +141,7 @@ Recorded: `ssh` terminal and exec sessions, `telnet` terminal and stream session
 
 ## Embedded gateway
 
-`werbot server --with-gateway` joins the system pool `local` of the first organization with a system join token (max uses 1) per replica, so it needs no token from you. It waits for Setup, checking for an organization every 5 s. Before the instance is enrolled, database and enrollment errors are logged and retried: the wait doubles up to 5 minutes, with a new system token each time. A busy SSH port or a failure after enrollment stops the server. On shutdown the gateway drains its sessions before the server closes the tunnel, so allow `WERBOT_GATEWAY_DRAIN_TIMEOUT` plus about 40 s for the stop (compose: `stop_grace_period: 70s`). Its target restrictions: [configuration.md](configuration.md#embedded-gateway).
+`werbot server --with-gateway` joins the system pool `local` of the first organization (by creation time) with a system join token (max uses 1) per replica, so it needs no token from you. It waits for Setup, checking for an organization every 5 s. Before the instance is enrolled, database and enrollment errors are logged and retried: the wait doubles up to 5 minutes, with a new system token each time. A busy SSH port or a failure after enrollment stops the server. On shutdown the gateway drains its sessions before the server closes the tunnel, so allow `WERBOT_GATEWAY_DRAIN_TIMEOUT` plus about 40 s for the stop (compose: [install.md](install.md#docker-compose)). Its target restrictions: [configuration.md](configuration.md#embedded-gateway).
 
 ## Upgrading
 

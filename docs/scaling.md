@@ -55,7 +55,7 @@ A pool is a name in the UI and the `gateway_id` of a resource; its processes are
 - Remove a retired instance with Delete instance (its tunnel closes). Instances whose certificate expired more than 24 h ago and tokens that expired more than 7 days ago are deleted automatically.
 - The pool has one SSH host key for all instances.
 - Pool connectors are the intersection of the connectors of its online instances; that is how specialised pools work ([connectors.md](connectors.md)).
-- The embedded gateway (`server --with-gateway`) joins the system pool `local` of the first organization with a system join token (max uses 1) per replica, so it needs no token from you.
+- The embedded gateway (`server --with-gateway`) needs no join token from you: [gateway.md](gateway.md#embedded-gateway).
 - Steps in the UI: [gateway.md](gateway.md#enroll-a-gateway). Threats: [security.md](security.md#gateway-join-tokens).
 
 ## Kubernetes
@@ -115,17 +115,7 @@ In `v0.x` upgrade only with all replicas and instances stopped. Order: [upgradin
 It needs Docker Compose 2.23.1 or newer. The example and the `test/cluster` test stand share the project name and host ports: run one at a time.
 
 1. Download `docker-compose.cluster.yaml`, `nginx.cluster.conf` and `.env.example` of your tag from `https://raw.githubusercontent.com/werbot/werbot/<tag>/deploy/` into one directory; copy `.env.example` to `.env`.
-2. Fill `.env`:
-
-   ```sh
-   WERBOT_VERSION=v0.1.0   # your tag
-   sed -i.bak \
-     -e "s|^WERBOT_VERSION=.*|WERBOT_VERSION=$WERBOT_VERSION|" \
-     -e "s|^WERBOT_SECRET_KEY=.*|WERBOT_SECRET_KEY=$(openssl rand -base64 32)|" \
-     -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 24)|" \
-     .env && rm .env.bak
-   ```
-
+2. Fill `WERBOT_VERSION` (your tag), `WERBOT_SECRET_KEY` and `POSTGRES_PASSWORD` in `.env` as in [install.md](install.md#docker-compose).
 3. Set `WERBOT_PUBLIC_URL` in `.env` to a DNS name or IP of this host that containers can reach, for example `http://<host-ip>:8080`. `localhost` does not work: gateways dial the tunnel at that host on port 8443. Find the IP with `hostname -I` (Linux) or `ipconfig getifaddr en0 || ipconfig getifaddr en1` (macOS).
 4. Append the S3 keys: `echo "WERBOT_RECORDINGS_S3_ACCESS_KEY=$(openssl rand -hex 12)" >> .env` and `echo "WERBOT_RECORDINGS_S3_SECRET_KEY=$(openssl rand -hex 24)" >> .env`.
 5. Start: `docker compose -f docker-compose.cluster.yaml up -d --wait`.
