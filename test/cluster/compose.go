@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/netip"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -84,8 +83,7 @@ type Container struct {
 	PID       int
 	Running   bool
 	StartedAt time.Time
-	Networks  []string   // sorted network names
-	IP        netip.Addr // address in the public network
+	Networks  []string // sorted network names
 }
 
 // Container inspects the container of service, stopped or running.
@@ -115,18 +113,15 @@ func (s *Stand) inspect(ctx context.Context, service string) (Container, error) 
 			StartedAt time.Time
 		}
 		NetworkSettings struct {
-			Networks map[string]struct{ IPAddress string }
+			Networks map[string]struct{}
 		}
 	}
 	if err := json.Unmarshal(out, &v); err != nil || len(v) != 1 {
 		return Container{}, fmt.Errorf("docker inspect %s: %d entries, %v", service, len(v), err)
 	}
 	c := Container{PID: v[0].State.Pid, Running: v[0].State.Running, StartedAt: v[0].State.StartedAt}
-	for name, n := range v[0].NetworkSettings.Networks {
+	for name := range v[0].NetworkSettings.Networks {
 		c.Networks = append(c.Networks, name)
-		if name == s.project+"_public" {
-			c.IP, _ = netip.ParseAddr(n.IPAddress) // empty while stopped: IP stays invalid
-		}
 	}
 	slices.Sort(c.Networks)
 	return c, nil

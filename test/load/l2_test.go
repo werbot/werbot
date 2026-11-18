@@ -60,8 +60,8 @@ func TestL2(t *testing.T) {
 	}))
 	require.NoError(t, err)
 
-	sims, clients := enrollSims(ctx, t, tok.Msg.GetToken(), nginxAddr(t, 8443), n)
-	assert.EqualValues(t, n, tokenUses(ctx, t, poolID, tok.Msg.GetId()), "join token uses")
+	sims, clients := enrollSims(ctx, t, tok.Msg.GetToken(), nginxAddr(8443), n)
+	assert.EqualValues(t, n, st.TokenUses(t, poolID, tok.Msg.GetId()), "join token uses")
 
 	sctx, stop := context.WithCancel(ctx)
 	samples := sampleEvery(sctx, t, st, sampleInterval)
@@ -200,19 +200,6 @@ func reportStreams(t testing.TB, n int) {
 		got = err.Error()
 	}
 	report(t, "L2", "werbot_tunnel_streams server1 + server2", fmt.Sprint(n+2), got, ok)
-}
-
-func tokenUses(ctx context.Context, t testing.TB, pool, id string) int32 {
-	t.Helper()
-	res, err := st.Edge.Gateways.ListJoinTokens(ctx, connect.NewRequest(&werbotv1.ListJoinTokensRequest{GatewayId: pool}))
-	require.NoError(t, err)
-	for _, tok := range res.Msg.GetTokens() {
-		if tok.GetId() == id {
-			return tok.GetUses()
-		}
-	}
-	require.Failf(t, "join token not listed", "id %s", id)
-	return 0
 }
 
 func lookupResource(ctx context.Context, t testing.TB, name string) uuid.UUID {

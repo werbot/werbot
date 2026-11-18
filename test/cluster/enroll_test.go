@@ -46,20 +46,6 @@ func (s *Stand) deleteEnrolledInstances(t testing.TB) {
 	}
 }
 
-// tokenUses returns uses of the pool-a join token id.
-func (s *Stand) tokenUses(t testing.TB, id string) int32 {
-	t.Helper()
-	res, err := s.Edge.Gateways.ListJoinTokens(context.Background(), connect.NewRequest(&werbotv1.ListJoinTokensRequest{GatewayId: s.PoolID.String()}))
-	require.NoError(t, err)
-	for _, tok := range res.Msg.GetTokens() {
-		if tok.GetId() == id {
-			return tok.GetUses()
-		}
-	}
-	require.Failf(t, "token not listed", "id %s", id)
-	return 0
-}
-
 // refusal asserts err is a PermissionDenied Connect error and returns its message.
 func refusal(t testing.TB, err error) string {
 	t.Helper()
@@ -85,7 +71,7 @@ func TestScenario09EnrollRevokedAndExhaustedToken(t *testing.T) {
 	id1, tok1 := st.joinToken(t, 1)
 	require.NoError(t, enroll(st.A, tok1), "first use of a single-use token")
 	exhausted := refusal(t, enroll(st.B, tok1))
-	assert.EqualValues(t, 1, st.tokenUses(t, id1), "a refusal must not spend the exhausted token")
+	assert.EqualValues(t, 1, st.TokenUses(t, st.PoolID.String(), id1), "a refusal must not spend the exhausted token")
 
 	id2, tok2 := st.joinToken(t, 5)
 	_, err := st.Edge.Gateways.RevokeJoinToken(ctx, connect.NewRequest(&werbotv1.RevokeJoinTokenRequest{Id: id2}))
@@ -93,7 +79,7 @@ func TestScenario09EnrollRevokedAndExhaustedToken(t *testing.T) {
 	revoked := refusal(t, enroll(st.Edge, tok2))
 	assert.Equal(t, revoked, refusal(t, enroll(st.A, tok2)), "revoked on replica A")
 	assert.Equal(t, revoked, refusal(t, enroll(st.B, tok2)), "revoked on replica B")
-	assert.EqualValues(t, 0, st.tokenUses(t, id2), "a refusal must not spend the revoked token")
+	assert.EqualValues(t, 0, st.TokenUses(t, st.PoolID.String(), id2), "a refusal must not spend the revoked token")
 
 	secret := make([]byte, 32)
 	_, err = rand.Read(secret)
@@ -118,5 +104,5 @@ func TestScenario09EnrollRevokedAndExhaustedToken(t *testing.T) {
 		require.NoError(t, errs[1], "exactly one concurrent enroll must win")
 		assert.Equal(t, exhausted, refusal(t, errs[0]))
 	}
-	assert.EqualValues(t, 1, st.tokenUses(t, id3))
+	assert.EqualValues(t, 1, st.TokenUses(t, st.PoolID.String(), id3))
 }

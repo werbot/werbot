@@ -31,8 +31,8 @@ func TestL1(t *testing.T) {
 	needStand(t)
 	resource, setOutput := useTarget(t)
 	setOutput(1024)
-	waitTarget(t, nginxAddr(t, 2201), nginxAddr(t, 2202))
-	pool := nginxAddr(t, 2222)
+	waitTarget(t, nginxAddr(2201), nginxAddr(2202))
+	pool := nginxAddr(2222)
 	tcp, udp := startMix(t)
 
 	from := time.Now()
@@ -87,8 +87,8 @@ func TestL3(t *testing.T) {
 	require.Less(t, ramp, *duration/2, "ramp sessions/rate must be shorter than duration/2")
 	resource, setOutput := useTarget(t)
 	setOutput(1024)
-	waitTarget(t, nginxAddr(t, 2201), nginxAddr(t, 2202))
-	pool := nginxAddr(t, 2222)
+	waitTarget(t, nginxAddr(2201), nginxAddr(2202))
+	pool := nginxAddr(2222)
 	server2 := st.Addr(t, "server2", 9100)
 	t.Cleanup(func() { st.Healthy(t) }) // server1 is killed
 
@@ -139,7 +139,7 @@ func TestL4(t *testing.T) {
 	needStand(t)
 	_, setOutput := useTarget(t)
 	setOutput(0)
-	gw1, gw2 := nginxAddr(t, 2201), nginxAddr(t, 2202)
+	gw1, gw2 := nginxAddr(2201), nginxAddr(2202)
 	waitTarget(t, gw1, gw2)
 
 	ctx, stop := context.WithCancel(t.Context())

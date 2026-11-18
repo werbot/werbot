@@ -8,8 +8,11 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"testing"
 
 	"connectrpc.com/connect"
+
+	"github.com/stretchr/testify/require"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 )
@@ -33,4 +36,18 @@ func Enroll(ctx context.Context, api API, token, hostname, version string) (*wer
 		return nil, nil, err
 	}
 	return res.Msg, key, nil
+}
+
+// TokenUses returns uses of the join token id of pool.
+func (s *Stand) TokenUses(t testing.TB, pool, id string) int32 {
+	t.Helper()
+	res, err := s.Edge.Gateways.ListJoinTokens(context.Background(), connect.NewRequest(&werbotv1.ListJoinTokensRequest{GatewayId: pool}))
+	require.NoError(t, err)
+	for _, tok := range res.Msg.GetTokens() {
+		if tok.GetId() == id {
+			return tok.GetUses()
+		}
+	}
+	require.Failf(t, "token not listed", "id %s", id)
+	return 0
 }

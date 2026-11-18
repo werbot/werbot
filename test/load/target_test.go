@@ -19,6 +19,8 @@ import (
 	gliderssh "github.com/gliderlabs/ssh"
 	"github.com/stretchr/testify/require"
 	gossh "golang.org/x/crypto/ssh"
+
+	"github.com/werbot/werbot/test/cluster"
 )
 
 // targetPassword is the password of the load target's login "load" (test-only).
@@ -116,9 +118,6 @@ func text(n int) []byte {
 // nginxAddr is port of the nginx container on its stand network address: the
 // load tests dial it directly, not through the docker-proxy of the published
 // port (Linux only: the host reaches bridge networks there).
-func nginxAddr(t testing.TB, port int) string {
-	t.Helper()
-	ip := st.Container(t, "nginx").IP
-	require.True(t, ip.IsValid(), "nginx has no address in the stand network")
-	return net.JoinHostPort(ip.String(), strconv.Itoa(port))
+func nginxAddr(port int) string {
+	return net.JoinHostPort(cluster.IPNginx, strconv.Itoa(port))
 }
