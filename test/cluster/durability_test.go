@@ -84,24 +84,27 @@ func TestScenario12S3Outage(t *testing.T) {
 		mark()
 	}
 
-	t0 := time.Now()
+	stopAt := time.Now()
 	_, err := st.Compose(context.Background(), "stop", "seaweedfs")
 	require.NoError(t, err)
 	down := time.Now() // S3Outage counts from the stopped container: S3 may serve while it stops
 	for time.Since(down) < S3Outage {
 		mark()
 	}
+	spool := Metric(t, st.Addr(t, "gw1", 9090), "werbot_gateway_spool_bytes") // gw1 carries the session
+	assert.Positive(t, spool, "gw1 spool holds the recording while S3 is down")
+	t.Logf("gw1 spool %d bytes after the outage", spool)
 	t1 := time.Now()
 	_, err = st.Compose(context.Background(), "start", "--wait", "seaweedfs")
 	require.NoError(t, err)
-	t.Logf("stop took %s, S3 down %s until healthy, healthy %s after start", down.Sub(t0), time.Since(down), time.Since(t1))
+	t.Logf("stop took %s, S3 down %s until healthy, healthy %s after start", down.Sub(stopAt), time.Since(down), time.Since(t1))
 	for range 5 {
 		mark()
 	}
 	sh.Exit(t)
 
 	t.Logf("closed after %s", st.WaitEnded(t, id, "closed", UploadDrain))
-	t0 = time.Now()
+	t0 := time.Now()
 	st.WaitVerified(t, id, UploadDrain)
 	t.Logf("verified after %s", time.Since(t0))
 
