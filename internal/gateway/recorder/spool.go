@@ -66,7 +66,8 @@ type state struct {
 	Chunks    int    `json:"chunks"`
 	Bytes     int64  `json:"bytes"`
 	FinalHash string `json:"final_hash"` // hex
-	Closed    bool   `json:"closed"`
+	// Closed lives in memory only: restore counts every session as closed.
+	Closed bool `json:"-"`
 }
 
 // session is the in-memory view of one session directory.
@@ -185,7 +186,8 @@ func (s *Spool) Append(sessionID uuid.UUID, seq int, hash, gz []byte) error {
 	return nil
 }
 
-// Close marks the recording complete: Run finishes it once its chunks and end are delivered.
+// Close marks the recording complete: Run finishes it once its chunks and end are
+// delivered. It writes nothing: a restart counts every spooled session as closed.
 func (s *Spool) Close(sessionID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -196,12 +198,7 @@ func (s *Spool) Close(sessionID uuid.UUID) error {
 	if ss == nil {
 		return nil // nothing was recorded
 	}
-	st := ss.st
-	st.Closed = true
-	if err := s.writeState(sessionID, st); err != nil {
-		return err
-	}
-	ss.st, ss.stored = st, true
+	ss.st.Closed = true
 	s.notify()
 	return nil
 }
