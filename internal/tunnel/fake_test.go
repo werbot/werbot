@@ -72,6 +72,7 @@ type fake struct {
 	inflight    atomic.Int32                  // Pool calls running now
 	maxInflight atomic.Int32                  // highest inflight seen
 	hold        atomic.Pointer[chan struct{}] // set: Pool returns once it is closed
+	authDelay   atomic.Int64                  // nanoseconds every Authenticate sleeps outside the lock
 
 	ingest fakeIngest
 	beat   beatRecord
@@ -120,6 +121,7 @@ func newFake() *fake {
 }
 
 func (f *fake) Authenticate(_ context.Context, gatewayID, instanceID uuid.UUID, serial string) (Gateway, error) {
+	time.Sleep(time.Duration(f.authDelay.Load()))
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.auths = append(f.auths, authCall{gatewayID, instanceID, serial})

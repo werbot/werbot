@@ -4,10 +4,12 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/internal/platform/apperr"
 )
 
 // A refresh reads the organization-wide part once and completes it per pool:
@@ -71,5 +73,31 @@ func TestRefreshBuildsPoolsConcurrently(t *testing.T) {
 	}
 	if m := b.f.maxInflight.Load(); m < 2 || m > poolParallel {
 		t.Fatalf("max in-flight pool builds = %d, want 2..%d", m, poolParallel)
+	}
+}
+
+// A refresh re-authenticates the streams of an organization concurrently,
+// at most authParallel at once, and still closes only the rejected one.
+func TestRefreshAuthenticatesConcurrently(t *testing.T) {
+	b := newBench(t, func(h *Hub) { h.debounce = 10 * time.Millisecond })
+	pool := uuid.New()
+	gws := make([]*gw, 2*authParallel)
+	conns := make([]*conn, len(gws))
+	for i := range gws {
+		gws[i] = b.instance(t, b.org, pool)
+		conns[i] = gws[i].connect(t, nil)
+		conns[i].next(t, 2*time.Second)
+	}
+
+	b.f.with(func(f *fake) { f.authErr[gws[0].InstanceID] = apperr.ErrUnauthenticated })
+	b.f.authDelay.Store(int64(100 * time.Millisecond))
+	start := time.Now()
+	b.hub.OrgChanged(b.org.String())
+	wantCode(t, conns[0].closed(t, 3*time.Second), connect.CodeUnauthenticated, "")
+	for _, c := range conns[1:] {
+		c.next(t, 3*time.Second)
+	}
+	if d := time.Since(start); d >= time.Duration(len(gws))*100*time.Millisecond/2 {
+		t.Fatalf("%d re-authentications took %v, want concurrent", len(gws), d)
 	}
 }

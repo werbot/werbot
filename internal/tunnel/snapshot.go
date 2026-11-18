@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"sync"
 	"sync/atomic"
 
 	"github.com/google/uuid"
@@ -18,15 +19,7 @@ import (
 // pools at once) and offers each snapshot to that pool's streams. It reports
 // false when a build failed.
 func (hd *Handler) refreshOrg(ctx context.Context, org uuid.UUID, ss []*stream, gen uint64) bool {
-	pools := map[uuid.UUID][]*stream{}
-	for _, s := range ss {
-		if _, err := hd.d.Gateways.Authenticate(ctx, s.gw.ID, s.gw.InstanceID, s.serial); err != nil {
-			hd.log.Info("tunnel: closing stream of a rejected gateway", "instance_id", s.gw.InstanceID, "error", err)
-			s.close(authError(err))
-			continue
-		}
-		pools[s.gw.ID] = append(pools[s.gw.ID], s)
-	}
+	pools := hd.authenticated(ctx, ss)
 	if len(pools) == 0 {
 		return true
 	}
@@ -54,6 +47,30 @@ func (hd *Handler) refreshOrg(ctx context.Context, org uuid.UUID, ss []*stream, 
 	}
 	_ = g.Wait() // every pool reports through failed
 	return !failed.Load()
+}
+
+// authenticated re-authenticates ss, up to authParallel at once, closes the
+// streams of rejected instances and returns the others by pool.
+func (hd *Handler) authenticated(ctx context.Context, ss []*stream) map[uuid.UUID][]*stream {
+	pools := map[uuid.UUID][]*stream{}
+	var mu sync.Mutex
+	var g errgroup.Group
+	g.SetLimit(authParallel)
+	for _, s := range ss {
+		g.Go(func() error {
+			if _, err := hd.d.Gateways.Authenticate(ctx, s.gw.ID, s.gw.InstanceID, s.serial); err != nil {
+				hd.log.Info("tunnel: closing stream of a rejected gateway", "instance_id", s.gw.InstanceID, "error", err)
+				s.close(authError(err))
+				return nil
+			}
+			mu.Lock()
+			pools[s.gw.ID] = append(pools[s.gw.ID], s)
+			mu.Unlock()
+			return nil
+		})
+	}
+	_ = g.Wait() // a rejected stream is closed above, never an error
+	return pools
 }
 
 // build returns the pool snapshot stamped with its version.
