@@ -29,7 +29,7 @@ func (s *Stand) joinToken(t testing.TB, maxUses int32) (id, token string) {
 	return res.Msg.GetId(), res.Msg.GetToken()
 }
 
-// deleteEnrolledInstances removes every pool-a instance named "e2e-enroll".
+// deleteEnrolledInstances removes every instance named "e2e-enroll" in any pool.
 func (s *Stand) deleteEnrolledInstances(t testing.TB) {
 	t.Helper()
 	ctx := context.Background() // Cleanup context
@@ -82,14 +82,18 @@ func TestScenario09EnrollRevokedAndExhaustedToken(t *testing.T) {
 		return err
 	}
 
-	_, tok1 := st.joinToken(t, 1)
+	id1, tok1 := st.joinToken(t, 1)
 	require.NoError(t, enroll(st.A, tok1), "first use of a single-use token")
 	exhausted := refusal(t, enroll(st.B, tok1))
+	assert.EqualValues(t, 1, st.tokenUses(t, id1), "a refusal must not spend the exhausted token")
 
 	id2, tok2 := st.joinToken(t, 5)
 	_, err := st.Edge.Gateways.RevokeJoinToken(ctx, connect.NewRequest(&werbotv1.RevokeJoinTokenRequest{Id: id2}))
 	require.NoError(t, err)
 	revoked := refusal(t, enroll(st.Edge, tok2))
+	assert.Equal(t, revoked, refusal(t, enroll(st.A, tok2)), "revoked on replica A")
+	assert.Equal(t, revoked, refusal(t, enroll(st.B, tok2)), "revoked on replica B")
+	assert.EqualValues(t, 0, st.tokenUses(t, id2), "a refusal must not spend the revoked token")
 
 	secret := make([]byte, 32)
 	_, err = rand.Read(secret)
