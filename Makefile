@@ -1,6 +1,7 @@
-.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-cluster load
+.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-cluster load release-check release-snapshot
 
 VERSION ?= dev
+GORELEASER ?= go run github.com/goreleaser/goreleaser/v2@v2.20.0
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
 
 build: web
@@ -22,7 +23,7 @@ sqlc:
 	go tool -modfile=tools/go.mod sqlc generate
 
 web:
-	cd web && bun install && VITE_WERBOT_VERSION=$(VERSION) bun run build
+	cd web && bun install --frozen-lockfile && VITE_WERBOT_VERSION=$(VERSION) bun run build
 
 e2e: build
 	docker compose -f deploy/docker-compose.test.yaml exec -T testdb psql -U postgres -c 'DROP DATABASE IF EXISTS werbot_e2e WITH (FORCE)' -c 'CREATE DATABASE werbot_e2e'
@@ -65,3 +66,9 @@ load:
 	    { rc=1; echo "== $$l" >> $(CLUSTER_LOG); $(CLUSTER_LOGS) >> $(CLUSTER_LOG); }; \
 	  $(CLUSTER) down -v --remove-orphans; \
 	done; exit $$rc
+
+release-check:
+	$(GORELEASER) check
+
+release-snapshot:
+	$(GORELEASER) release --snapshot --clean --skip=sign

@@ -1,0 +1,49 @@
+version: 2
+project_name: werbot
+before: { hooks: ["make web VERSION={{ .Version }}"] } # UI build version = binary version (version banner)
+snapshot: { version_template: "{{ incpatch .Version }}-next" }
+
+builds:
+  - id: werbot
+    main: ./cmd/werbot
+    binary: werbot
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows] # windows: only `werbot connect` is supported (stage 6b)
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    ldflags:
+      - -s -w
+      - -X github.com/werbot/werbot/internal/platform/version.Version={{ .Version }}
+      - -X github.com/werbot/werbot/internal/platform/version.Commit={{ .ShortCommit }}
+      - -X github.com/werbot/werbot/internal/platform/version.BuildDate={{ .CommitDate }}
+
+archives:
+  - formats: [tar.gz]
+    format_overrides: [{ goos: windows, formats: [zip] }]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files: [LICENSE, README.md]
+    builds_info: { mtime: "{{ .CommitDate }}" }
+
+checksum: { name_template: checksums.txt }
+
+dockers_v2:
+  - images: [ghcr.io/werbot/werbot]
+    tags: ["v{{ .Version }}"]
+    dockerfile: deploy/Dockerfile.release
+    platforms: [linux/amd64, linux/arm64]
+    labels:
+      org.opencontainers.image.title: werbot
+      org.opencontainers.image.description: Open-source access gateway for people and AI agents
+      org.opencontainers.image.licenses: AGPL-3.0-only
+      org.opencontainers.image.vendor: Werbot, Inc.
+      org.opencontainers.image.source: https://github.com/werbot/werbot
+      org.opencontainers.image.url: https://github.com/werbot/werbot
+      org.opencontainers.image.documentation: "https://github.com/werbot/werbot/tree/{{ .Tag }}/docs"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .CommitDate }}"
+    annotations:
+      org.opencontainers.image.description: Open-source access gateway for people and AI agents
+      org.opencontainers.image.licenses: AGPL-3.0-only
+      org.opencontainers.image.source: https://github.com/werbot/werbot

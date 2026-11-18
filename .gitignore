@@ -14,3 +14,4 @@ web/e2e/.server.log
 /deploy/e2e/.bin/
 /test/cluster/compose.log
 /test/cluster/.bin/
+/dist/

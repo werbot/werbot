@@ -17,7 +17,10 @@ COPY . .
 COPY --from=web /src/web/build ./web/build
 RUN CGO_ENABLED=0 make -o web build VERSION=$VERSION COMMIT=$COMMIT
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
+COPY --from=gcr.io/distroless/static-debian13:nonroot --chown=65532:65532 /home/nonroot /var/lib/werbot
 COPY --from=go /src/bin/werbot /werbot
+WORKDIR /var/lib/werbot
+EXPOSE 8080 8090 8443 2222
 ENTRYPOINT ["/werbot"]
 CMD ["server"]

@@ -1,0 +1,8 @@
+FROM gcr.io/distroless/static-debian13:nonroot
+ARG TARGETPLATFORM
+COPY --from=gcr.io/distroless/static-debian13:nonroot --chown=65532:65532 /home/nonroot /var/lib/werbot
+COPY $TARGETPLATFORM/werbot /werbot
+WORKDIR /var/lib/werbot
+EXPOSE 8080 8090 8443 2222
+ENTRYPOINT ["/werbot"]
+CMD ["server"]
