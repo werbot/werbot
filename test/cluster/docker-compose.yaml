@@ -94,7 +94,7 @@ services:
       start_period: 60s
       start_interval: 2s
       timeout: 10s
-      retries: 30
+      retries: 2
     networks: [public]
 
   server1: { <<: *server, hostname: server1, networks: { public: { ipv4_address: 10.231.0.11, aliases: [api] } } }

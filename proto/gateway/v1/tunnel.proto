@@ -117,7 +117,7 @@ message Resource {
   google.protobuf.Duration idle_timeout = 5;
   google.protobuf.Duration max_duration = 6;
   // SHA256 fingerprint of the pinned target host key; empty: none pinned yet
-  string host_key_sha256 = 7;
+  string host_key_sha256 = 8;
 }
 
 message AuthenticateUserRequest {

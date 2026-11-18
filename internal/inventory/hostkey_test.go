@@ -21,22 +21,22 @@ func TestHostKeyChangeNotifies(t *testing.T) {
 	t.Cleanup(func() { _ = conn.Close(bg) })
 	_, err = conn.Exec(bg, "LISTEN werbot_org_changed")
 	require.NoError(t, err)
-	notified := func(d time.Duration) bool {
-		ctx, cancel := context.WithTimeout(bg, d)
+	next := func() string {
+		ctx, cancel := context.WithTimeout(bg, 5*time.Second)
 		defer cancel()
 		n, err := conn.WaitForNotification(ctx)
-		if err != nil {
-			return false
-		}
-		assert.Equal(t, e.org.String(), n.Payload)
-		return true
+		require.NoError(t, err)
+		return n.Payload
 	}
 
 	k := newKey(t)
 	require.NoError(t, e.svc.PinHostKey(e.ctx, e.org, r.ID, k))
-	assert.True(t, notified(5*time.Second), "first pin")
+	assert.Equal(t, e.org.String(), next(), "first pin")
 	require.NoError(t, e.svc.PinHostKey(e.ctx, e.org, r.ID, k))
-	assert.False(t, notified(300*time.Millisecond), "the same key again changes nothing")
+	// Postgres delivers in commit order: a notify of the repeated pin would come before the sentinel.
+	_, err = e.pool.Exec(bg, "SELECT pg_notify('werbot_org_changed', 'sentinel')")
+	require.NoError(t, err)
+	assert.Equal(t, "sentinel", next(), "the same key again changes nothing")
 	require.NoError(t, e.svc.ClearHostKey(e.ctx, e.org, r.ID))
-	assert.True(t, notified(5*time.Second), "clear")
+	assert.Equal(t, e.org.String(), next(), "clear")
 }

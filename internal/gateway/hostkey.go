@@ -9,7 +9,7 @@ import gossh "golang.org/x/crypto/ssh"
 // snapshot, so the next connection pins anew.
 func (p *Pipeline) pinKey(res Resource, alg string, key []byte) error {
 	if res.HostKeySHA256 != "" {
-		if k, err := gossh.ParsePublicKey(key); err == nil && gossh.FingerprintSHA256(k) == res.HostKeySHA256 {
+		if k, err := gossh.ParsePublicKey(key); err == nil && k.Type() == alg && gossh.FingerprintSHA256(k) == res.HostKeySHA256 {
 			return nil
 		}
 	}

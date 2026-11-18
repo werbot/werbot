@@ -3,6 +3,7 @@ package gateway
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -52,9 +53,14 @@ func TestPinKeySkipsKeyPinnedInSnapshot(t *testing.T) {
 	require.NoError(t, e.open(t, "fake", KindTerminal).PinKey(key.Type(), key.Marshal()))
 	require.Zero(t, e.pinCalls(), "the server already confirmed this key")
 
+	// the server refuses an alg that is not the key type (invalid_argument)
+	e.f.with(func(f *fakeControl) { f.pinErr = errors.New("alg does not match the key") })
+	require.Error(t, s.PinKey("rsa-sha2-256", key.Marshal()))
+	require.Equal(t, 1, e.pinCalls(), "the pinned key under another alg goes to the server")
+
 	e.f.with(func(f *fakeControl) { f.pinErr = ErrHostKeyMismatch })
 	require.ErrorIs(t, s.PinKey(other.Type(), other.Marshal()), ErrHostKeyMismatch)
-	require.Equal(t, 1, e.pinCalls(), "a changed key goes to the server, which refuses it")
+	require.Equal(t, 2, e.pinCalls(), "a changed key goes to the server, which refuses it")
 }
 
 func TestPinKeyAfterClear(t *testing.T) {

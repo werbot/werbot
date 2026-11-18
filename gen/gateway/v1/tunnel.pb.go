@@ -705,7 +705,7 @@ type Resource struct {
 	IdleTimeout *durationpb.Duration `protobuf:"bytes,5,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
 	MaxDuration *durationpb.Duration `protobuf:"bytes,6,opt,name=max_duration,json=maxDuration,proto3" json:"max_duration,omitempty"`
 	// SHA256 fingerprint of the pinned target host key; empty: none pinned yet
-	HostKeySha256 string `protobuf:"bytes,7,opt,name=host_key_sha256,json=hostKeySha256,proto3" json:"host_key_sha256,omitempty"`
+	HostKeySha256 string `protobuf:"bytes,8,opt,name=host_key_sha256,json=hostKeySha256,proto3" json:"host_key_sha256,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1692,7 +1692,7 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"configJson\x12<\n" +
 	"\fidle_timeout\x18\x05 \x01(\v2\x19.google.protobuf.DurationR\vidleTimeout\x12<\n" +
 	"\fmax_duration\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\vmaxDuration\x12&\n" +
-	"\x0fhost_key_sha256\x18\a \x01(\tR\rhostKeySha256\"\xaf\x01\n" +
+	"\x0fhost_key_sha256\x18\b \x01(\tR\rhostKeySha256\"\xaf\x01\n" +
 	"\x17AuthenticateUserRequest\x12;\n" +
 	"\x12fingerprint_sha256\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01H\x00R\x11fingerprintSha256\x12\"\n" +
