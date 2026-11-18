@@ -9,8 +9,9 @@ import (
 
 // authCacheTTL is the longest a cached instance check lives without a change
 // notification.
-// ponytail: a backstop only, every change that refuses a cached check already
-// sends werbot_org_changed; drop it once NOTIFY coverage is proven complete.
+// ponytail: backstop for missed or undetected-lost notifications; keep it
+// while LISTEN failure detection relies on TCP keepalive (WaitForNotification
+// has no deadline, so a silently dead socket is not noticed at once).
 const authCacheTTL = 30 * time.Second
 
 // authCache remembers successful mTLS instance checks while the LISTEN

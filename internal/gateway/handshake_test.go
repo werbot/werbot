@@ -1,11 +1,13 @@
 package gateway
 
 import (
+	"net"
 	"sync"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/gliderlabs/ssh"
 	"github.com/stretchr/testify/require"
 )
 
@@ -62,6 +64,19 @@ func TestChannelReusesHandshakeUser(t *testing.T) {
 	})
 }
 
+// The window counts from before the handshake lookup: a slow AuthenticateUser
+// uses up the window instead of extending it.
+func TestReuseWindowStartsBeforeAuth(t *testing.T) {
+	e, clk := newClockedSSHEnv(t)
+	e.f.with(func(f *fakeControl) { f.onAuth = func() { clk.add(handshakeReuse * 3 / 4) } })
+	c := e.client(t, "alice+db")
+	require.Equal(t, 1, e.authCount())
+	clk.add(handshakeReuse / 2) // 1.25 windows after the lookup started, 0.5 after it returned
+	_, code := run(t, c, false, "uptime")
+	require.Equal(t, 0, code)
+	require.Equal(t, 2, e.authCount(), "the channel authenticates again")
+}
+
 // A key revoked after the window is refused on the next channel, as today.
 func TestChannelAfterWindowSeesRevokedKey(t *testing.T) {
 	e, clk := newClockedSSHEnv(t)
@@ -101,4 +116,27 @@ func TestHandshakeUserStillChecked(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, e.m["u1"], s.User.ID)
 	e.f.with(func(f *fakeControl) { require.Empty(t, f.authCalls) })
+}
+
+// remoteCtx adds the client address to fakeConnContext.
+type remoteCtx struct{ *fakeConnContext }
+
+func (remoteCtx) RemoteAddr() net.Addr { return &net.TCPAddr{IP: net.IPv4(192, 0, 2, 7), Port: 2222} }
+
+// The handshake user is attached only when it was found by the signing key.
+func TestRequestHandshakeNeedsSigningKey(t *testing.T) {
+	signing, other := newKey(t), newKey(t)
+	ctx := remoteCtx{&fakeConnContext{ctx: t.Context()}}
+	ctx.SetValue(ssh.ContextKeyPublicKey, signing.PublicKey())
+	ctx.SetValue(userKey{}, &User{Login: "alice"})
+	h := &sshHandler{}
+
+	ctx.SetValue(authedKey{}, &authed{fp: fp(other), at: time.Unix(1, 0)})
+	require.Nil(t, h.request(ctx, "db", KindTerminal, Window{}, "").Handshake, "another key's user")
+
+	ctx.SetValue(authedKey{}, &authed{fp: fp(signing), at: time.Unix(1, 0)})
+	r := h.request(ctx, "db", KindTerminal, Window{}, "")
+	require.NotNil(t, r.Handshake)
+	require.Equal(t, "alice", r.Handshake.User.Login)
+	require.Equal(t, time.Unix(1, 0), r.Handshake.At)
 }

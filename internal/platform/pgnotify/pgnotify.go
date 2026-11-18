@@ -38,7 +38,7 @@ func closeConn(ctx context.Context, conn *pgx.Conn) {
 // channel of handlers. onReconnect runs after each successful LISTEN of all
 // channels (the first one included): notifications sent during a gap may be lost.
 // onLost runs each time a connection attempt or the connection fails, before
-// the retry; it does not run when ctx ends.
+// the connection is closed and before the retry; it does not run when ctx ends.
 // handlers values, onReconnect and onLost must be non-nil.
 // Handlers run sequentially in the Listen goroutine and must be fast.
 // Returns nil after ctx.Done.
@@ -46,11 +46,10 @@ func Listen(ctx context.Context, pool *pgxpool.Pool, handlers map[string]func(pa
 	channels := slices.Sorted(maps.Keys(handlers))
 	backoff := minBackoff
 	for ctx.Err() == nil {
-		err := session(ctx, pool, channels, handlers, onReconnect, &backoff)
+		err := session(ctx, pool, channels, handlers, onReconnect, onLost, &backoff)
 		if ctx.Err() != nil {
 			return nil
 		}
-		onLost()
 		slog.Warn("pgnotify: connection lost", "err", err, "retry_in", backoff)
 		select {
 		case <-ctx.Done():
@@ -62,13 +61,21 @@ func Listen(ctx context.Context, pool *pgxpool.Pool, handlers map[string]func(pa
 	return nil
 }
 
-// session runs one connection until it fails; backoff is reset once LISTEN succeeded.
-func session(ctx context.Context, pool *pgxpool.Pool, channels []string, handlers map[string]func(string), onReconnect func(), backoff *time.Duration) error {
+// session runs one connection until it fails; backoff is reset once LISTEN
+// succeeded. onLost runs before the (possibly slow) close of a failed connection.
+func session(ctx context.Context, pool *pgxpool.Pool, channels []string, handlers map[string]func(string), onReconnect, onLost func(), backoff *time.Duration) error {
+	lost := func() {
+		if ctx.Err() == nil {
+			onLost()
+		}
+	}
 	conn, err := pgx.ConnectConfig(ctx, pool.Config().ConnConfig.Copy())
 	if err != nil {
+		lost()
 		return err
 	}
 	defer closeConn(ctx, conn)
+	defer lost() // LIFO: runs before closeConn
 
 	for _, ch := range channels {
 		if _, err := conn.Exec(ctx, "LISTEN "+pgx.Identifier{ch}.Sanitize()); err != nil {

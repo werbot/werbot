@@ -89,7 +89,8 @@ type (
 	authedKey struct{}
 )
 
-// authed is the key fingerprint the handshake user was found by, and when.
+// authed is the key fingerprint the handshake user was found by, and when the
+// lookup started.
 type authed struct {
 	fp string
 	at time.Time
@@ -140,6 +141,7 @@ func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
 	defer cancel()
 	ip := clientIP(ctx.RemoteAddr())
 	fp := gossh.FingerprintSHA256(key)
+	start := h.p.now() // the reuse window counts from before the server's lookup
 	u, err := h.p.ctl.AuthenticateUser(actx, fp, ip)
 	switch {
 	case unreachable(err):
@@ -158,7 +160,7 @@ func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
 		return false
 	}
 	ctx.SetValue(userKey{}, &u)
-	ctx.SetValue(authedKey{}, &authed{fp: fp, at: h.p.now()})
+	ctx.SetValue(authedKey{}, &authed{fp: fp, at: start})
 	return true
 }
 
