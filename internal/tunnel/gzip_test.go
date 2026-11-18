@@ -3,6 +3,7 @@ package tunnel
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -54,6 +55,14 @@ func gzipOnceRun(c *gzipCache, in []byte) ([]byte, error) {
 	return out.Bytes(), err
 }
 
+// runs is how many large messages c has gzipped while none was evicted: put
+// appends a key per run, so a second run of one message repeats its key.
+func (c *gzipCache) runs() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.order)
+}
+
 // Concurrent sends of one message gzip it once and all get the bytes the
 // default gzip compressor writes; another message is compressed anew.
 func TestGzipOnce(t *testing.T) {
@@ -79,14 +88,14 @@ func TestGzipOnce(t *testing.T) {
 			t.Fatalf("send %d: %d bytes differ from the default gzip output (%d bytes)", i, len(out), len(want))
 		}
 	}
-	if n := c.encodes.Load(); n != 1 {
+	if n := c.runs(); n != 1 {
 		t.Fatalf("gzip ran %d times for one message, want 1", n)
 	}
 
 	other := append(bytes.Clone(in), 'x')
 	out, err := gzipOnceRun(&c, other)
-	if err != nil || !bytes.Equal(out, stdGzip(t, other)) || c.encodes.Load() != 2 {
-		t.Fatalf("another message: err %v, encodes %d", err, c.encodes.Load())
+	if err != nil || !bytes.Equal(out, stdGzip(t, other)) || c.runs() != 2 {
+		t.Fatalf("another message: err %v, runs %d", err, c.runs())
 	}
 	for i := range gzipCacheSize + 1 {
 		if _, err := gzipOnceRun(&c, fmt.Appendf(bytes.Clone(in), "%d", i)); err != nil {
@@ -97,7 +106,7 @@ func TestGzipOnce(t *testing.T) {
 		t.Fatalf("cache holds %d entries, want %d", n, gzipCacheSize)
 	}
 
-	// A message under gzipCacheMin is gzipped every time and evicts nothing.
+	// A message under gzipCacheMin is gzipped every time (it is never cached) and evicts nothing.
 	small := in[:gzipCacheMin-1]
 	oldest := c.order[0]
 	for range 2 {
@@ -105,8 +114,8 @@ func TestGzipOnce(t *testing.T) {
 			t.Fatalf("small message: err %v", err)
 		}
 	}
-	if n := c.encodes.Load(); n != 2+gzipCacheSize+1+2 || c.order[0] != oldest || len(c.out) != gzipCacheSize {
-		t.Fatalf("small message: encodes %d, cache %d entries, oldest evicted %v", n, len(c.out), c.order[0] != oldest)
+	if _, cached := c.get(sha256.Sum256(small)); cached || c.order[0] != oldest || len(c.out) != gzipCacheSize {
+		t.Fatalf("small message: cached %v, cache %d entries, oldest evicted %v", cached, len(c.out), c.order[0] != oldest)
 	}
 }
 
@@ -177,8 +186,7 @@ func TestPoolStreamsShareEncodedSnapshot(t *testing.T) {
 		conns[i] = g.connect(t, nil)
 		conns[i].next(t, 5*time.Second)
 	}
-	encodes := func() int64 { return b.hub.h.gz.encodes.Load() }
-	if n := encodes(); n != 1 {
+	if n := b.hub.h.gz.runs(); n != 1 {
 		t.Fatalf("gzip ran %d times for %d streams of one snapshot, want 1", n, len(conns))
 	}
 	var want []byte
@@ -204,7 +212,7 @@ func TestPoolStreamsShareEncodedSnapshot(t *testing.T) {
 			t.Fatal("wrong snapshot after the change")
 		}
 	}
-	if n := encodes(); n != 2 {
+	if n := b.hub.h.gz.runs(); n != 2 {
 		t.Fatalf("gzip ran %d times for two snapshots, want 2", n)
 	}
 }

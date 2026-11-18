@@ -7,7 +7,6 @@ import (
 	"io"
 	"slices"
 	"sync"
-	"sync/atomic"
 
 	"golang.org/x/sync/singleflight"
 )
@@ -28,8 +27,7 @@ const (
 // cached bytes. The output is what the default gzip compressor writes for the same
 // input (same level, no header fields), so gateways decode it as before.
 type gzipCache struct {
-	group   singleflight.Group
-	encodes atomic.Int64 // gzip runs; tests read it
+	group singleflight.Group
 
 	mu    sync.Mutex
 	out   map[[sha256.Size]byte][]byte // input hash -> gzip of the input
@@ -65,7 +63,6 @@ func (c *gzipCache) compress(in []byte) ([]byte, error) {
 
 // gzip compresses in as connect's default compressor does.
 func (c *gzipCache) gzip(in []byte) ([]byte, error) {
-	c.encodes.Add(1)
 	var buf bytes.Buffer
 	zw := gzip.NewWriter(&buf)
 	if _, err := zw.Write(in); err != nil {

@@ -38,6 +38,11 @@ type Hub struct {
 // delay, how many organizations a "*" refresh rebuilds at once, how many
 // pools of one organization build at once and how many of its streams
 // re-authenticate at once.
+// ponytail: a "*" refresh runs up to refreshParallel*poolParallel = 32 database
+// calls at once, whatever the pgxpool size (default max(4, NumCPU)), so user
+// RPCs (AuthenticateUser, StartSession) can queue behind it. If multi-org load
+// (parked P3) shows that, pass pool.Config().MaxConns to NewHub and cap
+// refreshParallel at max(1, MaxConns/(2*poolParallel)).
 const (
 	refreshTimeout  = 10 * time.Second
 	maxRetryDelay   = 30 * time.Second

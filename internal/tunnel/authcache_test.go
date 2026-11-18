@@ -1,8 +1,8 @@
 package tunnel
 
 import (
-	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"connectrpc.com/connect"
@@ -13,30 +13,12 @@ import (
 	"github.com/werbot/werbot/internal/platform/tlsca"
 )
 
-type clock struct {
-	mu sync.Mutex
-	t  time.Time
-}
-
-func (c *clock) now() time.Time {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.t
-}
-
-func (c *clock) add(d time.Duration) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.t = c.t.Add(d)
-}
-
-// cachedBench is a bench whose hub listens (Resync ran) on a fake clock.
-func cachedBench(t *testing.T) (*bench, *clock) {
+// cachedBench is a bench whose hub listens (Resync ran).
+func cachedBench(t *testing.T) *bench {
 	t.Helper()
-	clk := &clock{t: time.Unix(1_700_000_000, 0)}
-	b := newBench(t, func(h *Hub) { h.auth.now = clk.now })
+	b := newBench(t, nil)
 	b.hub.Resync()
-	return b, clk
+	return b
 }
 
 // call makes one unary RPC; the unknown login gets NotFound once mTLS passed.
@@ -54,7 +36,7 @@ func (b *bench) authCount() int {
 }
 
 func TestAuthCacheHitSkipsDB(t *testing.T) {
-	b, _ := cachedBench(t)
+	b := cachedBench(t)
 	g := b.instance(t, b.org, uuid.New())
 	for range 3 {
 		wantCode(t, g.call(t), connect.CodeNotFound, "")
@@ -80,7 +62,7 @@ func TestAuthCacheDroppedByNotify(t *testing.T) {
 		"all": func(uuid.UUID) string { return "*" },
 	} {
 		t.Run(name, func(t *testing.T) {
-			b, _ := cachedBench(t)
+			b := cachedBench(t)
 			g := b.instance(t, b.org, uuid.New())
 			other := b.instance(t, uuid.New(), uuid.New())
 			wantCode(t, g.call(t), connect.CodeNotFound, "")
@@ -103,7 +85,7 @@ func TestAuthCacheDroppedByNotify(t *testing.T) {
 }
 
 func TestAuthCacheRenewedSerialMisses(t *testing.T) {
-	b, _ := cachedBench(t)
+	b := cachedBench(t)
 	g := b.instance(t, b.org, uuid.New())
 	wantCode(t, g.call(t), connect.CodeNotFound, "")
 	cert, serial := b.clientCert(t, tlsca.GatewayCN(g.ID, g.InstanceID))
@@ -122,7 +104,7 @@ func TestAuthCacheRenewedSerialMisses(t *testing.T) {
 }
 
 func TestAuthCacheFlushedOnListenLoss(t *testing.T) {
-	b, _ := cachedBench(t)
+	b := cachedBench(t)
 	g := b.instance(t, b.org, uuid.New())
 	wantCode(t, g.call(t), connect.CodeNotFound, "")
 
@@ -148,16 +130,20 @@ func TestAuthCacheFlushedOnListenLoss(t *testing.T) {
 }
 
 func TestAuthCacheTTL(t *testing.T) {
-	b, clk := cachedBench(t)
-	g := b.instance(t, b.org, uuid.New())
-	wantCode(t, g.call(t), connect.CodeNotFound, "")
-	clk.add(authCacheTTL - time.Second)
-	wantCode(t, g.call(t), connect.CodeNotFound, "")
-	clk.add(time.Second)
-	wantCode(t, g.call(t), connect.CodeNotFound, "")
-	if n := b.authCount(); n != 2 {
-		t.Fatalf("Authenticate calls = %d, want 2", n)
-	}
+	synctest.Test(t, func(t *testing.T) {
+		c := authCache{listening: true}
+		g := Gateway{ID: uuid.New(), InstanceID: uuid.New(), OrgID: uuid.New(), CertSerial: "a"}
+		_, gen, _ := c.get(g.ID, g.InstanceID, "a")
+		c.put(gen, "a", g)
+		time.Sleep(authCacheTTL - time.Nanosecond)
+		if _, _, ok := c.get(g.ID, g.InstanceID, "a"); !ok {
+			t.Fatal("the check expired before authCacheTTL")
+		}
+		time.Sleep(time.Nanosecond)
+		if _, _, ok := c.get(g.ID, g.InstanceID, "a"); ok {
+			t.Fatal("the check lived past authCacheTTL")
+		}
+	})
 }
 
 // A check that started before a change notification is not stored.

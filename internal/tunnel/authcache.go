@@ -25,7 +25,6 @@ type authCache struct {
 	mu        sync.Mutex
 	listening bool // LISTEN is up: notifications reach drop
 	gen       uint64
-	now       func() time.Time // nil: time.Now
 	m         map[uuid.UUID]authEntry
 }
 
@@ -35,20 +34,13 @@ type authEntry struct {
 	exp    time.Time
 }
 
-func (c *authCache) clock() time.Time {
-	if c.now == nil {
-		return time.Now()
-	}
-	return c.now()
-}
-
 // get returns the cached check of the certificate, or the generation to pass
 // to put after a database check. A mismatching entry is dropped.
 func (c *authCache) get(gatewayID, instanceID uuid.UUID, serial string) (Gateway, uint64, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	e, ok := c.m[instanceID]
-	if ok && e.serial == serial && e.g.ID == gatewayID && c.clock().Before(e.exp) {
+	if ok && e.serial == serial && e.g.ID == gatewayID && time.Now().Before(e.exp) {
 		return e.g, c.gen, true
 	}
 	delete(c.m, instanceID)
@@ -67,7 +59,7 @@ func (c *authCache) put(gen uint64, serial string, g Gateway) {
 	if c.m == nil {
 		c.m = map[uuid.UUID]authEntry{}
 	}
-	c.m[g.InstanceID] = authEntry{serial: serial, g: g, exp: c.clock().Add(authCacheTTL)}
+	c.m[g.InstanceID] = authEntry{serial: serial, g: g, exp: time.Now().Add(authCacheTTL)}
 }
 
 // drop forgets the checks of org's instances (uuid.Nil: every organization).
