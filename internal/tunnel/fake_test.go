@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	gossh "golang.org/x/crypto/ssh"
+	"google.golang.org/protobuf/proto"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/platform/apperr"
@@ -62,12 +63,13 @@ type fake struct {
 	endErr    error
 	missing   []endCall
 
-	builds    map[[2]uuid.UUID]int // (org, pool) -> count
+	orgBuilds map[uuid.UUID]int    // org -> Org calls
+	builds    map[[2]uuid.UUID]int // (org, pool) -> Pool calls
 	buildFail int                  // fail the next N builds
 	snapshot  func(orgID, gatewayID uuid.UUID) *gatewayv1.Snapshot
 
-	buildDelay  atomic.Int64 // nanoseconds every Build sleeps outside the lock
-	inflight    atomic.Int32 // Build calls running now
+	buildDelay  atomic.Int64 // nanoseconds every Pool call sleeps outside the lock
+	inflight    atomic.Int32 // Pool calls running now
 	maxInflight atomic.Int32 // highest inflight seen
 
 	ingest fakeIngest
@@ -113,7 +115,7 @@ func (r *fakeIngest) with(fn func(r *fakeIngest)) {
 
 func newFake() *fake {
 	return &fake{instances: map[uuid.UUID]Gateway{}, authErr: map[uuid.UUID]error{}, users: map[string]User{},
-		builds: map[[2]uuid.UUID]int{}, sessionID: uuid.New()}
+		orgBuilds: map[uuid.UUID]int{}, builds: map[[2]uuid.UUID]int{}, sessionID: uuid.New()}
 }
 
 func (f *fake) Authenticate(_ context.Context, gatewayID, instanceID uuid.UUID, serial string) (Gateway, error) {
@@ -214,7 +216,14 @@ func (f *fake) EndMissing(_ context.Context, orgID, instanceID uuid.UUID, active
 	return 0, nil
 }
 
-func (f *fake) Build(_ context.Context, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error) {
+func (f *fake) Org(_ context.Context, orgID uuid.UUID) (*gatewayv1.Snapshot, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.orgBuilds[orgID]++
+	return &gatewayv1.Snapshot{CedarPolicies: "permit(principal, action, resource);", Members: []*gatewayv1.Member{{UserId: orgID.String()}}}, nil
+}
+
+func (f *fake) Pool(_ context.Context, org *gatewayv1.Snapshot, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error) {
 	n := f.inflight.Add(1)
 	defer f.inflight.Add(-1)
 	for m := f.maxInflight.Load(); n > m; m = f.maxInflight.Load() {
@@ -233,13 +242,21 @@ func (f *fake) Build(_ context.Context, orgID, gatewayID uuid.UUID) (*gatewayv1.
 	if f.snapshot != nil {
 		return f.snapshot(orgID, gatewayID), nil
 	}
-	return &gatewayv1.Snapshot{CedarPolicies: "permit(principal, action, resource);", Blocklist: []string{gatewayID.String()}}, nil
+	out := proto.CloneOf(org)
+	out.Blocklist = []string{gatewayID.String()}
+	return out, nil
 }
 
 func (f *fake) buildCount(orgID, gatewayID uuid.UUID) int {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.builds[[2]uuid.UUID{orgID, gatewayID}]
+}
+
+func (f *fake) orgBuildCount(orgID uuid.UUID) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.orgBuilds[orgID]
 }
 
 // with runs fn under the fake's lock to read or change its state.

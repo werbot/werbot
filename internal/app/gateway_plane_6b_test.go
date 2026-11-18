@@ -96,7 +96,7 @@ func TestSnapshotResourceTimeouts(t *testing.T) {
 	_, err := s.pool.Exec(ctx, `UPDATE resource SET idle_timeout = '10 minutes', max_duration = '2 hours' WHERE id = $1`, ids[0])
 	require.NoError(t, err)
 
-	snap, err := newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Snapshots.Build(context.Background(), org, gw)
+	snap, err := buildSnapshot(context.Background(), newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Snapshots, org, gw)
 	require.NoError(t, err)
 	require.Len(t, snap.GetResources(), 3)
 	for _, r := range snap.GetResources() {
@@ -128,7 +128,7 @@ func TestSnapshotMembersVersion(t *testing.T) {
 		require.NoError(t, s.d.Identity.AddTeamMember(ctx, team, owner))
 	}
 	build := func() *gatewayv1.Snapshot {
-		snap, err := newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Snapshots.Build(context.Background(), org, gw)
+		snap, err := buildSnapshot(context.Background(), newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Snapshots, org, gw)
 		require.NoError(t, err)
 		return snap
 	}

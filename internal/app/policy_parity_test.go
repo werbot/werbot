@@ -202,7 +202,7 @@ func (p parity) decide(ctx context.Context, t *testing.T, name string, ip netip.
 		require.Equal(t, server, d.Allow, "CheckAccess")
 	}
 
-	gsnap, err := p.snaps.Build(ctx, p.org, p.gw)
+	gsnap, err := buildSnapshot(ctx, p.snaps, p.org, p.gw)
 	require.NoError(t, err)
 	pol, err := gateway.CompilePolicy(gsnap)
 	require.NoError(t, err)

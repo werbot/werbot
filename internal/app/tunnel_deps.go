@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
@@ -130,14 +131,14 @@ func (s tunnelSessions) Deny(ctx context.Context, orgID uuid.UUID, ds []tunnel.D
 }
 
 // tunnelSnapshots builds a pool's snapshot: the organization's compiled
-// policy, its members with their teams, the pool's resources by name and the
-// blocklist, sorted, so equal data gives an equal version.
+// policy, its members with their teams and the blocklist (Org), then the
+// pool's resources by name (Pool), sorted, so equal data gives an equal version.
 type tunnelSnapshots struct {
 	s      *services
 	logger *slog.Logger
 }
 
-func (t tunnelSnapshots) Build(ctx context.Context, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error) {
+func (t tunnelSnapshots) Org(ctx context.Context, orgID uuid.UUID) (*gatewayv1.Snapshot, error) {
 	snap, err := t.s.Policy.Snapshot(ctx, orgID)
 	if err != nil {
 		return nil, err
@@ -165,10 +166,23 @@ func (t tunnelSnapshots) Build(ctx context.Context, orgID, gatewayID uuid.UUID) 
 		}
 		out.Members = append(out.Members, pm)
 	}
+	bl, err := t.s.Policy.Blocklist(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range bl {
+		out.Blocklist = append(out.Blocklist, p.String())
+	}
+	slices.Sort(out.Blocklist)
+	return out, nil
+}
+
+func (t tunnelSnapshots) Pool(ctx context.Context, org *gatewayv1.Snapshot, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error) {
 	rs, err := t.s.Inventory.ResourcesForGateway(ctx, orgID, gatewayID)
 	if err != nil {
 		return nil, err
 	}
+	out := proto.CloneOf(org)
 	for _, r := range rs {
 		if r.Config == nil { // type no longer registered: no gateway can serve it
 			continue
@@ -189,13 +203,5 @@ func (t tunnelSnapshots) Build(ctx context.Context, orgID, gatewayID uuid.UUID) 
 		}
 		out.Resources = append(out.Resources, res)
 	}
-	bl, err := t.s.Policy.Blocklist(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, p := range bl {
-		out.Blocklist = append(out.Blocklist, p.String())
-	}
-	slices.Sort(out.Blocklist)
 	return out, nil
 }

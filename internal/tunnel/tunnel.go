@@ -107,9 +107,13 @@ type Credentials interface {
 	Reveal(ctx context.Context, orgID, resourceID uuid.UUID, resourceType string) (Secret, error)
 }
 
-// Snapshots builds the policy snapshot of one pool.
+// Snapshots builds the policy snapshot of a pool in two steps, so a refresh
+// reads the organization-wide part once for all the pools it rebuilds.
 type Snapshots interface {
-	Build(ctx context.Context, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error)
+	// Org returns the part every pool snapshot of the organization shares.
+	Org(ctx context.Context, orgID uuid.UUID) (*gatewayv1.Snapshot, error)
+	// Pool returns org completed with the pool's own part; org stays unchanged.
+	Pool(ctx context.Context, org *gatewayv1.Snapshot, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error)
 }
 
 // Sessions records sessions per instance and the attempts gateways refused.

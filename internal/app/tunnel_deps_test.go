@@ -46,9 +46,9 @@ func TestSnapshotBuildDeterministic(t *testing.T) {
 		netip.MustParsePrefix("9.9.9.0/24"), netip.MustParsePrefix("45.0.0.0/24"), netip.MustParsePrefix("203.0.113.0/24")}))
 
 	b := newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Snapshots
-	first, err := b.Build(context.Background(), org, gw)
+	first, err := buildSnapshot(context.Background(), b, org, gw)
 	require.NoError(t, err)
-	second, err := b.Build(context.Background(), org, gw)
+	second, err := buildSnapshot(context.Background(), b, org, gw)
 	require.NoError(t, err)
 	assert.True(t, proto.Equal(first, second), "two builds of the same data differ")
 
@@ -79,7 +79,7 @@ func TestSnapshotBuildCarriesPinnedHostKey(t *testing.T) {
 	require.NoError(t, err)
 	b := newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Snapshots
 	pinned := func() string {
-		snap, err := b.Build(context.Background(), org, gw)
+		snap, err := buildSnapshot(context.Background(), b, org, gw)
 		require.NoError(t, err)
 		i := slices.IndexFunc(snap.GetResources(), func(r *gatewayv1.Resource) bool { return r.GetId() == ids[0] })
 		require.GreaterOrEqual(t, i, 0)
@@ -104,7 +104,7 @@ func TestSnapshotBuildDenyAllOnCompileError(t *testing.T) {
 	_, err = s.pool.Exec(ctx, `UPDATE access_binding SET subject_type = 'robot' WHERE org_id = $1`, org)
 	require.NoError(t, err)
 
-	snap, err := newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Snapshots.Build(context.Background(), org, gw)
+	snap, err := buildSnapshot(context.Background(), newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Snapshots, org, gw)
 	require.NoError(t, err)
 	assert.Empty(t, snap.GetCedarPolicies())
 	assert.Empty(t, snap.GetEntitiesJson())
