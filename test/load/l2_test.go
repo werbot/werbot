@@ -29,8 +29,8 @@ var (
 )
 
 const (
-	enrollParallel = 20
-	firstWait      = 2 * time.Minute  // every sim has its first snapshot
+	enrollParallel = 20               // also the batch size of the stream ramp
+	firstWait      = 2 * time.Minute  // every sim of a batch has its first snapshot
 	versionWait    = 30 * time.Second // every sim has the new version (10 §8.3)
 	versionP99     = 5 * time.Second  // 10 §8.3
 )
@@ -49,7 +49,7 @@ func TestL2(t *testing.T) {
 	_, err = st.DB.Exec(ctx, `
 		WITH r AS (
 			INSERT INTO resource (org_id, name, type, category, gateway_id, config)
-			SELECT $1::uuid, 'sim-' || lpad(i::text, 5, '0'), 'ssh', 'servers', $2::uuid, '{"host":"10.255.0.1","port":22,"login":"x"}'
+			SELECT $1::uuid, 'sim-' || to_char(i, 'FM00000'), 'ssh', 'servers', $2::uuid, '{"host":"10.255.0.1","port":22,"login":"x"}'
 			FROM generate_series(1, $3::int) AS i RETURNING id)
 		INSERT INTO access_binding (org_id, subject_type, subject_id, resource_id, created_by)
 		SELECT $1::uuid, 'user', $4::uuid, id, $4::uuid FROM r`,
@@ -69,11 +69,19 @@ func TestL2(t *testing.T) {
 	var running sync.WaitGroup
 	defer running.Wait()
 	defer cancel()
-	for i, s := range sims {
-		running.Go(func() { s.run(rctx, clients[i]) })
+	// connect in batches, each waiting for its first snapshots: every Connect builds a
+	// full snapshot server-side, so a flood of n at once only measures the connect storm
+	first := make([]snap, 0, n)
+	for lo := 0; lo < n; lo += enrollParallel {
+		batch := sims[lo:min(lo+enrollParallel, n)]
+		for i, s := range batch {
+			running.Go(func() {
+				s.run(rctx, clients[lo+i])
+				s.tr.CloseIdleConnections()
+			})
+		}
+		first = append(first, await(t, batch, make([]string, len(batch)), time.Now().Add(firstWait))...)
 	}
-
-	first := await(t, sims, make([]string, n), time.Now().Add(firstWait))
 	var firstLat []time.Duration
 	for i, x := range first {
 		if x.at.IsZero() {

@@ -38,6 +38,7 @@ type sim struct {
 	got   chan snap
 	start time.Time // the stream was opened
 	err   error     // why the stream ended
+	tr    *http.Transport
 }
 
 // enrollSim enrolls instance "sim-<i>" with token through Edge and returns it
@@ -79,7 +80,7 @@ func enrollSim(ctx context.Context, st *cluster.Stand, token, tunnelAddr string,
 			return d.DialContext(ctx, network, tunnelAddr)
 		},
 	}
-	return &sim{name: name, got: make(chan snap, 16)},
+	return &sim{name: name, got: make(chan snap, 16), tr: tr},
 		gatewayv1connect.NewTunnelServiceClient(&http.Client{Transport: tr}, res.GetTunnelUrl()), nil
 }
 
@@ -90,12 +91,12 @@ func (s *sim) run(ctx context.Context, c gatewayv1connect.TunnelServiceClient) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	s.start = time.Now()
-	st := c.Connect(ctx)
-	defer func() { _ = st.CloseResponse() }()
+	stream := c.Connect(ctx)
+	defer func() { _ = stream.CloseResponse() }()
 	// as the gateway does: ending the body lets the HTTP/2 transport abort the stream
-	context.AfterFunc(ctx, func() { _ = st.CloseRequest() })
+	context.AfterFunc(ctx, func() { _ = stream.CloseRequest() })
 	beat := &gatewayv1.ConnectRequest{Msg: &gatewayv1.ConnectRequest_Heartbeat{Heartbeat: &gatewayv1.Heartbeat{Version: "load", Connectors: []string{"ssh"}}}}
-	if err := st.Send(beat); err != nil && !errors.Is(err, io.EOF) { // on EOF Receive returns why
+	if err := stream.Send(beat); err != nil && !errors.Is(err, io.EOF) { // on EOF Receive returns why
 		s.err = err
 		return
 	}
@@ -107,7 +108,7 @@ func (s *sim) run(ctx context.Context, c gatewayv1connect.TunnelServiceClient) {
 			case <-ctx.Done():
 				return
 			case <-tick.C:
-				if st.Send(beat) != nil {
+				if stream.Send(beat) != nil {
 					cancel()
 					return
 				}
@@ -115,7 +116,7 @@ func (s *sim) run(ctx context.Context, c gatewayv1connect.TunnelServiceClient) {
 		}
 	}()
 	for {
-		msg, err := st.Receive()
+		msg, err := stream.Receive()
 		if err != nil {
 			s.err = err
 			return
