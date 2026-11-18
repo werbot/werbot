@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/netip"
 	"strconv"
@@ -36,7 +37,8 @@ func Ready(addr string) int {
 }
 
 // Metric reads the series name{labels} from http://addr/metrics; labels are
-// key, value pairs in registration order. A series not exported yet reads 0.
+// key, value pairs in registration order. A missing series fails the test: werbot
+// exports every series the stand reads at startup, so absence means a wrong name or label.
 func Metric(t testing.TB, addr, name string, labels ...string) int64 {
 	t.Helper()
 	v, err := metric(addr, name, labels...)
@@ -67,16 +69,30 @@ func metric(addr, name string, labels ...string) (int64, error) {
 			return strconv.ParseInt(v, 10, 64)
 		}
 	}
-	return 0, sc.Err()
+	if err := sc.Err(); err != nil {
+		return 0, err
+	}
+	return 0, fmt.Errorf("%s: no series %s", addr, series)
 }
 
-// connectDB opens a pool to the stand's Postgres through its published port.
+// connectDB opens a pool to the stand's Postgres. Every new connection resolves
+// the published port again: it changes when the postgres container restarts.
 func (s *Stand) connectDB(ctx context.Context) error {
-	addr, err := s.port(ctx, "postgres", 5432)
+	cfg, err := pgxpool.ParseConfig("postgres://werbot:werbot@postgres/werbot?sslmode=disable")
 	if err != nil {
 		return err
 	}
-	s.DB, err = pgxpool.New(ctx, "postgres://werbot:werbot@"+addr+"/werbot?sslmode=disable")
+	// "postgres" is a placeholder host: no DNS lookup, DialFunc picks the address
+	cfg.ConnConfig.LookupFunc = func(_ context.Context, host string) ([]string, error) { return []string{host}, nil }
+	cfg.ConnConfig.DialFunc = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		addr, err := s.port(ctx, "postgres", 5432)
+		if err != nil {
+			return nil, err
+		}
+		var d net.Dialer
+		return d.DialContext(ctx, network, addr)
+	}
+	s.DB, err = pgxpool.NewWithConfig(ctx, cfg)
 	return err
 }
 

@@ -137,7 +137,7 @@ func (s *Stand) enrollPool(ctx context.Context) error {
 	if _, err := s.Compose(ctx, "up", "-d", "gw1", "gw2"); err != nil {
 		return err
 	}
-	return poll(ctx, time.Minute, func() error {
+	return poll(ctx, time.Minute, func(ctx context.Context) error {
 		if err := s.ready(ctx, "gw1", "gw2"); err != nil {
 			return err
 		}

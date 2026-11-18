@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -24,7 +25,7 @@ func TestMain(m *testing.M) {
 	}
 	code := m.Run()
 	if code != 0 {
-		fmt.Fprint(os.Stderr, keep)
+		fmt.Fprintf(os.Stderr, "%salice's key is in %s; remove it with the stand\n", keep, filepath.Dir(st.KeyFile))
 		os.Exit(code)
 	}
 	if err := st.Down(ctx); err != nil {

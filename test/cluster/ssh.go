@@ -67,7 +67,7 @@ func (s *Stand) waitSSH(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return poll(ctx, 30*time.Second, func() error {
+	return poll(ctx, 30*time.Second, func(context.Context) error { // gossh.Dial is bounded by its 10 s Timeout
 		if s.HostKey == nil {
 			c, err := gossh.Dial("tcp", gw1, s.clientConfig("alice+target", func(_ string, _ net.Addr, key gossh.PublicKey) error {
 				s.HostKey = key

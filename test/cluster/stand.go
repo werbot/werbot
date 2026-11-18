@@ -72,11 +72,16 @@ type Stand struct {
 }
 
 // Up replaces any previous stand with a fresh one. On error the stand is left for inspection.
-func Up(ctx context.Context, opts Options) (*Stand, error) {
+func Up(ctx context.Context, opts Options) (_ *Stand, err error) {
 	s := &Stand{project: Project(), env: maps.Clone(opts.Env), Resources: map[string]uuid.UUID{}, StartedAt: map[string]time.Time{}}
 	if s.env == nil {
 		s.env = map[string]string{}
 	}
+	defer func() {
+		if err != nil && s.tmp != "" {
+			_ = os.RemoveAll(s.tmp) // alice's key; the stand itself stays for inspection
+		}
+	}()
 	if _, err := s.Compose(ctx, "down", "-v", "--remove-orphans"); err != nil {
 		return nil, err
 	}
@@ -90,7 +95,7 @@ func Up(ctx context.Context, opts Options) (*Stand, error) {
 	if _, err := s.Compose(ctx, "up", "-d", "server1", "server2", "web1", "web2", "nginx", "target", "echo", "dns"); err != nil {
 		return nil, err
 	}
-	if err := poll(ctx, RestoreMax, func() error { return s.ready(ctx, "server1", "server2", "web1", "web2") }); err != nil {
+	if err := poll(ctx, RestoreMax, func(ctx context.Context) error { return s.ready(ctx, "server1", "server2", "web1", "web2") }); err != nil {
 		return nil, err
 	}
 	for _, svc := range []string{"server1", "server2"} {
@@ -141,7 +146,7 @@ func (s *Stand) Healthy(t testing.TB) {
 	if err = s.waitHealthy(ctx); err == nil {
 		return
 	}
-	t.Logf("stand not healthy (%v); restarting gw1 gw2 once", err)
+	t.Logf("Healthy restarts gw1 gw2 once: %v", err) // the error names the trigger: readiness/online or placement
 	_, err = s.Compose(ctx, "restart", "gw1", "gw2")
 	require.NoError(t, err)
 	if err = s.waitHealthy(ctx); err != nil {
@@ -153,16 +158,16 @@ func (s *Stand) Healthy(t testing.TB) {
 // waitHealthy waits RestoreMax for readiness and both instances online, then
 // 2*ReconnectMax for the canonical stream placement; the error carries the last state.
 func (s *Stand) waitHealthy(ctx context.Context) error {
-	err := poll(ctx, RestoreMax, func() error {
+	err := poll(ctx, RestoreMax, func(ctx context.Context) error {
 		if err := s.ready(ctx, "server1", "server2", "web1", "web2", "gw1", "gw2"); err != nil {
 			return err
 		}
 		return s.poolOnline(ctx)
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("readiness/online: %w", err)
 	}
-	return poll(ctx, 2*ReconnectMax, func() error {
+	err = poll(ctx, 2*ReconnectMax, func(ctx context.Context) error {
 		var got [2]int64
 		for i, svc := range []string{"server1", "server2"} {
 			addr, err := s.port(ctx, svc, 9100)
@@ -178,6 +183,10 @@ func (s *Stand) waitHealthy(ctx context.Context) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("placement: %w", err)
+	}
+	return nil
 }
 
 // readyAddr is where /readyz of a service is published: server HTTP only through nginx.
@@ -205,14 +214,15 @@ func (s *Stand) ready(ctx context.Context, services ...string) error {
 	return nil
 }
 
-// poll calls cond every 500 ms until it returns nil or timeout passes; then it returns cond's last error.
-func poll(ctx context.Context, timeout time.Duration, cond func() error) error {
+// poll calls cond with the deadline context every 500 ms until it returns nil
+// or timeout passes; then it returns cond's last error.
+func poll(ctx context.Context, timeout time.Duration, cond func(context.Context) error) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	tick := time.NewTicker(500 * time.Millisecond)
 	defer tick.Stop()
 	for {
-		err := cond()
+		err := cond(ctx)
 		if err == nil {
 			return nil
 		}

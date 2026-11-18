@@ -59,6 +59,7 @@ func (s *Stand) ComposeEnv(ctx context.Context, env map[string]string, args ...s
 }
 
 // Addr is the published host address of a container port: "127.0.0.1:N".
+// Host ports change when a container restarts; resolve them again after each restart.
 func (s *Stand) Addr(t testing.TB, service string, port int) string {
 	t.Helper()
 	addr, err := s.port(context.Background(), service, port)
