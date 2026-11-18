@@ -49,12 +49,11 @@ e2e-cluster:
 	[ $$rc -eq 0 ] || $(CLUSTER) logs --no-color --timestamps > test/cluster/compose.log; \
 	$(CLUSTER) down -v --remove-orphans; exit $$rc
 
-# L2 joins the default with its test (stage 7a Task 10); until then -run ^TestL2$ would match nothing and pass
-LOAD_TESTS ?= L1 L3 L4
+LOAD_TESTS ?= L1 L2 L3 L4
 
 # manual load tests (test/load), Linux only: RSS and listeners come from /proc.
 # Each load test runs on a fresh stand, removed after it; the next one does not
-# inherit its RSS baseline or data. Smaller run: LOAD_ARGS='-load.sessions=100 -load.duration=1m'
+# inherit its RSS baseline or data. Smaller run: LOAD_ARGS='-load.sessions=100 -load.duration=1m -load.instances=20 -load.resources=500'
 load:
 	@[ "$$(uname -s)" = Linux ] || { echo "load tests need Linux (/proc)"; exit 1; }
 	docker build -f deploy/Dockerfile -t werbot:cluster .

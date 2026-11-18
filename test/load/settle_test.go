@@ -139,8 +139,14 @@ func verifyAll(t testing.TB, st *cluster.Stand, sessions []*werbotv1.Session) in
 // at that moment; it passes when no sample is over its own budget.
 func reportRSS(t testing.TB, load string, samples []sample, service string, budget func(int64) int64) {
 	t.Helper()
+	result, n, over := rssRow(samples, service, budget)
+	report(t, load, "RSS "+service, "≤ budget", result, n > 0 && over == 0)
+}
+
+// rssRow is the RSS result of service: the highest sample with its budget at
+// that moment, n samples of service and how many were over their own budget.
+func rssRow(samples []sample, service string, budget func(int64) int64) (result string, n, over int) {
 	var top sample
-	n, over := 0, 0
 	for _, s := range samples {
 		rss, ok := s.RSS[service]
 		if !ok {
@@ -155,12 +161,10 @@ func reportRSS(t testing.TB, load string, samples []sample, service string, budg
 		}
 	}
 	if n == 0 {
-		report(t, load, "RSS "+service, "≤ budget", "no samples", false)
-		return
+		return "no samples", 0, 0
 	}
 	a := top.Active[service]
-	report(t, load, "RSS "+service, "≤ budget",
-		fmt.Sprintf("max %s, budget %s at %d active; %d of %d samples over", mb(top.RSS[service]), mb(budget(a)), a, over, n), over == 0)
+	return fmt.Sprintf("max %s, budget %s at %d active; %d of %d samples over", mb(top.RSS[service]), mb(budget(a)), a, over, n), n, over
 }
 
 // pgLimit is the Postgres connection budget of a server replica (10 §10.1).
