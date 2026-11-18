@@ -1,10 +1,14 @@
 package tunnel
 
 import (
+	"context"
+	"errors"
+	"log/slog"
 	"runtime"
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"connectrpc.com/connect"
@@ -165,4 +169,45 @@ func TestSharedBuildOutlivesLeavingWaiter(t *testing.T) {
 	if n := b.f.buildCount(b.org, pool); n != 2 {
 		t.Fatalf("builds = %d, want 2: the shared build serves the staying stream", n)
 	}
+}
+
+// A shared build that hangs (a Postgres partition) ends at refreshTimeout: it
+// fails every stream waiting for it, and the next Connect builds anew.
+func TestSharedBuildTimesOut(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		f, hub := newFake(), NewHub()
+		defer hub.Shutdown()
+		d := f.deps()
+		d.Logger = slog.New(slog.DiscardHandler)
+		hd := New(d, hub)
+		hold := make(chan struct{})
+		f.hold.Store(&hold)
+		org, pool := uuid.New(), uuid.New()
+		start := time.Now()
+		errs := make(chan error, 4)
+		ask := func() {
+			_, err := hd.newSnapshot(t.Context(), org, pool)
+			errs <- err
+		}
+		go ask()
+		synctest.Wait() // the first build runs
+		for range 3 {
+			go ask() // the waiters of the next build
+		}
+		for range 4 {
+			if err := <-errs; !errors.Is(err, context.DeadlineExceeded) {
+				t.Fatalf("newSnapshot = %v, want a deadline error", err)
+			}
+		}
+		if took := time.Since(start); took != 2*refreshTimeout {
+			t.Fatalf("the two hung builds took %v, want %v", took, 2*refreshTimeout)
+		}
+		f.hold.Store(nil)
+		if _, err := hd.newSnapshot(t.Context(), org, pool); err != nil {
+			t.Fatalf("the next Connect: %v", err)
+		}
+		if n := f.buildCount(org, pool); n != 3 {
+			t.Fatalf("builds = %d, want 2 hung + 1 new", n)
+		}
+	})
 }

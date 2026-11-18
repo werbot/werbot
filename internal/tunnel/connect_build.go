@@ -31,8 +31,9 @@ type buildResult struct {
 
 // newSnapshot returns a pool snapshot read after this call began, for the
 // stream of a new Connect. The build runs on the hub's context, as other
-// streams may wait for it (Shutdown cancels it); the caller stops waiting
-// when ctx ends.
+// streams may wait for it (Shutdown cancels it), and ends after
+// refreshTimeout, as a refresh does, so a hung build does not hold the
+// pool's next one; the caller stops waiting when ctx ends.
 func (hd *Handler) newSnapshot(ctx context.Context, org, pool uuid.UUID) (*gatewayv1.Snapshot, error) {
 	b := &hd.newBuilds
 	key := [2]uuid.UUID{org, pool}
@@ -51,7 +52,11 @@ func (hd *Handler) newSnapshot(ctx context.Context, org, pool uuid.UUID) (*gatew
 	r := p.next
 	if !running {
 		p.next = nil
-		go b.run(key, p, r, func() (*gatewayv1.Snapshot, error) { return hd.build(hd.hub.ctx, org, pool) })
+		go b.run(key, p, r, func() (*gatewayv1.Snapshot, error) {
+			bctx, cancel := context.WithTimeout(hd.hub.ctx, refreshTimeout)
+			defer cancel()
+			return hd.build(bctx, org, pool)
+		})
 	}
 	b.mu.Unlock()
 	select {

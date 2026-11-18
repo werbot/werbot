@@ -73,7 +73,7 @@ type fake struct {
 	buildDelay  atomic.Int64                  // nanoseconds every Pool call sleeps outside the lock
 	inflight    atomic.Int32                  // Pool calls running now
 	maxInflight atomic.Int32                  // highest inflight seen
-	hold        atomic.Pointer[chan struct{}] // set: Pool returns once it is closed
+	hold        atomic.Pointer[chan struct{}] // set: Pool returns once it is closed or ctx ends
 	authDelay   atomic.Int64                  // nanoseconds every Authenticate sleeps outside the lock
 
 	ingest fakeIngest
@@ -232,7 +232,7 @@ func (f *fake) Org(_ context.Context, orgID uuid.UUID) (*gatewayv1.Snapshot, err
 	return &gatewayv1.Snapshot{CedarPolicies: "permit(principal, action, resource);", Members: []*gatewayv1.Member{{UserId: orgID.String()}}}, nil
 }
 
-func (f *fake) Pool(_ context.Context, org *gatewayv1.Snapshot, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error) {
+func (f *fake) Pool(ctx context.Context, org *gatewayv1.Snapshot, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error) {
 	n := f.inflight.Add(1)
 	defer f.inflight.Add(-1)
 	for m := f.maxInflight.Load(); n > m; m = f.maxInflight.Load() {
@@ -243,7 +243,11 @@ func (f *fake) Pool(_ context.Context, org *gatewayv1.Snapshot, orgID, gatewayID
 	time.Sleep(time.Duration(f.buildDelay.Load()))
 	snap, err := f.pool(org, orgID, gatewayID)
 	if hold := f.hold.Load(); hold != nil {
-		<-*hold
+		select {
+		case <-*hold:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
 	return snap, err
 }
