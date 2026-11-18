@@ -102,7 +102,7 @@ func (c *fakeConnContext) Value(k any) any {
 func TestChannelContextValuesAndCause(t *testing.T) {
 	connCtx, cancelConn := context.WithCancelCause(t.Context())
 	conn := &fakeConnContext{ctx: connCtx}
-	conn.SetValue(userKey{}, &User{Login: "alice"})
+	conn.SetValue(userKey{}, &authed{u: User{Login: "alice"}})
 	c := newChannelContext(conn)
 	c.SetValue(handshakeKey{}, "set later")
 	require.Equal(t, "alice", handshakeUser(c).Login)

@@ -82,16 +82,14 @@ func wrapListener(ln net.Listener, proxyProtocol bool) net.Listener {
 	return &proxyproto.Listener{Listener: ln, ReadHeaderTimeout: 5 * time.Second} // default policy: REQUIRE
 }
 
-// userKey holds the *User accepted at the handshake; nil while the control plane was unreachable.
-// authedKey holds the *authed record of that acceptance.
-type (
-	userKey   struct{}
-	authedKey struct{}
-)
+// userKey holds the *authed record of the handshake acceptance; nil while the
+// control plane was unreachable.
+type userKey struct{}
 
-// authed is the key fingerprint the handshake user was found by, and when the
-// lookup started.
+// authed is the user accepted at the handshake, the key fingerprint it was
+// found by, and when the lookup started.
 type authed struct {
+	u  User
 	fp string
 	at time.Time
 }
@@ -131,8 +129,7 @@ type sshHandler struct {
 // (CVE-2024-45337). An unreachable control plane accepts the key without a user;
 // the signature is still checked and every channel gets the not ready text.
 func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
-	ctx.SetValue(userKey{}, (*User)(nil))
-	ctx.SetValue(authedKey{}, (*authed)(nil))
+	ctx.SetValue(userKey{}, (*authed)(nil))
 	login, _, err := ParseLogin(ctx.User())
 	if err != nil {
 		return false
@@ -159,15 +156,16 @@ func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
 		ctx.SetValue(refusedKey{}, &refusal{fingerprint: fp, user: ctx.User(), ip: ip})
 		return false
 	}
-	ctx.SetValue(userKey{}, &u)
-	ctx.SetValue(authedKey{}, &authed{fp: fp, at: start})
+	ctx.SetValue(userKey{}, &authed{u: u, fp: fp, at: start})
 	return true
 }
 
 // handshakeUser is the user accepted at the handshake; nil means not ready.
 func handshakeUser(ctx ssh.Context) *User {
-	u, _ := ctx.Value(userKey{}).(*User)
-	return u
+	if a, _ := ctx.Value(userKey{}).(*authed); a != nil {
+		return &a.u
+	}
+	return nil
 }
 
 // forward serves direct-tcpip as a stream and datagram@werbot.com as a datagram
@@ -230,10 +228,8 @@ func (h *sshHandler) request(ctx ssh.Context, resource string, kind Kind, w Wind
 	}
 	r := OpenRequest{Front: "ssh", Kind: kind, Identity: Identity{Method: "ssh-key", Value: fp},
 		Resource: resource, Target: target, ClientIP: clientIP(ctx.RemoteAddr()), Window: w}
-	if a, _ := ctx.Value(authedKey{}).(*authed); a != nil && a.fp == fp {
-		if u := handshakeUser(ctx); u != nil {
-			r.Handshake = &Handshake{User: *u, At: a.at}
-		}
+	if a, _ := ctx.Value(userKey{}).(*authed); a != nil && a.fp == fp {
+		r.Handshake = &Handshake{User: a.u, At: a.at}
 	}
 	return r
 }

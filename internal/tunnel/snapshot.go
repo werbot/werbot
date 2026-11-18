@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"sync"
-	"sync/atomic"
 
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
@@ -28,7 +27,6 @@ func (hd *Handler) refreshOrg(ctx context.Context, org uuid.UUID, ss []*stream, 
 		hd.log.Error("tunnel: build snapshot, retrying", "org_id", org, "error", err)
 		return false
 	}
-	var failed atomic.Bool
 	var g errgroup.Group
 	g.SetLimit(poolParallel)
 	for pool, ps := range pools {
@@ -36,8 +34,7 @@ func (hd *Handler) refreshOrg(ctx context.Context, org uuid.UUID, ss []*stream, 
 			snap, err := hd.poolSnapshot(ctx, base, org, pool)
 			if err != nil {
 				hd.log.Error("tunnel: build snapshot, retrying", "org_id", org, "gateway_id", pool, "error", err)
-				failed.Store(true)
-				return nil
+				return err
 			}
 			for _, s := range ps {
 				s.offer(snap, gen)
@@ -45,8 +42,7 @@ func (hd *Handler) refreshOrg(ctx context.Context, org uuid.UUID, ss []*stream, 
 			return nil
 		})
 	}
-	_ = g.Wait() // every pool reports through failed
-	return !failed.Load()
+	return g.Wait() == nil // a plain Group cancels nothing: every pool still builds
 }
 
 // authenticated re-authenticates ss, up to authParallel at once, closes the
