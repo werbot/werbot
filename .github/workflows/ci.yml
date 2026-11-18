@@ -41,6 +41,7 @@ jobs:
       - run: go mod tidy -modfile=tools/go.mod -diff
       - run: GOOS=windows go build ./...
       - run: go test -count=1 ./...
+      - run: go test -race -tags load -short ./test/load/
       - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.15.0
