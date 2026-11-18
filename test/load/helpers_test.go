@@ -3,9 +3,12 @@
 package load
 
 import (
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"errors"
 	"net"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -138,4 +141,33 @@ func TestActiveRow(t *testing.T) {
 	got, pass = activeRow(samples, "gw2", 2500)
 	assert.False(t, pass, "no load on gw2")
 	assert.Equal(t, "0", got)
+}
+
+func TestMixRow(t *testing.T) {
+	got, pass := mixRow([]mixResult{{Echoed: 2048}, {Echoed: 1024}})
+	assert.True(t, pass)
+	assert.Equal(t, "0 of 2, 0 silent, 0.0 MB echoed", got)
+	_, pass = mixRow([]mixResult{{Echoed: 2048}, {}})
+	assert.False(t, pass, "a connection that never echoed")
+	got, pass = mixRow([]mixResult{{Echoed: 64, Err: errors.New("udp echo after 64 bytes: i/o timeout")}})
+	assert.False(t, pass)
+	assert.Equal(t, "1 of 1, 0 silent, 0.0 MB echoed, first: udp echo after 64 bytes: i/o timeout", got)
+	_, pass = mixRow(nil)
+	assert.False(t, pass, "nothing measured")
+}
+
+// TestEchoLoop runs the mix client against the echo targets of this process (no gateway).
+func TestEchoLoop(t *testing.T) {
+	for _, network := range []string{"tcp", "udp"} {
+		echo := map[string]func(testing.TB, string) uint32{"tcp": tcpEcho, "udp": udpEcho}[network]
+		addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(int(echo(t, "127.0.0.1"))))
+		ctx, cancel := context.WithTimeout(t.Context(), 1500*time.Millisecond)
+		r := echoLoop(ctx, network, addr, 64, 0)
+		cancel()
+		require.NoError(t, r.Err, network)
+		assert.Equal(t, int64(2*64), r.Echoed, "%s: two ticks in 1.5 s", network)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	assert.Equal(t, mixResult{}, echoLoop(ctx, "tcp", "127.0.0.1:1", 64, time.Hour), "not started")
 }

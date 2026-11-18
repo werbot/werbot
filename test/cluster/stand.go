@@ -89,6 +89,9 @@ func Up(ctx context.Context, opts Options) (_ *Stand, err error) {
 	if err := buildEchoTarget(ctx); err != nil {
 		return nil, err
 	}
+	if err := buildWerbot(ctx); err != nil { // werbot connect on this host (scenario 14, L1)
+		return nil, err
+	}
 	if _, err := s.Compose(ctx, "up", "-d", "--wait", "postgres", "seaweedfs"); err != nil {
 		return nil, err
 	}

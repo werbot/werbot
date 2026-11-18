@@ -30,9 +30,7 @@ const targetPassword = "load-password"
 // text each second, until the client types exit or closes. It lives as long as the test process.
 func startTarget(t testing.TB) (port int, setOutput func(bytesPerSec int)) {
 	t.Helper()
-	ip, err := exec.CommandContext(context.Background(), "docker", "network", "inspect", "bridge", "-f", "{{(index .IPAM.Config 0).Gateway}}").Output()
-	require.NoError(t, err, "docker bridge gateway address")
-	ln, err := net.Listen("tcp", net.JoinHostPort(strings.TrimSpace(string(ip)), "0"))
+	ln, err := net.Listen("tcp", net.JoinHostPort(bridgeIP(t), "0"))
 	require.NoError(t, err)
 	_, key, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
@@ -48,6 +46,15 @@ func startTarget(t testing.TB) (port int, setOutput func(bytesPerSec int)) {
 	}
 	go func() { _ = srv.Serve(ln) }()
 	return ln.Addr().(*net.TCPAddr).Port, func(n int) { perSec.Store(int64(n)) }
+}
+
+// bridgeIP is the Docker bridge gateway address: host.docker.internal of the
+// gateways (host-gateway). Targets of this process listen only there (ruling G12).
+func bridgeIP(t testing.TB) string {
+	t.Helper()
+	ip, err := exec.CommandContext(context.Background(), "docker", "network", "inspect", "bridge", "-f", "{{(index .IPAM.Config 0).Gateway}}").Output()
+	require.NoError(t, err, "docker bridge gateway address")
+	return strings.TrimSpace(string(ip))
 }
 
 // shell serves one session: "ready", then perSec bytes a second until "exit" or close.

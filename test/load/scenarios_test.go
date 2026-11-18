@@ -18,26 +18,34 @@ import (
 const sampleInterval = 5 * time.Second
 
 // TestL1: *sessions sessions through the pool (nginx :2222), 1 KB/s each for
-// *duration (10 §8.3): no errors, connect p99 ≤ 1 s, spools drained and every
-// session ended within 5 min, every recording verified, RSS and Postgres
-// connections within the §10.1 budgets in every sample.
+// *duration (10 §8.3), beside the stage 6b mix through one werbot connect:
+// *tcpConns TCP connections at 1 KB/s and *udpBinds UDP bindings at one
+// datagram a second (11 §9). No errors, connect p99 ≤ 1 s, spools drained and
+// every session ended within 5 min, every recording verified, RSS (TCP and UDP
+// sessions included) and Postgres connections within the §10.1 budgets in every sample.
 func TestL1(t *testing.T) {
 	needStand(t)
 	resource, setOutput := useTarget(t)
 	setOutput(1024)
 	waitTarget(t, st.Addr(t, "nginx", 2201), st.Addr(t, "nginx", 2202))
 	pool := st.Addr(t, "nginx", 2222)
+	tcp, udp := startMix(t)
 
 	from := time.Now()
 	ctx, stop := context.WithCancel(t.Context())
 	samples := sampleEvery(ctx, t, st, sampleInterval)
+	mixCtx, stopMix := context.WithCancel(t.Context())
+	mixed := runMix(mixCtx, tcp, udp, *rate)
 	res := runSessions(t.Context(), t, st, []string{pool}, *sessions, *rate, *duration, true)
+	stopMix()
+	mix := <-mixed
 	s := settle(t, st, resource, from, *sessions) // sampled too: spool upload and ingest (P7-P9)
 	stop()
 	all := <-samples
 
 	errs := failed(t, res)
 	report(t, "L1", "errors", "0", fmt.Sprint(errs), errs == 0)
+	reportMix(t, mix)
 	p := p99(connects(res))
 	report(t, "L1", "connect p99", "≤ 1s", p.Round(time.Millisecond).String(), p > 0 && p <= time.Second)
 	if !s.OK {

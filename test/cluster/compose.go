@@ -138,11 +138,17 @@ func buildEchoTarget(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("docker version: %w", err)
 	}
-	cmd := exec.CommandContext(ctx, "go", "build", "-o", filepath.Join(standDir, ".bin", "echotarget"), "./internal/e2e/echotarget") //nolint:gosec // fixed binary and package, output under test/cluster
+	env := []string{"CGO_ENABLED=0", "GOOS=linux", "GOARCH=" + strings.TrimSpace(string(arch))}
+	return goBuild(ctx, env, filepath.Join(standDir, ".bin", "echotarget"), "./internal/e2e/echotarget")
+}
+
+// goBuild builds pkg of this module into out with env added to the environment.
+func goBuild(ctx context.Context, env []string, out, pkg string) error {
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", out, pkg) //nolint:gosec // fixed binary, package and output from the harness
 	cmd.Dir = filepath.Join(standDir, "..", "..")
-	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH="+strings.TrimSpace(string(arch)))
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("build echotarget: %w\n%s", err, out)
+	cmd.Env = append(os.Environ(), env...)
+	if b, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("build %s: %w\n%s", pkg, err, b)
 	}
 	return nil
 }

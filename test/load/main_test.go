@@ -32,6 +32,8 @@ var (
 	duration = flag.Duration("load.duration", 10*time.Minute, "L1/L3 session length")
 	rate     = flag.Int("load.rate", 100, "new SSH sessions per second")
 	idle     = flag.Duration("load.idle", 5*time.Minute, "L4 hold time")
+	tcpConns = flag.Int("load.tcp", 500, "L1 mix: TCP connections through werbot connect (stage 6b)")
+	udpBinds = flag.Int("load.udp", 100, "L1 mix: UDP bindings through werbot connect (stage 6b)")
 )
 
 // st is the stand of this process; nil with -short. `make load` runs one load test per process.
@@ -46,8 +48,9 @@ func TestMain(m *testing.M) {
 		fmt.Fprintln(os.Stderr, "load tests need Linux (/proc)")
 		os.Exit(1)
 	}
-	// a client and a gateway->target connection per session on this host, both ends counted
-	need := 4*max(*sessions, 0) + 1024
+	// a client and a gateway->target connection per session on this host, both ends counted;
+	// the L1 mix adds a client and an echo end per TCP connection and a socket per UDP binding
+	need := 4*max(*sessions, 0) + 2*max(*tcpConns, 0) + max(*udpBinds, 0) + 1024
 	var lim syscall.Rlimit
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim); err != nil || lim.Cur < uint64(need) {
 		fmt.Fprintf(os.Stderr, "open files limit %d is below %d: raise it with ulimit -n 65536 (%v)\n", lim.Cur, need, err)
