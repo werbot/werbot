@@ -72,6 +72,16 @@ func (*Stand) NewAPI(baseURL, cookie string) API {
 	}
 }
 
+// SessionCookie returns the session cookie value set by a response, or "".
+func SessionCookie(h http.Header) (cookie string) {
+	for _, line := range h.Values("Set-Cookie") {
+		if c, err := http.ParseSetCookie(line); err == nil && c.Name == sessionCookie {
+			cookie = c.Value
+		}
+	}
+	return cookie
+}
+
 // signIn runs the first-run Setup for alice through nginx and builds Edge, A, B and UI with her cookie.
 func (s *Stand) signIn(ctx context.Context) error {
 	edge, err := s.port(ctx, "nginx", 80)
@@ -84,12 +94,7 @@ func (s *Stand) signIn(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("setup: %w", err)
 	}
-	var cookie string
-	for _, line := range res.Header().Values("Set-Cookie") {
-		if c, err := http.ParseSetCookie(line); err == nil && c.Name == sessionCookie {
-			cookie = c.Value
-		}
-	}
+	cookie := SessionCookie(res.Header())
 	if cookie == "" {
 		return errors.New("setup: no session cookie")
 	}

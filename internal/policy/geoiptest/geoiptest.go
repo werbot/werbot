@@ -44,7 +44,7 @@ func MMDB(prefix netip.Prefix, country string) []byte {
 		panic("geoiptest: IPv4 prefix with 1..32 bits, got " + prefix.String())
 	}
 	addr := prefix.Masked().Addr().As4()
-	nodes := uint32(bits) //nolint:gosec // 1..32, checked above
+	nodes := uint32(bits)
 	// record encodes a 24-bit search tree record.
 	record := func(v uint32) []byte { return binary.BigEndian.AppendUint32(nil, v)[1:] }
 
