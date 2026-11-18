@@ -97,7 +97,7 @@ func TestScenario13SeparateWeb(t *testing.T) {
 	ctx := t.Context()
 
 	for _, svc := range []string{"server1", "server2"} {
-		_, err := st.Compose(ctx, "port", svc, "8080")
+		_, err := st.port(ctx, svc, 8080) // the image EXPOSEs 8080: compose prints ":0" for an unpublished port
 		assert.Error(t, err, "server HTTP of %s is not published", svc)
 	}
 	code, _, _ := get(t, st.Edge, st.Edge.BaseURL+"/")
