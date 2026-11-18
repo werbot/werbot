@@ -27,7 +27,7 @@ WERBOT_PUBLIC_URL=http://localhost:8080 ./bin/werbot server
 
 `WERBOT_ENV=development` is for local plain-http runs: the session cookie is `werbot_session` without `Secure`, and without SMTP the log shows the full email text with reset and invite links. Production mode uses `__Host-werbot_session` with `Secure`, which browsers drop over plain http on any host but `localhost` (Safari drops it on `localhost` too).
 
-Commands: `./bin/werbot <server|gateway|web|connect|migrate|version>`.
+Commands: `./bin/werbot <server|gateway|web|connect|migrate|version|healthcheck>`.
 
 - `server` runs migrations (schema and River job queue) and creates the internal gateway CA and the ed25519 key that signs session recording manifests on first start, under an advisory lock. Then it serves the API (and the UI when embedded), the gateway tunnel on `WERBOT_GATEWAY_ADDR` and runs the River job client.
 - `server --with-gateway` also runs a gateway instance in the same process. Each replica joins the system pool `local` of the first organization (by creation time) with a single-use system join token; before `Setup` it checks for an organization every 5s. It reaches its own server over loopback (`http://127.0.0.1:<WERBOT_HTTP_ADDR port>`, tunnel `https://127.0.0.1:<WERBOT_GATEWAY_ADDR port>`), so both addresses must accept connections on 127.0.0.1: leave the host empty (`:8080`) or use `0.0.0.0` or `127.0.0.1`, not a single non-loopback IP. It keeps its identity in `WERBOT_DATA_DIR/gateway` (or `WERBOT_GATEWAY_DATA_DIR`) and reads the other `WERBOT_GATEWAY_*` variables below; it refuses loopback, link-local (including cloud metadata), multicast and unspecified targets and the resolved addresses of the database host unless `WERBOT_LOCAL_POOL_ALLOW_LOOPBACK=true` (see below), so a same-host database needs that opt-in, while the host's LAN addresses stay reachable (this applies to `telnet`, `tcp` and `udp` sessions and to health probes; `ssh` resources keep their own dial, so a loopback `ssh` resource connects but its health shows `unhealthy`); its metrics go to the server's `/metrics`. Database and enrollment errors before the instance is enrolled are logged and retried (the wait doubles up to 5 minutes, a new single-use token each time); a busy SSH port or a failure after enrollment stops the server. On shutdown the gateway drains its sessions before the server closes the tunnel, so allow `WERBOT_GATEWAY_DRAIN_TIMEOUT` plus about 40s for the stop (compose: `stop_grace_period: 70s`).
@@ -40,6 +40,7 @@ Commands: `./bin/werbot <server|gateway|web|connect|migrate|version>`.
 - `migrate` runs migrations (schema and River job queue) and exits.
 - `web` serves the UI and proxies the API to a separate `server`.
 - `version` prints the build version.
+- `healthcheck` probes `GET http://<WERBOT_HTTP_ADDR>/healthz` of a local server for 3s (empty or unspecified host becomes `127.0.0.1`) and exits 0 on `200`, 1 otherwise; it reads no other config, so it works without `WERBOT_DATABASE_URL`.
 
 The API covers identity (auth, profile, SSH keys, members, teams) and, for owners and admins:
 

@@ -15,15 +15,21 @@ import (
 	"github.com/werbot/werbot/web"
 )
 
-const usageText = "usage: werbot <server|gateway|web|connect|migrate|version>"
+const usageText = "usage: werbot <server|gateway|web|connect|migrate|version|healthcheck>"
 
 // runRole runs the commands that need neither the server config nor its
-// database: version, web, gateway and connect. ok is false for any other cmd.
+// database: version, healthcheck, web, gateway and connect. ok is false for any other cmd.
 func runRole(ctx context.Context, cmd string, args []string, getenv func(string) string, stdout io.Writer) (ok bool, err error) {
 	switch cmd {
 	case "version":
 		_, err := fmt.Fprintf(stdout, "werbot %s (commit %s, built %s)\n", version.Version, version.Commit, version.BuildDate)
 		return true, err
+	case "healthcheck":
+		addr := getenv("WERBOT_HTTP_ADDR")
+		if addr == "" {
+			addr = ":8080"
+		}
+		return true, healthcheck(ctx, addr)
 	case "web":
 		cfg, err := webui.LoadConfig(getenv)
 		if err != nil {
