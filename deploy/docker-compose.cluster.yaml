@@ -1,20 +1,15 @@
-# The example and the test/cluster stand share project werbot-cluster and host ports: run one at a time.
-# Cluster example: 2 server and 2 web replicas, a pool of 2 gateways, Postgres
-# and SeaweedFS (S3 recordings) behind nginx (lb, nginx.cluster.conf). Only lb
-# publishes ports: 8080 (UI and API), 8443 (gateway tunnel), 2222 (SSH).
-# .env: the variables of .env.example plus WERBOT_RECORDINGS_S3_ACCESS_KEY and
-# WERBOT_RECORDINGS_S3_SECRET_KEY. WERBOT_PUBLIC_URL must name this host by a
-# DNS name or IP that containers can reach (not localhost): the gateway tunnel
-# goes to https://<that host>:8443. Gateways start after Setup, with a pool join
-# token in WERBOT_GATEWAY_JOIN_TOKEN: docker compose --profile gateways up -d
+# Cluster example: 2 server and 2 web replicas, a gateway pool, Postgres and SeaweedFS behind nginx.
+# Setup: docs/scaling.md#cluster-example. Run it and the test/cluster stand one at a time.
 name: werbot-cluster
+
+x-image: &image ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
 
 x-logging: &logging
   driver: json-file
   options: { max-size: 10m, max-file: "3" }
 
 x-gateway: &gateway
-  image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
+  image: *image
   # enrollment stays on this host's private edge network; use https:// across hosts
   command: ["gateway", "--insecure-enroll"]
   profiles: ["gateways"]
@@ -58,7 +53,7 @@ services:
     healthcheck: { test: ["CMD-SHELL", "echo s3.bucket.list | weed shell | grep -qw werbot-recordings || { echo 's3.bucket.create -name werbot-recordings' | weed shell >/dev/null; echo s3.bucket.list | weed shell | grep -qw werbot-recordings; }"], interval: 5s, timeout: 10s, retries: 20 }
 
   server:
-    image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
+    image: *image
     command: ["server"] # no --with-gateway: the gateways are a separate pool
     deploy: { replicas: 2 }
     restart: unless-stopped
@@ -80,7 +75,7 @@ services:
     healthcheck: { test: ["CMD", "/werbot", "healthcheck"], interval: 10s, timeout: 5s, retries: 6, start_period: 30s }
 
   web:
-    image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
+    image: *image
     command: ["web"]
     deploy: { replicas: 2 }
     restart: unless-stopped
@@ -109,6 +104,6 @@ services:
 
 configs:
   s3: # SeaweedFS S3 identity = WERBOT_RECORDINGS_S3_ACCESS_KEY/SECRET_KEY
-    content: '{"identities":[{"name":"werbot","credentials":[{"accessKey":"${WERBOT_RECORDINGS_S3_ACCESS_KEY:?set WERBOT_RECORDINGS_S3_ACCESS_KEY in .env (openssl rand -hex 12)}","secretKey":"${WERBOT_RECORDINGS_S3_SECRET_KEY:?set WERBOT_RECORDINGS_S3_SECRET_KEY in .env (openssl rand -hex 24)}"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'
+    content: '{"identities":[{"name":"werbot","credentials":[{"accessKey":"${WERBOT_RECORDINGS_S3_ACCESS_KEY}","secretKey":"${WERBOT_RECORDINGS_S3_SECRET_KEY}"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'
 
 volumes: { postgres-data: {}, seaweedfs-data: {}, gateway-1-data: {}, gateway-2-data: {} }
