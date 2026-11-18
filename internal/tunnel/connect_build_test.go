@@ -1,9 +1,13 @@
 package tunnel
 
 import (
+	"runtime"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/google/uuid"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
@@ -26,14 +30,25 @@ func holdBuilds(t *testing.T, f *fake) (release func()) {
 	return release
 }
 
-// waiting reports how many streams wait for the next build of (org, pool).
-func waiting(hd *Handler, org, pool uuid.UUID) int {
-	hd.newBuilds.mu.Lock()
-	defer hd.newBuilds.mu.Unlock()
-	if p := hd.newBuilds.pools[[2]uuid.UUID{org, pool}]; p != nil && p.next != nil {
-		return p.next.joined
+// waiting counts the streams parked in newSnapshot's wait for a build (the
+// only select there), read from the goroutine dump: no product state for tests.
+func waiting() int {
+	buf := make([]byte, 1<<20)
+	for {
+		n := runtime.Stack(buf, true)
+		if n < len(buf) {
+			buf = buf[:n]
+			break
+		}
+		buf = make([]byte, 2*len(buf))
 	}
-	return 0
+	count := 0
+	for g := range strings.SplitSeq(string(buf), "\n\n") {
+		if strings.Contains(g, " [select") && strings.Contains(g, "tunnel.(*Handler).newSnapshot(") {
+			count++
+		}
+	}
+	return count
 }
 
 func tagged(tag *string) func(_, _ uuid.UUID) *gatewayv1.Snapshot {
@@ -53,7 +68,7 @@ func TestConcurrentConnectsShareBuild(t *testing.T) {
 	for i := range conns {
 		conns[i] = b.instance(t, b.org, pool).connect(t, nil)
 	}
-	eventually(t, func() bool { return waiting(b.hub.h, b.org, pool) == len(conns) }, "streams to wait for the next build")
+	eventually(t, func() bool { return waiting() == 1+len(conns) }, "streams to wait for the builds")
 	release()
 	first.next(t, 2*time.Second)
 	for _, c := range conns {
@@ -77,7 +92,7 @@ func TestConnectAfterChangeGetsNewBuild(t *testing.T) {
 
 	b.f.with(func(*fake) { tag = "new" })
 	late := b.instance(t, b.org, pool).connect(t, nil)
-	eventually(t, func() bool { return waiting(b.hub.h, b.org, pool) == 1 }, "the late stream to wait")
+	eventually(t, func() bool { return waiting() == 2 }, "both streams to wait")
 	release()
 	if got := early.next(t, 2*time.Second).GetCedarPolicies(); got != "old" {
 		t.Fatalf("early stream got %q, want old", got)
@@ -93,5 +108,61 @@ func TestConnectAfterChangeGetsNewBuild(t *testing.T) {
 	}
 	if n := b.f.buildCount(b.org, pool); n != 3 {
 		t.Fatalf("builds = %d, want 3", n)
+	}
+}
+
+// A failed shared build reaches every stream waiting for it: each fails
+// closed, and the next Connect builds anew.
+func TestSharedBuildErrorReachesEveryWaiter(t *testing.T) {
+	b := newBench(t, nil)
+	pool := uuid.New()
+	release := holdBuilds(t, b.f)
+	first := b.instance(t, b.org, pool).connect(t, nil)
+	eventually(t, func() bool { return b.f.buildCount(b.org, pool) == 1 }, "the first build")
+	conns := make([]*conn, 3)
+	for i := range conns {
+		conns[i] = b.instance(t, b.org, pool).connect(t, nil)
+	}
+	eventually(t, func() bool { return waiting() == 1+len(conns) }, "streams to wait for the builds")
+	b.f.with(func(f *fake) { f.buildFail = 1 }) // the next build, the shared one
+	release()
+	first.next(t, 2*time.Second)
+	for _, c := range conns {
+		wantCode(t, c.closed(t, 2*time.Second), connect.CodeUnavailable, "")
+	}
+	b.instance(t, b.org, pool).connect(t, nil).next(t, 2*time.Second)
+	if n := b.f.buildCount(b.org, pool); n != 3 {
+		t.Fatalf("builds = %d, want first + failed shared + new = 3", n)
+	}
+}
+
+// A stream that leaves while its shared build runs returns at once; the
+// build goes on and serves the streams still waiting.
+func TestSharedBuildOutlivesLeavingWaiter(t *testing.T) {
+	b := newBench(t, nil)
+	pool := uuid.New()
+	first, second := make(chan struct{}), make(chan struct{})
+	b.f.hold.Store(&first)
+	releaseSecond := sync.OnceFunc(func() { b.f.hold.Store(nil); close(second) })
+	t.Cleanup(releaseSecond)
+	early := b.instance(t, b.org, pool).connect(t, nil)
+	eventually(t, func() bool { return b.f.buildCount(b.org, pool) == 1 }, "the first build")
+	leaving, staying := b.instance(t, b.org, pool).connect(t, nil), b.instance(t, b.org, pool).connect(t, nil)
+	eventually(t, func() bool { return waiting() == 3 }, "streams to wait for the builds")
+
+	b.f.hold.Store(&second) // the shared build blocks on second
+	close(first)
+	early.next(t, 2*time.Second)
+	eventually(t, func() bool { return b.f.buildCount(b.org, pool) == 2 }, "the shared build to run")
+	leaving.cancel()
+	eventually(t, func() bool { return hasLine(b.metric(t), "werbot_tunnel_streams 2") }, "the leaving stream's Connect to return")
+	if n := waiting(); n != 1 {
+		t.Fatalf("%d streams wait for the shared build, want 1", n)
+	}
+
+	releaseSecond()
+	staying.next(t, 2*time.Second)
+	if n := b.f.buildCount(b.org, pool); n != 2 {
+		t.Fatalf("builds = %d, want 2: the shared build serves the staying stream", n)
 	}
 }

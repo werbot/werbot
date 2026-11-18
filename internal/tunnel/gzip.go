@@ -12,14 +12,20 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// gzipCacheSize is how many compressed Connect messages gzipCache keeps.
-// ponytail: FIFO by count; a "*" refresh of more pools than this at once
+// gzipCacheSize and gzipCacheMin bound gzipCache: it keeps up to
+// gzipCacheSize compressed messages of at least gzipCacheMin bytes. Smaller
+// ones (pool instance lists, small snapshots) are gzipped per stream, so they
+// never evict a large snapshot.
+// ponytail: FIFO by count; a "*" refresh of more large pools than this at once
 // gzips an evicted snapshot again (still correct), size it by bytes if that shows up.
-const gzipCacheSize = 16
+const (
+	gzipCacheSize = 16
+	gzipCacheMin  = 64 << 10
+)
 
-// gzipCache gzips each distinct Connect message once: the streams of a pool
-// send the same snapshot, so every stream after the first gets the cached
-// bytes. The output is what the default gzip compressor writes for the same
+// gzipCache gzips each distinct large Connect message once: the streams of a
+// pool send the same snapshot, so every stream after the first gets the
+// cached bytes. The output is what the default gzip compressor writes for the same
 // input (same level, no header fields), so gateways decode it as before.
 type gzipCache struct {
 	group   singleflight.Group
@@ -30,8 +36,12 @@ type gzipCache struct {
 	order [][sha256.Size]byte          // keys, oldest first
 }
 
-// compress returns the gzip of in; concurrent calls with equal input share one run.
+// compress returns the gzip of in; concurrent calls with equal input of at
+// least gzipCacheMin bytes share one run.
 func (c *gzipCache) compress(in []byte) ([]byte, error) {
+	if len(in) < gzipCacheMin {
+		return c.gzip(in)
+	}
 	key := sha256.Sum256(in)
 	if out, ok := c.get(key); ok {
 		return out, nil
@@ -40,22 +50,31 @@ func (c *gzipCache) compress(in []byte) ([]byte, error) {
 		if out, ok := c.get(key); ok {
 			return out, nil
 		}
-		c.encodes.Add(1)
-		var buf bytes.Buffer
-		zw := gzip.NewWriter(&buf)
-		if _, err := zw.Write(in); err != nil {
+		out, err := c.gzip(in)
+		if err != nil {
 			return nil, err
 		}
-		if err := zw.Close(); err != nil {
-			return nil, err
-		}
-		c.put(key, buf.Bytes())
-		return buf.Bytes(), nil
+		c.put(key, out)
+		return out, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return v.([]byte), nil //nolint:forcetypeassert // the func above returns []byte
+}
+
+// gzip compresses in as connect's default compressor does.
+func (c *gzipCache) gzip(in []byte) ([]byte, error) {
+	c.encodes.Add(1)
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	if _, err := zw.Write(in); err != nil {
+		return nil, err
+	}
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func (c *gzipCache) get(key [sha256.Size]byte) ([]byte, bool) {

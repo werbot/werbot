@@ -96,6 +96,18 @@ func TestGzipOnce(t *testing.T) {
 	if n := len(c.out); n != gzipCacheSize || len(c.order) != gzipCacheSize {
 		t.Fatalf("cache holds %d entries, want %d", n, gzipCacheSize)
 	}
+
+	// A message under gzipCacheMin is gzipped every time and evicts nothing.
+	small := in[:gzipCacheMin-1]
+	oldest := c.order[0]
+	for range 2 {
+		if out, err := gzipOnceRun(&c, small); err != nil || !bytes.Equal(out, stdGzip(t, small)) {
+			t.Fatalf("small message: err %v", err)
+		}
+	}
+	if n := c.encodes.Load(); n != 2+gzipCacheSize+1+2 || c.order[0] != oldest || len(c.out) != gzipCacheSize {
+		t.Fatalf("small message: encodes %d, cache %d entries, oldest evicted %v", n, len(c.out), c.order[0] != oldest)
+	}
 }
 
 // teeRT keeps the response body of every Connect stream.

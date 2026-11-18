@@ -101,3 +101,100 @@ func TestRefreshAuthenticatesConcurrently(t *testing.T) {
 		t.Fatalf("%d re-authentications took %v, want concurrent", len(gws), d)
 	}
 }
+
+// refreshCase connects one stream to each of n pools of the bench org; every
+// build returns *tag as the policy.
+func refreshCase(t *testing.T, b *bench, n int, tag *string) ([]uuid.UUID, []*conn) {
+	t.Helper()
+	b.f.with(func(f *fake) { f.snapshot = tagged(tag) })
+	pools, conns := make([]uuid.UUID, n), make([]*conn, n)
+	for i := range pools {
+		pools[i] = uuid.New()
+		conns[i] = b.instance(t, b.org, pools[i]).connect(t, nil)
+		conns[i].next(t, 2*time.Second)
+	}
+	return pools, conns
+}
+
+// wantNew waits for the next snapshot and checks it carries the "new" policy.
+func wantNew(t *testing.T, c *conn) {
+	t.Helper()
+	if got := c.next(t, 3*time.Second).GetCedarPolicies(); got != "new" {
+		t.Fatalf("snapshot %q, want new", got)
+	}
+}
+
+func backoffCleared(t *testing.T, b *bench) {
+	t.Helper()
+	eventually(t, func() bool {
+		b.hub.mu.Lock()
+		defer b.hub.mu.Unlock()
+		return len(b.hub.backoff) == 0
+	}, "the backoff to clear after a successful retry")
+}
+
+// A failed organization part offers nothing: every pool keeps its snapshot
+// until the retry (debounce later), which brings each stream one new snapshot.
+func TestRefreshOrgFailureRetries(t *testing.T) {
+	const debounce = 100 * time.Millisecond
+	b := newBench(t, func(h *Hub) { h.debounce = debounce })
+	tag := "old"
+	pools, conns := refreshCase(t, b, 2, &tag)
+	orgBase := b.f.orgBuildCount(b.org)
+
+	b.f.with(func(f *fake) { tag, f.orgFail = "new", 1 })
+	start := time.Now()
+	b.hub.OrgChanged(b.org.String())
+	for _, c := range conns {
+		wantNew(t, c)
+	}
+	if d := time.Since(start); d < 2*debounce {
+		t.Fatalf("new snapshot after %v, want only from the retry (>= %v)", d, 2*debounce)
+	}
+	for _, c := range conns {
+		c.quiet(t, 3*debounce)
+	}
+	if n := b.f.orgBuildCount(b.org) - orgBase; n != 2 {
+		t.Fatalf("org part read %d times, want failed + retry = 2", n)
+	}
+	for _, p := range pools {
+		if n := b.f.buildCount(b.org, p); n != 2 {
+			t.Fatalf("pool built %d times, want connect + retry = 2", n)
+		}
+	}
+	backoffCleared(t, b)
+}
+
+// One pool's failed build does not hold back the others: they get the new
+// snapshot from the first refresh (and again from the retry), the failed pool
+// keeps its old one until the retry.
+func TestRefreshPoolFailureKeepsOthers(t *testing.T) {
+	const debounce = 100 * time.Millisecond
+	b := newBench(t, func(h *Hub) { h.debounce = debounce })
+	tag := "old"
+	pools, conns := refreshCase(t, b, 3, &tag)
+	failed := len(pools) - 1
+
+	b.f.with(func(f *fake) { tag, f.failPool = "new", pools[failed] })
+	start := time.Now()
+	b.hub.OrgChanged(b.org.String())
+	for _, c := range conns[:failed] {
+		wantNew(t, c) // first refresh
+	}
+	wantNew(t, conns[failed])
+	if d := time.Since(start); d < 2*debounce {
+		t.Fatalf("failed pool got a snapshot after %v, want only from the retry (>= %v)", d, 2*debounce)
+	}
+	for _, c := range conns[:failed] {
+		wantNew(t, c) // retry
+	}
+	for _, c := range conns {
+		c.quiet(t, 3*debounce)
+	}
+	for _, p := range pools {
+		if n := b.f.buildCount(b.org, p); n != 3 {
+			t.Fatalf("pool built %d times, want connect + refresh + retry = 3", n)
+		}
+	}
+	backoffCleared(t, b)
+}

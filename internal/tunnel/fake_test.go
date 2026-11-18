@@ -66,6 +66,8 @@ type fake struct {
 	orgBuilds map[uuid.UUID]int    // org -> Org calls
 	builds    map[[2]uuid.UUID]int // (org, pool) -> Pool calls
 	buildFail int                  // fail the next N builds
+	orgFail   int                  // fail the next N Org calls
+	failPool  uuid.UUID            // fail the next build of this pool
 	snapshot  func(orgID, gatewayID uuid.UUID) *gatewayv1.Snapshot
 
 	buildDelay  atomic.Int64                  // nanoseconds every Pool call sleeps outside the lock
@@ -223,6 +225,10 @@ func (f *fake) Org(_ context.Context, orgID uuid.UUID) (*gatewayv1.Snapshot, err
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.orgBuilds[orgID]++
+	if f.orgFail > 0 {
+		f.orgFail--
+		return nil, apperr.ErrUnavailable
+	}
 	return &gatewayv1.Snapshot{CedarPolicies: "permit(principal, action, resource);", Members: []*gatewayv1.Member{{UserId: orgID.String()}}}, nil
 }
 
@@ -248,6 +254,10 @@ func (f *fake) pool(org *gatewayv1.Snapshot, orgID, gatewayID uuid.UUID) (*gatew
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.builds[[2]uuid.UUID{orgID, gatewayID}]++
+	if f.failPool == gatewayID {
+		f.failPool = uuid.Nil
+		return nil, apperr.ErrUnavailable
+	}
 	if f.buildFail > 0 {
 		f.buildFail--
 		return nil, apperr.ErrUnavailable

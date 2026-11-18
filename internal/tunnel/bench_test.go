@@ -167,17 +167,18 @@ func (b *bench) metric(t *testing.T) string {
 
 // conn is an open Connect stream read by a background goroutine.
 type conn struct {
-	st    *connect.BidiStreamForClient[gatewayv1.ConnectRequest, gatewayv1.ConnectResponse]
-	snaps chan *gatewayv1.Snapshot
-	err   chan error
-	once  sync.Once
+	st     *connect.BidiStreamForClient[gatewayv1.ConnectRequest, gatewayv1.ConnectResponse]
+	snaps  chan *gatewayv1.Snapshot
+	err    chan error
+	once   sync.Once
+	cancel context.CancelFunc // aborts the stream, even before its first response
 }
 
 func (g *gw) connect(t *testing.T, hb *gatewayv1.Heartbeat) *conn {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	c := &conn{st: g.client.Connect(ctx), snaps: make(chan *gatewayv1.Snapshot, 64), err: make(chan error, 1)}
+	c := &conn{st: g.client.Connect(ctx), snaps: make(chan *gatewayv1.Snapshot, 64), err: make(chan error, 1), cancel: cancel}
 	if hb == nil {
 		hb = &gatewayv1.Heartbeat{Version: "1.0"}
 	}
