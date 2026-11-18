@@ -68,9 +68,10 @@ type fake struct {
 	buildFail int                  // fail the next N builds
 	snapshot  func(orgID, gatewayID uuid.UUID) *gatewayv1.Snapshot
 
-	buildDelay  atomic.Int64 // nanoseconds every Pool call sleeps outside the lock
-	inflight    atomic.Int32 // Pool calls running now
-	maxInflight atomic.Int32 // highest inflight seen
+	buildDelay  atomic.Int64                  // nanoseconds every Pool call sleeps outside the lock
+	inflight    atomic.Int32                  // Pool calls running now
+	maxInflight atomic.Int32                  // highest inflight seen
+	hold        atomic.Pointer[chan struct{}] // set: Pool returns once it is closed
 
 	ingest fakeIngest
 	beat   beatRecord
@@ -232,6 +233,16 @@ func (f *fake) Pool(_ context.Context, org *gatewayv1.Snapshot, orgID, gatewayID
 		}
 	}
 	time.Sleep(time.Duration(f.buildDelay.Load()))
+	snap, err := f.pool(org, orgID, gatewayID)
+	if hold := f.hold.Load(); hold != nil {
+		<-*hold
+	}
+	return snap, err
+}
+
+// pool counts the build and reads its result: f.snapshot, else org with
+// the pool id as the blocklist.
+func (f *fake) pool(org *gatewayv1.Snapshot, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.builds[[2]uuid.UUID{orgID, gatewayID}]++

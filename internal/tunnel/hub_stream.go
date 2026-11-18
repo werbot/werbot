@@ -103,7 +103,7 @@ func (hd *Handler) Connect(ctx context.Context, st *connect.BidiStream[gatewayv1
 
 	// Registered first: a change during this build gets a newer generation.
 	gen := hd.hub.gen.Add(1)
-	snap, err := hd.build(ctx, g.OrgID, g.ID)
+	snap, err := hd.newSnapshot(ctx, g.OrgID, g.ID)
 	if err != nil {
 		return hd.fail(ctx, "build snapshot", err)
 	}

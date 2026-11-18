@@ -168,6 +168,8 @@ type Handler struct {
 	streams *metrics.Gauge
 	pushes  *metrics.Counter
 	gz      gzipCache // Connect messages, gzipped once for all streams
+
+	newBuilds newBuilds // snapshot builds shared by new streams
 }
 
 // New wires the handler and attaches hub to its snapshot builder and re-authentication.
