@@ -162,23 +162,26 @@ func TestEchoLoop(t *testing.T) {
 		echo := map[string]func(testing.TB, string) uint32{"tcp": tcpEcho, "udp": udpEcho}[network]
 		addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(int(echo(t, "127.0.0.1"))))
 		ctx, cancel := context.WithTimeout(t.Context(), 1500*time.Millisecond)
-		r := echoLoop(ctx, network, addr, 64, 0, func() {})
+		r := echoLoop(ctx, network, addr, 64, 0, func(bool) {})
 		cancel()
 		require.NoError(t, r.Err, network)
 		assert.Equal(t, int64(2*64), r.Echoed, "%s: two ticks in 1.5 s", network)
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	assert.Equal(t, mixResult{}, echoLoop(ctx, "tcp", "127.0.0.1:1", 64, time.Hour, func() {}), "not started")
+	assert.Equal(t, mixResult{}, echoLoop(ctx, "tcp", "127.0.0.1:1", 64, time.Hour, func(bool) {}), "not started")
 }
 
 func TestSteadyRow(t *testing.T) {
-	got, pass := steadyRow(1500*time.Millisecond, 40*time.Second, true)
+	got, pass := steadyRow(1500*time.Millisecond, 40*time.Second, true, 0, 0)
 	assert.True(t, pass)
 	assert.Equal(t, "1.5s", got)
-	got, pass = steadyRow(40*time.Second, 40*time.Second, false)
+	got, pass = steadyRow(40*time.Second, 40*time.Second, false, 0, 0)
 	assert.False(t, pass, "a mix that did not reach steady state must not pass")
 	assert.Equal(t, "not within 40s", got)
+	got, pass = steadyRow(time.Second, 40*time.Second, true, 2, 1)
+	assert.False(t, pass, "a connection that ended before its first echo must not pass")
+	assert.Equal(t, "2 TCP and 1 UDP ended before the first echo", got)
 }
 
 // TestRunMixSteady: Steady closes once every connection echoed, before the mix ends.
@@ -189,7 +192,7 @@ func TestRunMixSteady(t *testing.T) {
 	*tcpConns = 3
 	ctx, stop := context.WithCancel(t.Context())
 	mix := runMix(ctx, tcp, []string{udp}, 100)
-	took, ok := mix.waitSteady(10 * time.Second)
+	took, ok := mix.waitSteady(t.Context(), 10*time.Second)
 	assert.True(t, ok)
 	assert.Less(t, took, 5*time.Second)
 	stop()
@@ -202,6 +205,27 @@ func TestRunMixSteady(t *testing.T) {
 
 func TestWaitSteadyTimeout(t *testing.T) {
 	mix := &mixRun{Steady: make(chan struct{}), start: time.Now()}
-	_, ok := mix.waitSteady(10 * time.Millisecond)
+	_, ok := mix.waitSteady(t.Context(), 10*time.Millisecond)
 	assert.False(t, ok)
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	_, ok = mix.waitSteady(ctx, time.Hour)
+	assert.False(t, ok, "ctx cancel ends the wait")
+}
+
+// TestRunMixDead: a mix whose address refuses connections is counted dead, and Steady still closes.
+func TestRunMixDead(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := ln.Addr().String()
+	require.NoError(t, ln.Close()) // nothing listens there now
+	defer func(n int) { *tcpConns = n }(*tcpConns)
+	*tcpConns = 2
+	ctx, stop := context.WithCancel(t.Context())
+	defer stop()
+	mix := runMix(ctx, addr, nil, 100)
+	_, ok := mix.waitSteady(t.Context(), 10*time.Second)
+	assert.True(t, ok)
+	assert.EqualValues(t, 2, mix.Dead[0].Load())
+	assert.EqualValues(t, 0, mix.Dead[1].Load())
 }

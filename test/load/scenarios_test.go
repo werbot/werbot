@@ -21,7 +21,8 @@ const (
 )
 
 // TestL1: *sessions sessions through the pool (nginx :2222), 1 KB/s each for
-// *duration (10 §8.3), beside the stage 6b mix (steady before the ramp starts) through one werbot connect:
+// *duration (10 §8.3), beside the stage 6b mix (steady before the ramp starts)
+// through one werbot connect:
 // *tcpConns TCP connections at 1 KB/s and *udpBinds UDP bindings at one
 // datagram a second (11 §9). No errors, connect p99 ≤ 1 s, spools drained and
 // every session ended within 5 min, every recording verified, RSS (TCP and UDP
@@ -41,10 +42,10 @@ func TestL1(t *testing.T) {
 	mixed := runMix(mixCtx, tcp, udp, *rate)
 	if n := *tcpConns + len(udp); n > 0 { // steady state first: the measured ramp must not overlap the mix ramp
 		limit := time.Duration(n)*time.Second/time.Duration(max(*rate, 1)) + mixSteadyExtra
-		took, ok := mixed.waitSteady(limit)
-		got, pass := steadyRow(took, limit, ok)
+		took, ok := mixed.waitSteady(t.Context(), limit)
+		got, pass := steadyRow(took, limit, ok, mixed.Dead[0].Load(), mixed.Dead[1].Load())
 		report(t, "L1", "mix ramp (TCP and UDP echoed once)", "reference", got, pass)
-		if !ok {
+		if !pass {
 			stopMix()
 			stop()
 			reportMix(t, <-mixed.Results)
