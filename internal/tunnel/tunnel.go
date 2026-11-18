@@ -4,6 +4,7 @@
 package tunnel
 
 import (
+	"compress/gzip"
 	"context"
 	"errors"
 	"log/slog"
@@ -166,6 +167,7 @@ type Handler struct {
 	log     *slog.Logger
 	streams *metrics.Gauge
 	pushes  *metrics.Counter
+	gz      gzipCache // Connect messages, gzipped once for all streams
 }
 
 // New wires the handler and attaches hub to its snapshot builder and re-authentication.
@@ -183,11 +185,19 @@ func New(d Deps, hub *Hub) *Handler {
 	return h
 }
 
-// Mount registers TunnelService behind the mTLS middleware.
+// Mount registers TunnelService behind the mTLS middleware. Connect has its
+// own handler: its gzip compressor encodes each distinct message once for
+// all streams (gzipCache); the other procedures keep the default one.
 func (h *Handler) Mount(mux *http.ServeMux) {
-	path, handler := gatewayv1connect.NewTunnelServiceHandler(h, connect.WithCompressMinBytes(CompressMinBytes),
+	opts := connect.WithHandlerOptions(connect.WithCompressMinBytes(CompressMinBytes),
 		connect.WithReadMaxBytes(readMaxBytes), connect.WithInterceptors(validate.NewInterceptor()))
+	path, handler := gatewayv1connect.NewTunnelServiceHandler(h, opts)
 	mux.Handle(path, h.mtls(handler))
+	stream := connect.NewBidiStreamHandler(gatewayv1connect.TunnelServiceConnectProcedure, h.Connect, opts,
+		connect.WithSchema(gatewayv1.File_gateway_v1_tunnel_proto.Services().ByName("TunnelService").Methods().ByName("Connect")),
+		connect.WithCompression("gzip", func() connect.Decompressor { return &gzip.Reader{} },
+			func() connect.Compressor { return &gzipOnce{c: &h.gz} }))
+	mux.Handle(gatewayv1connect.TunnelServiceConnectProcedure, h.mtls(stream))
 }
 
 // readMaxBytes caps one tunnel message; a snapshot only travels server → gateway.
