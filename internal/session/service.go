@@ -29,25 +29,22 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	if p.Kind == "" {
 		p.Kind = "terminal"
 	}
+	audit, auditArgs, err := auditlog.InsertFrom(auditlog.Event{
+		OrgID: &p.OrgID, ActorUserID: &p.UserID, ActorKind: "user", Action: "session.start",
+		TargetType: "resource", TargetID: p.ResourceID.String(), IP: p.ClientIP,
+		Data: map[string]any{"kind": p.Kind, "target": p.Target},
+	}, "s", "id", "session_id", 9)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("session: start: %w", err)
+	}
+	args := append([]any{p.OrgID, p.UserID, p.ResourceID, p.GatewayID, p.InstanceID, p.ClientIP, p.Kind, p.Target}, auditArgs...)
 	var id uuid.UUID
-	err := dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
-		var err error
-		id, err = newStore(tx).StartSession(ctx, dbq.StartSessionParams{
-			OrgID: p.OrgID, UserID: p.UserID, ResourceID: p.ResourceID,
-			GatewayID: p.GatewayID, GatewayInstanceID: p.InstanceID, ClientIp: p.ClientIP,
-			Kind: p.Kind, Target: p.Target,
-		})
+	err = dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
+		err := tx.QueryRow(ctx, startSession+audit+") SELECT id FROM s", args...).Scan(&id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errNotMember
 		}
-		if err != nil {
-			return err
-		}
-		return auditlog.Write(ctx, tx, auditlog.Event{
-			OrgID: &p.OrgID, ActorUserID: &p.UserID, ActorKind: "user", Action: "session.start",
-			TargetType: "resource", TargetID: p.ResourceID.String(), IP: p.ClientIP,
-			Data: map[string]any{"session_id": id.String(), "kind": p.Kind, "target": p.Target},
-		})
+		return err
 	})
 	if errors.Is(err, errNotMember) {
 		return uuid.Nil, err
@@ -57,6 +54,15 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	}
 	return id, nil
 }
+
+// startSession inserts the session, only for a member of the organization (no
+// row otherwise), and opens the CTE of its audit row, which the caller appends.
+const startSession = `WITH s AS (
+	INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target)
+	SELECT m.org_id, m.user_id, $3::uuid, $4::uuid, $5::uuid, $6::inet, $7::text, $8::text
+	FROM membership m WHERE m.org_id = $1 AND m.user_id = $2
+	RETURNING id
+), audit AS (`
 
 var errNotMember = fmt.Errorf("user not found: %w", apperr.ErrNotFound)
 

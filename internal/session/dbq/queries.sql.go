@@ -485,41 +485,6 @@ func (q *Queries) SessionOfInstanceExists(ctx context.Context, arg SessionOfInst
 	return exists, err
 }
 
-const startSession = `-- name: StartSession :one
-INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target)
-SELECT m.org_id, m.user_id, $1::uuid, $2::uuid, $3::uuid, $4::inet, $5::text, $6::text
-FROM membership m WHERE m.org_id = $7 AND m.user_id = $8
-RETURNING id
-`
-
-type StartSessionParams struct {
-	ResourceID        uuid.UUID
-	GatewayID         uuid.UUID
-	GatewayInstanceID uuid.UUID
-	ClientIp          netip.Addr
-	Kind              string
-	Target            string
-	OrgID             uuid.UUID
-	UserID            uuid.UUID
-}
-
-// No row when the user is not a member of the organization.
-func (q *Queries) StartSession(ctx context.Context, arg StartSessionParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, startSession,
-		arg.ResourceID,
-		arg.GatewayID,
-		arg.GatewayInstanceID,
-		arg.ClientIp,
-		arg.Kind,
-		arg.Target,
-		arg.OrgID,
-		arg.UserID,
-	)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	return id, err
-}
-
 const updateSessionCounters = `-- name: UpdateSessionCounters :exec
 UPDATE session s
 SET bytes_up = GREATEST(s.bytes_up, c.bytes_up), bytes_down = GREATEST(s.bytes_down, c.bytes_down),
