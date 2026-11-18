@@ -27,6 +27,16 @@ archives:
 
 checksum: { name_template: checksums.txt }
 
+sboms:
+  - artifacts: archive
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    artifacts: checksum
+    output: true
+    args: [sign-blob, "--bundle=${signature}", "${artifact}", --yes]
+
 dockers_v2:
   - images: [ghcr.io/werbot/werbot]
     tags: ["v{{ .Version }}"]
@@ -47,3 +57,32 @@ dockers_v2:
       org.opencontainers.image.description: Open-source access gateway for people and AI agents
       org.opencontainers.image.licenses: AGPL-3.0-only
       org.opencontainers.image.source: https://github.com/werbot/werbot
+
+docker_signs:
+  - cmd: cosign
+    output: true
+    args: [sign, "${artifact}@${digest}", --yes]
+
+changelog:
+  use: git
+  sort: asc
+  abbrev: 7
+  filters:
+    exclude:
+      - '^\S+ (test|ci|chore|style)(\(.+?\))?: '
+      - '^Merge '
+  groups:
+    - { title: "⚠️ Breaking changes", regexp: '^\S+ \w+(\(.+?\))?!: ', order: 0 }
+    - { title: "✨ Features", regexp: '^\S+ feat(\(.+?\))?: ', order: 1 }
+    - { title: "🐛 Bug fixes", regexp: '^\S+ fix(\(.+?\))?: ', order: 2 }
+    - { title: "⚡ Performance", regexp: '^\S+ perf(\(.+?\))?: ', order: 3 }
+    - { title: "♻️ Refactoring", regexp: '^\S+ refactor(\(.+?\))?: ', order: 4 }
+    - { title: "📚 Documentation", regexp: '^\S+ docs(\(.+?\))?: ', order: 5 }
+    - { title: Other, order: 999 }
+
+release:
+  name_template: "{{ .Tag }}"
+  prerelease: "true"
+  footer: |
+    **Pre-1.0:** breaking changes are possible. Read [upgrading](https://github.com/werbot/werbot/blob/{{ .Tag }}/docs/upgrading.md) and back up first.
+    **Verify this release:** [docs/security.md](https://github.com/werbot/werbot/blob/{{ .Tag }}/docs/security.md#verifying-releases).
