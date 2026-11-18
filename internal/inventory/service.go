@@ -239,3 +239,13 @@ func (s *Service) List(ctx context.Context, orgID uuid.UUID, labelFilter map[str
 func (s *Service) ResourcesForGateway(ctx context.Context, orgID, gatewayID uuid.UUID) ([]Resource, error) {
 	return s.list(ctx, orgID, &gatewayID, nil)
 }
+
+// OwnedBy reports whether resourceID is served by the pool gatewayID.
+func (s *Service) OwnedBy(ctx context.Context, orgID, gatewayID, resourceID uuid.UUID) (bool, error) {
+	var ok bool
+	err := s.tx(ctx, orgID, func(st Store, _ pgx.Tx) (err error) {
+		ok, err = st.ResourceOwnedBy(ctx, dbq.ResourceOwnedByParams{ID: resourceID, OrgID: orgID, GatewayID: &gatewayID})
+		return err
+	})
+	return ok, err
+}

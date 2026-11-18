@@ -890,6 +890,24 @@ func (q *Queries) RenewInstanceCert(ctx context.Context, arg RenewInstanceCertPa
 	return err
 }
 
+const resourceOwnedBy = `-- name: ResourceOwnedBy :one
+SELECT EXISTS (SELECT 1 FROM resource WHERE id = $1 AND org_id = $2 AND gateway_id = $3)
+`
+
+type ResourceOwnedByParams struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	GatewayID *uuid.UUID
+}
+
+// The resource filter of ListResources for one pool without labels, by id.
+func (q *Queries) ResourceOwnedBy(ctx context.Context, arg ResourceOwnedByParams) (bool, error) {
+	row := q.db.QueryRow(ctx, resourceOwnedBy, arg.ID, arg.OrgID, arg.GatewayID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const revokeJoinToken = `-- name: RevokeJoinToken :one
 UPDATE gateway_join_token SET revoked_at = coalesce(revoked_at, now())
 WHERE id = $1 AND org_id = $2

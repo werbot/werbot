@@ -74,19 +74,8 @@ func (u tunnelUsers) user(ctx context.Context, orgID uuid.UUID, ref identity.Use
 	return tunnel.User{ID: ref.UserID, Login: ref.Login, TeamIDs: teams}, nil
 }
 
-// tunnelResources adds the pool ownership check and tunnel-typed health
-// reports to inventory.Service.
+// tunnelResources adds tunnel-typed health reports to inventory.Service.
 type tunnelResources struct{ *inventory.Service }
-
-// OwnedBy reports whether resourceID is served by the pool gatewayID.
-// ponytail: scans the pool's resources per call (O(n)); add a by-id query if pools grow large.
-func (r tunnelResources) OwnedBy(ctx context.Context, orgID, gatewayID, resourceID uuid.UUID) (bool, error) {
-	rs, err := r.ResourcesForGateway(ctx, orgID, gatewayID)
-	if err != nil {
-		return false, err
-	}
-	return slices.ContainsFunc(rs, func(res inventory.Resource) bool { return res.ID == resourceID }), nil
-}
 
 func (r tunnelResources) ReportHealth(ctx context.Context, orgID, instanceID uuid.UUID, hs []tunnel.ResourceHealth) error {
 	out := make([]inventory.Health, len(hs))
