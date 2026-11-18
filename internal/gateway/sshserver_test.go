@@ -54,6 +54,12 @@ func fp(s gossh.Signer) string { return gossh.FingerprintSHA256(s.PublicKey()) }
 // newSSHEnv serves the front on 127.0.0.1; cfg.MaxSessions 0 means 10.
 func newSSHEnv(t *testing.T, cfg Config) *sshEnv {
 	t.Helper()
+	return newSSHEnvWith(t, cfg, nil)
+}
+
+// newSSHEnvWith runs tune on the pipeline before the front serves.
+func newSSHEnvWith(t *testing.T, cfg Config, tune func(*Pipeline)) *sshEnv {
+	t.Helper()
 	if cfg.MaxSessions == 0 {
 		cfg.MaxSessions = 10
 	}
@@ -67,6 +73,9 @@ func newSSHEnv(t *testing.T, cfg Config) *sshEnv {
 	cfg.Metrics = e.reg
 	e.p = newPipeline(e.f, cfg, slog.New(slog.DiscardHandler))
 	e.p.spool = newTestSpool(t, e.f)
+	if tune != nil {
+		tune(e.p)
+	}
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	e.addr = e.serve(t, e.front(cfg, e.host), ln)

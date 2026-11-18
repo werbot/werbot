@@ -274,7 +274,7 @@ func (p *Pipeline) decide(ctx context.Context, r OpenRequest) (pol *Policy, req 
 	if pol = p.ctl.Policy(); pol == nil || !p.ctl.Connected() {
 		return nil, req, "", ErrNotReady
 	}
-	if req.User, err = p.ctl.AuthenticateUser(ctx, r.Identity.Value, r.ClientIP); err != nil {
+	if req.User, err = p.user(ctx, r); err != nil {
 		return nil, AccessRequest{}, "", controlErr(err)
 	}
 	req.IP = r.ClientIP

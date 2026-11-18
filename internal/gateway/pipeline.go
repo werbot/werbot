@@ -42,6 +42,8 @@ type OpenRequest struct {
 	Target   string // KindStream, KindDatagram: host:port
 	ClientIP netip.Addr
 	Window   Window // KindTerminal: initial size for the recorder
+	// Handshake is the user the front authenticated for Identity; nil: none.
+	Handshake *Handshake
 }
 
 // control is the control plane of the pipeline; *tunnelClient implements it.
@@ -83,6 +85,7 @@ type Pipeline struct {
 	guard                             localGuard
 	health                            *prober
 	dial                              func(ctx context.Context, network, address string) (net.Conn, error)
+	now                               func() time.Time
 
 	stop    context.Context // canceled at the end of drain: the front closes its connections
 	stopNow context.CancelFunc
@@ -116,6 +119,7 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 		denials:      newDenials(reg),
 		guard:        localGuard{deny: cfg.DenyLocalTargets, hosts: cfg.DenyHosts},
 		flushTimeout: 10 * time.Second,
+		now:          time.Now,
 	}
 	p.dial = p.guard.dialer()
 	p.health = newProber(ctl.Policy, tcpProbe(p.dial), reg)

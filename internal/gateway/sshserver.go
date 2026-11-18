@@ -83,7 +83,17 @@ func wrapListener(ln net.Listener, proxyProtocol bool) net.Listener {
 }
 
 // userKey holds the *User accepted at the handshake; nil while the control plane was unreachable.
-type userKey struct{}
+// authedKey holds the *authed record of that acceptance.
+type (
+	userKey   struct{}
+	authedKey struct{}
+)
+
+// authed is the key fingerprint the handshake user was found by, and when.
+type authed struct {
+	fp string
+	at time.Time
+}
 
 // refusedKey holds the *refusal of the last key auth refused; verifiedKey is set
 // once a key signature is verified.
@@ -121,6 +131,7 @@ type sshHandler struct {
 // the signature is still checked and every channel gets the not ready text.
 func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
 	ctx.SetValue(userKey{}, (*User)(nil))
+	ctx.SetValue(authedKey{}, (*authed)(nil))
 	login, _, err := ParseLogin(ctx.User())
 	if err != nil {
 		return false
@@ -147,6 +158,7 @@ func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
 		return false
 	}
 	ctx.SetValue(userKey{}, &u)
+	ctx.SetValue(authedKey{}, &authed{fp: fp, at: h.p.now()})
 	return true
 }
 
@@ -214,8 +226,14 @@ func (h *sshHandler) request(ctx ssh.Context, resource string, kind Kind, w Wind
 	if key != nil {
 		fp = gossh.FingerprintSHA256(key)
 	}
-	return OpenRequest{Front: "ssh", Kind: kind, Identity: Identity{Method: "ssh-key", Value: fp},
+	r := OpenRequest{Front: "ssh", Kind: kind, Identity: Identity{Method: "ssh-key", Value: fp},
 		Resource: resource, Target: target, ClientIP: clientIP(ctx.RemoteAddr()), Window: w}
+	if a, _ := ctx.Value(authedKey{}).(*authed); a != nil && a.fp == fp {
+		if u := handshakeUser(ctx); u != nil {
+			r.Handshake = &Handshake{User: *u, At: a.at}
+		}
+	}
+	return r
 }
 
 // clientIP is the client address; with the PROXY protocol, the one from the header.
