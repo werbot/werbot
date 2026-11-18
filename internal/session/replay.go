@@ -26,14 +26,21 @@ const maxReplayChunk = 1 << 20
 // errChunkTooLarge is a chunk that decompresses past maxReplayChunk.
 var errChunkTooLarge = fmt.Errorf("recording chunk decompresses past %d bytes", maxReplayChunk)
 
+// maxReplays caps the replays one handler runs at once: each copies the whole
+// chain into a temporary file.
+// ponytail: one cap per replica; per-principal limits if one user can starve the others.
+const maxReplays = 4
+
 // NewReplayHandler serves GET /api/recordings/{session_id}.cast: the recording
 // of a session the principal may see, as one asciicast v2 stream. The store is
 // read once into a temporary file while the chain is checked, so the bytes sent
 // are exactly the ones X-Werbot-Recording-Verified speaks for. An unfinished or
 // tampered recording is served as far as it goes with the header "false".
+// At most maxReplays run at once; the next gets 503 with Retry-After.
 // logger nil is slog.Default().
 func NewReplayHandler(svc *Service, rec *Recordings, logger *slog.Logger) http.Handler {
 	logger = cmp.Or(logger, slog.Default())
+	slots := make(chan struct{}, maxReplays)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		p, err := principal.Require(ctx)
@@ -49,6 +56,14 @@ func NewReplayHandler(svc *Service, rec *Recordings, logger *slog.Logger) http.H
 		}
 		if _, err := svc.GetSession(ctx, p, id); err != nil {
 			replayError(w, r, logger, err)
+			return
+		}
+		select {
+		case slots <- struct{}{}:
+			defer func() { <-slots }()
+		default:
+			w.Header().Set("Retry-After", "5")
+			http.Error(w, "replay busy, try again", http.StatusServiceUnavailable)
 			return
 		}
 		tmp, err := os.CreateTemp("", "werbot-replay-*")
