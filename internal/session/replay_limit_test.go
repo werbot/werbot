@@ -9,11 +9,13 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/werbot/werbot/internal/platform/principal"
 	"github.com/werbot/werbot/internal/session"
 )
 
@@ -45,7 +47,7 @@ type busyReplays struct {
 func newBusyReplays(t *testing.T) *busyReplays {
 	t.Helper()
 	e, _ := finishedEnv(t)
-	g := &gateStore{RecordingStore: e.store.RecordingStore, entered: make(chan struct{}), release: make(chan struct{})}
+	g := &gateStore{RecordingStore: e.store.RecordingStore, entered: make(chan struct{}, 8), release: make(chan struct{})}
 	e.store.RecordingStore = g
 	mux := http.NewServeMux()
 	mux.Handle("GET /api/recordings/{file}", session.NewReplayHandler(session.New(e.pool), e.rec, slog.New(slog.NewTextHandler(t.Output(), nil))))
@@ -62,16 +64,28 @@ func newBusyReplays(t *testing.T) *busyReplays {
 	return b
 }
 
-func (b *busyReplays) get(t *testing.T, path string) *httptest.ResponseRecorder {
+// get serves r; it fails the test when the handler blocks instead of answering.
+func (b *busyReplays) get(t *testing.T, r *http.Request) *httptest.ResponseRecorder {
 	t.Helper()
 	w := httptest.NewRecorder()
-	b.h.ServeHTTP(w, request(t.Context(), b.e.as(b.e.f.OwnerID), path))
+	served := make(chan struct{})
+	b.started.Go(func() { b.h.ServeHTTP(w, r); close(served) })
+	select {
+	case <-served:
+	case <-time.After(3 * time.Second):
+		t.Fatal("replay did not answer: the cap did not refuse it")
+	}
 	return w
+}
+
+func (b *busyReplays) getOwn(t *testing.T, path string) *httptest.ResponseRecorder {
+	t.Helper()
+	return b.get(t, request(t.Context(), b.e.as(b.e.f.OwnerID), path))
 }
 
 func TestReplayCapPerReplica(t *testing.T) {
 	b := newBusyReplays(t)
-	w := b.get(t, castPath(b.e.sid))
+	w := b.getOwn(t, castPath(b.e.sid))
 	require.Equal(t, http.StatusServiceUnavailable, w.Code)
 	assert.Equal(t, "replay busy, try again\n", w.Body.String())
 	assert.Equal(t, "5", w.Header().Get("Retry-After"))
@@ -79,35 +93,27 @@ func TestReplayCapPerReplica(t *testing.T) {
 	b.gate.open.Store(true)      // later Gets pass; the three held ones stay blocked
 	b.gate.release <- struct{}{} // one replay finishes and frees its slot
 	<-b.done
-	w = b.get(t, castPath(b.e.sid))
+	w = b.getOwn(t, castPath(b.e.sid))
 	require.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "chunk-0chunk-1chunk-2", w.Body.String())
 }
 
 func TestReplayCapAfterAuthAndVisibility(t *testing.T) {
 	b := newBusyReplays(t)
-	h := b.h
 	for name, tc := range map[string]struct {
-		p    bool
+		p    *principal.Principal
 		path string
 		code int
 	}{
-		"unauthenticated": {false, castPath(b.e.sid), http.StatusUnauthorized},
-		"bad id":          {true, "/api/recordings/nope.cast", http.StatusNotFound},
-		"not visible":     {true, castPath(uuid.New()), http.StatusNotFound},
+		"unauthenticated":      {nil, castPath(b.e.sid), http.StatusUnauthorized},
+		"bad id":               {b.e.as(b.e.f.OwnerID), "/api/recordings/nope.cast", http.StatusNotFound},
+		"not visible":          {b.e.as(b.e.f.OwnerID), castPath(uuid.New()), http.StatusNotFound},
+		"not visible (member)": {b.e.as(b.e.f.OtherMemberID), castPath(b.e.sid), http.StatusNotFound},
 	} {
 		t.Run(name, func(t *testing.T) {
-			r := request(t.Context(), nil, tc.path)
-			if tc.p {
-				r = request(t.Context(), b.e.as(b.e.f.OwnerID), tc.path)
-			}
-			w := httptest.NewRecorder()
-			h.ServeHTTP(w, r)
+			w := b.get(t, request(t.Context(), tc.p, tc.path))
 			assert.Equal(t, tc.code, w.Code)
 			assert.Empty(t, w.Header().Get("Retry-After"))
 		})
 	}
-	w := httptest.NewRecorder()
-	h.ServeHTTP(w, request(t.Context(), b.e.as(b.e.f.OtherMemberID), castPath(b.e.sid)))
-	assert.Equal(t, http.StatusNotFound, w.Code)
 }
