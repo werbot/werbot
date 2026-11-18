@@ -90,7 +90,9 @@ services:
         - >-
           echo s3.bucket.list | weed shell | grep -qw werbot-recordings
           || { echo 's3.bucket.create -name werbot-recordings' | weed shell; echo s3.bucket.list | weed shell | grep -qw werbot-recordings; }
-      interval: 2s
+      interval: 30s
+      start_period: 60s
+      start_interval: 2s
       timeout: 10s
       retries: 30
     networks: [public]
