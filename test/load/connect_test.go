@@ -62,7 +62,7 @@ func startMix(t *testing.T) (tcp string, udp []string) {
 	if len(specs) == 0 {
 		return "", nil
 	}
-	return st.StartConnect(t, "alice", specs...).Ports["load-tcp"], udp
+	return st.StartConnectAt(t, nginxAddr(t, 2222), "alice", specs...).Ports["load-tcp"], udp
 }
 
 // mixRun is a running mix: Steady closes once every connection has echoed (or

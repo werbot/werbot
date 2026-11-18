@@ -60,7 +60,7 @@ func TestL2(t *testing.T) {
 	}))
 	require.NoError(t, err)
 
-	sims, clients := enrollSims(ctx, t, tok.Msg.GetToken(), st.Addr(t, "nginx", 8443), n)
+	sims, clients := enrollSims(ctx, t, tok.Msg.GetToken(), nginxAddr(t, 8443), n)
 	assert.EqualValues(t, n, tokenUses(ctx, t, poolID, tok.Msg.GetId()), "join token uses")
 
 	sctx, stop := context.WithCancel(ctx)

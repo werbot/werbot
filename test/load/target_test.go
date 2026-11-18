@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -110,4 +111,14 @@ func text(n int) []byte {
 		}
 	}
 	return b
+}
+
+// nginxAddr is port of the nginx container on its stand network address: the
+// load tests dial it directly, not through the docker-proxy of the published
+// port (Linux only: the host reaches bridge networks there).
+func nginxAddr(t testing.TB, port int) string {
+	t.Helper()
+	ip := st.Container(t, "nginx").IP
+	require.True(t, ip.IsValid(), "nginx has no address in the stand network")
+	return net.JoinHostPort(ip.String(), strconv.Itoa(port))
 }

@@ -50,8 +50,14 @@ type Connect struct {
 // each spec. Cleanup sends SIGINT and expects the exit within 1 s.
 func (s *Stand) StartConnect(t testing.TB, user string, specs ...string) *Connect {
 	t.Helper()
+	return s.StartConnectAt(t, s.Addr(t, "nginx", 2222), user, specs...)
+}
+
+// StartConnectAt is StartConnect through the pool front at pool, an address of
+// nginx :2222 other than the published one (the load tests dial the bridge IP).
+func (s *Stand) StartConnectAt(t testing.TB, pool, user string, specs ...string) *Connect {
+	t.Helper()
 	s.waitResources(t, user, specs)
-	pool := s.Addr(t, "nginx", 2222)
 	kh := filepath.Join(t.TempDir(), "known_hosts") // ruling C9; the pool key only: a different key fails
 	require.NoError(t, os.WriteFile(kh, []byte(knownhosts.Line([]string{knownhosts.Normalize(pool)}, s.HostKey)+"\n"), 0o600))
 	args := append([]string{"connect", "--gateway", pool, "--login", user, "-i", s.KeyFile, "--known-hosts", kh}, specs...)
