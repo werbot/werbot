@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/inventory"
@@ -83,7 +84,12 @@ type tunnelCredentials struct{ c *credential.Service }
 
 // Reveal returns an empty secret for a resource without a credential (tcp,
 // udp, telnet without a password); the connector decides whether it needs one.
-func (c tunnelCredentials) Reveal(ctx context.Context, orgID, resourceID uuid.UUID) (tunnel.Secret, error) {
+// A registered type that accepts no credential kind can have none stored
+// (SetCredential checks the kind, the type never changes): no lookup.
+func (c tunnelCredentials) Reveal(ctx context.Context, orgID, resourceID uuid.UUID, resourceType string) (tunnel.Secret, error) {
+	if t, ok := connector.Lookup(resourceType); ok && len(t.Credentials) == 0 {
+		return tunnel.Secret{}, nil
+	}
 	sec, err := c.c.Reveal(ctx, orgID, resourceID)
 	if errors.Is(err, apperr.ErrNotFound) {
 		return tunnel.Secret{}, nil

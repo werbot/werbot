@@ -47,6 +47,8 @@ type fake struct {
 	users      map[string]User // "fp:<fp>" / "login:<login>"
 	userOrgs   []uuid.UUID
 	owned      bool
+	ownedType  string   // the resource type OwnedBy reports
+	revealed   []string // the resource type of every Reveal
 	ownedCalls [][3]uuid.UUID
 	pinned     []gossh.PublicKey
 	pinErr     error
@@ -163,11 +165,14 @@ func (f *fake) ByLogin(_ context.Context, orgID uuid.UUID, login string) (User, 
 	return f.lookup(orgID, "login:"+login)
 }
 
-func (f *fake) OwnedBy(_ context.Context, orgID, gatewayID, resourceID uuid.UUID) (bool, error) {
+func (f *fake) OwnedBy(_ context.Context, orgID, gatewayID, resourceID uuid.UUID) (string, bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.ownedCalls = append(f.ownedCalls, [3]uuid.UUID{orgID, gatewayID, resourceID})
-	return f.owned, nil
+	if !f.owned {
+		return "", false, nil
+	}
+	return f.ownedType, true, nil
 }
 
 func (f *fake) PinHostKey(_ context.Context, _, _ uuid.UUID, key gossh.PublicKey) error {
@@ -180,10 +185,11 @@ func (f *fake) PinHostKey(_ context.Context, _, _ uuid.UUID, key gossh.PublicKey
 	return nil
 }
 
-func (f *fake) Reveal(context.Context, uuid.UUID, uuid.UUID) (Secret, error) {
+func (f *fake) Reveal(_ context.Context, _, _ uuid.UUID, resourceType string) (Secret, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.reveals++
+	f.revealed = append(f.revealed, resourceType)
 	return f.secret, f.revealErr
 }
 

@@ -15,7 +15,7 @@ type Store interface {
 	DeleteResource(ctx context.Context, arg dbq.DeleteResourceParams) (int64, error)
 	GetResource(ctx context.Context, arg dbq.GetResourceParams) (dbq.GetResourceRow, error)
 	ListResources(ctx context.Context, arg dbq.ListResourcesParams) ([]dbq.ListResourcesRow, error)
-	ResourceOwnedBy(ctx context.Context, arg dbq.ResourceOwnedByParams) (bool, error)
+	ResourceTypeOwnedBy(ctx context.Context, arg dbq.ResourceTypeOwnedByParams) (string, error)
 	DeleteLabels(ctx context.Context, arg dbq.DeleteLabelsParams) error
 	InsertLabels(ctx context.Context, arg dbq.InsertLabelsParams) error
 	InsertHostKey(ctx context.Context, arg dbq.InsertHostKeyParams) (int64, error)

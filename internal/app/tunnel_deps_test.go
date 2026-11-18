@@ -171,7 +171,7 @@ func TestRevealWithoutCredential(t *testing.T) {
 	ctx, org, _ := s.org(t, "owner")
 	r, err := s.echo(ctx, t, wrapperspb.String("x"), nil)
 	require.NoError(t, err)
-	sec, err := newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Credentials.Reveal(context.Background(), org, uuid.MustParse(r.GetId()))
+	sec, err := newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Credentials.Reveal(context.Background(), org, uuid.MustParse(r.GetId()), "echo")
 	require.NoError(t, err)
 	assert.Empty(t, sec)
 }

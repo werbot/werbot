@@ -70,9 +70,10 @@ WHERE r.org_id = @org_id
           WHERE l.resource_id = r.id AND l.key = f.key AND l.value = f.value))
 ORDER BY r.name;
 
--- name: ResourceOwnedBy :one
--- The resource filter of ListResources for one pool without labels, by id.
-SELECT EXISTS (SELECT 1 FROM resource WHERE id = @id AND org_id = @org_id AND gateway_id = @gateway_id);
+-- name: ResourceTypeOwnedBy :one
+-- The resource filter of ListResources for one pool without labels, by id;
+-- no row when the pool does not serve the resource.
+SELECT type FROM resource WHERE id = @id AND org_id = @org_id AND gateway_id = @gateway_id;
 
 -- name: DeleteLabels :exec
 DELETE FROM resource_label WHERE resource_id = @resource_id AND org_id = @org_id;

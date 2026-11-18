@@ -37,8 +37,13 @@ func TestOwnedBy(t *testing.T) {
 		{"another org's resource in its pool", e.org, poolB, foreign, false},
 		{"unknown id", e.org, poolA.ID, uuid.New(), false},
 	} {
-		got, err := e.svc.OwnedBy(e.ctx, c.org, c.pool, c.resource)
+		typ, got, err := e.svc.OwnedBy(e.ctx, c.org, c.pool, c.resource)
 		require.NoError(t, err, c.name)
 		assert.Equal(t, c.want, got, c.name)
+		if c.want {
+			assert.Equal(t, "ssh", typ, "the type of the resource row")
+		} else {
+			assert.Empty(t, typ, c.name)
+		}
 	}
 }

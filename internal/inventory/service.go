@@ -240,12 +240,15 @@ func (s *Service) ResourcesForGateway(ctx context.Context, orgID, gatewayID uuid
 	return s.list(ctx, orgID, &gatewayID, nil)
 }
 
-// OwnedBy reports whether resourceID is served by the pool gatewayID.
-func (s *Service) OwnedBy(ctx context.Context, orgID, gatewayID, resourceID uuid.UUID) (bool, error) {
-	var ok bool
-	err := s.tx(ctx, orgID, func(st Store, _ pgx.Tx) (err error) {
-		ok, err = st.ResourceOwnedBy(ctx, dbq.ResourceOwnedByParams{ID: resourceID, OrgID: orgID, GatewayID: &gatewayID})
+// OwnedBy reports whether resourceID is served by the pool gatewayID and, if
+// it is, the resource type from its row.
+func (s *Service) OwnedBy(ctx context.Context, orgID, gatewayID, resourceID uuid.UUID) (typ string, ok bool, err error) {
+	err = s.tx(ctx, orgID, func(st Store, _ pgx.Tx) (err error) {
+		typ, err = st.ResourceTypeOwnedBy(ctx, dbq.ResourceTypeOwnedByParams{ID: resourceID, OrgID: orgID, GatewayID: &gatewayID})
 		return err
 	})
-	return ok, err
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", false, nil
+	}
+	return typ, err == nil, err
 }

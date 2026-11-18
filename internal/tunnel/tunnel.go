@@ -96,13 +96,15 @@ type Users interface {
 
 // Resources checks pool ownership and pins host keys.
 type Resources interface {
-	OwnedBy(ctx context.Context, orgID, gatewayID, resourceID uuid.UUID) (bool, error) // gatewayID is the pool
+	// OwnedBy reports whether the pool gatewayID serves the resource, and its type.
+	OwnedBy(ctx context.Context, orgID, gatewayID, resourceID uuid.UUID) (resourceType string, owned bool, err error)
 	PinHostKey(ctx context.Context, orgID, resourceID uuid.UUID, key gossh.PublicKey) error
 }
 
 // Credentials reveals resource secrets.
 type Credentials interface {
-	Reveal(ctx context.Context, orgID, resourceID uuid.UUID) (Secret, error)
+	// Reveal gets the resource type from the server's own resource row.
+	Reveal(ctx context.Context, orgID, resourceID uuid.UUID, resourceType string) (Secret, error)
 }
 
 // Snapshots builds the policy snapshot of one pool.

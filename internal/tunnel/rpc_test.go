@@ -102,7 +102,7 @@ func TestStartSessionOnlyOwnPool(t *testing.T) {
 	})
 
 	// No credential: no session row is opened.
-	b.f.with(func(f *fake) { f.owned, f.revealErr = true, apperr.ErrNotFound })
+	b.f.with(func(f *fake) { f.owned, f.ownedType, f.revealErr = true, "ssh", apperr.ErrNotFound })
 	_, err = g.client.StartSession(ctx, connect.NewRequest(req))
 	wantCode(t, err, connect.CodeNotFound, "")
 	b.f.with(func(f *fake) {
@@ -125,6 +125,9 @@ func TestStartSessionOnlyOwnPool(t *testing.T) {
 	b.f.with(func(f *fake) {
 		if len(f.starts) != 1 || f.starts[0] != want {
 			t.Fatalf("Start(%+v), want %+v", f.starts, want)
+		}
+		if !slices.Equal(f.revealed, []string{"ssh", "ssh"}) {
+			t.Fatalf("Reveal types %q, want the type of the resource row", f.revealed)
 		}
 	})
 

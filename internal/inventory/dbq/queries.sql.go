@@ -900,22 +900,23 @@ func (q *Queries) RenewInstanceCert(ctx context.Context, arg RenewInstanceCertPa
 	return err
 }
 
-const resourceOwnedBy = `-- name: ResourceOwnedBy :one
-SELECT EXISTS (SELECT 1 FROM resource WHERE id = $1 AND org_id = $2 AND gateway_id = $3)
+const resourceTypeOwnedBy = `-- name: ResourceTypeOwnedBy :one
+SELECT type FROM resource WHERE id = $1 AND org_id = $2 AND gateway_id = $3
 `
 
-type ResourceOwnedByParams struct {
+type ResourceTypeOwnedByParams struct {
 	ID        uuid.UUID
 	OrgID     uuid.UUID
 	GatewayID *uuid.UUID
 }
 
-// The resource filter of ListResources for one pool without labels, by id.
-func (q *Queries) ResourceOwnedBy(ctx context.Context, arg ResourceOwnedByParams) (bool, error) {
-	row := q.db.QueryRow(ctx, resourceOwnedBy, arg.ID, arg.OrgID, arg.GatewayID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
+// The resource filter of ListResources for one pool without labels, by id;
+// no row when the pool does not serve the resource.
+func (q *Queries) ResourceTypeOwnedBy(ctx context.Context, arg ResourceTypeOwnedByParams) (string, error) {
+	row := q.db.QueryRow(ctx, resourceTypeOwnedBy, arg.ID, arg.OrgID, arg.GatewayID)
+	var type_ string
+	err := row.Scan(&type_)
+	return type_, err
 }
 
 const revokeJoinToken = `-- name: RevokeJoinToken :one

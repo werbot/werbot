@@ -91,10 +91,11 @@ func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gateway
 	if err != nil {
 		return nil, err
 	}
-	if err := h.ownResource(ctx, g, resourceID); err != nil {
+	typ, err := h.ownResource(ctx, g, resourceID)
+	if err != nil {
 		return nil, err
 	}
-	secret, err := h.d.Credentials.Reveal(ctx, g.OrgID, resourceID)
+	secret, err := h.d.Credentials.Reveal(ctx, g.OrgID, resourceID, typ)
 	if err != nil {
 		return nil, h.fail(ctx, "reveal credential", err)
 	}
@@ -107,16 +108,16 @@ func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gateway
 		Credential: &gatewayv1.Credential{Kind: secret.Kind, Value: secret.Value}}), nil
 }
 
-// ownResource denies resources outside the caller's pool.
-func (h *Handler) ownResource(ctx context.Context, g Gateway, resourceID uuid.UUID) error {
-	ok, err := h.d.Resources.OwnedBy(ctx, g.OrgID, g.ID, resourceID)
+// ownResource denies resources outside the caller's pool and returns the type of one inside it.
+func (h *Handler) ownResource(ctx context.Context, g Gateway, resourceID uuid.UUID) (string, error) {
+	typ, ok, err := h.d.Resources.OwnedBy(ctx, g.OrgID, g.ID, resourceID)
 	if err != nil {
-		return h.fail(ctx, "resource owner", err)
+		return "", h.fail(ctx, "resource owner", err)
 	}
 	if !ok {
-		return connect.NewError(connect.CodePermissionDenied, errors.New("resource is not served by this gateway"))
+		return "", connect.NewError(connect.CodePermissionDenied, errors.New("resource is not served by this gateway"))
 	}
-	return nil
+	return typ, nil
 }
 
 // EndSession closes a session of the calling instance with its final counters, if sent.
@@ -160,7 +161,7 @@ func (h *Handler) PinHostKey(ctx context.Context, req *connect.Request[gatewayv1
 	if key.Type() != req.Msg.GetAlg() {
 		return nil, invalid("alg")
 	}
-	if err := h.ownResource(ctx, g, resourceID); err != nil {
+	if _, err := h.ownResource(ctx, g, resourceID); err != nil {
 		return nil, err
 	}
 	if err := h.d.Resources.PinHostKey(ctx, g.OrgID, resourceID, key); err != nil {
