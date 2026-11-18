@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-const healthcheckTimeout = 3 * time.Second
-
 // healthcheck probes GET /healthz on httpAddr (WERBOT_HTTP_ADDR form). An empty
 // or unspecified host is probed as 127.0.0.1. Liveness only: no database check.
 func healthcheck(ctx context.Context, httpAddr string) error {
@@ -21,7 +19,7 @@ func healthcheck(ctx context.Context, httpAddr string) error {
 	if addr, perr := netip.ParseAddr(host); host == "" || (perr == nil && addr.IsUnspecified()) {
 		host = "127.0.0.1"
 	}
-	ctx, cancel := context.WithTimeout(ctx, healthcheckTimeout)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+net.JoinHostPort(host, port)+"/healthz", nil)
 	if err != nil {

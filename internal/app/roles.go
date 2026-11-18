@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"io"
@@ -25,11 +26,7 @@ func runRole(ctx context.Context, cmd string, args []string, getenv func(string)
 		_, err := fmt.Fprintf(stdout, "werbot %s (commit %s, built %s)\n", version.Version, version.Commit, version.BuildDate)
 		return true, err
 	case "healthcheck":
-		addr := getenv("WERBOT_HTTP_ADDR")
-		if addr == "" {
-			addr = ":8080"
-		}
-		return true, healthcheck(ctx, addr)
+		return true, healthcheck(ctx, cmp.Or(getenv("WERBOT_HTTP_ADDR"), ":8080"))
 	case "web":
 		cfg, err := webui.LoadConfig(getenv)
 		if err != nil {
