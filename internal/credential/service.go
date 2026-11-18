@@ -107,8 +107,9 @@ func (s *Service) Kinds(ctx context.Context, orgID uuid.UUID, resourceIDs []uuid
 // Reveal decrypts the credential. Only the gateway session path may call it.
 func (s *Service) Reveal(ctx context.Context, orgID, resourceID uuid.UUID) (Secret, error) {
 	var row dbq.GetCredentialRow
-	err := s.tx(ctx, orgID, func(st Store, _ pgx.Tx) (err error) {
-		row, err = st.GetCredential(ctx, dbq.GetCredentialParams{ResourceID: resourceID, OrgID: orgID})
+	p, _ := principal.From(ctx)
+	err := dbx.ReadInOrg(s.pool, orgID, p.UserID, func(r *dbx.Read) (err error) {
+		row, err = newStore(r).GetCredential(ctx, dbq.GetCredentialParams{ResourceID: resourceID, OrgID: orgID})
 		return err
 	})
 	if err != nil {

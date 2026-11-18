@@ -243,8 +243,9 @@ func (s *Service) ResourcesForGateway(ctx context.Context, orgID, gatewayID uuid
 // OwnedBy reports whether resourceID is served by the pool gatewayID and, if
 // it is, the resource type from its row.
 func (s *Service) OwnedBy(ctx context.Context, orgID, gatewayID, resourceID uuid.UUID) (typ string, ok bool, err error) {
-	err = s.tx(ctx, orgID, func(st Store, _ pgx.Tx) (err error) {
-		typ, err = st.ResourceTypeOwnedBy(ctx, dbq.ResourceTypeOwnedByParams{ID: resourceID, OrgID: orgID, GatewayID: &gatewayID})
+	p, _ := principal.From(ctx)
+	err = dbx.ReadInOrg(s.pool, orgID, p.UserID, func(r *dbx.Read) (err error) {
+		typ, err = newStore(r).ResourceTypeOwnedBy(ctx, dbq.ResourceTypeOwnedByParams{ID: resourceID, OrgID: orgID, GatewayID: &gatewayID})
 		return err
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
