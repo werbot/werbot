@@ -46,14 +46,17 @@ func InOrg(ctx context.Context, pool *pgxpool.Pool, org, user uuid.UUID, fn func
 	if org == uuid.Nil {
 		return ErrNoOrg
 	}
-	return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx,
-			"SELECT set_config('werbot.org_id', $1, true), set_config('werbot.user_id', $2, true)",
-			org.String(), user.String()); err != nil {
-			return err
-		}
-		return fn(tx)
-	})
+	return pgx.BeginTxFunc(ctx, pool, pgx.TxOptions{BeginQuery: beginInOrg(org, user)}, fn)
+}
+
+// beginInOrg sets the context in the BEGIN round trip. pgx sends a statement
+// without arguments over the simple protocol, which allows several statements
+// in one message. The values are inlined as literals, which is safe only
+// because they come from typed uuid.UUID values: String() yields hex digits
+// and dashes. Never pass a caller-supplied string here.
+func beginInOrg(org, user uuid.UUID) string {
+	return "BEGIN; SELECT set_config('werbot.org_id', '" + org.String() +
+		"', true), set_config('werbot.user_id', '" + user.String() + "', true)"
 }
 
 // System runs fn in a transaction without organization context.
