@@ -2,9 +2,9 @@ name: ci
 
 on:
   push:
-    branches: [v2]
+    branches: [main]
   pull_request:
-    branches: [v2]
+    branches: [main]
 
 jobs:
   go:
@@ -34,7 +34,7 @@ jobs:
       - run: cd web && bun install --frozen-lockfile
       - run: go tool -modfile=tools/go.mod buf lint
       - if: github.event_name == 'pull_request'
-        run: go tool -modfile=tools/go.mod buf breaking --against ".git#branch=origin/v2"
+        run: go tool -modfile=tools/go.mod buf breaking --against ".git#branch=origin/main"
       - run: go tool -modfile=tools/go.mod buf generate && git diff --exit-code
       - run: go tool -modfile=tools/go.mod sqlc diff
       - run: go mod tidy -diff
