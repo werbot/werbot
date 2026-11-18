@@ -47,7 +47,7 @@ func (g tunnelGateways) Authenticate(ctx context.Context, gatewayID, instanceID 
 	if err != nil {
 		return tunnel.Gateway{}, err
 	}
-	return tunnel.Gateway{ID: in.GatewayID, InstanceID: in.ID, OrgID: in.OrgID}, nil
+	return tunnel.Gateway{ID: in.GatewayID, InstanceID: in.ID, OrgID: in.OrgID, CertSerial: in.CertSerial}, nil
 }
 
 // tunnelUsers resolves SSH clients to members with their teams.

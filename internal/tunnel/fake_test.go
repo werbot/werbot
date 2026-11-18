@@ -125,6 +125,7 @@ func (f *fake) Authenticate(_ context.Context, gatewayID, instanceID uuid.UUID, 
 	if !ok || g.ID != gatewayID {
 		return Gateway{}, apperr.ErrUnauthenticated
 	}
+	g.CertSerial = serial // every accepted serial is the current one
 	return g, nil
 }
 

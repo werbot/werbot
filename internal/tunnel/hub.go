@@ -27,6 +27,7 @@ type Hub struct {
 	ctx    context.Context // cancelled by Shutdown
 	cancel context.CancelFunc
 	gen    atomic.Uint64 // build generation: a newer build wins in a mailbox
+	auth   authCache     // mTLS instance checks, dropped by OrgChanged
 
 	mu      sync.Mutex
 	h       *Handler
@@ -66,9 +67,11 @@ func (h *Hub) logger() *slog.Logger {
 	return h.h.log
 }
 
-// OrgChanged schedules a refresh of one organization's streams ("*": all of them).
+// OrgChanged drops the cached instance checks of one organization and
+// schedules a refresh of its streams ("*": all of them).
 func (h *Hub) OrgChanged(payload string) {
 	if payload == "*" {
+		h.auth.drop(uuid.Nil)
 		h.arm(uuid.Nil, false)
 		return
 	}
@@ -77,11 +80,16 @@ func (h *Hub) OrgChanged(payload string) {
 		h.logger().Warn("tunnel: ignoring org_changed payload", "payload", payload)
 		return
 	}
+	h.auth.drop(org)
 	h.arm(org, false)
 }
 
-// Resync refreshes every stream; call it after the LISTEN connection reconnects.
-func (h *Hub) Resync() { h.OrgChanged("*") }
+// Resync flushes the instance check cache and refreshes every stream; call it
+// after each LISTEN, the first included: notifications may have been lost.
+func (h *Hub) Resync() {
+	h.auth.reset(true)
+	h.OrgChanged("*")
+}
 
 // Shutdown closes every stream with CodeUnavailable "shutdown" and refuses new ones.
 func (h *Hub) Shutdown() {

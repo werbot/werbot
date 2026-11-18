@@ -37,10 +37,12 @@ func closeConn(ctx context.Context, conn *pgx.Conn) {
 // Listen holds one dedicated connection outside the pool with LISTEN on every
 // channel of handlers. onReconnect runs after each successful LISTEN of all
 // channels (the first one included): notifications sent during a gap may be lost.
-// handlers values and onReconnect must be non-nil.
+// onLost runs each time a connection attempt or the connection fails, before
+// the retry; it does not run when ctx ends.
+// handlers values, onReconnect and onLost must be non-nil.
 // Handlers run sequentially in the Listen goroutine and must be fast.
 // Returns nil after ctx.Done.
-func Listen(ctx context.Context, pool *pgxpool.Pool, handlers map[string]func(payload string), onReconnect func()) error {
+func Listen(ctx context.Context, pool *pgxpool.Pool, handlers map[string]func(payload string), onReconnect, onLost func()) error {
 	channels := slices.Sorted(maps.Keys(handlers))
 	backoff := minBackoff
 	for ctx.Err() == nil {
@@ -48,6 +50,7 @@ func Listen(ctx context.Context, pool *pgxpool.Pool, handlers map[string]func(pa
 		if ctx.Err() != nil {
 			return nil
 		}
+		onLost()
 		slog.Warn("pgnotify: connection lost", "err", err, "retry_in", backoff)
 		select {
 		case <-ctx.Done():

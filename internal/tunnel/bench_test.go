@@ -117,6 +117,12 @@ func (b *bench) instanceWith(t *testing.T, orgID, pool uuid.UUID, wrap func(http
 	g := Gateway{ID: pool, InstanceID: uuid.New(), OrgID: orgID}
 	b.f.with(func(f *fake) { f.instances[g.InstanceID] = g })
 	cert, serial := b.clientCert(t, tlsca.GatewayCN(g.ID, g.InstanceID))
+	return &gw{Gateway: g, serial: serial, client: b.clientFor(t, cert, wrap)}
+}
+
+// clientFor returns a tunnel client presenting cert.
+func (b *bench) clientFor(t *testing.T, cert tls.Certificate, wrap func(http.RoundTripper) http.RoundTripper) gatewayv1connect.TunnelServiceClient {
+	t.Helper()
 	roots := x509.NewCertPool()
 	roots.AppendCertsFromPEM(b.ca.RootPEM())
 	var protos http.Protocols
@@ -127,7 +133,7 @@ func (b *bench) instanceWith(t *testing.T, orgID, pool uuid.UUID, wrap func(http
 	if wrap != nil {
 		rt = wrap(tr)
 	}
-	return &gw{Gateway: g, serial: serial, client: gatewayv1connect.NewTunnelServiceClient(&http.Client{Transport: rt}, b.url)}
+	return gatewayv1connect.NewTunnelServiceClient(&http.Client{Transport: rt}, b.url)
 }
 
 func (b *bench) clientCert(t *testing.T, cn string) (tls.Certificate, string) {

@@ -33,7 +33,11 @@ const (
 )
 
 // Gateway is the authenticated caller: ID is the pool, InstanceID the process.
-type Gateway struct{ ID, InstanceID, OrgID uuid.UUID }
+// CertSerial is the instance's current certificate serial.
+type Gateway struct {
+	ID, InstanceID, OrgID uuid.UUID
+	CertSerial            string
+}
 
 // User is an organization member resolved for an SSH login.
 type User struct {
@@ -200,7 +204,8 @@ func gatewayFrom(ctx context.Context) (Gateway, bool) {
 }
 
 // mtls authenticates the verified client certificate on every request: the
-// CN names the pool and instance, the serial must match the enrolled one.
+// CN names the pool and instance, the serial must match the enrolled one. A
+// check is answered from the hub's cache until a change notification drops it.
 func (h *Handler) mtls(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.TLS == nil || len(r.TLS.VerifiedChains) == 0 || len(r.TLS.VerifiedChains[0]) == 0 {
@@ -214,15 +219,18 @@ func (h *Handler) mtls(next http.Handler) http.Handler {
 			return
 		}
 		serial := cert.SerialNumber.Text(16)
-		g, err := h.d.Gateways.Authenticate(r.Context(), gatewayID, instanceID, serial)
-		if err != nil {
-			h.log.Warn("tunnel: gateway rejected", "gateway_id", gatewayID, "instance_id", instanceID, "error", err)
-			if revoked(err) {
-				http.Error(w, "unknown gateway", http.StatusUnauthorized)
-			} else {
-				http.Error(w, "try again later", http.StatusServiceUnavailable)
+		g, gen, ok := h.hub.auth.get(gatewayID, instanceID, serial)
+		if !ok {
+			if g, err = h.d.Gateways.Authenticate(r.Context(), gatewayID, instanceID, serial); err != nil {
+				h.log.Warn("tunnel: gateway rejected", "gateway_id", gatewayID, "instance_id", instanceID, "error", err)
+				if revoked(err) {
+					http.Error(w, "unknown gateway", http.StatusUnauthorized)
+				} else {
+					http.Error(w, "try again later", http.StatusServiceUnavailable)
+				}
+				return
 			}
-			return
+			h.hub.auth.put(gen, serial, g)
 		}
 		ctx := context.WithValue(withGateway(r.Context(), g), serialKey, serial)
 		next.ServeHTTP(w, r.WithContext(ctx))

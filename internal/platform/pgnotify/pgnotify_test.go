@@ -34,13 +34,13 @@ func TestListenDeliversAndReconnects(t *testing.T) {
 	defer cancel()
 
 	org, geo := make(chan string, 8), make(chan string, 8)
-	var reconnects atomic.Int32
+	var reconnects, losses atomic.Int32
 	done := make(chan error, 1)
 	go func() {
 		done <- pgnotify.Listen(ctx, pool, map[string]func(string){
 			pgnotify.OrgChanged:   func(p string) { org <- p },
 			pgnotify.GeoIPChanged: func(p string) { geo <- p },
-		}, func() { reconnects.Add(1) })
+		}, func() { reconnects.Add(1) }, func() { losses.Add(1) })
 	}()
 	waitReconnects := func(n int32, within time.Duration) {
 		t.Helper()
@@ -76,6 +76,7 @@ func TestListenDeliversAndReconnects(t *testing.T) {
 	_, err = pool.Exec(ctx, `SELECT pg_terminate_backend($1)`, pid)
 	require.NoError(t, err)
 	waitReconnects(2, 10*time.Second)
+	require.Equal(t, int32(1), losses.Load(), "a dropped connection is reported before the reconnect")
 
 	insertTeam("b")
 	require.Equal(t, orgID.String(), recv(t, org))
@@ -90,6 +91,7 @@ func TestListenDeliversAndReconnects(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("Listen did not return after cancel")
 	}
+	require.Equal(t, int32(1), losses.Load(), "cancel is not a lost connection")
 }
 
 // stallConn blocks Write once stall is set, until a deadline is set on the socket.
