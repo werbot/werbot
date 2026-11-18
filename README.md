@@ -152,11 +152,17 @@ The instance renews its 24h certificate after 16h; until the renewed certificate
 Docker:
 
 ```sh
-export WERBOT_SECRET_KEY="$(openssl rand -base64 32)"  # required; keep the same key between runs
-docker compose -f deploy/docker-compose.yaml up --build
+docker build -f deploy/Dockerfile -t ghcr.io/werbot/werbot:dev .  # or set WERBOT_VERSION to a released tag
+cd deploy && cp .env.example .env && WERBOT_VERSION=dev
+sed -i.bak \
+  -e "s|^WERBOT_VERSION=.*|WERBOT_VERSION=$WERBOT_VERSION|" \
+  -e "s|^WERBOT_SECRET_KEY=.*|WERBOT_SECRET_KEY=$(openssl rand -base64 32)|" \
+  -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 24)|" \
+  .env && rm .env.bak
+docker compose up -d --wait
 ```
 
-The stack runs `werbot server --with-gateway` and listens on http://localhost:8080 (`/healthz`, `/readyz`), SSH on port `2222` (pool `local`, after `Setup`) and the gateway tunnel on port `8443` (for external gateways). State lives in the `werbot-home` volume (`WERBOT_DATA_DIR=/home/nonroot/data`).
+`deploy/docker-compose.yaml` (project `werbot`) runs Postgres 18 and `werbot server --with-gateway` from `ghcr.io/werbot/werbot:${WERBOT_VERSION}` and listens on http://localhost:8080 (`/healthz`, `/readyz`), SSH on port `2222` (pool `local`, after `Setup`) and the gateway tunnel on port `8443` (for external gateways). `docker compose config` refuses an empty `WERBOT_VERSION`, `WERBOT_SECRET_KEY` or `POSTGRES_PASSWORD` and names the generate command. State lives in the volumes `werbot_postgres-data` and `werbot_werbot-data` (`/var/lib/werbot`); keep `.env`: its `WERBOT_SECRET_KEY` decrypts stored credentials. `deploy/docker-compose.gateway.yaml` (project `werbot-gateway`) runs a standalone gateway (`.env`: `WERBOT_VERSION`, `WERBOT_GATEWAY_SERVER_URL`, `WERBOT_GATEWAY_JOIN_TOKEN`). `deploy/docker-compose.cluster.yaml` with `deploy/nginx.cluster.conf` (project `werbot-cluster`) is a cluster example: 2 server and 2 `werbot web` replicas, Postgres, SeaweedFS for recordings and a pool of 2 gateways (profile `gateways`) behind nginx on ports `8080`, `8443` and `2222`.
 
 ## Development
 

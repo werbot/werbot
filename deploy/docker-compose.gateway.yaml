@@ -1,0 +1,22 @@
+name: werbot-gateway
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: 10m, max-file: "3" }
+
+services:
+  gateway:
+    image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
+    command: ["gateway"]
+    restart: unless-stopped
+    stop_grace_period: 40s # gateway drain (30s) + 10s
+    ulimits: { nofile: 65536 } # >= 4 x WERBOT_GATEWAY_MAX_SESSIONS
+    logging: *logging
+    env_file: .env # WERBOT_GATEWAY_JOIN_TOKEN: the pool token, needed only for the first enrollment
+    environment:
+      WERBOT_GATEWAY_SERVER_URL: ${WERBOT_GATEWAY_SERVER_URL:?set WERBOT_GATEWAY_SERVER_URL in .env}
+    ports:
+      - "2222:2222" # SSH to the pool
+    volumes: [gateway-data:/var/lib/werbot] # instance identity, pool host key, recording spool
+
+volumes: { gateway-data: {} }

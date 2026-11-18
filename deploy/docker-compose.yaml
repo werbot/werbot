@@ -1,41 +1,40 @@
+name: werbot
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: 10m, max-file: "3" }
+
 services:
   postgres:
     image: postgres:18-alpine
+    restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: werbot
-      POSTGRES_PASSWORD: werbot
       POSTGRES_DB: werbot
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U werbot -d werbot"]
-      interval: 2s
-      timeout: 3s
-      retries: 30
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (openssl rand -hex 24)}
+    volumes: [postgres-data:/var/lib/postgresql]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "werbot", "-d", "werbot"], interval: 5s, timeout: 3s, retries: 20 }
 
   werbot:
-    build:
-      context: ../
-      dockerfile: deploy/Dockerfile
+    image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
     command: ["server", "--with-gateway"]
-    environment:
-      WERBOT_DATABASE_URL: postgres://werbot:werbot@postgres:5432/werbot?sslmode=disable
-      WERBOT_PUBLIC_URL: http://localhost:8080
-      WERBOT_SECRET_KEY: "${WERBOT_SECRET_KEY:?generate with: openssl rand -base64 32}"
-      # distroless :nonroot cannot write to its working directory "/"
-      WERBOT_DATA_DIR: /home/nonroot/data
-    ports:
-      - "8080:8080"
-      - "8443:8443"
-      - "2222:2222"
-    volumes:
-      - werbot-home:/home/nonroot
+    restart: unless-stopped
     # SIGTERM: the embedded gateway drains (WERBOT_GATEWAY_DRAIN_TIMEOUT, 30s),
     # then the server stops HTTP, the tunnel and River (up to 10s each) + margin
     stop_grace_period: 70s
-    ulimits:
-      nofile: 65536
-    depends_on:
-      postgres:
-        condition: service_healthy
+    ulimits: { nofile: 65536 } # >= 4 x WERBOT_GATEWAY_MAX_SESSIONS
+    logging: *logging
+    depends_on: { postgres: { condition: service_healthy } }
+    env_file: .env
+    environment:
+      WERBOT_DATABASE_URL: postgres://werbot:${POSTGRES_PASSWORD}@postgres:5432/werbot?sslmode=disable
+      WERBOT_SECRET_KEY: ${WERBOT_SECRET_KEY:?set WERBOT_SECRET_KEY in .env (openssl rand -base64 32)}
+    ports:
+      - "8080:8080" # web UI and API
+      - "2222:2222" # SSH to the built-in gateway
+      - "8443:8443" # mTLS tunnel for gateways on other hosts
+    volumes: [werbot-data:/var/lib/werbot]
+    healthcheck: { test: ["CMD", "/werbot", "healthcheck"], interval: 10s, timeout: 5s, retries: 6, start_period: 30s }
 
-volumes:
-  werbot-home:
+volumes: { postgres-data: {}, werbot-data: {} }

@@ -1,0 +1,114 @@
+# The example and the test/cluster stand share project werbot-cluster and host ports: run one at a time.
+# Cluster example: 2 server and 2 web replicas, a pool of 2 gateways, Postgres
+# and SeaweedFS (S3 recordings) behind nginx (lb, nginx.cluster.conf). Only lb
+# publishes ports: 8080 (UI and API), 8443 (gateway tunnel), 2222 (SSH).
+# .env: the variables of .env.example plus WERBOT_RECORDINGS_S3_ACCESS_KEY and
+# WERBOT_RECORDINGS_S3_SECRET_KEY. WERBOT_PUBLIC_URL must name this host by a
+# DNS name or IP that containers can reach (not localhost): the gateway tunnel
+# goes to https://<that host>:8443. Gateways start after Setup, with a pool join
+# token in WERBOT_GATEWAY_JOIN_TOKEN: docker compose --profile gateways up -d
+name: werbot-cluster
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: 10m, max-file: "3" }
+
+x-gateway: &gateway
+  image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
+  # enrollment stays on this host's private edge network; use https:// across hosts
+  command: ["gateway", "--insecure-enroll"]
+  profiles: ["gateways"]
+  restart: unless-stopped
+  stop_grace_period: 40s # gateway drain (30s) + 10s
+  ulimits: { nofile: 65536 } # >= 4 x WERBOT_GATEWAY_MAX_SESSIONS
+  logging: *logging
+  networks: [edge]
+  # no env_file: gateways never see WERBOT_SECRET_KEY, POSTGRES_PASSWORD or the S3 keys
+  environment:
+    WERBOT_GATEWAY_SERVER_URL: http://lb:8080
+    WERBOT_GATEWAY_JOIN_TOKEN: ${WERBOT_GATEWAY_JOIN_TOKEN:-}
+    WERBOT_GATEWAY_PROXY_PROTOCOL: "true"
+
+networks:
+  default: # change the subnet if it is taken on this host
+    # dynamic IPs come from ip_range: they never take lb's 172.28.0.10 or the gateway 172.28.0.1
+    ipam: { config: [{ subnet: 172.28.0.0/24, ip_range: 172.28.0.128/25, gateway: 172.28.0.1 }] }
+  edge: {} # gateways reach only lb, so they cannot spoof X-Forwarded-For to server
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_USER: werbot
+      POSTGRES_DB: werbot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (openssl rand -hex 24)}
+    volumes: [postgres-data:/var/lib/postgresql]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "werbot", "-d", "werbot"], interval: 5s, timeout: 3s, retries: 20 }
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.48
+    command: ["server", "-dir=/data", "-s3", "-s3.config=/etc/seaweedfs/s3.json"]
+    restart: unless-stopped
+    logging: *logging
+    configs: [{ source: s3, target: /etc/seaweedfs/s3.json }]
+    volumes: [seaweedfs-data:/data]
+    # also creates the bucket (idempotent)
+    healthcheck: { test: ["CMD-SHELL", "echo s3.bucket.list | weed shell | grep -qw werbot-recordings || { echo 's3.bucket.create -name werbot-recordings' | weed shell >/dev/null; echo s3.bucket.list | weed shell | grep -qw werbot-recordings; }"], interval: 5s, timeout: 10s, retries: 20 }
+
+  server:
+    image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
+    command: ["server"] # no --with-gateway: the gateways are a separate pool
+    deploy: { replicas: 2 }
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging: *logging
+    depends_on: { postgres: { condition: service_healthy }, seaweedfs: { condition: service_healthy } }
+    env_file: .env
+    environment:
+      # replicas x (pool_max_conns + 2) <= max_connections: 2 x 22 = 44 <= 100, docs/scaling.md
+      WERBOT_DATABASE_URL: postgres://werbot:${POSTGRES_PASSWORD}@postgres:5432/werbot?sslmode=disable&pool_max_conns=20
+      WERBOT_SECRET_KEY: ${WERBOT_SECRET_KEY:?set WERBOT_SECRET_KEY in .env (openssl rand -base64 32)}
+      # dynamic replica range (web); the network gateway (SNAT source) and lb are outside it
+      WERBOT_TRUSTED_PROXIES: 172.28.0.128/25
+      WERBOT_WEB_EMBEDDED: "false" # UI is served by the web service
+      WERBOT_RECORDINGS_S3_ENDPOINT: http://seaweedfs:8333
+      WERBOT_RECORDINGS_S3_BUCKET: werbot-recordings
+      WERBOT_RECORDINGS_S3_ACCESS_KEY: ${WERBOT_RECORDINGS_S3_ACCESS_KEY:?set WERBOT_RECORDINGS_S3_ACCESS_KEY in .env (openssl rand -hex 12)}
+      WERBOT_RECORDINGS_S3_SECRET_KEY: ${WERBOT_RECORDINGS_S3_SECRET_KEY:?set WERBOT_RECORDINGS_S3_SECRET_KEY in .env (openssl rand -hex 24)}
+    healthcheck: { test: ["CMD", "/werbot", "healthcheck"], interval: 10s, timeout: 5s, retries: 6, start_period: 30s }
+
+  web:
+    image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
+    command: ["web"]
+    deploy: { replicas: 2 }
+    restart: unless-stopped
+    stop_grace_period: 15s
+    logging: *logging
+    # no env_file: web needs neither WERBOT_SECRET_KEY nor the database
+    environment:
+      WERBOT_WEB_API_URL: http://server:8080
+      WERBOT_TRUSTED_PROXIES: 172.28.0.10/32 # lb only
+
+  lb:
+    image: nginx:1.30-alpine
+    restart: unless-stopped
+    ulimits: { nofile: 65536 }
+    logging: *logging
+    depends_on: { server: { condition: service_healthy }, web: { condition: service_started } }
+    volumes: [./nginx.cluster.conf:/etc/nginx/nginx.conf:ro]
+    networks: { default: { ipv4_address: 172.28.0.10 }, edge: {} }
+    ports:
+      - "8080:8080" # web UI and API
+      - "8443:8443" # gateway tunnel
+      - "2222:2222" # SSH to the pool
+
+  gateway-1: { <<: *gateway, hostname: gateway-1, volumes: [gateway-1-data:/var/lib/werbot] }
+  gateway-2: { <<: *gateway, hostname: gateway-2, volumes: [gateway-2-data:/var/lib/werbot] }
+
+configs:
+  s3: # SeaweedFS S3 identity = WERBOT_RECORDINGS_S3_ACCESS_KEY/SECRET_KEY
+    content: '{"identities":[{"name":"werbot","credentials":[{"accessKey":"${WERBOT_RECORDINGS_S3_ACCESS_KEY:?set WERBOT_RECORDINGS_S3_ACCESS_KEY in .env (openssl rand -hex 12)}","secretKey":"${WERBOT_RECORDINGS_S3_SECRET_KEY:?set WERBOT_RECORDINGS_S3_SECRET_KEY in .env (openssl rand -hex 24)}"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'
+
+volumes: { postgres-data: {}, seaweedfs-data: {}, gateway-1-data: {}, gateway-2-data: {} }
