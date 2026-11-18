@@ -132,3 +132,41 @@ jobs:
           name: e2e-cluster-logs
           path: test/cluster/compose.log
           if-no-files-found: ignore
+
+  release-snapshot:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.x
+      - uses: anchore/sbom-action/download-syft@v0
+        with:
+          syft-version: v1.56.0
+      - uses: docker/setup-buildx-action@v4
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          version: v2.20.0
+          args: check
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          version: v2.20.0
+          args: release --snapshot --clean --skip=sign
+      - run: docker run --rm "ghcr.io/werbot/werbot:v$(jq -r .version dist/metadata.json)-amd64" version
+      - name: Compose files are valid
+        working-directory: deploy
+        run: |
+          printf '%s\n' WERBOT_VERSION=v0.0.0 WERBOT_SECRET_KEY=x POSTGRES_PASSWORD=x \
+            WERBOT_GATEWAY_SERVER_URL=https://werbot.example.com \
+            WERBOT_RECORDINGS_S3_ACCESS_KEY=x WERBOT_RECORDINGS_S3_SECRET_KEY=x > .env
+          docker compose config -q
+          docker compose -f docker-compose.gateway.yaml config -q
+          docker compose -f docker-compose.cluster.yaml --profile gateways config -q
+          docker compose -f docker-compose.cluster.yaml run --rm --no-deps lb nginx -t
