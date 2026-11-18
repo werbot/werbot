@@ -1,0 +1,117 @@
+//go:build load
+
+package load
+
+import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"net"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	gliderssh "github.com/gliderlabs/ssh"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	gossh "golang.org/x/crypto/ssh"
+
+	"github.com/werbot/werbot/test/cluster"
+)
+
+// Pure helpers; they run on any OS: go test -tags load -short ./test/load/
+
+func TestBudgets(t *testing.T) {
+	assert.Equal(t, int64(840_000_000), gatewayBudget(2500)) // 10 §10.1
+	assert.Equal(t, int64(200_000_000), gatewayBudget(0))
+	assert.Equal(t, int64(300_000_000+64_000*202), serverBudget(202))
+}
+
+func TestP99(t *testing.T) {
+	assert.Equal(t, time.Duration(0), p99(nil))
+	assert.Equal(t, 7*time.Second, p99([]time.Duration{7 * time.Second}))
+	d := make([]time.Duration, 0, 200)
+	for i := 200; i >= 1; i-- { // unsorted input, 1..200 ms
+		d = append(d, time.Duration(i)*time.Millisecond)
+	}
+	assert.Equal(t, 198*time.Millisecond, p99(d)) // nearest rank: ceil(0.99*200) = 198
+	assert.Equal(t, 200*time.Millisecond, d[0], "p99 must not reorder its input")
+	d = d[:101] // 200..100 ms: ceil(0.99*101) = 100 -> 100th smallest = 199 ms
+	assert.Equal(t, 199*time.Millisecond, p99(d))
+}
+
+func TestParseVMRSS(t *testing.T) {
+	status := "Name:\twerbot\nVmPeak:\t  900000 kB\nVmRSS:\t  412345 kB\nRssAnon:\t  400000 kB\n"
+	v, err := parseVMRSS(strings.NewReader(status))
+	require.NoError(t, err)
+	assert.Equal(t, int64(412345*1024), v)
+	_, err = parseVMRSS(strings.NewReader("Name:\tzombie\nState:\tZ (zombie)\n"))
+	assert.Error(t, err)
+}
+
+func TestParseListen(t *testing.T) {
+	tcp := `  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
+   0: 0B00007F:8C4F 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 1 1 0000000000000000 100 0 0 10 0
+   1: 00000000:08AE 00000000:0000 0A 00000000:00000000 00:00000000 00000000 65532        0 2 1 0000000000000000 100 0 0 10 0
+   2: 1500E70A:08AE 0100E70A:C350 01 00000000:00000000 00:00000000 00000000 65532        0 3 1 0000000000000000 20 4 30 10 -1
+`
+	tcp6 := `  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
+   0: 00000000000000000000000000000000:2382 00000000000000000000000000000000:0000 0A 00000000:00000000 00:00000000 00000000 65532        0 4 1 0000000000000000 100 0 0 10 0
+   1: 00000000000000000000000000000000:08AE 00000000000000000000000000000000:0000 0A 00000000:00000000 00:00000000 00000000 65532        0 5 1 0000000000000000 100 0 0 10 0
+`
+	got, err := parseListen(strings.NewReader(tcp), strings.NewReader(tcp6))
+	require.NoError(t, err)
+	// 127.0.0.11 is Docker's embedded DNS, not the gateway; established sockets do not count
+	assert.Equal(t, []uint16{2222, 9090}, got)
+}
+
+func TestResultLine(t *testing.T) {
+	assert.Equal(t, "RESULT | L1 | connect p99 | ≤ 1s | 412ms | PASS", resultLine("L1", "connect p99", "≤ 1s", "412ms", true))
+	assert.Equal(t, "RESULT | L4 | listeners | 2222, 9090 | 22 | FAIL", resultLine("L4", "listeners", "2222, 9090", "22", false))
+}
+
+func TestText(t *testing.T) {
+	b := text(1024)
+	require.Len(t, b, 1024)
+	for i, c := range b {
+		switch i % 78 {
+		case 76:
+			assert.Equal(t, byte('\r'), c, "byte %d", i)
+		case 77:
+			assert.Equal(t, byte('\n'), c, "byte %d", i)
+		default:
+			assert.True(t, c >= ' ' && c <= '~', "byte %d = %q is not printable", i, c)
+		}
+	}
+}
+
+// TestSessionAgainstShell runs the load client against the target shell over
+// plain SSH (no gateway): ready, output during hold, exit closes the session.
+func TestSessionAgainstShell(t *testing.T) {
+	_, key, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	client, err := gossh.NewSignerFromKey(key)
+	require.NoError(t, err)
+	_, key, err = ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	host, err := gossh.NewSignerFromKey(key)
+	require.NoError(t, err)
+	var perSec atomic.Int64
+	perSec.Store(1024)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	srv := &gliderssh.Server{
+		HostSigners:      []gliderssh.Signer{host},
+		PublicKeyHandler: func(gliderssh.Context, gliderssh.PublicKey) bool { return true },
+		Handler:          func(s gliderssh.Session) { shell(s, &perSec) },
+	}
+	go func() { _ = srv.Serve(ln) }()
+	t.Cleanup(func() { _ = srv.Close() })
+
+	start := time.Now()
+	r := session(t.Context(), &cluster.Stand{Key: client, HostKey: host.PublicKey()}, ln.Addr().String(), 2500*time.Millisecond, true)
+	require.NoError(t, r.Err)
+	assert.Positive(t, r.Connect)
+	assert.GreaterOrEqual(t, r.Bytes, int64(len("ready\r\n")+2*1024), "two ticks of output during the hold")
+	assert.Less(t, time.Since(start), 2500*time.Millisecond+exitWait/2, "exit closes the session")
+}

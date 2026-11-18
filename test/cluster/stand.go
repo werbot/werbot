@@ -175,7 +175,7 @@ func (s *Stand) waitHealthy(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			if got[i], err = metric(addr, "werbot_tunnel_streams"); err != nil {
+			if got[i], err = ReadMetric(addr, "werbot_tunnel_streams"); err != nil {
 				return err
 			}
 		}

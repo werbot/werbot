@@ -41,12 +41,14 @@ func Ready(addr string) int {
 // exports every series the stand reads at startup, so absence means a wrong name or label.
 func Metric(t testing.TB, addr, name string, labels ...string) int64 {
 	t.Helper()
-	v, err := metric(addr, name, labels...)
+	v, err := ReadMetric(addr, name, labels...)
 	require.NoError(t, err)
 	return v
 }
 
-func metric(addr, name string, labels ...string) (int64, error) {
+// ReadMetric is Metric without a test: an error instead of a failure, so
+// background goroutines and polling conditions can call it.
+func ReadMetric(addr, name string, labels ...string) (int64, error) {
 	series := name
 	if len(labels) > 0 {
 		pairs := make([]string, 0, len(labels)/2)

@@ -65,7 +65,7 @@ func TestScenario04KillReplicaKeepsSession(t *testing.T) {
 	t0 := time.Now() // the window includes the docker CLI time of the kill
 	_, err := st.Compose(t.Context(), "kill", "server1")
 	require.NoError(t, err)
-	moved := func() bool { n, err := metric(server2, "werbot_tunnel_streams"); return err == nil && n == 2 }
+	moved := func() bool { n, err := ReadMetric(server2, "werbot_tunnel_streams"); return err == nil && n == 2 }
 	require.Eventually(t, moved, ReconnectMax-time.Since(t0), 50*time.Millisecond, "gw1 reconnects to server2")
 	t.Logf("gw1 on server2 after %s", time.Since(t0))
 

@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-cluster
+.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-cluster load
 
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
@@ -48,3 +48,16 @@ e2e-cluster:
 	COMPOSE_PROJECT_NAME=$(CLUSTER_PROJECT) go test -tags cluster -count=1 -timeout 40m -v ./test/cluster/... ; rc=$$?; \
 	[ $$rc -eq 0 ] || $(CLUSTER) logs --no-color --timestamps > test/cluster/compose.log; \
 	$(CLUSTER) down -v --remove-orphans; exit $$rc
+
+LOAD_TESTS ?= L1 L2 L3 L4
+
+# manual load tests (test/load), Linux only: RSS and listeners come from /proc.
+# Each load test runs on a fresh stand, removed after it; the next one does not
+# inherit its RSS baseline or data. Smaller run: LOAD_ARGS='-load.sessions=100 -load.duration=1m'
+load:
+	@[ "$$(uname -s)" = Linux ] || { echo "load tests need Linux (/proc)"; exit 1; }
+	docker build -f deploy/Dockerfile -t werbot:cluster .
+	@rc=0; for l in $(LOAD_TESTS); do \
+	  COMPOSE_PROJECT_NAME=$(CLUSTER_PROJECT) go test -tags load -count=1 -timeout 2h -v -run "^Test$$l$$" ./test/load/ -args $(LOAD_ARGS) || rc=1; \
+	  $(CLUSTER) down -v --remove-orphans; \
+	done; exit $$rc
