@@ -16,6 +16,8 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/werbot/werbot/internal/policy/geoiptest"
 )
 
 var geoTestIP = netip.MustParseAddr("10.1.2.3")
@@ -96,7 +98,7 @@ func noNotification(t *testing.T, conn *pgx.Conn) {
 // withStoredDE seeds the October row and loads it, as an earlier run would have.
 func withStoredDE(t *testing.T, e jobsEnv) []byte {
 	t.Helper()
-	de := testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "DE")
+	de := geoiptest.MMDB(netip.MustParsePrefix("10.0.0.0/8"), "DE")
 	_, err := e.pool.Exec(context.Background(), "INSERT INTO geoip_db (id, month, data) VALUES (1, '2026-10-01', $1)", de)
 	require.NoError(t, err)
 	require.NoError(t, e.svc.ReloadGeoIP(context.Background()))
@@ -113,7 +115,7 @@ func assertKept(t *testing.T, e jobsEnv, conn *pgx.Conn, de []byte, msg string) 
 }
 
 func TestGeoIPRefreshWritesRowAndNotifies(t *testing.T) {
-	de := testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "DE")
+	de := geoiptest.MMDB(netip.MustParsePrefix("10.0.0.0/8"), "DE")
 	f := &geoFeed{}
 	f.set(pathNov, 200, gz(t, de))
 	e := newJobsEnv(t).serve(t, f.ServeHTTP)
@@ -133,7 +135,7 @@ func TestGeoIPRefreshWritesRowAndNotifies(t *testing.T) {
 }
 
 func TestGeoIPRefreshFallsBackToPreviousMonth(t *testing.T) {
-	fr := testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "FR")
+	fr := geoiptest.MMDB(netip.MustParsePrefix("10.0.0.0/8"), "FR")
 	f := &geoFeed{}
 	f.set(pathOct, 200, gz(t, fr))
 	e := newJobsEnv(t).serve(t, f.ServeHTTP)
@@ -166,7 +168,7 @@ func TestGeoIPRefreshKeepsPreviousOnFailure(t *testing.T) {
 }
 
 func TestGeoIPRefreshRejectsBadArchive(t *testing.T) {
-	fr := testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "FR")
+	fr := geoiptest.MMDB(netip.MustParsePrefix("10.0.0.0/8"), "FR")
 	frGz := gz(t, fr)
 	f := &geoFeed{}
 	e := newJobsEnv(t).serve(t, f.ServeHTTP)
@@ -190,7 +192,7 @@ func TestGeoIPRefreshRejectsBadArchive(t *testing.T) {
 func TestGeoIPRefreshSkipsCurrentMonth(t *testing.T) {
 	f := &geoFeed{}
 	e := newJobsEnv(t).serve(t, f.ServeHTTP)
-	de := testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "DE")
+	de := geoiptest.MMDB(netip.MustParsePrefix("10.0.0.0/8"), "DE")
 	_, err := e.pool.Exec(context.Background(), "INSERT INTO geoip_db (id, month, data) VALUES (1, '2026-11-01', $1)", de)
 	require.NoError(t, err)
 	require.NoError(t, runGeoIP(e))
@@ -213,7 +215,7 @@ func TestGeoIPRefreshRejectsCorruptTree(t *testing.T) {
 	e := newJobsEnv(t).serve(t, f.ServeHTTP)
 	de := withStoredDE(t, e)
 	conn := listen(t, e.pool)
-	bad := testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "FR")
+	bad := geoiptest.MMDB(netip.MustParsePrefix("10.0.0.0/8"), "FR")
 	copy(bad, "\xFF\xFF\xFF") // first record points far outside the data section
 	f.set(pathNov, 200, gz(t, bad))
 	assert.Error(t, runGeoIP(e))

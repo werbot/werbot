@@ -18,6 +18,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
+	"github.com/werbot/werbot/internal/policy/geoiptest"
 )
 
 type fakeResources map[uuid.UUID][]SnapshotResource
@@ -151,7 +152,7 @@ func TestCheckAccessFailsClosedWithoutGeoIP(t *testing.T) {
 	assert.Contains(t, d.Reasons, "rule:country:"+r.String())
 
 	_, err = e.pool.Exec(context.Background(), "INSERT INTO geoip_db (id, month, data) VALUES (1, '2026-11-01', $1)",
-		testMMDB(t, netip.MustParsePrefix("10.0.0.0/8"), "DE"))
+		geoiptest.MMDB(netip.MustParsePrefix("10.0.0.0/8"), "DE"))
 	require.NoError(t, err)
 	require.NoError(t, e.svc.ReloadGeoIP(e.ctx))
 	d, err = e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
