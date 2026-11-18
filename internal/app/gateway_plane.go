@@ -78,16 +78,17 @@ func runGatewayPlane(ctx context.Context, ln net.Listener, cfg config.Config, s 
 }
 
 // listenNotify runs the process's only pgnotify.Listen until ctx ends: org
-// changes go to hub, GeoIP changes reload the database. A reconnect may have
+// changes go to hub, GeoIP changes reload the database, module
+// subscriptions (subs, sealed here) run after the core handler of their channel. A reconnect may have
 // lost notifications, so it refreshes both (see onReconnect). The channel
 // closes after Listen and the GeoIP reloader (with a reload in flight) ended.
-func listenNotify(ctx context.Context, pool *pgxpool.Pool, hub *tunnel.Hub, reload func(context.Context) error, logger *slog.Logger) <-chan struct{} {
+func listenNotify(ctx context.Context, pool *pgxpool.Pool, hub *tunnel.Hub, reload func(context.Context) error, subs *subscriptions, logger *slog.Logger) <-chan struct{} {
 	geoip, reloaderDone := geoIPReloader(ctx, reload, logger)
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		_ = pgnotify.Listen(ctx, pool, map[string]func(string){pgnotify.OrgChanged: hub.OrgChanged, pgnotify.GeoIPChanged: geoip},
-			onReconnect(hub.Resync, geoip))
+		core := map[string]func(string){pgnotify.OrgChanged: hub.OrgChanged, pgnotify.GeoIPChanged: geoip}
+		_ = pgnotify.Listen(ctx, pool, subs.handlers(ctx, core, logger), onReconnect(hub.Resync, geoip))
 		<-reloaderDone
 	}()
 	return done

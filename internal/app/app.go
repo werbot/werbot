@@ -98,13 +98,19 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 
 // host is the Community sdk.Host: no feature is ever entitled.
 type host struct {
-	pool *pgxpool.Pool
-	mux  *http.ServeMux
+	pool   *pgxpool.Pool
+	mux    *http.ServeMux
+	subs   *subscriptions
+	module string
 }
 
 func (h host) DB() *pgxpool.Pool                      { return h.pool }
 func (h host) Handle(pattern string, hd http.Handler) { h.mux.Handle(pattern, hd) }
 func (host) Entitled(string) bool                     { return false }
+
+func (h host) Subscribe(channel string, fn func(context.Context, string)) {
+	h.subs.add(h.module, channel, fn)
+}
 
 // serveOpts are what Run hands serve besides the config: the tunnel CA and
 // recording signer from bootstrap, the secret box it was opened with and,
@@ -154,8 +160,9 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	gw := inventory.NewGatewayRPC(s.Gateways, turl)
 	mux.Handle(werbotv1connect.NewGatewayServiceHandler(gw, opts))
 	mux.Handle(werbotv1connect.NewGatewayEnrollServiceHandler(gw, opts))
-	h := host{pool: pool, mux: mux}
+	subs := &subscriptions{}
 	for _, m := range modules {
+		h := host{pool: pool, mux: mux, subs: subs, module: m.Name}
 		if m.Feature != "" && !h.Entitled(m.Feature) {
 			logger.Info("module skipped: not entitled", "module", m.Name, "feature", m.Feature)
 			continue
@@ -207,7 +214,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	hub := tunnel.NewHub()
 	plane := make(chan error, 1)
 	go func() { plane <- runGatewayPlane(pctx, gln, cfg, s, hub, reg, logger) }()
-	listening := listenNotify(pctx, pool, hub, s.Policy.ReloadGeoIP, logger)
+	listening := listenNotify(pctx, pool, hub, s.Policy.ReloadGeoIP, subs, logger)
 	gctx, gcancel := context.WithCancel(ctx)
 	defer gcancel()
 	embedded := make(chan error, 1)
