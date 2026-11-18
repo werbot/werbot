@@ -1,4 +1,6 @@
 version: "2"
+run:
+  build-tags: [cluster, load] # test/ builds only with these tags
 linters:
   default: none
   enable: [bodyclose, depguard, gocritic, gosec, govet, ineffassign, misspell, nolintlint, revive, sqlclosecheck, staticcheck, unconvert, unparam, unused, whitespace]

@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto sqlc web e2e e2e-network
+.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-cluster
 
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
@@ -37,3 +37,14 @@ e2e-network:
 	CGO_ENABLED=0 GOOS=linux GOARCH=$$(docker version -f '{{.Server.Arch}}') go build -o deploy/e2e/.bin/echotarget ./internal/e2e/echotarget
 	$(E2E_NETWORK) up -d --build --wait postgres server target router echo dns || { $(E2E_NETWORK) down -v; exit 1; }
 	deploy/e2e/run.sh
+
+CLUSTER_PROJECT ?= werbot-cluster
+CLUSTER = docker compose -p $(CLUSTER_PROJECT) -f test/cluster/docker-compose.yaml
+
+# the harness (test/cluster) brings the stand up; on failure the logs go to
+# test/cluster/compose.log; the stand is always removed at the end
+e2e-cluster:
+	docker build -f deploy/Dockerfile -t werbot:cluster .
+	COMPOSE_PROJECT_NAME=$(CLUSTER_PROJECT) go test -tags cluster -count=1 -timeout 40m -v ./test/cluster/... ; rc=$$?; \
+	[ $$rc -eq 0 ] || $(CLUSTER) logs --no-color --timestamps > test/cluster/compose.log; \
+	$(CLUSTER) down -v --remove-orphans; exit $$rc

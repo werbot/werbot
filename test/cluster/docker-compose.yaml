@@ -1,0 +1,163 @@
+# Cluster stand of stage 7a: two server replicas, two web replicas, two
+# gateways of one pool behind nginx, Postgres and SeaweedFS (S3 recordings).
+# Targets sit on an internal-only network that only the gateways join.
+# Run with `make e2e-cluster`; the Go harness (stand.go) drives it.
+# Every secret below is a throwaway test-only value.
+# No restart policy: a crashed werbot process stays stopped, and the scenarios see it.
+name: werbot-cluster
+
+x-server: &server
+  image: werbot:cluster
+  command: ["server"]
+  stop_grace_period: 30s
+  depends_on: { postgres: { condition: service_healthy }, seaweedfs: { condition: service_healthy } }
+  extra_hosts: ["raw.githubusercontent.com:127.0.0.1", "download.db-ip.com:127.0.0.1"] # hermetic: feeds fail, nothing gets blocked
+  ports: ["127.0.0.1::9100"] # HTTP is not published: UI goes through web1/web2, A/B through nginx :8081/:8082
+  environment:
+    WERBOT_ENV: development
+    WERBOT_LOG_FORMAT: json
+    WERBOT_DATABASE_URL: postgres://werbot:werbot@postgres:5432/werbot?sslmode=disable&pool_max_conns=20
+    WERBOT_PUBLIC_URL: http://nginx # tunnel_url = https://nginx:8443
+    WERBOT_SECRET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= # one key for both replicas
+    WERBOT_TRUSTED_PROXIES: 10.231.0.10/32,10.231.0.31/32,10.231.0.32/32 # nginx, web1, web2
+    WERBOT_WEB_EMBEDDED: "false" # UI only through werbot web (10 §8.3 #13)
+    WERBOT_WEB_URL: http://ui.werbot.test # links in emails
+    WERBOT_GATEWAY_ADDR: ":8443"
+    WERBOT_METRICS_ADDR: ":9100"
+    WERBOT_DATA_DIR: /home/nonroot/data # distroless nonroot: / is not writable; container FS
+    WERBOT_RECORDINGS_S3_ENDPOINT: http://seaweedfs:8333
+    WERBOT_RECORDINGS_S3_BUCKET: werbot-recordings
+    WERBOT_RECORDINGS_S3_ACCESS_KEY: werbot
+    WERBOT_RECORDINGS_S3_SECRET_KEY: werbot-s3-secret
+
+x-web: &web
+  image: werbot:cluster
+  command: ["web"]
+  stop_grace_period: 15s
+  ports: ["127.0.0.1::8090", "127.0.0.1::9100"]
+  environment:
+    WERBOT_LOG_FORMAT: json
+    WERBOT_WEB_API_URL: http://api:8080 # network alias of server1 and server2
+    WERBOT_TRUSTED_PROXIES: 10.231.0.10/32 # nginx
+    WERBOT_METRICS_ADDR: ":9100"
+
+x-gateway: &gateway
+  image: werbot:cluster
+  # plain http enrollment is allowed only on this private test network
+  command: ["gateway", "--insecure-enroll"]
+  stop_grace_period: 40s
+  ulimits: { nofile: { soft: 65536, hard: 65536 } } # 10.5: >= 4 x MAX_SESSIONS
+  extra_hosts: ["host.docker.internal:host-gateway"] # load target runs on the host (test/load)
+  ports: ["127.0.0.1::9090"]
+
+x-gateway-env: &gateway-env
+  WERBOT_GATEWAY_SERVER_URL: http://nginx
+  WERBOT_GATEWAY_JOIN_TOKEN: ${JOIN_TOKEN:-}
+  # distroless nonroot: the named volume on /home/nonroot keeps its nonroot owner
+  WERBOT_GATEWAY_DATA_DIR: /home/nonroot/gateway
+  WERBOT_GATEWAY_PROXY_PROTOCOL: "true"
+  WERBOT_GATEWAY_HTTP_ADDR: ":9090"
+  WERBOT_GATEWAY_IDLE_TIMEOUT: ${GW_IDLE_TIMEOUT:-5m}
+
+networks:
+  public: { ipam: { config: [{ subnet: 10.231.0.0/24 }] } }
+  private: { internal: true, ipam: { config: [{ subnet: 10.231.1.0/24 }] } }
+
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
+    command: ["postgres", "-c", "log_min_duration_statement=250"] # slow statements show up in `docker compose logs postgres`
+    environment:
+      POSTGRES_USER: werbot
+      POSTGRES_PASSWORD: werbot
+      POSTGRES_DB: werbot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U werbot -d werbot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports: ["127.0.0.1::5432"]
+    networks: [public]
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
+    command: ["server", "-dir=/data", "-s3", "-s3.config=/etc/seaweedfs/s3.json"]
+    configs: [{ source: s3, target: /etc/seaweedfs/s3.json }]
+    volumes: ["seaweedfs-data:/data"]
+    healthcheck: # creates the recordings bucket, idempotently
+      test:
+        - CMD-SHELL
+        - >-
+          echo s3.bucket.list | weed shell | grep -qw werbot-recordings
+          || { echo 's3.bucket.create -name werbot-recordings' | weed shell; echo s3.bucket.list | weed shell | grep -qw werbot-recordings; }
+      interval: 2s
+      timeout: 10s
+      retries: 30
+    networks: [public]
+
+  server1: { <<: *server, hostname: server1, networks: { public: { ipv4_address: 10.231.0.11, aliases: [api] } } }
+  server2: { <<: *server, hostname: server2, networks: { public: { ipv4_address: 10.231.0.12, aliases: [api] } } }
+  web1: { <<: *web, hostname: web1, networks: { public: { ipv4_address: 10.231.0.31 } } }
+  web2: { <<: *web, hostname: web2, networks: { public: { ipv4_address: 10.231.0.32 } } }
+
+  nginx:
+    image: nginx:1.30.5-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
+    volumes: ["./nginx.conf:/etc/nginx/nginx.conf:ro"]
+    ulimits: { nofile: { soft: 65536, hard: 65536 } }
+    ports: ["127.0.0.1::80", "127.0.0.1::8081", "127.0.0.1::8082", "127.0.0.1::8443", "127.0.0.1::2222", "127.0.0.1::2201", "127.0.0.1::2202"]
+    networks: { public: { ipv4_address: 10.231.0.10 } }
+
+  gw1:
+    <<: *gateway
+    hostname: gw1
+    volumes: ["gw1-data:/home/nonroot"]
+    environment:
+      <<: *gateway-env
+      WERBOT_GATEWAY_NAME: gw1
+      WERBOT_GATEWAY_MAX_SESSIONS: "10000"
+    networks: { public: { ipv4_address: 10.231.0.21 }, private: {} }
+
+  gw2:
+    <<: *gateway
+    hostname: gw2
+    volumes: ["gw2-data:/home/nonroot"]
+    environment:
+      <<: *gateway-env
+      WERBOT_GATEWAY_NAME: gw2
+      WERBOT_GATEWAY_MAX_SESSIONS: ${GW2_MAX_SESSIONS:-10000}
+    networks: { public: { ipv4_address: 10.231.0.22 }, private: {} }
+
+  target:
+    image: lscr.io/linuxserver/openssh-server:10.3_p1-r1-ls241@sha256:0b46c755aac07057908077f2c7ff14f0ad923970bb6a3a67bcd008e72fa60050
+    hostname: target
+    environment:
+      USER_NAME: werbot
+      USER_PASSWORD: werbot-target
+      PASSWORD_ACCESS: "true"
+    networks: [private]
+
+  echo: # scenario 14: TCP and UDP echo on :7
+    image: busybox:1.37@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
+    # built on the host by the harness (internal/e2e/echotarget)
+    command: ["/echotarget"]
+    volumes: ["./.bin/echotarget:/echotarget:ro"]
+    networks: { private: { ipv4_address: 10.231.1.40 } }
+
+  dns: # scenario 14
+    image: coredns/coredns:1.12.1@sha256:e8c262566636e6bc340ece6473b0eed193cad045384401529721ddbe6463d31c
+    command: ["-conf", "/Corefile"]
+    configs: [{ source: corefile, target: /Corefile }]
+    networks: { private: { ipv4_address: 10.231.1.53 } }
+
+configs:
+  s3: # S3 credentials = WERBOT_RECORDINGS_S3_ACCESS_KEY/SECRET_KEY above
+    content: '{"identities":[{"name":"werbot","credentials":[{"accessKey":"werbot","secretKey":"werbot-s3-secret"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'
+  corefile: # scenario 14
+    content: |
+      .:53 {
+          hosts {
+              10.0.0.1 probe.werbot.test
+          }
+      }
+
+volumes: { seaweedfs-data: {}, gw1-data: {}, gw2-data: {} }
