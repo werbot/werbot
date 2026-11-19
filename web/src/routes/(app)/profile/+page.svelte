@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Code, ConnectError } from '@connectrpc/connect';
-	import { Banner, Button, SettingsCard, TextField, toast } from '#lib/ui/index.js';
+	import { Banner, Button, FilledField, InfoBlock, SettingsCard, toast } from '#lib/ui/index.js';
+	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { profile } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -78,31 +79,34 @@
 	}
 </script>
 
-<h1>{m.profile_title()}</h1>
+<PageHeader title={m.profile_title()} />
 {#if error}<Banner tone="alert">{error}</Banner>{/if}
 
 <div class="cards">
-	<SettingsCard title={m.profile_title()}>
+	<SettingsCard icon="person" title={m.profile_title()}>
 		<form onsubmit={save}>
-			<TextField label={m.field_name()} bind:value={name} required autocomplete="name" />
-			<TextField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
+			<FilledField label={m.field_name()} bind:value={name} required autocomplete="name" />
+			<FilledField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
 			{#if emailChanged}
-				<TextField type="password" label={m.profile_email_password()} bind:value={emailPassword} required autocomplete="current-password" />
+				<FilledField type="password" label={m.profile_email_password()} bind:value={emailPassword} required autocomplete="current-password" />
 			{/if}
 			<Button type="submit" variant="solid">{m.profile_save()}</Button>
 		</form>
 	</SettingsCard>
 
-	<SettingsCard title={m.profile_password_title()}>
+	<SettingsCard icon="lock" title={m.profile_password_title()}>
 		<form onsubmit={changePassword}>
-			<TextField type="password" label={m.profile_password_current()} bind:value={current} required autocomplete="current-password" />
-			<TextField type="password" label={m.profile_password_new()} bind:value={next} required minlength={12} autocomplete="new-password" />
+			<FilledField type="password" label={m.profile_password_current()} bind:value={current} required autocomplete="current-password" />
+			<FilledField type="password" label={m.profile_password_new()} bind:value={next} required minlength={12} autocomplete="new-password" />
 			<Button type="submit" variant="solid">{m.profile_password_submit()}</Button>
 		</form>
 	</SettingsCard>
 
-	<SettingsCard title={m.profile_delete_title()}>
-		<Button scheme="w" variant="solid" onclick={requestDeletion}>{m.profile_delete_submit()}</Button>
+	<SettingsCard icon="trash_can" title={m.profile_delete_title()}>
+		<div class="danger">
+			<InfoBlock tone="warning">{m.profile_delete_warning()}</InfoBlock>
+			<div><Button scheme="w" variant="solid" onclick={requestDeletion}>{m.profile_delete_submit()}</Button></div>
+		</div>
 	</SettingsCard>
 </div>
 
@@ -114,7 +118,8 @@
 		max-width: 480px;
 	}
 
-	form {
+	form,
+	.danger {
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
