@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
 import { loginAsOwner } from './support/auth';
+import { openNew } from './support/resources';
 
 const procs: ChildProcess[] = [];
 test.afterAll(() => procs.forEach((p) => p.kill()));
@@ -64,7 +65,7 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 		await poolSelect.click();
 		await page.getByRole('menuitem', { name, exact: true }).click();
 	};
-	await page.goto('/resources/new');
+	await openNew(page);
 	await expect(poolSelect).toBeVisible();
 	await page.getByLabel(en.resources_name).fill('e2e-pool-res');
 	await page.getByLabel(en.resources_ssh_host).fill('10.0.0.5');

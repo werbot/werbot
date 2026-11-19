@@ -1,12 +1,13 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
 import { OWNER, loginAsOwner } from './support/auth';
+import { openNew } from './support/resources';
 
 const secret = 'e2e-secret-value';
 
 test('resource, credential, rule, binding and access check', async ({ page }) => {
 	await loginAsOwner(page);
-	await page.goto('/resources/new');
+	await openNew(page);
 	await page.getByLabel(en.resources_name).fill('e2e-ssh');
 	await page.getByLabel(en.resources_ssh_host).fill('10.0.0.5');
 	await page.getByLabel(en.resources_ssh_login).fill('root');
@@ -48,9 +49,24 @@ test('resource, credential, rule, binding and access check', async ({ page }) =>
 	await expect(page.getByRole('link', { name: en.geoip_attribution })).toHaveAttribute('href', 'https://db-ip.com');
 });
 
+test('open resource by keyboard', async ({ page }) => {
+	await loginAsOwner(page);
+	await openNew(page);
+	await page.getByLabel(en.resources_name).fill('e2e-kbd');
+	await page.getByLabel(en.resources_ssh_host).fill('10.0.0.7');
+	await page.getByLabel(en.resources_ssh_login).fill('root');
+	await page.getByRole('button', { name: en.resources_save, exact: true }).click();
+	await expect(page).toHaveURL(/\/resources\/[0-9a-f-]{36}$/);
+	const id = page.url().split('/').pop();
+	await page.goto('/resources');
+	await page.getByRole('link', { name: 'e2e-kbd' }).focus();
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(new RegExp(`/resources/${id}$`));
+});
+
 test('tcp resource with ports, port binding, hints and health', async ({ page }) => {
 	await loginAsOwner(page);
-	await page.goto('/resources/new');
+	await openNew(page);
 	await page.getByRole('button', { name: 'ssh', exact: true }).click();
 	await page.getByRole('menuitem', { name: 'tcp' }).click();
 	await page.getByLabel(en.resources_name).fill('e2e-tcp');
@@ -92,7 +108,7 @@ test.describe('pool list load on the resource form', () => {
 
 	test('other error shows a banner', async ({ page }) => {
 		await page.route(listGateways, (r) => fail(r, 'internal'));
-		await page.goto('/resources/new');
+		await openNew(page);
 		await expect(page.getByText(en.error_unknown)).toBeVisible();
 	});
 
@@ -103,7 +119,7 @@ test.describe('pool list load on the resource form', () => {
 			await gate;
 			await r.continue();
 		});
-		await page.goto('/resources/new');
+		await openNew(page);
 		await fillValid(page);
 		const save = page.getByRole('button', { name: en.resources_save, exact: true });
 		await expect(save).toBeDisabled();
@@ -113,7 +129,7 @@ test.describe('pool list load on the resource form', () => {
 
 	test('permission denied shows no banner and still saves', async ({ page }) => {
 		await page.route(listGateways, (r) => fail(r, 'permission_denied'));
-		await page.goto('/resources/new');
+		await openNew(page);
 		await fillValid(page);
 		await expect(page.getByRole('button', { name: en.resources_save, exact: true })).toBeEnabled();
 		await expect(page.getByText(en.error_permission_denied)).toHaveCount(0);

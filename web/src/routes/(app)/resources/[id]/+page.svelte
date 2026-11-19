@@ -2,11 +2,13 @@
 	import { onMount } from 'svelte';
 	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
 	import { page } from '$app/state';
-	import { Banner, Breadcrumbs, Tabs } from '#lib/ui/index.js';
+	import { Banner, InfoBlock, Tabs } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { ConfigSchema as SshConfigSchema } from '#lib/gen/werbot/connector/ssh/v1/ssh_pb.js';
+	import PageHeader from '#lib/shell/PageHeader.svelte';
+	import HealthDot from '#lib/resources/HealthDot.svelte';
 	import AccessTab from '#lib/resources/AccessTab.svelte';
 	import CredentialsTab from '#lib/resources/CredentialsTab.svelte';
 	import HostKeyTab from '#lib/resources/HostKeyTab.svelte';
@@ -19,7 +21,7 @@
 	let error = $state('');
 	let tab = $state('settings');
 
-	const tabs = $derived([
+	const tabOptions = $derived([
 		{ value: 'settings', label: m.resources_tab_settings() },
 		{ value: 'credentials', label: m.resources_tab_credentials() },
 		{ value: 'rules', label: m.resources_tab_rules() },
@@ -53,22 +55,51 @@
 	});
 </script>
 
-<Breadcrumbs items={[{ label: m.resources_title(), href: '/resources' }, { label: resource?.name ?? '' }]} />
+<PageHeader title={resource?.name ?? ''} breadcrumbs={[{ label: m.resources_title(), href: '/resources' }, { label: resource?.name ?? '' }]}>
+	{#snippet toolbar()}
+		{#if resource}<HealthDot health={resource.health} />{/if}
+	{/snippet}
+	{#snippet tabs()}
+		<Tabs options={tabOptions} bind:value={tab} />
+	{/snippet}
+</PageHeader>
 {#if error}<Banner tone="alert">{error}</Banner>{/if}
 {#if resource}
-	<h1>{resource.name}</h1>
-	{#if resource.health?.error}<Banner tone="alert">{m.resources_health_error({ error: resource.health.error })}</Banner>{/if}
-	{#each hints as h (h)}<p><code>{h}</code></p>{/each}
-	<Tabs options={tabs} bind:value={tab} />
-	{#if tab === 'settings'}
-		<SettingsTab bind:resource {types} />
-	{:else if tab === 'credentials'}
-		<CredentialsTab bind:resource type={types.find((t) => t.name === resource?.type)} />
-	{:else if tab === 'rules'}
-		<RulesTab resourceId={resource.id} />
-	{:else if tab === 'access'}
-		<AccessTab {resource} />
-	{:else}
-		<HostKeyTab bind:resource />
-	{/if}
+	<div class="stack">
+		{#if resource.health?.error}<Banner tone="alert">{m.resources_health_error({ error: resource.health.error })}</Banner>{/if}
+		{#if hints.length}
+			<InfoBlock title={m.resources_connect_title()}>
+				{#each hints as h (h)}<div><code>{h}</code></div>{/each}
+			</InfoBlock>
+		{/if}
+		<div class="card">
+			{#if tab === 'settings'}
+				<SettingsTab bind:resource {types} />
+			{:else if tab === 'credentials'}
+				<CredentialsTab bind:resource type={types.find((t) => t.name === resource?.type)} />
+			{:else if tab === 'rules'}
+				<RulesTab resourceId={resource.id} />
+			{:else if tab === 'access'}
+				<AccessTab {resource} />
+			{:else}
+				<HostKeyTab bind:resource />
+			{/if}
+		</div>
+	</div>
 {/if}
+
+<style>
+	.stack {
+		display: flex;
+		flex-direction: column;
+		gap: var(--miso-sp-16);
+		margin-top: var(--miso-sp-16);
+	}
+
+	.card {
+		background: var(--miso-cont-top);
+		box-shadow: var(--miso-shadow-cont-minor-outline);
+		border-radius: var(--miso-radius-08);
+		padding: var(--miso-sp-16);
+	}
+</style>

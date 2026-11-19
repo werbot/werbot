@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { Badge, Banner, Button, Chip, EmptyState, Table, TextField } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
+	import NewResourceModal from '#lib/resources/NewResourceModal.svelte';
+	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import HealthDot from '#lib/resources/HealthDot.svelte';
 	import { parseLabelFilter } from '#lib/resources/labels.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -12,6 +13,7 @@
 	let list = $state<Resource[]>([]);
 	let filter = $state('');
 	let error = $state('');
+	let creating = $state(false);
 
 	async function refresh() {
 		error = '';
@@ -25,20 +27,21 @@
 	onMount(refresh);
 </script>
 
-<h1>{m.resources_title()}</h1>
+<PageHeader title={m.resources_title()} count={list.length}>
+	{#snippet toolbar()}
+		<form
+			onsubmit={(e) => {
+				e.preventDefault();
+				refresh();
+			}}
+		>
+			<TextField size={28} aria-label={m.resources_label_filter()} placeholder="env=prod,team=a" bind:value={filter} />
+		</form>
+		<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.resources_new()}</Button>
+	{/snippet}
+</PageHeader>
 {#if error}<Banner tone="alert">{error}</Banner>{/if}
-
-<div class="bar">
-	<form
-		onsubmit={(e) => {
-			e.preventDefault();
-			refresh();
-		}}
-	>
-		<TextField label={m.resources_label_filter()} placeholder="env=prod,team=a" bind:value={filter} />
-	</form>
-	<Button variant="solid" onclick={() => goto('/resources/new')}>{m.resources_new()}</Button>
-</div>
+<NewResourceModal bind:open={creating} />
 
 {#if list.length === 0}
 	<EmptyState title={m.resources_empty()} />
@@ -72,14 +75,6 @@
 {/if}
 
 <style>
-	.bar {
-		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: 12px;
-		margin-bottom: 16px;
-	}
-
 	.chips {
 		display: flex;
 		flex-wrap: wrap;
