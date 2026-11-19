@@ -310,6 +310,54 @@ func (q *Queries) GetAuthRequestByCode(ctx context.Context, codeHash []byte) (Ge
 	return i, err
 }
 
+const getCLISessionByRefresh = `-- name: GetCLISessionByRefresh :one
+SELECT id, user_id FROM cli_session WHERE refresh_hash = $1 AND client_id = $2
+`
+
+type GetCLISessionByRefreshParams struct {
+	RefreshHash []byte
+	ClientID    string
+}
+
+type GetCLISessionByRefreshRow struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetCLISessionByRefresh(ctx context.Context, arg GetCLISessionByRefreshParams) (GetCLISessionByRefreshRow, error) {
+	row := q.db.QueryRow(ctx, getCLISessionByRefresh, arg.RefreshHash, arg.ClientID)
+	var i GetCLISessionByRefreshRow
+	err := row.Scan(&i.ID, &i.UserID)
+	return i, err
+}
+
+const getLiveCLISession = `-- name: GetLiveCLISession :one
+SELECT c.id, c.org_id, c.user_id, c.client_id FROM cli_session c
+JOIN org_setting s ON s.org_id = c.org_id
+WHERE c.refresh_hash = $1 AND c.revoked_at IS NULL AND c.expires_at > now()
+  AND c.absolute_expires_at > now() AND c.created_at + s.cli_session_max > now()
+`
+
+type GetLiveCLISessionRow struct {
+	ID       uuid.UUID
+	OrgID    uuid.UUID
+	UserID   uuid.UUID
+	ClientID string
+}
+
+// The session of a refresh token, if live under the current settings.
+func (q *Queries) GetLiveCLISession(ctx context.Context, refreshHash []byte) (GetLiveCLISessionRow, error) {
+	row := q.db.QueryRow(ctx, getLiveCLISession, refreshHash)
+	var i GetLiveCLISessionRow
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.UserID,
+		&i.ClientID,
+	)
+	return i, err
+}
+
 const getPendingAuthRequest = `-- name: GetPendingAuthRequest :one
 SELECT client_id, client_hostname, client_ip, scopes FROM oauth_auth_request
 WHERE id = $1 AND user_id IS NULL AND expires_at > now()
@@ -391,6 +439,24 @@ func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyPara
 	return err
 }
 
+const logoutCLISession = `-- name: LogoutCLISession :one
+UPDATE cli_session SET revoked_at = now(), revoke_reason = 'logout'
+WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL
+RETURNING org_id
+`
+
+type LogoutCLISessionParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) LogoutCLISession(ctx context.Context, arg LogoutCLISessionParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, logoutCLISession, arg.ID, arg.UserID)
+	var org_id uuid.UUID
+	err := row.Scan(&org_id)
+	return org_id, err
+}
+
 const pollDeviceCode = `-- name: PollDeviceCode :one
 UPDATE oauth_device_code SET last_poll_at = now()
 WHERE device_code_hash = $1 AND client_id = $2
@@ -425,6 +491,47 @@ func (q *Queries) PollDeviceCode(ctx context.Context, arg PollDeviceCodeParams) 
 		&i.Live,
 	)
 	return i, err
+}
+
+const revokeReusedCLISession = `-- name: RevokeReusedCLISession :one
+UPDATE cli_session SET revoked_at = now(), revoke_reason = 'refresh_reuse'
+WHERE prev_refresh_hash = $1 AND revoked_at IS NULL
+RETURNING id, org_id
+`
+
+type RevokeReusedCLISessionRow struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+// The refresh token before the last rotation came back: end the session.
+func (q *Queries) RevokeReusedCLISession(ctx context.Context, prevRefreshHash []byte) (RevokeReusedCLISessionRow, error) {
+	row := q.db.QueryRow(ctx, revokeReusedCLISession, prevRefreshHash)
+	var i RevokeReusedCLISessionRow
+	err := row.Scan(&i.ID, &i.OrgID)
+	return i, err
+}
+
+const rotateCLISession = `-- name: RotateCLISession :execrows
+UPDATE cli_session c SET prev_refresh_hash = c.refresh_hash, refresh_hash = $1, last_used_at = now(),
+    expires_at = least(now() + s.cli_session_ttl, c.absolute_expires_at, c.created_at + s.cli_session_max)
+FROM org_setting s
+WHERE c.id = $2 AND s.org_id = c.org_id AND c.refresh_hash = $3 AND c.revoked_at IS NULL
+`
+
+type RotateCLISessionParams struct {
+	NewHash     []byte
+	ID          uuid.UUID
+	RefreshHash []byte
+}
+
+// Of concurrent rotations of one token exactly one matches refresh_hash.
+func (q *Queries) RotateCLISession(ctx context.Context, arg RotateCLISessionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, rotateCLISession, arg.NewHash, arg.ID, arg.RefreshHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const saveAuthCode = `-- name: SaveAuthCode :execrows

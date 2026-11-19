@@ -86,3 +86,31 @@ WHERE user_code = @user_code AND status = 'pending' AND expires_at > now();
 -- name: DenyDeviceCode :execrows
 UPDATE oauth_device_code SET status = 'denied'
 WHERE user_code = @user_code AND status = 'pending' AND expires_at > now();
+
+-- name: GetLiveCLISession :one
+-- The session of a refresh token, if live under the current settings.
+SELECT c.id, c.org_id, c.user_id, c.client_id FROM cli_session c
+JOIN org_setting s ON s.org_id = c.org_id
+WHERE c.refresh_hash = @refresh_hash AND c.revoked_at IS NULL AND c.expires_at > now()
+  AND c.absolute_expires_at > now() AND c.created_at + s.cli_session_max > now();
+
+-- name: RevokeReusedCLISession :one
+-- The refresh token before the last rotation came back: end the session.
+UPDATE cli_session SET revoked_at = now(), revoke_reason = 'refresh_reuse'
+WHERE prev_refresh_hash = @prev_refresh_hash AND revoked_at IS NULL
+RETURNING id, org_id;
+
+-- name: RotateCLISession :execrows
+-- Of concurrent rotations of one token exactly one matches refresh_hash.
+UPDATE cli_session c SET prev_refresh_hash = c.refresh_hash, refresh_hash = @new_hash, last_used_at = now(),
+    expires_at = least(now() + s.cli_session_ttl, c.absolute_expires_at, c.created_at + s.cli_session_max)
+FROM org_setting s
+WHERE c.id = @id AND s.org_id = c.org_id AND c.refresh_hash = @refresh_hash AND c.revoked_at IS NULL;
+
+-- name: GetCLISessionByRefresh :one
+SELECT id, user_id FROM cli_session WHERE refresh_hash = @refresh_hash AND client_id = @client_id;
+
+-- name: LogoutCLISession :one
+UPDATE cli_session SET revoked_at = now(), revoke_reason = 'logout'
+WHERE id = @id AND user_id = @user_id AND revoked_at IS NULL
+RETURNING org_id;

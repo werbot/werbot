@@ -51,16 +51,6 @@ func (*storage) AuthorizeClientIDSecret(context.Context, string, string) error {
 	return oidc.ErrInvalidClient().WithDescription("client secrets are not supported")
 }
 
-// GetRefreshTokenInfo implements op.AuthStorage: an unknown token is
-// op.ErrInvalidRefreshToken, so /oauth/revoke tries it as an access token.
-func (*storage) GetRefreshTokenInfo(context.Context, string, string) (string, string, error) {
-	return "", "", op.ErrInvalidRefreshToken
-}
-
-// RevokeToken implements op.AuthStorage: a token it cannot match is not an
-// error (RFC 7009 §2.2).
-func (*storage) RevokeToken(context.Context, string, string, string) *oidc.Error { return nil }
-
 // TerminateSession implements op.AuthStorage: the CLI ends its session with
 // /oauth/revoke; end_session has nothing to end.
 func (*storage) TerminateSession(context.Context, string, string) error { return nil }
@@ -96,11 +86,5 @@ func (*storage) GetKeyByIDAndClientID(context.Context, string, string) (*jose.JS
 
 // ValidateJWTProfileScopes implements op.OPStorage: no JWT profile grant.
 func (*storage) ValidateJWTProfileScopes(context.Context, string, []string) ([]string, error) {
-	return nil, errNoFlow
-}
-
-// The flow step below answers errNoFlow until its flow is served.
-
-func (*storage) TokenRequestByRefreshToken(context.Context, string) (op.RefreshTokenRequest, error) {
 	return nil, errNoFlow
 }

@@ -38,7 +38,7 @@ func (*storage) CreateAccessToken(context.Context, op.TokenRequest) (string, tim
 
 // CreateAccessAndRefreshTokens implements op.Storage. The access token id
 // (jti) is the cli_session id.
-func (s *storage) CreateAccessAndRefreshTokens(ctx context.Context, request op.TokenRequest, _ string) (string, string, time.Time, error) {
+func (s *storage) CreateAccessAndRefreshTokens(ctx context.Context, request op.TokenRequest, current string) (string, string, time.Time, error) {
 	switch req := request.(type) {
 	case *authRequest:
 		// Of concurrent exchanges of one code exactly one deletes the row.
@@ -47,6 +47,8 @@ func (s *storage) CreateAccessAndRefreshTokens(ctx context.Context, request op.T
 		})
 	case *op.DeviceAuthorizationState:
 		return s.exchangeDevice(ctx)
+	case *refreshRequest:
+		return s.rotate(ctx, req, current)
 	default:
 		return "", "", time.Time{}, errNoFlow
 	}
@@ -106,6 +108,8 @@ func (*storage) GetPrivateClaimsFromRequest(ctx context.Context, request op.Toke
 			return nil, errNoFlow
 		}
 		org = d.orgID
+	case *refreshRequest:
+		org = req.OrgID
 	default:
 		return nil, errNoFlow
 	}
