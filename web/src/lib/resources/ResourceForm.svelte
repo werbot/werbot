@@ -23,6 +23,7 @@
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import FieldRow from '#lib/FieldRow.svelte';
 	import { configFormFor } from './forms/index.js';
 	import LabelsEditor from './LabelsEditor.svelte';
 	import { labelsFromRows, rowsFromLabels } from './labels.js';
@@ -103,8 +104,10 @@
 			<Form {type} {initial} onchange={(v) => (value = v)} />
 		{/key}
 	{/if}
-	<TextField label={m.resources_idle_timeout()} bind:value={idleMinutes} type="number" min={1} max={1440} hint={m.resources_timeout_hint()} />
-	<TextField label={m.resources_max_duration()} bind:value={maxMinutes} type="number" min={1} max={10080} hint={m.resources_timeout_hint()} />
+	<FieldRow even>
+		<TextField label={m.resources_idle_timeout()} bind:value={idleMinutes} type="number" min={1} max={1440} hint={m.resources_timeout_hint()} />
+		<TextField label={m.resources_max_duration()} bind:value={maxMinutes} type="number" min={1} max={10080} hint={m.resources_timeout_hint()} />
+	</FieldRow>
 	<LabelsEditor bind:rows />
 	<div class="actions">
 		{#if onback}<Button scheme="g" variant="plain" onclick={onback}>{m.resources_back()}</Button>{/if}
@@ -129,7 +132,7 @@
 		bottom: 0;
 		display: flex;
 		gap: var(--miso-sp-8);
-		padding: var(--miso-sp-12) 0 var(--miso-sp-16);
+		padding: var(--miso-sp-12) 0 calc(var(--miso-sp-16) + var(--miso-sp-12));
 		background: var(--miso-cont-top);
 	}
 </style>

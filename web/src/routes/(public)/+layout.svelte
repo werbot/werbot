@@ -57,6 +57,17 @@
 		width: 100%;
 	}
 
+	.public :global(.forgot) {
+		align-self: center;
+		font: var(--miso-font-ui-12-med);
+		color: var(--miso-txt-link);
+		text-decoration: none;
+	}
+
+	.public :global(.forgot:hover) {
+		text-decoration: underline;
+	}
+
 	.public :global(h1) {
 		margin: 0;
 		font: var(--miso-font-ui-22-semi);

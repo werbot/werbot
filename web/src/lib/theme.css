@@ -77,9 +77,21 @@
 	--miso-btn-a-txt: var(--wb-brand-900);
 	--miso-btn-b-txt: var(--wb-brand-900);
 	--miso-line-act: var(--wb-brand-700);
+	--miso-btn-togg-on: var(--wb-brand-700);
 	--miso-inp-selection: var(--wb-brand-400);
 	--miso-sidebar-ico-active: var(--wb-brand-700);
 	--miso-sidebar-badge-upcoming: var(--wb-brand-800);
+
+	/* Remaining blue / purple families outside the interblue and violet ramps */
+	--miso-costs-task-major: var(--wb-brand-700);
+	--miso-costs-task-minor: var(--wb-brand-500);
+	--miso-costs-time-major: var(--wb-brand-850);
+	--miso-costs-time-minor: var(--wb-brand-600);
+	--miso-lbl-upcoming-major: var(--wb-brand-800);
+	--miso-lbl-upcoming-minor: var(--wb-brand-300);
+	--miso-lbl-yesterday-major: var(--wb-brand-850);
+	--miso-lbl-yesterday-minor: var(--wb-brand-300);
+	--miso-prior-3: var(--wb-brand-600);
 
 	/* Highlight schemes A and B share the brand */
 	--miso-hlt-easy: var(--wb-brand-a50);
@@ -143,10 +155,7 @@
 	);
 }
 
-/* Toggle: knob dark on the gold track, ON label dark (gold text is unreadable on white) */
-:root .miso-toggle input:checked ~ .miso-toggle__track .miso-toggle__knob {
-	background: var(--wb-on-brand);
-}
+/* Toggle: ON label dark (gold text is unreadable on white); the knob follows --tg-knob-on */
 :root .miso-toggle input:checked ~ .miso-toggle__state {
 	color: var(--wb-brand-900);
 }

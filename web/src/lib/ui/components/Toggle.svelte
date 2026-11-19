@@ -33,6 +33,8 @@
 <style>
 	.miso-toggle {
 		--tg-on: var(--miso-btn-togg-on);
+		/* knob on the checked track: dark on light tracks, white on the invert variants */
+		--tg-knob-on: var(--miso-txt-primary);
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
@@ -44,10 +46,12 @@
 
 	.miso-toggle--blue {
 		--tg-on: var(--miso-hlt-invert);
+		--tg-knob-on: var(--miso-graphite-0);
 	}
 
 	.miso-toggle--violet {
 		--tg-on: var(--miso-hlt-b-invert);
+		--tg-knob-on: var(--miso-graphite-0);
 	}
 
 	.miso-toggle--disabled {
@@ -97,7 +101,7 @@
 		top: 3px;
 		width: 10px;
 		height: 10px;
-		background: #fff;
+		background: var(--tg-knob-on);
 	}
 
 	/* .sw_txt:before{uppercase;12-mini-med; off:tertiary, on:track color} */

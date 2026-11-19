@@ -41,14 +41,12 @@
 <style>
 	/* 260px context column on cont-mid with the right hairline (demo ProjectSidebar .psb) */
 	.cc {
-		position: relative;
-		/* keep the right hairline above the work area background */
-		z-index: 1;
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
 		background: var(--miso-cont-mid);
-		box-shadow: 1px 0 0 var(--miso-line-tertiary);
+		/* a border, not a shadow: the sticky page header must not paint over it */
+		border-right: 1px solid var(--miso-line-tertiary);
 		overflow: hidden;
 	}
 

@@ -55,7 +55,7 @@
 </script>
 
 <Modal bind:open plain title={m.resources_new()} width={720}>
-	<div class="body">
+	<div class={['body', step === 3 && 'body--form']}>
 		{#if error}<Banner tone="alert">{error}</Banner>{/if}
 		{#if types}
 			<div class="steps">
@@ -86,7 +86,14 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--miso-sp-12);
-		padding: var(--miso-sp-12) 28px 0;
+		/* 28px, the modal's own side padding: the same on the bottom edge */
+		--pad: calc(var(--miso-sp-16) + var(--miso-sp-12));
+		padding: var(--miso-sp-12) var(--pad) var(--pad);
+	}
+
+	/* step 3: the sticky footer carries the bottom padding */
+	.body--form {
+		padding-bottom: 0;
 	}
 
 	.steps {

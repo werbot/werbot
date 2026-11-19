@@ -3,6 +3,7 @@
 	import { TextField } from '#lib/ui/index.js';
 	import { ConfigSchema } from '#lib/gen/werbot/connector/tcp/v1/tcp_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import FieldRow from '#lib/FieldRow.svelte';
 	import { tcpConfigValue, type ConfigFormProps } from './index.js';
 	import PortRangesField from './PortRangesField.svelte';
 	import { formatPorts } from './ports.js';
@@ -23,5 +24,7 @@
 	});
 </script>
 
-<TextField label={m.resources_ssh_host()} bind:value={host} required />
-<PortRangesField label={m.resources_ports()} bind:value={ports} required />
+<FieldRow even>
+	<TextField label={m.resources_ssh_host()} bind:value={host} required />
+	<PortRangesField label={m.resources_ports()} bind:value={ports} required />
+</FieldRow>

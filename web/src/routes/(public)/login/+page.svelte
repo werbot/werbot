@@ -27,5 +27,5 @@
 	<FilledField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
 	<FilledField type="password" label={m.field_password()} bind:value={password} required autocomplete="current-password" />
 	<Button type="submit" variant="solid" size={48}>{m.auth_login_submit()}</Button>
-	<Button type="button" variant="plain" size={48} onclick={() => goto('/forgot-password')}>{m.auth_forgot_link()}</Button>
+	<a class="forgot" href="/forgot-password">{m.auth_forgot_link()}</a>
 </form>

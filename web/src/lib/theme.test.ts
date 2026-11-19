@@ -27,6 +27,9 @@ describe('brand theme contrast', () => {
 	it('base step is the logo gold', () => {
 		expect(token('--wb-brand-700')).toBe('#f6c90c');
 	});
+	it('checked toggle track is the brand gold', () => {
+		expect(token('--miso-btn-togg-on')).toBe(token('--wb-brand-700'));
+	});
 	it('link text on white >= 4.5', () => {
 		expect(contrast(token('--miso-txt-link'), '#ffffff')).toBeGreaterThanOrEqual(4.5);
 		expect(contrast(token('--miso-txt-link-major'), '#ffffff')).toBeGreaterThanOrEqual(4.5);
