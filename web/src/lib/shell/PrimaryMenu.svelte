@@ -145,12 +145,8 @@
 		transition: all 0.1s ease-in;
 	}
 
-	.pm__profile:hover:not(.pm__profile--active) {
-		background: var(--miso-sidebar-hover);
-	}
-
+	.pm__profile:hover,
 	.pm__profile--active {
-		background: var(--miso-sidebar-active);
-		box-shadow: 0 0 3px 0 var(--miso-dark-a20) inset;
+		background: var(--wb-brand-700);
 	}
 </style>
