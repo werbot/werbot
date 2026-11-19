@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Banner, Drawer, PropertyRow } from '#lib/ui/index.js';
+	import { Avatar, Banner, Drawer, PropertyRow, Skeleton } from '#lib/ui/index.js';
 	import { audit } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { AuditEvent } from '#lib/gen/werbot/v1/audit_pb.js';
@@ -29,11 +29,13 @@
 	});
 </script>
 
-<Drawer open={!!id} title={m.audit_event_title()} onclose={() => (id = '')}>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
+<Drawer bind:open={() => !!id, (v) => !v && (id = '')} resizable snapPoints={[480, 720]} width={480} title={event ? `${m.audit_title()} › ${event.action}` : m.audit_event_title()}>
+	{#if error}<Banner tone="alert">{error}</Banner>{:else if !event}<Skeleton variant="text" lines={5} />{/if}
 	{#if event}
 		<PropertyRow label={m.audit_col_time()}>{fmt(event.createdAt)}</PropertyRow>
-		<PropertyRow label={m.audit_col_actor()}>{event.actorLogin || event.actorKind}</PropertyRow>
+		<PropertyRow label={m.audit_col_actor()}>
+			{#if event.actorLogin}<span class="actor"><Avatar name={event.actorLogin} size={24} />{event.actorLogin}</span>{:else}{event.actorKind}{/if}
+		</PropertyRow>
 		<PropertyRow label={m.audit_col_action()}>{event.action}</PropertyRow>
 		<PropertyRow label={m.audit_col_target()}>{event.targetType} {event.targetId}</PropertyRow>
 		<PropertyRow label={m.audit_ip()}>{event.ip || '—'}</PropertyRow>
@@ -42,6 +44,12 @@
 </Drawer>
 
 <style>
+	.actor {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--miso-sp-08);
+	}
+
 	pre {
 		margin: 0;
 		white-space: pre-wrap;

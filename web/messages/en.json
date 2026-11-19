@@ -272,8 +272,6 @@
 	"audit_filter_action_hint": "session or session.start",
 	"audit_filter_actor": "Actor",
 	"audit_filter_actor_all": "Everyone",
-	"audit_filter_from": "From",
-	"audit_filter_to": "To",
 	"audit_col_time": "Time",
 	"audit_col_actor": "Actor",
 	"audit_col_action": "Action",
