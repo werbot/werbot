@@ -33,7 +33,7 @@ func TestLoadDefaults(t *testing.T) {
 	assert.Equal(t, config.Config{
 		Env: "production", HTTPAddr: ":8080", DatabaseURL: "postgres://x", LogLevel: "info", LogFormat: "json", MetricsAddr: "", WebEmbedded: true,
 		PublicURL: "https://werbot.example.com", WebURL: "https://werbot.example.com", SMTP: config.SMTP{Port: 587}, SecretKey: bytes.Repeat([]byte{1}, 32),
-		DataDir: "./data", GatewayAddr: ":8443",
+		DataDir: "./data", GatewayAddr: ":8443", GeoIPURL: config.DefaultGeoIPURL,
 	}, c)
 }
 
@@ -194,4 +194,31 @@ func TestLoadRecordingsS3PartialCredentials(t *testing.T) {
 	require.ErrorContains(t, err, "WERBOT_RECORDINGS_S3_SECRET_KEY")
 	_, err = config.Load(base(map[string]string{"WERBOT_RECORDINGS_S3_BUCKET": "rec", "WERBOT_RECORDINGS_S3_SECRET_KEY": "sk"}))
 	require.ErrorContains(t, err, "WERBOT_RECORDINGS_S3_ACCESS_KEY")
+}
+
+func TestLoadGeoIPURL(t *testing.T) {
+	c, err := config.Load(base(nil))
+	require.NoError(t, err)
+	assert.Equal(t, "https://download.db-ip.com/free/dbip-country-lite-%s.mmdb.gz", c.GeoIPURL)
+	for _, v := range []string{
+		"https://geo.example.com/country.mmdb?token=a%2Fb",
+		"https://geo.example.com/%s/country.tar.gz",
+		"http://127.0.0.1:8000/country.mmdb",
+		"http://localhost/country.mmdb",
+	} {
+		c, err = config.Load(base(map[string]string{"WERBOT_GEOIP_URL": v}))
+		require.NoError(t, err, v)
+		assert.Equal(t, v, c.GeoIPURL)
+	}
+	for _, v := range []string{
+		"http://geo.example.com/country.mmdb?token=SECRET",
+		"https://geo.example.com/%s/%s.mmdb?token=SECRET",
+		"ftp://geo.example.com/country.mmdb?token=SECRET",
+		"/country.mmdb?token=SECRET",
+		"https://geo.example.com/%zz?token=SECRET",
+	} {
+		_, err = config.Load(base(map[string]string{"WERBOT_GEOIP_URL": v}))
+		require.ErrorContains(t, err, "WERBOT_GEOIP_URL", v)
+		assert.NotContains(t, err.Error(), "SECRET", v)
+	}
 }

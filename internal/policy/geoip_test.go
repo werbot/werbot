@@ -27,6 +27,25 @@ func TestOpenGeoIP(t *testing.T) {
 	}
 }
 
+func TestGeoIPCountryFields(t *testing.T) {
+	p, ip := netip.MustParsePrefix("10.0.0.0/8"), netip.MustParseAddr("10.1.2.3")
+	for name, c := range map[string]struct {
+		data []byte
+		want string
+	}{
+		"country.iso_code":   {geoiptest.MMDB(p, "DE"), "DE"},
+		"country_code":       {geoiptest.CountryCodeMMDB(p, "FR"), "FR"},
+		"lower case":         {geoiptest.CountryCodeMMDB(p, "fr"), "FR"},
+		"alpha-3":            {geoiptest.MMDB(p, "DEU"), ""},
+		"not letters":        {geoiptest.CountryCodeMMDB(p, "1F"), ""},
+		"empty country_code": {geoiptest.CountryCodeMMDB(p, ""), ""},
+	} {
+		g, err := OpenGeoIP(c.data)
+		require.NoError(t, err, name)
+		assert.Equal(t, c.want, g.Country(ip), name)
+	}
+}
+
 func TestOpenGeoIPErrors(t *testing.T) {
 	random := make([]byte, 4096)
 	_, _ = rand.Read(random)

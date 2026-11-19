@@ -28,7 +28,8 @@ import (
 	"github.com/werbot/werbot/internal/session/recstore"
 )
 
-// feedsConfig is where the feed jobs download; tests point it at a closed port.
+// feedsConfig is where the feed jobs download; tests point it at a closed
+// port. An empty GeoIPURL takes cfg.GeoIPURL.
 var feedsConfig = policy.DefaultJobsConfig()
 
 // policyResources is the inventory as a policy.ResourceSource.
@@ -114,7 +115,11 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 
 	workers := river.NewWorkers()
 	river.AddWorker(workers, notify.NewWorker(mailer, box))
-	periodic := policy.RegisterJobs(workers, s.Policy, feedsConfig)
+	feeds := feedsConfig
+	if feeds.GeoIPURL == "" {
+		feeds.GeoIPURL = cfg.GeoIPURL
+	}
+	periodic := policy.RegisterJobs(workers, s.Policy, feeds)
 	periodic = append(periodic, session.RegisterJobs(workers, s.Sessions, time.Now())...)
 	periodic = append(periodic, inventory.RegisterGatewayJobs(workers, s.Gateways)...)
 	if s.Jobs, err = jobs.NewClient(pool, workers, periodic, logger); err != nil {

@@ -20,7 +20,7 @@ func (BlocklistRefreshArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{Queue: jobs.QueueFeeds}
 }
 
-// GeoIPRefreshArgs is the daily DB-IP check; it downloads once a month.
+// GeoIPRefreshArgs is the daily GeoIP check; it downloads once a month.
 type GeoIPRefreshArgs struct{}
 
 // Kind implements river.JobArgs.
@@ -34,17 +34,17 @@ func (GeoIPRefreshArgs) InsertOpts() river.InsertOpts {
 // JobsConfig is where and how the feed jobs download.
 type JobsConfig struct {
 	BlocklistURL  string // firehol netset
-	GeoIPURL      string // DB-IP file; %s is the month as 2006-01
+	GeoIPURL      string // country database (WERBOT_GEOIP_URL); %s is the month as 2006-01
 	GeoIPMaxBytes int64  // limit of the decompressed database
 	HTTP          *http.Client
 	Now           func() time.Time
 }
 
-// DefaultJobsConfig is the production configuration.
+// DefaultJobsConfig is the production configuration without GeoIPURL,
+// which the caller takes from config.
 func DefaultJobsConfig() JobsConfig {
 	return JobsConfig{
 		BlocklistURL:  "https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset",
-		GeoIPURL:      "https://download.db-ip.com/free/dbip-country-lite-%s.mmdb.gz",
 		GeoIPMaxBytes: 256 << 20,
 		HTTP:          &http.Client{Timeout: 2 * time.Minute},
 		Now:           time.Now,

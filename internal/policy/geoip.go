@@ -3,6 +3,7 @@ package policy
 import (
 	"fmt"
 	"net/netip"
+	"strings"
 
 	"github.com/oschwald/maxminddb-golang/v2"
 )
@@ -15,7 +16,7 @@ type GeoIP interface {
 
 type mmdb struct{ r *maxminddb.Reader }
 
-// OpenGeoIP opens a DB-IP Lite country database held in memory; it reads no files.
+// OpenGeoIP opens a country database held in memory; it reads no files.
 func OpenGeoIP(data []byte) (GeoIP, error) {
 	r, err := maxminddb.OpenBytes(data)
 	if err != nil {
@@ -27,9 +28,17 @@ func OpenGeoIP(data []byte) (GeoIP, error) {
 	return mmdb{r}, nil
 }
 
+// Country reads country.iso_code (DB-IP, MaxMind), else the top-level
+// country_code (IPinfo Lite); only an alpha-2 code counts.
 func (m mmdb) Country(ip netip.Addr) string {
+	res := m.r.Lookup(ip.Unmap())
 	var code string
-	if err := m.r.Lookup(ip.Unmap()).DecodePath(&code, "country", "iso_code"); err != nil {
+	if res.DecodePath(&code, "country", "iso_code") != nil || code == "" {
+		code = ""
+		_ = res.DecodePath(&code, "country_code")
+	}
+	code = strings.ToUpper(code)
+	if len(code) != 2 || code[0] < 'A' || code[0] > 'Z' || code[1] < 'A' || code[1] > 'Z' {
 		return ""
 	}
 	return code

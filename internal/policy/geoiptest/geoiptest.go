@@ -37,8 +37,19 @@ func mmdbMap(pairs ...[]byte) []byte {
 }
 
 // MMDB builds an IPv4 DB-IP Lite-style database that maps prefix to
-// country; every other address has no record. 1 <= prefix.Bits() <= 32.
+// country.iso_code; every other address has no record. 1 <= prefix.Bits() <= 32.
 func MMDB(prefix netip.Prefix, country string) []byte {
+	return build(prefix, mmdbMap(mmdbString("country"), mmdbMap(mmdbString("iso_code"), mmdbString(country))))
+}
+
+// CountryCodeMMDB is MMDB in the IPinfo Lite layout: a top-level
+// country_code beside country as a name string.
+func CountryCodeMMDB(prefix netip.Prefix, country string) []byte {
+	return build(prefix, mmdbMap(mmdbString("country"), mmdbString("Test"), mmdbString("country_code"), mmdbString(country)))
+}
+
+// build maps prefix to the encoded data record.
+func build(prefix netip.Prefix, data []byte) []byte {
 	bits := prefix.Bits()
 	if !prefix.Addr().Is4() || bits < 1 || bits > 32 {
 		panic("geoiptest: IPv4 prefix with 1..32 bits, got " + prefix.String())
@@ -61,7 +72,7 @@ func MMDB(prefix netip.Prefix, country string) []byte {
 		db = append(db, recs[1]...)
 	}
 	db = append(db, make([]byte, 16)...)
-	db = append(db, mmdbMap(mmdbString("country"), mmdbMap(mmdbString("iso_code"), mmdbString(country)))...)
+	db = append(db, data...)
 	db = append(db, "\xAB\xCD\xEFMaxMind.com"...)
 	return append(db, mmdbMap(
 		mmdbString("binary_format_major_version"), mmdbUint(mmdbTypeUint16, 2),

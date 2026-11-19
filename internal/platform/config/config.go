@@ -30,6 +30,9 @@ type RecordingsS3 struct {
 
 const secretKeyLen = 32
 
+// DefaultGeoIPURL is the monthly DB-IP Country Lite database.
+const DefaultGeoIPURL = "https://download.db-ip.com/free/dbip-country-lite-%s.mmdb.gz"
+
 // Config is the validated server configuration.
 type Config struct {
 	Env         string // WERBOT_ENV: "production" (default) | "development"
@@ -54,6 +57,10 @@ type Config struct {
 	LocalPoolAllowLoopback bool
 
 	RecordingsS3 RecordingsS3 // WERBOT_RECORDINGS_S3_*
+
+	// GeoIPURL (WERBOT_GEOIP_URL, default DefaultGeoIPURL) is the country
+	// database download; "%s" is the month as 2006-01. It may hold a token.
+	GeoIPURL string
 }
 
 // Vars lists every environment variable Load reads, in contract order.
@@ -65,7 +72,7 @@ func Vars() []string {
 		"WERBOT_SECRET_KEY", "WERBOT_SECRET_KEY_PREVIOUS", "WERBOT_DATA_DIR", "WERBOT_GATEWAY_ADDR",
 		"WERBOT_LOCAL_POOL_ALLOW_LOOPBACK",
 		"WERBOT_RECORDINGS_S3_ENDPOINT", "WERBOT_RECORDINGS_S3_BUCKET", "WERBOT_RECORDINGS_S3_REGION",
-		"WERBOT_RECORDINGS_S3_ACCESS_KEY", "WERBOT_RECORDINGS_S3_SECRET_KEY",
+		"WERBOT_RECORDINGS_S3_ACCESS_KEY", "WERBOT_RECORDINGS_S3_SECRET_KEY", "WERBOT_GEOIP_URL",
 	}
 }
 
@@ -79,6 +86,7 @@ func Load(getenv func(string) string) (Config, error) {
 		WebEmbedded: true,
 		DataDir:     or(getenv("WERBOT_DATA_DIR"), "./data"),
 		GatewayAddr: or(getenv("WERBOT_GATEWAY_ADDR"), ":8443"),
+		GeoIPURL:    or(getenv("WERBOT_GEOIP_URL"), DefaultGeoIPURL),
 	}
 	if c.DatabaseURL == "" {
 		return Config{}, errors.New("WERBOT_DATABASE_URL: required")
@@ -130,6 +138,9 @@ func Load(getenv func(string) string) (Config, error) {
 		}
 	}
 	if c.RecordingsS3, err = loadRecordingsS3(getenv); err != nil {
+		return Config{}, err
+	}
+	if err := checkGeoIPURL(c.GeoIPURL); err != nil {
 		return Config{}, err
 	}
 	return c, nil
@@ -218,6 +229,28 @@ func httpURL(name, v string) (string, error) {
 		return "", fmt.Errorf("%s: want http(s)://host, got %q", name, v)
 	}
 	return strings.TrimSuffix(v, "/"), nil
+}
+
+// checkGeoIPURL wants https://, or http:// to a loopback host, and at most
+// one "%s". Errors omit the URL: it may hold a token.
+func checkGeoIPURL(v string) error {
+	if strings.Count(v, "%s") > 1 {
+		return errors.New(`WERBOT_GEOIP_URL: at most one "%s"`)
+	}
+	u, err := url.Parse(strings.Replace(v, "%s", "2006-01", 1))
+	if err != nil || u.Host == "" || (u.Scheme != "https" && (u.Scheme != "http" || !isLoopback(u.Hostname()))) {
+		return errors.New("WERBOT_GEOIP_URL: want https://host, or http:// to a loopback host")
+	}
+	return nil
+}
+
+// isLoopback reports whether host is localhost, 127.0.0.0/8 or ::1.
+func isLoopback(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip, err := netip.ParseAddr(host)
+	return err == nil && ip.IsLoopback()
 }
 
 func decodeKey(name, v string) ([]byte, error) {
