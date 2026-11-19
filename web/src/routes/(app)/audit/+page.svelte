@@ -96,8 +96,10 @@
 		<FilterMenu active={activeFilters}>
 			<TextField label={m.audit_filter_action()} placeholder={m.audit_filter_action_hint()} maxlength={64} bind:value={form.action} onchange={apply} />
 			<Select label={m.audit_filter_actor()} options={[all, ...actors]} bind:value={form.actor} onchange={apply} />
-			<Calendar range bind:value={rangeStart} bind:endValue={rangeEnd} onselect={apply} />
-			{#if activeFilters > 0}{@render resetButton()}{/if}
+			{#snippet calendar()}
+				<Calendar range bind:value={rangeStart} bind:endValue={rangeEnd} onselect={apply} />
+			{/snippet}
+			{#snippet footer()}{#if activeFilters > 0}{@render resetButton()}{/if}{/snippet}
 		</FilterMenu>
 	{/snippet}
 </PageHeader>

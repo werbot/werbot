@@ -16,11 +16,14 @@
 	let error = $state('');
 	let creating = $state(false);
 	let loaded = $state(false);
+	let any = $state(false);
 
 	async function refresh() {
 		error = '';
 		try {
-			({ resources: list } = await resources.listResources({ labelFilter: parseLabelFilter(filter) }));
+			const labelFilter = parseLabelFilter(filter);
+			({ resources: list } = await resources.listResources({ labelFilter }));
+			if (!Object.keys(labelFilter).length) any = list.length > 0;
 			loaded = true;
 		} catch (e) {
 			error = errorMessage(e);
@@ -40,7 +43,7 @@
 		>
 			<TextField size={28} aria-label={m.resources_label_filter()} placeholder="env=prod,team=a" bind:value={filter} />
 		</form>
-		{#if list.length > 0}
+		{#if any}
 			<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.resources_new()}</Button>
 		{/if}
 	{/snippet}

@@ -90,8 +90,10 @@
 				<Select label={m.sessions_filter_user()} options={[{ value: '', label: m.sessions_filter_user_all() }, ...users]} bind:value={userId} onchange={first} />
 				<Select label={m.sessions_filter_resource()} options={[{ value: '', label: m.sessions_filter_resource_all() }, ...resourceOptions]} bind:value={resourceId} onchange={first} />
 			{/if}
-			<Calendar range bind:value={rangeStart} bind:endValue={rangeEnd} onselect={first} />
-			{#if activeFilters > 0}{@render resetButton()}{/if}
+			{#snippet calendar()}
+				<Calendar range bind:value={rangeStart} bind:endValue={rangeEnd} onselect={first} />
+			{/snippet}
+			{#snippet footer()}{#if activeFilters > 0}{@render resetButton()}{/if}{/snippet}
 		</FilterMenu>
 	{/snippet}
 </PageHeader>

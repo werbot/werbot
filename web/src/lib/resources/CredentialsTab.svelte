@@ -17,13 +17,14 @@
 	const kind = $derived(picked || type?.credentialKinds[0] || '');
 	let value = $state('');
 	let fileName = $state('');
+	let fileValue = '';
 	let error = $state('');
 
 	async function run(action: () => Promise<unknown>) {
 		error = '';
 		try {
 			await action();
-			value = fileName = '';
+			value = fileName = fileValue = '';
 			const res = await resources.getResource({ id: resource.id });
 			if (res.resource) resource = res.resource;
 			toast({ tone: 'success', text: m.common_saved() });
@@ -40,11 +41,17 @@
 				error = m.cred_file_too_large();
 				return;
 			}
-			value = read.key;
+			value = fileValue = read.key;
 			fileName = file.name;
 		} catch (e) {
 			error = errorMessage(e);
 		}
+	}
+
+	// the chip removes only what the file filled in, never text the user edited
+	function clearFile() {
+		if (value === fileValue) value = '';
+		fileName = fileValue = '';
 	}
 
 	const save = (e: SubmitEvent) => {
@@ -68,7 +75,7 @@
 		onchange={(v) => (picked = v)}
 	/>
 	{#if kind === 'private_key'}
-		<KeyFileDrop hint={m.cred_drop_hint()} {fileName} onfile={readKeyFile} onclear={() => (value = fileName = '')} />
+		<KeyFileDrop hint={m.cred_drop_hint()} {fileName} onfile={readKeyFile} onclear={clearFile} />
 		<Textarea label={label(kind)} bind:value rows={8} autocomplete="off" required />
 	{:else}
 		<TextField type="password" label={label(kind)} bind:value autocomplete="new-password" required />

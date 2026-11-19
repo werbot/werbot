@@ -12,6 +12,7 @@
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import DashCard from './DashCard.svelte';
+	import DashCounters from './DashCounters.svelte';
 	import { ACTIVE_PAGE, activeLabel, poolsOnline, unhealthy } from './dashboard';
 	import type { PageProps } from './$types';
 
@@ -64,13 +65,13 @@
 		const num = <T,>(s: Slot<T>, f: (v: T) => string) => (s.state === 'ok' ? f(s.value) : '—');
 		return manager
 			? [
-					{ slot: active, value: num(active, (v) => activeLabel(v.length)), label: m.dashboard_active_sessions() },
-					{ slot: res, value: num(res, (v) => String(v.length)), label: m.dashboard_resources() },
-					{ slot: pools, value: num(pools, (v) => `${poolsOnline(v).online}/${v.length}`), label: m.dashboard_pools_online() }
+					{ loading: active.state === 'loading', value: num(active, (v) => activeLabel(v.length)), label: m.dashboard_active_sessions() },
+					{ loading: res.state === 'loading', value: num(res, (v) => String(v.length)), label: m.dashboard_resources() },
+					{ loading: pools.state === 'loading', value: num(pools, (v) => `${poolsOnline(v).online}/${v.length}`), label: m.dashboard_pools_online() }
 				]
 			: [
-					{ slot: active, value: num(active, (v) => activeLabel(v.length)), label: m.dashboard_active_sessions() },
-					{ slot: keys, value: num(keys, (v) => String(v.length)), label: m.dashboard_ssh_keys() }
+					{ loading: active.state === 'loading', value: num(active, (v) => activeLabel(v.length)), label: m.dashboard_active_sessions() },
+					{ loading: keys.state === 'loading', value: num(keys, (v) => String(v.length)), label: m.dashboard_ssh_keys() }
 				];
 	});
 </script>
@@ -86,14 +87,7 @@
 	<p class="date">{date}</p>
 	<h1 class="title">{data.session.organization?.name ?? m.dashboard_title()}</h1>
 	<p class="version">{failed ? m.version_unavailable() : version && m.version_label({ version })}</p>
-	<div class="pills">
-		{#each counters as c (c.label)}
-			<div class="pills__item">
-				{#if c.slot.state === 'loading'}<Skeleton variant="text" width={24} />{:else}<b class="pills__num">{c.value}</b>{/if}
-				<span class="pills__label">{c.label}</span>
-			</div>
-		{/each}
-	</div>
+	<DashCounters {counters} />
 </header>
 
 <div class="grid">
@@ -216,47 +210,6 @@
 		margin: var(--miso-sp-04) 0 0;
 		font: var(--miso-font-ui-13-reg);
 		color: var(--miso-txt-secondary);
-	}
-	.pills {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-		grid-auto-flow: column;
-		align-items: center;
-		width: 100%;
-		max-width: 928px;
-		min-height: 64px;
-		margin: 24px 0;
-		padding: 8px;
-		box-sizing: border-box;
-		border-radius: 60px;
-		background: var(--miso-cont-top);
-		box-shadow: var(--miso-shadow-cont-minor-outline);
-	}
-	.pills__item {
-		position: relative;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 10px;
-		padding: 0 12px;
-	}
-	.pills__item + .pills__item::before {
-		content: '';
-		position: absolute;
-		left: -1px;
-		top: 50%;
-		transform: translateY(-50%);
-		width: 1px;
-		height: 28px;
-		background: var(--miso-line-secondary);
-	}
-	.pills__num {
-		font: var(--miso-font-ui-18-semi);
-		color: var(--miso-txt-primary);
-	}
-	.pills__label {
-		font: var(--miso-font-ui-13-reg);
-		color: var(--miso-txt-tertiary);
 	}
 	.grid {
 		display: grid;
