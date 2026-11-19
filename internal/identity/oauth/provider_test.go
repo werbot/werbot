@@ -1,7 +1,6 @@
 package oauth_test
 
 import (
-	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestDiscovery(t *testing.T) {
-	_, _, srv := newTestProvider(t)
+	srv := newStand(t).srv
 	oidcBody, doc := getJSON(t, srv.URL+"/.well-known/openid-configuration")
 	asBody, _ := getJSON(t, srv.URL+"/.well-known/oauth-authorization-server")
 	assert.JSONEq(t, string(oidcBody), string(asBody), "RFC 8414 document is the same")
@@ -31,8 +30,8 @@ func TestDiscovery(t *testing.T) {
 }
 
 func TestJWKS(t *testing.T) {
-	key, _, srv := newTestProvider(t)
-	_, doc := getJSON(t, srv.URL+"/oauth/keys")
+	s := newStand(t)
+	_, doc := getJSON(t, s.srv.URL+"/oauth/keys")
 	keys, ok := doc["keys"].([]any)
 	require.True(t, ok)
 	require.Len(t, keys, 1)
@@ -40,12 +39,12 @@ func TestJWKS(t *testing.T) {
 	assert.Equal(t, "EC", jwk["kty"])
 	assert.Equal(t, "P-256", jwk["crv"])
 	assert.Equal(t, "ES256", jwk["alg"])
-	assert.Equal(t, key.ID(), jwk["kid"])
+	assert.Equal(t, s.key.ID(), jwk["kid"])
 	assert.NotContains(t, jwk, "d")
 }
 
 func TestUnknownClientRejected(t *testing.T) {
-	_, _, srv := newTestProvider(t)
+	srv := newStand(t).srv
 	q := url.Values{
 		"client_id": {"x"}, "response_type": {"code"}, "scope": {"openid offline_access"},
 		"redirect_uri": {"http://127.0.0.1:1/callback"}, "code_challenge": {strings.Repeat("a", 43)}, "code_challenge_method": {"S256"},
@@ -58,19 +57,19 @@ func TestUnknownClientRejected(t *testing.T) {
 }
 
 func TestNewRejectsBadIssuer(t *testing.T) {
-	key, pool, _ := newTestProvider(t)
+	s := newStand(t)
 	for _, issuer := range []string{"", "ftp://werbot.test", "https://"} {
-		_, err := oauth.New(pool, key, nil, oauth.Config{Issuer: issuer, WebURL: testWebURL}, slog.New(slog.DiscardHandler))
+		_, err := oauth.New(s.pool, s.key, nil, oauth.Config{Issuer: issuer, WebURL: testWebURL})
 		assert.Error(t, err, issuer)
 	}
-	_, err := oauth.New(pool, key, nil, oauth.Config{Issuer: "https://werbot.test", WebURL: testWebURL}, slog.New(slog.DiscardHandler))
+	_, err := oauth.New(s.pool, s.key, nil, oauth.Config{Issuer: "https://werbot.test", WebURL: testWebURL})
 	assert.NoError(t, err)
 }
 
 // TestNoCORS: the CLI never needs CORS and the web UI reaches /oauth/ same-origin
 // through werbot web, so no cross-origin page may read these endpoints.
 func TestNoCORS(t *testing.T) {
-	_, _, srv := newTestProvider(t)
+	srv := newStand(t).srv
 	for _, c := range []struct{ method, path, body string }{
 		{http.MethodGet, "/.well-known/openid-configuration", ""},
 		{http.MethodPost, "/oauth/token", "grant_type=refresh_token&client_id=werbot-cli&refresh_token=x"},

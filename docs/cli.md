@@ -25,7 +25,7 @@ Profiles live in `WERBOT_HOME` (default `~/.werbot`, Windows `%USERPROFILE%\.wer
 | `known_hosts` | host keys of the gateways, written by `ssh`, `ssh-config` and `connect` |
 | `current` (in the home) | the server of the last login |
 
-Files are `0600`, directories `0700`. There is no keyring: protect the home directory like `~/.ssh`. Set `WERBOT_SERVER` to use another logged-in server for one command.
+Files are `0600`, directories `0700` ([security.md](security.md#cli-sessions-and-user-certificates)). Set `WERBOT_SERVER` to use another logged-in server for one command.
 
 ## Commands
 
@@ -35,7 +35,7 @@ Files are `0600`, directories `0700`. There is no keyring: protect the home dire
 | `werbot ssh <resource> [-- command...]` | Runs the system `ssh` with the profile key, certificate and `known_hosts` as `<login>+<resource>`. The exit code of `ssh` is the exit code of `werbot`. |
 | `werbot ssh-config` | Prints an OpenSSH config block `Host <resource>.<server-host>` for each resource with the `terminal`, `exec` or `stream` kind, and refreshes the certificate and `known_hosts`. |
 | `werbot connect <resource> ...` | As in [connect.md](connect.md), with the login, gateway, key and `known_hosts` taken from the profile. |
-| `werbot status` | Server, user, organization, token expiry and certificate. |
+| `werbot status` | Server, user, organization, token expiry and certificate; renews a certificate close to expiry. |
 | `werbot logout` | Revokes the session on the server and removes the profile. |
 
 A resource without a gateway address fails with `gateway address for <resource> is not set; ask an admin to set it on the Gateways page` ([gateway.md](gateway.md#ssh-address)).
@@ -44,8 +44,8 @@ A resource without a gateway address fails with `gateway address for <resource> 
 
 The server signs an SSH user certificate for the CLI key and the gateways accept it directly.
 
-- A certificate is valid for 1 hour. Any command renews it when less than 10 minutes remain.
-- When the server cannot be reached, a certificate that is still valid is used as it is.
+- A certificate is valid for 1 hour. `werbot ssh`, `ssh-config`, `connect` and `status` renew it when less than 10 minutes remain.
+- When renewal fails, a certificate that is still valid is used as it is.
 - If the clock of the computer differs from the server clock by more than 1 minute, renewal fails with a `clock skew` error: sync the system clock.
 
 ## OpenSSH config
@@ -55,13 +55,13 @@ werbot ssh-config >> ~/.ssh/config.d/werbot   # or Include it from ~/.ssh/config
 ssh db.werbot.example.com
 ```
 
-The block sets `User <login>+<resource>`, `IdentityFile`, `CertificateFile`, `UserKnownHostsFile` and `IdentitiesOnly yes`. The certificate in it is renewed by any later `werbot` command, so run `werbot status` (or any command) before a long-idle `ssh`. A resource without a gateway address gets a comment line. Resources that only have the `datagram` kind are skipped: use `werbot connect`.
+The block sets `User <login>+<resource>`, `IdentityFile`, `CertificateFile`, `UserKnownHostsFile` and `IdentitiesOnly yes`. The certificate in it is renewed by `werbot ssh`, `ssh-config`, `connect` and `status`, so run `werbot status` before a long-idle `ssh`. A resource without a gateway address gets a comment line. Resources that only have the `datagram` kind are skipped: use `werbot connect`.
 
 ## CLI sessions
 
-Every login is a CLI session. An organization sets its lifetime in Settings (idle timeout and maximum age). A user sees the sessions in Profile, CLI sessions and revokes one there; `logout` revokes the current one. A revoked session stops working at the next API request (`unauthenticated`) and the next gateway connection, and a refresh fails with `session expired or revoked; run werbot login`. Open connections keep running.
+Every login is a CLI session. An organization sets its lifetime in Settings (idle timeout and maximum age). A user sees the sessions in Profile, CLI sessions and revokes one there; `logout` revokes the current one, and a new `login` to the same server revokes the previous one. A revoked session stops working at the next API request and the next gateway connection: commands fail with `session expired or revoked; run werbot login`. Open connections keep running.
 
-Each refresh rotates the refresh token. If a refresh response is lost (for example, the network drops) and the CLI retries with the old token, the server treats it as reuse and revokes the session: run `werbot login` again. Security details: [security.md](security.md#cli-sessions-and-user-certificates).
+Refresh-token rotation and reuse detection: [security.md](security.md#cli-sessions-and-user-certificates).
 
 ## Windows
 

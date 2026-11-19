@@ -1,7 +1,6 @@
 package app
 
 import (
-	"log/slog"
 	"net/http"
 
 	"connectrpc.com/connect"
@@ -14,12 +13,12 @@ import (
 )
 
 // mountOAuth builds the CLI authorization server and mounts /oauth/,
-// /.well-known/, OAuthConsentService, CLISessionService and CertService on mux, with or
-// without the embedded UI. Tokens carry iss = WERBOT_PUBLIC_URL; consent and
-// device pages live at WERBOT_WEB_URL. The provider verifies Bearer tokens
-// for identity.Middleware.
-func mountOAuth(mux *http.ServeMux, cfg config.Config, pool *pgxpool.Pool, key *oauth.SigningKey, ids *identity.Service, logger *slog.Logger, opts ...connect.HandlerOption) (*oauth.Provider, error) {
-	p, err := oauth.New(pool, key, ids, oauth.Config{Issuer: cfg.PublicURL, WebURL: cfg.WebURL}, logger)
+// /.well-known/, OAuthConsentService, SettingsService, CLISessionService and
+// CertService on mux, with or without the embedded UI. Tokens carry iss =
+// WERBOT_PUBLIC_URL; consent and device pages live at WERBOT_WEB_URL. The
+// provider verifies Bearer tokens for identity.Middleware.
+func mountOAuth(mux *http.ServeMux, cfg config.Config, pool *pgxpool.Pool, key *oauth.SigningKey, ids *identity.Service, opts ...connect.HandlerOption) (*oauth.Provider, error) {
+	p, err := oauth.New(pool, key, ids, oauth.Config{Issuer: cfg.PublicURL, WebURL: cfg.WebURL})
 	if err != nil {
 		return nil, err
 	}
@@ -27,6 +26,7 @@ func mountOAuth(mux *http.ServeMux, cfg config.Config, pool *pgxpool.Pool, key *
 	mux.Handle("/.well-known/", p.Handler())
 	mux.Handle(werbotv1connect.NewOAuthConsentServiceHandler(oauth.NewConsentHandler(p), opts...))
 	idh := identity.NewHandler(ids)
+	mux.Handle(werbotv1connect.NewSettingsServiceHandler(idh, opts...))
 	mux.Handle(werbotv1connect.NewCLISessionServiceHandler(idh, opts...))
 	mux.Handle(werbotv1connect.NewCertServiceHandler(idh, opts...))
 	return p, nil

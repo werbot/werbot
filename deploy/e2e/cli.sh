@@ -37,8 +37,8 @@ echo "== revoked CLI session"
 sid=$(rpc CLISessionService/ListCLISessions '{}' | jq -er '.sessions | select(length == 1) | .[0].id')
 rpc CLISessionService/RevokeCLISession "$(jq -nc --arg id "$sid" '{id: $id}')" >/dev/null
 # the API refuses the revoked token before werbot ssh starts ssh
-if out=$(cli ssh target -- hostname </dev/null 2>&1); then
-  echo "werbot ssh after revoke succeeded: $out" >&2
+if out=$(cli ssh target -- hostname </dev/null 2>&1) || ! grep -q 'session expired or revoked; run werbot login' <<<"$out"; then
+  echo "werbot ssh after revoke: $out" >&2
   exit 1
 fi
 # the certificate is still inside its hour; the gateway refuses its session

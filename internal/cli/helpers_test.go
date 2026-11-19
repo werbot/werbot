@@ -29,6 +29,7 @@ import (
 type harness struct {
 	werbotv1connect.UnimplementedAuthServiceHandler
 	werbotv1connect.UnimplementedResourceServiceHandler
+	werbotv1connect.UnimplementedCertServiceHandler
 
 	env           Env
 	home, dir     string
@@ -37,6 +38,11 @@ type harness struct {
 	vars          map[string]string
 	resources     []*werbotv1.AccessibleResource
 	hostKey       ssh.PublicKey
+	ca, key       ssh.Signer // the test CA and the profile key
+	identity      sshca.Identity
+	unauth        bool   // the API answers Unauthenticated
+	certFail      bool   // IssueUserCert answers Unavailable
+	issued        int    // IssueUserCert calls
 	opened        string // the URL given to OpenBrowser
 	cancelRunning context.CancelFunc
 }
@@ -47,6 +53,12 @@ func newHarness(t *testing.T) *harness {
 	mux := http.NewServeMux()
 	mux.Handle(werbotv1connect.NewAuthServiceHandler(h))
 	mux.Handle(werbotv1connect.NewResourceServiceHandler(h))
+	mux.Handle(werbotv1connect.NewCertServiceHandler(h))
+	mux.HandleFunc("/oauth/token", func(w http.ResponseWriter, _ *http.Request) { // every refresh is refused
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error":"invalid_grant"}`))
+	})
 	h.srv = httptest.NewServer(mux)
 	t.Cleanup(h.srv.Close)
 
@@ -82,13 +94,21 @@ func (h *harness) plantKeyAndCert(t *testing.T, p *clientauth.Profile) {
 	require.NoError(t, os.WriteFile(filepath.Join(h.dir, "id_ed25519"), pem.EncodeToMemory(block), 0o600))
 	_, caKey, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
-	ca, err := ssh.NewSignerFromKey(caKey)
+	h.ca, err = ssh.NewSignerFromKey(caKey)
 	require.NoError(t, err)
-	pub, err := ssh.NewPublicKey(key.Public())
+	h.key, err = ssh.NewSignerFromKey(key)
 	require.NoError(t, err)
-	cert, err := sshca.Sign(ca, pub, sshca.Identity{OrgID: p.OrgID, UserID: p.UserID, CLISessionID: uuid.New(), Login: p.Login}, time.Now(), sshca.UserCertTTL)
+	h.identity = sshca.Identity{OrgID: p.OrgID, UserID: p.UserID, CLISessionID: uuid.New(), Login: p.Login}
+	h.plantCert(t, sshca.UserCertTTL)
+}
+
+// plantCert writes a certificate of the profile key with the given validity left.
+func (h *harness) plantCert(t *testing.T, left time.Duration) *ssh.Certificate {
+	t.Helper()
+	cert, err := sshca.Sign(h.ca, h.key.PublicKey(), h.identity, time.Now().Add(left-sshca.UserCertTTL), sshca.UserCertTTL)
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(filepath.Join(h.dir, "id_ed25519-cert.pub"), ssh.MarshalAuthorizedKey(cert), 0o600))
+	return cert
 }
 
 func newPub(t *testing.T) ssh.PublicKey {
@@ -101,13 +121,31 @@ func newPub(t *testing.T) ssh.PublicKey {
 }
 
 func (h *harness) GetSession(context.Context, *connect.Request[werbotv1.GetSessionRequest]) (*connect.Response[werbotv1.GetSessionResponse], error) {
+	if h.unauth {
+		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+	}
 	return connect.NewResponse(&werbotv1.GetSessionResponse{
 		User: &werbotv1.User{Login: "alice"}, Organization: &werbotv1.Organization{Name: "Acme"},
 	}), nil
 }
 
 func (h *harness) ListAccessibleResources(context.Context, *connect.Request[werbotv1.ListAccessibleResourcesRequest]) (*connect.Response[werbotv1.ListAccessibleResourcesResponse], error) {
+	if h.unauth {
+		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+	}
 	return connect.NewResponse(&werbotv1.ListAccessibleResourcesResponse{Resources: h.resources}), nil
+}
+
+func (h *harness) IssueUserCert(context.Context, *connect.Request[werbotv1.IssueUserCertRequest]) (*connect.Response[werbotv1.IssueUserCertResponse], error) {
+	h.issued++
+	if h.certFail {
+		return nil, connect.NewError(connect.CodeUnavailable, nil)
+	}
+	cert, err := sshca.Sign(h.ca, h.key.PublicKey(), h.identity, time.Now(), sshca.UserCertTTL)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&werbotv1.IssueUserCertResponse{Certificate: string(ssh.MarshalAuthorizedKey(cert))}), nil
 }
 
 // logout forgets the current server, as before the first login.

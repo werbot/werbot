@@ -1,7 +1,6 @@
 package oauth
 
 import (
-	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -19,13 +18,12 @@ type Provider struct {
 	users    Users
 	webURL   string
 	verifier *op.AccessTokenVerifier
-	logger   *slog.Logger
 }
 
 // New builds the provider. Every endpoint lives under /oauth/; op's login
 // callback is /oauth/authorize/callback. An http issuer is allowed only as
 // such (op.WithAllowInsecure iff the scheme is http).
-func New(pool *pgxpool.Pool, key *SigningKey, users Users, cfg Config, logger *slog.Logger) (*Provider, error) {
+func New(pool *pgxpool.Pool, key *SigningKey, users Users, cfg Config) (*Provider, error) {
 	c := &op.Config{
 		CryptoKey:             key.crypto,
 		CodeMethodS256:        true,
@@ -63,7 +61,7 @@ func New(pool *pgxpool.Pool, key *SigningKey, users Users, cfg Config, logger *s
 		o.ServeHTTP(w, r)
 	})
 	return &Provider{
-		handler: withReqInfo(mux), pool: pool, users: users, webURL: cfg.WebURL, logger: logger,
+		handler: withReqInfo(mux), pool: pool, users: users, webURL: cfg.WebURL,
 		verifier: op.NewAccessTokenVerifier(cfg.Issuer, publicKey{key}, op.WithSupportedAccessTokenSigningAlgorithms(string(jose.ES256))),
 	}, nil
 }

@@ -2,9 +2,12 @@ package cli
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/werbot/werbot/internal/platform/sshca"
 )
 
 func TestLoginRequiresServer(t *testing.T) {
@@ -35,10 +38,22 @@ func TestStatus(t *testing.T) {
 	}
 }
 
+// status renews a certificate with less than 10 minutes left.
+func TestStatusRenewsCertificate(t *testing.T) {
+	h := newHarness(t)
+	h.plantCert(t, 5*time.Minute)
+	require.NoError(t, h.run("status"))
+	assert.Equal(t, 1, h.issued)
+	until := time.Now().Add(sshca.UserCertTTL).UTC().Truncate(time.Second)
+	assert.Regexp(t, `Certificate: valid until `+until.Format("2006-01-02T15"), h.out.String())
+}
+
+// Without a certificate and with renewal refused, status still prints and returns the error.
 func TestStatusNoCertificate(t *testing.T) {
 	h := newHarness(t)
+	h.certFail = true
 	require.NoError(t, removeCert(h))
-	require.NoError(t, h.run("status"))
+	assert.EqualError(t, h.run("status"), "issue a certificate: unavailable")
 	assert.Contains(t, h.out.String(), "Certificate: none")
 }
 

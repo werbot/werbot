@@ -98,7 +98,7 @@ func (p *Profile) Save(home string) error {
 	if err := p.write(); err != nil {
 		return err
 	}
-	return writeFile(filepath.Join(home, "current"), []byte(p.Server))
+	return WriteFile(filepath.Join(home, "current"), []byte(p.Server))
 }
 
 // write stores profile.json under a 0700 directory.
@@ -111,12 +111,12 @@ func (p *Profile) write() error {
 	if err != nil {
 		return err
 	}
-	return writeFile(filepath.Join(dir, "profile.json"), raw)
+	return WriteFile(filepath.Join(dir, "profile.json"), raw)
 }
 
-// writeFile replaces path atomically with a 0600 file (Ruling R17: rename
+// WriteFile replaces path atomically with a 0600 file (Ruling R17: rename
 // replaces on Windows too).
-func writeFile(path string, data []byte) error {
+func WriteFile(path string, data []byte) error {
 	f, err := os.CreateTemp(filepath.Dir(path), ".tmp-*") // mode 0600
 	if err != nil {
 		return err
@@ -137,9 +137,7 @@ func writeFile(path string, data []byte) error {
 // Logout revokes the refresh token and always removes the profile; a revoke
 // failure is returned after the removal.
 func (p *Profile) Logout(ctx context.Context, home string) error {
-	err := postForm(ctx, p.Server+"/oauth/revoke", url.Values{
-		"client_id": {clientID}, "token": {p.RefreshToken}, "token_type_hint": {"refresh_token"},
-	}, nil)
+	err := p.revoke(ctx)
 	if err != nil {
 		err = fmt.Errorf("revoke the session on %s: %w", p.Server, err)
 	}
@@ -149,4 +147,11 @@ func (p *Profile) Logout(ctx context.Context, home string) error {
 		errs = append(errs, os.Remove(current))
 	}
 	return errors.Join(errs...)
+}
+
+// revoke revokes the refresh token, and with it the CLI session, on the server.
+func (p *Profile) revoke(ctx context.Context) error {
+	return postForm(ctx, p.Server+"/oauth/revoke", url.Values{
+		"client_id": {clientID}, "token": {p.RefreshToken}, "token_type_hint": {"refresh_token"},
+	}, nil)
 }

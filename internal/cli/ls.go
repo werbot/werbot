@@ -16,7 +16,7 @@ import (
 
 // accessible lists the resources the profile's user can open.
 func accessible(ctx context.Context, p *clientauth.Profile) ([]*werbotv1.AccessibleResource, error) {
-	res, err := newClient(p, werbotv1connect.NewResourceServiceClient).
+	res, err := werbotv1connect.NewResourceServiceClient(p.HTTPClient(), p.Server).
 		ListAccessibleResources(ctx, connect.NewRequest(&werbotv1.ListAccessibleResourcesRequest{}))
 	if err != nil {
 		return nil, err

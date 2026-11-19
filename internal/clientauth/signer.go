@@ -45,7 +45,7 @@ func (p *Profile) Signer(ctx context.Context, home string) (ssh.Signer, error) {
 	if skew := time.Until(validBefore(fresh)) - sshca.UserCertTTL; skew.Abs() > sshca.ClockSkew {
 		return nil, fmt.Errorf("clock skew %s between this computer and %s; sync the system clock", skew.Abs().Round(time.Minute), p.Server)
 	}
-	if err := writeFile(certPath, ssh.MarshalAuthorizedKey(fresh)); err != nil {
+	if err := WriteFile(certPath, ssh.MarshalAuthorizedKey(fresh)); err != nil {
 		return nil, err
 	}
 	return ssh.NewCertSigner(fresh, key)
@@ -72,7 +72,7 @@ func loadKey(path string) (ssh.Signer, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := writeFile(path, pem.EncodeToMemory(block)); err != nil {
+	if err := WriteFile(path, pem.EncodeToMemory(block)); err != nil {
 		return nil, err
 	}
 	return ssh.NewSignerFromKey(priv)

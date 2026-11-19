@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -41,13 +40,6 @@ func testBox(t *testing.T) *secretbox.Box {
 	return box
 }
 
-// newTestProvider serves a provider on a loopback listener; its URL is the issuer.
-func newTestProvider(t *testing.T) (*oauth.SigningKey, *pgxpool.Pool, *httptest.Server) {
-	t.Helper()
-	s := newStand(t)
-	return s.key, s.pool, s.srv
-}
-
 // serveProvider starts one more provider on pool, behind clientip like the
 // server. Its issuer is its own URL unless issuer is set (another replica).
 func serveProvider(t *testing.T, pool *pgxpool.Pool, key *oauth.SigningKey, issuer string) (*oauth.Provider, *httptest.Server) {
@@ -57,7 +49,7 @@ func serveProvider(t *testing.T, pool *pgxpool.Pool, key *oauth.SigningKey, issu
 	if issuer == "" {
 		issuer = "http://" + ln.Addr().String()
 	}
-	p, err := oauth.New(pool, key, dbUsers{pool}, oauth.Config{Issuer: issuer, WebURL: testWebURL}, slog.New(slog.DiscardHandler))
+	p, err := oauth.New(pool, key, dbUsers{pool}, oauth.Config{Issuer: issuer, WebURL: testWebURL})
 	require.NoError(t, err)
 	srv := &httptest.Server{Listener: ln, Config: &http.Server{Handler: clientip.Middleware(nil)(p.Handler())}} //nolint:gosec // test server
 	srv.Start()

@@ -9,10 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 
 	"connectrpc.com/connect"
@@ -48,8 +50,9 @@ var wait = func(ctx context.Context, d time.Duration) error {
 }
 
 // Login signs in to server, reads who the token belongs to and saves the
-// profile as the current one. Only <server>/oauth/* and <server>/werbot.v1.*
-// are called; discovery is never read.
+// profile as the current one. A previous profile of server has its refresh
+// token revoked and its certificate removed. Only <server>/oauth/* and
+// <server>/werbot.v1.* are called; discovery is never read.
 func Login(ctx context.Context, home, server string, opts LoginOptions) (*Profile, error) {
 	server, err := normalizeServer(server)
 	if err != nil {
@@ -81,6 +84,13 @@ func Login(ctx context.Context, home, server string, opts LoginOptions) (*Profil
 	}
 	if p.OrgID, err = uuid.Parse(sess.Msg.GetOrganization().GetId()); err != nil {
 		return nil, fmt.Errorf("read the session: organization id: %w", err)
+	}
+	if old, err := load(home, server); err == nil {
+		_ = old.revoke(ctx) // best effort: else the old session lives until its idle timeout
+	}
+	// The saved certificate names the old session; the next Signer issues one for this login.
+	if err := os.Remove(filepath.Join(Dir(home, server), "id_ed25519-cert.pub")); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, err
 	}
 	return p, p.Save(home)
 }

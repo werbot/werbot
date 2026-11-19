@@ -1,4 +1,4 @@
-# werbot ssh-config for target.localhost; the certificate is renewed by any werbot command
+# werbot ssh-config for target.localhost; the certificate is renewed by werbot ssh, ssh-config, connect and status
 Host db.target.localhost
   HostName gw.example.com
   Port 2222

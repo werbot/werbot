@@ -104,6 +104,8 @@ func TestE2ERevokedCLISessionRejectsNextConnection(t *testing.T) {
 
 	_, _, err = s.dial(s.gwSSH, "alice+srv", signer)
 	require.ErrorContains(t, err, "unable to authenticate", "the certificate is still valid; its session is not")
+	require.EqualError(t, Run(ctx, []string{"ls"}, env(map[string]string{"WERBOT_HOME": home}), &bytes.Buffer{}),
+		clientauth.ErrLoginRequired.Error(), "the API refuses the access token of the revoked session")
 	out, err := run(a, "echo still")
 	require.NoError(t, err)
 	assert.Equal(t, "still\n", out, "an open connection lives until the cli_session block of stage 10")

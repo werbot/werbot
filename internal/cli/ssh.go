@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
@@ -18,19 +17,13 @@ import (
 	"github.com/werbot/werbot/internal/clientauth"
 )
 
-// defaultGatewayPort is the gateway port when ssh_address has none.
-const defaultGatewayPort = "2222"
-
 // gatewayAddr splits the ssh_address of r into host and port.
 func gatewayAddr(r *werbotv1.AccessibleResource) (host, port string, err error) {
 	addr := r.GetSshAddress()
 	if addr == "" {
 		return "", "", fmt.Errorf("gateway address for %s is not set; ask an admin to set it on the Gateways page", r.GetName())
 	}
-	if host, port, err = net.SplitHostPort(addr); err != nil {
-		return strings.Trim(addr, "[]"), defaultGatewayPort, nil //nolint:nilerr // no port: the default
-	}
-	return host, port, nil
+	return net.SplitHostPort(addr) // the server stores host:port only
 }
 
 // serverHost is the host name of the server URL, without the port.
@@ -72,7 +65,7 @@ func sshArgs(dir string, r *werbotv1.AccessibleResource, login string, command [
 // sshConfig is an OpenSSH config block for every resource reachable with ssh.
 func sshConfig(dir, serverHost, login string, rs []*werbotv1.AccessibleResource) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "# werbot ssh-config for %s; the certificate is renewed by any werbot command\n", serverHost)
+	fmt.Fprintf(&b, "# werbot ssh-config for %s; the certificate is renewed by werbot ssh, ssh-config, connect and status\n", serverHost)
 	for _, r := range rs {
 		if !slices.ContainsFunc(r.GetKinds(), func(k string) bool { return k == "terminal" || k == "exec" || k == "stream" }) {
 			continue
@@ -105,21 +98,7 @@ func writeKnownHosts(path string, rs []*werbotv1.AccessibleResource) error {
 			lines = append(lines, line)
 		}
 	}
-	f, err := os.CreateTemp(filepath.Dir(path), ".tmp-*") // mode 0600
-	if err != nil {
-		return err
-	}
-	_, err = f.WriteString(strings.Join(lines, "\n") + "\n")
-	if cerr := f.Close(); err == nil {
-		err = cerr
-	}
-	if err == nil {
-		err = os.Rename(f.Name(), path)
-	}
-	if err != nil {
-		_ = os.Remove(f.Name())
-	}
-	return err
+	return clientauth.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"))
 }
 
 func sshCommand(env Env) *cobra.Command {

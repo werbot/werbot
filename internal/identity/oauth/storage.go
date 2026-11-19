@@ -10,7 +10,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/op"
 )
 
-// errNoFlow answers the steps of a flow this server does not serve yet.
+// errNoFlow answers the steps of a flow this server does not serve.
 var errNoFlow = errors.New("oauth: flow not supported")
 
 // storage is the op.Storage (and op.DeviceAuthorizationStorage) of the

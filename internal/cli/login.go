@@ -38,9 +38,6 @@ func loginCommand(env Env) *cobra.Command {
 				return errors.New("--server is required")
 			}
 			opts := clientauth.LoginOptions{Out: env.Stdout, OpenBrowser: env.OpenBrowser, Device: device}
-			if device {
-				opts.OpenBrowser = nil
-			}
 			p, err := clientauth.Login(cmd.Context(), home, server, opts)
 			if err != nil {
 				return err
@@ -85,15 +82,16 @@ func statusCommand(env Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sess, err := newClient(p, werbotv1connect.NewAuthServiceClient).
+			sess, err := werbotv1connect.NewAuthServiceClient(p.HTTPClient(), p.Server).
 				GetSession(cmd.Context(), connect.NewRequest(&werbotv1.GetSessionRequest{}))
 			if err != nil {
 				return err
 			}
+			_, renewErr := p.Signer(cmd.Context(), home) // renews a certificate close to expiry
 			_, err = fmt.Fprintf(env.Stdout, "Server: %s\nUser: %s\nOrganization: %s\nToken expires: %s\nCertificate: %s\n",
 				p.Server, sess.Msg.GetUser().GetLogin(), sess.Msg.GetOrganization().GetName(),
 				p.AccessExpiry.Format(time.RFC3339), certStatus(filepath.Join(clientauth.Dir(home, p.Server), "id_ed25519-cert.pub")))
-			return err
+			return errors.Join(renewErr, err)
 		},
 	}
 }

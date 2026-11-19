@@ -164,3 +164,21 @@ func TestLoginOnlyTalksToServer(t *testing.T) {
 		assert.Contains(t, []string{"/oauth/authorize", "/oauth/token", "/oauth/device_authorization", "/werbot.v1.AuthService/GetSession"}, path)
 	}
 }
+
+// A second login revokes the previous session and drops its certificate,
+// so the next Signer issues one for the new session.
+func TestLoginAgain(t *testing.T) {
+	as := newFakeAS(t)
+	home, p := login(t, as)
+	s, err := p.Signer(context.Background(), home)
+	require.NoError(t, err)
+	old := p.RefreshToken
+
+	p, err = Login(context.Background(), home, as.srv.URL, LoginOptions{OpenBrowser: browse(t)})
+	require.NoError(t, err)
+	assert.Equal(t, old+" refresh_token", as.revoked)
+	s2, err := p.Signer(context.Background(), home)
+	require.NoError(t, err)
+	assert.Equal(t, 2, as.count("/werbot.v1.CertService/IssueUserCert"))
+	assert.NotEqual(t, signerCert(t, s).Serial, signerCert(t, s2).Serial)
+}
