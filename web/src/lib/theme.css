@@ -179,3 +179,9 @@
 	display: flex;
 	align-items: center;
 }
+
+/* Menu rows are as tall as the 40px buttons and the context column items (beats the scoped 32px) */
+:root body .miso-menu-item {
+	min-height: 40px;
+	font: var(--miso-font-ui-14-reg);
+}

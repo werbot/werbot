@@ -160,12 +160,12 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-		height: 28px;
-		padding: 0 8px;
+		height: 40px;
+		padding: 0 var(--miso-sp-12);
 		border: 0;
-		border-radius: 8px;
+		border-radius: var(--miso-radius-08);
 		background: none;
-		font: var(--miso-font-ui-13-reg);
+		font: var(--miso-font-ui-14-reg);
 		color: var(--miso-txt-secondary);
 		cursor: pointer;
 	}
