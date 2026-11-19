@@ -10,7 +10,7 @@ What happens to running and new sessions and to data when a part of Werbot fails
 | `All server replicas or PostgreSQL` | Live. | Refused with `Gateway is not ready, try again later` (fail-closed: credentials are not cached on the gateway). | Recording chunks, `FinishRecording` and `EndSession` wait in the gateway spool. |
 | `Gateway instance` | Break (TCP); the client reconnects through the balancer. | Served by the other instances of the pool. | The server closes the sessions with `gateway_lost` within 2.5 minutes; the recording tail uploads after a restart when the disk is persistent. |
 | `S3-compatible storage` | Live. | Work. | `IngestChunk` answers `Unavailable`, chunks go to the spool and upload later. |
-| `SMTP, firehol and DB-IP feeds` | Not affected. | Not affected. | River retries; the old data stays. |
+| `SMTP, firehol and GeoIP feeds` | Not affected. | Not affected. | River retries; the old data stays. |
 | `Panic in a connector or front` | Only that session ends. | Work. | `end_reason` is `internal_error`, the stack goes to the log, `werbot_gateway_panics_total` grows. |
 | `Overloaded instance` | Live. | Refused with `Gateway is busy, try again later` at `WERBOT_GATEWAY_MAX_SESSIONS`; `/readyz` answers 503. | No loss. |
 | `Total spool ≥ WERBOT_GATEWAY_SPOOL_MAX` | Live; a session with more than 64 MiB unsent ends with `recording_unavailable`. | Recorded sessions (`ssh` terminal and exec, `telnet`) are refused with `Gateway is busy, try again later`; `ssh -L`, `tcp` and `udp` are not recorded and keep working. | No loss. |

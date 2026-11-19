@@ -111,7 +111,7 @@ Maintenance jobs run on the River `maintenance` queue: `session.end_lost` (every
 Background jobs on the River `feeds` queue (one worker) need outbound HTTPS from the server:
 
 - `blocklist.refresh` (on start, then daily) downloads the FireHOL level 1 list from `raw.githubusercontent.com`; listed IPs are always denied.
-- `geoip.refresh` (on start, then daily at 04:00 UTC) downloads the monthly DB-IP Country Lite database from `download.db-ip.com`. The database is stored in Postgres (no files on disk), and every server loads it on start. Without it, country rules deny. IP geolocation by [DB-IP](https://db-ip.com).
+- `geoip.refresh` (on start, then daily at 04:00 UTC) downloads the monthly country database from `WERBOT_GEOIP_URL`, by default DB-IP Country Lite from `download.db-ip.com`; MaxMind GeoLite2 and IPinfo Lite also work ([configuration.md](docs/configuration.md#geoip-database)). The database is stored in Postgres (no files on disk), and every server loads it on start. Without it, country rules deny. IP geolocation by [DB-IP](https://db-ip.com) (default database).
 
 A failed download keeps the previous data.
 

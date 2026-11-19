@@ -31,6 +31,7 @@ Variables that are `required` make the process refuse to start when they are emp
 | `WERBOT_RECORDINGS_S3_ACCESS_KEY`, `WERBOT_RECORDINGS_S3_SECRET_KEY` | empty | S3 credentials; set both or neither. |
 | `WERBOT_GATEWAY_ADDR` | `:8443` | mTLS listener of the gateway tunnel (TLS 1.3, HTTP/2). Its port is the port in the tunnel URL given to gateways. |
 | `WERBOT_LOCAL_POOL_ALLOW_LOOPBACK` | `false` | See [Embedded gateway](#embedded-gateway). |
+| `WERBOT_GEOIP_URL` | `https://download.db-ip.com/free/dbip-country-lite-%s.mmdb.gz` | Country database for country rules; see [GeoIP database](#geoip-database). |
 
 ### Embedded gateway
 
@@ -140,6 +141,14 @@ An empty `WERBOT_SMTP_HOST` writes emails to the log. With `WERBOT_ENV=developme
 ## Session recordings
 
 By default recordings go to the file system under `WERBOT_DATA_DIR/recordings`. That works only with one server replica or a shared ReadWriteMany volume. With several replicas use an S3-compatible store (AWS S3, Cloudflare R2, SeaweedFS) through `WERBOT_RECORDINGS_S3_BUCKET` and the related variables. See [scaling.md](scaling.md#session-recordings).
+
+## GeoIP database
+
+`geoip.refresh` downloads `WERBOT_GEOIP_URL` on start and then once a month (a daily check at 04:00 UTC). The URL must be `https://`; `http://` is accepted only for a loopback host. It may contain one `%s`, replaced with the month as `2006-01`: when this month's file returns 404, last month's is used. A URL without `%s` is fetched once a month with no fallback. The body may be a raw `.mmdb`, gzip, or a tar archive (optionally gzipped) whose first `.mmdb` file is used, as MaxMind permalinks serve. The country comes from `country.iso_code` (DB-IP, MaxMind GeoLite2) or a top-level `country_code` (IPinfo Lite).
+
+The URL may carry a token in the query or as `user:password@`; Werbot never logs it or puts it in errors.
+
+The UI shows "IP Geolocation by DB-IP" only while the URL is DB-IP Lite (a `/free/` path on `db-ip.com`), as its license requires. A mirror of DB-IP Lite on another host still requires that attribution: add it yourself.
 
 ## Metrics
 
