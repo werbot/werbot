@@ -23,12 +23,13 @@ import (
 // gateway host key returns an error; gateway texts go to stderr as they are.
 func Run(ctx context.Context, cfg Config, stdout, stderr io.Writer) error {
 	stderr = &lockedWriter{w: stderr}
-	auth, closeAuth, err := authMethod(cfg.Identity)
+	ctx, cancel := context.WithCancel(ctx)
+	auth, closeAuth, err := cfg.auth(ctx)
 	if err != nil {
+		cancel()
 		return err
 	}
 	defer closeAuth()
-	ctx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	defer func() { cancel(); wg.Wait() }() // every port closed, every goroutine done
 	fail := make(chan error, len(cfg.Specs))

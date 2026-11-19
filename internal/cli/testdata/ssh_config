@@ -1,0 +1,10 @@
+# werbot ssh-config for target.localhost; the certificate is renewed by any werbot command
+Host db.target.localhost
+  HostName gw.example.com
+  Port 2222
+  User alice+db
+  IdentityFile home/srv/id_ed25519
+  CertificateFile home/srv/id_ed25519-cert.pub
+  UserKnownHostsFile home/srv/known_hosts
+  IdentitiesOnly yes
+# lost: gateway address is not set

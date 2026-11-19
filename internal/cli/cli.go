@@ -5,9 +5,10 @@ package cli
 import (
 	"io"
 
+	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
 
-	"github.com/werbot/werbot/internal/connectcli"
+	"github.com/werbot/werbot/internal/clientauth"
 )
 
 // Env is what the client commands read and write, so tests can replace it.
@@ -21,21 +22,23 @@ type Env struct {
 
 // Commands returns the client commands of the root command.
 func Commands(env Env) []*cobra.Command {
-	return []*cobra.Command{connectCommand(env)}
+	return []*cobra.Command{
+		loginCommand(env), logoutCommand(env), statusCommand(env), lsCommand(env),
+		sshCommand(env), sshConfigCommand(env), connectCommand(env),
+	}
 }
 
-// connectCommand keeps the flag set of werbot connect: it parses its own args.
-func connectCommand(env Env) *cobra.Command {
-	return &cobra.Command{
-		Use:                "connect [flags] [<local_port>:]<resource>[:<target_port>] ...",
-		Short:              "Open local ports to resources through the gateway",
-		DisableFlagParsing: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := connectcli.LoadConfig(args, env.Getenv)
-			if err != nil {
-				return err
-			}
-			return connectcli.Run(cmd.Context(), cfg, env.Stdout, env.Stderr)
-		},
+// loadProfile returns the profile home and the current profile.
+func loadProfile(env Env) (string, *clientauth.Profile, error) {
+	home, err := clientauth.Home(env.Getenv)
+	if err != nil {
+		return "", nil, err
 	}
+	p, err := clientauth.Current(home, env.Getenv)
+	return home, p, err
+}
+
+// newClient builds a Connect client that sends the profile's Bearer token.
+func newClient[T any](p *clientauth.Profile, ctor func(connect.HTTPClient, string, ...connect.ClientOption) T) T {
+	return ctor(p.HTTPClient(), p.Server)
 }
