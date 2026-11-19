@@ -24,10 +24,10 @@ func TestTunnelUnaryCalls(t *testing.T) {
 	e := newTunnelEnv(t, nil, time.Hour)
 	ip := netip.MustParseAddr("192.0.2.7")
 
-	u, err := e.c.AuthenticateUser(t.Context(), "SHA256:known", ip)
+	u, err := e.c.AuthenticateUser(t.Context(), Identity{Method: "ssh-key", Value: "SHA256:known"}, ip)
 	require.NoError(t, err)
 	require.Equal(t, User{ID: testUserID, Login: "alice", TeamIDs: []uuid.UUID{testTeamID}, Country: "NL"}, u)
-	_, err = e.c.AuthenticateUser(t.Context(), "SHA256:other", ip)
+	_, err = e.c.AuthenticateUser(t.Context(), Identity{Method: "ssh-key", Value: "SHA256:other"}, ip)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	e.f.with(func(f *fakeTunnel) { require.Equal(t, []string{"192.0.2.7", "192.0.2.7"}, f.unaryIP) })
 

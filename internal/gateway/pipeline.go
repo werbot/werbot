@@ -18,6 +18,7 @@ import (
 	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/gateway/recorder"
 	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/sshca"
 )
 
 // Errors of Pipeline.Open; the front turns them into user messages.
@@ -30,8 +31,13 @@ var (
 	ErrSpoolMax        = errors.New("gateway: recording spool is full") // the user sees the ErrBusy text
 )
 
-// Identity is how the front identified the user: "ssh-key" and the SHA256 fingerprint.
-type Identity struct{ Method, Value string }
+// Identity is how the front identified the user: "ssh-key" or "ssh-cert" and
+// the SHA256 fingerprint of the key or certificate; Cert is the werbot
+// identity of a certificate the front verified.
+type Identity struct {
+	Method, Value string
+	Cert          *sshca.Identity
+}
 
 // OpenRequest is what a front asks the pipeline to open.
 type OpenRequest struct {
@@ -48,7 +54,7 @@ type OpenRequest struct {
 
 // control is the control plane of the pipeline; *tunnelClient implements it.
 type control interface {
-	AuthenticateUser(ctx context.Context, fingerprint string, ip netip.Addr) (User, error)
+	AuthenticateUser(ctx context.Context, id Identity, ip netip.Addr) (User, error)
 	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target string) (uuid.UUID, Secret, error)
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
 	Policy() *Policy

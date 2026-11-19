@@ -86,6 +86,7 @@ Prometheus text format, no histograms. The listeners are not published outside:
 | `werbot_snapshot_pushes_total` | server | Policy snapshots sent to gateways. |
 | `werbot_db_pool_acquired_conns` | server | Database pool connections in use (gauge). |
 | `werbot_db_pool_total_conns` | server | Database pool connections open (gauge). |
+| `werbot_user_certs_issued_total` | server | SSH user certificates issued to `werbot` CLI sessions. |
 | `werbot_gateway_sessions_active` | gateway | Sessions holding a `WERBOT_GATEWAY_MAX_SESSIONS` slot (gauge). |
 | `werbot_gateway_sessions_rejected_total{reason}` | gateway | Refused new sessions; `reason` is `busy`, `spool_full` or `not_ready`. |
 | `werbot_gateway_panics_total` | gateway | Connector panics recovered by the pipeline. |

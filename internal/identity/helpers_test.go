@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"bytes"
 	"context"
 	"sync"
 	"testing"
@@ -11,7 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
+	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/principal"
+	"github.com/werbot/werbot/internal/platform/secretbox"
 )
 
 const testPassword = "correct horse battery"
@@ -47,7 +50,10 @@ func newTestService(t *testing.T) (*Service, *pgxpool.Pool, *fakeQueue) {
 	t.Helper()
 	pool, _ := dbtest.New(t)
 	q := &fakeQueue{}
-	return New(pool, q, Config{WebURL: "https://werbot.test", SecureCookies: true}), pool, q
+	box, err := secretbox.New(bytes.Repeat([]byte{7}, 32), nil)
+	require.NoError(t, err)
+	cfg := Config{WebURL: "https://werbot.test", SecureCookies: true, Box: box, Metrics: metrics.NewRegistry()}
+	return New(pool, q, cfg), pool, q
 }
 
 func seedOrg(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {

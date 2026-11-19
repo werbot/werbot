@@ -71,7 +71,13 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	if err != nil {
 		return err
 	}
-	s, err := newServices(ctx, cfg, pool, o.Box, o.CA, o.Signer, logger)
+	reg := metrics.NewRegistry()
+	reg.GaugeFunc("werbot_db_pool_acquired_conns", "Database pool connections in use.",
+		func() int64 { return int64(pool.Stat().AcquiredConns()) })
+	reg.GaugeFunc("werbot_db_pool_total_conns", "Database pool connections open.",
+		func() int64 { return int64(pool.Stat().TotalConns()) })
+
+	s, err := newServices(ctx, cfg, pool, o.Box, o.CA, o.Signer, reg, logger)
 	if err != nil {
 		return err
 	}
@@ -118,12 +124,6 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	} else {
 		mux.Handle("/", http.NotFoundHandler())
 	}
-
-	reg := metrics.NewRegistry()
-	reg.GaugeFunc("werbot_db_pool_acquired_conns", "Database pool connections in use.",
-		func() int64 { return int64(pool.Stat().AcquiredConns()) })
-	reg.GaugeFunc("werbot_db_pool_total_conns", "Database pool connections open.",
-		func() int64 { return int64(pool.Stat().TotalConns()) })
 
 	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, clientip.Middleware(cfg.TrustedProxies)(identity.Middleware(s.Identity, bearer)(mux)))}
 	if cfg.MetricsAddr != "" {

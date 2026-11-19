@@ -99,6 +99,8 @@ message Snapshot {
   string version = 5;
   // organization members sorted by user_id; a change revokes sessions on the gateway
   repeated Member members = 6;
+  // the organization's user CA keys (authorized_keys); empty: no certificate is accepted
+  repeated string user_ca_keys = 18;
 }
 
 // Member is an organization member and its teams, sorted.
@@ -125,8 +127,18 @@ message AuthenticateUserRequest {
     option (buf.validate.oneof).required = true;
     string fingerprint_sha256 = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
     string login = 2 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
+    CertIdentity cert = 4;
   }
   string client_ip = 3 [(buf.validate.field).string = {ip: true, max_bytes: 64}];
+}
+
+// CertIdentity is a user certificate the gateway verified against the
+// organization's user CA: its werbot extensions, principal and fingerprint.
+message CertIdentity {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string cli_session_id = 2 [(buf.validate.field).string.uuid = true];
+  string login = 3 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
+  string cert_fingerprint = 4 [(buf.validate.field).string.max_len = 128];
 }
 
 message AuthenticateUserResponse {

@@ -21,6 +21,7 @@ import (
 	"github.com/werbot/werbot/internal/notify"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/jobs"
+	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
 	"github.com/werbot/werbot/internal/policy"
@@ -90,8 +91,9 @@ type services struct {
 // newServices wires the services, registers every worker and periodic job on
 // one River client (not started) and loads the stored GeoIP database, so every
 // replica decides country rules from start. A broken database is logged, not fatal.
-// signer comes from bootstrap; recordings go to cfg.RecordingsS3 or cfg.DataDir.
-func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box *secretbox.Box, ca *tlsca.CA, signer *session.Signer, logger *slog.Logger) (*services, error) {
+// signer comes from bootstrap; recordings go to cfg.RecordingsS3 or cfg.DataDir;
+// reg is the registry /metrics serves.
+func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box *secretbox.Box, ca *tlsca.CA, signer *session.Signer, reg *metrics.Registry, logger *slog.Logger) (*services, error) {
 	mailer, err := notify.NewMailer(cfg.SMTP, cfg.Env == "development", logger)
 	if err != nil {
 		return nil, err
@@ -126,7 +128,7 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 		return nil, err
 	}
 	s.Identity = identity.New(pool, notify.NewQueue(s.Jobs, box), identity.Config{
-		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger,
+		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger, Box: box, Metrics: reg,
 	})
 	return s, nil
 }

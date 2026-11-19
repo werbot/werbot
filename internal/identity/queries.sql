@@ -253,3 +253,24 @@ WHERE id = @id AND org_id = @org_id AND revoked_at IS NULL AND (@manager::bool O
 -- A new password ends the user's CLI sessions in every organization but keep_id.
 UPDATE cli_session SET revoked_at = now(), revoke_reason = 'password_reset'
 WHERE user_id = @user_id AND id <> @keep_id AND revoked_at IS NULL;
+
+-- name: GetUserCA :one
+SELECT ciphertext, key_id FROM org_ssh_ca WHERE org_id = @org_id;
+
+-- name: InsertUserCA :exec
+-- Concurrent first uses race here: the first insert wins, the rest re-read.
+INSERT INTO org_ssh_ca (org_id, ciphertext, key_id, public_key)
+VALUES (@org_id, @ciphertext, @key_id, @public_key)
+ON CONFLICT (org_id) DO NOTHING;
+
+-- name: LookupCertUser :one
+-- An SSH certificate: the live cli_session it was issued for, the member and
+-- the login of its principal. ponytail: team sub-select as LookupLoginUser.
+SELECT u.id, u.login, m.role,
+       (SELECT array_agg(tm.team_id ORDER BY tm.team_id) FROM team_member tm
+        WHERE tm.org_id = m.org_id AND tm.user_id = u.id)::uuid[] AS team_ids
+FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+JOIN users u ON u.id = c.user_id
+WHERE c.id = @id AND c.org_id = @org_id AND c.user_id = @user_id AND u.login = @login
+  AND c.revoked_at IS NULL AND c.expires_at > now() AND c.absolute_expires_at > now();

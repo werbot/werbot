@@ -18,6 +18,7 @@ import (
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/sshca"
 	"github.com/werbot/werbot/internal/policy"
 	"github.com/werbot/werbot/internal/session"
 	"github.com/werbot/werbot/internal/tunnel"
@@ -61,6 +62,10 @@ func (u tunnelUsers) ByFingerprint(ctx context.Context, orgID uuid.UUID, fingerp
 
 func (u tunnelUsers) ByLogin(ctx context.Context, orgID uuid.UUID, login string) (tunnel.User, error) {
 	return tunnelUser(u.ids.LookupLogin(ctx, orgID, login))
+}
+
+func (u tunnelUsers) ByCert(ctx context.Context, orgID uuid.UUID, id sshca.Identity) (tunnel.User, error) {
+	return tunnelUser(u.ids.AuthenticateCert(ctx, orgID, id))
 }
 
 func tunnelUser(ref identity.UserRef, err error) (tunnel.User, error) {
@@ -131,7 +136,7 @@ func (s tunnelSessions) Deny(ctx context.Context, orgID uuid.UUID, ds []tunnel.D
 }
 
 // tunnelSnapshots builds a pool's snapshot: the organization's compiled
-// policy, its members with their teams and the blocklist (Org), then the
+// policy, its members with their teams, the blocklist and the user CA keys (Org), then the
 // pool's resources by name (Pool), sorted, so equal data gives an equal version.
 type tunnelSnapshots struct {
 	s      *services
@@ -174,6 +179,10 @@ func (t tunnelSnapshots) Org(ctx context.Context, orgID uuid.UUID) (*gatewayv1.S
 		out.Blocklist = append(out.Blocklist, p.String())
 	}
 	slices.Sort(out.Blocklist)
+	// Creates the CA on the first build, so the first snapshot already trusts it.
+	if out.UserCaKeys, err = t.s.Identity.UserCAPublicKeys(ctx, orgID); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 

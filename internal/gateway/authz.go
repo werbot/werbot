@@ -63,6 +63,7 @@ type Policy struct {
 	blocklist []netip.Prefix
 	resources []Resource                // by Name
 	members   map[uuid.UUID][]uuid.UUID // org members and their teams; empty: the server sends none
+	userCAs   [][]byte                  // wire form of the organization's user CA keys; empty: no certificate
 }
 
 // CompilePolicy parses a snapshot; any malformed part is an error.
@@ -94,7 +95,7 @@ func CompilePolicy(s *gatewayv1.Snapshot) (*Policy, error) {
 			IdleTimeout: max(r.GetIdleTimeout().AsDuration(), 0), MaxDuration: max(r.GetMaxDuration().AsDuration(), 0),
 			HostKeySHA256: r.GetHostKeySha256()})
 	}
-	if p.members, err = compileMembers(s.GetMembers()); err != nil {
+	if p.members, p.userCAs, err = compileSubjects(s); err != nil {
 		return nil, err
 	}
 	slices.SortFunc(p.resources, func(a, b Resource) int { return cmp.Compare(a.Name, b.Name) })

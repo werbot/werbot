@@ -160,10 +160,10 @@ func TestRequestHandshakeNeedsSigningKey(t *testing.T) {
 	h := &sshHandler{}
 	alice := User{Login: "alice"}
 
-	ctx.SetValue(userKey{}, &authed{u: alice, fp: fp(other), at: time.Unix(1, 0)})
+	ctx.SetValue(userKey{}, &authed{u: alice, id: Identity{Method: "ssh-key", Value: fp(other)}, at: time.Unix(1, 0)})
 	require.Nil(t, h.request(ctx, "db", KindTerminal, Window{}, "").Handshake, "another key's user")
 
-	ctx.SetValue(userKey{}, &authed{u: alice, fp: fp(signing), at: time.Unix(1, 0)})
+	ctx.SetValue(userKey{}, &authed{u: alice, id: Identity{Method: "ssh-key", Value: fp(signing)}, at: time.Unix(1, 0)})
 	r := h.request(ctx, "db", KindTerminal, Window{}, "")
 	require.NotNil(t, r.Handshake)
 	require.Equal(t, "alice", r.Handshake.User.Login)

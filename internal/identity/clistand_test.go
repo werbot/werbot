@@ -1,7 +1,6 @@
 package identity
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"log/slog"
@@ -20,7 +19,6 @@ import (
 	"github.com/werbot/werbot/internal/identity/oauth"
 	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/principal"
-	"github.com/werbot/werbot/internal/platform/secretbox"
 )
 
 // cliStand serves identity and the CLI authorization server behind
@@ -37,9 +35,7 @@ type cliStand struct {
 func newCLIStand(t *testing.T) cliStand {
 	t.Helper()
 	svc, pool, q := newTestService(t)
-	box, err := secretbox.New(bytes.Repeat([]byte{7}, 32), nil)
-	require.NoError(t, err)
-	key, err := oauth.LoadSigningKey(context.Background(), pool, box)
+	key, err := oauth.LoadSigningKey(context.Background(), pool, svc.cfg.Box)
 	require.NoError(t, err)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -49,6 +45,7 @@ func newCLIStand(t *testing.T) cliStand {
 	mux := http.NewServeMux()
 	mux.Handle(werbotv1connect.NewAuthServiceHandler(h))
 	mux.Handle(werbotv1connect.NewCLISessionServiceHandler(h))
+	mux.Handle(werbotv1connect.NewCertServiceHandler(h))
 	mux.Handle("/oauth/", prov.Handler())
 	mux.HandleFunc("/whoami", whoamiHandler)
 	srv := &httptest.Server{Listener: ln, Config: &http.Server{Handler: clientip.Middleware(nil)(Middleware(svc, prov)(mux))}} //nolint:gosec // test server
@@ -122,6 +119,10 @@ func (s cliStand) auth() werbotv1connect.AuthServiceClient {
 
 func (s cliStand) cliSessions() werbotv1connect.CLISessionServiceClient {
 	return werbotv1connect.NewCLISessionServiceClient(s.srv.Client(), s.srv.URL)
+}
+
+func (s cliStand) certs() werbotv1connect.CertServiceClient {
+	return werbotv1connect.NewCertServiceClient(s.srv.Client(), s.srv.URL)
 }
 
 // whoami returns the subject the middleware gives a request with header.

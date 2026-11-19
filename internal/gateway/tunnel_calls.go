@@ -31,13 +31,11 @@ func (Secret) LogValue() slog.Value { return slog.StringValue("[redacted]") }
 
 // Each unary call runs under callTimeout.
 
-// AuthenticateUser resolves the user of an SSH key fingerprint.
-func (c *tunnelClient) AuthenticateUser(ctx context.Context, fingerprint string, ip netip.Addr) (User, error) {
+// AuthenticateUser resolves the user of an SSH key fingerprint or of a verified certificate.
+func (c *tunnelClient) AuthenticateUser(ctx context.Context, id Identity, ip netip.Addr) (User, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
-	resp, err := c.conn.Load().rpc.AuthenticateUser(ctx, connect.NewRequest(&gatewayv1.AuthenticateUserRequest{
-		By: &gatewayv1.AuthenticateUserRequest_FingerprintSha256{FingerprintSha256: fingerprint}, ClientIp: ip.String(),
-	}))
+	resp, err := c.conn.Load().rpc.AuthenticateUser(ctx, connect.NewRequest(authRequest(id, ip)))
 	if err != nil {
 		return User{}, err
 	}
@@ -54,6 +52,18 @@ func (c *tunnelClient) AuthenticateUser(ctx context.Context, fingerprint string,
 		u.TeamIDs = append(u.TeamIDs, id)
 	}
 	return u, nil
+}
+
+// authRequest asks for the user of id: by the certificate's werbot identity,
+// else by the key fingerprint.
+func authRequest(id Identity, ip netip.Addr) *gatewayv1.AuthenticateUserRequest {
+	r := &gatewayv1.AuthenticateUserRequest{ClientIp: ip.String(),
+		By: &gatewayv1.AuthenticateUserRequest_FingerprintSha256{FingerprintSha256: id.Value}}
+	if c := id.Cert; c != nil {
+		r.By = &gatewayv1.AuthenticateUserRequest_Cert{Cert: &gatewayv1.CertIdentity{
+			UserId: c.UserID.String(), CliSessionId: c.CLISessionID.String(), Login: c.Login, CertFingerprint: id.Value}}
+	}
+	return r
 }
 
 // StartSession records a session of kind (target: host:port for a stream)

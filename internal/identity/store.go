@@ -65,4 +65,7 @@ type Store interface {
 	ListCLISessions(ctx context.Context, arg dbq.ListCLISessionsParams) ([]dbq.ListCLISessionsRow, error)
 	RevokeCLISession(ctx context.Context, arg dbq.RevokeCLISessionParams) (int64, error)
 	RevokeUserCLISessions(ctx context.Context, arg dbq.RevokeUserCLISessionsParams) error
+	GetUserCA(ctx context.Context, orgID uuid.UUID) (dbq.GetUserCARow, error)
+	InsertUserCA(ctx context.Context, arg dbq.InsertUserCAParams) error
+	LookupCertUser(ctx context.Context, arg dbq.LookupCertUserParams) (dbq.LookupCertUserRow, error)
 }

@@ -11,6 +11,7 @@ import (
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/sshca"
 )
 
 // fail maps err to a Connect error and logs causes the client cannot see.
@@ -58,6 +59,8 @@ func (h *Handler) AuthenticateUser(ctx context.Context, req *connect.Request[gat
 		u, err = h.d.Users.ByFingerprint(ctx, g.OrgID, by.FingerprintSha256)
 	case *gatewayv1.AuthenticateUserRequest_Login:
 		u, err = h.d.Users.ByLogin(ctx, g.OrgID, by.Login)
+	case *gatewayv1.AuthenticateUserRequest_Cert:
+		u, err = h.byCert(ctx, g.OrgID, by.Cert)
 	default:
 		return nil, invalid("by")
 	}
@@ -70,6 +73,20 @@ func (h *Handler) AuthenticateUser(ctx context.Context, req *connect.Request[gat
 	}
 	return connect.NewResponse(&gatewayv1.AuthenticateUserResponse{
 		UserId: u.ID.String(), Login: u.Login, TeamIds: teams, Country: h.d.Country(ip)}), nil
+}
+
+// byCert resolves a certificate the gateway verified; the organization is
+// always the caller's, never one the gateway names.
+func (h *Handler) byCert(ctx context.Context, orgID uuid.UUID, c *gatewayv1.CertIdentity) (User, error) {
+	id := sshca.Identity{OrgID: orgID, Login: c.GetLogin()}
+	var err error
+	if id.UserID, err = parseID(c.GetUserId(), "user_id"); err != nil {
+		return User{}, err
+	}
+	if id.CLISessionID, err = parseID(c.GetCliSessionId(), "cli_session_id"); err != nil {
+		return User{}, err
+	}
+	return h.d.Users.ByCert(ctx, orgID, id)
 }
 
 // StartSession reveals the credential first, so a failed reveal never leaves

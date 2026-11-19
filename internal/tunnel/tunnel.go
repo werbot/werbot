@@ -21,6 +21,7 @@ import (
 	"github.com/werbot/werbot/gen/gateway/v1/gatewayv1connect"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/sshca"
 	"github.com/werbot/werbot/internal/platform/tlsca"
 )
 
@@ -93,6 +94,7 @@ type Gateways interface {
 type Users interface {
 	ByFingerprint(ctx context.Context, orgID uuid.UUID, fingerprint string) (User, error)
 	ByLogin(ctx context.Context, orgID uuid.UUID, login string) (User, error)
+	ByCert(ctx context.Context, orgID uuid.UUID, id sshca.Identity) (User, error) // a live CLI session of the certificate
 }
 
 // Resources checks pool ownership and pins host keys.

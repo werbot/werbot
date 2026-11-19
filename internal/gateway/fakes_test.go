@@ -101,6 +101,7 @@ type fakeControl struct {
 	onAuth     func() // runs inside AuthenticateUser, under the lock
 	changed    chan struct{}
 	authCalls  []string
+	idents     []Identity // every AuthenticateUser identity
 	startCalls int
 	starts     []string // "<user id> <resource id> <ip>"
 	ends       []endCall
@@ -109,10 +110,11 @@ type fakeControl struct {
 	recs       []string
 }
 
-func (f *fakeControl) AuthenticateUser(_ context.Context, fp string, ip netip.Addr) (User, error) {
+func (f *fakeControl) AuthenticateUser(_ context.Context, id Identity, ip netip.Addr) (User, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.authCalls = append(f.authCalls, fp+" "+ip.String())
+	fp := id.Value
+	f.authCalls, f.idents = append(f.authCalls, fp+" "+ip.String()), append(f.idents, id)
 	if f.onAuth != nil {
 		f.onAuth()
 	}

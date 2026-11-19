@@ -283,7 +283,7 @@ func instanceClient(t *testing.T, dataDir string) gatewayv1connect.TunnelService
 func (s *stack) services(t *testing.T) *services {
 	t.Helper()
 	o := testServeOpts(t, config.Config{SecretKey: bytes.Repeat([]byte{1}, 32)}, s.pool)
-	svc, err := newServices(context.Background(), config.Config{DataDir: t.TempDir()}, s.pool, o.Box, o.CA, o.Signer, slog.New(slog.DiscardHandler))
+	svc, err := newServices(context.Background(), config.Config{DataDir: t.TempDir()}, s.pool, o.Box, o.CA, o.Signer, metrics.NewRegistry(), slog.New(slog.DiscardHandler))
 	require.NoError(t, err)
 	return svc
 }

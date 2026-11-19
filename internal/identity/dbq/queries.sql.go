@@ -538,6 +538,22 @@ func (q *Queries) GetSessionInfo(ctx context.Context, arg GetSessionInfoParams) 
 	return i, err
 }
 
+const getUserCA = `-- name: GetUserCA :one
+SELECT ciphertext, key_id FROM org_ssh_ca WHERE org_id = $1
+`
+
+type GetUserCARow struct {
+	Ciphertext []byte
+	KeyID      string
+}
+
+func (q *Queries) GetUserCA(ctx context.Context, orgID uuid.UUID) (GetUserCARow, error) {
+	row := q.db.QueryRow(ctx, getUserCA, orgID)
+	var i GetUserCARow
+	err := row.Scan(&i.Ciphertext, &i.KeyID)
+	return i, err
+}
+
 const getUserOrg = `-- name: GetUserOrg :one
 SELECT org_id FROM membership WHERE user_id = $1 ORDER BY created_at LIMIT 1
 `
@@ -558,6 +574,30 @@ func (q *Queries) HasUsers(ctx context.Context) (bool, error) {
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const insertUserCA = `-- name: InsertUserCA :exec
+INSERT INTO org_ssh_ca (org_id, ciphertext, key_id, public_key)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (org_id) DO NOTHING
+`
+
+type InsertUserCAParams struct {
+	OrgID      uuid.UUID
+	Ciphertext []byte
+	KeyID      string
+	PublicKey  string
+}
+
+// Concurrent first uses race here: the first insert wins, the rest re-read.
+func (q *Queries) InsertUserCA(ctx context.Context, arg InsertUserCAParams) error {
+	_, err := q.db.Exec(ctx, insertUserCA,
+		arg.OrgID,
+		arg.Ciphertext,
+		arg.KeyID,
+		arg.PublicKey,
+	)
+	return err
 }
 
 const isMemberEmail = `-- name: IsMemberEmail :one
@@ -926,6 +966,50 @@ func (q *Queries) LockUserOwnedOrgs(ctx context.Context, userID uuid.UUID) ([]Lo
 		return nil, err
 	}
 	return items, nil
+}
+
+const lookupCertUser = `-- name: LookupCertUser :one
+SELECT u.id, u.login, m.role,
+       (SELECT array_agg(tm.team_id ORDER BY tm.team_id) FROM team_member tm
+        WHERE tm.org_id = m.org_id AND tm.user_id = u.id)::uuid[] AS team_ids
+FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+JOIN users u ON u.id = c.user_id
+WHERE c.id = $1 AND c.org_id = $2 AND c.user_id = $3 AND u.login = $4
+  AND c.revoked_at IS NULL AND c.expires_at > now() AND c.absolute_expires_at > now()
+`
+
+type LookupCertUserParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+	Login  string
+}
+
+type LookupCertUserRow struct {
+	ID      uuid.UUID
+	Login   string
+	Role    string
+	TeamIds []uuid.UUID
+}
+
+// An SSH certificate: the live cli_session it was issued for, the member and
+// the login of its principal. ponytail: team sub-select as LookupLoginUser.
+func (q *Queries) LookupCertUser(ctx context.Context, arg LookupCertUserParams) (LookupCertUserRow, error) {
+	row := q.db.QueryRow(ctx, lookupCertUser,
+		arg.ID,
+		arg.OrgID,
+		arg.UserID,
+		arg.Login,
+	)
+	var i LookupCertUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Login,
+		&i.Role,
+		&i.TeamIds,
+	)
+	return i, err
 }
 
 const lookupLoginUser = `-- name: LookupLoginUser :one

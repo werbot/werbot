@@ -2,11 +2,14 @@ package app
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gossh "golang.org/x/crypto/ssh"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
@@ -76,11 +80,12 @@ func TestServeMountsConsent(t *testing.T) {
 }
 
 // TestServeBearer: a CLI access token from the device flow authenticates
-// Connect calls on the served API, and CLISessionService is mounted.
+// Connect calls on the served API; CLISessionService and CertService are
+// mounted, and issued certificates are counted on /metrics.
 func TestServeBearer(t *testing.T) {
 	pool, _ := dbtest.New(t)
 	// development: cookie without Secure, which the jar sends over plain http.
-	cfg := config.Config{HTTPAddr: freeAddr(t), Env: "development", WebEmbedded: false}
+	cfg := config.Config{HTTPAddr: freeAddr(t), MetricsAddr: freeAddr(t), Env: "development", WebEmbedded: false}
 	startServe(t, cfg, pool, nil, nil, slog.New(slog.DiscardHandler))
 	base := "http://" + cfg.HTTPAddr
 	hc, _ := jarClient(t, http.DefaultTransport)
@@ -116,6 +121,16 @@ func TestServeBearer(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list.Msg.GetSessions(), 1)
 	assert.True(t, list.Msg.GetSessions()[0].GetCurrent())
+	pub, _, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	sshPub, err := gossh.NewPublicKey(pub)
+	require.NoError(t, err)
+	cert, err := werbotv1connect.NewCertServiceClient(http.DefaultClient, base).IssueUserCert(ctx,
+		withBearer(&werbotv1.IssueUserCertRequest{PublicKey: string(gossh.MarshalAuthorizedKey(sshPub))}, tr.AccessToken))
+	require.NoError(t, err)
+	assert.True(t, strings.HasPrefix(cert.Msg.GetCertificate(), "ssh-ed25519-cert-v01@openssh.com "))
+	_, metrics := get(t, "http://"+cfg.MetricsAddr+"/metrics")
+	assert.Contains(t, metrics, "werbot_user_certs_issued_total 1\n")
 
 	_, err = werbotv1connect.NewAuthServiceClient(hc, base).GetSession(ctx, withBearer(&werbotv1.GetSessionRequest{}, "garbage"))
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err), "a bad token is not rescued by the cookie")

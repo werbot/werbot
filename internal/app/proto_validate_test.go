@@ -7,6 +7,7 @@ import (
 	"buf.build/go/protovalidate"
 	"github.com/stretchr/testify/assert"
 
+	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 )
 
@@ -49,4 +50,16 @@ func TestRequestValidation(t *testing.T) {
 	assert.Error(t, protovalidate.Validate(&werbotv1.ListCLISessionsRequest{UserId: &bad}))
 	assert.NoError(t, protovalidate.Validate(&werbotv1.RevokeCLISessionRequest{Id: id}))
 	assert.Error(t, protovalidate.Validate(&werbotv1.RevokeCLISessionRequest{Id: "x"}))
+
+	// CertService and the tunnel's certificate login (stage 9)
+	assert.NoError(t, protovalidate.Validate(&werbotv1.IssueUserCertRequest{PublicKey: "ssh-ed25519 AAAA"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.IssueUserCertRequest{}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.IssueUserCertRequest{PublicKey: strings.Repeat("a", 8193)}))
+	cert := func(c *gatewayv1.CertIdentity) *gatewayv1.AuthenticateUserRequest {
+		return &gatewayv1.AuthenticateUserRequest{By: &gatewayv1.AuthenticateUserRequest_Cert{Cert: c}, ClientIp: "192.0.2.7"}
+	}
+	assert.NoError(t, protovalidate.Validate(cert(&gatewayv1.CertIdentity{UserId: id, CliSessionId: id, Login: "alice", CertFingerprint: "SHA256:x"})))
+	assert.Error(t, protovalidate.Validate(cert(&gatewayv1.CertIdentity{UserId: "x", CliSessionId: id, Login: "alice"})))
+	assert.Error(t, protovalidate.Validate(cert(&gatewayv1.CertIdentity{UserId: id, CliSessionId: id})))
+	assert.Error(t, protovalidate.Validate(cert(&gatewayv1.CertIdentity{UserId: id, CliSessionId: id, Login: "alice", CertFingerprint: strings.Repeat("a", 129)})))
 }

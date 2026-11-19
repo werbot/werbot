@@ -109,6 +109,31 @@ func TestSnapshotBuildDenyAllOnCompileError(t *testing.T) {
 	assert.Empty(t, snap.GetCedarPolicies())
 	assert.Empty(t, snap.GetEntitiesJson())
 	assert.Len(t, snap.GetResources(), 3)
+	assert.Len(t, snap.GetUserCaKeys(), 1, "certificates still verify under deny-all")
+}
+
+// The first build creates the organization's user CA: the first snapshot of a
+// pool already carries its key, and every organization has its own.
+func TestSnapshotUserCAKeys(t *testing.T) {
+	s := newStage4(t, slog.New(slog.DiscardHandler))
+	ctx, org, owner := s.org(t, "owner")
+	gw, _ := s.gatewayPool(ctx, t, owner)
+	_, orgB, _ := s.org(t, "owner")
+	b := newTunnelDeps(s.d, metrics.NewRegistry(), slog.New(slog.DiscardHandler)).Snapshots
+
+	snap, err := buildSnapshot(context.Background(), b, org, gw)
+	require.NoError(t, err)
+	var stored string
+	require.NoError(t, s.pool.QueryRow(ctx, "SELECT public_key FROM org_ssh_ca WHERE org_id = $1", org).Scan(&stored))
+	assert.Equal(t, []string{stored}, snap.GetUserCaKeys())
+	want, err := s.d.Identity.UserCAPublicKeys(ctx, org)
+	require.NoError(t, err)
+	assert.Equal(t, want, snap.GetUserCaKeys())
+
+	other, err := b.Org(context.Background(), orgB)
+	require.NoError(t, err)
+	require.Len(t, other.GetUserCaKeys(), 1)
+	assert.NotEqual(t, stored, other.GetUserCaKeys()[0])
 }
 
 // The gateway names the session's user; only a member of the pool's
