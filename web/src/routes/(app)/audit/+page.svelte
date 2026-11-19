@@ -9,6 +9,7 @@
 	import EventDrawer from '#lib/audit/EventDrawer.svelte';
 	import { fmt } from '#lib/format.js';
 	import FilterMenu from '#lib/FilterMenu.svelte';
+	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import Pager from '#lib/Pager.svelte';
 	import { dayStart, dayString } from '#lib/period.js';
@@ -100,37 +101,39 @@
 		</FilterMenu>
 	{/snippet}
 </PageHeader>
-{#if error}<Banner tone="alert">{error}</Banner>{/if}
+<PageBody flush>
+	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 
-{#if error}
-	<!-- the error banner above says why -->
-{:else if !loaded}
-	<Skeleton variant="text" lines={6} />
-{:else if list.length === 0}
-	<EmptyState icon="history" title={m.audit_empty()}>
-		{#snippet actions()}{#if activeFilters > 0}{@render resetButton()}{/if}{/snippet}
-	</EmptyState>
-{:else}
-	<Table>
-		{#snippet header()}
-			<th>{m.audit_col_time()}</th>
-			<th>{m.audit_col_actor()}</th>
-			<th>{m.audit_col_action()}</th>
-			<th>{m.audit_col_target()}</th>
-		{/snippet}
-		{#each list as ev (ev.id)}
-			<tr>
-				<td>{fmt(ev.createdAt)}</td>
-				<td>
-					{#if ev.actorLogin}<span class="actor"><Avatar name={ev.actorLogin} size={24} />{ev.actorLogin}</span>{:else}{ev.actorKind}{/if}
-				</td>
-				<td><button class="action" onclick={() => (selected = ev.id)}>{ev.action}</button></td>
-				<td>{ev.targetType} {ev.targetId}</td>
-			</tr>
-		{/each}
-	</Table>
-{/if}
-<Pager bind:page={pageNo} {next} />
+	{#if error}
+		<!-- the error banner above says why -->
+	{:else if !loaded}
+		<Skeleton variant="text" lines={6} />
+	{:else if list.length === 0}
+		<EmptyState icon="report_detailed" title={m.audit_empty()}>
+			{#snippet actions()}{#if activeFilters > 0}{@render resetButton()}{/if}{/snippet}
+		</EmptyState>
+	{:else}
+		<Table>
+			{#snippet header()}
+				<th>{m.audit_col_time()}</th>
+				<th>{m.audit_col_actor()}</th>
+				<th>{m.audit_col_action()}</th>
+				<th>{m.audit_col_target()}</th>
+			{/snippet}
+			{#each list as ev (ev.id)}
+				<tr>
+					<td>{fmt(ev.createdAt)}</td>
+					<td>
+						{#if ev.actorLogin}<span class="actor"><Avatar name={ev.actorLogin} size={24} />{ev.actorLogin}</span>{:else}{ev.actorKind}{/if}
+					</td>
+					<td><button class="action" onclick={() => (selected = ev.id)}>{ev.action}</button></td>
+					<td>{ev.targetType} {ev.targetId}</td>
+				</tr>
+			{/each}
+		</Table>
+	{/if}
+	<Pager bind:page={pageNo} {next} />
+</PageBody>
 <EventDrawer bind:id={selected} />
 
 <style>
@@ -143,6 +146,7 @@
 	.action {
 		padding: 0;
 		font: inherit;
+		font-weight: 600;
 		color: inherit;
 		background: none;
 		border: 0;

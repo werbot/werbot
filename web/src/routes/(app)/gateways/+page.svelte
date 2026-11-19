@@ -6,6 +6,7 @@
 	import { errorMessage } from '#lib/errors.js';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import PoolDetails from '#lib/gateways/PoolDetails.svelte';
+	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -109,41 +110,45 @@
 
 <PageHeader title={m.gateways_title()} count={loaded ? list.length : undefined}>
 	{#snippet toolbar()}
-		<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_create()}</Button>
+		{#if list.length > 0}
+			<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_create()}</Button>
+		{/if}
 	{/snippet}
 </PageHeader>
-{#if error || pollError}<Banner tone="alert">{error || pollError}</Banner>{/if}
+<PageBody flush>
+	{#if error || pollError}<Banner tone="alert">{error || pollError}</Banner>{/if}
 
-{#if !loaded}
-	{#if !pollError}<Skeleton variant="text" lines={6} />{/if}
-{:else if list.length === 0}
-	<EmptyState icon="hub" title={m.gateways_empty()}>
-		{#snippet actions()}
-			<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_create()}</Button>
-		{/snippet}
-	</EmptyState>
-{:else}
-	<Table>
-		{#snippet header()}
-			<th>{m.gateways_col_name()}</th>
-			<th>{m.gateways_col_status()}</th>
-			<th>{m.gateways_col_connectors()}</th>
-			<th>{m.gateways_instances_title()}</th>
-			<th></th>
-		{/snippet}
-		{#each list as pool (pool.id)}
-			<tr>
-				<td><button class="name" onclick={() => (open = pool.id)}>{pool.name}</button></td>
-				<td><Badge tone={pool.online ? 'accent' : 'ghost'}>{pool.online ? m.gateways_online() : m.gateways_offline()}</Badge></td>
-				<td>
-					<span class="chips">{#each pool.connectors as c (c)}<Chip>{c}</Chip>{/each}</span>
-				</td>
-				<td>{pool.instances.length}</td>
-				<td class="more">{@render moreMenu(pool, 'row')}</td>
-			</tr>
-		{/each}
-	</Table>
-{/if}
+	{#if !loaded}
+		{#if !pollError}<Skeleton variant="text" lines={6} />{/if}
+	{:else if list.length === 0}
+		<EmptyState icon="shield" title={m.gateways_empty()}>
+			{#snippet actions()}
+				<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_create()}</Button>
+			{/snippet}
+		</EmptyState>
+	{:else}
+		<Table>
+			{#snippet header()}
+				<th>{m.gateways_col_name()}</th>
+				<th>{m.gateways_col_status()}</th>
+				<th>{m.gateways_col_connectors()}</th>
+				<th>{m.gateways_instances_title()}</th>
+				<th></th>
+			{/snippet}
+			{#each list as pool (pool.id)}
+				<tr>
+					<td><button class="name" onclick={() => (open = pool.id)}>{pool.name}</button></td>
+					<td><Badge tone={pool.online ? 'accent' : 'ghost'}>{pool.online ? m.gateways_online() : m.gateways_offline()}</Badge></td>
+					<td>
+						<span class="chips">{#each pool.connectors as c (c)}<Chip>{c}</Chip>{/each}</span>
+					</td>
+					<td>{pool.instances.length}</td>
+					<td class="more">{@render moreMenu(pool, 'row')}</td>
+				</tr>
+			{/each}
+		</Table>
+	{/if}
+</PageBody>
 
 <!-- Escape reaches the drawer too: ignore it while the confirm or a menu is open -->
 <Drawer bind:open={() => !!current, (v) => !v && !confirming && !menuOpen && (open = '')} resizable snapPoints={[480, 720]} width={720} title={current?.name}>

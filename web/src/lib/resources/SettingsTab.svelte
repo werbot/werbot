@@ -53,7 +53,7 @@
 <Modal bind:open={confirming} title={m.resources_delete()}>
 	{m.resources_delete_confirm()}
 	{#snippet footer()}
-		<Button variant="plain" onclick={() => (confirming = false)}>{m.common_cancel()}</Button>
+		<Button scheme="g" variant="plain" onclick={() => (confirming = false)}>{m.common_cancel()}</Button>
 		<Button scheme="w" variant="solid" onclick={remove}>{m.resources_delete()}</Button>
 	{/snippet}
 </Modal>

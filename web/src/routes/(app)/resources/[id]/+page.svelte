@@ -2,11 +2,12 @@
 	import { onMount } from 'svelte';
 	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
 	import { page } from '$app/state';
-	import { Banner, InfoBlock, Tabs } from '#lib/ui/index.js';
+	import { Banner, InfoBlock, Skeleton, Tabs } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { ConfigSchema as SshConfigSchema } from '#lib/gen/werbot/connector/ssh/v1/ssh_pb.js';
+	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import HealthDot from '#lib/resources/HealthDot.svelte';
 	import AccessTab from '#lib/resources/AccessTab.svelte';
@@ -63,9 +64,11 @@
 		<Tabs options={tabOptions} bind:value={tab} />
 	{/snippet}
 </PageHeader>
-{#if error}<Banner tone="alert">{error}</Banner>{/if}
-{#if resource}
-	<div class="stack">
+<PageBody width={960}>
+	{#if error}<Banner tone="alert">{error}</Banner>{/if}
+	{#if !resource && !error}
+		<Skeleton variant="rect" height={240} />
+	{:else if resource}
 		{#if resource.health?.error}<Banner tone="alert">{m.resources_health_error({ error: resource.health.error })}</Banner>{/if}
 		{#if hints.length}
 			<InfoBlock title={m.resources_connect_title()}>
@@ -85,17 +88,10 @@
 				<HostKeyTab bind:resource />
 			{/if}
 		</div>
-	</div>
-{/if}
+	{/if}
+</PageBody>
 
 <style>
-	.stack {
-		display: flex;
-		flex-direction: column;
-		gap: var(--miso-sp-16);
-		margin-top: var(--miso-sp-16);
-	}
-
 	.card {
 		background: var(--miso-cont-top);
 		box-shadow: var(--miso-shadow-cont-minor-outline);

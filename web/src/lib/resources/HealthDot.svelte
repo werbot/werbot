@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Tooltip } from '#lib/ui/index.js';
 	import { ResourceHealth_State, type ResourceHealth } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -10,7 +11,7 @@
 	const label = $derived({ healthy: m.resources_health_healthy(), unhealthy: m.resources_health_unhealthy(), unknown: m.resources_health_unknown() }[state]);
 </script>
 
-<span class="dot" data-health={state} title={health?.error || label} role="img" aria-label={label}></span>
+<Tooltip text={health?.error || label}><span class="dot" data-health={state} role="img" aria-label={label}></span></Tooltip>
 
 <style>
 	.dot {

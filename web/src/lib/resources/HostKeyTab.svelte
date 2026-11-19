@@ -32,5 +32,5 @@
 	{/if}
 	<p><Button scheme="w" variant="plain" onclick={clear}>{m.host_key_clear()}</Button></p>
 {:else}
-	<InfoBlock>{m.host_key_pending()}</InfoBlock>
+	<InfoBlock title={m.host_key_pending()} />
 {/if}

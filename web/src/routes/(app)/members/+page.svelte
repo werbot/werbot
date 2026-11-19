@@ -8,6 +8,7 @@
 	import type { Invite, Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
 	import MemberDrawer from '#lib/members/MemberDrawer.svelte';
+	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
@@ -100,85 +101,87 @@
 		<Tabs options={tabOptions} bind:value={tab} />
 	{/snippet}
 </PageHeader>
-{#if error && !inviting}<Banner tone="alert">{error}</Banner>{/if}
+<PageBody flush>
+	{#if error && !inviting}<Banner tone="alert">{error}</Banner>{/if}
 
-{#if !loaded}
-	{#if !error}<Skeleton variant="text" lines={6} />{/if}
-{:else if tab === 'members'}
-	<Table>
-		{#snippet header()}
-			<th>{m.field_name()}</th>
-			<th>{m.field_email()}</th>
-			<th>{m.field_login()}</th>
-			<th>{m.members_role()}</th>
-			<th>{m.members_joined()}</th>
-			<th></th>
-		{/snippet}
-		{#each list as member (member.user?.id)}
-			<tr>
-				<td>
-					<button class="name" onclick={() => (selected = member.user?.id ?? '')}>
-						<Avatar name={member.user?.name} size={24} />{member.user?.name}
-					</button>
-				</td>
-				<td>{member.user?.email}</td>
-				<td>{member.user?.login}</td>
-				<td>
-					{#if locked(member)}
-						<Label variant="soft">{roleLabels[member.role as keyof typeof roleLabels]()}</Label>
-					{:else}
-						<!-- remount on refetch so a rejected pick does not linger -->
-						{#key member}
-							<Select size={28} options={roleOptions} value={String(member.role)} onchange={(value) => setRole(member, Number(value))} />
-						{/key}
-					{/if}
-				</td>
-				<td>{date(member.joinedAt)}</td>
-				<td class="more">
-					<Dropdown placement="bottom-end" bind:open={() => menuOpen === member.user?.id, (v) => (menuOpen = v ? (member.user?.id ?? '') : '')}>
-						{#snippet trigger({ toggle })}
-							<Tooltip text={m.common_more()}>
-								<Button scheme="g" variant="ghost" size={28} icon="more-horiz" aria-label={m.common_more()} onclick={toggle} />
-							</Tooltip>
-						{/snippet}
-						{#snippet children({ close })}
-							<Menu>
-								<MenuItem
-									icon="trash"
-									danger
-									disabled={locked(member)}
-									onclick={() => {
-										close();
-										removing = member;
-									}}
-								>
-									{m.members_remove()}
-								</MenuItem>
-							</Menu>
-						{/snippet}
-					</Dropdown>
-				</td>
-			</tr>
-		{/each}
-	</Table>
-{:else if invites.length === 0}
-	<EmptyState icon="people" title={m.members_invites_empty()} />
-{:else}
-	<Table>
-		{#snippet header()}
-			<th>{m.field_email()}</th>
-			<th>{m.members_role()}</th>
-			<th>{m.members_invite_expires()}</th>
-		{/snippet}
-		{#each invites as item (item.email)}
-			<tr>
-				<td>{item.email}</td>
-				<td><Label variant="soft">{roleLabels[item.role as keyof typeof roleLabels]?.()}</Label></td>
-				<td>{date(item.expiresAt)}</td>
-			</tr>
-		{/each}
-	</Table>
-{/if}
+	{#if !loaded}
+		{#if !error}<Skeleton variant="text" lines={6} />{/if}
+	{:else if tab === 'members'}
+		<Table>
+			{#snippet header()}
+				<th>{m.field_name()}</th>
+				<th>{m.field_email()}</th>
+				<th>{m.field_login()}</th>
+				<th>{m.members_role()}</th>
+				<th>{m.members_joined()}</th>
+				<th></th>
+			{/snippet}
+			{#each list as member (member.user?.id)}
+				<tr>
+					<td>
+						<button class="name" onclick={() => (selected = member.user?.id ?? '')}>
+							<Avatar name={member.user?.name} size={24} />{member.user?.name}
+						</button>
+					</td>
+					<td>{member.user?.email}</td>
+					<td>{member.user?.login}</td>
+					<td>
+						{#if locked(member)}
+							<Label variant="soft">{roleLabels[member.role as keyof typeof roleLabels]()}</Label>
+						{:else}
+							<!-- remount on refetch so a rejected pick does not linger -->
+							{#key member}
+								<Select size={28} options={roleOptions} value={String(member.role)} onchange={(value) => setRole(member, Number(value))} />
+							{/key}
+						{/if}
+					</td>
+					<td>{date(member.joinedAt)}</td>
+					<td class="more">
+						<Dropdown placement="bottom-end" bind:open={() => menuOpen === member.user?.id, (v) => (menuOpen = v ? (member.user?.id ?? '') : '')}>
+							{#snippet trigger({ toggle })}
+								<Tooltip text={m.common_more()}>
+									<Button scheme="g" variant="ghost" size={28} icon="more-horiz" aria-label={m.common_more()} onclick={toggle} />
+								</Tooltip>
+							{/snippet}
+							{#snippet children({ close })}
+								<Menu>
+									<MenuItem
+										icon="trash"
+										danger
+										disabled={locked(member)}
+										onclick={() => {
+											close();
+											removing = member;
+										}}
+									>
+										{m.members_remove()}
+									</MenuItem>
+								</Menu>
+							{/snippet}
+						</Dropdown>
+					</td>
+				</tr>
+			{/each}
+		</Table>
+	{:else if invites.length === 0}
+		<EmptyState icon="people" title={m.members_invites_empty()} />
+	{:else}
+		<Table>
+			{#snippet header()}
+				<th>{m.field_email()}</th>
+				<th>{m.members_role()}</th>
+				<th>{m.members_invite_expires()}</th>
+			{/snippet}
+			{#each invites as item (item.email)}
+				<tr>
+					<td>{item.email}</td>
+					<td><Label variant="soft">{roleLabels[item.role as keyof typeof roleLabels]?.()}</Label></td>
+					<td>{date(item.expiresAt)}</td>
+				</tr>
+			{/each}
+		</Table>
+	{/if}
+</PageBody>
 
 <!-- Escape reaches the drawer too: ignore it while the remove confirm or a menu is open -->
 <MemberDrawer

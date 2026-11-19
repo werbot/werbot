@@ -78,6 +78,11 @@
 		flex-direction: column;
 		min-width: 0;
 		overflow: auto;
+		background: var(--miso-cont-top);
+	}
+
+	/* the dashboard has no column and keeps the demo dashboard ground */
+	.shell--bare main {
 		background: var(--miso-cont-mid);
 	}
 

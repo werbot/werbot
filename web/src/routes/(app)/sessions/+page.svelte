@@ -7,6 +7,7 @@
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import { bytes, fmt } from '#lib/format.js';
 	import FilterMenu from '#lib/FilterMenu.svelte';
+	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import Pager from '#lib/Pager.svelte';
 	import { dayStart, dayString } from '#lib/period.js';
@@ -94,47 +95,61 @@
 		</FilterMenu>
 	{/snippet}
 </PageHeader>
-{#if error || optionsError}<Banner tone="alert">{error || optionsError}</Banner>{/if}
+<PageBody flush>
+	{#if error || optionsError}<Banner tone="alert">{error || optionsError}</Banner>{/if}
 
-{#if error}
-	<!-- the error banner above says why -->
-{:else if !loaded}
-	<Skeleton variant="text" lines={6} />
-{:else if list.length === 0}
-	<EmptyState icon="history" title={m.sessions_empty()}>
-		{#snippet actions()}{#if activeFilters > 0}{@render resetButton()}{/if}{/snippet}
-	</EmptyState>
-{:else}
-	<Table>
-		{#snippet header()}
-			<th>{m.sessions_col_user()}</th>
-			<th>{m.sessions_col_resource()}</th>
-			<th>{m.sessions_col_started()}</th>
-			<th>{m.sessions_col_ended()}</th>
-			<th>{m.sessions_col_status()}</th>
-			<th>{m.sessions_col_traffic()}</th>
-		{/snippet}
-		{#each list as s (s.id)}
-			<tr>
-				<td>
-					{#if s.userLogin}<span class="user"><Avatar name={s.userLogin} size={24} />{s.userLogin}</span>{:else}—{/if}
-				</td>
-				<td><a href={`/sessions/${s.id}`}>{s.resourceName || s.id}</a></td>
-				<td>{fmt(s.startedAt)}</td>
-				<td>{fmt(s.endedAt)}</td>
-				<td>
-					<Badge tone={s.endedAt ? 'ghost' : 'accent'}>
-						{s.endedAt ? m.sessions_status_ended() : m.sessions_status_active()}
-					</Badge>
-				</td>
-				<td>↑ {bytes(s.bytesUp)} ↓ {bytes(s.bytesDown)}</td>
-			</tr>
-		{/each}
-	</Table>
-{/if}
-<Pager bind:page={pageNo} {next} />
+	{#if error}
+		<!-- the error banner above says why -->
+	{:else if !loaded}
+		<Skeleton variant="text" lines={6} />
+	{:else if list.length === 0}
+		<EmptyState icon="history" title={m.sessions_empty()}>
+			{#snippet actions()}{#if activeFilters > 0}{@render resetButton()}{/if}{/snippet}
+		</EmptyState>
+	{:else}
+		<Table>
+			{#snippet header()}
+				<th>{m.sessions_col_user()}</th>
+				<th>{m.sessions_col_resource()}</th>
+				<th>{m.sessions_col_started()}</th>
+				<th>{m.sessions_col_ended()}</th>
+				<th>{m.sessions_col_status()}</th>
+				<th>{m.sessions_col_traffic()}</th>
+			{/snippet}
+			{#each list as s (s.id)}
+				<tr>
+					<td>
+						{#if s.userLogin}<span class="user"><Avatar name={s.userLogin} size={24} />{s.userLogin}</span>{:else}—{/if}
+					</td>
+					<td><a class="name" href={`/sessions/${s.id}`}>{s.resourceName || s.id}</a></td>
+					<td>{fmt(s.startedAt)}</td>
+					<td>{fmt(s.endedAt)}</td>
+					<td>
+						<Badge tone={s.endedAt ? 'ghost' : 'accent'}>
+							{s.endedAt ? m.sessions_status_ended() : m.sessions_status_active()}
+						</Badge>
+					</td>
+					<td>↑ {bytes(s.bytesUp)} ↓ {bytes(s.bytesDown)}</td>
+				</tr>
+			{/each}
+		</Table>
+	{/if}
+	<Pager bind:page={pageNo} {next} />
+</PageBody>
 
 <style>
+	.name {
+		font-weight: 600;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.name:focus-visible {
+		outline: 2px solid var(--miso-line-accent);
+		outline-offset: 2px;
+		border-radius: var(--miso-radius-04);
+	}
+
 	.user {
 		display: inline-flex;
 		align-items: center;

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Code, ConnectError } from '@connectrpc/connect';
 	import { Banner, Button, FilledField, InfoBlock, SettingsCard, toast } from '#lib/ui/index.js';
+	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { profile } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
@@ -80,9 +81,9 @@
 </script>
 
 <PageHeader title={m.profile_title()} />
-{#if error}<Banner tone="alert">{error}</Banner>{/if}
+<PageBody width={680}>
+	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 
-<div class="cards">
 	<SettingsCard icon="person" title={m.profile_title()}>
 		<form onsubmit={save}>
 			<FilledField label={m.field_name()} bind:value={name} required autocomplete="name" />
@@ -90,7 +91,7 @@
 			{#if emailChanged}
 				<FilledField type="password" label={m.profile_email_password()} bind:value={emailPassword} required autocomplete="current-password" />
 			{/if}
-			<Button type="submit" variant="solid">{m.profile_save()}</Button>
+			<div><Button type="submit" variant="solid">{m.profile_save()}</Button></div>
 		</form>
 	</SettingsCard>
 
@@ -98,26 +99,19 @@
 		<form onsubmit={changePassword}>
 			<FilledField type="password" label={m.profile_password_current()} bind:value={current} required autocomplete="current-password" />
 			<FilledField type="password" label={m.profile_password_new()} bind:value={next} required minlength={12} autocomplete="new-password" />
-			<Button type="submit" variant="solid">{m.profile_password_submit()}</Button>
+			<div><Button type="submit" variant="solid">{m.profile_password_submit()}</Button></div>
 		</form>
 	</SettingsCard>
 
 	<SettingsCard icon="trash_can" title={m.profile_delete_title()}>
 		<div class="danger">
-			<InfoBlock tone="warning">{m.profile_delete_warning()}</InfoBlock>
+			<InfoBlock tone="warning" icon="exclam_triangle-line" title={m.common_warning()}>{m.profile_delete_warning()}</InfoBlock>
 			<div><Button scheme="w" variant="solid" onclick={requestDeletion}>{m.profile_delete_submit()}</Button></div>
 		</div>
 	</SettingsCard>
-</div>
+</PageBody>
 
 <style>
-	.cards {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
-		max-width: 480px;
-	}
-
 	form,
 	.danger {
 		display: flex;

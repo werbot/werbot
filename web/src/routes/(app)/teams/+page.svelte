@@ -6,6 +6,7 @@
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
 	import TeamDrawer from '#lib/teams/TeamDrawer.svelte';
+	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -67,54 +68,56 @@
 		{/if}
 	{/snippet}
 </PageHeader>
-{#if error && !creating}<Banner tone="alert">{error}</Banner>{/if}
+<PageBody flush>
+	{#if error && !creating}<Banner tone="alert">{error}</Banner>{/if}
 
-{#if !loaded}
-	{#if !error}<Skeleton variant="text" lines={6} />{/if}
-{:else if list.length === 0}
-	<EmptyState icon="people" title={m.teams_empty()}>
-		{#snippet actions()}
-			<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.teams_new()}</Button>
-		{/snippet}
-	</EmptyState>
-{:else}
-	<Table>
-		{#snippet header()}
-			<th>{m.field_name()}</th>
-			<th>{m.members_title()}</th>
-			<th></th>
-		{/snippet}
-		{#each list as team (team.id)}
-			<tr>
-				<td><button class="name" onclick={() => (selected = team.id)}>{team.name}</button></td>
-				<td><AvatarStack people={team.memberUserIds.map((id) => ({ name: nameOf(id) }))} /></td>
-				<td class="more">
-					<Dropdown placement="bottom-end" bind:open={() => menuOpen === team.id, (v) => (menuOpen = v ? team.id : '')}>
-						{#snippet trigger({ toggle })}
-							<Tooltip text={m.common_more()}>
-								<Button scheme="g" variant="ghost" size={28} icon="more-horiz" aria-label={m.common_more()} onclick={toggle} />
-							</Tooltip>
-						{/snippet}
-						{#snippet children({ close })}
-							<Menu>
-								<MenuItem
-									icon="trash"
-									danger
-									onclick={() => {
-										close();
-										remove(team);
-									}}
-								>
-									{m.teams_delete()}
-								</MenuItem>
-							</Menu>
-						{/snippet}
-					</Dropdown>
-				</td>
-			</tr>
-		{/each}
-	</Table>
-{/if}
+	{#if !loaded}
+		{#if !error}<Skeleton variant="text" lines={6} />{/if}
+	{:else if list.length === 0}
+		<EmptyState icon="workspace" title={m.teams_empty()}>
+			{#snippet actions()}
+				<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.teams_new()}</Button>
+			{/snippet}
+		</EmptyState>
+	{:else}
+		<Table>
+			{#snippet header()}
+				<th>{m.field_name()}</th>
+				<th>{m.members_title()}</th>
+				<th></th>
+			{/snippet}
+			{#each list as team (team.id)}
+				<tr>
+					<td><button class="name" onclick={() => (selected = team.id)}>{team.name}</button></td>
+					<td><AvatarStack people={team.memberUserIds.map((id) => ({ name: nameOf(id) }))} /></td>
+					<td class="more">
+						<Dropdown placement="bottom-end" bind:open={() => menuOpen === team.id, (v) => (menuOpen = v ? team.id : '')}>
+							{#snippet trigger({ toggle })}
+								<Tooltip text={m.common_more()}>
+									<Button scheme="g" variant="ghost" size={28} icon="more-horiz" aria-label={m.common_more()} onclick={toggle} />
+								</Tooltip>
+							{/snippet}
+							{#snippet children({ close })}
+								<Menu>
+									<MenuItem
+										icon="trash"
+										danger
+										onclick={() => {
+											close();
+											remove(team);
+										}}
+									>
+										{m.teams_delete()}
+									</MenuItem>
+								</Menu>
+							{/snippet}
+						</Dropdown>
+					</td>
+				</tr>
+			{/each}
+		</Table>
+	{/if}
+</PageBody>
 
 <!-- Escape reaches the drawer too: ignore it while a menu is open -->
 <TeamDrawer

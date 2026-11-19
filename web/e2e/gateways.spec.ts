@@ -10,9 +10,8 @@ import { openNew } from './support/resources';
 const procs: ChildProcess[] = [];
 test.afterAll(() => procs.forEach((p) => p.kill()));
 
-// the empty state repeats the create button: take the toolbar one
 async function createPool(page: Page, name: string) {
-	await page.getByRole('button', { name: en.gateways_create }).first().click();
+	await page.getByRole('button', { name: en.gateways_create }).click();
 	const modal = page.getByRole('dialog', { name: en.gateways_create });
 	await modal.getByLabel(en.gateways_name_label).fill(name);
 	await modal.getByRole('button', { name: en.gateways_create }).click();

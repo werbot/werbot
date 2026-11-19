@@ -39,7 +39,7 @@
 </aside>
 
 <style>
-	/* 260px context column with the right hairline (.adminMenu__wrapper) */
+	/* 260px context column on cont-mid with the right hairline (demo ProjectSidebar .psb) */
 	.cc {
 		position: relative;
 		/* keep the right hairline above the work area background */
@@ -47,7 +47,7 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
-		background: var(--miso-cont-top);
+		background: var(--miso-cont-mid);
 		box-shadow: 1px 0 0 var(--miso-line-tertiary);
 		overflow: hidden;
 	}

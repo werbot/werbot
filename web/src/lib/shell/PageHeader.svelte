@@ -36,8 +36,11 @@
 </header>
 
 <style>
-	/* .headerConfig{border-bottom:1px line-secondary} */
+	/* .headerConfig{border-bottom:1px line-secondary}: full width, stays put while the body scrolls */
 	.ph {
+		position: sticky;
+		top: 0;
+		z-index: 2;
 		background: var(--miso-cont-top);
 		border-bottom: 1px solid var(--miso-line-secondary);
 	}

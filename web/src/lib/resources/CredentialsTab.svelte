@@ -2,6 +2,8 @@
 	import { Badge, Banner, Button, Select, TextField, Textarea, toast } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
+	import KeyFileDrop from '#lib/KeyFileDrop.svelte';
+	import { readPrivateKeyFile } from '#lib/sshkey.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -14,16 +16,32 @@
 	let picked = $state('');
 	const kind = $derived(picked || type?.credentialKinds[0] || '');
 	let value = $state('');
+	let fileName = $state('');
 	let error = $state('');
 
 	async function run(action: () => Promise<unknown>) {
 		error = '';
 		try {
 			await action();
-			value = '';
+			value = fileName = '';
 			const res = await resources.getResource({ id: resource.id });
 			if (res.resource) resource = res.resource;
 			toast({ tone: 'success', text: m.common_saved() });
+		} catch (e) {
+			error = errorMessage(e);
+		}
+	}
+
+	async function readKeyFile(file: File) {
+		error = '';
+		try {
+			const read = await readPrivateKeyFile(file);
+			if ('error' in read) {
+				error = m.cred_file_too_large();
+				return;
+			}
+			value = read.key;
+			fileName = file.name;
 		} catch (e) {
 			error = errorMessage(e);
 		}
@@ -50,6 +68,7 @@
 		onchange={(v) => (picked = v)}
 	/>
 	{#if kind === 'private_key'}
+		<KeyFileDrop hint={m.cred_drop_hint()} {fileName} onfile={readKeyFile} onclear={() => (value = fileName = '')} />
 		<Textarea label={label(kind)} bind:value rows={8} autocomplete="off" required />
 	{:else}
 		<TextField type="password" label={label(kind)} bind:value autocomplete="new-password" required />
