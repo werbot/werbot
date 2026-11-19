@@ -281,5 +281,6 @@
 	"audit_data": "Data",
 	"pagination_prev": "Previous",
 	"pagination_next": "Next",
-	"pagination_label": "Pagination"
+	"pagination_label": "Pagination",
+	"members_invites_empty": "No pending invitations."
 }
