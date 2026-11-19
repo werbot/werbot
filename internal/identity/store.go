@@ -56,4 +56,8 @@ type Store interface {
 	RemoveTeamMember(ctx context.Context, arg dbq.RemoveTeamMemberParams) (int64, error)
 	UserTeams(ctx context.Context, arg dbq.UserTeamsParams) ([]uuid.UUID, error)
 	ListOrgMembers(ctx context.Context, orgID uuid.UUID) ([]dbq.ListOrgMembersRow, error)
+	CreateOrgSetting(ctx context.Context, orgID uuid.UUID) error
+	GetOrgSettings(ctx context.Context, orgID uuid.UUID) (dbq.GetOrgSettingsRow, error)
+	LockOrgSettings(ctx context.Context, orgID uuid.UUID) (dbq.LockOrgSettingsRow, error)
+	UpdateOrgSettings(ctx context.Context, arg dbq.UpdateOrgSettingsParams) error
 }

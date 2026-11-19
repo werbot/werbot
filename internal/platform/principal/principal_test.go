@@ -18,7 +18,8 @@ func TestRequireRole(t *testing.T) {
 	_, err = principal.RequireRole(context.Background(), principal.RoleOwner)
 	assert.ErrorIs(t, err, apperr.ErrUnauthenticated)
 
-	p := principal.Principal{UserID: uuid.New(), OrgID: uuid.New(), Role: principal.RoleMember}
+	p := principal.Principal{UserID: uuid.New(), OrgID: uuid.New(), Role: principal.RoleMember,
+		AuthMethod: principal.AuthMethodOAuth, CLISessionID: uuid.New()}
 	ctx := principal.With(context.Background(), p)
 	got, ok := principal.From(ctx)
 	require.True(t, ok)

@@ -81,9 +81,10 @@ func TestMigrations6b(t *testing.T) {
 	require.NoError(t, err)
 
 	// A stage 5/6 session row survives 00080 and reads as a terminal session.
+	// Seed runs first: dbtest.Org writes org_setting, which 00103 owns.
+	f := dbtest.Seed(t, pool)
 	_, err = p.DownTo(ctx, 79)
 	require.NoError(t, err)
-	f := dbtest.Seed(t, pool)
 	var id string
 	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip)
 		VALUES ($1, $2, $3, $4, $5, '10.0.0.1') RETURNING id`, f.OrgID, f.MemberID, f.ResourceID, f.GatewayID, f.InstanceID).Scan(&id))

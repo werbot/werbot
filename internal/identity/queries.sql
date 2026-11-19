@@ -206,3 +206,23 @@ LEFT JOIN team_member tm ON tm.org_id = m.org_id AND tm.user_id = m.user_id
 WHERE m.org_id = @org_id
 GROUP BY m.user_id
 ORDER BY m.user_id;
+
+-- name: CreateOrgSetting :exec
+INSERT INTO org_setting (org_id) VALUES (@org_id);
+
+-- name: GetOrgSettings :one
+SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
+       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs
+FROM org_setting WHERE org_id = @org_id;
+
+-- name: LockOrgSettings :one
+SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
+       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs
+FROM org_setting WHERE org_id = @org_id FOR UPDATE;
+
+-- name: UpdateOrgSettings :exec
+UPDATE org_setting SET
+    cli_session_ttl = make_interval(secs => @cli_session_ttl_secs::float8),
+    cli_session_max = make_interval(secs => @cli_session_max_secs::float8),
+    updated_at = now()
+WHERE org_id = @org_id;

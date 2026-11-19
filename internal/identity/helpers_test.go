@@ -55,6 +55,8 @@ func seedOrg(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
 	var id uuid.UUID
 	require.NoError(t, pool.QueryRow(context.Background(),
 		"INSERT INTO organization (name) VALUES ($1) RETURNING id", name).Scan(&id))
+	_, err := pool.Exec(context.Background(), "INSERT INTO org_setting (org_id) VALUES ($1)", id)
+	require.NoError(t, err)
 	return id
 }
 

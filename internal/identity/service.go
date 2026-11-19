@@ -71,6 +71,9 @@ func (s *Service) Setup(ctx context.Context, in SetupInput, userAgent string) (s
 		if err != nil {
 			return err
 		}
+		if err := st.CreateOrgSetting(ctx, orgID); err != nil {
+			return err
+		}
 		userID, err := st.CreateUser(ctx, dbq.CreateUserParams{
 			Email: normalizeEmail(in.Email), Login: in.Login, Name: in.Name, PasswordHash: hash,
 		})

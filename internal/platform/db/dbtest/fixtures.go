@@ -27,10 +27,12 @@ func exec(t testing.TB, pool *pgxpool.Pool, sql string, args ...any) {
 	}
 }
 
-// Org inserts an organization.
+// Org inserts an organization with its default settings row.
 func Org(t testing.TB, pool *pgxpool.Pool) uuid.UUID {
 	t.Helper()
-	return insertID(t, pool, "INSERT INTO organization (name) VALUES ('test') RETURNING id")
+	return insertID(t, pool, `WITH o AS (INSERT INTO organization (name) VALUES ('test') RETURNING id),
+		s AS (INSERT INTO org_setting (org_id) SELECT id FROM o)
+		SELECT id FROM o`)
 }
 
 // User inserts a user and its membership in orgID with the given role.

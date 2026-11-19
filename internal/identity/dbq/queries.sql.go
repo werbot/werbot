@@ -101,6 +101,15 @@ func (q *Queries) CreateOneTimeToken(ctx context.Context, arg CreateOneTimeToken
 	return err
 }
 
+const createOrgSetting = `-- name: CreateOrgSetting :exec
+INSERT INTO org_setting (org_id) VALUES ($1)
+`
+
+func (q *Queries) CreateOrgSetting(ctx context.Context, orgID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, createOrgSetting, orgID)
+	return err
+}
+
 const createOrganization = `-- name: CreateOrganization :one
 INSERT INTO organization (name) VALUES ($1) RETURNING id
 `
@@ -347,6 +356,24 @@ func (q *Queries) GetLoginUser(ctx context.Context, email string) (GetLoginUserR
 	row := q.db.QueryRow(ctx, getLoginUser, email)
 	var i GetLoginUserRow
 	err := row.Scan(&i.ID, &i.PasswordHash, &i.OrgID)
+	return i, err
+}
+
+const getOrgSettings = `-- name: GetOrgSettings :one
+SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
+       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs
+FROM org_setting WHERE org_id = $1
+`
+
+type GetOrgSettingsRow struct {
+	CliSessionTtlSecs int64
+	CliSessionMaxSecs int64
+}
+
+func (q *Queries) GetOrgSettings(ctx context.Context, orgID uuid.UUID) (GetOrgSettingsRow, error) {
+	row := q.db.QueryRow(ctx, getOrgSettings, orgID)
+	var i GetOrgSettingsRow
+	err := row.Scan(&i.CliSessionTtlSecs, &i.CliSessionMaxSecs)
 	return i, err
 }
 
@@ -749,6 +776,24 @@ func (q *Queries) LockOrgOwners(ctx context.Context, orgID uuid.UUID) ([]uuid.UU
 	return items, nil
 }
 
+const lockOrgSettings = `-- name: LockOrgSettings :one
+SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
+       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs
+FROM org_setting WHERE org_id = $1 FOR UPDATE
+`
+
+type LockOrgSettingsRow struct {
+	CliSessionTtlSecs int64
+	CliSessionMaxSecs int64
+}
+
+func (q *Queries) LockOrgSettings(ctx context.Context, orgID uuid.UUID) (LockOrgSettingsRow, error) {
+	row := q.db.QueryRow(ctx, lockOrgSettings, orgID)
+	var i LockOrgSettingsRow
+	err := row.Scan(&i.CliSessionTtlSecs, &i.CliSessionMaxSecs)
+	return i, err
+}
+
 const lockSetup = `-- name: LockSetup :exec
 SELECT pg_advisory_xact_lock($1::bigint)
 `
@@ -945,6 +990,25 @@ type UpdateMemberRoleParams struct {
 
 func (q *Queries) UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) error {
 	_, err := q.db.Exec(ctx, updateMemberRole, arg.Role, arg.OrgID, arg.UserID)
+	return err
+}
+
+const updateOrgSettings = `-- name: UpdateOrgSettings :exec
+UPDATE org_setting SET
+    cli_session_ttl = make_interval(secs => $1::float8),
+    cli_session_max = make_interval(secs => $2::float8),
+    updated_at = now()
+WHERE org_id = $3
+`
+
+type UpdateOrgSettingsParams struct {
+	CliSessionTtlSecs float64
+	CliSessionMaxSecs float64
+	OrgID             uuid.UUID
+}
+
+func (q *Queries) UpdateOrgSettings(ctx context.Context, arg UpdateOrgSettingsParams) error {
+	_, err := q.db.Exec(ctx, updateOrgSettings, arg.CliSessionTtlSecs, arg.CliSessionMaxSecs, arg.OrgID)
 	return err
 }
 

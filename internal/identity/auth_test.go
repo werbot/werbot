@@ -102,7 +102,7 @@ func TestLogin(t *testing.T) {
 	p, err := svc.AuthenticateSession(ctx, token)
 	require.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, p.SessionID)
-	assert.Equal(t, principal.Principal{UserID: userID, OrgID: orgID, Role: principal.RoleOwner, SessionID: p.SessionID}, p)
+	assert.Equal(t, principal.Principal{UserID: userID, OrgID: orgID, Role: principal.RoleOwner, SessionID: p.SessionID, AuthMethod: principal.AuthMethodCookie}, p)
 
 	_, wrongPw := svc.Login(ctx, "alice@example.com", "wrong horse battery", "test")
 	assert.ErrorIs(t, wrongPw, apperr.ErrUnauthenticated)

@@ -45,6 +45,23 @@ type CaKey struct {
 	CreatedAt  time.Time
 }
 
+type CliSession struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	UserID            uuid.UUID
+	ClientID          string
+	Hostname          string
+	Ip                *netip.Addr
+	RefreshHash       []byte
+	PrevRefreshHash   []byte
+	CreatedAt         time.Time
+	LastUsedAt        time.Time
+	ExpiresAt         time.Time
+	AbsoluteExpiresAt time.Time
+	RevokedAt         *time.Time
+	RevokeReason      *string
+}
+
 type Credential struct {
 	ID         uuid.UUID
 	OrgID      uuid.UUID
@@ -63,6 +80,7 @@ type Gateway struct {
 	HostKeyCiphertext []byte
 	HostKeyKeyID      string
 	CreatedAt         time.Time
+	SshAddress        string
 }
 
 type GatewayInstance struct {
@@ -113,6 +131,46 @@ type Membership struct {
 	CreatedAt time.Time
 }
 
+type OauthAuthRequest struct {
+	ID             uuid.UUID
+	ClientID       string
+	RedirectUri    string
+	CodeChallenge  string
+	Scopes         []string
+	State          string
+	ClientHostname string
+	ClientIp       *netip.Addr
+	UserID         *uuid.UUID
+	OrgID          *uuid.UUID
+	CodeHash       []byte
+	ExpiresAt      time.Time
+	CreatedAt      time.Time
+}
+
+type OauthDeviceCode struct {
+	ID             uuid.UUID
+	DeviceCodeHash []byte
+	UserCode       string
+	ClientID       string
+	Scopes         []string
+	ClientHostname string
+	ClientIp       *netip.Addr
+	UserID         *uuid.UUID
+	OrgID          *uuid.UUID
+	Status         string
+	LastPollAt     *time.Time
+	ExpiresAt      time.Time
+	CreatedAt      time.Time
+}
+
+type OauthSigningKey struct {
+	ID         int16
+	Ciphertext []byte
+	KeyID      string
+	PublicJwk  []byte
+	CreatedAt  time.Time
+}
+
 type OneTimeToken struct {
 	TokenHash []byte
 	Kind      string
@@ -123,6 +181,21 @@ type OneTimeToken struct {
 	ExpiresAt time.Time
 	UsedAt    *time.Time
 	CreatedAt time.Time
+}
+
+type OrgSetting struct {
+	OrgID         uuid.UUID
+	CliSessionTtl pgtype.Interval
+	CliSessionMax pgtype.Interval
+	UpdatedAt     time.Time
+}
+
+type OrgSshCa struct {
+	OrgID      uuid.UUID
+	Ciphertext []byte
+	KeyID      string
+	PublicKey  string
+	CreatedAt  time.Time
 }
 
 type Organization struct {

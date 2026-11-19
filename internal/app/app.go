@@ -89,6 +89,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	mux.Handle(werbotv1connect.NewSSHKeyServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewMemberServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewTeamServiceHandler(idh, opts))
+	mux.Handle(werbotv1connect.NewSettingsServiceHandler(idh, opts))
 	s.mount(mux, opts)
 	// Enroll returns the pool's private host key: opts log no bodies, only
 	// the masked cause of CodeInternal.

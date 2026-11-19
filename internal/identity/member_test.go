@@ -158,7 +158,7 @@ func TestAcceptInviteExistingUser(t *testing.T) {
 	require.NoError(t, err, "a wrong password leaves the token unspent")
 	p, err := svc.AuthenticateSession(bg, token)
 	require.NoError(t, err)
-	assert.Equal(t, principal.Principal{UserID: dave, OrgID: org1, Role: principal.RoleAdmin, SessionID: p.SessionID}, p)
+	assert.Equal(t, principal.Principal{UserID: dave, OrgID: org1, Role: principal.RoleAdmin, SessionID: p.SessionID, AuthMethod: principal.AuthMethodCookie}, p)
 	assert.Equal(t, principal.RoleOwner, memberRole(t, pool, org2, dave))
 }
 

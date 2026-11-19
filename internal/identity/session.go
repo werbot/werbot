@@ -68,7 +68,7 @@ func (s *Service) authenticate(ctx context.Context, rawToken string) (principal.
 		if err != nil {
 			return err
 		}
-		p = principal.Principal{UserID: row.UserID, OrgID: row.OrgID, Role: row.Role, SessionID: row.ID}
+		p = principal.Principal{UserID: row.UserID, OrgID: row.OrgID, Role: row.Role, SessionID: row.ID, AuthMethod: principal.AuthMethodCookie}
 		if !row.Stale {
 			return nil
 		}
