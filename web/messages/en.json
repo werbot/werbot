@@ -77,6 +77,7 @@
 	"role_admin": "Admin",
 	"role_member": "Member",
 	"teams_title": "Teams",
+	"teams_new": "New team",
 	"teams_name": "Team name",
 	"teams_create_submit": "Create team",
 	"teams_delete": "Delete team",

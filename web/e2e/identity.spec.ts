@@ -49,13 +49,16 @@ test.describe.serial('identity', () => {
 	test('create team and logout', async ({ page }) => {
 		await loginAsOwner(page);
 		await page.goto('/teams');
+		await page.getByRole('button', { name: en.teams_new }).click();
 		await page.getByLabel(en.teams_name).fill('ops');
 		await page.getByRole('button', { name: en.teams_create_submit }).click();
-		await expect(page.getByText('ops', { exact: true })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'ops', exact: true })).toBeVisible();
+		await page.getByRole('button', { name: 'ops', exact: true }).click();
 
 		await page.getByRole('button', { name: en.teams_add_member }).click();
 		await page.getByRole('menuitem', { name: bob.name }).click();
 		await expect(page.locator('.miso-chip', { hasText: bob.name })).toBeVisible();
+		await page.keyboard.press('Escape');
 
 		await page.getByRole('button', { name: en.nav_profile }).click();
 		await page.getByRole('menuitem', { name: en.auth_logout }).click();
