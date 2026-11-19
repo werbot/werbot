@@ -38,7 +38,12 @@ func init() {
 	RegisterConnector(funcConn{typ: "spy", kinds: []Kind{KindTerminal, KindExec, KindStream}, serve: spy})
 }
 
-func block(ctx context.Context, _ *Session) error {
+// block runs until the session ends. A terminal of the resource "ready" first
+// reads "ready\n": an SSH client then knows that Open succeeded.
+func block(ctx context.Context, s *Session) error {
+	if s.Terminal != nil && s.Resource.Name == "ready" {
+		_, _ = io.WriteString(s.Terminal, "ready\n")
+	}
 	<-ctx.Done()
 	return ctx.Err()
 }

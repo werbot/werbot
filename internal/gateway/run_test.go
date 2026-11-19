@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"io"
@@ -77,7 +78,7 @@ func newServeEnv(t *testing.T, drain time.Duration, opts ...func(*fakeEnroll, *f
 	t.Helper()
 	enr, esrv := newFake(t)
 	m := ids{"u1": testUserID, "rblocker": uuid.New()}
-	snap := testSnapshot(t, m, `permit (principal == Werbot::User::"u1", action, resource);`, nil, res{"rblocker", "blocker", "blocker"})
+	snap := testSnapshot(t, m, `permit (principal == Werbot::User::"u1", action, resource);`, nil, res{"rblocker", "ready", "blocker"})
 	tun, tunnelURL := serveFakeTunnel(t, enr.ca, func(int) attempt { return attempt{snap: snap} })
 	for _, o := range opts {
 		o(enr, tun)
@@ -121,21 +122,32 @@ func (e *serveEnv) readyz() int {
 	return resp.StatusCode
 }
 
-// blocker opens a shell on the resource "blocker" and waits until the session started.
+// blocker opens a shell on the blocker resource "ready" and waits until the connector
+// runs. StartSession reaching the fake is not enough: a channel closed while the
+// call is in flight cancels it, and Open fails without a session.
 func (e *serveEnv) blocker(t *testing.T) (*gossh.Session, <-chan error) {
 	t.Helper()
-	c, err := gossh.Dial("tcp", e.sshAddr, &gossh.ClientConfig{User: "alice+blocker", Auth: []gossh.AuthMethod{gossh.PublicKeys(e.key)},
+	c, err := gossh.Dial("tcp", e.sshAddr, &gossh.ClientConfig{User: "alice+ready", Auth: []gossh.AuthMethod{gossh.PublicKeys(e.key)},
 		HostKeyCallback: gossh.FixedHostKey(e.host), Timeout: 5 * time.Second})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = c.Close() })
 	s, err := c.NewSession()
 	require.NoError(t, err)
+	out, err := s.StdoutPipe()
+	require.NoError(t, err)
 	require.NoError(t, s.Shell())
-	require.Eventually(t, func() bool {
-		var n int
-		e.tun.with(func(f *fakeTunnel) { n = f.startCalls })
-		return n == 1
-	}, 5*time.Second, 10*time.Millisecond)
+	ready := make(chan string, 1)
+	go func() {
+		line, _ := bufio.NewReader(out).ReadString('\n')
+		ready <- line
+	}()
+	select {
+	case line := <-ready:
+		require.Equal(t, "ready\n", line)
+	case <-time.After(5 * time.Second):
+		t.Fatal("the blocker session did not start")
+	}
+	e.tun.with(func(f *fakeTunnel) { require.Equal(t, 1, f.startCalls) })
 	done := make(chan error, 1)
 	go func() { done <- s.Wait() }()
 	return s, done
