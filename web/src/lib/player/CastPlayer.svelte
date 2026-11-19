@@ -4,7 +4,7 @@
 	import { Banner } from '#lib/ui/index.js';
 	import { m } from '#lib/paraglide/messages.js';
 
-	let { src, onverified }: { src: string; onverified: (verified: boolean) => void } = $props();
+	let { src, onverified, onerror }: { src: string; onverified: (verified: boolean) => void; onerror?: () => void } = $props();
 
 	let failed = $state(false);
 
@@ -21,6 +21,7 @@
 						return text;
 					} catch (e) {
 						failed = true;
+						onerror?.();
 						throw e;
 					}
 				}
