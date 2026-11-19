@@ -3,6 +3,7 @@
 	import FilledSelect from '#lib/FilledSelect.svelte';
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
+	import { keepLast } from '#lib/keepLast.svelte.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	interface Props {
@@ -19,16 +20,18 @@
 	let { team, people, nameOf, onrename, onadd, onremove, ondelete, onclose }: Props = $props();
 
 	let pick = $state('');
+	const shown = keepLast(() => team);
 
 	const candidates = $derived(
 		people
-			.filter((p) => team && !team.memberUserIds.includes(p.user?.id ?? ''))
+			.filter((p) => shown.value && !shown.value.memberUserIds.includes(p.user?.id ?? ''))
 			.map((p) => ({ value: p.user?.id ?? '', label: p.user?.name ?? '' }))
 	);
 </script>
 
 <Drawer bind:open={() => !!team, (v) => !v && onclose()} resizable snapPoints={[480, 720]} width={480} title={m.teams_title()}>
-	{#if team}
+	{#if shown.value}
+		{@const team = shown.value}
 		<!-- Escape cancels the edit only: stop it before it reaches the drawer's window listener -->
 		<div class="head" role="presentation" onkeydown={(e) => e.key === 'Escape' && e.stopPropagation()}>
 			<InlineEdit variant="title" value={team.name} onsave={onrename} />
@@ -43,7 +46,7 @@
 		<FilledSelect label={m.teams_add_member()} options={candidates} bind:value={pick} onchange={(v) => { onadd(v); pick = ''; }} />
 	{/if}
 	{#snippet footer()}
-		<Button scheme="w" variant="solid" size={28} iconLeft="trash" onclick={ondelete}>{m.teams_delete()}</Button>
+		<Button scheme="w" variant="solid" size={40} iconLeft="trash" onclick={ondelete}>{m.teams_delete()}</Button>
 	{/snippet}
 </Drawer>
 

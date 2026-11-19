@@ -2,6 +2,7 @@
 	import { Avatar, Button, Drawer, Label, PropertyRow, Select, type SelectOption } from '#lib/ui/index.js';
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
+	import { keepLast } from '#lib/keepLast.svelte.js';
 	import { selectOpen } from '#lib/selectOpen.js';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -19,12 +20,15 @@
 
 	let { member, teams, locked, roleOptions, joined, roleLabel, onremove, onrole, onclose }: Props = $props();
 
-	const user = $derived(member?.user);
+	// freeze member and its derived props while the close animation plays
+	const shown = keepLast(() => member && { member, locked, joined });
+	const user = $derived(shown.value?.member.user);
 	const teamNames = $derived(teams.filter((t) => user && t.memberUserIds.includes(user.id)).map((t) => t.name));
 </script>
 
 <Drawer bind:open={() => !!member, (v) => !v && !selectOpen() && onclose()} resizable snapPoints={[480, 720]} width={480} title={user?.name}>
-	{#if member && user}
+	{#if shown.value && user}
+		{@const { member, locked, joined } = shown.value}
 		<div class="head"><Avatar name={user.name} size={40} /></div>
 		<PropertyRow label={m.field_email()}>{user.email}</PropertyRow>
 		<PropertyRow label={m.field_login()}>{user.login}</PropertyRow>
@@ -44,7 +48,7 @@
 		</PropertyRow>
 	{/if}
 	{#snippet footer()}
-		<Button scheme="w" variant="solid" size={28} iconLeft="trash" disabled={locked} onclick={onremove}>{m.members_remove()}</Button>
+		<Button scheme="w" variant="solid" size={40} iconLeft="trash" disabled={shown.value?.locked ?? locked} onclick={onremove}>{m.members_remove()}</Button>
 	{/snippet}
 </Drawer>
 

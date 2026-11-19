@@ -189,16 +189,16 @@
 		<FilledSelect label={m.members_role()} options={roleOptions} bind:value={inviteRole} />
 	</form>
 	{#snippet footer()}
-		<Button scheme="g" variant="plain" onclick={() => (inviting = false)}>{m.common_cancel()}</Button>
-		<Button type="submit" form="invite" variant="solid">{m.members_invite_submit()}</Button>
+		<Button size={40} scheme="g" variant="plain" onclick={() => (inviting = false)}>{m.common_cancel()}</Button>
+		<Button size={40} type="submit" form="invite" variant="solid">{m.members_invite_submit()}</Button>
 	{/snippet}
 </Modal>
 
 <Modal open={removing !== null} onclose={() => (removing = null)} title={m.members_remove()}>
 	<p>{m.members_remove_confirm()}</p>
 	{#snippet footer()}
-		<Button scheme="g" variant="plain" onclick={() => (removing = null)}>{m.common_cancel()}</Button>
-		<Button scheme="w" variant="solid" onclick={remove}>{m.members_remove()}</Button>
+		<Button size={40} scheme="g" variant="plain" onclick={() => (removing = null)}>{m.common_cancel()}</Button>
+		<Button size={40} scheme="w" variant="solid" onclick={remove}>{m.members_remove()}</Button>
 	{/snippet}
 </Modal>
 

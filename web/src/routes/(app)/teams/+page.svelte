@@ -127,16 +127,16 @@
 		<FilledField label={m.teams_name()} bind:value={newName} required maxlength={64} />
 	</form>
 	{#snippet footer()}
-		<Button scheme="g" variant="plain" onclick={() => ((creating = false), (error = ''))}>{m.common_cancel()}</Button>
-		<Button type="submit" form="create-team" variant="solid">{m.teams_create_submit()}</Button>
+		<Button size={40} scheme="g" variant="plain" onclick={() => ((creating = false), (error = ''))}>{m.common_cancel()}</Button>
+		<Button size={40} type="submit" form="create-team" variant="solid">{m.teams_create_submit()}</Button>
 	{/snippet}
 </Modal>
 
 <Modal open={removing !== null} onclose={() => (removing = null)} title={m.teams_delete()}>
 	<p>{m.teams_delete_confirm()}</p>
 	{#snippet footer()}
-		<Button scheme="g" variant="plain" onclick={() => (removing = null)}>{m.common_cancel()}</Button>
-		<Button scheme="w" variant="solid" onclick={remove}>{m.teams_delete()}</Button>
+		<Button size={40} scheme="g" variant="plain" onclick={() => (removing = null)}>{m.common_cancel()}</Button>
+		<Button size={40} scheme="w" variant="solid" onclick={remove}>{m.teams_delete()}</Button>
 	{/snippet}
 </Modal>
 

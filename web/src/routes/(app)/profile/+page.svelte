@@ -120,7 +120,7 @@
 					<FilledField type="password" label={m.profile_email_password()} bind:value={emailPassword} required autocomplete="current-password" />
 				</FieldRow>
 			{/if}
-			<div><Button type="submit" variant="solid">{m.profile_save()}</Button></div>
+			<div><Button size={40} type="submit" variant="solid">{m.profile_save()}</Button></div>
 		</form>
 	</SettingsCard>
 
@@ -130,14 +130,14 @@
 				<FilledField type="password" label={m.profile_password_current()} bind:value={current} required autocomplete="current-password" />
 				<FilledField type="password" label={m.profile_password_new()} bind:value={next} required minlength={12} autocomplete="new-password" />
 			</FieldRow>
-			<div><Button type="submit" variant="solid">{m.profile_password_submit()}</Button></div>
+			<div><Button size={40} type="submit" variant="solid">{m.profile_password_submit()}</Button></div>
 		</form>
 	</SettingsCard>
 
 	<SettingsCard icon="trash_can" title={m.profile_delete_title()}>
 		<div class="danger">
 			<InfoBlock tone="warning" icon="exclam_triangle-line" title={m.common_warning()}>{m.profile_delete_warning()}</InfoBlock>
-			<div><Button scheme="w" variant="solid" onclick={requestDeletion}>{m.profile_delete_submit()}</Button></div>
+			<div><Button size={40} scheme="w" variant="solid" onclick={requestDeletion}>{m.profile_delete_submit()}</Button></div>
 		</div>
 	</SettingsCard>
 </PageBody>

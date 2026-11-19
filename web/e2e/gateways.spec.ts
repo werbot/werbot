@@ -59,7 +59,13 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	await expect(pool.getByText(en.gateways_token_revoked, { exact: true })).toBeVisible();
 
 	procs[1].kill();
-	await pool.getByRole('row', { name: /e2e-gw-2/ }).getByRole('button', { name: en.gateways_instance_delete }).click();
+	await pool.getByRole('row', { name: /e2e-gw-2/ }).getByRole('button', { name: en.common_more }).click();
+	// Escape closes only the instance menu, not the drawer
+	await page.keyboard.press('Escape');
+	await expect(page.getByRole('menuitem', { name: en.gateways_instance_delete })).toBeHidden();
+	await expect(pool).toBeVisible();
+	await pool.getByRole('row', { name: /e2e-gw-2/ }).getByRole('button', { name: en.common_more }).click();
+	await page.getByRole('menuitem', { name: en.gateways_instance_delete }).click();
 	await page.getByRole('dialog', { name: en.gateways_instance_delete, exact: true }).getByRole('button', { name: en.gateways_instance_delete }).click();
 	await expect(pool.getByRole('row', { name: /e2e-gw-2/ })).toHaveCount(0);
 

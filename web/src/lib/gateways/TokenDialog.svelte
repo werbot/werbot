@@ -54,7 +54,7 @@
 	{#if created}
 		<p>{m.gateways_token_hint({ max_uses: created.maxUses, time: created.expires })}</p>
 		<pre><code>{command}</code></pre>
-		<Button onclick={copy}>{copied ? m.gateways_copied() : m.gateways_copy()}</Button>
+		<Button size={40} onclick={copy}>{copied ? m.gateways_copied() : m.gateways_copy()}</Button>
 	{:else}
 		<form id="token-form" onsubmit={create}>
 			<FilledField label={m.gateways_token_expires_in()} type="number" min={1} max={8760} bind:value={hours} required />
@@ -62,7 +62,7 @@
 		</form>
 	{/if}
 	{#snippet footer()}
-		{#if !created}<Button type="submit" form="token-form" variant="solid">{m.gateways_token_create()}</Button>{/if}
+		{#if !created}<Button size={40} type="submit" form="token-form" variant="solid">{m.gateways_token_create()}</Button>{/if}
 	{/snippet}
 </Modal>
 

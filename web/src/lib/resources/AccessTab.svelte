@@ -123,7 +123,7 @@
 	<FilledSelect label={m.access_target()} options={targets} bind:value={target} />
 	{#if target === 'selector'}<FilledField label={m.access_selector()} bind:value={selector} placeholder="env=prod" />{/if}
 	{#if withPorts}<FormField label={m.access_ports()} bind:value={ports} placeholder="22, 8000-8100" hint={m.access_ports_hint()} />{/if}
-	<div><Button type="submit" variant="solid" disabled={!subjectId}>{m.access_add()}</Button></div>
+	<div><Button size={40} type="submit" variant="solid" disabled={!subjectId}>{m.access_add()}</Button></div>
 </form>
 
 <CheckAccess resourceId={resource.id} {users} {withPorts} />

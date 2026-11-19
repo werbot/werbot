@@ -3,6 +3,7 @@
 	import { Code, ConnectError } from '@connectrpc/connect';
 	import { Badge, Banner, Button, Chip, Drawer, EmptyState, Modal, Skeleton, Table, FilledField, toast } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
+	import { keepLast } from '#lib/keepLast.svelte.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import RowMenu from '#lib/RowMenu.svelte';
@@ -18,6 +19,7 @@
 	let creating = $state(false);
 	let loaded = $state(false);
 	let menuOpen = $state('');
+	let instanceMenu = $state('');
 	let pollError = $state('');
 	let open = $state('');
 	let confirm = $state<{ title: string; text: string; run: () => Promise<unknown>; precondition?: string }>();
@@ -69,6 +71,8 @@
 	}
 
 	const current = $derived(list.find((p) => p.id === open));
+
+	const shown = keepLast(() => current);
 
 	// the open pool vanished from a refetch (deleted elsewhere): close its drawer
 	$effect(() => {
@@ -136,12 +140,14 @@
 </PageBody>
 
 <!-- Escape reaches the drawer too: ignore it while the confirm, the token dialog or a menu is open -->
-<Drawer bind:open={() => !!current, (v) => !v && !confirming && !tokenOpen && !menuOpen && (open = '')} resizable snapPoints={[480, 720]} width={720} title={current?.name}>
-	{#if current}
+<Drawer bind:open={() => !!current, (v) => !v && !confirming && !tokenOpen && !menuOpen && !instanceMenu && (open = '')} resizable snapPoints={[480, 720]} width={720} title={shown.value?.name}>
+	{#if shown.value}
+		{@const current = shown.value}
 		<div class="actions">{@render moreMenu(current, 'drawer')}</div>
 		<PoolDetails
 			pool={current}
 			bind:creating={tokenOpen}
+			bind:instanceMenu
 			ondeleteInstance={(i) =>
 				ask(m.gateways_instance_delete(), m.gateways_instance_delete_confirm(), () => gateways.deleteGatewayInstance({ id: i.id }))}
 		/>
@@ -154,16 +160,16 @@
 		<FilledField label={m.gateways_name_label()} bind:value={name} required maxlength={63} />
 	</form>
 	{#snippet footer()}
-		<Button scheme="g" variant="plain" onclick={() => (creating = false)}>{m.common_cancel()}</Button>
-		<Button type="submit" form="pool-create" variant="solid">{m.gateways_create()}</Button>
+		<Button size={40} scheme="g" variant="plain" onclick={() => (creating = false)}>{m.common_cancel()}</Button>
+		<Button size={40} type="submit" form="pool-create" variant="solid">{m.gateways_create()}</Button>
 	{/snippet}
 </Modal>
 
 <Modal bind:open={confirming} title={confirm?.title}>
 	{confirm?.text}
 	{#snippet footer()}
-		<Button scheme="g" variant="plain" onclick={() => (confirming = false)}>{m.common_cancel()}</Button>
-		<Button scheme="w" variant="solid" onclick={runConfirmed}>{confirm?.title}</Button>
+		<Button size={40} scheme="g" variant="plain" onclick={() => (confirming = false)}>{m.common_cancel()}</Button>
+		<Button size={40} scheme="w" variant="solid" onclick={runConfirmed}>{confirm?.title}</Button>
 	{/snippet}
 </Modal>
 

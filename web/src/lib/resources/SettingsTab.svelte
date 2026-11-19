@@ -48,12 +48,12 @@
 
 {#if error}<Banner tone="alert">{error}</Banner>{/if}
 <ResourceForm {types} initial={resource} onsubmit={save} />
-<p><Button scheme="w" variant="plain" onclick={() => (confirming = true)}>{m.resources_delete()}</Button></p>
+<p><Button size={40} scheme="w" variant="plain" onclick={() => (confirming = true)}>{m.resources_delete()}</Button></p>
 
 <Modal bind:open={confirming} title={m.resources_delete()}>
 	{m.resources_delete_confirm()}
 	{#snippet footer()}
-		<Button scheme="g" variant="plain" onclick={() => (confirming = false)}>{m.common_cancel()}</Button>
-		<Button scheme="w" variant="solid" onclick={remove}>{m.resources_delete()}</Button>
+		<Button size={40} scheme="g" variant="plain" onclick={() => (confirming = false)}>{m.common_cancel()}</Button>
+		<Button size={40} scheme="w" variant="solid" onclick={remove}>{m.resources_delete()}</Button>
 	{/snippet}
 </Modal>

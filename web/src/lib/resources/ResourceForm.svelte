@@ -112,8 +112,8 @@
 	</FieldRow>
 	<LabelsEditor bind:rows />
 	<div class="actions">
-		{#if onback}<Button scheme="g" variant="plain" onclick={onback}>{m.resources_back()}</Button>{/if}
-		<Button type="submit" variant="solid" disabled={!valid || !loaded}>{m.resources_save()}</Button>
+		{#if onback}<Button size={40} scheme="g" variant="plain" onclick={onback}>{m.resources_back()}</Button>{/if}
+		<Button size={40} type="submit" variant="solid" disabled={!valid || !loaded}>{m.resources_save()}</Button>
 	</div>
 </form>
 

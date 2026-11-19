@@ -111,15 +111,12 @@
 
 <svelte:window onkeydown={onKeydown} />
 
+<!-- sibling block: a fade nested in {#if backdrop} inside {#if open} would be local and never play -->
+{#if open && backdrop}
+	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+	<div class="miso-drawer-backdrop" transition:fade={{ duration: 300, easing: cubicOut }} onclick={close}></div>
+{/if}
 {#if open}
-	{#if backdrop}
-		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-		<div
-			class="miso-drawer-backdrop"
-			transition:fade={{ duration: 300, easing: cubicOut }}
-			onclick={close}
-		></div>
-	{/if}
 	<div
 		class={['miso-drawer', `miso-drawer--${side}`, dragging && 'miso-drawer--dragging']}
 		style:width="{width}px"

@@ -52,7 +52,7 @@
 		{#snippet children(id)}<input {id} type="datetime-local" bind:value={time} />{/snippet}
 	</FilledShell>
 	{#if withPorts}<FilledField type="number" min={1} max={65535} label={m.access_check_port()} bind:value={port} />{/if}
-	<div><Button type="submit" variant="solid" disabled={!userId}>{m.access_check_run()}</Button></div>
+	<div><Button size={40} type="submit" variant="solid" disabled={!userId}>{m.access_check_run()}</Button></div>
 </form>
 {#if result}
 	<p>

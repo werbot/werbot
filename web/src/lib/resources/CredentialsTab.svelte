@@ -82,8 +82,8 @@
 		<FilledField type="password" label={label(kind)} bind:value autocomplete="new-password" required />
 	{/if}
 	<div class="actions">
-		<Button type="submit" variant="solid">{m.cred_save()}</Button>
-		<Button
+		<Button size={40} type="submit" variant="solid">{m.cred_save()}</Button>
+		<Button size={40}
 			type="button"
 			scheme="w"
 			variant="plain"

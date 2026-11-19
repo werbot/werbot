@@ -52,7 +52,7 @@
 	<NetworkRules bind:rows={networks} onerror={fail} />
 	<CountryRules bind:rows={countries} onerror={fail} />
 	<ScheduleGrid bind:slots />
-	<div><Button type="submit" variant="solid">{m.rules_save()}</Button></div>
+	<div><Button size={40} type="submit" variant="solid">{m.rules_save()}</Button></div>
 </form>
 
 <style>

@@ -30,7 +30,7 @@
 	{#if resource.hostKey.createdAt}
 		<PropertyRow label={m.host_key_pinned()}>{timestampDate(resource.hostKey.createdAt).toLocaleString()}</PropertyRow>
 	{/if}
-	<p><Button scheme="w" variant="plain" onclick={clear}>{m.host_key_clear()}</Button></p>
+	<p><Button size={40} scheme="w" variant="plain" onclick={clear}>{m.host_key_clear()}</Button></p>
 {:else}
 	<InfoBlock title={m.host_key_pending()} />
 {/if}

@@ -12,8 +12,9 @@
 	let {
 		pool,
 		ondeleteInstance,
-		creating = $bindable(false)
-	}: { pool: Gateway; ondeleteInstance: (i: GatewayInstance) => void; creating?: boolean } = $props();
+		creating = $bindable(false),
+		instanceMenu = $bindable('')
+	}: { pool: Gateway; ondeleteInstance: (i: GatewayInstance) => void; creating?: boolean; instanceMenu?: string } = $props();
 
 	let tokens = $state<JoinToken[]>([]);
 	let error = $state('');
@@ -53,10 +54,10 @@
 			{#each pool.connectors as c (c)}<Chip>{c}</Chip>{:else}—{/each}
 		</PropertyRow>
 	</div>
-	<section><InstancesTable instances={pool.instances} ondelete={ondeleteInstance} /></section>
+	<section><InstancesTable instances={pool.instances} ondelete={ondeleteInstance} bind:menu={instanceMenu} /></section>
 	<section>
 		<TokensTable {tokens} onrevoke={revoke} />
-		<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_token_create()}</Button>
+		<div class="cta"><Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_token_create()}</Button></div>
 	</section>
 </div>
 {#if creating}<TokenDialog gatewayId={pool.id} bind:open={creating} oncreated={refresh} />{/if}
@@ -70,6 +71,10 @@
 
 	section {
 		overflow-x: auto;
+	}
+
+	.cta {
+		margin-top: var(--miso-sp-16);
 	}
 
 	section :global(h3) {

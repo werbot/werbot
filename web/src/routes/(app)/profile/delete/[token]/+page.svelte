@@ -27,7 +27,7 @@
 	<SettingsCard icon="trash_can" title={m.profile_delete_confirm_title()}>
 		<div class="body">
 			<InfoBlock tone="warning" icon="exclam_triangle-line" title={m.common_warning()}>{m.profile_delete_confirm_warning()}</InfoBlock>
-			<div><Button scheme="w" variant="solid" onclick={confirm}>{m.profile_delete_confirm_submit()}</Button></div>
+			<div><Button size={40} scheme="w" variant="solid" onclick={confirm}>{m.profile_delete_confirm_submit()}</Button></div>
 		</div>
 	</SettingsCard>
 </PageBody>

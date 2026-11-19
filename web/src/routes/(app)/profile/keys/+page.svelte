@@ -141,16 +141,16 @@
 		<Textarea label={m.keys_public_key()} bind:value={publicKey} required rows={5} />
 	</form>
 	{#snippet footer()}
-		<Button scheme="g" variant="plain" onclick={() => setAdding(false)}>{m.common_cancel()}</Button>
-		<Button type="submit" form="add-key" variant="solid">{m.keys_add()}</Button>
+		<Button size={40} scheme="g" variant="plain" onclick={() => setAdding(false)}>{m.common_cancel()}</Button>
+		<Button size={40} type="submit" form="add-key" variant="solid">{m.keys_add()}</Button>
 	{/snippet}
 </Modal>
 
 <Modal open={removing !== null} onclose={() => (removing = null)} title={m.keys_delete()}>
 	<p>{m.keys_delete_confirm()}</p>
 	{#snippet footer()}
-		<Button scheme="g" variant="plain" onclick={() => (removing = null)}>{m.common_cancel()}</Button>
-		<Button scheme="w" variant="solid" onclick={remove}>{m.keys_delete()}</Button>
+		<Button size={40} scheme="g" variant="plain" onclick={() => (removing = null)}>{m.common_cancel()}</Button>
+		<Button size={40} scheme="w" variant="solid" onclick={remove}>{m.keys_delete()}</Button>
 	{/snippet}
 </Modal>
 

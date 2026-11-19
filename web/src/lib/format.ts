@@ -5,6 +5,10 @@ export function fmt(ts?: Timestamp): string {
 	return ts ? timestampDate(ts).toLocaleString() : '—';
 }
 
+export function fmtShort(ts?: Timestamp): string {
+	return ts ? timestampDate(ts).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '—';
+}
+
 export function bytes(n: bigint | number): string {
 	let v = Number(n);
 	const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
