@@ -248,6 +248,25 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/notify, desc: connectcli knows only SSH and the gateway answer }
             - { pkg: github.com/werbot/werbot/internal/system, desc: connectcli knows only SSH and the gateway answer }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: connectcli knows only SSH and the gateway answer }
+        cli:
+          files: ["**/internal/cli/*.go", "**/internal/cli/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/platform/db, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/tunnel, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/webui, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/connector, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: client commands know only client-side packages }
         e2e:
           files: ["**/internal/e2e/*.go", "**/internal/e2e/**/*.go"]
           deny:

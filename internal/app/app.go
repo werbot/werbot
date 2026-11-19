@@ -4,9 +4,7 @@ package app
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"io/fs"
 	"log/slog"
 	"net"
@@ -23,9 +21,7 @@ import (
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/config"
-	"github.com/werbot/werbot/internal/platform/db"
 	"github.com/werbot/werbot/internal/platform/httpserver"
-	"github.com/werbot/werbot/internal/platform/logging"
 	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
@@ -33,68 +29,7 @@ import (
 	"github.com/werbot/werbot/internal/system"
 	"github.com/werbot/werbot/internal/tunnel"
 	"github.com/werbot/werbot/sdk"
-	"github.com/werbot/werbot/web"
 )
-
-// Run executes the command in args and returns when it is done or ctx ends.
-// A -help flag is not an error.
-func Run(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) error {
-	if err := run(ctx, args, getenv, stdout); !errors.Is(err, flag.ErrHelp) {
-		return err
-	}
-	return nil
-}
-
-func run(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) error {
-	cmd := ""
-	if len(args) > 0 {
-		cmd = args[0]
-	}
-	if ok, err := runRole(ctx, cmd, args, getenv, stdout); ok {
-		return err
-	}
-	if cmd != "migrate" && cmd != "server" {
-		return errors.New(usageText)
-	}
-	var withGateway bool
-	if cmd == "server" {
-		fs := flag.NewFlagSet("server", flag.ContinueOnError)
-		fs.BoolVar(&withGateway, "with-gateway", false, `also run an instance of the system gateway pool "local"`)
-		if err := fs.Parse(args[1:]); err != nil {
-			return err
-		}
-		if fs.NArg() > 0 {
-			return fmt.Errorf("unexpected arguments: %q", fs.Args())
-		}
-	}
-
-	cfg, err := config.Load(getenv)
-	if err != nil {
-		return err
-	}
-	if cmd == "migrate" {
-		_, err := bootstrap(ctx, cfg.DatabaseURL, nil)
-		return err
-	}
-
-	logger := logging.New(stdout, cfg.LogLevel, cfg.LogFormat)
-	box, err := secretbox.New(cfg.SecretKey, cfg.PreviousSecretKeys)
-	if err != nil {
-		return err
-	}
-	boot, err := bootstrap(ctx, cfg.DatabaseURL, box)
-	if err != nil {
-		return err
-	}
-	octx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	pool, err := db.Open(octx, cfg.DatabaseURL)
-	cancel()
-	if err != nil {
-		return err
-	}
-	defer pool.Close()
-	return serve(ctx, cfg, logger, pool, sdk.Modules(), web.FS(), serveOpts{CA: boot.CA, Signer: boot.Signer, Box: box, WithGateway: withGateway, Getenv: getenv})
-}
 
 // host is the Community sdk.Host: no feature is ever entitled.
 type host struct {
