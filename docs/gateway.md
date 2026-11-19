@@ -22,6 +22,8 @@ A gateway is the bastion users connect to. This guide covers pools, enrollment, 
 
 The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR`. The tunnel address is `https://<host of WERBOT_PUBLIC_URL>:<port of WERBOT_GATEWAY_ADDR>`, so `WERBOT_PUBLIC_URL` of the server must be a name or IP the gateway host reaches, not `localhost`.
 
+The tunnel shares that host name with the UI, so the name must resolve straight to the server, not to a TLS-terminating proxy. Behind Cloudflare set its DNS record to DNS only (grey cloud) and terminate TLS on your own proxy ([install.md](install.md#remote-access)). Otherwise enrollment works, but the instance stays offline and logs `tunnel: stream failed … x509: certificate signed by unknown authority`.
+
 ## Enroll a gateway
 
 Owners and admins manage pools on the **Gateways** page.
