@@ -23,8 +23,11 @@ test('resource, credential, rule, binding and access check', async ({ page }) =>
 	await expect(page.getByText(en.cred_set_password)).toBeVisible();
 	await expect(page.locator('body')).not.toContainText(secret);
 	await expect(page.locator('input').evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value))).resolves.not.toContain(secret);
+	// the DB-IP credit shows only where its data is used, not on every page
+	await expect(page.getByRole('link', { name: en.geoip_attribution })).toHaveCount(0);
 
 	await page.getByRole('tab', { name: en.resources_tab_rules }).click();
+	await expect(page.getByRole('link', { name: en.geoip_attribution })).toHaveAttribute('href', 'https://db-ip.com');
 	await page.getByRole('button', { name: en.rules_add_network }).click();
 	await page.getByLabel(en.rules_cidr).fill('10.0.0.0/8');
 	await page.getByRole('button', { name: en.rules_save }).click();

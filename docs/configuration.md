@@ -148,7 +148,7 @@ By default recordings go to the file system under `WERBOT_DATA_DIR/recordings`. 
 
 The URL may carry a token in the query or as `user:password@`; Werbot never logs it or puts it in errors.
 
-The UI shows "IP Geolocation by DB-IP" only while the URL is DB-IP Lite (a `/free/` path on `db-ip.com`), as its license requires. A mirror of DB-IP Lite on another host still requires that attribution: add it yourself.
+The UI shows "IP Geolocation by DB-IP" only while the URL is DB-IP Lite (a `/free/` path on `db-ip.com`), as its license requires. The credit appears only where the database is used: the country rules and the access check of a resource. A mirror of DB-IP Lite on another host still requires that attribution: add it yourself.
 
 ## Metrics
 

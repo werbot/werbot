@@ -4,8 +4,6 @@
 	import { Avatar, Toaster } from '#lib/ui/index.js';
 	import { auth } from '#lib/api.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
-	import { m } from '#lib/paraglide/messages.js';
-	import { serverInfo } from '#lib/version.js';
 	import { itemFor, navSections, sectionFor } from '#lib/shell/nav.js';
 	import PrimaryMenu from '#lib/shell/PrimaryMenu.svelte';
 	import ContextColumn from '#lib/shell/ContextColumn.svelte';
@@ -17,10 +15,6 @@
 	let sections = $derived(navSections(manager));
 	let section = $derived(sectionFor(sections, page.url.pathname));
 	let user = $derived({ name: data.session.user?.name ?? '', email: data.session.user?.email ?? '' });
-
-	// DB-IP Lite requires the credit; other GeoIP databases do not.
-	const info = serverInfo();
-	let geoipAttribution = $derived(info.geoipAttribution);
 
 	async function logout() {
 		await auth.logout({});
@@ -36,10 +30,6 @@
 	</div>
 {/snippet}
 
-{#snippet credit()}
-	<a class="attribution" href="https://db-ip.com">{m.geoip_attribution()}</a>
-{/snippet}
-
 <div class={['shell', section.items.length === 0 && 'shell--bare']}>
 	<PrimaryMenu {sections} active={section.id} {user} onlogout={logout} />
 	{#if section.items.length > 0}
@@ -47,15 +37,10 @@
 			{section}
 			current={itemFor(section, page.url.pathname)}
 			header={section.id === 'profile' ? profileHeader : undefined}
-			footer={geoipAttribution ? credit : undefined}
 		/>
 	{/if}
 	<main class="miso-scroll">
 		<div class="work">{@render children()}</div>
-		{#if geoipAttribution}
-			<!-- the credit must be on every page: here it stands in for the column footer -->
-			<footer class="work__credit">{@render credit()}</footer>
-		{/if}
 	</main>
 </div>
 <Toaster />
@@ -84,20 +69,10 @@
 		flex: 1 0 auto;
 	}
 
-	.work__credit {
-		display: flex;
-		justify-content: center;
-		padding: 16px;
-	}
-
-	/* desktop from 1024px: the context column shows and carries the credit; below it only the rail stays */
+	/* desktop from 1024px: the context column shows; below it only the rail stays */
 	@media (min-width: 1024px) {
 		.shell:not(.shell--bare) {
 			grid-template-columns: 64px 260px 1fr;
-		}
-
-		.shell:not(.shell--bare) .work__credit {
-			display: none;
 		}
 	}
 
@@ -139,16 +114,5 @@
 		outline: 2px solid var(--miso-line-accent);
 		outline-offset: 2px;
 		border-radius: var(--miso-radius-04);
-	}
-
-	.attribution {
-		font: var(--miso-font-ui-11-reg);
-		color: var(--miso-txt-tertiary);
-		text-decoration: none;
-		white-space: nowrap;
-	}
-
-	.attribution:hover {
-		color: var(--miso-txt-primary);
 	}
 </style>

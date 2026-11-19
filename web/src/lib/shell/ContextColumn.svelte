@@ -7,10 +7,9 @@
 		section: NavSection;
 		current?: NavItem;
 		header?: Snippet;
-		footer?: Snippet;
 	}
 
-	let { section, current, header, footer }: Props = $props();
+	let { section, current, header }: Props = $props();
 </script>
 
 <aside class="cc">
@@ -32,10 +31,6 @@
 			</a>
 		{/each}
 	</nav>
-
-	{#if footer}
-		<footer class="cc__foot">{@render footer()}</footer>
-	{/if}
 </aside>
 
 <style>
@@ -132,12 +127,6 @@
 
 	.cc__item--active .cc__item-ico {
 		color: var(--wb-on-brand);
-	}
-
-	.cc__foot {
-		display: flex;
-		justify-content: center;
-		padding: 8px 20px 16px;
 	}
 
 	/* desktop from 1024px: below it only the rail stays */

@@ -7,6 +7,7 @@
 	import { policy, system } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import GeoipCredit from './GeoipCredit.svelte';
 
 	let { resourceId, users, withPorts = false }: { resourceId: string; users: SelectOption[]; withPorts?: boolean } = $props();
 
@@ -53,6 +54,7 @@
 	</FilledShell>
 	{#if withPorts}<FilledField type="number" min={1} max={65535} label={m.access_check_port()} bind:value={port} />{/if}
 	<div><Button size={40} type="submit" variant="solid" disabled={!userId}>{m.access_check_run()}</Button></div>
+	<GeoipCredit />
 </form>
 {#if result}
 	<p>

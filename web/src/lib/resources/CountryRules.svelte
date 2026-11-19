@@ -5,6 +5,7 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import type { CountryRule } from '#lib/gen/werbot/v1/policy_pb.js';
 	import { effectOptions } from './effects.js';
+	import GeoipCredit from './GeoipCredit.svelte';
 
 	let { rows = $bindable(), onerror }: { rows: CountryRule[]; onerror: (e: unknown) => void } = $props();
 
@@ -34,6 +35,7 @@
 			{m.rules_add_country()}
 		</Button>
 	</div>
+	<GeoipCredit />
 </fieldset>
 
 <style>
