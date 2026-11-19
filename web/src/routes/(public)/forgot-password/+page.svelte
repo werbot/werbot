@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Banner, Button, TextField } from '#lib/ui/index.js';
+	import { Banner, Button, FilledField } from '#lib/ui/index.js';
 	import { auth } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -24,6 +24,6 @@
 	<h1>{m.auth_forgot_title()}</h1>
 	{#if sent}<Banner tone="success">{m.auth_reset_sent()}</Banner>{/if}
 	{#if error}<Banner tone="alert">{error}</Banner>{/if}
-	<TextField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
-	<Button type="submit" variant="solid">{m.auth_forgot_submit()}</Button>
+	<FilledField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
+	<Button type="submit" variant="solid" size={48}>{m.auth_forgot_submit()}</Button>
 </form>

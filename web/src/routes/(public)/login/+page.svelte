@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Banner, Button, TextField } from '#lib/ui/index.js';
+	import { Banner, Button, FilledField } from '#lib/ui/index.js';
 	import { auth } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -24,8 +24,8 @@
 <form onsubmit={submit}>
 	<h1>{m.auth_login_title()}</h1>
 	{#if error}<Banner tone="alert">{error}</Banner>{/if}
-	<TextField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
-	<TextField type="password" label={m.field_password()} bind:value={password} required autocomplete="current-password" />
-	<Button type="submit" variant="solid">{m.auth_login_submit()}</Button>
-	<Button type="button" variant="plain" onclick={() => goto('/forgot-password')}>{m.auth_forgot_link()}</Button>
+	<FilledField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
+	<FilledField type="password" label={m.field_password()} bind:value={password} required autocomplete="current-password" />
+	<Button type="submit" variant="solid" size={48}>{m.auth_login_submit()}</Button>
+	<Button type="button" variant="plain" size={48} onclick={() => goto('/forgot-password')}>{m.auth_forgot_link()}</Button>
 </form>
