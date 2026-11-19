@@ -35,6 +35,7 @@ What runs (project `werbot`):
 - `docker compose config` and `up` refuse an empty `WERBOT_VERSION`, `WERBOT_SECRET_KEY` or `POSTGRES_PASSWORD` and name the generate command.
 - Keep `.env` and a copy of `WERBOT_SECRET_KEY`: it decrypts stored credentials, and a backup is useless without it ([upgrading.md](upgrading.md#backup)).
 - The `werbot` service stops within `stop_grace_period: 70s`: the built-in gateway drains its sessions (`WERBOT_GATEWAY_DRAIN_TIMEOUT`, `30s`), then the server stops.
+- The image is public and needs no login. If `docker compose up` fails with `denied` from `ghcr.io`, Docker sends a stale stored login: run `docker logout ghcr.io` and retry.
 - Pin `WERBOT_VERSION` to a release tag; there is no `latest` tag before 1.0. Upgrades: [upgrading.md](upgrading.md#upgrade-with-docker-compose).
 - More settings (SMTP, trusted proxies, S3 for recordings) go into `.env`: [configuration.md](configuration.md).
 
