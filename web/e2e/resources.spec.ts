@@ -66,9 +66,7 @@ test('open resource by keyboard', async ({ page }) => {
 
 test('tcp resource with ports, port binding, hints and health', async ({ page }) => {
 	await loginAsOwner(page);
-	await openNew(page);
-	await page.getByRole('button', { name: 'ssh', exact: true }).click();
-	await page.getByRole('menuitem', { name: 'tcp' }).click();
+	await openNew(page, 'tcp');
 	await page.getByLabel(en.resources_name).fill('e2e-tcp');
 	await page.getByLabel(en.resources_ssh_host).fill('10.0.0.6');
 	await page.getByLabel(en.resources_ports, { exact: true }).fill('0');

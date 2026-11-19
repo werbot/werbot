@@ -1,0 +1,68 @@
+<script lang="ts">
+	import { Icon, type IconName } from '#lib/ui/index.js';
+
+	export interface Tile {
+		value: string;
+		label: string;
+		icon: IconName;
+	}
+
+	interface Props {
+		tiles: Tile[];
+		label: string;
+		onpick: (value: string) => void;
+	}
+
+	let { tiles, label, onpick }: Props = $props();
+</script>
+
+<div class="grid" role="group" aria-label={label}>
+	{#each tiles as tile (tile.value)}
+		<button type="button" class="tile" onclick={() => onpick(tile.value)}>
+			<Icon name={tile.icon} size={32} />
+			<span>{tile.label}</span>
+		</button>
+	{/each}
+</div>
+
+<style>
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+		gap: var(--miso-sp-12);
+	}
+
+	.tile {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--miso-sp-8);
+		min-height: 104px;
+		padding: var(--miso-sp-16);
+		border: 0;
+		border-radius: var(--miso-radius-08);
+		background: var(--miso-cont-top);
+		box-shadow: var(--miso-shadow-cont-minor-outline);
+		font: var(--miso-font-ui-13-med);
+		color: var(--miso-txt-primary);
+		cursor: pointer;
+	}
+
+	.tile :global(svg) {
+		fill: var(--miso-txt-secondary);
+	}
+
+	.tile:hover {
+		background: var(--miso-hlt-hover);
+	}
+
+	.tile:active {
+		background: var(--miso-hlt-selected);
+	}
+
+	.tile:focus-visible {
+		outline: 2px solid var(--miso-hlt-invert);
+		outline-offset: 2px;
+	}
+</style>

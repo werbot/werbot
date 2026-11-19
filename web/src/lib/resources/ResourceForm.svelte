@@ -30,15 +30,17 @@
 	interface Props {
 		types: ResourceType[];
 		initial?: Resource;
+		/** chosen in the wizard when creating */
+		typeName?: string;
 		onsubmit: (v: ResourceValues) => void;
+		/** create wizard: shows Back in the sticky footer */
+		onback?: () => void;
 	}
 
-	let { types, initial, onsubmit }: Props = $props();
+	let { types, initial, typeName = initial?.type ?? '', onsubmit, onback }: Props = $props();
 
 	// svelte-ignore state_referenced_locally
 	let name = $state(initial?.name ?? '');
-	// svelte-ignore state_referenced_locally
-	let typeName = $state(initial?.type ?? types[0]?.name ?? '');
 	// svelte-ignore state_referenced_locally
 	let rows = $state(rowsFromLabels(initial?.labels ?? {}));
 	// svelte-ignore state_referenced_locally
@@ -89,17 +91,9 @@
 	}
 </script>
 
-<form onsubmit={submit}>
+<form class:capped={!!initial} onsubmit={submit}>
 	<TextField label={m.resources_name()} bind:value={name} required maxlength={63} />
-	{#if initial}
-		<TextField label={m.resources_type()} value={initial.type} disabled />
-	{:else}
-		<Select
-			label={m.resources_type()}
-			options={types.map((t) => ({ value: t.name, label: t.name }))}
-			bind:value={typeName}
-		/>
-	{/if}
+	{#if initial}<TextField label={m.resources_type()} value={initial.type} disabled />{/if}
 	{#if poolError}<Banner tone="alert">{poolError}</Banner>{/if}
 	{#if pools.length > 1}
 		<Select label={m.resources_gateway_label()} options={pools.map((p) => ({ value: p.id, label: p.name }))} bind:value={gatewayId} />
@@ -112,7 +106,10 @@
 	<TextField label={m.resources_idle_timeout()} bind:value={idleMinutes} type="number" min={1} max={1440} hint={m.resources_timeout_hint()} />
 	<TextField label={m.resources_max_duration()} bind:value={maxMinutes} type="number" min={1} max={10080} hint={m.resources_timeout_hint()} />
 	<LabelsEditor bind:rows />
-	<div><Button type="submit" variant="solid" disabled={!valid || !loaded}>{m.resources_save()}</Button></div>
+	<div class="actions">
+		{#if onback}<Button scheme="g" variant="plain" onclick={onback}>{m.resources_back()}</Button>{/if}
+		<Button type="submit" variant="solid" disabled={!valid || !loaded}>{m.resources_save()}</Button>
+	</div>
 </form>
 
 <style>
@@ -120,6 +117,19 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--miso-sp-12);
+	}
+
+	form.capped {
 		max-width: 480px;
+	}
+
+	/* stays reachable while the modal body scrolls */
+	.actions {
+		position: sticky;
+		bottom: 0;
+		display: flex;
+		gap: var(--miso-sp-8);
+		padding: var(--miso-sp-12) 0 var(--miso-sp-16);
+		background: var(--miso-cont-top);
 	}
 </style>
