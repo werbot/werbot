@@ -30,6 +30,8 @@
 	"nav_keys": "SSH keys",
 	"nav_members": "Members",
 	"nav_teams": "Teams",
+	"nav_access": "Access",
+	"nav_organization": "Organization",
 	"dashboard_title": "Dashboard",
 	"error_invalid_argument": "Some of the entered data is invalid.",
 	"error_unauthenticated": "Invalid credentials or the session has expired.",
