@@ -3,7 +3,6 @@ package oauth
 import (
 	"context"
 	"errors"
-	"time"
 
 	jose "github.com/go-jose/go-jose/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -100,16 +99,8 @@ func (*storage) ValidateJWTProfileScopes(context.Context, string, []string) ([]s
 	return nil, errNoFlow
 }
 
-// The flow steps below answer errNoFlow until their flow is served.
+// The flow step below answers errNoFlow until its flow is served.
 
 func (*storage) TokenRequestByRefreshToken(context.Context, string) (op.RefreshTokenRequest, error) {
-	return nil, errNoFlow
-}
-
-func (*storage) StoreDeviceAuthorization(context.Context, string, string, string, time.Time, []string) error {
-	return errNoFlow
-}
-
-func (*storage) GetDeviceAuthorizatonState(context.Context, string, string) (*op.DeviceAuthorizationState, error) {
 	return nil, errNoFlow
 }

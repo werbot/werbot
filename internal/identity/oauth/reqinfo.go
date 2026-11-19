@@ -18,10 +18,12 @@ const (
 )
 
 // reqInfo is what the storage needs from the HTTP request op is serving:
-// the CLI's reported hostname and its address.
+// the CLI's reported hostname and its address, and the approved device code
+// a poll found (op hands the token step only a *op.DeviceAuthorizationState).
 type reqInfo struct {
 	hostname string
 	ip       netip.Addr
+	device   *deviceGrant
 }
 
 type reqInfoKey struct{}

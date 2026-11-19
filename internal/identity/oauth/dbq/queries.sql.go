@@ -8,6 +8,7 @@ package dbq
 import (
 	"context"
 	"net/netip"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -25,6 +26,25 @@ type ApproveAuthRequestParams struct {
 
 func (q *Queries) ApproveAuthRequest(ctx context.Context, arg ApproveAuthRequestParams) (int64, error) {
 	result, err := q.db.Exec(ctx, approveAuthRequest, arg.UserID, arg.OrgID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const approveDeviceCode = `-- name: ApproveDeviceCode :execrows
+UPDATE oauth_device_code SET status = 'approved', user_id = $1, org_id = $2
+WHERE user_code = $3 AND status = 'pending' AND expires_at > now()
+`
+
+type ApproveDeviceCodeParams struct {
+	UserID   *uuid.UUID
+	OrgID    *uuid.UUID
+	UserCode string
+}
+
+func (q *Queries) ApproveDeviceCode(ctx context.Context, arg ApproveDeviceCodeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, approveDeviceCode, arg.UserID, arg.OrgID, arg.UserCode)
 	if err != nil {
 		return 0, err
 	}
@@ -54,6 +74,35 @@ type ConsumeAuthRequestRow struct {
 func (q *Queries) ConsumeAuthRequest(ctx context.Context, arg ConsumeAuthRequestParams) (ConsumeAuthRequestRow, error) {
 	row := q.db.QueryRow(ctx, consumeAuthRequest, arg.ID, arg.CodeHash)
 	var i ConsumeAuthRequestRow
+	err := row.Scan(
+		&i.UserID,
+		&i.OrgID,
+		&i.ClientID,
+		&i.ClientHostname,
+		&i.ClientIp,
+	)
+	return i, err
+}
+
+const consumeDeviceCode = `-- name: ConsumeDeviceCode :one
+UPDATE oauth_device_code SET status = 'used'
+WHERE id = $1 AND status = 'approved' AND expires_at > now()
+RETURNING user_id, org_id, client_id, client_hostname, client_ip
+`
+
+type ConsumeDeviceCodeRow struct {
+	UserID         *uuid.UUID
+	OrgID          *uuid.UUID
+	ClientID       string
+	ClientHostname string
+	ClientIp       *netip.Addr
+}
+
+// Of concurrent polls of one approved code exactly one marks it used.
+// Same columns as ConsumeAuthRequest.
+func (q *Queries) ConsumeDeviceCode(ctx context.Context, id uuid.UUID) (ConsumeDeviceCodeRow, error) {
+	row := q.db.QueryRow(ctx, consumeDeviceCode, id)
+	var i ConsumeDeviceCodeRow
 	err := row.Scan(
 		&i.UserID,
 		&i.OrgID,
@@ -128,6 +177,36 @@ func (q *Queries) CreateCLISession(ctx context.Context, arg CreateCLISessionPara
 	return id, err
 }
 
+const createDeviceCode = `-- name: CreateDeviceCode :exec
+WITH gc AS (DELETE FROM oauth_device_code WHERE expires_at < now() - interval '1 hour')
+INSERT INTO oauth_device_code (device_code_hash, user_code, client_id, scopes, client_hostname, client_ip, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+`
+
+type CreateDeviceCodeParams struct {
+	DeviceCodeHash []byte
+	UserCode       string
+	ClientID       string
+	Scopes         []string
+	ClientHostname string
+	ClientIp       *netip.Addr
+	ExpiresAt      time.Time
+}
+
+// Also drops codes that ended over an hour ago (no cleanup job).
+func (q *Queries) CreateDeviceCode(ctx context.Context, arg CreateDeviceCodeParams) error {
+	_, err := q.db.Exec(ctx, createDeviceCode,
+		arg.DeviceCodeHash,
+		arg.UserCode,
+		arg.ClientID,
+		arg.Scopes,
+		arg.ClientHostname,
+		arg.ClientIp,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const deleteAuthRequest = `-- name: DeleteAuthRequest :exec
 DELETE FROM oauth_auth_request WHERE id = $1
 `
@@ -145,6 +224,19 @@ WHERE id = $1 AND user_id IS NULL AND expires_at > now()
 // The callback then sees an unfinished request: interaction_required.
 func (q *Queries) DenyAuthRequest(ctx context.Context, id uuid.UUID) (int64, error) {
 	result, err := q.db.Exec(ctx, denyAuthRequest, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const denyDeviceCode = `-- name: DenyDeviceCode :execrows
+UPDATE oauth_device_code SET status = 'denied'
+WHERE user_code = $1 AND status = 'pending' AND expires_at > now()
+`
+
+func (q *Queries) DenyDeviceCode(ctx context.Context, userCode string) (int64, error) {
+	result, err := q.db.Exec(ctx, denyDeviceCode, userCode)
 	if err != nil {
 		return 0, err
 	}
@@ -242,6 +334,30 @@ func (q *Queries) GetPendingAuthRequest(ctx context.Context, id uuid.UUID) (GetP
 	return i, err
 }
 
+const getPendingDeviceCode = `-- name: GetPendingDeviceCode :one
+SELECT client_id, client_hostname, client_ip, scopes FROM oauth_device_code
+WHERE user_code = $1 AND status = 'pending' AND expires_at > now()
+`
+
+type GetPendingDeviceCodeRow struct {
+	ClientID       string
+	ClientHostname string
+	ClientIp       *netip.Addr
+	Scopes         []string
+}
+
+func (q *Queries) GetPendingDeviceCode(ctx context.Context, userCode string) (GetPendingDeviceCodeRow, error) {
+	row := q.db.QueryRow(ctx, getPendingDeviceCode, userCode)
+	var i GetPendingDeviceCodeRow
+	err := row.Scan(
+		&i.ClientID,
+		&i.ClientHostname,
+		&i.ClientIp,
+		&i.Scopes,
+	)
+	return i, err
+}
+
 const getSigningKey = `-- name: GetSigningKey :one
 SELECT ciphertext, key_id FROM oauth_signing_key WHERE id = 1
 `
@@ -273,6 +389,42 @@ type InsertSigningKeyParams struct {
 func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyParams) error {
 	_, err := q.db.Exec(ctx, insertSigningKey, arg.Ciphertext, arg.KeyID, arg.PublicJwk)
 	return err
+}
+
+const pollDeviceCode = `-- name: PollDeviceCode :one
+UPDATE oauth_device_code SET last_poll_at = now()
+WHERE device_code_hash = $1 AND client_id = $2
+RETURNING id, status, scopes, user_id, org_id, expires_at, (expires_at > now())::bool AS live
+`
+
+type PollDeviceCodeParams struct {
+	DeviceCodeHash []byte
+	ClientID       string
+}
+
+type PollDeviceCodeRow struct {
+	ID        uuid.UUID
+	Status    string
+	Scopes    []string
+	UserID    *uuid.UUID
+	OrgID     *uuid.UUID
+	ExpiresAt time.Time
+	Live      bool
+}
+
+func (q *Queries) PollDeviceCode(ctx context.Context, arg PollDeviceCodeParams) (PollDeviceCodeRow, error) {
+	row := q.db.QueryRow(ctx, pollDeviceCode, arg.DeviceCodeHash, arg.ClientID)
+	var i PollDeviceCodeRow
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.Scopes,
+		&i.UserID,
+		&i.OrgID,
+		&i.ExpiresAt,
+		&i.Live,
+	)
+	return i, err
 }
 
 const saveAuthCode = `-- name: SaveAuthCode :execrows

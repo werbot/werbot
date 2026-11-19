@@ -12,12 +12,10 @@ import (
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
-// ConsentHandler serves OAuthConsentService; the device methods answer
-// CodeUnimplemented through the embedded handler until the device flow lands.
-type ConsentHandler struct {
-	werbotv1connect.UnimplementedOAuthConsentServiceHandler
-	p *Provider
-}
+// ConsentHandler serves OAuthConsentService.
+type ConsentHandler struct{ p *Provider }
+
+var _ werbotv1connect.OAuthConsentServiceHandler = (*ConsentHandler)(nil)
 
 // NewConsentHandler returns the OAuthConsentService handler of p.
 func NewConsentHandler(p *Provider) *ConsentHandler { return &ConsentHandler{p: p} }
@@ -76,4 +74,45 @@ func (h *ConsentHandler) DenyAuthRequest(ctx context.Context, req *connect.Reque
 		return nil, apperr.ToConnect(err)
 	}
 	return connect.NewResponse(&werbotv1.DenyAuthRequestResponse{RedirectUrl: u}), nil
+}
+
+// LookupDeviceCode shows the pending device sign-in of the typed user code.
+func (h *ConsentHandler) LookupDeviceCode(ctx context.Context, req *connect.Request[werbotv1.LookupDeviceCodeRequest]) (*connect.Response[werbotv1.LookupDeviceCodeResponse], error) {
+	pr, err := principal.Require(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	info, err := h.p.LookupDeviceCode(ctx, pr, req.Msg.GetUserCode())
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	res := &werbotv1.LookupDeviceCodeResponse{ClientId: info.ClientID, ClientHostname: info.Hostname, Scopes: info.Scopes}
+	if info.IP.IsValid() {
+		res.ClientIp = info.IP.String()
+	}
+	return connect.NewResponse(res), nil
+}
+
+// ApproveDeviceCode approves the device sign-in as the caller.
+func (h *ConsentHandler) ApproveDeviceCode(ctx context.Context, req *connect.Request[werbotv1.ApproveDeviceCodeRequest]) (*connect.Response[werbotv1.ApproveDeviceCodeResponse], error) {
+	pr, err := principal.Require(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	if err := h.p.ApproveDeviceCode(ctx, pr, req.Msg.GetUserCode()); err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.ApproveDeviceCodeResponse{}), nil
+}
+
+// DenyDeviceCode refuses the device sign-in.
+func (h *ConsentHandler) DenyDeviceCode(ctx context.Context, req *connect.Request[werbotv1.DenyDeviceCodeRequest]) (*connect.Response[werbotv1.DenyDeviceCodeResponse], error) {
+	pr, err := principal.Require(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	if err := h.p.DenyDeviceCode(ctx, pr, req.Msg.GetUserCode()); err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.DenyDeviceCodeResponse{}), nil
 }

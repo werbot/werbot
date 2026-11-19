@@ -52,6 +52,11 @@ func TestConsentRequiresCookie(t *testing.T) {
 	require.ErrorIs(t, err, apperr.ErrPermissionDenied)
 	_, err = s.p.GetAuthRequest(ctx, s.fx.Principal(s.fx.MemberID), id) // no AuthMethod: not a cookie
 	require.ErrorIs(t, err, apperr.ErrPermissionDenied)
+	dr := startDevice(t, s.srv)
+	_, err = s.p.LookupDeviceCode(ctx, bearer, dr.UserCode)
+	require.ErrorIs(t, err, apperr.ErrPermissionDenied)
+	require.ErrorIs(t, s.p.ApproveDeviceCode(ctx, bearer, dr.UserCode), apperr.ErrPermissionDenied)
+	require.ErrorIs(t, s.p.DenyDeviceCode(ctx, bearer, dr.UserCode), apperr.ErrPermissionDenied)
 
 	idReq := func() *connect.Request[werbotv1.GetAuthRequestRequest] {
 		return connect.NewRequest(&werbotv1.GetAuthRequestRequest{Id: id.String()})
@@ -67,7 +72,14 @@ func TestConsentRequiresCookie(t *testing.T) {
 		assert.Equal(t, c.code, connect.CodeOf(err), name)
 		_, err = cl.DenyAuthRequest(ctx, connect.NewRequest(&werbotv1.DenyAuthRequestRequest{Id: id.String()}))
 		assert.Equal(t, c.code, connect.CodeOf(err), name)
+		_, err = cl.LookupDeviceCode(ctx, connect.NewRequest(&werbotv1.LookupDeviceCodeRequest{UserCode: dr.UserCode}))
+		assert.Equal(t, c.code, connect.CodeOf(err), name)
+		_, err = cl.ApproveDeviceCode(ctx, connect.NewRequest(&werbotv1.ApproveDeviceCodeRequest{UserCode: dr.UserCode}))
+		assert.Equal(t, c.code, connect.CodeOf(err), name)
+		_, err = cl.DenyDeviceCode(ctx, connect.NewRequest(&werbotv1.DenyDeviceCodeRequest{UserCode: dr.UserCode}))
+		assert.Equal(t, c.code, connect.CodeOf(err), name)
 	}
+	assert.Equal(t, "pending", deviceStatus(t, s, dr.UserCode))
 
 	cookie := cookieAs(s.fx, s.fx.MemberID)
 	cl := consentClient(t, s, &cookie)
@@ -80,6 +92,17 @@ func TestConsentRequiresCookie(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, testWebURL+"/oauth/authorize/callback?id="+id.String(), ok.Msg.GetRedirectUrl())
 	_, err = cl.GetAuthRequest(ctx, idReq()) // approved: no longer pending
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+
+	dev, err := cl.LookupDeviceCode(ctx, connect.NewRequest(&werbotv1.LookupDeviceCodeRequest{UserCode: dr.UserCode}))
+	require.NoError(t, err)
+	assert.Equal(t, "build-01", dev.Msg.GetClientHostname())
+	assert.Equal(t, "127.0.0.1", dev.Msg.GetClientIp())
+	_, err = cl.LookupDeviceCode(ctx, connect.NewRequest(&werbotv1.LookupDeviceCodeRequest{UserCode: "AAAA-AAAA"}))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	_, err = cl.DenyDeviceCode(ctx, connect.NewRequest(&werbotv1.DenyDeviceCodeRequest{UserCode: dr.UserCode}))
+	require.NoError(t, err)
+	_, err = cl.ApproveDeviceCode(ctx, connect.NewRequest(&werbotv1.ApproveDeviceCodeRequest{UserCode: dr.UserCode}))
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 

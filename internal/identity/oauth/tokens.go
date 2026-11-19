@@ -41,21 +41,26 @@ func (*storage) CreateAccessToken(context.Context, op.TokenRequest) (string, tim
 func (s *storage) CreateAccessAndRefreshTokens(ctx context.Context, request op.TokenRequest, _ string) (string, string, time.Time, error) {
 	switch req := request.(type) {
 	case *authRequest:
-		return s.exchangeCode(ctx, req)
+		// Of concurrent exchanges of one code exactly one deletes the row.
+		return s.openSession(ctx, "loopback", func(q *dbq.Queries) (dbq.ConsumeAuthRequestRow, error) {
+			return q.ConsumeAuthRequest(ctx, dbq.ConsumeAuthRequestParams{ID: req.ID, CodeHash: req.codeHash})
+		})
+	case *op.DeviceAuthorizationState:
+		return s.exchangeDevice(ctx)
 	default:
 		return "", "", time.Time{}, errNoFlow
 	}
 }
 
-// exchangeCode consumes the approved request of the code and opens its
-// cli_session, in one transaction: of concurrent exchanges exactly one
-// deletes the row, the others get invalid_grant.
-func (s *storage) exchangeCode(ctx context.Context, a *authRequest) (string, string, time.Time, error) {
+// openSession consumes an approved grant and opens its cli_session, audited
+// as cli.login of flow, in one transaction; a grant already consumed (or
+// ended) is invalid_grant.
+func (s *storage) openSession(ctx context.Context, flow string, consume func(*dbq.Queries) (dbq.ConsumeAuthRequestRow, error)) (string, string, time.Time, error) {
 	raw, hash := newRefreshToken()
 	var id uuid.UUID
 	err := dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
 		q := dbq.New(tx)
-		row, err := q.ConsumeAuthRequest(ctx, dbq.ConsumeAuthRequestParams{ID: a.ID, CodeHash: a.codeHash})
+		row, err := consume(q)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return oidc.ErrInvalidGrant().WithDescription("invalid code")
 		}
@@ -79,7 +84,7 @@ func (s *storage) exchangeCode(ctx context.Context, a *authRequest) (string, str
 		return auditlog.Write(ctx, tx, auditlog.Event{
 			OrgID: row.OrgID, ActorUserID: row.UserID, ActorKind: "user", Action: "cli.login",
 			TargetType: "cli_session", TargetID: id.String(), IP: ip,
-			Data: map[string]any{"client_id": row.ClientID, "hostname": row.ClientHostname, "flow": "loopback"},
+			Data: map[string]any{"client_id": row.ClientID, "hostname": row.ClientHostname, "flow": flow},
 		})
 	})
 	if err != nil {
@@ -90,10 +95,19 @@ func (s *storage) exchangeCode(ctx context.Context, a *authRequest) (string, str
 
 // GetPrivateClaimsFromRequest implements op.CanGetPrivateClaimsFromRequest:
 // the access token names its organization. ID tokens never get it.
-func (*storage) GetPrivateClaimsFromRequest(_ context.Context, request op.TokenRequest, _ []string) (map[string]any, error) {
-	a, ok := request.(*authRequest)
-	if !ok {
+func (*storage) GetPrivateClaimsFromRequest(ctx context.Context, request op.TokenRequest, _ []string) (map[string]any, error) {
+	var org uuid.UUID
+	switch req := request.(type) {
+	case *authRequest:
+		org = req.orgID()
+	case *op.DeviceAuthorizationState:
+		d := requestInfo(ctx).device
+		if d == nil {
+			return nil, errNoFlow
+		}
+		org = d.orgID
+	default:
 		return nil, errNoFlow
 	}
-	return map[string]any{claimOrg: a.orgID().String()}, nil
+	return map[string]any{claimOrg: org.String()}, nil
 }

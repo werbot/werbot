@@ -38,22 +38,30 @@ func (p *Provider) GetAuthRequest(ctx context.Context, pr principal.Principal, i
 	if err := requireCookie(pr); err != nil {
 		return ClientInfo{}, err
 	}
-	var info ClientInfo
+	return p.pending(ctx, errNoRequest, func(q *dbq.Queries) (dbq.GetPendingAuthRequestRow, error) {
+		return q.GetPendingAuthRequest(ctx, id)
+	})
+}
+
+// pending reads a pending sign-in for the consent page; no row is notFound.
+func (p *Provider) pending(ctx context.Context, notFound error, get func(*dbq.Queries) (dbq.GetPendingAuthRequestRow, error)) (ClientInfo, error) {
+	var r dbq.GetPendingAuthRequestRow
 	err := dbx.System(ctx, p.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
-		r, err := dbq.New(tx).GetPendingAuthRequest(ctx, id)
-		if err != nil {
-			return err
-		}
-		info = ClientInfo{ClientID: r.ClientID, Hostname: r.ClientHostname, Scopes: r.Scopes}
-		if r.ClientIp != nil {
-			info.IP = *r.ClientIp
-		}
-		return nil
+		var err error
+		r, err = get(dbq.New(tx))
+		return err
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return ClientInfo{}, errNoRequest
+		return ClientInfo{}, notFound
 	}
-	return info, err
+	if err != nil {
+		return ClientInfo{}, err
+	}
+	info := ClientInfo{ClientID: r.ClientID, Hostname: r.ClientHostname, Scopes: r.Scopes}
+	if r.ClientIp != nil {
+		info.IP = *r.ClientIp
+	}
+	return info, nil
 }
 
 // ApproveAuthRequest binds the pending request id to the caller and returns
@@ -81,15 +89,19 @@ func (p *Provider) DenyAuthRequest(ctx context.Context, pr principal.Principal, 
 
 // decide runs the update of a pending request; no row is ErrNotFound.
 func (p *Provider) decide(ctx context.Context, id uuid.UUID, update func(*dbq.Queries) (int64, error)) (string, error) {
-	err := dbx.System(ctx, p.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
-		n, err := update(dbq.New(tx))
-		if err == nil && n == 0 {
-			return errNoRequest
-		}
-		return err
-	})
-	if err != nil {
+	if err := p.update(ctx, errNoRequest, update); err != nil {
 		return "", err
 	}
 	return p.webURL + "/oauth/authorize/callback?id=" + id.String(), nil
+}
+
+// update runs a consent update; no row changed is notFound.
+func (p *Provider) update(ctx context.Context, notFound error, fn func(*dbq.Queries) (int64, error)) error {
+	return dbx.System(ctx, p.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
+		n, err := fn(dbq.New(tx))
+		if err == nil && n == 0 {
+			return notFound
+		}
+		return err
+	})
 }

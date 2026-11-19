@@ -56,3 +56,33 @@ INSERT INTO cli_session (org_id, user_id, client_id, hostname, ip, refresh_hash,
 SELECT s.org_id, @user_id, @client_id, @hostname, @ip, @refresh_hash, now() + s.cli_session_ttl, now() + s.cli_session_max
 FROM org_setting s WHERE s.org_id = @org_id
 RETURNING id;
+
+-- name: CreateDeviceCode :exec
+-- Also drops codes that ended over an hour ago (no cleanup job).
+WITH gc AS (DELETE FROM oauth_device_code WHERE expires_at < now() - interval '1 hour')
+INSERT INTO oauth_device_code (device_code_hash, user_code, client_id, scopes, client_hostname, client_ip, expires_at)
+VALUES (@device_code_hash, @user_code, @client_id, @scopes, @client_hostname, @client_ip, @expires_at);
+
+-- name: PollDeviceCode :one
+UPDATE oauth_device_code SET last_poll_at = now()
+WHERE device_code_hash = @device_code_hash AND client_id = @client_id
+RETURNING id, status, scopes, user_id, org_id, expires_at, (expires_at > now())::bool AS live;
+
+-- name: ConsumeDeviceCode :one
+-- Of concurrent polls of one approved code exactly one marks it used.
+-- Same columns as ConsumeAuthRequest.
+UPDATE oauth_device_code SET status = 'used'
+WHERE id = @id AND status = 'approved' AND expires_at > now()
+RETURNING user_id, org_id, client_id, client_hostname, client_ip;
+
+-- name: GetPendingDeviceCode :one
+SELECT client_id, client_hostname, client_ip, scopes FROM oauth_device_code
+WHERE user_code = @user_code AND status = 'pending' AND expires_at > now();
+
+-- name: ApproveDeviceCode :execrows
+UPDATE oauth_device_code SET status = 'approved', user_id = @user_id, org_id = @org_id
+WHERE user_code = @user_code AND status = 'pending' AND expires_at > now();
+
+-- name: DenyDeviceCode :execrows
+UPDATE oauth_device_code SET status = 'denied'
+WHERE user_code = @user_code AND status = 'pending' AND expires_at > now();
