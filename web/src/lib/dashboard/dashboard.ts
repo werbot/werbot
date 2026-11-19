@@ -1,5 +1,7 @@
-import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
+
+// a card is pending until its call settles; a failed call only breaks its own card
+export type Slot<T> = { state: 'loading' } | { state: 'error'; text: string } | { state: 'ok'; value: T };
 
 // one page of active sessions is the most the counter can show
 export const ACTIVE_PAGE = 200;
@@ -12,6 +14,7 @@ export function unhealthy(list: Resource[]): Resource[] {
 	return list.filter((r) => r.health?.error).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function poolsOnline(list: Gateway[]): { online: number; total: number } {
+/** How many of the pools (or instances) are online. */
+export function onlineCount(list: { online: boolean }[]): { online: number; total: number } {
 	return { online: list.filter((g) => g.online).length, total: list.length };
 }

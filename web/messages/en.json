@@ -39,20 +39,19 @@
 	"dashboard_recent_sessions": "Recent sessions",
 	"dashboard_no_sessions": "No sessions yet",
 	"dashboard_resource_health": "Resource health",
-	"dashboard_all_healthy": "All resources are healthy",
-	"dashboard_pools": "Gateway pools",
-	"dashboard_recent_audit": "Recent events",
-	"dashboard_ssh_keys": "SSH keys",
-	"dashboard_ssh_keys_count": [
+	"dashboard_no_health_errors": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "{count} SSH key",
-				"countPlural=other": "{count} SSH keys"
+				"countPlural=one": "No health errors in {count} resource",
+				"countPlural=other": "No health errors in {count} resources"
 			}
 		}
 	],
+	"dashboard_pools": "Gateway pools",
+	"dashboard_recent_audit": "Recent events",
+	"dashboard_ssh_keys": "SSH keys",
 	"dashboard_no_keys": "No SSH keys yet",
 	"dashboard_load_failed": "Could not load",
 	"dashboard_open": "Open {title}",
