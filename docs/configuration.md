@@ -86,12 +86,14 @@ No database access. Its four shared variables follow the same rules as on the se
 
 `werbot web` does not read `WERBOT_DATABASE_URL` or `WERBOT_SECRET_KEY`. Details: [web.md](web.md).
 
-## Client (`werbot connect`)
+## Client (`werbot connect`, `werbot login`)
 
 | Variable | Flag | Default | Description |
 | --- | --- | --- | --- |
 | `WERBOT_CONNECT_GATEWAY` | `--gateway` | required | Gateway SSH address `host[:port]`; the port defaults to `2222`. |
 | `WERBOT_CONNECT_LOGIN` | `--login` | required | Werbot login. |
+| `WERBOT_SERVER` | — | server of the last `werbot login` (`<home>/current`) | Server whose profile the client commands use, `http(s)://host[:port]`. |
+| `WERBOT_HOME` | — | `~/.werbot` (Windows: `%USERPROFILE%\.werbot`) | Client profiles: one `0700` directory per server with `profile.json`, the key and the certificate (`0600`). |
 
 Other flags: `-i <key>` and `--known-hosts <path>`. Details: [connect.md](connect.md).
 
