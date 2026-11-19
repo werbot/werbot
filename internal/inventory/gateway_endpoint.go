@@ -15,12 +15,6 @@ import (
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
-// PoolEndpoint is where clients reach a pool and the key they must see there.
-type PoolEndpoint struct {
-	SSHAddress string // host:port, "" until an admin sets it
-	HostKey    string // authorized_keys line of the pool host key
-}
-
 // hostKeyLine opens the sealed private host key and returns its public half
 // in authorized_keys format without the newline.
 func (g *Gateways) hostKeyLine(ciphertext []byte, keyID string) (string, error) {
@@ -35,24 +29,23 @@ func (g *Gateways) hostKeyLine(ciphertext []byte, keyID string) (string, error) 
 	return strings.TrimSpace(string(gossh.MarshalAuthorizedKey(signer.PublicKey()))), nil
 }
 
-// PoolEndpoints returns the endpoint of every pool of the organization; any member may read them.
-func (g *Gateways) PoolEndpoints(ctx context.Context, orgID uuid.UUID) (map[uuid.UUID]PoolEndpoint, error) {
+// PoolEndpoints returns every pool of the organization by id, without
+// instances: clients need its SSHAddress and HostKey. Any member may read them.
+func (g *Gateways) PoolEndpoints(ctx context.Context, orgID uuid.UUID) (map[uuid.UUID]Gateway, error) {
 	p, err := principal.Require(ctx)
 	if err != nil {
 		return nil, err
 	}
-	out := map[uuid.UUID]PoolEndpoint{}
+	out := map[uuid.UUID]Gateway{}
 	err = dbx.InOrg(ctx, g.pool, orgID, p.UserID, func(tx pgx.Tx) error {
 		rows, err := newStore(tx).ListGateways(ctx, orgID)
 		if err != nil {
 			return err
 		}
 		for _, r := range rows {
-			key, err := g.hostKeyLine(r.HostKeyCiphertext, r.HostKeyKeyID)
-			if err != nil {
+			if out[r.ID], err = g.toGateway(r); err != nil {
 				return err
 			}
-			out[r.ID] = PoolEndpoint{SSHAddress: r.SshAddress, HostKey: key}
 		}
 		return nil
 	})

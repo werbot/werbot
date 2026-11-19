@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/netip"
 	"strings"
 	"time"
 	"unicode"
@@ -39,14 +38,10 @@ func (s *storage) StoreDeviceAuthorization(ctx context.Context, clientID, device
 		return err
 	}
 	ri := requestInfo(ctx)
-	var ip *netip.Addr
-	if ri.ip.IsValid() {
-		ip = &ri.ip
-	}
 	return dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
 		return dbq.New(tx).CreateDeviceCode(ctx, dbq.CreateDeviceCodeParams{
 			DeviceCodeHash: hashSecret(deviceCode), UserCode: userCode, ClientID: clientID, Scopes: scopes,
-			ClientHostname: ri.hostname, ClientIp: ip, ExpiresAt: expires,
+			ClientHostname: ri.hostname, ClientIp: ri.ipPtr(), ExpiresAt: expires,
 		})
 	})
 }

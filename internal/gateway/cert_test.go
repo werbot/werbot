@@ -157,7 +157,6 @@ func TestCompilePolicyUserCAKeys(t *testing.T) {
 	p, err := CompilePolicy(snap)
 	require.NoError(t, err)
 	require.False(t, p.IsUserCA(ca.PublicKey()), "no keys: no CA")
-	require.False(t, (*Policy)(nil).IsUserCA(ca.PublicKey()))
 
 	snap.UserCaKeys = []string{authorizedLine(ca.PublicKey())}
 	p, err = CompilePolicy(snap)

@@ -36,9 +36,6 @@ func compileSubjects(s *gatewayv1.Snapshot) (map[uuid.UUID][]uuid.UUID, [][]byte
 // IsUserCA reports whether key is a user CA of the snapshot's organization.
 // Each organization has its own CA: another organization's certificate fails.
 func (p *Policy) IsUserCA(key gossh.PublicKey) bool {
-	if p == nil {
-		return false
-	}
 	b := key.Marshal()
 	return slices.ContainsFunc(p.userCAs, func(ca []byte) bool { return bytes.Equal(ca, b) })
 }

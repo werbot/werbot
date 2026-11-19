@@ -29,16 +29,7 @@ Open http://localhost:8080 and create the first account. What runs, ports and vo
 
 ## Client quick start
 
-Set the SSH address of the pool (Gateways page, pool details; `localhost:2222` for the quick start above), add a resource and bind it to yourself. Then, on your computer:
-
-```sh
-werbot login --server http://localhost:8080   # opens the browser; --device prints a code instead
-werbot ls                                       # resources you can open
-werbot ssh <resource>                           # the system ssh with a short-lived certificate
-werbot ssh-config > ~/.ssh/werbot.conf          # Include it from ~/.ssh/config: ssh <resource>.localhost
-```
-
-Use an `https://` server URL outside a local test: over `http://` the CLI tokens travel in clear text ([docs/security.md](docs/security.md#cli-sessions-and-user-certificates)). Profiles, certificates and every command: [docs/cli.md](docs/cli.md).
+Set the SSH address of the pool (Gateways page, pool details; `localhost:2222` for the quick start above), add a resource and bind it to yourself. Then run `werbot login --server http://localhost:8080` on your computer and continue with [docs/cli.md](docs/cli.md).
 
 ## Other ways to install
 

@@ -36,6 +36,14 @@ func requestInfo(ctx context.Context) *reqInfo {
 	return &reqInfo{}
 }
 
+// ipPtr is the client address for a nullable column: nil when unknown.
+func (ri *reqInfo) ipPtr() *netip.Addr {
+	if !ri.ip.IsValid() {
+		return nil
+	}
+	return &ri.ip
+}
+
 // withReqInfo runs before op: it caps the body, refuses an authorization
 // request whose client or redirect_uri is not exactly werbot-cli on a
 // loopback /callback (400, never a redirect to it) and records reqInfo.
@@ -44,7 +52,7 @@ func withReqInfo(next http.Handler) http.Handler {
 		r.Body = http.MaxBytesReader(w, r.Body, maxBody)
 		if err := r.ParseForm(); err != nil {
 			status := http.StatusBadRequest
-			if mbe := (*http.MaxBytesError)(nil); errors.As(err, &mbe) {
+			if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 				status = http.StatusRequestEntityTooLarge
 			}
 			http.Error(w, "invalid request", status)

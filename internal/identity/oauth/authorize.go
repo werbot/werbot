@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
-	"net/netip"
 	"slices"
 	"time"
 
@@ -78,10 +77,6 @@ func (s *storage) CreateAuthRequest(ctx context.Context, req *oidc.AuthRequest, 
 		return nil, err
 	}
 	ri := requestInfo(ctx)
-	var ip *netip.Addr
-	if ri.ip.IsValid() {
-		ip = &ri.ip
-	}
 	a := &authRequest{GetAuthRequestRow: dbq.GetAuthRequestRow{
 		RedirectUri: req.RedirectURI, CodeChallenge: req.CodeChallenge, Scopes: req.Scopes, State: req.State,
 	}}
@@ -89,7 +84,7 @@ func (s *storage) CreateAuthRequest(ctx context.Context, req *oidc.AuthRequest, 
 		var err error
 		a.ID, err = dbq.New(tx).CreateAuthRequest(ctx, dbq.CreateAuthRequestParams{
 			ClientID: ClientCLI, RedirectUri: req.RedirectURI, CodeChallenge: req.CodeChallenge, Scopes: req.Scopes,
-			State: req.State, ClientHostname: ri.hostname, ClientIp: ip,
+			State: req.State, ClientHostname: ri.hostname, ClientIp: ri.ipPtr(),
 		})
 		return err
 	})

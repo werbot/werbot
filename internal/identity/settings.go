@@ -3,7 +3,6 @@ package identity
 import (
 	"context"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,7 +44,7 @@ func (s *Service) Settings(ctx context.Context, orgID uuid.UUID) (OrgSettings, e
 // UpdateSettings writes the fields of in named by paths (proto field names)
 // and returns the stored settings. Only owner and admin may call it.
 func (s *Service) UpdateSettings(ctx context.Context, p principal.Principal, in OrgSettings, paths []string) (OrgSettings, error) {
-	if !slices.Contains([]string{principal.RoleOwner, principal.RoleAdmin}, p.Role) {
+	if !isManager(p) {
 		return OrgSettings{}, apperr.ErrPermissionDenied
 	}
 	var out OrgSettings
