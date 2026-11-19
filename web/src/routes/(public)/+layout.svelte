@@ -5,8 +5,11 @@
 </script>
 
 <main class="public">
+	<div class="brand">
+		<img src="/logo.svg" alt="" height="48" />
+		<span>Werbot</span>
+	</div>
 	<div class="card">
-		<div class="brand"><img src="/logo.svg" alt="" width="28" height="15" />Werbot</div>
 		{@render children()}
 	</div>
 </main>
@@ -14,8 +17,8 @@
 <style>
 	.public {
 		display: flex;
-		justify-content: center;
-		align-items: flex-start;
+		flex-direction: column;
+		align-items: center;
 		box-sizing: border-box;
 		min-height: 100vh;
 		padding: 64px 16px;
@@ -34,11 +37,17 @@
 
 	.brand {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		gap: var(--miso-sp-08);
-		margin-bottom: var(--miso-sp-16);
-		font: var(--miso-font-ui-18-semi);
+		margin-bottom: var(--miso-sp-24);
+		font: var(--miso-font-ui-22-semi);
 		color: var(--miso-txt-accent);
+	}
+
+	.brand img {
+		height: 48px;
+		width: auto;
 	}
 
 	.public :global(form) {

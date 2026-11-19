@@ -1,4 +1,4 @@
-/* Werbot brand palette: gold #F6C90C (logo) as OKLCH ramp, same hue, lightness steps as miso interblue.
+/* Werbot brand palette: gold #F6C90C (logo) as OKLCH ramp, steps 50-700 same hue, 750-920 rotated toward amber so links do not drift to olive.
    Imported after the miso styles; replaces every blue/violet accent without touching lib/ui. */
 :root {
 	/* Palette */
@@ -10,11 +10,11 @@
 	--wb-brand-500: #f9d872;
 	--wb-brand-600: #f8d358;
 	--wb-brand-700: #f6c90c;
-	--wb-brand-750: #e3b90a;
-	--wb-brand-800: #cca712;
-	--wb-brand-850: #af8f12;
-	--wb-brand-900: #8c7100;
-	--wb-brand-920: #6e5802;
+	--wb-brand-750: #e9ad0a;
+	--wb-brand-800: #d68a0a;
+	--wb-brand-850: #c2690b;
+	--wb-brand-900: #b45309;
+	--wb-brand-920: #92400e;
 	--wb-brand-a50: #f6c90c0d;
 	--wb-brand-a100: #f6c90c1a;
 	--wb-brand-a200: #f6c90c29;
