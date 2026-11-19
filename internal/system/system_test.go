@@ -13,6 +13,7 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/platform/clientip"
+	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/version"
 	"github.com/werbot/werbot/internal/system"
 )
@@ -20,7 +21,7 @@ import (
 func TestGetVersion(t *testing.T) {
 	version.Version, version.Commit, version.BuildDate = "1.2.3", "abc", "2026-11-06"
 	mux := http.NewServeMux()
-	mux.Handle(werbotv1connect.NewSystemServiceHandler(system.New()))
+	mux.Handle(werbotv1connect.NewSystemServiceHandler(system.New(config.DefaultGeoIPURL)))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	res, err := werbotv1connect.NewSystemServiceClient(srv.Client(), srv.URL).
@@ -29,12 +30,33 @@ func TestGetVersion(t *testing.T) {
 	assert.Equal(t, "1.2.3", res.Msg.GetVersion())
 	assert.Equal(t, "abc", res.Msg.GetCommit())
 	assert.Equal(t, "2026-11-06", res.Msg.GetBuildDate())
+	assert.True(t, res.Msg.GetGeoipAttribution())
+}
+
+func TestGetVersionGeoIPAttribution(t *testing.T) {
+	for u, want := range map[string]bool{
+		config.DefaultGeoIPURL:                              true,
+		"https://db-ip.com/free/country.mmdb":               true,
+		"https://download.db-ip.com/key/TOKEN.mmdb":         false, // paid DB-IP
+		"https://evil-db-ip.com/free/country.mmdb":          false,
+		"https://geo.example.com/free/db-ip.com/%s.mmdb.gz": false,
+		"https://geo.example.com/country.mmdb?token=x":      false,
+	} {
+		mux := http.NewServeMux()
+		mux.Handle(werbotv1connect.NewSystemServiceHandler(system.New(u)))
+		srv := httptest.NewServer(mux)
+		res, err := werbotv1connect.NewSystemServiceClient(srv.Client(), srv.URL).
+			GetVersion(context.Background(), connect.NewRequest(&werbotv1.GetVersionRequest{}))
+		srv.Close()
+		require.NoError(t, err, u)
+		assert.Equal(t, want, res.Msg.GetGeoipAttribution(), u)
+	}
 }
 
 func newClient(t *testing.T) werbotv1connect.SystemServiceClient {
 	t.Helper()
 	mux := http.NewServeMux()
-	mux.Handle(werbotv1connect.NewSystemServiceHandler(system.New()))
+	mux.Handle(werbotv1connect.NewSystemServiceHandler(system.New("")))
 	srv := httptest.NewServer(clientip.Middleware(nil)(mux))
 	t.Cleanup(srv.Close)
 	return werbotv1connect.NewSystemServiceClient(srv.Client(), srv.URL)

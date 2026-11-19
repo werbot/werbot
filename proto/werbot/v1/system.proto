@@ -11,6 +11,9 @@ message GetVersionResponse {
   string version = 1;
   string commit = 2;
   string build_date = 3;
+  // geoip_attribution: the GeoIP database is DB-IP Lite, whose license
+  // requires the UI to credit DB-IP.
+  bool geoip_attribution = 4;
 }
 
 message ListCountriesRequest {}

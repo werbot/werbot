@@ -148,7 +148,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", httpserver.Health())
 	mux.Handle("/readyz", httpserver.Ready(pool.Ping, &draining))
-	mux.Handle(werbotv1connect.NewSystemServiceHandler(system.New(), opts))
+	mux.Handle(werbotv1connect.NewSystemServiceHandler(system.New(cfg.GeoIPURL), opts))
 	mux.Handle(werbotv1connect.NewAuthServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewProfileServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewSSHKeyServiceHandler(idh, opts))

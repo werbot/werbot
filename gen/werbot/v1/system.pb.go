@@ -58,12 +58,15 @@ func (*GetVersionRequest) Descriptor() ([]byte, []int) {
 }
 
 type GetVersionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Version       string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
-	Commit        string                 `protobuf:"bytes,2,opt,name=commit,proto3" json:"commit,omitempty"`
-	BuildDate     string                 `protobuf:"bytes,3,opt,name=build_date,json=buildDate,proto3" json:"build_date,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Version   string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	Commit    string                 `protobuf:"bytes,2,opt,name=commit,proto3" json:"commit,omitempty"`
+	BuildDate string                 `protobuf:"bytes,3,opt,name=build_date,json=buildDate,proto3" json:"build_date,omitempty"`
+	// geoip_attribution: the GeoIP database is DB-IP Lite, whose license
+	// requires the UI to credit DB-IP.
+	GeoipAttribution bool `protobuf:"varint,4,opt,name=geoip_attribution,json=geoipAttribution,proto3" json:"geoip_attribution,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetVersionResponse) Reset() {
@@ -115,6 +118,13 @@ func (x *GetVersionResponse) GetBuildDate() string {
 		return x.BuildDate
 	}
 	return ""
+}
+
+func (x *GetVersionResponse) GetGeoipAttribution() bool {
+	if x != nil {
+		return x.GeoipAttribution
+	}
+	return false
 }
 
 type ListCountriesRequest struct {
@@ -334,12 +344,13 @@ var File_werbot_v1_system_proto protoreflect.FileDescriptor
 const file_werbot_v1_system_proto_rawDesc = "" +
 	"\n" +
 	"\x16werbot/v1/system.proto\x12\twerbot.v1\"\x13\n" +
-	"\x11GetVersionRequest\"e\n" +
+	"\x11GetVersionRequest\"\x92\x01\n" +
 	"\x12GetVersionResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x16\n" +
 	"\x06commit\x18\x02 \x01(\tR\x06commit\x12\x1d\n" +
 	"\n" +
-	"build_date\x18\x03 \x01(\tR\tbuildDate\"\x16\n" +
+	"build_date\x18\x03 \x01(\tR\tbuildDate\x12+\n" +
+	"\x11geoip_attribution\x18\x04 \x01(\bR\x10geoipAttribution\"\x16\n" +
 	"\x14ListCountriesRequest\"1\n" +
 	"\aCountry\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +

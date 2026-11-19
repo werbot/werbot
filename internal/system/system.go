@@ -3,6 +3,8 @@ package system
 
 import (
 	"context"
+	"net/url"
+	"strings"
 
 	"connectrpc.com/connect"
 
@@ -12,17 +14,29 @@ import (
 )
 
 // Service implements werbotv1connect.SystemServiceHandler.
-type Service struct{}
+type Service struct{ geoIPAttribution bool }
 
-// New returns a Service.
-func New() *Service { return &Service{} }
+// New returns a Service for the GeoIP database at geoIPURL (WERBOT_GEOIP_URL).
+func New(geoIPURL string) *Service { return &Service{geoIPAttribution: dbIPLite(geoIPURL)} }
 
-// GetVersion returns build metadata.
-func (*Service) GetVersion(_ context.Context, _ *connect.Request[werbotv1.GetVersionRequest]) (*connect.Response[werbotv1.GetVersionResponse], error) {
+// dbIPLite reports whether u is DB-IP Lite: a /free/ path on db-ip.com or a
+// subdomain. Its license requires the UI to credit DB-IP.
+func dbIPLite(u string) bool {
+	p, err := url.Parse(strings.Replace(u, "%s", "2006-01", 1))
+	if err != nil {
+		return false
+	}
+	h := p.Hostname()
+	return (h == "db-ip.com" || strings.HasSuffix(h, ".db-ip.com")) && strings.Contains(p.Path, "/free/")
+}
+
+// GetVersion returns build metadata and whether the UI credits DB-IP.
+func (s *Service) GetVersion(_ context.Context, _ *connect.Request[werbotv1.GetVersionRequest]) (*connect.Response[werbotv1.GetVersionResponse], error) {
 	return connect.NewResponse(&werbotv1.GetVersionResponse{
-		Version:   version.Version,
-		Commit:    version.Commit,
-		BuildDate: version.BuildDate,
+		Version:          version.Version,
+		Commit:           version.Commit,
+		BuildDate:        version.BuildDate,
+		GeoipAttribution: s.geoIPAttribution,
 	}), nil
 }
 
