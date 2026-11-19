@@ -2,10 +2,10 @@
 	import { onMount } from 'svelte';
 	import { timestampFromDate } from '@bufbuild/protobuf/wkt';
 	import FilledShell from '#lib/FilledShell.svelte';
-	import { Badge, Banner, Button, Chip, FilledField, type SelectOption } from '#lib/ui/index.js';
+	import { Badge, Button, Chip, FilledField, type SelectOption } from '#lib/ui/index.js';
 	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { policy, system } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import GeoipCredit from './GeoipCredit.svelte';
 
@@ -16,19 +16,17 @@
 	let time = $state('');
 	let port = $state('');
 	let result = $state<{ allow: boolean; reasons: string[] }>();
-	let error = $state('');
 
 	onMount(async () => {
 		try {
 			ip = (await system.getClientIP({})).ip;
 		} catch (e) {
-			error = errorMessage(e);
+			failToast(e);
 		}
 	});
 
 	async function check(e: SubmitEvent) {
 		e.preventDefault();
-		error = '';
 		try {
 			result = await policy.checkAccess({
 				userId,
@@ -39,13 +37,12 @@
 			});
 		} catch (e) {
 			result = undefined;
-			error = errorMessage(e);
+			failToast(e);
 		}
 	}
 </script>
 
 <h3>{m.access_check()}</h3>
-{#if error}<Banner tone="alert">{error}</Banner>{/if}
 <form onsubmit={check}>
 	<FilledSelect label={m.access_user()} options={users} bind:value={userId} />
 	<FilledField label={m.access_check_ip()} bind:value={ip} required />
