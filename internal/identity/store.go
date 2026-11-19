@@ -60,4 +60,5 @@ type Store interface {
 	GetOrgSettings(ctx context.Context, orgID uuid.UUID) (dbq.GetOrgSettingsRow, error)
 	LockOrgSettings(ctx context.Context, orgID uuid.UUID) (dbq.LockOrgSettingsRow, error)
 	UpdateOrgSettings(ctx context.Context, arg dbq.UpdateOrgSettingsParams) error
+	GetMemberRole(ctx context.Context, arg dbq.GetMemberRoleParams) (string, error)
 }

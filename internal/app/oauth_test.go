@@ -9,9 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
+	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 )
@@ -57,4 +61,14 @@ func TestServeMountsOAuth(t *testing.T) {
 	}
 	code, _ := get(t, base+"/oauth/keys")
 	assert.Equal(t, http.StatusOK, code)
+}
+
+// TestServeMountsConsent: OAuthConsentService is served and needs a subject.
+func TestServeMountsConsent(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	cfg := config.Config{HTTPAddr: freeAddr(t), WebEmbedded: false}
+	startServe(t, cfg, pool, nil, nil, slog.New(slog.DiscardHandler))
+	cl := werbotv1connect.NewOAuthConsentServiceClient(http.DefaultClient, "http://"+cfg.HTTPAddr)
+	_, err := cl.GetAuthRequest(context.Background(), connect.NewRequest(&werbotv1.GetAuthRequestRequest{Id: uuid.NewString()}))
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }

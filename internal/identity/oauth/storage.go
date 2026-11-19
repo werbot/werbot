@@ -66,8 +66,10 @@ func (*storage) RevokeToken(context.Context, string, string, string) *oidc.Error
 // /oauth/revoke; end_session has nothing to end.
 func (*storage) TerminateSession(context.Context, string, string) error { return nil }
 
-// SetUserinfoFromScopes implements op.OPStorage (deprecated by op: empty).
-func (*storage) SetUserinfoFromScopes(context.Context, *oidc.UserInfo, string, string, []string) error {
+// SetUserinfoFromScopes implements op.OPStorage: op copies the userinfo into
+// the ID token, sub included, so it carries only sub.
+func (*storage) SetUserinfoFromScopes(_ context.Context, info *oidc.UserInfo, userID, _ string, _ []string) error {
+	info.Subject = userID
 	return nil
 }
 
@@ -99,30 +101,6 @@ func (*storage) ValidateJWTProfileScopes(context.Context, string, []string) ([]s
 }
 
 // The flow steps below answer errNoFlow until their flow is served.
-
-func (*storage) CreateAuthRequest(context.Context, *oidc.AuthRequest, string) (op.AuthRequest, error) {
-	return nil, errNoFlow
-}
-
-func (*storage) AuthRequestByID(context.Context, string) (op.AuthRequest, error) {
-	return nil, errNoFlow
-}
-
-func (*storage) AuthRequestByCode(context.Context, string) (op.AuthRequest, error) {
-	return nil, errNoFlow
-}
-
-func (*storage) SaveAuthCode(context.Context, string, string) error { return errNoFlow }
-
-func (*storage) DeleteAuthRequest(context.Context, string) error { return errNoFlow }
-
-func (*storage) CreateAccessToken(context.Context, op.TokenRequest) (string, time.Time, error) {
-	return "", time.Time{}, errNoFlow
-}
-
-func (*storage) CreateAccessAndRefreshTokens(context.Context, op.TokenRequest, string) (string, string, time.Time, error) {
-	return "", "", time.Time{}, errNoFlow
-}
 
 func (*storage) TokenRequestByRefreshToken(context.Context, string) (op.RefreshTokenRequest, error) {
 	return nil, errNoFlow

@@ -7,7 +7,240 @@ package dbq
 
 import (
 	"context"
+	"net/netip"
+
+	"github.com/google/uuid"
 )
+
+const approveAuthRequest = `-- name: ApproveAuthRequest :execrows
+UPDATE oauth_auth_request SET user_id = $1, org_id = $2
+WHERE id = $3 AND user_id IS NULL AND expires_at > now()
+`
+
+type ApproveAuthRequestParams struct {
+	UserID *uuid.UUID
+	OrgID  *uuid.UUID
+	ID     uuid.UUID
+}
+
+func (q *Queries) ApproveAuthRequest(ctx context.Context, arg ApproveAuthRequestParams) (int64, error) {
+	result, err := q.db.Exec(ctx, approveAuthRequest, arg.UserID, arg.OrgID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const consumeAuthRequest = `-- name: ConsumeAuthRequest :one
+DELETE FROM oauth_auth_request
+WHERE id = $1 AND code_hash = $2 AND user_id IS NOT NULL AND expires_at > now()
+RETURNING user_id, org_id, client_id, client_hostname, client_ip
+`
+
+type ConsumeAuthRequestParams struct {
+	ID       uuid.UUID
+	CodeHash []byte
+}
+
+type ConsumeAuthRequestRow struct {
+	UserID         *uuid.UUID
+	OrgID          *uuid.UUID
+	ClientID       string
+	ClientHostname string
+	ClientIp       *netip.Addr
+}
+
+// Of concurrent exchanges of one code exactly one deletes the row.
+func (q *Queries) ConsumeAuthRequest(ctx context.Context, arg ConsumeAuthRequestParams) (ConsumeAuthRequestRow, error) {
+	row := q.db.QueryRow(ctx, consumeAuthRequest, arg.ID, arg.CodeHash)
+	var i ConsumeAuthRequestRow
+	err := row.Scan(
+		&i.UserID,
+		&i.OrgID,
+		&i.ClientID,
+		&i.ClientHostname,
+		&i.ClientIp,
+	)
+	return i, err
+}
+
+const createAuthRequest = `-- name: CreateAuthRequest :one
+WITH gc AS (DELETE FROM oauth_auth_request WHERE expires_at < now() - interval '1 hour')
+INSERT INTO oauth_auth_request (client_id, redirect_uri, code_challenge, scopes, state, client_hostname, client_ip, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, now() + interval '10 minutes')
+RETURNING id
+`
+
+type CreateAuthRequestParams struct {
+	ClientID       string
+	RedirectUri    string
+	CodeChallenge  string
+	Scopes         []string
+	State          string
+	ClientHostname string
+	ClientIp       *netip.Addr
+}
+
+// Also drops requests that ended over an hour ago (no cleanup job).
+func (q *Queries) CreateAuthRequest(ctx context.Context, arg CreateAuthRequestParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, createAuthRequest,
+		arg.ClientID,
+		arg.RedirectUri,
+		arg.CodeChallenge,
+		arg.Scopes,
+		arg.State,
+		arg.ClientHostname,
+		arg.ClientIp,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const createCLISession = `-- name: CreateCLISession :one
+INSERT INTO cli_session (org_id, user_id, client_id, hostname, ip, refresh_hash, expires_at, absolute_expires_at)
+SELECT s.org_id, $1, $2, $3, $4, $5, now() + s.cli_session_ttl, now() + s.cli_session_max
+FROM org_setting s WHERE s.org_id = $6
+RETURNING id
+`
+
+type CreateCLISessionParams struct {
+	UserID      uuid.UUID
+	ClientID    string
+	Hostname    string
+	Ip          *netip.Addr
+	RefreshHash []byte
+	OrgID       uuid.UUID
+}
+
+// Lifetimes come from the organization's settings; no row, no session.
+func (q *Queries) CreateCLISession(ctx context.Context, arg CreateCLISessionParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, createCLISession,
+		arg.UserID,
+		arg.ClientID,
+		arg.Hostname,
+		arg.Ip,
+		arg.RefreshHash,
+		arg.OrgID,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const deleteAuthRequest = `-- name: DeleteAuthRequest :exec
+DELETE FROM oauth_auth_request WHERE id = $1
+`
+
+func (q *Queries) DeleteAuthRequest(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAuthRequest, id)
+	return err
+}
+
+const denyAuthRequest = `-- name: DenyAuthRequest :execrows
+UPDATE oauth_auth_request SET expires_at = now()
+WHERE id = $1 AND user_id IS NULL AND expires_at > now()
+`
+
+// The callback then sees an unfinished request: interaction_required.
+func (q *Queries) DenyAuthRequest(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, denyAuthRequest, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const getAuthRequest = `-- name: GetAuthRequest :one
+SELECT id, redirect_uri, code_challenge, scopes, state, user_id, org_id,
+       (user_id IS NOT NULL AND expires_at > now())::bool AS done
+FROM oauth_auth_request WHERE id = $1
+`
+
+type GetAuthRequestRow struct {
+	ID            uuid.UUID
+	RedirectUri   string
+	CodeChallenge string
+	Scopes        []string
+	State         string
+	UserID        *uuid.UUID
+	OrgID         *uuid.UUID
+	Done          bool
+}
+
+// No expiry filter: op needs redirect_uri to report an ended request.
+func (q *Queries) GetAuthRequest(ctx context.Context, id uuid.UUID) (GetAuthRequestRow, error) {
+	row := q.db.QueryRow(ctx, getAuthRequest, id)
+	var i GetAuthRequestRow
+	err := row.Scan(
+		&i.ID,
+		&i.RedirectUri,
+		&i.CodeChallenge,
+		&i.Scopes,
+		&i.State,
+		&i.UserID,
+		&i.OrgID,
+		&i.Done,
+	)
+	return i, err
+}
+
+const getAuthRequestByCode = `-- name: GetAuthRequestByCode :one
+SELECT id, redirect_uri, code_challenge, scopes, state, user_id, org_id,
+       (user_id IS NOT NULL AND expires_at > now())::bool AS done
+FROM oauth_auth_request WHERE code_hash = $1 AND expires_at > now()
+`
+
+type GetAuthRequestByCodeRow struct {
+	ID            uuid.UUID
+	RedirectUri   string
+	CodeChallenge string
+	Scopes        []string
+	State         string
+	UserID        *uuid.UUID
+	OrgID         *uuid.UUID
+	Done          bool
+}
+
+func (q *Queries) GetAuthRequestByCode(ctx context.Context, codeHash []byte) (GetAuthRequestByCodeRow, error) {
+	row := q.db.QueryRow(ctx, getAuthRequestByCode, codeHash)
+	var i GetAuthRequestByCodeRow
+	err := row.Scan(
+		&i.ID,
+		&i.RedirectUri,
+		&i.CodeChallenge,
+		&i.Scopes,
+		&i.State,
+		&i.UserID,
+		&i.OrgID,
+		&i.Done,
+	)
+	return i, err
+}
+
+const getPendingAuthRequest = `-- name: GetPendingAuthRequest :one
+SELECT client_id, client_hostname, client_ip, scopes FROM oauth_auth_request
+WHERE id = $1 AND user_id IS NULL AND expires_at > now()
+`
+
+type GetPendingAuthRequestRow struct {
+	ClientID       string
+	ClientHostname string
+	ClientIp       *netip.Addr
+	Scopes         []string
+}
+
+func (q *Queries) GetPendingAuthRequest(ctx context.Context, id uuid.UUID) (GetPendingAuthRequestRow, error) {
+	row := q.db.QueryRow(ctx, getPendingAuthRequest, id)
+	var i GetPendingAuthRequestRow
+	err := row.Scan(
+		&i.ClientID,
+		&i.ClientHostname,
+		&i.ClientIp,
+		&i.Scopes,
+	)
+	return i, err
+}
 
 const getSigningKey = `-- name: GetSigningKey :one
 SELECT ciphertext, key_id FROM oauth_signing_key WHERE id = 1
@@ -40,4 +273,22 @@ type InsertSigningKeyParams struct {
 func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyParams) error {
 	_, err := q.db.Exec(ctx, insertSigningKey, arg.Ciphertext, arg.KeyID, arg.PublicJwk)
 	return err
+}
+
+const saveAuthCode = `-- name: SaveAuthCode :execrows
+UPDATE oauth_auth_request SET code_hash = $1
+WHERE id = $2 AND user_id IS NOT NULL AND expires_at > now()
+`
+
+type SaveAuthCodeParams struct {
+	CodeHash []byte
+	ID       uuid.UUID
+}
+
+func (q *Queries) SaveAuthCode(ctx context.Context, arg SaveAuthCodeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, saveAuthCode, arg.CodeHash, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

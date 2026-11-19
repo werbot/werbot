@@ -226,3 +226,6 @@ UPDATE org_setting SET
     cli_session_max = make_interval(secs => @cli_session_max_secs::float8),
     updated_at = now()
 WHERE org_id = @org_id;
+
+-- name: GetMemberRole :one
+SELECT role FROM membership WHERE org_id = @org_id AND user_id = @user_id;

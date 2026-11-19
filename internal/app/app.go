@@ -93,7 +93,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	mux.Handle(werbotv1connect.NewTeamServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewSettingsServiceHandler(idh, opts))
 	s.mount(mux, opts)
-	if err := mountOAuth(mux, cfg, pool, o.OAuthKey, logger); err != nil {
+	if err := mountOAuth(mux, cfg, pool, o.OAuthKey, s.Identity, logger, opts); err != nil {
 		return err
 	}
 	// Enroll returns the pool's private host key: opts log no bodies, only

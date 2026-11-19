@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	jose "github.com/go-jose/go-jose/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
@@ -13,9 +14,12 @@ import (
 
 // Provider is the authorization server: discovery, JWKS and the /oauth/ endpoints.
 type Provider struct {
-	handler http.Handler
-	users   Users
-	logger  *slog.Logger
+	handler  http.Handler
+	pool     *pgxpool.Pool
+	users    Users
+	webURL   string
+	verifier *op.AccessTokenVerifier
+	logger   *slog.Logger
 }
 
 // New builds the provider. Every endpoint lives under /oauth/; op's login
@@ -58,9 +62,12 @@ func New(pool *pgxpool.Pool, key *SigningKey, users Users, cfg Config, logger *s
 		r.URL.Path = oidc.DiscoveryEndpoint
 		o.ServeHTTP(w, r)
 	})
-	return &Provider{handler: mux, users: users, logger: logger}, nil
+	return &Provider{
+		handler: withReqInfo(mux), pool: pool, users: users, webURL: cfg.WebURL, logger: logger,
+		verifier: op.NewAccessTokenVerifier(cfg.Issuer, publicKey{key}, op.WithSupportedAccessTokenSigningAlgorithms(string(jose.ES256))),
+	}, nil
 }
 
 // Handler serves /.well-known/openid-configuration,
-// /.well-known/oauth-authorization-server and /oauth/*.
+// /.well-known/oauth-authorization-server and /oauth/* (bodies up to 64 KiB).
 func (p *Provider) Handler() http.Handler { return p.handler }

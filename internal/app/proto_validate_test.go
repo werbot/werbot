@@ -25,4 +25,20 @@ func TestRequestValidation(t *testing.T) {
 	assert.NoError(t, protovalidate.Validate(enroll(256, 4096)))
 	assert.Error(t, protovalidate.Validate(enroll(257, 1)))
 	assert.Error(t, protovalidate.Validate(enroll(1, 4097)))
+
+	// OAuthConsentService (stage 9)
+	id := "0190a000-0000-7000-8000-000000000001"
+	assert.NoError(t, protovalidate.Validate(&werbotv1.GetAuthRequestRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.GetAuthRequestRequest{Id: "x"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ApproveAuthRequestRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.ApproveAuthRequestRequest{}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.DenyAuthRequestRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.DenyAuthRequestRequest{Id: "x"}))
+	long := strings.Repeat("B", 17)
+	assert.NoError(t, protovalidate.Validate(&werbotv1.LookupDeviceCodeRequest{UserCode: "BCDF-GHJK"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.LookupDeviceCodeRequest{UserCode: long}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ApproveDeviceCodeRequest{UserCode: "BCDF-GHJK"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.ApproveDeviceCodeRequest{UserCode: long}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.DenyDeviceCodeRequest{UserCode: "BCDF-GHJK"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.DenyDeviceCodeRequest{UserCode: long}))
 }

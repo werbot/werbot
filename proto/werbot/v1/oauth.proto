@@ -1,0 +1,62 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+
+// Consent to a CLI sign-in: the loopback authorization request and the device
+// code. Cookie sessions only: a CLI token never approves another CLI.
+service OAuthConsentService {
+  rpc GetAuthRequest(GetAuthRequestRequest) returns (GetAuthRequestResponse);
+  // Binds the request to the caller; the browser follows redirect_url.
+  rpc ApproveAuthRequest(ApproveAuthRequestRequest) returns (ApproveAuthRequestResponse);
+  // Ends the request; redirect_url hands the CLI interaction_required.
+  rpc DenyAuthRequest(DenyAuthRequestRequest) returns (DenyAuthRequestResponse);
+  rpc LookupDeviceCode(LookupDeviceCodeRequest) returns (LookupDeviceCodeResponse);
+  rpc ApproveDeviceCode(ApproveDeviceCodeRequest) returns (ApproveDeviceCodeResponse);
+  rpc DenyDeviceCode(DenyDeviceCodeRequest) returns (DenyDeviceCodeResponse);
+}
+
+message GetAuthRequestRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetAuthRequestResponse {
+  string client_id = 1;
+  // As reported by the CLI (werbot_hostname); not verified.
+  string client_hostname = 2;
+  string client_ip = 3;
+  repeated string scopes = 4;
+}
+
+message ApproveAuthRequestRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message ApproveAuthRequestResponse {
+  string redirect_url = 1;
+}
+
+message DenyAuthRequestRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DenyAuthRequestResponse {
+  string redirect_url = 1;
+}
+
+message LookupDeviceCodeRequest {
+  string user_code = 1 [(buf.validate.field).string.max_len = 16];
+}
+message LookupDeviceCodeResponse {
+  string client_id = 1;
+  string client_hostname = 2;
+  string client_ip = 3;
+  repeated string scopes = 4;
+}
+
+message ApproveDeviceCodeRequest {
+  string user_code = 1 [(buf.validate.field).string.max_len = 16];
+}
+message ApproveDeviceCodeResponse {}
+
+message DenyDeviceCodeRequest {
+  string user_code = 1 [(buf.validate.field).string.max_len = 16];
+}
+message DenyDeviceCodeResponse {}

@@ -125,3 +125,8 @@ func (p publicKey) ID() string                       { return p.k.id }
 func (publicKey) Algorithm() jose.SignatureAlgorithm { return jose.ES256 }
 func (publicKey) Use() string                        { return "sig" }
 func (p publicKey) Key() any                         { return &p.k.key.PublicKey }
+
+// VerifySignature implements oidc.KeySet for the access token verifier.
+func (p publicKey) VerifySignature(_ context.Context, jws *jose.JSONWebSignature) ([]byte, error) {
+	return jws.Verify(&p.k.key.PublicKey)
+}

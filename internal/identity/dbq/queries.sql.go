@@ -359,6 +359,22 @@ func (q *Queries) GetLoginUser(ctx context.Context, email string) (GetLoginUserR
 	return i, err
 }
 
+const getMemberRole = `-- name: GetMemberRole :one
+SELECT role FROM membership WHERE org_id = $1 AND user_id = $2
+`
+
+type GetMemberRoleParams struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error) {
+	row := q.db.QueryRow(ctx, getMemberRole, arg.OrgID, arg.UserID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
+}
+
 const getOrgSettings = `-- name: GetOrgSettings :one
 SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
        extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs
