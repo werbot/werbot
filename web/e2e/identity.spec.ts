@@ -17,6 +17,9 @@ test.describe.serial('identity', () => {
 		await page.getByRole('button', { name: en.auth_setup_submit }).click();
 		await expect(page).toHaveURL('/');
 		await expect(page.getByRole('link', { name: en.nav_organization })).toBeVisible();
+		await expect(page.getByRole('heading', { name: OWNER.org })).toBeVisible();
+		await expect(page.getByRole('heading', { name: en.dashboard_recent_sessions })).toBeVisible();
+		await expect(page.getByText(en.dashboard_no_sessions)).toBeVisible();
 
 		await page.getByRole('button', { name: en.nav_profile }).click();
 		await page.getByRole('menuitem', { name: en.auth_logout }).click();
@@ -43,6 +46,8 @@ test.describe.serial('identity', () => {
 		await expect(bobPage).toHaveURL('/');
 		await expect(bobPage.getByRole('link', { name: en.nav_access })).toBeVisible();
 		await expect(bobPage.getByRole('link', { name: en.nav_organization })).toBeHidden();
+		await expect(bobPage.getByRole('heading', { name: en.dashboard_recent_sessions })).toBeVisible();
+		await expect(bobPage.getByRole('heading', { name: en.dashboard_resource_health })).toBeHidden();
 		await ctx.close();
 	});
 

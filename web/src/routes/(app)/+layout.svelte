@@ -77,7 +77,6 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
-		padding: 24px;
 		overflow: auto;
 		background: var(--miso-cont-mid);
 	}
@@ -89,7 +88,7 @@
 	.work__credit {
 		display: flex;
 		justify-content: center;
-		padding-top: 16px;
+		padding: 16px;
 	}
 
 	/* desktop from 1024px: the context column shows and carries the credit; below it only the rail stays */
