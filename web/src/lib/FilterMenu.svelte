@@ -67,12 +67,12 @@
 		justify-content: flex-end;
 	}
 
-	/* the calendar is part of the panel, not a card inside it */
 	.filter-menu :global(.miso-select),
 	.filter-menu :global(.miso-select__control) {
 		width: 100%;
 	}
 
+	/* the calendar is part of the panel, not a card inside it */
 	.filter-menu :global(.miso-calendar) {
 		padding: 0;
 		border-radius: 0;

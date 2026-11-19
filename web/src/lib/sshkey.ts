@@ -11,6 +11,12 @@ export function parsePubKeyFile(text: string, fileName: string, maxBytes = KEY_F
 	return { key, name: comment || fileName.replace(/\.pub$/, '') };
 }
 
+// Rejects on size before reading, so a huge file never loads.
+export async function readPubKeyFile(file: File, maxBytes = KEY_FILE_MAX_BYTES): Promise<PubKeyFile> {
+	if (file.size > maxBytes) return { error: 'too_large' };
+	return parsePubKeyFile(await file.text(), file.name, maxBytes);
+}
+
 export type PrivateKeyFile = { key: string } | { error: 'too_large' };
 
 // A private key credential file: only the size is checked here, the server parses the key.

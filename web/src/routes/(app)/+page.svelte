@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Avatar, Badge, ProgressBar, Skeleton } from '#lib/ui/index.js';
-	import { audit, gateways, resources, sessions, sshKeys, system } from '#lib/api.js';
+	import { audit, gateways, resources, sessions, sshKeys } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { fmt } from '#lib/format.js';
 	import type { AuditEvent } from '#lib/gen/werbot/v1/audit_pb.js';
@@ -11,6 +11,7 @@
 	import type { SSHKey } from '#lib/gen/werbot/v1/ssh_key_pb.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import { serverInfo } from '#lib/version.js';
 	import DashCard from './DashCard.svelte';
 	import DashCounters from './DashCounters.svelte';
 	import { ACTIVE_PAGE, activeLabel, poolsOnline, unhealthy } from './dashboard';
@@ -21,15 +22,16 @@
 	// a card is pending until its call settles; a failed call only breaks its own card
 	type Slot<T> = { state: 'loading' } | { state: 'error'; text: string } | { state: 'ok'; value: T };
 	const loading = { state: 'loading' } as const;
-	function slot<T>(r: PromiseSettledResult<T>): Slot<T> {
-		return r.status === 'fulfilled' ? { state: 'ok', value: r.value } : { state: 'error', text: errorMessage(r.reason) };
-	}
+	const load = <T,>(p: Promise<T>, set: (s: Slot<T>) => void) =>
+		p.then(
+			(value) => set({ state: 'ok', value }),
+			(e) => set({ state: 'error', text: errorMessage(e) })
+		);
 
 	const manager = $derived(data.session.role === Role.OWNER || data.session.role === Role.ADMIN);
 	const date = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 
-	let version = $state('');
-	let failed = $state(false);
+	const info = serverInfo();
 	let active = $state<Slot<Session[]>>(loading);
 	let recent = $state<Slot<Session[]>>(loading);
 	let res = $state<Slot<Resource[]>>(loading);
@@ -38,23 +40,15 @@
 	let keys = $state<Slot<SSHKey[]>>(loading);
 
 	onMount(() => {
-		system
-			.getVersion({})
-			.then((r) => (version = r.version))
-			.catch(() => (failed = true));
 		const list = (status: SessionStatus, pageSize: number) => sessions.listSessions({ status, pageSize }).then((r) => r.sessions);
-		const calls: Promise<unknown>[] = [
-			Promise.allSettled([list(SessionStatus.ACTIVE, ACTIVE_PAGE)]).then(([r]) => (active = slot(r))),
-			Promise.allSettled([list(SessionStatus.UNSPECIFIED, 5)]).then(([r]) => (recent = slot(r)))
-		];
+		load(list(SessionStatus.ACTIVE, ACTIVE_PAGE), (s) => (active = s));
+		load(list(SessionStatus.UNSPECIFIED, 5), (s) => (recent = s));
 		if (manager) {
-			calls.push(
-				Promise.allSettled([resources.listResources({}).then((r) => r.resources)]).then(([r]) => (res = slot(r))),
-				Promise.allSettled([gateways.listGateways({}).then((r) => r.gateways)]).then(([r]) => (pools = slot(r))),
-				Promise.allSettled([audit.listEvents({ pageSize: 5 }).then((r) => r.events)]).then(([r]) => (events = slot(r)))
-			);
+			load(resources.listResources({}).then((r) => r.resources), (s) => (res = s));
+			load(gateways.listGateways({}).then((r) => r.gateways), (s) => (pools = s));
+			load(audit.listEvents({ pageSize: 5 }).then((r) => r.events), (s) => (events = s));
 		} else {
-			calls.push(Promise.allSettled([sshKeys.listSSHKeys({}).then((r) => r.keys)]).then(([r]) => (keys = slot(r))));
+			load(sshKeys.listSSHKeys({}).then((r) => r.keys), (s) => (keys = s));
 		}
 	});
 
@@ -86,7 +80,7 @@
 <header class="head">
 	<p class="date">{date}</p>
 	<h1 class="title">{data.session.organization?.name ?? m.dashboard_title()}</h1>
-	<p class="version">{failed ? m.version_unavailable() : version && m.version_label({ version })}</p>
+	<p class="version">{info.failed ? m.version_unavailable() : info.version && m.version_label({ version: info.version })}</p>
 	<DashCounters {counters} />
 </header>
 
@@ -165,7 +159,7 @@
 	{:else}
 		<DashCard title={m.dashboard_ssh_keys()} href="/profile/keys" empty={keys.state === 'ok' && keys.value.length === 0 ? m.dashboard_no_keys() : undefined}>
 			{#if keys.state === 'ok'}
-				<a class="row" href="/profile/keys"><span class="row__main">{keys.value.length} {m.dashboard_ssh_keys()}</span></a>
+				<a class="row" href="/profile/keys"><span class="row__main">{m.dashboard_ssh_keys_count({ count: keys.value.length })}</span></a>
 			{:else}
 				{@render pending(keys)}
 			{/if}
@@ -203,7 +197,7 @@
 	}
 	.title {
 		margin: 0;
-		font: 510 32px/40px var(--miso-font-base);
+		font: var(--miso-font-ui-32-med);
 		color: var(--miso-txt-primary);
 	}
 	.version {

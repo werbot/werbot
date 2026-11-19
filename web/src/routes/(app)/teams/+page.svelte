@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { AvatarStack, Banner, Button, Dropdown, EmptyState, Menu, MenuItem, Modal, Skeleton, Table, TextField, Tooltip, toast } from '#lib/ui/index.js';
+	import { AvatarStack, Banner, Button, EmptyState, Modal, Skeleton, Table, TextField, toast } from '#lib/ui/index.js';
 	import { members, teams } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
+	import RowMenu from '#lib/RowMenu.svelte';
 	import TeamDrawer from '#lib/teams/TeamDrawer.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
@@ -18,6 +19,7 @@
 	let newName = $state('');
 	let selected = $state('');
 	let menuOpen = $state('');
+	let removing = $state<Team | null>(null);
 
 	const nameOf = (id: string) => people.find((p) => p.user?.id === id)?.user?.name ?? id;
 	const current = $derived(list.find((t) => t.id === selected) ?? null);
@@ -27,11 +29,11 @@
 		loaded = true;
 	}
 
-	async function run(action: () => Promise<unknown>) {
+	async function run(action: () => Promise<unknown>, message = m.common_saved()) {
 		error = '';
 		try {
 			await action();
-			toast({ tone: 'success', text: m.common_saved() });
+			toast({ tone: 'success', text: message });
 		} catch (e) {
 			error = errorMessage(e);
 			// the page banner sits behind the drawer overlay
@@ -51,7 +53,11 @@
 		}
 	}
 
-	const remove = (team: Team) => run(() => teams.deleteTeam({ id: team.id }));
+	async function remove() {
+		const team = removing;
+		removing = null;
+		if (team) await run(() => teams.deleteTeam({ id: team.id }), m.common_deleted());
+	}
 
 	// the open team vanished from a refetch (deleted): close the drawer
 	$effect(() => {
@@ -88,30 +94,10 @@
 			{/snippet}
 			{#each list as team (team.id)}
 				<tr>
-					<td><button class="name" onclick={() => (selected = team.id)}>{team.name}</button></td>
+					<td><button class="row-name" onclick={() => (selected = team.id)}>{team.name}</button></td>
 					<td><AvatarStack people={team.memberUserIds.map((id) => ({ name: nameOf(id) }))} /></td>
 					<td class="more">
-						<Dropdown placement="bottom-end" bind:open={() => menuOpen === team.id, (v) => (menuOpen = v ? team.id : '')}>
-							{#snippet trigger({ toggle })}
-								<Tooltip text={m.common_more()}>
-									<Button scheme="g" variant="ghost" size={28} icon="more-horiz" aria-label={m.common_more()} onclick={toggle} />
-								</Tooltip>
-							{/snippet}
-							{#snippet children({ close })}
-								<Menu>
-									<MenuItem
-										icon="trash"
-										danger
-										onclick={() => {
-											close();
-											remove(team);
-										}}
-									>
-										{m.teams_delete()}
-									</MenuItem>
-								</Menu>
-							{/snippet}
-						</Dropdown>
+						<RowMenu label={m.teams_delete()} onselect={() => (removing = team)} bind:open={() => menuOpen === team.id, (v) => (menuOpen = v ? team.id : '')} />
 					</td>
 				</tr>
 			{/each}
@@ -119,7 +105,7 @@
 	{/if}
 </PageBody>
 
-<!-- Escape reaches the drawer too: ignore it while a menu is open -->
+<!-- Escape reaches the drawer too: ignore it while the delete confirm or a menu is open -->
 <TeamDrawer
 	team={current}
 	{people}
@@ -127,9 +113,9 @@
 	onrename={(name) => current && run(() => teams.renameTeam({ id: current.id, name }))}
 	onadd={(userId) => current && run(() => teams.addTeamMember({ teamId: current.id, userId }))}
 	onremove={(userId) => current && run(() => teams.removeTeamMember({ teamId: current.id, userId }))}
-	ondelete={() => current && remove(current)}
+	ondelete={() => (removing = current)}
 	onclose={() => {
-		if (menuOpen) return;
+		if (menuOpen || removing) return;
 		selected = '';
 		error = '';
 	}}
@@ -146,22 +132,15 @@
 	{/snippet}
 </Modal>
 
+<Modal open={removing !== null} onclose={() => (removing = null)} title={m.teams_delete()}>
+	<p>{m.teams_delete_confirm()}</p>
+	{#snippet footer()}
+		<Button scheme="g" variant="plain" onclick={() => (removing = null)}>{m.common_cancel()}</Button>
+		<Button scheme="w" variant="solid" onclick={remove}>{m.teams_delete()}</Button>
+	{/snippet}
+</Modal>
+
 <style>
-	.name {
-		font-weight: 600;
-		background: none;
-		border: 0;
-		padding: 0;
-		cursor: pointer;
-		color: inherit;
-	}
-
-	.name:focus-visible {
-		outline: 2px solid var(--miso-line-accent);
-		outline-offset: 2px;
-		border-radius: var(--miso-radius-04);
-	}
-
 	.more {
 		text-align: right;
 	}

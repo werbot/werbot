@@ -2,6 +2,7 @@
 	import { Avatar, Button, Drawer, Label, PropertyRow, Select, type SelectOption } from '#lib/ui/index.js';
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
+	import { selectOpen } from '#lib/selectOpen.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	interface Props {
@@ -22,7 +23,7 @@
 	const teamNames = $derived(teams.filter((t) => user && t.memberUserIds.includes(user.id)).map((t) => t.name));
 </script>
 
-<Drawer bind:open={() => !!member, (v) => !v && onclose()} resizable snapPoints={[480, 720]} width={480} title={user?.name}>
+<Drawer bind:open={() => !!member, (v) => !v && !selectOpen() && onclose()} resizable snapPoints={[480, 720]} width={480} title={user?.name}>
 	{#if member && user}
 		<div class="head"><Avatar name={user.name} size={40} /></div>
 		<PropertyRow label={m.field_email()}>{user.email}</PropertyRow>

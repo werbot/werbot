@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePubKeyFile, readPrivateKeyFile } from './sshkey.js';
+import { parsePubKeyFile, readPrivateKeyFile, readPubKeyFile } from './sshkey.js';
 
 describe('parsePubKeyFile', () => {
 	it('uses the full comment as name', () => {
@@ -13,6 +13,15 @@ describe('parsePubKeyFile', () => {
 	});
 	it('rejects a too large file', () => {
 		expect(parsePubKeyFile('a'.repeat(11), 'id', 10)).toEqual({ error: 'too_large' });
+	});
+});
+
+describe('readPubKeyFile', () => {
+	it('parses the file', async () => {
+		await expect(readPubKeyFile(new File(['ssh-ed25519 AAAA\n'], 'id.pub'))).resolves.toEqual({ key: 'ssh-ed25519 AAAA', name: 'id' });
+	});
+	it('rejects a too large file by its size', async () => {
+		await expect(readPubKeyFile(new File(['a'.repeat(11)], 'id.pub'), 10)).resolves.toEqual({ error: 'too_large' });
 	});
 });
 

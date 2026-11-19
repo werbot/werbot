@@ -130,7 +130,7 @@
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--miso-sp-12);
 		max-width: 480px;
 		margin-block: 16px;
 	}

@@ -2,19 +2,20 @@
 	import { onMount } from 'svelte';
 	import { Banner } from '#lib/ui/index.js';
 	import { system } from '#lib/api.js';
-	import { buildVersion } from '#lib/version.js';
+	import { buildVersion, provideServerInfo } from '#lib/version.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
 
-	let serverVersion = $state('');
+	const info = $state({ version: '', geoipAttribution: false, failed: false });
+	provideServerInfo(info);
 
 	onMount(() => {
 		system
 			.getVersion({})
-			.then((res) => (serverVersion = res.version))
-			.catch(() => {});
+			.then((res) => Object.assign(info, { version: res.version, geoipAttribution: res.geoipAttribution }))
+			.catch(() => (info.failed = true));
 	});
 </script>
 
@@ -23,8 +24,8 @@
 </svelte:head>
 
 <div class="miso-app">
-	{#if serverVersion && serverVersion !== buildVersion}
-		<Banner tone="info">{m.version_mismatch({ ui: buildVersion, server: serverVersion })}</Banner>
+	{#if info.version && info.version !== buildVersion}
+		<Banner tone="info">{m.version_mismatch({ ui: buildVersion, server: info.version })}</Banner>
 	{/if}
 	{@render children()}
 </div>

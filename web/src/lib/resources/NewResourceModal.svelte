@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Banner, Modal, toast } from '#lib/ui/index.js';
+	import { Banner, Modal, Spinner, toast } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
@@ -35,7 +35,15 @@
 	});
 </script>
 
-<Modal bind:open title={m.resources_new()} width={480}>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
-	{#if types}<ResourceForm {types} onsubmit={create} />{/if}
+<Modal bind:open plain title={m.resources_new()} width={720}>
+	<div class="body">
+		{#if error}<Banner tone="alert">{error}</Banner>{/if}
+		{#if types}<ResourceForm {types} onsubmit={create} />{:else if !error}<Spinner />{/if}
+	</div>
 </Modal>
+
+<style>
+	.body {
+		padding: var(--miso-sp-12) 28px;
+	}
+</style>

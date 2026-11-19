@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { timestampDate } from '@bufbuild/protobuf/wkt';
-	import { Banner, Button, Dropdown, EmptyState, InlineEdit, Menu, MenuItem, Modal, Skeleton, Table, TextField, Textarea, Tooltip, toast } from '#lib/ui/index.js';
+	import { Banner, Button, EmptyState, InlineEdit, Modal, Skeleton, Table, TextField, Textarea, Tooltip, toast } from '#lib/ui/index.js';
 	import KeyFileDrop from '#lib/KeyFileDrop.svelte';
-	import { KEY_FILE_MAX_BYTES, parsePubKeyFile } from '#lib/sshkey.js';
+	import { readPubKeyFile } from '#lib/sshkey.js';
+	import RowMenu from '#lib/RowMenu.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { sshKeys } from '#lib/api.js';
@@ -28,11 +29,11 @@
 		loaded = true;
 	}
 
-	async function run(action: () => Promise<unknown>) {
+	async function run(action: () => Promise<unknown>, message = m.common_saved()) {
 		error = '';
 		try {
 			await action();
-			toast({ tone: 'success', text: m.common_saved() });
+			toast({ tone: 'success', text: message });
 		} catch (e) {
 			error = errorMessage(e);
 			await refresh().catch(() => {});
@@ -52,8 +53,7 @@
 	async function readKeyFile(file: File) {
 		error = '';
 		try {
-			// one byte over the limit is enough to reject, without reading a huge file
-			const parsed = parsePubKeyFile(await file.slice(0, KEY_FILE_MAX_BYTES + 1).text(), file.name);
+			const parsed = await readPubKeyFile(file);
 			if ('error' in parsed) {
 				error = parsed.error === 'too_large' ? m.keys_file_too_large() : m.keys_file_private_key();
 				return;
@@ -83,7 +83,7 @@
 	async function remove() {
 		const key = removing;
 		removing = null;
-		if (key) await run(() => sshKeys.deleteSSHKey({ id: key.id }));
+		if (key) await run(() => sshKeys.deleteSSHKey({ id: key.id }), m.common_deleted());
 	}
 
 	onMount(() => refresh().catch((e) => (error = errorMessage(e))));
@@ -125,27 +125,7 @@
 					</td>
 					<td>{key.createdAt ? timestampDate(key.createdAt).toLocaleDateString() : ''}</td>
 					<td class="more">
-						<Dropdown placement="bottom-end" bind:open={() => menuOpen === key.id, (v) => (menuOpen = v ? key.id : '')}>
-							{#snippet trigger({ toggle })}
-								<Tooltip text={m.common_more()}>
-									<Button scheme="g" variant="ghost" size={28} icon="more-horiz" aria-label={m.common_more()} onclick={toggle} />
-								</Tooltip>
-							{/snippet}
-							{#snippet children({ close })}
-								<Menu>
-									<MenuItem
-										icon="trash"
-										danger
-										onclick={() => {
-											close();
-											removing = key;
-										}}
-									>
-										{m.keys_delete()}
-									</MenuItem>
-								</Menu>
-							{/snippet}
-						</Dropdown>
+						<RowMenu label={m.keys_delete()} onselect={() => (removing = key)} bind:open={() => menuOpen === key.id, (v) => (menuOpen = v ? key.id : '')} />
 					</td>
 				</tr>
 			{/each}
@@ -178,7 +158,7 @@
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--miso-sp-12);
 	}
 
 	.more {

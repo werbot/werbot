@@ -41,7 +41,7 @@
 	.public :global(form) {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--miso-sp-12);
 		width: 100%;
 	}
 

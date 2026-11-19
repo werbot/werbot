@@ -29,7 +29,7 @@
 
 <PageHeader
 	title={session ? session.resourceName || session.id : ''}
-	breadcrumbs={[{ label: m.sessions_title(), href: '/sessions' }, { label: session?.resourceName ?? '' }]}
+	breadcrumbs={[{ label: m.sessions_title(), href: '/sessions' }, { label: session ? session.resourceName || session.id : '' }]}
 />
 <PageBody>
 	{#if error}<Banner tone="alert">{error}</Banner>{/if}

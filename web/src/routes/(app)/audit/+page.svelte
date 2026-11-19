@@ -28,6 +28,7 @@
 	let next = $state(0);
 	let pageNo = $state(1);
 	let error = $state('');
+	let optionsError = $state('');
 	let loaded = $state(false);
 	let actors = $state<SelectOption[]>([]);
 	let selected = $state('');
@@ -69,7 +70,7 @@
 	onMount(() => {
 		members.listMembers({}).then(
 			(r) => (actors = r.members.flatMap((x) => (x.user ? [{ value: x.user.id, label: x.user.login }] : []))),
-			(e) => (error = errorMessage(e))
+			(e) => (optionsError = errorMessage(e))
 		);
 	});
 
@@ -104,7 +105,7 @@
 	{/snippet}
 </PageHeader>
 <PageBody flush>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
+	{#if error || optionsError}<Banner tone="alert">{error || optionsError}</Banner>{/if}
 
 	{#if error}
 		<!-- the error banner above says why -->

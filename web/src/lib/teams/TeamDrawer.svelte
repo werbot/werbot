@@ -2,6 +2,7 @@
 	import { Button, Chip, Drawer, InlineEdit, PropertyRow, Select } from '#lib/ui/index.js';
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
+	import { selectOpen } from '#lib/selectOpen.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	interface Props {
@@ -24,9 +25,12 @@
 	);
 </script>
 
-<Drawer bind:open={() => !!team, (v) => !v && onclose()} resizable snapPoints={[480, 720]} width={480}>
+<Drawer bind:open={() => !!team, (v) => !v && !selectOpen() && onclose()} resizable snapPoints={[480, 720]} width={480} title={m.teams_title()}>
 	{#if team}
-		<div class="head"><InlineEdit variant="title" value={team.name} onsave={onrename} /></div>
+		<!-- Escape cancels the edit only: stop it before it reaches the drawer's window listener -->
+		<div class="head" role="presentation" onkeydown={(e) => e.key === 'Escape' && e.stopPropagation()}>
+			<InlineEdit variant="title" value={team.name} onsave={onrename} />
+		</div>
 		<PropertyRow label={m.members_title()}>
 			<div class="chips">
 				{#each team.memberUserIds as id (id)}

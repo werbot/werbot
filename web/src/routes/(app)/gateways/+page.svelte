@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Code, ConnectError } from '@connectrpc/connect';
-	import { Badge, Banner, Button, Chip, Drawer, Dropdown, EmptyState, Menu, MenuItem, Modal, Skeleton, Table, TextField, Tooltip, toast } from '#lib/ui/index.js';
+	import { Badge, Banner, Button, Chip, Drawer, EmptyState, Modal, Skeleton, Table, TextField, toast } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
+	import RowMenu from '#lib/RowMenu.svelte';
 	import PoolDetails from '#lib/gateways/PoolDetails.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
@@ -21,6 +22,7 @@
 	let open = $state('');
 	let confirm = $state<{ title: string; text: string; run: () => Promise<unknown>; precondition?: string }>();
 	let confirming = $state(false);
+	let tokenOpen = $state(false);
 
 	async function refresh() {
 		try {
@@ -55,7 +57,7 @@
 		error = '';
 		try {
 			await confirm?.run();
-			toast({ tone: 'success', text: m.common_saved() });
+			toast({ tone: 'success', text: m.common_deleted() });
 			await refresh();
 		} catch (e) {
 			const text = confirm?.precondition && ConnectError.from(e).code === Code.FailedPrecondition ? confirm.precondition : errorMessage(e);
@@ -70,7 +72,10 @@
 
 	// the open pool vanished from a refetch (deleted elsewhere): close its drawer
 	$effect(() => {
-		if (loaded && open && !current) open = '';
+		if (loaded && open && !current) {
+			open = '';
+			tokenOpen = false;
+		}
 	});
 
 	function askDeletePool(pool: Gateway) {
@@ -85,27 +90,7 @@
 </script>
 
 {#snippet moreMenu(pool: Gateway, slot: string)}
-	<Dropdown placement="bottom-end" bind:open={() => menuOpen === slot + pool.id, (v) => (menuOpen = v ? slot + pool.id : '')}>
-		{#snippet trigger({ toggle })}
-			<Tooltip text={m.common_more()}>
-				<Button scheme="g" variant="ghost" size={28} icon="more-horiz" aria-label={m.common_more()} onclick={toggle} />
-			</Tooltip>
-		{/snippet}
-		{#snippet children({ close })}
-			<Menu>
-				<MenuItem
-					icon="trash"
-					danger
-					onclick={() => {
-						close();
-						askDeletePool(pool);
-					}}
-				>
-					{m.gateways_delete()}
-				</MenuItem>
-			</Menu>
-		{/snippet}
-	</Dropdown>
+	<RowMenu label={m.gateways_delete()} onselect={() => askDeletePool(pool)} bind:open={() => menuOpen === slot + pool.id, (v) => (menuOpen = v ? slot + pool.id : '')} />
 {/snippet}
 
 <PageHeader title={m.gateways_title()} count={loaded ? list.length : undefined}>
@@ -137,7 +122,7 @@
 			{/snippet}
 			{#each list as pool (pool.id)}
 				<tr>
-					<td><button class="name" onclick={() => (open = pool.id)}>{pool.name}</button></td>
+					<td><button class="row-name" onclick={() => (open = pool.id)}>{pool.name}</button></td>
 					<td><Badge tone={pool.online ? 'accent' : 'ghost'}>{pool.online ? m.gateways_online() : m.gateways_offline()}</Badge></td>
 					<td>
 						<span class="chips">{#each pool.connectors as c (c)}<Chip>{c}</Chip>{/each}</span>
@@ -150,12 +135,13 @@
 	{/if}
 </PageBody>
 
-<!-- Escape reaches the drawer too: ignore it while the confirm or a menu is open -->
-<Drawer bind:open={() => !!current, (v) => !v && !confirming && !menuOpen && (open = '')} resizable snapPoints={[480, 720]} width={720} title={current?.name}>
+<!-- Escape reaches the drawer too: ignore it while the confirm, the token dialog or a menu is open -->
+<Drawer bind:open={() => !!current, (v) => !v && !confirming && !tokenOpen && !menuOpen && (open = '')} resizable snapPoints={[480, 720]} width={720} title={current?.name}>
 	{#if current}
 		<div class="actions">{@render moreMenu(current, 'drawer')}</div>
 		<PoolDetails
 			pool={current}
+			bind:creating={tokenOpen}
 			ondeleteInstance={(i) =>
 				ask(m.gateways_instance_delete(), m.gateways_instance_delete_confirm(), () => gateways.deleteGatewayInstance({ id: i.id }))}
 		/>
@@ -182,21 +168,6 @@
 </Modal>
 
 <style>
-	.name:focus-visible {
-		outline: 2px solid var(--miso-line-accent);
-		outline-offset: 2px;
-		border-radius: var(--miso-radius-04);
-	}
-
-	.name {
-		font-weight: 600;
-		background: none;
-		border: 0;
-		padding: 0;
-		cursor: pointer;
-		color: inherit;
-	}
-
 	.chips {
 		display: flex;
 		gap: var(--miso-sp-04);

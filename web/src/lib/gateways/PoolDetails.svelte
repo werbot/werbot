@@ -9,11 +9,14 @@
 	import TokenDialog from './TokenDialog.svelte';
 	import TokensTable from './TokensTable.svelte';
 
-	let { pool, ondeleteInstance }: { pool: Gateway; ondeleteInstance: (i: GatewayInstance) => void } = $props();
+	let {
+		pool,
+		ondeleteInstance,
+		creating = $bindable(false)
+	}: { pool: Gateway; ondeleteInstance: (i: GatewayInstance) => void; creating?: boolean } = $props();
 
 	let tokens = $state<JoinToken[]>([]);
 	let error = $state('');
-	let creating = $state(false);
 
 	async function refresh() {
 		try {

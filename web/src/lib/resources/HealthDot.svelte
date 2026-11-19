@@ -11,7 +11,7 @@
 	const label = $derived({ healthy: m.resources_health_healthy(), unhealthy: m.resources_health_unhealthy(), unknown: m.resources_health_unknown() }[state]);
 </script>
 
-<Tooltip text={health?.error || label}><span class="dot" data-health={state} role="img" aria-label={label}></span></Tooltip>
+<Tooltip text={health?.error || label}><span class="dot" data-health={state} role="img" aria-label={health?.error || label}></span></Tooltip>
 
 <style>
 	.dot {

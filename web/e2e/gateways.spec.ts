@@ -117,6 +117,12 @@ test('delete pool from drawer', async ({ page }) => {
 	await page.getByRole('button', { name: 'e2e-drawer-pool', exact: true }).click();
 	const drawer = page.getByRole('dialog', { name: 'e2e-drawer-pool', exact: true });
 	await expect(drawer.getByRole('heading', { name: en.gateways_instances_title })).toBeVisible();
+	await drawer.getByRole('button', { name: en.gateways_token_create }).click();
+	const tokenDialog = page.getByRole('dialog', { name: en.gateways_token_create, exact: true });
+	await expect(tokenDialog).toBeVisible();
+	await page.keyboard.press('Escape'); // closes only the token dialog
+	await expect(tokenDialog).toHaveCount(0);
+	await expect(drawer).toBeVisible();
 	await drawer.getByRole('button', { name: en.common_more }).click();
 	await page.getByRole('menuitem', { name: en.gateways_delete }).click();
 	const confirm = page.getByRole('dialog', { name: en.gateways_delete, exact: true });

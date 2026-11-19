@@ -123,7 +123,7 @@
 					<td>
 						{#if s.userLogin}<span class="user"><Avatar name={s.userLogin} size={24} />{s.userLogin}</span>{:else}—{/if}
 					</td>
-					<td><a class="name" href={`/sessions/${s.id}`}>{s.resourceName || s.id}</a></td>
+					<td><a class="row-name" href={`/sessions/${s.id}`}>{s.resourceName || s.id}</a></td>
 					<td>{fmt(s.startedAt)}</td>
 					<td>{fmt(s.endedAt)}</td>
 					<td>
@@ -140,18 +140,6 @@
 </PageBody>
 
 <style>
-	.name {
-		font-weight: 600;
-		color: inherit;
-		text-decoration: none;
-	}
-
-	.name:focus-visible {
-		outline: 2px solid var(--miso-line-accent);
-		outline-offset: 2px;
-		border-radius: var(--miso-radius-04);
-	}
-
 	.user {
 		display: inline-flex;
 		align-items: center;

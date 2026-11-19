@@ -76,7 +76,7 @@
 	/>
 	{#if kind === 'private_key'}
 		<KeyFileDrop hint={m.cred_drop_hint()} {fileName} onfile={readKeyFile} onclear={clearFile} />
-		<Textarea label={label(kind)} bind:value rows={8} autocomplete="off" required />
+		<Textarea label={label(kind)} bind:value rows={8} autocomplete="off" spellcheck="false" required />
 	{:else}
 		<TextField type="password" label={label(kind)} bind:value autocomplete="new-password" required />
 	{/if}
@@ -98,7 +98,7 @@
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--miso-sp-12);
 		max-width: 480px;
 	}
 

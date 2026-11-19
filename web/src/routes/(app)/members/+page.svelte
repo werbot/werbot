@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { timestampDate } from '@bufbuild/protobuf/wkt';
-	import { Avatar, Banner, Button, Dropdown, EmptyState, Label, Menu, MenuItem, Modal, Select, Skeleton, Table, Tabs, TextField, Tooltip, toast, type SelectOption } from '#lib/ui/index.js';
+	import { Avatar, Banner, Button, EmptyState, Label, Modal, Select, Skeleton, Table, Tabs, TextField, toast, type SelectOption } from '#lib/ui/index.js';
 	import { members, teams as teamsApi } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import type { Invite, Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
 	import MemberDrawer from '#lib/members/MemberDrawer.svelte';
+	import RowMenu from '#lib/RowMenu.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -75,7 +76,7 @@
 	async function remove() {
 		const member = removing;
 		removing = null;
-		if (member?.user) await run(() => members.removeMember({ userId: member.user!.id }));
+		if (member?.user) await run(() => members.removeMember({ userId: member.user!.id }), m.common_deleted());
 	}
 
 	const setRole = (member: Member, role: number) => run(() => members.updateMemberRole({ userId: member.user!.id, role }));
@@ -119,7 +120,7 @@
 			{#each list as member (member.user?.id)}
 				<tr>
 					<td>
-						<button class="name" onclick={() => (selected = member.user?.id ?? '')}>
+						<button class="row-name who" onclick={() => (selected = member.user?.id ?? '')}>
 							<Avatar name={member.user?.name} size={24} />{member.user?.name}
 						</button>
 					</td>
@@ -137,28 +138,12 @@
 					</td>
 					<td>{date(member.joinedAt)}</td>
 					<td class="more">
-						<Dropdown placement="bottom-end" bind:open={() => menuOpen === member.user?.id, (v) => (menuOpen = v ? (member.user?.id ?? '') : '')}>
-							{#snippet trigger({ toggle })}
-								<Tooltip text={m.common_more()}>
-									<Button scheme="g" variant="ghost" size={28} icon="more-horiz" aria-label={m.common_more()} onclick={toggle} />
-								</Tooltip>
-							{/snippet}
-							{#snippet children({ close })}
-								<Menu>
-									<MenuItem
-										icon="trash"
-										danger
-										disabled={locked(member)}
-										onclick={() => {
-											close();
-											removing = member;
-										}}
-									>
-										{m.members_remove()}
-									</MenuItem>
-								</Menu>
-							{/snippet}
-						</Dropdown>
+						<RowMenu
+							label={m.members_remove()}
+							disabled={locked(member)}
+							onselect={() => (removing = member)}
+							bind:open={() => menuOpen === member.user?.id, (v) => (menuOpen = v ? (member.user?.id ?? '') : '')}
+						/>
 					</td>
 				</tr>
 			{/each}
@@ -220,25 +205,13 @@
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--miso-sp-12);
 	}
 
-	.name {
+	.who {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--miso-sp-08);
-		font-weight: 600;
-		background: none;
-		border: 0;
-		padding: 0;
-		cursor: pointer;
-		color: inherit;
-	}
-
-	.name:focus-visible {
-		outline: 2px solid var(--miso-line-accent);
-		outline-offset: 2px;
-		border-radius: var(--miso-radius-04);
 	}
 
 	.more {

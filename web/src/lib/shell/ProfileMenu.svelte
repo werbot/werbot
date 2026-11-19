@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { afterNavigate } from '$app/navigation';
 	import { scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { Avatar, Icon, MenuItem } from '#lib/ui/index.js';
@@ -15,6 +16,9 @@
 	let { open = $bindable(), user, onlogout, trigger }: Props = $props();
 
 	const close = () => (open = false);
+
+	// the backdrop leaves the rail clickable: a rail click navigates, so the menu must not stay open
+	afterNavigate(close);
 
 	function dismiss() {
 		close();
@@ -34,7 +38,7 @@
 {#if open}
 	<div class="pfm__backdrop" onclick={dismiss} role="presentation"></div>
 
-	<div {@attach focusFirst} class="pfm" role="menu" transition:scale={{ duration: 150, start: 0.95, easing: cubicOut }}>
+	<div {@attach focusFirst} class="pfm" transition:scale={{ duration: 150, start: 0.95, easing: cubicOut }}>
 		<!-- ── head (.menu__head-profile) ─────────── -->
 		<header class="pfm__head">
 			<span class="pfm__avatar"><Avatar name={user.name} size={48} /></span>
@@ -44,26 +48,28 @@
 			</div>
 		</header>
 
-		<div class="pfm__group">
-			<MenuItem icon="person" iconSize={20} href="/profile" onclick={close}>{m.nav_profile()}</MenuItem>
-			<MenuItem icon="key" iconSize={20} href="/profile/keys" onclick={close}>{m.nav_keys()}</MenuItem>
-		</div>
+		<div class="pfm__menu" role="menu">
+			<div class="pfm__group">
+				<MenuItem icon="person" iconSize={20} href="/profile" onclick={close}>{m.nav_profile()}</MenuItem>
+				<MenuItem icon="key" iconSize={20} href="/profile/keys" onclick={close}>{m.nav_keys()}</MenuItem>
+			</div>
 
-		<!-- ── footer (.menu__foot-profile) ───────── -->
-		<footer class="pfm__foot">
-			<button
-				type="button"
-				role="menuitem"
-				class="pfm__logout"
-				onclick={() => {
-					close();
-					onlogout();
-				}}
-			>
-				{m.auth_logout()}
-				<Icon name="logout" size={16} />
-			</button>
-		</footer>
+			<!-- ── footer (.menu__foot-profile) ───────── -->
+			<footer class="pfm__foot">
+				<button
+					type="button"
+					role="menuitem"
+					class="pfm__logout"
+					onclick={() => {
+						close();
+						onlogout();
+					}}
+				>
+					{m.auth_logout()}
+					<Icon name="logout" size={16} />
+				</button>
+			</footer>
+		</div>
 	</div>
 {/if}
 

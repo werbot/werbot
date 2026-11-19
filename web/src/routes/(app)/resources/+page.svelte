@@ -30,6 +30,11 @@
 		}
 	}
 
+	function resetFilter() {
+		filter = '';
+		refresh();
+	}
+
 	onMount(refresh);
 </script>
 
@@ -54,6 +59,12 @@
 
 	{#if !loaded}
 		{#if !error}<Skeleton variant="text" lines={6} />{/if}
+	{:else if list.length === 0 && any}
+		<EmptyState icon="desktop" title={m.resources_no_match()}>
+			{#snippet actions()}
+				<Button scheme="g" variant="plain" size={28} iconLeft="close" onclick={resetFilter}>{m.common_reset()}</Button>
+			{/snippet}
+		</EmptyState>
 	{:else if list.length === 0}
 		<EmptyState icon="desktop" title={m.resources_empty()}>
 			{#snippet actions()}
@@ -72,7 +83,7 @@
 			{/snippet}
 			{#each list as r (r.id)}
 				<tr>
-					<td><a class="name" href={`/resources/${r.id}`}>{r.name}</a></td>
+					<td><a class="row-name" href={`/resources/${r.id}`}>{r.name}</a></td>
 					<td>{r.type}</td>
 					<td>{r.category}</td>
 					<td>
@@ -91,21 +102,9 @@
 </PageBody>
 
 <style>
-	.name {
-		font-weight: 600;
-		color: inherit;
-		text-decoration: none;
-	}
-
-	.name:focus-visible {
-		outline: 2px solid var(--miso-line-accent);
-		outline-offset: 2px;
-		border-radius: var(--miso-radius-04);
-	}
-
 	.chips {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 4px;
+		gap: var(--miso-sp-04);
 	}
 </style>

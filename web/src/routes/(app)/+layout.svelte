@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+		import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Avatar, Toaster } from '#lib/ui/index.js';
-	import { auth, system } from '#lib/api.js';
+	import { auth } from '#lib/api.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import { serverInfo } from '#lib/version.js';
 	import { itemFor, navSections, sectionFor } from '#lib/shell/nav.js';
 	import PrimaryMenu from '#lib/shell/PrimaryMenu.svelte';
 	import ContextColumn from '#lib/shell/ContextColumn.svelte';
@@ -19,14 +19,8 @@
 	let user = $derived({ name: data.session.user?.name ?? '', email: data.session.user?.email ?? '' });
 
 	// DB-IP Lite requires the credit; other GeoIP databases do not.
-	let geoipAttribution = $state(false);
-
-	onMount(() => {
-		system
-			.getVersion({})
-			.then((res) => (geoipAttribution = res.geoipAttribution))
-			.catch(() => {});
-	});
+	const info = serverInfo();
+	let geoipAttribution = $derived(info.geoipAttribution);
 
 	async function logout() {
 		await auth.logout({});
@@ -128,6 +122,23 @@
 	.profile__email {
 		font: var(--miso-font-ui-12-reg);
 		color: var(--miso-txt-secondary);
+	}
+
+	/* the name cell of a list row: the link or button that opens the row */
+	:global(.row-name) {
+		font-weight: 600;
+		background: none;
+		border: 0;
+		padding: 0;
+		cursor: pointer;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	:global(.row-name:focus-visible) {
+		outline: 2px solid var(--miso-line-accent);
+		outline-offset: 2px;
+		border-radius: var(--miso-radius-04);
 	}
 
 	.attribution {
