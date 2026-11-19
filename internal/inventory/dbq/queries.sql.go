@@ -557,14 +557,18 @@ func (q *Queries) InsertLabels(ctx context.Context, arg InsertLabelsParams) erro
 }
 
 const listGateways = `-- name: ListGateways :many
-SELECT id, org_id, name, created_at FROM gateway WHERE org_id = $1 ORDER BY name
+SELECT id, org_id, name, created_at, ssh_address, host_key_ciphertext, host_key_key_id
+FROM gateway WHERE org_id = $1 ORDER BY name
 `
 
 type ListGatewaysRow struct {
-	ID        uuid.UUID
-	OrgID     uuid.UUID
-	Name      string
-	CreatedAt time.Time
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	Name              string
+	CreatedAt         time.Time
+	SshAddress        string
+	HostKeyCiphertext []byte
+	HostKeyKeyID      string
 }
 
 func (q *Queries) ListGateways(ctx context.Context, orgID uuid.UUID) ([]ListGatewaysRow, error) {
@@ -581,6 +585,9 @@ func (q *Queries) ListGateways(ctx context.Context, orgID uuid.UUID) ([]ListGate
 			&i.OrgID,
 			&i.Name,
 			&i.CreatedAt,
+			&i.SshAddress,
+			&i.HostKeyCiphertext,
+			&i.HostKeyKeyID,
 		); err != nil {
 			return nil, err
 		}
@@ -960,6 +967,24 @@ func (q *Queries) SpendJoinToken(ctx context.Context, tokenHash []byte) (SpendJo
 	var i SpendJoinTokenRow
 	err := row.Scan(&i.ID, &i.OrgID, &i.GatewayID)
 	return i, err
+}
+
+const updateGatewayAddress = `-- name: UpdateGatewayAddress :execrows
+UPDATE gateway SET ssh_address = $1 WHERE id = $2 AND org_id = $3
+`
+
+type UpdateGatewayAddressParams struct {
+	SshAddress string
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+}
+
+func (q *Queries) UpdateGatewayAddress(ctx context.Context, arg UpdateGatewayAddressParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateGatewayAddress, arg.SshAddress, arg.ID, arg.OrgID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateResource = `-- name: UpdateResource :execrows

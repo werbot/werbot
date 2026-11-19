@@ -26,10 +26,14 @@ type Handler struct {
 	werbotv1connect.UnimplementedResourceServiceHandler
 	svc   *Service
 	creds Credentials
+	acc   Accessible
+	gws   *Gateways
 }
 
 // NewHandler returns the Connect handler for ResourceService.
-func NewHandler(s *Service, creds Credentials) *Handler { return &Handler{svc: s, creds: creds} }
+func NewHandler(s *Service, creds Credentials, acc Accessible, gws *Gateways) *Handler {
+	return &Handler{svc: s, creds: creds, acc: acc, gws: gws}
+}
 
 // admin authorizes owner/admin and returns the organization.
 func admin(ctx context.Context) (uuid.UUID, error) {

@@ -62,4 +62,11 @@ func TestRequestValidation(t *testing.T) {
 	assert.Error(t, protovalidate.Validate(cert(&gatewayv1.CertIdentity{UserId: "x", CliSessionId: id, Login: "alice"})))
 	assert.Error(t, protovalidate.Validate(cert(&gatewayv1.CertIdentity{UserId: id, CliSessionId: id})))
 	assert.Error(t, protovalidate.Validate(cert(&gatewayv1.CertIdentity{UserId: id, CliSessionId: id, Login: "alice", CertFingerprint: strings.Repeat("a", 129)})))
+
+	// UpdateGateway and ListAccessibleResources (stage 9)
+	assert.NoError(t, protovalidate.Validate(&werbotv1.UpdateGatewayRequest{Id: id, SshAddress: "gw.example.com:2222"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.UpdateGatewayRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.UpdateGatewayRequest{Id: "x"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.UpdateGatewayRequest{Id: id, SshAddress: strings.Repeat("a", 301)}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ListAccessibleResourcesRequest{}))
 }

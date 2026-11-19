@@ -132,7 +132,11 @@ WHERE r.org_id = @org_id AND r.gateway_id IS NULL
   AND (SELECT count(*) FROM gateway g WHERE g.org_id = @org_id) = 1;
 
 -- name: ListGateways :many
-SELECT id, org_id, name, created_at FROM gateway WHERE org_id = @org_id ORDER BY name;
+SELECT id, org_id, name, created_at, ssh_address, host_key_ciphertext, host_key_key_id
+FROM gateway WHERE org_id = @org_id ORDER BY name;
+
+-- name: UpdateGatewayAddress :execrows
+UPDATE gateway SET ssh_address = @ssh_address WHERE id = @id AND org_id = @org_id;
 
 -- name: DeleteGateway :execrows
 DELETE FROM gateway WHERE id = @id AND org_id = @org_id;

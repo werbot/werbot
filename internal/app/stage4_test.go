@@ -52,7 +52,7 @@ func stage4Of(t *testing.T, pool *pgxpool.Pool, logger *slog.Logger) stage4 {
 	require.NoError(t, err)
 	d, err := newServices(context.Background(), config.Config{DataDir: t.TempDir()}, pool, box, nil, nil, metrics.NewRegistry(), logger)
 	require.NoError(t, err)
-	return stage4{d: d, pool: pool, res: inventory.NewHandler(d.Inventory, d.Credential), acc: access.NewHandler(d.Access), pol: policy.NewHandler(d.Policy)}
+	return stage4{d: d, pool: pool, res: inventory.NewHandler(d.Inventory, d.Credential, d.Policy, d.Gateways), acc: access.NewHandler(d.Access), pol: policy.NewHandler(d.Policy)}
 }
 
 // org creates an organization with one user of role and returns the user's ctx.

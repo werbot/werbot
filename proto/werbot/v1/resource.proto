@@ -9,6 +9,7 @@ import "google/protobuf/timestamp.proto";
 service ResourceService {
   rpc ListResourceTypes(ListResourceTypesRequest) returns (ListResourceTypesResponse);
   rpc ListResources(ListResourcesRequest) returns (ListResourcesResponse);
+  rpc ListAccessibleResources(ListAccessibleResourcesRequest) returns (ListAccessibleResourcesResponse);
   rpc GetResource(GetResourceRequest) returns (GetResourceResponse);
   rpc CreateResource(CreateResourceRequest) returns (CreateResourceResponse);
   rpc UpdateResource(UpdateResourceRequest) returns (UpdateResourceResponse);
@@ -68,6 +69,22 @@ message Resource {
 message ListResourceTypesRequest {}
 message ListResourceTypesResponse {
   repeated ResourceType types = 1;
+}
+
+// A resource the caller may connect to, with the address and host key of its pool.
+message AccessibleResource {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  repeated string kinds = 4;
+  map<string, string> labels = 5;
+  string ssh_address = 6; // empty without a pool or before the address is set
+  string host_key = 8;    // authorized_keys line of the pool host key
+}
+
+message ListAccessibleResourcesRequest {}
+message ListAccessibleResourcesResponse {
+  repeated AccessibleResource resources = 1;
 }
 
 message ListResourcesRequest {

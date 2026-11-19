@@ -55,7 +55,7 @@ func (f fakeCreds) Kinds(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (map[u
 func newHandler(t *testing.T) (*inventory.Handler, env) {
 	t.Helper()
 	e := setup(t)
-	return inventory.NewHandler(e.svc, fakeCreds{map[uuid.UUID]connector.CredentialKind{}}), e
+	return inventory.NewHandler(e.svc, fakeCreds{map[uuid.UUID]connector.CredentialKind{}}, nil, nil), e
 }
 
 func createReq(name string, cfg *sshv1.Config) *connect.Request[werbotv1.CreateResourceRequest] {
