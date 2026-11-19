@@ -80,15 +80,15 @@
 		overflow-y: auto;
 	}
 
-	/* .sidebar__menu__item{height:32px;font:14/20;radius:6px;padding:0 6px;margin-bottom:2px} */
+	/* as tall as the 40px buttons (miso .sidebar__menu__item is 32px) */
 	.cc__item {
 		display: flex;
 		align-items: center;
-		height: 32px;
+		height: 40px;
 		flex-shrink: 0;
-		margin-bottom: 2px;
-		padding: 0 6px;
-		border-radius: 6px;
+		margin-bottom: var(--miso-sp-04);
+		padding: 0 var(--miso-sp-04);
+		border-radius: var(--miso-radius-08);
 		font: var(--miso-font-ui-14-reg);
 		color: var(--miso-txt-primary);
 		text-decoration: none;
