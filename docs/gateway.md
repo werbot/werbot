@@ -72,11 +72,11 @@ A saved identity whose certificate has expired or no longer loads counts as not 
 
 Put the instances of one pool behind DNS round-robin or an L4 load balancer with PROXY protocol. Users see one host key on every instance. Balancer rules: [scaling.md](scaling.md#load-balancing); Kubernetes: [scaling.md](scaling.md#kubernetes).
 
-The UI does not show the pool host key yet. Add it to `known_hosts` from an instance on a network you trust:
+## SSH address
 
-```sh
-ssh-keyscan -p 2222 gw.example.com | grep -v '^#' >> ~/.ssh/known_hosts
-```
+The SSH address of a pool is the `host:port` that users and the [werbot CLI](cli.md) connect to: the DNS name of the instances or of their load balancer, for example `gw.example.com:2222`. An owner or admin sets it on the Gateways page (pool details, SSH address) or with `GatewayService/UpdateGateway` (`{"id": "<pool id>", "sshAddress": "gw.example.com:2222"}`); an empty value resets it. The port must be 1 to 65535.
+
+The pool details also show the pool host key, and the API returns it with the pool (`host_key`) and with each resource from `ListAccessibleResources`. `werbot ssh`, `werbot ssh-config` and `werbot connect` write it to the profile's `known_hosts` under the SSH address, so `ssh-keyscan` is no longer needed. Until the address is set, the CLI fails for the pool's resources with `gateway address for <resource> is not set`.
 
 ## PROXY protocol
 
@@ -84,7 +84,7 @@ Set `WERBOT_GATEWAY_PROXY_PROTOCOL=true` only behind an L4 balancer that sends t
 
 ## Connect
 
-Users log in with their SSH key:
+Users log in with their SSH key or with the short-lived certificate of `werbot login` ([cli.md](cli.md)):
 
 - `ssh -p 2222 <login>+<resource>@<gateway>` runs a shell or a command on the resource.
 - `ssh -p 2222 <login>@<gateway>` shows a menu of the resources the user may open (interactive terminal only).

@@ -27,6 +27,19 @@ On a remote server the login over plain `http://<ip>:8080` does not work (the se
 
 Open http://localhost:8080 and create the first account. What runs, ports and volumes: [docs/install.md](docs/install.md#docker-compose).
 
+## Client quick start
+
+Set the SSH address of the pool (Gateways page, pool details; `localhost:2222` for the quick start above), add a resource and bind it to yourself. Then, on your computer:
+
+```sh
+werbot login --server http://localhost:8080   # opens the browser; --device prints a code instead
+werbot ls                                       # resources you can open
+werbot ssh <resource>                           # the system ssh with a short-lived certificate
+werbot ssh-config > ~/.ssh/werbot.conf          # Include it from ~/.ssh/config: ssh <resource>.localhost
+```
+
+Use an `https://` server URL outside a local test: over `http://` the CLI tokens travel in clear text ([docs/security.md](docs/security.md#cli-sessions-and-user-certificates)). Profiles, certificates and every command: [docs/cli.md](docs/cli.md).
+
 ## Other ways to install
 
 - Binary and systemd: [docs/install.md](docs/install.md#binary).
@@ -41,11 +54,11 @@ Releases and images are signed with cosign (keyless) and ship SBOMs. Commands: [
 ## Documentation
 
 - [install.md](docs/install.md): Docker Compose, remote access, binary.
-- [gateway.md](docs/gateway.md): pools, join tokens, instances, firewall, connections.
+- [gateway.md](docs/gateway.md): pools, join tokens, instances, SSH address, firewall, connections.
 - [web.md](docs/web.md): the web UI on its own host (`werbot web`).
 - [configuration.md](docs/configuration.md): every environment variable.
 - [upgrading.md](docs/upgrading.md): pre-1.0 policy, backup, upgrade order.
-- [security.md](docs/security.md): reporting, release verification, threat model, join tokens.
+- [security.md](docs/security.md): reporting, release verification, threat model, join tokens, CLI sessions and user certificates.
 - [scaling.md](docs/scaling.md): replicas, load balancing, PostgreSQL, Kubernetes, metrics, cluster example.
 - [failure-modes.md](docs/failure-modes.md): what happens when a part fails.
 - [connectors.md](docs/connectors.md): adding a target type.
@@ -134,7 +147,7 @@ make lint
 make release-check     # goreleaser config check
 make release-snapshot  # local snapshot build into dist/: archives, checksums and Docker images (needs docker and syft)
 make e2e    # Playwright e2e on DB `werbot_e2e`, no internet feeds (the server runs with `HTTPS_PROXY` pointing at a closed port; needs `make dev-db`, Go, ssh and ssh-keygen; first run: `cd web && bunx playwright install chromium`)
-make e2e-network  # Docker Compose e2e: SSH, telnet, TCP and UDP through a gateway pool to targets on an internal-only network
+make e2e-network  # Docker Compose e2e: SSH, telnet, TCP and UDP through a gateway pool to targets on an internal-only network, then the werbot CLI
 make e2e-cluster  # Go scenarios (test/cluster, tag `cluster`: topology, cross-replica login, binding propagation, bootstrap, GeoIP reload, Postgres restart, shared pool host key, replica kill, lost instance, gateway max sessions, servers down fail-closed, S3 outage, join token revocation and exhaustion, separate web UI behind `werbot web` replicas, `werbot connect` TCP and UDP through the pool with an instance kill) on a stand of 2 server, 2 web and 2 gateway replicas behind nginx
 make load         # manual load tests L1–L4 (test/load, tag `load`) on the same stand; Linux only
 (cd web && bun run test:unit)  # Vitest unit tests for the web UI
@@ -143,7 +156,7 @@ make sqlc   # regenerates internal/<domain>/dbq from migrations/ and internal/<d
 
 `make e2e` starts `werbot server --with-gateway` (gateway SSH on `127.0.0.1:2222`, a fresh `WERBOT_DATA_DIR` per run) and the SSH target `go run ./internal/e2e/sshtarget` on `127.0.0.1:2022`; both ports must be free.
 
-`make e2e-network` needs docker, curl, jq, ssh, ssh-keygen, Go, nc and dig. It builds the `werbot-e2e:local` image and the TCP/UDP echo target (`internal/e2e/echotarget`, into the gitignored `deploy/e2e/.bin`), publishes ports `8080`, `8081` and `2222` on localhost, and removes the `werbot-e2e` project (containers, networks, volumes) on exit. The targets sit on the internal-only network that only the gateway pool joins: an OpenSSH server, a busybox `telnetd` with a real `/bin/login` (`router`), the echo target on TCP and UDP port 7 (`echo`) and CoreDNS answering `probe.werbot.test` (`dns`). The scenario checks SSH through the pool and a gateway restart; a telnet session through the SSH bridge (the router password never reaches the user, the session is `terminal` and its recording verifies); `werbot connect` with `echo`, `router` and `dns` on `127.0.0.1:10007`, `10023` (telnet stream with autologin) and `10053` (UDP, two flows); a forward to a port outside the resource refused and audited as `session.deny` with `target_not_allowed`; and the health of the TCP and telnet resources turning `healthy` within 180s while the UDP one stays `unknown`. It also uses local ports `10007`, `10023` and `10053`.
+`make e2e-network` needs docker, curl, jq, ssh, ssh-keygen, Go, nc and dig. It builds the `werbot-e2e:local` image and the TCP/UDP echo target (`internal/e2e/echotarget`, into the gitignored `deploy/e2e/.bin`), publishes ports `8080`, `8081` and `2222` on localhost, and removes the `werbot-e2e` project (containers, networks, volumes) on exit. The targets sit on the internal-only network that only the gateway pool joins: an OpenSSH server, a busybox `telnetd` with a real `/bin/login` (`router`), the echo target on TCP and UDP port 7 (`echo`) and CoreDNS answering `probe.werbot.test` (`dns`). The scenario checks SSH through the pool and a gateway restart; a telnet session through the SSH bridge (the router password never reaches the user, the session is `terminal` and its recording verifies); `werbot connect` with `echo`, `router` and `dns` on `127.0.0.1:10007`, `10023` (telnet stream with autologin) and `10053` (UDP, two flows); a forward to a port outside the resource refused and audited as `session.deny` with `target_not_allowed`; and the health of the TCP and telnet resources turning `healthy` within 180s while the UDP one stays `unknown`. Then `deploy/e2e/cli.sh` sets the pool's SSH address, runs `werbot login --device` (the code approved over the API), `werbot ls`, `werbot ssh` and OpenSSH through `werbot ssh-config`, revokes the CLI session and expects the next `werbot ssh` and OpenSSH connection to fail and the audit log to hold `cli.login` (`flow` `device`) and `cli_session.revoke`. It also uses local ports `10007`, `10023` and `10053`.
 
 `make e2e-cluster` needs docker, ssh and Go. It builds the `werbot:cluster` image and runs `go test -tags cluster ./test/cluster/...` against the compose project `werbot-cluster` (override with `CLUSTER_PROJECT`): Postgres, SeaweedFS (S3 recordings), `server1`/`server2`, `web1`/`web2`, nginx and the gateway pool `gw1`/`gw2`, with the targets on an internal-only network. Every published port is an ephemeral port on `127.0.0.1`; the networks use the fixed subnets `10.231.0.0/24` and `10.231.1.0/24`, so run one stand per host at a time. The stand is removed at the end; on failure its logs go to `test/cluster/compose.log` (gitignored, test-only credentials). It also builds `werbot` for the host into the gitignored `test/cluster/.bin`: the `werbot connect` scenario carries TCP to the echo target and DNS to CoreDNS on free local ports, checks the `stream` and `datagram` sessions and the health probes of both instances, then kills the instance of the DNS session and expects DNS to answer again within 30 s. The lost-instance scenario waits up to 3 minutes for `gateway_lost`, after both server replicas have run for 2 minutes; the S3 outage scenario stops SeaweedFS for 1 minute. `go test ./...` without the tag skips `test/`. CI runs it as the `e2e-cluster` job on every push and pull request to `v2` (50-minute limit; a newer push cancels the run it supersedes; on failure `compose.log` is uploaded as the `e2e-cluster-logs` artifact).
 

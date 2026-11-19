@@ -12,6 +12,7 @@ The CLI opens the browser (the authorization code flow with PKCE and a redirect 
 
 - `--device` uses the device flow (RFC 8628) for a machine without a browser: the CLI prints a code and a URL to open on another device.
 - The server comes from `--server`, else `WERBOT_SERVER`, else the server of the last login. Without any of them the command fails with `--server is required`.
+- Use an `https://` server URL in production. Over `http://` the tokens travel in clear text ([security.md](security.md#cli-sessions-and-user-certificates)).
 
 ## Profiles
 
@@ -37,7 +38,7 @@ Files are `0600`, directories `0700`. There is no keyring: protect the home dire
 | `werbot status` | Server, user, organization, token expiry and certificate. |
 | `werbot logout` | Revokes the session on the server and removes the profile. |
 
-A resource without a gateway address fails with `gateway address for <resource> is not set; ask an admin to set it on the Gateways page`.
+A resource without a gateway address fails with `gateway address for <resource> is not set; ask an admin to set it on the Gateways page` ([gateway.md](gateway.md#ssh-address)).
 
 ## Certificates
 
@@ -58,7 +59,9 @@ The block sets `User <login>+<resource>`, `IdentityFile`, `CertificateFile`, `Us
 
 ## CLI sessions
 
-Every login is a CLI session. An organization sets its lifetime in Settings (idle timeout and maximum age). A user sees the sessions in Profile, CLI sessions and revokes one there; `logout` revokes the current one. A revoked session stops working at the next gateway connection and a refresh fails with `session expired or revoked; run werbot login`.
+Every login is a CLI session. An organization sets its lifetime in Settings (idle timeout and maximum age). A user sees the sessions in Profile, CLI sessions and revokes one there; `logout` revokes the current one. A revoked session stops working at the next API request (`unauthenticated`) and the next gateway connection, and a refresh fails with `session expired or revoked; run werbot login`. Open connections keep running.
+
+Each refresh rotates the refresh token. If a refresh response is lost (for example, the network drops) and the CLI retries with the old token, the server treats it as reuse and revokes the session: run `werbot login` again. Security details: [security.md](security.md#cli-sessions-and-user-certificates).
 
 ## Windows
 

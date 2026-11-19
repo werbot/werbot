@@ -16,6 +16,8 @@ What happens to running and new sessions and to data when a part of Werbot fails
 | `Total spool ≥ WERBOT_GATEWAY_SPOOL_MAX` | Live; a session with more than 64 MiB unsent ends with `recording_unavailable`. | Recorded sessions (`ssh` terminal and exec, `telnet`) are refused with `Gateway is busy, try again later`; `ssh -L`, `tcp` and `udp` are not recorded and keep working. | No loss. |
 | `Target unreachable` | The channel closes, `end_reason` is `error`. | Resource health becomes `unhealthy`. | No loss. |
 | `Access revoked` | Sessions without access close with `access_revoked` after the next snapshot, within 1 s (60 s for schedules). | Refused with `Access denied`; event `session.deny`. | No loss. |
+| `Authorization server unavailable` (the CLI cannot reach the server) | Live. | `werbot login`, the commands that call the API (`ls`, `ssh`, `status`) and certificate renewal fail. OpenSSH through `werbot ssh-config` keeps connecting with the current certificate until it expires (at most 1 hour). | No loss. |
+| `Client clock skew` | Not affected. | A certificate is valid from 1 minute before the server time. A larger skew fails renewal with `clock skew <d> between this computer and <server>; sync the system clock`. | No loss. |
 
 ## End reasons
 

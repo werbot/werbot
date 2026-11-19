@@ -95,7 +95,7 @@ No database access. Its four shared variables follow the same rules as on the se
 | `WERBOT_SERVER` | — | server of the last `werbot login` (`<home>/current`) | Server whose profile the client commands use, `http(s)://host[:port]`. |
 | `WERBOT_HOME` | — | `~/.werbot` (Windows: `%USERPROFILE%\.werbot`) | Client profiles: one `0700` directory per server with `profile.json`, the key and the certificate (`0600`). |
 
-Other flags: `-i <key>` and `--known-hosts <path>`. Details: [connect.md](connect.md).
+Other flags: `-i <key>` and `--known-hosts <path>`. Details: [connect.md](connect.md) and [cli.md](cli.md).
 
 ## Docker Compose
 

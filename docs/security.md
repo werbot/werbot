@@ -58,3 +58,18 @@ Mitigations:
 - Audit event `gateway.instance.enroll` carries the token id.
 
 A wrong, expired, revoked and exhausted token give the same refusal. The system join token of `--with-gateway` has max uses 1.
+
+## CLI sessions and user certificates
+
+`werbot login` ([cli.md](cli.md)) talks to the OAuth authorization server built into the server (`/oauth/`, `/.well-known/`). Every login is a CLI session (`cli_session`), and the CLI reaches gateways with short-lived SSH user certificates.
+
+- **Use https.** Tokens are issued with `iss = WERBOT_PUBLIC_URL`. The server accepts an `http://` `WERBOT_PUBLIC_URL` (the quick start uses one), but then access and refresh tokens, authorization codes and device codes travel in clear text between the CLI and the server. Production needs an `https://` `WERBOT_PUBLIC_URL`, and the CLI must log in with `--server https://…`.
+- **Login flows.** The browser flow uses PKCE (`S256`) and redirects only to `http://127.0.0.1:<port>/callback` or `http://[::1]:<port>/callback`; any other `redirect_uri` gets `400` without a redirect. Consent and device approval need a browser session (cookie): a CLI token cannot approve another login.
+- **Device code phishing.** The consent and device pages show the client, the hostname the CLI reported and the client IP. Approve only a login you just started; the hostname is not verified.
+- **Tokens.** An access token is an ES256 JWT for 10 minutes; the signing key is sealed with `WERBOT_SECRET_KEY` and `/oauth/keys` publishes only the public key. A CLI token acts with the member's full role on the API, like the web session. Every API request checks that its CLI session is live, so a revoked session stops at the next request.
+- **Refresh rotation.** Each refresh returns a new refresh token. Presenting a used one again revokes the whole CLI session (`cli_session.revoke`, reason `refresh_reuse`). A refresh whose response was lost and is retried with the old token ends the session the same way: run `werbot login` again.
+- **Stored secrets.** Refresh tokens, authorization codes and device codes are stored only as SHA-256 hashes; they never appear in logs, audit data or error text.
+- **Session lifetime.** An organization sets the idle timeout (`cli_session_ttl`, default 7 days) and the maximum age (`cli_session_max`, default 30 days) in Settings. Logout, revocation in the UI, a password reset or change (other CLI sessions) and removal from the organization end CLI sessions.
+- **User CA.** Each organization has its own ed25519 user CA, sealed with `WERBOT_SECRET_KEY`. A gateway accepts only certificates signed by the CA of its pool's organization, with one principal (the login), inside their validity window and without critical options; the server then checks that the certificate's CLI session is live.
+- **Certificates.** A certificate lives 1 hour and carries no MFA mark. There is no CRL: revoking a CLI session refuses the next gateway connection made with a still valid certificate, while open connections keep running until the `cli_session` lock of a later release cuts them.
+- **Profile on disk.** The CLI keeps tokens, its ed25519 key and the certificate in `WERBOT_HOME` with mode `0600` (directories `0700`) and does not use the OS keyring. Protect that directory like `~/.ssh`.
