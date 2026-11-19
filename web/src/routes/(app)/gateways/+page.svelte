@@ -99,7 +99,7 @@
 <PageHeader title={m.gateways_title()} count={loaded ? list.length : undefined}>
 	{#snippet toolbar()}
 		{#if list.length > 0}
-			<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_create()}</Button>
+			<Button variant="solid" size={40} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_create()}</Button>
 		{/if}
 	{/snippet}
 </PageHeader>
@@ -111,7 +111,7 @@
 	{:else if list.length === 0}
 		<EmptyState icon="shield" title={m.gateways_empty()}>
 			{#snippet actions()}
-				<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_create()}</Button>
+				<Button variant="solid" size={40} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_create()}</Button>
 			{/snippet}
 		</EmptyState>
 	{:else}

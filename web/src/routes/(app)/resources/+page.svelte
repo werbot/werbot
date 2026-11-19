@@ -54,10 +54,10 @@
 				refresh();
 			}}
 		>
-			<TextField size={28} aria-label={m.resources_label_filter()} placeholder="env=prod,team=a" bind:value={filter} />
+			<TextField size={36} aria-label={m.resources_label_filter()} placeholder="env=prod,team=a" bind:value={filter} />
 		</form>
 		{#if any}
-			<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.resources_new()}</Button>
+			<Button variant="solid" size={40} iconLeft="plus" onclick={() => (creating = true)}>{m.resources_new()}</Button>
 		{/if}
 	{/snippet}
 </PageHeader>
@@ -70,13 +70,13 @@
 	{:else if list.length === 0 && any}
 		<EmptyState icon="desktop" title={m.resources_no_match()}>
 			{#snippet actions()}
-				<Button scheme="g" variant="plain" size={28} iconLeft="close" onclick={resetFilter}>{m.common_reset()}</Button>
+				<Button scheme="g" variant="plain" size={40} iconLeft="close" onclick={resetFilter}>{m.common_reset()}</Button>
 			{/snippet}
 		</EmptyState>
 	{:else if list.length === 0}
 		<EmptyState icon="desktop" title={m.resources_empty()}>
 			{#snippet actions()}
-				<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.resources_new()}</Button>
+				<Button variant="solid" size={40} iconLeft="plus" onclick={() => (creating = true)}>{m.resources_new()}</Button>
 			{/snippet}
 		</EmptyState>
 	{:else}

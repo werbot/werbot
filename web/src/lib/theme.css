@@ -168,3 +168,14 @@
 :root .miso-toggle input:checked ~ .miso-toggle__state {
 	color: var(--wb-brand-900);
 }
+
+/* One gap between every row of buttons: modal footers already use it, drawer footers and form rows follow */
+.miso-drawer__footer,
+.wb-actions {
+	gap: var(--miso-sp-12);
+}
+
+.wb-actions {
+	display: flex;
+	align-items: center;
+}

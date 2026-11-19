@@ -19,7 +19,7 @@
 
 <Dropdown placement="bottom-end">
 	{#snippet trigger({ toggle })}
-		<Button scheme="g" variant="plain" size={28} iconLeft="filter" onclick={toggle}>
+		<Button scheme="g" variant="plain" size={40} iconLeft="filter" onclick={toggle}>
 			{m.common_filter()}
 			{#if active > 0}<Badge tone="accent">{active}</Badge>{/if}
 		</Button>

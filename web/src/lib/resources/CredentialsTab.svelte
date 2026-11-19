@@ -79,7 +79,7 @@
 	{:else}
 		<FilledField type="password" label={label(kind)} bind:value autocomplete="new-password" required />
 	{/if}
-	<div class="actions">
+	<div class="wb-actions">
 		<Button size={40} type="submit" variant="solid">{m.cred_save()}</Button>
 		<Button size={40}
 			type="button"
@@ -99,10 +99,5 @@
 		flex-direction: column;
 		gap: var(--miso-sp-12);
 		max-width: 480px;
-	}
-
-	.actions {
-		display: flex;
-		gap: 8px;
 	}
 </style>

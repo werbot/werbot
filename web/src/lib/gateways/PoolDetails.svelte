@@ -59,7 +59,7 @@
 	<section><InstancesTable instances={pool.instances} ondelete={ondeleteInstance} bind:menu={instanceMenu} /></section>
 	<section>
 		{#if failed}<LoadFailed onretry={() => refresh(true)} />{:else}<TokensTable {tokens} onrevoke={revoke} />{/if}
-		<div class="cta"><Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_token_create()}</Button></div>
+		<div class="cta"><Button variant="solid" size={40} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_token_create()}</Button></div>
 	</section>
 </div>
 {#if creating}<TokenDialog gatewayId={pool.id} bind:open={creating} oncreated={refresh} />{/if}

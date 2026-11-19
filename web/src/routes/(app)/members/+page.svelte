@@ -100,7 +100,7 @@
 
 <PageHeader title={m.members_title()}>
 	{#snippet toolbar()}
-		<Button variant="solid" size={28} iconLeft="plus" onclick={() => (inviting = true)}>{m.members_invite()}</Button>
+		<Button variant="solid" size={40} iconLeft="plus" onclick={() => (inviting = true)}>{m.members_invite()}</Button>
 	{/snippet}
 	{#snippet tabs()}
 		<Tabs options={tabOptions} bind:value={tab} />

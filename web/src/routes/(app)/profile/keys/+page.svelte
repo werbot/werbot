@@ -97,7 +97,7 @@
 <PageHeader title={m.keys_title()} count={loaded ? keys.length : undefined}>
 	{#snippet toolbar()}
 		{#if keys.length > 0}
-			<Button variant="solid" size={28} iconLeft="plus" onclick={() => (adding = true)}>{m.keys_add()}</Button>
+			<Button variant="solid" size={40} iconLeft="plus" onclick={() => (adding = true)}>{m.keys_add()}</Button>
 		{/if}
 	{/snippet}
 </PageHeader>
@@ -109,7 +109,7 @@
 	{:else if keys.length === 0}
 		<EmptyState icon="key" title={m.keys_empty()}>
 			{#snippet actions()}
-				<Button variant="solid" size={28} iconLeft="plus" onclick={() => (adding = true)}>{m.keys_add()}</Button>
+				<Button variant="solid" size={40} iconLeft="plus" onclick={() => (adding = true)}>{m.keys_add()}</Button>
 			{/snippet}
 		</EmptyState>
 	{:else}

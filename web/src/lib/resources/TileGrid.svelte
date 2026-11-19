@@ -40,10 +40,9 @@
 		gap: var(--miso-sp-8);
 		min-height: 104px;
 		padding: var(--miso-sp-16);
-		border: 0;
+		border: 1px solid var(--miso-line-secondary);
 		border-radius: var(--miso-radius-08);
 		background: var(--miso-cont-top);
-		box-shadow: var(--miso-shadow-cont-minor-outline);
 		font: var(--miso-font-ui-13-med);
 		color: var(--miso-txt-primary);
 		cursor: pointer;
@@ -53,16 +52,25 @@
 		fill: var(--miso-txt-secondary);
 	}
 
-	.tile:hover {
-		background: var(--miso-hlt-hover);
+	/* same gold fill and dark text as .miso-btn--solid */
+	.tile:hover,
+	.tile:focus-visible {
+		background: var(--miso-hlt-invert);
+		border-color: transparent;
+		color: var(--wb-on-brand);
+	}
+
+	.tile:hover :global(svg),
+	.tile:focus-visible :global(svg) {
+		fill: var(--wb-on-brand);
 	}
 
 	.tile:active {
-		background: var(--miso-hlt-selected);
+		background: var(--miso-hlt-invert-major);
 	}
 
 	.tile:focus-visible {
-		outline: 2px solid var(--miso-hlt-invert);
+		outline: 2px solid var(--wb-focus);
 		outline-offset: 2px;
 	}
 </style>

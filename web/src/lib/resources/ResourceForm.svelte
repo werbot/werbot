@@ -117,7 +117,7 @@
 		<FormField label={m.resources_max_duration()} bind:value={maxMinutes} type="number" min={1} max={10080} hint={m.resources_timeout_hint()} />
 	</FieldRow>
 	<LabelsEditor bind:rows />
-	<div class="actions">
+	<div class="wb-actions">
 		{#if onback}<Button size={40} scheme="g" variant="plain" onclick={onback}>{m.resources_back()}</Button>{/if}
 		<Button size={40} type="submit" variant="solid" disabled={!valid || !loaded}>{m.resources_save()}</Button>
 	</div>
@@ -135,11 +135,9 @@
 	}
 
 	/* stays reachable while the modal body scrolls */
-	.actions {
+	.wb-actions {
 		position: sticky;
 		bottom: 0;
-		display: flex;
-		gap: var(--miso-sp-8);
 		padding: var(--miso-sp-12) 0 calc(var(--miso-sp-16) + var(--miso-sp-12));
 		background: var(--miso-cont-top);
 	}

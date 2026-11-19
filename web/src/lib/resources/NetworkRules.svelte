@@ -26,7 +26,7 @@
 			<Button type="button" scheme="w" variant="plain" onclick={() => rows.splice(i, 1)}>{m.rules_remove()}</Button>
 		</div>
 	{/each}
-	<div class="row">
+	<div class="wb-actions">
 		<Button type="button" variant="plain" onclick={() => rows.push({ $typeName: 'werbot.v1.NetworkRule', cidr: '', effect: 'allow' })}>
 			{m.rules_add_network()}
 		</Button>

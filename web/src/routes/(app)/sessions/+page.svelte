@@ -92,7 +92,7 @@
 
 <PageHeader title={m.sessions_title()}>
 	{#snippet toolbar()}
-		<Segmented size={28} options={statuses} bind:value={status} onchange={first} />
+		<Segmented size={32} options={statuses} bind:value={status} onchange={first} />
 		<FilterMenu active={activeFilters}>
 			{#if manager}
 				<Select label={m.sessions_filter_user()} options={[{ value: '', label: m.sessions_filter_user_all() }, ...users]} bind:value={userId} onchange={first} />

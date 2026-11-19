@@ -74,7 +74,7 @@
 <PageHeader title={m.teams_title()} count={loaded ? list.length : undefined}>
 	{#snippet toolbar()}
 		{#if list.length > 0}
-			<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.teams_new()}</Button>
+			<Button variant="solid" size={40} iconLeft="plus" onclick={() => (creating = true)}>{m.teams_new()}</Button>
 		{/if}
 	{/snippet}
 </PageHeader>
@@ -86,7 +86,7 @@
 	{:else if list.length === 0}
 		<EmptyState icon="workspace" title={m.teams_empty()}>
 			{#snippet actions()}
-				<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.teams_new()}</Button>
+				<Button variant="solid" size={40} iconLeft="plus" onclick={() => (creating = true)}>{m.teams_new()}</Button>
 			{/snippet}
 		</EmptyState>
 	{:else}

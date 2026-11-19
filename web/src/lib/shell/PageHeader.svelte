@@ -81,8 +81,18 @@
 	.ph__toolbar {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--miso-sp-12);
 		margin-left: auto;
+	}
+
+	/* every control of a toolbar row is as tall as its 40px buttons */
+	.ph__toolbar :global(.miso-field .miso-field__control) {
+		height: 40px;
+	}
+
+	.ph__toolbar :global(.miso-segmented .miso-segmented__item) {
+		height: 36px;
+		font: var(--miso-font-ui-13-med);
 	}
 
 	/* ── tabs (.headerConfig__tabs{padding-left:20px;height:34px}) ── */
