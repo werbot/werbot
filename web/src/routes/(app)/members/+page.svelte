@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { timestampDate } from '@bufbuild/protobuf/wkt';
-	import { Banner, Button, EmptyState, Label, Modal, Select, Skeleton, Table, Tabs, FilledField, toast, type SelectOption } from '#lib/ui/index.js';
+	import { Button, EmptyState, Label, Modal, Select, Skeleton, Table, Tabs, FilledField, toast, type SelectOption } from '#lib/ui/index.js';
 	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { members, teams as teamsApi } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import type { Invite, Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
@@ -12,6 +12,7 @@
 	import RowMenu from '#lib/RowMenu.svelte';
 	import Ago from '#lib/Ago.svelte';
 	import CellLead from '#lib/CellLead.svelte';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -34,7 +35,7 @@
 	let tab = $state('members');
 	let selected = $state('');
 	let menuOpen = $state('');
-	let error = $state('');
+	let failed = $state(false);
 	let inviting = $state(false);
 	let inviteEmail = $state('');
 	let inviteRole = $state(String(Role.MEMBER));
@@ -49,19 +50,19 @@
 		loaded = true;
 	}
 
+	// a failed load toasts and swaps the list for LoadFailed until a reload succeeds
+	const load = () => refresh().then(() => (failed = false), (e) => ((failed = true), failToast(e)));
+
 	async function run(action: () => Promise<unknown>, message = m.common_saved()) {
-		error = '';
 		try {
 			await action();
 			toast({ tone: 'success', text: message });
 		} catch (e) {
-			error = errorMessage(e);
-			// the page banner sits behind the drawer overlay
-			if (selected) toast({ tone: 'alert', text: error });
+			failToast(e);
 			await refresh().catch(() => {});
 			return false;
 		}
-		await refresh().catch((e) => (error = errorMessage(e)));
+		await load();
 		return true;
 	}
 
@@ -94,7 +95,7 @@
 		if (loaded && selected && !current) selected = '';
 	});
 
-	onMount(() => refresh().catch((e) => (error = errorMessage(e))));
+	onMount(load);
 </script>
 
 <PageHeader title={m.members_title()}>
@@ -106,10 +107,10 @@
 	{/snippet}
 </PageHeader>
 <PageBody flush>
-	{#if error && !inviting}<Banner tone="alert">{error}</Banner>{/if}
-
-	{#if !loaded}
-		{#if !error}<Skeleton variant="text" lines={6} />{/if}
+	{#if failed}
+		<LoadFailed onretry={load} />
+	{:else if !loaded}
+		<Skeleton variant="text" lines={6} />
 	{:else if tab === 'members'}
 		<Table>
 			{#snippet header()}
@@ -186,7 +187,6 @@
 />
 
 <Modal bind:open={inviting} title={m.members_invite()} width={480}>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 	<form id="invite" onsubmit={invite}>
 		<FilledField type="email" label={m.field_email()} bind:value={inviteEmail} required />
 		<FilledSelect label={m.members_role()} options={roleOptions} bind:value={inviteRole} />

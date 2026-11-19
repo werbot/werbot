@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Badge, Banner, Button, FilledField, Textarea, toast } from '#lib/ui/index.js';
+	import { Badge, Button, FilledField, Textarea, toast } from '#lib/ui/index.js';
 	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { resources } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { errorMessage, failToast } from '#lib/errors.js';
 	import KeyFileDrop from '#lib/KeyFileDrop.svelte';
 	import { readPrivateKeyFile } from '#lib/sshkey.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
@@ -19,33 +19,32 @@
 	let value = $state('');
 	let fileName = $state('');
 	let fileValue = '';
-	let error = $state('');
+	let fileError = $state('');
 
 	async function run(action: () => Promise<unknown>) {
-		error = '';
 		try {
 			await action();
-			value = fileName = fileValue = '';
+			value = fileName = fileValue = fileError = '';
 			const res = await resources.getResource({ id: resource.id });
 			if (res.resource) resource = res.resource;
 			toast({ tone: 'success', text: m.common_saved() });
 		} catch (e) {
-			error = errorMessage(e);
+			failToast(e);
 		}
 	}
 
 	async function readKeyFile(file: File) {
-		error = '';
+		fileError = '';
 		try {
 			const read = await readPrivateKeyFile(file);
 			if ('error' in read) {
-				error = m.cred_file_too_large();
+				fileError = m.cred_file_too_large();
 				return;
 			}
 			value = fileValue = read.key;
 			fileName = file.name;
 		} catch (e) {
-			error = errorMessage(e);
+			fileError = errorMessage(e);
 		}
 	}
 
@@ -61,7 +60,6 @@
 	};
 </script>
 
-{#if error}<Banner tone="alert">{error}</Banner>{/if}
 <p>
 	<Badge tone={resource.credentialKind ? 'accent' : 'ghost'}>
 		{resource.credentialKind ? (setLabels[resource.credentialKind] ?? (() => resource.credentialKind))() : m.cred_not_set()}
@@ -73,10 +71,10 @@
 		label={m.cred_kind()}
 		options={(type?.credentialKinds ?? []).map((k) => ({ value: k, label: label(k) }))}
 		value={kind}
-		onchange={(v) => (picked = v)}
+		onchange={(v) => ((picked = v), (fileError = ''))}
 	/>
 	{#if kind === 'private_key'}
-		<KeyFileDrop hint={m.cred_drop_hint()} {fileName} onfile={readKeyFile} onclear={clearFile} />
+		<KeyFileDrop hint={m.cred_drop_hint()} {fileName} error={fileError} onfile={readKeyFile} onclear={clearFile} />
 		<Textarea label={label(kind)} bind:value rows={8} autocomplete="off" spellcheck="false" required />
 	{:else}
 		<FilledField type="password" label={label(kind)} bind:value autocomplete="new-password" required />

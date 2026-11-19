@@ -1,10 +1,16 @@
 <script lang="ts">
 	import * as AsciinemaPlayer from 'asciinema-player';
 	import 'asciinema-player/dist/bundle/asciinema-player.css';
-	import { Banner } from '#lib/ui/index.js';
+	import { failToast } from '#lib/errors.js';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 
-	let { src, onverified, onerror }: { src: string; onverified: (verified: boolean) => void; onerror?: () => void } = $props();
+	let {
+		src,
+		onverified,
+		onerror,
+		onretry
+	}: { src: string; onverified: (verified: boolean) => void; onerror?: () => void; onretry?: () => void } = $props();
 
 	let failed = $state(false);
 
@@ -21,6 +27,7 @@
 						return text;
 					} catch (e) {
 						failed = true;
+						failToast(m.sessions_recording_load_error());
 						onerror?.();
 						throw e;
 					}
@@ -33,5 +40,9 @@
 	}
 </script>
 
-{#if failed}<Banner tone="alert">{m.sessions_recording_load_error()}</Banner>{/if}
-<div data-testid="cast-player" {@attach mount}></div>
+<!-- Retry mounts a fresh player -->
+{#if failed}
+	<LoadFailed onretry={() => ((failed = false), onretry?.())} />
+{:else}
+	<div data-testid="cast-player" {@attach mount}></div>
+{/if}

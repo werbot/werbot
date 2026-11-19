@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { durationFromMs } from '@bufbuild/protobuf/wkt';
-	import { Banner, Button, Modal, FilledField, toast } from '#lib/ui/index.js';
+	import { Button, Modal, FilledField } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import { fmt } from '#lib/format.js';
 
@@ -16,7 +16,6 @@
 
 	let hours = $state('24');
 	let maxUses = $state('10');
-	let error = $state('');
 	let copied = $state(false);
 	let created = $state<{ token: string; expires: string; maxUses: number }>();
 
@@ -25,7 +24,6 @@
 
 	async function create(e: SubmitEvent) {
 		e.preventDefault();
-		error = '';
 		try {
 			const res = await gateways.createJoinToken({
 				gatewayId,
@@ -35,7 +33,7 @@
 			created = { token: res.token, expires: fmt(res.expiresAt), maxUses: Number(maxUses) };
 			oncreated();
 		} catch (err) {
-			error = errorMessage(err);
+			failToast(err);
 		}
 	}
 
@@ -44,13 +42,12 @@
 			await navigator.clipboard.writeText(command);
 			copied = true;
 		} catch {
-			toast({ tone: 'alert', text: m.gateways_copy_failed() });
+			failToast(m.gateways_copy_failed());
 		}
 	}
 </script>
 
 <Modal bind:open title={m.gateways_token_create()}>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 	{#if created}
 		<p>{m.gateways_token_hint({ max_uses: created.maxUses, time: created.expires })}</p>
 		<pre><code>{command}</code></pre>

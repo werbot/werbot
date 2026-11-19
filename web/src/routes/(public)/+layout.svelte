@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Toaster } from '#lib/ui/index.js';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -13,6 +14,8 @@
 		{@render children()}
 	</div>
 </main>
+<!-- failed submits toast; the app shell mounts its own Toaster -->
+<Toaster />
 
 <style>
 	.public {

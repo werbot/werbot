@@ -2,9 +2,10 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Banner, Button, Calendar, EmptyState, Select, Label, Skeleton, Table, TextField, Tooltip, type SelectOption } from '#lib/ui/index.js';
+	import { Button, Calendar, EmptyState, Select, Label, Skeleton, Table, TextField, Tooltip, type SelectOption } from '#lib/ui/index.js';
 	import { audit, members } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import type { AuditEvent } from '#lib/gen/werbot/v1/audit_pb.js';
 	import EventDrawer from '#lib/audit/EventDrawer.svelte';
 	import Ago from '#lib/Ago.svelte';
@@ -28,8 +29,9 @@
 	let list = $state<AuditEvent[]>([]);
 	let next = $state(0);
 	let pageNo = $state(1);
-	let error = $state('');
-	let optionsError = $state('');
+	let failed = $state(false);
+	// Retry bumps it to re-run the load effect
+	let attempt = $state(0);
 	let loaded = $state(false);
 	let actors = $state<SelectOption[]>([]);
 	let selected = $state('');
@@ -50,6 +52,8 @@
 	});
 
 	$effect(() => {
+		void attempt;
+		failed = false;
 		let stale = false;
 		const req = {
 			action: query.action,
@@ -62,11 +66,13 @@
 			(r) => {
 				if (stale) return;
 				({ events: list, nextPage: next } = r);
-				error = '';
+				failed = false;
 				loaded = true;
 			},
 			(e) => {
-				if (!stale) error = errorMessage(e);
+				if (stale) return;
+				failed = true;
+				failToast(e);
 			}
 		);
 		return () => (stale = true);
@@ -75,7 +81,7 @@
 	onMount(() => {
 		members.listMembers({}).then(
 			(r) => (actors = r.members.flatMap((x) => (x.user ? [{ value: x.user.id, label: x.user.login }] : []))),
-			(e) => (optionsError = errorMessage(e))
+			failToast
 		);
 	});
 
@@ -110,10 +116,8 @@
 	{/snippet}
 </PageHeader>
 <PageBody flush>
-	{#if error || optionsError}<Banner tone="alert">{error || optionsError}</Banner>{/if}
-
-	{#if error}
-		<!-- the error banner above says why -->
+	{#if failed}
+		<LoadFailed onretry={() => attempt++} />
 	{:else if !loaded}
 		<Skeleton variant="text" lines={6} />
 	{:else if list.length === 0}

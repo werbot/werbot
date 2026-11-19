@@ -24,5 +24,12 @@
 </FieldRow>
 <FieldRow even>
 	<FilledField label={m.resources_ssh_login()} bind:value={login} required />
+	<div class="toggle"><Toggle bind:checked={portForwarding}>{m.resources_ssh_port_forwarding()}</Toggle></div>
 </FieldRow>
-<Toggle bind:checked={portForwarding}>{m.resources_ssh_port_forwarding()}</Toggle>
+
+<style>
+	/* centred against the login field next to it */
+	.toggle {
+		align-self: center;
+	}
+</style>

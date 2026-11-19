@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Banner, Button, FilledField } from '#lib/ui/index.js';
+	import { Button, FilledField } from '#lib/ui/index.js';
 	import { auth } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let email = $state('');
@@ -10,23 +10,20 @@
 	let name = $state('');
 	let password = $state('');
 	let organizationName = $state('');
-	let error = $state('');
 
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
-		error = '';
 		try {
 			await auth.setup({ email, login, name, password, organizationName });
 			await goto('/');
 		} catch (err) {
-			error = errorMessage(err);
+			failToast(err);
 		}
 	}
 </script>
 
 <form onsubmit={submit}>
 	<h1>{m.auth_setup_title()}</h1>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 	<FilledField type="email" label={m.field_email()} bind:value={email} required autocomplete="email" />
 	<FilledField label={m.field_login()} bind:value={login} required autocomplete="username" />
 	<FilledField label={m.field_name()} bind:value={name} required autocomplete="name" />

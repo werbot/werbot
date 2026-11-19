@@ -23,6 +23,11 @@
 		min-width: 0;
 	}
 
+	/* the floating label sits where the placeholder is: show the example only once focus lifts the label */
+	.field :global(.miso-filled :is(input, textarea):not(:focus)::placeholder) {
+		opacity: 0;
+	}
+
 	.note {
 		margin: 0;
 		padding: 0 var(--miso-sp-04);

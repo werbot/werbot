@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { Avatar, Banner, Drawer, PropertyRow, Skeleton } from '#lib/ui/index.js';
+	import { Avatar, Drawer, PropertyRow, Skeleton } from '#lib/ui/index.js';
 	import { audit } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import type { AuditEvent } from '#lib/gen/werbot/v1/audit_pb.js';
 	import { fmt } from '#lib/format.js';
 	import { isMe } from '#lib/me.js';
@@ -11,19 +12,24 @@
 	let { id = $bindable() }: { id: string } = $props();
 
 	let event = $state<AuditEvent>();
-	let error = $state('');
+	let failed = $state(false);
+	// Retry bumps it to re-run the load effect
+	let attempt = $state(0);
 
 	$effect(() => {
+		void attempt;
 		if (!id) return;
 		let stale = false;
 		event = undefined;
-		error = '';
+		failed = false;
 		audit.getEvent({ id }).then(
 			(r) => {
 				if (!stale) event = r.event;
 			},
 			(e) => {
-				if (!stale) error = errorMessage(e);
+				if (stale) return;
+				failed = true;
+				failToast(e);
 			}
 		);
 		return () => (stale = true);
@@ -31,7 +37,7 @@
 </script>
 
 <Drawer bind:open={() => !!id, (v) => !v && (id = '')} resizable snapPoints={[480, 720]} width={480} title={event ? `${m.audit_title()} › ${event.action}` : m.audit_event_title()}>
-	{#if error}<Banner tone="alert">{error}</Banner>{:else if !event}<Skeleton variant="text" lines={5} />{/if}
+	{#if failed}<LoadFailed onretry={() => attempt++} />{:else if !event}<Skeleton variant="text" lines={5} />{/if}
 	{#if event}
 		<PropertyRow label={m.audit_col_time()}>{fmt(event.createdAt)}</PropertyRow>
 		<PropertyRow label={m.audit_col_actor()}>

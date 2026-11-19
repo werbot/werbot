@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Badge, Banner, Button, Chip, PropertyRow } from '#lib/ui/index.js';
+	import { Badge, Button, Chip, PropertyRow } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
 	import type { Gateway, GatewayInstance, JoinToken } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import InstancesTable from './InstancesTable.svelte';
 	import TokenDialog from './TokenDialog.svelte';
 	import TokensTable from './TokensTable.svelte';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 
 	let {
 		pool,
@@ -17,14 +18,16 @@
 	}: { pool: Gateway; ondeleteInstance: (i: GatewayInstance) => void; creating?: boolean; instanceMenu?: string } = $props();
 
 	let tokens = $state<JoinToken[]>([]);
-	let error = $state('');
+	let failed = $state(false);
 
-	async function refresh() {
+	// polled: a failure toasts once, not on every tick; a manual Retry always toasts
+	async function refresh(manual = false) {
 		try {
 			({ tokens } = await gateways.listJoinTokens({ gatewayId: pool.id }));
-			error = '';
+			failed = false;
 		} catch (e) {
-			error = errorMessage(e);
+			if (!failed || manual) failToast(e);
+			failed = true;
 		}
 	}
 
@@ -33,18 +36,17 @@
 			await gateways.revokeJoinToken({ id: t.id });
 			await refresh();
 		} catch (e) {
-			error = errorMessage(e);
+			failToast(e);
 		}
 	}
 
 	onMount(() => {
 		refresh();
-		const timer = setInterval(refresh, 10_000);
+		const timer = setInterval(() => refresh(), 10_000);
 		return () => clearInterval(timer);
 	});
 </script>
 
-{#if error}<Banner tone="alert">{error}</Banner>{/if}
 <div class="details">
 	<div>
 		<PropertyRow label={m.gateways_col_status()}>
@@ -56,7 +58,7 @@
 	</div>
 	<section><InstancesTable instances={pool.instances} ondelete={ondeleteInstance} bind:menu={instanceMenu} /></section>
 	<section>
-		<TokensTable {tokens} onrevoke={revoke} />
+		{#if failed}<LoadFailed onretry={() => refresh(true)} />{:else}<TokensTable {tokens} onrevoke={revoke} />{/if}
 		<div class="cta"><Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_token_create()}</Button></div>
 	</section>
 </div>

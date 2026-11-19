@@ -4,7 +4,8 @@
 	import { page } from '$app/state';
 	import { Banner, InfoBlock, Skeleton, Tabs } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { ConfigSchema as SshConfigSchema } from '#lib/gen/werbot/connector/ssh/v1/ssh_pb.js';
 	import PageBody from '#lib/shell/PageBody.svelte';
@@ -19,7 +20,7 @@
 
 	let resource = $state<Resource>();
 	let types = $state<ResourceType[]>([]);
-	let error = $state('');
+	let failed = $state(false);
 	let tab = $state('settings');
 
 	const tabOptions = $derived([
@@ -44,16 +45,20 @@
 		return out;
 	});
 
-	onMount(async () => {
+	async function load() {
+		failed = false;
 		try {
 			[{ resource }, { types }] = await Promise.all([
 				resources.getResource({ id: page.params.id }),
 				resources.listResourceTypes({})
 			]);
 		} catch (e) {
-			error = errorMessage(e);
+			failed = true;
+			failToast(e);
 		}
-	});
+	}
+
+	onMount(load);
 </script>
 
 <PageHeader title={resource?.name ?? ''} breadcrumbs={[{ label: m.resources_title(), href: '/resources' }, { label: resource?.name ?? '' }]}>
@@ -65,8 +70,9 @@
 	{/snippet}
 </PageHeader>
 <PageBody width={960}>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
-	{#if !resource && !error}
+	{#if failed}
+		<LoadFailed onretry={load} />
+	{:else if !resource}
 		<Skeleton variant="rect" height={240} />
 	{:else if resource}
 		{#if resource.health?.error}<Banner tone="alert">{m.resources_health_error({ error: resource.health.error })}</Banner>{/if}

@@ -3,7 +3,8 @@
 	import { page } from '$app/state';
 	import { Banner, Avatar, PropertyRow, Skeleton, Spinner } from '#lib/ui/index.js';
 	import { sessions } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import type { Session } from '#lib/gen/werbot/v1/session_pb.js';
 	import { bytes, fmt } from '#lib/format.js';
 	import PageBody from '#lib/shell/PageBody.svelte';
@@ -13,19 +14,23 @@
 	import { m } from '#lib/paraglide/messages.js';
 
 	let session = $state<Session>();
-	let error = $state('');
+	let failed = $state(false);
 	let verified = $state<boolean>();
 	let playerFailed = $state(false);
 
 	const finished = $derived(!!session?.recording?.finished);
 
-	onMount(async () => {
+	async function load() {
+		failed = false;
 		try {
 			({ session } = await sessions.getSession({ id: page.params.id }));
 		} catch (e) {
-			error = errorMessage(e);
+			failed = true;
+			failToast(e);
 		}
-	});
+	}
+
+	onMount(load);
 </script>
 
 <PageHeader
@@ -33,8 +38,9 @@
 	breadcrumbs={[{ label: m.sessions_title(), href: '/sessions' }, { label: session ? session.resourceName || session.id : '' }]}
 />
 <PageBody>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
-	{#if !session && !error}
+	{#if failed}
+		<LoadFailed onretry={load} />
+	{:else if !session}
 		<Skeleton variant="rect" height={240} />
 	{:else if session}
 		<div class="detail">
@@ -50,7 +56,7 @@
 				{/if}
 				{#if session.recording?.chunks && finished && verified === undefined && !playerFailed}<Spinner />{/if}
 				{#if session.recording?.chunks}
-					<CastPlayer src={`/api/recordings/${session.id}.cast`} onverified={(v) => (verified = v)} onerror={() => (playerFailed = true)} />
+					<CastPlayer src={`/api/recordings/${session.id}.cast`} onverified={(v) => (verified = v)} onerror={() => (playerFailed = true)} onretry={() => (playerFailed = false)} />
 				{/if}
 			</div>
 			<aside class="detail__props">

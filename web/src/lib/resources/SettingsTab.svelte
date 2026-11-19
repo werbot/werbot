@@ -1,25 +1,23 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Banner, Button, Modal, toast } from '#lib/ui/index.js';
+	import { Button, Modal, toast } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import ResourceForm, { type ResourceValues } from './ResourceForm.svelte';
 
 	let { resource = $bindable(), types }: { resource: Resource; types: ResourceType[] } = $props();
 
-	let error = $state('');
 	let confirming = $state(false);
 
 	async function run(action: () => Promise<unknown>, saved: string) {
-		error = '';
 		try {
 			await action();
 			toast({ tone: 'success', text: saved });
 			return true;
 		} catch (e) {
-			error = errorMessage(e);
+			failToast(e);
 			confirming = false;
 			return false;
 		}
@@ -46,7 +44,6 @@
 	}
 </script>
 
-{#if error}<Banner tone="alert">{error}</Banner>{/if}
 <ResourceForm {types} initial={resource} onsubmit={save} />
 <p><Button size={40} scheme="w" variant="plain" onclick={() => (confirming = true)}>{m.resources_delete()}</Button></p>
 

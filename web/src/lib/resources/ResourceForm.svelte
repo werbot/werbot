@@ -17,10 +17,10 @@
 	import { Code, ConnectError } from '@connectrpc/connect';
 	import { create } from '@bufbuild/protobuf';
 	import { DurationSchema } from '@bufbuild/protobuf/wkt';
-	import { Banner, Button, FilledField } from '#lib/ui/index.js';
+	import { Button, FilledField } from '#lib/ui/index.js';
 	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { gateways } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -38,9 +38,11 @@
 		onsubmit: (v: ResourceValues) => void;
 		/** create wizard: shows Back in the sticky footer */
 		onback?: () => void;
+		/** the pool list failed to load (default: toast) */
+		onpoolerror?: (e: unknown) => void;
 	}
 
-	let { types, initial, typeName = initial?.type ?? '', onsubmit, onback }: Props = $props();
+	let { types, initial, typeName = initial?.type ?? '', onsubmit, onback, onpoolerror = failToast }: Props = $props();
 
 	// svelte-ignore state_referenced_locally
 	let name = $state(initial?.name ?? '');
@@ -50,7 +52,6 @@
 	let gatewayId = $state(initial?.gatewayId ?? '');
 	let pools = $state<Gateway[]>([]);
 	let loaded = $state(false);
-	let poolError = $state('');
 	let value = $state.raw<ConfigValue>({});
 	// timeouts are edited in minutes; empty means the gateway default
 	// svelte-ignore state_referenced_locally
@@ -68,7 +69,7 @@
 			if (!gatewayId) gatewayId = pools[0]?.id ?? '';
 		} catch (e) {
 			// members may lack the role: the server then picks the pool
-			if (ConnectError.from(e).code !== Code.PermissionDenied) poolError = errorMessage(e);
+			if (ConnectError.from(e).code !== Code.PermissionDenied) onpoolerror(e);
 		}
 		loaded = true;
 	});
@@ -95,12 +96,17 @@
 </script>
 
 <form class:capped={!!initial} onsubmit={submit}>
-	<FilledField label={m.resources_name()} bind:value={name} required maxlength={63} />
-	{#if initial}<FilledField label={m.resources_type()} value={initial.type} disabled />{/if}
-	{#if poolError}<Banner tone="alert">{poolError}</Banner>{/if}
+	{#snippet nameField()}<FilledField label={m.resources_name()} bind:value={name} required maxlength={63} />{/snippet}
 	{#if pools.length > 1}
-		<FilledSelect label={m.resources_gateway_label()} options={pools.map((p) => ({ value: p.id, label: p.name }))} bind:value={gatewayId} />
+		<!-- one row for both: the wizard step fits without scrolling -->
+		<FieldRow even>
+			{@render nameField()}
+			<FilledSelect label={m.resources_gateway_label()} options={pools.map((p) => ({ value: p.id, label: p.name }))} bind:value={gatewayId} />
+		</FieldRow>
+	{:else}
+		{@render nameField()}
 	{/if}
+	{#if initial}<FilledField label={m.resources_type()} value={initial.type} disabled />{/if}
 	{#if type}
 		{#key typeName}
 			<Form {type} {initial} onchange={(v) => (value = v)} />

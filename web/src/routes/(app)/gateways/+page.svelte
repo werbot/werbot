@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Code, ConnectError } from '@connectrpc/connect';
-	import { Badge, Banner, Button, Drawer, EmptyState, Label, Modal, Skeleton, Table, FilledField, toast } from '#lib/ui/index.js';
+	import { Badge, Button, Drawer, EmptyState, Label, Modal, Skeleton, Table, FilledField, toast } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
 	import { keepLast } from '#lib/keepLast.svelte.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import RowMenu from '#lib/RowMenu.svelte';
 	import Ago from '#lib/Ago.svelte';
@@ -17,31 +18,30 @@
 
 	let list = $state<Gateway[]>([]);
 	let name = $state('');
-	let error = $state('');
-	let createError = $state('');
 	let creating = $state(false);
 	let loaded = $state(false);
 	let menuOpen = $state('');
 	let instanceMenu = $state('');
-	let pollError = $state('');
+	let failed = $state(false);
 	let open = $state('');
 	let confirm = $state<{ title: string; text: string; run: () => Promise<unknown>; precondition?: string }>();
 	let confirming = $state(false);
 	let tokenOpen = $state(false);
 
-	async function refresh() {
+	// polled: a failure toasts once, not on every tick, and swaps the list for LoadFailed until a poll succeeds; a manual Retry always toasts
+	async function refresh(manual = false) {
 		try {
 			({ gateways: list } = await gateways.listGateways({}));
-			pollError = '';
+			failed = false;
 			loaded = true;
 		} catch (e) {
-			pollError = errorMessage(e);
+			if (!failed || manual) failToast(e);
+			failed = true;
 		}
 	}
 
 	async function create(e: SubmitEvent) {
 		e.preventDefault();
-		createError = '';
 		try {
 			await gateways.createGateway({ name });
 			name = '';
@@ -49,7 +49,7 @@
 			toast({ tone: 'success', text: m.common_saved() });
 			await refresh();
 		} catch (err) {
-			createError = errorMessage(err);
+			failToast(err);
 		}
 	}
 
@@ -59,16 +59,12 @@
 	}
 
 	async function runConfirmed() {
-		error = '';
 		try {
 			await confirm?.run();
 			toast({ tone: 'success', text: m.common_deleted() });
 			await refresh();
 		} catch (e) {
-			const text = confirm?.precondition && ConnectError.from(e).code === Code.FailedPrecondition ? confirm.precondition : errorMessage(e);
-			// the page banner sits behind the drawer overlay
-			if (open) toast({ tone: 'alert', text });
-			else error = text;
+			failToast(confirm?.precondition && ConnectError.from(e).code === Code.FailedPrecondition ? confirm.precondition : e);
 		}
 		confirming = false;
 	}
@@ -91,7 +87,7 @@
 
 	onMount(() => {
 		refresh();
-		const timer = setInterval(refresh, 10_000);
+		const timer = setInterval(() => refresh(), 10_000);
 		return () => clearInterval(timer);
 	});
 </script>
@@ -108,10 +104,10 @@
 	{/snippet}
 </PageHeader>
 <PageBody flush>
-	{#if error || pollError}<Banner tone="alert">{error || pollError}</Banner>{/if}
-
-	{#if !loaded}
-		{#if !pollError}<Skeleton variant="text" lines={6} />{/if}
+	{#if failed}
+		<LoadFailed onretry={() => refresh(true)} />
+	{:else if !loaded}
+		<Skeleton variant="text" lines={6} />
 	{:else if list.length === 0}
 		<EmptyState icon="shield" title={m.gateways_empty()}>
 			{#snippet actions()}
@@ -163,7 +159,6 @@
 </Drawer>
 
 <Modal bind:open={creating} title={m.gateways_create()} width={480}>
-	{#if createError}<Banner tone="alert">{createError}</Banner>{/if}
 	<form id="pool-create" onsubmit={create}>
 		<FilledField label={m.gateways_name_label()} bind:value={name} required maxlength={63} />
 	</form>

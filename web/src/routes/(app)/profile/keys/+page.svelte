@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Banner, Button, EmptyState, InlineEdit, Label, Modal, Skeleton, Table, FilledField, Textarea, Tooltip, toast } from '#lib/ui/index.js';
+	import { Button, EmptyState, InlineEdit, Label, Modal, Skeleton, Table, FilledField, Textarea, Tooltip, toast } from '#lib/ui/index.js';
 	import KeyFileDrop from '#lib/KeyFileDrop.svelte';
 	import { readPubKeyFile } from '#lib/sshkey.js';
 	import RowMenu from '#lib/RowMenu.svelte';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import Ago from '#lib/Ago.svelte';
 	import CellLead from '#lib/CellLead.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { sshKeys } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { errorMessage, failToast } from '#lib/errors.js';
 	import type { SSHKey } from '#lib/gen/werbot/v1/ssh_key_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -18,7 +19,8 @@
 	let fileName = $state('');
 	let autoName = '';
 	let autoKey = '';
-	let error = $state('');
+	let failed = $state(false);
+	let fileError = $state('');
 	let adding = $state(false);
 	let name = $state('');
 	let publicKey = $state('');
@@ -30,17 +32,19 @@
 		loaded = true;
 	}
 
+	// a failed load toasts and swaps the list for LoadFailed until a reload succeeds
+	const load = () => refresh().then(() => (failed = false), (e) => ((failed = true), failToast(e)));
+
 	async function run(action: () => Promise<unknown>, message = m.common_saved()) {
-		error = '';
 		try {
 			await action();
 			toast({ tone: 'success', text: message });
 		} catch (e) {
-			error = errorMessage(e);
+			failToast(e);
 			await refresh().catch(() => {});
 			return false;
 		}
-		await refresh().catch((e) => (error = errorMessage(e)));
+		await load();
 		return true;
 	}
 
@@ -52,18 +56,18 @@
 	}
 
 	async function readKeyFile(file: File) {
-		error = '';
+		fileError = '';
 		try {
 			const parsed = await readPubKeyFile(file);
 			if ('error' in parsed) {
-				error = parsed.error === 'too_large' ? m.keys_file_too_large() : m.keys_file_private_key();
+				fileError = parsed.error === 'too_large' ? m.keys_file_too_large() : m.keys_file_private_key();
 				return;
 			}
 			publicKey = autoKey = parsed.key;
 			fileName = file.name;
 			if (!name.trim() || name === autoName) name = autoName = parsed.name;
 		} catch (e) {
-			error = errorMessage(e);
+			fileError = errorMessage(e);
 		}
 	}
 
@@ -77,7 +81,7 @@
 	function setAdding(open: boolean) {
 		adding = open;
 		if (!open) {
-			name = publicKey = fileName = autoName = autoKey = error = '';
+			name = publicKey = fileName = autoName = autoKey = fileError = '';
 		}
 	}
 
@@ -87,7 +91,7 @@
 		if (key) await run(() => sshKeys.deleteSSHKey({ id: key.id }), m.common_deleted());
 	}
 
-	onMount(() => refresh().catch((e) => (error = errorMessage(e))));
+	onMount(load);
 </script>
 
 <PageHeader title={m.keys_title()} count={loaded ? keys.length : undefined}>
@@ -98,10 +102,10 @@
 	{/snippet}
 </PageHeader>
 <PageBody flush>
-	{#if error && !adding}<Banner tone="alert">{error}</Banner>{/if}
-
-	{#if !loaded}
-		{#if !error}<Skeleton variant="text" lines={4} />{/if}
+	{#if failed}
+		<LoadFailed onretry={load} />
+	{:else if !loaded}
+		<Skeleton variant="text" lines={4} />
 	{:else if keys.length === 0}
 		<EmptyState icon="key" title={m.keys_empty()}>
 			{#snippet actions()}
@@ -137,9 +141,8 @@
 </PageBody>
 
 <Modal bind:open={() => adding, setAdding} title={m.keys_add()} width={480}>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 	<form id="add-key" onsubmit={add}>
-		<KeyFileDrop hint={m.keys_drop_hint()} {fileName} accept=".pub" onfile={readKeyFile} onclear={clearFile} />
+		<KeyFileDrop hint={m.keys_drop_hint()} {fileName} accept=".pub" error={fileError} onfile={readKeyFile} onclear={clearFile} />
 		<FilledField label={m.keys_name()} bind:value={name} />
 		<Textarea label={m.keys_public_key()} bind:value={publicKey} required rows={5} />
 	</form>

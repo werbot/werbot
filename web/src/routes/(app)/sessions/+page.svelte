@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Badge, Banner, Button, Calendar, EmptyState, Label, Segmented, Select, Skeleton, Table, type SelectOption } from '#lib/ui/index.js';
+	import { Badge, Button, Calendar, EmptyState, Label, Segmented, Select, Skeleton, Table, type SelectOption } from '#lib/ui/index.js';
 	import { members, resources, sessions } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import type { Session } from '#lib/gen/werbot/v1/session_pb.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import { bytes, elapsed, fmt } from '#lib/format.js';
@@ -21,9 +22,10 @@
 	let list = $state<Session[]>([]);
 	let next = $state(0);
 	let pageNo = $state(1);
-	let error = $state('');
+	let failed = $state(false);
+	// Retry bumps it to re-run the load effect
+	let attempt = $state(0);
 	let loaded = $state(false);
-	let optionsError = $state('');
 	let userId = $state('');
 	let resourceId = $state('');
 	let status = $state('0');
@@ -42,17 +44,21 @@
 
 	// reloads on every filter or page change; a superseded answer is dropped
 	$effect(() => {
+		void attempt;
+		failed = false;
 		let stale = false;
 		const req = { userId, resourceId, status: Number(status), from: dayStart(from), to: dayStart(to, 1), page: pageNo };
 		sessions.listSessions(req).then(
 			(r) => {
 				if (stale) return;
 				({ sessions: list, nextPage: next } = r);
-				error = '';
+				failed = false;
 				loaded = true;
 			},
 			(e) => {
-				if (!stale) error = errorMessage(e);
+				if (stale) return;
+				failed = true;
+				failToast(e);
 			}
 		);
 		return () => (stale = true);
@@ -65,7 +71,7 @@
 				users = mem.members.flatMap((x) => (x.user ? [{ value: x.user.id, label: x.user.login }] : []));
 				resourceOptions = res.resources.map((r) => ({ value: r.id, label: r.name }));
 			},
-			(e) => (optionsError = errorMessage(e))
+			failToast
 		);
 	});
 
@@ -100,10 +106,8 @@
 	{/snippet}
 </PageHeader>
 <PageBody flush>
-	{#if error || optionsError}<Banner tone="alert">{error || optionsError}</Banner>{/if}
-
-	{#if error}
-		<!-- the error banner above says why -->
+	{#if failed}
+		<LoadFailed onretry={() => attempt++} />
 	{:else if !loaded}
 		<Skeleton variant="text" lines={6} />
 	{:else if list.length === 0}

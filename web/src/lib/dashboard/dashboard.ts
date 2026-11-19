@@ -1,7 +1,8 @@
 import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
 
-// a card is pending until its call settles; a failed call only breaks its own card
-export type Slot<T> = { state: 'loading' } | { state: 'error'; text: string } | { state: 'ok'; value: T };
+// a card is pending until its call settles; a failed call only breaks its own card,
+// which then offers to retry that call
+export type Slot<T> = { state: 'loading' } | { state: 'error'; retry: () => void } | { state: 'ok'; value: T };
 
 // one page of active sessions is the most the counter can show
 export const ACTIVE_PAGE = 200;

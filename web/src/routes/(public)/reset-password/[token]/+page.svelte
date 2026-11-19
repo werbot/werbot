@@ -1,35 +1,35 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Banner, Button, FilledField } from '#lib/ui/index.js';
+	import { Button, FilledField } from '#lib/ui/index.js';
+	import FormField from '#lib/FormField.svelte';
 	import { auth } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let password = $state('');
 	let repeat = $state('');
-	let error = $state('');
+	let mismatch = $state('');
 
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
-		error = '';
+		mismatch = '';
 		if (password !== repeat) {
-			error = m.auth_password_mismatch();
+			mismatch = m.auth_password_mismatch();
 			return;
 		}
 		try {
 			await auth.resetPassword({ token: page.params.token, newPassword: password });
 			await goto('/login');
 		} catch (err) {
-			error = errorMessage(err);
+			failToast(err);
 		}
 	}
 </script>
 
 <form onsubmit={submit}>
 	<h1>{m.auth_reset_title()}</h1>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 	<FilledField type="password" label={m.field_password()} bind:value={password} required autocomplete="new-password" />
-	<FilledField type="password" label={m.field_password_repeat()} bind:value={repeat} required autocomplete="new-password" />
+	<FormField type="password" label={m.field_password_repeat()} bind:value={repeat} required autocomplete="new-password" error={mismatch} />
 	<Button type="submit" variant="solid" size={48}>{m.auth_reset_submit()}</Button>
 </form>

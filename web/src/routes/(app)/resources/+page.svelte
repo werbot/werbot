@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Badge, Banner, Button, EmptyState, Label, Skeleton, Table, TextField } from '#lib/ui/index.js';
+	import { Badge, Button, EmptyState, Label, Skeleton, Table, TextField } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
 	import NewResourceModal from '#lib/resources/NewResourceModal.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
@@ -18,20 +19,22 @@
 
 	let list = $state<Resource[]>([]);
 	let filter = $state('');
-	let error = $state('');
+	let failed = $state(false);
 	let creating = $state(false);
 	let loaded = $state(false);
 	let any = $state(false);
 
+	// a failed load toasts and swaps the list for LoadFailed until a reload succeeds
 	async function refresh() {
-		error = '';
 		try {
 			const labelFilter = parseLabelFilter(filter);
 			({ resources: list } = await resources.listResources({ labelFilter }));
 			if (!Object.keys(labelFilter).length) any = list.length > 0;
 			loaded = true;
+			failed = false;
 		} catch (e) {
-			error = errorMessage(e);
+			failed = true;
+			failToast(e);
 		}
 	}
 
@@ -60,10 +63,10 @@
 </PageHeader>
 <NewResourceModal bind:open={creating} />
 <PageBody flush>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
-
-	{#if !loaded}
-		{#if !error}<Skeleton variant="text" lines={6} />{/if}
+	{#if failed}
+		<LoadFailed onretry={refresh} />
+	{:else if !loaded}
+		<Skeleton variant="text" lines={6} />
 	{:else if list.length === 0 && any}
 		<EmptyState icon="desktop" title={m.resources_no_match()}>
 			{#snippet actions()}

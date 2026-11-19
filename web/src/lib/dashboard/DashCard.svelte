@@ -1,6 +1,7 @@
 <script lang="ts" generics="T">
 	import type { Snippet } from 'svelte';
 	import { EmptyState, Icon, Skeleton, type IconName } from '#lib/ui/index.js';
+	import LoadFailed from '#lib/LoadFailed.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { Slot } from './dashboard';
 
@@ -32,7 +33,7 @@
 				<div class="card__skel"><Skeleton variant="circle" width={36} height={36} /><Skeleton variant="text" lines={2} /></div>
 			{/each}
 		{:else if slot.state === 'error'}
-			<p class="card__error">{m.dashboard_load_failed()}: {slot.text}</p>
+			<LoadFailed onretry={slot.retry} />
 		{:else if empty && Array.isArray(slot.value) && !slot.value.length}
 			<EmptyState icon={empty.icon} title={empty.title} />
 		{:else}
@@ -117,10 +118,5 @@
 		align-items: center;
 		gap: var(--miso-sp-12);
 		padding: 8px 16px;
-	}
-	.card__error {
-		margin: 0;
-		padding: 8px 16px;
-		color: var(--miso-txt-secondary);
 	}
 </style>

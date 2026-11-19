@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { audit, gateways, resources, sessions, sshKeys } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
 	import type { AuditEvent } from '#lib/gen/werbot/v1/audit_pb.js';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
@@ -22,11 +22,16 @@
 	let { data }: PageProps = $props();
 
 	const loading = { state: 'loading' } as const;
-	const load = <T,>(p: Promise<T>, set: (s: Slot<T>) => void) =>
-		p.then(
+	const load = <T,>(get: () => Promise<T>, set: (s: Slot<T>) => void): void => {
+		set(loading);
+		get().then(
 			(value) => set({ state: 'ok', value }),
-			(e) => set({ state: 'error', text: errorMessage(e) })
+			(e) => {
+				failToast(e);
+				set({ state: 'error', retry: () => load(get, set) });
+			}
 		);
+	};
 
 	const manager = $derived(data.session.role === Role.OWNER || data.session.role === Role.ADMIN);
 	const date = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
@@ -40,15 +45,15 @@
 	let keys = $state<Slot<SSHKey[]>>(loading);
 
 	onMount(() => {
-		const list = (status: SessionStatus, pageSize: number) => sessions.listSessions({ status, pageSize }).then((r) => r.sessions);
+		const list = (status: SessionStatus, pageSize: number) => () => sessions.listSessions({ status, pageSize }).then((r) => r.sessions);
 		load(list(SessionStatus.ACTIVE, ACTIVE_PAGE), (s) => (active = s));
 		load(list(SessionStatus.UNSPECIFIED, 5), (s) => (recent = s));
 		if (manager) {
-			load(resources.listResources({}).then((r) => r.resources), (s) => (res = s));
-			load(gateways.listGateways({}).then((r) => r.gateways), (s) => (pools = s));
-			load(audit.listEvents({ pageSize: 5 }).then((r) => r.events), (s) => (events = s));
+			load(() => resources.listResources({}).then((r) => r.resources), (s) => (res = s));
+			load(() => gateways.listGateways({}).then((r) => r.gateways), (s) => (pools = s));
+			load(() => audit.listEvents({ pageSize: 5 }).then((r) => r.events), (s) => (events = s));
 		} else {
-			load(sshKeys.listSSHKeys({}).then((r) => r.keys), (s) => (keys = s));
+			load(() => sshKeys.listSSHKeys({}).then((r) => r.keys), (s) => (keys = s));
 		}
 	});
 

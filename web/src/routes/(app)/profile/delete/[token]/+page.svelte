@@ -1,29 +1,25 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Banner, Button, InfoBlock, SettingsCard } from '#lib/ui/index.js';
+	import { Button, InfoBlock, SettingsCard } from '#lib/ui/index.js';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { profile } from '#lib/api.js';
-	import { errorMessage } from '#lib/errors.js';
+	import { failToast } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
 
-	let error = $state('');
-
 	async function confirm() {
-		error = '';
 		try {
 			await profile.confirmAccountDeletion({ token: page.params.token });
 			await goto('/login');
 		} catch (e) {
-			error = errorMessage(e);
+			failToast(e);
 		}
 	}
 </script>
 
 <PageHeader title={m.profile_delete_confirm_title()} />
 <PageBody width={680}>
-	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 	<SettingsCard icon="trash_can" title={m.profile_delete_confirm_title()}>
 		<div class="body">
 			<InfoBlock tone="warning" icon="exclam_triangle-line" title={m.common_warning()}>{m.profile_delete_confirm_warning()}</InfoBlock>
