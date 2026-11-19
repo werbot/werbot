@@ -12,7 +12,8 @@ test.afterAll(() => procs.forEach((p) => p.kill()));
 test('pool with two instances, join token and revocation', async ({ page, baseURL }) => {
 	test.setTimeout(120_000);
 	await loginAsOwner(page);
-	await page.getByRole('button', { name: en.nav_gateways }).click();
+	await page.getByRole('link', { name: en.nav_access }).click();
+	await page.getByRole('link', { name: en.nav_gateways }).click();
 	await page.getByLabel(en.gateways_name_label).fill('e2e-pool');
 	await page.getByRole('button', { name: en.gateways_create }).click();
 	await page.getByRole('button', { name: 'e2e-pool' }).click();

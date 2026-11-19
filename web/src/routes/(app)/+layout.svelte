@@ -2,30 +2,21 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Sidebar, SidebarItem, Toaster } from '#lib/ui/index.js';
+	import { Avatar, Toaster } from '#lib/ui/index.js';
 	import { auth, system } from '#lib/api.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import { itemFor, navSections, sectionFor } from '#lib/shell/nav.js';
+	import PrimaryMenu from '#lib/shell/PrimaryMenu.svelte';
+	import ContextColumn from '#lib/shell/ContextColumn.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
 
 	let manager = $derived(data.session.role === Role.OWNER || data.session.role === Role.ADMIN);
-	let items = $derived([
-		{ href: '/', icon: 'dashboard', label: m.nav_dashboard() },
-		{ href: '/profile', icon: 'user', label: m.nav_profile() },
-		{ href: '/profile/keys', icon: 'key', label: m.nav_keys() },
-		{ href: '/sessions', icon: 'history', label: m.nav_sessions() },
-		...(manager
-			? [
-					{ href: '/members', icon: 'users', label: m.nav_members() },
-					{ href: '/teams', icon: 'workspace', label: m.nav_teams() },
-					{ href: '/resources', icon: 'desktop', label: m.nav_resources() },
-					{ href: '/gateways', icon: 'shield', label: m.nav_gateways() },
-					{ href: '/audit', icon: 'report_detailed', label: m.nav_audit() }
-				]
-			: [])
-	]);
+	let sections = $derived(navSections(manager));
+	let section = $derived(sectionFor(sections, page.url.pathname));
+	let user = $derived({ name: data.session.user?.name ?? '', email: data.session.user?.email ?? '' });
 
 	// DB-IP Lite requires the credit; other GeoIP databases do not.
 	let geoipAttribution = $state(false);
@@ -43,48 +34,106 @@
 	}
 </script>
 
-<div class="shell">
-	<Sidebar expanded>
-		{#each items as item (item.href)}
-			<SidebarItem icon={item.icon} active={page.url.pathname === item.href} onclick={() => goto(item.href)}>
-				{item.label}
-			</SidebarItem>
-		{/each}
-		{#snippet footer()}
-			<SidebarItem icon="logout" onclick={logout}>{m.auth_logout()}</SidebarItem>
-			{#if geoipAttribution}
-				<a class="attribution" href="https://db-ip.com">{m.geoip_attribution()}</a>
-			{/if}
-		{/snippet}
-	</Sidebar>
-	<main>
-		{@render children()}
+{#snippet profileHeader()}
+	<div class="profile">
+		<Avatar name={user.name} size={64} />
+		<span class="profile__name">{user.name}</span>
+		<span class="profile__email">{user.email}</span>
+	</div>
+{/snippet}
+
+{#snippet credit()}
+	<a class="attribution" href="https://db-ip.com">{m.geoip_attribution()}</a>
+{/snippet}
+
+<div class={['shell', section.items.length === 0 && 'shell--bare']}>
+	<PrimaryMenu {sections} active={section.id} {user} onlogout={logout} />
+	{#if section.items.length > 0}
+		<ContextColumn
+			{section}
+			current={itemFor(section, page.url.pathname)}
+			header={section.id === 'profile' ? profileHeader : undefined}
+			footer={geoipAttribution ? credit : undefined}
+		/>
+	{/if}
+	<main class="miso-scroll">
+		<div class="work">{@render children()}</div>
+		{#if geoipAttribution}
+			<!-- the credit must be on every page: here it stands in for the column footer -->
+			<footer class="work__credit">{@render credit()}</footer>
+		{/if}
 	</main>
 </div>
 <Toaster />
 
 <style>
 	.shell {
-		display: flex;
-		height: 100vh;
+		display: grid;
+		grid-template-columns: 64px 1fr;
+		height: 100dvh;
 	}
 
 	main {
-		flex: 1;
+		display: flex;
+		flex-direction: column;
 		min-width: 0;
 		padding: 24px;
 		overflow: auto;
+		background: var(--miso-cont-mid);
+	}
+
+	.work {
+		flex: 1 0 auto;
+	}
+
+	.work__credit {
+		display: flex;
+		justify-content: center;
+		padding-top: 16px;
+	}
+
+	/* desktop from 1024px: the context column shows and carries the credit; below it only the rail stays */
+	@media (min-width: 1024px) {
+		.shell:not(.shell--bare) {
+			grid-template-columns: 64px 260px 1fr;
+		}
+
+		.shell:not(.shell--bare) .work__credit {
+			display: none;
+		}
+	}
+
+	.profile {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 2px;
+		padding: 0 4px;
+	}
+
+	.profile :global(.miso-avatar) {
+		margin-bottom: 10px;
+		border-radius: 12px;
+	}
+
+	.profile__name {
+		font: var(--miso-font-ui-16-semi);
+		color: var(--miso-txt-accent);
+	}
+
+	.profile__email {
+		font: var(--miso-font-ui-12-reg);
+		color: var(--miso-txt-secondary);
 	}
 
 	.attribution {
-		padding: 4px 10px 0;
 		font: var(--miso-font-ui-11-reg);
-		color: var(--miso-sidebar-ico-base);
+		color: var(--miso-txt-tertiary);
 		text-decoration: none;
 		white-space: nowrap;
 	}
 
 	.attribution:hover {
-		color: var(--miso-sidebar-ico-hover);
+		color: var(--miso-txt-primary);
 	}
 </style>

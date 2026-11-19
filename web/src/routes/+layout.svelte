@@ -28,3 +28,9 @@
 	{/if}
 	{@render children()}
 </div>
+
+<style>
+	:global(body) {
+		margin: 0;
+	}
+</style>

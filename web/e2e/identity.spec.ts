@@ -16,9 +16,10 @@ test.describe.serial('identity', () => {
 		await page.getByLabel(en.field_org_name).fill(OWNER.org);
 		await page.getByRole('button', { name: en.auth_setup_submit }).click();
 		await expect(page).toHaveURL('/');
-		await expect(page.getByText(en.nav_members)).toBeVisible();
+		await expect(page.getByRole('link', { name: en.nav_organization })).toBeVisible();
 
-		await page.getByText(en.auth_logout).click();
+		await page.getByRole('button', { name: en.nav_profile }).click();
+		await page.getByRole('menuitem', { name: en.auth_logout }).click();
 		await expect(page).toHaveURL(/\/login$/);
 		await loginAsOwner(page);
 	});
@@ -40,8 +41,8 @@ test.describe.serial('identity', () => {
 		await bobPage.getByLabel(en.field_password, { exact: true }).fill(bob.password);
 		await bobPage.getByRole('button', { name: en.invite_accept_submit }).click();
 		await expect(bobPage).toHaveURL('/');
-		await expect(bobPage.getByText(en.nav_profile)).toBeVisible();
-		await expect(bobPage.getByText(en.nav_members)).toBeHidden();
+		await expect(bobPage.getByRole('link', { name: en.nav_access })).toBeVisible();
+		await expect(bobPage.getByRole('link', { name: en.nav_organization })).toBeHidden();
 		await ctx.close();
 	});
 
@@ -56,7 +57,8 @@ test.describe.serial('identity', () => {
 		await page.getByRole('menuitem', { name: bob.name }).click();
 		await expect(page.locator('.miso-chip', { hasText: bob.name })).toBeVisible();
 
-		await page.getByText(en.auth_logout).click();
+		await page.getByRole('button', { name: en.nav_profile }).click();
+		await page.getByRole('menuitem', { name: en.auth_logout }).click();
 		await expect(page).toHaveURL(/\/login$/);
 		await page.goto('/teams');
 		await expect(page).toHaveURL(/\/login$/);
