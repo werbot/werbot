@@ -3,7 +3,7 @@
 ## Topologies
 
 - **All-in-one (default).** `werbot server` serves the UI itself on `WERBOT_HTTP_ADDR`, next to the API.
-- **Separate web.** `werbot web` runs on its own host and domain. It serves the UI and proxies the paths `/werbot.v1.` (the Connect API) and `/api/` (recording replay) to the server, so the browser sees one origin and no CORS is needed. The server's `Set-Cookie` passes unchanged and becomes a cookie of the web domain.
+- **Separate web.** `werbot web` runs on its own host and domain. It serves the UI and proxies the paths `/werbot.v1.` (the Connect API), `/api/` (recording replay), `/oauth/` and `/.well-known/` (the CLI's OAuth authorization server) to the server, so the browser sees one origin and no CORS is needed. The server's `Set-Cookie` passes unchanged and becomes a cookie of the web domain.
 
 `werbot web` keeps no state, never connects to PostgreSQL and does not get `WERBOT_SECRET_KEY` or `WERBOT_DATABASE_URL`. Run as many replicas as you need behind an L7 load balancer.
 

@@ -135,5 +135,5 @@ func runServer(ctx context.Context, args []string, env cli.Env) error {
 		return err
 	}
 	defer pool.Close()
-	return serve(ctx, cfg, logger, pool, sdk.Modules(), web.FS(), serveOpts{CA: boot.CA, Signer: boot.Signer, Box: box, WithGateway: withGateway, Getenv: env.Getenv})
+	return serve(ctx, cfg, logger, pool, sdk.Modules(), web.FS(), serveOpts{CA: boot.CA, Signer: boot.Signer, OAuthKey: boot.OAuthKey, Box: box, WithGateway: withGateway, Getenv: env.Getenv})
 }

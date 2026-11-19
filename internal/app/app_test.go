@@ -21,6 +21,7 @@ import (
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/identity/oauth"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/secretbox"
@@ -63,7 +64,7 @@ func withTestDefaults(t *testing.T, cfg *config.Config) {
 	}
 }
 
-// testServeOpts loads the tunnel CA and the signer as bootstrap does for werbot server.
+// testServeOpts loads the tunnel CA and the signers as bootstrap does for werbot server.
 func testServeOpts(t *testing.T, cfg config.Config, pool *pgxpool.Pool) serveOpts {
 	t.Helper()
 	box, err := secretbox.New(cfg.SecretKey, nil)
@@ -72,7 +73,9 @@ func testServeOpts(t *testing.T, cfg config.Config, pool *pgxpool.Pool) serveOpt
 	require.NoError(t, err)
 	signer, err := session.LoadSigner(context.Background(), pool, box)
 	require.NoError(t, err)
-	return serveOpts{CA: ca, Signer: signer, Box: box}
+	key, err := oauth.LoadSigningKey(context.Background(), pool, box)
+	require.NoError(t, err)
+	return serveOpts{CA: ca, Signer: signer, OAuthKey: key, Box: box}
 }
 
 func env(kv map[string]string) func(string) string {

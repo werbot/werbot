@@ -18,6 +18,7 @@ import (
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/identity"
+	"github.com/werbot/werbot/internal/identity/oauth"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/config"
@@ -47,12 +48,13 @@ func (h host) Subscribe(channel string, fn func(context.Context, string)) {
 	h.subs.add(h.module, channel, fn)
 }
 
-// serveOpts are what Run hands serve besides the config: the tunnel CA and
-// recording signer from bootstrap, the secret box it was opened with and,
-// for --with-gateway, the environment of the embedded gateway.
+// serveOpts are what Run hands serve besides the config: the tunnel CA, the
+// recording signer and the OAuth signing key from bootstrap, the secret box it
+// was opened with and, for --with-gateway, the environment of the embedded gateway.
 type serveOpts struct {
 	CA          *tlsca.CA
 	Signer      *session.Signer
+	OAuthKey    *oauth.SigningKey
 	Box         *secretbox.Box
 	WithGateway bool
 	Getenv      func(string) string
@@ -91,6 +93,9 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	mux.Handle(werbotv1connect.NewTeamServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewSettingsServiceHandler(idh, opts))
 	s.mount(mux, opts)
+	if err := mountOAuth(mux, cfg, pool, o.OAuthKey, logger); err != nil {
+		return err
+	}
 	// Enroll returns the pool's private host key: opts log no bodies, only
 	// the masked cause of CodeInternal.
 	gw := inventory.NewGatewayRPC(s.Gateways, turl)
