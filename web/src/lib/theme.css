@@ -130,6 +130,9 @@
 	/* Avatar slots 7 (blue) and 8 (violet) */
 	--miso-av-7: #d9895b;
 	--miso-av-8: #a6896a;
+	/* Slots 2 (orange) and 3 (yellow): no avatar but the signed-in user's is near the logo gold */
+	--miso-av-2: #b07aa1;
+	--miso-av-3: #7d8ca3;
 
 	/* Focus ring of inputs */
 	--miso-brd-focus: 0 0 0 1px var(--wb-focus), 0 0 0 4px var(--wb-brand-a400);

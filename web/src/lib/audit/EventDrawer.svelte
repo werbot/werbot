@@ -4,6 +4,7 @@
 	import { errorMessage } from '#lib/errors.js';
 	import type { AuditEvent } from '#lib/gen/werbot/v1/audit_pb.js';
 	import { fmt } from '#lib/format.js';
+	import { isMe } from '#lib/me.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	// id of the event to show; the drawer closes by clearing it
@@ -34,7 +35,7 @@
 	{#if event}
 		<PropertyRow label={m.audit_col_time()}>{fmt(event.createdAt)}</PropertyRow>
 		<PropertyRow label={m.audit_col_actor()}>
-			{#if event.actorLogin}<span class="actor"><Avatar name={event.actorLogin} size={24} />{event.actorLogin}</span>{:else}{event.actorKind}{/if}
+			{#if event.actorLogin}<span class={['actor', isMe(event.actorLogin) && 'wb-me']}><Avatar name={event.actorLogin} size={24} />{event.actorLogin}</span>{:else}{event.actorKind}{/if}
 		</PropertyRow>
 		<PropertyRow label={m.audit_col_action()}>{event.action}</PropertyRow>
 		<PropertyRow label={m.audit_col_target()}>{event.targetType} {event.targetId}</PropertyRow>

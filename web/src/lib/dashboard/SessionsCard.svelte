@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Avatar, Badge, Label } from '#lib/ui/index.js';
+	import { Badge, Label } from '#lib/ui/index.js';
 	import { elapsed } from '#lib/format.js';
 	import type { Session } from '#lib/gen/werbot/v1/session_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
-	import Ago from './Ago.svelte';
+	import Ago from '#lib/Ago.svelte';
 	import DashCard from './DashCard.svelte';
 	import DashRow from './DashRow.svelte';
 	import type { Slot } from './dashboard';
@@ -21,8 +21,7 @@
 	{#snippet children(list)}
 		<ul>
 			{#each list as s (s.id)}
-				<DashRow href={`/sessions/${s.id}`} title={s.resourceName || s.id}>
-					{#snippet lead()}<Avatar name={s.userLogin} size={36} online={!s.endedAt} />{/snippet}
+				<DashRow href={`/sessions/${s.id}`} title={s.resourceName || s.id} icon="person" avatar={s.userLogin} online={!s.endedAt}>
 					{#snippet meta()}
 						<span>{s.userLogin || '—'}</span>
 						{#if s.kind}<Label variant="soft" size={16}>{s.kind}</Label>{/if}

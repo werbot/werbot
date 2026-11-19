@@ -6,6 +6,7 @@
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
 	import RowMenu from '#lib/RowMenu.svelte';
+	import CellLead from '#lib/CellLead.svelte';
 	import TeamDrawer from '#lib/teams/TeamDrawer.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
@@ -22,6 +23,8 @@
 	let removing = $state<Team | null>(null);
 
 	const nameOf = (id: string) => people.find((p) => p.user?.id === id)?.user?.name ?? id;
+	// avatars are keyed by login
+	const loginOf = (id: string) => people.find((p) => p.user?.id === id)?.user?.login ?? id;
 	const current = $derived(list.find((t) => t.id === selected) ?? null);
 
 	async function refresh() {
@@ -94,8 +97,13 @@
 			{/snippet}
 			{#each list as team (team.id)}
 				<tr>
-					<td><button class="row-name" onclick={() => (selected = team.id)}>{team.name}</button></td>
-					<td><AvatarStack people={team.memberUserIds.map((id) => ({ name: nameOf(id) }))} /></td>
+					<td>
+						<CellLead icon="people">
+							<button class="row-name" onclick={() => (selected = team.id)}>{team.name}</button>
+							{#snippet sub()}{m.teams_member_count({ count: team.memberUserIds.length })}{/snippet}
+						</CellLead>
+					</td>
+					<td><AvatarStack people={team.memberUserIds.map((id) => ({ name: loginOf(id) }))} /></td>
 					<td class="more">
 						<RowMenu label={m.teams_delete()} onselect={() => (removing = team)} bind:open={() => menuOpen === team.id, (v) => (menuOpen = v ? team.id : '')} />
 					</td>
@@ -110,6 +118,7 @@
 	team={current}
 	{people}
 	{nameOf}
+	{loginOf}
 	onrename={(name) => current && run(() => teams.renameTeam({ id: current.id, name }))}
 	onadd={(userId) => current && run(() => teams.addTeamMember({ teamId: current.id, userId }))}
 	onremove={(userId) => current && run(() => teams.removeTeamMember({ teamId: current.id, userId }))}

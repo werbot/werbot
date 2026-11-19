@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Avatar, Badge, Banner, Button, Calendar, EmptyState, Segmented, Select, Skeleton, Table, type SelectOption } from '#lib/ui/index.js';
+	import { Badge, Banner, Button, Calendar, EmptyState, Label, Segmented, Select, Skeleton, Table, type SelectOption } from '#lib/ui/index.js';
 	import { members, resources, sessions } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Session } from '#lib/gen/werbot/v1/session_pb.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
-	import { bytes, fmt } from '#lib/format.js';
+	import { bytes, elapsed, fmt } from '#lib/format.js';
+	import Ago from '#lib/Ago.svelte';
+	import CellLead from '#lib/CellLead.svelte';
 	import FilterMenu from '#lib/FilterMenu.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
@@ -111,27 +113,31 @@
 	{:else}
 		<Table>
 			{#snippet header()}
-				<th>{m.sessions_col_user()}</th>
 				<th>{m.sessions_col_resource()}</th>
 				<th>{m.sessions_col_started()}</th>
-				<th>{m.sessions_col_ended()}</th>
-				<th>{m.sessions_col_status()}</th>
+				<th>{m.sessions_col_duration()}</th>
 				<th>{m.sessions_col_traffic()}</th>
 			{/snippet}
 			{#each list as s (s.id)}
 				<tr>
 					<td>
-						{#if s.userLogin}<span class="user"><Avatar name={s.userLogin} size={24} />{s.userLogin}</span>{:else}—{/if}
+						<CellLead icon="person" avatar={s.userLogin} online={!s.endedAt}>
+							<a class="row-name" href={`/sessions/${s.id}`}>{s.resourceName || s.id}</a>
+							{#snippet sub()}
+								<span>{s.userLogin || '—'}</span>
+								{#if s.kind}<Label variant="soft" size={16}>{s.kind}</Label>{/if}
+							{/snippet}
+						</CellLead>
 					</td>
-					<td><a class="row-name" href={`/sessions/${s.id}`}>{s.resourceName || s.id}</a></td>
-					<td>{fmt(s.startedAt)}</td>
-					<td>{fmt(s.endedAt)}</td>
+					<td class="muted"><Ago ts={s.startedAt} /></td>
 					<td>
-						<Badge tone={s.endedAt ? 'ghost' : 'accent'}>
-							{s.endedAt ? m.sessions_status_ended() : m.sessions_status_active()}
-						</Badge>
+						{#if s.endedAt}
+							<span title={fmt(s.endedAt)}>{elapsed(s.startedAt, s.endedAt)}</span>
+						{:else}
+							<Badge tone="accent">{m.sessions_status_active()}</Badge>
+						{/if}
 					</td>
-					<td>↑ {bytes(s.bytesUp)} ↓ {bytes(s.bytesDown)}</td>
+					<td class="muted">↑ {bytes(s.bytesUp)} ↓ {bytes(s.bytesDown)}</td>
 				</tr>
 			{/each}
 		</Table>
@@ -140,9 +146,8 @@
 </PageBody>
 
 <style>
-	.user {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--miso-sp-08);
+	.muted {
+		color: var(--miso-txt-secondary);
+		white-space: nowrap;
 	}
 </style>

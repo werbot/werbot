@@ -8,7 +8,9 @@
 	import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import FormField from '#lib/FormField.svelte';
+	import CellLead from '#lib/CellLead.svelte';
 	import CheckAccess from './CheckAccess.svelte';
+	import LabelChips from './LabelChips.svelte';
 	import { formatPorts, parsePorts } from './forms/ports.js';
 
 	let { resource }: { resource: Resource } = $props();
@@ -16,6 +18,8 @@
 	let bindings = $state<Binding[]>([]);
 	let users = $state<SelectOption[]>([]);
 	let teamOptions = $state<SelectOption[]>([]);
+	// avatars are keyed by login
+	let logins = $state(new Map<string, string>());
 	let error = $state('');
 	let subjectType = $state('user');
 	let subjectId = $state('');
@@ -44,6 +48,7 @@
 		try {
 			const [, mem, tm] = await Promise.all([refresh(), members.listMembers({}), teams.listTeams({})]);
 			users = mem.members.flatMap((x) => (x.user ? [{ value: x.user.id, label: `${x.user.name} (${x.user.login})` }] : []));
+			logins = new Map(mem.members.flatMap((x) => (x.user ? [[x.user.id, x.user.login]] : [])));
 			teamOptions = tm.teams.map((t) => ({ value: t.id, label: t.name }));
 		} catch (e) {
 			error = errorMessage(e);
@@ -84,9 +89,6 @@
 			})
 		);
 	}
-
-	const describe = (b: Binding) =>
-		b.resourceId ? m.access_this_resource() : Object.entries(b.labelSelector).map(([k, v]) => `${k}=${v}`).join(', ');
 </script>
 
 {#if error}<Banner tone="alert">{error}</Banner>{/if}
@@ -102,11 +104,18 @@
 			<th></th>
 		{/snippet}
 		{#each visible as b (b.id)}
+			{@const name = names.get(b.subjectId) ?? b.subjectId}
+			{@const user = b.subjectType === 'user'}
 			<tr>
-				<td>{names.get(b.subjectId) ?? b.subjectId}</td>
-				<td>{describe(b)}</td>
+				<td>
+					<CellLead icon={user ? 'person' : 'people'} avatar={user ? logins.get(b.subjectId) : undefined}>
+						{name}
+						{#snippet sub()}{user ? m.access_user() : m.access_team()}{/snippet}
+					</CellLead>
+				</td>
+				<td>{#if b.resourceId}{m.access_this_resource()}{:else}<LabelChips labels={b.labelSelector} />{/if}</td>
 				{#if withPorts}<td>{formatPorts(b.ports) || m.access_all_ports()}</td>{/if}
-				<td><Button scheme="w" variant="plain" onclick={() => run(() => access.deleteBinding({ id: b.id }))}>{m.access_remove()}</Button></td>
+				<td class="more"><Button scheme="w" variant="plain" onclick={() => run(() => access.deleteBinding({ id: b.id }))}>{m.access_remove()}</Button></td>
 			</tr>
 		{/each}
 	</Table>
@@ -129,6 +138,10 @@
 <CheckAccess resourceId={resource.id} {users} {withPorts} />
 
 <style>
+	.more {
+		text-align: right;
+	}
+
 	form {
 		display: flex;
 		flex-direction: column;

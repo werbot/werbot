@@ -3,6 +3,8 @@
 	import { Badge, Button, EmptyState, Table } from '#lib/ui/index.js';
 	import type { JoinToken } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import Ago from '#lib/Ago.svelte';
+	import CellLead from '#lib/CellLead.svelte';
 	import { fmt } from '#lib/format.js';
 
 	let { tokens, onrevoke }: { tokens: JoinToken[]; onrevoke: (t: JoinToken) => void } = $props();
@@ -23,8 +25,13 @@
 		{/snippet}
 		{#each tokens as t (t.id)}
 			<tr>
-				<td>{m.gateways_token_uses({ uses: t.uses, max_uses: t.maxUses })}</td>
-				<td>{fmt(t.expiresAt)}</td>
+				<td>
+					<CellLead icon="key">
+						{m.gateways_token_uses({ uses: t.uses, max_uses: t.maxUses })}
+						{#snippet sub()}<Ago ts={t.createdAt} />{/snippet}
+					</CellLead>
+				</td>
+				<td class="muted">{fmt(t.expiresAt)}</td>
 				<td>
 					{#if t.revokedAt}
 						<Badge tone="alert">{m.gateways_token_revoked()}</Badge>
@@ -32,7 +39,7 @@
 						<Badge tone="ghost">{m.gateways_token_expired()}</Badge>
 					{/if}
 				</td>
-				<td>
+				<td class="more">
 					{#if !t.revokedAt}
 						<Button scheme="w" variant="plain" onclick={() => onrevoke(t)}>{m.gateways_token_revoke()}</Button>
 					{/if}
@@ -41,3 +48,14 @@
 		{/each}
 	</Table>
 {/if}
+
+<style>
+	.muted {
+		color: var(--miso-txt-secondary);
+		white-space: nowrap;
+	}
+
+	.more {
+		text-align: right;
+	}
+</style>

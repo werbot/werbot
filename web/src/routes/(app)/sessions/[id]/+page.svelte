@@ -9,6 +9,7 @@
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import CastPlayer from '#lib/player/CastPlayer.svelte';
+	import { isMe } from '#lib/me.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let session = $state<Session>();
@@ -54,7 +55,7 @@
 			</div>
 			<aside class="detail__props">
 				<PropertyRow label={m.sessions_col_user()}>
-					{#if session.userLogin}<span class="user"><Avatar name={session.userLogin} size={24} />{session.userLogin}</span>{:else}—{/if}
+					{#if session.userLogin}<span class={['user', isMe(session.userLogin) && 'wb-me']}><Avatar name={session.userLogin} size={24} />{session.userLogin}</span>{:else}—{/if}
 				</PropertyRow>
 				<PropertyRow label={m.sessions_col_resource()}>{session.resourceName || '—'}</PropertyRow>
 				{#if session.kind}<PropertyRow label={m.sessions_kind()}>{session.kind}</PropertyRow>{/if}

@@ -2,6 +2,8 @@
 	import { Badge, EmptyState, Table } from '#lib/ui/index.js';
 	import type { GatewayInstance } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import Ago from '#lib/Ago.svelte';
+	import CellLead from '#lib/CellLead.svelte';
 	import RowMenu from '#lib/RowMenu.svelte';
 	import { fmtShort as fmt } from '#lib/format.js';
 
@@ -16,17 +18,22 @@
 	<Table>
 		{#snippet header()}
 			<th>{m.gateways_col_hostname()}</th>
-			<th>{m.gateways_col_ip()}</th>
+			<th>{m.gateways_col_status()}</th>
 			<th>{m.gateways_col_last_seen()}</th>
 			<th>{m.gateways_col_cert_expires()}</th>
 			<th></th>
 		{/snippet}
 		{#each instances as i (i.id)}
 			<tr>
-				<td><div class="host">{i.hostname}<Badge tone={i.online ? 'accent' : 'ghost'}>{i.online ? m.gateways_online() : m.gateways_offline()}</Badge></div></td>
-				<td class="ip">{i.clientIp}<small>{i.version}</small></td>
-				<td>{fmt(i.lastSeenAt)}</td>
-				<td>{fmt(i.certExpiresAt)}</td>
+				<td>
+					<CellLead icon="desktop">
+						{i.hostname}
+						{#snippet sub()}{[i.clientIp, i.version].filter(Boolean).join(' · ')}{/snippet}
+					</CellLead>
+				</td>
+				<td><Badge tone={i.online ? 'accent' : 'ghost'}>{i.online ? m.gateways_online() : m.gateways_offline()}</Badge></td>
+				<td class="muted"><Ago ts={i.lastSeenAt} /></td>
+				<td class="muted">{fmt(i.certExpiresAt)}</td>
 				<td class="more"><RowMenu label={m.gateways_instance_delete()} onselect={() => ondelete(i)} bind:open={() => menu === i.id, (v) => (menu = v ? i.id : '')} /></td>
 			</tr>
 		{/each}
@@ -34,19 +41,12 @@
 {/if}
 
 <style>
-	.ip {
+	.muted {
+		color: var(--miso-txt-secondary);
 		white-space: nowrap;
 	}
 
-	small {
-		display: block;
-		color: var(--miso-txt-secondary);
-	}
-
-	.host {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: var(--miso-sp-04);
+	.more {
+		text-align: right;
 	}
 </style>

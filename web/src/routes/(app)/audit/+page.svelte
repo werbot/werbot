@@ -2,12 +2,13 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Avatar, Banner, Button, Calendar, EmptyState, Select, Skeleton, Table, TextField, type SelectOption } from '#lib/ui/index.js';
+	import { Banner, Button, Calendar, EmptyState, Select, Label, Skeleton, Table, TextField, Tooltip, type SelectOption } from '#lib/ui/index.js';
 	import { audit, members } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { AuditEvent } from '#lib/gen/werbot/v1/audit_pb.js';
 	import EventDrawer from '#lib/audit/EventDrawer.svelte';
-	import { fmt } from '#lib/format.js';
+	import Ago from '#lib/Ago.svelte';
+	import CellLead from '#lib/CellLead.svelte';
 	import FilterMenu from '#lib/FilterMenu.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
@@ -36,6 +37,10 @@
 	const day = (v: string) => (v ? new Date(`${v}T00:00`) : null);
 
 	const all = $derived({ value: '', label: m.audit_filter_actor_all() });
+
+	// targets with a page of their own; a user target shows the login from the actor list
+	const linked = ['resource', 'session'];
+	const login = (ev: AuditEvent) => (ev.targetType === 'user' ? actors.find((a) => a.value === ev.targetId)?.label : undefined);
 
 	$effect(() => {
 		form = { action: query.action, actor: query.actor };
@@ -118,19 +123,36 @@
 	{:else}
 		<Table>
 			{#snippet header()}
-				<th>{m.audit_col_time()}</th>
-				<th>{m.audit_col_actor()}</th>
 				<th>{m.audit_col_action()}</th>
 				<th>{m.audit_col_target()}</th>
+				<th>{m.audit_col_time()}</th>
 			{/snippet}
 			{#each list as ev (ev.id)}
 				<tr>
-					<td>{fmt(ev.createdAt)}</td>
 					<td>
-						{#if ev.actorLogin}<span class="actor"><Avatar name={ev.actorLogin} size={24} />{ev.actorLogin}</span>{:else}{ev.actorKind}{/if}
+						<!-- events without a user actor are the system's -->
+						<CellLead icon="gear" avatar={ev.actorLogin || undefined}>
+							<button class="row-name" onclick={() => (selected = ev.id)}>{ev.action}</button>
+							{#snippet sub()}{ev.actorLogin || ev.actorKind}{/snippet}
+						</CellLead>
 					</td>
-					<td><button class="action" onclick={() => (selected = ev.id)}>{ev.action}</button></td>
-					<td>{ev.targetType} {ev.targetId}</td>
+					<td>
+						<span class="target">
+							{#if ev.targetType}<Label variant="soft">{ev.targetType}</Label>{/if}
+							{#if login(ev)}
+								{login(ev)}
+							{:else if ev.targetId}
+								<Tooltip text={ev.targetId}>
+									{#if linked.includes(ev.targetType)}
+										<a class="id" href={`/${ev.targetType}s/${ev.targetId}`}>…{ev.targetId.slice(-8)}</a>
+									{:else}
+										<span class="id">…{ev.targetId.slice(-8)}</span>
+									{/if}
+								</Tooltip>
+							{/if}
+						</span>
+					</td>
+					<td class="muted"><Ago ts={ev.createdAt} /></td>
 				</tr>
 			{/each}
 		</Table>
@@ -140,19 +162,25 @@
 <EventDrawer bind:id={selected} />
 
 <style>
-	.actor {
+	.target {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--miso-sp-08);
+		color: var(--miso-txt-secondary);
+		white-space: nowrap;
 	}
 
-	.action {
-		padding: 0;
-		font: inherit;
-		font-weight: 600;
+	.id {
+		font-variant-numeric: tabular-nums;
 		color: inherit;
-		background: none;
-		border: 0;
-		cursor: pointer;
+	}
+
+	a.id {
+		color: var(--miso-txt-link);
+	}
+
+	.muted {
+		color: var(--miso-txt-secondary);
+		white-space: nowrap;
 	}
 </style>

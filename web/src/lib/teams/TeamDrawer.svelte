@@ -4,12 +4,14 @@
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
 	import { keepLast } from '#lib/keepLast.svelte.js';
+	import { isMe } from '#lib/me.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	interface Props {
 		team: Team | null;
 		people: Member[];
 		nameOf: (id: string) => string;
+		loginOf: (id: string) => string;
 		onrename: (name: string) => void;
 		onadd: (userId: string) => void;
 		onremove: (userId: string) => void;
@@ -17,7 +19,7 @@
 		onclose: () => void;
 	}
 
-	let { team, people, nameOf, onrename, onadd, onremove, ondelete, onclose }: Props = $props();
+	let { team, people, nameOf, loginOf, onrename, onadd, onremove, ondelete, onclose }: Props = $props();
 
 	let pick = $state('');
 	const shown = keepLast(() => team);
@@ -39,7 +41,7 @@
 		<PropertyRow label={m.members_title()}>
 			<div class="chips">
 				{#each team.memberUserIds as id (id)}
-					<Chip deletable avatar={nameOf(id)} ondelete={() => onremove(id)}>{nameOf(id)}</Chip>
+					<span class={['chip', isMe(loginOf(id)) && 'wb-me']}><Chip deletable avatar={loginOf(id)} ondelete={() => onremove(id)}>{nameOf(id)}</Chip></span>
 				{/each}
 			</div>
 		</PropertyRow>
@@ -53,6 +55,11 @@
 <style>
 	.head {
 		margin-bottom: var(--miso-sp-16);
+	}
+
+	/* the wrapper only carries .wb-me; the chips stay flex items of .chips */
+	.chip {
+		display: contents;
 	}
 
 	.chips {

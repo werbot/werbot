@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { SSHKey } from '#lib/gen/werbot/v1/ssh_key_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
-	import Ago from './Ago.svelte';
+	import Ago from '#lib/Ago.svelte';
 	import DashCard from './DashCard.svelte';
 	import DashRow from './DashRow.svelte';
 	import type { Slot } from './dashboard';

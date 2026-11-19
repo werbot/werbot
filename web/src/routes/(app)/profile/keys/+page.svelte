@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { timestampDate } from '@bufbuild/protobuf/wkt';
-	import { Banner, Button, EmptyState, InlineEdit, Modal, Skeleton, Table, FilledField, Textarea, Tooltip, toast } from '#lib/ui/index.js';
+	import { Banner, Button, EmptyState, InlineEdit, Label, Modal, Skeleton, Table, FilledField, Textarea, Tooltip, toast } from '#lib/ui/index.js';
 	import KeyFileDrop from '#lib/KeyFileDrop.svelte';
 	import { readPubKeyFile } from '#lib/sshkey.js';
 	import RowMenu from '#lib/RowMenu.svelte';
+	import Ago from '#lib/Ago.svelte';
+	import CellLead from '#lib/CellLead.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { sshKeys } from '#lib/api.js';
@@ -111,19 +112,21 @@
 		<Table>
 			{#snippet header()}
 				<th>{m.keys_name()}</th>
-				<th>{m.keys_fingerprint()}</th>
 				<th>{m.keys_created()}</th>
 				<th></th>
 			{/snippet}
 			{#each keys as key (key.id)}
 				<tr>
-					<td>
-						<InlineEdit value={key.name} placeholder={m.keys_rename()} onsave={(value) => run(() => sshKeys.updateSSHKey({ id: key.id, name: value }))} />
+					<td class="name">
+						<CellLead icon="key">
+							<InlineEdit value={key.name} placeholder={m.keys_rename()} onsave={(value) => run(() => sshKeys.updateSSHKey({ id: key.id, name: value }))} />
+							{#snippet sub()}
+								<Label variant="soft" size={16}>{key.publicKey.split(' ')[0].replace(/^ssh-/, '')}</Label>
+								<Tooltip text={key.fingerprintSha256}><code class="fp">{key.fingerprintSha256}</code></Tooltip>
+							{/snippet}
+						</CellLead>
 					</td>
-					<td>
-						<Tooltip text={key.fingerprintSha256}><code class="fp">{key.fingerprintSha256}</code></Tooltip>
-					</td>
-					<td>{key.createdAt ? timestampDate(key.createdAt).toLocaleDateString() : ''}</td>
+					<td class="muted"><Ago ts={key.createdAt} /></td>
 					<td class="more">
 						<RowMenu label={m.keys_delete()} onselect={() => (removing = key)} bind:open={() => menuOpen === key.id, (v) => (menuOpen = v ? key.id : '')} />
 					</td>
@@ -163,6 +166,23 @@
 
 	.more {
 		text-align: right;
+	}
+
+	/* the editable name reads as the lead title and lines up with the second line */
+	.name :global(.miso-inline-edit) {
+		margin-left: -4px;
+	}
+
+	.name :global(.miso-inline-edit--text .miso-inline-edit__view),
+	.name :global(.miso-inline-edit--text .miso-inline-edit__input) {
+		height: 22px;
+		padding: 0 4px;
+		font: var(--miso-font-ui-14-semi);
+	}
+
+	.muted {
+		color: var(--miso-txt-secondary);
+		white-space: nowrap;
 	}
 
 	.fp {

@@ -8,7 +8,12 @@
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import HealthDot from '#lib/resources/HealthDot.svelte';
+	import LabelChips from '#lib/resources/LabelChips.svelte';
+	import { address } from '#lib/resources/address.js';
+	import { categoryLabel, typeIcon } from '#lib/resources/icons.js';
 	import { parseLabelFilter } from '#lib/resources/labels.js';
+	import Ago from '#lib/Ago.svelte';
+	import CellLead from '#lib/CellLead.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let list = $state<Resource[]>([]);
@@ -76,25 +81,24 @@
 			{#snippet header()}
 				<th>{m.resources_name()}</th>
 				<th>{m.resources_type()}</th>
-				<th>{m.resources_category()}</th>
 				<th>{m.resources_labels()}</th>
 				<th>{m.resources_credentials()}</th>
 				<th>{m.resources_col_health()}</th>
 			{/snippet}
 			{#each list as r (r.id)}
 				<tr>
-					<td><a class="row-name" href={`/resources/${r.id}`}>{r.name}</a></td>
-					<td>{r.type}</td>
-					<td>{r.category}</td>
 					<td>
-						<div class="chips">
-							{#each Object.entries(r.labels) as [k, v] (k)}<Label variant="soft">{k}={v}</Label>{/each}
-						</div>
+						<CellLead icon={typeIcon(r.type)}>
+							<a class="row-name" href={`/resources/${r.id}`}>{r.name}</a>
+							{#snippet sub()}{address(r.configJson) || '—'}{/snippet}
+						</CellLead>
 					</td>
+					<td><span class="type"><Label variant="soft">{r.type}</Label>{categoryLabel(r.category)}</span></td>
+					<td><LabelChips labels={r.labels} /></td>
 					<td>
 						<Badge tone={r.credentialKind ? 'accent' : 'ghost'}>{r.credentialKind || m.resources_cred_none()}</Badge>
 					</td>
-					<td><HealthDot health={r.health} /></td>
+					<td><span class="health"><HealthDot health={r.health} /><Ago ts={r.health?.checkedAt} /></span></td>
 				</tr>
 			{/each}
 		</Table>
@@ -102,9 +106,12 @@
 </PageBody>
 
 <style>
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--miso-sp-04);
+	.type,
+	.health {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--miso-sp-08);
+		color: var(--miso-txt-tertiary);
+		white-space: nowrap;
 	}
 </style>

@@ -1,39 +1,31 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { Icon, type IconName } from '#lib/ui/index.js';
+	import type { IconName } from '#lib/ui/index.js';
+	import CellLead from '#lib/CellLead.svelte';
 
 	interface Props {
 		href: string;
 		title: string;
-		/** tile icon on the left, used when there is no lead */
+		/** tile icon on the left, used when there is no avatar */
 		icon?: IconName;
 		/** dot in the tile corner */
 		dot?: Snippet;
-		/** custom left part (an avatar) */
-		lead?: Snippet;
+		/** a person's login: their avatar instead of the tile; empty falls back to the tile */
+		avatar?: string;
+		/** presence dot on the avatar */
+		online?: boolean;
 		/** muted second line */
 		meta?: Snippet;
 		/** right column */
 		trail?: Snippet;
 	}
 
-	let { href, title, icon, dot, lead, meta, trail }: Props = $props();
+	let { href, title, icon, dot, avatar, online, meta, trail }: Props = $props();
 </script>
 
 <li>
 	<a class="row" {href}>
-		{#if lead}
-			{@render lead()}
-		{:else if icon}
-			<span class="row__tile">
-				<Icon name={icon} size={20} />
-				{#if dot}<span class="row__dot">{@render dot()}</span>{/if}
-			</span>
-		{/if}
-		<span class="row__info">
-			<span class="row__title">{title}</span>
-			{#if meta}<span class="row__meta">{@render meta()}</span>{/if}
-		</span>
+		<CellLead {icon} {dot} {avatar} {online} size={36} sub={meta}>{title}</CellLead>
 		{#if trail}<span class="row__trail">{@render trail()}</span>{/if}
 	</a>
 </li>
@@ -59,50 +51,6 @@
 	.row:focus-visible {
 		outline: 2px solid var(--wb-focus);
 		outline-offset: -2px;
-	}
-	.row__tile {
-		position: relative;
-		display: inline-flex;
-		flex-shrink: 0;
-		align-items: center;
-		justify-content: center;
-		width: 36px;
-		height: 36px;
-		border-radius: var(--miso-radius-08);
-		background: var(--miso-cont-mid);
-		color: var(--miso-txt-secondary);
-	}
-	.row__dot {
-		position: absolute;
-		top: -3px;
-		right: -3px;
-		display: inline-flex;
-		border: 2px solid var(--miso-cont-top);
-		border-radius: 50%;
-	}
-	.row__info {
-		display: flex;
-		flex: 1;
-		flex-direction: column;
-		min-width: 0;
-	}
-	.row__title,
-	.row__meta {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.row__title {
-		font: var(--miso-font-ui-14-semi);
-		color: var(--miso-txt-primary);
-	}
-	/* block, not flex: plain text in the meta line still gets the ellipsis */
-	.row__meta {
-		font: var(--miso-font-ui-12-reg);
-		color: var(--miso-txt-tertiary);
-	}
-	.row__meta > :global(* + *) {
-		margin-left: var(--miso-sp-04);
 	}
 	.row__trail {
 		display: flex;

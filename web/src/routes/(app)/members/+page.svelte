@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { timestampDate } from '@bufbuild/protobuf/wkt';
-	import { Avatar, Banner, Button, EmptyState, Label, Modal, Select, Skeleton, Table, Tabs, FilledField, toast, type SelectOption } from '#lib/ui/index.js';
+	import { Banner, Button, EmptyState, Label, Modal, Select, Skeleton, Table, Tabs, FilledField, toast, type SelectOption } from '#lib/ui/index.js';
 	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { members, teams as teamsApi } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
@@ -10,6 +10,8 @@
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
 	import MemberDrawer from '#lib/members/MemberDrawer.svelte';
 	import RowMenu from '#lib/RowMenu.svelte';
+	import Ago from '#lib/Ago.svelte';
+	import CellLead from '#lib/CellLead.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -112,7 +114,6 @@
 		<Table>
 			{#snippet header()}
 				<th>{m.field_name()}</th>
-				<th>{m.field_email()}</th>
 				<th>{m.field_login()}</th>
 				<th>{m.members_role()}</th>
 				<th>{m.members_joined()}</th>
@@ -121,12 +122,12 @@
 			{#each list as member (member.user?.id)}
 				<tr>
 					<td>
-						<button class="row-name who" onclick={() => (selected = member.user?.id ?? '')}>
-							<Avatar name={member.user?.name} size={24} />{member.user?.name}
-						</button>
+						<CellLead icon="person" avatar={member.user?.login}>
+							<button class="row-name" onclick={() => (selected = member.user?.id ?? '')}>{member.user?.name}</button>
+							{#snippet sub()}{member.user?.email}{/snippet}
+						</CellLead>
 					</td>
-					<td>{member.user?.email}</td>
-					<td>{member.user?.login}</td>
+					<td class="muted">{member.user?.login}</td>
 					<td>
 						{#if locked(member)}
 							<Label variant="soft">{roleLabels[member.role as keyof typeof roleLabels]()}</Label>
@@ -137,7 +138,7 @@
 							{/key}
 						{/if}
 					</td>
-					<td>{date(member.joinedAt)}</td>
+					<td class="muted"><Ago ts={member.joinedAt} /></td>
 					<td class="more">
 						<RowMenu
 							label={m.members_remove()}
@@ -160,9 +161,11 @@
 			{/snippet}
 			{#each invites as item (item.email)}
 				<tr>
-					<td>{item.email}</td>
+					<td>
+						<CellLead icon="mail_invite">{item.email}</CellLead>
+					</td>
 					<td><Label variant="soft">{roleLabels[item.role as keyof typeof roleLabels]?.()}</Label></td>
-					<td>{date(item.expiresAt)}</td>
+					<td class="muted">{date(item.expiresAt)}</td>
 				</tr>
 			{/each}
 		</Table>
@@ -209,10 +212,9 @@
 		gap: var(--miso-sp-12);
 	}
 
-	.who {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--miso-sp-08);
+	.muted {
+		color: var(--miso-txt-secondary);
+		white-space: nowrap;
 	}
 
 	.more {

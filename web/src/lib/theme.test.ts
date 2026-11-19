@@ -41,6 +41,9 @@ describe('brand theme contrast', () => {
 		for (const t of ['--miso-hlt-invert', '--miso-hlt-invert-major', '--miso-sidebar-badge-upcoming'])
 			expect(contrast(token('--wb-on-brand'), token(t))).toBeGreaterThanOrEqual(4.5);
 	});
+	it('white initials on the recolored avatar slots >= 3', () => {
+		for (const t of ['--miso-av-2', '--miso-av-3']) expect(contrast('#ffffff', token(t))).toBeGreaterThanOrEqual(3);
+	});
 	it('focus ring vs white >= 3', () => {
 		expect(contrast(token('--wb-focus'), '#ffffff')).toBeGreaterThanOrEqual(3);
 	});

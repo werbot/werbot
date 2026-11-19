@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Code, ConnectError } from '@connectrpc/connect';
-	import { Badge, Banner, Button, Chip, Drawer, EmptyState, Modal, Skeleton, Table, FilledField, toast } from '#lib/ui/index.js';
+	import { Badge, Banner, Button, Drawer, EmptyState, Label, Modal, Skeleton, Table, FilledField, toast } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
 	import { keepLast } from '#lib/keepLast.svelte.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import RowMenu from '#lib/RowMenu.svelte';
+	import Ago from '#lib/Ago.svelte';
+	import CellLead from '#lib/CellLead.svelte';
+	import OnlineBar from '#lib/gateways/OnlineBar.svelte';
 	import PoolDetails from '#lib/gateways/PoolDetails.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
@@ -120,18 +123,23 @@
 			{#snippet header()}
 				<th>{m.gateways_col_name()}</th>
 				<th>{m.gateways_col_status()}</th>
-				<th>{m.gateways_col_connectors()}</th>
 				<th>{m.gateways_instances_title()}</th>
+				<th>{m.gateways_col_created()}</th>
 				<th></th>
 			{/snippet}
 			{#each list as pool (pool.id)}
 				<tr>
-					<td><button class="row-name" onclick={() => (open = pool.id)}>{pool.name}</button></td>
-					<td><Badge tone={pool.online ? 'accent' : 'ghost'}>{pool.online ? m.gateways_online() : m.gateways_offline()}</Badge></td>
 					<td>
-						<span class="chips">{#each pool.connectors as c (c)}<Chip>{c}</Chip>{/each}</span>
+						<CellLead icon="hub">
+							<button class="row-name" onclick={() => (open = pool.id)}>{pool.name}</button>
+							{#snippet sub()}
+								{#each pool.connectors as c (c)}<Label variant="soft" size={16}>{c}</Label>{:else}—{/each}
+							{/snippet}
+						</CellLead>
 					</td>
-					<td>{pool.instances.length}</td>
+					<td><Badge tone={pool.online ? 'accent' : 'ghost'}>{pool.online ? m.gateways_online() : m.gateways_offline()}</Badge></td>
+					<td class="muted"><OnlineBar instances={pool.instances} /></td>
+					<td class="muted"><Ago ts={pool.createdAt} /></td>
 					<td class="more">{@render moreMenu(pool, 'row')}</td>
 				</tr>
 			{/each}
@@ -174,9 +182,8 @@
 </Modal>
 
 <style>
-	.chips {
-		display: flex;
-		gap: var(--miso-sp-04);
+	.muted {
+		color: var(--miso-txt-secondary);
 	}
 
 	.more,

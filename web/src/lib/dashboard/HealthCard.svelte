@@ -4,7 +4,7 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import HealthDot from '#lib/resources/HealthDot.svelte';
 	import { typeIcon } from '#lib/resources/icons.js';
-	import Ago from './Ago.svelte';
+	import Ago from '#lib/Ago.svelte';
 	import DashCard from './DashCard.svelte';
 	import DashRow from './DashRow.svelte';
 	import { unhealthy, type Slot } from './dashboard';

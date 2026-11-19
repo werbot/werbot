@@ -4,6 +4,7 @@
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
 	import { keepLast } from '#lib/keepLast.svelte.js';
 	import { selectOpen } from '#lib/selectOpen.js';
+	import { isMe } from '#lib/me.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	interface Props {
@@ -29,7 +30,7 @@
 <Drawer bind:open={() => !!member, (v) => !v && !selectOpen() && onclose()} resizable snapPoints={[480, 720]} width={480} title={user?.name}>
 	{#if shown.value && user}
 		{@const { member, locked, joined } = shown.value}
-		<div class="head"><Avatar name={user.name} size={40} /></div>
+		<div class={['head', isMe(user.login) && 'wb-me']}><Avatar name={user.login} size={40} /></div>
 		<PropertyRow label={m.field_email()}>{user.email}</PropertyRow>
 		<PropertyRow label={m.field_login()}>{user.login}</PropertyRow>
 		<PropertyRow label={m.members_role()}>
