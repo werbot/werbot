@@ -41,4 +41,12 @@ func TestRequestValidation(t *testing.T) {
 	assert.Error(t, protovalidate.Validate(&werbotv1.ApproveDeviceCodeRequest{UserCode: long}))
 	assert.NoError(t, protovalidate.Validate(&werbotv1.DenyDeviceCodeRequest{UserCode: "BCDF-GHJK"}))
 	assert.Error(t, protovalidate.Validate(&werbotv1.DenyDeviceCodeRequest{UserCode: long}))
+
+	// CLISessionService (stage 9)
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ListCLISessionsRequest{}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ListCLISessionsRequest{UserId: &id}))
+	bad := "x"
+	assert.Error(t, protovalidate.Validate(&werbotv1.ListCLISessionsRequest{UserId: &bad}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.RevokeCLISessionRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.RevokeCLISessionRequest{Id: "x"}))
 }

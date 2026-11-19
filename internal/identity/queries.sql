@@ -229,3 +229,27 @@ WHERE org_id = @org_id;
 
 -- name: GetMemberRole :one
 SELECT role FROM membership WHERE org_id = @org_id AND user_id = @user_id;
+
+-- name: GetCLISessionRole :one
+-- A Bearer request: the live cli_session of the token and the member's role.
+SELECT m.role FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+WHERE c.id = @id AND c.org_id = @org_id AND c.user_id = @user_id AND c.revoked_at IS NULL
+  AND c.expires_at > now() AND c.absolute_expires_at > now();
+
+-- name: ListCLISessions :many
+SELECT id, user_id, client_id, hostname, ip, created_at, last_used_at, expires_at, absolute_expires_at
+FROM cli_session
+WHERE org_id = @org_id AND user_id = @user_id AND revoked_at IS NULL
+  AND expires_at > now() AND absolute_expires_at > now()
+ORDER BY created_at DESC;
+
+-- name: RevokeCLISession :execrows
+-- A manager revokes any session of the organization, others only their own.
+UPDATE cli_session SET revoked_at = now(), revoke_reason = @reason::text
+WHERE id = @id AND org_id = @org_id AND revoked_at IS NULL AND (@manager::bool OR user_id = @user_id);
+
+-- name: RevokeUserCLISessions :exec
+-- A new password ends the user's CLI sessions in every organization but keep_id.
+UPDATE cli_session SET revoked_at = now(), revoke_reason = 'password_reset'
+WHERE user_id = @user_id AND id <> @keep_id AND revoked_at IS NULL;

@@ -61,4 +61,8 @@ type Store interface {
 	LockOrgSettings(ctx context.Context, orgID uuid.UUID) (dbq.LockOrgSettingsRow, error)
 	UpdateOrgSettings(ctx context.Context, arg dbq.UpdateOrgSettingsParams) error
 	GetMemberRole(ctx context.Context, arg dbq.GetMemberRoleParams) (string, error)
+	GetCLISessionRole(ctx context.Context, arg dbq.GetCLISessionRoleParams) (string, error)
+	ListCLISessions(ctx context.Context, arg dbq.ListCLISessionsParams) ([]dbq.ListCLISessionsRow, error)
+	RevokeCLISession(ctx context.Context, arg dbq.RevokeCLISessionParams) (int64, error)
+	RevokeUserCLISessions(ctx context.Context, arg dbq.RevokeUserCLISessionsParams) error
 }

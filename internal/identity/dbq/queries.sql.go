@@ -337,6 +337,27 @@ func (q *Queries) ExtendSession(ctx context.Context, arg ExtendSessionParams) er
 	return err
 }
 
+const getCLISessionRole = `-- name: GetCLISessionRole :one
+SELECT m.role FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+WHERE c.id = $1 AND c.org_id = $2 AND c.user_id = $3 AND c.revoked_at IS NULL
+  AND c.expires_at > now() AND c.absolute_expires_at > now()
+`
+
+type GetCLISessionRoleParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+// A Bearer request: the live cli_session of the token and the member's role.
+func (q *Queries) GetCLISessionRole(ctx context.Context, arg GetCLISessionRoleParams) (string, error) {
+	row := q.db.QueryRow(ctx, getCLISessionRole, arg.ID, arg.OrgID, arg.UserID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
+}
+
 const getLoginUser = `-- name: GetLoginUser :one
 SELECT u.id, u.password_hash, m.org_id
 FROM users u LEFT JOIN membership m ON m.user_id = u.id
@@ -556,6 +577,61 @@ func (q *Queries) IsMemberEmail(ctx context.Context, arg IsMemberEmailParams) (b
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const listCLISessions = `-- name: ListCLISessions :many
+SELECT id, user_id, client_id, hostname, ip, created_at, last_used_at, expires_at, absolute_expires_at
+FROM cli_session
+WHERE org_id = $1 AND user_id = $2 AND revoked_at IS NULL
+  AND expires_at > now() AND absolute_expires_at > now()
+ORDER BY created_at DESC
+`
+
+type ListCLISessionsParams struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+type ListCLISessionsRow struct {
+	ID                uuid.UUID
+	UserID            uuid.UUID
+	ClientID          string
+	Hostname          string
+	Ip                *netip.Addr
+	CreatedAt         time.Time
+	LastUsedAt        time.Time
+	ExpiresAt         time.Time
+	AbsoluteExpiresAt time.Time
+}
+
+func (q *Queries) ListCLISessions(ctx context.Context, arg ListCLISessionsParams) ([]ListCLISessionsRow, error) {
+	rows, err := q.db.Query(ctx, listCLISessions, arg.OrgID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCLISessionsRow
+	for rows.Next() {
+		var i ListCLISessionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ClientID,
+			&i.Hostname,
+			&i.Ip,
+			&i.CreatedAt,
+			&i.LastUsedAt,
+			&i.ExpiresAt,
+			&i.AbsoluteExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listInvites = `-- name: ListInvites :many
@@ -963,6 +1039,50 @@ func (q *Queries) RenameTeam(ctx context.Context, arg RenameTeamParams) (RenameT
 	var i RenameTeamRow
 	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
 	return i, err
+}
+
+const revokeCLISession = `-- name: RevokeCLISession :execrows
+UPDATE cli_session SET revoked_at = now(), revoke_reason = $1::text
+WHERE id = $2 AND org_id = $3 AND revoked_at IS NULL AND ($4::bool OR user_id = $5)
+`
+
+type RevokeCLISessionParams struct {
+	Reason  string
+	ID      uuid.UUID
+	OrgID   uuid.UUID
+	Manager bool
+	UserID  uuid.UUID
+}
+
+// A manager revokes any session of the organization, others only their own.
+func (q *Queries) RevokeCLISession(ctx context.Context, arg RevokeCLISessionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeCLISession,
+		arg.Reason,
+		arg.ID,
+		arg.OrgID,
+		arg.Manager,
+		arg.UserID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const revokeUserCLISessions = `-- name: RevokeUserCLISessions :exec
+UPDATE cli_session SET revoked_at = now(), revoke_reason = 'password_reset'
+WHERE user_id = $1 AND id <> $2 AND revoked_at IS NULL
+`
+
+type RevokeUserCLISessionsParams struct {
+	UserID uuid.UUID
+	KeepID uuid.UUID
+}
+
+// A new password ends the user's CLI sessions in every organization but keep_id.
+func (q *Queries) RevokeUserCLISessions(ctx context.Context, arg RevokeUserCLISessionsParams) error {
+	_, err := q.db.Exec(ctx, revokeUserCLISessions, arg.UserID, arg.KeepID)
+	return err
 }
 
 const teamMemberIDs = `-- name: TeamMemberIDs :many

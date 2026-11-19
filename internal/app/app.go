@@ -93,7 +93,8 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	mux.Handle(werbotv1connect.NewTeamServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewSettingsServiceHandler(idh, opts))
 	s.mount(mux, opts)
-	if err := mountOAuth(mux, cfg, pool, o.OAuthKey, s.Identity, logger, opts); err != nil {
+	bearer, err := mountOAuth(mux, cfg, pool, o.OAuthKey, s.Identity, logger, opts)
+	if err != nil {
 		return err
 	}
 	// Enroll returns the pool's private host key: opts log no bodies, only
@@ -124,7 +125,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	reg.GaugeFunc("werbot_db_pool_total_conns", "Database pool connections open.",
 		func() int64 { return int64(pool.Stat().TotalConns()) })
 
-	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, clientip.Middleware(cfg.TrustedProxies)(identity.Middleware(s.Identity)(mux)))}
+	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, clientip.Middleware(cfg.TrustedProxies)(identity.Middleware(s.Identity, bearer)(mux)))}
 	if cfg.MetricsAddr != "" {
 		mmux := http.NewServeMux()
 		mmux.Handle("/metrics", reg.Handler())

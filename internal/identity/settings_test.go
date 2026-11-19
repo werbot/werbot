@@ -122,7 +122,7 @@ func TestSettingsRPC(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.Handle(werbotv1connect.NewSettingsServiceHandler(NewHandler(svc)))
-	srv := httptest.NewServer(Middleware(svc)(mux))
+	srv := httptest.NewServer(Middleware(svc, nil)(mux))
 	t.Cleanup(srv.Close)
 	client := werbotv1connect.NewSettingsServiceClient(srv.Client(), srv.URL)
 	cookie := sessionCookieName(true)

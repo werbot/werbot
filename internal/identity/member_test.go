@@ -288,7 +288,7 @@ func TestMemberRPC(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.Handle(werbotv1connect.NewAuthServiceHandler(NewHandler(svc)))
 	mux.Handle(werbotv1connect.NewMemberServiceHandler(NewHandler(svc)))
-	srv := httptest.NewServer(Middleware(svc)(mux))
+	srv := httptest.NewServer(Middleware(svc, nil)(mux))
 	t.Cleanup(srv.Close)
 	members := werbotv1connect.NewMemberServiceClient(srv.Client(), srv.URL)
 	c := login(t, werbotv1connect.NewAuthServiceClient(srv.Client(), srv.URL))
