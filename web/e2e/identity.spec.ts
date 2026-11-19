@@ -1,9 +1,7 @@
 import { expect, test } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
-import { OWNER, loginAsOwner } from './support/auth';
+import { BOB as bob, OWNER, loginAsOwner } from './support/auth';
 import { latestEmailLink } from './support/mail';
-
-const bob = { email: 'bob@example.com', login: 'bob', name: 'Bob', password: 'another long password' };
 
 test.describe.serial('identity', () => {
 	test('setup, logout, login', async ({ page }) => {
@@ -68,6 +66,6 @@ test.describe.serial('identity', () => {
 		await page.getByRole('menuitem', { name: en.auth_logout }).click();
 		await expect(page).toHaveURL(/\/login$/);
 		await page.goto('/teams');
-		await expect(page).toHaveURL(/\/login$/);
+		await expect(page).toHaveURL(/\/login\?next=%2Fteams$/);
 	});
 });

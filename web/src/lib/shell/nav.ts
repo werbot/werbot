@@ -37,13 +37,15 @@ export function navSections(manager: boolean): NavSection[] {
 					section('organization', m.nav_organization, 'people', [
 						{ href: '/members', label: m.nav_members, icon: 'people' },
 						{ href: '/teams', label: m.nav_teams, icon: 'workspace' },
-						{ href: '/audit', label: m.nav_audit, icon: 'report_detailed' }
+						{ href: '/audit', label: m.nav_audit, icon: 'report_detailed' },
+						{ href: '/settings', label: m.nav_settings, icon: 'gear' }
 					])
 				]
 			: []),
 		section('profile', m.nav_profile, 'person', [
 			{ href: '/profile', label: m.nav_profile, icon: 'person' },
-			{ href: '/profile/keys', label: m.nav_keys, icon: 'key' }
+			{ href: '/profile/keys', label: m.nav_keys, icon: 'key' },
+			{ href: '/profile/cli-sessions', label: m.cli_sessions_title, icon: 'laptop' }
 		])
 	];
 }
