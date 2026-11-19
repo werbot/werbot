@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Banner, Button } from '#lib/ui/index.js';
+	import { Badge, Banner, Button, Chip, PropertyRow } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Gateway, GatewayInstance, JoinToken } from '#lib/gen/werbot/v1/gateway_pb.js';
@@ -41,7 +41,35 @@
 </script>
 
 {#if error}<Banner tone="alert">{error}</Banner>{/if}
-<InstancesTable instances={pool.instances} ondelete={ondeleteInstance} />
-<TokensTable {tokens} onrevoke={revoke} />
-<p><Button variant="solid" onclick={() => (creating = true)}>{m.gateways_token_create()}</Button></p>
+<div class="details">
+	<div>
+		<PropertyRow label={m.gateways_col_status()}>
+			<Badge tone={pool.online ? 'accent' : 'ghost'}>{pool.online ? m.gateways_online() : m.gateways_offline()}</Badge>
+		</PropertyRow>
+		<PropertyRow label={m.gateways_col_connectors()}>
+			{#each pool.connectors as c (c)}<Chip>{c}</Chip>{:else}—{/each}
+		</PropertyRow>
+	</div>
+	<section><InstancesTable instances={pool.instances} ondelete={ondeleteInstance} /></section>
+	<section>
+		<TokensTable {tokens} onrevoke={revoke} />
+		<Button variant="solid" size={28} iconLeft="plus" onclick={() => (creating = true)}>{m.gateways_token_create()}</Button>
+	</section>
+</div>
 {#if creating}<TokenDialog gatewayId={pool.id} bind:open={creating} oncreated={refresh} />{/if}
+
+<style>
+	.details {
+		display: flex;
+		flex-direction: column;
+		gap: var(--miso-sp-24);
+	}
+
+	section {
+		overflow-x: auto;
+	}
+
+	section :global(h3) {
+		margin: 0 0 var(--miso-sp-08);
+	}
+</style>

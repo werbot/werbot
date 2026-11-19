@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
 import { loginAsOwner } from './support/auth';
 import { openNew } from './support/resources';
@@ -10,17 +10,28 @@ import { openNew } from './support/resources';
 const procs: ChildProcess[] = [];
 test.afterAll(() => procs.forEach((p) => p.kill()));
 
+// the empty state repeats the create button: take the toolbar one
+async function createPool(page: Page, name: string) {
+	await page.getByRole('button', { name: en.gateways_create }).first().click();
+	const modal = page.getByRole('dialog', { name: en.gateways_create });
+	await modal.getByLabel(en.gateways_name_label).fill(name);
+	await modal.getByRole('button', { name: en.gateways_create }).click();
+	await expect(modal).toHaveCount(0);
+}
+
+const poolRow = (page: Page, name: string) => page.getByRole('row', { name: new RegExp(`^${name}\\s`) });
+
 test('pool with two instances, join token and revocation', async ({ page, baseURL }) => {
 	test.setTimeout(120_000);
 	await loginAsOwner(page);
 	await page.getByRole('link', { name: en.nav_access }).click();
 	await page.getByRole('link', { name: en.nav_gateways }).click();
-	await page.getByLabel(en.gateways_name_label).fill('e2e-pool');
-	await page.getByRole('button', { name: en.gateways_create }).click();
-	await page.getByRole('button', { name: 'e2e-pool' }).click();
+	await createPool(page, 'e2e-pool');
+	await page.getByRole('button', { name: 'e2e-pool', exact: true }).click();
+	const pool = page.getByRole('dialog', { name: 'e2e-pool', exact: true });
 
 	await page.getByRole('button', { name: en.gateways_token_create }).click();
-	const dialog = page.getByRole('dialog');
+	const dialog = page.getByRole('dialog', { name: en.gateways_token_create, exact: true });
 	await dialog.getByLabel(en.gateways_token_expires_in).fill('1');
 	await dialog.getByLabel(en.gateways_token_max_uses).fill('2');
 	await dialog.getByRole('button', { name: en.gateways_token_create }).click();
@@ -39,8 +50,6 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 		procs.push(p);
 	}
 
-	const poolSection = (name: string) => page.locator('section').filter({ has: page.getByRole('button', { name, exact: true }) });
-	const pool = poolSection('e2e-pool');
 	await expect(pool.getByText(en.gateways_online, { exact: true }).first()).toBeVisible({ timeout: 30_000 });
 	for (const i of [1, 2]) {
 		await expect(pool.getByRole('row', { name: new RegExp(`e2e-gw-${i}.*${en.gateways_online}`) })).toBeVisible({ timeout: 30_000 });
@@ -52,13 +61,14 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 
 	procs[1].kill();
 	await pool.getByRole('row', { name: /e2e-gw-2/ }).getByRole('button', { name: en.gateways_instance_delete }).click();
-	await page.getByRole('dialog').getByRole('button', { name: en.gateways_instance_delete }).click();
+	await page.getByRole('dialog', { name: en.gateways_instance_delete, exact: true }).getByRole('button', { name: en.gateways_instance_delete }).click();
 	await expect(pool.getByRole('row', { name: /e2e-gw-2/ })).toHaveCount(0);
 
 	// resource form with two pools: pool select, connect hint, pool change persists
-	await page.getByLabel(en.gateways_name_label).fill('e2e-pool-2');
-	await page.getByRole('button', { name: en.gateways_create }).click();
-	await expect(poolSection('e2e-pool-2')).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(pool).toHaveCount(0);
+	await createPool(page, 'e2e-pool-2');
+	await expect(poolRow(page, 'e2e-pool-2')).toBeVisible();
 
 	const poolSelect = page.locator('.miso-select', { hasText: en.resources_gateway_label }).getByRole('button');
 	const pickPool = async (name: string) => {
@@ -90,8 +100,33 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	procs[0].kill();
 	await page.goto('/gateways');
 	for (const name of ['e2e-pool', 'e2e-pool-2']) {
-		await poolSection(name).getByRole('button', { name: en.gateways_delete }).click();
-		await page.getByRole('dialog').getByRole('button', { name: en.gateways_delete }).click();
-		await expect(poolSection(name)).toHaveCount(0);
+		await deletePoolFromRow(page, name);
+		await expect(poolRow(page, name)).toHaveCount(0);
 	}
+});
+
+async function deletePoolFromRow(page: Page, name: string) {
+	await poolRow(page, name).getByRole('button', { name: en.common_more }).click();
+	await page.getByRole('menuitem', { name: en.gateways_delete }).click();
+	await page.getByRole('dialog', { name: en.gateways_delete, exact: true }).getByRole('button', { name: en.gateways_delete }).click();
+}
+
+test('delete pool from drawer', async ({ page }) => {
+	await loginAsOwner(page);
+	await page.goto('/gateways');
+	await createPool(page, 'e2e-drawer-pool');
+	await page.getByRole('button', { name: 'e2e-drawer-pool', exact: true }).click();
+	const drawer = page.getByRole('dialog', { name: 'e2e-drawer-pool', exact: true });
+	await expect(drawer.getByRole('heading', { name: en.gateways_instances_title })).toBeVisible();
+	await drawer.getByRole('button', { name: en.common_more }).click();
+	await page.getByRole('menuitem', { name: en.gateways_delete }).click();
+	const confirm = page.getByRole('dialog', { name: en.gateways_delete, exact: true });
+	await page.keyboard.press('Escape'); // closes only the confirm
+	await expect(confirm).toHaveCount(0);
+	await expect(drawer).toBeVisible();
+	await drawer.getByRole('button', { name: en.common_more }).click();
+	await page.getByRole('menuitem', { name: en.gateways_delete }).click();
+	await confirm.getByRole('button', { name: en.gateways_delete }).click();
+	await expect(drawer).toHaveCount(0);
+	await expect(poolRow(page, 'e2e-drawer-pool')).toHaveCount(0);
 });
