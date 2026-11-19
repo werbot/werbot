@@ -17,7 +17,7 @@ services:
     healthcheck: { test: ["CMD", "pg_isready", "-U", "werbot", "-d", "werbot"], interval: 5s, timeout: 3s, retries: 20 }
 
   werbot:
-    image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
+    image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.1}
     command: ["server", "--with-gateway"]
     restart: unless-stopped
     # SIGTERM: the embedded gateway drains (WERBOT_GATEWAY_DRAIN_TIMEOUT, 30s),

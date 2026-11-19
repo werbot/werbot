@@ -2,7 +2,7 @@
 # Setup: docs/scaling.md#cluster-example. Run it and the test/cluster stand one at a time.
 name: werbot-cluster
 
-x-image: &image ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
+x-image: &image ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.1}
 
 x-logging: &logging
   driver: json-file

@@ -7,7 +7,7 @@ Werbot ships as a Docker image (`ghcr.io/werbot/werbot`) and as release archives
 You need Docker with Compose v2. Run in an empty directory:
 
 ```sh
-export WERBOT_VERSION=v0.1.0
+export WERBOT_VERSION=v0.1.1
 mkdir werbot && cd werbot
 curl -fsSLO https://raw.githubusercontent.com/werbot/werbot/$WERBOT_VERSION/deploy/docker-compose.yaml
 curl -fsSL https://raw.githubusercontent.com/werbot/werbot/$WERBOT_VERSION/deploy/.env.example -o .env
@@ -70,14 +70,14 @@ Leave port `8443` (gateway tunnel) out of the proxy: it is mTLS and needs a dire
 
 ## Binary
 
-Release archives: `werbot_<version>_<os>_<arch>.tar.gz` for `linux` and `darwin` (`amd64`, `arm64`); the version has no `v`, for example `werbot_0.1.0_linux_amd64.tar.gz`. Windows `.zip` archives are for the client: on Windows only `werbot connect` is supported ([connect.md](connect.md)).
+Release archives: `werbot_<version>_<os>_<arch>.tar.gz` for `linux` and `darwin` (`amd64`, `arm64`); the version has no `v`, for example `werbot_0.1.1_linux_amd64.tar.gz`. Windows `.zip` archives are for the client: on Windows only `werbot connect` is supported ([connect.md](connect.md)).
 
 1. From the [releases page](https://github.com/werbot/werbot/releases) download the archive for your platform, `checksums.txt` and `checksums.txt.sigstore.json`.
 2. Verify them: [security.md](security.md#verifying-releases).
 3. Unpack and install:
 
    ```sh
-   tar -xzf werbot_0.1.0_linux_amd64.tar.gz werbot
+   tar -xzf werbot_0.1.1_linux_amd64.tar.gz werbot
    sudo install -m 0755 werbot /usr/local/bin/werbot
    ```
 

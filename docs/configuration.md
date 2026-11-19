@@ -99,7 +99,7 @@ Other flags: `-i <key>` and `--known-hosts <path>`. Details: [connect.md](connec
 
 | Variable | Description |
 | --- | --- |
-| `WERBOT_VERSION` | Image tag, for example `v0.1.0`. Required. |
+| `WERBOT_VERSION` | Image tag, for example `v0.1.1`. Required. |
 | `POSTGRES_PASSWORD` | Postgres password, URL-safe (`openssl rand -hex 24`); compose builds `WERBOT_DATABASE_URL` from it. Required. |
 
 The compose files pass the whole `.env` to the server (`env_file`), so any variable from the tables above that you add to `.env` reaches `werbot server`. `docker-compose.gateway.yaml` passes the whole `.env` to the gateway the same way. Gateway and web services of the cluster example get no `.env`: they never see `WERBOT_SECRET_KEY`, `POSTGRES_PASSWORD` or the S3 keys.

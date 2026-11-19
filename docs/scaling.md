@@ -29,7 +29,7 @@ Redis and NATS are not needed. The default all-in-one mode (`werbot server`, one
 
 The L4 idle timeout of the balancer must be longer than `WERBOT_GATEWAY_IDLE_TIMEOUT` (default `5m`). The gateway ends idle sessions by itself; a shorter balancer timeout cuts them first and without the `idle_timeout` reason. It must also exceed the `idle_timeout` of a resource, which can be set up to 24 h. The example `nginx.cluster.conf` uses `proxy_timeout 1h`, which covers only resources with `idle_timeout` of 1 h or less; for longer ones raise `proxy_timeout` in the `stream` block (for example `25h`) and reload nginx.
 
-The balancer also needs enough file descriptors for the sessions it relays (the example sets `worker_rlimit_nofile 65536` and `ulimits: { nofile: 65536 }`). Werbot v0.1.0 has no per-IP limit for unauthenticated SSH connections: limit connections per source IP on the balancer or firewall ([security.md](security.md)).
+The balancer also needs enough file descriptors for the sessions it relays (the example sets `worker_rlimit_nofile 65536` and `ulimits: { nofile: 65536 }`). Werbot v0.1.x has no per-IP limit for unauthenticated SSH connections: limit connections per source IP on the balancer or firewall ([security.md](security.md)).
 
 ## PostgreSQL
 

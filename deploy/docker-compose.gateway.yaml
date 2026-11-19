@@ -6,7 +6,7 @@ x-logging: &logging
 
 services:
   gateway:
-    image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.0}
+    image: ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION in .env, e.g. v0.1.1}
     command: ["gateway"]
     restart: unless-stopped
     stop_grace_period: 40s # gateway drain (30s) + 10s

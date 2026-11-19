@@ -33,7 +33,7 @@ Owners and admins manage pools on the **Gateways** page.
 3. **Start an instance on each host.** With Docker Compose:
 
    ```sh
-   export WERBOT_VERSION=v0.1.0   # the server's version
+   export WERBOT_VERSION=v0.1.1   # the server's version
    mkdir werbot-gateway && cd werbot-gateway
    curl -fsSLO https://raw.githubusercontent.com/werbot/werbot/$WERBOT_VERSION/deploy/docker-compose.gateway.yaml
    cat > .env <<EOF

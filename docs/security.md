@@ -20,17 +20,17 @@ sha256sum --check --ignore-missing checksums.txt   # macOS: shasum -a 256 --chec
 cosign verify \
   --certificate-identity-regexp '^https://github\.com/werbot/werbot/\.github/workflows/release\.yml@refs/tags/v0\.' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  ghcr.io/werbot/werbot:v0.1.0
+  ghcr.io/werbot/werbot:v0.1.1
 ```
 
-Expected output: `Verified OK`, `<archive>: OK` and `The cosign claims were validated`. To pin one release exactly, replace the regexp by `--certificate-identity https://github.com/werbot/werbot/.github/workflows/release.yml@refs/tags/v0.1.0`.
+Expected output: `Verified OK`, `<archive>: OK` and `The cosign claims were validated`. To pin one release exactly, replace the regexp by `--certificate-identity https://github.com/werbot/werbot/.github/workflows/release.yml@refs/tags/v0.1.1`.
 
 ## SBOM
 
 Each archive has an SPDX SBOM in the release assets: `*.tar.gz.sbom.json` and `*.zip.sbom.json`. The image SBOM:
 
 ```sh
-docker buildx imagetools inspect ghcr.io/werbot/werbot:v0.1.0 --format '{{ json .SBOM }}'
+docker buildx imagetools inspect ghcr.io/werbot/werbot:v0.1.1 --format '{{ json .SBOM }}'
 ```
 
 ## Threat model (summary)
@@ -43,7 +43,7 @@ docker buildx imagetools inspect ghcr.io/werbot/werbot:v0.1.0 --format '{{ json 
 - Do not publish `/metrics` (`WERBOT_METRICS_ADDR`, `WERBOT_GATEWAY_HTTP_ADDR`) to the outside.
 - A compromised server is outside the v0 threat model.
 - A compromised gateway can flood the audit log with denials. Each instance reports at most 100 denials per 15s heartbeat, so it adds at most 100 `session.deny` rows per 15s; the rest only count in `werbot_gateway_denials_dropped_total`.
-- v0.1.0 has no per-IP limit on pre-auth SSH connections. Limit connections per source IP on the load balancer or firewall in front of the gateway SSH port.
+- v0.1.x has no per-IP limit on pre-auth SSH connections. Limit connections per source IP on the load balancer or firewall in front of the gateway SSH port.
 
 ## Gateway join tokens
 

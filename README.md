@@ -11,7 +11,7 @@ Pre-release (v0.x): breaking changes are possible, see [docs/upgrading.md](docs/
 You need Docker with Compose v2. Run in an empty directory:
 
 ```sh
-export WERBOT_VERSION=v0.1.0
+export WERBOT_VERSION=v0.1.1
 mkdir werbot && cd werbot
 curl -fsSLO https://raw.githubusercontent.com/werbot/werbot/$WERBOT_VERSION/deploy/docker-compose.yaml
 curl -fsSL https://raw.githubusercontent.com/werbot/werbot/$WERBOT_VERSION/deploy/.env.example -o .env
