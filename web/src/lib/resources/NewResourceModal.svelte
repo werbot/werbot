@@ -118,6 +118,6 @@
 	.steps {
 		display: flex;
 		align-items: center;
-		gap: var(--miso-sp-8);
+		gap: var(--miso-sp-12);
 	}
 </style>

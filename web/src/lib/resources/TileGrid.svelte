@@ -37,7 +37,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: var(--miso-sp-8);
+		gap: var(--miso-sp-08);
 		min-height: 104px;
 		padding: var(--miso-sp-16);
 		border: 1px solid var(--miso-line-secondary);
