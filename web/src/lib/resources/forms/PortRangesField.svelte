@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { TextField } from '#lib/ui/index.js';
+	import FormField from '#lib/FormField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { parsePorts } from './ports.js';
 
@@ -18,4 +18,4 @@
 	});
 </script>
 
-<TextField {label} bind:value {required} {error} onblur={() => (touched = true)} placeholder="22, 8000-8100" />
+<FormField {label} bind:value {required} {error} onblur={() => (touched = true)} placeholder="22, 8000-8100" />

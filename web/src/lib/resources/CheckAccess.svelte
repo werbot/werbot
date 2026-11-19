@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { timestampFromDate } from '@bufbuild/protobuf/wkt';
-	import { Badge, Banner, Button, Chip, Select, TextField, type SelectOption } from '#lib/ui/index.js';
+	import FilledShell from '#lib/FilledShell.svelte';
+	import { Badge, Banner, Button, Chip, FilledField, type SelectOption } from '#lib/ui/index.js';
+	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { policy, system } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -44,10 +46,12 @@
 <h3>{m.access_check()}</h3>
 {#if error}<Banner tone="alert">{error}</Banner>{/if}
 <form onsubmit={check}>
-	<Select label={m.access_user()} options={users} bind:value={userId} />
-	<TextField label={m.access_check_ip()} bind:value={ip} required />
-	<TextField type="datetime-local" label={m.access_check_time()} bind:value={time} />
-	{#if withPorts}<TextField type="number" min={1} max={65535} label={m.access_check_port()} bind:value={port} />{/if}
+	<FilledSelect label={m.access_user()} options={users} bind:value={userId} />
+	<FilledField label={m.access_check_ip()} bind:value={ip} required />
+	<FilledShell label={m.access_check_time()}>
+		{#snippet children(id)}<input {id} type="datetime-local" bind:value={time} />{/snippet}
+	</FilledShell>
+	{#if withPorts}<FilledField type="number" min={1} max={65535} label={m.access_check_port()} bind:value={port} />{/if}
 	<div><Button type="submit" variant="solid" disabled={!userId}>{m.access_check_run()}</Button></div>
 </form>
 {#if result}

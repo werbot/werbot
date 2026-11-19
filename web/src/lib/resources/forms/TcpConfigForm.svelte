@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
-	import { TextField } from '#lib/ui/index.js';
+	import { FilledField } from '#lib/ui/index.js';
 	import { ConfigSchema } from '#lib/gen/werbot/connector/tcp/v1/tcp_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import FieldRow from '#lib/FieldRow.svelte';
@@ -25,6 +25,6 @@
 </script>
 
 <FieldRow even>
-	<TextField label={m.resources_ssh_host()} bind:value={host} required />
+	<FilledField label={m.resources_ssh_host()} bind:value={host} required />
 	<PortRangesField label={m.resources_ports()} bind:value={ports} required />
 </FieldRow>

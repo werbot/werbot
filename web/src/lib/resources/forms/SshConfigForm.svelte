@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
-	import { TextField, Toggle } from '#lib/ui/index.js';
+	import { FilledField, Toggle } from '#lib/ui/index.js';
 	import { ConfigSchema } from '#lib/gen/werbot/connector/ssh/v1/ssh_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import FieldRow from '#lib/FieldRow.svelte';
@@ -19,10 +19,10 @@
 </script>
 
 <FieldRow>
-	<TextField label={m.resources_ssh_host()} bind:value={host} required />
-	<TextField label={m.resources_ssh_port()} bind:value={port} type="number" min={1} max={65535} required />
+	<FilledField label={m.resources_ssh_host()} bind:value={host} required />
+	<FilledField label={m.resources_ssh_port()} bind:value={port} type="number" min={1} max={65535} required />
 </FieldRow>
 <FieldRow even>
-	<TextField label={m.resources_ssh_login()} bind:value={login} required />
+	<FilledField label={m.resources_ssh_login()} bind:value={login} required />
 </FieldRow>
 <Toggle bind:checked={portForwarding}>{m.resources_ssh_port_forwarding()}</Toggle>

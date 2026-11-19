@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Segmented, TextField } from '#lib/ui/index.js';
+	import { Button, Segmented, FilledField } from '#lib/ui/index.js';
 	import { system } from '#lib/api.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { NetworkRule } from '#lib/gen/werbot/v1/policy_pb.js';
@@ -21,7 +21,7 @@
 	<legend>{m.rules_networks()}</legend>
 	{#each rows as row, i (i)}
 		<div class="row">
-			<TextField aria-label={m.rules_cidr()} placeholder={m.rules_cidr()} bind:value={row.cidr} />
+			<FilledField compact label={m.rules_cidr()} bind:value={row.cidr} />
 			<Segmented options={effectOptions()} bind:value={row.effect} />
 			<Button type="button" scheme="w" variant="plain" onclick={() => rows.splice(i, 1)}>{m.rules_remove()}</Button>
 		</div>
@@ -46,6 +46,6 @@
 	.row {
 		display: flex;
 		gap: 8px;
-		align-items: flex-end;
+		align-items: center;
 	}
 </style>

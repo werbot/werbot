@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Button, Chip, Drawer, InlineEdit, PropertyRow, Select } from '#lib/ui/index.js';
+	import { Button, Chip, Drawer, InlineEdit, PropertyRow } from '#lib/ui/index.js';
+	import FilledSelect from '#lib/FilledSelect.svelte';
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
 	import type { Team } from '#lib/gen/werbot/v1/team_pb.js';
-	import { selectOpen } from '#lib/selectOpen.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	interface Props {
@@ -18,6 +18,8 @@
 
 	let { team, people, nameOf, onrename, onadd, onremove, ondelete, onclose }: Props = $props();
 
+	let pick = $state('');
+
 	const candidates = $derived(
 		people
 			.filter((p) => team && !team.memberUserIds.includes(p.user?.id ?? ''))
@@ -25,7 +27,7 @@
 	);
 </script>
 
-<Drawer bind:open={() => !!team, (v) => !v && !selectOpen() && onclose()} resizable snapPoints={[480, 720]} width={480} title={m.teams_title()}>
+<Drawer bind:open={() => !!team, (v) => !v && onclose()} resizable snapPoints={[480, 720]} width={480} title={m.teams_title()}>
 	{#if team}
 		<!-- Escape cancels the edit only: stop it before it reaches the drawer's window listener -->
 		<div class="head" role="presentation" onkeydown={(e) => e.key === 'Escape' && e.stopPropagation()}>
@@ -38,7 +40,7 @@
 				{/each}
 			</div>
 		</PropertyRow>
-		<Select placeholder={m.teams_add_member()} options={candidates} onchange={onadd} />
+		<FilledSelect label={m.teams_add_member()} options={candidates} bind:value={pick} onchange={(v) => { onadd(v); pick = ''; }} />
 	{/if}
 	{#snippet footer()}
 		<Button scheme="w" variant="solid" size={28} iconLeft="trash" onclick={ondelete}>{m.teams_delete()}</Button>

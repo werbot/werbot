@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Code, ConnectError } from '@connectrpc/connect';
-	import { Badge, Banner, Button, Chip, Drawer, EmptyState, Modal, Skeleton, Table, TextField, toast } from '#lib/ui/index.js';
+	import { Badge, Banner, Button, Chip, Drawer, EmptyState, Modal, Skeleton, Table, FilledField, toast } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
@@ -151,7 +151,7 @@
 <Modal bind:open={creating} title={m.gateways_create()} width={480}>
 	{#if createError}<Banner tone="alert">{createError}</Banner>{/if}
 	<form id="pool-create" onsubmit={create}>
-		<TextField label={m.gateways_name_label()} bind:value={name} required maxlength={63} />
+		<FilledField label={m.gateways_name_label()} bind:value={name} required maxlength={63} />
 	</form>
 	{#snippet footer()}
 		<Button scheme="g" variant="plain" onclick={() => (creating = false)}>{m.common_cancel()}</Button>

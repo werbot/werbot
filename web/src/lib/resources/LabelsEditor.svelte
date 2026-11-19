@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, TextField } from '#lib/ui/index.js';
+	import { Button, FilledField } from '#lib/ui/index.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { LabelRow } from './labels.js';
 
@@ -10,8 +10,8 @@
 	<span>{m.resources_labels()}</span>
 	{#each rows as row, i (i)}
 		<div class="row">
-			<TextField aria-label={m.resources_label_key()} placeholder={m.resources_label_key()} bind:value={row.key} />
-			<TextField aria-label={m.resources_label_value()} placeholder={m.resources_label_value()} bind:value={row.value} />
+			<FilledField compact label={m.resources_label_key()} bind:value={row.key} />
+			<FilledField compact label={m.resources_label_value()} bind:value={row.value} />
 			<Button type="button" scheme="w" variant="plain" onclick={() => rows.splice(i, 1)}>{m.resources_label_remove()}</Button>
 		</div>
 	{/each}
@@ -28,6 +28,6 @@
 	.row {
 		display: flex;
 		gap: 8px;
-		align-items: flex-end;
+		align-items: center;
 	}
 </style>

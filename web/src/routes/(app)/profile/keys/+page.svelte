@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { timestampDate } from '@bufbuild/protobuf/wkt';
-	import { Banner, Button, EmptyState, InlineEdit, Modal, Skeleton, Table, TextField, Textarea, Tooltip, toast } from '#lib/ui/index.js';
+	import { Banner, Button, EmptyState, InlineEdit, Modal, Skeleton, Table, FilledField, Textarea, Tooltip, toast } from '#lib/ui/index.js';
 	import KeyFileDrop from '#lib/KeyFileDrop.svelte';
 	import { readPubKeyFile } from '#lib/sshkey.js';
 	import RowMenu from '#lib/RowMenu.svelte';
@@ -137,7 +137,7 @@
 	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 	<form id="add-key" onsubmit={add}>
 		<KeyFileDrop hint={m.keys_drop_hint()} {fileName} accept=".pub" onfile={readKeyFile} onclear={clearFile} />
-		<TextField label={m.keys_name()} bind:value={name} />
+		<FilledField label={m.keys_name()} bind:value={name} />
 		<Textarea label={m.keys_public_key()} bind:value={publicKey} required rows={5} />
 	</form>
 	{#snippet footer()}

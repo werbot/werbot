@@ -69,10 +69,9 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	await createPool(page, 'e2e-pool-2');
 	await expect(poolRow(page, 'e2e-pool-2')).toBeVisible();
 
-	const poolSelect = page.locator('.miso-select', { hasText: en.resources_gateway_label }).getByRole('button');
+	const poolSelect = page.getByLabel(en.resources_gateway_label);
 	const pickPool = async (name: string) => {
-		await poolSelect.click();
-		await page.getByRole('menuitem', { name, exact: true }).click();
+		await poolSelect.selectOption({ label: name });
 	};
 	await openNew(page);
 	await expect(poolSelect).toBeVisible();
@@ -90,7 +89,7 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	await page.getByRole('button', { name: en.resources_save, exact: true }).click();
 	expect((await updated).ok()).toBe(true);
 	await page.reload();
-	await expect(poolSelect).toHaveText(/e2e-pool-2/);
+	await expect(poolSelect.locator('option:checked')).toHaveText('e2e-pool-2');
 
 	await page.getByRole('button', { name: en.resources_delete }).click();
 	await page.getByRole('dialog').getByRole('button', { name: en.resources_delete }).click();

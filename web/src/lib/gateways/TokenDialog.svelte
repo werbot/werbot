@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { durationFromMs } from '@bufbuild/protobuf/wkt';
-	import { Banner, Button, Modal, TextField, toast } from '#lib/ui/index.js';
+	import { Banner, Button, Modal, FilledField, toast } from '#lib/ui/index.js';
 	import { gateways } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -57,8 +57,8 @@
 		<Button onclick={copy}>{copied ? m.gateways_copied() : m.gateways_copy()}</Button>
 	{:else}
 		<form id="token-form" onsubmit={create}>
-			<TextField label={m.gateways_token_expires_in()} type="number" min={1} max={8760} bind:value={hours} required />
-			<TextField label={m.gateways_token_max_uses()} type="number" min={1} max={1000} bind:value={maxUses} required />
+			<FilledField label={m.gateways_token_expires_in()} type="number" min={1} max={8760} bind:value={hours} required />
+			<FilledField label={m.gateways_token_max_uses()} type="number" min={1} max={1000} bind:value={maxUses} required />
 		</form>
 	{/if}
 	{#snippet footer()}

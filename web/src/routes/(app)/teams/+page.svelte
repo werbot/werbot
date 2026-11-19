@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { AvatarStack, Banner, Button, EmptyState, Modal, Skeleton, Table, TextField, toast } from '#lib/ui/index.js';
+	import { AvatarStack, Banner, Button, EmptyState, Modal, Skeleton, Table, FilledField, toast } from '#lib/ui/index.js';
 	import { members, teams } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Member } from '#lib/gen/werbot/v1/member_pb.js';
@@ -124,7 +124,7 @@
 <Modal bind:open={() => creating, (v) => ((creating = v), !v && (error = ''))} title={m.teams_new()} width={480}>
 	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 	<form id="create-team" onsubmit={create}>
-		<TextField label={m.teams_name()} bind:value={newName} required maxlength={64} />
+		<FilledField label={m.teams_name()} bind:value={newName} required maxlength={64} />
 	</form>
 	{#snippet footer()}
 		<Button scheme="g" variant="plain" onclick={() => ((creating = false), (error = ''))}>{m.common_cancel()}</Button>

@@ -60,8 +60,7 @@ test.describe.serial('identity', () => {
 		await expect(page.getByRole('button', { name: 'ops', exact: true })).toBeVisible();
 		await page.getByRole('button', { name: 'ops', exact: true }).click();
 
-		await page.getByRole('button', { name: en.teams_add_member }).click();
-		await page.getByRole('menuitem', { name: bob.name }).click();
+		await page.getByLabel(en.teams_add_member).selectOption({ label: bob.name });
 		await expect(page.locator('.miso-chip', { hasText: bob.name })).toBeVisible();
 		await page.keyboard.press('Escape');
 

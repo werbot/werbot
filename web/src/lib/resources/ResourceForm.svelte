@@ -17,12 +17,14 @@
 	import { Code, ConnectError } from '@connectrpc/connect';
 	import { create } from '@bufbuild/protobuf';
 	import { DurationSchema } from '@bufbuild/protobuf/wkt';
-	import { Banner, Button, Select, TextField } from '#lib/ui/index.js';
+	import { Banner, Button, FilledField } from '#lib/ui/index.js';
+	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { gateways } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import FormField from '#lib/FormField.svelte';
 	import FieldRow from '#lib/FieldRow.svelte';
 	import { configFormFor } from './forms/index.js';
 	import LabelsEditor from './LabelsEditor.svelte';
@@ -93,11 +95,11 @@
 </script>
 
 <form class:capped={!!initial} onsubmit={submit}>
-	<TextField label={m.resources_name()} bind:value={name} required maxlength={63} />
-	{#if initial}<TextField label={m.resources_type()} value={initial.type} disabled />{/if}
+	<FilledField label={m.resources_name()} bind:value={name} required maxlength={63} />
+	{#if initial}<FilledField label={m.resources_type()} value={initial.type} disabled />{/if}
 	{#if poolError}<Banner tone="alert">{poolError}</Banner>{/if}
 	{#if pools.length > 1}
-		<Select label={m.resources_gateway_label()} options={pools.map((p) => ({ value: p.id, label: p.name }))} bind:value={gatewayId} />
+		<FilledSelect label={m.resources_gateway_label()} options={pools.map((p) => ({ value: p.id, label: p.name }))} bind:value={gatewayId} />
 	{/if}
 	{#if type}
 		{#key typeName}
@@ -105,8 +107,8 @@
 		{/key}
 	{/if}
 	<FieldRow even>
-		<TextField label={m.resources_idle_timeout()} bind:value={idleMinutes} type="number" min={1} max={1440} hint={m.resources_timeout_hint()} />
-		<TextField label={m.resources_max_duration()} bind:value={maxMinutes} type="number" min={1} max={10080} hint={m.resources_timeout_hint()} />
+		<FormField label={m.resources_idle_timeout()} bind:value={idleMinutes} type="number" min={1} max={1440} hint={m.resources_timeout_hint()} />
+		<FormField label={m.resources_max_duration()} bind:value={maxMinutes} type="number" min={1} max={10080} hint={m.resources_timeout_hint()} />
 	</FieldRow>
 	<LabelsEditor bind:rows />
 	<div class="actions">

@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Banner, Button, Select, Table, TextField, toast, type SelectOption } from '#lib/ui/index.js';
+	import { Banner, Button, FilledField, Table, toast, type SelectOption } from '#lib/ui/index.js';
+	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { access, members, teams } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import type { Binding } from '#lib/gen/werbot/v1/access_pb.js';
 	import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import FormField from '#lib/FormField.svelte';
 	import CheckAccess from './CheckAccess.svelte';
 	import { formatPorts, parsePorts } from './forms/ports.js';
 
@@ -111,16 +113,16 @@
 {/if}
 
 <form onsubmit={add}>
-	<Select
+	<FilledSelect
 		label={m.access_subject_type()}
 		options={[{ value: 'user', label: m.access_user() }, { value: 'team', label: m.access_team() }]}
 		bind:value={subjectType}
 		onchange={() => (subjectId = '')}
 	/>
-	<Select label={m.access_subject()} options={subjects} bind:value={subjectId} />
-	<Select label={m.access_target()} options={targets} bind:value={target} />
-	{#if target === 'selector'}<TextField label={m.access_selector()} bind:value={selector} placeholder="env=prod" />{/if}
-	{#if withPorts}<TextField label={m.access_ports()} bind:value={ports} placeholder="22, 8000-8100" hint={m.access_ports_hint()} />{/if}
+	<FilledSelect label={m.access_subject()} options={subjects} bind:value={subjectId} />
+	<FilledSelect label={m.access_target()} options={targets} bind:value={target} />
+	{#if target === 'selector'}<FilledField label={m.access_selector()} bind:value={selector} placeholder="env=prod" />{/if}
+	{#if withPorts}<FormField label={m.access_ports()} bind:value={ports} placeholder="22, 8000-8100" hint={m.access_ports_hint()} />{/if}
 	<div><Button type="submit" variant="solid" disabled={!subjectId}>{m.access_add()}</Button></div>
 </form>
 

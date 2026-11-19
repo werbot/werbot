@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { timestampDate } from '@bufbuild/protobuf/wkt';
-	import { Avatar, Banner, Button, EmptyState, Label, Modal, Select, Skeleton, Table, Tabs, TextField, toast, type SelectOption } from '#lib/ui/index.js';
+	import { Avatar, Banner, Button, EmptyState, Label, Modal, Select, Skeleton, Table, Tabs, FilledField, toast, type SelectOption } from '#lib/ui/index.js';
+	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { members, teams as teamsApi } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
@@ -184,8 +185,8 @@
 <Modal bind:open={inviting} title={m.members_invite()} width={480}>
 	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 	<form id="invite" onsubmit={invite}>
-		<TextField type="email" label={m.field_email()} bind:value={inviteEmail} required />
-		<Select label={m.members_role()} options={roleOptions} bind:value={inviteRole} />
+		<FilledField type="email" label={m.field_email()} bind:value={inviteEmail} required />
+		<FilledSelect label={m.members_role()} options={roleOptions} bind:value={inviteRole} />
 	</form>
 	{#snippet footer()}
 		<Button scheme="g" variant="plain" onclick={() => (inviting = false)}>{m.common_cancel()}</Button>

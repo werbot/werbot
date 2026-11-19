@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
-	import { TextField } from '#lib/ui/index.js';
+	import { FilledField } from '#lib/ui/index.js';
 	import { ConfigSchema } from '#lib/gen/werbot/connector/udp/v1/udp_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import FormField from '#lib/FormField.svelte';
 	import FieldRow from '#lib/FieldRow.svelte';
 	import { udpConfigValue, type ConfigFormProps } from './index.js';
 	import PortRangesField from './PortRangesField.svelte';
@@ -28,9 +29,9 @@
 </script>
 
 <FieldRow even>
-	<TextField label={m.resources_ssh_host()} bind:value={host} required />
+	<FilledField label={m.resources_ssh_host()} bind:value={host} required />
 	<PortRangesField label={m.resources_ports()} bind:value={ports} required />
 </FieldRow>
 <FieldRow even>
-	<TextField label={m.resources_flow_idle()} bind:value={flowIdle} type="number" min={1} max={3600} hint={m.resources_flow_idle_hint()} error={flowError} />
+	<FormField label={m.resources_flow_idle()} bind:value={flowIdle} type="number" min={1} max={3600} hint={m.resources_flow_idle_hint()} error={flowError} />
 </FieldRow>

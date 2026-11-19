@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Badge, Banner, Button, Select, TextField, Textarea, toast } from '#lib/ui/index.js';
+	import { Badge, Banner, Button, FilledField, Textarea, toast } from '#lib/ui/index.js';
+	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { resources } from '#lib/api.js';
 	import { errorMessage } from '#lib/errors.js';
 	import KeyFileDrop from '#lib/KeyFileDrop.svelte';
@@ -68,7 +69,7 @@
 	{m.cred_write_only()}
 </p>
 <form onsubmit={save}>
-	<Select
+	<FilledSelect
 		label={m.cred_kind()}
 		options={(type?.credentialKinds ?? []).map((k) => ({ value: k, label: label(k) }))}
 		value={kind}
@@ -78,7 +79,7 @@
 		<KeyFileDrop hint={m.cred_drop_hint()} {fileName} onfile={readKeyFile} onclear={clearFile} />
 		<Textarea label={label(kind)} bind:value rows={8} autocomplete="off" spellcheck="false" required />
 	{:else}
-		<TextField type="password" label={label(kind)} bind:value autocomplete="new-password" required />
+		<FilledField type="password" label={label(kind)} bind:value autocomplete="new-password" required />
 	{/if}
 	<div class="actions">
 		<Button type="submit" variant="solid">{m.cred_save()}</Button>
