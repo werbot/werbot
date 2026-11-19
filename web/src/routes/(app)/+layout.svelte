@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Sidebar, SidebarItem, Toaster } from '#lib/ui/index.js';
-	import { auth } from '#lib/api.js';
+	import { auth, system } from '#lib/api.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { LayoutProps } from './$types';
@@ -26,6 +27,16 @@
 			: [])
 	]);
 
+	// DB-IP Lite requires the credit; other GeoIP databases do not.
+	let geoipAttribution = $state(false);
+
+	onMount(() => {
+		system
+			.getVersion({})
+			.then((res) => (geoipAttribution = res.geoipAttribution))
+			.catch(() => {});
+	});
+
 	async function logout() {
 		await auth.logout({});
 		await goto('/login');
@@ -41,11 +52,13 @@
 		{/each}
 		{#snippet footer()}
 			<SidebarItem icon="logout" onclick={logout}>{m.auth_logout()}</SidebarItem>
+			{#if geoipAttribution}
+				<a class="attribution" href="https://db-ip.com">{m.geoip_attribution()}</a>
+			{/if}
 		{/snippet}
 	</Sidebar>
 	<main>
 		{@render children()}
-		<footer><a href="https://db-ip.com">{m.geoip_attribution()}</a></footer>
 	</main>
 </div>
 <Toaster />
@@ -63,8 +76,15 @@
 		overflow: auto;
 	}
 
-	footer {
-		margin-top: 32px;
-		font-size: 12px;
+	.attribution {
+		padding: 4px 10px 0;
+		font: var(--miso-font-ui-11-reg);
+		color: var(--miso-sidebar-ico-base);
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	.attribution:hover {
+		color: var(--miso-sidebar-ico-hover);
 	}
 </style>
