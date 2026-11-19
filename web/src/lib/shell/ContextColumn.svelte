@@ -126,14 +126,14 @@
 		color: var(--miso-txt-btn-b);
 	}
 
-	/* active: solid violet pill, light text */
+	/* active: solid brand pill, dark text */
 	.cc__item--active {
 		background: var(--miso-hlt-b-invert);
-		color: var(--miso-txt-flip);
+		color: var(--wb-on-brand);
 	}
 
 	.cc__item--active .cc__item-ico {
-		color: var(--miso-txt-flip);
+		color: var(--wb-on-brand);
 	}
 
 	.cc__foot {

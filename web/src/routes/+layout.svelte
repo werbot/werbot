@@ -4,6 +4,7 @@
 	import { system } from '#lib/api.js';
 	import { buildVersion, provideServerInfo } from '#lib/version.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import '#lib/theme.css';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();

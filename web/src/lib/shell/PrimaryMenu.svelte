@@ -23,6 +23,8 @@
 </script>
 
 <aside class="pm">
+	<a class="pm__head" href="/" aria-label="Werbot"><img src="/logo.svg" alt="" width="28" height="15" /></a>
+
 	<nav class="pm__content">
 		{#each rail as section (section.id)}
 			<Tooltip text={section.label()} placement="right">
@@ -75,7 +77,17 @@
 		align-items: center;
 		gap: 4px;
 		flex: 1;
-		padding-top: 16px;
+	}
+
+	/* .primaryMenu__head{40px;padding:12px;margin-bottom:10px} */
+	.pm__head {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		margin: 12px 0 10px;
+		border-radius: 12px;
 	}
 
 	/* .primaryMenu__item{20px;padding:6px;border-radius:8px} — 34px total incl. border */
@@ -98,6 +110,7 @@
 		color: var(--miso-sidebar-ico-hover);
 	}
 
+	.pm__head:focus-visible,
 	.pm__item:focus-visible,
 	.pm__profile:focus-visible {
 		outline: 2px solid var(--miso-sidebar-ico-active);
@@ -134,6 +147,6 @@
 
 	.pm__profile:hover,
 	.pm__profile--active {
-		background: var(--miso-violet-600);
+		background: var(--wb-brand-600);
 	}
 </style>

@@ -6,7 +6,7 @@
 
 <main class="public">
 	<div class="card">
-		<div class="brand">Werbot</div>
+		<div class="brand"><img src="/logo.svg" alt="" width="28" height="15" />Werbot</div>
 		{@render children()}
 	</div>
 </main>
@@ -33,6 +33,9 @@
 	}
 
 	.brand {
+		display: flex;
+		align-items: center;
+		gap: var(--miso-sp-08);
 		margin-bottom: var(--miso-sp-16);
 		font: var(--miso-font-ui-18-semi);
 		color: var(--miso-txt-accent);

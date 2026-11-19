@@ -1,0 +1,152 @@
+/* Werbot brand palette: gold #F6C90C (logo) as OKLCH ramp, same hue, lightness steps as miso interblue.
+   Imported after the miso styles; replaces every blue/violet accent without touching lib/ui. */
+:root {
+	/* Palette */
+	--wb-brand-50: #fefaed;
+	--wb-brand-100: #fdf6de;
+	--wb-brand-200: #fcf0c9;
+	--wb-brand-300: #fbe9b0;
+	--wb-brand-400: #fae08f;
+	--wb-brand-500: #f9d872;
+	--wb-brand-600: #f8d358;
+	--wb-brand-700: #f6c90c;
+	--wb-brand-750: #e3b90a;
+	--wb-brand-800: #cca712;
+	--wb-brand-850: #af8f12;
+	--wb-brand-900: #8c7100;
+	--wb-brand-920: #6e5802;
+	--wb-brand-a50: #f6c90c0d;
+	--wb-brand-a100: #f6c90c1a;
+	--wb-brand-a200: #f6c90c29;
+	--wb-brand-a300: #f6c90c3d;
+	--wb-brand-a400: #f6c90c5c;
+	--wb-brand-a500: #f6c90c8f;
+	--wb-brand-a600: #f6c90ccc;
+	/* dark text on gold surfaces (logo dark) */
+	--wb-on-brand: #231f20;
+	/* focus ring colour, >= 3:1 on white */
+	--wb-focus: var(--wb-brand-850);
+
+	/* Scales used directly by lib/ui components (Banner, DropZone, FileItem, Calendar, SidebarItem) */
+	--miso-interblue-50: var(--wb-brand-50);
+	--miso-interblue-100: var(--wb-brand-100);
+	--miso-interblue-200: var(--wb-brand-200);
+	--miso-interblue-300: var(--wb-brand-300);
+	--miso-interblue-400: var(--wb-brand-400);
+	--miso-interblue-500: var(--wb-brand-500);
+	--miso-interblue-600: var(--wb-brand-600);
+	--miso-interblue-700: var(--wb-brand-700);
+	--miso-interblue-750: var(--wb-brand-750);
+	--miso-interblue-800: var(--wb-brand-800);
+	--miso-interblue-850: var(--wb-brand-850);
+	--miso-interblue-900: var(--wb-brand-900);
+	--miso-interblue-920: var(--wb-brand-920);
+	--miso-interblue-a50: var(--wb-brand-a50);
+	--miso-interblue-a100: var(--wb-brand-a100);
+	--miso-interblue-a200: var(--wb-brand-a200);
+	--miso-interblue-a300: var(--wb-brand-a300);
+	--miso-interblue-a400: var(--wb-brand-a400);
+	--miso-interblue-a500: var(--wb-brand-a500);
+	--miso-interblue-a600: var(--wb-brand-a600);
+	--miso-violet-50: var(--wb-brand-50);
+	--miso-violet-100: var(--wb-brand-100);
+	--miso-violet-200: var(--wb-brand-200);
+	--miso-violet-300: var(--wb-brand-300);
+	--miso-violet-400: var(--wb-brand-400);
+	--miso-violet-500: var(--wb-brand-500);
+	--miso-violet-600: var(--wb-brand-600);
+	--miso-violet-700: var(--wb-brand-700);
+	--miso-violet-750: var(--wb-brand-750);
+	--miso-violet-800: var(--wb-brand-800);
+	--miso-violet-850: var(--wb-brand-850);
+	--miso-violet-900: var(--wb-brand-900);
+	--miso-violet-920: var(--wb-brand-920);
+	--miso-violet-a50: var(--wb-brand-a50);
+	--miso-violet-a100: var(--wb-brand-a100);
+	--miso-violet-a200: var(--wb-brand-a200);
+	--miso-violet-a300: var(--wb-brand-a300);
+	--miso-violet-a400: var(--wb-brand-a400);
+	--miso-violet-a500: var(--wb-brand-a500);
+	--miso-violet-a600: var(--wb-brand-a600);
+
+	/* Accent text on light surfaces: dark brand steps, >= 4.5:1 on white */
+	--miso-txt-link: var(--wb-brand-900);
+	--miso-txt-link-major: var(--wb-brand-920);
+	--miso-txt-btn-a: var(--wb-brand-900);
+	--miso-txt-btn-b: var(--wb-brand-900);
+	--miso-btn-a-txt: var(--wb-brand-900);
+	--miso-btn-b-txt: var(--wb-brand-900);
+	--miso-line-act: var(--wb-brand-700);
+	--miso-inp-selection: var(--wb-brand-400);
+	--miso-sidebar-ico-active: var(--wb-brand-700);
+	--miso-sidebar-badge-upcoming: var(--wb-brand-800);
+
+	/* Highlight schemes A and B share the brand */
+	--miso-hlt-easy: var(--wb-brand-a50);
+	--miso-hlt-hover: var(--wb-brand-a100);
+	--miso-hlt-selected: var(--wb-brand-a200);
+	--miso-hlt-pressed: var(--wb-brand-a300);
+	--miso-hlt-active: var(--wb-brand-a400);
+	--miso-hlt-focus: var(--wb-brand-a500);
+	--miso-hlt-invert: var(--wb-brand-700);
+	--miso-hlt-invert-minor: var(--wb-brand-600);
+	--miso-hlt-invert-major: var(--wb-brand-800);
+	--miso-hlt-b-easy: var(--miso-hlt-easy);
+	--miso-hlt-b-hover: var(--miso-hlt-hover);
+	--miso-hlt-b-selected: var(--miso-hlt-selected);
+	--miso-hlt-b-pressed: var(--miso-hlt-pressed);
+	--miso-hlt-b-active: var(--miso-hlt-active);
+	--miso-hlt-b-focus: var(--miso-hlt-focus);
+	--miso-hlt-b-invert: var(--miso-hlt-invert);
+	--miso-hlt-b-invert-minor: var(--miso-hlt-invert-minor);
+	--miso-hlt-b-invert-major: var(--miso-hlt-invert-major);
+
+	/* Rail: the navy titan ramp becomes warm neutrals around the logo dark */
+	--miso-titan-300: #e4e0dc;
+	--miso-titan-500: #b5b0aa;
+	--miso-titan-700: #857f79;
+	--miso-titan-800: #716b66;
+	--miso-titan-850: #615b57;
+	--miso-titan-920: #4a4543;
+	--miso-titan-930: #403b3a;
+	--miso-titan-940: #3a3534;
+	--miso-titan-950: #342f2f;
+	--miso-titan-960: #2e2a2a;
+	--miso-titan-970: #282425;
+	--miso-titan-980: #1c1819;
+
+	/* Avatar slots 7 (blue) and 8 (violet) */
+	--miso-av-7: #d9895b;
+	--miso-av-8: #a6896a;
+
+	/* Focus ring of inputs */
+	--miso-brd-focus: 0 0 0 1px var(--wb-focus), 0 0 0 4px var(--wb-brand-a400);
+}
+
+/* Components that paint white text on the accent fill: gold needs dark text */
+:root .miso-btn--solid:is(.miso-btn--a, .miso-btn--b),
+:root .miso-btn--invert:is(.miso-btn--a, .miso-btn--b):is(:hover:not(:disabled), :focus-visible, .miso-btn--selected),
+:root .miso-badge--accent,
+:root .miso-badge--upcoming {
+	color: var(--wb-on-brand);
+}
+
+/* Spinner hard-codes a blue/pink conic gradient */
+:root .miso-spinner {
+	background: conic-gradient(
+		from 0deg,
+		var(--wb-brand-a500) 0deg,
+		transparent 41deg,
+		var(--wb-brand-300) 179deg,
+		var(--wb-brand-700) 352deg,
+		var(--wb-brand-a500) 360deg
+	);
+}
+
+/* Toggle: knob dark on the gold track, ON label dark (gold text is unreadable on white) */
+:root .miso-toggle input:checked ~ .miso-toggle__track .miso-toggle__knob {
+	background: var(--wb-on-brand);
+}
+:root .miso-toggle input:checked ~ .miso-toggle__state {
+	color: var(--wb-brand-900);
+}
