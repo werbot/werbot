@@ -29,7 +29,7 @@
 </script>
 
 {#snippet profileHeader()}
-	<div class="profile">
+	<div class="profile wb-me">
 		<Avatar name={user.name} size={64} />
 		<span class="profile__name">{user.name}</span>
 		<span class="profile__email">{user.email}</span>

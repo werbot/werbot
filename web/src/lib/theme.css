@@ -135,6 +135,12 @@
 	--miso-brd-focus: 0 0 0 1px var(--wb-focus), 0 0 0 4px var(--wb-brand-a400);
 }
 
+/* The signed-in user's own avatar (rail, profile menu, profile column and page) wears the logo gold */
+.wb-me .miso-avatar .miso-avatar__letters {
+	background: var(--wb-brand-700);
+	color: var(--wb-on-brand);
+}
+
 /* Components that paint white text on the accent fill: gold needs dark text */
 :root .miso-btn--solid:is(.miso-btn--a, .miso-btn--b),
 :root .miso-btn--invert:is(.miso-btn--a, .miso-btn--b):is(:hover:not(:disabled), :focus-visible, .miso-btn--selected),

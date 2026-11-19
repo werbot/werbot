@@ -45,7 +45,7 @@
 			<button
 				bind:this={avatar}
 				type="button"
-				class={['pm__profile', (profileOpen || active === 'profile') && 'pm__profile--active']}
+				class={['pm__profile wb-me', (profileOpen || active === 'profile') && 'pm__profile--active']}
 				aria-label={m.nav_profile()}
 				aria-haspopup="menu"
 				aria-expanded={profileOpen}
@@ -145,8 +145,12 @@
 		transition: all 0.1s ease-in;
 	}
 
-	.pm__profile:hover,
+	.pm__profile:hover:not(.pm__profile--active) {
+		background: var(--miso-sidebar-hover);
+	}
+
 	.pm__profile--active {
-		background: var(--wb-brand-700);
+		background: var(--miso-sidebar-active);
+		box-shadow: 0 0 3px 0 var(--miso-dark-a20) inset;
 	}
 </style>

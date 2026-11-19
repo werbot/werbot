@@ -96,7 +96,7 @@
 	{#if error}<Banner tone="alert">{error}</Banner>{/if}
 
 	<!-- the context column carries this from 1024px up -->
-	<div class="me">
+	<div class="me wb-me">
 		<Avatar name={name || savedEmail} size={56} />
 		<div class="me__text">
 			<span class="me__name">{name}</span>

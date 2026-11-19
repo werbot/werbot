@@ -41,7 +41,7 @@
 	<div {@attach focusFirst} class="pfm" transition:scale={{ duration: 150, start: 0.95, easing: cubicOut }}>
 		<!-- ── head (.menu__head-profile) ─────────── -->
 		<header class="pfm__head">
-			<span class="pfm__avatar"><Avatar name={user.name} size={48} /></span>
+			<span class="pfm__avatar wb-me"><Avatar name={user.name} size={48} /></span>
 			<div class="pfm__who">
 				<span class="pfm__name">{user.name}</span>
 				<span class="pfm__email">{user.email}</span>
