@@ -21,8 +21,14 @@ type Accessible interface {
 	AccessibleResources(ctx context.Context, orgID, userID uuid.UUID, ip netip.Addr, at time.Time) ([]uuid.UUID, error)
 }
 
-// ListAccessibleResources lists the resources the caller may connect to, by name,
-// each with the address and host key of its pool; any member may call it.
+// Requestable reports which resources an approval policy lets p request; *access.Service satisfies it.
+type Requestable interface {
+	Requestable(ctx context.Context, p principal.Principal, resourceIDs []uuid.UUID) (map[uuid.UUID]bool, error)
+}
+
+// ListAccessibleResources lists the resources the caller may connect to or
+// request access to, by name, each with the address and host key of its pool;
+// any member may call it.
 func (h *Handler) ListAccessibleResources(ctx context.Context, _ *connect.Request[werbotv1.ListAccessibleResourcesRequest]) (*connect.Response[werbotv1.ListAccessibleResourcesResponse], error) {
 	p, err := principal.Require(ctx)
 	if err != nil {
@@ -36,16 +42,26 @@ func (h *Handler) ListAccessibleResources(ctx context.Context, _ *connect.Reques
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
+	orgIDs := make([]uuid.UUID, len(all))
+	for i, r := range all {
+		orgIDs[i] = r.ID
+	}
+	requestable, err := h.req.Requestable(ctx, p, orgIDs)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
 	pools, err := h.gws.PoolEndpoints(ctx, p.OrgID)
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
 	res := &werbotv1.ListAccessibleResourcesResponse{}
 	for _, r := range all {
-		if !slices.Contains(ids, r.ID) {
+		allowed := slices.Contains(ids, r.ID)
+		if !allowed && !requestable[r.ID] {
 			continue
 		}
-		out := &werbotv1.AccessibleResource{Id: r.ID.String(), Name: r.Name, Type: r.Type, Labels: r.Labels}
+		out := &werbotv1.AccessibleResource{Id: r.ID.String(), Name: r.Name, Type: r.Type, Labels: r.Labels,
+			Allowed: allowed, Requestable: requestable[r.ID]}
 		if t, ok := connector.Lookup(r.Type); ok {
 			for _, k := range t.Kinds {
 				out.Kinds = append(out.Kinds, string(k))

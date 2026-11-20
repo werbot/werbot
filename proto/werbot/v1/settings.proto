@@ -22,6 +22,33 @@ message OrgSettings {
     gte: {seconds: 86400}
     lte: {seconds: 7776000}
   }];
+  // Grant length when a request names none: above 0, at most grant_max_ttl.
+  google.protobuf.Duration grant_default_ttl = 3 [(buf.validate.field).duration = {
+    gt: {}
+    lte: {seconds: 1209600}
+  }];
+  // Longest grant: 1m to 14d.
+  google.protobuf.Duration grant_max_ttl = 4 [(buf.validate.field).duration = {
+    gte: {seconds: 60}
+    lte: {seconds: 1209600}
+  }];
+  // How long an access request waits for a decision: 1m to 24h.
+  google.protobuf.Duration request_pending_ttl = 5 [(buf.validate.field).duration = {
+    gte: {seconds: 60}
+    lte: {seconds: 86400}
+  }];
+  // How long a command approval waits for a decision: 30s to 1h.
+  google.protobuf.Duration command_approval_ttl = 6 [(buf.validate.field).duration = {
+    gte: {seconds: 30}
+    lte: {seconds: 3600}
+  }];
+  // What gateways do while their tunnel is down: "best_effort" keeps sessions, "strict" ends them after 60s.
+  string lock_mode = 7 [
+    (buf.validate.field).string = {
+      in: ["best_effort", "strict"]
+    },
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
 }
 
 message GetSettingsRequest {}

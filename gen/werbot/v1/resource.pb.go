@@ -526,7 +526,7 @@ func (x *ListResourceTypesResponse) GetTypes() []*ResourceType {
 	return nil
 }
 
-// A resource the caller may connect to, with the address and host key of its pool.
+// A resource the caller may connect to or request access to, with the address and host key of its pool.
 type AccessibleResource struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -536,6 +536,8 @@ type AccessibleResource struct {
 	Labels        map[string]string      `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	SshAddress    string                 `protobuf:"bytes,6,opt,name=ssh_address,json=sshAddress,proto3" json:"ssh_address,omitempty"` // empty without a pool or before the address is set
 	HostKey       string                 `protobuf:"bytes,8,opt,name=host_key,json=hostKey,proto3" json:"host_key,omitempty"`          // authorized_keys line of the pool host key
+	Requestable   bool                   `protobuf:"varint,9,opt,name=requestable,proto3" json:"requestable,omitempty"`                // an approval policy lets the caller request access
+	Allowed       bool                   `protobuf:"varint,10,opt,name=allowed,proto3" json:"allowed,omitempty"`                       // the caller may connect now
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -617,6 +619,20 @@ func (x *AccessibleResource) GetHostKey() string {
 		return x.HostKey
 	}
 	return ""
+}
+
+func (x *AccessibleResource) GetRequestable() bool {
+	if x != nil {
+		return x.Requestable
+	}
+	return false
+}
+
+func (x *AccessibleResource) GetAllowed() bool {
+	if x != nil {
+		return x.Allowed
+	}
+	return false
 }
 
 type ListAccessibleResourcesRequest struct {
@@ -1557,7 +1573,7 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x1a\n" +
 	"\x18ListResourceTypesRequest\"J\n" +
 	"\x19ListResourceTypesResponse\x12-\n" +
-	"\x05types\x18\x01 \x03(\v2\x17.werbot.v1.ResourceTypeR\x05types\"\x9c\x02\n" +
+	"\x05types\x18\x01 \x03(\v2\x17.werbot.v1.ResourceTypeR\x05types\"\xd8\x02\n" +
 	"\x12AccessibleResource\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -1566,7 +1582,10 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\x06labels\x18\x05 \x03(\v2).werbot.v1.AccessibleResource.LabelsEntryR\x06labels\x12\x1f\n" +
 	"\vssh_address\x18\x06 \x01(\tR\n" +
 	"sshAddress\x12\x19\n" +
-	"\bhost_key\x18\b \x01(\tR\ahostKey\x1a9\n" +
+	"\bhost_key\x18\b \x01(\tR\ahostKey\x12 \n" +
+	"\vrequestable\x18\t \x01(\bR\vrequestable\x12\x18\n" +
+	"\aallowed\x18\n" +
+	" \x01(\bR\aallowed\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\" \n" +

@@ -28,11 +28,12 @@ type Handler struct {
 	creds Credentials
 	acc   Accessible
 	gws   *Gateways
+	req   Requestable
 }
 
 // NewHandler returns the Connect handler for ResourceService.
-func NewHandler(s *Service, creds Credentials, acc Accessible, gws *Gateways) *Handler {
-	return &Handler{svc: s, creds: creds, acc: acc, gws: gws}
+func NewHandler(s *Service, creds Credentials, acc Accessible, gws *Gateways, req Requestable) *Handler {
+	return &Handler{svc: s, creds: creds, acc: acc, gws: gws, req: req}
 }
 
 // admin authorizes owner/admin and returns the organization.

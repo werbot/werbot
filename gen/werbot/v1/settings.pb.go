@@ -30,6 +30,16 @@ type OrgSettings struct {
 	CliSessionTtl *durationpb.Duration `protobuf:"bytes,1,opt,name=cli_session_ttl,json=cliSessionTtl,proto3" json:"cli_session_ttl,omitempty"`
 	// Absolute lifetime of a CLI session: 24h to 2160h.
 	CliSessionMax *durationpb.Duration `protobuf:"bytes,2,opt,name=cli_session_max,json=cliSessionMax,proto3" json:"cli_session_max,omitempty"`
+	// Grant length when a request names none: above 0, at most grant_max_ttl.
+	GrantDefaultTtl *durationpb.Duration `protobuf:"bytes,3,opt,name=grant_default_ttl,json=grantDefaultTtl,proto3" json:"grant_default_ttl,omitempty"`
+	// Longest grant: 1m to 14d.
+	GrantMaxTtl *durationpb.Duration `protobuf:"bytes,4,opt,name=grant_max_ttl,json=grantMaxTtl,proto3" json:"grant_max_ttl,omitempty"`
+	// How long an access request waits for a decision: 1m to 24h.
+	RequestPendingTtl *durationpb.Duration `protobuf:"bytes,5,opt,name=request_pending_ttl,json=requestPendingTtl,proto3" json:"request_pending_ttl,omitempty"`
+	// How long a command approval waits for a decision: 30s to 1h.
+	CommandApprovalTtl *durationpb.Duration `protobuf:"bytes,6,opt,name=command_approval_ttl,json=commandApprovalTtl,proto3" json:"command_approval_ttl,omitempty"`
+	// What gateways do while their tunnel is down: "best_effort" keeps sessions, "strict" ends them after 60s.
+	LockMode      string `protobuf:"bytes,7,opt,name=lock_mode,json=lockMode,proto3" json:"lock_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -76,6 +86,41 @@ func (x *OrgSettings) GetCliSessionMax() *durationpb.Duration {
 		return x.CliSessionMax
 	}
 	return nil
+}
+
+func (x *OrgSettings) GetGrantDefaultTtl() *durationpb.Duration {
+	if x != nil {
+		return x.GrantDefaultTtl
+	}
+	return nil
+}
+
+func (x *OrgSettings) GetGrantMaxTtl() *durationpb.Duration {
+	if x != nil {
+		return x.GrantMaxTtl
+	}
+	return nil
+}
+
+func (x *OrgSettings) GetRequestPendingTtl() *durationpb.Duration {
+	if x != nil {
+		return x.RequestPendingTtl
+	}
+	return nil
+}
+
+func (x *OrgSettings) GetCommandApprovalTtl() *durationpb.Duration {
+	if x != nil {
+		return x.CommandApprovalTtl
+	}
+	return nil
+}
+
+func (x *OrgSettings) GetLockMode() string {
+	if x != nil {
+		return x.LockMode
+	}
+	return ""
 }
 
 type GetSettingsRequest struct {
@@ -259,10 +304,17 @@ var File_werbot_v1_settings_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_settings_proto_rawDesc = "" +
 	"\n" +
-	"\x18werbot/v1/settings.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a google/protobuf/field_mask.proto\"\xbc\x01\n" +
+	"\x18werbot/v1/settings.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a google/protobuf/field_mask.proto\"\xdb\x04\n" +
 	"\vOrgSettings\x12U\n" +
 	"\x0fcli_session_ttl\x18\x01 \x01(\v2\x19.google.protobuf.DurationB\x12\xbaH\x0f\xaa\x01\f\"\x05\b\x80\x9a\x9e\x012\x03\b\x90\x1cR\rcliSessionTtl\x12V\n" +
-	"\x0fcli_session_max\x18\x02 \x01(\v2\x19.google.protobuf.DurationB\x13\xbaH\x10\xaa\x01\r\"\x05\b\x80\xce\xda\x032\x04\b\x80\xa3\x05R\rcliSessionMax\"\x14\n" +
+	"\x0fcli_session_max\x18\x02 \x01(\v2\x19.google.protobuf.DurationB\x13\xbaH\x10\xaa\x01\r\"\x05\b\x80\xce\xda\x032\x04\b\x80\xa3\x05R\rcliSessionMax\x12U\n" +
+	"\x11grant_default_ttl\x18\x03 \x01(\v2\x19.google.protobuf.DurationB\x0e\xbaH\v\xaa\x01\b\"\x04\b\x80\xeaI*\x00R\x0fgrantDefaultTtl\x12O\n" +
+	"\rgrant_max_ttl\x18\x04 \x01(\v2\x19.google.protobuf.DurationB\x10\xbaH\r\xaa\x01\n" +
+	"\"\x04\b\x80\xeaI2\x02\b<R\vgrantMaxTtl\x12[\n" +
+	"\x13request_pending_ttl\x18\x05 \x01(\v2\x19.google.protobuf.DurationB\x10\xbaH\r\xaa\x01\n" +
+	"\"\x04\b\x80\xa3\x052\x02\b<R\x11requestPendingTtl\x12\\\n" +
+	"\x14command_approval_ttl\x18\x06 \x01(\v2\x19.google.protobuf.DurationB\x0f\xbaH\f\xaa\x01\t\"\x03\b\x90\x1c2\x02\b\x1eR\x12commandApprovalTtl\x12:\n" +
+	"\tlock_mode\x18\a \x01(\tB\x1d\xbaH\x1a\xd8\x01\x01r\x15R\vbest_effortR\x06strictR\blockMode\"\x14\n" +
 	"\x12GetSettingsRequest\"I\n" +
 	"\x13GetSettingsResponse\x122\n" +
 	"\bsettings\x18\x01 \x01(\v2\x16.werbot.v1.OrgSettingsR\bsettings\"\x98\x01\n" +
@@ -301,21 +353,25 @@ var file_werbot_v1_settings_proto_goTypes = []any{
 	(*fieldmaskpb.FieldMask)(nil),  // 6: google.protobuf.FieldMask
 }
 var file_werbot_v1_settings_proto_depIdxs = []int32{
-	5, // 0: werbot.v1.OrgSettings.cli_session_ttl:type_name -> google.protobuf.Duration
-	5, // 1: werbot.v1.OrgSettings.cli_session_max:type_name -> google.protobuf.Duration
-	0, // 2: werbot.v1.GetSettingsResponse.settings:type_name -> werbot.v1.OrgSettings
-	0, // 3: werbot.v1.UpdateSettingsRequest.settings:type_name -> werbot.v1.OrgSettings
-	6, // 4: werbot.v1.UpdateSettingsRequest.update_mask:type_name -> google.protobuf.FieldMask
-	0, // 5: werbot.v1.UpdateSettingsResponse.settings:type_name -> werbot.v1.OrgSettings
-	1, // 6: werbot.v1.SettingsService.GetSettings:input_type -> werbot.v1.GetSettingsRequest
-	3, // 7: werbot.v1.SettingsService.UpdateSettings:input_type -> werbot.v1.UpdateSettingsRequest
-	2, // 8: werbot.v1.SettingsService.GetSettings:output_type -> werbot.v1.GetSettingsResponse
-	4, // 9: werbot.v1.SettingsService.UpdateSettings:output_type -> werbot.v1.UpdateSettingsResponse
-	8, // [8:10] is the sub-list for method output_type
-	6, // [6:8] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	5,  // 0: werbot.v1.OrgSettings.cli_session_ttl:type_name -> google.protobuf.Duration
+	5,  // 1: werbot.v1.OrgSettings.cli_session_max:type_name -> google.protobuf.Duration
+	5,  // 2: werbot.v1.OrgSettings.grant_default_ttl:type_name -> google.protobuf.Duration
+	5,  // 3: werbot.v1.OrgSettings.grant_max_ttl:type_name -> google.protobuf.Duration
+	5,  // 4: werbot.v1.OrgSettings.request_pending_ttl:type_name -> google.protobuf.Duration
+	5,  // 5: werbot.v1.OrgSettings.command_approval_ttl:type_name -> google.protobuf.Duration
+	0,  // 6: werbot.v1.GetSettingsResponse.settings:type_name -> werbot.v1.OrgSettings
+	0,  // 7: werbot.v1.UpdateSettingsRequest.settings:type_name -> werbot.v1.OrgSettings
+	6,  // 8: werbot.v1.UpdateSettingsRequest.update_mask:type_name -> google.protobuf.FieldMask
+	0,  // 9: werbot.v1.UpdateSettingsResponse.settings:type_name -> werbot.v1.OrgSettings
+	1,  // 10: werbot.v1.SettingsService.GetSettings:input_type -> werbot.v1.GetSettingsRequest
+	3,  // 11: werbot.v1.SettingsService.UpdateSettings:input_type -> werbot.v1.UpdateSettingsRequest
+	2,  // 12: werbot.v1.SettingsService.GetSettings:output_type -> werbot.v1.GetSettingsResponse
+	4,  // 13: werbot.v1.SettingsService.UpdateSettings:output_type -> werbot.v1.UpdateSettingsResponse
+	12, // [12:14] is the sub-list for method output_type
+	10, // [10:12] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_werbot_v1_settings_proto_init() }

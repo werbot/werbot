@@ -8,6 +8,7 @@ import (
 	"buf.build/go/protovalidate"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
@@ -100,4 +101,60 @@ func TestRequestValidation(t *testing.T) {
 	assert.Error(t, protovalidate.Validate(&werbotv1.UpdateApprovalPolicyRequest{Id: "x", Name: "prod", Mode: "auto"}))
 	assert.NoError(t, protovalidate.Validate(&werbotv1.DeleteApprovalPolicyRequest{Id: id}))
 	assert.Error(t, protovalidate.Validate(&werbotv1.DeleteApprovalPolicyRequest{Id: "x"}))
+
+	// AccessRequestService (stage 10)
+	long1025 := strings.Repeat("я", 1025)
+	assert.NoError(t, protovalidate.Validate(&werbotv1.CreateRequestRequest{ResourceId: id, Reason: strings.Repeat("я", 1024)}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.CreateRequestRequest{LabelSelector: map[string]string{"env": "prod"}}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateRequestRequest{ResourceId: "x"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateRequestRequest{ResourceId: id, Reason: long1025}))
+	nine := map[string]string{"a": "", "b": "", "c": "", "d": "", "e": "", "f": "", "g": "", "h": "", "i": ""}
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateRequestRequest{LabelSelector: nine}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ListRequestsRequest{}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ListRequestsRequest{Scope: werbotv1.RequestScope_REQUEST_SCOPE_ALL, Status: "pending", PageSize: 200}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.ListRequestsRequest{PageSize: 201}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.ListRequestsRequest{Status: "x"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.ListRequestsRequest{Scope: werbotv1.RequestScope(9)}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.GetRequestRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.GetRequestRequest{Id: "x"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ApproveRequest{Id: id, Comment: "ok"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.ApproveRequest{Id: id, Comment: long1025}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.DenyRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.DenyRequest{Id: "x"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.CancelRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CancelRequest{}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ListGrantsRequest{UserId: &id, ResourceId: &id, Active: true}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.ListGrantsRequest{ResourceId: &bad}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.RevokeGrantRequest{Id: id, Reason: "done"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.RevokeGrantRequest{Id: id, Reason: long1025}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ReviewBreakGlassRequest{GrantId: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.ReviewBreakGlassRequest{GrantId: "x"}))
+
+	// LockService (stage 10)
+	assert.NoError(t, protovalidate.Validate(&werbotv1.CreateLockRequest{TargetType: "cli_session", TargetId: id, Reason: "incident"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.CreateLockRequest{TargetType: "all_agents", Reason: "incident"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateLockRequest{TargetType: "x", TargetId: id, Reason: "incident"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateLockRequest{TargetType: "user", TargetId: "x", Reason: "incident"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateLockRequest{TargetType: "user", TargetId: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateLockRequest{TargetType: "user", TargetId: id, Reason: long1025}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.DeleteLockRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.DeleteLockRequest{Id: "x"}))
+
+	// OrgSettings JIT fields (stage 10)
+	settings := func(s *werbotv1.OrgSettings) *werbotv1.UpdateSettingsRequest {
+		return &werbotv1.UpdateSettingsRequest{Settings: s, UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"lock_mode"}}}
+	}
+	assert.NoError(t, protovalidate.Validate(settings(&werbotv1.OrgSettings{})))
+	assert.NoError(t, protovalidate.Validate(settings(&werbotv1.OrgSettings{GrantDefaultTtl: durationpb.New(14 * 24 * time.Hour),
+		GrantMaxTtl: durationpb.New(time.Minute), RequestPendingTtl: durationpb.New(24 * time.Hour),
+		CommandApprovalTtl: durationpb.New(30 * time.Second), LockMode: "strict"})))
+	for _, o := range []*werbotv1.OrgSettings{
+		{GrantDefaultTtl: durationpb.New(0)}, {GrantDefaultTtl: durationpb.New(15 * 24 * time.Hour)},
+		{GrantMaxTtl: durationpb.New(59 * time.Second)}, {GrantMaxTtl: durationpb.New(15 * 24 * time.Hour)},
+		{RequestPendingTtl: durationpb.New(59 * time.Second)}, {RequestPendingTtl: durationpb.New(25 * time.Hour)},
+		{CommandApprovalTtl: durationpb.New(29 * time.Second)}, {CommandApprovalTtl: durationpb.New(61 * time.Minute)},
+		{LockMode: "x"},
+	} {
+		assert.Error(t, protovalidate.Validate(settings(o)), o.String())
+	}
 }

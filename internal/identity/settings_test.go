@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -197,4 +198,44 @@ func TestSettingsRPC(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 	_, err = client.UpdateSettings(context.Background(), withCookie(upd, cookie, memberTok))
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+}
+
+func TestUpdateSettingsJIT(t *testing.T) {
+	svc, pool, _ := newTestService(t)
+	org := seedOrg(t, pool, "Acme")
+	seedUser(t, pool, org, "admin", principal.RoleAdmin)
+	ctx, _ := loginCtx(t, svc, "admin")
+	h := NewHandler(svc)
+	update := func(s *werbotv1.OrgSettings, paths ...string) (*connect.Response[werbotv1.UpdateSettingsResponse], error) {
+		return h.UpdateSettings(ctx, connect.NewRequest(&werbotv1.UpdateSettingsRequest{Settings: s, UpdateMask: &fieldmaskpb.FieldMask{Paths: paths}}))
+	}
+
+	res, err := update(&werbotv1.OrgSettings{LockMode: "strict"}, "lock_mode")
+	require.NoError(t, err)
+	got, err := h.GetSettings(ctx, connect.NewRequest(&werbotv1.GetSettingsRequest{}))
+	require.NoError(t, err)
+	for _, s := range []*werbotv1.OrgSettings{res.Msg.GetSettings(), got.Msg.GetSettings()} {
+		assert.Equal(t, "strict", s.GetLockMode())
+		assert.Equal(t, 8*time.Hour, s.GetGrantDefaultTtl().AsDuration())
+		assert.Equal(t, 14*24*time.Hour, s.GetGrantMaxTtl().AsDuration())
+		assert.Equal(t, time.Hour, s.GetRequestPendingTtl().AsDuration())
+		assert.Equal(t, 5*time.Minute, s.GetCommandApprovalTtl().AsDuration())
+	}
+
+	res, err = update(&werbotv1.OrgSettings{GrantDefaultTtl: durationpb.New(time.Hour), GrantMaxTtl: durationpb.New(2 * time.Hour),
+		RequestPendingTtl: durationpb.New(30 * time.Minute), CommandApprovalTtl: durationpb.New(time.Minute)},
+		"grant_default_ttl", "grant_max_ttl", "request_pending_ttl", "command_approval_ttl")
+	require.NoError(t, err)
+	s := res.Msg.GetSettings()
+	assert.Equal(t, []time.Duration{time.Hour, 2 * time.Hour, 30 * time.Minute, time.Minute}, []time.Duration{s.GetGrantDefaultTtl().AsDuration(),
+		s.GetGrantMaxTtl().AsDuration(), s.GetRequestPendingTtl().AsDuration(), s.GetCommandApprovalTtl().AsDuration()})
+
+	_, err = update(&werbotv1.OrgSettings{GrantDefaultTtl: durationpb.New(20 * 24 * time.Hour)}, "grant_default_ttl")
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
+	rows, err := pool.Query(context.Background(), "SELECT data->'fields' FROM audit_event WHERE action = 'settings.update' ORDER BY created_at")
+	require.NoError(t, err)
+	fields, err := pgx.CollectRows(rows, pgx.RowTo[[]string])
+	require.NoError(t, err)
+	assert.Equal(t, [][]string{{"lock_mode"}, {"grant_default_ttl", "grant_max_ttl", "request_pending_ttl", "command_approval_ttl"}}, fields)
 }

@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file werbot/v1/settings.proto.
  */
 export const file_werbot_v1_settings: GenFile = /*@__PURE__*/
-  fileDesc("Chh3ZXJib3QvdjEvc2V0dGluZ3MucHJvdG8SCXdlcmJvdC52MSKeAQoLT3JnU2V0dGluZ3MSRgoPY2xpX3Nlc3Npb25fdHRsGAEgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uQhK6SA+qAQwiBQiAmp4BMgMIkBwSRwoPY2xpX3Nlc3Npb25fbWF4GAIgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uQhO6SBCqAQ0iBQiAztoDMgQIgKMFIhQKEkdldFNldHRpbmdzUmVxdWVzdCI/ChNHZXRTZXR0aW5nc1Jlc3BvbnNlEigKCHNldHRpbmdzGAEgASgLMhYud2VyYm90LnYxLk9yZ1NldHRpbmdzIoIBChVVcGRhdGVTZXR0aW5nc1JlcXVlc3QSMAoIc2V0dGluZ3MYASABKAsyFi53ZXJib3QudjEuT3JnU2V0dGluZ3NCBrpIA8gBARI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBASJCChZVcGRhdGVTZXR0aW5nc1Jlc3BvbnNlEigKCHNldHRpbmdzGAEgASgLMhYud2VyYm90LnYxLk9yZ1NldHRpbmdzMrYBCg9TZXR0aW5nc1NlcnZpY2USTAoLR2V0U2V0dGluZ3MSHS53ZXJib3QudjEuR2V0U2V0dGluZ3NSZXF1ZXN0Gh4ud2VyYm90LnYxLkdldFNldHRpbmdzUmVzcG9uc2USVQoOVXBkYXRlU2V0dGluZ3MSIC53ZXJib3QudjEuVXBkYXRlU2V0dGluZ3NSZXF1ZXN0GiEud2VyYm90LnYxLlVwZGF0ZVNldHRpbmdzUmVzcG9uc2VClAEKDWNvbS53ZXJib3QudjFCDVNldHRpbmdzUHJvdG9QAVovZ2l0aHViLmNvbS93ZXJib3Qvd2VyYm90L2dlbi93ZXJib3QvdjE7d2VyYm90djGiAgNXWFiqAglXZXJib3QuVjHKAglXZXJib3RcVjHiAhVXZXJib3RcVjFcR1BCTWV0YWRhdGHqAgpXZXJib3Q6OlYxYgZwcm90bzM", [file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_field_mask]);
+  fileDesc("Chh3ZXJib3QvdjEvc2V0dGluZ3MucHJvdG8SCXdlcmJvdC52MSLuAwoLT3JnU2V0dGluZ3MSRgoPY2xpX3Nlc3Npb25fdHRsGAEgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uQhK6SA+qAQwiBQiAmp4BMgMIkBwSRwoPY2xpX3Nlc3Npb25fbWF4GAIgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uQhO6SBCqAQ0iBQiAztoDMgQIgKMFEkQKEWdyYW50X2RlZmF1bHRfdHRsGAMgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uQg66SAuqAQgiBAiA6kkqABJCCg1ncmFudF9tYXhfdHRsGAQgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uQhC6SA2qAQoiBAiA6kkyAgg8EkgKE3JlcXVlc3RfcGVuZGluZ190dGwYBSABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb25CELpIDaoBCiIECICjBTICCDwSSAoUY29tbWFuZF9hcHByb3ZhbF90dGwYBiABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb25CD7pIDKoBCSIDCJAcMgIIHhIwCglsb2NrX21vZGUYByABKAlCHbpIGtgBAXIVUgtiZXN0X2VmZm9ydFIGc3RyaWN0IhQKEkdldFNldHRpbmdzUmVxdWVzdCI/ChNHZXRTZXR0aW5nc1Jlc3BvbnNlEigKCHNldHRpbmdzGAEgASgLMhYud2VyYm90LnYxLk9yZ1NldHRpbmdzIoIBChVVcGRhdGVTZXR0aW5nc1JlcXVlc3QSMAoIc2V0dGluZ3MYASABKAsyFi53ZXJib3QudjEuT3JnU2V0dGluZ3NCBrpIA8gBARI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBASJCChZVcGRhdGVTZXR0aW5nc1Jlc3BvbnNlEigKCHNldHRpbmdzGAEgASgLMhYud2VyYm90LnYxLk9yZ1NldHRpbmdzMrYBCg9TZXR0aW5nc1NlcnZpY2USTAoLR2V0U2V0dGluZ3MSHS53ZXJib3QudjEuR2V0U2V0dGluZ3NSZXF1ZXN0Gh4ud2VyYm90LnYxLkdldFNldHRpbmdzUmVzcG9uc2USVQoOVXBkYXRlU2V0dGluZ3MSIC53ZXJib3QudjEuVXBkYXRlU2V0dGluZ3NSZXF1ZXN0GiEud2VyYm90LnYxLlVwZGF0ZVNldHRpbmdzUmVzcG9uc2VClAEKDWNvbS53ZXJib3QudjFCDVNldHRpbmdzUHJvdG9QAVovZ2l0aHViLmNvbS93ZXJib3Qvd2VyYm90L2dlbi93ZXJib3QvdjE7d2VyYm90djGiAgNXWFiqAglXZXJib3QuVjHKAglXZXJib3RcVjHiAhVXZXJib3RcVjFcR1BCTWV0YWRhdGHqAgpXZXJib3Q6OlYxYgZwcm90bzM", [file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_field_mask]);
 
 /**
  * @generated from message werbot.v1.OrgSettings
@@ -32,6 +32,41 @@ export type OrgSettings = Message<"werbot.v1.OrgSettings"> & {
    * @generated from field: google.protobuf.Duration cli_session_max = 2;
    */
   cliSessionMax?: Duration | undefined;
+
+  /**
+   * Grant length when a request names none: above 0, at most grant_max_ttl.
+   *
+   * @generated from field: google.protobuf.Duration grant_default_ttl = 3;
+   */
+  grantDefaultTtl?: Duration | undefined;
+
+  /**
+   * Longest grant: 1m to 14d.
+   *
+   * @generated from field: google.protobuf.Duration grant_max_ttl = 4;
+   */
+  grantMaxTtl?: Duration | undefined;
+
+  /**
+   * How long an access request waits for a decision: 1m to 24h.
+   *
+   * @generated from field: google.protobuf.Duration request_pending_ttl = 5;
+   */
+  requestPendingTtl?: Duration | undefined;
+
+  /**
+   * How long a command approval waits for a decision: 30s to 1h.
+   *
+   * @generated from field: google.protobuf.Duration command_approval_ttl = 6;
+   */
+  commandApprovalTtl?: Duration | undefined;
+
+  /**
+   * What gateways do while their tunnel is down: "best_effort" keeps sessions, "strict" ends them after 60s.
+   *
+   * @generated from field: string lock_mode = 7;
+   */
+  lockMode: string;
 };
 
 /**
