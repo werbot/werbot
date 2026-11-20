@@ -36,6 +36,7 @@ func newTunnelDeps(s *services, reg *metrics.Registry, logger *slog.Logger) tunn
 		Recordings:  s.Recordings,
 		Health:      tunnelResources{s.Inventory},
 		Pools:       tunnelGateways{s.Gateways},
+		Approvals:   tunnelApprovals{s.Access},
 		Country:     s.Policy.Country,
 		Metrics:     reg,
 		Logger:      logger,
@@ -136,7 +137,7 @@ func (s tunnelSessions) Deny(ctx context.Context, orgID uuid.UUID, ds []tunnel.D
 }
 
 // tunnelSnapshots builds a pool's snapshot: the organization's compiled
-// policy, its members with their teams, the blocklist and the user CA keys (Org), then the
+// policy with its expiries and lock mode, its members with their teams, the blocklist and the user CA keys (Org), then the
 // pool's resources by name (Pool), sorted, so equal data gives an equal version.
 type tunnelSnapshots struct {
 	s      *services
@@ -159,7 +160,14 @@ func (t tunnelSnapshots) Org(ctx context.Context, orgID uuid.UUID) (*gatewayv1.S
 		}
 		out.CedarPolicies = text
 	}
-	// Also in the deny-all snapshot: a membership change must reach the gateway.
+	// Also in the deny-all snapshot: expiries, the lock mode and a membership
+	// change must reach the gateway.
+	out.Expirations = snap.Expirations()
+	set, err := t.s.Identity.Settings(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	out.LockMode = set.LockMode
 	members, err := t.s.Identity.OrgMembers(ctx, orgID)
 	if err != nil {
 		return nil, err

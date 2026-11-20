@@ -157,4 +157,11 @@ func TestRequestValidation(t *testing.T) {
 	} {
 		assert.Error(t, protovalidate.Validate(settings(o)), o.String())
 	}
+
+	// TunnelService command approvals and end reasons (stage 10)
+	assert.NoError(t, protovalidate.Validate(&gatewayv1.RequestApprovalRequest{UserId: id, ResourceId: id, Command: "ls", Classes: []string{"destructive"}}))
+	assert.Error(t, protovalidate.Validate(&gatewayv1.RequestApprovalRequest{UserId: id, ResourceId: id, Command: "ls", Reasons: []string{strings.Repeat("a", 257)}}))
+	assert.NoError(t, protovalidate.Validate(&gatewayv1.GetApprovalRequest{ApprovalId: id}))
+	assert.Error(t, protovalidate.Validate(&gatewayv1.GetApprovalRequest{ApprovalId: "x"}))
+	assert.NoError(t, protovalidate.Validate(&gatewayv1.EndSessionRequest{SessionId: id, Reason: "policy_stale"}))
 }

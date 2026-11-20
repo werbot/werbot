@@ -76,8 +76,9 @@ type fake struct {
 	hold        atomic.Pointer[chan struct{}] // set: Pool returns once it is closed or ctx ends
 	authDelay   atomic.Int64                  // nanoseconds every Authenticate sleeps outside the lock
 
-	ingest fakeIngest
-	beat   beatRecord
+	ingest    fakeIngest
+	beat      beatRecord
+	approvals fakeApprovals
 }
 
 // recCall is one IngestChunk (seq, hash, gz) or FinishRecording (chunks, bytes, hash) call.
@@ -294,6 +295,6 @@ func (f *fake) with(fn func(f *fake)) {
 }
 
 func (f *fake) deps() Deps {
-	return Deps{Gateways: f, Users: f, Resources: f, Credentials: f, Snapshots: f, Sessions: f, Recordings: &f.ingest, Health: f, Pools: f,
+	return Deps{Gateways: f, Users: f, Resources: f, Credentials: f, Snapshots: f, Sessions: f, Recordings: &f.ingest, Health: f, Pools: f, Approvals: &f.approvals,
 		Country: func(netip.Addr) string { return "NL" }}
 }

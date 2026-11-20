@@ -192,6 +192,21 @@ func TestEndSessionCountersAndReasons(t *testing.T) {
 	})
 }
 
+// A strict organization's gateway ends its sessions with policy_stale when its tunnel is down too long.
+func TestEndSessionPolicyStale(t *testing.T) {
+	b := newBench(t, nil)
+	g := b.instance(t, b.org, uuid.New())
+	id := uuid.New()
+	if _, err := g.client.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{SessionId: id.String(), Reason: "policy_stale"})); err != nil {
+		t.Fatal(err)
+	}
+	b.f.with(func(f *fake) {
+		if len(f.ends) != 1 || f.ends[0].id != id || f.ends[0].reason != "policy_stale" {
+			t.Fatalf("End(%+v), want reason policy_stale", f.ends)
+		}
+	})
+}
+
 func TestEndSessionScopedToInstance(t *testing.T) {
 	b := newBench(t, nil)
 	g := b.instance(t, b.org, uuid.New())

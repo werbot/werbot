@@ -156,6 +156,7 @@ type Deps struct {
 	Recordings  RecordingIngest
 	Health      Health
 	Pools       Pools
+	Approvals   Approvals // nil: no approval decisions are sent
 	Country     func(netip.Addr) string
 	Metrics     *metrics.Registry // nil: a private registry
 	Logger      *slog.Logger      // nil: slog.Default()

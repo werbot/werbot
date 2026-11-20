@@ -17,6 +17,10 @@ service TunnelService {
   rpc RenewCertificate(RenewCertificateRequest) returns (RenewCertificateResponse);
   rpc UploadRecordingChunk(UploadRecordingChunkRequest) returns (UploadRecordingChunkResponse);
   rpc FinishRecording(FinishRecordingRequest) returns (FinishRecordingResponse);
+  // RequestApproval asks the approvers to allow one command of a session;
+  // the decision arrives as approval_decided on Connect.
+  rpc RequestApproval(RequestApprovalRequest) returns (RequestApprovalResponse);
+  rpc GetApproval(GetApprovalRequest) returns (GetApprovalResponse);
 }
 
 message ConnectRequest {
@@ -87,7 +91,15 @@ message ConnectResponse {
   oneof msg {
     Snapshot snapshot = 1;
     PoolInstances pool_instances = 2;
+    ApprovalDecided approval_decided = 3;
   }
+}
+
+// ApprovalDecided is a decided command approval of the receiving instance.
+message ApprovalDecided {
+  string approval_id = 1;
+  // "approved" or "denied"
+  string status = 2;
 }
 
 message Snapshot {
@@ -99,6 +111,10 @@ message Snapshot {
   string version = 5;
   // organization members sorted by user_id; a change revokes sessions on the gateway
   repeated Member members = 6;
+  // unix seconds when grants and locks expire, ascending, unique
+  repeated int64 expirations = 7;
+  // "best_effort" or "strict": strict ends sessions when the tunnel is down too long
+  string lock_mode = 8;
   // the organization's user CA keys (authorized_keys); empty: no certificate is accepted
   repeated string user_ca_keys = 18;
 }
@@ -171,9 +187,10 @@ message Credential {
 
 message EndSessionRequest {
   string session_id = 1 [(buf.validate.field).string.uuid = true];
-  // gateway-side end reasons; gateway_lost is set only by the server
+  // gateway-side end reasons; gateway_lost is set only by the server;
+  // policy_stale: a strict organization's tunnel was down too long
   string reason = 2 [(buf.validate.field).string = {
-    in: ["closed", "error", "internal_error", "gateway_shutdown", "recording_unavailable", "idle_timeout", "max_duration", "access_revoked"]
+    in: ["closed", "error", "internal_error", "gateway_shutdown", "recording_unavailable", "idle_timeout", "max_duration", "access_revoked", "policy_stale"]
   }];
   // final totals; unset keeps the stored ones; session_id must equal session_id above
   SessionCounters counters = 3;
@@ -219,3 +236,35 @@ message FinishRecordingRequest {
 }
 
 message FinishRecordingResponse {}
+
+message RequestApprovalRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string resource_id = 2 [(buf.validate.field).string.uuid = true];
+  // empty: the user's own command
+  string agent_run_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string command = 4 [(buf.validate.field).string = {min_bytes: 1, max_bytes: 16384}];
+  repeated string classes = 5 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {string: {max_len: 64}}
+  }];
+  repeated string reasons = 6 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {string: {max_len: 256}}
+  }];
+}
+
+message RequestApprovalResponse {
+  string approval_id = 1;
+  google.protobuf.Timestamp expires_at = 2;
+  // the approval page for the approvers
+  string url = 3;
+}
+
+message GetApprovalRequest {
+  string approval_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message GetApprovalResponse {
+  // "pending", "approved", "denied", "expired" or "canceled"
+  string status = 1;
+}

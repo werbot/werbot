@@ -479,6 +479,7 @@ type ConnectResponse struct {
 	//
 	//	*ConnectResponse_Snapshot
 	//	*ConnectResponse_PoolInstances
+	//	*ConnectResponse_ApprovalDecided
 	Msg           isConnectResponse_Msg `protobuf_oneof:"msg"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -539,6 +540,15 @@ func (x *ConnectResponse) GetPoolInstances() *PoolInstances {
 	return nil
 }
 
+func (x *ConnectResponse) GetApprovalDecided() *ApprovalDecided {
+	if x != nil {
+		if x, ok := x.Msg.(*ConnectResponse_ApprovalDecided); ok {
+			return x.ApprovalDecided
+		}
+	}
+	return nil
+}
+
 type isConnectResponse_Msg interface {
 	isConnectResponse_Msg()
 }
@@ -551,9 +561,69 @@ type ConnectResponse_PoolInstances struct {
 	PoolInstances *PoolInstances `protobuf:"bytes,2,opt,name=pool_instances,json=poolInstances,proto3,oneof"`
 }
 
+type ConnectResponse_ApprovalDecided struct {
+	ApprovalDecided *ApprovalDecided `protobuf:"bytes,3,opt,name=approval_decided,json=approvalDecided,proto3,oneof"`
+}
+
 func (*ConnectResponse_Snapshot) isConnectResponse_Msg() {}
 
 func (*ConnectResponse_PoolInstances) isConnectResponse_Msg() {}
+
+func (*ConnectResponse_ApprovalDecided) isConnectResponse_Msg() {}
+
+// ApprovalDecided is a decided command approval of the receiving instance.
+type ApprovalDecided struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	ApprovalId string                 `protobuf:"bytes,1,opt,name=approval_id,json=approvalId,proto3" json:"approval_id,omitempty"`
+	// "approved" or "denied"
+	Status        string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApprovalDecided) Reset() {
+	*x = ApprovalDecided{}
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApprovalDecided) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApprovalDecided) ProtoMessage() {}
+
+func (x *ApprovalDecided) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApprovalDecided.ProtoReflect.Descriptor instead.
+func (*ApprovalDecided) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ApprovalDecided) GetApprovalId() string {
+	if x != nil {
+		return x.ApprovalId
+	}
+	return ""
+}
+
+func (x *ApprovalDecided) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
 
 type Snapshot struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -565,6 +635,10 @@ type Snapshot struct {
 	Version string `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
 	// organization members sorted by user_id; a change revokes sessions on the gateway
 	Members []*Member `protobuf:"bytes,6,rep,name=members,proto3" json:"members,omitempty"`
+	// unix seconds when grants and locks expire, ascending, unique
+	Expirations []int64 `protobuf:"varint,7,rep,packed,name=expirations,proto3" json:"expirations,omitempty"`
+	// "best_effort" or "strict": strict ends sessions when the tunnel is down too long
+	LockMode string `protobuf:"bytes,8,opt,name=lock_mode,json=lockMode,proto3" json:"lock_mode,omitempty"`
 	// the organization's user CA keys (authorized_keys); empty: no certificate is accepted
 	UserCaKeys    []string `protobuf:"bytes,18,rep,name=user_ca_keys,json=userCaKeys,proto3" json:"user_ca_keys,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -573,7 +647,7 @@ type Snapshot struct {
 
 func (x *Snapshot) Reset() {
 	*x = Snapshot{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[7]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -585,7 +659,7 @@ func (x *Snapshot) String() string {
 func (*Snapshot) ProtoMessage() {}
 
 func (x *Snapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[7]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -598,7 +672,7 @@ func (x *Snapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Snapshot.ProtoReflect.Descriptor instead.
 func (*Snapshot) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{7}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Snapshot) GetCedarPolicies() string {
@@ -643,6 +717,20 @@ func (x *Snapshot) GetMembers() []*Member {
 	return nil
 }
 
+func (x *Snapshot) GetExpirations() []int64 {
+	if x != nil {
+		return x.Expirations
+	}
+	return nil
+}
+
+func (x *Snapshot) GetLockMode() string {
+	if x != nil {
+		return x.LockMode
+	}
+	return ""
+}
+
 func (x *Snapshot) GetUserCaKeys() []string {
 	if x != nil {
 		return x.UserCaKeys
@@ -661,7 +749,7 @@ type Member struct {
 
 func (x *Member) Reset() {
 	*x = Member{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[8]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -673,7 +761,7 @@ func (x *Member) String() string {
 func (*Member) ProtoMessage() {}
 
 func (x *Member) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[8]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -686,7 +774,7 @@ func (x *Member) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Member.ProtoReflect.Descriptor instead.
 func (*Member) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{8}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Member) GetUserId() string {
@@ -721,7 +809,7 @@ type Resource struct {
 
 func (x *Resource) Reset() {
 	*x = Resource{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[9]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -733,7 +821,7 @@ func (x *Resource) String() string {
 func (*Resource) ProtoMessage() {}
 
 func (x *Resource) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[9]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -746,7 +834,7 @@ func (x *Resource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Resource.ProtoReflect.Descriptor instead.
 func (*Resource) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{9}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Resource) GetId() string {
@@ -813,7 +901,7 @@ type AuthenticateUserRequest struct {
 
 func (x *AuthenticateUserRequest) Reset() {
 	*x = AuthenticateUserRequest{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[10]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -825,7 +913,7 @@ func (x *AuthenticateUserRequest) String() string {
 func (*AuthenticateUserRequest) ProtoMessage() {}
 
 func (x *AuthenticateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[10]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -838,7 +926,7 @@ func (x *AuthenticateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticateUserRequest.ProtoReflect.Descriptor instead.
 func (*AuthenticateUserRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{10}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AuthenticateUserRequest) GetBy() isAuthenticateUserRequest_By {
@@ -918,7 +1006,7 @@ type CertIdentity struct {
 
 func (x *CertIdentity) Reset() {
 	*x = CertIdentity{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[11]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -930,7 +1018,7 @@ func (x *CertIdentity) String() string {
 func (*CertIdentity) ProtoMessage() {}
 
 func (x *CertIdentity) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[11]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -943,7 +1031,7 @@ func (x *CertIdentity) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CertIdentity.ProtoReflect.Descriptor instead.
 func (*CertIdentity) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{11}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CertIdentity) GetUserId() string {
@@ -986,7 +1074,7 @@ type AuthenticateUserResponse struct {
 
 func (x *AuthenticateUserResponse) Reset() {
 	*x = AuthenticateUserResponse{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[12]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -998,7 +1086,7 @@ func (x *AuthenticateUserResponse) String() string {
 func (*AuthenticateUserResponse) ProtoMessage() {}
 
 func (x *AuthenticateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[12]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1011,7 +1099,7 @@ func (x *AuthenticateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticateUserResponse.ProtoReflect.Descriptor instead.
 func (*AuthenticateUserResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{12}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AuthenticateUserResponse) GetUserId() string {
@@ -1056,7 +1144,7 @@ type StartSessionRequest struct {
 
 func (x *StartSessionRequest) Reset() {
 	*x = StartSessionRequest{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[13]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1068,7 +1156,7 @@ func (x *StartSessionRequest) String() string {
 func (*StartSessionRequest) ProtoMessage() {}
 
 func (x *StartSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[13]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1081,7 +1169,7 @@ func (x *StartSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartSessionRequest.ProtoReflect.Descriptor instead.
 func (*StartSessionRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{13}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *StartSessionRequest) GetUserId() string {
@@ -1129,7 +1217,7 @@ type StartSessionResponse struct {
 
 func (x *StartSessionResponse) Reset() {
 	*x = StartSessionResponse{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[14]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1141,7 +1229,7 @@ func (x *StartSessionResponse) String() string {
 func (*StartSessionResponse) ProtoMessage() {}
 
 func (x *StartSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[14]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1154,7 +1242,7 @@ func (x *StartSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartSessionResponse.ProtoReflect.Descriptor instead.
 func (*StartSessionResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{14}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *StartSessionResponse) GetSessionId() string {
@@ -1181,7 +1269,7 @@ type Credential struct {
 
 func (x *Credential) Reset() {
 	*x = Credential{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[15]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1193,7 +1281,7 @@ func (x *Credential) String() string {
 func (*Credential) ProtoMessage() {}
 
 func (x *Credential) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[15]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1206,7 +1294,7 @@ func (x *Credential) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Credential.ProtoReflect.Descriptor instead.
 func (*Credential) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{15}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Credential) GetKind() string {
@@ -1226,7 +1314,8 @@ func (x *Credential) GetValue() []byte {
 type EndSessionRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// gateway-side end reasons; gateway_lost is set only by the server
+	// gateway-side end reasons; gateway_lost is set only by the server;
+	// policy_stale: a strict organization's tunnel was down too long
 	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	// final totals; unset keeps the stored ones; session_id must equal session_id above
 	Counters      *SessionCounters `protobuf:"bytes,3,opt,name=counters,proto3" json:"counters,omitempty"`
@@ -1236,7 +1325,7 @@ type EndSessionRequest struct {
 
 func (x *EndSessionRequest) Reset() {
 	*x = EndSessionRequest{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[16]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1248,7 +1337,7 @@ func (x *EndSessionRequest) String() string {
 func (*EndSessionRequest) ProtoMessage() {}
 
 func (x *EndSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[16]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1261,7 +1350,7 @@ func (x *EndSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EndSessionRequest.ProtoReflect.Descriptor instead.
 func (*EndSessionRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{16}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *EndSessionRequest) GetSessionId() string {
@@ -1293,7 +1382,7 @@ type EndSessionResponse struct {
 
 func (x *EndSessionResponse) Reset() {
 	*x = EndSessionResponse{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[17]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1305,7 +1394,7 @@ func (x *EndSessionResponse) String() string {
 func (*EndSessionResponse) ProtoMessage() {}
 
 func (x *EndSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[17]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1318,7 +1407,7 @@ func (x *EndSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EndSessionResponse.ProtoReflect.Descriptor instead.
 func (*EndSessionResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{17}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{18}
 }
 
 type PinHostKeyRequest struct {
@@ -1333,7 +1422,7 @@ type PinHostKeyRequest struct {
 
 func (x *PinHostKeyRequest) Reset() {
 	*x = PinHostKeyRequest{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[18]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1345,7 +1434,7 @@ func (x *PinHostKeyRequest) String() string {
 func (*PinHostKeyRequest) ProtoMessage() {}
 
 func (x *PinHostKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[18]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1358,7 +1447,7 @@ func (x *PinHostKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PinHostKeyRequest.ProtoReflect.Descriptor instead.
 func (*PinHostKeyRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{18}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *PinHostKeyRequest) GetResourceId() string {
@@ -1390,7 +1479,7 @@ type PinHostKeyResponse struct {
 
 func (x *PinHostKeyResponse) Reset() {
 	*x = PinHostKeyResponse{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[19]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1402,7 +1491,7 @@ func (x *PinHostKeyResponse) String() string {
 func (*PinHostKeyResponse) ProtoMessage() {}
 
 func (x *PinHostKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[19]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1415,7 +1504,7 @@ func (x *PinHostKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PinHostKeyResponse.ProtoReflect.Descriptor instead.
 func (*PinHostKeyResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{19}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{20}
 }
 
 type RenewCertificateRequest struct {
@@ -1427,7 +1516,7 @@ type RenewCertificateRequest struct {
 
 func (x *RenewCertificateRequest) Reset() {
 	*x = RenewCertificateRequest{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[20]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1439,7 +1528,7 @@ func (x *RenewCertificateRequest) String() string {
 func (*RenewCertificateRequest) ProtoMessage() {}
 
 func (x *RenewCertificateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[20]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1452,7 +1541,7 @@ func (x *RenewCertificateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenewCertificateRequest.ProtoReflect.Descriptor instead.
 func (*RenewCertificateRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{20}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RenewCertificateRequest) GetCsrDer() []byte {
@@ -1471,7 +1560,7 @@ type RenewCertificateResponse struct {
 
 func (x *RenewCertificateResponse) Reset() {
 	*x = RenewCertificateResponse{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[21]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1483,7 +1572,7 @@ func (x *RenewCertificateResponse) String() string {
 func (*RenewCertificateResponse) ProtoMessage() {}
 
 func (x *RenewCertificateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[21]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1496,7 +1585,7 @@ func (x *RenewCertificateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenewCertificateResponse.ProtoReflect.Descriptor instead.
 func (*RenewCertificateResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{21}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *RenewCertificateResponse) GetCertPem() []byte {
@@ -1521,7 +1610,7 @@ type UploadRecordingChunkRequest struct {
 
 func (x *UploadRecordingChunkRequest) Reset() {
 	*x = UploadRecordingChunkRequest{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[22]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1533,7 +1622,7 @@ func (x *UploadRecordingChunkRequest) String() string {
 func (*UploadRecordingChunkRequest) ProtoMessage() {}
 
 func (x *UploadRecordingChunkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[22]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1546,7 +1635,7 @@ func (x *UploadRecordingChunkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadRecordingChunkRequest.ProtoReflect.Descriptor instead.
 func (*UploadRecordingChunkRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{22}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *UploadRecordingChunkRequest) GetSessionId() string {
@@ -1585,7 +1674,7 @@ type UploadRecordingChunkResponse struct {
 
 func (x *UploadRecordingChunkResponse) Reset() {
 	*x = UploadRecordingChunkResponse{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[23]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1597,7 +1686,7 @@ func (x *UploadRecordingChunkResponse) String() string {
 func (*UploadRecordingChunkResponse) ProtoMessage() {}
 
 func (x *UploadRecordingChunkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[23]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1610,7 +1699,7 @@ func (x *UploadRecordingChunkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadRecordingChunkResponse.ProtoReflect.Descriptor instead.
 func (*UploadRecordingChunkResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{23}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{24}
 }
 
 // FinishRecording closes a recording: the totals must match the ingested chain.
@@ -1626,7 +1715,7 @@ type FinishRecordingRequest struct {
 
 func (x *FinishRecordingRequest) Reset() {
 	*x = FinishRecordingRequest{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[24]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1638,7 +1727,7 @@ func (x *FinishRecordingRequest) String() string {
 func (*FinishRecordingRequest) ProtoMessage() {}
 
 func (x *FinishRecordingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[24]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1651,7 +1740,7 @@ func (x *FinishRecordingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishRecordingRequest.ProtoReflect.Descriptor instead.
 func (*FinishRecordingRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{24}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *FinishRecordingRequest) GetSessionId() string {
@@ -1690,7 +1779,7 @@ type FinishRecordingResponse struct {
 
 func (x *FinishRecordingResponse) Reset() {
 	*x = FinishRecordingResponse{}
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[25]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1702,7 +1791,7 @@ func (x *FinishRecordingResponse) String() string {
 func (*FinishRecordingResponse) ProtoMessage() {}
 
 func (x *FinishRecordingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_proto_msgTypes[25]
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1715,7 +1804,242 @@ func (x *FinishRecordingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishRecordingResponse.ProtoReflect.Descriptor instead.
 func (*FinishRecordingResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{25}
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{26}
+}
+
+type RequestApprovalRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	UserId     string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ResourceId string                 `protobuf:"bytes,2,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	// empty: the user's own command
+	AgentRunId    string   `protobuf:"bytes,3,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
+	Command       string   `protobuf:"bytes,4,opt,name=command,proto3" json:"command,omitempty"`
+	Classes       []string `protobuf:"bytes,5,rep,name=classes,proto3" json:"classes,omitempty"`
+	Reasons       []string `protobuf:"bytes,6,rep,name=reasons,proto3" json:"reasons,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestApprovalRequest) Reset() {
+	*x = RequestApprovalRequest{}
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestApprovalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestApprovalRequest) ProtoMessage() {}
+
+func (x *RequestApprovalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestApprovalRequest.ProtoReflect.Descriptor instead.
+func (*RequestApprovalRequest) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *RequestApprovalRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *RequestApprovalRequest) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *RequestApprovalRequest) GetAgentRunId() string {
+	if x != nil {
+		return x.AgentRunId
+	}
+	return ""
+}
+
+func (x *RequestApprovalRequest) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+func (x *RequestApprovalRequest) GetClasses() []string {
+	if x != nil {
+		return x.Classes
+	}
+	return nil
+}
+
+func (x *RequestApprovalRequest) GetReasons() []string {
+	if x != nil {
+		return x.Reasons
+	}
+	return nil
+}
+
+type RequestApprovalResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	ApprovalId string                 `protobuf:"bytes,1,opt,name=approval_id,json=approvalId,proto3" json:"approval_id,omitempty"`
+	ExpiresAt  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// the approval page for the approvers
+	Url           string `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestApprovalResponse) Reset() {
+	*x = RequestApprovalResponse{}
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestApprovalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestApprovalResponse) ProtoMessage() {}
+
+func (x *RequestApprovalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestApprovalResponse.ProtoReflect.Descriptor instead.
+func (*RequestApprovalResponse) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *RequestApprovalResponse) GetApprovalId() string {
+	if x != nil {
+		return x.ApprovalId
+	}
+	return ""
+}
+
+func (x *RequestApprovalResponse) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *RequestApprovalResponse) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type GetApprovalRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApprovalId    string                 `protobuf:"bytes,1,opt,name=approval_id,json=approvalId,proto3" json:"approval_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetApprovalRequest) Reset() {
+	*x = GetApprovalRequest{}
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetApprovalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetApprovalRequest) ProtoMessage() {}
+
+func (x *GetApprovalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetApprovalRequest.ProtoReflect.Descriptor instead.
+func (*GetApprovalRequest) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *GetApprovalRequest) GetApprovalId() string {
+	if x != nil {
+		return x.ApprovalId
+	}
+	return ""
+}
+
+type GetApprovalResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// "pending", "approved", "denied", "expired" or "canceled"
+	Status        string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetApprovalResponse) Reset() {
+	*x = GetApprovalResponse{}
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetApprovalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetApprovalResponse) ProtoMessage() {}
+
+func (x *GetApprovalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_tunnel_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetApprovalResponse.ProtoReflect.Descriptor instead.
+func (*GetApprovalResponse) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_tunnel_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *GetApprovalResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
 }
 
 var File_gateway_v1_tunnel_proto protoreflect.FileDescriptor
@@ -1764,11 +2088,16 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"checked_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAt\"!\n" +
 	"\rPoolInstances\x12\x10\n" +
-	"\x03ids\x18\x01 \x03(\tR\x03ids\"\x90\x01\n" +
+	"\x03ids\x18\x01 \x03(\tR\x03ids\"\xda\x01\n" +
 	"\x0fConnectResponse\x122\n" +
 	"\bsnapshot\x18\x01 \x01(\v2\x14.gateway.v1.SnapshotH\x00R\bsnapshot\x12B\n" +
-	"\x0epool_instances\x18\x02 \x01(\v2\x19.gateway.v1.PoolInstancesH\x00R\rpoolInstancesB\x05\n" +
-	"\x03msg\"\x92\x02\n" +
+	"\x0epool_instances\x18\x02 \x01(\v2\x19.gateway.v1.PoolInstancesH\x00R\rpoolInstances\x12H\n" +
+	"\x10approval_decided\x18\x03 \x01(\v2\x1b.gateway.v1.ApprovalDecidedH\x00R\x0fapprovalDecidedB\x05\n" +
+	"\x03msg\"J\n" +
+	"\x0fApprovalDecided\x12\x1f\n" +
+	"\vapproval_id\x18\x01 \x01(\tR\n" +
+	"approvalId\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\"\xd1\x02\n" +
 	"\bSnapshot\x12%\n" +
 	"\x0ecedar_policies\x18\x01 \x01(\tR\rcedarPolicies\x12#\n" +
 	"\rentities_json\x18\x02 \x01(\fR\fentitiesJson\x122\n" +
@@ -1776,6 +2105,8 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\tblocklist\x18\x04 \x03(\tR\tblocklist\x12\x18\n" +
 	"\aversion\x18\x05 \x01(\tR\aversion\x12,\n" +
 	"\amembers\x18\x06 \x03(\v2\x12.gateway.v1.MemberR\amembers\x12 \n" +
+	"\vexpirations\x18\a \x03(\x03R\vexpirations\x12\x1b\n" +
+	"\tlock_mode\x18\b \x01(\tR\blockMode\x12 \n" +
 	"\fuser_ca_keys\x18\x12 \x03(\tR\n" +
 	"userCaKeys\"<\n" +
 	"\x06Member\x12\x17\n" +
@@ -1825,11 +2156,11 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"Credential\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value\"\x89\x02\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value\"\x9a\x02\n" +
 	"\x11EndSessionRequest\x12'\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\x12\x91\x01\n" +
-	"\x06reason\x18\x02 \x01(\tBy\xbaHvrtR\x06closedR\x05errorR\x0einternal_errorR\x10gateway_shutdownR\x15recording_unavailableR\fidle_timeoutR\fmax_durationR\x0eaccess_revokedR\x06reason\x127\n" +
+	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\x12\xa2\x01\n" +
+	"\x06reason\x18\x02 \x01(\tB\x89\x01\xbaH\x85\x01r\x82\x01R\x06closedR\x05errorR\x0einternal_errorR\x10gateway_shutdownR\x15recording_unavailableR\fidle_timeoutR\fmax_durationR\x0eaccess_revokedR\fpolicy_staleR\x06reason\x127\n" +
 	"\bcounters\x18\x03 \x01(\v2\x1b.gateway.v1.SessionCountersR\bcounters\"\x14\n" +
 	"\x12EndSessionResponse\"\x86\x01\n" +
 	"\x11PinHostKeyRequest\x12)\n" +
@@ -1859,7 +2190,27 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\x05bytes\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x01R\x05bytes\x12&\n" +
 	"\n" +
 	"final_hash\x18\x04 \x01(\fB\a\xbaH\x04z\x02h R\tfinalHash\"\x19\n" +
-	"\x17FinishRecordingResponse2\xc9\x05\n" +
+	"\x17FinishRecordingResponse\"\x91\x02\n" +
+	"\x16RequestApprovalRequest\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12)\n" +
+	"\vresource_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
+	"resourceId\x12-\n" +
+	"\fagent_run_id\x18\x03 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\n" +
+	"agentRunId\x12%\n" +
+	"\acommand\x18\x04 \x01(\tB\v\xbaH\br\x06 \x01(\x80\x80\x01R\acommand\x12(\n" +
+	"\aclasses\x18\x05 \x03(\tB\x0e\xbaH\v\x92\x01\b\x10 \"\x04r\x02\x18@R\aclasses\x12)\n" +
+	"\areasons\x18\x06 \x03(\tB\x0f\xbaH\f\x92\x01\t\x10 \"\x05r\x03\x18\x80\x02R\areasons\"\x87\x01\n" +
+	"\x17RequestApprovalResponse\x12\x1f\n" +
+	"\vapproval_id\x18\x01 \x01(\tR\n" +
+	"approvalId\x129\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x10\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\"?\n" +
+	"\x12GetApprovalRequest\x12)\n" +
+	"\vapproval_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
+	"approvalId\"-\n" +
+	"\x13GetApprovalResponse\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status2\xf5\x06\n" +
 	"\rTunnelService\x12F\n" +
 	"\aConnect\x12\x1a.gateway.v1.ConnectRequest\x1a\x1b.gateway.v1.ConnectResponse(\x010\x01\x12]\n" +
 	"\x10AuthenticateUser\x12#.gateway.v1.AuthenticateUserRequest\x1a$.gateway.v1.AuthenticateUserResponse\x12Q\n" +
@@ -1870,7 +2221,9 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"PinHostKey\x12\x1d.gateway.v1.PinHostKeyRequest\x1a\x1e.gateway.v1.PinHostKeyResponse\x12]\n" +
 	"\x10RenewCertificate\x12#.gateway.v1.RenewCertificateRequest\x1a$.gateway.v1.RenewCertificateResponse\x12i\n" +
 	"\x14UploadRecordingChunk\x12'.gateway.v1.UploadRecordingChunkRequest\x1a(.gateway.v1.UploadRecordingChunkResponse\x12Z\n" +
-	"\x0fFinishRecording\x12\".gateway.v1.FinishRecordingRequest\x1a#.gateway.v1.FinishRecordingResponseB\x99\x01\n" +
+	"\x0fFinishRecording\x12\".gateway.v1.FinishRecordingRequest\x1a#.gateway.v1.FinishRecordingResponse\x12Z\n" +
+	"\x0fRequestApproval\x12\".gateway.v1.RequestApprovalRequest\x1a#.gateway.v1.RequestApprovalResponse\x12N\n" +
+	"\vGetApproval\x12\x1e.gateway.v1.GetApprovalRequest\x1a\x1f.gateway.v1.GetApprovalResponseB\x99\x01\n" +
 	"\x0ecom.gateway.v1B\vTunnelProtoP\x01Z1github.com/werbot/werbot/gen/gateway/v1;gatewayv1\xa2\x02\x03GXX\xaa\x02\n" +
 	"Gateway.V1\xca\x02\n" +
 	"Gateway\\V1\xe2\x02\x16Gateway\\V1\\GPBMetadata\xea\x02\vGateway::V1b\x06proto3"
@@ -1887,7 +2240,7 @@ func file_gateway_v1_tunnel_proto_rawDescGZIP() []byte {
 	return file_gateway_v1_tunnel_proto_rawDescData
 }
 
-var file_gateway_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_gateway_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_gateway_v1_tunnel_proto_goTypes = []any{
 	(*ConnectRequest)(nil),               // 0: gateway.v1.ConnectRequest
 	(*Heartbeat)(nil),                    // 1: gateway.v1.Heartbeat
@@ -1896,65 +2249,76 @@ var file_gateway_v1_tunnel_proto_goTypes = []any{
 	(*ResourceHealth)(nil),               // 4: gateway.v1.ResourceHealth
 	(*PoolInstances)(nil),                // 5: gateway.v1.PoolInstances
 	(*ConnectResponse)(nil),              // 6: gateway.v1.ConnectResponse
-	(*Snapshot)(nil),                     // 7: gateway.v1.Snapshot
-	(*Member)(nil),                       // 8: gateway.v1.Member
-	(*Resource)(nil),                     // 9: gateway.v1.Resource
-	(*AuthenticateUserRequest)(nil),      // 10: gateway.v1.AuthenticateUserRequest
-	(*CertIdentity)(nil),                 // 11: gateway.v1.CertIdentity
-	(*AuthenticateUserResponse)(nil),     // 12: gateway.v1.AuthenticateUserResponse
-	(*StartSessionRequest)(nil),          // 13: gateway.v1.StartSessionRequest
-	(*StartSessionResponse)(nil),         // 14: gateway.v1.StartSessionResponse
-	(*Credential)(nil),                   // 15: gateway.v1.Credential
-	(*EndSessionRequest)(nil),            // 16: gateway.v1.EndSessionRequest
-	(*EndSessionResponse)(nil),           // 17: gateway.v1.EndSessionResponse
-	(*PinHostKeyRequest)(nil),            // 18: gateway.v1.PinHostKeyRequest
-	(*PinHostKeyResponse)(nil),           // 19: gateway.v1.PinHostKeyResponse
-	(*RenewCertificateRequest)(nil),      // 20: gateway.v1.RenewCertificateRequest
-	(*RenewCertificateResponse)(nil),     // 21: gateway.v1.RenewCertificateResponse
-	(*UploadRecordingChunkRequest)(nil),  // 22: gateway.v1.UploadRecordingChunkRequest
-	(*UploadRecordingChunkResponse)(nil), // 23: gateway.v1.UploadRecordingChunkResponse
-	(*FinishRecordingRequest)(nil),       // 24: gateway.v1.FinishRecordingRequest
-	(*FinishRecordingResponse)(nil),      // 25: gateway.v1.FinishRecordingResponse
-	(*timestamppb.Timestamp)(nil),        // 26: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),          // 27: google.protobuf.Duration
+	(*ApprovalDecided)(nil),              // 7: gateway.v1.ApprovalDecided
+	(*Snapshot)(nil),                     // 8: gateway.v1.Snapshot
+	(*Member)(nil),                       // 9: gateway.v1.Member
+	(*Resource)(nil),                     // 10: gateway.v1.Resource
+	(*AuthenticateUserRequest)(nil),      // 11: gateway.v1.AuthenticateUserRequest
+	(*CertIdentity)(nil),                 // 12: gateway.v1.CertIdentity
+	(*AuthenticateUserResponse)(nil),     // 13: gateway.v1.AuthenticateUserResponse
+	(*StartSessionRequest)(nil),          // 14: gateway.v1.StartSessionRequest
+	(*StartSessionResponse)(nil),         // 15: gateway.v1.StartSessionResponse
+	(*Credential)(nil),                   // 16: gateway.v1.Credential
+	(*EndSessionRequest)(nil),            // 17: gateway.v1.EndSessionRequest
+	(*EndSessionResponse)(nil),           // 18: gateway.v1.EndSessionResponse
+	(*PinHostKeyRequest)(nil),            // 19: gateway.v1.PinHostKeyRequest
+	(*PinHostKeyResponse)(nil),           // 20: gateway.v1.PinHostKeyResponse
+	(*RenewCertificateRequest)(nil),      // 21: gateway.v1.RenewCertificateRequest
+	(*RenewCertificateResponse)(nil),     // 22: gateway.v1.RenewCertificateResponse
+	(*UploadRecordingChunkRequest)(nil),  // 23: gateway.v1.UploadRecordingChunkRequest
+	(*UploadRecordingChunkResponse)(nil), // 24: gateway.v1.UploadRecordingChunkResponse
+	(*FinishRecordingRequest)(nil),       // 25: gateway.v1.FinishRecordingRequest
+	(*FinishRecordingResponse)(nil),      // 26: gateway.v1.FinishRecordingResponse
+	(*RequestApprovalRequest)(nil),       // 27: gateway.v1.RequestApprovalRequest
+	(*RequestApprovalResponse)(nil),      // 28: gateway.v1.RequestApprovalResponse
+	(*GetApprovalRequest)(nil),           // 29: gateway.v1.GetApprovalRequest
+	(*GetApprovalResponse)(nil),          // 30: gateway.v1.GetApprovalResponse
+	(*timestamppb.Timestamp)(nil),        // 31: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),          // 32: google.protobuf.Duration
 }
 var file_gateway_v1_tunnel_proto_depIdxs = []int32{
 	1,  // 0: gateway.v1.ConnectRequest.heartbeat:type_name -> gateway.v1.Heartbeat
 	2,  // 1: gateway.v1.Heartbeat.counters:type_name -> gateway.v1.SessionCounters
 	3,  // 2: gateway.v1.Heartbeat.denials:type_name -> gateway.v1.Denial
 	4,  // 3: gateway.v1.Heartbeat.health:type_name -> gateway.v1.ResourceHealth
-	26, // 4: gateway.v1.Denial.at:type_name -> google.protobuf.Timestamp
-	26, // 5: gateway.v1.ResourceHealth.checked_at:type_name -> google.protobuf.Timestamp
-	7,  // 6: gateway.v1.ConnectResponse.snapshot:type_name -> gateway.v1.Snapshot
+	31, // 4: gateway.v1.Denial.at:type_name -> google.protobuf.Timestamp
+	31, // 5: gateway.v1.ResourceHealth.checked_at:type_name -> google.protobuf.Timestamp
+	8,  // 6: gateway.v1.ConnectResponse.snapshot:type_name -> gateway.v1.Snapshot
 	5,  // 7: gateway.v1.ConnectResponse.pool_instances:type_name -> gateway.v1.PoolInstances
-	9,  // 8: gateway.v1.Snapshot.resources:type_name -> gateway.v1.Resource
-	8,  // 9: gateway.v1.Snapshot.members:type_name -> gateway.v1.Member
-	27, // 10: gateway.v1.Resource.idle_timeout:type_name -> google.protobuf.Duration
-	27, // 11: gateway.v1.Resource.max_duration:type_name -> google.protobuf.Duration
-	11, // 12: gateway.v1.AuthenticateUserRequest.cert:type_name -> gateway.v1.CertIdentity
-	15, // 13: gateway.v1.StartSessionResponse.credential:type_name -> gateway.v1.Credential
-	2,  // 14: gateway.v1.EndSessionRequest.counters:type_name -> gateway.v1.SessionCounters
-	0,  // 15: gateway.v1.TunnelService.Connect:input_type -> gateway.v1.ConnectRequest
-	10, // 16: gateway.v1.TunnelService.AuthenticateUser:input_type -> gateway.v1.AuthenticateUserRequest
-	13, // 17: gateway.v1.TunnelService.StartSession:input_type -> gateway.v1.StartSessionRequest
-	16, // 18: gateway.v1.TunnelService.EndSession:input_type -> gateway.v1.EndSessionRequest
-	18, // 19: gateway.v1.TunnelService.PinHostKey:input_type -> gateway.v1.PinHostKeyRequest
-	20, // 20: gateway.v1.TunnelService.RenewCertificate:input_type -> gateway.v1.RenewCertificateRequest
-	22, // 21: gateway.v1.TunnelService.UploadRecordingChunk:input_type -> gateway.v1.UploadRecordingChunkRequest
-	24, // 22: gateway.v1.TunnelService.FinishRecording:input_type -> gateway.v1.FinishRecordingRequest
-	6,  // 23: gateway.v1.TunnelService.Connect:output_type -> gateway.v1.ConnectResponse
-	12, // 24: gateway.v1.TunnelService.AuthenticateUser:output_type -> gateway.v1.AuthenticateUserResponse
-	14, // 25: gateway.v1.TunnelService.StartSession:output_type -> gateway.v1.StartSessionResponse
-	17, // 26: gateway.v1.TunnelService.EndSession:output_type -> gateway.v1.EndSessionResponse
-	19, // 27: gateway.v1.TunnelService.PinHostKey:output_type -> gateway.v1.PinHostKeyResponse
-	21, // 28: gateway.v1.TunnelService.RenewCertificate:output_type -> gateway.v1.RenewCertificateResponse
-	23, // 29: gateway.v1.TunnelService.UploadRecordingChunk:output_type -> gateway.v1.UploadRecordingChunkResponse
-	25, // 30: gateway.v1.TunnelService.FinishRecording:output_type -> gateway.v1.FinishRecordingResponse
-	23, // [23:31] is the sub-list for method output_type
-	15, // [15:23] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	7,  // 8: gateway.v1.ConnectResponse.approval_decided:type_name -> gateway.v1.ApprovalDecided
+	10, // 9: gateway.v1.Snapshot.resources:type_name -> gateway.v1.Resource
+	9,  // 10: gateway.v1.Snapshot.members:type_name -> gateway.v1.Member
+	32, // 11: gateway.v1.Resource.idle_timeout:type_name -> google.protobuf.Duration
+	32, // 12: gateway.v1.Resource.max_duration:type_name -> google.protobuf.Duration
+	12, // 13: gateway.v1.AuthenticateUserRequest.cert:type_name -> gateway.v1.CertIdentity
+	16, // 14: gateway.v1.StartSessionResponse.credential:type_name -> gateway.v1.Credential
+	2,  // 15: gateway.v1.EndSessionRequest.counters:type_name -> gateway.v1.SessionCounters
+	31, // 16: gateway.v1.RequestApprovalResponse.expires_at:type_name -> google.protobuf.Timestamp
+	0,  // 17: gateway.v1.TunnelService.Connect:input_type -> gateway.v1.ConnectRequest
+	11, // 18: gateway.v1.TunnelService.AuthenticateUser:input_type -> gateway.v1.AuthenticateUserRequest
+	14, // 19: gateway.v1.TunnelService.StartSession:input_type -> gateway.v1.StartSessionRequest
+	17, // 20: gateway.v1.TunnelService.EndSession:input_type -> gateway.v1.EndSessionRequest
+	19, // 21: gateway.v1.TunnelService.PinHostKey:input_type -> gateway.v1.PinHostKeyRequest
+	21, // 22: gateway.v1.TunnelService.RenewCertificate:input_type -> gateway.v1.RenewCertificateRequest
+	23, // 23: gateway.v1.TunnelService.UploadRecordingChunk:input_type -> gateway.v1.UploadRecordingChunkRequest
+	25, // 24: gateway.v1.TunnelService.FinishRecording:input_type -> gateway.v1.FinishRecordingRequest
+	27, // 25: gateway.v1.TunnelService.RequestApproval:input_type -> gateway.v1.RequestApprovalRequest
+	29, // 26: gateway.v1.TunnelService.GetApproval:input_type -> gateway.v1.GetApprovalRequest
+	6,  // 27: gateway.v1.TunnelService.Connect:output_type -> gateway.v1.ConnectResponse
+	13, // 28: gateway.v1.TunnelService.AuthenticateUser:output_type -> gateway.v1.AuthenticateUserResponse
+	15, // 29: gateway.v1.TunnelService.StartSession:output_type -> gateway.v1.StartSessionResponse
+	18, // 30: gateway.v1.TunnelService.EndSession:output_type -> gateway.v1.EndSessionResponse
+	20, // 31: gateway.v1.TunnelService.PinHostKey:output_type -> gateway.v1.PinHostKeyResponse
+	22, // 32: gateway.v1.TunnelService.RenewCertificate:output_type -> gateway.v1.RenewCertificateResponse
+	24, // 33: gateway.v1.TunnelService.UploadRecordingChunk:output_type -> gateway.v1.UploadRecordingChunkResponse
+	26, // 34: gateway.v1.TunnelService.FinishRecording:output_type -> gateway.v1.FinishRecordingResponse
+	28, // 35: gateway.v1.TunnelService.RequestApproval:output_type -> gateway.v1.RequestApprovalResponse
+	30, // 36: gateway.v1.TunnelService.GetApproval:output_type -> gateway.v1.GetApprovalResponse
+	27, // [27:37] is the sub-list for method output_type
+	17, // [17:27] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_gateway_v1_tunnel_proto_init() }
@@ -1968,8 +2332,9 @@ func file_gateway_v1_tunnel_proto_init() {
 	file_gateway_v1_tunnel_proto_msgTypes[6].OneofWrappers = []any{
 		(*ConnectResponse_Snapshot)(nil),
 		(*ConnectResponse_PoolInstances)(nil),
+		(*ConnectResponse_ApprovalDecided)(nil),
 	}
-	file_gateway_v1_tunnel_proto_msgTypes[10].OneofWrappers = []any{
+	file_gateway_v1_tunnel_proto_msgTypes[11].OneofWrappers = []any{
 		(*AuthenticateUserRequest_FingerprintSha256)(nil),
 		(*AuthenticateUserRequest_Login)(nil),
 		(*AuthenticateUserRequest_Cert)(nil),
@@ -1980,7 +2345,7 @@ func file_gateway_v1_tunnel_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_v1_tunnel_proto_rawDesc), len(file_gateway_v1_tunnel_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

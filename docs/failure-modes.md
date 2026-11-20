@@ -30,6 +30,7 @@ What happens to running and new sessions and to data when a part of Werbot fails
 - `idle_timeout`: no traffic for the idle timeout.
 - `max_duration`: the maximum duration passed.
 - `access_revoked`: the policy no longer allows the session.
+- `policy_stale`: the organization uses `strict` lock mode and the gateway lost its tunnel to the server for more than 60 seconds.
 
 ## How Werbot protects data
 

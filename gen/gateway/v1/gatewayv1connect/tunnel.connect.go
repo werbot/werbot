@@ -56,6 +56,12 @@ const (
 	// TunnelServiceFinishRecordingProcedure is the fully-qualified name of the TunnelService's
 	// FinishRecording RPC.
 	TunnelServiceFinishRecordingProcedure = "/gateway.v1.TunnelService/FinishRecording"
+	// TunnelServiceRequestApprovalProcedure is the fully-qualified name of the TunnelService's
+	// RequestApproval RPC.
+	TunnelServiceRequestApprovalProcedure = "/gateway.v1.TunnelService/RequestApproval"
+	// TunnelServiceGetApprovalProcedure is the fully-qualified name of the TunnelService's GetApproval
+	// RPC.
+	TunnelServiceGetApprovalProcedure = "/gateway.v1.TunnelService/GetApproval"
 )
 
 // TunnelServiceClient is a client for the gateway.v1.TunnelService service.
@@ -69,6 +75,10 @@ type TunnelServiceClient interface {
 	RenewCertificate(context.Context, *connect.Request[v1.RenewCertificateRequest]) (*connect.Response[v1.RenewCertificateResponse], error)
 	UploadRecordingChunk(context.Context, *connect.Request[v1.UploadRecordingChunkRequest]) (*connect.Response[v1.UploadRecordingChunkResponse], error)
 	FinishRecording(context.Context, *connect.Request[v1.FinishRecordingRequest]) (*connect.Response[v1.FinishRecordingResponse], error)
+	// RequestApproval asks the approvers to allow one command of a session;
+	// the decision arrives as approval_decided on Connect.
+	RequestApproval(context.Context, *connect.Request[v1.RequestApprovalRequest]) (*connect.Response[v1.RequestApprovalResponse], error)
+	GetApproval(context.Context, *connect.Request[v1.GetApprovalRequest]) (*connect.Response[v1.GetApprovalResponse], error)
 }
 
 // NewTunnelServiceClient constructs a client for the gateway.v1.TunnelService service. By default,
@@ -130,6 +140,18 @@ func NewTunnelServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(tunnelServiceMethods.ByName("FinishRecording")),
 			connect.WithClientOptions(opts...),
 		),
+		requestApproval: connect.NewClient[v1.RequestApprovalRequest, v1.RequestApprovalResponse](
+			httpClient,
+			baseURL+TunnelServiceRequestApprovalProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("RequestApproval")),
+			connect.WithClientOptions(opts...),
+		),
+		getApproval: connect.NewClient[v1.GetApprovalRequest, v1.GetApprovalResponse](
+			httpClient,
+			baseURL+TunnelServiceGetApprovalProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("GetApproval")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -143,6 +165,8 @@ type tunnelServiceClient struct {
 	renewCertificate     *connect.Client[v1.RenewCertificateRequest, v1.RenewCertificateResponse]
 	uploadRecordingChunk *connect.Client[v1.UploadRecordingChunkRequest, v1.UploadRecordingChunkResponse]
 	finishRecording      *connect.Client[v1.FinishRecordingRequest, v1.FinishRecordingResponse]
+	requestApproval      *connect.Client[v1.RequestApprovalRequest, v1.RequestApprovalResponse]
+	getApproval          *connect.Client[v1.GetApprovalRequest, v1.GetApprovalResponse]
 }
 
 // Connect calls gateway.v1.TunnelService.Connect.
@@ -185,6 +209,16 @@ func (c *tunnelServiceClient) FinishRecording(ctx context.Context, req *connect.
 	return c.finishRecording.CallUnary(ctx, req)
 }
 
+// RequestApproval calls gateway.v1.TunnelService.RequestApproval.
+func (c *tunnelServiceClient) RequestApproval(ctx context.Context, req *connect.Request[v1.RequestApprovalRequest]) (*connect.Response[v1.RequestApprovalResponse], error) {
+	return c.requestApproval.CallUnary(ctx, req)
+}
+
+// GetApproval calls gateway.v1.TunnelService.GetApproval.
+func (c *tunnelServiceClient) GetApproval(ctx context.Context, req *connect.Request[v1.GetApprovalRequest]) (*connect.Response[v1.GetApprovalResponse], error) {
+	return c.getApproval.CallUnary(ctx, req)
+}
+
 // TunnelServiceHandler is an implementation of the gateway.v1.TunnelService service.
 type TunnelServiceHandler interface {
 	// Connect carries heartbeats up and policy snapshots down.
@@ -196,6 +230,10 @@ type TunnelServiceHandler interface {
 	RenewCertificate(context.Context, *connect.Request[v1.RenewCertificateRequest]) (*connect.Response[v1.RenewCertificateResponse], error)
 	UploadRecordingChunk(context.Context, *connect.Request[v1.UploadRecordingChunkRequest]) (*connect.Response[v1.UploadRecordingChunkResponse], error)
 	FinishRecording(context.Context, *connect.Request[v1.FinishRecordingRequest]) (*connect.Response[v1.FinishRecordingResponse], error)
+	// RequestApproval asks the approvers to allow one command of a session;
+	// the decision arrives as approval_decided on Connect.
+	RequestApproval(context.Context, *connect.Request[v1.RequestApprovalRequest]) (*connect.Response[v1.RequestApprovalResponse], error)
+	GetApproval(context.Context, *connect.Request[v1.GetApprovalRequest]) (*connect.Response[v1.GetApprovalResponse], error)
 }
 
 // NewTunnelServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -253,6 +291,18 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(tunnelServiceMethods.ByName("FinishRecording")),
 		connect.WithHandlerOptions(opts...),
 	)
+	tunnelServiceRequestApprovalHandler := connect.NewUnaryHandler(
+		TunnelServiceRequestApprovalProcedure,
+		svc.RequestApproval,
+		connect.WithSchema(tunnelServiceMethods.ByName("RequestApproval")),
+		connect.WithHandlerOptions(opts...),
+	)
+	tunnelServiceGetApprovalHandler := connect.NewUnaryHandler(
+		TunnelServiceGetApprovalProcedure,
+		svc.GetApproval,
+		connect.WithSchema(tunnelServiceMethods.ByName("GetApproval")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gateway.v1.TunnelService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TunnelServiceConnectProcedure:
@@ -271,6 +321,10 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 			tunnelServiceUploadRecordingChunkHandler.ServeHTTP(w, r)
 		case TunnelServiceFinishRecordingProcedure:
 			tunnelServiceFinishRecordingHandler.ServeHTTP(w, r)
+		case TunnelServiceRequestApprovalProcedure:
+			tunnelServiceRequestApprovalHandler.ServeHTTP(w, r)
+		case TunnelServiceGetApprovalProcedure:
+			tunnelServiceGetApprovalHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -310,4 +364,12 @@ func (UnimplementedTunnelServiceHandler) UploadRecordingChunk(context.Context, *
 
 func (UnimplementedTunnelServiceHandler) FinishRecording(context.Context, *connect.Request[v1.FinishRecordingRequest]) (*connect.Response[v1.FinishRecordingResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.FinishRecording is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) RequestApproval(context.Context, *connect.Request[v1.RequestApprovalRequest]) (*connect.Response[v1.RequestApprovalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.RequestApproval is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) GetApproval(context.Context, *connect.Request[v1.GetApprovalRequest]) (*connect.Response[v1.GetApprovalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.GetApproval is not implemented"))
 }

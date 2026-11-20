@@ -23,6 +23,7 @@ type stream struct {
 	serial string
 	wake   chan struct{} // capacity 1
 	done   chan struct{}
+	ctl    chan uuid.UUID // decided approvals, capacity ControlQueueSize
 
 	mu      sync.Mutex
 	pending *gatewayv1.Snapshot
@@ -120,6 +121,7 @@ func (hd *Handler) Connect(ctx context.Context, st *connect.BidiStream[gatewayv1
 	defer age.Stop()
 	beat := time.NewTimer(hd.hub.hbTimeout)
 	defer beat.Stop()
+	var ctl chan uuid.UUID // read once the first snapshot was sent
 	for {
 		select {
 		case <-s.wake:
@@ -129,11 +131,21 @@ func (hd *Handler) Connect(ctx context.Context, st *connect.BidiStream[gatewayv1
 					return err
 				}
 				hd.pushes.Inc()
+				if ctl == nil {
+					ctl = s.ctl
+					if err := hd.resendDecided(ctx, st, g); err != nil {
+						return err
+					}
+				}
 			}
 			if pool != nil {
 				if err := st.Send(&gatewayv1.ConnectResponse{Msg: &gatewayv1.ConnectResponse_PoolInstances{PoolInstances: pool}}); err != nil {
 					return err
 				}
+			}
+		case id := <-ctl:
+			if err := hd.sendDecision(ctx, st, g, id); err != nil {
+				return err
 			}
 		case <-s.done:
 			return s.closeErr()
