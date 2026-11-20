@@ -257,6 +257,7 @@ func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel co
 			panicked, err = true, fmt.Errorf("connector %q panicked", c.Type())
 		}
 	}()
+	defer maskExec(s, p.ctl.Policy())() // flushes right after Serve, before Run returns
 	return false, c.Serve(ctx, s)
 }
 
