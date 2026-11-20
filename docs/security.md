@@ -80,3 +80,11 @@ Requests, approvals, break-glass and locks: [jit.md](jit.md).
 
 - **User locks.** A `user` lock ends gateway sessions; it does not block the user's API calls. To stop those too, remove the member from the organization.
 - **Command text.** Audit data and logs of command approvals never carry the command, only its kind, classes and reasons; the approval stores the command's SHA-256. The approvers see the command in the email and on the Requests page.
+
+## Command policies
+
+Classes, command rules, custom Cedar, command approvals and output masking: [policies.md](policies.md).
+
+- **Command text at rest.** The command of a session is stored with the session, and a refused command in its `session.deny` audit event (first 1024 bytes); owners and admins see both. Pass secrets through files or environment variables, not on the command line.
+- **Custom `permit`.** A custom Cedar `permit` allows what it matches without a binding. Only owners and admins can save one, and every change is audited.
+- **Heuristic classes.** The classifier reads the command line, not what programs do. Scripts and unknown programs are `opaque`; an interactive shell is checked only as a connection. The recording stays the full record.

@@ -48,7 +48,7 @@ Rules that no policy changes:
 - **Nobody to ask.** When no one but the requester could approve (for example, the only owner asks for access), the request is refused with `no one can approve this request` and nothing is stored.
 - **Decision time.** A decision checks the policies again against the current resources. Owners and admins may deny any request.
 - **Timeout is a denial.** A pending request past its deadline (`request_pending_ttl`) becomes `expired` and never turns into an approval. The `approval.expire` job (River `maintenance` queue, every minute) marks such requests; an approval that reaches the server after the deadline fails.
-- **Commands.** A command approval (gateway runtime checks, a later release) is never approved automatically. Without a matching policy owners and admins decide. It waits `command_approval_ttl`.
+- **Commands.** A command approval (an `approval` command rule or custom policy, [policies.md](policies.md#command-approvals)) is never approved automatically. Without a matching policy owners and admins decide. It waits `command_approval_ttl`.
 
 ## Organization settings
 
@@ -61,6 +61,7 @@ Owners and admins set these on **Settings**. Durations are typed as text (`30s`,
 | `request_pending_ttl` | `1h` | `1m` to `24h` | How long a request waits for a decision. |
 | `command_approval_ttl` | `5m` | `30s` to `1h` | How long a command approval waits for a decision. |
 | `lock_mode` | `best_effort` | `best_effort`, `strict` | What gateways do while their tunnel to the server is down ([lock mode](#lock-mode)). |
+| `mask_output` | `agents` | `agents`, `all`, `none` | Whose exec output the gateway masks ([output masking](policies.md#output-masking)). |
 
 ## Break-glass
 
