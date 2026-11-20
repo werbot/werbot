@@ -76,3 +76,16 @@ SELECT * FROM approval
 WHERE org_id = @org_id AND kind = 'command' AND gateway_instance_id = @gateway_instance_id::uuid
   AND status IN ('approved', 'denied') AND decided_at > @since::timestamptz
 ORDER BY decided_at, id;
+
+-- name: ExpireApprovals :many
+-- Every organization: a pending approval past its deadline expires; one of concurrent runs wins each row.
+WITH expired AS (
+    UPDATE approval SET status = 'expired', decided_at = now()
+    WHERE status = 'pending' AND expires_at < now()
+    RETURNING id, org_id, kind, requester_user_id, resource_id, label_selector
+)
+SELECT e.id, e.org_id, e.kind, e.label_selector, u.email AS requester_email, coalesce(r.name, '')::text AS resource_name
+FROM expired e
+JOIN users u ON u.id = e.requester_user_id
+LEFT JOIN resource r ON r.id = e.resource_id AND r.org_id = e.org_id
+ORDER BY e.id;

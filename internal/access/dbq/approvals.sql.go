@@ -266,6 +266,56 @@ func (q *Queries) DecidedCommands(ctx context.Context, arg DecidedCommandsParams
 	return items, nil
 }
 
+const expireApprovals = `-- name: ExpireApprovals :many
+WITH expired AS (
+    UPDATE approval SET status = 'expired', decided_at = now()
+    WHERE status = 'pending' AND expires_at < now()
+    RETURNING id, org_id, kind, requester_user_id, resource_id, label_selector
+)
+SELECT e.id, e.org_id, e.kind, e.label_selector, u.email AS requester_email, coalesce(r.name, '')::text AS resource_name
+FROM expired e
+JOIN users u ON u.id = e.requester_user_id
+LEFT JOIN resource r ON r.id = e.resource_id AND r.org_id = e.org_id
+ORDER BY e.id
+`
+
+type ExpireApprovalsRow struct {
+	ID             uuid.UUID
+	OrgID          uuid.UUID
+	Kind           string
+	LabelSelector  []byte
+	RequesterEmail string
+	ResourceName   string
+}
+
+// Every organization: a pending approval past its deadline expires; one of concurrent runs wins each row.
+func (q *Queries) ExpireApprovals(ctx context.Context) ([]ExpireApprovalsRow, error) {
+	rows, err := q.db.Query(ctx, expireApprovals)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExpireApprovalsRow
+	for rows.Next() {
+		var i ExpireApprovalsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Kind,
+			&i.LabelSelector,
+			&i.RequesterEmail,
+			&i.ResourceName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getApproval = `-- name: GetApproval :one
 SELECT id, org_id, kind, requester_user_id, agent_run_id, resource_id, label_selector, duration, command, command_sha256, classes, reason, policy_id, break_glass, status, decided_by, decided_at, comment, expires_at, gateway_instance_id, created_at FROM approval WHERE id = $1 AND org_id = $2
 `

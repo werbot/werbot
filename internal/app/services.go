@@ -125,6 +125,7 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	periodic := policy.RegisterJobs(workers, s.Policy, feeds)
 	periodic = append(periodic, session.RegisterJobs(workers, s.Sessions, time.Now())...)
 	periodic = append(periodic, inventory.RegisterGatewayJobs(workers, s.Gateways)...)
+	periodic = append(periodic, access.RegisterApprovalJobs(workers, s.Access)...)
 	if s.Jobs, err = jobs.NewClient(pool, workers, periodic, logger); err != nil {
 		return nil, err
 	}

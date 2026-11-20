@@ -30,6 +30,7 @@ type Store interface {
 	CreateGrants(ctx context.Context, arg dbq.CreateGrantsParams) ([]dbq.CreateGrantsRow, error)
 	NotifyApprovalDecided(ctx context.Context, payload string) error
 	ListApprovals(ctx context.Context, arg dbq.ListApprovalsParams) ([]dbq.ListApprovalsRow, error)
+	ExpireApprovals(ctx context.Context) ([]dbq.ExpireApprovalsRow, error)
 	DecidedCommands(ctx context.Context, arg dbq.DecidedCommandsParams) ([]dbq.Approval, error)
 
 	ActiveGrants(ctx context.Context, orgID uuid.UUID) ([]dbq.ActiveGrantsRow, error)

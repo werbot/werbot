@@ -21,9 +21,14 @@ func (e evaluator) resourceText(a Approval) string {
 	if a.ResourceID != nil {
 		return e.names[*a.ResourceID]
 	}
-	pairs := make([]string, 0, len(a.Selector))
-	for _, k := range slices.Sorted(maps.Keys(a.Selector)) {
-		pairs = append(pairs, k+"="+a.Selector[k])
+	return selectorText(a.Selector)
+}
+
+// selectorText writes labels as "k=v,…" sorted by key.
+func selectorText(labels map[string]string) string {
+	pairs := make([]string, 0, len(labels))
+	for _, k := range slices.Sorted(maps.Keys(labels)) {
+		pairs = append(pairs, k+"="+labels[k])
 	}
 	return strings.Join(pairs, ",")
 }
