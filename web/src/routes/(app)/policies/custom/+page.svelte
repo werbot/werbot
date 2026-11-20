@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Code, ConnectError } from '@connectrpc/connect';
-	import { Button, Drawer, EmptyState, Modal, Skeleton, Table, Textarea, Toggle, toast } from '#lib/ui/index.js';
+	import { Button, Drawer, EmptyState, Modal, Skeleton, Table, Toggle, toast } from '#lib/ui/index.js';
 	import { policy } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import type { CustomPolicy } from '#lib/gen/werbot/v1/policy_pb.js';
@@ -133,7 +133,7 @@
 			}}
 		>
 			<FormField label={m.policies_custom_name()} bind:value={name} required maxlength={63} />
-			<Textarea label={m.policies_custom_cedar()} bind:value={cedar} rows={16} required spellcheck="false" autocomplete="off" style="font-family: var(--miso-font-mono)" />
+			<FormField multiline label={m.policies_custom_cedar()} bind:value={cedar} rows={16} required spellcheck="false" autocomplete="off" style="font-family: var(--miso-font-mono)" />
 			<Toggle bind:checked={enabled}>{m.policies_custom_enabled()}</Toggle>
 		</form>
 	{/if}

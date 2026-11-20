@@ -4,17 +4,20 @@
 	import FormField from '#lib/FormField.svelte';
 	import { failToast } from '#lib/errors.js';
 	import { policy } from '#lib/api.js';
-	import type { TestCommandResponse } from '#lib/gen/werbot/v1/policy_pb.js';
+	import type { CommandRule, TestCommandResponse } from '#lib/gen/werbot/v1/policy_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import ClassChips from './ClassChips.svelte';
 	import { verdictOf, type Verdict } from './classes.js';
+	import { reasonName } from './reasons.js';
 
-	let { users, resources }: { users: SelectOption[]; resources: SelectOption[] } = $props();
+	let { users, resources, rules }: { users: SelectOption[]; resources: SelectOption[]; rules: CommandRule[] } = $props();
 
 	let userId = $state('');
 	let resourceId = $state('');
 	let command = $state('');
 	let result = $state<TestCommandResponse>();
+	let policyNames = $state(new Map<string, string>());
+	const names = $derived(new Map([...rules.map((r) => [r.id, r.name] as const), ...policyNames]));
 
 	const verdicts: Record<Verdict, { tone: BadgeTone; text: () => string }> = {
 		allowed: { tone: 'accent', text: m.policies_test_allowed },
@@ -26,7 +29,12 @@
 	async function run(e: SubmitEvent) {
 		e.preventDefault();
 		try {
-			result = await policy.testCommand({ subject: { case: 'userId', value: userId }, resourceId, command });
+			const [res, custom] = await Promise.all([
+				policy.testCommand({ subject: { case: 'userId', value: userId }, resourceId, command }),
+				policy.listCustomPolicies({})
+			]);
+			policyNames = new Map(custom.policies.map((p) => [p.id, p.name]));
+			result = res;
 		} catch (err) {
 			result = undefined;
 			failToast(err);
@@ -48,7 +56,7 @@
 		<div class="result" data-testid="test-result">
 			<Badge tone={verdict.tone}>{verdict.text()}</Badge>
 			<ClassChips classes={result.classes} />
-			{#each result.reasons as r (r)}<Label variant="soft">{r}</Label>{/each}
+			{#each result.reasons as r (r)}<Label variant="soft">{reasonName(r, names)}</Label>{/each}
 		</div>
 		{#if result.message}<InfoBlock>{result.message}</InfoBlock>{/if}
 	{/if}

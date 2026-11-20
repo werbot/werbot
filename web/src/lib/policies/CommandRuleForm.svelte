@@ -35,9 +35,7 @@
 		<legend>{m.policies_commands_subjects()}</legend>
 		<div class="checks">
 			<Checkbox bind:checked={draft.subjects.allUsers}>{m.policies_commands_all_users()}</Checkbox>
-			<Checkbox bind:checked={draft.subjects.allAgents}>{m.policies_commands_all_agents()}</Checkbox>
 		</div>
-		<p class="hint">{m.policies_commands_agents_hint()}</p>
 		{#if !draft.subjects.allUsers}
 			<PickList label={m.approvals_add_user()} options={users} bind:ids={draft.subjects.users} />
 			<PickList label={m.approvals_add_team()} options={teams} bind:ids={draft.subjects.teams} />

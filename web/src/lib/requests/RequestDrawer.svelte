@@ -9,12 +9,13 @@
 	import { keepLast } from '#lib/keepLast.svelte.js';
 	import LabelChips from '#lib/resources/LabelChips.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import ClassChips from '#lib/policies/ClassChips.svelte';
 	import StatusBadge from './StatusBadge.svelte';
 
 	interface Props {
 		/** the request to show (the page's ?id=); empty closes the drawer */
 		id: string;
-		/** the signed-in user's id: their own pending request can be canceled */
+		/** the signed-in user's id: their own pending access request can be canceled */
 		me: string;
 		onclose: () => void;
 		/** a decision or cancel changed the request: the page reloads its lists */
@@ -29,7 +30,7 @@
 	// keep the last request on screen while the close animation plays
 	const shown = keepLast(() => request);
 	const view = $derived(id ? request : shown.value);
-	const own = $derived(view?.requesterUserId === me && view?.status === 'pending');
+	const own = $derived(view?.requesterUserId === me && view?.status === 'pending' && view?.kind === 'access');
 
 	// Approve, Deny and Cancel answer without the joined names and can_decide: read the request again
 	async function reload(want: string) {
@@ -76,9 +77,13 @@
 		<PropertyRow label={m.requests_resource()}>
 			{#if r.resourceId}{r.resourceName}{:else}<LabelChips labels={r.labelSelector} />{/if}
 		</PropertyRow>
-		{#if r.kind === 'command'}<PropertyRow label={m.requests_command()}><code>{r.command}</code></PropertyRow>{/if}
-		<PropertyRow label={m.requests_duration()}>{formatDuration(r.duration) || m.requests_duration_default()}</PropertyRow>
-		<PropertyRow label={m.requests_reason()}>{r.reason || '—'}</PropertyRow>
+		{#if r.kind === 'command'}
+			<PropertyRow label={m.requests_command()}><code>{r.command}</code></PropertyRow>
+			<PropertyRow label={m.policies_commands_classes()}><ClassChips classes={r.classes} /></PropertyRow>
+		{:else}
+			<PropertyRow label={m.requests_duration()}>{formatDuration(r.duration) || m.requests_duration_default()}</PropertyRow>
+			<PropertyRow label={m.requests_reason()}>{r.reason || '—'}</PropertyRow>
+		{/if}
 		<PropertyRow label={m.requests_created()}>{fmt(r.createdAt)}</PropertyRow>
 		{#if r.status === 'pending'}
 			<PropertyRow label={m.requests_expires()}>{fmt(r.expiresAt)}</PropertyRow>

@@ -51,8 +51,9 @@ test('command rule, override, test box, custom policy and output masking', async
 		await probe.getByRole('button', { name: en.policies_test_run }).click();
 		const result = probe.getByTestId('test-result');
 		await expect(result.getByText(en.policies_test_denied)).toBeVisible();
-		await expect(result.getByText(en.class_destructive)).toBeVisible();
+		await expect(result.getByText(en.class_destructive, { exact: true })).toBeVisible();
 		await expect(probe.getByText('Destructive commands are blocked')).toBeVisible();
+		await expect(result.getByText('no-destructive', { exact: true })).toBeVisible();
 		await probe.getByLabel(en.policies_test_command).fill('./deploy.sh');
 		await probe.getByRole('button', { name: en.policies_test_run }).click();
 		await expect(result.getByText(en.policies_test_allowed)).toBeVisible();

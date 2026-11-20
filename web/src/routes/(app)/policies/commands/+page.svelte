@@ -162,7 +162,7 @@
 		{/if}
 	</section>
 	<ClassRules />
-	{#if loaded && !failed}<TestCommand {users} resources={resourceOptions} />{/if}
+	{#if loaded && !failed}<TestCommand {users} resources={resourceOptions} rules={list} />{/if}
 </PageBody>
 
 <!-- Escape reaches the drawer too: ignore it while a select popup, the delete confirm or a menu is open -->

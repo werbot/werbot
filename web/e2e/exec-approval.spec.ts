@@ -85,6 +85,13 @@ test('command waits for approval, approved in the UI, then runs', async ({ page,
 			const url = stderr.match(/http:\/\/127\.0\.0\.1:18080\/requests\?id=[0-9a-f-]{36}/)?.[0];
 			expect(url).toBeTruthy();
 
+			// the requester sees the command and its class, and cannot cancel a command approval
+			await page.goto(url!);
+			const own = page.getByRole('dialog', { name: 'e2e-approve' });
+			await expect(own.getByText('echo werbot-approved')).toBeVisible();
+			await expect(own.getByText(en.class_read, { exact: true })).toBeVisible();
+			await expect(own.getByRole('button', { name: en.common_cancel })).toHaveCount(0);
+
 			// bob, the policy's approver, approves it from the link in his own browser context
 			const bobContext = await browser.newContext({ baseURL });
 			const bob = await bobContext.newPage();
