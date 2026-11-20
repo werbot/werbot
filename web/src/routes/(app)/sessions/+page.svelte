@@ -8,6 +8,7 @@
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
 	import { bytes, elapsed, fmt } from '#lib/format.js';
 	import Ago from '#lib/Ago.svelte';
+	import ClassChips from '#lib/policies/ClassChips.svelte';
 	import CellLead from '#lib/CellLead.svelte';
 	import FilterMenu from '#lib/FilterMenu.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
@@ -118,6 +119,7 @@
 		<Table>
 			{#snippet header()}
 				<th>{m.sessions_col_resource()}</th>
+				<th>{m.sessions_col_command()}</th>
 				<th>{m.sessions_col_started()}</th>
 				<th>{m.sessions_col_duration()}</th>
 				<th>{m.sessions_col_traffic()}</th>
@@ -132,6 +134,14 @@
 								{#if s.kind}<Label variant="soft" size={16}>{s.kind}</Label>{/if}
 							{/snippet}
 						</CellLead>
+					</td>
+					<td>
+						{#if s.command}
+							<div class="cmd">
+								<code title={s.command}>{s.command.length > 80 ? s.command.slice(0, 80) + '…' : s.command}</code>
+								<ClassChips classes={s.classes} />
+							</div>
+						{/if}
 					</td>
 					<td class="muted"><Ago ts={s.startedAt} /></td>
 					<td>
@@ -150,6 +160,19 @@
 </PageBody>
 
 <style>
+	.cmd {
+		display: flex;
+		flex-direction: column;
+		gap: var(--miso-sp-04);
+		align-items: flex-start;
+	}
+
+	code {
+		font-family: var(--miso-font-mono);
+		font-size: 12px;
+		word-break: break-all;
+	}
+
 	.muted {
 		color: var(--miso-txt-secondary);
 		white-space: nowrap;

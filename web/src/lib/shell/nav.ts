@@ -32,6 +32,8 @@ export function navSections(manager: boolean): NavSection[] {
 			? [
 					{ href: '/gateways', label: m.nav_gateways, icon: 'shield' as const },
 					{ href: '/policies/approvals', label: m.nav_approval_policies, icon: 'filter_check' as const },
+					{ href: '/policies/commands', label: m.nav_policies_commands, icon: 'editor/checklist' as const },
+					{ href: '/policies/custom', label: m.nav_policies_custom, icon: 'editor/code' as const },
 					{ href: '/locks', label: m.nav_locks, icon: 'lock' as const }
 				]
 			: [])

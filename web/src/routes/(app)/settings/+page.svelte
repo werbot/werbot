@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { MessageInitShape } from '@bufbuild/protobuf';
 	import { Button, InfoBlock, Segmented, SettingsCard, Skeleton, toast } from '#lib/ui/index.js';
+	import FilledSelect from '#lib/FilledSelect.svelte';
 	import FieldRow from '#lib/FieldRow.svelte';
 	import FormField from '#lib/FormField.svelte';
 	import LoadFailed from '#lib/LoadFailed.svelte';
@@ -14,7 +15,8 @@
 	import { m } from '#lib/paraglide/messages.js';
 
 	type DurationKey = 'cliSessionTtl' | 'cliSessionMax' | 'grantDefaultTtl' | 'grantMaxTtl' | 'requestPendingTtl' | 'commandApprovalTtl';
-	type Key = DurationKey | 'lockMode';
+	type EnumKey = 'lockMode' | 'maskOutput';
+	type Key = DurationKey | EnumKey;
 	type Field = { key: DurationKey; label: () => string; hint: () => string };
 
 	const cliFields: Field[] = [
@@ -33,6 +35,12 @@
 		{ value: 'strict', label: m.settings_lock_mode_strict() }
 	];
 
+	const maskModes = [
+		{ value: 'agents', label: m.settings_mask_output_agents() },
+		{ value: 'all', label: m.settings_mask_output_all() },
+		{ value: 'none', label: m.settings_mask_output_none() }
+	];
+
 	// durations are edited as text ("12h", "30d"); saved holds what the server last returned
 	let saved = $state({} as Record<Key, string>);
 	let form = $state({} as Record<Key, string>);
@@ -45,7 +53,7 @@
 	const snake = (k: string) => k.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase());
 
 	function show(s?: OrgSettings) {
-		saved = { ...Object.fromEntries(durationKeys.map((k) => [k, formatDuration(s?.[k])])), lockMode: s?.lockMode || 'best_effort' } as Record<Key, string>;
+		saved = { ...Object.fromEntries(durationKeys.map((k) => [k, formatDuration(s?.[k])])), lockMode: s?.lockMode || 'best_effort', maskOutput: s?.maskOutput || 'agents' } as Record<Key, string>;
 		form = { ...saved };
 	}
 
@@ -66,8 +74,8 @@
 		const out: MessageInitShape<typeof OrgSettingsSchema> = {};
 		errors = {};
 		for (const k of paths) {
-			if (k === 'lockMode') {
-				out.lockMode = form.lockMode;
+			if (k === 'lockMode' || k === 'maskOutput') {
+				out[k] = form[k];
 				continue;
 			}
 			const d = parseDuration(form[k]);
@@ -104,7 +112,7 @@
 		<Skeleton variant="text" lines={4} />
 	{:else}
 		{@const cliKeys = cliFields.map((f) => f.key)}
-		{@const accessKeys = [...accessFields.map((f) => f.key), 'lockMode' as const]}
+		{@const accessKeys = [...accessFields.map((f) => f.key), 'lockMode' as const, 'maskOutput' as const]}
 		<div class="cards">
 			<SettingsCard icon="laptop" title={m.settings_cli_title()}>
 				<form onsubmit={(e) => save(e, cliKeys)}>
@@ -120,6 +128,8 @@
 						<Segmented size={32} options={lockModes} bind:value={form.lockMode} />
 					</div>
 					<InfoBlock title={m.settings_lock_mode_strict()}>{m.settings_lock_mode_strict_hint()}</InfoBlock>
+					<FilledSelect label={m.settings_mask_output()} options={maskModes} bind:value={form.maskOutput} />
+					<p class="hint">{m.settings_mask_output_hint()}</p>
 					<div><Button size={40} type="submit" variant="solid" disabled={changed(accessKeys).length === 0}>{m.settings_save()}</Button></div>
 				</form>
 			</SettingsCard>
@@ -137,6 +147,12 @@
 
 	.cards {
 		gap: var(--miso-sp-24);
+	}
+
+	.hint {
+		margin: 0;
+		font: var(--miso-font-ui-12-reg);
+		color: var(--miso-txt-tertiary);
 	}
 
 	.mode {
