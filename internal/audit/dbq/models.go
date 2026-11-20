@@ -24,6 +24,60 @@ type AccessBinding struct {
 	Ports         []pgtype.Range[pgtype.Int4]
 }
 
+type AccessGrant struct {
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	ApprovalID  *uuid.UUID
+	UserID      uuid.UUID
+	ResourceID  uuid.UUID
+	ExpiresAt   time.Time
+	RevokedAt   *time.Time
+	BreakGlass  bool
+	NeedsReview bool
+	CreatedBy   *uuid.UUID
+	CreatedAt   time.Time
+}
+
+type Approval struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	Kind              string
+	RequesterUserID   uuid.UUID
+	AgentRunID        *uuid.UUID
+	ResourceID        *uuid.UUID
+	LabelSelector     []byte
+	Duration          pgtype.Interval
+	Command           *string
+	CommandSha256     []byte
+	Classes           []string
+	Reason            string
+	PolicyID          *uuid.UUID
+	BreakGlass        bool
+	Status            string
+	DecidedBy         *uuid.UUID
+	DecidedAt         *time.Time
+	Comment           string
+	ExpiresAt         time.Time
+	GatewayInstanceID *uuid.UUID
+	CreatedAt         time.Time
+}
+
+type ApprovalPolicy struct {
+	ID               uuid.UUID
+	OrgID            uuid.UUID
+	Name             string
+	ResourceSelector []byte
+	Requesters       []byte
+	Approvers        []byte
+	Mode             string
+	MaxDuration      pgtype.Interval
+	RequireReason    bool
+	FourEyes         bool
+	BreakGlass       bool
+	CreatedBy        *uuid.UUID
+	CreatedAt        time.Time
+}
+
 type AuditEvent struct {
 	ID          uuid.UUID
 	OrgID       *uuid.UUID
@@ -124,6 +178,17 @@ type IpBlocklist struct {
 	UpdatedAt time.Time
 }
 
+type Lock struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	TargetType string
+	TargetID   *uuid.UUID
+	Reason     string
+	ExpiresAt  *time.Time
+	CreatedBy  *uuid.UUID
+	CreatedAt  time.Time
+}
+
 type Membership struct {
 	OrgID     uuid.UUID
 	UserID    uuid.UUID
@@ -184,10 +249,15 @@ type OneTimeToken struct {
 }
 
 type OrgSetting struct {
-	OrgID         uuid.UUID
-	CliSessionTtl pgtype.Interval
-	CliSessionMax pgtype.Interval
-	UpdatedAt     time.Time
+	OrgID              uuid.UUID
+	CliSessionTtl      pgtype.Interval
+	CliSessionMax      pgtype.Interval
+	UpdatedAt          time.Time
+	GrantDefaultTtl    pgtype.Interval
+	GrantMaxTtl        pgtype.Interval
+	RequestPendingTtl  pgtype.Interval
+	CommandApprovalTtl pgtype.Interval
+	LockMode           string
 }
 
 type OrgSshCa struct {
