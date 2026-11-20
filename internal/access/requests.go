@@ -131,44 +131,7 @@ func (s *Service) CreateRequest(ctx context.Context, p principal.Principal, in C
 	a := Approval{OrgID: p.OrgID, RequesterID: p.UserID, Kind: KindAccess, ResourceID: in.ResourceID, Selector: in.Selector,
 		Reason: reason, BreakGlass: in.BreakGlass}
 	err = s.tx(ctx, p.OrgID, p.UserID, func(st Store, tx pgx.Tx) error {
-		e, err := loadEvaluator(ctx, st, p.OrgID)
-		if err != nil {
-			return err
-		}
-		ts := e.targetsOf(a.ResourceID, a.Selector)
-		switch {
-		case len(ts) == 0 && a.ResourceID != nil:
-			return fmt.Errorf("resource not found: %w", apperr.ErrNotFound)
-		case len(ts) == 0:
-			return invalid("no resources match selector")
-		}
-		t, ok := e.terms(a)
-		switch {
-		case !ok && a.BreakGlass:
-			return denied("break-glass is not allowed for this resource")
-		case !ok:
-			return denied("no approval policy matches this request")
-		case reason == "" && (t.RequireReason || a.BreakGlass):
-			return invalid("reason is required")
-		}
-		if a.Duration, err = grantDuration(in.Duration, t, set.GrantMaxTTL, set.GrantDefaultTTL, a.BreakGlass); err != nil {
-			return err
-		}
-		a.PolicyID = &t.PolicyID
-		if a.BreakGlass || t.Auto {
-			return s.createApproved(ctx, st, tx, e, &a, ts)
-		}
-		to := e.approvers(a, t)
-		if len(to) == 0 {
-			return failed("no one can approve this request")
-		}
-		if a, err = insert(ctx, st, a, StatusPending, set.RequestPendingTTL); err != nil {
-			return err
-		}
-		if err := audit(ctx, tx, p.OrgID, p.UserID, "access.request.create", "approval", a.ID, createData(a)); err != nil {
-			return err
-		}
-		return s.mail(ctx, tx, to, "access_request", s.requestMail(e, a, a.Duration))
+		return s.createTx(ctx, st, tx, &a, in, set)
 	})
 	if err != nil {
 		return Approval{}, err
