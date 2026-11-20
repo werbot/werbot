@@ -40,7 +40,10 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 		}
 	}
 	r := h.sessionRequest(s, resource, pty, isPty)
+	defer session(sctx)() // from Open on: the idle limit never closes a wait for an approval
+	stop := keepalive(sctx, h.keepalive)
 	sess, err := h.p.Open(sctx, r)
+	stop()
 	if err != nil {
 		say(openOut(r, s, err), openText(err, resource, r.Kind, h.p.ctl.Policy()))
 		return 1
@@ -59,7 +62,6 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 	} else {
 		sess.Exec = &Exec{Command: sess.Command, Stdin: s, Stdout: s, Stderr: s.Stderr(), SetExitStatus: setExit}
 	}
-	defer session(sctx)()
 	if err := h.p.Run(sctx, sess, c); err != nil {
 		say(s, runText(err, resource))
 		return 1
@@ -85,9 +87,9 @@ func (h *sshHandler) sessionRequest(s ssh.Session, resource string, pty ssh.Pty,
 }
 
 // openOut is where the user reads the text of an Open error: Notice for a
-// refused command, the session channel otherwise.
+// refused or timed-out command, the session channel otherwise.
 func openOut(r OpenRequest, s ssh.Session, err error) io.Writer {
-	if _, ok := errors.AsType[*CommandDeniedError](err); ok {
+	if _, ok := errors.AsType[*CommandDeniedError](err); ok || errors.Is(err, ErrApprovalTimeout) {
 		return r.Notice
 	}
 	return s

@@ -29,12 +29,13 @@ type sshFront struct {
 	hostKey          gossh.Signer
 	log              *slog.Logger
 	handshakeTimeout time.Duration // closes a connection that has not authenticated by then
+	keepalive        time.Duration // keepalive@openssh.com period while a session waits to open
 }
 
 var _ Front = (*sshFront)(nil)
 
 func newSSHFront(cfg Config, hostKey gossh.Signer, logger *slog.Logger) *sshFront {
-	return &sshFront{cfg: cfg, hostKey: hostKey, log: logger, handshakeTimeout: 30 * time.Second}
+	return &sshFront{cfg: cfg, hostKey: hostKey, log: logger, handshakeTimeout: 30 * time.Second, keepalive: 30 * time.Second}
 }
 
 func (*sshFront) Name() string { return "ssh" }
@@ -42,7 +43,7 @@ func (*sshFront) Name() string { return "ssh" }
 // Serve accepts SSH connections on ln until ctx ends, then closes ln. Open
 // connections keep running while the pipeline drains and are closed once it stops.
 func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) error {
-	h := &sshHandler{p: p, log: f.log}
+	h := &sshHandler{p: p, log: f.log, keepalive: f.keepalive}
 	srv := &ssh.Server{
 		Version:          "Werbot_" + strings.ReplaceAll(version.Version, "-", "_"),
 		PublicKeyHandler: h.auth,
@@ -119,8 +120,9 @@ func (h *sshHandler) authFailed(ctx ssh.Context) {
 }
 
 type sshHandler struct {
-	p   *Pipeline
-	log *slog.Logger
+	p         *Pipeline
+	log       *slog.Logger
+	keepalive time.Duration
 }
 
 // auth checks the key and the login. x/crypto also calls it for keys the client
@@ -260,6 +262,8 @@ func openText(err error, resource string, kind Kind, pol *Policy) string {
 		return fmt.Sprintf("Resource type %q is not supported by this gateway", r.Type)
 	case errors.Is(err, ErrUnsupportedKind):
 		return fmt.Sprintf("Resource %s does not support %s sessions", resource, kind)
+	case errors.Is(err, ErrApprovalTimeout):
+		return ErrApprovalTimeout.Error()
 	}
 	if cd, ok := errors.AsType[*CommandDeniedError](err); ok {
 		return cd.Error()

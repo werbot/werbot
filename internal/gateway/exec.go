@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/werbot/werbot/internal/connector"
 )
@@ -49,17 +50,43 @@ func withExecAction(req AccessRequest, r OpenRequest, typ connector.Type) Access
 
 // authorizeCommand decides command on req.Action; a request without an action
 // passes unchanged. The command is classified with the snapshot class rules and
-// the resource host. It returns the decided request: the sweeper re-decides it.
-func (p *Pipeline) authorizeCommand(_ context.Context, pol *Policy, req AccessRequest, command string, _ io.Writer) (AccessRequest, error) {
+// the resource host. A deny that only an approval lifts waits for the
+// approvers, telling the user on notice, and is then decided again. It returns
+// the decided request: the sweeper re-decides it.
+func (p *Pipeline) authorizeCommand(ctx context.Context, pol *Policy, req AccessRequest, command string, notice io.Writer) (AccessRequest, error) {
 	if req.Action == "" {
 		return req, nil
 	}
 	ep, _, _ := req.Resource.Endpoint() // an invalid config leaves no host: every remote host is egress
 	req.Command, req.Classes = command, pol.Classify(command, ep.Host)
-	if d := pol.Decide(req); !d.Allow {
+	d := pol.Decide(req)
+	switch {
+	case d.Allow:
+		return req, nil
+	case !slices.Equal(d.Obligations, []string{ObligationApproval}):
 		return req, &CommandDeniedError{Err: ErrDenied, Message: d.Message}
 	}
-	return req, nil
+	if err := p.approve(ctx, req, d, notice); err != nil {
+		return req, err
+	}
+	return p.recheckApproved(req)
+}
+
+// recheckApproved decides an approved command again on the current snapshot at
+// the current time, since the wait may have changed the resource, the
+// membership, connect or the command rules: a deny refuses it, with the
+// message of the new command decision.
+func (p *Pipeline) recheckApproved(req AccessRequest) (AccessRequest, error) {
+	pol := p.ctl.Policy()
+	cur, ok := recheck(pol, evaluation{req: connectOf(req)}, p.now())
+	if !ok {
+		return req, &CommandDeniedError{Err: ErrDenied}
+	}
+	cur.Action, cur.Command, cur.Classes, cur.ApprovalGranted = req.Action, req.Command, req.Classes, true
+	if d := pol.Decide(cur); !d.Allow {
+		return cur, &CommandDeniedError{Err: ErrDenied, Message: d.Message}
+	}
+	return cur, nil
 }
 
 // connectOf is the connect request of a session's request.

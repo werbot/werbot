@@ -60,6 +60,9 @@ type control interface {
 	AuthenticateUser(ctx context.Context, id Identity, ip netip.Addr) (User, error)
 	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes []string) (uuid.UUID, Secret, error)
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
+	RequestApproval(ctx context.Context, r approvalRequest) (approvalTicket, error)
+	GetApproval(ctx context.Context, id string) (status string, err error)
+	SubscribeApproval(id string) (decided <-chan struct{}, unsubscribe func())
 	Policy() *Policy
 	PolicyChanged() <-chan struct{} // receives after a new Policy is stored
 	Connected() bool

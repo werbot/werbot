@@ -76,6 +76,7 @@ func (c *tunnelClient) stream(ctx context.Context, heartbeat func() *gatewayv1.H
 		if pi := msg.GetPoolInstances(); pi != nil {
 			c.setPool(pi.GetIds())
 		}
+		c.dispatch(msg)
 	}
 }
 

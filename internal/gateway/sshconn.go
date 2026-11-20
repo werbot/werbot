@@ -83,6 +83,34 @@ func session(ctx ssh.Context) (done func()) {
 	}
 }
 
+// keepalive sends keepalive@openssh.com on the connection of ctx every d until
+// stop is called or the channel ends: a connection that waits for an approval
+// carries no data, and NATs or load balancers may drop it. d <= 0 sends none.
+func keepalive(ctx ssh.Context, d time.Duration) (stop func()) {
+	conn, _ := ctx.Value(ssh.ContextKeyConn).(gossh.Conn)
+	if conn == nil || d <= 0 {
+		return func() {}
+	}
+	done := make(chan struct{})
+	go func() {
+		t := time.NewTicker(d)
+		defer t.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				if _, _, err := conn.SendRequest("keepalive@openssh.com", true, nil); err != nil {
+					return
+				}
+			}
+		}
+	}()
+	return func() { close(done) }
+}
+
 // touch restarts the idle limit of the connection of ctx while it runs no
 // session: input in the resource menu is activity.
 func touch(ctx ssh.Context) {

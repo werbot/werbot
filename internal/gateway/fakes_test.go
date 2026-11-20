@@ -110,6 +110,7 @@ type fakeControl struct {
 	pins       []string
 	events     []string
 	recs       []string
+	approvals  *fakeApprovals // the approval calls, fakes_approval_test.go
 }
 
 func (f *fakeControl) AuthenticateUser(_ context.Context, id Identity, ip netip.Addr) (User, error) {

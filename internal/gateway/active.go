@@ -29,6 +29,7 @@ type activeSessions struct {
 	gauge       *metrics.Gauge
 	log         *slog.Logger
 	draining    bool
+	drained     chan struct{} // closed by startDrain: approval waits end
 	slots       int
 	idleCh      chan struct{}          // closed when slots drops to 0; nil while 0
 	sessions    map[uuid.UUID]*tracked // opened sessions
@@ -51,7 +52,7 @@ type tracked struct {
 }
 
 func newActiveSessions(gauge *metrics.Gauge, logger *slog.Logger) *activeSessions {
-	return &activeSessions{gauge: gauge, log: logger, sessions: map[uuid.UUID]*tracked{}}
+	return &activeSessions{gauge: gauge, log: logger, sessions: map[uuid.UUID]*tracked{}, drained: make(chan struct{})}
 }
 
 // reserve takes a slot: ErrNotReady while draining, ErrBusy when limit are taken.
@@ -87,10 +88,13 @@ func (a *activeSessions) release() {
 	}
 }
 
-// startDrain makes every later reserve fail with ErrNotReady.
+// startDrain makes every later reserve fail with ErrNotReady and closes drained.
 func (a *activeSessions) startDrain() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if !a.draining {
+		close(a.drained)
+	}
 	a.draining = true
 }
 

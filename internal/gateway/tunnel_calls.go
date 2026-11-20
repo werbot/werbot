@@ -136,3 +136,29 @@ func (c *tunnelClient) FinishRecording(ctx context.Context, m recorder.Manifest)
 	}))
 	return err
 }
+
+// RequestApproval asks the approvers to allow a command; the decision comes as
+// a hint on the stream or from GetApproval.
+func (c *tunnelClient) RequestApproval(ctx context.Context, r approvalRequest) (approvalTicket, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
+	defer cancel()
+	resp, err := c.conn.Load().rpc.RequestApproval(ctx, connect.NewRequest(&gatewayv1.RequestApprovalRequest{
+		UserId: r.UserID.String(), ResourceId: r.ResourceID.String(), Command: r.Command, Classes: r.Classes, Reasons: r.Reasons,
+	}))
+	if err != nil {
+		return approvalTicket{}, err
+	}
+	m := resp.Msg
+	return approvalTicket{ID: m.GetApprovalId(), URL: m.GetUrl(), ExpiresAt: m.GetExpiresAt().AsTime()}, nil
+}
+
+// GetApproval returns the status of approval id: pending, approved, denied, expired or canceled.
+func (c *tunnelClient) GetApproval(ctx context.Context, id string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
+	defer cancel()
+	resp, err := c.conn.Load().rpc.GetApproval(ctx, connect.NewRequest(&gatewayv1.GetApprovalRequest{ApprovalId: id}))
+	if err != nil {
+		return "", err
+	}
+	return resp.Msg.GetStatus(), nil
+}
