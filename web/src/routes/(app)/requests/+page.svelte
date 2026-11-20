@@ -40,13 +40,12 @@
 	const show = (id: string) => goto(id ? `/requests?id=${id}` : '/requests', { reset: false });
 
 	// ponytail: one page of the 200 newest per tab; add Pager when an organization outgrows it
-	const list = (scope: RequestScope, status = '') =>
-		accessRequests.listRequests({ scope, status, pageSize: 200 }).then((r) => r.requests);
+	const list = (scope: RequestScope) => accessRequests.listRequests({ scope, pageSize: 200 }).then((r) => r.requests);
 
 	async function refresh() {
 		const [mine, toApprove, all, active] = await Promise.all([
 			list(RequestScope.MINE),
-			list(RequestScope.TO_APPROVE, 'pending'),
+			list(RequestScope.TO_APPROVE),
 			manager ? list(RequestScope.ALL) : [],
 			accessRequests.listGrants({ active: true })
 		]);

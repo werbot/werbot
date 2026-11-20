@@ -1,11 +1,8 @@
 import { durationFromMs, type Duration } from '@bufbuild/protobuf/wkt';
+import { spans } from '#lib/format.js';
 
-const units: [string, number][] = [
-	['d', 86400],
-	['h', 3600],
-	['m', 60],
-	['s', 1]
-];
+// d, h, m, s: the first letters of the format.ts spans
+const units = spans.map(([unit, size]): [string, number] => [unit[0], size]);
 const pattern = /^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/;
 
 /** "2h", "30m", "1h30m", "14d" → Duration: units d, h, m, s, largest first, each at most once; anything else → null. */

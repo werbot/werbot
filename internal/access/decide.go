@@ -53,7 +53,7 @@ func (s *Service) Decide(ctx context.Context, p principal.Principal, id uuid.UUI
 			return invalid("no resources match selector")
 		}
 		// owner and admin may deny any request but their own, even with no matching policy
-		managerDeny := !approve && e.members[p.UserID].manager() && p.UserID != a.RequesterID
+		managerDeny := !approve && isManager(e.members[p.UserID].Role) && p.UserID != a.RequesterID
 		if !managerDeny && !e.canDecide(a, p.UserID) {
 			return denied("you cannot decide this request")
 		}

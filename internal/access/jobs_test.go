@@ -35,7 +35,7 @@ func TestExpire(t *testing.T) {
 	age(t, pool, stale.ID)
 	age(t, pool, done.ID)
 	age(t, pool, cmd.ID)
-	q.reset()
+	q.Reset()
 
 	n, err := svc.Expire(bg)
 	require.NoError(t, err)
@@ -50,14 +50,14 @@ func TestExpire(t *testing.T) {
 		FROM audit_event WHERE action = 'approval.expire'`).Scan(&events, &system))
 	assert.Equal(t, 2, events)
 	assert.Equal(t, 2, system)
-	assert.Equal(t, []string{emailOf(t, pool, f.MemberID)}, q.to("access_decision"), "mail for the access request only")
+	assert.Equal(t, []string{emailOf(t, pool, f.MemberID)}, q.To("access_decision"), "mail for the access request only")
 	assert.Equal(t, map[string]string{"url": "https://werbot.test/requests?id=" + stale.ID.String(), "resource": "web",
-		"status": "expired", "comment": ""}, q.of("access_decision")[0].Data)
+		"status": "expired", "comment": ""}, q.Of("access_decision")[0].Data)
 
 	n, err = svc.Expire(bg)
 	require.NoError(t, err)
 	assert.Zero(t, n, "second run finds nothing")
-	assert.Len(t, q.of("access_decision"), 1)
+	assert.Len(t, q.Of("access_decision"), 1)
 }
 
 func TestExpireNeverApproves(t *testing.T) {

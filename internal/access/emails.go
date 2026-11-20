@@ -55,12 +55,8 @@ func (s *Service) mail(ctx context.Context, tx pgx.Tx, to []member, template str
 	return nil
 }
 
-// requestMail is the access_request email of a; command is the text of a command approval.
-func (s *Service) requestMail(e evaluator, a Approval, wait time.Duration) map[string]string {
-	d := a.Duration
-	if a.Kind == KindCommand {
-		d = wait
-	}
+// requestMail is the access_request email of a lasting d; command is the text of a command approval.
+func (s *Service) requestMail(e evaluator, a Approval, d time.Duration) map[string]string {
 	return map[string]string{"url": s.RequestURL(a.ID), "requester": e.members[a.RequesterID].Login,
 		"resource": e.resourceText(a), "duration": formatDuration(d), "reason": a.Reason, "command": a.Command}
 }

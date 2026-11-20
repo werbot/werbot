@@ -17,7 +17,8 @@ type member struct {
 	Email, Login string
 }
 
-func (m member) manager() bool { return m.Role == principal.RoleOwner || m.Role == principal.RoleAdmin }
+// isManager reports whether role is owner or admin.
+func isManager(role string) bool { return role == principal.RoleOwner || role == principal.RoleAdmin }
 
 // evaluator holds what deciding on requests of one organization reads: its
 // policies, resources with labels and members, loaded once per use case.
@@ -110,7 +111,7 @@ func (e evaluator) canDecide(a Approval, user uuid.UUID) bool {
 
 // visible reports whether user sees a: the requester, a possible approver, an owner or an admin.
 func (e evaluator) visible(a Approval, user uuid.UUID) bool {
-	return user == a.RequesterID || e.members[user].manager() || e.canDecide(a, user)
+	return user == a.RequesterID || isManager(e.members[user].Role) || e.canDecide(a, user)
 }
 
 // membersWhere returns the members keep accepts, by user id.

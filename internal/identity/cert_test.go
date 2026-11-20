@@ -21,6 +21,7 @@ import (
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 	"github.com/werbot/werbot/internal/platform/sshca"
 )
@@ -80,7 +81,7 @@ func TestIssueUserCert(t *testing.T) {
 	org := seedOrg(t, s.pool, "Acme")
 	alice := seedUser(t, s.pool, org, "alice", principal.RoleMember)
 	p := s.asBearer(t, s.cliLogin(t, org, alice).AccessToken, principal.RoleMember)
-	audits := auditActions(t, s.pool)
+	audits := dbtest.AuditActions(t, s.pool)
 	_, pub := newEd25519(t, "")
 
 	cert, err := s.svc.IssueUserCert(ctx, p, pub)
@@ -99,7 +100,7 @@ func TestIssueUserCert(t *testing.T) {
 	rec := httptest.NewRecorder()
 	s.svc.cfg.Metrics.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
 	assert.Contains(t, rec.Body.String(), "werbot_user_certs_issued_total 1\n")
-	assert.Equal(t, audits, auditActions(t, s.pool), "issuing writes no audit event")
+	assert.Equal(t, audits, dbtest.AuditActions(t, s.pool), "issuing writes no audit event")
 
 	// over CertService with the CLI token
 	res, err := s.certs().IssueUserCert(ctx, bearer(&werbotv1.IssueUserCertRequest{PublicKey: authorizedLine(pub)}, s.cliLogin(t, org, alice).AccessToken))

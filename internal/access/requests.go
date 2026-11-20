@@ -81,18 +81,23 @@ func insert(ctx context.Context, st Store, a Approval, status string, ttl time.D
 	return toApproval(row)
 }
 
-// grant gives the requester of a every resource of ts for d and audits each grant.
-func grant(ctx context.Context, st Store, tx pgx.Tx, a Approval, ts []target, d time.Duration, actor *uuid.UUID) error {
+// targetIDs returns the resource ids of ts.
+func targetIDs(ts []target) []uuid.UUID {
 	ids := make([]uuid.UUID, len(ts))
 	for i, t := range ts {
 		ids[i] = t.ID
 	}
+	return ids
+}
+
+// grant gives the requester of a every resource of ts for d and audits each grant.
+func grant(ctx context.Context, st Store, tx pgx.Tx, a Approval, ts []target, d time.Duration, actor *uuid.UUID) error {
 	var createdBy *uuid.UUID
 	if a.BreakGlass {
 		createdBy = &a.RequesterID
 	}
 	rows, err := st.CreateGrants(ctx, dbq.CreateGrantsParams{OrgID: a.OrgID, ApprovalID: a.ID, UserID: a.RequesterID,
-		DurationSecs: d.Seconds(), BreakGlass: a.BreakGlass, CreatedBy: createdBy, ResourceIds: ids})
+		DurationSecs: d.Seconds(), BreakGlass: a.BreakGlass, CreatedBy: createdBy, ResourceIds: targetIDs(ts)})
 	if err != nil {
 		return err
 	}
@@ -163,7 +168,7 @@ func (s *Service) CreateRequest(ctx context.Context, p principal.Principal, in C
 		if err := audit(ctx, tx, p.OrgID, p.UserID, "access.request.create", "approval", a.ID, createData(a)); err != nil {
 			return err
 		}
-		return s.mail(ctx, tx, to, "access_request", s.requestMail(e, a, 0))
+		return s.mail(ctx, tx, to, "access_request", s.requestMail(e, a, a.Duration))
 	})
 	if err != nil {
 		return Approval{}, err
@@ -187,19 +192,15 @@ func (s *Service) createApproved(ctx context.Context, st Store, tx pgx.Tx, e eva
 		}
 		return grant(ctx, st, tx, *a, ts, a.Duration, nil)
 	}
-	ids := make([]uuid.UUID, len(ts))
-	for i, t := range ts {
-		ids[i] = t.ID
-	}
 	if err := audit(ctx, tx, a.OrgID, a.RequesterID, "access.break_glass", "approval", a.ID, map[string]any{
-		"approval_id": a.ID, "resource_ids": ids, "duration": formatDuration(a.Duration), "reason": a.Reason,
+		"approval_id": a.ID, "resource_ids": targetIDs(ts), "duration": formatDuration(a.Duration), "reason": a.Reason,
 	}); err != nil {
 		return err
 	}
 	if err := grant(ctx, st, tx, *a, ts, a.Duration, &a.RequesterID); err != nil {
 		return err
 	}
-	return s.mail(ctx, tx, e.membersWhere(member.manager), "break_glass", map[string]string{
+	return s.mail(ctx, tx, e.membersWhere(func(m member) bool { return isManager(m.Role) }), "break_glass", map[string]string{
 		"url": s.RequestURL(a.ID), "requester": e.members[a.RequesterID].Login, "resource": e.resourceText(*a), "reason": a.Reason})
 }
 

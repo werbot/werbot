@@ -63,7 +63,7 @@ func toLock(r dbq.Lock) LockView {
 }
 
 func requireManager(p principal.Principal) error {
-	if !isManager(p) {
+	if !isManager(p.Role) {
 		return denied("only owner and admin manage locks")
 	}
 	return nil

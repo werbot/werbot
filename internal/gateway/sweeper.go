@@ -31,18 +31,19 @@ func (p *Pipeline) sweep(ctx context.Context) {
 	defer expiry.Stop()
 	p.armExpiry(expiry, time.Now())
 	last := time.Now()
+	reeval := func() {
+		now := time.Now()
+		p.reevaluate(now, true)
+		p.armExpiry(expiry, now)
+	}
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-p.ctl.PolicyChanged():
-			now := time.Now()
-			p.reevaluate(now, true)
-			p.armExpiry(expiry, now)
+			reeval()
 		case <-expiry.C:
-			now := time.Now()
-			p.reevaluate(now, true)
-			p.armExpiry(expiry, now)
+			reeval()
 		case <-tick.C:
 			now := time.Now()
 			p.active.expire(now)

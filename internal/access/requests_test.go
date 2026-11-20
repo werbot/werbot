@@ -30,14 +30,14 @@ func TestCreateRequestManualPending(t *testing.T) {
 	assert.Equal(t, 2*time.Hour, a.Duration)
 	assert.WithinDuration(t, time.Now().Add(time.Hour), a.ExpiresAt, 5*time.Second)
 	assert.Nil(t, a.DecidedAt)
-	assert.ElementsMatch(t, []string{emailOf(t, pool, f.OwnerID), emailOf(t, pool, f.AdminID)}, q.to("access_request"))
-	m := q.of("access_request")[0]
+	assert.ElementsMatch(t, []string{emailOf(t, pool, f.OwnerID), emailOf(t, pool, f.AdminID)}, q.To("access_request"))
+	m := q.Of("access_request")[0]
 	assert.Equal(t, "https://werbot.test/requests?id="+a.ID.String(), m.Data["url"])
 	assert.Equal(t, "web", m.Data["resource"])
 	assert.Equal(t, "2h", m.Data["duration"])
 	assert.Equal(t, "deploy", m.Data["reason"])
 	assert.Empty(t, m.Data["command"])
-	assert.Equal(t, []string{"access.request.create"}, auditActions(t, pool))
+	assert.Equal(t, []string{"access.request.create"}, dbtest.AuditActions(t, pool))
 	assert.Empty(t, grants(t, pool, a.ID))
 }
 
@@ -54,13 +54,13 @@ func TestCreateRequestAuto(t *testing.T) {
 	g := grants(t, pool, a.ID)
 	require.Len(t, g, 1)
 	assert.WithinDuration(t, time.Now().Add(2*time.Hour), g[f.ResourceID], 5*time.Second)
-	assert.Equal(t, []string{"access.request.create", "access.request.approve", "access.grant.create"}, auditActions(t, pool))
+	assert.Equal(t, []string{"access.request.create", "access.request.approve", "access.grant.create"}, dbtest.AuditActions(t, pool))
 	var kind string
 	var auto bool
 	require.NoError(t, pool.QueryRow(bg, "SELECT actor_kind, (data->>'auto')::bool FROM audit_event WHERE action = 'access.request.approve'").Scan(&kind, &auto))
 	assert.Equal(t, "system", kind)
 	assert.True(t, auto)
-	assert.Empty(t, q.sent)
+	assert.Empty(t, q.Sent())
 }
 
 func TestAutoBlockedByManual(t *testing.T) {
@@ -144,7 +144,7 @@ func TestSoleOwnerCannotRequest(t *testing.T) {
 	var n int
 	require.NoError(t, pool.QueryRow(bg, "SELECT count(*) FROM approval").Scan(&n))
 	assert.Zero(t, n)
-	assert.Empty(t, q.sent)
+	assert.Empty(t, q.Sent())
 }
 
 func TestBreakGlass(t *testing.T) {
@@ -171,9 +171,9 @@ func TestBreakGlass(t *testing.T) {
 	assert.True(t, bgFlag)
 	assert.True(t, review)
 	assert.Equal(t, f.MemberID, createdBy)
-	assert.Equal(t, []string{"access.request.create", "access.break_glass", "access.grant.create"}, auditActions(t, pool))
-	assert.ElementsMatch(t, []string{emailOf(t, pool, f.OwnerID), emailOf(t, pool, f.AdminID)}, q.to("break_glass"))
-	assert.Equal(t, "incident", q.of("break_glass")[0].Data["reason"])
+	assert.Equal(t, []string{"access.request.create", "access.break_glass", "access.grant.create"}, dbtest.AuditActions(t, pool))
+	assert.ElementsMatch(t, []string{emailOf(t, pool, f.OwnerID), emailOf(t, pool, f.AdminID)}, q.To("break_glass"))
+	assert.Equal(t, "incident", q.Of("break_glass")[0].Data["reason"])
 
 	other := dbtest.Resource(t, pool, f.OrgID, "other", nil)
 	f.ApprovalPolicy(t, pool, "plain", access.ModeManual, onResource(other), allUsers, noOne)
@@ -193,7 +193,7 @@ func TestCancel(t *testing.T) {
 	assert.ErrorIs(t, svc.Cancel(bg, p, uuid.New()), apperr.ErrNotFound)
 	require.NoError(t, svc.Cancel(bg, p, a.ID))
 	assert.Equal(t, access.StatusCanceled, status(t, pool, a.ID))
-	assert.Contains(t, auditActions(t, pool), "access.request.cancel")
+	assert.Contains(t, dbtest.AuditActions(t, pool), "access.request.cancel")
 
 	b, err := svc.CreateRequest(bg, p, access.CreateRequestInput{ResourceID: &f.ResourceID, Reason: "x"})
 	require.NoError(t, err)

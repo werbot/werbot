@@ -2,7 +2,6 @@ package access_test
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -15,53 +14,6 @@ import (
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 )
 
-// mail is one queued email.
-type mail struct {
-	To, Template string
-	Data         map[string]string
-}
-
-// fakeQueue collects the queued emails.
-type fakeQueue struct {
-	mu   sync.Mutex
-	sent []mail
-}
-
-func (q *fakeQueue) EnqueueTx(_ context.Context, _ pgx.Tx, to, template string, data map[string]string) error {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	q.sent = append(q.sent, mail{to, template, data})
-	return nil
-}
-
-// of returns the emails queued with template.
-func (q *fakeQueue) of(template string) []mail {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	var out []mail
-	for _, m := range q.sent {
-		if m.Template == template {
-			out = append(out, m)
-		}
-	}
-	return out
-}
-
-// to returns the recipients of template.
-func (q *fakeQueue) to(template string) []string {
-	var out []string
-	for _, m := range q.of(template) {
-		out = append(out, m.To)
-	}
-	return out
-}
-
-func (q *fakeQueue) reset() {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	q.sent = nil
-}
-
 // fakeSettings returns S, the defaults of migration 00124 unless a test changes them.
 type fakeSettings struct{ S access.Settings }
 
@@ -70,23 +22,13 @@ func (f *fakeSettings) AccessSettings(context.Context, uuid.UUID) (access.Settin
 }
 
 // newTestService seeds a fixture and returns a Service with fake emails and settings.
-func newTestService(t *testing.T) (*access.Service, *pgxpool.Pool, dbtest.Fixture, *fakeQueue, *fakeSettings) {
+func newTestService(t *testing.T) (*access.Service, *pgxpool.Pool, dbtest.Fixture, *dbtest.Mails, *fakeSettings) {
 	t.Helper()
 	pool, _ := dbtest.New(t)
-	q := &fakeQueue{}
+	q := &dbtest.Mails{}
 	set := &fakeSettings{access.Settings{GrantDefaultTTL: 8 * time.Hour, GrantMaxTTL: 14 * 24 * time.Hour,
 		RequestPendingTTL: time.Hour, CommandApprovalTTL: 5 * time.Minute}}
 	return access.New(pool, q, set, access.Config{WebURL: "https://werbot.test"}), pool, dbtest.Seed(t, pool), q, set
-}
-
-// auditActions lists the audit actions in insertion order.
-func auditActions(t *testing.T, pool *pgxpool.Pool) []string {
-	t.Helper()
-	rows, err := pool.Query(context.Background(), "SELECT action FROM audit_event ORDER BY id")
-	require.NoError(t, err)
-	out, err := pgx.CollectRows(rows, pgx.RowTo[string])
-	require.NoError(t, err)
-	return out
 }
 
 // listenOnce returns the payload of the first NOTIFY on channel.

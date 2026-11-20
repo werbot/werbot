@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"github.com/werbot/werbot/internal/platform/principal"
 )
 
 // breakGlassMax caps a break-glass grant.
@@ -129,7 +127,7 @@ func canDecide(a Approval, t terms, who approver) bool {
 	if who.UserID == a.RequesterID && (a.AgentRunID == nil || t.FourEyes) {
 		return false
 	}
-	if t.Admins && (who.Role == principal.RoleOwner || who.Role == principal.RoleAdmin) {
+	if t.Admins && isManager(who.Role) {
 		return true
 	}
 	return slices.Contains(t.Approvers.Users, who.UserID) ||

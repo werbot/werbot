@@ -28,7 +28,7 @@ func TestDecideApproveCreatesGrant(t *testing.T) {
 	svc, pool, f, q, _ := newTestService(t)
 	f.ApprovalPolicy(t, pool, "prod", access.ModeManual, onResource(f.ResourceID), allUsers, noOne)
 	a := pending(t, svc, f, f.MemberID)
-	q.reset()
+	q.Reset()
 	got, err := svc.Decide(bg, f.Principal(f.AdminID), a.ID, true, " ok ")
 	require.NoError(t, err)
 	assert.Equal(t, access.StatusApproved, got.Status)
@@ -39,10 +39,10 @@ func TestDecideApproveCreatesGrant(t *testing.T) {
 	require.Len(t, g, 1)
 	assert.WithinDuration(t, time.Now().Add(2*time.Hour), g[f.ResourceID], 5*time.Second)
 	assert.True(t, got.ExpiresAt.Equal(g[f.ResourceID]), "an approved request expires with its grant: %s != %s", got.ExpiresAt, g[f.ResourceID])
-	assert.Equal(t, []string{emailOf(t, pool, f.MemberID)}, q.to("access_decision"))
+	assert.Equal(t, []string{emailOf(t, pool, f.MemberID)}, q.To("access_decision"))
 	assert.Equal(t, map[string]string{"url": "https://werbot.test/requests?id=" + a.ID.String(), "resource": "web",
-		"status": "approved", "comment": "ok"}, q.of("access_decision")[0].Data)
-	assert.Equal(t, []string{"access.request.create", "access.request.approve", "access.grant.create"}, auditActions(t, pool))
+		"status": "approved", "comment": "ok"}, q.Of("access_decision")[0].Data)
+	assert.Equal(t, []string{"access.request.create", "access.request.approve", "access.grant.create"}, dbtest.AuditActions(t, pool))
 }
 
 func TestDecideDeny(t *testing.T) {
@@ -53,11 +53,11 @@ func TestDecideDeny(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, access.StatusDenied, got.Status)
 	assert.Empty(t, grants(t, pool, a.ID))
-	m := q.of("access_decision")
+	m := q.Of("access_decision")
 	require.Len(t, m, 1)
 	assert.Equal(t, "denied", m[0].Data["status"])
 	assert.Equal(t, "not now", m[0].Data["comment"])
-	assert.Contains(t, auditActions(t, pool), "access.request.deny")
+	assert.Contains(t, dbtest.AuditActions(t, pool), "access.request.deny")
 }
 
 func TestDecideVisibility(t *testing.T) {
@@ -109,7 +109,7 @@ func TestDecideNamedApprovers(t *testing.T) {
 	team := dbtest.Team(t, pool, f.OrgID, f.OtherMemberID)
 	f.ApprovalPolicy(t, pool, "prod", access.ModeManual, onResource(f.ResourceID), allUsers, `{"teams": ["`+team.String()+`"]}`)
 	a := pending(t, svc, f, f.MemberID)
-	assert.Equal(t, []string{emailOf(t, pool, f.OtherMemberID)}, q.to("access_request"), "only the named team")
+	assert.Equal(t, []string{emailOf(t, pool, f.OtherMemberID)}, q.To("access_request"), "only the named team")
 	_, err := svc.Decide(bg, f.Principal(f.AdminID), a.ID, true, "")
 	assert.ErrorIs(t, err, apperr.ErrPermissionDenied, "admin is not a named approver")
 	got, err := svc.Decide(bg, f.Principal(f.OtherMemberID), a.ID, true, "")

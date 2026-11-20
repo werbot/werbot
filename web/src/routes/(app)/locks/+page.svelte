@@ -11,6 +11,7 @@
 	import Ago from '#lib/Ago.svelte';
 	import CellLead from '#lib/CellLead.svelte';
 	import LoadFailed from '#lib/LoadFailed.svelte';
+	import { userOptions } from '#lib/members/options.js';
 	import RowMenu from '#lib/RowMenu.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
@@ -48,7 +49,7 @@
 		]);
 		list = l.locks;
 		targets = {
-			user: mem.members.flatMap((x) => (x.user ? [{ value: x.user.id, label: `${x.user.name} (${x.user.login})` }] : [])),
+			user: userOptions(mem.members),
 			team: tm.teams.map((t) => ({ value: t.id, label: t.name })),
 			resource: res.resources.map((r) => ({ value: r.id, label: r.name })),
 			grant: gr.grants.map((g) => ({ value: g.id, label: `${g.userLogin} → ${g.resourceName}` }))

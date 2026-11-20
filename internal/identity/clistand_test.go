@@ -17,6 +17,7 @@ import (
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/identity/oauth"
 	"github.com/werbot/werbot/internal/platform/clientip"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
@@ -25,7 +26,7 @@ import (
 type cliStand struct {
 	svc  *Service
 	pool *pgxpool.Pool
-	q    *fakeQueue
+	q    *dbtest.Mails
 	prov *oauth.Provider
 	key  *oauth.SigningKey
 	srv  *httptest.Server

@@ -10,6 +10,7 @@
 	import LabelChips from '#lib/resources/LabelChips.svelte';
 	import CellLead from '#lib/CellLead.svelte';
 	import LoadFailed from '#lib/LoadFailed.svelte';
+	import { userOptions } from '#lib/members/options.js';
 	import RowMenu from '#lib/RowMenu.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
@@ -40,7 +41,7 @@
 			resources.listResources({})
 		]);
 		list = p.approvalPolicies;
-		users = mem.members.flatMap((x) => (x.user ? [{ value: x.user.id, label: `${x.user.name} (${x.user.login})` }] : []));
+		users = userOptions(mem.members);
 		teamOptions = tm.teams.map((t) => ({ value: t.id, label: t.name }));
 		resourceOptions = res.resources.map((r) => ({ value: r.id, label: r.name }));
 		loaded = true;

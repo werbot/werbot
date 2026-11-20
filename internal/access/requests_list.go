@@ -101,7 +101,7 @@ func (s *Service) ListRequests(ctx context.Context, p principal.Principal, f Req
 	case ScopeMine:
 		arg.RequesterUserID = &p.UserID
 	case ScopeAll:
-		if p.Role != principal.RoleOwner && p.Role != principal.RoleAdmin {
+		if !isManager(p.Role) {
 			return nil, 0, fmt.Errorf("only owner and admin list all requests: %w", apperr.ErrPermissionDenied)
 		}
 	case ScopeToApprove:

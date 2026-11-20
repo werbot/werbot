@@ -34,9 +34,9 @@ func TestCommandApprovalNotify(t *testing.T) {
 	assert.Equal(t, sum[:], a.CommandSHA256)
 	assert.Equal(t, []string{"destructive"}, a.Classes)
 	assert.WithinDuration(t, time.Now().Add(5*time.Minute), a.ExpiresAt, 5*time.Second)
-	assert.ElementsMatch(t, []string{emailOf(t, pool, f.OwnerID), emailOf(t, pool, f.AdminID)}, q.to("access_request"),
+	assert.ElementsMatch(t, []string{emailOf(t, pool, f.OwnerID), emailOf(t, pool, f.AdminID)}, q.To("access_request"),
 		"no policy: owner and admin decide")
-	m := q.of("access_request")[0]
+	m := q.Of("access_request")[0]
 	assert.Equal(t, commandText, m.Data["command"])
 	assert.Equal(t, "5m", m.Data["duration"])
 
@@ -56,7 +56,7 @@ func TestCommandApprovalNotify(t *testing.T) {
 	assert.ErrorIs(t, err, apperr.ErrNotFound)
 
 	ch := listenOnce(t, pool, pgnotify.ApprovalDecided)
-	q.reset()
+	q.Reset()
 	_, err = svc.Decide(bg, f.Principal(f.OwnerID), a.ID, true, "")
 	require.NoError(t, err)
 	select {
@@ -66,7 +66,7 @@ func TestCommandApprovalNotify(t *testing.T) {
 		t.Fatal("no NOTIFY")
 	}
 	assert.Empty(t, grants(t, pool, a.ID), "a command approval grants nothing")
-	assert.Empty(t, q.sent, "no decision email for a command")
+	assert.Empty(t, q.Sent(), "no decision email for a command")
 	assert.NotContains(t, auditData(t, pool), "marker-4711")
 }
 

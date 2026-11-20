@@ -121,14 +121,7 @@ New sessions are refused while the tunnel is down in both modes ([failure-modes.
 
 ## Command line
 
-```sh
-werbot request db --for 2h --reason "deploy 1.4"
-werbot requests --to-approve
-werbot approve <id> --comment "ok"
-werbot deny <id> --comment "use staging"
-```
-
-Output, flags and exit codes: [cli.md](cli.md#access-requests).
+CLI: [cli.md](cli.md#access-requests).
 
 ## Enterprise
 

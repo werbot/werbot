@@ -29,10 +29,6 @@ type GrantView struct {
 	CreatedAt               time.Time
 }
 
-func isManager(p principal.Principal) bool {
-	return p.Role == principal.RoleOwner || p.Role == principal.RoleAdmin
-}
-
 // ActiveGrants returns the unrevoked, unexpired grants of orgID by id, for the policy snapshot.
 func (s *Service) ActiveGrants(ctx context.Context, orgID uuid.UUID) ([]Grant, error) {
 	var out []Grant
@@ -50,7 +46,7 @@ func (s *Service) ActiveGrants(ctx context.Context, orgID uuid.UUID) ([]Grant, e
 // ListGrants returns the grants f matches, newest first: owner and admin see
 // the organization's, a member only own ones.
 func (s *Service) ListGrants(ctx context.Context, p principal.Principal, f GrantFilter) ([]GrantView, error) {
-	if !isManager(p) {
+	if !isManager(p.Role) {
 		if f.UserID != nil && *f.UserID != p.UserID {
 			return nil, denied("members list only their own grants")
 		}
@@ -90,7 +86,7 @@ func (s *Service) RevokeGrant(ctx context.Context, p principal.Principal, id uui
 		switch {
 		case err != nil:
 			return err
-		case !isManager(p) && g.UserID != p.UserID:
+		case !isManager(p.Role) && g.UserID != p.UserID:
 			return denied("members revoke only their own grants")
 		case g.Revoked:
 			return nil
@@ -106,7 +102,7 @@ func (s *Service) RevokeGrant(ctx context.Context, p principal.Principal, id uui
 // ReviewBreakGlass marks a break-glass grant reviewed: by an owner or admin
 // who is not the grant's user, once.
 func (s *Service) ReviewBreakGlass(ctx context.Context, p principal.Principal, grantID uuid.UUID, comment string) error {
-	if !isManager(p) {
+	if !isManager(p.Role) {
 		return denied("only owner and admin review break-glass")
 	}
 	comment, err := text("comment", comment)
