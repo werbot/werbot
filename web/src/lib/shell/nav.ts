@@ -27,7 +27,14 @@ export function navSections(manager: boolean): NavSection[] {
 	const access: NavItem[] = [
 		...(manager ? [{ href: '/resources', label: m.nav_resources, icon: 'desktop' as const }] : []),
 		{ href: '/sessions', label: m.nav_sessions, icon: 'history' },
-		...(manager ? [{ href: '/gateways', label: m.nav_gateways, icon: 'shield' as const }] : [])
+		{ href: '/requests', label: m.nav_requests, icon: 'front_hand' },
+		...(manager
+			? [
+					{ href: '/gateways', label: m.nav_gateways, icon: 'shield' as const },
+					{ href: '/policies/approvals', label: m.nav_approval_policies, icon: 'filter_check' as const },
+					{ href: '/locks', label: m.nav_locks, icon: 'lock' as const }
+				]
+			: [])
 	];
 	return [
 		section('dashboard', m.nav_dashboard, 'grid_view', []),

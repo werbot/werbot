@@ -2,27 +2,33 @@ import { expect, test } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
 import { BOB, loginAsOwner, loginWithNext } from './support/auth';
 
+// durations are text ("12h", "30d") since stage 10 (owner ruling O2): one style for all six fields
 test('owner changes the CLI session idle timeout; a bad ceiling is refused', async ({ page }) => {
 	await loginAsOwner(page);
 	await page.getByRole('link', { name: en.nav_organization }).click();
-	await page.getByRole('link', { name: en.nav_settings }).click();
+	// exact: dashboard audit rows ("settings.update" since requests.spec) also match "Settings"
+	await page.getByRole('link', { name: en.nav_settings, exact: true }).click();
 	await expect(page).toHaveURL(/\/settings$/);
 
 	const ttl = page.getByLabel(en.settings_cli_session_ttl);
 	const max = page.getByLabel(en.settings_cli_session_max);
-	await ttl.fill('12');
-	await page.getByRole('button', { name: en.settings_save }).click();
+	const save = page.getByRole('button', { name: en.settings_save }).first();
+	await ttl.fill('12h');
+	await save.click();
 	await expect(page.getByText(en.settings_saved)).toBeVisible();
 	await page.reload();
-	await expect(ttl).toHaveValue('12');
+	await expect(ttl).toHaveValue('12h');
 
 	const before = await max.inputValue();
-	await max.fill('0');
-	await page.getByRole('button', { name: en.settings_save }).click();
+	await max.fill('2x');
+	await save.click();
+	await expect(page.getByText(en.common_duration_invalid)).toBeVisible();
+	await max.fill('0s');
+	await save.click();
 	await expect(page.getByText(en.error_invalid_argument)).toBeVisible();
 	await page.reload();
 	await expect(max).toHaveValue(before);
-	await expect(ttl).toHaveValue('12');
+	await expect(ttl).toHaveValue('12h');
 });
 
 test('a member has no Settings in the sidebar', async ({ page }) => {

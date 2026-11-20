@@ -15,6 +15,9 @@ import { AuditService } from '#lib/gen/werbot/v1/audit_pb.js';
 import { SettingsService } from '#lib/gen/werbot/v1/settings_pb.js';
 import { OAuthConsentService } from '#lib/gen/werbot/v1/oauth_pb.js';
 import { CLISessionService } from '#lib/gen/werbot/v1/cli_session_pb.js';
+import { AccessRequestService } from '#lib/gen/werbot/v1/access_request_pb.js';
+import { ApprovalPolicyService } from '#lib/gen/werbot/v1/approval_policy_pb.js';
+import { LockService } from '#lib/gen/werbot/v1/lock_pb.js';
 
 // Same origin in all-in-one mode and behind `werbot web`.
 // Binary format keeps google.protobuf.Any connector configs opaque, so an
@@ -36,3 +39,6 @@ export const audit: Client<typeof AuditService> = createClient(AuditService, tra
 export const settings: Client<typeof SettingsService> = createClient(SettingsService, transport);
 export const oauthConsent: Client<typeof OAuthConsentService> = createClient(OAuthConsentService, transport);
 export const cliSessions: Client<typeof CLISessionService> = createClient(CLISessionService, transport);
+export const accessRequests: Client<typeof AccessRequestService> = createClient(AccessRequestService, transport);
+export const approvalPolicies: Client<typeof ApprovalPolicyService> = createClient(ApprovalPolicyService, transport);
+export const locks: Client<typeof LockService> = createClient(LockService, transport);
