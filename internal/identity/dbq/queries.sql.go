@@ -428,7 +428,7 @@ SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
        extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
        extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
        extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
-       lock_mode
+       lock_mode, mask_output
 FROM org_setting WHERE org_id = $1
 `
 
@@ -440,6 +440,7 @@ type GetOrgSettingsRow struct {
 	RequestPendingTtlSecs  int64
 	CommandApprovalTtlSecs int64
 	LockMode               string
+	MaskOutput             string
 }
 
 func (q *Queries) GetOrgSettings(ctx context.Context, orgID uuid.UUID) (GetOrgSettingsRow, error) {
@@ -453,6 +454,7 @@ func (q *Queries) GetOrgSettings(ctx context.Context, orgID uuid.UUID) (GetOrgSe
 		&i.RequestPendingTtlSecs,
 		&i.CommandApprovalTtlSecs,
 		&i.LockMode,
+		&i.MaskOutput,
 	)
 	return i, err
 }
@@ -958,7 +960,7 @@ SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
        extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
        extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
        extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
-       lock_mode
+       lock_mode, mask_output
 FROM org_setting WHERE org_id = $1 FOR UPDATE
 `
 
@@ -970,6 +972,7 @@ type LockOrgSettingsRow struct {
 	RequestPendingTtlSecs  int64
 	CommandApprovalTtlSecs int64
 	LockMode               string
+	MaskOutput             string
 }
 
 func (q *Queries) LockOrgSettings(ctx context.Context, orgID uuid.UUID) (LockOrgSettingsRow, error) {
@@ -983,6 +986,7 @@ func (q *Queries) LockOrgSettings(ctx context.Context, orgID uuid.UUID) (LockOrg
 		&i.RequestPendingTtlSecs,
 		&i.CommandApprovalTtlSecs,
 		&i.LockMode,
+		&i.MaskOutput,
 	)
 	return i, err
 }
@@ -1283,8 +1287,9 @@ UPDATE org_setting SET
     request_pending_ttl = make_interval(secs => $5::float8),
     command_approval_ttl = make_interval(secs => $6::float8),
     lock_mode = $7,
+    mask_output = $8,
     updated_at = now()
-WHERE org_id = $8
+WHERE org_id = $9
 `
 
 type UpdateOrgSettingsParams struct {
@@ -1295,6 +1300,7 @@ type UpdateOrgSettingsParams struct {
 	RequestPendingTtlSecs  float64
 	CommandApprovalTtlSecs float64
 	LockMode               string
+	MaskOutput             string
 	OrgID                  uuid.UUID
 }
 
@@ -1307,6 +1313,7 @@ func (q *Queries) UpdateOrgSettings(ctx context.Context, arg UpdateOrgSettingsPa
 		arg.RequestPendingTtlSecs,
 		arg.CommandApprovalTtlSecs,
 		arg.LockMode,
+		arg.MaskOutput,
 		arg.OrgID,
 	)
 	return err

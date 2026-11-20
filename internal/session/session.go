@@ -21,7 +21,9 @@ const reasonGatewayLost = "gateway_lost"
 type Start struct {
 	OrgID, UserID, ResourceID, GatewayID, InstanceID uuid.UUID
 	ClientIP                                         netip.Addr
-	Kind, Target                                     string // Kind "" is "terminal"
+	Kind, Target                                     string   // Kind "" is "terminal"
+	Command                                          string   // exec only; "" is NULL
+	Classes                                          []string // exec only; nil is NULL
 }
 
 // Counters are a session's traffic totals since it began.

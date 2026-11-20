@@ -3,6 +3,7 @@ package identity
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,8 @@ const (
 	LockModeStrict     = "strict"
 )
 
+var maskOutputModes = []string{"agents", "all", "none"}
+
 // OrgSettings is the org_setting row of one organization.
 type OrgSettings struct {
 	CLISessionTTL      time.Duration // idle lifetime of a CLI session
@@ -31,13 +34,14 @@ type OrgSettings struct {
 	RequestPendingTTL  time.Duration // how long an access request waits for a decision
 	CommandApprovalTTL time.Duration // how long a command approval waits for a decision
 	LockMode           string        // LockModeBestEffort | LockModeStrict
+	MaskOutput         string        // "agents" | "all" | "none": whose session output is masked
 }
 
 func settingsFromRow(r dbq.GetOrgSettingsRow) OrgSettings {
 	sec := func(n int64) time.Duration { return time.Duration(n) * time.Second }
 	return OrgSettings{CLISessionTTL: sec(r.CliSessionTtlSecs), CLISessionMax: sec(r.CliSessionMaxSecs),
 		GrantDefaultTTL: sec(r.GrantDefaultTtlSecs), GrantMaxTTL: sec(r.GrantMaxTtlSecs),
-		RequestPendingTTL: sec(r.RequestPendingTtlSecs), CommandApprovalTTL: sec(r.CommandApprovalTtlSecs), LockMode: r.LockMode}
+		RequestPendingTTL: sec(r.RequestPendingTtlSecs), CommandApprovalTTL: sec(r.CommandApprovalTtlSecs), LockMode: r.LockMode, MaskOutput: r.MaskOutput}
 }
 
 // Settings returns the settings of orgID without a subject, for adapters in
@@ -78,7 +82,7 @@ func (s *Service) UpdateSettings(ctx context.Context, p principal.Principal, in 
 			OrgID: p.OrgID, CliSessionTtlSecs: out.CLISessionTTL.Seconds(), CliSessionMaxSecs: out.CLISessionMax.Seconds(),
 			GrantDefaultTtlSecs: out.GrantDefaultTTL.Seconds(), GrantMaxTtlSecs: out.GrantMaxTTL.Seconds(),
 			RequestPendingTtlSecs: out.RequestPendingTTL.Seconds(), CommandApprovalTtlSecs: out.CommandApprovalTTL.Seconds(),
-			LockMode: out.LockMode,
+			LockMode: out.LockMode, MaskOutput: out.MaskOutput,
 		})
 		if err != nil {
 			return err
@@ -111,13 +115,26 @@ func applySettingsMask(cur, in OrgSettings, paths []string) (OrgSettings, error)
 			cur.RequestPendingTTL = in.RequestPendingTTL
 		case "command_approval_ttl":
 			cur.CommandApprovalTTL = in.CommandApprovalTTL
-		case "lock_mode":
-			cur.LockMode = in.LockMode
 		default:
-			return OrgSettings{}, fmt.Errorf("unknown settings field %q: %w", path, apperr.ErrInvalidArgument)
+			if !applyMode(&cur, in, path) {
+				return OrgSettings{}, fmt.Errorf("unknown settings field %q: %w", path, apperr.ErrInvalidArgument)
+			}
 		}
 	}
 	return cur, nil
+}
+
+// applyMode copies the enum field named by path and reports whether path is one.
+func applyMode(cur *OrgSettings, in OrgSettings, path string) bool {
+	switch path {
+	case "lock_mode":
+		cur.LockMode = in.LockMode
+	case "mask_output":
+		cur.MaskOutput = in.MaskOutput
+	default:
+		return false
+	}
+	return true
 }
 
 // validateSettings checks the whole struct; the same bounds are in proto
@@ -138,8 +155,16 @@ func validateSettings(o OrgSettings) error {
 		return fmt.Errorf("request_pending_ttl must be between 1m and 24h: %w", apperr.ErrInvalidArgument)
 	case o.CommandApprovalTTL < 30*time.Second || o.CommandApprovalTTL > time.Hour:
 		return fmt.Errorf("command_approval_ttl must be between 30s and 1h: %w", apperr.ErrInvalidArgument)
+	}
+	return validateModes(o)
+}
+
+func validateModes(o OrgSettings) error {
+	switch {
 	case o.LockMode != LockModeBestEffort && o.LockMode != LockModeStrict:
 		return fmt.Errorf("lock_mode must be best_effort or strict: %w", apperr.ErrInvalidArgument)
+	case !slices.Contains(maskOutputModes, o.MaskOutput):
+		return fmt.Errorf("mask_output must be agents, all or none: %w", apperr.ErrInvalidArgument)
 	}
 	return nil
 }

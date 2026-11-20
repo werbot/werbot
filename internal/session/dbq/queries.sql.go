@@ -266,7 +266,7 @@ func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyPara
 
 const listSessions = `-- name: ListSessions :many
 SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
-       s.kind, s.target, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
+       s.kind, s.target, coalesce(s.command, '')::text AS command, s.classes, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
        coalesce(u.login, '')::text AS user_login,
        coalesce(r.name, '')::text AS resource_name,
        coalesce(s.end_reason, '')::text AS end_reason,
@@ -310,6 +310,8 @@ type ListSessionsRow struct {
 	EndedAt       *time.Time
 	Kind          string
 	Target        string
+	Command       string
+	Classes       []string
 	BytesUp       int64
 	BytesDown     int64
 	DatagramsUp   int64
@@ -352,6 +354,8 @@ func (q *Queries) ListSessions(ctx context.Context, arg ListSessionsParams) ([]L
 			&i.EndedAt,
 			&i.Kind,
 			&i.Target,
+			&i.Command,
+			&i.Classes,
 			&i.BytesUp,
 			&i.BytesDown,
 			&i.DatagramsUp,

@@ -14,7 +14,7 @@ import (
 func settingsToProto(o OrgSettings) *werbotv1.OrgSettings {
 	return &werbotv1.OrgSettings{CliSessionTtl: durationpb.New(o.CLISessionTTL), CliSessionMax: durationpb.New(o.CLISessionMax),
 		GrantDefaultTtl: durationpb.New(o.GrantDefaultTTL), GrantMaxTtl: durationpb.New(o.GrantMaxTTL),
-		RequestPendingTtl: durationpb.New(o.RequestPendingTTL), CommandApprovalTtl: durationpb.New(o.CommandApprovalTTL), LockMode: o.LockMode}
+		RequestPendingTtl: durationpb.New(o.RequestPendingTTL), CommandApprovalTtl: durationpb.New(o.CommandApprovalTTL), LockMode: o.LockMode, MaskOutput: o.MaskOutput}
 }
 
 // GetSettings returns the organization's settings.
@@ -41,7 +41,7 @@ func (h *Handler) UpdateSettings(ctx context.Context, req *connect.Request[werbo
 		CLISessionTTL: in.GetCliSessionTtl().AsDuration(), CLISessionMax: in.GetCliSessionMax().AsDuration(),
 		GrantDefaultTTL: in.GetGrantDefaultTtl().AsDuration(), GrantMaxTTL: in.GetGrantMaxTtl().AsDuration(),
 		RequestPendingTTL: in.GetRequestPendingTtl().AsDuration(), CommandApprovalTTL: in.GetCommandApprovalTtl().AsDuration(),
-		LockMode: in.GetLockMode(),
+		LockMode: in.GetLockMode(), MaskOutput: in.GetMaskOutput(),
 	}, req.Msg.GetUpdateMask().GetPaths())
 	if err != nil {
 		return nil, apperr.ToConnect(err)

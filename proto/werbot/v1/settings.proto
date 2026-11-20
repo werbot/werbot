@@ -49,6 +49,13 @@ message OrgSettings {
     },
     (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
   ];
+  // Whose session output is masked: "agents" (default), "all" or "none".
+  string mask_output = 8 [
+    (buf.validate.field).string = {
+      in: ["agents", "all", "none"]
+    },
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
 }
 
 message GetSettingsRequest {}

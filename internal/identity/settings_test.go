@@ -24,7 +24,7 @@ import (
 
 var defaultSettings = OrgSettings{CLISessionTTL: 168 * time.Hour, CLISessionMax: 720 * time.Hour,
 	GrantDefaultTTL: 8 * time.Hour, GrantMaxTTL: 14 * 24 * time.Hour, RequestPendingTTL: time.Hour,
-	CommandApprovalTTL: 5 * time.Minute, LockMode: "best_effort"}
+	CommandApprovalTTL: 5 * time.Minute, LockMode: "best_effort", MaskOutput: "agents"}
 
 func TestSetupCreatesOrgSetting(t *testing.T) {
 	svc, pool, _ := newTestService(t)

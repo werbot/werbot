@@ -39,7 +39,9 @@ type OrgSettings struct {
 	// How long a command approval waits for a decision: 30s to 1h.
 	CommandApprovalTtl *durationpb.Duration `protobuf:"bytes,6,opt,name=command_approval_ttl,json=commandApprovalTtl,proto3" json:"command_approval_ttl,omitempty"`
 	// What gateways do while their tunnel is down: "best_effort" keeps sessions, "strict" ends them after 60s.
-	LockMode      string `protobuf:"bytes,7,opt,name=lock_mode,json=lockMode,proto3" json:"lock_mode,omitempty"`
+	LockMode string `protobuf:"bytes,7,opt,name=lock_mode,json=lockMode,proto3" json:"lock_mode,omitempty"`
+	// Whose session output is masked: "agents" (default), "all" or "none".
+	MaskOutput    string `protobuf:"bytes,8,opt,name=mask_output,json=maskOutput,proto3" json:"mask_output,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -119,6 +121,13 @@ func (x *OrgSettings) GetCommandApprovalTtl() *durationpb.Duration {
 func (x *OrgSettings) GetLockMode() string {
 	if x != nil {
 		return x.LockMode
+	}
+	return ""
+}
+
+func (x *OrgSettings) GetMaskOutput() string {
+	if x != nil {
+		return x.MaskOutput
 	}
 	return ""
 }
@@ -304,7 +313,7 @@ var File_werbot_v1_settings_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_settings_proto_rawDesc = "" +
 	"\n" +
-	"\x18werbot/v1/settings.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a google/protobuf/field_mask.proto\"\xdb\x04\n" +
+	"\x18werbot/v1/settings.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a google/protobuf/field_mask.proto\"\x99\x05\n" +
 	"\vOrgSettings\x12U\n" +
 	"\x0fcli_session_ttl\x18\x01 \x01(\v2\x19.google.protobuf.DurationB\x12\xbaH\x0f\xaa\x01\f\"\x05\b\x80\x9a\x9e\x012\x03\b\x90\x1cR\rcliSessionTtl\x12V\n" +
 	"\x0fcli_session_max\x18\x02 \x01(\v2\x19.google.protobuf.DurationB\x13\xbaH\x10\xaa\x01\r\"\x05\b\x80\xce\xda\x032\x04\b\x80\xa3\x05R\rcliSessionMax\x12U\n" +
@@ -314,7 +323,9 @@ const file_werbot_v1_settings_proto_rawDesc = "" +
 	"\x13request_pending_ttl\x18\x05 \x01(\v2\x19.google.protobuf.DurationB\x10\xbaH\r\xaa\x01\n" +
 	"\"\x04\b\x80\xa3\x052\x02\b<R\x11requestPendingTtl\x12\\\n" +
 	"\x14command_approval_ttl\x18\x06 \x01(\v2\x19.google.protobuf.DurationB\x0f\xbaH\f\xaa\x01\t\"\x03\b\x90\x1c2\x02\b\x1eR\x12commandApprovalTtl\x12:\n" +
-	"\tlock_mode\x18\a \x01(\tB\x1d\xbaH\x1a\xd8\x01\x01r\x15R\vbest_effortR\x06strictR\blockMode\"\x14\n" +
+	"\tlock_mode\x18\a \x01(\tB\x1d\xbaH\x1a\xd8\x01\x01r\x15R\vbest_effortR\x06strictR\blockMode\x12<\n" +
+	"\vmask_output\x18\b \x01(\tB\x1b\xbaH\x18\xd8\x01\x01r\x13R\x06agentsR\x03allR\x04noneR\n" +
+	"maskOutput\"\x14\n" +
 	"\x12GetSettingsRequest\"I\n" +
 	"\x13GetSettingsResponse\x122\n" +
 	"\bsettings\x18\x01 \x01(\v2\x16.werbot.v1.OrgSettingsR\bsettings\"\x98\x01\n" +

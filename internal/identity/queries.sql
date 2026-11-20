@@ -223,7 +223,7 @@ SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
        extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
        extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
        extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
-       lock_mode
+       lock_mode, mask_output
 FROM org_setting WHERE org_id = @org_id;
 
 -- name: LockOrgSettings :one
@@ -233,7 +233,7 @@ SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
        extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
        extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
        extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
-       lock_mode
+       lock_mode, mask_output
 FROM org_setting WHERE org_id = @org_id FOR UPDATE;
 
 -- name: UpdateOrgSettings :exec
@@ -245,6 +245,7 @@ UPDATE org_setting SET
     request_pending_ttl = make_interval(secs => @request_pending_ttl_secs::float8),
     command_approval_ttl = make_interval(secs => @command_approval_ttl_secs::float8),
     lock_mode = @lock_mode,
+    mask_output = @mask_output,
     updated_at = now()
 WHERE org_id = @org_id;
 

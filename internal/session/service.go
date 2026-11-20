@@ -30,7 +30,7 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	if p.Kind == "" {
 		p.Kind = "terminal"
 	}
-	args := []any{p.OrgID, p.UserID, p.ResourceID, p.GatewayID, p.InstanceID, p.ClientIP, p.Kind, p.Target}
+	args := []any{p.OrgID, p.UserID, p.ResourceID, p.GatewayID, p.InstanceID, p.ClientIP, p.Kind, p.Target, p.Command, p.Classes}
 	var id uuid.UUID
 	err := dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
 		data := map[string]any{"kind": p.Kind, "target": p.Target}
@@ -70,8 +70,8 @@ const activeBreakGlass = `SELECT EXISTS (SELECT 1 FROM access_grant WHERE org_id
 // startSession inserts the session, only for a member of the organization (no
 // row otherwise), and opens the CTE of its audit row, which the caller appends.
 const startSession = `WITH s AS (
-	INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target)
-	SELECT m.org_id, m.user_id, $3::uuid, $4::uuid, $5::uuid, $6::inet, $7::text, $8::text
+	INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target, command, classes)
+	SELECT m.org_id, m.user_id, $3::uuid, $4::uuid, $5::uuid, $6::inet, $7::text, $8::text, NULLIF($9::text, ''), $10::text[]
 	FROM membership m WHERE m.org_id = $1 AND m.user_id = $2
 	RETURNING id
 ), audit AS (`

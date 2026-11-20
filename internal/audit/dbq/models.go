@@ -116,6 +116,28 @@ type CliSession struct {
 	RevokeReason      *string
 }
 
+type CommandClassRule struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	Pattern   string
+	Classes   []string
+	CreatedBy *uuid.UUID
+	CreatedAt time.Time
+}
+
+type CommandRule struct {
+	ID               uuid.UUID
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Classes          []string
+	Effect           string
+	Message          string
+	CreatedBy        *uuid.UUID
+	CreatedAt        time.Time
+}
+
 type Credential struct {
 	ID         uuid.UUID
 	OrgID      uuid.UUID
@@ -125,6 +147,16 @@ type Credential struct {
 	KeyID      string
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+}
+
+type CustomPolicy struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	Name      string
+	Cedar     string
+	Enabled   bool
+	CreatedBy *uuid.UUID
+	UpdatedAt time.Time
 }
 
 type Gateway struct {
@@ -258,6 +290,7 @@ type OrgSetting struct {
 	RequestPendingTtl  pgtype.Interval
 	CommandApprovalTtl pgtype.Interval
 	LockMode           string
+	MaskOutput         string
 }
 
 type OrgSshCa struct {
@@ -366,6 +399,8 @@ type Session struct {
 	BytesDown         int64
 	DatagramsUp       int64
 	DatagramsDown     int64
+	Command           *string
+	Classes           []string
 }
 
 type SigningKey struct {
