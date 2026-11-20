@@ -1,14 +1,12 @@
 <script lang="ts">
-	import { Label, type LabelColor } from '#lib/ui/index.js';
-	import { classLabel, classTone, type ClassTone } from './classes.js';
+	import { Label } from '#lib/ui/index.js';
+	import { classColor, classLabel } from './classes.js';
 
 	let { classes }: { classes: string[] } = $props();
-
-	const colors: Record<ClassTone, LabelColor> = { neutral: 'coolgrey', info: 'blue', warning: 'orange', alert: 'red' };
 </script>
 
 <span class="chips">
-	{#each classes as c (c)}<Label variant="soft" color={colors[classTone(c)]}>{classLabel(c)}</Label>{/each}
+	{#each classes as c (c)}<Label variant="soft" color={classColor(c)}>{classLabel(c)}</Label>{/each}
 </span>
 
 <style>

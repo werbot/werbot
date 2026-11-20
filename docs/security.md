@@ -85,6 +85,5 @@ Requests, approvals, break-glass and locks: [jit.md](jit.md).
 
 Classes, command rules, custom Cedar, command approvals and output masking: [policies.md](policies.md).
 
-- **Command text at rest.** The command of a session is stored with the session, and a refused command in its `session.deny` audit event (first 1024 bytes); owners and admins see both. Pass secrets through files or environment variables, not on the command line.
-- **Custom `permit`.** A custom Cedar `permit` allows what it matches without a binding. Only owners and admins can save one, and every change is audited.
-- **Heuristic classes.** The classifier reads the command line, not what programs do. Scripts and unknown programs are `opaque`; an interactive shell is checked only as a connection. The recording stays the full record.
+- **Command text at rest.** The command of a session is stored with the session, and a refused command in its `session.deny` audit event (first 1024 bytes); owners and admins see both.
+- **Custom `permit`.** A custom Cedar `permit` allows what it matches without a binding, so it can widen access.

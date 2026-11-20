@@ -1,17 +1,16 @@
+import type { LabelColor } from '#lib/ui/index.js';
 import { m } from '#lib/paraglide/messages.js';
 
 export const CLASSES = ['read', 'write', 'destructive', 'privilege', 'secrets', 'egress', 'opaque'] as const;
 export type CommandClass = (typeof CLASSES)[number];
-export type ClassTone = 'neutral' | 'info' | 'warning' | 'alert';
-
-const tones: Record<CommandClass, ClassTone> = {
-	read: 'neutral',
-	write: 'info',
-	destructive: 'alert',
-	privilege: 'alert',
-	secrets: 'warning',
-	egress: 'warning',
-	opaque: 'warning'
+const colors: Record<CommandClass, LabelColor> = {
+	read: 'coolgrey',
+	write: 'blue',
+	destructive: 'red',
+	privilege: 'red',
+	secrets: 'orange',
+	egress: 'orange',
+	opaque: 'orange'
 };
 
 const labels: Record<CommandClass, () => string> = {
@@ -24,10 +23,10 @@ const labels: Record<CommandClass, () => string> = {
 	opaque: m.class_opaque
 };
 
-const known = (c: string): c is CommandClass => c in tones;
+const known = (c: string): c is CommandClass => c in colors;
 
 /** An unknown class (a newer server) is shown as the server sent it, neutral. */
-export const classTone = (c: string): ClassTone => (known(c) ? tones[c] : 'neutral');
+export const classColor = (c: string): LabelColor => (known(c) ? colors[c] : 'coolgrey');
 export const classLabel = (c: string): string => (known(c) ? labels[c]() : c);
 
 export type Verdict = 'allowed' | 'denied' | 'approval';

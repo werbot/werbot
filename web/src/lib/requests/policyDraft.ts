@@ -1,16 +1,12 @@
 import type { MessageInitShape } from '@bufbuild/protobuf';
 import type { ApprovalPolicy, CreateApprovalPolicyRequest, CreateApprovalPolicyRequestSchema } from '#lib/gen/werbot/v1/approval_policy_pb.js';
 import { formatDuration, parseDuration } from '#lib/duration.js';
-import { labelsFromRows, rowsFromLabels, type LabelRow } from '#lib/resources/labels.js';
+import { fromSelectorDraft, fromSubjectsDraft, toSelectorDraft, toSubjectsDraft, type SelectorDraft, type SubjectsDraft } from '#lib/resources/selectorDraft.js';
 
 /** The editable form of an approval policy: plain arrays and strings the form binds to. */
-export interface PolicyDraft {
+export interface PolicyDraft extends SelectorDraft {
 	name: string;
-	/** 'resources' or 'labels': which selector the policy uses */
-	by: string;
-	resourceIds: string[];
-	labels: LabelRow[];
-	requesters: { users: string[]; teams: string[]; allUsers: boolean; allAgents: boolean };
+	requesters: SubjectsDraft;
 	approvers: { users: string[]; teams: string[] };
 	mode: string;
 	/** text duration ("8h"); empty: the server default */
@@ -24,18 +20,10 @@ export interface PolicyDraft {
 export type PolicyInput = Exclude<MessageInitShape<typeof CreateApprovalPolicyRequestSchema>, CreateApprovalPolicyRequest>;
 
 export function toDraft(p?: ApprovalPolicy): PolicyDraft {
-	const labels = p?.resourceSelector?.labels ?? {};
 	return {
 		name: p?.name ?? '',
-		by: Object.keys(labels).length > 0 ? 'labels' : 'resources',
-		resourceIds: [...(p?.resourceSelector?.resourceIds ?? [])],
-		labels: rowsFromLabels(labels),
-		requesters: {
-			users: [...(p?.requesters?.users ?? [])],
-			teams: [...(p?.requesters?.teams ?? [])],
-			allUsers: p?.requesters?.allUsers ?? false,
-			allAgents: p?.requesters?.allAgents ?? false
-		},
+		...toSelectorDraft(p?.resourceSelector),
+		requesters: toSubjectsDraft(p?.requesters),
 		approvers: { users: [...(p?.approvers?.users ?? [])], teams: [...(p?.approvers?.teams ?? [])] },
 		mode: p?.mode || 'manual',
 		maxDuration: formatDuration(p?.maxDuration),
@@ -49,11 +37,10 @@ export function toDraft(p?: ApprovalPolicy): PolicyDraft {
 export function fromDraft(d: PolicyDraft): PolicyInput | null {
 	const maxDuration = d.maxDuration.trim() ? parseDuration(d.maxDuration) : undefined;
 	if (maxDuration === null) return null;
-	const byResources = d.by === 'resources';
 	return {
 		name: d.name,
-		resourceSelector: { resourceIds: byResources ? [...d.resourceIds] : [], labels: byResources ? {} : labelsFromRows(d.labels) },
-		requesters: { ...d.requesters, users: [...d.requesters.users], teams: [...d.requesters.teams] },
+		resourceSelector: fromSelectorDraft(d),
+		requesters: fromSubjectsDraft(d.requesters),
 		approvers: { users: [...d.approvers.users], teams: [...d.approvers.teams], allUsers: false, allAgents: false },
 		mode: d.mode,
 		maxDuration,

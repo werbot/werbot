@@ -1,17 +1,17 @@
 import { expect, test } from 'vitest';
-import { CLASSES, classLabel, classTone, verdictOf } from './classes';
+import { CLASSES, classLabel, classColor, verdictOf } from './classes';
 
-test('class tones', () => {
-	expect(classTone('destructive')).toBe('alert');
-	expect(classTone('privilege')).toBe('alert');
-	expect(classTone('read')).toBe('neutral');
-	expect(classTone('write')).toBe('info');
-	for (const c of ['egress', 'secrets', 'opaque']) expect(classTone(c)).toBe('warning');
+test('class colors', () => {
+	expect(classColor('destructive')).toBe('red');
+	expect(classColor('privilege')).toBe('red');
+	expect(classColor('read')).toBe('coolgrey');
+	expect(classColor('write')).toBe('blue');
+	for (const c of ['egress', 'secrets', 'opaque']) expect(classColor(c)).toBe('orange');
 	expect(CLASSES).toHaveLength(7);
 });
 
 test('unknown class is neutral and shown as sent', () => {
-	expect(classTone('future')).toBe('neutral');
+	expect(classColor('future')).toBe('coolgrey');
 	expect(classLabel('future')).toBe('future');
 	expect(classLabel('write')).toBe('write');
 });
