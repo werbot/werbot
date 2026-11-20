@@ -37,6 +37,7 @@ require (
 	golang.org/x/sync v0.25.0
 	golang.org/x/term v0.47.0
 	google.golang.org/protobuf v1.36.13-0.20261016172727-e9ee2a76ab8e
+	mvdan.cc/sh/v3 v3.14.1
 )
 
 require (
