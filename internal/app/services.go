@@ -15,6 +15,7 @@ import (
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/access"
 	"github.com/werbot/werbot/internal/audit"
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/inventory"
@@ -43,9 +44,19 @@ func (p policyResources) PolicyResources(ctx context.Context, orgID uuid.UUID) (
 	}
 	out := make([]policy.SnapshotResource, len(rs))
 	for i, r := range rs {
-		out[i] = policy.SnapshotResource{ID: r.ID, Name: r.Name, Type: r.Type, Labels: r.Labels}
+		out[i] = policy.SnapshotResource{ID: r.ID, Name: r.Name, Type: r.Type, Labels: r.Labels, Host: endpointHost(r)}
 	}
 	return out, nil
+}
+
+// endpointHost is the host of the endpoint of r; "" when its type has none
+// or its config is not decoded.
+func endpointHost(r inventory.Resource) string {
+	t, ok := connector.Lookup(r.Type)
+	if !ok || t.Endpoint == nil || r.Config == nil {
+		return ""
+	}
+	return t.Endpoint(r.Config).Host
 }
 
 // policyBindings is the access service as a policy.BindingSource.

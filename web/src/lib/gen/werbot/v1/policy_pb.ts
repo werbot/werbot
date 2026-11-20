@@ -7,13 +7,15 @@ import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2
 import { file_buf_validate_validate } from "../../buf/validate/validate_pb";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { ResourceSelector, Subjects } from "./selector_pb";
+import { file_werbot_v1_selector } from "./selector_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file werbot/v1/policy.proto.
  */
 export const file_werbot_v1_policy: GenFile = /*@__PURE__*/
-  fileDesc("ChZ3ZXJib3QvdjEvcG9saWN5LnByb3RvEgl3ZXJib3QudjEiKwoLTmV0d29ya1J1bGUSDAoEY2lkchgBIAEoCRIOCgZlZmZlY3QYAiABKAkiLgoLQ291bnRyeVJ1bGUSDwoHY291bnRyeRgBIAEoCRIOCgZlZmZlY3QYAiABKAkiLQoMU2NoZWR1bGVTbG90Eg8KB3dlZWtkYXkYASABKAUSDAoEaG91chgCIAEoBSIuChdHZXRSZXNvdXJjZVJ1bGVzUmVxdWVzdBITCgtyZXNvdXJjZV9pZBgBIAEoCSKaAQoYR2V0UmVzb3VyY2VSdWxlc1Jlc3BvbnNlEigKCG5ldHdvcmtzGAEgAygLMhYud2VyYm90LnYxLk5ldHdvcmtSdWxlEikKCWNvdW50cmllcxgCIAMoCzIWLndlcmJvdC52MS5Db3VudHJ5UnVsZRIpCghzY2hlZHVsZRgDIAMoCzIXLndlcmJvdC52MS5TY2hlZHVsZVNsb3QirgEKF1NldFJlc291cmNlUnVsZXNSZXF1ZXN0EhMKC3Jlc291cmNlX2lkGAEgASgJEigKCG5ldHdvcmtzGAIgAygLMhYud2VyYm90LnYxLk5ldHdvcmtSdWxlEikKCWNvdW50cmllcxgDIAMoCzIWLndlcmJvdC52MS5Db3VudHJ5UnVsZRIpCghzY2hlZHVsZRgEIAMoCzIXLndlcmJvdC52MS5TY2hlZHVsZVNsb3QiGgoYU2V0UmVzb3VyY2VSdWxlc1Jlc3BvbnNlIokBChJDaGVja0FjY2Vzc1JlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRITCgtyZXNvdXJjZV9pZBgCIAEoCRIKCgJpcBgDIAEoCRIoCgR0aW1lGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIXCgRwb3J0GAUgASgNQgm6SAYqBBj//wMiNQoTQ2hlY2tBY2Nlc3NSZXNwb25zZRINCgVhbGxvdxgBIAEoCBIPCgdyZWFzb25zGAIgAygJMpcCCg1Qb2xpY3lTZXJ2aWNlElsKEEdldFJlc291cmNlUnVsZXMSIi53ZXJib3QudjEuR2V0UmVzb3VyY2VSdWxlc1JlcXVlc3QaIy53ZXJib3QudjEuR2V0UmVzb3VyY2VSdWxlc1Jlc3BvbnNlElsKEFNldFJlc291cmNlUnVsZXMSIi53ZXJib3QudjEuU2V0UmVzb3VyY2VSdWxlc1JlcXVlc3QaIy53ZXJib3QudjEuU2V0UmVzb3VyY2VSdWxlc1Jlc3BvbnNlEkwKC0NoZWNrQWNjZXNzEh0ud2VyYm90LnYxLkNoZWNrQWNjZXNzUmVxdWVzdBoeLndlcmJvdC52MS5DaGVja0FjY2Vzc1Jlc3BvbnNlQpIBCg1jb20ud2VyYm90LnYxQgtQb2xpY3lQcm90b1ABWi9naXRodWIuY29tL3dlcmJvdC93ZXJib3QvZ2VuL3dlcmJvdC92MTt3ZXJib3R2MaICA1dYWKoCCVdlcmJvdC5WMcoCCVdlcmJvdFxWMeICFVdlcmJvdFxWMVxHUEJNZXRhZGF0YeoCCldlcmJvdDo6VjFiBnByb3RvMw", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("ChZ3ZXJib3QvdjEvcG9saWN5LnByb3RvEgl3ZXJib3QudjEiKwoLTmV0d29ya1J1bGUSDAoEY2lkchgBIAEoCRIOCgZlZmZlY3QYAiABKAkiLgoLQ291bnRyeVJ1bGUSDwoHY291bnRyeRgBIAEoCRIOCgZlZmZlY3QYAiABKAkiLQoMU2NoZWR1bGVTbG90Eg8KB3dlZWtkYXkYASABKAUSDAoEaG91chgCIAEoBSIuChdHZXRSZXNvdXJjZVJ1bGVzUmVxdWVzdBITCgtyZXNvdXJjZV9pZBgBIAEoCSKaAQoYR2V0UmVzb3VyY2VSdWxlc1Jlc3BvbnNlEigKCG5ldHdvcmtzGAEgAygLMhYud2VyYm90LnYxLk5ldHdvcmtSdWxlEikKCWNvdW50cmllcxgCIAMoCzIWLndlcmJvdC52MS5Db3VudHJ5UnVsZRIpCghzY2hlZHVsZRgDIAMoCzIXLndlcmJvdC52MS5TY2hlZHVsZVNsb3QirgEKF1NldFJlc291cmNlUnVsZXNSZXF1ZXN0EhMKC3Jlc291cmNlX2lkGAEgASgJEigKCG5ldHdvcmtzGAIgAygLMhYud2VyYm90LnYxLk5ldHdvcmtSdWxlEikKCWNvdW50cmllcxgDIAMoCzIWLndlcmJvdC52MS5Db3VudHJ5UnVsZRIpCghzY2hlZHVsZRgEIAMoCzIXLndlcmJvdC52MS5TY2hlZHVsZVNsb3QiGgoYU2V0UmVzb3VyY2VSdWxlc1Jlc3BvbnNlIokBChJDaGVja0FjY2Vzc1JlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRITCgtyZXNvdXJjZV9pZBgCIAEoCRIKCgJpcBgDIAEoCRIoCgR0aW1lGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIXCgRwb3J0GAUgASgNQgm6SAYqBBj//wMiNQoTQ2hlY2tBY2Nlc3NSZXNwb25zZRINCgVhbGxvdxgBIAEoCBIPCgdyZWFzb25zGAIgAygJIvwBCgtDb21tYW5kUnVsZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKCHN1YmplY3RzGAMgASgLMhMud2VyYm90LnYxLlN1YmplY3RzEjYKEXJlc291cmNlX3NlbGVjdG9yGAQgASgLMhsud2VyYm90LnYxLlJlc291cmNlU2VsZWN0b3ISDwoHY2xhc3NlcxgFIAMoCRIOCgZlZmZlY3QYBiABKAkSDwoHbWVzc2FnZRgHIAEoCRISCgpjcmVhdGVkX2J5GAggASgJEi4KCmNyZWF0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIhkKF0xpc3RDb21tYW5kUnVsZXNSZXF1ZXN0IkEKGExpc3RDb21tYW5kUnVsZXNSZXNwb25zZRIlCgVydWxlcxgBIAMoCzIWLndlcmJvdC52MS5Db21tYW5kUnVsZSK8AgoYQ3JlYXRlQ29tbWFuZFJ1bGVSZXF1ZXN0EhcKBG5hbWUYASABKAlCCbpIBnIEEAEYPxIlCghzdWJqZWN0cxgCIAEoCzITLndlcmJvdC52MS5TdWJqZWN0cxI2ChFyZXNvdXJjZV9zZWxlY3RvchgDIAEoCzIbLndlcmJvdC52MS5SZXNvdXJjZVNlbGVjdG9yEl8KB2NsYXNzZXMYBCADKAlCTrpIS5IBSAgBEAcYASJAcj5SBHJlYWRSBXdyaXRlUgtkZXN0cnVjdGl2ZVIJcHJpdmlsZWdlUgdzZWNyZXRzUgZlZ3Jlc3NSBm9wYXF1ZRIsCgZlZmZlY3QYBSABKAlCHLpIGXIXUgVhbGxvd1IEZGVueVIIYXBwcm92YWwSGQoHbWVzc2FnZRgGIAEoCUIIukgFcgMYgAIiQQoZQ3JlYXRlQ29tbWFuZFJ1bGVSZXNwb25zZRIkCgRydWxlGAEgASgLMhYud2VyYm90LnYxLkNvbW1hbmRSdWxlItICChhVcGRhdGVDb21tYW5kUnVsZVJlcXVlc3QSFAoCaWQYASABKAlCCLpIBXIDsAEBEhcKBG5hbWUYAiABKAlCCbpIBnIEEAEYPxIlCghzdWJqZWN0cxgDIAEoCzITLndlcmJvdC52MS5TdWJqZWN0cxI2ChFyZXNvdXJjZV9zZWxlY3RvchgEIAEoCzIbLndlcmJvdC52MS5SZXNvdXJjZVNlbGVjdG9yEl8KB2NsYXNzZXMYBSADKAlCTrpIS5IBSAgBEAcYASJAcj5SBHJlYWRSBXdyaXRlUgtkZXN0cnVjdGl2ZVIJcHJpdmlsZWdlUgdzZWNyZXRzUgZlZ3Jlc3NSBm9wYXF1ZRIsCgZlZmZlY3QYBiABKAlCHLpIGXIXUgVhbGxvd1IEZGVueVIIYXBwcm92YWwSGQoHbWVzc2FnZRgHIAEoCUIIukgFcgMYgAIiQQoZVXBkYXRlQ29tbWFuZFJ1bGVSZXNwb25zZRIkCgRydWxlGAEgASgLMhYud2VyYm90LnYxLkNvbW1hbmRSdWxlIjAKGERlbGV0ZUNvbW1hbmRSdWxlUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQEiGwoZRGVsZXRlQ29tbWFuZFJ1bGVSZXNwb25zZSJ9CglDbGFzc1J1bGUSCgoCaWQYASABKAkSDwoHcGF0dGVybhgCIAEoCRIPCgdjbGFzc2VzGAMgAygJEhIKCmNyZWF0ZWRfYnkYBCABKAkSLgoKY3JlYXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiFwoVTGlzdENsYXNzUnVsZXNSZXF1ZXN0Ij0KFkxpc3RDbGFzc1J1bGVzUmVzcG9uc2USIwoFcnVsZXMYASADKAsyFC53ZXJib3QudjEuQ2xhc3NSdWxlIpYBChZDcmVhdGVDbGFzc1J1bGVSZXF1ZXN0EhsKB3BhdHRlcm4YASABKAlCCrpIB3IFEAEo/wESXwoHY2xhc3NlcxgCIAMoCUJOukhLkgFICAEQBxgBIkByPlIEcmVhZFIFd3JpdGVSC2Rlc3RydWN0aXZlUglwcml2aWxlZ2VSB3NlY3JldHNSBmVncmVzc1IGb3BhcXVlIj0KF0NyZWF0ZUNsYXNzUnVsZVJlc3BvbnNlEiIKBHJ1bGUYASABKAsyFC53ZXJib3QudjEuQ2xhc3NSdWxlIi4KFkRlbGV0ZUNsYXNzUnVsZVJlcXVlc3QSFAoCaWQYASABKAlCCLpIBXIDsAEBIhkKF0RlbGV0ZUNsYXNzUnVsZVJlc3BvbnNlIowBCgxDdXN0b21Qb2xpY3kSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVjZWRhchgDIAEoCRIPCgdlbmFibGVkGAQgASgIEhIKCmNyZWF0ZWRfYnkYBSABKAkSLgoKdXBkYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiGwoZTGlzdEN1c3RvbVBvbGljaWVzUmVxdWVzdCJHChpMaXN0Q3VzdG9tUG9saWNpZXNSZXNwb25zZRIpCghwb2xpY2llcxgBIAMoCzIXLndlcmJvdC52MS5DdXN0b21Qb2xpY3kiYQoZQ3JlYXRlQ3VzdG9tUG9saWN5UmVxdWVzdBIXCgRuYW1lGAEgASgJQgm6SAZyBBABGD8SGgoFY2VkYXIYAiABKAlCC7pICHIGIAEogIAEEg8KB2VuYWJsZWQYAyABKAgiRQoaQ3JlYXRlQ3VzdG9tUG9saWN5UmVzcG9uc2USJwoGcG9saWN5GAEgASgLMhcud2VyYm90LnYxLkN1c3RvbVBvbGljeSJ3ChlVcGRhdGVDdXN0b21Qb2xpY3lSZXF1ZXN0EhQKAmlkGAEgASgJQgi6SAVyA7ABARIXCgRuYW1lGAIgASgJQgm6SAZyBBABGD8SGgoFY2VkYXIYAyABKAlCC7pICHIGIAEogIAEEg8KB2VuYWJsZWQYBCABKAgiRQoaVXBkYXRlQ3VzdG9tUG9saWN5UmVzcG9uc2USJwoGcG9saWN5GAEgASgLMhcud2VyYm90LnYxLkN1c3RvbVBvbGljeSIxChlEZWxldGVDdXN0b21Qb2xpY3lSZXF1ZXN0EhQKAmlkGAEgASgJQgi6SAVyA7ABASIcChpEZWxldGVDdXN0b21Qb2xpY3lSZXNwb25zZSKeAQoSVGVzdENvbW1hbmRSZXF1ZXN0EhsKB3VzZXJfaWQYASABKAlCCLpIBXIDsAEBSAASHAoIYWdlbnRfaWQYAiABKAlCCLpIBXIDsAEBSAASHQoLcmVzb3VyY2VfaWQYAyABKAlCCLpIBXIDsAEBEhwKB2NvbW1hbmQYBCABKAlCC7pICHIGIAEogIAEQhAKB3N1YmplY3QSBbpIAggBImwKE1Rlc3RDb21tYW5kUmVzcG9uc2USDwoHY2xhc3NlcxgBIAMoCRINCgVhbGxvdxgCIAEoCBIPCgdyZWFzb25zGAMgAygJEhMKC29ibGlnYXRpb25zGAQgAygJEg8KB21lc3NhZ2UYBSABKAky+QoKDVBvbGljeVNlcnZpY2USWwoQR2V0UmVzb3VyY2VSdWxlcxIiLndlcmJvdC52MS5HZXRSZXNvdXJjZVJ1bGVzUmVxdWVzdBojLndlcmJvdC52MS5HZXRSZXNvdXJjZVJ1bGVzUmVzcG9uc2USWwoQU2V0UmVzb3VyY2VSdWxlcxIiLndlcmJvdC52MS5TZXRSZXNvdXJjZVJ1bGVzUmVxdWVzdBojLndlcmJvdC52MS5TZXRSZXNvdXJjZVJ1bGVzUmVzcG9uc2USTAoLQ2hlY2tBY2Nlc3MSHS53ZXJib3QudjEuQ2hlY2tBY2Nlc3NSZXF1ZXN0Gh4ud2VyYm90LnYxLkNoZWNrQWNjZXNzUmVzcG9uc2USWwoQTGlzdENvbW1hbmRSdWxlcxIiLndlcmJvdC52MS5MaXN0Q29tbWFuZFJ1bGVzUmVxdWVzdBojLndlcmJvdC52MS5MaXN0Q29tbWFuZFJ1bGVzUmVzcG9uc2USXgoRQ3JlYXRlQ29tbWFuZFJ1bGUSIy53ZXJib3QudjEuQ3JlYXRlQ29tbWFuZFJ1bGVSZXF1ZXN0GiQud2VyYm90LnYxLkNyZWF0ZUNvbW1hbmRSdWxlUmVzcG9uc2USXgoRVXBkYXRlQ29tbWFuZFJ1bGUSIy53ZXJib3QudjEuVXBkYXRlQ29tbWFuZFJ1bGVSZXF1ZXN0GiQud2VyYm90LnYxLlVwZGF0ZUNvbW1hbmRSdWxlUmVzcG9uc2USXgoRRGVsZXRlQ29tbWFuZFJ1bGUSIy53ZXJib3QudjEuRGVsZXRlQ29tbWFuZFJ1bGVSZXF1ZXN0GiQud2VyYm90LnYxLkRlbGV0ZUNvbW1hbmRSdWxlUmVzcG9uc2USVQoOTGlzdENsYXNzUnVsZXMSIC53ZXJib3QudjEuTGlzdENsYXNzUnVsZXNSZXF1ZXN0GiEud2VyYm90LnYxLkxpc3RDbGFzc1J1bGVzUmVzcG9uc2USWAoPQ3JlYXRlQ2xhc3NSdWxlEiEud2VyYm90LnYxLkNyZWF0ZUNsYXNzUnVsZVJlcXVlc3QaIi53ZXJib3QudjEuQ3JlYXRlQ2xhc3NSdWxlUmVzcG9uc2USWAoPRGVsZXRlQ2xhc3NSdWxlEiEud2VyYm90LnYxLkRlbGV0ZUNsYXNzUnVsZVJlcXVlc3QaIi53ZXJib3QudjEuRGVsZXRlQ2xhc3NSdWxlUmVzcG9uc2USYQoSTGlzdEN1c3RvbVBvbGljaWVzEiQud2VyYm90LnYxLkxpc3RDdXN0b21Qb2xpY2llc1JlcXVlc3QaJS53ZXJib3QudjEuTGlzdEN1c3RvbVBvbGljaWVzUmVzcG9uc2USYQoSQ3JlYXRlQ3VzdG9tUG9saWN5EiQud2VyYm90LnYxLkNyZWF0ZUN1c3RvbVBvbGljeVJlcXVlc3QaJS53ZXJib3QudjEuQ3JlYXRlQ3VzdG9tUG9saWN5UmVzcG9uc2USYQoSVXBkYXRlQ3VzdG9tUG9saWN5EiQud2VyYm90LnYxLlVwZGF0ZUN1c3RvbVBvbGljeVJlcXVlc3QaJS53ZXJib3QudjEuVXBkYXRlQ3VzdG9tUG9saWN5UmVzcG9uc2USYQoSRGVsZXRlQ3VzdG9tUG9saWN5EiQud2VyYm90LnYxLkRlbGV0ZUN1c3RvbVBvbGljeVJlcXVlc3QaJS53ZXJib3QudjEuRGVsZXRlQ3VzdG9tUG9saWN5UmVzcG9uc2USTAoLVGVzdENvbW1hbmQSHS53ZXJib3QudjEuVGVzdENvbW1hbmRSZXF1ZXN0Gh4ud2VyYm90LnYxLlRlc3RDb21tYW5kUmVzcG9uc2VCkgEKDWNvbS53ZXJib3QudjFCC1BvbGljeVByb3RvUAFaL2dpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vd2VyYm90L3YxO3dlcmJvdHYxogIDV1hYqgIJV2VyYm90LlYxygIJV2VyYm90XFYx4gIVV2VyYm90XFYxXEdQQk1ldGFkYXRh6gIKV2VyYm90OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp, file_werbot_v1_selector]);
 
 /**
  * NetworkRule allows or denies a client CIDR.
@@ -244,6 +246,678 @@ export const CheckAccessResponseSchema: GenMessage<CheckAccessResponse> = /*@__P
   messageDesc(file_werbot_v1_policy, 8);
 
 /**
+ * CommandRule allows, denies or asks approval for command classes.
+ *
+ * @generated from message werbot.v1.CommandRule
+ */
+export type CommandRule = Message<"werbot.v1.CommandRule"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: werbot.v1.Subjects subjects = 3;
+   */
+  subjects?: Subjects | undefined;
+
+  /**
+   * @generated from field: werbot.v1.ResourceSelector resource_selector = 4;
+   */
+  resourceSelector?: ResourceSelector | undefined;
+
+  /**
+   * @generated from field: repeated string classes = 5;
+   */
+  classes: string[];
+
+  /**
+   * "allow" | "deny" | "approval"
+   *
+   * @generated from field: string effect = 6;
+   */
+  effect: string;
+
+  /**
+   * @generated from field: string message = 7;
+   */
+  message: string;
+
+  /**
+   * empty: the creator was deleted
+   *
+   * @generated from field: string created_by = 8;
+   */
+  createdBy: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 9;
+   */
+  createdAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message werbot.v1.CommandRule.
+ * Use `create(CommandRuleSchema)` to create a new message.
+ */
+export const CommandRuleSchema: GenMessage<CommandRule> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 9);
+
+/**
+ * @generated from message werbot.v1.ListCommandRulesRequest
+ */
+export type ListCommandRulesRequest = Message<"werbot.v1.ListCommandRulesRequest"> & {
+};
+
+/**
+ * Describes the message werbot.v1.ListCommandRulesRequest.
+ * Use `create(ListCommandRulesRequestSchema)` to create a new message.
+ */
+export const ListCommandRulesRequestSchema: GenMessage<ListCommandRulesRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 10);
+
+/**
+ * @generated from message werbot.v1.ListCommandRulesResponse
+ */
+export type ListCommandRulesResponse = Message<"werbot.v1.ListCommandRulesResponse"> & {
+  /**
+   * @generated from field: repeated werbot.v1.CommandRule rules = 1;
+   */
+  rules: CommandRule[];
+};
+
+/**
+ * Describes the message werbot.v1.ListCommandRulesResponse.
+ * Use `create(ListCommandRulesResponseSchema)` to create a new message.
+ */
+export const ListCommandRulesResponseSchema: GenMessage<ListCommandRulesResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 11);
+
+/**
+ * @generated from message werbot.v1.CreateCommandRuleRequest
+ */
+export type CreateCommandRuleRequest = Message<"werbot.v1.CreateCommandRuleRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: werbot.v1.Subjects subjects = 2;
+   */
+  subjects?: Subjects | undefined;
+
+  /**
+   * @generated from field: werbot.v1.ResourceSelector resource_selector = 3;
+   */
+  resourceSelector?: ResourceSelector | undefined;
+
+  /**
+   * @generated from field: repeated string classes = 4;
+   */
+  classes: string[];
+
+  /**
+   * @generated from field: string effect = 5;
+   */
+  effect: string;
+
+  /**
+   * @generated from field: string message = 6;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message werbot.v1.CreateCommandRuleRequest.
+ * Use `create(CreateCommandRuleRequestSchema)` to create a new message.
+ */
+export const CreateCommandRuleRequestSchema: GenMessage<CreateCommandRuleRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 12);
+
+/**
+ * @generated from message werbot.v1.CreateCommandRuleResponse
+ */
+export type CreateCommandRuleResponse = Message<"werbot.v1.CreateCommandRuleResponse"> & {
+  /**
+   * @generated from field: werbot.v1.CommandRule rule = 1;
+   */
+  rule?: CommandRule | undefined;
+};
+
+/**
+ * Describes the message werbot.v1.CreateCommandRuleResponse.
+ * Use `create(CreateCommandRuleResponseSchema)` to create a new message.
+ */
+export const CreateCommandRuleResponseSchema: GenMessage<CreateCommandRuleResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 13);
+
+/**
+ * UpdateCommandRuleRequest replaces the rule as a whole.
+ *
+ * @generated from message werbot.v1.UpdateCommandRuleRequest
+ */
+export type UpdateCommandRuleRequest = Message<"werbot.v1.UpdateCommandRuleRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: werbot.v1.Subjects subjects = 3;
+   */
+  subjects?: Subjects | undefined;
+
+  /**
+   * @generated from field: werbot.v1.ResourceSelector resource_selector = 4;
+   */
+  resourceSelector?: ResourceSelector | undefined;
+
+  /**
+   * @generated from field: repeated string classes = 5;
+   */
+  classes: string[];
+
+  /**
+   * @generated from field: string effect = 6;
+   */
+  effect: string;
+
+  /**
+   * @generated from field: string message = 7;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message werbot.v1.UpdateCommandRuleRequest.
+ * Use `create(UpdateCommandRuleRequestSchema)` to create a new message.
+ */
+export const UpdateCommandRuleRequestSchema: GenMessage<UpdateCommandRuleRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 14);
+
+/**
+ * @generated from message werbot.v1.UpdateCommandRuleResponse
+ */
+export type UpdateCommandRuleResponse = Message<"werbot.v1.UpdateCommandRuleResponse"> & {
+  /**
+   * @generated from field: werbot.v1.CommandRule rule = 1;
+   */
+  rule?: CommandRule | undefined;
+};
+
+/**
+ * Describes the message werbot.v1.UpdateCommandRuleResponse.
+ * Use `create(UpdateCommandRuleResponseSchema)` to create a new message.
+ */
+export const UpdateCommandRuleResponseSchema: GenMessage<UpdateCommandRuleResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 15);
+
+/**
+ * @generated from message werbot.v1.DeleteCommandRuleRequest
+ */
+export type DeleteCommandRuleRequest = Message<"werbot.v1.DeleteCommandRuleRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message werbot.v1.DeleteCommandRuleRequest.
+ * Use `create(DeleteCommandRuleRequestSchema)` to create a new message.
+ */
+export const DeleteCommandRuleRequestSchema: GenMessage<DeleteCommandRuleRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 16);
+
+/**
+ * @generated from message werbot.v1.DeleteCommandRuleResponse
+ */
+export type DeleteCommandRuleResponse = Message<"werbot.v1.DeleteCommandRuleResponse"> & {
+};
+
+/**
+ * Describes the message werbot.v1.DeleteCommandRuleResponse.
+ * Use `create(DeleteCommandRuleResponseSchema)` to create a new message.
+ */
+export const DeleteCommandRuleResponseSchema: GenMessage<DeleteCommandRuleResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 17);
+
+/**
+ * ClassRule gives commands matching pattern (a glob over the normalized
+ * command name, optionally followed by an argument prefix) the classes.
+ *
+ * @generated from message werbot.v1.ClassRule
+ */
+export type ClassRule = Message<"werbot.v1.ClassRule"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string pattern = 2;
+   */
+  pattern: string;
+
+  /**
+   * @generated from field: repeated string classes = 3;
+   */
+  classes: string[];
+
+  /**
+   * empty: the creator was deleted
+   *
+   * @generated from field: string created_by = 4;
+   */
+  createdBy: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 5;
+   */
+  createdAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message werbot.v1.ClassRule.
+ * Use `create(ClassRuleSchema)` to create a new message.
+ */
+export const ClassRuleSchema: GenMessage<ClassRule> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 18);
+
+/**
+ * @generated from message werbot.v1.ListClassRulesRequest
+ */
+export type ListClassRulesRequest = Message<"werbot.v1.ListClassRulesRequest"> & {
+};
+
+/**
+ * Describes the message werbot.v1.ListClassRulesRequest.
+ * Use `create(ListClassRulesRequestSchema)` to create a new message.
+ */
+export const ListClassRulesRequestSchema: GenMessage<ListClassRulesRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 19);
+
+/**
+ * @generated from message werbot.v1.ListClassRulesResponse
+ */
+export type ListClassRulesResponse = Message<"werbot.v1.ListClassRulesResponse"> & {
+  /**
+   * @generated from field: repeated werbot.v1.ClassRule rules = 1;
+   */
+  rules: ClassRule[];
+};
+
+/**
+ * Describes the message werbot.v1.ListClassRulesResponse.
+ * Use `create(ListClassRulesResponseSchema)` to create a new message.
+ */
+export const ListClassRulesResponseSchema: GenMessage<ListClassRulesResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 20);
+
+/**
+ * @generated from message werbot.v1.CreateClassRuleRequest
+ */
+export type CreateClassRuleRequest = Message<"werbot.v1.CreateClassRuleRequest"> & {
+  /**
+   * @generated from field: string pattern = 1;
+   */
+  pattern: string;
+
+  /**
+   * @generated from field: repeated string classes = 2;
+   */
+  classes: string[];
+};
+
+/**
+ * Describes the message werbot.v1.CreateClassRuleRequest.
+ * Use `create(CreateClassRuleRequestSchema)` to create a new message.
+ */
+export const CreateClassRuleRequestSchema: GenMessage<CreateClassRuleRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 21);
+
+/**
+ * @generated from message werbot.v1.CreateClassRuleResponse
+ */
+export type CreateClassRuleResponse = Message<"werbot.v1.CreateClassRuleResponse"> & {
+  /**
+   * @generated from field: werbot.v1.ClassRule rule = 1;
+   */
+  rule?: ClassRule | undefined;
+};
+
+/**
+ * Describes the message werbot.v1.CreateClassRuleResponse.
+ * Use `create(CreateClassRuleResponseSchema)` to create a new message.
+ */
+export const CreateClassRuleResponseSchema: GenMessage<CreateClassRuleResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 22);
+
+/**
+ * @generated from message werbot.v1.DeleteClassRuleRequest
+ */
+export type DeleteClassRuleRequest = Message<"werbot.v1.DeleteClassRuleRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message werbot.v1.DeleteClassRuleRequest.
+ * Use `create(DeleteClassRuleRequestSchema)` to create a new message.
+ */
+export const DeleteClassRuleRequestSchema: GenMessage<DeleteClassRuleRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 23);
+
+/**
+ * @generated from message werbot.v1.DeleteClassRuleResponse
+ */
+export type DeleteClassRuleResponse = Message<"werbot.v1.DeleteClassRuleResponse"> & {
+};
+
+/**
+ * Describes the message werbot.v1.DeleteClassRuleResponse.
+ * Use `create(DeleteClassRuleResponseSchema)` to create a new message.
+ */
+export const DeleteClassRuleResponseSchema: GenMessage<DeleteClassRuleResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 24);
+
+/**
+ * CustomPolicy is a hand-written Cedar text of one or more policies.
+ *
+ * @generated from message werbot.v1.CustomPolicy
+ */
+export type CustomPolicy = Message<"werbot.v1.CustomPolicy"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string cedar = 3;
+   */
+  cedar: string;
+
+  /**
+   * @generated from field: bool enabled = 4;
+   */
+  enabled: boolean;
+
+  /**
+   * empty: the creator was deleted
+   *
+   * @generated from field: string created_by = 5;
+   */
+  createdBy: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 6;
+   */
+  updatedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message werbot.v1.CustomPolicy.
+ * Use `create(CustomPolicySchema)` to create a new message.
+ */
+export const CustomPolicySchema: GenMessage<CustomPolicy> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 25);
+
+/**
+ * @generated from message werbot.v1.ListCustomPoliciesRequest
+ */
+export type ListCustomPoliciesRequest = Message<"werbot.v1.ListCustomPoliciesRequest"> & {
+};
+
+/**
+ * Describes the message werbot.v1.ListCustomPoliciesRequest.
+ * Use `create(ListCustomPoliciesRequestSchema)` to create a new message.
+ */
+export const ListCustomPoliciesRequestSchema: GenMessage<ListCustomPoliciesRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 26);
+
+/**
+ * @generated from message werbot.v1.ListCustomPoliciesResponse
+ */
+export type ListCustomPoliciesResponse = Message<"werbot.v1.ListCustomPoliciesResponse"> & {
+  /**
+   * @generated from field: repeated werbot.v1.CustomPolicy policies = 1;
+   */
+  policies: CustomPolicy[];
+};
+
+/**
+ * Describes the message werbot.v1.ListCustomPoliciesResponse.
+ * Use `create(ListCustomPoliciesResponseSchema)` to create a new message.
+ */
+export const ListCustomPoliciesResponseSchema: GenMessage<ListCustomPoliciesResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 27);
+
+/**
+ * @generated from message werbot.v1.CreateCustomPolicyRequest
+ */
+export type CreateCustomPolicyRequest = Message<"werbot.v1.CreateCustomPolicyRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string cedar = 2;
+   */
+  cedar: string;
+
+  /**
+   * @generated from field: bool enabled = 3;
+   */
+  enabled: boolean;
+};
+
+/**
+ * Describes the message werbot.v1.CreateCustomPolicyRequest.
+ * Use `create(CreateCustomPolicyRequestSchema)` to create a new message.
+ */
+export const CreateCustomPolicyRequestSchema: GenMessage<CreateCustomPolicyRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 28);
+
+/**
+ * @generated from message werbot.v1.CreateCustomPolicyResponse
+ */
+export type CreateCustomPolicyResponse = Message<"werbot.v1.CreateCustomPolicyResponse"> & {
+  /**
+   * @generated from field: werbot.v1.CustomPolicy policy = 1;
+   */
+  policy?: CustomPolicy | undefined;
+};
+
+/**
+ * Describes the message werbot.v1.CreateCustomPolicyResponse.
+ * Use `create(CreateCustomPolicyResponseSchema)` to create a new message.
+ */
+export const CreateCustomPolicyResponseSchema: GenMessage<CreateCustomPolicyResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 29);
+
+/**
+ * UpdateCustomPolicyRequest replaces the policy as a whole.
+ *
+ * @generated from message werbot.v1.UpdateCustomPolicyRequest
+ */
+export type UpdateCustomPolicyRequest = Message<"werbot.v1.UpdateCustomPolicyRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string cedar = 3;
+   */
+  cedar: string;
+
+  /**
+   * @generated from field: bool enabled = 4;
+   */
+  enabled: boolean;
+};
+
+/**
+ * Describes the message werbot.v1.UpdateCustomPolicyRequest.
+ * Use `create(UpdateCustomPolicyRequestSchema)` to create a new message.
+ */
+export const UpdateCustomPolicyRequestSchema: GenMessage<UpdateCustomPolicyRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 30);
+
+/**
+ * @generated from message werbot.v1.UpdateCustomPolicyResponse
+ */
+export type UpdateCustomPolicyResponse = Message<"werbot.v1.UpdateCustomPolicyResponse"> & {
+  /**
+   * @generated from field: werbot.v1.CustomPolicy policy = 1;
+   */
+  policy?: CustomPolicy | undefined;
+};
+
+/**
+ * Describes the message werbot.v1.UpdateCustomPolicyResponse.
+ * Use `create(UpdateCustomPolicyResponseSchema)` to create a new message.
+ */
+export const UpdateCustomPolicyResponseSchema: GenMessage<UpdateCustomPolicyResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 31);
+
+/**
+ * @generated from message werbot.v1.DeleteCustomPolicyRequest
+ */
+export type DeleteCustomPolicyRequest = Message<"werbot.v1.DeleteCustomPolicyRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message werbot.v1.DeleteCustomPolicyRequest.
+ * Use `create(DeleteCustomPolicyRequestSchema)` to create a new message.
+ */
+export const DeleteCustomPolicyRequestSchema: GenMessage<DeleteCustomPolicyRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 32);
+
+/**
+ * @generated from message werbot.v1.DeleteCustomPolicyResponse
+ */
+export type DeleteCustomPolicyResponse = Message<"werbot.v1.DeleteCustomPolicyResponse"> & {
+};
+
+/**
+ * Describes the message werbot.v1.DeleteCustomPolicyResponse.
+ * Use `create(DeleteCustomPolicyResponseSchema)` to create a new message.
+ */
+export const DeleteCustomPolicyResponseSchema: GenMessage<DeleteCustomPolicyResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 33);
+
+/**
+ * TestCommandRequest probes a command with the caller's address at the current time.
+ *
+ * @generated from message werbot.v1.TestCommandRequest
+ */
+export type TestCommandRequest = Message<"werbot.v1.TestCommandRequest"> & {
+  /**
+   * @generated from oneof werbot.v1.TestCommandRequest.subject
+   */
+  subject: {
+    /**
+     * @generated from field: string user_id = 1;
+     */
+    value: string;
+    case: "userId";
+  } | {
+    /**
+     * stage 12
+     *
+     * @generated from field: string agent_id = 2;
+     */
+    value: string;
+    case: "agentId";
+  } | { case: undefined; value?: undefined };
+
+  /**
+   * @generated from field: string resource_id = 3;
+   */
+  resourceId: string;
+
+  /**
+   * @generated from field: string command = 4;
+   */
+  command: string;
+};
+
+/**
+ * Describes the message werbot.v1.TestCommandRequest.
+ * Use `create(TestCommandRequestSchema)` to create a new message.
+ */
+export const TestCommandRequestSchema: GenMessage<TestCommandRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 34);
+
+/**
+ * TestCommandResponse is the exec decision, or the connect decision when connect denies.
+ *
+ * @generated from message werbot.v1.TestCommandResponse
+ */
+export type TestCommandResponse = Message<"werbot.v1.TestCommandResponse"> & {
+  /**
+   * @generated from field: repeated string classes = 1;
+   */
+  classes: string[];
+
+  /**
+   * @generated from field: bool allow = 2;
+   */
+  allow: boolean;
+
+  /**
+   * @generated from field: repeated string reasons = 3;
+   */
+  reasons: string[];
+
+  /**
+   * @generated from field: repeated string obligations = 4;
+   */
+  obligations: string[];
+
+  /**
+   * @generated from field: string message = 5;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message werbot.v1.TestCommandResponse.
+ * Use `create(TestCommandResponseSchema)` to create a new message.
+ */
+export const TestCommandResponseSchema: GenMessage<TestCommandResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_policy, 35);
+
+/**
  * @generated from service werbot.v1.PolicyService
  */
 export const PolicyService: GenService<{
@@ -272,6 +946,110 @@ export const PolicyService: GenService<{
     methodKind: "unary";
     input: typeof CheckAccessRequestSchema;
     output: typeof CheckAccessResponseSchema;
+  },
+  /**
+   * Command rules narrow which command classes subjects may run on resources.
+   *
+   * @generated from rpc werbot.v1.PolicyService.ListCommandRules
+   */
+  listCommandRules: {
+    methodKind: "unary";
+    input: typeof ListCommandRulesRequestSchema;
+    output: typeof ListCommandRulesResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.PolicyService.CreateCommandRule
+   */
+  createCommandRule: {
+    methodKind: "unary";
+    input: typeof CreateCommandRuleRequestSchema;
+    output: typeof CreateCommandRuleResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.PolicyService.UpdateCommandRule
+   */
+  updateCommandRule: {
+    methodKind: "unary";
+    input: typeof UpdateCommandRuleRequestSchema;
+    output: typeof UpdateCommandRuleResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.PolicyService.DeleteCommandRule
+   */
+  deleteCommandRule: {
+    methodKind: "unary";
+    input: typeof DeleteCommandRuleRequestSchema;
+    output: typeof DeleteCommandRuleResponseSchema;
+  },
+  /**
+   * Class rules override the classes of matching commands.
+   *
+   * @generated from rpc werbot.v1.PolicyService.ListClassRules
+   */
+  listClassRules: {
+    methodKind: "unary";
+    input: typeof ListClassRulesRequestSchema;
+    output: typeof ListClassRulesResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.PolicyService.CreateClassRule
+   */
+  createClassRule: {
+    methodKind: "unary";
+    input: typeof CreateClassRuleRequestSchema;
+    output: typeof CreateClassRuleResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.PolicyService.DeleteClassRule
+   */
+  deleteClassRule: {
+    methodKind: "unary";
+    input: typeof DeleteClassRuleRequestSchema;
+    output: typeof DeleteClassRuleResponseSchema;
+  },
+  /**
+   * Custom policies are hand-written Cedar; a permit widens access.
+   *
+   * @generated from rpc werbot.v1.PolicyService.ListCustomPolicies
+   */
+  listCustomPolicies: {
+    methodKind: "unary";
+    input: typeof ListCustomPoliciesRequestSchema;
+    output: typeof ListCustomPoliciesResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.PolicyService.CreateCustomPolicy
+   */
+  createCustomPolicy: {
+    methodKind: "unary";
+    input: typeof CreateCustomPolicyRequestSchema;
+    output: typeof CreateCustomPolicyResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.PolicyService.UpdateCustomPolicy
+   */
+  updateCustomPolicy: {
+    methodKind: "unary";
+    input: typeof UpdateCustomPolicyRequestSchema;
+    output: typeof UpdateCustomPolicyResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.PolicyService.DeleteCustomPolicy
+   */
+  deleteCustomPolicy: {
+    methodKind: "unary";
+    input: typeof DeleteCustomPolicyRequestSchema;
+    output: typeof DeleteCustomPolicyResponseSchema;
+  },
+  /**
+   * TestCommand classifies a command and decides it for a subject on a resource (probe).
+   *
+   * @generated from rpc werbot.v1.PolicyService.TestCommand
+   */
+  testCommand: {
+    methodKind: "unary";
+    input: typeof TestCommandRequestSchema;
+    output: typeof TestCommandResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_werbot_v1_policy, 0);

@@ -164,4 +164,49 @@ func TestRequestValidation(t *testing.T) {
 	assert.NoError(t, protovalidate.Validate(&gatewayv1.GetApprovalRequest{ApprovalId: id}))
 	assert.Error(t, protovalidate.Validate(&gatewayv1.GetApprovalRequest{ApprovalId: "x"}))
 	assert.NoError(t, protovalidate.Validate(&gatewayv1.EndSessionRequest{SessionId: id, Reason: "policy_stale"}))
+
+	// PolicyService command rules, class rules, custom policies and TestCommand (stage 11)
+	rule := func(mut func(*werbotv1.CreateCommandRuleRequest)) *werbotv1.CreateCommandRuleRequest {
+		r := &werbotv1.CreateCommandRuleRequest{Name: "no-rm", Subjects: &werbotv1.Subjects{AllUsers: true}, ResourceSelector: sel,
+			Classes: []string{"destructive"}, Effect: "deny", Message: strings.Repeat("я", 256)}
+		mut(r)
+		return r
+	}
+	assert.NoError(t, protovalidate.Validate(rule(func(*werbotv1.CreateCommandRuleRequest) {})))
+	for _, mut := range []func(*werbotv1.CreateCommandRuleRequest){
+		func(r *werbotv1.CreateCommandRuleRequest) { r.Name = strings.Repeat("a", 64) },
+		func(r *werbotv1.CreateCommandRuleRequest) { r.Classes = nil },
+		func(r *werbotv1.CreateCommandRuleRequest) { r.Classes = []string{"bogus"} },
+		func(r *werbotv1.CreateCommandRuleRequest) { r.Classes = []string{"read", "read"} },
+		func(r *werbotv1.CreateCommandRuleRequest) { r.Effect = "maybe" },
+		func(r *werbotv1.CreateCommandRuleRequest) { r.Message = strings.Repeat("я", 257) },
+		func(r *werbotv1.CreateCommandRuleRequest) { r.Subjects = &werbotv1.Subjects{Users: []string{"x"}} },
+	} {
+		assert.Error(t, protovalidate.Validate(rule(mut)))
+	}
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ListCommandRulesRequest{}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.UpdateCommandRuleRequest{Id: id, Name: "no-rm", Classes: []string{"read"}, Effect: "allow"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.UpdateCommandRuleRequest{Id: "x", Name: "no-rm", Classes: []string{"read"}, Effect: "allow"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.DeleteCommandRuleRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.DeleteCommandRuleRequest{Id: "x"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ListClassRulesRequest{}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.CreateClassRuleRequest{Pattern: strings.Repeat("a", 255), Classes: []string{"write"}}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateClassRuleRequest{Pattern: strings.Repeat("a", 256), Classes: []string{"write"}}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateClassRuleRequest{Pattern: "x"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.DeleteClassRuleRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.DeleteClassRuleRequest{Id: "x"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.ListCustomPoliciesRequest{}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.CreateCustomPolicyRequest{Name: "p", Cedar: strings.Repeat("a", 65536)}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateCustomPolicyRequest{Name: "p", Cedar: strings.Repeat("a", 65537)}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.CreateCustomPolicyRequest{Name: "p"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.UpdateCustomPolicyRequest{Id: id, Name: "p", Cedar: "permit (principal, action, resource);"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.UpdateCustomPolicyRequest{Id: id, Name: "", Cedar: "x"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.DeleteCustomPolicyRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.DeleteCustomPolicyRequest{Id: "x"}))
+	user := &werbotv1.TestCommandRequest_UserId{UserId: id}
+	assert.NoError(t, protovalidate.Validate(&werbotv1.TestCommandRequest{Subject: user, ResourceId: id, Command: strings.Repeat("a", 65536)}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.TestCommandRequest{Subject: user, ResourceId: id, Command: strings.Repeat("a", 65537)}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.TestCommandRequest{Subject: user, ResourceId: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.TestCommandRequest{ResourceId: id, Command: "ls"}), "subject is required")
+	assert.Error(t, protovalidate.Validate(&werbotv1.TestCommandRequest{Subject: &werbotv1.TestCommandRequest_AgentId{AgentId: "x"}, ResourceId: id, Command: "ls"}))
 }

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/netip"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -18,6 +19,8 @@ import (
 
 	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/auditlog"
+	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/dbx"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
@@ -147,61 +150,146 @@ func (s *Service) load(ctx context.Context, orgID uuid.UUID, ip netip.Addr) (sna
 	if err != nil {
 		return Snapshot{}, false, err
 	}
-	var grants []SnapshotGrant
+	snap = Snapshot{OrgID: orgID, Resources: resources, Bindings: ExpandBindings(resources, bindings)}
 	if s.deps.Grants != nil {
-		if grants, err = s.deps.Grants.PolicyGrants(ctx, orgID); err != nil {
+		if snap.Grants, err = s.deps.Grants.PolicyGrants(ctx, orgID); err != nil {
 			return Snapshot{}, false, err
 		}
 	}
-	var locks []SnapshotLock
 	if s.deps.Locks != nil {
-		if locks, err = s.deps.Locks.PolicyLocks(ctx, orgID); err != nil {
+		if snap.Locks, err = s.deps.Locks.PolicyLocks(ctx, orgID); err != nil {
 			return Snapshot{}, false, err
 		}
 	}
-	var rules []ResourceRules
-	err = dbx.InOrg(ctx, s.deps.Pool, orgID, actor(ctx), func(tx pgx.Tx) error {
-		st := newStore(tx)
-		if rules, err = listRules(ctx, st, orgID, nil); err != nil {
-			return err
-		}
-		if ip.IsValid() {
-			blocked, err = st.IPBlocked(ctx, ip.Unmap())
-		}
+	err = dbx.InOrg(ctx, s.deps.Pool, orgID, actor(ctx), func(tx pgx.Tx) (err error) {
+		blocked, err = readOrg(ctx, newStore(tx), ip, &snap)
 		return err
 	})
 	if err != nil {
 		return Snapshot{}, false, err
 	}
-	return Snapshot{OrgID: orgID, Resources: resources, Bindings: ExpandBindings(resources, bindings), Rules: rules,
-		Grants: grants, Locks: locks}, blocked, nil
+	return snap, blocked, nil
+}
+
+// readOrg reads the resource and exec rules of snap.OrgID into snap and
+// checks a valid ip against the blocklist.
+func readOrg(ctx context.Context, st Store, ip netip.Addr, snap *Snapshot) (blocked bool, err error) {
+	if snap.Rules, err = listRules(ctx, st, snap.OrgID, nil); err != nil {
+		return false, err
+	}
+	if err = loadExec(ctx, st, snap); err != nil {
+		return false, err
+	}
+	if ip.IsValid() {
+		return st.IPBlocked(ctx, ip.Unmap())
+	}
+	return false, nil
+}
+
+// loadExec reads the command rules (selectors expanded over snap.Resources,
+// by id), the class rules (by pattern) and the enabled custom policies.
+func loadExec(ctx context.Context, st Store, snap *Snapshot) error {
+	rules, err := st.ListCommandRules(ctx, snap.OrgID)
+	if err != nil {
+		return err
+	}
+	if snap.CommandRules, err = snapshotCommandRules(rules, snap.Resources); err != nil {
+		return err
+	}
+	classes, err := st.ListClassRules(ctx, snap.OrgID)
+	if err != nil {
+		return err
+	}
+	for _, c := range classes {
+		snap.ClassRules = append(snap.ClassRules, SnapshotClassRule{Pattern: c.Pattern, Classes: c.Classes})
+	}
+	custom, err := st.ListCustomPolicies(ctx, snap.OrgID)
+	for _, c := range custom {
+		if c.Enabled {
+			snap.CustomPolicies = append(snap.CustomPolicies, SnapshotCustomPolicy{ID: c.ID, Cedar: c.Cedar})
+		}
+	}
+	return err
+}
+
+// check is a request on a resource of a loaded snapshot before its action is set.
+type check struct {
+	snap Snapshot
+	res  SnapshotResource
+	typ  connector.Type
+	ps   *PolicySet // nil: the snapshot failed to compile, Authorize denies
+	req  Request
+}
+
+// prepare loads and compiles the snapshot of orgID for a request of userID on
+// resourceID from ip at the time at (zero: now) with the first action of the
+// resource type.
+func (s *Service) prepare(ctx context.Context, orgID, userID, resourceID uuid.UUID, ip netip.Addr, at time.Time) (check, error) {
+	snap, blocked, err := s.load(ctx, orgID, ip)
+	if err != nil {
+		return check{}, err
+	}
+	i := slices.IndexFunc(snap.Resources, func(r SnapshotResource) bool { return r.ID == resourceID })
+	if i < 0 {
+		return check{}, fmt.Errorf("resource not found: %w", apperr.ErrNotFound)
+	}
+	c := check{snap: snap, res: snap.Resources[i]}
+	var ok bool
+	if c.typ, ok = connector.Lookup(c.res.Type); !ok {
+		return check{}, fmt.Errorf("resource type %q is not registered: %w", c.res.Type, apperr.ErrFailedPrecondition)
+	}
+	teams, err := s.deps.Teams.UserTeams(ctx, orgID, userID)
+	if err != nil {
+		return check{}, err
+	}
+	if c.ps, _, err = Compile(snap); err != nil {
+		s.deps.Logger.ErrorContext(ctx, "policy: compile snapshot", "org_id", orgID, "err", err)
+	}
+	c.req = Request{UserID: userID, TeamIDs: teams, ResourceID: resourceID, Action: c.typ.Actions[0],
+		IP: ip, Country: s.Country(ip), Time: at, IPBlocked: blocked}
+	return c, nil
 }
 
 // CheckAccess decides whether userID may use resourceID from ip at the time at
 // (zero: now) on the target port (0: terminal or exec) with the first action of
 // the resource type. A snapshot that fails to compile denies.
 func (s *Service) CheckAccess(ctx context.Context, orgID, userID, resourceID uuid.UUID, ip netip.Addr, at time.Time, port uint16) (Decision, error) {
-	snap, blocked, err := s.load(ctx, orgID, ip)
+	c, err := s.prepare(ctx, orgID, userID, resourceID, ip, at)
 	if err != nil {
 		return Decision{}, err
 	}
-	i := slices.IndexFunc(snap.Resources, func(r SnapshotResource) bool { return r.ID == resourceID })
-	if i < 0 {
-		return Decision{}, fmt.Errorf("resource not found: %w", apperr.ErrNotFound)
-	}
-	typ, ok := connector.Lookup(snap.Resources[i].Type)
-	if !ok {
-		return Decision{}, fmt.Errorf("resource type %q is not registered: %w", snap.Resources[i].Type, apperr.ErrFailedPrecondition)
-	}
-	teams, err := s.deps.Teams.UserTeams(ctx, orgID, userID)
+	c.req.Port = port
+	return c.ps.Authorize(c.req), nil
+}
+
+// change is the audit event of a write: Action is "<target type>.<verb>".
+type change struct {
+	Action string
+	ID     uuid.UUID
+	Data   map[string]any
+}
+
+// apply runs fn and writes the audit event it returns in one transaction of
+// the principal. what names the object in not-found and taken errors.
+func (s *Service) apply(ctx context.Context, orgID uuid.UUID, what string, fn func(st Store, actor uuid.UUID) (change, error)) error {
+	p, err := principal.Require(ctx)
 	if err != nil {
-		return Decision{}, err
+		return err
 	}
-	ps, _, err := Compile(snap)
-	if err != nil {
-		s.deps.Logger.ErrorContext(ctx, "policy: compile snapshot", "org_id", orgID, "err", err)
-		return Decision{Reasons: []string{"error:compile"}}, nil
+	err = dbx.InOrg(ctx, s.deps.Pool, orgID, p.UserID, func(tx pgx.Tx) error {
+		c, err := fn(newStore(tx), p.UserID)
+		if err != nil {
+			return err
+		}
+		typ, _, _ := strings.Cut(c.Action, ".")
+		return auditlog.Write(ctx, tx, auditlog.Event{OrgID: &orgID, ActorUserID: &p.UserID, ActorKind: "user", Action: c.Action,
+			TargetType: typ, TargetID: c.ID.String(), IP: clientip.From(ctx), Data: c.Data})
+	})
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return fmt.Errorf("%s not found: %w", what, apperr.ErrNotFound)
+	case isUniqueViolation(err):
+		return fmt.Errorf("%s already exists: %w", what, apperr.ErrAlreadyExists)
 	}
-	return ps.Authorize(Request{UserID: userID, TeamIDs: teams, ResourceID: resourceID, Action: typ.Actions[0],
-		IP: ip, Country: s.Country(ip), Time: at, IPBlocked: blocked, Port: port}), nil
+	return err
 }

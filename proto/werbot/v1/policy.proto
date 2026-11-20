@@ -3,12 +3,30 @@ package werbot.v1;
 
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
+import "werbot/v1/selector.proto";
 
 service PolicyService {
   rpc GetResourceRules(GetResourceRulesRequest) returns (GetResourceRulesResponse);
   rpc SetResourceRules(SetResourceRulesRequest) returns (SetResourceRulesResponse);
   // CheckAccess evaluates the organization policy for one request (probe).
   rpc CheckAccess(CheckAccessRequest) returns (CheckAccessResponse);
+
+  // Command rules narrow which command classes subjects may run on resources.
+  rpc ListCommandRules(ListCommandRulesRequest) returns (ListCommandRulesResponse);
+  rpc CreateCommandRule(CreateCommandRuleRequest) returns (CreateCommandRuleResponse);
+  rpc UpdateCommandRule(UpdateCommandRuleRequest) returns (UpdateCommandRuleResponse);
+  rpc DeleteCommandRule(DeleteCommandRuleRequest) returns (DeleteCommandRuleResponse);
+  // Class rules override the classes of matching commands.
+  rpc ListClassRules(ListClassRulesRequest) returns (ListClassRulesResponse);
+  rpc CreateClassRule(CreateClassRuleRequest) returns (CreateClassRuleResponse);
+  rpc DeleteClassRule(DeleteClassRuleRequest) returns (DeleteClassRuleResponse);
+  // Custom policies are hand-written Cedar; a permit widens access.
+  rpc ListCustomPolicies(ListCustomPoliciesRequest) returns (ListCustomPoliciesResponse);
+  rpc CreateCustomPolicy(CreateCustomPolicyRequest) returns (CreateCustomPolicyResponse);
+  rpc UpdateCustomPolicy(UpdateCustomPolicyRequest) returns (UpdateCustomPolicyResponse);
+  rpc DeleteCustomPolicy(DeleteCustomPolicyRequest) returns (DeleteCustomPolicyResponse);
+  // TestCommand classifies a command and decides it for a subject on a resource (probe).
+  rpc TestCommand(TestCommandRequest) returns (TestCommandResponse);
 }
 
 // NetworkRule allows or denies a client CIDR.
@@ -56,4 +74,155 @@ message CheckAccessRequest {
 message CheckAccessResponse {
   bool allow = 1;
   repeated string reasons = 2;
+}
+
+// CommandRule allows, denies or asks approval for command classes.
+message CommandRule {
+  string id = 1;
+  string name = 2;
+  Subjects subjects = 3;
+  ResourceSelector resource_selector = 4;
+  repeated string classes = 5;
+  string effect = 6; // "allow" | "deny" | "approval"
+  string message = 7;
+  string created_by = 8; // empty: the creator was deleted
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message ListCommandRulesRequest {}
+message ListCommandRulesResponse {
+  repeated CommandRule rules = 1;
+}
+
+message CreateCommandRuleRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  Subjects subjects = 2;
+  ResourceSelector resource_selector = 3;
+  repeated string classes = 4 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 7
+    unique: true
+    items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
+  }];
+  string effect = 5 [(buf.validate.field).string = {in: ["allow", "deny", "approval"]}];
+  string message = 6 [(buf.validate.field).string.max_len = 256];
+}
+message CreateCommandRuleResponse {
+  CommandRule rule = 1;
+}
+
+// UpdateCommandRuleRequest replaces the rule as a whole.
+message UpdateCommandRuleRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  Subjects subjects = 3;
+  ResourceSelector resource_selector = 4;
+  repeated string classes = 5 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 7
+    unique: true
+    items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
+  }];
+  string effect = 6 [(buf.validate.field).string = {in: ["allow", "deny", "approval"]}];
+  string message = 7 [(buf.validate.field).string.max_len = 256];
+}
+message UpdateCommandRuleResponse {
+  CommandRule rule = 1;
+}
+
+message DeleteCommandRuleRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteCommandRuleResponse {}
+
+// ClassRule gives commands matching pattern (a glob over the normalized
+// command name, optionally followed by an argument prefix) the classes.
+message ClassRule {
+  string id = 1;
+  string pattern = 2;
+  repeated string classes = 3;
+  string created_by = 4; // empty: the creator was deleted
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message ListClassRulesRequest {}
+message ListClassRulesResponse {
+  repeated ClassRule rules = 1;
+}
+
+message CreateClassRuleRequest {
+  string pattern = 1 [(buf.validate.field).string = {min_len: 1, max_bytes: 255}];
+  repeated string classes = 2 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 7
+    unique: true
+    items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
+  }];
+}
+message CreateClassRuleResponse {
+  ClassRule rule = 1;
+}
+
+message DeleteClassRuleRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteClassRuleResponse {}
+
+// CustomPolicy is a hand-written Cedar text of one or more policies.
+message CustomPolicy {
+  string id = 1;
+  string name = 2;
+  string cedar = 3;
+  bool enabled = 4;
+  string created_by = 5; // empty: the creator was deleted
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message ListCustomPoliciesRequest {}
+message ListCustomPoliciesResponse {
+  repeated CustomPolicy policies = 1;
+}
+
+message CreateCustomPolicyRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  string cedar = 2 [(buf.validate.field).string = {min_bytes: 1, max_bytes: 65536}];
+  bool enabled = 3;
+}
+message CreateCustomPolicyResponse {
+  CustomPolicy policy = 1;
+}
+
+// UpdateCustomPolicyRequest replaces the policy as a whole.
+message UpdateCustomPolicyRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  string cedar = 3 [(buf.validate.field).string = {min_bytes: 1, max_bytes: 65536}];
+  bool enabled = 4;
+}
+message UpdateCustomPolicyResponse {
+  CustomPolicy policy = 1;
+}
+
+message DeleteCustomPolicyRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteCustomPolicyResponse {}
+
+// TestCommandRequest probes a command with the caller's address at the current time.
+message TestCommandRequest {
+  oneof subject {
+    option (buf.validate.oneof).required = true;
+    string user_id = 1 [(buf.validate.field).string.uuid = true];
+    string agent_id = 2 [(buf.validate.field).string.uuid = true]; // stage 12
+  }
+  string resource_id = 3 [(buf.validate.field).string.uuid = true];
+  string command = 4 [(buf.validate.field).string = {min_bytes: 1, max_bytes: 65536}];
+}
+// TestCommandResponse is the exec decision, or the connect decision when connect denies.
+message TestCommandResponse {
+  repeated string classes = 1;
+  bool allow = 2;
+  repeated string reasons = 3;
+  repeated string obligations = 4;
+  string message = 5;
 }

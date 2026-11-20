@@ -13,6 +13,147 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countCommandRuleRefs = `-- name: CountCommandRuleRefs :one
+SELECT (SELECT count(*) FROM resource r WHERE r.org_id = $1 AND r.id = ANY($2::uuid[]))::int AS resources,
+       (SELECT count(*) FROM membership m WHERE m.org_id = $1 AND m.user_id = ANY($3::uuid[]))::int AS users,
+       (SELECT count(*) FROM team t WHERE t.org_id = $1 AND t.id = ANY($4::uuid[]))::int AS teams
+`
+
+type CountCommandRuleRefsParams struct {
+	OrgID       uuid.UUID
+	ResourceIds []uuid.UUID
+	UserIds     []uuid.UUID
+	TeamIds     []uuid.UUID
+}
+
+type CountCommandRuleRefsRow struct {
+	Resources int32
+	Users     int32
+	Teams     int32
+}
+
+// How many of the given ids exist in the organization, one count per kind.
+func (q *Queries) CountCommandRuleRefs(ctx context.Context, arg CountCommandRuleRefsParams) (CountCommandRuleRefsRow, error) {
+	row := q.db.QueryRow(ctx, countCommandRuleRefs,
+		arg.OrgID,
+		arg.ResourceIds,
+		arg.UserIds,
+		arg.TeamIds,
+	)
+	var i CountCommandRuleRefsRow
+	err := row.Scan(&i.Resources, &i.Users, &i.Teams)
+	return i, err
+}
+
+const createClassRule = `-- name: CreateClassRule :one
+INSERT INTO command_class_rule (org_id, pattern, classes, created_by) VALUES ($1, $2, $3, $4)
+RETURNING id, org_id, pattern, classes, created_by, created_at
+`
+
+type CreateClassRuleParams struct {
+	OrgID     uuid.UUID
+	Pattern   string
+	Classes   []string
+	CreatedBy *uuid.UUID
+}
+
+func (q *Queries) CreateClassRule(ctx context.Context, arg CreateClassRuleParams) (CommandClassRule, error) {
+	row := q.db.QueryRow(ctx, createClassRule,
+		arg.OrgID,
+		arg.Pattern,
+		arg.Classes,
+		arg.CreatedBy,
+	)
+	var i CommandClassRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Pattern,
+		&i.Classes,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createCommandRule = `-- name: CreateCommandRule :one
+INSERT INTO command_rule (org_id, name, subjects, resource_selector, classes, effect, message, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, org_id, name, subjects, resource_selector, classes, effect, message, created_by, created_at
+`
+
+type CreateCommandRuleParams struct {
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Classes          []string
+	Effect           string
+	Message          string
+	CreatedBy        *uuid.UUID
+}
+
+func (q *Queries) CreateCommandRule(ctx context.Context, arg CreateCommandRuleParams) (CommandRule, error) {
+	row := q.db.QueryRow(ctx, createCommandRule,
+		arg.OrgID,
+		arg.Name,
+		arg.Subjects,
+		arg.ResourceSelector,
+		arg.Classes,
+		arg.Effect,
+		arg.Message,
+		arg.CreatedBy,
+	)
+	var i CommandRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.Classes,
+		&i.Effect,
+		&i.Message,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createCustomPolicy = `-- name: CreateCustomPolicy :one
+INSERT INTO custom_policy (org_id, name, cedar, enabled, created_by) VALUES ($1, $2, $3, $4, $5)
+RETURNING id, org_id, name, cedar, enabled, created_by, updated_at
+`
+
+type CreateCustomPolicyParams struct {
+	OrgID     uuid.UUID
+	Name      string
+	Cedar     string
+	Enabled   bool
+	CreatedBy *uuid.UUID
+}
+
+func (q *Queries) CreateCustomPolicy(ctx context.Context, arg CreateCustomPolicyParams) (CustomPolicy, error) {
+	row := q.db.QueryRow(ctx, createCustomPolicy,
+		arg.OrgID,
+		arg.Name,
+		arg.Cedar,
+		arg.Enabled,
+		arg.CreatedBy,
+	)
+	var i CustomPolicy
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Cedar,
+		&i.Enabled,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteBlocklistSource = `-- name: DeleteBlocklistSource :exec
 DELETE FROM ip_blocklist WHERE source = $1
 `
@@ -20,6 +161,56 @@ DELETE FROM ip_blocklist WHERE source = $1
 func (q *Queries) DeleteBlocklistSource(ctx context.Context, source string) error {
 	_, err := q.db.Exec(ctx, deleteBlocklistSource, source)
 	return err
+}
+
+const deleteClassRule = `-- name: DeleteClassRule :one
+DELETE FROM command_class_rule WHERE org_id = $1 AND id = $2 RETURNING id, org_id, pattern, classes, created_by, created_at
+`
+
+type DeleteClassRuleParams struct {
+	OrgID uuid.UUID
+	ID    uuid.UUID
+}
+
+func (q *Queries) DeleteClassRule(ctx context.Context, arg DeleteClassRuleParams) (CommandClassRule, error) {
+	row := q.db.QueryRow(ctx, deleteClassRule, arg.OrgID, arg.ID)
+	var i CommandClassRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Pattern,
+		&i.Classes,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const deleteCommandRule = `-- name: DeleteCommandRule :one
+DELETE FROM command_rule WHERE org_id = $1 AND id = $2 RETURNING id, org_id, name, subjects, resource_selector, classes, effect, message, created_by, created_at
+`
+
+type DeleteCommandRuleParams struct {
+	OrgID uuid.UUID
+	ID    uuid.UUID
+}
+
+func (q *Queries) DeleteCommandRule(ctx context.Context, arg DeleteCommandRuleParams) (CommandRule, error) {
+	row := q.db.QueryRow(ctx, deleteCommandRule, arg.OrgID, arg.ID)
+	var i CommandRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.Classes,
+		&i.Effect,
+		&i.Message,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const deleteCountryRules = `-- name: DeleteCountryRules :exec
@@ -34,6 +225,30 @@ type DeleteCountryRulesParams struct {
 func (q *Queries) DeleteCountryRules(ctx context.Context, arg DeleteCountryRulesParams) error {
 	_, err := q.db.Exec(ctx, deleteCountryRules, arg.OrgID, arg.ResourceID)
 	return err
+}
+
+const deleteCustomPolicy = `-- name: DeleteCustomPolicy :one
+DELETE FROM custom_policy WHERE org_id = $1 AND id = $2 RETURNING id, org_id, name, cedar, enabled, created_by, updated_at
+`
+
+type DeleteCustomPolicyParams struct {
+	OrgID uuid.UUID
+	ID    uuid.UUID
+}
+
+func (q *Queries) DeleteCustomPolicy(ctx context.Context, arg DeleteCustomPolicyParams) (CustomPolicy, error) {
+	row := q.db.QueryRow(ctx, deleteCustomPolicy, arg.OrgID, arg.ID)
+	var i CustomPolicy
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Cedar,
+		&i.Enabled,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const deleteNetworkRules = `-- name: DeleteNetworkRules :exec
@@ -160,6 +375,22 @@ func (q *Queries) InsertSlot(ctx context.Context, arg InsertSlotParams) error {
 	return err
 }
 
+const isMember = `-- name: IsMember :one
+SELECT EXISTS (SELECT 1 FROM membership WHERE org_id = $1 AND user_id = $2)
+`
+
+type IsMemberParams struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) IsMember(ctx context.Context, arg IsMemberParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isMember, arg.OrgID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const listBlocklist = `-- name: ListBlocklist :many
 SELECT cidr FROM ip_blocklist ORDER BY cidr
 `
@@ -177,6 +408,72 @@ func (q *Queries) ListBlocklist(ctx context.Context) ([]netip.Prefix, error) {
 			return nil, err
 		}
 		items = append(items, cidr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listClassRules = `-- name: ListClassRules :many
+SELECT id, org_id, pattern, classes, created_by, created_at FROM command_class_rule WHERE org_id = $1 ORDER BY pattern
+`
+
+func (q *Queries) ListClassRules(ctx context.Context, orgID uuid.UUID) ([]CommandClassRule, error) {
+	rows, err := q.db.Query(ctx, listClassRules, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CommandClassRule
+	for rows.Next() {
+		var i CommandClassRule
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Pattern,
+			&i.Classes,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCommandRules = `-- name: ListCommandRules :many
+SELECT id, org_id, name, subjects, resource_selector, classes, effect, message, created_by, created_at FROM command_rule WHERE org_id = $1 ORDER BY name
+`
+
+func (q *Queries) ListCommandRules(ctx context.Context, orgID uuid.UUID) ([]CommandRule, error) {
+	rows, err := q.db.Query(ctx, listCommandRules, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CommandRule
+	for rows.Next() {
+		var i CommandRule
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.Subjects,
+			&i.ResourceSelector,
+			&i.Classes,
+			&i.Effect,
+			&i.Message,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -211,6 +508,38 @@ func (q *Queries) ListCountryRules(ctx context.Context, arg ListCountryRulesPara
 	for rows.Next() {
 		var i ListCountryRulesRow
 		if err := rows.Scan(&i.ResourceID, &i.Country, &i.Effect); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCustomPolicies = `-- name: ListCustomPolicies :many
+SELECT id, org_id, name, cedar, enabled, created_by, updated_at FROM custom_policy WHERE org_id = $1 ORDER BY name
+`
+
+func (q *Queries) ListCustomPolicies(ctx context.Context, orgID uuid.UUID) ([]CustomPolicy, error) {
+	rows, err := q.db.Query(ctx, listCustomPolicies, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CustomPolicy
+	for rows.Next() {
+		var i CustomPolicy
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.Cedar,
+			&i.Enabled,
+			&i.CreatedBy,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -308,6 +637,86 @@ func (q *Queries) NotifyGeoIPChanged(ctx context.Context) error {
 type ReplaceBlocklistParams struct {
 	Cidr   netip.Prefix
 	Source string
+}
+
+const updateCommandRule = `-- name: UpdateCommandRule :one
+UPDATE command_rule SET name = $1, subjects = $2, resource_selector = $3, classes = $4,
+    effect = $5, message = $6
+WHERE org_id = $7 AND id = $8
+RETURNING id, org_id, name, subjects, resource_selector, classes, effect, message, created_by, created_at
+`
+
+type UpdateCommandRuleParams struct {
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Classes          []string
+	Effect           string
+	Message          string
+	OrgID            uuid.UUID
+	ID               uuid.UUID
+}
+
+func (q *Queries) UpdateCommandRule(ctx context.Context, arg UpdateCommandRuleParams) (CommandRule, error) {
+	row := q.db.QueryRow(ctx, updateCommandRule,
+		arg.Name,
+		arg.Subjects,
+		arg.ResourceSelector,
+		arg.Classes,
+		arg.Effect,
+		arg.Message,
+		arg.OrgID,
+		arg.ID,
+	)
+	var i CommandRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.Classes,
+		&i.Effect,
+		&i.Message,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateCustomPolicy = `-- name: UpdateCustomPolicy :one
+UPDATE custom_policy SET name = $1, cedar = $2, enabled = $3, updated_at = now()
+WHERE org_id = $4 AND id = $5
+RETURNING id, org_id, name, cedar, enabled, created_by, updated_at
+`
+
+type UpdateCustomPolicyParams struct {
+	Name    string
+	Cedar   string
+	Enabled bool
+	OrgID   uuid.UUID
+	ID      uuid.UUID
+}
+
+func (q *Queries) UpdateCustomPolicy(ctx context.Context, arg UpdateCustomPolicyParams) (CustomPolicy, error) {
+	row := q.db.QueryRow(ctx, updateCustomPolicy,
+		arg.Name,
+		arg.Cedar,
+		arg.Enabled,
+		arg.OrgID,
+		arg.ID,
+	)
+	var i CustomPolicy
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Cedar,
+		&i.Enabled,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const upsertGeoIP = `-- name: UpsertGeoIP :exec

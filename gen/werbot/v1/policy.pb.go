@@ -518,11 +518,1517 @@ func (x *CheckAccessResponse) GetReasons() []string {
 	return nil
 }
 
+// CommandRule allows, denies or asks approval for command classes.
+type CommandRule struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name             string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Subjects         *Subjects              `protobuf:"bytes,3,opt,name=subjects,proto3" json:"subjects,omitempty"`
+	ResourceSelector *ResourceSelector      `protobuf:"bytes,4,opt,name=resource_selector,json=resourceSelector,proto3" json:"resource_selector,omitempty"`
+	Classes          []string               `protobuf:"bytes,5,rep,name=classes,proto3" json:"classes,omitempty"`
+	Effect           string                 `protobuf:"bytes,6,opt,name=effect,proto3" json:"effect,omitempty"` // "allow" | "deny" | "approval"
+	Message          string                 `protobuf:"bytes,7,opt,name=message,proto3" json:"message,omitempty"`
+	CreatedBy        string                 `protobuf:"bytes,8,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"` // empty: the creator was deleted
+	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CommandRule) Reset() {
+	*x = CommandRule{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommandRule) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommandRule) ProtoMessage() {}
+
+func (x *CommandRule) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommandRule.ProtoReflect.Descriptor instead.
+func (*CommandRule) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CommandRule) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *CommandRule) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CommandRule) GetSubjects() *Subjects {
+	if x != nil {
+		return x.Subjects
+	}
+	return nil
+}
+
+func (x *CommandRule) GetResourceSelector() *ResourceSelector {
+	if x != nil {
+		return x.ResourceSelector
+	}
+	return nil
+}
+
+func (x *CommandRule) GetClasses() []string {
+	if x != nil {
+		return x.Classes
+	}
+	return nil
+}
+
+func (x *CommandRule) GetEffect() string {
+	if x != nil {
+		return x.Effect
+	}
+	return ""
+}
+
+func (x *CommandRule) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *CommandRule) GetCreatedBy() string {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return ""
+}
+
+func (x *CommandRule) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+type ListCommandRulesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCommandRulesRequest) Reset() {
+	*x = ListCommandRulesRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCommandRulesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCommandRulesRequest) ProtoMessage() {}
+
+func (x *ListCommandRulesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCommandRulesRequest.ProtoReflect.Descriptor instead.
+func (*ListCommandRulesRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{10}
+}
+
+type ListCommandRulesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rules         []*CommandRule         `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCommandRulesResponse) Reset() {
+	*x = ListCommandRulesResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCommandRulesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCommandRulesResponse) ProtoMessage() {}
+
+func (x *ListCommandRulesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCommandRulesResponse.ProtoReflect.Descriptor instead.
+func (*ListCommandRulesResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListCommandRulesResponse) GetRules() []*CommandRule {
+	if x != nil {
+		return x.Rules
+	}
+	return nil
+}
+
+type CreateCommandRuleRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Name             string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Subjects         *Subjects              `protobuf:"bytes,2,opt,name=subjects,proto3" json:"subjects,omitempty"`
+	ResourceSelector *ResourceSelector      `protobuf:"bytes,3,opt,name=resource_selector,json=resourceSelector,proto3" json:"resource_selector,omitempty"`
+	Classes          []string               `protobuf:"bytes,4,rep,name=classes,proto3" json:"classes,omitempty"`
+	Effect           string                 `protobuf:"bytes,5,opt,name=effect,proto3" json:"effect,omitempty"`
+	Message          string                 `protobuf:"bytes,6,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CreateCommandRuleRequest) Reset() {
+	*x = CreateCommandRuleRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateCommandRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateCommandRuleRequest) ProtoMessage() {}
+
+func (x *CreateCommandRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateCommandRuleRequest.ProtoReflect.Descriptor instead.
+func (*CreateCommandRuleRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *CreateCommandRuleRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateCommandRuleRequest) GetSubjects() *Subjects {
+	if x != nil {
+		return x.Subjects
+	}
+	return nil
+}
+
+func (x *CreateCommandRuleRequest) GetResourceSelector() *ResourceSelector {
+	if x != nil {
+		return x.ResourceSelector
+	}
+	return nil
+}
+
+func (x *CreateCommandRuleRequest) GetClasses() []string {
+	if x != nil {
+		return x.Classes
+	}
+	return nil
+}
+
+func (x *CreateCommandRuleRequest) GetEffect() string {
+	if x != nil {
+		return x.Effect
+	}
+	return ""
+}
+
+func (x *CreateCommandRuleRequest) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type CreateCommandRuleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rule          *CommandRule           `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateCommandRuleResponse) Reset() {
+	*x = CreateCommandRuleResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateCommandRuleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateCommandRuleResponse) ProtoMessage() {}
+
+func (x *CreateCommandRuleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateCommandRuleResponse.ProtoReflect.Descriptor instead.
+func (*CreateCommandRuleResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CreateCommandRuleResponse) GetRule() *CommandRule {
+	if x != nil {
+		return x.Rule
+	}
+	return nil
+}
+
+// UpdateCommandRuleRequest replaces the rule as a whole.
+type UpdateCommandRuleRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name             string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Subjects         *Subjects              `protobuf:"bytes,3,opt,name=subjects,proto3" json:"subjects,omitempty"`
+	ResourceSelector *ResourceSelector      `protobuf:"bytes,4,opt,name=resource_selector,json=resourceSelector,proto3" json:"resource_selector,omitempty"`
+	Classes          []string               `protobuf:"bytes,5,rep,name=classes,proto3" json:"classes,omitempty"`
+	Effect           string                 `protobuf:"bytes,6,opt,name=effect,proto3" json:"effect,omitempty"`
+	Message          string                 `protobuf:"bytes,7,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *UpdateCommandRuleRequest) Reset() {
+	*x = UpdateCommandRuleRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateCommandRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateCommandRuleRequest) ProtoMessage() {}
+
+func (x *UpdateCommandRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateCommandRuleRequest.ProtoReflect.Descriptor instead.
+func (*UpdateCommandRuleRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UpdateCommandRuleRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateCommandRuleRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateCommandRuleRequest) GetSubjects() *Subjects {
+	if x != nil {
+		return x.Subjects
+	}
+	return nil
+}
+
+func (x *UpdateCommandRuleRequest) GetResourceSelector() *ResourceSelector {
+	if x != nil {
+		return x.ResourceSelector
+	}
+	return nil
+}
+
+func (x *UpdateCommandRuleRequest) GetClasses() []string {
+	if x != nil {
+		return x.Classes
+	}
+	return nil
+}
+
+func (x *UpdateCommandRuleRequest) GetEffect() string {
+	if x != nil {
+		return x.Effect
+	}
+	return ""
+}
+
+func (x *UpdateCommandRuleRequest) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type UpdateCommandRuleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rule          *CommandRule           `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateCommandRuleResponse) Reset() {
+	*x = UpdateCommandRuleResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateCommandRuleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateCommandRuleResponse) ProtoMessage() {}
+
+func (x *UpdateCommandRuleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateCommandRuleResponse.ProtoReflect.Descriptor instead.
+func (*UpdateCommandRuleResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *UpdateCommandRuleResponse) GetRule() *CommandRule {
+	if x != nil {
+		return x.Rule
+	}
+	return nil
+}
+
+type DeleteCommandRuleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteCommandRuleRequest) Reset() {
+	*x = DeleteCommandRuleRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCommandRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCommandRuleRequest) ProtoMessage() {}
+
+func (x *DeleteCommandRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteCommandRuleRequest.ProtoReflect.Descriptor instead.
+func (*DeleteCommandRuleRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *DeleteCommandRuleRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteCommandRuleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteCommandRuleResponse) Reset() {
+	*x = DeleteCommandRuleResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCommandRuleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCommandRuleResponse) ProtoMessage() {}
+
+func (x *DeleteCommandRuleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteCommandRuleResponse.ProtoReflect.Descriptor instead.
+func (*DeleteCommandRuleResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{17}
+}
+
+// ClassRule gives commands matching pattern (a glob over the normalized
+// command name, optionally followed by an argument prefix) the classes.
+type ClassRule struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Pattern       string                 `protobuf:"bytes,2,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	Classes       []string               `protobuf:"bytes,3,rep,name=classes,proto3" json:"classes,omitempty"`
+	CreatedBy     string                 `protobuf:"bytes,4,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"` // empty: the creator was deleted
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClassRule) Reset() {
+	*x = ClassRule{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClassRule) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClassRule) ProtoMessage() {}
+
+func (x *ClassRule) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClassRule.ProtoReflect.Descriptor instead.
+func (*ClassRule) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ClassRule) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ClassRule) GetPattern() string {
+	if x != nil {
+		return x.Pattern
+	}
+	return ""
+}
+
+func (x *ClassRule) GetClasses() []string {
+	if x != nil {
+		return x.Classes
+	}
+	return nil
+}
+
+func (x *ClassRule) GetCreatedBy() string {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return ""
+}
+
+func (x *ClassRule) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+type ListClassRulesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListClassRulesRequest) Reset() {
+	*x = ListClassRulesRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListClassRulesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListClassRulesRequest) ProtoMessage() {}
+
+func (x *ListClassRulesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListClassRulesRequest.ProtoReflect.Descriptor instead.
+func (*ListClassRulesRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{19}
+}
+
+type ListClassRulesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rules         []*ClassRule           `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListClassRulesResponse) Reset() {
+	*x = ListClassRulesResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListClassRulesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListClassRulesResponse) ProtoMessage() {}
+
+func (x *ListClassRulesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListClassRulesResponse.ProtoReflect.Descriptor instead.
+func (*ListClassRulesResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *ListClassRulesResponse) GetRules() []*ClassRule {
+	if x != nil {
+		return x.Rules
+	}
+	return nil
+}
+
+type CreateClassRuleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pattern       string                 `protobuf:"bytes,1,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	Classes       []string               `protobuf:"bytes,2,rep,name=classes,proto3" json:"classes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateClassRuleRequest) Reset() {
+	*x = CreateClassRuleRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateClassRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateClassRuleRequest) ProtoMessage() {}
+
+func (x *CreateClassRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateClassRuleRequest.ProtoReflect.Descriptor instead.
+func (*CreateClassRuleRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *CreateClassRuleRequest) GetPattern() string {
+	if x != nil {
+		return x.Pattern
+	}
+	return ""
+}
+
+func (x *CreateClassRuleRequest) GetClasses() []string {
+	if x != nil {
+		return x.Classes
+	}
+	return nil
+}
+
+type CreateClassRuleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rule          *ClassRule             `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateClassRuleResponse) Reset() {
+	*x = CreateClassRuleResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateClassRuleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateClassRuleResponse) ProtoMessage() {}
+
+func (x *CreateClassRuleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateClassRuleResponse.ProtoReflect.Descriptor instead.
+func (*CreateClassRuleResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *CreateClassRuleResponse) GetRule() *ClassRule {
+	if x != nil {
+		return x.Rule
+	}
+	return nil
+}
+
+type DeleteClassRuleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteClassRuleRequest) Reset() {
+	*x = DeleteClassRuleRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteClassRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteClassRuleRequest) ProtoMessage() {}
+
+func (x *DeleteClassRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteClassRuleRequest.ProtoReflect.Descriptor instead.
+func (*DeleteClassRuleRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *DeleteClassRuleRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteClassRuleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteClassRuleResponse) Reset() {
+	*x = DeleteClassRuleResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteClassRuleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteClassRuleResponse) ProtoMessage() {}
+
+func (x *DeleteClassRuleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteClassRuleResponse.ProtoReflect.Descriptor instead.
+func (*DeleteClassRuleResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{24}
+}
+
+// CustomPolicy is a hand-written Cedar text of one or more policies.
+type CustomPolicy struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Cedar         string                 `protobuf:"bytes,3,opt,name=cedar,proto3" json:"cedar,omitempty"`
+	Enabled       bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	CreatedBy     string                 `protobuf:"bytes,5,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"` // empty: the creator was deleted
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CustomPolicy) Reset() {
+	*x = CustomPolicy{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CustomPolicy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CustomPolicy) ProtoMessage() {}
+
+func (x *CustomPolicy) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CustomPolicy.ProtoReflect.Descriptor instead.
+func (*CustomPolicy) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *CustomPolicy) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *CustomPolicy) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CustomPolicy) GetCedar() string {
+	if x != nil {
+		return x.Cedar
+	}
+	return ""
+}
+
+func (x *CustomPolicy) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *CustomPolicy) GetCreatedBy() string {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return ""
+}
+
+func (x *CustomPolicy) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type ListCustomPoliciesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCustomPoliciesRequest) Reset() {
+	*x = ListCustomPoliciesRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCustomPoliciesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCustomPoliciesRequest) ProtoMessage() {}
+
+func (x *ListCustomPoliciesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCustomPoliciesRequest.ProtoReflect.Descriptor instead.
+func (*ListCustomPoliciesRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{26}
+}
+
+type ListCustomPoliciesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Policies      []*CustomPolicy        `protobuf:"bytes,1,rep,name=policies,proto3" json:"policies,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCustomPoliciesResponse) Reset() {
+	*x = ListCustomPoliciesResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCustomPoliciesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCustomPoliciesResponse) ProtoMessage() {}
+
+func (x *ListCustomPoliciesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCustomPoliciesResponse.ProtoReflect.Descriptor instead.
+func (*ListCustomPoliciesResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ListCustomPoliciesResponse) GetPolicies() []*CustomPolicy {
+	if x != nil {
+		return x.Policies
+	}
+	return nil
+}
+
+type CreateCustomPolicyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Cedar         string                 `protobuf:"bytes,2,opt,name=cedar,proto3" json:"cedar,omitempty"`
+	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateCustomPolicyRequest) Reset() {
+	*x = CreateCustomPolicyRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateCustomPolicyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateCustomPolicyRequest) ProtoMessage() {}
+
+func (x *CreateCustomPolicyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateCustomPolicyRequest.ProtoReflect.Descriptor instead.
+func (*CreateCustomPolicyRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *CreateCustomPolicyRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateCustomPolicyRequest) GetCedar() string {
+	if x != nil {
+		return x.Cedar
+	}
+	return ""
+}
+
+func (x *CreateCustomPolicyRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+type CreateCustomPolicyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Policy        *CustomPolicy          `protobuf:"bytes,1,opt,name=policy,proto3" json:"policy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateCustomPolicyResponse) Reset() {
+	*x = CreateCustomPolicyResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateCustomPolicyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateCustomPolicyResponse) ProtoMessage() {}
+
+func (x *CreateCustomPolicyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateCustomPolicyResponse.ProtoReflect.Descriptor instead.
+func (*CreateCustomPolicyResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *CreateCustomPolicyResponse) GetPolicy() *CustomPolicy {
+	if x != nil {
+		return x.Policy
+	}
+	return nil
+}
+
+// UpdateCustomPolicyRequest replaces the policy as a whole.
+type UpdateCustomPolicyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Cedar         string                 `protobuf:"bytes,3,opt,name=cedar,proto3" json:"cedar,omitempty"`
+	Enabled       bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateCustomPolicyRequest) Reset() {
+	*x = UpdateCustomPolicyRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateCustomPolicyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateCustomPolicyRequest) ProtoMessage() {}
+
+func (x *UpdateCustomPolicyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateCustomPolicyRequest.ProtoReflect.Descriptor instead.
+func (*UpdateCustomPolicyRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *UpdateCustomPolicyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateCustomPolicyRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateCustomPolicyRequest) GetCedar() string {
+	if x != nil {
+		return x.Cedar
+	}
+	return ""
+}
+
+func (x *UpdateCustomPolicyRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+type UpdateCustomPolicyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Policy        *CustomPolicy          `protobuf:"bytes,1,opt,name=policy,proto3" json:"policy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateCustomPolicyResponse) Reset() {
+	*x = UpdateCustomPolicyResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateCustomPolicyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateCustomPolicyResponse) ProtoMessage() {}
+
+func (x *UpdateCustomPolicyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateCustomPolicyResponse.ProtoReflect.Descriptor instead.
+func (*UpdateCustomPolicyResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *UpdateCustomPolicyResponse) GetPolicy() *CustomPolicy {
+	if x != nil {
+		return x.Policy
+	}
+	return nil
+}
+
+type DeleteCustomPolicyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteCustomPolicyRequest) Reset() {
+	*x = DeleteCustomPolicyRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCustomPolicyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCustomPolicyRequest) ProtoMessage() {}
+
+func (x *DeleteCustomPolicyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteCustomPolicyRequest.ProtoReflect.Descriptor instead.
+func (*DeleteCustomPolicyRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *DeleteCustomPolicyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteCustomPolicyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteCustomPolicyResponse) Reset() {
+	*x = DeleteCustomPolicyResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCustomPolicyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCustomPolicyResponse) ProtoMessage() {}
+
+func (x *DeleteCustomPolicyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteCustomPolicyResponse.ProtoReflect.Descriptor instead.
+func (*DeleteCustomPolicyResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{33}
+}
+
+// TestCommandRequest probes a command with the caller's address at the current time.
+type TestCommandRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Subject:
+	//
+	//	*TestCommandRequest_UserId
+	//	*TestCommandRequest_AgentId
+	Subject       isTestCommandRequest_Subject `protobuf_oneof:"subject"`
+	ResourceId    string                       `protobuf:"bytes,3,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	Command       string                       `protobuf:"bytes,4,opt,name=command,proto3" json:"command,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestCommandRequest) Reset() {
+	*x = TestCommandRequest{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestCommandRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestCommandRequest) ProtoMessage() {}
+
+func (x *TestCommandRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestCommandRequest.ProtoReflect.Descriptor instead.
+func (*TestCommandRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *TestCommandRequest) GetSubject() isTestCommandRequest_Subject {
+	if x != nil {
+		return x.Subject
+	}
+	return nil
+}
+
+func (x *TestCommandRequest) GetUserId() string {
+	if x != nil {
+		if x, ok := x.Subject.(*TestCommandRequest_UserId); ok {
+			return x.UserId
+		}
+	}
+	return ""
+}
+
+func (x *TestCommandRequest) GetAgentId() string {
+	if x != nil {
+		if x, ok := x.Subject.(*TestCommandRequest_AgentId); ok {
+			return x.AgentId
+		}
+	}
+	return ""
+}
+
+func (x *TestCommandRequest) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *TestCommandRequest) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+type isTestCommandRequest_Subject interface {
+	isTestCommandRequest_Subject()
+}
+
+type TestCommandRequest_UserId struct {
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3,oneof"`
+}
+
+type TestCommandRequest_AgentId struct {
+	AgentId string `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3,oneof"` // stage 12
+}
+
+func (*TestCommandRequest_UserId) isTestCommandRequest_Subject() {}
+
+func (*TestCommandRequest_AgentId) isTestCommandRequest_Subject() {}
+
+// TestCommandResponse is the exec decision, or the connect decision when connect denies.
+type TestCommandResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Classes       []string               `protobuf:"bytes,1,rep,name=classes,proto3" json:"classes,omitempty"`
+	Allow         bool                   `protobuf:"varint,2,opt,name=allow,proto3" json:"allow,omitempty"`
+	Reasons       []string               `protobuf:"bytes,3,rep,name=reasons,proto3" json:"reasons,omitempty"`
+	Obligations   []string               `protobuf:"bytes,4,rep,name=obligations,proto3" json:"obligations,omitempty"`
+	Message       string                 `protobuf:"bytes,5,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestCommandResponse) Reset() {
+	*x = TestCommandResponse{}
+	mi := &file_werbot_v1_policy_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestCommandResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestCommandResponse) ProtoMessage() {}
+
+func (x *TestCommandResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_policy_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestCommandResponse.ProtoReflect.Descriptor instead.
+func (*TestCommandResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_policy_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *TestCommandResponse) GetClasses() []string {
+	if x != nil {
+		return x.Classes
+	}
+	return nil
+}
+
+func (x *TestCommandResponse) GetAllow() bool {
+	if x != nil {
+		return x.Allow
+	}
+	return false
+}
+
+func (x *TestCommandResponse) GetReasons() []string {
+	if x != nil {
+		return x.Reasons
+	}
+	return nil
+}
+
+func (x *TestCommandResponse) GetObligations() []string {
+	if x != nil {
+		return x.Obligations
+	}
+	return nil
+}
+
+func (x *TestCommandResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_werbot_v1_policy_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_policy_proto_rawDesc = "" +
 	"\n" +
-	"\x16werbot/v1/policy.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"9\n" +
+	"\x16werbot/v1/policy.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x18werbot/v1/selector.proto\"9\n" +
 	"\vNetworkRule\x12\x12\n" +
 	"\x04cidr\x18\x01 \x01(\tR\x04cidr\x12\x16\n" +
 	"\x06effect\x18\x02 \x01(\tR\x06effect\"?\n" +
@@ -555,11 +2061,122 @@ const file_werbot_v1_policy_proto_rawDesc = "" +
 	"\x04port\x18\x05 \x01(\rB\t\xbaH\x06*\x04\x18\xff\xff\x03R\x04port\"E\n" +
 	"\x13CheckAccessResponse\x12\x14\n" +
 	"\x05allow\x18\x01 \x01(\bR\x05allow\x12\x18\n" +
-	"\areasons\x18\x02 \x03(\tR\areasons2\x97\x02\n" +
+	"\areasons\x18\x02 \x03(\tR\areasons\"\xd2\x02\n" +
+	"\vCommandRule\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12/\n" +
+	"\bsubjects\x18\x03 \x01(\v2\x13.werbot.v1.SubjectsR\bsubjects\x12H\n" +
+	"\x11resource_selector\x18\x04 \x01(\v2\x1b.werbot.v1.ResourceSelectorR\x10resourceSelector\x12\x18\n" +
+	"\aclasses\x18\x05 \x03(\tR\aclasses\x12\x16\n" +
+	"\x06effect\x18\x06 \x01(\tR\x06effect\x12\x18\n" +
+	"\amessage\x18\a \x01(\tR\amessage\x12\x1d\n" +
+	"\n" +
+	"created_by\x18\b \x01(\tR\tcreatedBy\x129\n" +
+	"\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x19\n" +
+	"\x17ListCommandRulesRequest\"H\n" +
+	"\x18ListCommandRulesResponse\x12,\n" +
+	"\x05rules\x18\x01 \x03(\v2\x16.werbot.v1.CommandRuleR\x05rules\"\xf8\x02\n" +
+	"\x18CreateCommandRuleRequest\x12\x1d\n" +
+	"\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04name\x12/\n" +
+	"\bsubjects\x18\x02 \x01(\v2\x13.werbot.v1.SubjectsR\bsubjects\x12H\n" +
+	"\x11resource_selector\x18\x03 \x01(\v2\x1b.werbot.v1.ResourceSelectorR\x10resourceSelector\x12h\n" +
+	"\aclasses\x18\x04 \x03(\tBN\xbaHK\x92\x01H\b\x01\x10\a\x18\x01\"@r>R\x04readR\x05writeR\vdestructiveR\tprivilegeR\asecretsR\x06egressR\x06opaqueR\aclasses\x124\n" +
+	"\x06effect\x18\x05 \x01(\tB\x1c\xbaH\x19r\x17R\x05allowR\x04denyR\bapprovalR\x06effect\x12\"\n" +
+	"\amessage\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\amessage\"G\n" +
+	"\x19CreateCommandRuleResponse\x12*\n" +
+	"\x04rule\x18\x01 \x01(\v2\x16.werbot.v1.CommandRuleR\x04rule\"\x92\x03\n" +
+	"\x18UpdateCommandRuleRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x1d\n" +
+	"\x04name\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04name\x12/\n" +
+	"\bsubjects\x18\x03 \x01(\v2\x13.werbot.v1.SubjectsR\bsubjects\x12H\n" +
+	"\x11resource_selector\x18\x04 \x01(\v2\x1b.werbot.v1.ResourceSelectorR\x10resourceSelector\x12h\n" +
+	"\aclasses\x18\x05 \x03(\tBN\xbaHK\x92\x01H\b\x01\x10\a\x18\x01\"@r>R\x04readR\x05writeR\vdestructiveR\tprivilegeR\asecretsR\x06egressR\x06opaqueR\aclasses\x124\n" +
+	"\x06effect\x18\x06 \x01(\tB\x1c\xbaH\x19r\x17R\x05allowR\x04denyR\bapprovalR\x06effect\x12\"\n" +
+	"\amessage\x18\a \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\amessage\"G\n" +
+	"\x19UpdateCommandRuleResponse\x12*\n" +
+	"\x04rule\x18\x01 \x01(\v2\x16.werbot.v1.CommandRuleR\x04rule\"4\n" +
+	"\x18DeleteCommandRuleRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\x1b\n" +
+	"\x19DeleteCommandRuleResponse\"\xa9\x01\n" +
+	"\tClassRule\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\apattern\x18\x02 \x01(\tR\apattern\x12\x18\n" +
+	"\aclasses\x18\x03 \x03(\tR\aclasses\x12\x1d\n" +
+	"\n" +
+	"created_by\x18\x04 \x01(\tR\tcreatedBy\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x17\n" +
+	"\x15ListClassRulesRequest\"D\n" +
+	"\x16ListClassRulesResponse\x12*\n" +
+	"\x05rules\x18\x01 \x03(\v2\x14.werbot.v1.ClassRuleR\x05rules\"\xa8\x01\n" +
+	"\x16CreateClassRuleRequest\x12$\n" +
+	"\apattern\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01(\xff\x01R\apattern\x12h\n" +
+	"\aclasses\x18\x02 \x03(\tBN\xbaHK\x92\x01H\b\x01\x10\a\x18\x01\"@r>R\x04readR\x05writeR\vdestructiveR\tprivilegeR\asecretsR\x06egressR\x06opaqueR\aclasses\"C\n" +
+	"\x17CreateClassRuleResponse\x12(\n" +
+	"\x04rule\x18\x01 \x01(\v2\x14.werbot.v1.ClassRuleR\x04rule\"2\n" +
+	"\x16DeleteClassRuleRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\x19\n" +
+	"\x17DeleteClassRuleResponse\"\xbc\x01\n" +
+	"\fCustomPolicy\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05cedar\x18\x03 \x01(\tR\x05cedar\x12\x18\n" +
+	"\aenabled\x18\x04 \x01(\bR\aenabled\x12\x1d\n" +
+	"\n" +
+	"created_by\x18\x05 \x01(\tR\tcreatedBy\x129\n" +
+	"\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x1b\n" +
+	"\x19ListCustomPoliciesRequest\"Q\n" +
+	"\x1aListCustomPoliciesResponse\x123\n" +
+	"\bpolicies\x18\x01 \x03(\v2\x17.werbot.v1.CustomPolicyR\bpolicies\"w\n" +
+	"\x19CreateCustomPolicyRequest\x12\x1d\n" +
+	"\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04name\x12!\n" +
+	"\x05cedar\x18\x02 \x01(\tB\v\xbaH\br\x06 \x01(\x80\x80\x04R\x05cedar\x12\x18\n" +
+	"\aenabled\x18\x03 \x01(\bR\aenabled\"M\n" +
+	"\x1aCreateCustomPolicyResponse\x12/\n" +
+	"\x06policy\x18\x01 \x01(\v2\x17.werbot.v1.CustomPolicyR\x06policy\"\x91\x01\n" +
+	"\x19UpdateCustomPolicyRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x1d\n" +
+	"\x04name\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04name\x12!\n" +
+	"\x05cedar\x18\x03 \x01(\tB\v\xbaH\br\x06 \x01(\x80\x80\x04R\x05cedar\x12\x18\n" +
+	"\aenabled\x18\x04 \x01(\bR\aenabled\"M\n" +
+	"\x1aUpdateCustomPolicyResponse\x12/\n" +
+	"\x06policy\x18\x01 \x01(\v2\x17.werbot.v1.CustomPolicyR\x06policy\"5\n" +
+	"\x19DeleteCustomPolicyRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\x1c\n" +
+	"\x1aDeleteCustomPolicyResponse\"\xc4\x01\n" +
+	"\x12TestCommandRequest\x12#\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x00R\x06userId\x12%\n" +
+	"\bagent_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x00R\aagentId\x12)\n" +
+	"\vresource_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
+	"resourceId\x12%\n" +
+	"\acommand\x18\x04 \x01(\tB\v\xbaH\br\x06 \x01(\x80\x80\x04R\acommandB\x10\n" +
+	"\asubject\x12\x05\xbaH\x02\b\x01\"\x9b\x01\n" +
+	"\x13TestCommandResponse\x12\x18\n" +
+	"\aclasses\x18\x01 \x03(\tR\aclasses\x12\x14\n" +
+	"\x05allow\x18\x02 \x01(\bR\x05allow\x12\x18\n" +
+	"\areasons\x18\x03 \x03(\tR\areasons\x12 \n" +
+	"\vobligations\x18\x04 \x03(\tR\vobligations\x12\x18\n" +
+	"\amessage\x18\x05 \x01(\tR\amessage2\xf9\n" +
+	"\n" +
 	"\rPolicyService\x12[\n" +
 	"\x10GetResourceRules\x12\".werbot.v1.GetResourceRulesRequest\x1a#.werbot.v1.GetResourceRulesResponse\x12[\n" +
 	"\x10SetResourceRules\x12\".werbot.v1.SetResourceRulesRequest\x1a#.werbot.v1.SetResourceRulesResponse\x12L\n" +
-	"\vCheckAccess\x12\x1d.werbot.v1.CheckAccessRequest\x1a\x1e.werbot.v1.CheckAccessResponseB\x92\x01\n" +
+	"\vCheckAccess\x12\x1d.werbot.v1.CheckAccessRequest\x1a\x1e.werbot.v1.CheckAccessResponse\x12[\n" +
+	"\x10ListCommandRules\x12\".werbot.v1.ListCommandRulesRequest\x1a#.werbot.v1.ListCommandRulesResponse\x12^\n" +
+	"\x11CreateCommandRule\x12#.werbot.v1.CreateCommandRuleRequest\x1a$.werbot.v1.CreateCommandRuleResponse\x12^\n" +
+	"\x11UpdateCommandRule\x12#.werbot.v1.UpdateCommandRuleRequest\x1a$.werbot.v1.UpdateCommandRuleResponse\x12^\n" +
+	"\x11DeleteCommandRule\x12#.werbot.v1.DeleteCommandRuleRequest\x1a$.werbot.v1.DeleteCommandRuleResponse\x12U\n" +
+	"\x0eListClassRules\x12 .werbot.v1.ListClassRulesRequest\x1a!.werbot.v1.ListClassRulesResponse\x12X\n" +
+	"\x0fCreateClassRule\x12!.werbot.v1.CreateClassRuleRequest\x1a\".werbot.v1.CreateClassRuleResponse\x12X\n" +
+	"\x0fDeleteClassRule\x12!.werbot.v1.DeleteClassRuleRequest\x1a\".werbot.v1.DeleteClassRuleResponse\x12a\n" +
+	"\x12ListCustomPolicies\x12$.werbot.v1.ListCustomPoliciesRequest\x1a%.werbot.v1.ListCustomPoliciesResponse\x12a\n" +
+	"\x12CreateCustomPolicy\x12$.werbot.v1.CreateCustomPolicyRequest\x1a%.werbot.v1.CreateCustomPolicyResponse\x12a\n" +
+	"\x12UpdateCustomPolicy\x12$.werbot.v1.UpdateCustomPolicyRequest\x1a%.werbot.v1.UpdateCustomPolicyResponse\x12a\n" +
+	"\x12DeleteCustomPolicy\x12$.werbot.v1.DeleteCustomPolicyRequest\x1a%.werbot.v1.DeleteCustomPolicyResponse\x12L\n" +
+	"\vTestCommand\x12\x1d.werbot.v1.TestCommandRequest\x1a\x1e.werbot.v1.TestCommandResponseB\x92\x01\n" +
 	"\rcom.werbot.v1B\vPolicyProtoP\x01Z/github.com/werbot/werbot/gen/werbot/v1;werbotv1\xa2\x02\x03WXX\xaa\x02\tWerbot.V1\xca\x02\tWerbot\\V1\xe2\x02\x15Werbot\\V1\\GPBMetadata\xea\x02\n" +
 	"Werbot::V1b\x06proto3"
 
@@ -575,18 +2192,47 @@ func file_werbot_v1_policy_proto_rawDescGZIP() []byte {
 	return file_werbot_v1_policy_proto_rawDescData
 }
 
-var file_werbot_v1_policy_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_werbot_v1_policy_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_werbot_v1_policy_proto_goTypes = []any{
-	(*NetworkRule)(nil),              // 0: werbot.v1.NetworkRule
-	(*CountryRule)(nil),              // 1: werbot.v1.CountryRule
-	(*ScheduleSlot)(nil),             // 2: werbot.v1.ScheduleSlot
-	(*GetResourceRulesRequest)(nil),  // 3: werbot.v1.GetResourceRulesRequest
-	(*GetResourceRulesResponse)(nil), // 4: werbot.v1.GetResourceRulesResponse
-	(*SetResourceRulesRequest)(nil),  // 5: werbot.v1.SetResourceRulesRequest
-	(*SetResourceRulesResponse)(nil), // 6: werbot.v1.SetResourceRulesResponse
-	(*CheckAccessRequest)(nil),       // 7: werbot.v1.CheckAccessRequest
-	(*CheckAccessResponse)(nil),      // 8: werbot.v1.CheckAccessResponse
-	(*timestamppb.Timestamp)(nil),    // 9: google.protobuf.Timestamp
+	(*NetworkRule)(nil),                // 0: werbot.v1.NetworkRule
+	(*CountryRule)(nil),                // 1: werbot.v1.CountryRule
+	(*ScheduleSlot)(nil),               // 2: werbot.v1.ScheduleSlot
+	(*GetResourceRulesRequest)(nil),    // 3: werbot.v1.GetResourceRulesRequest
+	(*GetResourceRulesResponse)(nil),   // 4: werbot.v1.GetResourceRulesResponse
+	(*SetResourceRulesRequest)(nil),    // 5: werbot.v1.SetResourceRulesRequest
+	(*SetResourceRulesResponse)(nil),   // 6: werbot.v1.SetResourceRulesResponse
+	(*CheckAccessRequest)(nil),         // 7: werbot.v1.CheckAccessRequest
+	(*CheckAccessResponse)(nil),        // 8: werbot.v1.CheckAccessResponse
+	(*CommandRule)(nil),                // 9: werbot.v1.CommandRule
+	(*ListCommandRulesRequest)(nil),    // 10: werbot.v1.ListCommandRulesRequest
+	(*ListCommandRulesResponse)(nil),   // 11: werbot.v1.ListCommandRulesResponse
+	(*CreateCommandRuleRequest)(nil),   // 12: werbot.v1.CreateCommandRuleRequest
+	(*CreateCommandRuleResponse)(nil),  // 13: werbot.v1.CreateCommandRuleResponse
+	(*UpdateCommandRuleRequest)(nil),   // 14: werbot.v1.UpdateCommandRuleRequest
+	(*UpdateCommandRuleResponse)(nil),  // 15: werbot.v1.UpdateCommandRuleResponse
+	(*DeleteCommandRuleRequest)(nil),   // 16: werbot.v1.DeleteCommandRuleRequest
+	(*DeleteCommandRuleResponse)(nil),  // 17: werbot.v1.DeleteCommandRuleResponse
+	(*ClassRule)(nil),                  // 18: werbot.v1.ClassRule
+	(*ListClassRulesRequest)(nil),      // 19: werbot.v1.ListClassRulesRequest
+	(*ListClassRulesResponse)(nil),     // 20: werbot.v1.ListClassRulesResponse
+	(*CreateClassRuleRequest)(nil),     // 21: werbot.v1.CreateClassRuleRequest
+	(*CreateClassRuleResponse)(nil),    // 22: werbot.v1.CreateClassRuleResponse
+	(*DeleteClassRuleRequest)(nil),     // 23: werbot.v1.DeleteClassRuleRequest
+	(*DeleteClassRuleResponse)(nil),    // 24: werbot.v1.DeleteClassRuleResponse
+	(*CustomPolicy)(nil),               // 25: werbot.v1.CustomPolicy
+	(*ListCustomPoliciesRequest)(nil),  // 26: werbot.v1.ListCustomPoliciesRequest
+	(*ListCustomPoliciesResponse)(nil), // 27: werbot.v1.ListCustomPoliciesResponse
+	(*CreateCustomPolicyRequest)(nil),  // 28: werbot.v1.CreateCustomPolicyRequest
+	(*CreateCustomPolicyResponse)(nil), // 29: werbot.v1.CreateCustomPolicyResponse
+	(*UpdateCustomPolicyRequest)(nil),  // 30: werbot.v1.UpdateCustomPolicyRequest
+	(*UpdateCustomPolicyResponse)(nil), // 31: werbot.v1.UpdateCustomPolicyResponse
+	(*DeleteCustomPolicyRequest)(nil),  // 32: werbot.v1.DeleteCustomPolicyRequest
+	(*DeleteCustomPolicyResponse)(nil), // 33: werbot.v1.DeleteCustomPolicyResponse
+	(*TestCommandRequest)(nil),         // 34: werbot.v1.TestCommandRequest
+	(*TestCommandResponse)(nil),        // 35: werbot.v1.TestCommandResponse
+	(*timestamppb.Timestamp)(nil),      // 36: google.protobuf.Timestamp
+	(*Subjects)(nil),                   // 37: werbot.v1.Subjects
+	(*ResourceSelector)(nil),           // 38: werbot.v1.ResourceSelector
 }
 var file_werbot_v1_policy_proto_depIdxs = []int32{
 	0,  // 0: werbot.v1.GetResourceRulesResponse.networks:type_name -> werbot.v1.NetworkRule
@@ -595,18 +2241,59 @@ var file_werbot_v1_policy_proto_depIdxs = []int32{
 	0,  // 3: werbot.v1.SetResourceRulesRequest.networks:type_name -> werbot.v1.NetworkRule
 	1,  // 4: werbot.v1.SetResourceRulesRequest.countries:type_name -> werbot.v1.CountryRule
 	2,  // 5: werbot.v1.SetResourceRulesRequest.schedule:type_name -> werbot.v1.ScheduleSlot
-	9,  // 6: werbot.v1.CheckAccessRequest.time:type_name -> google.protobuf.Timestamp
-	3,  // 7: werbot.v1.PolicyService.GetResourceRules:input_type -> werbot.v1.GetResourceRulesRequest
-	5,  // 8: werbot.v1.PolicyService.SetResourceRules:input_type -> werbot.v1.SetResourceRulesRequest
-	7,  // 9: werbot.v1.PolicyService.CheckAccess:input_type -> werbot.v1.CheckAccessRequest
-	4,  // 10: werbot.v1.PolicyService.GetResourceRules:output_type -> werbot.v1.GetResourceRulesResponse
-	6,  // 11: werbot.v1.PolicyService.SetResourceRules:output_type -> werbot.v1.SetResourceRulesResponse
-	8,  // 12: werbot.v1.PolicyService.CheckAccess:output_type -> werbot.v1.CheckAccessResponse
-	10, // [10:13] is the sub-list for method output_type
-	7,  // [7:10] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	36, // 6: werbot.v1.CheckAccessRequest.time:type_name -> google.protobuf.Timestamp
+	37, // 7: werbot.v1.CommandRule.subjects:type_name -> werbot.v1.Subjects
+	38, // 8: werbot.v1.CommandRule.resource_selector:type_name -> werbot.v1.ResourceSelector
+	36, // 9: werbot.v1.CommandRule.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 10: werbot.v1.ListCommandRulesResponse.rules:type_name -> werbot.v1.CommandRule
+	37, // 11: werbot.v1.CreateCommandRuleRequest.subjects:type_name -> werbot.v1.Subjects
+	38, // 12: werbot.v1.CreateCommandRuleRequest.resource_selector:type_name -> werbot.v1.ResourceSelector
+	9,  // 13: werbot.v1.CreateCommandRuleResponse.rule:type_name -> werbot.v1.CommandRule
+	37, // 14: werbot.v1.UpdateCommandRuleRequest.subjects:type_name -> werbot.v1.Subjects
+	38, // 15: werbot.v1.UpdateCommandRuleRequest.resource_selector:type_name -> werbot.v1.ResourceSelector
+	9,  // 16: werbot.v1.UpdateCommandRuleResponse.rule:type_name -> werbot.v1.CommandRule
+	36, // 17: werbot.v1.ClassRule.created_at:type_name -> google.protobuf.Timestamp
+	18, // 18: werbot.v1.ListClassRulesResponse.rules:type_name -> werbot.v1.ClassRule
+	18, // 19: werbot.v1.CreateClassRuleResponse.rule:type_name -> werbot.v1.ClassRule
+	36, // 20: werbot.v1.CustomPolicy.updated_at:type_name -> google.protobuf.Timestamp
+	25, // 21: werbot.v1.ListCustomPoliciesResponse.policies:type_name -> werbot.v1.CustomPolicy
+	25, // 22: werbot.v1.CreateCustomPolicyResponse.policy:type_name -> werbot.v1.CustomPolicy
+	25, // 23: werbot.v1.UpdateCustomPolicyResponse.policy:type_name -> werbot.v1.CustomPolicy
+	3,  // 24: werbot.v1.PolicyService.GetResourceRules:input_type -> werbot.v1.GetResourceRulesRequest
+	5,  // 25: werbot.v1.PolicyService.SetResourceRules:input_type -> werbot.v1.SetResourceRulesRequest
+	7,  // 26: werbot.v1.PolicyService.CheckAccess:input_type -> werbot.v1.CheckAccessRequest
+	10, // 27: werbot.v1.PolicyService.ListCommandRules:input_type -> werbot.v1.ListCommandRulesRequest
+	12, // 28: werbot.v1.PolicyService.CreateCommandRule:input_type -> werbot.v1.CreateCommandRuleRequest
+	14, // 29: werbot.v1.PolicyService.UpdateCommandRule:input_type -> werbot.v1.UpdateCommandRuleRequest
+	16, // 30: werbot.v1.PolicyService.DeleteCommandRule:input_type -> werbot.v1.DeleteCommandRuleRequest
+	19, // 31: werbot.v1.PolicyService.ListClassRules:input_type -> werbot.v1.ListClassRulesRequest
+	21, // 32: werbot.v1.PolicyService.CreateClassRule:input_type -> werbot.v1.CreateClassRuleRequest
+	23, // 33: werbot.v1.PolicyService.DeleteClassRule:input_type -> werbot.v1.DeleteClassRuleRequest
+	26, // 34: werbot.v1.PolicyService.ListCustomPolicies:input_type -> werbot.v1.ListCustomPoliciesRequest
+	28, // 35: werbot.v1.PolicyService.CreateCustomPolicy:input_type -> werbot.v1.CreateCustomPolicyRequest
+	30, // 36: werbot.v1.PolicyService.UpdateCustomPolicy:input_type -> werbot.v1.UpdateCustomPolicyRequest
+	32, // 37: werbot.v1.PolicyService.DeleteCustomPolicy:input_type -> werbot.v1.DeleteCustomPolicyRequest
+	34, // 38: werbot.v1.PolicyService.TestCommand:input_type -> werbot.v1.TestCommandRequest
+	4,  // 39: werbot.v1.PolicyService.GetResourceRules:output_type -> werbot.v1.GetResourceRulesResponse
+	6,  // 40: werbot.v1.PolicyService.SetResourceRules:output_type -> werbot.v1.SetResourceRulesResponse
+	8,  // 41: werbot.v1.PolicyService.CheckAccess:output_type -> werbot.v1.CheckAccessResponse
+	11, // 42: werbot.v1.PolicyService.ListCommandRules:output_type -> werbot.v1.ListCommandRulesResponse
+	13, // 43: werbot.v1.PolicyService.CreateCommandRule:output_type -> werbot.v1.CreateCommandRuleResponse
+	15, // 44: werbot.v1.PolicyService.UpdateCommandRule:output_type -> werbot.v1.UpdateCommandRuleResponse
+	17, // 45: werbot.v1.PolicyService.DeleteCommandRule:output_type -> werbot.v1.DeleteCommandRuleResponse
+	20, // 46: werbot.v1.PolicyService.ListClassRules:output_type -> werbot.v1.ListClassRulesResponse
+	22, // 47: werbot.v1.PolicyService.CreateClassRule:output_type -> werbot.v1.CreateClassRuleResponse
+	24, // 48: werbot.v1.PolicyService.DeleteClassRule:output_type -> werbot.v1.DeleteClassRuleResponse
+	27, // 49: werbot.v1.PolicyService.ListCustomPolicies:output_type -> werbot.v1.ListCustomPoliciesResponse
+	29, // 50: werbot.v1.PolicyService.CreateCustomPolicy:output_type -> werbot.v1.CreateCustomPolicyResponse
+	31, // 51: werbot.v1.PolicyService.UpdateCustomPolicy:output_type -> werbot.v1.UpdateCustomPolicyResponse
+	33, // 52: werbot.v1.PolicyService.DeleteCustomPolicy:output_type -> werbot.v1.DeleteCustomPolicyResponse
+	35, // 53: werbot.v1.PolicyService.TestCommand:output_type -> werbot.v1.TestCommandResponse
+	39, // [39:54] is the sub-list for method output_type
+	24, // [24:39] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_werbot_v1_policy_proto_init() }
@@ -614,13 +2301,18 @@ func file_werbot_v1_policy_proto_init() {
 	if File_werbot_v1_policy_proto != nil {
 		return
 	}
+	file_werbot_v1_selector_proto_init()
+	file_werbot_v1_policy_proto_msgTypes[34].OneofWrappers = []any{
+		(*TestCommandRequest_UserId)(nil),
+		(*TestCommandRequest_AgentId)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_werbot_v1_policy_proto_rawDesc), len(file_werbot_v1_policy_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
