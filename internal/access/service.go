@@ -28,9 +28,9 @@ func (s *Service) tx(ctx context.Context, orgID, userID uuid.UUID, fn func(Store
 	return dbx.InOrg(ctx, s.pool, orgID, userID, func(tx pgx.Tx) error { return fn(newStore(tx), tx) })
 }
 
-func audit(ctx context.Context, tx pgx.Tx, orgID, actor uuid.UUID, action string, id uuid.UUID, data map[string]any) error {
+func audit(ctx context.Context, tx pgx.Tx, orgID, actor uuid.UUID, action, targetType string, id uuid.UUID, data map[string]any) error {
 	return auditlog.Write(ctx, tx, auditlog.Event{OrgID: &orgID, ActorUserID: &actor, ActorKind: "user",
-		Action: action, TargetType: "access_binding", TargetID: id.String(), IP: clientip.From(ctx), Data: data})
+		Action: action, TargetType: targetType, TargetID: id.String(), IP: clientip.From(ctx), Data: data})
 }
 
 // Create adds a binding. The subject must belong to orgID, the resource too.
@@ -69,7 +69,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 		if len(out.Ports) > 0 {
 			data["ports"] = out.Ports
 		}
-		return audit(ctx, tx, orgID, p.UserID, "access.binding.create", out.ID, data)
+		return audit(ctx, tx, orgID, p.UserID, "access.binding.create", "access_binding", out.ID, data)
 	})
 	switch {
 	case errors.Is(err, pgx.ErrNoRows): // the guarded INSERT matched no subject
@@ -107,7 +107,7 @@ func (s *Service) Delete(ctx context.Context, orgID, id uuid.UUID) error {
 		if len(ports) > 0 {
 			data["ports"] = ports
 		}
-		return audit(ctx, tx, orgID, p.UserID, "access.binding.delete", id, data)
+		return audit(ctx, tx, orgID, p.UserID, "access.binding.delete", "access_binding", id, data)
 	})
 }
 

@@ -1,0 +1,80 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "werbot/v1/selector.proto";
+
+// Approval policies decide who may request access to which resources and who approves; owner and admin only.
+service ApprovalPolicyService {
+  rpc ListApprovalPolicies(ListApprovalPoliciesRequest) returns (ListApprovalPoliciesResponse);
+  rpc CreateApprovalPolicy(CreateApprovalPolicyRequest) returns (CreateApprovalPolicyResponse);
+  rpc UpdateApprovalPolicy(UpdateApprovalPolicyRequest) returns (UpdateApprovalPolicyResponse);
+  rpc DeleteApprovalPolicy(DeleteApprovalPolicyRequest) returns (DeleteApprovalPolicyResponse);
+}
+
+message ApprovalPolicy {
+  string id = 1;
+  string name = 2;
+  ResourceSelector resource_selector = 3;
+  Subjects requesters = 4;
+  // Users and teams only; empty: owner and admin.
+  Subjects approvers = 5;
+  string mode = 6; // "manual" | "auto"
+  google.protobuf.Duration max_duration = 7;
+  bool require_reason = 8;
+  bool four_eyes = 9;
+  bool break_glass = 10;
+  string created_by = 11;
+  google.protobuf.Timestamp created_at = 12;
+}
+
+message ListApprovalPoliciesRequest {}
+message ListApprovalPoliciesResponse {
+  repeated ApprovalPolicy approval_policies = 1;
+}
+
+message CreateApprovalPolicyRequest {
+  string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  ResourceSelector resource_selector = 3;
+  Subjects requesters = 4;
+  Subjects approvers = 5;
+  string mode = 6 [(buf.validate.field).string = {in: ["manual", "auto"]}];
+  // Unset: 8h; 1m to 14d.
+  google.protobuf.Duration max_duration = 7 [(buf.validate.field).duration = {
+    gte: {seconds: 60}
+    lte: {seconds: 1209600}
+  }];
+  bool require_reason = 8;
+  bool four_eyes = 9;
+  bool break_glass = 10;
+}
+message CreateApprovalPolicyResponse {
+  ApprovalPolicy approval_policy = 1;
+}
+
+// UpdateApprovalPolicyRequest replaces the policy as a whole.
+message UpdateApprovalPolicyRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  ResourceSelector resource_selector = 3;
+  Subjects requesters = 4;
+  Subjects approvers = 5;
+  string mode = 6 [(buf.validate.field).string = {in: ["manual", "auto"]}];
+  google.protobuf.Duration max_duration = 7 [(buf.validate.field).duration = {
+    gte: {seconds: 60}
+    lte: {seconds: 1209600}
+  }];
+  bool require_reason = 8;
+  bool four_eyes = 9;
+  bool break_glass = 10;
+}
+message UpdateApprovalPolicyResponse {
+  ApprovalPolicy approval_policy = 1;
+}
+
+message DeleteApprovalPolicyRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteApprovalPolicyResponse {}

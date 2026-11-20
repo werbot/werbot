@@ -3,9 +3,11 @@ package app
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"buf.build/go/protovalidate"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
@@ -69,4 +71,33 @@ func TestRequestValidation(t *testing.T) {
 	assert.Error(t, protovalidate.Validate(&werbotv1.UpdateGatewayRequest{Id: "x"}))
 	assert.Error(t, protovalidate.Validate(&werbotv1.UpdateGatewayRequest{Id: id, SshAddress: strings.Repeat("a", 301)}))
 	assert.NoError(t, protovalidate.Validate(&werbotv1.ListAccessibleResourcesRequest{}))
+
+	// ApprovalPolicyService (stage 10)
+	sel := &werbotv1.ResourceSelector{Labels: map[string]string{"env": "prod"}}
+	create := func(mut func(*werbotv1.CreateApprovalPolicyRequest)) *werbotv1.CreateApprovalPolicyRequest {
+		r := &werbotv1.CreateApprovalPolicyRequest{Name: "prod", Mode: "manual", ResourceSelector: sel, Requesters: &werbotv1.Subjects{AllUsers: true}}
+		mut(r)
+		return r
+	}
+	assert.NoError(t, protovalidate.Validate(create(func(*werbotv1.CreateApprovalPolicyRequest) {})))
+	assert.NoError(t, protovalidate.Validate(create(func(r *werbotv1.CreateApprovalPolicyRequest) { r.MaxDuration = durationpb.New(14 * 24 * time.Hour) })))
+	assert.Error(t, protovalidate.Validate(create(func(r *werbotv1.CreateApprovalPolicyRequest) { r.MaxDuration = durationpb.New(15 * 24 * time.Hour) })))
+	assert.Error(t, protovalidate.Validate(create(func(r *werbotv1.CreateApprovalPolicyRequest) { r.MaxDuration = durationpb.New(30 * time.Second) })))
+	assert.Error(t, protovalidate.Validate(create(func(r *werbotv1.CreateApprovalPolicyRequest) { r.Name = "" })))
+	assert.Error(t, protovalidate.Validate(create(func(r *werbotv1.CreateApprovalPolicyRequest) { r.Name = strings.Repeat("a", 64) })))
+	assert.Error(t, protovalidate.Validate(create(func(r *werbotv1.CreateApprovalPolicyRequest) { r.Mode = "x" })))
+	assert.Error(t, protovalidate.Validate(create(func(r *werbotv1.CreateApprovalPolicyRequest) {
+		r.ResourceSelector = &werbotv1.ResourceSelector{ResourceIds: []string{"x"}}
+	})))
+	assert.Error(t, protovalidate.Validate(create(func(r *werbotv1.CreateApprovalPolicyRequest) {
+		r.ResourceSelector = &werbotv1.ResourceSelector{ResourceIds: make([]string, 101)}
+	})))
+	assert.Error(t, protovalidate.Validate(create(func(r *werbotv1.CreateApprovalPolicyRequest) {
+		r.ResourceSelector = &werbotv1.ResourceSelector{Labels: map[string]string{"Bad Key": "v"}}
+	})))
+	assert.Error(t, protovalidate.Validate(create(func(r *werbotv1.CreateApprovalPolicyRequest) { r.Approvers = &werbotv1.Subjects{Teams: []string{"x"}} })))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.UpdateApprovalPolicyRequest{Id: id, Name: "prod", Mode: "auto"}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.UpdateApprovalPolicyRequest{Id: "x", Name: "prod", Mode: "auto"}))
+	assert.NoError(t, protovalidate.Validate(&werbotv1.DeleteApprovalPolicyRequest{Id: id}))
+	assert.Error(t, protovalidate.Validate(&werbotv1.DeleteApprovalPolicyRequest{Id: "x"}))
 }

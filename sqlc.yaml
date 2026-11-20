@@ -47,7 +47,7 @@ sql:
         overrides: *overrides
   - engine: postgresql
     schema: migrations
-    queries: internal/access/queries.sql
+    queries: internal/access/queries
     gen:
       go:
         package: dbq

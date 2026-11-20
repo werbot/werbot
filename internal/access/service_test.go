@@ -244,3 +244,7 @@ func TestCreateBindingPorts(t *testing.T) {
 		assert.ErrorIs(t, err, apperr.ErrInvalidArgument, name)
 	}
 }
+
+func (e env) principal() principal.Principal {
+	return principal.Principal{UserID: e.owner, OrgID: e.org, Role: "owner"}
+}
