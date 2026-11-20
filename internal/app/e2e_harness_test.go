@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -218,33 +217,10 @@ func (s *stack) dial(addr, user string, key gossh.Signer) (*gossh.Client, gossh.
 	return c, host, err
 }
 
-// exec runs cmd as alice without a PTY and returns stdout+stderr and the exit
-// code. A connection or channel failure returns its text and -1, so exec is
-// safe in an Eventually condition.
+// exec runs cmd as alice without a PTY (execKey).
 func (s *stack) exec(t *testing.T, addr, user, cmd string) (out string, code int) {
 	t.Helper()
-	c, _, err := s.dial(addr, user, s.key)
-	if err != nil {
-		return err.Error(), -1
-	}
-	defer c.Close() //nolint:errcheck // test client
-	// a hung session returns -1 instead of waiting for the global timeout
-	hung := time.AfterFunc(15*time.Second, func() { _ = c.Close() })
-	defer hung.Stop()
-	sess, err := c.NewSession()
-	if err != nil {
-		return err.Error(), -1
-	}
-	defer sess.Close() //nolint:errcheck // closed by the server after exit
-	b, err := sess.CombinedOutput(cmd)
-	var ee *gossh.ExitError
-	switch {
-	case err == nil:
-		return string(b), 0
-	case errors.As(err, &ee):
-		return string(b), ee.ExitStatus()
-	}
-	return string(b) + err.Error(), -1
+	return s.execKey(t, s.key, addr, user, cmd)
 }
 
 // instanceIdentity reads the gateway and instance ids an instance saved in dataDir.

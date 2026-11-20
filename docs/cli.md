@@ -31,14 +31,48 @@ Files are `0600`, directories `0700` ([security.md](security.md#cli-sessions-and
 
 | Command | Does |
 |---|---|
-| `werbot ls` | Table `NAME TYPE KINDS GATEWAY` of the resources you can open. |
+| `werbot ls` | Table `NAME TYPE KINDS GATEWAY ACCESS` of the resources you can open (`ACCESS` `yes`) or request (`request`). |
 | `werbot ssh <resource> [-- command...]` | Runs the system `ssh` with the profile key, certificate and `known_hosts` as `<login>+<resource>`. The exit code of `ssh` is the exit code of `werbot`. |
 | `werbot ssh-config` | Prints an OpenSSH config block `Host <resource>.<server-host>` for each resource with the `terminal`, `exec` or `stream` kind, and refreshes the certificate and `known_hosts`. |
 | `werbot connect <resource> ...` | As in [connect.md](connect.md), with the login, gateway, key and `known_hosts` taken from the profile. |
+| `werbot request <resource>` | Asks for access and waits for the decision ([Access requests](#access-requests)). |
+| `werbot requests` | Your access requests; `--to-approve` lists the pending requests you can decide. |
+| `werbot approve <id>`, `werbot deny <id>` | Decide a request; `--comment` adds a note for the requester. |
 | `werbot status` | Server, user, organization, token expiry and certificate; renews a certificate close to expiry. |
 | `werbot logout` | Revokes the session on the server and removes the profile. |
 
+`ssh`, `ssh-config` and `connect` use only the resources you can open. `werbot ssh` to a resource you can only request fails with `resource <r> is not accessible; run werbot request <r>`.
+
 A resource without a gateway address fails with `gateway address for <resource> is not set; ask an admin to set it on the Gateways page` ([gateway.md](gateway.md#ssh-address)).
+
+## Access requests
+
+Resources marked `request` in `werbot ls` need an approved request first ([jit.md](jit.md)).
+
+```console
+$ werbot request db --for 2h --reason "deploy 1.4"
+Request 019a3c4e-7d1f-7a2b-9c3d-5e6f7a8b9c0d is waiting for approval: https://werbot.example.com/requests?id=019a3c4e-7d1f-7a2b-9c3d-5e6f7a8b9c0d
+Access to db granted until 2026-11-20T16:30:00Z
+```
+
+- `--for` is the grant length (`30m`, `2h`); without it the organization default applies. A longer duration than the policy or the organization allows is refused.
+- `--reason` is required when the policy asks for one.
+- A resource without a matching approval policy fails with `resource <r> is not requestable`.
+- `--break-glass` (needs `--reason`) gives emergency access at once, for at most 1 hour, with an email to every owner and admin and a review afterwards.
+- The command checks the request every 5 seconds. Ctrl-C cancels the request and prints `Request <id> canceled`.
+- An auto-approved or break-glass request prints only the grant line.
+
+```console
+$ werbot requests --to-approve
+ID                                    STATUS   RESOURCE  REQUESTER  DURATION  EXPIRES               REASON
+019a3c4e-7d1f-7a2b-9c3d-5e6f7a8b9c0d  pending  db        bob        2h0m0s    2026-11-20T15:30:00Z  deploy 1.4
+$ werbot approve 019a3c4e-7d1f-7a2b-9c3d-5e6f7a8b9c0d --comment ok
+Request 019a3c4e-7d1f-7a2b-9c3d-5e6f7a8b9c0d approved
+```
+
+`EXPIRES` of a pending request is its decision deadline. Nobody can approve their own request.
+
+Exit codes: `0` when access is granted, the request is canceled with Ctrl-C, or `approve`/`deny` succeeds; `1` with the message on any error, including `Request <id> was denied: <comment>` and `Request <id> expired`.
 
 ## Certificates
 
@@ -59,7 +93,7 @@ The block sets `User <login>+<resource>`, `IdentityFile`, `CertificateFile`, `Us
 
 ## CLI sessions
 
-Every login is a CLI session. An organization sets its lifetime in Settings (idle timeout and maximum age). A user sees the sessions in Profile, CLI sessions and revokes one there; `logout` revokes the current one, and a new `login` to the same server revokes the previous one. A revoked session stops working at the next API request and the next gateway connection: commands fail with `session expired or revoked; run werbot login`. Open connections keep running.
+Every login is a CLI session. An organization sets its lifetime in Settings (idle timeout and maximum age). A user sees the sessions in Profile, CLI sessions and revokes one there; `logout` revokes the current one, and a new `login` to the same server revokes the previous one. A revoked session stops working at the next API request and the next gateway connection: commands fail with `session expired or revoked; run werbot login`. Open connections keep running; to end them, an owner or admin locks the CLI session on the Locks page ([jit.md](jit.md#revoking-a-cli-session)).
 
 Refresh-token rotation and reuse detection: [security.md](security.md#cli-sessions-and-user-certificates).
 

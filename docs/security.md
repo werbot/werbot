@@ -71,5 +71,17 @@ A wrong, expired, revoked and exhausted token give the same refusal. The system 
 - **Stored secrets.** Refresh tokens, authorization codes and device codes are stored only as SHA-256 hashes; they never appear in logs, audit data or error text.
 - **Session lifetime.** An organization sets the idle timeout (`cli_session_ttl`, default 7 days) and the maximum age (`cli_session_max`, default 30 days) in Settings. Logout, revocation in the UI, a password reset or change (other CLI sessions) and removal from the organization end CLI sessions.
 - **User CA.** Each organization has its own ed25519 user CA, sealed with `WERBOT_SECRET_KEY`. A gateway accepts only certificates signed by the CA of its pool's organization, with one principal (the login), inside their validity window and without critical options; the server then checks that the certificate's CLI session is live.
-- **Certificates.** A certificate lives 1 hour and carries no MFA mark. There is no CRL: revoking a CLI session refuses the next gateway connection made with a still valid certificate, while open connections keep running until the `cli_session` lock of a later release cuts them.
+- **Certificates.** A certificate lives 1 hour and carries no MFA mark. There is no CRL: revoking a CLI session refuses the next gateway connection made with a still valid certificate, while open connections keep running. To end them too, lock the CLI session on the Locks page or with `LockService` (`target_type = cli_session`): its open connections close within 2 seconds, its certificates open nothing and it gets no new certificate ([jit.md](jit.md#locks)).
 - **Profile on disk.** The CLI keeps tokens, its ed25519 key and the certificate in `WERBOT_HOME` with mode `0600` (directories `0700`) and does not use the OS keyring. Protect that directory like `~/.ssh`.
+
+## Just-in-time access
+
+Requests, approvals, break-glass and locks: [jit.md](jit.md).
+
+- **Fail-closed.** A pending request never becomes an approval by timeout, and any policy evaluation error denies.
+- **No self-approval.** Nobody decides their own access request; a request no one else can approve is refused.
+- **Break-glass.** It needs a `break_glass` policy and a reason, lasts at most 1 hour, emails every owner and admin and stays marked `needs_review` until an owner or admin other than the grant owner reviews it.
+- **Gateway clock.** A gateway ends grants and timed locks by its own clock. Keep gateway hosts on NTP: a slow clock keeps a session open past its grant.
+- **Tunnel loss.** A revoke or lock reaches a gateway only over its tunnel. With `lock_mode = best_effort` (default) open sessions keep running while the tunnel is down; `strict` ends them with `policy_stale` after 60 seconds.
+- **User locks.** A `user` lock ends gateway sessions; it does not block the user's API calls. To stop those too, remove the member from the organization.
+- **Command text.** Audit data and logs of command approvals never carry the command, only its kind, classes and reasons; the approval stores the command's SHA-256. The approvers see the command in the email and on the Requests page.

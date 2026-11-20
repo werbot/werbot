@@ -108,7 +108,7 @@ func TestE2ERevokedCLISessionRejectsNextConnection(t *testing.T) {
 		clientauth.ErrLoginRequired.Error(), "the API refuses the access token of the revoked session")
 	out, err := run(a, "echo still")
 	require.NoError(t, err)
-	assert.Equal(t, "still\n", out, "an open connection lives until the cli_session block of stage 10")
+	assert.Equal(t, "still\n", out, "revoke leaves open connections running; a cli_session lock ends them (TestE2ECLISessionLockCutsConnection)")
 }
 
 func TestE2EOtherOrgCertRejected(t *testing.T) {
