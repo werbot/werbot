@@ -35,6 +35,7 @@ type harness struct {
 	home, dir     string
 	out, errOut   *bytes.Buffer
 	srv           *httptest.Server
+	mux           *http.ServeMux // tests mount more fake services
 	vars          map[string]string
 	resources     []*werbotv1.AccessibleResource
 	hostKey       ssh.PublicKey
@@ -51,6 +52,7 @@ func newHarness(t *testing.T) *harness {
 	t.Helper()
 	h := &harness{home: t.TempDir(), out: &bytes.Buffer{}, errOut: &bytes.Buffer{}}
 	mux := http.NewServeMux()
+	h.mux = mux
 	mux.Handle(werbotv1connect.NewAuthServiceHandler(h))
 	mux.Handle(werbotv1connect.NewResourceServiceHandler(h))
 	mux.Handle(werbotv1connect.NewCertServiceHandler(h))
@@ -65,7 +67,7 @@ func newHarness(t *testing.T) *harness {
 	h.hostKey = newPub(t)
 	h.resources = []*werbotv1.AccessibleResource{{
 		Id: uuid.NewString(), Name: "db", Type: "ssh", Kinds: []string{"terminal", "exec", "stream"},
-		SshAddress: "gw.example.com:2222", HostKey: string(ssh.MarshalAuthorizedKey(h.hostKey)),
+		SshAddress: "gw.example.com:2222", Allowed: true, HostKey: string(ssh.MarshalAuthorizedKey(h.hostKey)),
 	}}
 	h.vars = map[string]string{"WERBOT_HOME": h.home}
 	h.env = Env{

@@ -33,7 +33,7 @@ func TestConnectUsesProfile(t *testing.T) {
 	assert.Equal(t, filepath.Join(h.dir, "known_hosts"), got.KnownHosts)
 	assert.FileExists(t, got.KnownHosts)
 
-	h.resources = append(h.resources, &werbotv1.AccessibleResource{Name: "cache", Kinds: []string{"stream"}, SshAddress: "other.example.com:2222"})
+	h.resources = append(h.resources, &werbotv1.AccessibleResource{Name: "cache", Allowed: true, Kinds: []string{"stream"}, SshAddress: "other.example.com:2222"})
 	err := h.run("connect", "db", "cache")
 	assert.EqualError(t, err, "resources db, cache are behind different gateways; use --gateway")
 

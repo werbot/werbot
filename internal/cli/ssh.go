@@ -109,13 +109,16 @@ func sshCommand(env Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			rs, err := accessible(cmd.Context(), p)
+			rs, err := listResources(cmd.Context(), p)
 			if err != nil {
 				return err
 			}
 			r, err := find(rs, args[0])
 			if err != nil {
 				return err
+			}
+			if !r.GetAllowed() {
+				return fmt.Errorf("resource %s is not accessible; run werbot request %s", r.GetName(), r.GetName())
 			}
 			dir := clientauth.Dir(home, p.Server)
 			argv, err := sshArgs(dir, r, p.Login, args[1:])

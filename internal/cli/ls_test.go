@@ -14,7 +14,7 @@ import (
 func TestLs(t *testing.T) {
 	h := newHarness(t)
 	require.NoError(t, h.run("ls"))
-	assert.Regexp(t, `NAME\s+TYPE\s+KINDS\s+GATEWAY\ndb\s+ssh\s+terminal,exec,stream\s+gw\.example\.com:2222\n`, h.out.String())
+	assert.Regexp(t, `NAME\s+TYPE\s+KINDS\s+GATEWAY\s+ACCESS\ndb\s+ssh\s+terminal,exec,stream\s+gw\.example\.com:2222\s+yes\n`, h.out.String())
 
 	h.out.Reset()
 	h.resources = []*werbotv1.AccessibleResource{}

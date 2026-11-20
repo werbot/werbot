@@ -27,6 +27,7 @@ func Commands(env Env) []*cobra.Command {
 	cmds := []*cobra.Command{
 		loginCommand(env), logoutCommand(env), statusCommand(env), lsCommand(env),
 		sshCommand(env), sshConfigCommand(env), connectCommand(env),
+		newRequestCommand(env), newRequestsCommand(env), newDecideCommand(env, true), newDecideCommand(env, false),
 	}
 	for _, c := range cmds {
 		run := c.RunE
