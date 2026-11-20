@@ -17,9 +17,14 @@ type SMTPMailer struct {
 }
 
 // NewSMTPMailer builds a client for cfg: implicit TLS on port 465, mandatory
-// STARTTLS otherwise; credentials only when cfg.Username is set.
-func NewSMTPMailer(cfg config.SMTP) (*SMTPMailer, error) {
-	tls := mail.WithTLSPortPolicy(mail.TLSMandatory)
+// STARTTLS otherwise (opportunistic in development, for a local server such
+// as Mailpit); credentials only when cfg.Username is set.
+func NewSMTPMailer(cfg config.SMTP, development bool) (*SMTPMailer, error) {
+	policy := mail.TLSMandatory
+	if development {
+		policy = mail.TLSOpportunistic
+	}
+	tls := mail.WithTLSPortPolicy(policy)
 	if cfg.Port == 465 {
 		tls = mail.WithSSLPort(false)
 	}
@@ -84,5 +89,5 @@ func NewMailer(cfg config.SMTP, development bool, logger *slog.Logger) (Mailer, 
 		logger.Warn("SMTP is not configured: emails are not delivered")
 		return NewLogMailer(logger, development), nil
 	}
-	return NewSMTPMailer(cfg)
+	return NewSMTPMailer(cfg, development)
 }

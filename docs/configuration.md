@@ -138,6 +138,8 @@ Run `werbot server` with `WERBOT_WEB_EMBEDDED=false`: it serves only the API, an
 
 An empty `WERBOT_SMTP_HOST` writes emails to the log. With `WERBOT_ENV=development` the log has the full text with links; in production it does not.
 
+On any port but 465 the server requires STARTTLS. With `WERBOT_ENV=development` it uses STARTTLS only when the SMTP server offers it, so a local server such as Mailpit (`make dev-db`, SMTP `localhost:27025`, inbox http://localhost:27825) works without TLS.
+
 `WERBOT_ENV=development` is for local plain-http runs: the session cookie is `werbot_session` without `Secure`. The production cookie and remote access over plain http: [install.md](install.md#remote-access).
 
 ## Session recordings

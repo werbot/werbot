@@ -75,17 +75,18 @@ Requirements:
 ### Quick start from source
 
 ```sh
-make dev-db                      # Postgres 18 on localhost:27432 (postgres/password)
+make dev-db                      # Postgres 18 on localhost:27432 (postgres/password), Mailpit SMTP :27025, UI http://localhost:27825
 (cd web && bun install)          # web/node_modules is required by `make proto`
 make proto                       # buf lint + generate (Go and TypeScript)
 make build                       # builds the UI and bin/werbot
 export WERBOT_SECRET_KEY="$(openssl rand -base64 32)"  # generate once and keep: it decrypts resource credentials and queued email jobs
 WERBOT_ENV=development \
 WERBOT_DATABASE_URL='postgres://postgres:password@localhost:27432/postgres?sslmode=disable' \
+WERBOT_SMTP_HOST=localhost WERBOT_SMTP_PORT=27025 WERBOT_SMTP_FROM=werbot@localhost \
 WERBOT_PUBLIC_URL=http://localhost:8080 ./bin/werbot server
 ```
 
-`WERBOT_ENV=development` is for local plain-http runs: the session cookie is `werbot_session` without `Secure`, and without SMTP the log shows the full email text with reset and invite links. Production mode uses `__Host-werbot_session` with `Secure`, which browsers drop over plain http on any host but `localhost` (Safari drops it on `localhost` too).
+`WERBOT_ENV=development` is for local plain-http runs: the session cookie is `werbot_session` without `Secure`, STARTTLS is used only when the SMTP server offers it (Mailpit does not), and without SMTP the log shows the full email text with reset and invite links. Production mode uses `__Host-werbot_session` with `Secure`, which browsers drop over plain http on any host but `localhost` (Safari drops it on `localhost` too).
 
 Commands: `./bin/werbot <server|gateway|web|login|logout|status|ls|ssh|ssh-config|connect|request|requests|approve|deny|migrate|version|healthcheck>`.
 
