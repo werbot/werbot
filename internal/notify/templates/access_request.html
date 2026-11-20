@@ -1,0 +1,6 @@
+{{define "content"}}<p>{{.requester}} requests access to <strong>{{.resource}}</strong> for {{.duration}}.</p>
+{{if .reason}}<p>Reason: {{.reason}}</p>
+{{end}}{{if .command}}<p>Command:</p>
+<pre style="background:#f4f4f5;padding:12px;border-radius:6px;white-space:pre-wrap;word-break:break-all">{{.command}}</pre>
+{{end}}<p><a href="{{.url}}" style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px">Review request</a></p>
+{{end}}

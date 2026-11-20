@@ -21,7 +21,9 @@ import (
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
-var defaultSettings = OrgSettings{CLISessionTTL: 168 * time.Hour, CLISessionMax: 720 * time.Hour}
+var defaultSettings = OrgSettings{CLISessionTTL: 168 * time.Hour, CLISessionMax: 720 * time.Hour,
+	GrantDefaultTTL: 8 * time.Hour, GrantMaxTTL: 14 * 24 * time.Hour, RequestPendingTTL: time.Hour,
+	CommandApprovalTTL: 5 * time.Minute, LockMode: "best_effort"}
 
 func TestSetupCreatesOrgSetting(t *testing.T) {
 	svc, pool, _ := newTestService(t)
@@ -69,7 +71,9 @@ func TestUpdateSettings(t *testing.T) {
 
 	got, err := svc.UpdateSettings(adminCtx, ap, OrgSettings{CLISessionTTL: 12 * time.Hour}, []string{"cli_session_ttl"})
 	require.NoError(t, err)
-	assert.Equal(t, OrgSettings{CLISessionTTL: 12 * time.Hour, CLISessionMax: 720 * time.Hour}, got)
+	want := defaultSettings
+	want.CLISessionTTL = 12 * time.Hour
+	assert.Equal(t, want, got)
 	stored, err := svc.Settings(context.Background(), org)
 	require.NoError(t, err)
 	assert.Equal(t, got, stored)
@@ -110,6 +114,55 @@ func TestUpdateSettingsValidation(t *testing.T) {
 	got, err := svc.Settings(context.Background(), p.OrgID)
 	require.NoError(t, err)
 	assert.Equal(t, defaultSettings, got, "failed updates change nothing")
+}
+
+func TestSettingsJITFields(t *testing.T) {
+	svc, pool, _ := newTestService(t)
+	seedUser(t, pool, seedOrg(t, pool, "Acme"), "owner", principal.RoleOwner)
+	ctx, _ := loginCtx(t, svc, "owner")
+	p, _ := principal.Require(ctx)
+	got, err := svc.Settings(context.Background(), p.OrgID)
+	require.NoError(t, err)
+	assert.Equal(t, defaultSettings, got, "defaults of 00124")
+
+	got, err = svc.UpdateSettings(ctx, p, OrgSettings{LockMode: "strict", GrantMaxTTL: time.Hour}, []string{"lock_mode"})
+	require.NoError(t, err)
+	want := defaultSettings
+	want.LockMode = "strict"
+	assert.Equal(t, want, got, "only lock_mode changes")
+
+	got, err = svc.UpdateSettings(ctx, p, OrgSettings{GrantDefaultTTL: 2 * time.Hour, GrantMaxTTL: 3 * time.Hour,
+		RequestPendingTTL: 30 * time.Minute, CommandApprovalTTL: time.Minute},
+		[]string{"grant_default_ttl", "grant_max_ttl", "request_pending_ttl", "command_approval_ttl"})
+	require.NoError(t, err)
+	want.GrantDefaultTTL, want.GrantMaxTTL, want.RequestPendingTTL, want.CommandApprovalTTL = 2*time.Hour, 3*time.Hour, 30*time.Minute, time.Minute
+	assert.Equal(t, want, got)
+	stored, err := svc.Settings(context.Background(), p.OrgID)
+	require.NoError(t, err)
+	assert.Equal(t, want, stored)
+
+	d := 24 * time.Hour
+	for name, tc := range map[string]struct {
+		in    OrgSettings
+		paths []string
+	}{
+		"default above max": {OrgSettings{GrantDefaultTTL: 20 * d}, []string{"grant_default_ttl"}},
+		"default zero":      {OrgSettings{}, []string{"grant_default_ttl"}},
+		"max above 14 days": {OrgSettings{GrantMaxTTL: 15 * d}, []string{"grant_max_ttl"}},
+		"max below default": {OrgSettings{GrantMaxTTL: time.Hour}, []string{"grant_max_ttl"}},
+		"pending below 1m":  {OrgSettings{RequestPendingTTL: 30 * time.Second}, []string{"request_pending_ttl"}},
+		"pending above 24h": {OrgSettings{RequestPendingTTL: 25 * time.Hour}, []string{"request_pending_ttl"}},
+		"command below 30s": {OrgSettings{CommandApprovalTTL: 10 * time.Second}, []string{"command_approval_ttl"}},
+		"command above 1h":  {OrgSettings{CommandApprovalTTL: 2 * time.Hour}, []string{"command_approval_ttl"}},
+		"lock mode unknown": {OrgSettings{LockMode: "x"}, []string{"lock_mode"}},
+		"lock mode empty":   {OrgSettings{}, []string{"lock_mode"}},
+	} {
+		_, err := svc.UpdateSettings(ctx, p, tc.in, tc.paths)
+		assert.ErrorIs(t, err, apperr.ErrInvalidArgument, name)
+	}
+	stored, err = svc.Settings(context.Background(), p.OrgID)
+	require.NoError(t, err)
+	assert.Equal(t, want, stored, "failed updates change nothing")
 }
 
 func TestSettingsRPC(t *testing.T) {

@@ -398,19 +398,37 @@ func (q *Queries) GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (s
 
 const getOrgSettings = `-- name: GetOrgSettings :one
 SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
-       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs
+       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs,
+       extract(epoch FROM grant_default_ttl)::bigint AS grant_default_ttl_secs,
+       extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
+       extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
+       extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
+       lock_mode
 FROM org_setting WHERE org_id = $1
 `
 
 type GetOrgSettingsRow struct {
-	CliSessionTtlSecs int64
-	CliSessionMaxSecs int64
+	CliSessionTtlSecs      int64
+	CliSessionMaxSecs      int64
+	GrantDefaultTtlSecs    int64
+	GrantMaxTtlSecs        int64
+	RequestPendingTtlSecs  int64
+	CommandApprovalTtlSecs int64
+	LockMode               string
 }
 
 func (q *Queries) GetOrgSettings(ctx context.Context, orgID uuid.UUID) (GetOrgSettingsRow, error) {
 	row := q.db.QueryRow(ctx, getOrgSettings, orgID)
 	var i GetOrgSettingsRow
-	err := row.Scan(&i.CliSessionTtlSecs, &i.CliSessionMaxSecs)
+	err := row.Scan(
+		&i.CliSessionTtlSecs,
+		&i.CliSessionMaxSecs,
+		&i.GrantDefaultTtlSecs,
+		&i.GrantMaxTtlSecs,
+		&i.RequestPendingTtlSecs,
+		&i.CommandApprovalTtlSecs,
+		&i.LockMode,
+	)
 	return i, err
 }
 
@@ -910,19 +928,37 @@ func (q *Queries) LockOrgOwners(ctx context.Context, orgID uuid.UUID) ([]uuid.UU
 
 const lockOrgSettings = `-- name: LockOrgSettings :one
 SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
-       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs
+       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs,
+       extract(epoch FROM grant_default_ttl)::bigint AS grant_default_ttl_secs,
+       extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
+       extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
+       extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
+       lock_mode
 FROM org_setting WHERE org_id = $1 FOR UPDATE
 `
 
 type LockOrgSettingsRow struct {
-	CliSessionTtlSecs int64
-	CliSessionMaxSecs int64
+	CliSessionTtlSecs      int64
+	CliSessionMaxSecs      int64
+	GrantDefaultTtlSecs    int64
+	GrantMaxTtlSecs        int64
+	RequestPendingTtlSecs  int64
+	CommandApprovalTtlSecs int64
+	LockMode               string
 }
 
 func (q *Queries) LockOrgSettings(ctx context.Context, orgID uuid.UUID) (LockOrgSettingsRow, error) {
 	row := q.db.QueryRow(ctx, lockOrgSettings, orgID)
 	var i LockOrgSettingsRow
-	err := row.Scan(&i.CliSessionTtlSecs, &i.CliSessionMaxSecs)
+	err := row.Scan(
+		&i.CliSessionTtlSecs,
+		&i.CliSessionMaxSecs,
+		&i.GrantDefaultTtlSecs,
+		&i.GrantMaxTtlSecs,
+		&i.RequestPendingTtlSecs,
+		&i.CommandApprovalTtlSecs,
+		&i.LockMode,
+	)
 	return i, err
 }
 
@@ -1217,18 +1253,37 @@ const updateOrgSettings = `-- name: UpdateOrgSettings :exec
 UPDATE org_setting SET
     cli_session_ttl = make_interval(secs => $1::float8),
     cli_session_max = make_interval(secs => $2::float8),
+    grant_default_ttl = make_interval(secs => $3::float8),
+    grant_max_ttl = make_interval(secs => $4::float8),
+    request_pending_ttl = make_interval(secs => $5::float8),
+    command_approval_ttl = make_interval(secs => $6::float8),
+    lock_mode = $7,
     updated_at = now()
-WHERE org_id = $3
+WHERE org_id = $8
 `
 
 type UpdateOrgSettingsParams struct {
-	CliSessionTtlSecs float64
-	CliSessionMaxSecs float64
-	OrgID             uuid.UUID
+	CliSessionTtlSecs      float64
+	CliSessionMaxSecs      float64
+	GrantDefaultTtlSecs    float64
+	GrantMaxTtlSecs        float64
+	RequestPendingTtlSecs  float64
+	CommandApprovalTtlSecs float64
+	LockMode               string
+	OrgID                  uuid.UUID
 }
 
 func (q *Queries) UpdateOrgSettings(ctx context.Context, arg UpdateOrgSettingsParams) error {
-	_, err := q.db.Exec(ctx, updateOrgSettings, arg.CliSessionTtlSecs, arg.CliSessionMaxSecs, arg.OrgID)
+	_, err := q.db.Exec(ctx, updateOrgSettings,
+		arg.CliSessionTtlSecs,
+		arg.CliSessionMaxSecs,
+		arg.GrantDefaultTtlSecs,
+		arg.GrantMaxTtlSecs,
+		arg.RequestPendingTtlSecs,
+		arg.CommandApprovalTtlSecs,
+		arg.LockMode,
+		arg.OrgID,
+	)
 	return err
 }
 

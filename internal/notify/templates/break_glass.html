@@ -1,0 +1,5 @@
+{{define "content"}}<p>{{.requester}} used break-glass access to <strong>{{.resource}}</strong>.</p>
+<p>Reason: {{.reason}}</p>
+<p>The grant needs a review.</p>
+<p><a href="{{.url}}" style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px">Review access</a></p>
+{{end}}

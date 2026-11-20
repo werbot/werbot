@@ -19,4 +19,16 @@ type Store interface {
 	UpdateApprovalPolicy(ctx context.Context, arg dbq.UpdateApprovalPolicyParams) (dbq.UpdateApprovalPolicyRow, error)
 	DeleteApprovalPolicy(ctx context.Context, arg dbq.DeleteApprovalPolicyParams) (dbq.DeleteApprovalPolicyRow, error)
 	CountPolicyRefs(ctx context.Context, arg dbq.CountPolicyRefsParams) (dbq.CountPolicyRefsRow, error)
+
+	ListMembers(ctx context.Context, orgID uuid.UUID) ([]dbq.ListMembersRow, error)
+	ListTargets(ctx context.Context, orgID uuid.UUID) ([]dbq.ListTargetsRow, error)
+	CreateApproval(ctx context.Context, arg dbq.CreateApprovalParams) (dbq.Approval, error)
+	GetApproval(ctx context.Context, arg dbq.GetApprovalParams) (dbq.Approval, error)
+	GetApprovalState(ctx context.Context, arg dbq.GetApprovalStateParams) (dbq.GetApprovalStateRow, error)
+	DecideApproval(ctx context.Context, arg dbq.DecideApprovalParams) (dbq.Approval, error)
+	CancelApproval(ctx context.Context, arg dbq.CancelApprovalParams) (uuid.UUID, error)
+	CreateGrants(ctx context.Context, arg dbq.CreateGrantsParams) ([]dbq.CreateGrantsRow, error)
+	NotifyApprovalDecided(ctx context.Context, payload string) error
+	ListApprovals(ctx context.Context, arg dbq.ListApprovalsParams) ([]dbq.ListApprovalsRow, error)
+	DecidedCommands(ctx context.Context, arg dbq.DecidedCommandsParams) ([]dbq.Approval, error)
 }

@@ -14,10 +14,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// NOTIFY channels: OrgChanged carries an org id or "*" (all orgs), GeoIPChanged has no payload.
+// NOTIFY channels: OrgChanged carries an org id or "*" (all orgs), GeoIPChanged has no payload,
+// ApprovalDecided carries "<gateway_instance_id>:<approval_id>" of a decided command approval.
 const (
-	OrgChanged   = "werbot_org_changed"
-	GeoIPChanged = "werbot_geoip_changed"
+	OrgChanged      = "werbot_org_changed"
+	GeoIPChanged    = "werbot_geoip_changed"
+	ApprovalDecided = "werbot_approval_decided"
 )
 
 const (

@@ -16,14 +16,28 @@ import (
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
+// Lock modes: what a gateway does with its sessions while its tunnel is down.
+const (
+	LockModeBestEffort = "best_effort"
+	LockModeStrict     = "strict"
+)
+
 // OrgSettings is the org_setting row of one organization.
 type OrgSettings struct {
-	CLISessionTTL time.Duration // idle lifetime of a CLI session
-	CLISessionMax time.Duration // absolute lifetime of a CLI session
+	CLISessionTTL      time.Duration // idle lifetime of a CLI session
+	CLISessionMax      time.Duration // absolute lifetime of a CLI session
+	GrantDefaultTTL    time.Duration // grant length when a request names none
+	GrantMaxTTL        time.Duration // longest grant
+	RequestPendingTTL  time.Duration // how long an access request waits for a decision
+	CommandApprovalTTL time.Duration // how long a command approval waits for a decision
+	LockMode           string        // LockModeBestEffort | LockModeStrict
 }
 
-func settingsFromRow(ttlSecs, maxSecs int64) OrgSettings {
-	return OrgSettings{CLISessionTTL: time.Duration(ttlSecs) * time.Second, CLISessionMax: time.Duration(maxSecs) * time.Second}
+func settingsFromRow(r dbq.GetOrgSettingsRow) OrgSettings {
+	sec := func(n int64) time.Duration { return time.Duration(n) * time.Second }
+	return OrgSettings{CLISessionTTL: sec(r.CliSessionTtlSecs), CLISessionMax: sec(r.CliSessionMaxSecs),
+		GrantDefaultTTL: sec(r.GrantDefaultTtlSecs), GrantMaxTTL: sec(r.GrantMaxTtlSecs),
+		RequestPendingTTL: sec(r.RequestPendingTtlSecs), CommandApprovalTTL: sec(r.CommandApprovalTtlSecs), LockMode: r.LockMode}
 }
 
 // Settings returns the settings of orgID without a subject, for adapters in
@@ -32,7 +46,7 @@ func (s *Service) Settings(ctx context.Context, orgID uuid.UUID) (OrgSettings, e
 	var out OrgSettings
 	err := dbx.ReadInOrg(s.pool, orgID, uuid.Nil, func(rd *dbx.Read) error {
 		r, err := newStore(rd).GetOrgSettings(ctx, orgID)
-		out = settingsFromRow(r.CliSessionTtlSecs, r.CliSessionMaxSecs)
+		out = settingsFromRow(r)
 		return err
 	})
 	if err != nil {
@@ -54,7 +68,7 @@ func (s *Service) UpdateSettings(ctx context.Context, p principal.Principal, in 
 		if err != nil {
 			return err
 		}
-		if out, err = applySettingsMask(settingsFromRow(r.CliSessionTtlSecs, r.CliSessionMaxSecs), in, paths); err != nil {
+		if out, err = applySettingsMask(settingsFromRow(dbq.GetOrgSettingsRow(r)), in, paths); err != nil {
 			return err
 		}
 		if err := validateSettings(out); err != nil {
@@ -62,6 +76,9 @@ func (s *Service) UpdateSettings(ctx context.Context, p principal.Principal, in 
 		}
 		err = st.UpdateOrgSettings(ctx, dbq.UpdateOrgSettingsParams{
 			OrgID: p.OrgID, CliSessionTtlSecs: out.CLISessionTTL.Seconds(), CliSessionMaxSecs: out.CLISessionMax.Seconds(),
+			GrantDefaultTtlSecs: out.GrantDefaultTTL.Seconds(), GrantMaxTtlSecs: out.GrantMaxTTL.Seconds(),
+			RequestPendingTtlSecs: out.RequestPendingTTL.Seconds(), CommandApprovalTtlSecs: out.CommandApprovalTTL.Seconds(),
+			LockMode: out.LockMode,
 		})
 		if err != nil {
 			return err
@@ -86,6 +103,16 @@ func applySettingsMask(cur, in OrgSettings, paths []string) (OrgSettings, error)
 			cur.CLISessionTTL = in.CLISessionTTL
 		case "cli_session_max":
 			cur.CLISessionMax = in.CLISessionMax
+		case "grant_default_ttl":
+			cur.GrantDefaultTTL = in.GrantDefaultTTL
+		case "grant_max_ttl":
+			cur.GrantMaxTTL = in.GrantMaxTTL
+		case "request_pending_ttl":
+			cur.RequestPendingTTL = in.RequestPendingTTL
+		case "command_approval_ttl":
+			cur.CommandApprovalTTL = in.CommandApprovalTTL
+		case "lock_mode":
+			cur.LockMode = in.LockMode
 		default:
 			return OrgSettings{}, fmt.Errorf("unknown settings field %q: %w", path, apperr.ErrInvalidArgument)
 		}
@@ -103,6 +130,16 @@ func validateSettings(o OrgSettings) error {
 		return fmt.Errorf("cli_session_max must be between 24h and 2160h: %w", apperr.ErrInvalidArgument)
 	case o.CLISessionTTL > o.CLISessionMax:
 		return fmt.Errorf("cli_session_ttl must not exceed cli_session_max: %w", apperr.ErrInvalidArgument)
+	case o.GrantMaxTTL < time.Minute || o.GrantMaxTTL > 14*24*time.Hour:
+		return fmt.Errorf("grant_max_ttl must be between 1m and 336h: %w", apperr.ErrInvalidArgument)
+	case o.GrantDefaultTTL <= 0 || o.GrantDefaultTTL > o.GrantMaxTTL:
+		return fmt.Errorf("grant_default_ttl must be above zero and not exceed grant_max_ttl: %w", apperr.ErrInvalidArgument)
+	case o.RequestPendingTTL < time.Minute || o.RequestPendingTTL > 24*time.Hour:
+		return fmt.Errorf("request_pending_ttl must be between 1m and 24h: %w", apperr.ErrInvalidArgument)
+	case o.CommandApprovalTTL < 30*time.Second || o.CommandApprovalTTL > time.Hour:
+		return fmt.Errorf("command_approval_ttl must be between 30s and 1h: %w", apperr.ErrInvalidArgument)
+	case o.LockMode != LockModeBestEffort && o.LockMode != LockModeStrict:
+		return fmt.Errorf("lock_mode must be best_effort or strict: %w", apperr.ErrInvalidArgument)
 	}
 	return nil
 }

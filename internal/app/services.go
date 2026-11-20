@@ -102,9 +102,10 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	if err != nil {
 		return nil, err
 	}
-	s := &services{Inventory: inventory.New(pool), Credential: credential.New(pool, box), Access: access.New(pool),
+	s := &services{Inventory: inventory.New(pool), Credential: credential.New(pool, box),
 		Box: box, CA: ca, Gateways: inventory.NewGateways(pool, ca, box), Sessions: session.New(pool),
 		Recordings: session.NewRecordings(pool, store, kind, signer), Audit: audit.New(audit.NewPostgres(pool)), Logger: logger}
+	s.Access = access.New(pool, accessEmails{s}, accessSettings{s}, access.Config{WebURL: cfg.WebURL})
 	// identity needs the River client, which needs the policy jobs: teams
 	// reads s.Identity, which is set below, before any request is served.
 	s.Policy = policy.New(policy.Deps{Pool: pool, Resources: policyResources{s.Inventory}, Bindings: policyBindings{s.Access},

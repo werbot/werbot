@@ -1,0 +1,4 @@
+{{define "content"}}<p>Your request for <strong>{{.resource}}</strong> was {{.status}}.</p>
+{{if .comment}}<p>Comment: {{.comment}}</p>
+{{end}}<p><a href="{{.url}}" style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px">View request</a></p>
+{{end}}
