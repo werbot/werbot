@@ -1,6 +1,9 @@
 package shellclass
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // optSpec describes the options of a command.
 type optSpec struct {
@@ -17,14 +20,7 @@ type opt struct {
 }
 
 func has(opts []opt, names ...string) bool {
-	for _, o := range opts {
-		for _, n := range names {
-			if o.name == n {
-				return true
-			}
-		}
-	}
-	return false
+	return slices.ContainsFunc(opts, func(o opt) bool { return slices.Contains(names, o.name) })
 }
 
 // scanOpts splits args into options and operands. With stop it ends at the

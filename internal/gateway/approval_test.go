@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -77,7 +78,7 @@ func TestApprovalApprovedViaStream(t *testing.T) {
 			Classes: []string{"write"}, Reasons: []string{"command:w"}}}, a.requests)
 		require.Len(t, a.gets, 1, "the decision is read back once the stream hints at it")
 		require.Equal(t, 1, e.startCalls())
-		require.Equal(t, []string{"write"}, s.Classes)
+		require.Equal(t, fmt.Sprintf("%s %s 192.0.2.7", e.m["u1"], e.m["rx"])+startCmd("mkdir x", []string{"write"}), e.lastStart())
 		require.True(t, e.trackedReq(s.ID).ApprovalGranted, "the sweeper re-decides the command as approved")
 		require.Zero(t, a.waiting(), "the wait unsubscribes")
 	})

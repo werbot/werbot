@@ -1,6 +1,9 @@
 package shellclass
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // Network clients with their own rules: ssh, scp, rsync, socat.
 
@@ -95,19 +98,10 @@ func socat(_ *Classifier, args []word, host string, _ int) set {
 			return of(Egress)
 		case strings.HasPrefix(kind, "EXEC") || strings.HasPrefix(kind, "SYSTEM"):
 			return opaque
-		case hasAnyPrefix(kind, socatNet):
+		case slices.ContainsFunc(socatNet, func(p string) bool { return strings.HasPrefix(kind, p) }):
 			addr, _, _ := strings.Cut(params, ",")
 			hosts = append(hosts, hostOf(addr))
 		}
 	}
 	return hostClass(hosts, host)
-}
-
-func hasAnyPrefix(s string, prefixes []string) bool {
-	for _, p := range prefixes {
-		if strings.HasPrefix(s, p) {
-			return true
-		}
-	}
-	return false
 }

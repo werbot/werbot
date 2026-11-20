@@ -53,7 +53,7 @@ func hinted(b []byte, hints []string) bool {
 	return false
 }
 
-// pem turns each private key block into one Marker; a block may span writes.
+// pem turns each private key block into one marker; a block may span writes.
 func (m *writer) pem(b []byte) []byte {
 	var out []byte
 	for {

@@ -12,26 +12,8 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/clientip"
+	"github.com/werbot/werbot/internal/platform/rpcid"
 )
-
-func parseIDs(ss []string) ([]uuid.UUID, error) {
-	var out []uuid.UUID
-	for _, s := range ss {
-		id, err := parseID(s)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, id)
-	}
-	return out, nil
-}
-
-func idStrings(ids []uuid.UUID) (out []string) {
-	for _, id := range ids {
-		out = append(out, id.String())
-	}
-	return out
-}
 
 func createdBy(id *uuid.UUID) string {
 	if id == nil {
@@ -44,17 +26,17 @@ func commandRuleFromProto(name string, subj *werbotv1.Subjects, sel *werbotv1.Re
 	in := CommandRuleInput{Name: name, Subjects: Subjects{AllUsers: subj.GetAllUsers(), AllAgents: subj.GetAllAgents()},
 		Selector: Selector{Labels: sel.GetLabels()}, Classes: classes, Effect: effect, Message: message}
 	var e1, e2, e3 error
-	in.Subjects.Users, e1 = parseIDs(subj.GetUsers())
-	in.Subjects.Teams, e2 = parseIDs(subj.GetTeams())
-	in.Selector.ResourceIDs, e3 = parseIDs(sel.GetResourceIds())
+	in.Subjects.Users, e1 = rpcid.Parse(subj.GetUsers())
+	in.Subjects.Teams, e2 = rpcid.Parse(subj.GetTeams())
+	in.Selector.ResourceIDs, e3 = rpcid.Parse(sel.GetResourceIds())
 	return in, errors.Join(e1, e2, e3)
 }
 
 func commandRuleToProto(r CommandRule) *werbotv1.CommandRule {
 	s := r.Subjects
 	return &werbotv1.CommandRule{Id: r.ID.String(), Name: r.Name,
-		Subjects:         &werbotv1.Subjects{Users: idStrings(s.Users), Teams: idStrings(s.Teams), AllUsers: s.AllUsers, AllAgents: s.AllAgents},
-		ResourceSelector: &werbotv1.ResourceSelector{ResourceIds: idStrings(r.Selector.ResourceIDs), Labels: r.Selector.Labels},
+		Subjects:         &werbotv1.Subjects{Users: rpcid.Strings(s.Users), Teams: rpcid.Strings(s.Teams), AllUsers: s.AllUsers, AllAgents: s.AllAgents},
+		ResourceSelector: &werbotv1.ResourceSelector{ResourceIds: rpcid.Strings(r.Selector.ResourceIDs), Labels: r.Selector.Labels},
 		Classes:          r.Classes, Effect: r.Effect, Message: r.Message, CreatedBy: createdBy(r.CreatedBy), CreatedAt: timestamppb.New(r.CreatedAt)}
 }
 

@@ -50,6 +50,7 @@ write	tar czf backup.tgz /srv
 write	rm /tmp/file.txt
 write	kill -HUP 1234
 write	chmod 640 /srv/app.conf
+write	chmod go+rw /srv/app.conf
 read,write	date >> /var/log/run.log
 write	rsync --server . /data
 write	crontab /tmp/cron.txt
@@ -98,6 +99,7 @@ privilege	chmod -R 777 /srv
 privilege,read,write	echo 'bob ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 opaque,privilege	sudo ./deploy.sh
 privilege	chmod u+s /usr/local/bin/tool
+privilege	chmod ugo=rwx /srv
 privilege	chmod 4755 /usr/local/bin/tool
 privilege	chown -R www-data /srv
 privilege	useradd -m bob

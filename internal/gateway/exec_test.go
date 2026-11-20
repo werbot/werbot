@@ -107,7 +107,6 @@ func TestExecStepAllowPassesCommand(t *testing.T) {
 	s, err := e.p.Open(t.Context(), e.cmdReq("x", KindExec, "ls -la"))
 	require.NoError(t, err)
 	require.Equal(t, "ls -la", s.Command)
-	require.Equal(t, []string{"read"}, s.Classes)
 	require.Equal(t, fmt.Sprintf("%s %s 192.0.2.7", e.m["u1"], e.m["rx"])+startCmd("ls -la", []string{"read"}), e.lastStart())
 }
 
@@ -127,7 +126,6 @@ func TestTerminalWithCommandIsAuthorized(t *testing.T) {
 	s, err := e.p.Open(t.Context(), e.req("x", KindTerminal)) // a shell: no command to classify
 	require.NoError(t, err)
 	require.Empty(t, s.Command)
-	require.Nil(t, s.Classes)
 	require.Equal(t, fmt.Sprintf("%s %s 192.0.2.7", e.m["u1"], e.m["rx"]), e.lastStart())
 }
 
@@ -136,15 +134,14 @@ func TestExecStepSkippedWithoutExecAction(t *testing.T) {
 	s, err := e.p.Open(t.Context(), e.cmdReq("fake", KindTerminal, "rm -rf /"))
 	require.NoError(t, err, "the type runs no commands: its connector refuses them")
 	require.Equal(t, "rm -rf /", s.Command)
-	require.Nil(t, s.Classes)
 	require.Equal(t, fmt.Sprintf("%s %s 192.0.2.7", e.m["u1"], e.m["rfake"]), e.lastStart(), "no command authorized")
 }
 
 func TestExecStepUsesResourceHost(t *testing.T) {
 	e := newExecEnv(t)
-	s, err := e.p.Open(t.Context(), e.cmdReq("x", KindExec, "curl http://10.0.0.5/"))
+	_, err := e.p.Open(t.Context(), e.cmdReq("x", KindExec, "curl http://10.0.0.5/"))
 	require.NoError(t, err, "the resource host is not egress")
-	require.Equal(t, []string{"read"}, s.Classes)
+	require.Equal(t, fmt.Sprintf("%s %s 192.0.2.7", e.m["u1"], e.m["rx"])+startCmd("curl http://10.0.0.5/", []string{"read"}), e.lastStart())
 	_, err = e.p.Open(t.Context(), e.cmdReq("x", KindExec, "curl http://10.0.0.6/"))
 	require.ErrorIs(t, err, ErrDenied)
 }

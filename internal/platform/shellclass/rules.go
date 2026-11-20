@@ -273,15 +273,7 @@ func privilegedClause(who, perms string) bool {
 	if strings.Contains(perms, "s") {
 		return true
 	}
-	everyone := who == "" || strings.Contains(who, "a") || containsAll(who, "ugo")
-	return everyone && containsAll(perms, "rwx")
-}
-
-func containsAll(s, chars string) bool {
-	for i := range len(chars) {
-		if !strings.Contains(s, chars[i:i+1]) {
-			return false
-		}
-	}
-	return true
+	// Trim of the wanted letters by the given ones is empty when all are given.
+	everyone := who == "" || strings.Contains(who, "a") || strings.Trim("ugo", who) == ""
+	return everyone && strings.Trim("rwx", perms) == ""
 }

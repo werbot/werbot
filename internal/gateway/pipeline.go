@@ -198,7 +198,7 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID
 	p.active.add(id, t) // reported in heartbeats from now on, so the server keeps the session
 	return &Session{
 		ID: id, Kind: r.Kind, Front: r.Front, User: u, Resource: res, Secret: secret, ClientIP: r.ClientIP, Target: r.Target,
-		Command: r.Command, Classes: req.Classes,
+		Command:   r.Command,
 		PinKey:    func(alg string, key []byte) error { return p.pinKey(res, alg, key) },
 		Dial:      p.dial,
 		Recording: rec,

@@ -42,7 +42,7 @@ func TestValidateCustomRejects(t *testing.T) {
 		{"tag without hasTag", `forbid (principal, action, resource) when { resource.getTag("env") == "prod" };`, "unable to guarantee safety"},
 		{"evaluation error", `forbid (principal, action, resource) when { context.hour + 9223372036854775807 > 0 };`, "evaluation error at line 1"},
 		{"second policy is checked", "permit (principal, action, resource);\n@id(\"x\") forbid (principal, action, resource);", "2:1: @id is reserved"},
-		{"too large", strings.Repeat(" ", MaxCustomPolicyBytes+1), "custom policy is too large"},
+		{"too large", strings.Repeat(" ", maxCustomPolicyBytes+1), "custom policy is too large"},
 		{"message with a control character", `@message("a\nb") forbid (principal, action, resource);`, "message must be printable text"},
 		{"message too long", `@message("` + strings.Repeat("é", 257) + `") forbid (principal, action, resource);`, "at most 256 characters"},
 	}

@@ -17,8 +17,8 @@ import (
 	"github.com/werbot/werbot/internal/connector"
 )
 
-// MaxCustomPolicyBytes is the size limit of a custom Cedar text.
-const MaxCustomPolicyBytes = 65536
+// maxCustomPolicyBytes is the size limit of a custom Cedar text.
+const maxCustomPolicyBytes = 65536
 
 // Trial request fixtures: user trialUser in team trialTeam, a resource
 // without labels, Monday 10:00 UTC.
@@ -33,7 +33,7 @@ var (
 // syntax, at least one policy, annotations, the schema and a trial
 // evaluation of each policy. The first error is returned with its position.
 func ValidateCustom(cedarText string) error {
-	if len(cedarText) > MaxCustomPolicyBytes {
+	if len(cedarText) > maxCustomPolicyBytes {
 		return errors.New("custom policy is too large")
 	}
 	list, err := cedar.NewPolicyListFromBytes("custom", []byte(cedarText))

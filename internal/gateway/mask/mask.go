@@ -10,9 +10,6 @@ import (
 	"slices"
 )
 
-// Marker replaces each masked value.
-const Marker = "[masked]"
-
 // minSecretLen is the shortest secret that is masked: a shorter one would
 // mask ordinary text.
 const minSecretLen = 4
@@ -21,7 +18,8 @@ const minSecretLen = 4
 // as is; a pattern match split at that edge is not masked.
 const patternWindow = 4096
 
-var marker = []byte(Marker)
+// marker replaces each masked value.
+var marker = []byte("[masked]")
 
 // secret is a value with its KMP failure table.
 type secret struct {
@@ -99,7 +97,7 @@ func (m *writer) Close() error {
 	return err
 }
 
-// literal replaces every secret in b with the Marker, longest first.
+// literal replaces every secret in b with the marker, longest first.
 func (m *writer) literal(b []byte) []byte {
 	for _, s := range m.secrets {
 		if bytes.Contains(b, s.v) {

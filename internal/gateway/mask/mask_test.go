@@ -78,7 +78,7 @@ func TestMaskRandomChunking(t *testing.T) {
 	in := sb.String()
 	want := in
 	for _, s := range secrets { // longest first, as the writer does
-		want = strings.ReplaceAll(want, s, Marker)
+		want = strings.ReplaceAll(want, s, string(marker))
 	}
 	for range 1000 {
 		var chunks []string
