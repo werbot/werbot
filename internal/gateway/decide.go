@@ -1,6 +1,9 @@
 package gateway
 
-import "context"
+import (
+	"context"
+	"slices"
+)
 
 // decide authenticates the user of r and asks the PDP whether they may open
 // it: the resource must exist and, for a stream or datagram, the target must be
@@ -36,4 +39,25 @@ func (p *Pipeline) decide(ctx context.Context, r OpenRequest) (pol *Policy, req 
 		return nil, req, "", ErrDenied
 	}
 	return pol, req, host, nil
+}
+
+// servable checks that this gateway can serve kind on res, after the PDP: only
+// an allowed user learns that the spool is full. The host guard runs on the
+// host a TargetDialer dials; an approval keeps it, since the recheck refuses a
+// changed config.
+func (p *Pipeline) servable(ctx context.Context, kind Kind, res Resource, host string, recorded bool) error {
+	if recorded && (p.spool.Total() >= p.cfg.SpoolMax || !p.spool.Writable()) {
+		return ErrSpoolMax
+	}
+	c, ok := LookupConnector(res.Type)
+	if !ok {
+		return ErrUnsupportedType
+	}
+	if !slices.Contains(c.Kinds(), kind) {
+		return ErrUnsupportedKind
+	}
+	if _, dials := c.(TargetDialer); dials {
+		return p.guard.allowHost(ctx, dialHost(res, host))
+	}
+	return nil
 }

@@ -46,7 +46,9 @@ func TestDecideExecObligations(t *testing.T) {
 	assert.False(t, d.Allow)
 	assert.Nil(t, d.Obligations, "an approval never opens what another forbid denies")
 	assert.Equal(t, "No rm", d.Message, "the message of the smallest @id")
-	assert.ElementsMatch(t, []string{"command:a", "command:b"}, d.Reasons)
+	for range 20 { // cedar-go reports in map order; Decide sorts
+		assert.Equal(t, []string{"command:a", "command:b"}, p.Decide(execRequest(t, p, m, "destructive", "write")).Reasons)
+	}
 
 	granted := execRequest(t, p, m, "write")
 	granted.ApprovalGranted = true

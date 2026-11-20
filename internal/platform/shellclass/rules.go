@@ -12,7 +12,7 @@ type check func(c *Classifier, args []word, host string, depth int) set
 // rule is one entry of the built-in table.
 type rule struct {
 	base  set             // classes when no listed option is present
-	flags map[string]set  // option ("-r", "--force") → classes; any match replaces base
+	flags map[string]set  // option ("-r", "--force") → classes; any match replaces base, adds to subs
 	old   bool            // the first argument is an option cluster without "-" (tar)
 	subs  map[string]set  // subcommand ("get", "system prune") → classes; unknown → opaque
 	pre   map[string]bool // options with a value before the subcommand
@@ -56,9 +56,16 @@ func buildRules() map[string]rule {
 		}
 	}
 	add(rule{base: of(Read)}, "ls cat head tail less more grep egrep fgrep zgrep zcat wc stat file du df free "+
-		"uptime uname hostname id whoami w who ps top pgrep pidof date echo pwd which type cd test [ true false : "+
-		"sleep sort uniq cut tr awk jq diff cmp md5sum sha256sum lsblk lsof ss netstat dmesg journalctl git-upload-pack")
+		"uptime uname id whoami w who ps top pgrep pidof echo pwd which type cd test [ true false : "+
+		"sleep cut tr awk jq diff cmp md5sum sha256sum lsblk lsof ss netstat git-upload-pack")
 	add(rule{base: of(Read), flags: keyed(map[Class]string{Write: "-i|--in-place"})}, "sed")
+	add(rule{base: of(Read), flags: keyed(map[Class]string{Write: "-o|--output", Opaque: "--compress-program"})}, "sort")
+	add(rule{base: of(Read), flags: keyed(map[Class]string{Write: "-s|--set"})}, "date")
+	add(rule{base: of(Read), flags: keyed(map[Class]string{Write: "-c|-C|--clear|--read-clear"})}, "dmesg")
+	add(rule{base: of(Read), flags: keyed(map[Class]string{
+		Write: "--vacuum-size|--vacuum-time|--vacuum-files|--rotate"})}, "journalctl")
+	add(rule{check: writesFrom(2, "-f", "-s", "-w", "--skip-fields", "--skip-chars", "--check-chars")}, "uniq")
+	add(rule{check: writesFrom(1)}, "hostname")
 	add(rule{base: of(Read), flags: keyed(map[Class]string{Opaque: "-d|-D|--decode"})}, "base64")
 	add(rule{base: of(Read), flags: keyed(map[Class]string{Opaque: "-v"})}, "printf")
 	add(rule{base: of(Write)}, "cp mv mkdir rmdir touch ln install tee chgrp kill pkill killall vi vim nano "+
@@ -89,7 +96,7 @@ func buildRules() map[string]rule {
 		Write:       "start|stop|restart|pull",
 		Destructive: "rm|rmi|prune|system prune|volume prune|image prune",
 	})}, "docker")
-	add(rule{pre: map[string]bool{"-C": true}, subs: keyed(map[Class]string{
+	add(rule{pre: map[string]bool{"-C": true}, flags: keyed(map[Class]string{Write: "--output"}), subs: keyed(map[Class]string{
 		Read:  "status|log|diff|show",
 		Write: "pull|fetch|checkout|commit|push",
 	})}, "git")
@@ -103,7 +110,7 @@ func (r rule) eval(c *Classifier, args []word, host string, depth int) set {
 	case r.check != nil:
 		return r.check(c, args, host, depth)
 	case r.subs != nil:
-		return r.subcommand(args[1:])
+		return r.subcommand(args[1:]) | r.flagClasses(args[1:])
 	case r.flags == nil:
 		return r.base
 	case dynamicHead(args[1:]):
@@ -182,6 +189,40 @@ func (r rule) operand(args []word, start int) int {
 		}
 	}
 	return -1
+}
+
+// writesFrom returns a check that is read below n operands and write from n
+// on (uniq's output file, the name hostname sets); valued lists the options
+// whose value is the next word.
+func writesFrom(n int, valued ...string) check {
+	return func(_ *Classifier, args []word, _ string, _ int) set {
+		args = args[1:]
+		if dynamicHead(args) {
+			return opaque
+		}
+		if operands(args, valued) >= n {
+			return of(Write)
+		}
+		return of(Read)
+	}
+}
+
+// operands counts the words of args that are neither options nor the values
+// of valued options; every word after "--" is one.
+func operands(args []word, valued []string) int {
+	n := 0
+	for i := 0; i < len(args); i++ {
+		switch t := args[i].text; {
+		case t == "--":
+			return n + len(args) - i - 1
+		case slices.Contains(valued, t):
+			i++
+		case len(t) > 1 && t[0] == '-':
+		default:
+			n++
+		}
+	}
+	return n
 }
 
 // setBuiltin: "set" alone prints every variable.

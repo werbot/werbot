@@ -90,7 +90,7 @@ func TestPolicyParityExec(t *testing.T) {
 				assert.Equal(t, server.Allow, gw.Allow, action)
 				assert.Equal(t, server.Obligations, gw.Obligations, action)
 				assert.Equal(t, server.Message, gw.Message, action)
-				assert.ElementsMatch(t, server.Reasons, gw.Reasons, action)
+				assert.Equal(t, server.Reasons, gw.Reasons, action)
 				if action == "ssh.connect" {
 					assert.True(t, server.Allow, "connect: %v", server.Reasons)
 					continue

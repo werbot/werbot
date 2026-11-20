@@ -48,7 +48,9 @@ func TestObligationsOnlyWhenAllForbidsCarryThem(t *testing.T) {
 	assert.False(t, d.Allow)
 	assert.Nil(t, d.Obligations)
 	assert.Equal(t, "blocked", d.Message)
-	assert.ElementsMatch(t, []string{"command:" + apprID.String(), "command:" + denyID.String()}, d.Reasons)
+	for range 20 { // cedar-go reports in map order; Authorize sorts
+		assert.Equal(t, []string{"command:" + denyID.String(), "command:" + apprID.String()}, authorize(t, s, execReq("write")).Reasons)
+	}
 
 	r := execReq("write")
 	r.ApprovalGranted = true

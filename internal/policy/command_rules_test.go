@@ -129,6 +129,7 @@ func TestClassRuleCRUD(t *testing.T) {
 		"unknown class": {"x", []string{"bogus"}},
 		"no classes":    {"x", nil},
 		"dup class":     {"x", []string{"write", "write"}},
+		"long pattern":  {strings.Repeat("a", 256), []string{"write"}},
 	} {
 		_, err := e.svc.CreateClassRule(e.ctx, e.org, c.pattern, c.classes)
 		assert.ErrorIs(t, err, apperr.ErrInvalidArgument, name)

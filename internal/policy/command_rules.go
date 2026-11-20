@@ -26,6 +26,7 @@ const (
 	maxMessageRunes      = 256
 	maxSelectorResources = 100
 	maxSelectorLabels    = 8
+	maxPatternBytes      = 255 // class rule pattern
 )
 
 // CommandRuleInput describes a command rule.
@@ -267,6 +268,9 @@ func (s *Service) ListClassRules(ctx context.Context, orgID uuid.UUID) ([]ClassR
 // CreateClassRule adds a class rule to orgID; the pattern must compile as
 // the classifier compiles it.
 func (s *Service) CreateClassRule(ctx context.Context, orgID uuid.UUID, pattern string, classes []string) (ClassRule, error) {
+	if len(pattern) > maxPatternBytes {
+		return ClassRule{}, invalid("pattern must have at most %d bytes", maxPatternBytes)
+	}
 	if err := validClasses(classes); err != nil {
 		return ClassRule{}, err
 	}

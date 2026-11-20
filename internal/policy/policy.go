@@ -186,9 +186,12 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 	for _, rs := range diag.Reasons {
 		out.Reasons = append(out.Reasons, string(rs.PolicyID))
 	}
+	slices.Sort(out.Reasons) // cedar-go reports in map order
+	n := len(out.Reasons)
 	for _, e := range diag.Errors {
 		out.Reasons = append(out.Reasons, "error:"+string(e.PolicyID))
 	}
+	slices.Sort(out.Reasons[n:])
 	if d == cedar.Deny && len(diag.Errors) == 0 {
 		out.Message, out.Obligations = ps.explain(r, out.Reasons)
 	}

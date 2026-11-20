@@ -82,12 +82,18 @@ func validatePolicy(v *validate.Validator, p *cedar.Policy) error {
 	return nil
 }
 
-// checkAnnotations rejects @id (Compile assigns it) and an @obligation that
-// is not on a forbid or is not a known name.
+// checkAnnotations rejects @id (Compile assigns it), a @message that a command
+// rule could not carry and an @obligation that is not on a forbid or is not a
+// known name.
 func checkAnnotations(p *cedar.Policy) error {
 	a := p.Annotations()
 	if _, ok := a["id"]; ok {
 		return errors.New("@id is reserved")
+	}
+	if m, ok := a["message"]; ok {
+		if err := validMessage(string(m)); err != nil {
+			return err
+		}
 	}
 	name, ok := a["obligation"]
 	if !ok {

@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -52,22 +53,23 @@ func withExecAction(req AccessRequest, r OpenRequest, typ connector.Type) Access
 // passes unchanged. The command is classified with the snapshot class rules and
 // the resource host. A deny that only an approval lifts waits for the
 // approvers, telling the user on notice, and is then decided again. It returns
-// the decided request: the sweeper re-decides it.
-func (p *Pipeline) authorizeCommand(ctx context.Context, pol *Policy, req AccessRequest, command string, notice io.Writer) (AccessRequest, error) {
+// the decided request and the snapshot it was decided on: the session runs on
+// that request's user and resource, and the sweeper re-decides it.
+func (p *Pipeline) authorizeCommand(ctx context.Context, pol *Policy, req AccessRequest, command string, notice io.Writer) (*Policy, AccessRequest, error) {
 	if req.Action == "" {
-		return req, nil
+		return pol, req, nil
 	}
 	ep, _, _ := req.Resource.Endpoint() // an invalid config leaves no host: every remote host is egress
 	req.Command, req.Classes = command, pol.Classify(command, ep.Host)
 	d := pol.Decide(req)
 	switch {
 	case d.Allow:
-		return req, nil
+		return pol, req, nil
 	case !slices.Equal(d.Obligations, []string{ObligationApproval}):
-		return req, &CommandDeniedError{Err: ErrDenied, Message: d.Message}
+		return pol, req, &CommandDeniedError{Err: ErrDenied, Message: d.Message}
 	}
 	if err := p.approve(ctx, req, d, notice); err != nil {
-		return req, err
+		return pol, req, err
 	}
 	return p.recheckApproved(req)
 }
@@ -75,18 +77,20 @@ func (p *Pipeline) authorizeCommand(ctx context.Context, pol *Policy, req Access
 // recheckApproved decides an approved command again on the current snapshot at
 // the current time, since the wait may have changed the resource, the
 // membership, connect or the command rules: a deny refuses it, with the
-// message of the new command decision.
-func (p *Pipeline) recheckApproved(req AccessRequest) (AccessRequest, error) {
+// message of the new command decision. A resource whose type or connector
+// config (its endpoint included) changed is refused too: the approvers saw the
+// old one.
+func (p *Pipeline) recheckApproved(req AccessRequest) (*Policy, AccessRequest, error) {
 	pol := p.ctl.Policy()
 	cur, ok := recheck(pol, evaluation{req: connectOf(req)}, p.now())
-	if !ok {
-		return req, &CommandDeniedError{Err: ErrDenied}
+	if !ok || cur.Resource.Type != req.Resource.Type || !bytes.Equal(cur.Resource.Config, req.Resource.Config) {
+		return pol, req, &CommandDeniedError{Err: ErrDenied}
 	}
 	cur.Action, cur.Command, cur.Classes, cur.ApprovalGranted = req.Action, req.Command, req.Classes, true
 	if d := pol.Decide(cur); !d.Allow {
-		return cur, &CommandDeniedError{Err: ErrDenied, Message: d.Message}
+		return pol, cur, &CommandDeniedError{Err: ErrDenied, Message: d.Message}
 	}
-	return cur, nil
+	return pol, cur, nil
 }
 
 // connectOf is the connect request of a session's request.

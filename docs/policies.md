@@ -21,7 +21,7 @@ The gateway parses the command as a bash command line (pipes, lists, `$(…)`, r
 | Class | Built-in examples |
 | --- | --- |
 | `read` | `ls`, `cat`, `head`, `tail`, `less`, `grep`, `wc`, `df`, `du`, `ps`, `top`, `uptime`, `hostname`, `whoami`, `date`, `echo`, `sort`, `awk`, `jq`, `diff`, `journalctl`; `sed` without `-i`; `find` without `-delete` or `-exec`; `tar t…`; `crontab -l`; `systemctl status`, `kubectl get`, `docker ps`, `git status` and other read-only subcommands |
-| `write` | `cp`, `mv`, `mkdir`, `touch`, `ln`, `tee`, `rm` without `-r` or `-f`, `chmod`, `kill`, `vi`, `vim`, `nano`, `tar c…`/`x…`, `unzip`, `sed -i`, redirections to a file (`>`, `>>`); `systemctl restart`, `kubectl apply`, `docker pull`, `git pull`, `apt install` and other changing subcommands |
+| `write` | `cp`, `mv`, `mkdir`, `touch`, `ln`, `tee`, `rm` without `-r` or `-f`, `chmod`, `kill`, `vi`, `vim`, `nano`, `tar c…`/`x…`, `unzip`, `sed -i`, `sort -o`, `uniq` with an output file, `date -s`, `hostname <name>`, `dmesg -c`/`-C`, `journalctl --vacuum-…`/`--rotate`, `git … --output`, redirections to a file (`>`, `>>`); `systemctl restart`, `kubectl apply`, `docker pull`, `git pull`, `apt install` and other changing subcommands |
 | `destructive` | `rm -r`, `rm -f` (any combination), `dd`, `mkfs`, `truncate`, `shred`, `wipefs`, `fdisk`, `parted`, `reboot`, `shutdown`, `crontab -r`, `find -delete`; `kubectl delete`, `docker rm`, `docker system prune`, `apt remove` |
 | `privilege` | `sudo`, `doas`, `su`, `pkexec` (plus the classes of the command they run), `chown`, `useradd`, `usermod`, `passwd`, `visudo`, `setcap`, `chmod 777`, `chmod +s`, writes to `/etc/sudoers` |
 | `secrets` | `printenv`, `env` and `set` without arguments, `history`; any argument or redirection that names `~/.ssh`, `.env`, `/proc/*/environ`, `/etc/shadow`, `.aws/credentials`, `.kube/config`, `.git-credentials`, `.netrc`, `.pgpass` |
@@ -44,7 +44,7 @@ Before the table is consulted the classifier:
 The classifier is a heuristic. It reads the command line, not what the programs do, and it is a guard on top of the session recording, not a sandbox.
 
 - A script or an unknown program is `opaque`: the classifier cannot see inside it. Treat `opaque` as "may do anything".
-- Some `read` programs can still write files or run other programs: `awk`, `sed` without `-i` and `less`, and `curl -o` or `wget` to the local or resource host (they write the download to a file). `vi` and `vim` are `write`, yet they can run other programs too. Rule out such programs with an override or a custom policy where it matters.
+- Some `read` programs can still write files or run other programs: `awk`, `sed` without `-i` and `less`, and `curl -o` or `wget` to the local or resource host (they write the download to a file). `vi` and `vim` are `write`, yet they can run other programs too. The table knows the common writing options (`sort -o`, `date -s`, …), not every one. Rule out such programs with an override or a custom policy where it matters.
 - The interactive shell is not checked per command (see [What is checked](#what-is-checked)).
 
 ## Class overrides
@@ -125,13 +125,13 @@ https://werbot.example.com/requests?id=0199f0c2-…
 
 - The approvers get the `access_request` email and see the request, with the command and its classes, on **Requests**. A command approval is never approved automatically and nobody approves their own command. The approvers are those of the approval policies that match the user and the resource; without a matching policy, the owners and admins ([jit.md](jit.md#approval-policies)).
 - The wait lasts `command_approval_ttl` (default `5m`, `30s` to `1h`, **Settings**). The gateway learns the decision from the tunnel at once and also reads it every 15 seconds, so a lost notification delays the command by at most 15 seconds.
-- **Approved**: the gateway decides the command again on its current policy (a binding, lock or rule may have changed meanwhile) and runs it. One approval covers one run of one command.
+- **Approved**: the gateway decides the command again on its current policy (a binding, lock or rule may have changed meanwhile) and runs it on the resource as it is now. If the resource's connection settings (for example its host or port) changed during the wait, the command is refused with `Access denied`. One approval covers one run of one command.
 - **Denied** or canceled: `Command denied: <message>`, or `Command denied: approval denied`.
 - **No decision in time**: `Approval timed out`. A timeout is always a refusal.
 - The session counts against `WERBOT_GATEWAY_MAX_SESSIONS` while it waits, and the gateway sends SSH keepalives so the connection stays open.
 - If the server cannot be reached when the approval is requested, the user gets `Gateway is not ready, try again later`. If the server cannot take the request (for example, nobody but the user could approve), the user gets `Command denied: approval denied`.
 - A command longer than 16384 bytes cannot be sent for approval: it gets `Command denied: approval denied` and no request is created.
-- If the user disconnects while waiting, the request stays `pending` until it expires. An approver may still approve it; nothing runs.
+- If the user disconnects or closes the session channel while waiting (a multiplexed connection may stay open), the wait ends at once and the request stays `pending` until it expires. An approver may still approve it; nothing runs.
 
 Refusals are audited as `session.deny` with the reason `denied`, `approval_denied` or `approval_timeout`; decisions as `access.request.approve` and `access.request.deny` with `kind` `command`.
 

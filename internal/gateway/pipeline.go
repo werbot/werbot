@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/netip"
 	"runtime/debug"
-	"slices"
 	"sync/atomic"
 	"time"
 
@@ -170,33 +169,22 @@ func (p *Pipeline) reject(err error) error {
 }
 
 // open returns the user it authenticated, also with an error, for the denial.
+// After an approval wait the session runs on the user and resource of the
+// recheck, not on those read before the wait.
 func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID, error) {
 	pol, req, host, err := p.decide(ctx, r)
-	u, res := req.User, req.Resource
 	if err != nil {
-		return nil, u.ID, err
+		return nil, req.User.ID, err
 	}
-	// after the PDP: only an allowed user learns that the spool is full
-	typ, _ := connector.Lookup(res.Type)
+	typ, _ := connector.Lookup(req.Resource.Type)
 	recorded := typ.Records(r.Kind)
-	if recorded && (p.spool.Total() >= p.cfg.SpoolMax || !p.spool.Writable()) {
-		return nil, u.ID, ErrSpoolMax
+	if err := p.servable(ctx, r.Kind, req.Resource, host, recorded); err != nil {
+		return nil, req.User.ID, err
 	}
-	c, ok := LookupConnector(res.Type)
-	if !ok {
-		return nil, u.ID, ErrUnsupportedType
+	if pol, req, err = p.authorizeCommand(ctx, pol, withExecAction(req, r, typ), r.Command, r.Notice); err != nil {
+		return nil, req.User.ID, err
 	}
-	if !slices.Contains(c.Kinds(), r.Kind) {
-		return nil, u.ID, ErrUnsupportedKind
-	}
-	if _, dials := c.(TargetDialer); dials {
-		if err := p.guard.allowHost(ctx, dialHost(res, host)); err != nil {
-			return nil, u.ID, err
-		}
-	}
-	if req, err = p.authorizeCommand(ctx, pol, withExecAction(req, r, typ), r.Command, r.Notice); err != nil {
-		return nil, u.ID, err
-	}
+	u, res := req.User, req.Resource
 	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target, req.Command, req.Classes)
 	if err != nil {
 		return nil, u.ID, controlErr(err)

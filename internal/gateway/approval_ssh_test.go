@@ -64,3 +64,28 @@ func TestApprovalWaitKeepsConnection(t *testing.T) {
 	require.Equal(t, "Waiting for approval a1, timeout 1m\r\nhttps://werbot.test/requests/a1\r\n", errOut.String())
 	require.GreaterOrEqual(t, keepalives.Load(), int32(5))
 }
+
+// Closing the waiting session channel ends the wait at once, while the
+// connection stays open for other channels: a later approval runs nothing.
+func TestApprovalWaitEndsWithChannel(t *testing.T) {
+	e := newSSHEnv(t, Config{})
+	e.f.with(func(f *fakeControl) { f.policy = execPolicy(t, e.m, "v1", approvalPolicies("")) })
+	a := &fakeApprovals{ttl: time.Minute, statuses: []string{"pending"}}
+	e.f.with(func(f *fakeControl) { f.approvals = a })
+	c := e.client(t, "alice+x")
+
+	waiting, err := c.NewSession()
+	require.NoError(t, err)
+	require.NoError(t, waiting.Start("mkdir x"))
+	require.Eventually(t, func() bool { return a.waiting() == 1 }, 5*time.Second, 5*time.Millisecond)
+	require.NoError(t, waiting.Close())
+	require.Eventually(t, func() bool { return a.waiting() == 0 }, 5*time.Second, 5*time.Millisecond, "the wait ended")
+	a.decide("approved")
+
+	other, err := c.NewSession()
+	require.NoError(t, err, "the connection is still open")
+	out, err := other.Output("ls")
+	require.Equal(t, 7, exitCode(t, err))
+	require.Equal(t, "spy:x kind=exec cmd=\"ls\"\n", string(out))
+	require.Equal(t, 1, e.startCalls(), "only the other channel started a session")
+}
