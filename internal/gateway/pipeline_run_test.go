@@ -142,7 +142,9 @@ func TestDrain(t *testing.T) {
 		go func() { _ = e.p.Run(t.Context(), s, c) }()
 		start := time.Now()
 		e.p.drain(0)
-		require.Less(t, time.Since(start), 100*time.Millisecond)
+		// the cancel ends the blocker at once; a wait for the 10s flush timeout
+		// would show here, a busy CI runner's scheduling should not
+		require.Less(t, time.Since(start), time.Second)
 		requireEnds(t, e.f, s.ID, "gateway_shutdown")
 	})
 
