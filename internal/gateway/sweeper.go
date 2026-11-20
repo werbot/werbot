@@ -124,7 +124,7 @@ func (a *activeSessions) reevaluated(id uuid.UUID, version string, req AccessReq
 // terminal or exec session; a stream or datagram session opened by the old name
 // fails the target check and ends with access_revoked), the membership and teams
 // of the user (when the snapshot lists them), the stream or datagram target and
-// the PDP at now.
+// the PDP at now, for the connection and then for the command of the session.
 func recheck(pol *Policy, e evaluation, now time.Time) (AccessRequest, bool) {
 	req := e.req
 	res, ok := pol.resourceByID(req.Resource.ID)
@@ -141,8 +141,8 @@ func recheck(pol *Policy, e evaluation, now time.Time) (AccessRequest, bool) {
 			return req, false
 		}
 	}
-	allow, _ := pol.Authorize(req)
-	return req, allow
+	allow, _ := pol.Authorize(connectOf(req))
+	return req, allow && commandAllowed(pol, req)
 }
 
 // limits are the idle timeout and max duration of a session on r.

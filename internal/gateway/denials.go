@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"cmp"
 	"errors"
 	"net/netip"
 	"sync"
@@ -64,6 +65,10 @@ func denialReason(err error) string {
 		return "unsupported_type"
 	case errors.Is(err, ErrUnsupportedKind):
 		return "unsupported_kind"
+	case errors.Is(err, ErrApprovalDenied):
+		return "approval_denied"
+	case errors.Is(err, ErrApprovalTimeout):
+		return "approval_timeout"
 	}
 	return "denied"
 }
@@ -76,7 +81,7 @@ func newDenial(reason string, user uuid.UUID, fingerprint, resource string, kind
 		KeyFingerprint: TruncateUTF8(fingerprint, 128),
 		Resource:       TruncateUTF8(resource, 63),
 		Kind:           TruncateUTF8(string(kind), 16),
-		Target:         TruncateUTF8(target, 300),
+		Target:         TruncateUTF8(target, 1024),
 		Reason:         reason,
 		At:             timestamppb.Now(),
 	}
@@ -89,9 +94,10 @@ func newDenial(reason string, user uuid.UUID, fingerprint, resource string, kind
 	return d
 }
 
-// deny reports a refused Open in the next heartbeat.
+// deny reports a refused Open in the next heartbeat; the target of a request
+// with a command is the command.
 func (p *Pipeline) deny(r OpenRequest, user uuid.UUID, err error) {
 	if reason := denialReason(err); reason != "" {
-		p.denials.add(newDenial(reason, user, r.Identity.Value, r.Resource, r.Kind, r.Target, r.ClientIP))
+		p.denials.add(newDenial(reason, user, r.Identity.Value, r.Resource, r.Kind, cmp.Or(r.Command, r.Target), r.ClientIP))
 	}
 }

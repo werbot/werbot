@@ -261,6 +261,9 @@ func openText(err error, resource string, kind Kind, pol *Policy) string {
 	case errors.Is(err, ErrUnsupportedKind):
 		return fmt.Sprintf("Resource %s does not support %s sessions", resource, kind)
 	}
+	if cd, ok := errors.AsType[*CommandDeniedError](err); ok {
+		return cd.Error()
+	}
 	return "Access denied"
 }
 

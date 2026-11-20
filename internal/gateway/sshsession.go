@@ -1,6 +1,8 @@
 package gateway
 
 import (
+	"errors"
+	"io"
 	"sync/atomic"
 
 	"github.com/gliderlabs/ssh"
@@ -37,31 +39,25 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 			return code
 		}
 	}
-	kind, w := KindExec, Window{}
-	if isPty || s.RawCommand() == "" {
-		kind = KindTerminal
-		w = Window{Cols: pty.Window.Width, Rows: pty.Window.Height}
-		if early := earlyWindow(sctx); isPty && early != nil {
-			w = *early
-		}
-	}
-	sess, err := h.p.Open(sctx, h.request(sctx, resource, kind, w, ""))
+	r := h.sessionRequest(s, resource, pty, isPty)
+	sess, err := h.p.Open(sctx, r)
 	if err != nil {
-		say(s, openText(err, resource, kind, h.p.ctl.Policy()))
+		say(openOut(r, s, err), openText(err, resource, r.Kind, h.p.ctl.Policy()))
 		return 1
 	}
 	c, ok := LookupConnector(sess.Resource.Type)
 	if !ok { // Open found it; registrations are never removed
 		h.p.abort(sess)
-		say(s, openText(ErrUnsupportedType, resource, kind, h.p.ctl.Policy()))
+		say(s, openText(ErrUnsupportedType, resource, r.Kind, h.p.ctl.Policy()))
 		return 1
 	}
 	var exit atomic.Int32
 	setExit := func(code int) { exit.Store(int32(code)) } //nolint:gosec // SSH exit statuses fit in 32 bits
-	if kind == KindTerminal {
-		sess.Terminal = &Terminal{ReadWriter: s, Term: pty.Term, Command: s.RawCommand(), Window: w, Resize: resize, SetExitStatus: setExit}
+	// the command the PDP decided, never the raw one again
+	if r.Kind == KindTerminal {
+		sess.Terminal = &Terminal{ReadWriter: s, Term: pty.Term, Command: sess.Command, Window: r.Window, Resize: resize, SetExitStatus: setExit}
 	} else {
-		sess.Exec = &Exec{Command: s.RawCommand(), Stdin: s, Stdout: s, Stderr: s.Stderr(), SetExitStatus: setExit}
+		sess.Exec = &Exec{Command: sess.Command, Stdin: s, Stdout: s, Stderr: s.Stderr(), SetExitStatus: setExit}
 	}
 	defer session(sctx)()
 	if err := h.p.Run(sctx, sess, c); err != nil {
@@ -69,6 +65,32 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 		return 1
 	}
 	return int(exit.Load())
+}
+
+// sessionRequest is the OpenRequest of a session channel: a shell is a
+// terminal, an exec with a PTY a terminal running the command, an exec without
+// one an exec. Notice is the PTY of a terminal, stderr of an exec.
+func (h *sshHandler) sessionRequest(s ssh.Session, resource string, pty ssh.Pty, isPty bool) OpenRequest {
+	kind, w, notice := KindExec, Window{}, s.Stderr()
+	if isPty || s.RawCommand() == "" {
+		kind, notice = KindTerminal, s
+		w = Window{Cols: pty.Window.Width, Rows: pty.Window.Height}
+		if early := earlyWindow(s.Context()); isPty && early != nil {
+			w = *early
+		}
+	}
+	r := h.request(s.Context(), resource, kind, w, "")
+	r.Command, r.Notice = s.RawCommand(), notice
+	return r
+}
+
+// openOut is where the user reads the text of an Open error: Notice for a
+// refused command, the session channel otherwise.
+func openOut(r OpenRequest, s ssh.Session, err error) io.Writer {
+	if _, ok := errors.AsType[*CommandDeniedError](err); ok {
+		return r.Notice
+	}
+	return s
 }
 
 // windowChanges relays the window changes after the initial one, which comes

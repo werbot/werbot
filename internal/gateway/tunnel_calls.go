@@ -66,13 +66,15 @@ func authRequest(id Identity, ip netip.Addr) *gatewayv1.AuthenticateUserRequest 
 	return r
 }
 
-// StartSession records a session of kind (target: host:port for a stream)
-// and reveals the resource credential.
-func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target string) (uuid.UUID, Secret, error) {
+// StartSession records a session of kind (target: host:port for a stream; an
+// exec: its authorized command, cut to the wire bound, and classes) and reveals
+// the resource credential.
+func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes []string) (uuid.UUID, Secret, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
 	resp, err := c.conn.Load().rpc.StartSession(ctx, connect.NewRequest(&gatewayv1.StartSessionRequest{
 		UserId: userID.String(), ResourceId: resourceID.String(), ClientIp: ip.String(), Kind: string(kind), Target: target,
+		Command: TruncateUTF8(command, 65536), Classes: classes,
 	}))
 	if err != nil {
 		return uuid.Nil, Secret{}, err

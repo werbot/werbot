@@ -105,7 +105,7 @@ type fakeControl struct {
 	authCalls  []string
 	idents     []Identity // every AuthenticateUser identity
 	startCalls int
-	starts     []string // "<user id> <resource id> <ip>"
+	starts     []string // "<user id> <resource id> <ip>" + startCmd
 	ends       []endCall
 	pins       []string
 	events     []string
@@ -133,14 +133,14 @@ func (f *fakeControl) AuthenticateUser(_ context.Context, id Identity, ip netip.
 	return u, nil
 }
 
-func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _ string) (uuid.UUID, Secret, error) {
+func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _, command string, classes []string) (uuid.UUID, Secret, error) {
 	if f.onStart != nil {
 		f.onStart()
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.startCalls++
-	f.starts = append(f.starts, fmt.Sprintf("%s %s %s", userID, resourceID, ip))
+	f.starts = append(f.starts, fmt.Sprintf("%s %s %s", userID, resourceID, ip)+startCmd(command, classes))
 	if f.startErr != nil {
 		return uuid.Nil, Secret{}, f.startErr
 	}

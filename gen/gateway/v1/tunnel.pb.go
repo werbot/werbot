@@ -262,8 +262,9 @@ type Denial struct {
 	UserId         string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	KeyFingerprint string                 `protobuf:"bytes,2,opt,name=key_fingerprint,json=keyFingerprint,proto3" json:"key_fingerprint,omitempty"`
 	// resource name from the login; the server resolves the id when it exists
-	Resource      string                 `protobuf:"bytes,3,opt,name=resource,proto3" json:"resource,omitempty"`
-	Kind          string                 `protobuf:"bytes,4,opt,name=kind,proto3" json:"kind,omitempty"`
+	Resource string `protobuf:"bytes,3,opt,name=resource,proto3" json:"resource,omitempty"`
+	Kind     string `protobuf:"bytes,4,opt,name=kind,proto3" json:"kind,omitempty"`
+	// stream or datagram: host:port; exec or terminal with a command: the command
 	Target        string                 `protobuf:"bytes,5,opt,name=target,proto3" json:"target,omitempty"`
 	ClientIp      string                 `protobuf:"bytes,6,opt,name=client_ip,json=clientIp,proto3" json:"client_ip,omitempty"`
 	Reason        string                 `protobuf:"bytes,7,opt,name=reason,proto3" json:"reason,omitempty"`
@@ -2157,16 +2158,16 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"bytes_down\x18\x03 \x01(\x03R\tbytesDown\x12!\n" +
 	"\fdatagrams_up\x18\x04 \x01(\x03R\vdatagramsUp\x12%\n" +
-	"\x0edatagrams_down\x18\x05 \x01(\x03R\rdatagramsDown\"\x9a\x03\n" +
+	"\x0edatagrams_down\x18\x05 \x01(\x03R\rdatagramsDown\"\xc1\x03\n" +
 	"\x06Denial\x12$\n" +
 	"\auser_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\x121\n" +
 	"\x0fkey_fingerprint\x18\x02 \x01(\tB\b\xbaH\x05r\x03(\x80\x01R\x0ekeyFingerprint\x12#\n" +
 	"\bresource\x18\x03 \x01(\tB\a\xbaH\x04r\x02(?R\bresource\x12\x1b\n" +
 	"\x04kind\x18\x04 \x01(\tB\a\xbaH\x04r\x02(\x10R\x04kind\x12 \n" +
-	"\x06target\x18\x05 \x01(\tB\b\xbaH\x05r\x03(\xac\x02R\x06target\x12)\n" +
-	"\tclient_ip\x18\x06 \x01(\tB\f\xbaH\t\xd8\x01\x01r\x04(@p\x01R\bclientIp\x12|\n" +
-	"\x06reason\x18\a \x01(\tBd\xbaHar_R\x06deniedR\x12target_not_allowedR\x10unsupported_typeR\x10unsupported_kindR\x04busyR\n" +
-	"spool_fullR\vauth_failedR\x06reason\x12*\n" +
+	"\x06target\x18\x05 \x01(\tB\b\xbaH\x05r\x03(\x80\bR\x06target\x12)\n" +
+	"\tclient_ip\x18\x06 \x01(\tB\f\xbaH\t\xd8\x01\x01r\x04(@p\x01R\bclientIp\x12\xa2\x01\n" +
+	"\x06reason\x18\a \x01(\tB\x89\x01\xbaH\x85\x01r\x82\x01R\x06deniedR\x12target_not_allowedR\x10unsupported_typeR\x10unsupported_kindR\x04busyR\n" +
+	"spool_fullR\vauth_failedR\x0fapproval_deniedR\x10approval_timeoutR\x06reason\x12*\n" +
 	"\x02at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"\xa5\x01\n" +
 	"\x0eResourceHealth\x12)\n" +
 	"\vresource_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +

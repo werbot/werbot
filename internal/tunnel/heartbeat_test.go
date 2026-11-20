@@ -141,8 +141,8 @@ func TestHeartbeatPayloadValidated(t *testing.T) {
 		"ip":           {Denials: []*gatewayv1.Denial{{ClientIp: "x", Reason: "denied"}}},
 		"session":      {Counters: []*gatewayv1.SessionCounters{{SessionId: "x"}}},
 		"health error": {Health: []*gatewayv1.ResourceHealth{{ResourceId: uuid.NewString(), Error: strings.Repeat("e", 101)}}},
-		// bounds count bytes: 76 four-byte characters are 304 bytes
-		"target bytes":  {Denials: []*gatewayv1.Denial{{Target: strings.Repeat("😀", 76), Reason: "denied"}}},
+		// bounds count bytes: 257 four-byte characters are 1028 bytes
+		"target bytes":  {Denials: []*gatewayv1.Denial{{Target: strings.Repeat("😀", 257), Reason: "denied"}}},
 		"version bytes": {Version: strings.Repeat("😀", 17)},
 		"ip zone":       {Denials: []*gatewayv1.Denial{{ClientIp: "fe80::1%" + strings.Repeat("z", 57), Reason: "denied"}}},
 	} {

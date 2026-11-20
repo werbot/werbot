@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/netip"
@@ -47,7 +48,9 @@ type OpenRequest struct {
 	Resource string // resource name
 	Target   string // KindStream, KindDatagram: host:port
 	ClientIP netip.Addr
-	Window   Window // KindTerminal: initial size for the recorder
+	Window   Window    // KindTerminal: initial size for the recorder
+	Command  string    // KindExec, KindTerminal with a command: the command to run
+	Notice   io.Writer // the user's side channel: stderr of an exec, the PTY of a terminal
 	// Handshake is the user the front authenticated for Identity; nil: none.
 	Handshake *Handshake
 }
@@ -55,7 +58,7 @@ type OpenRequest struct {
 // control is the control plane of the pipeline; *tunnelClient implements it.
 type control interface {
 	AuthenticateUser(ctx context.Context, id Identity, ip netip.Addr) (User, error)
-	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target string) (uuid.UUID, Secret, error)
+	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes []string) (uuid.UUID, Secret, error)
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
 	Policy() *Policy
 	PolicyChanged() <-chan struct{} // receives after a new Policy is stored
@@ -188,7 +191,10 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID
 			return nil, u.ID, err
 		}
 	}
-	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target)
+	if req, err = p.authorizeCommand(ctx, pol, withExecAction(req, r, typ), r.Command, r.Notice); err != nil {
+		return nil, u.ID, err
+	}
+	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target, req.Command, req.Classes)
 	if err != nil {
 		return nil, u.ID, controlErr(err)
 	}
@@ -201,19 +207,12 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID
 	p.active.add(id, t) // reported in heartbeats from now on, so the server keeps the session
 	return &Session{
 		ID: id, Kind: r.Kind, Front: r.Front, User: u, Resource: res, Secret: secret, ClientIP: r.ClientIP, Target: r.Target,
+		Command: r.Command, Classes: req.Classes,
 		PinKey:    func(alg string, key []byte) error { return p.pinKey(res, alg, key) },
 		Dial:      p.dial,
 		Recording: rec,
 		Metrics:   p.cfg.Metrics,
 	}, u.ID, nil
-}
-
-// controlErr maps a control plane error: an outage is ErrNotReady, anything else ErrDenied.
-func controlErr(err error) error {
-	if unreachable(err) {
-		return fmt.Errorf("%w: %w", ErrNotReady, err)
-	}
-	return fmt.Errorf("%w: %w", ErrDenied, err)
 }
 
 // Run serves s on c until it ends, then spools the session end with its counters,
