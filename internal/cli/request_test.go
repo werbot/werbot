@@ -159,14 +159,23 @@ func TestRequestsTable(t *testing.T) {
 	var scope werbotv1.RequestScope
 	f.list = func(r *werbotv1.ListRequestsRequest) []*werbotv1.AccessRequest {
 		scope = r.GetScope()
-		return []*werbotv1.AccessRequest{{
-			Id: "r1", Status: "pending", ResourceName: "db", RequesterLogin: "bob",
-			Duration: durationpb.New(2 * time.Hour), Reason: "deploy",
-		}}
+		at := timestamppb.New(time.Date(2026, 11, 20, 15, 30, 0, 0, time.UTC))
+		return []*werbotv1.AccessRequest{
+			{Id: "r1", Kind: "access", Status: "pending", ResourceName: "db", RequesterLogin: "bob",
+				Duration: durationpb.New(2 * time.Hour), Reason: "deploy"},
+			{Id: "r2", Kind: "access", Status: "pending", ExpiresAt: at},
+			{Id: "r3", Kind: "access", Status: "approved", ExpiresAt: at},
+			{Id: "r4", Kind: "access", Status: "denied", ExpiresAt: at},
+			{Id: "r5", Kind: "access", Status: "expired", ExpiresAt: at},
+			{Id: "r6", Kind: "command", Status: "approved", ExpiresAt: at},
+		}
 	}
 	require.NoError(t, h.run("requests", "--to-approve"))
 	assert.Equal(t, werbotv1.RequestScope_REQUEST_SCOPE_TO_APPROVE, scope)
 	assert.Regexp(t, `ID\s+STATUS\s+RESOURCE\s+REQUESTER\s+DURATION\s+EXPIRES\s+REASON\nr1\s+pending\s+db\s+bob\s+2h0m0s\s+-\s+deploy\n`, h.out.String())
+	for id, want := range map[string]string{"r2": "2026-11-20T15:30:00Z", "r3": "2026-11-20T15:30:00Z", "r4": "-", "r5": "-", "r6": "-"} {
+		assert.Regexp(t, `\n`+id+`\s+\w+\s+0s\s+`+want+`\s*\n`, h.out.String(), "EXPIRES is the deadline of a pending request and the grant end of an approved access request")
+	}
 }
 
 func TestApproveDeny(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -40,15 +41,17 @@ type RequestFilter struct {
 	Page, PageSize int
 }
 
-// views converts rows and keeps those keep accepts.
+// views converts rows and keeps those keep accepts. Only a pending request before its deadline can be decided.
 func views(e evaluator, rows []dbq.ListApprovalsRow, user uuid.UUID, keep func(RequestView) bool) ([]RequestView, error) {
 	var out []RequestView
+	now := time.Now()
 	for _, r := range rows {
 		a, err := toApproval(r.Approval)
 		if err != nil {
 			return nil, err
 		}
-		v := RequestView{Approval: a, RequesterLogin: r.RequesterLogin, ResourceName: r.ResourceName, CanDecide: e.canDecide(a, user)}
+		v := RequestView{Approval: a, RequesterLogin: r.RequesterLogin, ResourceName: r.ResourceName,
+			CanDecide: a.Status == StatusPending && a.ExpiresAt.After(now) && e.canDecide(a, user)}
 		if keep(v) {
 			out = append(out, v)
 		}

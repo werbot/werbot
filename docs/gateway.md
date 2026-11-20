@@ -128,7 +128,7 @@ The gateway checks every open session again when a new snapshot arrives and when
 
 - **Clock.** Expiry is measured by the clock of the gateway host, not of the server. Run NTP (chrony, systemd-timesyncd) on every gateway host: a clock that runs behind keeps sessions open past their grant, one that runs ahead ends them early.
 - **Without the server.** Expiry needs no server: the timer works from the last snapshot. Revokes and new locks reach the gateway only through the tunnel.
-- **Lock mode** is an organization setting (Settings, `lock_mode`). With `best_effort` (default) open sessions keep running while the tunnel is down. With `strict` the gateway ends every session with `policy_stale` (log line `policy is stale, sessions terminated`) once the tunnel has been down for more than 60 seconds; a reconnect resets the wait. Use `strict` when a lock must win over availability.
+- **Lock mode** is an organization setting (Settings, `lock_mode`). With `best_effort` (default) open sessions keep running while the tunnel is down. With `strict` the gateway ends every session with `policy_stale` (log line `policy is stale, sessions terminated`) once the tunnel has been down for more than 60 seconds (checked every 5 seconds, so 60 to 65 seconds after the loss); a reconnect resets the wait. Use `strict` when a lock must win over availability.
 
 ## Recordings
 

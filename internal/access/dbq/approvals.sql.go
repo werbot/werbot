@@ -161,8 +161,9 @@ func (q *Queries) CreateGrants(ctx context.Context, arg CreateGrantsParams) ([]C
 }
 
 const decideApproval = `-- name: DecideApproval :one
-UPDATE approval SET status = $1, decided_by = $2, decided_at = now(), comment = $3
-WHERE id = $4 AND org_id = $5 AND status = 'pending' AND expires_at > now()
+UPDATE approval SET status = $1, decided_by = $2, decided_at = now(), comment = $3,
+    expires_at = COALESCE(now() + make_interval(secs => $4::float8), expires_at)
+WHERE id = $5 AND org_id = $6 AND status = 'pending' AND expires_at > now()
 RETURNING id, org_id, kind, requester_user_id, agent_run_id, resource_id, label_selector, duration, command, command_sha256, classes, reason, policy_id, break_glass, status, decided_by, decided_at, comment, expires_at, gateway_instance_id, created_at
 `
 
@@ -170,16 +171,19 @@ type DecideApprovalParams struct {
 	Status    string
 	DecidedBy *uuid.UUID
 	Comment   string
+	GrantSecs *float64
 	ID        uuid.UUID
 	OrgID     uuid.UUID
 }
 
 // Only a pending approval before its deadline changes: one of concurrent decisions wins.
+// grant_secs (an approved access request) moves expires_at to the grant end, as CreateGrants computes it.
 func (q *Queries) DecideApproval(ctx context.Context, arg DecideApprovalParams) (Approval, error) {
 	row := q.db.QueryRow(ctx, decideApproval,
 		arg.Status,
 		arg.DecidedBy,
 		arg.Comment,
+		arg.GrantSecs,
 		arg.ID,
 		arg.OrgID,
 	)

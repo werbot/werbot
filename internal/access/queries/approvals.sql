@@ -34,7 +34,9 @@ SELECT * FROM approval WHERE id = @id AND org_id = @org_id;
 
 -- name: DecideApproval :one
 -- Only a pending approval before its deadline changes: one of concurrent decisions wins.
-UPDATE approval SET status = @status, decided_by = @decided_by, decided_at = now(), comment = @comment
+-- grant_secs (an approved access request) moves expires_at to the grant end, as CreateGrants computes it.
+UPDATE approval SET status = @status, decided_by = @decided_by, decided_at = now(), comment = @comment,
+    expires_at = COALESCE(now() + make_interval(secs => sqlc.narg(grant_secs)::float8), expires_at)
 WHERE id = @id AND org_id = @org_id AND status = 'pending' AND expires_at > now()
 RETURNING *;
 

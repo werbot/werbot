@@ -30,6 +30,8 @@ type LockView struct {
 	CreatedAt time.Time
 }
 
+// The lock target types are also listed in CreateLockRequest.target_type
+// (proto/werbot/v1/lock.proto) and in writeLocks (internal/policy/compile_jit.go): change them together.
 var (
 	// lockTargets are the target types a lock takes now.
 	lockTargets = []string{"user", "team", "resource", "grant", "cli_session"}

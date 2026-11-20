@@ -145,7 +145,7 @@
 	<form id="create-lock" onsubmit={create}>
 		<FilledSelect label={m.locks_target_type()} options={types} bind:value={form.type} onchange={() => (form.target = '')} />
 		{#if form.type === 'cli_session'}
-			<FormField label={m.locks_cli_session_id()} bind:value={form.target} required />
+			<FormField label={m.locks_cli_session_id()} bind:value={form.target} required hint={m.locks_cli_session_id_hint()} />
 		{:else}
 			<FilledSelect label={m.locks_target()} options={targets[form.type] ?? []} bind:value={form.target} />
 		{/if}

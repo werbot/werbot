@@ -199,6 +199,7 @@ func (x *ListLocksResponse) GetLocks() []*Lock {
 type CreateLockRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Accepted now: user, team, resource, grant, cli_session; the others come with agents and MFA.
+	// Also listed in internal/access/locks.go and internal/policy/compile_jit.go: change them together.
 	TargetType    string               `protobuf:"bytes,1,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
 	TargetId      string               `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	Reason        string               `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`

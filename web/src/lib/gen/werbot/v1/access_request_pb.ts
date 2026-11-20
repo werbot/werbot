@@ -117,7 +117,7 @@ export type AccessRequest = Message<"werbot.v1.AccessRequest"> & {
   comment: string;
 
   /**
-   * a pending request expires at this time
+   * pending: the decision deadline; approved access request: the grant end
    *
    * @generated from field: google.protobuf.Timestamp expires_at = 18;
    */

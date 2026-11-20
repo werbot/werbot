@@ -70,7 +70,7 @@ $ werbot approve 019a3c4e-7d1f-7a2b-9c3d-5e6f7a8b9c0d --comment ok
 Request 019a3c4e-7d1f-7a2b-9c3d-5e6f7a8b9c0d approved
 ```
 
-`EXPIRES` of a pending request is its decision deadline. Nobody can approve their own request.
+`EXPIRES` of a pending request is its decision deadline; of an approved request, the end of the grant. Nobody can approve their own request.
 
 Exit codes: `0` when access is granted, the request is canceled with Ctrl-C, or `approve`/`deny` succeeds; `1` with the message on any error, including `Request <id> was denied: <comment>` and `Request <id> expired`.
 

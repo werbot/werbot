@@ -93,7 +93,7 @@ Locks are audited as `lock.create` and `lock.delete`.
 
 ### Revoking a CLI session
 
-Revoking a CLI session (Profile, CLI sessions, or `logout`) refuses its next API request and its next gateway connection, but open connections made with its certificate keep running. To end them too, lock the CLI session on the **Locks** page or with `LockService` (`target_type = cli_session`). See [security.md](security.md#cli-sessions-and-user-certificates).
+Revoking a CLI session (Profile, CLI sessions, or `logout`) refuses its next API request and its next gateway connection, but open connections made with its certificate keep running. To end them too, lock the CLI session on the **Locks** page or with `LockService` (`target_type = cli_session`). The CLI session id is the target of its `cli_session.revoke` event on the **Audit** page (hover the short id to see all of it). See [security.md](security.md#cli-sessions-and-user-certificates).
 
 ## Ending sessions
 
@@ -104,7 +104,7 @@ The gateway checks every open session again whenever its policy changes and when
 | A grant expires | 1 s after `expires_at` | `access_revoked` |
 | A grant is revoked | 2 s | `access_revoked` |
 | A lock is created | 2 s | `access_revoked` |
-| `strict` lock mode, tunnel down | 60 s after the tunnel loss | `policy_stale` |
+| `strict` lock mode, tunnel down | 60 to 65 s after the tunnel loss (checked every 5 s) | `policy_stale` |
 
 - Expiry uses a timer on the gateway, set from the last snapshot. It fires even when the server is unreachable.
 - The gateway compares whole seconds: a grant ends at the second of its `expires_at`, never later.
@@ -115,7 +115,7 @@ The gateway checks every open session again whenever its policy changes and when
 Revokes and locks reach a gateway through its tunnel. While the tunnel is down, a gateway cannot learn about them:
 
 - `best_effort` (default): open sessions keep running on the last snapshot until the tunnel is back. Grant expiry still ends sessions on time.
-- `strict`: when the tunnel has been down for more than 60 seconds, the gateway ends every session with `policy_stale`. A reconnect resets the wait.
+- `strict`: when the tunnel has been down for more than 60 seconds, the gateway ends every session with `policy_stale`. The gateway checks every 5 seconds, so sessions end 60 to 65 seconds after the loss. A reconnect resets the wait.
 
 New sessions are refused while the tunnel is down in both modes ([failure-modes.md](failure-modes.md)).
 

@@ -50,7 +50,7 @@ message AccessRequest {
   string decided_by = 15;
   google.protobuf.Timestamp decided_at = 16;
   string comment = 17;
-  google.protobuf.Timestamp expires_at = 18; // a pending request expires at this time
+  google.protobuf.Timestamp expires_at = 18; // pending: the decision deadline; approved access request: the grant end
   google.protobuf.Timestamp created_at = 19;
   string url = 20;
   bool can_decide = 21; // the caller may approve or deny it now

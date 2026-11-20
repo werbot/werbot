@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// NoExpiry is the context.now bound of a lock without expiry.
-const NoExpiry int64 = 9223372036854775807
+// noExpiry is the context.now bound of a lock without expiry.
+const noExpiry int64 = 9223372036854775807
 
 // SnapshotGrant is an active just-in-time grant of one resource to one user.
 type SnapshotGrant struct {
@@ -59,7 +59,7 @@ func (s Snapshot) Expirations() []int64 {
 
 // lockUntil is the context.now bound of l.
 func lockUntil(l SnapshotLock) int64 {
-	return cmp.Or(l.ExpiresUnix, NoExpiry)
+	return cmp.Or(l.ExpiresUnix, noExpiry)
 }
 
 // writeGrants emits one permit per grant, sorted by ID. A lock on a grant
@@ -73,7 +73,7 @@ func writeGrants(b *strings.Builder, grants []SnapshotGrant, locks []SnapshotLoc
 	}
 	for _, g := range slices.SortedFunc(slices.Values(grants), func(x, y SnapshotGrant) int { return compareIDs(x.ID, y.ID) }) {
 		until, locked := lockedUntil[g.ID]
-		if until == NoExpiry {
+		if until == noExpiry {
 			continue
 		}
 		fmt.Fprintf(b, "@id(\"grant:%s\")\npermit (principal == Werbot::User::%q, action, resource == Werbot::Resource::%q)\nwhen { context.now < %d",
@@ -87,6 +87,8 @@ func writeGrants(b *strings.Builder, grants []SnapshotGrant, locks []SnapshotLoc
 
 // writeLocks emits one forbid per lock, sorted by ID. Grant locks are grant
 // conditions; agent and MFA device targets are not compiled yet (stages 12, 14).
+// The target types are also listed in internal/access/locks.go and
+// proto/werbot/v1/lock.proto: change them together.
 func writeLocks(b *strings.Builder, locks []SnapshotLock) error {
 	for _, l := range slices.SortedFunc(slices.Values(locks), func(x, y SnapshotLock) int { return compareIDs(x.ID, y.ID) }) {
 		switch l.TargetType {

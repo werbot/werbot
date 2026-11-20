@@ -96,7 +96,7 @@ type AccessRequest struct {
 	DecidedBy       string                 `protobuf:"bytes,15,opt,name=decided_by,json=decidedBy,proto3" json:"decided_by,omitempty"`
 	DecidedAt       *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=decided_at,json=decidedAt,proto3" json:"decided_at,omitempty"`
 	Comment         string                 `protobuf:"bytes,17,opt,name=comment,proto3" json:"comment,omitempty"`
-	ExpiresAt       *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"` // a pending request expires at this time
+	ExpiresAt       *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"` // pending: the decision deadline; approved access request: the grant end
 	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	Url             string                 `protobuf:"bytes,20,opt,name=url,proto3" json:"url,omitempty"`
 	CanDecide       bool                   `protobuf:"varint,21,opt,name=can_decide,json=canDecide,proto3" json:"can_decide,omitempty"` // the caller may approve or deny it now

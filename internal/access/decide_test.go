@@ -38,6 +38,7 @@ func TestDecideApproveCreatesGrant(t *testing.T) {
 	g := grants(t, pool, a.ID)
 	require.Len(t, g, 1)
 	assert.WithinDuration(t, time.Now().Add(2*time.Hour), g[f.ResourceID], 5*time.Second)
+	assert.True(t, got.ExpiresAt.Equal(g[f.ResourceID]), "an approved request expires with its grant: %s != %s", got.ExpiresAt, g[f.ResourceID])
 	assert.Equal(t, []string{emailOf(t, pool, f.MemberID)}, q.to("access_decision"))
 	assert.Equal(t, map[string]string{"url": "https://werbot.test/requests?id=" + a.ID.String(), "resource": "web",
 		"status": "approved", "comment": "ok"}, q.of("access_decision")[0].Data)
@@ -127,6 +128,20 @@ func TestDecideAfterExpiryFails(t *testing.T) {
 	assert.ErrorContains(t, err, "request expired")
 	assert.Equal(t, access.StatusPending, status(t, pool, a.ID))
 	assert.Empty(t, grants(t, pool, a.ID))
+}
+
+func TestApproveDeletedResource(t *testing.T) {
+	svc, pool, f, _, _ := newTestService(t)
+	r := dbtest.Resource(t, pool, f.OrgID, "gone", nil)
+	f.ApprovalPolicy(t, pool, "prod", access.ModeManual, onResource(r), allUsers, noOne)
+	a, err := svc.CreateRequest(bg, f.Principal(f.MemberID), access.CreateRequestInput{ResourceID: &r, Reason: "x"})
+	require.NoError(t, err)
+	_, err = pool.Exec(bg, "DELETE FROM resource WHERE id = $1", r)
+	require.NoError(t, err)
+	_, err = svc.Decide(bg, f.Principal(f.AdminID), a.ID, true, "")
+	require.ErrorIs(t, err, apperr.ErrNotFound)
+	assert.ErrorContains(t, err, "resource not found")
+	assert.Equal(t, access.StatusPending, status(t, pool, a.ID))
 }
 
 func TestDecideTwice(t *testing.T) {

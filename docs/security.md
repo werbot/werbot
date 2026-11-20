@@ -82,6 +82,6 @@ Requests, approvals, break-glass and locks: [jit.md](jit.md).
 - **No self-approval.** Nobody decides their own access request; a request no one else can approve is refused.
 - **Break-glass.** It needs a `break_glass` policy and a reason, lasts at most 1 hour, emails every owner and admin and stays marked `needs_review` until an owner or admin other than the grant owner reviews it.
 - **Gateway clock.** A gateway ends grants and timed locks by its own clock. Keep gateway hosts on NTP: a slow clock keeps a session open past its grant.
-- **Tunnel loss.** A revoke or lock reaches a gateway only over its tunnel. With `lock_mode = best_effort` (default) open sessions keep running while the tunnel is down; `strict` ends them with `policy_stale` after 60 seconds.
+- **Tunnel loss.** A revoke or lock reaches a gateway only over its tunnel. With `lock_mode = best_effort` (default) open sessions keep running while the tunnel is down; `strict` ends them with `policy_stale` 60 to 65 seconds after the loss (checked every 5 seconds).
 - **User locks.** A `user` lock ends gateway sessions; it does not block the user's API calls. To stop those too, remove the member from the organization.
 - **Command text.** Audit data and logs of command approvals never carry the command, only its kind, classes and reasons; the approval stores the command's SHA-256. The approvers see the command in the email and on the Requests page.

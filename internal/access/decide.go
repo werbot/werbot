@@ -47,6 +47,9 @@ func (s *Service) Decide(ctx context.Context, p principal.Principal, id uuid.UUI
 		}
 		ts := e.targetsOf(a.ResourceID, a.Selector)
 		if approve && a.Kind == KindAccess && len(ts) == 0 {
+			if len(a.Selector) == 0 { // the resource was deleted: resource_id is NULL
+				return fmt.Errorf("resource not found: %w", apperr.ErrNotFound)
+			}
 			return invalid("no resources match selector")
 		}
 		// owner and admin may deny any request but their own, even with no matching policy
@@ -54,17 +57,19 @@ func (s *Service) Decide(ctx context.Context, p principal.Principal, id uuid.UUI
 		if !managerDeny && !e.canDecide(a, p.UserID) {
 			return denied("you cannot decide this request")
 		}
-		status, action := StatusDenied, "access.request.deny"
+		arg := dbq.DecideApprovalParams{Status: StatusDenied, DecidedBy: &p.UserID, Comment: comment, ID: id, OrgID: p.OrgID}
+		action := "access.request.deny"
 		if approve {
-			status, action = StatusApproved, "access.request.approve"
+			arg.Status, action = StatusApproved, "access.request.approve"
 		}
 		if approve && a.Kind == KindAccess {
 			t, _ := e.terms(a)
 			if a.Duration, err = grantDuration(a.Duration, t, set.GrantMaxTTL, set.GrantDefaultTTL, false); err != nil {
 				return err
 			}
+			arg.GrantSecs = new(a.Duration.Seconds())
 		}
-		if out, err = decide(ctx, st, dbq.DecideApprovalParams{Status: status, DecidedBy: &p.UserID, Comment: comment, ID: id, OrgID: p.OrgID}); err != nil {
+		if out, err = decide(ctx, st, arg); err != nil {
 			return err
 		}
 		if err := audit(ctx, tx, p.OrgID, p.UserID, action, "approval", id, map[string]any{"kind": a.Kind, "comment": comment}); err != nil {
@@ -82,7 +87,7 @@ func (s *Service) Decide(ctx context.Context, p principal.Principal, id uuid.UUI
 			}
 		}
 		return s.mail(ctx, tx, []member{e.members[a.RequesterID]}, "access_decision", map[string]string{
-			"url": s.RequestURL(id), "resource": e.resourceText(a), "status": status, "comment": comment})
+			"url": s.RequestURL(id), "resource": e.resourceText(a), "status": arg.Status, "comment": comment})
 	})
 	if err != nil {
 		return Approval{}, err

@@ -58,6 +58,9 @@ test('member requests access, owner approves, lock is created and removed', asyn
 		await drawer.getByRole('button', { name: en.requests_approve }).click();
 		await expect(page.getByText(en.requests_approved)).toBeVisible();
 		await expect(drawer.getByText(en.requests_status_approved)).toBeVisible();
+		// a decided request offers no decision
+		await expect(drawer.getByRole('button', { name: en.requests_approve })).toHaveCount(0);
+		await expect(drawer.getByRole('button', { name: en.requests_deny })).toHaveCount(0);
 		await expect(toApprove).toContainText('0');
 
 		// bob: the request is approved and the grant is active

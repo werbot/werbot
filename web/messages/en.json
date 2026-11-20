@@ -455,6 +455,7 @@
 	"locks_target_type": "Target type",
 	"locks_target": "Target",
 	"locks_cli_session_id": "CLI session id",
+	"locks_cli_session_id_hint": "Audit shows it as the target of cli_session.revoke",
 	"locks_reason": "Reason",
 	"locks_expires": "Expires in",
 	"locks_expires_hint": "Empty: until deleted. For example 2h or 1d.",

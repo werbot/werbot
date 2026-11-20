@@ -139,8 +139,9 @@ func newRequestsCommand(env Env) *cobra.Command {
 			w := tabwriter.NewWriter(env.Stdout, 0, 0, 2, ' ', 0)
 			_, _ = fmt.Fprintln(w, "ID\tSTATUS\tRESOURCE\tREQUESTER\tDURATION\tEXPIRES\tREASON")
 			for _, r := range res.Msg.GetRequests() {
+				// the decision deadline of a pending request, the grant end of an approved access request
 				expires := "-"
-				if r.GetExpiresAt() != nil {
+				if r.GetExpiresAt() != nil && (r.GetStatus() == "pending" || r.GetStatus() == "approved" && r.GetKind() == "access") {
 					expires = r.GetExpiresAt().AsTime().UTC().Format(time.RFC3339)
 				}
 				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", r.GetId(), r.GetStatus(), r.GetResourceName(),

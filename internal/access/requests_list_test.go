@@ -105,3 +105,23 @@ func TestRequestable(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, map[uuid.UUID]bool{f.ResourceID: false}, got)
 }
+
+func TestCanDecideOnlyPendingBeforeDeadline(t *testing.T) {
+	svc, pool, f, _, _ := newTestService(t)
+	f.ApprovalPolicy(t, pool, "prod", access.ModeManual, onResource(f.ResourceID), allUsers, noOne)
+	decided := pending(t, svc, f, f.MemberID)
+	overdue := pending(t, svc, f, f.MemberID)
+	open := pending(t, svc, f, f.MemberID)
+	_, err := svc.Decide(bg, f.Principal(f.OwnerID), decided.ID, true, "")
+	require.NoError(t, err)
+	_, err = pool.Exec(bg, "UPDATE approval SET expires_at = now() - interval '1 second' WHERE id = $1", overdue.ID)
+	require.NoError(t, err)
+	for id, can := range map[uuid.UUID]bool{decided.ID: false, overdue.ID: false, open.ID: true} {
+		v, err := svc.GetRequest(bg, f.Principal(f.AdminID), id)
+		require.NoError(t, err)
+		assert.Equal(t, can, v.CanDecide, id)
+	}
+	got, _, err := svc.ListRequests(bg, f.Principal(f.AdminID), access.RequestFilter{Scope: "to_approve"})
+	require.NoError(t, err)
+	assert.Equal(t, []uuid.UUID{open.ID}, ids(got))
+}
