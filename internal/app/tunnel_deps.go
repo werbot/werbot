@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"slices"
+	"strings"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -113,7 +114,8 @@ type tunnelSessions struct{ *session.Service }
 
 func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid.UUID, error) {
 	return s.Service.Start(ctx, session.Start{OrgID: st.OrgID, UserID: st.UserID, ResourceID: st.ResourceID,
-		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Target: st.Target})
+		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Target: st.Target,
+		Command: st.Command, Classes: st.Classes})
 }
 
 func (s tunnelSessions) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *tunnel.Counters) error {
@@ -160,14 +162,15 @@ func (t tunnelSnapshots) Org(ctx context.Context, orgID uuid.UUID) (*gatewayv1.S
 		}
 		out.CedarPolicies = text
 	}
-	// Also in the deny-all snapshot: expiries, the lock mode and a membership
-	// change must reach the gateway.
+	// Also in the deny-all snapshot: expiries, class rules, the lock and mask
+	// modes and a membership change must reach the gateway.
 	out.Expirations = snap.Expirations()
+	out.ClassRules = classRules(snap.ClassRules)
 	set, err := t.s.Identity.Settings(ctx, orgID)
 	if err != nil {
 		return nil, err
 	}
-	out.LockMode = set.LockMode
+	out.LockMode, out.MaskOutput = set.LockMode, set.MaskOutput
 	members, err := t.s.Identity.OrgMembers(ctx, orgID)
 	if err != nil {
 		return nil, err
@@ -192,6 +195,17 @@ func (t tunnelSnapshots) Org(ctx context.Context, orgID uuid.UUID) (*gatewayv1.S
 		return nil, err
 	}
 	return out, nil
+}
+
+// classRules are rs by pattern in byte order, not the database collation, so
+// every server replica gives the same version.
+func classRules(rs []policy.SnapshotClassRule) []*gatewayv1.ClassRule {
+	out := make([]*gatewayv1.ClassRule, len(rs))
+	for i, r := range rs {
+		out[i] = &gatewayv1.ClassRule{Pattern: r.Pattern, Classes: r.Classes}
+	}
+	slices.SortFunc(out, func(a, b *gatewayv1.ClassRule) int { return strings.Compare(a.GetPattern(), b.GetPattern()) })
+	return out
 }
 
 func (t tunnelSnapshots) Pool(ctx context.Context, org *gatewayv1.Snapshot, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error) {

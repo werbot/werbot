@@ -117,7 +117,8 @@ func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gateway
 		return nil, h.fail(ctx, "reveal credential", err)
 	}
 	id, err := h.d.Sessions.Start(ctx, SessionStart{OrgID: g.OrgID, GatewayID: g.ID, InstanceID: g.InstanceID,
-		UserID: userID, ResourceID: resourceID, ClientIP: ip, Kind: req.Msg.GetKind(), Target: req.Msg.GetTarget()})
+		UserID: userID, ResourceID: resourceID, ClientIP: ip, Kind: req.Msg.GetKind(), Target: req.Msg.GetTarget(),
+		Command: req.Msg.GetCommand(), Classes: req.Msg.GetClasses()})
 	if err != nil {
 		return nil, h.fail(ctx, "start session", err)
 	}

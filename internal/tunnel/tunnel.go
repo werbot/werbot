@@ -59,6 +59,8 @@ type SessionStart struct {
 	OrgID, GatewayID, InstanceID, UserID, ResourceID uuid.UUID
 	ClientIP                                         netip.Addr
 	Kind, Target                                     string
+	Command                                          string   // exec only
+	Classes                                          []string // exec only; nil when none
 }
 
 // Counters are a session's traffic totals since it began; up is client to target.

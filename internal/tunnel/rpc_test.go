@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -123,7 +124,7 @@ func TestStartSessionOnlyOwnPool(t *testing.T) {
 	want := SessionStart{OrgID: b.org, GatewayID: g.ID, InstanceID: g.InstanceID, UserID: user, ResourceID: res,
 		ClientIP: netip.MustParseAddr("10.1.2.3"), Kind: "stream", Target: "db:5432"}
 	b.f.with(func(f *fake) {
-		if len(f.starts) != 1 || f.starts[0] != want {
+		if len(f.starts) != 1 || !reflect.DeepEqual(f.starts[0], want) {
 			t.Fatalf("Start(%+v), want %+v", f.starts, want)
 		}
 		if !slices.Equal(f.revealed, []string{"ssh", "ssh"}) {

@@ -115,8 +115,18 @@ message Snapshot {
   repeated int64 expirations = 7;
   // "best_effort" or "strict": strict ends sessions when the tunnel is down too long
   string lock_mode = 8;
+  // "agents", "all" or "none": whose exec output the gateway masks
+  string mask_output = 9;
+  // the organization's command class overrides, ascending pattern
+  repeated ClassRule class_rules = 10;
   // the organization's user CA keys (authorized_keys); empty: no certificate is accepted
   repeated string user_ca_keys = 18;
+}
+
+// ClassRule gives the commands matching pattern the classes.
+message ClassRule {
+  string pattern = 1;
+  repeated string classes = 2;
 }
 
 // Member is an organization member and its teams, sorted.
@@ -173,6 +183,12 @@ message StartSessionRequest {
   }];
   // host:port the gateway connects to; empty for terminal and exec
   string target = 5 [(buf.validate.field).string.max_bytes = 300];
+  // exec only: the authorized command (the gateway truncates) and its classes
+  string command = 6 [(buf.validate.field).string.max_bytes = 65536];
+  repeated string classes = 7 [(buf.validate.field).repeated = {
+    max_items: 7
+    items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
+  }];
 }
 
 message StartSessionResponse {
