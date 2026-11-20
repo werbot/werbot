@@ -295,5 +295,9 @@ linters:
           files: ["**/*.go", "!**/internal/session/recstore/**"]
           deny:
             - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
+        cedar-exp-policy-only:
+          files: ["**/*.go", "!**/internal/policy/custom.go", "!**/*_test.go"]
+          deny:
+            - { pkg: github.com/cedar-policy/cedar-go/x/exp, desc: experimental cedar-go APIs only in internal/policy/custom.go and tests }
 formatters:
   enable: [goimports]
