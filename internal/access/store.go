@@ -31,4 +31,15 @@ type Store interface {
 	NotifyApprovalDecided(ctx context.Context, payload string) error
 	ListApprovals(ctx context.Context, arg dbq.ListApprovalsParams) ([]dbq.ListApprovalsRow, error)
 	DecidedCommands(ctx context.Context, arg dbq.DecidedCommandsParams) ([]dbq.Approval, error)
+
+	ActiveGrants(ctx context.Context, orgID uuid.UUID) ([]dbq.ActiveGrantsRow, error)
+	ListGrants(ctx context.Context, arg dbq.ListGrantsParams) ([]dbq.ListGrantsRow, error)
+	GrantForUpdate(ctx context.Context, arg dbq.GrantForUpdateParams) (dbq.GrantForUpdateRow, error)
+	RevokeGrant(ctx context.Context, arg dbq.RevokeGrantParams) error
+	ReviewGrant(ctx context.Context, arg dbq.ReviewGrantParams) error
+
+	CreateLock(ctx context.Context, arg dbq.CreateLockParams) (dbq.Lock, error)
+	DeleteLock(ctx context.Context, arg dbq.DeleteLockParams) (dbq.DeleteLockRow, error)
+	ActiveLocks(ctx context.Context, orgID uuid.UUID) ([]dbq.Lock, error)
+	ListLocks(ctx context.Context, orgID uuid.UUID) ([]dbq.Lock, error)
 }

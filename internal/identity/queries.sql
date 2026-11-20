@@ -76,6 +76,12 @@ DELETE FROM user_session WHERE user_id = @user_id;
 -- name: GetProfile :one
 SELECT id, email, login, name, created_at FROM users WHERE id = @id;
 
+-- name: GetCertSubject :one
+-- The login a user certificate names and whether an active lock holds its CLI session.
+SELECT u.login, EXISTS (SELECT 1 FROM lock l WHERE l.org_id = @org_id AND l.target_type = 'cli_session'
+    AND l.target_id = @cli_session_id::uuid AND (l.expires_at IS NULL OR l.expires_at > now()))::bool AS locked
+FROM users u WHERE u.id = @user_id;
+
 -- name: UpdateProfile :exec
 -- A NULL email keeps the current one.
 UPDATE users SET name = @name, email = coalesce(sqlc.narg(email), email), updated_at = now() WHERE id = @id;

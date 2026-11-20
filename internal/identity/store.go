@@ -28,6 +28,7 @@ type Store interface {
 	GetUserOrg(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 	DeleteUserSessions(ctx context.Context, userID uuid.UUID) error
 	GetProfile(ctx context.Context, id uuid.UUID) (dbq.GetProfileRow, error)
+	GetCertSubject(ctx context.Context, arg dbq.GetCertSubjectParams) (dbq.GetCertSubjectRow, error)
 	UpdateProfile(ctx context.Context, arg dbq.UpdateProfileParams) error
 	GetPasswordHash(ctx context.Context, id uuid.UUID) (string, error)
 	DeleteOtherUserSessions(ctx context.Context, arg dbq.DeleteOtherUserSessionsParams) error

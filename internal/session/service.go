@@ -22,7 +22,8 @@ type Service struct{ pool *pgxpool.Pool }
 // New returns a Service over pool.
 func New(pool *pgxpool.Pool) *Service { return &Service{pool: pool} }
 
-// Start records a new open session and audits "session.start". The gateway
+// Start records a new open session and audits "session.start", marked
+// break_glass under an active break-glass grant of the user. The gateway
 // names the user, which the server does not trust: a user who is not a member
 // of the organization is apperr.ErrNotFound and gets no session.
 func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
@@ -30,18 +31,24 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 		p.Kind = "terminal"
 	}
 	args := []any{p.OrgID, p.UserID, p.ResourceID, p.GatewayID, p.InstanceID, p.ClientIP, p.Kind, p.Target}
-	audit, auditArgs, err := auditlog.InsertFrom(auditlog.Event{
-		OrgID: &p.OrgID, ActorUserID: &p.UserID, ActorKind: "user", Action: "session.start",
-		TargetType: "resource", TargetID: p.ResourceID.String(), IP: p.ClientIP,
-		Data: map[string]any{"kind": p.Kind, "target": p.Target},
-	}, "s", "id", "session_id", len(args)+1)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("session: start: %w", err)
-	}
-	args = append(args, auditArgs...)
 	var id uuid.UUID
-	err = dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
-		err := tx.QueryRow(ctx, startSession+audit+") SELECT id FROM s", args...).Scan(&id)
+	err := dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
+		data := map[string]any{"kind": p.Kind, "target": p.Target}
+		var breakGlass bool
+		if err := tx.QueryRow(ctx, activeBreakGlass, p.OrgID, p.UserID, p.ResourceID).Scan(&breakGlass); err != nil {
+			return err
+		}
+		if breakGlass {
+			data["break_glass"] = true
+		}
+		audit, auditArgs, err := auditlog.InsertFrom(auditlog.Event{
+			OrgID: &p.OrgID, ActorUserID: &p.UserID, ActorKind: "user", Action: "session.start",
+			TargetType: "resource", TargetID: p.ResourceID.String(), IP: p.ClientIP, Data: data,
+		}, "s", "id", "session_id", len(args)+1)
+		if err != nil {
+			return err
+		}
+		err = tx.QueryRow(ctx, startSession+audit+") SELECT id FROM s", append(args, auditArgs...)...).Scan(&id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errNotMember
 		}
@@ -55,6 +62,10 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	}
 	return id, nil
 }
+
+// activeBreakGlass tells whether the user holds an active break-glass grant to the resource.
+const activeBreakGlass = `SELECT EXISTS (SELECT 1 FROM access_grant WHERE org_id = $1 AND user_id = $2 AND resource_id = $3
+	AND break_glass AND revoked_at IS NULL AND expires_at > now())`
 
 // startSession inserts the session, only for a member of the organization (no
 // row otherwise), and opens the CTE of its audit row, which the caller appends.

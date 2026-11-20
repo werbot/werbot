@@ -358,6 +358,31 @@ func (q *Queries) GetCLISessionRole(ctx context.Context, arg GetCLISessionRolePa
 	return role, err
 }
 
+const getCertSubject = `-- name: GetCertSubject :one
+SELECT u.login, EXISTS (SELECT 1 FROM lock l WHERE l.org_id = $1 AND l.target_type = 'cli_session'
+    AND l.target_id = $2::uuid AND (l.expires_at IS NULL OR l.expires_at > now()))::bool AS locked
+FROM users u WHERE u.id = $3
+`
+
+type GetCertSubjectParams struct {
+	OrgID        uuid.UUID
+	CliSessionID uuid.UUID
+	UserID       uuid.UUID
+}
+
+type GetCertSubjectRow struct {
+	Login  string
+	Locked bool
+}
+
+// The login a user certificate names and whether an active lock holds its CLI session.
+func (q *Queries) GetCertSubject(ctx context.Context, arg GetCertSubjectParams) (GetCertSubjectRow, error) {
+	row := q.db.QueryRow(ctx, getCertSubject, arg.OrgID, arg.CliSessionID, arg.UserID)
+	var i GetCertSubjectRow
+	err := row.Scan(&i.Login, &i.Locked)
+	return i, err
+}
+
 const getLoginUser = `-- name: GetLoginUser :one
 SELECT u.id, u.password_hash, m.org_id
 FROM users u LEFT JOIN membership m ON m.user_id = u.id

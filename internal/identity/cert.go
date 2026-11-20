@@ -99,20 +99,22 @@ func (s *Service) IssueUserCert(ctx context.Context, p principal.Principal, pub 
 	if pub.Type() != ssh.KeyAlgoED25519 {
 		return nil, fmt.Errorf("public key must be ed25519: %w", apperr.ErrInvalidArgument)
 	}
-	var login string
-	err := dbx.ReadInOrg(s.pool, p.OrgID, p.UserID, func(rd *dbx.Read) error {
-		u, err := newStore(rd).GetProfile(ctx, p.UserID)
-		login = u.Login
+	var sub dbq.GetCertSubjectRow
+	err := dbx.ReadInOrg(s.pool, p.OrgID, p.UserID, func(rd *dbx.Read) (err error) {
+		sub, err = newStore(rd).GetCertSubject(ctx, dbq.GetCertSubjectParams{OrgID: p.OrgID, CliSessionID: p.CLISessionID, UserID: p.UserID})
 		return err
 	})
 	if err != nil {
 		return nil, err
 	}
+	if sub.Locked {
+		return nil, fmt.Errorf("cli session is locked: %w", apperr.ErrPermissionDenied)
+	}
 	ca, err := s.UserCA(ctx, p.OrgID)
 	if err != nil {
 		return nil, err
 	}
-	cert, err := sshca.Sign(ca, pub, sshca.Identity{OrgID: p.OrgID, UserID: p.UserID, CLISessionID: p.CLISessionID, Login: login},
+	cert, err := sshca.Sign(ca, pub, sshca.Identity{OrgID: p.OrgID, UserID: p.UserID, CLISessionID: p.CLISessionID, Login: sub.Login},
 		time.Now(), sshca.UserCertTTL)
 	if err != nil {
 		return nil, err

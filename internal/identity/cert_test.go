@@ -183,3 +183,28 @@ func TestAuthenticateCert(t *testing.T) {
 	_, err = s.svc.AuthenticateCert(ctx, org, bobID)
 	require.ErrorIs(t, err, apperr.ErrNotFound, "member removed")
 }
+
+// A lock of a CLI session refuses certificates to that session only, until it expires.
+func TestIssueUserCertLockedCLISession(t *testing.T) {
+	s := newCLIStand(t)
+	ctx := context.Background()
+	org := seedOrg(t, s.pool, "Acme")
+	alice := seedUser(t, s.pool, org, "alice", principal.RoleMember)
+	locked := s.asBearer(t, s.cliLogin(t, org, alice).AccessToken, principal.RoleMember)
+	free := s.asBearer(t, s.cliLogin(t, org, alice).AccessToken, principal.RoleMember)
+	var lock uuid.UUID
+	require.NoError(t, s.pool.QueryRow(ctx, "INSERT INTO lock (org_id, target_type, target_id, reason) VALUES ($1, 'cli_session', $2, 'lost laptop') RETURNING id",
+		org, locked.CLISessionID).Scan(&lock))
+	_, pub := newEd25519(t, "")
+
+	_, err := s.svc.IssueUserCert(ctx, locked, pub)
+	require.ErrorIs(t, err, apperr.ErrPermissionDenied)
+	assert.EqualError(t, err, "cli session is locked: permission denied")
+	_, err = s.svc.IssueUserCert(ctx, free, pub)
+	require.NoError(t, err, "another CLI session of the same user")
+
+	_, err = s.pool.Exec(ctx, "UPDATE lock SET expires_at = now() - interval '1 second' WHERE id = $1", lock)
+	require.NoError(t, err)
+	_, err = s.svc.IssueUserCert(ctx, locked, pub)
+	require.NoError(t, err, "an expired lock")
+}
