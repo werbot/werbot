@@ -86,3 +86,13 @@ func TestTypesSorted(t *testing.T) {
 	}
 	assert.Equal(t, []string{"b", "c"}, names)
 }
+
+func TestExecAction(t *testing.T) {
+	ty := valid("x")
+	_, ok := ty.ExecAction()
+	assert.False(t, ok, "no exec action")
+	ty.Actions = []string{"x.connect", "x.exec", "x.other.exec"}
+	a, ok := ty.ExecAction()
+	assert.True(t, ok)
+	assert.Equal(t, "x.exec", a, "the first .exec action")
+}

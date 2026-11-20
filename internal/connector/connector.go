@@ -145,3 +145,13 @@ func Types() []Type {
 	slices.SortFunc(out, func(a, b Type) int { return strings.Compare(a.Name, b.Name) })
 	return out
 }
+
+// ExecAction returns the first action of t that runs a command ("<name>.exec").
+func (t Type) ExecAction() (string, bool) {
+	for _, a := range t.Actions {
+		if strings.HasSuffix(a, ".exec") {
+			return a, true
+		}
+	}
+	return "", false
+}

@@ -57,6 +57,8 @@ type SnapshotResource struct {
 	Name   string            `json:"name"`
 	Type   string            `json:"type"`
 	Labels map[string]string `json:"labels"`
+	// Host is the endpoint host: the resource host of the egress class.
+	Host string `json:"host,omitempty"`
 }
 
 // Binding is an access binding as stored: one resource or a label selector.
@@ -87,6 +89,10 @@ type Snapshot struct {
 	Rules     []ResourceRules    `json:"rules"`
 	Grants    []SnapshotGrant    `json:"grants"`
 	Locks     []SnapshotLock     `json:"locks"`
+	// CommandRules have their selectors expanded.
+	CommandRules   []SnapshotCommandRule  `json:"command_rules"`
+	ClassRules     []SnapshotClassRule    `json:"class_rules"`
+	CustomPolicies []SnapshotCustomPolicy `json:"custom_policies"` // enabled only
 }
 
 // Request asks whether a user may perform Action on a resource.
@@ -102,13 +108,22 @@ type Request struct {
 	Port       uint16 // target port of a stream or datagram; 0: terminal or exec
 	// CLISessionID is the CLI session of the user certificate; uuid.Nil: none.
 	CLISessionID uuid.UUID
+	// Command, Classes and ApprovalGranted describe an exec request; a
+	// connect request leaves them empty.
+	Command         string
+	Classes         []string
+	ApprovalGranted bool
 }
 
 // Decision lists the ids of the policies that decided it; "error:<id>" marks
-// a policy that failed to evaluate.
+// a policy that failed to evaluate. A deny carries Obligations when meeting
+// them (e.g. an approval) would allow, and the @message of the first
+// deciding forbid.
 type Decision struct {
-	Allow   bool
-	Reasons []string
+	Allow       bool
+	Reasons     []string
+	Obligations []string
+	Message     string
 }
 
 // PolicySet is a compiled snapshot.
@@ -153,7 +168,8 @@ func matches(labels, selector map[string]string) bool {
 
 // Authorize decides r. An invalid IP, an action that is not one of the
 // resource type's actions or any policy evaluation error denies. A zero
-// r.Time means now.
+// r.Time means now. A deny also carries the @message and the obligations of
+// the forbids that decided it.
 func (ps *PolicySet) Authorize(r Request) Decision {
 	if ps == nil {
 		return Decision{Reasons: []string{"error:compile"}}
@@ -164,6 +180,23 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 	if !ps.typeHasAction(r.ResourceID, r.Action) {
 		return Decision{Reasons: []string{"invalid_action"}}
 	}
+	d, diag := ps.evaluate(r)
+	// cedar-go skips a policy that fails to evaluate: a broken forbid would allow.
+	out := Decision{Allow: d == cedar.Allow && len(diag.Errors) == 0}
+	for _, rs := range diag.Reasons {
+		out.Reasons = append(out.Reasons, string(rs.PolicyID))
+	}
+	for _, e := range diag.Errors {
+		out.Reasons = append(out.Reasons, "error:"+string(e.PolicyID))
+	}
+	if d == cedar.Deny && len(diag.Errors) == 0 {
+		out.Message, out.Obligations = ps.explain(r, out.Reasons)
+	}
+	return out
+}
+
+// evaluate runs the policies on r; r.IP must be valid.
+func (ps *PolicySet) evaluate(r Request) (cedar.Decision, cedar.Diagnostic) {
 	ip := r.IP.Unmap()
 	t := r.Time
 	if t.IsZero() {
@@ -178,31 +211,29 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 		UID:     cedar.NewEntityUID("Werbot::User", cedar.String(r.UserID.String())),
 		Parents: cedar.NewEntityUIDSet(teams...),
 	}
+	classes := make([]cedar.Value, len(r.Classes))
+	for i, c := range r.Classes {
+		classes[i] = cedar.String(c)
+	}
 	req := cedar.Request{
 		Principal: user.UID,
 		Action:    cedar.NewEntityUID("Werbot::Action", cedar.String(r.Action)),
 		Resource:  cedar.NewEntityUID("Werbot::Resource", cedar.String(r.ResourceID.String())),
 		Context: cedar.NewRecord(cedar.RecordMap{
-			"ip":             cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
-			"country":        cedar.String(strings.ToUpper(r.Country)),
-			"weekday":        cedar.Long(t.Weekday()),
-			"hour":           cedar.Long(t.Hour()),
-			"ip_blocked":     cedar.Boolean(r.IPBlocked),
-			"port":           cedar.Long(r.Port),
-			"now":            cedar.Long(t.Unix()),
-			"cli_session_id": cedar.String(cliSession(r.CLISessionID)),
+			"ip":               cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
+			"country":          cedar.String(strings.ToUpper(r.Country)),
+			"weekday":          cedar.Long(t.Weekday()),
+			"hour":             cedar.Long(t.Hour()),
+			"ip_blocked":       cedar.Boolean(r.IPBlocked),
+			"port":             cedar.Long(r.Port),
+			"now":              cedar.Long(t.Unix()),
+			"cli_session_id":   cedar.String(cliSession(r.CLISessionID)),
+			"command":          cedar.String(r.Command),
+			"classes":          cedar.NewSet(classes...),
+			"approval_granted": cedar.Boolean(r.ApprovalGranted),
 		}),
 	}
-	d, diag := cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)
-	// cedar-go skips a policy that fails to evaluate: a broken forbid would allow.
-	out := Decision{Allow: d == cedar.Allow && len(diag.Errors) == 0}
-	for _, rs := range diag.Reasons {
-		out.Reasons = append(out.Reasons, string(rs.PolicyID))
-	}
-	for _, e := range diag.Errors {
-		out.Reasons = append(out.Reasons, "error:"+string(e.PolicyID))
-	}
-	return out
+	return cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)
 }
 
 // cliSession is id as context.cli_session_id: uuid.Nil (no CLI session) is "",
