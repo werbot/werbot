@@ -108,7 +108,7 @@
 					<td>
 						<CellLead icon="person" avatar={r.requesterLogin}>{r.requesterLogin}</CellLead>
 					</td>
-					<td class="muted">{formatDuration(r.duration) || m.requests_duration_default()}</td>
+					<td class="muted">{r.kind === 'command' ? '—' : formatDuration(r.duration) || m.requests_duration_default()}</td>
 					<td><StatusBadge status={r.status} /></td>
 					<td class="muted">{r.status === 'pending' ? fmt(r.expiresAt) : '—'}</td>
 					<td class="muted"><Ago ts={r.createdAt} /></td>

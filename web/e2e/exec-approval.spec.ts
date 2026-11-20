@@ -91,6 +91,7 @@ test('command waits for approval, approved in the UI, then runs', async ({ page,
 			await expect(own.getByText('echo werbot-approved')).toBeVisible();
 			await expect(own.getByText(en.class_read, { exact: true })).toBeVisible();
 			await expect(own.getByRole('button', { name: en.common_cancel })).toHaveCount(0);
+			await expect(page.getByRole('row').filter({ hasText: 'e2e-approve' })).not.toContainText(en.requests_duration_default);
 
 			// bob, the policy's approver, approves it from the link in his own browser context
 			const bobContext = await browser.newContext({ baseURL });
