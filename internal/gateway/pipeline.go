@@ -60,6 +60,7 @@ type control interface {
 	Policy() *Policy
 	PolicyChanged() <-chan struct{} // receives after a new Policy is stored
 	Connected() bool
+	DisconnectedSince() time.Time // zero while Connected; else when the tunnel was lost
 }
 
 // endCause cancels a session context; its text is the end reason.

@@ -19,23 +19,34 @@ const (
 	causeRevoked endCause = "access_revoked"
 )
 
-// sweep ends sessions past their idle timeout or max duration every sweepEvery
-// and re-evaluates access: every session on a new snapshot and every reevalEvery,
-// in between those still allowed on an older snapshot (opened while one arrived).
-// It runs until ctx ends.
+// sweep ends sessions past their idle timeout or max duration, and every session
+// of a strict organization whose policy is stale, every sweepEvery. It
+// re-evaluates access: every session on a new snapshot, at the next grant or lock
+// expiration and every reevalEvery, in between those still allowed on an older
+// snapshot (opened while one arrived). It runs until ctx ends.
 func (p *Pipeline) sweep(ctx context.Context) {
 	tick := time.NewTicker(sweepEvery)
 	defer tick.Stop()
+	expiry := time.NewTimer(0)
+	defer expiry.Stop()
+	p.armExpiry(expiry, time.Now())
 	last := time.Now()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-p.ctl.PolicyChanged():
-			p.reevaluate(time.Now(), true)
+			now := time.Now()
+			p.reevaluate(now, true)
+			p.armExpiry(expiry, now)
+		case <-expiry.C:
+			now := time.Now()
+			p.reevaluate(now, true)
+			p.armExpiry(expiry, now)
 		case <-tick.C:
 			now := time.Now()
 			p.active.expire(now)
+			p.checkStale(now)
 			all := now.Sub(last) >= reevalEvery
 			if all {
 				last = now

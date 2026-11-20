@@ -11,6 +11,7 @@ import (
 	"slices"
 	"sync"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -90,6 +91,7 @@ type fakeControl struct {
 	mu         sync.Mutex
 	policy     *Policy
 	connected  bool
+	downSince  time.Time // DisconnectedSince
 	user       User
 	authErr    error
 	byKey      map[string]User  // AuthenticateUser by fingerprint when set; unknown → NotFound
@@ -198,6 +200,12 @@ func (f *fakeControl) Connected() bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.connected
+}
+
+func (f *fakeControl) DisconnectedSince() time.Time {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.downSince
 }
 
 func (f *fakeControl) with(fn func(*fakeControl)) {

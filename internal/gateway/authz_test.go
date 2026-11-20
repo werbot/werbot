@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/netip"
 	"strings"
 	"testing"
@@ -218,5 +219,42 @@ permit (principal == Werbot::User::"u1", action, resource) when { [Werbot::Resou
 		require.NotContains(t, reasons, "error:policy0", port)
 		got, _ = p.Authorize(AccessRequest{User: u1, Resource: anyPort, IP: ip, Port: port})
 		require.True(t, got, port)
+	}
+}
+
+// The context carries now (the unix second of Time) and cli_session_id (the
+// CLI session of the user's certificate, "" without one), as the server's
+// policy.Authorize does: a grant ends at its expiry, a cli_session lock refuses
+// only its own session.
+func TestAuthorizeNowAndCLISession(t *testing.T) {
+	m := newIDs("u1", "r1")
+	locked, other := uuid.New(), uuid.New()
+	const exp = 1800000000
+	p := compileTest(t, m, fmt.Sprintf(`
+@id("grant:g1")
+permit (principal == Werbot::User::"u1", action, resource == Werbot::Resource::"r1") when { context.now < %d };
+@id("lock:l1")
+forbid (principal, action, resource) when { context.cli_session_id == %q && context.now < 9223372036854775807 };`,
+		exp, locked.String()), nil, res{"r1", "r1", "ssh"})
+	r1, ok := p.Resource("r1")
+	require.True(t, ok)
+	at := time.Unix(exp, 0)
+	for _, tc := range []struct {
+		name    string
+		when    time.Time
+		session uuid.UUID
+		want    bool
+	}{
+		{"grant before expiry", at.Add(-time.Millisecond), uuid.Nil, true},
+		{"grant at expiry", at, uuid.Nil, false},
+		{"grant after expiry", at.Add(time.Hour), uuid.Nil, false},
+		{"other cli session", at.Add(-time.Hour), other, true},
+		{"locked cli session", at.Add(-time.Hour), locked, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			allow, reasons := p.Authorize(AccessRequest{User: User{ID: m["u1"]}, Resource: r1,
+				IP: netip.MustParseAddr("192.0.2.1"), Time: tc.when, CLISessionID: tc.session})
+			require.Equal(t, tc.want, allow, reasons)
+		})
 	}
 }

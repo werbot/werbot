@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"cmp"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -53,17 +52,21 @@ type AccessRequest struct {
 	IP       netip.Addr
 	Time     time.Time
 	Port     uint16
+	// CLISessionID is the CLI session of the user's certificate; uuid.Nil: none.
+	CLISessionID uuid.UUID
 }
 
 // Policy is a compiled snapshot: the local policy decision point.
 type Policy struct {
-	version   string
-	policies  *cedar.PolicySet
-	entities  cedar.EntityMap
-	blocklist []netip.Prefix
-	resources []Resource                // by Name
-	members   map[uuid.UUID][]uuid.UUID // org members and their teams; empty: the server sends none
-	userCAs   [][]byte                  // wire form of the organization's user CA keys; empty: no certificate
+	version     string
+	policies    *cedar.PolicySet
+	entities    cedar.EntityMap
+	blocklist   []netip.Prefix
+	resources   []Resource                // by Name
+	members     map[uuid.UUID][]uuid.UUID // org members and their teams; empty: the server sends none
+	userCAs     [][]byte                  // wire form of the organization's user CA keys; empty: no certificate
+	expirations []int64                   // unix seconds of grant and lock expiries, ascending
+	lockMode    string                    // "": best_effort
 }
 
 // CompilePolicy parses a snapshot; any malformed part is an error.
@@ -72,7 +75,8 @@ func CompilePolicy(s *gatewayv1.Snapshot) (*Policy, error) {
 	if err != nil {
 		return nil, fmt.Errorf("snapshot policies: %w", err)
 	}
-	p := &Policy{version: s.GetVersion(), policies: ps, entities: cedar.EntityMap{}}
+	p := &Policy{version: s.GetVersion(), policies: ps, entities: cedar.EntityMap{},
+		expirations: slices.Sorted(slices.Values(s.GetExpirations())), lockMode: s.GetLockMode()}
 	// empty entities_json is the server's deny-all snapshot
 	if b := s.GetEntitiesJson(); len(b) > 0 {
 		if err := json.Unmarshal(b, &p.entities); err != nil {
@@ -218,12 +222,14 @@ func (p *Policy) Authorize(r AccessRequest) (allow bool, reasons []string) {
 		Action:    cedar.NewEntityUID("Werbot::Action", cedar.String(action)),
 		Resource:  cedar.NewEntityUID("Werbot::Resource", cedar.String(r.Resource.ID.String())),
 		Context: cedar.NewRecord(cedar.RecordMap{
-			"ip":         cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
-			"country":    cedar.String(strings.ToUpper(r.User.Country)),
-			"weekday":    cedar.Long(t.Weekday()),
-			"hour":       cedar.Long(t.Hour()),
-			"ip_blocked": cedar.Boolean(slices.ContainsFunc(p.blocklist, func(b netip.Prefix) bool { return b.Contains(ip) })),
-			"port":       cedar.Long(r.Port),
+			"ip":             cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
+			"country":        cedar.String(strings.ToUpper(r.User.Country)),
+			"weekday":        cedar.Long(t.Weekday()),
+			"hour":           cedar.Long(t.Hour()),
+			"ip_blocked":     cedar.Boolean(slices.ContainsFunc(p.blocklist, func(b netip.Prefix) bool { return b.Contains(ip) })),
+			"port":           cedar.Long(r.Port),
+			"now":            cedar.Long(t.Unix()),
+			"cli_session_id": cedar.String(cliSession(r.CLISessionID)),
 		}),
 	}
 	d, diag := cedar.Authorize(p.policies, entityGetter{p.entities, user}, req)
@@ -265,35 +271,11 @@ func (g entityGetter) Get(uid cedar.EntityUID) (cedar.Entity, bool) {
 	return e, ok
 }
 
-// decide authenticates the user of r and asks the PDP whether they may open
-// it: the resource must exist and, for a stream or datagram, the target must be
-// one of its endpoints. The request it decided comes back with an error too, so
-// the denial names the user once known.
-func (p *Pipeline) decide(ctx context.Context, r OpenRequest) (pol *Policy, req AccessRequest, host string, err error) {
-	if pol = p.ctl.Policy(); pol == nil || !p.ctl.Connected() {
-		return nil, req, "", ErrNotReady
+// cliSession is id as context.cli_session_id: uuid.Nil (no CLI session) is "",
+// which no cli_session lock matches.
+func cliSession(id uuid.UUID) string {
+	if id == uuid.Nil {
+		return ""
 	}
-	var reused, ok bool
-	if req.User, reused, err = p.user(ctx, r); err != nil {
-		return nil, AccessRequest{}, "", controlErr(err)
-	}
-	req.IP = r.ClientIP
-	// The handshake's teams may predate pol, which stamps the session: take pol's.
-	if reused {
-		if req.User, ok = pol.withTeams(req.User); !ok {
-			return nil, req, "", ErrDenied
-		}
-	}
-	if req.Resource, ok = pol.Resource(r.Resource); !ok {
-		return nil, req, "", ErrDenied
-	}
-	if r.Kind == KindStream || r.Kind == KindDatagram {
-		if host, req.Port, err = allowTarget(req.Resource, r.Target); err != nil {
-			return nil, req, "", err
-		}
-	}
-	if allow, _ := pol.Authorize(req); !allow {
-		return nil, req, "", ErrDenied
-	}
-	return pol, req, host, nil
+	return id.String()
 }

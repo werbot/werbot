@@ -39,9 +39,9 @@ type fakeTunnel struct {
 	ca   *tlsca.CA
 	cn   string
 	plan func(n int) attempt
-	push chan *gatewayv1.Snapshot // sent on the open stream
-	kill chan error               // ends the open stream with the error
-	fp   string                   // a key fingerprint AuthenticateUser accepts besides "SHA256:known"
+	push chan *gatewayv1.ConnectResponse // sent on the open stream
+	kill chan error                      // ends the open stream with the error
+	fp   string                          // a key fingerprint AuthenticateUser accepts besides "SHA256:known"
 
 	mu         sync.Mutex
 	starts     []time.Time         // Connect attempts
@@ -104,8 +104,8 @@ func (f *fakeTunnel) Connect(ctx context.Context, st *connect.BidiStream[gateway
 	}
 	for {
 		select {
-		case s := <-f.push:
-			if err := send(s); err != nil {
+		case m := <-f.push:
+			if err := st.Send(m); err != nil {
 				return err
 			}
 		case err := <-f.kill:
@@ -237,7 +237,7 @@ func newTunnelEnv(t *testing.T, plan func(n int) attempt, certTTL time.Duration)
 func serveFakeTunnel(t *testing.T, ca *tlsca.CA, plan func(n int) attempt) (*fakeTunnel, string) {
 	t.Helper()
 	f := &fakeTunnel{ca: ca, cn: tlsca.GatewayCN(uuid.New(), uuid.New()), plan: plan,
-		push: make(chan *gatewayv1.Snapshot), kill: make(chan error)}
+		push: make(chan *gatewayv1.ConnectResponse), kill: make(chan error)}
 	if f.plan == nil {
 		f.plan = func(int) attempt { return attempt{snap: testSnap("v1")} }
 	}
