@@ -220,3 +220,36 @@ func TestCheckAccessPort(t *testing.T) {
 		assert.Equal(t, allow, d.Allow, port)
 	}
 }
+
+type fakeGrants []SnapshotGrant
+
+func (f fakeGrants) PolicyGrants(context.Context, uuid.UUID) ([]SnapshotGrant, error) { return f, nil }
+
+type fakeLocks []SnapshotLock
+
+func (f fakeLocks) PolicyLocks(context.Context, uuid.UUID) ([]SnapshotLock, error) { return f, nil }
+
+func TestSnapshotIncludesGrantsAndLocks(t *testing.T) {
+	e := setup(t)
+	snap, err := e.svc.Snapshot(e.ctx, e.org)
+	require.NoError(t, err)
+	assert.Empty(t, snap.Grants, "nil sources: none")
+	assert.Empty(t, snap.Locks)
+
+	r := e.resource(t, e.org)
+	grants := fakeGrants{{ID: uuid.New(), UserID: e.owner, ResourceID: r, ExpiresUnix: time.Now().Add(time.Hour).Unix()}}
+	locks := fakeLocks{{ID: uuid.New(), TargetType: "user", TargetID: &e.owner}}
+	e.svc.deps.Grants, e.svc.deps.Locks = grants, locks
+	snap, err = e.svc.Snapshot(e.ctx, e.org)
+	require.NoError(t, err)
+	assert.Equal(t, []SnapshotGrant(grants), snap.Grants)
+	assert.Equal(t, []SnapshotLock(locks), snap.Locks)
+
+	d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"lock:" + locks[0].ID.String()}, d.Reasons, "the grant allows, the lock forbids")
+	e.svc.deps.Locks = nil
+	d, err = e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
+	require.NoError(t, err)
+	assert.True(t, d.Allow, "the grant allows now")
+}

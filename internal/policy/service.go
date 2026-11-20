@@ -43,6 +43,8 @@ type Deps struct {
 	Resources ResourceSource
 	Bindings  BindingSource
 	Teams     TeamSource
+	Grants    GrantSource // nil: no grants
+	Locks     LockSource  // nil: no locks
 	Logger    *slog.Logger
 }
 
@@ -145,6 +147,18 @@ func (s *Service) load(ctx context.Context, orgID uuid.UUID, ip netip.Addr) (sna
 	if err != nil {
 		return Snapshot{}, false, err
 	}
+	var grants []SnapshotGrant
+	if s.deps.Grants != nil {
+		if grants, err = s.deps.Grants.PolicyGrants(ctx, orgID); err != nil {
+			return Snapshot{}, false, err
+		}
+	}
+	var locks []SnapshotLock
+	if s.deps.Locks != nil {
+		if locks, err = s.deps.Locks.PolicyLocks(ctx, orgID); err != nil {
+			return Snapshot{}, false, err
+		}
+	}
 	var rules []ResourceRules
 	err = dbx.InOrg(ctx, s.deps.Pool, orgID, actor(ctx), func(tx pgx.Tx) error {
 		st := newStore(tx)
@@ -159,7 +173,8 @@ func (s *Service) load(ctx context.Context, orgID uuid.UUID, ip netip.Addr) (sna
 	if err != nil {
 		return Snapshot{}, false, err
 	}
-	return Snapshot{OrgID: orgID, Resources: resources, Bindings: ExpandBindings(resources, bindings), Rules: rules}, blocked, nil
+	return Snapshot{OrgID: orgID, Resources: resources, Bindings: ExpandBindings(resources, bindings), Rules: rules,
+		Grants: grants, Locks: locks}, blocked, nil
 }
 
 // CheckAccess decides whether userID may use resourceID from ip at the time at

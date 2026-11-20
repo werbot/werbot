@@ -111,7 +111,7 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	s.Policy = policy.New(policy.Deps{Pool: pool, Resources: policyResources{s.Inventory}, Bindings: policyBindings{s.Access},
 		Teams: teamsFunc(func(ctx context.Context, orgID, userID uuid.UUID) ([]uuid.UUID, error) {
 			return s.Identity.UserTeams(ctx, orgID, userID)
-		}), Logger: logger})
+		}), Grants: policyGrants{s.Access}, Locks: policyLocks{s.Access}, Logger: logger})
 	if err := s.Policy.ReloadGeoIP(ctx); err != nil {
 		logger.Warn("geoip reload failed", "err", err)
 	}

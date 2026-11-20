@@ -23,7 +23,8 @@ forbid (principal, action, resource) when { context.ip_blocked };
 `
 
 // Compile turns s into a policy set and its Cedar text. The text is
-// deterministic: bindings sort by ID, rules by ResourceID, list items by value.
+// deterministic: bindings sort by ID, rules by ResourceID, list items by
+// value, grants and locks by ID.
 func Compile(s Snapshot) (*PolicySet, string, error) {
 	var b strings.Builder
 	for _, bd := range slices.SortedFunc(slices.Values(s.Bindings), func(x, y SnapshotBinding) int { return compareIDs(x.ID, y.ID) }) {
@@ -35,6 +36,10 @@ func Compile(s Snapshot) (*PolicySet, string, error) {
 		if err := writeRules(&b, r); err != nil {
 			return nil, "", err
 		}
+	}
+	writeGrants(&b, s.Grants, s.Locks)
+	if err := writeLocks(&b, s.Locks); err != nil {
+		return nil, "", err
 	}
 	b.WriteString(blocklistPolicy)
 	text := b.String()

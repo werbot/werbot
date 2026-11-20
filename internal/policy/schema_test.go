@@ -57,3 +57,34 @@ func TestCompiledPoliciesTypecheck(t *testing.T) {
 		assert.NoError(t, v.Policy(fmt.Sprint(i), (*ast.Policy)(p.AST())), i)
 	}
 }
+
+// TestSchemaHasNowAndCLISession validates the compiled grants and every
+// compiled lock target against the schema.
+func TestSchemaHasNowAndCLISession(t *testing.T) {
+	var s schema.Schema
+	require.NoError(t, s.UnmarshalCedar([]byte(policy.Schema())))
+	res, err := s.Resolve()
+	require.NoError(t, err)
+	ctx := res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.connect")].AppliesTo.Context
+	assert.Equal(t, resolved.LongType{}, ctx["now"].Type)
+	assert.Equal(t, resolved.StringType{}, ctx["cli_session_id"].Type)
+
+	r, g, target := uuid.New(), uuid.New(), uuid.New()
+	snap := policy.Snapshot{
+		Resources: []policy.SnapshotResource{{ID: r, Name: "db", Type: "ssh"}},
+		Grants:    []policy.SnapshotGrant{{ID: g, UserID: uuid.New(), ResourceID: r, ExpiresUnix: 2000}},
+		Locks:     []policy.SnapshotLock{{ID: uuid.New(), TargetType: "grant", TargetID: &g, ExpiresUnix: 1000}},
+	}
+	for _, typ := range []string{"user", "team", "resource", "cli_session"} {
+		snap.Locks = append(snap.Locks, policy.SnapshotLock{ID: uuid.New(), TargetType: typ, TargetID: &target})
+	}
+	_, text, err := policy.Compile(snap)
+	require.NoError(t, err)
+	list, err := cedar.NewPolicyListFromBytes("werbot.cedar", []byte(text))
+	require.NoError(t, err)
+	require.Len(t, list, 6) // grant, four locks, blocklist
+	v := validate.New(res)
+	for i, p := range list {
+		assert.NoError(t, v.Policy(fmt.Sprint(i), (*ast.Policy)(p.AST())), i)
+	}
+}

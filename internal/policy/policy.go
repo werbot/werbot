@@ -85,6 +85,8 @@ type Snapshot struct {
 	Resources []SnapshotResource `json:"resources"`
 	Bindings  []SnapshotBinding  `json:"bindings"`
 	Rules     []ResourceRules    `json:"rules"`
+	Grants    []SnapshotGrant    `json:"grants"`
+	Locks     []SnapshotLock     `json:"locks"`
 }
 
 // Request asks whether a user may perform Action on a resource.
@@ -98,6 +100,8 @@ type Request struct {
 	Time       time.Time
 	IPBlocked  bool
 	Port       uint16 // target port of a stream or datagram; 0: terminal or exec
+	// CLISessionID is the CLI session of the user certificate; uuid.Nil: none.
+	CLISessionID uuid.UUID
 }
 
 // Decision lists the ids of the policies that decided it; "error:<id>" marks
@@ -179,12 +183,14 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 		Action:    cedar.NewEntityUID("Werbot::Action", cedar.String(r.Action)),
 		Resource:  cedar.NewEntityUID("Werbot::Resource", cedar.String(r.ResourceID.String())),
 		Context: cedar.NewRecord(cedar.RecordMap{
-			"ip":         cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
-			"country":    cedar.String(strings.ToUpper(r.Country)),
-			"weekday":    cedar.Long(t.Weekday()),
-			"hour":       cedar.Long(t.Hour()),
-			"ip_blocked": cedar.Boolean(r.IPBlocked),
-			"port":       cedar.Long(r.Port),
+			"ip":             cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
+			"country":        cedar.String(strings.ToUpper(r.Country)),
+			"weekday":        cedar.Long(t.Weekday()),
+			"hour":           cedar.Long(t.Hour()),
+			"ip_blocked":     cedar.Boolean(r.IPBlocked),
+			"port":           cedar.Long(r.Port),
+			"now":            cedar.Long(t.Unix()),
+			"cli_session_id": cedar.String(cliSession(r.CLISessionID)),
 		}),
 	}
 	d, diag := cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)
@@ -197,6 +203,15 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 		out.Reasons = append(out.Reasons, "error:"+string(e.PolicyID))
 	}
 	return out
+}
+
+// cliSession is id as context.cli_session_id: uuid.Nil (no CLI session) is "",
+// which no cli_session lock matches.
+func cliSession(id uuid.UUID) string {
+	if id == uuid.Nil {
+		return ""
+	}
+	return id.String()
 }
 
 // typeHasAction reports whether action is one of the actions of the registered
