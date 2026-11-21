@@ -96,7 +96,7 @@
 	code {
 		font-family: var(--miso-font-mono);
 		font-size: 12px;
-		word-break: break-all;
+		overflow-wrap: anywhere;
 	}
 
 	.paths {

@@ -510,7 +510,7 @@
 	"policies_commands_preset_opaque": "Opaque commands need approval",
 	"policies_commands_preset_allowlist": "Only allowed commands",
 	"policies_commands_preset_allowlist_message": "This command is not on the allowed list",
-	"policies_commands_preset_allowlist_hint": "The \"Only allowed commands\" preset denies every command that no class override allows. Add overrides below, or allow rules for AI agents, to list the commands that may run.",
+	"policies_commands_preset_allowlist_hint": "The \"Only allowed commands\" preset denies commands the classifier cannot classify (class opaque): unknown programs, scripts and commands with unknown paths. Known commands keep their classes; add command rules on those classes, or class overrides to allow your own scripts.",
 	"policies_paths_title": "Folder rules",
 	"policies_paths_new": "New rule",
 	"policies_paths_create": "Create rule",
