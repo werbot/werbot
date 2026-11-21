@@ -154,6 +154,7 @@ type Session struct {
 	DatagramsDown int64                  `protobuf:"varint,17,opt,name=datagrams_down,json=datagramsDown,proto3" json:"datagrams_down,omitempty"`
 	Command       string                 `protobuf:"bytes,18,opt,name=command,proto3" json:"command,omitempty"` // exec only; cut at 64 KiB
 	Classes       []string               `protobuf:"bytes,19,rep,name=classes,proto3" json:"classes,omitempty"` // exec only: read | write | destructive | privilege | secrets | egress | opaque
+	Paths         []string               `protobuf:"bytes,25,rep,name=paths,proto3" json:"paths,omitempty"`     // paths the command touched; output only
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -317,6 +318,13 @@ func (x *Session) GetCommand() string {
 func (x *Session) GetClasses() []string {
 	if x != nil {
 		return x.Classes
+	}
+	return nil
+}
+
+func (x *Session) GetPaths() []string {
+	if x != nil {
+		return x.Paths
 	}
 	return nil
 }
@@ -657,7 +665,7 @@ const file_werbot_v1_session_proto_rawDesc = "" +
 	"\tRecording\x12\x16\n" +
 	"\x06chunks\x18\x01 \x01(\x05R\x06chunks\x12\x14\n" +
 	"\x05bytes\x18\x02 \x01(\x03R\x05bytes\x12\x1a\n" +
-	"\bfinished\x18\x03 \x01(\bR\bfinished\"\xfc\x04\n" +
+	"\bfinished\x18\x03 \x01(\bR\bfinished\"\x92\x05\n" +
 	"\aSession\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1d\n" +
@@ -684,7 +692,8 @@ const file_werbot_v1_session_proto_rawDesc = "" +
 	"\fdatagrams_up\x18\x10 \x01(\x03R\vdatagramsUp\x12%\n" +
 	"\x0edatagrams_down\x18\x11 \x01(\x03R\rdatagramsDown\x12\x18\n" +
 	"\acommand\x18\x12 \x01(\tR\acommand\x12\x18\n" +
-	"\aclasses\x18\x13 \x03(\tR\aclasses\"\xc9\x02\n" +
+	"\aclasses\x18\x13 \x03(\tR\aclasses\x12\x14\n" +
+	"\x05paths\x18\x19 \x03(\tR\x05paths\"\xc9\x02\n" +
 	"\x13ListSessionsRequest\x12$\n" +
 	"\auser_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\x12,\n" +
 	"\vresource_id\x18\x02 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\n" +

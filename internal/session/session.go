@@ -24,6 +24,13 @@ type Start struct {
 	Kind, Target                                     string   // Kind "" is "terminal"
 	Command                                          string   // exec only; "" is NULL
 	Classes                                          []string // exec only; nil is NULL
+	Paths                                            []string // nil is NULL
+}
+
+// Result is what a console session ran: the last checked command, its classes and the paths it touched.
+type Result struct {
+	Command        string
+	Classes, Paths []string
 }
 
 // Counters are a session's traffic totals since it began.
@@ -38,4 +45,6 @@ type Denial struct {
 	KeyFingerprint, Resource, Kind, Target, Reason string
 	ClientIP                                       netip.Addr
 	At                                             time.Time
+	SessionID                                      *uuid.UUID // set for a command denied inside a session
+	Classes, Paths, Reasons                        []string
 }

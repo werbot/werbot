@@ -43,6 +43,7 @@ type Summary struct {
 	Finished                           bool
 	Kind, Target, Command              string
 	Classes                            []string
+	Paths                              []string
 	BytesUp, BytesDown                 int64
 	DatagramsUp, DatagramsDown         int64
 }
@@ -116,6 +117,6 @@ func summary(r dbq.ListSessionsRow) Summary {
 		UserLogin: r.UserLogin, ResourceName: r.ResourceName, EndReason: r.EndReason,
 		ClientIP: r.ClientIp, StartedAt: r.StartedAt, EndedAt: r.EndedAt,
 		Chunks: int(r.Chunks), Bytes: r.Bytes, Finished: r.Finished,
-		Kind: r.Kind, Target: r.Target, Command: r.Command, Classes: r.Classes, BytesUp: r.BytesUp, BytesDown: r.BytesDown,
+		Kind: r.Kind, Target: r.Target, Command: r.Command, Classes: r.Classes, Paths: r.Paths, BytesUp: r.BytesUp, BytesDown: r.BytesDown,
 		DatagramsUp: r.DatagramsUp, DatagramsDown: r.DatagramsDown}
 }

@@ -16,6 +16,7 @@ type Store interface {
 	MembersAmong(ctx context.Context, arg dbq.MembersAmongParams) ([]uuid.UUID, error)
 	EndSession(ctx context.Context, arg dbq.EndSessionParams) (*uuid.UUID, error)
 	SessionOfInstanceExists(ctx context.Context, arg dbq.SessionOfInstanceExistsParams) (bool, error)
+	SessionInOrg(ctx context.Context, arg dbq.SessionInOrgParams) (bool, error)
 	EndMissingSessions(ctx context.Context, arg dbq.EndMissingSessionsParams) ([]dbq.EndMissingSessionsRow, error)
 	EndLostSessions(ctx context.Context, lostAfterSecs float64) ([]dbq.EndLostSessionsRow, error)
 	GetSigningKey(ctx context.Context) (dbq.GetSigningKeyRow, error)

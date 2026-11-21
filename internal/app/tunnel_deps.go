@@ -119,7 +119,7 @@ func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid
 }
 
 func (s tunnelSessions) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *tunnel.Counters) error {
-	return s.Service.End(ctx, orgID, instanceID, id, reason, (*session.Counters)(c))
+	return s.Service.End(ctx, orgID, instanceID, id, reason, (*session.Counters)(c), nil)
 }
 
 func (s tunnelSessions) UpdateCounters(ctx context.Context, orgID, instanceID uuid.UUID, cs []tunnel.Counters) error {
@@ -133,7 +133,8 @@ func (s tunnelSessions) UpdateCounters(ctx context.Context, orgID, instanceID uu
 func (s tunnelSessions) Deny(ctx context.Context, orgID uuid.UUID, ds []tunnel.Denial) error {
 	out := make([]session.Denial, len(ds))
 	for i, d := range ds {
-		out[i] = session.Denial(d)
+		out[i] = session.Denial{UserID: d.UserID, KeyFingerprint: d.KeyFingerprint, Resource: d.Resource, Kind: d.Kind,
+			Target: d.Target, Reason: d.Reason, ClientIP: d.ClientIP, At: d.At}
 	}
 	return s.Service.Deny(ctx, orgID, out)
 }

@@ -307,6 +307,20 @@ type Organization struct {
 	CreatedAt time.Time
 }
 
+type PathRule struct {
+	ID               uuid.UUID
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Paths            []string
+	Access           string
+	Effect           string
+	Message          string
+	CreatedBy        *uuid.UUID
+	CreatedAt        time.Time
+}
+
 type Recording struct {
 	SessionID         uuid.UUID
 	OrgID             uuid.UUID
@@ -401,6 +415,7 @@ type Session struct {
 	DatagramsDown     int64
 	Command           *string
 	Classes           []string
+	Paths             []string
 }
 
 type SigningKey struct {
@@ -421,6 +436,17 @@ type TeamMember struct {
 	TeamID uuid.UUID
 	OrgID  uuid.UUID
 	UserID uuid.UUID
+}
+
+type TerminalRule struct {
+	ID               uuid.UUID
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Mode             string
+	CreatedBy        *uuid.UUID
+	CreatedAt        time.Time
 }
 
 type User struct {
