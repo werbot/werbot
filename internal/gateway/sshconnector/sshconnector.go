@@ -47,31 +47,11 @@ func (c Connector) Serve(ctx context.Context, s *gateway.Session) error {
 }
 
 func (c Connector) serve(ctx context.Context, s *gateway.Session) error {
-	var cfg sshv1.Config
-	if err := protojson.Unmarshal(s.Resource.Config, &cfg); err != nil {
-		return fmt.Errorf("ssh: resource config: %w", err)
-	}
-	port := cfg.GetPort()
-	if port == 0 {
-		port = 22
-	}
-	addr := net.JoinHostPort(cfg.GetHost(), strconv.FormatUint(uint64(port), 10))
-	ccfg, err := clientConfig(cfg.GetLogin(), s.Secret, s.PinKey, c.DialTimeout)
+	client, closeClient, err := c.dial(ctx, s)
 	if err != nil {
 		return err
 	}
-
-	conn, err := (&net.Dialer{Timeout: c.DialTimeout}).DialContext(ctx, "tcp", addr)
-	if err != nil {
-		return fmt.Errorf("ssh: dial target: %w", err)
-	}
-	defer conn.Close()
-	defer context.AfterFunc(ctx, func() { _ = conn.Close() })()
-	client, err := c.handshake(conn, addr, ccfg)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
+	defer closeClient()
 
 	switch s.Kind {
 	case gateway.KindTerminal:
@@ -87,6 +67,37 @@ func (c Connector) serve(ctx context.Context, s *gateway.Session) error {
 	default:
 		return fmt.Errorf("ssh: unsupported session kind %q", s.Kind)
 	}
+}
+
+// dial connects to the target of s and returns the client and the function
+// that closes it; a cancel of ctx closes the target connection.
+func (c Connector) dial(ctx context.Context, s *gateway.Session) (*gossh.Client, func(), error) {
+	var cfg sshv1.Config
+	if err := protojson.Unmarshal(s.Resource.Config, &cfg); err != nil {
+		return nil, nil, fmt.Errorf("ssh: resource config: %w", err)
+	}
+	port := cfg.GetPort()
+	if port == 0 {
+		port = 22
+	}
+	addr := net.JoinHostPort(cfg.GetHost(), strconv.FormatUint(uint64(port), 10))
+	ccfg, err := clientConfig(cfg.GetLogin(), s.Secret, s.PinKey, c.DialTimeout)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	conn, err := (&net.Dialer{Timeout: c.DialTimeout}).DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return nil, nil, fmt.Errorf("ssh: dial target: %w", err)
+	}
+	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	client, err := c.handshake(conn, addr, ccfg)
+	if err != nil {
+		stop()
+		_ = conn.Close()
+		return nil, nil, err
+	}
+	return client, func() { _ = client.Close(); stop(); _ = conn.Close() }, nil
 }
 
 // dialTarget is the address the target dials for a stream: a host equal to the
