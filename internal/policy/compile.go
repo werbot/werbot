@@ -3,6 +3,7 @@ package policy
 import (
 	"bytes"
 	"cmp"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -24,7 +25,8 @@ forbid (principal, action, resource) when { context.ip_blocked };
 
 // Compile turns s into a policy set and its Cedar text. The text is
 // deterministic: bindings sort by ID, rules by ResourceID, list items by
-// value, grants, locks, command rules and custom policies by ID.
+// value, grants, locks, command, path and terminal rules and custom policies
+// by ID.
 func Compile(s Snapshot) (*PolicySet, string, error) {
 	var b strings.Builder
 	for _, bd := range slices.SortedFunc(slices.Values(s.Bindings), func(x, y SnapshotBinding) int { return compareIDs(x.ID, y.ID) }) {
@@ -41,7 +43,7 @@ func Compile(s Snapshot) (*PolicySet, string, error) {
 	if err := writeLocks(&b, s.Locks); err != nil {
 		return nil, "", err
 	}
-	if err := writeCommandRules(&b, s.CommandRules); err != nil {
+	if err := errors.Join(writeCommandRules(&b, s.CommandRules), writePathRules(&b, s.PathRules), writeTerminalRules(&b, s.TerminalRules)); err != nil {
 		return nil, "", err
 	}
 	if err := writeCustomPolicies(&b, s.CustomPolicies); err != nil {

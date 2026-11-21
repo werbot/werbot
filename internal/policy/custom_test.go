@@ -105,3 +105,16 @@ func TestCustomForbidWithObligation(t *testing.T) {
 	r.ApprovalGranted = true
 	assert.True(t, authorize(t, s, r).Allow)
 }
+
+func TestValidateCustomStage11b(t *testing.T) {
+	for _, text := range []string{
+		`@obligation("console") forbid (principal, action == Werbot::Action::"ssh.shell", resource) unless { context.console };`,
+		`forbid (principal, action, resource) when { context.paths.contains("/etc/hosts") };`,
+		`forbid (principal, action, resource) when { context.path_hits.isEmpty() || context.path_outside.isEmpty() };`,
+	} {
+		assert.NoError(t, ValidateCustom(text), text)
+	}
+	err := ValidateCustom(`@obligation("mfa") forbid (principal, action == Werbot::Action::"ssh.shell", resource);`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `unknown obligation "mfa"`)
+}

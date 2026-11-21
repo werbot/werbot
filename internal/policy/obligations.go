@@ -7,12 +7,17 @@ import (
 	"github.com/cedar-policy/cedar-go/types"
 )
 
-// ObligationApproval asks for an approval of the command.
-const ObligationApproval = "approval"
+// Obligations a deny can carry.
+const (
+	ObligationApproval = "approval" // an approval of the command
+	ObligationConsole  = "console"  // the shell is served by the command console
+)
 
-// obligations are the known @obligation names and how a request meets each.
+// obligations are the known @obligation names and how a request meets each;
+// the gateway mirrors them in internal/gateway/authz_exec.go.
 var obligations = map[string]func(*Request){
 	ObligationApproval: func(r *Request) { r.ApprovalGranted = true },
+	ObligationConsole:  func(r *Request) { r.Console = true },
 }
 
 // explain returns the @message of the first deciding forbid by ascending

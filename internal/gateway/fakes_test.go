@@ -28,7 +28,7 @@ func init() {
 	all := []connector.Kind{connector.KindTerminal, connector.KindExec, connector.KindStream}
 	for _, n := range []string{"fake", "blocker", "panicky", "streamonly", "nope", "spy"} {
 		connector.Register(connector.Type{Name: n, NewConfig: func() proto.Message { return &emptypb.Empty{} },
-			Validate: func(proto.Message) error { return nil }, Actions: []string{n + ".connect"}, Kinds: all,
+			Validate: func(proto.Message) error { return nil }, Actions: []string{n + ".connect", n + ".shell"}, Kinds: all,
 			Recorded: all, Endpoint: func(proto.Message) connector.Endpoint { return connector.Endpoint{AnyTarget: true, NoHealth: true} }})
 	}
 	// gateway connectors; "nope" stays without one

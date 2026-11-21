@@ -21,7 +21,7 @@ func init() {
 		NewConfig:   func() proto.Message { return &sshv1.Config{} },
 		Validate:    Validate,
 		Credentials: []connector.CredentialKind{connector.CredentialPassword, connector.CredentialPrivateKey},
-		Actions:     []string{"ssh.connect", "ssh.exec"}, // connect first: callers use Actions[0]
+		Actions:     []string{"ssh.connect", "ssh.exec", "ssh.shell"}, // connect first: callers use Actions[0]
 		Level:       "L2",
 		Kinds:       []connector.Kind{connector.KindTerminal, connector.KindExec, connector.KindStream},
 		Recorded:    []connector.Kind{connector.KindTerminal, connector.KindExec},

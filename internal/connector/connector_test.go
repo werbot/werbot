@@ -35,7 +35,7 @@ func TestRegisterRejectsBadRecordedAndEndpoint(t *testing.T) {
 		Register(f)
 	})
 	d := valid("d")
-	d.Kinds, d.Recorded = []Kind{KindStream, KindTerminal}, []Kind{KindTerminal}
+	d.Kinds, d.Recorded, d.Actions = []Kind{KindStream, KindTerminal}, []Kind{KindTerminal}, []string{"d.open", "d.shell"}
 	Register(d)
 	assert.True(t, d.Records(KindTerminal))
 	assert.False(t, d.Records(KindStream))
@@ -95,4 +95,25 @@ func TestExecAction(t *testing.T) {
 	a, ok := ty.ExecAction()
 	assert.True(t, ok)
 	assert.Equal(t, "x.exec", a, "the first .exec action")
+}
+
+func TestShellAction(t *testing.T) {
+	ty := valid("x")
+	a, ok := ty.ShellAction()
+	assert.False(t, ok, "no shell action")
+	assert.Empty(t, a)
+	ty.Actions = []string{"x.connect", "x.exec", "x.shell"}
+	a, ok = ty.ShellAction()
+	assert.True(t, ok)
+	assert.Equal(t, "x.shell", a)
+}
+
+func TestRegisterRequiresShellForTerminal(t *testing.T) {
+	t.Cleanup(func() { registry = nil })
+	x := valid("x")
+	x.Kinds, x.Actions = []Kind{KindTerminal}, []string{"x.connect"}
+	assert.PanicsWithValue(t, `connector: type "x": terminal kind needs action "x.shell"`, func() { Register(x) })
+	x.Actions = []string{"x.connect", "x.shell"}
+	assert.NotPanics(t, func() { Register(x) })
+	assert.NotPanics(t, func() { Register(valid("y")) }, "a type without the terminal kind needs no shell action")
 }

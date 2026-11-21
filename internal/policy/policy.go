@@ -93,6 +93,8 @@ type Snapshot struct {
 	CommandRules   []SnapshotCommandRule  `json:"command_rules"`
 	ClassRules     []SnapshotClassRule    `json:"class_rules"`
 	CustomPolicies []SnapshotCustomPolicy `json:"custom_policies"` // enabled only
+	PathRules      []SnapshotPathRule     `json:"path_rules"`
+	TerminalRules  []SnapshotTerminalRule `json:"terminal_rules"`
 }
 
 // Request asks whether a user may perform Action on a resource.
@@ -113,6 +115,11 @@ type Request struct {
 	Command         string
 	Classes         []string
 	ApprovalGranted bool
+	// Paths are the paths of the command, PathHits and PathOutside the ids
+	// of the path rules it hits or leaves (shellclass.EvalPaths); Console
+	// marks a shell the command console serves.
+	Paths, PathHits, PathOutside []string
+	Console                      bool
 }
 
 // Decision lists the ids of the policies that decided it; "error:<id>" marks
@@ -214,10 +221,6 @@ func (ps *PolicySet) evaluate(r Request) (cedar.Decision, cedar.Diagnostic) {
 		UID:     cedar.NewEntityUID("Werbot::User", cedar.String(r.UserID.String())),
 		Parents: cedar.NewEntityUIDSet(teams...),
 	}
-	classes := make([]cedar.Value, len(r.Classes))
-	for i, c := range r.Classes {
-		classes[i] = cedar.String(c)
-	}
 	req := cedar.Request{
 		Principal: user.UID,
 		Action:    cedar.NewEntityUID("Werbot::Action", cedar.String(r.Action)),
@@ -232,8 +235,12 @@ func (ps *PolicySet) evaluate(r Request) (cedar.Decision, cedar.Diagnostic) {
 			"now":              cedar.Long(t.Unix()),
 			"cli_session_id":   cedar.String(cliSession(r.CLISessionID)),
 			"command":          cedar.String(r.Command),
-			"classes":          cedar.NewSet(classes...),
+			"classes":          stringSet(r.Classes),
 			"approval_granted": cedar.Boolean(r.ApprovalGranted),
+			"paths":            stringSet(r.Paths),
+			"path_hits":        stringSet(r.PathHits),
+			"path_outside":     stringSet(r.PathOutside),
+			"console":          cedar.Boolean(r.Console),
 		}),
 	}
 	return cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)

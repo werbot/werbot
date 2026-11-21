@@ -21,7 +21,7 @@ import (
 func init() {
 	// a type with an exec action and a gateway connector; its config {"host": …} is the endpoint host
 	connector.Register(connector.Type{Name: "execy", NewConfig: func() proto.Message { return &structpb.Struct{} },
-		Validate: func(proto.Message) error { return nil }, Actions: []string{"execy.connect", "execy.exec"},
+		Validate: func(proto.Message) error { return nil }, Actions: []string{"execy.connect", "execy.exec", "execy.shell"},
 		Kinds: []connector.Kind{connector.KindTerminal, connector.KindExec},
 		Endpoint: func(m proto.Message) connector.Endpoint {
 			return connector.Endpoint{Host: m.(*structpb.Struct).GetFields()["host"].GetStringValue(), NoHealth: true}

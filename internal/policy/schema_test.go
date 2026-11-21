@@ -124,3 +124,17 @@ func TestSchemaHasExecContext(t *testing.T) {
 		assert.NoError(t, v.Policy(fmt.Sprint(i), (*ast.Policy)(p.AST())), i)
 	}
 }
+
+func TestSchemaHasPathContext(t *testing.T) {
+	var s schema.Schema
+	require.NoError(t, s.UnmarshalCedar([]byte(policy.Schema())))
+	res, err := s.Resolve()
+	require.NoError(t, err)
+	_, ok := res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.shell")]
+	assert.True(t, ok)
+	ctx := res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.exec")].AppliesTo.Context
+	for _, key := range []string{"paths", "path_hits", "path_outside"} {
+		assert.Equal(t, resolved.SetType{Element: resolved.StringType{}}, ctx[cedar.String(key)].Type, key)
+	}
+	assert.Equal(t, resolved.BoolType{}, ctx["console"].Type)
+}
