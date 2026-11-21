@@ -116,7 +116,7 @@ func assertCastParses(t *testing.T, cast []byte) []event {
 		require.Len(t, ev, 3)
 		assert.IsType(t, float64(0), ev[0])
 		code, _ := ev[1].(string)
-		assert.Contains(t, []string{"o", "i", "r"}, code)
+		assert.Contains(t, []string{"o", "i", "r", "m"}, code)
 		data, ok := ev[2].(string)
 		require.True(t, ok)
 		events = append(events, event{code, data})

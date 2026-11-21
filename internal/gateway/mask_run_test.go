@@ -56,6 +56,7 @@ func (r *recBuf) Output(p []byte) {
 }
 func (*recBuf) Input([]byte)                {}
 func (*recBuf) Resize(int, int)             {}
+func (*recBuf) Marker(string)               {}
 func (*recBuf) Close(context.Context) error { return nil }
 
 // leak writes the session credential to the client and to the recording.
