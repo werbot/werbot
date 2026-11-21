@@ -176,7 +176,7 @@ func TestClassifyLimits(t *testing.T) {
 		"X=1":                               "opaque",
 		"> /tmp/out":                        "opaque",
 		strings.Repeat("a", maxCommand+1):   "opaque",
-		"ls " + strings.Repeat("x", 60<<10): "read",
+		"ls " + strings.Repeat("x", 60<<10): "opaque,read", // the operand is a path over 1024 bytes (Ruling G6)
 	}
 	for in, want := range cases {
 		if got := c.Classify(in, ""); join(got) != want {

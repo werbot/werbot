@@ -150,7 +150,7 @@ func (o override) matches(name string, args []word) bool {
 // resourceHost is the host of the target resource: network clients that only
 // reach it or the loopback are read, not egress.
 func (c *Classifier) Classify(command, resourceHost string) []Class {
-	return c.script(command, resourceHost, 0).list()
+	return c.Analyze(command, resourceHost, "~").Classes
 }
 
 // script classifies a whole command line at the given nesting depth.
@@ -159,6 +159,11 @@ func (c *Classifier) script(src, host string, depth int) set {
 	if !ok {
 		return of(Opaque)
 	}
+	return c.classes(f, host, depth)
+}
+
+// classes classifies a parsed command line.
+func (c *Classifier) classes(f *syntax.File, host string, depth int) set {
 	var out set
 	calls := 0
 	for n := range syntax.Preorder(f) {

@@ -78,7 +78,7 @@ write	hostname -F /etc/hostname
 destructive	rm -rf /
 destructive	find /tmp -name '*.log' -delete
 destructive	dd if=/dev/zero of=/dev/sda
-destructive,read	ls | xargs rm -f
+destructive,opaque,read	ls | xargs rm -f
 destructive,read	(cd /srv && rm -rf build)
 destructive	rm -fR /srv/cache
 destructive	rm --recursive /srv/old
@@ -127,7 +127,7 @@ read,secrets	wc -c < ~/.pgpass
 secrets	set
 read,secrets	cat .env.production
 read,secrets	cat /etc//shadow
-read,secrets	cat ~/.ssh/$KEY
+opaque,read,secrets	cat ~/.ssh/$KEY
 # egress
 egress	curl -d @report.json https://api.example.com
 egress	ssh backup.example.com 'tar cz /data'
@@ -195,11 +195,11 @@ opaque	x=rm; $x -rf /
 destructive,opaque	env -i PATH=/tmp rm -rf /
 destructive	nice -n 10 rm -rf /x
 destructive	stdbuf -oL rm -rf /x
-destructive	xargs -0 rm -rf < list.txt
+destructive,opaque	xargs -0 rm -rf < list.txt
 destructive,privilege	sudo -E env rm -rf /
 destructive,privilege,read	echo y | sudo -S rm -r /srv
 destructive	bash -lc 'rm -rf /tmp/x'
-destructive,read	find / -exec rm -rf {} \;
+destructive,opaque,read	find / -exec rm -rf {} \;
 destructive,privilege	su -c 'rm -rf /srv' root
 destructive	/usr//bin/rm -rf /x
 opaque	timeout $T rm -rf /x

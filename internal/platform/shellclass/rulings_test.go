@@ -70,7 +70,7 @@ func TestClassifyUnknownNodes(t *testing.T) {
 		"{ ls; }":                      "read",
 		"(ls)":                         "read",
 		"time ls":                      "read",
-		"for f in a b; do ls $f; done": "read",
+		"for f in a b; do ls $f; done": "opaque,read",
 		`echo "$HOME" ${HOME:-/} $(pwd) <(ls) # note`: "read",
 		"! ls && ls || ls": "read",
 	})
@@ -101,9 +101,9 @@ func TestClassifyNonLiteralFlags(t *testing.T) {
 	})
 	classifyAll(t, map[string]string{
 		"ls /tmp/*.log":                "read",
-		`cat "$FILE"`:                  "read",
+		`cat "$FILE"`:                  "opaque,read",
 		"rm -- *.tmp":                  "write",
-		`rm -- "$FILE"`:                "write",
+		`rm -- "$FILE"`:                "opaque,write",
 		"kubectl logs $POD":            "read",
 		`grep -e "$PAT" a.txt`:         "read",
 		"curl -H $H http://localhost/": "egress",
@@ -129,7 +129,7 @@ func TestClassifyRedirects(t *testing.T) {
 		"ls &>> out":                  "read,write",
 		"ls <> out":                   "read,write",
 		"ls >& out":                   "read,write",
-		"ls > $F":                     "read,write",
+		"ls > $F":                     "opaque,read,write",
 		"cat < ~/.ssh/id_rsa":         "read,secrets",
 		"ls > /etc/sudoers.d/x":       "privilege,read,write",
 		"cat <<EOF\n$(rm -rf /)\nEOF": "destructive,read",

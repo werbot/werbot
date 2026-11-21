@@ -17,6 +17,7 @@ type word struct {
 	lit   bool   // no expansions
 	split bool   // an unquoted expansion: may become several words
 	glob  bool   // an unquoted *, ?, [...] or {a,b} / {a..b}
+	tilde tildeForm
 }
 
 // plain reports a fully literal word without glob or brace patterns.
@@ -44,7 +45,19 @@ func newWord(sw *syntax.Word) word {
 	}
 	b.w.text = string(b.text)
 	b.w.glob = isGlob(b.text, b.active)
+	b.w.tilde = tildeOf(b.text, b.active)
 	return b.w
+}
+
+// valueWord is an option value cut from a longer word ("--name=value",
+// "-ovalue", "of=value"). Its quoting is unknown, so it is taken at its
+// worst: any pattern byte is a glob and a leading "~" is unresolved.
+func valueWord(s string) word {
+	w := word{text: s, lit: !strings.Contains(s, marker), glob: strings.ContainsAny(s, "*?[{")}
+	if strings.HasPrefix(s, "~") {
+		w.tilde = tildeBad
+	}
+	return w
 }
 
 func (b *wordBuilder) add(s string, active bool) {

@@ -63,7 +63,7 @@ func (s optSpec) longOpt(t string, next []word) ([]opt, int, bool) {
 	case !known && !s.loose:
 		return nil, 0, false
 	case eq || !takes:
-		return []opt{{name: "--" + name, val: word{text: val, lit: true}}}, 0, true
+		return []opt{{name: "--" + name, val: valueWord(val)}}, 0, true
 	}
 	v, ok := nextValue(next)
 	return []opt{{name: "--" + name, val: v}}, 1, ok
@@ -76,7 +76,7 @@ func (s optSpec) shortOpts(t string, next []word) ([]opt, int, bool) {
 		name := "-" + t[i:i+1]
 		switch {
 		case strings.IndexByte(s.value, t[i]) >= 0 && i+1 < len(t):
-			return append(opts, opt{name: name, val: word{text: t[i+1:], lit: true}}), 0, true
+			return append(opts, opt{name: name, val: valueWord(t[i+1:])}), 0, true
 		case strings.IndexByte(s.value, t[i]) >= 0:
 			v, ok := nextValue(next)
 			return append(opts, opt{name: name, val: v}), 1, ok
