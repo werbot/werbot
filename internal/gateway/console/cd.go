@@ -15,20 +15,22 @@ const (
 )
 
 // cd changes the cwd to its argument (home without one): the target, then the
-// directory the target resolves it to, must pass the check. A refusal, a
-// failed cd or an answer that is not a clean directory keeps the cwd.
+// directory the target resolves it to, must pass the check. Each check is of
+// the script that runs on the target, whose pwd reads the folder, so folder
+// rules see it. A refusal, a failed cd or an answer that is not a clean
+// directory keeps the cwd.
 func (c *console) cd(ctx context.Context, args []string) {
 	target, ok := c.cdTarget(args)
 	if !ok {
 		c.fail(cdSyntax)
 		return
 	}
-	chk, ok := c.check(ctx, "cd -- "+quote(target))
+	chk, ok := c.check(ctx, cdScript(target))
 	if !ok {
 		return
 	}
 	var out answer
-	if c.last = c.runOnTarget(ctx, "cd -- "+quote(target)+" && pwd -P", &out); c.last != 0 {
+	if c.last = c.runOnTarget(ctx, cdScript(target), &out); c.last != 0 {
 		return
 	}
 	dir, ok := out.dir()
@@ -37,12 +39,17 @@ func (c *console) cd(ctx context.Context, args []string) {
 		return
 	}
 	if dir != target {
-		if chk, ok = c.check(ctx, "cd -- "+quote(dir)); !ok {
+		if chk, ok = c.check(ctx, cdScript(dir)); !ok {
 			return
 		}
 	}
 	c.cwd = dir
 	c.s.Recording.Marker(marker("cd -- "+quote(dir), chk.Classes))
+}
+
+// cdScript changes to dir and prints the folder it resolves to.
+func cdScript(dir string) string {
+	return "cd -- " + quote(dir) + " && pwd -P"
 }
 
 // cdTarget is the clean absolute directory of a cd with zero or one plain

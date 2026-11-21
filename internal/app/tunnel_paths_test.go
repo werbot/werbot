@@ -116,7 +116,7 @@ func TestTunnelSessionsPathsResultDenial(t *testing.T) {
 	var data string
 	require.NoError(t, s.pool.QueryRow(ctx, `SELECT data::text FROM audit_event WHERE org_id = $1 AND action = 'session.command_denied'
 		AND target_id = $2`, f.OrgID, id.String()).Scan(&data))
-	assert.JSONEq(t, `{"command":"cat /etc/hosts","classes":["read"],"paths":["/etc/hosts"],"reasons":["path:r1"],"resource":"db","reason":"denied"}`, data)
+	assert.JSONEq(t, `{"command":"cat /etc/hosts","classes":["read"],"paths":["/etc/hosts"],"reasons":["path:r1"],"reason":"denied"}`, data)
 
 	require.NoError(t, sessions.End(ctx, f.OrgID, f.InstanceID, id, "closed", nil,
 		&tunnel.SessionResult{Command: "cp a b", Classes: []string{"read", "write"}, Paths: []string{"/srv/a", "/srv/b"}}))

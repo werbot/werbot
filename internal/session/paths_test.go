@@ -3,6 +3,7 @@ package session
 import (
 	"net/netip"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -69,7 +70,8 @@ func TestDenyCommandDenied(t *testing.T) {
 	require.NoError(t, err)
 
 	d := Denial{UserID: &e.user, Resource: "web", Kind: "terminal", Target: "cat /etc/hosts", Reason: "denied",
-		Classes: []string{"read"}, Paths: []string{"/etc/hosts"}, Reasons: []string{"path:r1"}}
+		Classes: []string{"read"}, Paths: []string{"/etc/hosts"}, Reasons: []string{"path:r1"},
+		At: time.Date(2026, 11, 21, 10, 0, 0, 0, time.UTC)}
 	foreign := d
 	foreign.SessionID = &otherID // a session of another organization
 	d.SessionID = &id
@@ -84,7 +86,8 @@ func TestDenyCommandDenied(t *testing.T) {
 	require.NoError(t, e.pool.QueryRow(bg, `SELECT actor_kind, target_type, target_id, data::text FROM audit_event
 		WHERE org_id = $1 AND action = 'session.command_denied'`, e.org).Scan(&kind, &typ, &target, &data))
 	assert.Equal(t, [3]string{"gateway", "session", id.String()}, [3]string{kind, typ, target})
-	assert.JSONEq(t, `{"command":"cat /etc/hosts","classes":["read"],"paths":["/etc/hosts"],"reasons":["path:r1"],"resource":"web","reason":"denied"}`, data)
+	assert.JSONEq(t, `{"command":"cat /etc/hosts","classes":["read"],"paths":["/etc/hosts"],"reasons":["path:r1"],"reason":"denied",
+		"at":"2026-11-21T10:00:00Z"}`, data)
 
 	require.NoError(t, e.pool.QueryRow(bg, `SELECT count(*) FROM audit_event WHERE action = 'session.command_denied'`).Scan(&n))
 	assert.Equal(t, 1, n, "a session of another organization writes no event")

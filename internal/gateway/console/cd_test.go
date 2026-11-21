@@ -20,8 +20,8 @@ func TestConsoleCd(t *testing.T) {
 		h.typ("cd app\r")
 		checks, execs, _ := h.calls()
 		require.Equal(t, []checkCall{
-			{"cd -- '/home/u/app'", "/home/u", "/home/u"},
-			{"cd -- '/srv/app'", "/home/u", "/home/u"},
+			{"cd -- '/home/u/app' && pwd -P", "/home/u", "/home/u"},
+			{"cd -- '/srv/app' && pwd -P", "/home/u", "/home/u"},
 		}, checks)
 		require.Equal(t, "cd -- '/home/u/app' && pwd -P", execs[1])
 		h.endsWith("cd app\r\nalice@db:/srv/app$ ")
@@ -39,7 +39,7 @@ func TestConsoleCdResolvedOutsideDenied(t *testing.T) {
 		h := newHarness(t, answering(map[string]targetFunc{
 			"cd -- '/home/u/app' && pwd -P": output("/srv/app\n", 0),
 		}), func(_ context.Context, command string) (gateway.CommandCheck, error) {
-			if command == "cd -- '/srv/app'" {
+			if command == "cd -- '/srv/app' && pwd -P" {
 				return gateway.CommandCheck{}, &gateway.CommandDeniedError{Err: gateway.ErrDenied, Message: "path outside allowed folders"}
 			}
 			return allowRead(context.Background(), command)
@@ -68,7 +68,8 @@ func TestConsoleCdHomeAndTilde(t *testing.T) {
 		h.typ("cd ~\r")
 		h.endsWith("alice@db:~$ ")
 		require.Equal(t, []string{
-			"cd -- '/home/u/x'", "cd -- '/home/u'", "cd -- '/home'", "cd -- '/'", "cd -- '/home/u'",
+			"cd -- '/home/u/x' && pwd -P", "cd -- '/home/u' && pwd -P", "cd -- '/home' && pwd -P",
+			"cd -- '/' && pwd -P", "cd -- '/home/u' && pwd -P",
 		}, h.commands())
 	})
 }
@@ -101,7 +102,7 @@ func TestConsoleCdBadAnswer(t *testing.T) {
 				}), nil).run()
 				h.typ("cd app\r")
 				h.endsWith("cd app\r\ncd: cannot use this directory\r\n[1] alice@db:~$ ")
-				require.Equal(t, []string{"cd -- '/home/u/app'"}, h.commands())
+				require.Equal(t, []string{"cd -- '/home/u/app' && pwd -P"}, h.commands())
 				_, _, markers, _ := h.rec.snapshot()
 				require.Empty(t, markers)
 			})

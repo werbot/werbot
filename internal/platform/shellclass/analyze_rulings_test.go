@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func analyzeAll(t *testing.T, cwd string, cases map[string]string) {
@@ -197,6 +198,40 @@ func TestAnalyzeDirectoryTargetHitsDeny(t *testing.T) {
 		a := c.Analyze(in, corpusHost, "~")
 		if hits, _ := EvalPaths(rules, a.Paths, a.Unresolved); len(hits) != 1 {
 			t.Errorf("%q: refs %s, want a hit of the deny write rule", in, summary(a))
+		}
+	}
+}
+
+// Input class "move a folder": a deny write glob on a name below the moved folder hits.
+func TestAnalyzeMovedFolderHitsDeny(t *testing.T) {
+	c := mustNew(t)
+	rules := []PathRule{{ID: "d", Globs: []string{"/srv/*/config/*.yml"}, Access: AccessWrite, Effect: "deny"}}
+	for _, in := range []string{"mv /srv/app /tmp/x", "mv /srv/app/config /tmp/c", "mv -t /tmp /srv/app"} {
+		a := c.Analyze(in, corpusHost, "~")
+		if hits, _ := EvalPaths(rules, a.Paths, a.Unresolved); len(hits) != 1 {
+			t.Errorf("%q: refs %s, want a hit of the deny write rule", in, summary(a))
+		}
+	}
+}
+
+// Input class "clauses nested 40 deep, with and without a cd inside": the walk stays linear in the
+// depth (no pass per branch combination) and keeps the absolute path of every level.
+func TestAnalyzeNestedClausesBounded(t *testing.T) {
+	c := mustNew(t)
+	for _, inner := range []string{"true", "cd /x"} {
+		in := inner
+		for range 40 {
+			in = "while " + in + "; do rm /srv/a; done"
+		}
+		done := make(chan Analysis, 1)
+		go func() { done <- c.Analyze(in, corpusHost, "~") }()
+		select {
+		case a := <-done:
+			if got := summary(a); got != "w:/srv/a" {
+				t.Errorf("inner %q: got %s, want w:/srv/a", inner, got)
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatalf("inner %q: analysis of 40 nested clauses did not finish in 5 s", inner)
 		}
 	}
 }

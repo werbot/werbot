@@ -69,9 +69,6 @@ func writeDenial(ctx context.Context, tx pgx.Tx, st Store, orgID uuid.UUID, d De
 	e := auditlog.Event{OrgID: &orgID, ActorUserID: actor, ActorKind: "gateway", Action: "session.deny",
 		TargetType: "resource", TargetID: target, IP: d.ClientIP}
 	data := map[string]any{"kind": d.Kind, "target": d.Target, "reason": d.Reason, "key_fingerprint": d.KeyFingerprint}
-	if !d.At.IsZero() {
-		data["at"] = d.At.UTC().Format(time.RFC3339) // when the gateway refused; created_at is when it arrived
-	}
 	if d.SessionID != nil {
 		own, err := st.SessionInOrg(ctx, dbq.SessionInOrgParams{ID: *d.SessionID, OrgID: orgID})
 		if err != nil || !own {
@@ -81,7 +78,10 @@ func writeDenial(ctx context.Context, tx pgx.Tx, st Store, orgID uuid.UUID, d De
 			return err
 		}
 		e.Action, e.TargetType, e.TargetID = "session.command_denied", "session", d.SessionID.String()
-		data = map[string]any{"command": d.Target, "classes": d.Classes, "paths": d.Paths, "reasons": d.Reasons, "resource": d.Resource, "reason": d.Reason}
+		data = map[string]any{"command": d.Target, "classes": d.Classes, "paths": d.Paths, "reasons": d.Reasons, "reason": d.Reason}
+	}
+	if !d.At.IsZero() {
+		data["at"] = d.At.UTC().Format(time.RFC3339) // when the gateway refused; created_at is when it arrived
 	}
 	e.Data = data
 	return auditlog.Write(ctx, tx, e)

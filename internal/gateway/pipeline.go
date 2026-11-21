@@ -181,6 +181,9 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID
 	if err := p.servable(ctx, r.Kind, req.Resource, host, recorded); err != nil {
 		return nil, req.User.ID, err
 	}
+	if err := p.shellBeforeCommand(pol, req, r, typ); err != nil {
+		return nil, req.User.ID, err
+	}
 	if pol, req, err = p.authorizeCommand(ctx, pol, withExecAction(req, r, typ), commandInput{Text: r.Command, Cwd: "~"}, r.Notice); err != nil {
 		return nil, req.User.ID, err
 	}

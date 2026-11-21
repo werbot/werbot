@@ -25,17 +25,7 @@ var (
 // The literal prefilter of MatchPath and matchPrefix only rejects pairs the
 // segment DP rejects: with and without it every pair gets the same answer.
 func TestPathPrefilterEquivalent(t *testing.T) {
-	globs, paths := prefilterGlobs, prefilterPaths
-	for _, tc := range matchPathCases {
-		globs, paths = append(globs, tc.glob), append(paths, tc.path)
-	}
-	for _, row := range loadPaths(t) { // corpus refs as paths, and as globs
-		for _, tok := range strings.Fields(row.want) {
-			if _, ref, ok := strings.Cut(tok, ":"); ok {
-				globs, paths = append(globs, ref), append(paths, cmp.Or(strings.TrimSuffix(ref, "/**"), "/"))
-			}
-		}
-	}
+	globs, paths := prefilterInputs(t)
 	var pairs, rejected int
 	for _, g := range globs {
 		if ValidPathGlob(g) != nil {
@@ -43,13 +33,7 @@ func TestPathPrefilterEquivalent(t *testing.T) {
 		}
 		for _, p := range paths {
 			pairs++
-			if got, want := MatchPath(g, p), matchFull(g, p); got != want {
-				t.Errorf("MatchPath(%q, %q) = %v, unfiltered %v", g, p, got, want)
-			}
-			if got, want := matchPrefix(g, p), matchSubtree(g, p); got != want {
-				t.Errorf("matchPrefix(%q, %q) = %v, unfiltered %v", g, p, got, want)
-			}
-			if !strings.HasPrefix(p, literalPrefix(g)) {
+			if !prefilterAgrees(t, g, p) {
 				rejected++
 			}
 		}
@@ -57,6 +41,37 @@ func TestPathPrefilterEquivalent(t *testing.T) {
 	if pairs < 1000 || rejected < pairs/4 {
 		t.Fatalf("%d pairs, %d rejected by the prefilter: the corpus does not exercise it", pairs, rejected)
 	}
+}
+
+// prefilterInputs are prefilterGlobs and prefilterPaths plus the MatchPath
+// cases and the corpus refs, as paths and as globs.
+func prefilterInputs(t *testing.T) (globs, paths []string) {
+	t.Helper()
+	globs, paths = prefilterGlobs, prefilterPaths
+	for _, tc := range matchPathCases {
+		globs, paths = append(globs, tc.glob), append(paths, tc.path)
+	}
+	for _, row := range loadPaths(t) {
+		for _, tok := range strings.Fields(row.want) {
+			if _, ref, ok := strings.Cut(tok, ":"); ok {
+				globs, paths = append(globs, ref), append(paths, cmp.Or(strings.TrimSuffix(ref, "/**"), "/"))
+			}
+		}
+	}
+	return globs, paths
+}
+
+// prefilterAgrees compares the filtered and unfiltered matches of g and p; it
+// reports whether p starts with the literal prefix of g (the prefilter passes it).
+func prefilterAgrees(t *testing.T, g, p string) bool {
+	t.Helper()
+	if got, want := MatchPath(g, p), matchFull(g, p); got != want {
+		t.Errorf("MatchPath(%q, %q) = %v, unfiltered %v", g, p, got, want)
+	}
+	if got, want := matchPrefix(g, p), matchSubtree(g, p); got != want {
+		t.Errorf("matchPrefix(%q, %q) = %v, unfiltered %v", g, p, got, want)
+	}
+	return strings.HasPrefix(p, literalPrefix(g))
 }
 
 func TestLiteralPrefix(t *testing.T) {

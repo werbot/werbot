@@ -103,9 +103,11 @@ func (w *pathWalk) binary(b *syntax.BinaryCmd, sc scope) string {
 	return sc.cwd
 }
 
-// clause walks if, while, for and case; a cwd change inside makes the cwd
-// unknown for the whole clause, which is walked again with it unknown. Any
-// other command is unresolved.
+// clause walks if, while, for and case; a cwd change in any of its lists
+// makes the cwd unknown for the whole clause, which is then walked again with
+// it unknown. A first walk with a known cwd goes to a separate pathWalk and is
+// kept only when no list changes the cwd, so each clause is walked at most
+// twice and only once with a known cwd. Any other command is unresolved.
 func (w *pathWalk) clause(cmd syntax.Command, sc scope) string {
 	lists, words, ok := clauseParts(cmd)
 	if !ok {
@@ -115,22 +117,35 @@ func (w *pathWalk) clause(cmd syntax.Command, sc scope) string {
 	for _, x := range words {
 		w.substs(x, sc)
 	}
-	if w.lists(lists, sc) {
-		return sc.cwd
+	if sc.cwd != "" {
+		var probe pathWalk
+		if probe.lists(lists, sc) {
+			w.merge(&probe)
+			return sc.cwd
+		}
+		sc.cwd = ""
 	}
-	sc.cwd = ""
 	w.lists(lists, sc)
 	return ""
 }
 
-// lists walks statement lists; it reports false when one changes the cwd.
-func (w *pathWalk) lists(lists [][]*syntax.Stmt, sc scope) bool {
-	for _, l := range lists {
-		if w.seq(l, sc) != sc.cwd {
-			return false
+// merge adds the refs and the unresolved mark of o.
+func (w *pathWalk) merge(o *pathWalk) {
+	w.unresolved = w.unresolved || o.unresolved
+	for _, r := range o.refs.list {
+		if !w.refs.add(r) {
+			w.unresolved = true
 		}
 	}
-	return true
+}
+
+// lists walks every statement list; it reports false when one changes the cwd.
+func (w *pathWalk) lists(lists [][]*syntax.Stmt, sc scope) bool {
+	same := true
+	for _, l := range lists {
+		same = w.seq(l, sc) == sc.cwd && same
+	}
+	return same
 }
 
 func clauseParts(cmd syntax.Command) (lists [][]*syntax.Stmt, words []*syntax.Word, ok bool) {

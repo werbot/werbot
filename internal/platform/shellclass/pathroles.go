@@ -89,6 +89,7 @@ func buildPathRoles() map[string]pathRole {
 		expr: []string{"-f", "--from-file"}, opts: map[string]Access{"-f": AccessRead, "--from-file": AccessRead}}, "jq")
 	add(pathRole{spec: optSpec{value: "ITw", long: longs("ignore hide format sort time-style width tabsize block-size quoting-style")},
 		bare: true, recurse: []string{"-R", "--recursive"}}, "ls")
+	add(pathRole{bare: true}, "pwd")
 	add(pathRole{spec: optSpec{value: "dBtX", long: longs("max-depth block-size threshold exclude exclude-from files0-from time-style")},
 		bare: true, tree: true, opts: read}, "du")
 	add(pathRole{spec: optSpec{value: "tS", long: longs("target-directory suffix")}, mode: opTarget, into: targetOpts,
@@ -96,7 +97,7 @@ func buildPathRoles() map[string]pathRole {
 	add(pathRole{spec: optSpec{value: "Sgmot", long: longs("target-directory suffix group mode owner")}, mode: opTarget,
 		into: targetOpts, writes: []string{"-d", "--directory"}}, "install")
 	add(pathRole{spec: optSpec{value: "tS", long: longs("target-directory suffix")}, mode: opTarget, into: targetOpts}, "ln")
-	add(pathRole{spec: optSpec{value: "tS", long: longs("target-directory suffix")}, mode: opMove, into: targetOpts}, "mv")
+	add(pathRole{spec: optSpec{value: "tS", long: longs("target-directory suffix")}, mode: opMove, into: targetOpts, tree: true}, "mv")
 	add(pathRole{mode: opWrite, recurse: []string{"-r", "-R", "--recursive"}}, "rm")
 	add(pathRole{mode: opWrite}, "rmdir tee git-receive-pack nano")
 	add(pathRole{spec: optSpec{value: "m", long: longs("mode context")}, mode: opWrite}, "mkdir")

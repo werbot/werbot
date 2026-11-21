@@ -54,6 +54,9 @@ func TestE2EConsoleSession(t *testing.T) {
 	c.send("cat /etc/hosts")
 	c.expect(outsideDenied)
 	c.expect("[1] alice@srv:~/app$ ")
+	c.send("cd /etc")
+	c.expect(outsideDenied)
+	c.expect("[1] alice@srv:~/app$ ")
 	c.send("exit")
 	assert.Equal(t, 0, c.close())
 
@@ -71,7 +74,7 @@ func TestE2EConsoleSession(t *testing.T) {
 	var raw []byte
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		require.NoError(c, s.pool.QueryRow(ctx, `SELECT data FROM audit_event WHERE action = 'session.command_denied'
-			AND target_type = 'session' AND target_id = $1`, sid).Scan(&raw))
+			AND target_type = 'session' AND target_id = $1 AND data->>'command' = 'cat /etc/hosts'`, sid).Scan(&raw))
 	}, 20*time.Second, 200*time.Millisecond)
 	var data struct {
 		Command, Reason         string
@@ -88,6 +91,7 @@ func TestE2EConsoleSession(t *testing.T) {
 	assert.Contains(t, cast, `"m","echo hi [read]"`)
 	assert.Contains(t, cast, `"m","cat a.txt [read]"`)
 	assert.NotContains(t, cast, `"m","cat /etc/hosts`, "a refused line is not marked")
+	assert.NotContains(t, cast, `"m","cd -- '/etc'`, "a refused cd is not marked")
 }
 
 func TestE2EShellDeniedByTerminalRule(t *testing.T) {

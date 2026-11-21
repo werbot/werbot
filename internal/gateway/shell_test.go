@@ -99,6 +99,22 @@ forbid (principal, action in [Werbot::Action::"consoley.shell"], resource);`
 	require.Equal(t, "consoley.exec", e.trackedReq(s.ID).Action, "a terminal with a command is re-decided as its exec")
 }
 
+// A terminal with a command under a terminal rule is refused before its
+// command is decided: no approver is asked for a line that cannot run.
+func TestPTYExecShellDecidedBeforeApproval(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		m := ids{}
+		rule, text := pathRule(m, "p1", "approval", "", "/srv/**")
+		e := pathsPipeEnv(t, m, pathsPolicies+consoleOn("rc")+text, rule)
+		a := &fakeApprovals{ttl: 5 * time.Minute, statuses: []string{"pending"}}
+		e.f.with(func(f *fakeControl) { f.approvals = a })
+		_, err := e.p.Open(t.Context(), e.cmdReq("c", KindTerminal, "cat /srv/a"))
+		require.ErrorIs(t, err, ErrShellDenied)
+		require.Empty(t, a.requests, "no approval is asked")
+		require.Zero(t, e.startCalls())
+	})
+}
+
 // A console line is checked on the session's exec action from its cwd and
 // home; a refusal goes to the heartbeat with the session id and the decision.
 func TestCheckCommandDenialAudit(t *testing.T) {

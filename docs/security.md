@@ -42,7 +42,7 @@ docker buildx imagetools inspect ghcr.io/werbot/werbot:v0.1.1 --format '{{ json 
 - Secrets are encrypted with `WERBOT_SECRET_KEY` (AES-256-GCM). Only the server holds the key.
 - Do not publish `/metrics` (`WERBOT_METRICS_ADDR`, `WERBOT_GATEWAY_HTTP_ADDR`) to the outside.
 - A compromised server is outside the v0 threat model.
-- A compromised gateway can flood the audit log with denials. Each instance reports at most 100 denials per 15s heartbeat, so it adds at most 100 `session.deny` rows per 15s; the rest only count in `werbot_gateway_denials_dropped_total`.
+- A compromised gateway can flood the audit log with denials. Each instance reports at most 100 denials per 15s heartbeat, so it adds at most 100 `session.deny` and `session.command_denied` rows per 15s; the rest only count in `werbot_gateway_denials_dropped_total`.
 - v0.1.x has no per-IP limit on pre-auth SSH connections. Limit connections per source IP on the load balancer or firewall in front of the gateway SSH port.
 
 ## Gateway join tokens
@@ -86,5 +86,5 @@ Requests, approvals, break-glass and locks: [jit.md](jit.md).
 Classes, command rules, custom Cedar, command approvals and output masking: [policies.md](policies.md).
 Folder rules and the command console read the command text, so they do not replace permissions on the host: [policies.md](policies.md#honest-limits), [ssh-hardening.md](ssh-hardening.md).
 
-- **Command text at rest.** The command of a session is stored with the session, and a refused command in its `session.deny` audit event (first 1024 bytes); owners and admins see both.
+- **Command text at rest.** The command of a session is stored with the session, and a refused command in its `session.deny` audit event, a refused console line in its `session.command_denied` audit event (first 1024 bytes); owners and admins see both.
 - **Custom `permit`.** A custom Cedar `permit` allows what it matches without a binding, so it can widen access.

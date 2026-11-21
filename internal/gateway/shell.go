@@ -62,6 +62,18 @@ func (p *Pipeline) authorizeShell(pol *Policy, req AccessRequest, r OpenRequest,
 	return req, ErrShellDenied
 }
 
+// shellBeforeCommand takes the shell decision of a terminal with a command
+// before its command is decided, so no approver is asked for a command the
+// shell decision refuses. authorizeShell decides it again after the command,
+// on the snapshot of that time.
+func (p *Pipeline) shellBeforeCommand(pol *Policy, req AccessRequest, r OpenRequest, typ connector.Type) error {
+	if r.Command == "" {
+		return nil
+	}
+	_, err := p.authorizeShell(pol, req, r, typ)
+	return err
+}
+
 // consoleServed reports whether the console can serve typ: it runs every line
 // on the exec action, and the connector implements ConsoleServer.
 func consoleServed(typ connector.Type) bool {
