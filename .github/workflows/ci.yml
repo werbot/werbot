@@ -40,7 +40,9 @@ jobs:
       - run: go mod tidy -diff
       - run: go mod tidy -modfile=tools/go.mod -diff
       - run: GOOS=windows go build ./...
-      - run: go test -count=1 ./...
+      # The latency budget runs alone: the other packages' tests would share its CPU.
+      - run: go test -count=1 -skip '^TestExecDecisionP99$' ./...
+      - run: go test -count=1 -run '^TestExecDecisionP99$' -v ./internal/gateway/
       - run: go test -race -tags load -short ./test/load/
       - uses: golangci/golangci-lint-action@v9
         with:
