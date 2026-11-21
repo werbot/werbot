@@ -70,6 +70,26 @@ func TestValidPathGlob(t *testing.T) {
 	}
 }
 
+// A path rule needs globs, every one valid, an access of PathAccesses and an effect of PathEffects.
+func TestPathRuleValidate(t *testing.T) {
+	ok := PathRule{ID: "r", Globs: []string{"~/app/**"}, Access: AccessAny, Effect: EffectOnly}
+	if err := ok.Validate(); err != nil {
+		t.Fatalf("valid rule: %v", err)
+	}
+	for name, mod := range map[string]func(r *PathRule){
+		"no globs":       func(r *PathRule) { r.Globs = nil },
+		"relative glob":  func(r *PathRule) { r.Globs = []string{"app/**"} },
+		"unknown access": func(r *PathRule) { r.Access = "exec" },
+		"unknown effect": func(r *PathRule) { r.Effect = "allow" },
+	} {
+		r := ok
+		mod(&r)
+		if r.Validate() == nil {
+			t.Errorf("%s: Validate() = nil, want an error", name)
+		}
+	}
+}
+
 func ref(p string, a Access, tree bool) PathRef { return PathRef{Path: p, Access: a, Subtree: tree} }
 
 func evalCase(t *testing.T, rules []PathRule, refs []PathRef, unresolved bool, wantHits, wantOutside string) {

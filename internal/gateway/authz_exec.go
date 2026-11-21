@@ -94,24 +94,18 @@ func compileCommandRules(s *gatewayv1.Snapshot) (*shellclass.Classifier, []shell
 	return c, rules, nil
 }
 
-var (
-	pathAccesses = []string{string(shellclass.AccessRead), string(shellclass.AccessWrite), string(shellclass.AccessAny)}
-	pathEffects  = []string{"only", "deny", "approval"}
-)
-
 // compilePathRule checks a snapshot path rule as the server compile does
-// (internal/policy/compile_paths.go).
+// (internal/policy/compile_paths.go), plus its uuid id.
 func compilePathRule(r *gatewayv1.PathRule) (shellclass.PathRule, error) {
 	id, err := uuid.Parse(r.GetId())
-	if err != nil || id.String() != r.GetId() || len(r.GetPaths()) == 0 || !slices.Contains(pathAccesses, r.GetAccess()) || !slices.Contains(pathEffects, r.GetEffect()) {
-		return shellclass.PathRule{}, errors.New("snapshot path rule: invalid id, paths, access or effect")
+	if err != nil || id.String() != r.GetId() {
+		return shellclass.PathRule{}, errors.New("snapshot path rule: invalid id")
 	}
-	for _, g := range r.GetPaths() {
-		if err := shellclass.ValidPathGlob(g); err != nil {
-			return shellclass.PathRule{}, fmt.Errorf("snapshot path rule %s: %w", id, err)
-		}
+	rule := shellclass.PathRule{ID: r.GetId(), Globs: slices.Clone(r.GetPaths()), Access: shellclass.Access(r.GetAccess()), Effect: r.GetEffect()}
+	if err := rule.Validate(); err != nil {
+		return shellclass.PathRule{}, fmt.Errorf("snapshot path rule %s: %w", id, err)
 	}
-	return shellclass.PathRule{ID: id.String(), Globs: slices.Clone(r.GetPaths()), Access: shellclass.Access(r.GetAccess()), Effect: r.GetEffect()}, nil
+	return rule, nil
 }
 
 // Analyze classifies command like the server's TestCommand, with the snapshot

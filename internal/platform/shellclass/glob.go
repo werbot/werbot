@@ -7,12 +7,40 @@ import (
 	"strings"
 )
 
-// PathRule is a compiled folder rule: Effect "only", "deny" or "approval".
+// PathRule is a compiled folder rule.
 type PathRule struct {
 	ID     string
 	Globs  []string
 	Access Access
-	Effect string
+	Effect string // EffectOnly, EffectDeny or EffectApproval
+}
+
+// The effects of a PathRule.
+const (
+	EffectOnly     = "only"
+	EffectDeny     = "deny"
+	EffectApproval = "approval"
+)
+
+// PathAccesses returns the valid accesses of a PathRule (a new slice each call).
+func PathAccesses() []string {
+	return []string{string(AccessRead), string(AccessWrite), string(AccessAny)}
+}
+
+// PathEffects returns the valid effects of a PathRule (a new slice each call).
+func PathEffects() []string { return []string{EffectOnly, EffectDeny, EffectApproval} }
+
+// Validate checks that r has globs, each one valid, a known access and a known effect.
+func (r PathRule) Validate() error {
+	if len(r.Globs) == 0 || !slices.Contains(PathAccesses(), string(r.Access)) || !slices.Contains(PathEffects(), r.Effect) {
+		return errors.New("invalid paths, access or effect")
+	}
+	for _, g := range r.Globs {
+		if err := ValidPathGlob(g); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // segments splits "/a/b" into ["", "a", "b"], "/" into [""] and "~/a" into ["~", "a"].
@@ -135,9 +163,9 @@ func validSegment(i int, seg string) error {
 func EvalPaths(rules []PathRule, refs []PathRef, unresolved bool) (hits, outside []string) {
 	for _, r := range rules {
 		switch {
-		case r.Effect == "only" && (unresolved || !covers(r, refs)):
+		case r.Effect == EffectOnly && (unresolved || !covers(r, refs)):
 			outside = append(outside, r.ID)
-		case (r.Effect == "deny" || r.Effect == "approval") && hitsAny(r, refs):
+		case (r.Effect == EffectDeny || r.Effect == EffectApproval) && hitsAny(r, refs):
 			hits = append(hits, r.ID)
 		}
 	}

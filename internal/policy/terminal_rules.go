@@ -67,7 +67,6 @@ func loadTerminal(ctx context.Context, st Store, snap *Snapshot) error {
 		snap.TerminalRules = append(snap.TerminalRules, SnapshotTerminalRule{ID: r.ID, Subjects: r.Subjects,
 			ResourceIDs: ExpandSelector(snap.Resources, r.Selector), Mode: r.Mode})
 	}
-	slices.SortFunc(snap.TerminalRules, func(x, y SnapshotTerminalRule) int { return compareIDs(x.ID, y.ID) })
 	return nil
 }
 

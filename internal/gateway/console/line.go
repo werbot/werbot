@@ -10,11 +10,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/werbot/werbot/internal/gateway"
+	"github.com/werbot/werbot/internal/platform/shellclass"
 )
 
 const (
 	maxLineBytes  = 4096
-	maxPaths      = 256 // paths kept in the session result
 	codeInterrupt = 130 // 128 + SIGINT
 )
 
@@ -102,7 +102,7 @@ func (c *console) record(line string, chk gateway.CommandCheck) {
 	c.s.Command = line
 	c.s.Classes = union(c.s.Classes, chk.Classes)
 	c.s.Paths = union(c.s.Paths, chk.Paths)
-	c.s.Paths = c.s.Paths[:min(len(c.s.Paths), maxPaths)]
+	c.s.Paths = c.s.Paths[:min(len(c.s.Paths), shellclass.MaxPaths)] // paths kept in the session result
 }
 
 func union(a, b []string) []string {

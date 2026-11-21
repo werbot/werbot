@@ -53,7 +53,7 @@ func findPaths(w *pathWalk, args []word, sc scope) {
 	for i < len(args) && (slices.Contains(findFirst, args[i].text) || strings.HasPrefix(args[i].text, "-O")) {
 		i++
 	}
-	end := i + slices.IndexFunc(args[i:], func(a word) bool { return strings.IndexByte("-()!,", firstByte(a.text)) >= 0 })
+	end := i + slices.IndexFunc(args[i:], func(a word) bool { return a.text != "" && strings.ContainsRune("-()!,", rune(a.text[0])) })
 	if end < i {
 		end = len(args)
 	}
@@ -64,13 +64,6 @@ func findPaths(w *pathWalk, args []word, sc scope) {
 	for _, root := range args[i:end] {
 		w.path(root, a, true, sc)
 	}
-}
-
-func firstByte(s string) byte {
-	if s == "" {
-		return 0
-	}
-	return s[0]
 }
 
 // findExpr walks the expression and returns the access to the roots.

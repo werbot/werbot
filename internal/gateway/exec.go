@@ -69,7 +69,12 @@ func (in commandInput) script() string {
 // ConsoleScript is what the target runs for a console line: the line only in
 // the checked cwd, or not at all.
 func ConsoleScript(cwd, line string) string {
-	return "cd -- '" + strings.ReplaceAll(cwd, "'", `'\''`) + "' || exit 1\n" + line
+	return "cd -- " + ShellQuote(cwd) + " || exit 1\n" + line
+}
+
+// ShellQuote is s as one single-quoted shell word.
+func ShellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
 // withCommand returns req with the command of in analysed on p: its classes
@@ -81,13 +86,8 @@ func (p *Policy) withCommand(req AccessRequest, in commandInput) AccessRequest {
 	if in.Home != "" {
 		a, rules = a.WithHome(in.Home), shellclass.ExpandHome(rules, in.Home)
 	}
-	req.Command, req.Classes, req.Paths = in.Text, nil, nil
-	for _, c := range a.Classes {
-		req.Classes = append(req.Classes, string(c))
-	}
-	for _, r := range a.Paths {
-		req.Paths = append(req.Paths, r.String())
-	}
+	req.Command = in.Text
+	req.Classes, req.Paths = a.Strings()
 	req.PathHits, req.PathOutside = shellclass.EvalPaths(rules, a.Paths, a.Unresolved)
 	return req
 }

@@ -16,12 +16,8 @@ import (
 // PathOutsideMessage is the @message of an "only" path rule without its own.
 const PathOutsideMessage = "path outside allowed folders"
 
-// Values of path and terminal rules.
-var (
-	pathAccesses  = []string{string(shellclass.AccessRead), string(shellclass.AccessWrite), string(shellclass.AccessAny)}
-	pathEffects   = []string{"only", "deny", "approval"}
-	terminalModes = []string{"console", "deny"}
-)
+// terminalModes are the modes of a terminal rule.
+var terminalModes = []string{"console", "deny"}
 
 // SnapshotPathRule is a folder rule with its selector expanded.
 type SnapshotPathRule struct {
@@ -103,13 +99,8 @@ func writePathRules(b *strings.Builder, rules []SnapshotPathRule) error {
 }
 
 func (r SnapshotPathRule) validate() error {
-	if len(r.Paths) == 0 || !slices.Contains(pathAccesses, r.Access) || !slices.Contains(pathEffects, r.Effect) {
-		return fmt.Errorf("policy: path rule %s: invalid paths, access or effect", r.ID)
-	}
-	for _, g := range r.Paths {
-		if err := shellclass.ValidPathGlob(g); err != nil {
-			return fmt.Errorf("policy: path rule %s: %w", r.ID, err)
-		}
+	if err := (shellclass.PathRule{Globs: r.Paths, Access: shellclass.Access(r.Access), Effect: r.Effect}).Validate(); err != nil {
+		return fmt.Errorf("policy: path rule %s: %w", r.ID, err)
 	}
 	return nil
 }
@@ -120,10 +111,10 @@ func (r SnapshotPathRule) forbid(target string, actions []string) forbid {
 	f := forbid{id: "path:" + r.ID.String(), message: r.Message, actions: actions,
 		when: fmt.Sprintf("%s && context.path_hits.contains(%q)", target, r.ID)}
 	switch r.Effect {
-	case "only":
+	case shellclass.EffectOnly:
 		f.message = cmp.Or(r.Message, PathOutsideMessage)
 		f.when = fmt.Sprintf("%s && context.path_outside.contains(%q)", target, r.ID)
-	case "approval":
+	case shellclass.EffectApproval:
 		f.obligation, f.unless = ObligationApproval, "context.approval_granted"
 	}
 	return f

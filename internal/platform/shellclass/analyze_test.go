@@ -185,3 +185,14 @@ func TestAnalyzeWithHome(t *testing.T) {
 		t.Errorf("over-long expanded path: %s %v", summary(long), long.Classes)
 	}
 }
+
+// Strings gives the class names and the ref texts; nil for none.
+func TestAnalysisStrings(t *testing.T) {
+	classes, paths := Analysis{Classes: []Class{Read, Write}, Paths: []PathRef{ref("/srv", AccessWrite, true), ref("~/a", AccessRead, false)}}.Strings()
+	if strings.Join(classes, ",") != "read,write" || strings.Join(paths, ",") != "/srv/**,~/a" {
+		t.Errorf("Strings() = %v, %v", classes, paths)
+	}
+	if classes, paths := (Analysis{}).Strings(); classes != nil || paths != nil {
+		t.Errorf("empty Strings() = %#v, %#v, want nil", classes, paths)
+	}
+}

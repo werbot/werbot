@@ -75,35 +75,23 @@ func selects(sel Selector, r SnapshotResource) bool {
 // Allow rules emit nothing (bindings already allow exec; agents: stage 12),
 // nor do rules without people, without resources or without exec types.
 func writeCommandRules(b *strings.Builder, rules []SnapshotCommandRule) error {
-	actions := strings.Join(execActions(), ", ")
+	actions := execActions()
 	for _, r := range slices.SortedFunc(slices.Values(rules), func(x, y SnapshotCommandRule) int { return compareIDs(x.ID, y.ID) }) {
 		if !slices.Contains(commandEffects, r.Effect) || len(r.Classes) == 0 {
 			return fmt.Errorf("policy: command rule %s: invalid effect or classes", r.ID)
 		}
-		subj := subjectCondition(r.Subjects)
-		if r.Effect == "allow" || subj == "" || len(r.ResourceIDs) == 0 || actions == "" {
+		t := target(r.Subjects, r.ResourceIDs)
+		if r.Effect == "allow" || t == "" {
 			continue
 		}
-		writeCommandRule(b, r, subj, actions)
+		f := forbid{id: "command:" + r.ID.String(), message: r.Message, actions: actions,
+			when: fmt.Sprintf("%s && context.classes.containsAny([%s])", t, strings.Join(cedarStrings(r.Classes), ", "))}
+		if r.Effect == "approval" {
+			f.obligation, f.unless = ObligationApproval, "context.approval_granted"
+		}
+		writeForbid(b, f)
 	}
 	return nil
-}
-
-func writeCommandRule(b *strings.Builder, r SnapshotCommandRule, subj, actions string) {
-	fmt.Fprintf(b, "@id(\"command:%s\")\n", r.ID)
-	if r.Message != "" {
-		writeAnnotation(b, "message", r.Message)
-	}
-	approval := r.Effect == "approval"
-	if approval {
-		writeAnnotation(b, "obligation", ObligationApproval)
-	}
-	fmt.Fprintf(b, "forbid (principal, action in [%s], resource)\nwhen { %s && [%s].contains(resource) && context.classes.containsAny([%s]) }",
-		actions, subj, strings.Join(entityRefs("Werbot::Resource", r.ResourceIDs), ", "), strings.Join(cedarStrings(r.Classes), ", "))
-	if approval {
-		b.WriteString("\nunless { context.approval_granted }")
-	}
-	b.WriteString(";\n\n")
 }
 
 // writeAnnotation writes @key("value") with Cedar escaping of value.

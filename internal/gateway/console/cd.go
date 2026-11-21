@@ -7,6 +7,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/werbot/werbot/internal/gateway"
 )
 
 const (
@@ -44,12 +46,12 @@ func (c *console) cd(ctx context.Context, args []string) {
 		}
 	}
 	c.cwd = dir
-	c.s.Recording.Marker(marker("cd -- "+quote(dir), chk.Classes))
+	c.s.Recording.Marker(marker("cd -- "+gateway.ShellQuote(dir), chk.Classes))
 }
 
 // cdScript changes to dir and prints the folder it resolves to.
 func cdScript(dir string) string {
-	return "cd -- " + quote(dir) + " && pwd -P"
+	return "cd -- " + gateway.ShellQuote(dir) + " && pwd -P"
 }
 
 // cdTarget is the clean absolute directory of a cd with zero or one plain
@@ -99,9 +101,4 @@ func (a *answer) dir() (string, bool) {
 	d, ok := strings.CutSuffix(a.String(), "\n")
 	return d, ok && len(d) <= maxDirBytes && utf8.ValidString(d) && path.IsAbs(d) && path.Clean(d) == d &&
 		!strings.ContainsFunc(d, unicode.IsControl)
-}
-
-// quote is s as one single-quoted shell word.
-func quote(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }

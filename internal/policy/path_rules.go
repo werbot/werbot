@@ -62,11 +62,11 @@ func (in PathRuleInput) validate() error {
 	if err := validPaths(in.Paths); err != nil {
 		return err
 	}
-	if !slices.Contains(pathAccesses, in.Access) {
-		return invalid("access must be one of %s", strings.Join(pathAccesses, ", "))
+	if !slices.Contains(shellclass.PathAccesses(), in.Access) {
+		return invalid("access must be one of %s", strings.Join(shellclass.PathAccesses(), ", "))
 	}
-	if !slices.Contains(pathEffects, in.Effect) {
-		return invalid("effect must be one of %s", strings.Join(pathEffects, ", "))
+	if !slices.Contains(shellclass.PathEffects(), in.Effect) {
+		return invalid("effect must be one of %s", strings.Join(shellclass.PathEffects(), ", "))
 	}
 	return validMessage(in.Message)
 }
@@ -99,7 +99,6 @@ func loadPaths(ctx context.Context, st Store, snap *Snapshot) error {
 		snap.PathRules = append(snap.PathRules, SnapshotPathRule{ID: r.ID, Subjects: r.Subjects, ResourceIDs: ExpandSelector(snap.Resources, r.Selector),
 			Paths: r.Paths, Access: r.Access, Effect: r.Effect, Message: r.Message})
 	}
-	slices.SortFunc(snap.PathRules, func(x, y SnapshotPathRule) int { return compareIDs(x.ID, y.ID) })
 	return loadTerminal(ctx, st, snap)
 }
 

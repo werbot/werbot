@@ -104,12 +104,7 @@ func validCwd(cwd string) bool {
 // result is the classes and paths of a and the path rules it hits or leaves.
 func result(a shellclass.Analysis, rules []shellclass.PathRule) CommandResult {
 	var out CommandResult
-	for _, cl := range a.Classes {
-		out.Classes = append(out.Classes, string(cl))
-	}
-	for _, p := range a.Paths {
-		out.Paths = append(out.Paths, p.String())
-	}
+	out.Classes, out.Paths = a.Strings()
 	out.PathHits, out.PathOutside = shellclass.EvalPaths(rules, a.Paths, a.Unresolved)
 	return out
 }

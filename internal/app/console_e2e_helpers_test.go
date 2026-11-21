@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -117,25 +116,8 @@ type consoleClient struct {
 	t     *testing.T
 	sess  *gossh.Session
 	stdin io.Writer
-	out   *lockedBuffer
+	out   *syncBuffer
 	read  int // output bytes already matched by expect
-}
-
-type lockedBuffer struct {
-	mu sync.Mutex
-	b  bytes.Buffer
-}
-
-func (l *lockedBuffer) Write(p []byte) (int, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return l.b.Write(p)
-}
-
-func (l *lockedBuffer) from(off int) string {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return l.b.String()[off:]
 }
 
 // console opens a PTY shell as alice on addr as user.
@@ -149,7 +131,7 @@ func (s *stack) console(t *testing.T, addr, user string) *consoleClient {
 	require.NoError(t, sess.RequestPty("xterm", 40, 120, gossh.TerminalModes{}))
 	stdin, err := sess.StdinPipe()
 	require.NoError(t, err)
-	cc := &consoleClient{t: t, sess: sess, stdin: stdin, out: &lockedBuffer{}}
+	cc := &consoleClient{t: t, sess: sess, stdin: stdin, out: &syncBuffer{}}
 	sess.Stdout, sess.Stderr = cc.out, cc.out
 	require.NoError(t, sess.Shell())
 	return cc
@@ -160,7 +142,7 @@ func (c *consoleClient) expect(want string) {
 	c.t.Helper()
 	var got string
 	ok := assert.Eventually(c.t, func() bool {
-		got = c.out.from(c.read)
+		got = c.out.String()[c.read:]
 		return strings.Contains(got, want)
 	}, 10*time.Second, 10*time.Millisecond)
 	if !ok {

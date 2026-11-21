@@ -45,6 +45,17 @@ type Analysis struct {
 	Unresolved bool
 }
 
+// Strings returns the class names and the PathRef texts of a; nil for none.
+func (a Analysis) Strings() (classes, paths []string) {
+	for _, c := range a.Classes {
+		classes = append(classes, string(c))
+	}
+	for _, r := range a.Paths {
+		paths = append(paths, r.String())
+	}
+	return classes, paths
+}
+
 // MaxPaths bounds the refs of one analysis; more refs make it unresolved.
 const MaxPaths = 256
 
@@ -122,13 +133,7 @@ func (s *refSet) sorted() []PathRef {
 }
 
 func comparePathRefs(a, b PathRef) int {
-	if c := cmp.Compare(a.Path, b.Path); c != 0 {
-		return c
-	}
-	if c := cmp.Compare(a.Access, b.Access); c != 0 {
-		return c
-	}
-	return cmp.Compare(boolInt(a.Subtree), boolInt(b.Subtree))
+	return cmp.Or(cmp.Compare(a.Path, b.Path), cmp.Compare(a.Access, b.Access), cmp.Compare(boolInt(a.Subtree), boolInt(b.Subtree)))
 }
 
 func boolInt(b bool) int {

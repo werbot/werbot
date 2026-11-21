@@ -80,14 +80,14 @@ var errNotMember = fmt.Errorf("user not found: %w", apperr.ErrNotFound)
 
 // End closes an open session of instanceID. A repeat call is a no-op; a
 // session of another instance or organization is apperr.ErrNotFound. A
-// non-nil c stores the final counters, never below the current ones. A r with
-// a Command stores the command, classes and paths of a console session, in the
-// first close only.
+// non-nil c stores the final counters, never below the current ones. A non-nil
+// r (tunnel passes one only with a command) stores the command, classes and
+// paths of a console session, in the first close only.
 func (s *Service) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters, r *Result) error {
 	if c == nil {
 		c = &Counters{}
 	}
-	if r == nil || r.Command == "" {
+	if r == nil {
 		r = &Result{}
 	}
 	return dbx.InOrg(ctx, s.pool, orgID, uuid.Nil, func(tx pgx.Tx) error {
