@@ -67,8 +67,8 @@ type stack struct {
 }
 
 // startStack runs the stack on a fresh database with 127.0.0.1 ports only;
-// everything stops at the test cleanup.
-func startStack(t *testing.T) *stack {
+// opts go to the SSH target. Everything stops at the test cleanup.
+func startStack(t *testing.T, opts ...sshtest.Option) *stack {
 	t.Helper()
 	pool, dbURL := dbtest.New(t)
 	httpAddr := freeAddr(t)
@@ -77,7 +77,7 @@ func startStack(t *testing.T) *stack {
 		"WERBOT_SECRET_KEY": testSecretKey, "WERBOT_GATEWAY_ADDR": freeAddr(t), "WERBOT_DATA_DIR": t.TempDir(),
 		"WERBOT_ENV": "development",
 	})).healthy(t)
-	s := &stack{pool: pool, url: r.api, target: sshtest.StartTarget(t, "target-secret", nil)}
+	s := &stack{pool: pool, url: r.api, target: sshtest.StartTarget(t, "target-secret", nil, opts...)}
 	ctx := context.Background()
 
 	hc, _ := jarClient(t, http.DefaultTransport)
