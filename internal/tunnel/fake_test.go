@@ -208,7 +208,7 @@ func (f *fake) Start(_ context.Context, s SessionStart) (uuid.UUID, error) {
 	return f.sessionID, nil
 }
 
-func (f *fake) End(_ context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters) error {
+func (f *fake) End(_ context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters, _ *SessionResult) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.ends = append(f.ends, endCall{orgID: orgID, instanceID: instanceID, id: id, reason: reason, c: c})

@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"net/netip"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -104,7 +105,7 @@ func TestHeartbeatForwardsCountersDenialsHealth(t *testing.T) {
 		for i := range wantD {
 			got := ds[0].denials[i]
 			got.UserID, wantD[i].UserID = nil, nil
-			if got != wantD[i] {
+			if !reflect.DeepEqual(got, wantD[i]) {
 				t.Fatalf("denial %d = %+v, want %+v", i, got, wantD[i])
 			}
 		}
@@ -172,8 +173,10 @@ func TestHeartbeatMaxSizeFitsReadLimit(t *testing.T) {
 	}
 	for range 100 {
 		hb.Denials = append(hb.Denials, &gatewayv1.Denial{UserId: id, KeyFingerprint: fill(128),
-			Resource: fill(63), Kind: fill(16), Target: fill(300),
-			ClientIp: "fe80::ffff:ffff:ffff:ffff%" + strings.Repeat("z", 38), Reason: "target_not_allowed", At: ts}) // 64 bytes
+			Resource: fill(63), Kind: fill(16), Target: fill(1024),
+			ClientIp: "fe80::ffff:ffff:ffff:ffff%" + strings.Repeat("z", 38), Reason: "target_not_allowed", At: ts, // 64 bytes
+			SessionId: id, Classes: []string{"destructive", "destructive", "destructive", "destructive", "destructive", "destructive", "destructive"},
+			Paths: slices.Repeat([]string{fill(1024)}, 16), Reasons: slices.Repeat([]string{fill(128)}, 16)})
 	}
 	for range 1000 {
 		hb.Health = append(hb.Health, &gatewayv1.ResourceHealth{ResourceId: id, Ok: true, Error: fill(100), CheckedAt: ts})

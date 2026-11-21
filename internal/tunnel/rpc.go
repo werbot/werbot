@@ -118,7 +118,7 @@ func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gateway
 	}
 	id, err := h.d.Sessions.Start(ctx, SessionStart{OrgID: g.OrgID, GatewayID: g.ID, InstanceID: g.InstanceID,
 		UserID: userID, ResourceID: resourceID, ClientIP: ip, Kind: req.Msg.GetKind(), Target: req.Msg.GetTarget(),
-		Command: req.Msg.GetCommand(), Classes: req.Msg.GetClasses()})
+		Command: req.Msg.GetCommand(), Classes: req.Msg.GetClasses(), Paths: req.Msg.GetPaths()})
 	if err != nil {
 		return nil, h.fail(ctx, "start session", err)
 	}
@@ -138,7 +138,8 @@ func (h *Handler) ownResource(ctx context.Context, g Gateway, resourceID uuid.UU
 	return typ, nil
 }
 
-// EndSession closes a session of the calling instance with its final counters, if sent.
+// EndSession closes a session of the calling instance with its final counters
+// and, for a console session, its result, if sent.
 func (h *Handler) EndSession(ctx context.Context, req *connect.Request[gatewayv1.EndSessionRequest]) (*connect.Response[gatewayv1.EndSessionResponse], error) {
 	g, err := caller(ctx)
 	if err != nil {
@@ -156,10 +157,18 @@ func (h *Handler) EndSession(ctx context.Context, req *connect.Request[gatewayv1
 		v := countersOf(id, m)
 		c = &v
 	}
-	if err := h.d.Sessions.End(ctx, g.OrgID, g.InstanceID, id, req.Msg.GetReason(), c); err != nil {
+	if err := h.d.Sessions.End(ctx, g.OrgID, g.InstanceID, id, req.Msg.GetReason(), c, resultOf(req.Msg)); err != nil {
 		return nil, h.fail(ctx, "end session", err)
 	}
 	return connect.NewResponse(&gatewayv1.EndSessionResponse{}), nil
+}
+
+// resultOf is the console result of m; nil without a command.
+func resultOf(m *gatewayv1.EndSessionRequest) *SessionResult {
+	if m.GetCommand() == "" {
+		return nil
+	}
+	return &SessionResult{Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths()}
 }
 
 // PinHostKey records the target host key seen on first connect.

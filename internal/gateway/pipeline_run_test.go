@@ -185,12 +185,12 @@ func TestIDsCapWarnsOnce(t *testing.T) {
 	for range maxSessionIDs {
 		a.add(uuid.New(), &tracked{})
 	}
-	require.NoError(t, sp.End(uuid.New(), "closed", nil))
+	require.NoError(t, sp.End(uuid.New(), "closed", nil, nil))
 	for range 3 {
 		require.Len(t, heartbeatSessionIDs(a, sp), maxSessionIDs)
 	}
 	require.Equal(t, 1, strings.Count(log.String(), "heartbeat full"))
-	require.NoError(t, sp.End(uuid.New(), "closed", nil))
+	require.NoError(t, sp.End(uuid.New(), "closed", nil, nil))
 	heartbeatSessionIDs(a, sp)
 	require.Equal(t, 2, strings.Count(log.String(), "heartbeat full"), "the omitted count changed")
 }

@@ -70,7 +70,7 @@ func (s *Spool) pass(ctx context.Context) error {
 		if !ok {
 			continue
 		}
-		if err := s.up.EndSession(ctx, id, e.reason, e.counters); err != nil {
+		if err := s.up.EndSession(ctx, id, e.reason, e.counters, e.result); err != nil {
 			if !refused(err) {
 				return err
 			}

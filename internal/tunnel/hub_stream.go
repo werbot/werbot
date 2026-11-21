@@ -246,12 +246,15 @@ func countersOf(id uuid.UUID, c *gatewayv1.SessionCounters) Counters {
 		DatagramsUp: c.GetDatagramsUp(), DatagramsDown: c.GetDatagramsDown()}
 }
 
-// denialOf converts d; an empty or invalid user id, client IP or time stays unset.
+// denialOf converts d; an empty or invalid user id, session id, client IP or time stays unset.
 func denialOf(d *gatewayv1.Denial) Denial {
 	out := Denial{KeyFingerprint: d.GetKeyFingerprint(), Resource: d.GetResource(), Kind: d.GetKind(),
-		Target: d.GetTarget(), Reason: d.GetReason()}
+		Target: d.GetTarget(), Reason: d.GetReason(), Classes: d.GetClasses(), Paths: d.GetPaths(), Reasons: d.GetReasons()}
 	if id, err := uuid.Parse(d.GetUserId()); err == nil {
 		out.UserID = &id
+	}
+	if id, err := uuid.Parse(d.GetSessionId()); err == nil {
+		out.SessionID = &id
 	}
 	if ip, err := netip.ParseAddr(d.GetClientIp()); err == nil {
 		out.ClientIP = ip.Unmap()

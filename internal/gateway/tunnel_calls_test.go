@@ -38,8 +38,8 @@ func TestTunnelUnaryCalls(t *testing.T) {
 	_, _, err = e.c.StartSession(t.Context(), testUserID, uuid.Nil, ip, KindTerminal, "", "", nil)
 	require.ErrorContains(t, err, "no credential")
 
-	require.NoError(t, e.c.EndSession(t.Context(), id, "closed", nil))
-	require.NoError(t, e.c.EndSession(t.Context(), id, "idle_timeout", &gatewayv1.SessionCounters{BytesUp: 3, DatagramsDown: 1}))
+	require.NoError(t, e.c.EndSession(t.Context(), id, "closed", nil, nil))
+	require.NoError(t, e.c.EndSession(t.Context(), id, "idle_timeout", &gatewayv1.SessionCounters{BytesUp: 3, DatagramsDown: 1}, nil))
 	e.f.with(func(f *fakeTunnel) {
 		require.Equal(t, testSessionID.String(), f.ends[0].GetSessionId())
 		require.Equal(t, "closed", f.ends[0].GetReason())

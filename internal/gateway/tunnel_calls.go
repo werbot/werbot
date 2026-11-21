@@ -12,6 +12,7 @@ import (
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/gateway/recorder"
+	"github.com/werbot/werbot/internal/platform/shellclass"
 )
 
 // ErrHostKeyMismatch is a target host key that differs from the pinned one.
@@ -90,17 +91,21 @@ func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid
 	return id, Secret{Kind: cred.GetKind(), Value: cred.GetValue()}, nil
 }
 
-// EndSession closes a session with a gateway-side reason and its final counters
-// (nil: none); the counters get the session id the server requires.
-func (c *tunnelClient) EndSession(ctx context.Context, sessionID uuid.UUID, reason string, counters *gatewayv1.SessionCounters) error {
+// EndSession closes a session with a gateway-side reason, its final counters
+// and its console result (nil: none); the counters get the session id the
+// server requires, the result is cut to the wire bounds.
+func (c *tunnelClient) EndSession(ctx context.Context, sessionID uuid.UUID, reason string, counters *gatewayv1.SessionCounters, r *recorder.SessionResult) error {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
 	if counters != nil {
 		counters.SessionId = sessionID.String()
 	}
-	_, err := c.conn.Load().rpc.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{
-		SessionId: sessionID.String(), Reason: reason, Counters: counters,
-	}))
+	req := &gatewayv1.EndSessionRequest{SessionId: sessionID.String(), Reason: reason, Counters: counters}
+	if r != nil {
+		req.Command, req.Classes = TruncateUTF8(r.Command, 65536), r.Classes
+		req.Paths = r.Paths[:min(len(r.Paths), shellclass.MaxPaths)]
+	}
+	_, err := c.conn.Load().rpc.EndSession(ctx, connect.NewRequest(req))
 	return err
 }
 

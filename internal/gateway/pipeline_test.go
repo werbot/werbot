@@ -163,7 +163,7 @@ func TestActiveSessionsIDsCapped(t *testing.T) {
 	for range 5 {
 		id := uuid.New()
 		a.add(id, &tracked{})
-		require.NoError(t, sp.End(id, "closed", nil))
+		require.NoError(t, sp.End(id, "closed", nil, nil))
 		a.done(id)
 	}
 	ids := heartbeatSessionIDs(a, sp)

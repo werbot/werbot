@@ -151,18 +151,6 @@ func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UU
 	return uuid.New(), Secret{Kind: "password", Value: []byte("s3cret-value")}, nil
 }
 
-// EndSession records a delivered end.
-func (f *fakeControl) EndSession(_ context.Context, id uuid.UUID, reason string, c *gatewayv1.SessionCounters) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if f.upErr != nil {
-		return f.upErr
-	}
-	f.ends = append(f.ends, endCall{id, reason, c})
-	f.events = append(f.events, "end:"+reason)
-	return nil
-}
-
 func (f *fakeControl) PinHostKey(_ context.Context, resourceID uuid.UUID, alg string, key []byte) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()

@@ -72,13 +72,21 @@ message Denial {
     in: ["denied", "target_not_allowed", "unsupported_type", "unsupported_kind", "busy", "spool_full", "auth_failed", "approval_denied", "approval_timeout"]
   }];
   google.protobuf.Timestamp at = 8;
+  // a console line denied inside this session (target: the line) and its decision
+  string session_id = 10 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  repeated string classes = 11 [(buf.validate.field).repeated = {
+    max_items: 7
+    items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
+  }];
+  repeated string paths = 12 [(buf.validate.field).repeated = {max_items: 16, items: {string: {max_bytes: 1024}}}];
+  repeated string reasons = 13 [(buf.validate.field).repeated = {max_items: 16, items: {string: {max_bytes: 128}}}];
 }
 
 // ResourceHealth is one probe result of a resource.
 message ResourceHealth {
   string resource_id = 1 [(buf.validate.field).string.uuid = true];
   bool ok = 2;
-  // the gateway truncates; the bound keeps a full heartbeat under the 1 MiB read limit
+  // the gateway truncates; the bound keeps a full heartbeat under the 4 MiB read limit
   string error = 3 [(buf.validate.field).string.max_bytes = 100];
   google.protobuf.Timestamp checked_at = 4;
 }
@@ -120,6 +128,8 @@ message Snapshot {
   string mask_output = 9;
   // the organization's command class overrides, ascending pattern
   repeated ClassRule class_rules = 10;
+  // the organization's path rules by ascending id; only in a compiled snapshot
+  repeated PathRule path_rules = 17;
   // the organization's user CA keys (authorized_keys); empty: no certificate is accepted
   repeated string user_ca_keys = 18;
 }
@@ -128,6 +138,14 @@ message Snapshot {
 message ClassRule {
   string pattern = 1;
   repeated string classes = 2;
+}
+
+// PathRule is a path rule for EvalPaths: access "read"|"write"|"any", effect "only"|"deny"|"approval".
+message PathRule {
+  string id = 1;
+  repeated string paths = 2;
+  string access = 3;
+  string effect = 4;
 }
 
 // Member is an organization member and its teams, sorted.
@@ -190,6 +208,8 @@ message StartSessionRequest {
     max_items: 7
     items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
   }];
+  // the paths the authorized command touches
+  repeated string paths = 15 [(buf.validate.field).repeated = {max_items: 256, items: {string: {max_bytes: 1024}}}];
 }
 
 message StartSessionResponse {
@@ -211,6 +231,13 @@ message EndSessionRequest {
   }];
   // final totals; unset keeps the stored ones; session_id must equal session_id above
   SessionCounters counters = 3;
+  // console only: the last checked command (the gateway truncates), its classes and paths
+  string command = 8 [(buf.validate.field).string.max_bytes = 65536];
+  repeated string classes = 9 [(buf.validate.field).repeated = {
+    max_items: 7
+    items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
+  }];
+  repeated string paths = 10 [(buf.validate.field).repeated = {max_items: 256, items: {string: {max_bytes: 1024}}}];
 }
 
 message EndSessionResponse {}

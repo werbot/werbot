@@ -115,11 +115,11 @@ type tunnelSessions struct{ *session.Service }
 func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid.UUID, error) {
 	return s.Service.Start(ctx, session.Start{OrgID: st.OrgID, UserID: st.UserID, ResourceID: st.ResourceID,
 		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Target: st.Target,
-		Command: st.Command, Classes: st.Classes})
+		Command: st.Command, Classes: st.Classes, Paths: st.Paths})
 }
 
-func (s tunnelSessions) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *tunnel.Counters) error {
-	return s.Service.End(ctx, orgID, instanceID, id, reason, (*session.Counters)(c), nil)
+func (s tunnelSessions) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *tunnel.Counters, r *tunnel.SessionResult) error {
+	return s.Service.End(ctx, orgID, instanceID, id, reason, (*session.Counters)(c), (*session.Result)(r))
 }
 
 func (s tunnelSessions) UpdateCounters(ctx context.Context, orgID, instanceID uuid.UUID, cs []tunnel.Counters) error {
@@ -133,8 +133,7 @@ func (s tunnelSessions) UpdateCounters(ctx context.Context, orgID, instanceID uu
 func (s tunnelSessions) Deny(ctx context.Context, orgID uuid.UUID, ds []tunnel.Denial) error {
 	out := make([]session.Denial, len(ds))
 	for i, d := range ds {
-		out[i] = session.Denial{UserID: d.UserID, KeyFingerprint: d.KeyFingerprint, Resource: d.Resource, Kind: d.Kind,
-			Target: d.Target, Reason: d.Reason, ClientIP: d.ClientIP, At: d.At}
+		out[i] = session.Denial(d)
 	}
 	return s.Service.Deny(ctx, orgID, out)
 }
@@ -162,6 +161,7 @@ func (t tunnelSnapshots) Org(ctx context.Context, orgID uuid.UUID) (*gatewayv1.S
 			return nil, err
 		}
 		out.CedarPolicies = text
+		out.PathRules = pathRules(snap) // only a compiled snapshot: deny-all carries none
 	}
 	// Also in the deny-all snapshot: expiries, class rules, the lock and mask
 	// modes and a membership change must reach the gateway.
@@ -206,6 +206,16 @@ func classRules(rs []policy.SnapshotClassRule) []*gatewayv1.ClassRule {
 		out[i] = &gatewayv1.ClassRule{Pattern: r.Pattern, Classes: r.Classes}
 	}
 	slices.SortFunc(out, func(a, b *gatewayv1.ClassRule) int { return strings.Compare(a.GetPattern(), b.GetPattern()) })
+	return out
+}
+
+// pathRules are the path rules of snap for EvalPaths, by id in byte order.
+func pathRules(snap policy.Snapshot) []*gatewayv1.PathRule {
+	rs := snap.PathEvalRules()
+	out := make([]*gatewayv1.PathRule, len(rs))
+	for i, r := range rs {
+		out[i] = &gatewayv1.PathRule{Id: r.ID, Paths: r.Globs, Access: string(r.Access), Effect: r.Effect}
+	}
 	return out
 }
 

@@ -61,6 +61,14 @@ type SessionStart struct {
 	Kind, Target                                     string
 	Command                                          string   // exec only
 	Classes                                          []string // exec only; nil when none
+	Paths                                            []string // the paths the command touches; nil when none
+}
+
+// SessionResult is what a console session ran: the last checked command, its
+// classes and paths; nil when the session has none.
+type SessionResult struct {
+	Command        string
+	Classes, Paths []string
 }
 
 // Counters are a session's traffic totals since it began; up is client to target.
@@ -70,11 +78,14 @@ type Counters struct {
 }
 
 // Denial is a connection attempt a gateway refused; UserID is nil when unknown.
+// SessionID is set for a console line refused inside a session.
 type Denial struct {
 	UserID                                         *uuid.UUID
 	KeyFingerprint, Resource, Kind, Target, Reason string
 	ClientIP                                       netip.Addr
 	At                                             time.Time
+	SessionID                                      *uuid.UUID
+	Classes, Paths, Reasons                        []string
 }
 
 // ResourceHealth is one probe result of a resource.
@@ -124,7 +135,7 @@ type Snapshots interface {
 // Sessions records sessions per instance and the attempts gateways refused.
 type Sessions interface {
 	Start(ctx context.Context, s SessionStart) (uuid.UUID, error)
-	End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters) error // nil c keeps the stored counters
+	End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters, r *SessionResult) error // nil c keeps the stored counters
 	EndMissing(ctx context.Context, orgID, instanceID uuid.UUID, active []uuid.UUID, reason string) (int64, error)
 	UpdateCounters(ctx context.Context, orgID, instanceID uuid.UUID, cs []Counters) error
 	Deny(ctx context.Context, orgID uuid.UUID, ds []Denial) error
@@ -208,7 +219,8 @@ func (h *Handler) Mount(mux *http.ServeMux) {
 }
 
 // readMaxBytes caps one tunnel message; a snapshot only travels server → gateway.
-const readMaxBytes = 1 << 20
+// The worst valid heartbeat (console denials at their bounds) fits it.
+const readMaxBytes = 4 << 20
 
 type ctxKey int
 

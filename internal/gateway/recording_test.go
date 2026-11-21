@@ -137,7 +137,7 @@ func TestOpenRejectsWhileSpoolCannotWrite(t *testing.T) {
 	e.p.spool = sp
 	require.NoError(t, os.Chmod(dir, 0o500))       //nolint:gosec // a directory: read and search only
 	t.Cleanup(func() { _ = os.Chmod(dir, 0o700) }) //nolint:gosec // a directory, as the spool makes it
-	require.Error(t, sp.End(uuid.New(), "closed", nil), "the session directory cannot be created")
+	require.Error(t, sp.End(uuid.New(), "closed", nil, nil), "the session directory cannot be created")
 
 	_, err = e.p.Open(t.Context(), e.req("fake", KindTerminal))
 	require.ErrorIs(t, err, ErrSpoolMax)

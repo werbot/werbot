@@ -260,7 +260,7 @@ func (p *Pipeline) finish(ctx context.Context, s *Session, reason string) {
 	if c := p.active.countersOf(s.ID); c != nil {
 		final = countersProto(s.ID, c.load())
 	}
-	if err := p.spool.End(s.ID, reason, final); err != nil {
+	if err := p.spool.End(s.ID, reason, final, nil); err != nil {
 		p.log.Error("session: end not spooled; the server closes it as lost", "session_id", s.ID, "reason", reason, "error", err)
 	}
 	cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
