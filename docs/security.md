@@ -84,6 +84,7 @@ Requests, approvals, break-glass and locks: [jit.md](jit.md).
 ## Command policies
 
 Classes, command rules, custom Cedar, command approvals and output masking: [policies.md](policies.md).
+Folder rules and the command console read the command text, so they do not replace permissions on the host: [policies.md](policies.md#honest-limits), [ssh-hardening.md](ssh-hardening.md).
 
 - **Command text at rest.** The command of a session is stored with the session, and a refused command in its `session.deny` audit event (first 1024 bytes); owners and admins see both.
 - **Custom `permit`.** A custom Cedar `permit` allows what it matches without a binding, so it can widen access.
