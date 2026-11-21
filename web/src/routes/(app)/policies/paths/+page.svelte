@@ -1,25 +1,24 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Badge, Button, Drawer, EmptyState, Label, Modal, Skeleton, Table, toast, type BadgeTone, type SelectOption } from '#lib/ui/index.js';
-	import { members, policy, resources, teams } from '#lib/api.js';
+	import { Badge, Button, Drawer, EmptyState, Modal, Skeleton, Table, toast, type BadgeTone } from '#lib/ui/index.js';
+	import { policy } from '#lib/api.js';
 	import { failToast, serverText } from '#lib/errors.js';
 	import type { PathRule } from '#lib/gen/werbot/v1/policy_paths_pb.js';
 	import CellLead from '#lib/CellLead.svelte';
 	import LoadFailed from '#lib/LoadFailed.svelte';
 	import RowMenu from '#lib/RowMenu.svelte';
-	import { userOptions } from '#lib/members/options.js';
+	import PathChips from '#lib/policies/PathChips.svelte';
 	import PathRuleForm from '#lib/policies/PathRuleForm.svelte';
 	import ScopeCells from '#lib/policies/ScopeCells.svelte';
-	import { fromPathDraft, toPathDraft, type PathDraft } from '#lib/policies/paths.js';
+	import { loadScopeOptions, noScope } from '#lib/policies/scopeOptions.js';
+	import { ACCESS_LABELS, EFFECT_LABELS, fromPathDraft, toPathDraft, type PathDraft } from '#lib/policies/paths.js';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { selectOpen } from '#lib/selectOpen.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let list = $state<PathRule[]>([]);
-	let users = $state<SelectOption[]>([]);
-	let teamOptions = $state<SelectOption[]>([]);
-	let resourceOptions = $state<SelectOption[]>([]);
+	let scope = $state(noScope);
 	let loaded = $state(false);
 	let failed = $state(false);
 	let menuOpen = $state('');
@@ -28,20 +27,12 @@
 	let editing = $state('');
 	let draft = $state<PathDraft>(toPathDraft());
 
-	const names = $derived(new Map([...users, ...teamOptions, ...resourceOptions].map((o) => [o.value, o.label])));
 	const current = $derived(list.find((r) => r.id === editing));
 
 	async function refresh() {
-		const [r, mem, tm, res] = await Promise.all([
-			policy.listPathRules({}),
-			members.listMembers({}),
-			teams.listTeams({}),
-			resources.listResources({})
-		]);
+		const [r, s] = await Promise.all([policy.listPathRules({}), loadScopeOptions()]);
 		list = r.rules;
-		users = userOptions(mem.members);
-		teamOptions = tm.teams.map((t) => ({ value: t.id, label: t.name }));
-		resourceOptions = res.resources.map((x) => ({ value: x.id, label: x.name }));
+		scope = s;
 		loaded = true;
 	}
 
@@ -81,16 +72,8 @@
 		await load();
 	}
 
-	const effects: Record<string, { tone: BadgeTone; text: () => string }> = {
-		only: { tone: 'accent', text: m.policies_paths_effect_only },
-		deny: { tone: 'alert', text: m.policies_paths_effect_deny },
-		approval: { tone: 'upcoming', text: m.policies_paths_effect_approval }
-	};
-	const access: Record<string, () => string> = {
-		read: m.policies_paths_access_read,
-		write: m.policies_paths_access_write,
-		any: m.policies_paths_access_any
-	};
+	const effectTones: Record<string, BadgeTone> = { only: 'accent', deny: 'alert', approval: 'upcoming' };
+	const label = (labels: Record<string, () => string>, key: string) => labels[key]?.() ?? key;
 
 	onMount(load);
 </script>
@@ -125,7 +108,6 @@
 				<th></th>
 			{/snippet}
 			{#each list as rule (rule.id)}
-				{@const effect = effects[rule.effect]}
 				<tr>
 					<td>
 						<CellLead icon="folder-open">
@@ -133,12 +115,12 @@
 							{#snippet sub()}{rule.message}{/snippet}
 						</CellLead>
 					</td>
-					<td><Badge tone={effect?.tone ?? 'base'}>{effect?.text() ?? rule.effect}</Badge></td>
-					<td>{(access[rule.access] ?? (() => rule.access))()}</td>
+					<td><Badge tone={effectTones[rule.effect] ?? 'base'}>{label(EFFECT_LABELS, rule.effect)}</Badge></td>
+					<td>{label(ACCESS_LABELS, rule.access)}</td>
 					<td>
-						<div class="chips">{#each rule.paths as p (p)}<Label variant="soft"><code>{p}</code></Label>{/each}</div>
+						<PathChips paths={rule.paths} />
 					</td>
-					<ScopeCells subjects={rule.subjects} selector={rule.resourceSelector} {names} />
+					<ScopeCells subjects={rule.subjects} selector={rule.resourceSelector} names={scope.names} />
 					<td class="more">
 						<RowMenu label={m.policies_paths_delete()} onselect={() => (removing = rule)} bind:open={() => menuOpen === rule.id, (v) => (menuOpen = v ? rule.id : '')} />
 					</td>
@@ -157,7 +139,7 @@
 	title={current?.name ?? m.policies_paths_new()}
 >
 	{#if editing}
-		<PathRuleForm id="path-rule" bind:draft {users} teams={teamOptions} resources={resourceOptions} onsubmit={save} />
+		<PathRuleForm id="path-rule" bind:draft users={scope.users} teams={scope.teams} resources={scope.resources} onsubmit={save} />
 	{/if}
 	{#snippet footer()}
 		{#if current}
@@ -178,12 +160,6 @@
 </Modal>
 
 <style>
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--miso-sp-04);
-	}
-
 	.more {
 		text-align: right;
 	}

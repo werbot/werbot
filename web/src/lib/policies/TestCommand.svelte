@@ -7,6 +7,7 @@
 	import type { CommandRule, TestCommandResponse } from '#lib/gen/werbot/v1/policy_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import ClassChips from './ClassChips.svelte';
+	import PathChips from './PathChips.svelte';
 	import { verdictOf, type Verdict } from './classes.js';
 	import { reasonName } from './reasons.js';
 
@@ -62,7 +63,7 @@
 		<div class="result" data-testid="test-result">
 			<Badge tone={verdict.tone}>{verdict.text()}</Badge>
 			<ClassChips classes={result.classes} />
-			{#each result.paths as p (p)}<Label variant="soft"><code>{p}</code></Label>{/each}
+			<PathChips paths={result.paths} />
 			{#each result.reasons as r (r)}<Label variant="soft">{reasonName(r, names)}</Label>{/each}
 		</div>
 		{#if result.message}<InfoBlock>{result.message}</InfoBlock>{/if}

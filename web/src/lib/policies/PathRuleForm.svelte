@@ -3,7 +3,7 @@
 	import FormField from '#lib/FormField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import SubjectsTarget from './SubjectsTarget.svelte';
-	import { applyTemplate, PATH_TEMPLATES, parsePaths, type PathDraft } from './paths.js';
+	import { ACCESS_LABELS, applyTemplate, EFFECT_LABELS, PATH_TEMPLATES, parsePaths, type PathDraft } from './paths.js';
 
 	interface Props {
 		/** the form element id: the drawer footer submits it */
@@ -22,8 +22,6 @@
 		deny_folder: m.policies_paths_template_deny_folder,
 		read_logs: m.policies_paths_template_read_logs
 	};
-	const access = { read: m.policies_paths_access_read, write: m.policies_paths_access_write, any: m.policies_paths_access_any };
-	const effects = { only: m.policies_paths_effect_only, deny: m.policies_paths_effect_deny, approval: m.policies_paths_effect_approval };
 	const options = (labels: Record<string, () => string>) => Object.entries(labels).map(([value, label]) => ({ value, label: label() }));
 
 	const hasHome = $derived(parsePaths(draft.paths).some((p) => p.startsWith('~')));
@@ -54,12 +52,12 @@
 
 	<fieldset>
 		<legend>{m.policies_paths_access()}</legend>
-		<div><Segmented size={32} options={options(access)} bind:value={draft.access} /></div>
+		<div><Segmented size={32} options={options(ACCESS_LABELS)} bind:value={draft.access} /></div>
 	</fieldset>
 
 	<fieldset>
 		<legend>{m.policies_paths_effect()}</legend>
-		<div><Segmented size={32} options={options(effects)} bind:value={draft.effect} /></div>
+		<div><Segmented size={32} options={options(EFFECT_LABELS)} bind:value={draft.effect} /></div>
 		{#if draft.effect === 'only'}<p class="hint">{m.policies_paths_only_hint()}</p>{/if}
 		<FormField label={m.policies_paths_message()} bind:value={draft.message} maxlength={256} />
 	</fieldset>

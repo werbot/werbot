@@ -1,15 +1,24 @@
 import type { MessageInitShape } from '@bufbuild/protobuf';
 import type { CreatePathRuleRequest, CreatePathRuleRequestSchema, PathRule } from '#lib/gen/werbot/v1/policy_paths_pb.js';
+import { m } from '#lib/paraglide/messages.js';
 import { fromSelectorDraft, fromSubjectsDraft, toSelectorDraft, toSubjectsDraft, type SelectorDraft, type SubjectsDraft } from '#lib/resources/selectorDraft.js';
 
-export const ACCESS = ['read', 'write', 'any'] as const;
-export const PATH_EFFECTS = ['only', 'deny', 'approval'] as const;
+export const ACCESS_LABELS = {
+	read: m.policies_paths_access_read,
+	write: m.policies_paths_access_write,
+	any: m.policies_paths_access_any
+};
+export const EFFECT_LABELS = {
+	only: m.policies_paths_effect_only,
+	deny: m.policies_paths_effect_deny,
+	approval: m.policies_paths_effect_approval
+};
 
 export type PathTemplate = {
 	key: 'work_folder' | 'deny_folder' | 'read_logs';
 	paths: string[];
-	access: (typeof ACCESS)[number];
-	effect: (typeof PATH_EFFECTS)[number];
+	access: keyof typeof ACCESS_LABELS;
+	effect: keyof typeof EFFECT_LABELS;
 };
 
 export const PATH_TEMPLATES: PathTemplate[] = [

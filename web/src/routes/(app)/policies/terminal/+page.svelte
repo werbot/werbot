@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Badge, Button, Drawer, EmptyState, Modal, Segmented, Skeleton, Table, toast, type BadgeTone, type SelectOption } from '#lib/ui/index.js';
-	import { members, policy, resources, teams } from '#lib/api.js';
+	import { Badge, Button, Drawer, EmptyState, Modal, Segmented, Skeleton, Table, toast, type BadgeTone } from '#lib/ui/index.js';
+	import { policy } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import type { TerminalRule } from '#lib/gen/werbot/v1/policy_paths_pb.js';
 	import CellLead from '#lib/CellLead.svelte';
 	import FormField from '#lib/FormField.svelte';
 	import LoadFailed from '#lib/LoadFailed.svelte';
 	import RowMenu from '#lib/RowMenu.svelte';
-	import { userOptions } from '#lib/members/options.js';
 	import ScopeCells from '#lib/policies/ScopeCells.svelte';
+	import { loadScopeOptions, noScope } from '#lib/policies/scopeOptions.js';
 	import SubjectsTarget from '#lib/policies/SubjectsTarget.svelte';
 	import { fromSelectorDraft, fromSubjectsDraft, toSelectorDraft, toSubjectsDraft, type SelectorDraft, type SubjectsDraft } from '#lib/resources/selectorDraft.js';
 	import PageBody from '#lib/shell/PageBody.svelte';
@@ -21,9 +21,7 @@
 	const emptyDraft = (): Draft => ({ name: '', mode: 'console', subjects: toSubjectsDraft(), ...toSelectorDraft() });
 
 	let list = $state<TerminalRule[]>([]);
-	let users = $state<SelectOption[]>([]);
-	let teamOptions = $state<SelectOption[]>([]);
-	let resourceOptions = $state<SelectOption[]>([]);
+	let scope = $state(noScope);
 	let loaded = $state(false);
 	let failed = $state(false);
 	let menuOpen = $state('');
@@ -31,19 +29,11 @@
 	let creating = $state(false);
 	let draft = $state<Draft>(emptyDraft());
 
-	const names = $derived(new Map([...users, ...teamOptions, ...resourceOptions].map((o) => [o.value, o.label])));
 
 	async function refresh() {
-		const [r, mem, tm, res] = await Promise.all([
-			policy.listTerminalRules({}),
-			members.listMembers({}),
-			teams.listTeams({}),
-			resources.listResources({})
-		]);
+		const [r, s] = await Promise.all([policy.listTerminalRules({}), loadScopeOptions()]);
 		list = r.rules;
-		users = userOptions(mem.members);
-		teamOptions = tm.teams.map((t) => ({ value: t.id, label: t.name }));
-		resourceOptions = res.resources.map((x) => ({ value: x.id, label: x.name }));
+		scope = s;
 		loaded = true;
 	}
 
@@ -124,7 +114,7 @@
 				<tr>
 					<td><CellLead icon="keyboard">{rule.name}</CellLead></td>
 					<td><Badge tone={mode?.tone ?? 'base'}>{mode?.text() ?? rule.mode}</Badge></td>
-					<ScopeCells subjects={rule.subjects} selector={rule.resourceSelector} {names} />
+					<ScopeCells subjects={rule.subjects} selector={rule.resourceSelector} names={scope.names} />
 					<td class="more">
 						<RowMenu label={m.policies_terminal_delete()} onselect={() => (removing = rule)} bind:open={() => menuOpen === rule.id, (v) => (menuOpen = v ? rule.id : '')} />
 					</td>
@@ -151,7 +141,7 @@
 			}}
 		>
 			<FormField label={m.policies_terminal_name()} bind:value={draft.name} required maxlength={63} />
-			<SubjectsTarget bind:draft {users} teams={teamOptions} resources={resourceOptions} />
+			<SubjectsTarget bind:draft users={scope.users} teams={scope.teams} resources={scope.resources} />
 			<fieldset>
 				<legend>{m.policies_terminal_mode()}</legend>
 				<div>

@@ -1,28 +1,26 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Button, Drawer, EmptyState, InfoBlock, Label, Modal, Skeleton, Table, toast, type SelectOption } from '#lib/ui/index.js';
-	import { members, policy, resources, teams } from '#lib/api.js';
+	import { Button, Drawer, EmptyState, InfoBlock, Label, Modal, Skeleton, Table, toast } from '#lib/ui/index.js';
+	import { policy } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import type { CommandRule } from '#lib/gen/werbot/v1/policy_pb.js';
 	import CellLead from '#lib/CellLead.svelte';
 	import LoadFailed from '#lib/LoadFailed.svelte';
 	import RowMenu from '#lib/RowMenu.svelte';
-	import { userOptions } from '#lib/members/options.js';
 	import ClassChips from '#lib/policies/ClassChips.svelte';
 	import ClassRules from '#lib/policies/ClassRules.svelte';
 	import CommandRuleForm from '#lib/policies/CommandRuleForm.svelte';
 	import TestCommand from '#lib/policies/TestCommand.svelte';
 	import { allowlistDraft, fromDraft, presetDraft, toDraft, type RuleDraft } from '#lib/policies/ruleDraft.js';
 	import ScopeCells from '#lib/policies/ScopeCells.svelte';
+	import { loadScopeOptions, noScope } from '#lib/policies/scopeOptions.js';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { selectOpen } from '#lib/selectOpen.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let list = $state<CommandRule[]>([]);
-	let users = $state<SelectOption[]>([]);
-	let teamOptions = $state<SelectOption[]>([]);
-	let resourceOptions = $state<SelectOption[]>([]);
+	let scope = $state(noScope);
 	let loaded = $state(false);
 	let failed = $state(false);
 	let menuOpen = $state('');
@@ -32,20 +30,12 @@
 	let draft = $state<RuleDraft>(toDraft());
 	let classesError = $state(false);
 
-	const names = $derived(new Map([...users, ...teamOptions, ...resourceOptions].map((o) => [o.value, o.label])));
 	const current = $derived(list.find((r) => r.id === editing));
 
 	async function refresh() {
-		const [r, mem, tm, res] = await Promise.all([
-			policy.listCommandRules({}),
-			members.listMembers({}),
-			teams.listTeams({}),
-			resources.listResources({})
-		]);
+		const [r, s] = await Promise.all([policy.listCommandRules({}), loadScopeOptions()]);
 		list = r.rules;
-		users = userOptions(mem.members);
-		teamOptions = tm.teams.map((t) => ({ value: t.id, label: t.name }));
-		resourceOptions = res.resources.map((x) => ({ value: x.id, label: x.name }));
+		scope = s;
 		loaded = true;
 	}
 
@@ -138,7 +128,7 @@
 						</td>
 						<td><Label variant="soft">{(effects[rule.effect] ?? (() => rule.effect))()}</Label></td>
 						<td><ClassChips classes={rule.classes} /></td>
-						<ScopeCells subjects={rule.subjects} selector={rule.resourceSelector} {names} />
+						<ScopeCells subjects={rule.subjects} selector={rule.resourceSelector} names={scope.names} />
 						<td class="more">
 							<RowMenu label={m.policies_commands_delete()} onselect={() => (removing = rule)} bind:open={() => menuOpen === rule.id, (v) => (menuOpen = v ? rule.id : '')} />
 						</td>
@@ -149,7 +139,7 @@
 	</section>
 	<InfoBlock>{m.policies_commands_preset_allowlist_hint()}</InfoBlock>
 	<ClassRules />
-	{#if loaded && !failed}<TestCommand {users} resources={resourceOptions} rules={list} />{/if}
+	{#if loaded && !failed}<TestCommand users={scope.users} resources={scope.resources} rules={list} />{/if}
 </PageBody>
 
 <!-- Escape reaches the drawer too: ignore it while a select popup, the delete confirm or a menu is open -->
@@ -161,7 +151,7 @@
 	title={current?.name ?? m.policies_commands_new()}
 >
 	{#if editing}
-		<CommandRuleForm id="command-rule" bind:draft {users} teams={teamOptions} resources={resourceOptions} {classesError} onsubmit={save} />
+		<CommandRuleForm id="command-rule" bind:draft users={scope.users} teams={scope.teams} resources={scope.resources} {classesError} onsubmit={save} />
 	{/if}
 	{#snippet footer()}
 		{#if current}

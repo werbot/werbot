@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { Banner, Avatar, Label, PropertyRow, Skeleton, Spinner } from '#lib/ui/index.js';
+	import { Banner, Avatar, PropertyRow, Skeleton, Spinner } from '#lib/ui/index.js';
 	import { sessions } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import LoadFailed from '#lib/LoadFailed.svelte';
@@ -10,6 +10,7 @@
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import ClassChips from '#lib/policies/ClassChips.svelte';
+	import PathChips from '#lib/policies/PathChips.svelte';
 	import CastPlayer from '#lib/player/CastPlayer.svelte';
 	import { isMe } from '#lib/me.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -69,7 +70,7 @@
 				{#if session.target}<PropertyRow label={m.sessions_target()}>{session.target}</PropertyRow>{/if}
 				{#if session.command}<PropertyRow label={m.sessions_col_command()}><code>{session.command}</code></PropertyRow>{/if}
 				{#if session.classes.length > 0}<PropertyRow label={m.sessions_classes()}><ClassChips classes={session.classes} /></PropertyRow>{/if}
-				{#if session.paths.length > 0}<PropertyRow label={m.sessions_paths()}><span class="paths">{#each session.paths as p (p)}<Label variant="soft"><code>{p}</code></Label>{/each}</span></PropertyRow>{/if}
+				{#if session.paths.length > 0}<PropertyRow label={m.sessions_paths()}><PathChips paths={session.paths} /></PropertyRow>{/if}
 				<PropertyRow label={m.sessions_client_ip()}>{session.clientIp || '—'}</PropertyRow>
 				<PropertyRow label={m.sessions_col_started()}>{fmt(session.startedAt)}</PropertyRow>
 				<PropertyRow label={m.sessions_col_ended()}>{fmt(session.endedAt)}</PropertyRow>
@@ -97,12 +98,6 @@
 		font-family: var(--miso-font-mono);
 		font-size: 12px;
 		overflow-wrap: anywhere;
-	}
-
-	.paths {
-		display: inline-flex;
-		flex-wrap: wrap;
-		gap: var(--miso-sp-04);
 	}
 
 	.user {
