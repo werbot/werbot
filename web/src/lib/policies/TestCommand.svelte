@@ -15,6 +15,7 @@
 	let userId = $state('');
 	let resourceId = $state('');
 	let command = $state('');
+	let cwd = $state('');
 	let result = $state<TestCommandResponse>();
 	let policyNames = $state(new Map<string, string>());
 	const names = $derived(new Map([...rules.map((r) => [r.id, r.name] as const), ...policyNames]));
@@ -29,11 +30,13 @@
 	async function run(e: SubmitEvent) {
 		e.preventDefault();
 		try {
-			const [res, custom] = await Promise.all([
-				policy.testCommand({ subject: { case: 'userId', value: userId }, resourceId, command }),
-				policy.listCustomPolicies({})
+			const [res, custom, paths, terminals] = await Promise.all([
+				policy.testCommand({ subject: { case: 'userId', value: userId }, resourceId, command, cwd }),
+				policy.listCustomPolicies({}),
+				policy.listPathRules({}),
+				policy.listTerminalRules({})
 			]);
-			policyNames = new Map(custom.policies.map((p) => [p.id, p.name]));
+			policyNames = new Map([...custom.policies, ...paths.rules, ...terminals.rules].map((p) => [p.id, p.name]));
 			result = res;
 		} catch (err) {
 			result = undefined;
@@ -49,13 +52,17 @@
 			<FilledSelect label={m.policies_test_user()} options={users} bind:value={userId} />
 			<FilledSelect label={m.policies_test_resource()} options={resources} bind:value={resourceId} />
 		</div>
-		<FormField label={m.policies_test_command()} bind:value={command} required maxlength={65536} />
+		<div class="pair">
+			<FormField label={m.policies_test_command()} bind:value={command} required maxlength={65536} />
+			<FormField label={m.policies_test_cwd()} bind:value={cwd} placeholder="~" maxlength={1024} />
+		</div>
 		<div><Button size={40} type="submit" variant="solid" disabled={!userId || !resourceId}>{m.policies_test_run()}</Button></div>
 	</form>
 	{#if result && verdict}
 		<div class="result" data-testid="test-result">
 			<Badge tone={verdict.tone}>{verdict.text()}</Badge>
 			<ClassChips classes={result.classes} />
+			{#each result.paths as p (p)}<Label variant="soft"><code>{p}</code></Label>{/each}
 			{#each result.reasons as r (r)}<Label variant="soft">{reasonName(r, names)}</Label>{/each}
 		</div>
 		{#if result.message}<InfoBlock>{result.message}</InfoBlock>{/if}

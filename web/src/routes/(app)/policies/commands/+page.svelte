@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Button, Chip, Drawer, EmptyState, Label, Modal, Skeleton, Table, toast, type SelectOption } from '#lib/ui/index.js';
+	import { Button, Drawer, EmptyState, InfoBlock, Label, Modal, Skeleton, Table, toast, type SelectOption } from '#lib/ui/index.js';
 	import { members, policy, resources, teams } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import type { CommandRule } from '#lib/gen/werbot/v1/policy_pb.js';
@@ -12,8 +12,8 @@
 	import ClassRules from '#lib/policies/ClassRules.svelte';
 	import CommandRuleForm from '#lib/policies/CommandRuleForm.svelte';
 	import TestCommand from '#lib/policies/TestCommand.svelte';
-	import { fromDraft, presetDraft, toDraft, type RuleDraft } from '#lib/policies/ruleDraft.js';
-	import LabelChips from '#lib/resources/LabelChips.svelte';
+	import { allowlistDraft, fromDraft, presetDraft, toDraft, type RuleDraft } from '#lib/policies/ruleDraft.js';
+	import ScopeCells from '#lib/policies/ScopeCells.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { selectOpen } from '#lib/selectOpen.js';
@@ -98,6 +98,7 @@
 
 <PageHeader title={m.policies_commands_title()}>
 	{#snippet toolbar()}
+		<Button variant="plain" size={40} onclick={() => edit(undefined, allowlistDraft(m.policies_commands_preset_allowlist_message()))}>{m.policies_commands_preset_allowlist()}</Button>
 		{#if list.length > 0}
 			<Button variant="solid" size={40} iconLeft="plus" onclick={() => edit()}>{m.policies_commands_new()}</Button>
 		{/if}
@@ -128,8 +129,6 @@
 					<th></th>
 				{/snippet}
 				{#each list as rule (rule.id)}
-					{@const ids = rule.resourceSelector?.resourceIds ?? []}
-					{@const who = [...(rule.subjects?.users ?? []), ...(rule.subjects?.teams ?? [])]}
 					<tr>
 						<td>
 							<CellLead icon="editor/checklist">
@@ -139,20 +138,7 @@
 						</td>
 						<td><Label variant="soft">{(effects[rule.effect] ?? (() => rule.effect))()}</Label></td>
 						<td><ClassChips classes={rule.classes} /></td>
-						<td>
-							<div class="chips">
-								{#if rule.subjects?.allUsers}<Chip size={20}>{m.policies_commands_all_users()}</Chip>{/if}
-								{#if rule.subjects?.allAgents}<Chip size={20}>{m.policies_commands_all_agents()}</Chip>{/if}
-								{#each who as id (id)}<Chip size={20}>{names.get(id) ?? id}</Chip>{/each}
-							</div>
-						</td>
-						<td>
-							{#if ids.length > 0}
-								<div class="chips">{#each ids as id (id)}<Chip size={20}>{names.get(id) ?? id}</Chip>{/each}</div>
-							{:else}
-								<LabelChips labels={rule.resourceSelector?.labels ?? {}} />
-							{/if}
-						</td>
+						<ScopeCells subjects={rule.subjects} selector={rule.resourceSelector} {names} />
 						<td class="more">
 							<RowMenu label={m.policies_commands_delete()} onselect={() => (removing = rule)} bind:open={() => menuOpen === rule.id, (v) => (menuOpen = v ? rule.id : '')} />
 						</td>
@@ -161,6 +147,7 @@
 			</Table>
 		{/if}
 	</section>
+	<InfoBlock>{m.policies_commands_preset_allowlist_hint()}</InfoBlock>
 	<ClassRules />
 	{#if loaded && !failed}<TestCommand {users} resources={resourceOptions} rules={list} />{/if}
 </PageBody>
@@ -204,12 +191,6 @@
 	h2 {
 		margin: 0;
 		font: var(--miso-font-ui-16-semi);
-	}
-
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--miso-sp-04);
 	}
 
 	.more {

@@ -13,7 +13,7 @@ test('member sections', () => {
 });
 
 test('manager sections', () => {
-	expect(hrefs(byId(true, 'access'))).toEqual(['/resources', '/sessions', '/requests', '/gateways', '/policies/approvals', '/policies/commands', '/policies/custom', '/locks']);
+	expect(hrefs(byId(true, 'access'))).toEqual(['/resources', '/sessions', '/requests', '/gateways', '/policies/approvals', '/policies/commands', '/policies/custom', '/policies/paths', '/policies/terminal', '/locks']);
 	expect(hrefs(byId(true, 'organization'))).toEqual(['/members', '/teams', '/audit', '/settings']);
 	expect(hrefs(byId(true, 'profile'))).toEqual(['/profile', '/profile/keys', '/profile/cli-sessions']);
 });

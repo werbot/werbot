@@ -34,6 +34,8 @@ export function navSections(manager: boolean): NavSection[] {
 					{ href: '/policies/approvals', label: m.nav_approval_policies, icon: 'filter_check' as const },
 					{ href: '/policies/commands', label: m.nav_policies_commands, icon: 'editor/checklist' as const },
 					{ href: '/policies/custom', label: m.nav_policies_custom, icon: 'editor/code' as const },
+					{ href: '/policies/paths', label: m.nav_policies_paths, icon: 'folder-open' as const },
+					{ href: '/policies/terminal', label: m.nav_policies_terminal, icon: 'keyboard' as const },
 					{ href: '/locks', label: m.nav_locks, icon: 'lock' as const }
 				]
 			: [])

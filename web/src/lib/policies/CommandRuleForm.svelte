@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { Checkbox, FilledField, Segmented, type SelectOption } from '#lib/ui/index.js';
+	import { FilledField, Segmented, type SelectOption } from '#lib/ui/index.js';
 	import FormField from '#lib/FormField.svelte';
-	import LabelsEditor from '#lib/resources/LabelsEditor.svelte';
-	import PickList from '#lib/requests/PickList.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import ClassPicker from './ClassPicker.svelte';
+	import SubjectsTarget from './SubjectsTarget.svelte';
 	import type { RuleDraft } from './ruleDraft.js';
 
 	interface Props {
@@ -31,35 +30,7 @@
 >
 	<FilledField label={m.policies_commands_name()} bind:value={draft.name} required maxlength={63} />
 
-	<fieldset>
-		<legend>{m.policies_commands_subjects()}</legend>
-		<div class="checks">
-			<Checkbox bind:checked={draft.subjects.allUsers}>{m.policies_commands_all_users()}</Checkbox>
-		</div>
-		{#if !draft.subjects.allUsers}
-			<PickList label={m.approvals_add_user()} options={users} bind:ids={draft.subjects.users} />
-			<PickList label={m.approvals_add_team()} options={teams} bind:ids={draft.subjects.teams} />
-		{/if}
-	</fieldset>
-
-	<fieldset>
-		<legend>{m.approvals_resources()}</legend>
-		<div>
-			<Segmented
-				size={32}
-				options={[
-					{ value: 'resources', label: m.policies_commands_target_resources() },
-					{ value: 'labels', label: m.policies_commands_target_labels() }
-				]}
-				bind:value={draft.by}
-			/>
-		</div>
-		{#if draft.by === 'resources'}
-			<PickList label={m.approvals_add_resource()} options={resources} bind:ids={draft.resourceIds} />
-		{:else}
-			<LabelsEditor bind:rows={draft.labels} />
-		{/if}
-	</fieldset>
+	<SubjectsTarget bind:draft {users} {teams} {resources} />
 
 	<fieldset>
 		<legend>{m.policies_commands_classes()}</legend>
@@ -108,12 +79,6 @@
 		padding: 0;
 		font: var(--miso-font-ui-13-semi);
 		color: var(--miso-txt-primary);
-	}
-
-	.checks {
-		display: flex;
-		flex-direction: column;
-		gap: var(--miso-sp-08);
 	}
 
 	.hint {

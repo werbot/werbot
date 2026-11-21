@@ -35,6 +35,14 @@ export const presetDraft = (): RuleDraft => ({
 	effect: 'approval'
 });
 
+/** The allowlist shortcut: deny every command no class override allows, for every user. */
+export const allowlistDraft = (message: string): RuleDraft => ({
+	...presetDraft(),
+	name: 'only-allowed-commands',
+	effect: 'deny',
+	message
+});
+
 export function fromDraft(d: RuleDraft): RuleInput {
 	return {
 		name: d.name,

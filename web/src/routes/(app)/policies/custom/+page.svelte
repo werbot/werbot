@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Code, ConnectError } from '@connectrpc/connect';
 	import { Button, Drawer, EmptyState, Modal, Skeleton, Table, Toggle, toast } from '#lib/ui/index.js';
 	import { policy } from '#lib/api.js';
-	import { failToast } from '#lib/errors.js';
+	import { failToast, serverText } from '#lib/errors.js';
 	import type { CustomPolicy } from '#lib/gen/werbot/v1/policy_pb.js';
 	import FormField from '#lib/FormField.svelte';
 	import CellLead from '#lib/CellLead.svelte';
@@ -24,12 +23,6 @@
 	let enabled = $state(true);
 
 	const current = $derived(list.find((p) => p.id === editing));
-
-	// a refused Cedar text keeps its full server text (line and column); other errors use the shared messages
-	const full = (e: unknown) => {
-		const c = ConnectError.from(e);
-		return c.code === Code.InvalidArgument && c.rawMessage ? c.rawMessage : e;
-	};
 
 	async function refresh() {
 		list = (await policy.listCustomPolicies({})).policies;
@@ -53,7 +46,7 @@
 			toast({ tone: 'success', text: m.policies_custom_saved() });
 			editing = '';
 		} catch (e) {
-			failToast(full(e));
+			failToast(serverText(e));
 		}
 		await load();
 	}
