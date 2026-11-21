@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/werbot/werbot/internal/connector"
-	"github.com/werbot/werbot/internal/platform/shellclass"
 )
 
 // Errors of a command the approvers refused or did not decide in time.
@@ -82,13 +81,13 @@ func ShellQuote(s string) string {
 // with the snapshot class rules and the host of the resource.
 func (p *Policy) withCommand(req AccessRequest, in commandInput) AccessRequest {
 	ep, _, _ := req.Resource.Endpoint() // an invalid config leaves no host: every remote host is egress
-	a, rules := p.Analyze(in.Text, ep.Host, in.Cwd), p.PathRules()
+	a := p.Analyze(in.Text, ep.Host, in.Cwd)
 	if in.Home != "" {
-		a, rules = a.WithHome(in.Home), shellclass.ExpandHome(rules, in.Home)
+		a = a.WithHome(in.Home)
 	}
 	req.Command = in.Text
 	req.Classes, req.Paths = a.Strings()
-	req.PathHits, req.PathOutside = shellclass.EvalPaths(rules, a.Paths, a.Unresolved)
+	req.PathHits, req.PathOutside = p.pathSet(in.Home).Eval(a.Paths, a.Unresolved)
 	return req
 }
 

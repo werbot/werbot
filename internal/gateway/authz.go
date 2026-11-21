@@ -81,6 +81,7 @@ type Policy struct {
 	notes       map[cedar.PolicyID]note   // @message and @obligation of the policies that have one
 	classifier  *shellclass.Classifier    // built-in classes and the snapshot's class rules
 	pathRules   []shellclass.PathRule     // the snapshot's path rules, by ID
+	paths       shellclass.PathSet        // pathRules compiled
 	maskOutput  string                    // "": an older server, agents
 }
 
@@ -104,6 +105,7 @@ func CompilePolicy(s *gatewayv1.Snapshot) (*Policy, error) {
 	if p.classifier, p.pathRules, err = compileCommandRules(s); err != nil {
 		return nil, err
 	}
+	p.paths = shellclass.CompilePaths(p.pathRules)
 	for _, r := range s.GetResources() {
 		id, err := uuid.Parse(r.GetId())
 		if err != nil {

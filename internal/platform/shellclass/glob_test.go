@@ -32,8 +32,8 @@ var matchPathCases = []struct {
 // Globs match whole segments: "*" inside one segment, "**" any number of segments, "~" only the home symbol.
 func TestMatchPath(t *testing.T) {
 	for _, tc := range matchPathCases {
-		if got := MatchPath(tc.glob, tc.path); got != tc.want {
-			t.Errorf("MatchPath(%q, %q) = %v, want %v", tc.glob, tc.path, got, tc.want)
+		if g := compileGlob(tc.glob); g.match(tc.path) != tc.want {
+			t.Errorf("match(%q, %q) = %v, want %v", tc.glob, tc.path, !tc.want, tc.want)
 		}
 	}
 }
@@ -42,7 +42,7 @@ func TestMatchPath(t *testing.T) {
 func TestMatchPathManyDoubleStars(t *testing.T) {
 	p := "/" + strings.Repeat("a/", 63) + "b"
 	start := time.Now()
-	if MatchPath("/**/**/**/**/x", p) {
+	if g := compileGlob("/**/**/**/**/x"); g.match(p) {
 		t.Fatal("matched a path without the last segment")
 	}
 	if d := time.Since(start); d > time.Millisecond {

@@ -75,30 +75,37 @@ func matchRows(g, p []string) (full, prefix bool) {
 	return prev[len(p)], prefix
 }
 
-// MatchPath reports whether the normalized path p matches glob: "*" within one
+// pathGlob is a valid glob compiled once: its literal prefix, its segments
+// and whether it ends in "/**" (it can cover a subtree ref).
+type pathGlob struct {
+	lit  string
+	segs []string
+	tree bool
+}
+
+func compileGlob(glob string) pathGlob {
+	return pathGlob{lit: literalPrefix(glob), segs: segments(glob), tree: strings.HasSuffix(glob, "/**")}
+}
+
+// match reports whether the normalized path p matches g: "*" within one
 // segment, "**" any number of segments (zero included), "~" only the leading
-// home segment. A path outside the literal prefix of glob is rejected before
+// home segment. A path outside the literal prefix of g is rejected before
 // the segment DP.
-func MatchPath(glob, p string) bool {
-	return strings.HasPrefix(p, literalPrefix(glob)) && matchFull(glob, p)
-}
-
-// matchPrefix reports whether p or some path under p may match glob (Ruling G5).
-// p must lie on the literal prefix of glob or under it.
-func matchPrefix(glob, p string) bool {
-	l := literalPrefix(glob)
-	return (strings.HasPrefix(p, l) || strings.HasPrefix(l, p)) && matchSubtree(glob, p)
-}
-
-// matchFull is MatchPath without the literal prefilter.
-func matchFull(glob, p string) bool {
-	full, _ := matchRows(segments(glob), segments(p))
+func (g *pathGlob) match(p string) bool {
+	if !strings.HasPrefix(p, g.lit) {
+		return false
+	}
+	full, _ := matchRows(g.segs, segments(p))
 	return full
 }
 
-// matchSubtree is matchPrefix without the literal prefilter.
-func matchSubtree(glob, p string) bool {
-	_, prefix := matchRows(segments(glob), segments(p))
+// under reports whether p or some path under p may match g (Ruling G5).
+// p must lie on the literal prefix of g or under it.
+func (g *pathGlob) under(p string) bool {
+	if !strings.HasPrefix(p, g.lit) && !strings.HasPrefix(g.lit, p) {
+		return false
+	}
+	_, prefix := matchRows(g.segs, segments(p))
 	return prefix
 }
 
@@ -153,59 +160,6 @@ func validSegment(i int, seg string) error {
 		return errors.New(errGlob + "bad pattern")
 	}
 	return nil
-}
-
-// EvalPaths matches refs against rules. hits are the deny and approval rules
-// a ref of a matching access hits; outside are the only rules a ref of a
-// matching access is not covered by. unresolved puts every only rule outside;
-// deny and approval still hit on the resolved refs. Both lists are sorted
-// without repeats.
-func EvalPaths(rules []PathRule, refs []PathRef, unresolved bool) (hits, outside []string) {
-	for _, r := range rules {
-		switch {
-		case r.Effect == EffectOnly && (unresolved || !covers(r, refs)):
-			outside = append(outside, r.ID)
-		case (r.Effect == EffectDeny || r.Effect == EffectApproval) && hitsAny(r, refs):
-			hits = append(hits, r.ID)
-		}
-	}
-	slices.Sort(hits)
-	slices.Sort(outside)
-	return slices.Compact(hits), slices.Compact(outside)
-}
-
-func applies(r PathRule, ref PathRef) bool {
-	return r.Access == AccessAny || r.Access == ref.Access
-}
-
-// hitsAny: a plain ref matches a glob; a subtree ref hits when a path under it may match.
-func hitsAny(r PathRule, refs []PathRef) bool {
-	for _, ref := range refs {
-		if !applies(r, ref) {
-			continue
-		}
-		match := MatchPath
-		if ref.Subtree {
-			match = matchPrefix
-		}
-		if slices.ContainsFunc(r.Globs, func(g string) bool { return match(g, ref.Path) }) {
-			return true
-		}
-	}
-	return false
-}
-
-// covers: every ref of a matching access is covered by a glob; a subtree ref
-// only by a glob ending in "/**" that matches its root.
-func covers(r PathRule, refs []PathRef) bool {
-	for _, ref := range refs {
-		if applies(r, ref) && !slices.ContainsFunc(r.Globs, func(g string) bool {
-			return (!ref.Subtree || strings.HasSuffix(g, "/**")) && MatchPath(g, ref.Path)
-		}) {
-			return false
-		}
-	}
-	return true
 }
 
 // ExpandHome returns a copy of rules with "~" and "~/…" globs resolved from

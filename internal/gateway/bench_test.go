@@ -84,7 +84,12 @@ func decideExec(p *Policy, r AccessRequest) Decision {
 func BenchmarkExecDecision(b *testing.B) {
 	p, r := execBench(b)
 	require.Equal(b, []string{ObligationApproval}, decideExec(p, r).Obligations)
-	for b.Loop() {
-		decideExec(p, r)
+	for name, command := range map[string]string{"bench": benchCommand, "worst": worstCommand} {
+		r.Command = command
+		b.Run(name, func(b *testing.B) {
+			for b.Loop() {
+				decideExec(p, r)
+			}
+		})
 	}
 }

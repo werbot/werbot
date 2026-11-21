@@ -22,8 +22,8 @@ var (
 	}
 )
 
-// The literal prefilter of MatchPath and matchPrefix only rejects pairs the
-// segment DP rejects: with and without it every pair gets the same answer.
+// The literal prefilter of a compiled glob's match and under only rejects
+// pairs the segment DP rejects: with and without it every pair gets the same answer.
 func TestPathPrefilterEquivalent(t *testing.T) {
 	globs, paths := prefilterInputs(t)
 	var pairs, rejected int
@@ -43,7 +43,7 @@ func TestPathPrefilterEquivalent(t *testing.T) {
 	}
 }
 
-// prefilterInputs are prefilterGlobs and prefilterPaths plus the MatchPath
+// prefilterInputs are prefilterGlobs and prefilterPaths plus the match
 // cases and the corpus refs, as paths and as globs.
 func prefilterInputs(t *testing.T) (globs, paths []string) {
 	t.Helper()
@@ -65,13 +65,26 @@ func prefilterInputs(t *testing.T) (globs, paths []string) {
 // reports whether p starts with the literal prefix of g (the prefilter passes it).
 func prefilterAgrees(t *testing.T, g, p string) bool {
 	t.Helper()
-	if got, want := MatchPath(g, p), matchFull(g, p); got != want {
-		t.Errorf("MatchPath(%q, %q) = %v, unfiltered %v", g, p, got, want)
+	c := compileGlob(g)
+	if got, want := c.match(p), matchFull(g, p); got != want {
+		t.Errorf("match(%q, %q) = %v, unfiltered %v", g, p, got, want)
 	}
-	if got, want := matchPrefix(g, p), matchSubtree(g, p); got != want {
-		t.Errorf("matchPrefix(%q, %q) = %v, unfiltered %v", g, p, got, want)
+	if got, want := c.under(p), matchSubtree(g, p); got != want {
+		t.Errorf("under(%q, %q) = %v, unfiltered %v", g, p, got, want)
 	}
-	return strings.HasPrefix(p, literalPrefix(g))
+	return strings.HasPrefix(p, c.lit)
+}
+
+// matchFull is match without the literal prefilter.
+func matchFull(glob, p string) bool {
+	full, _ := matchRows(segments(glob), segments(p))
+	return full
+}
+
+// matchSubtree is under without the literal prefilter.
+func matchSubtree(glob, p string) bool {
+	_, prefix := matchRows(segments(glob), segments(p))
+	return prefix
 }
 
 func TestLiteralPrefix(t *testing.T) {

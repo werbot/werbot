@@ -126,6 +126,18 @@ func (p *Policy) PathRules() []shellclass.PathRule {
 	return p.pathRules
 }
 
+// pathSet is the compiled path rules of p, with "~" globs resolved from home
+// when it is set.
+func (p *Policy) pathSet(home string) shellclass.PathSet {
+	switch {
+	case p == nil:
+		return shellclass.PathSet{}
+	case home == "":
+		return p.paths
+	}
+	return shellclass.CompilePaths(shellclass.ExpandHome(p.pathRules, home))
+}
+
 // MaskOutput is whose exec output the gateway masks: "agents", "all" or
 // "none"; an older server sends none, which means "agents".
 func (p *Policy) MaskOutput() string {
