@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net/netip"
 	"slices"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -19,8 +18,6 @@ import (
 
 	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/apperr"
-	"github.com/werbot/werbot/internal/platform/auditlog"
-	"github.com/werbot/werbot/internal/platform/clientip"
 	"github.com/werbot/werbot/internal/platform/dbx"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
@@ -171,13 +168,13 @@ func (s *Service) load(ctx context.Context, orgID uuid.UUID, ip netip.Addr) (sna
 	return snap, blocked, nil
 }
 
-// readOrg reads the resource and exec rules of snap.OrgID into snap and
+// readOrg reads the resource, exec, path and terminal rules of snap.OrgID into snap and
 // checks a valid ip against the blocklist.
 func readOrg(ctx context.Context, st Store, ip netip.Addr, snap *Snapshot) (blocked bool, err error) {
 	if snap.Rules, err = listRules(ctx, st, snap.OrgID, nil); err != nil {
 		return false, err
 	}
-	if err = loadExec(ctx, st, snap); err != nil {
+	if err = errors.Join(loadExec(ctx, st, snap), loadPaths(ctx, st, snap)); err != nil {
 		return false, err
 	}
 	if ip.IsValid() {
@@ -260,36 +257,4 @@ func (s *Service) CheckAccess(ctx context.Context, orgID, userID, resourceID uui
 	}
 	c.req.Port = port
 	return c.ps.Authorize(c.req), nil
-}
-
-// change is the audit event of a write: Action is "<target type>.<verb>".
-type change struct {
-	Action string
-	ID     uuid.UUID
-	Data   map[string]any
-}
-
-// apply runs fn and writes the audit event it returns in one transaction of
-// the principal. what names the object in not-found and taken errors.
-func (s *Service) apply(ctx context.Context, orgID uuid.UUID, what string, fn func(st Store, actor uuid.UUID) (change, error)) error {
-	p, err := principal.Require(ctx)
-	if err != nil {
-		return err
-	}
-	err = dbx.InOrg(ctx, s.deps.Pool, orgID, p.UserID, func(tx pgx.Tx) error {
-		c, err := fn(newStore(tx), p.UserID)
-		if err != nil {
-			return err
-		}
-		typ, _, _ := strings.Cut(c.Action, ".")
-		return auditlog.Write(ctx, tx, auditlog.Event{OrgID: &orgID, ActorUserID: &p.UserID, ActorKind: "user", Action: c.Action,
-			TargetType: typ, TargetID: c.ID.String(), IP: clientip.From(ctx), Data: c.Data})
-	})
-	switch {
-	case errors.Is(err, pgx.ErrNoRows):
-		return fmt.Errorf("%s not found: %w", what, apperr.ErrNotFound)
-	case isUniqueViolation(err):
-		return fmt.Errorf("%s already exists: %w", what, apperr.ErrAlreadyExists)
-	}
-	return err
 }

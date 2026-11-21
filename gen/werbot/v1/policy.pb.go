@@ -1858,6 +1858,7 @@ type TestCommandRequest struct {
 	Subject       isTestCommandRequest_Subject `protobuf_oneof:"subject"`
 	ResourceId    string                       `protobuf:"bytes,3,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	Command       string                       `protobuf:"bytes,4,opt,name=command,proto3" json:"command,omitempty"`
+	Cwd           string                       `protobuf:"bytes,5,opt,name=cwd,proto3" json:"cwd,omitempty"` // "~", "~/…" or absolute; empty: "~"
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1931,6 +1932,13 @@ func (x *TestCommandRequest) GetCommand() string {
 	return ""
 }
 
+func (x *TestCommandRequest) GetCwd() string {
+	if x != nil {
+		return x.Cwd
+	}
+	return ""
+}
+
 type isTestCommandRequest_Subject interface {
 	isTestCommandRequest_Subject()
 }
@@ -1955,6 +1963,9 @@ type TestCommandResponse struct {
 	Reasons       []string               `protobuf:"bytes,3,rep,name=reasons,proto3" json:"reasons,omitempty"`
 	Obligations   []string               `protobuf:"bytes,4,rep,name=obligations,proto3" json:"obligations,omitempty"`
 	Message       string                 `protobuf:"bytes,5,opt,name=message,proto3" json:"message,omitempty"`
+	Paths         []string               `protobuf:"bytes,6,rep,name=paths,proto3" json:"paths,omitempty"`                                // the paths of the command, in analysis order
+	PathHits      []string               `protobuf:"bytes,7,rep,name=path_hits,json=pathHits,proto3" json:"path_hits,omitempty"`          // ids of the deny and approval path rules of the organization it hits
+	PathOutside   []string               `protobuf:"bytes,8,rep,name=path_outside,json=pathOutside,proto3" json:"path_outside,omitempty"` // ids of the only path rules of the organization it leaves
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2024,11 +2035,32 @@ func (x *TestCommandResponse) GetMessage() string {
 	return ""
 }
 
+func (x *TestCommandResponse) GetPaths() []string {
+	if x != nil {
+		return x.Paths
+	}
+	return nil
+}
+
+func (x *TestCommandResponse) GetPathHits() []string {
+	if x != nil {
+		return x.PathHits
+	}
+	return nil
+}
+
+func (x *TestCommandResponse) GetPathOutside() []string {
+	if x != nil {
+		return x.PathOutside
+	}
+	return nil
+}
+
 var File_werbot_v1_policy_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_policy_proto_rawDesc = "" +
 	"\n" +
-	"\x16werbot/v1/policy.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x18werbot/v1/selector.proto\"9\n" +
+	"\x16werbot/v1/policy.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cwerbot/v1/policy_paths.proto\x1a\x18werbot/v1/selector.proto\"9\n" +
 	"\vNetworkRule\x12\x12\n" +
 	"\x04cidr\x18\x01 \x01(\tR\x04cidr\x12\x16\n" +
 	"\x06effect\x18\x02 \x01(\tR\x06effect\"?\n" +
@@ -2146,21 +2178,24 @@ const file_werbot_v1_policy_proto_rawDesc = "" +
 	"\x06policy\x18\x01 \x01(\v2\x17.werbot.v1.CustomPolicyR\x06policy\"5\n" +
 	"\x19DeleteCustomPolicyRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\x1c\n" +
-	"\x1aDeleteCustomPolicyResponse\"\xc4\x01\n" +
+	"\x1aDeleteCustomPolicyResponse\"\xe0\x01\n" +
 	"\x12TestCommandRequest\x12#\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x00R\x06userId\x12%\n" +
 	"\bagent_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x00R\aagentId\x12)\n" +
 	"\vresource_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
 	"resourceId\x12%\n" +
-	"\acommand\x18\x04 \x01(\tB\v\xbaH\br\x06 \x01(\x80\x80\x04R\acommandB\x10\n" +
-	"\asubject\x12\x05\xbaH\x02\b\x01\"\x9b\x01\n" +
+	"\acommand\x18\x04 \x01(\tB\v\xbaH\br\x06 \x01(\x80\x80\x04R\acommand\x12\x1a\n" +
+	"\x03cwd\x18\x05 \x01(\tB\b\xbaH\x05r\x03(\x80\bR\x03cwdB\x10\n" +
+	"\asubject\x12\x05\xbaH\x02\b\x01\"\xf1\x01\n" +
 	"\x13TestCommandResponse\x12\x18\n" +
 	"\aclasses\x18\x01 \x03(\tR\aclasses\x12\x14\n" +
 	"\x05allow\x18\x02 \x01(\bR\x05allow\x12\x18\n" +
 	"\areasons\x18\x03 \x03(\tR\areasons\x12 \n" +
 	"\vobligations\x18\x04 \x03(\tR\vobligations\x12\x18\n" +
-	"\amessage\x18\x05 \x01(\tR\amessage2\xf9\n" +
-	"\n" +
+	"\amessage\x18\x05 \x01(\tR\amessage\x12\x14\n" +
+	"\x05paths\x18\x06 \x03(\tR\x05paths\x12\x1b\n" +
+	"\tpath_hits\x18\a \x03(\tR\bpathHits\x12!\n" +
+	"\fpath_outside\x18\b \x03(\tR\vpathOutside2\xf8\x0f\n" +
 	"\rPolicyService\x12[\n" +
 	"\x10GetResourceRules\x12\".werbot.v1.GetResourceRulesRequest\x1a#.werbot.v1.GetResourceRulesResponse\x12[\n" +
 	"\x10SetResourceRules\x12\".werbot.v1.SetResourceRulesRequest\x1a#.werbot.v1.SetResourceRulesResponse\x12L\n" +
@@ -2176,7 +2211,14 @@ const file_werbot_v1_policy_proto_rawDesc = "" +
 	"\x12CreateCustomPolicy\x12$.werbot.v1.CreateCustomPolicyRequest\x1a%.werbot.v1.CreateCustomPolicyResponse\x12a\n" +
 	"\x12UpdateCustomPolicy\x12$.werbot.v1.UpdateCustomPolicyRequest\x1a%.werbot.v1.UpdateCustomPolicyResponse\x12a\n" +
 	"\x12DeleteCustomPolicy\x12$.werbot.v1.DeleteCustomPolicyRequest\x1a%.werbot.v1.DeleteCustomPolicyResponse\x12L\n" +
-	"\vTestCommand\x12\x1d.werbot.v1.TestCommandRequest\x1a\x1e.werbot.v1.TestCommandResponseB\x92\x01\n" +
+	"\vTestCommand\x12\x1d.werbot.v1.TestCommandRequest\x1a\x1e.werbot.v1.TestCommandResponse\x12R\n" +
+	"\rListPathRules\x12\x1f.werbot.v1.ListPathRulesRequest\x1a .werbot.v1.ListPathRulesResponse\x12U\n" +
+	"\x0eCreatePathRule\x12 .werbot.v1.CreatePathRuleRequest\x1a!.werbot.v1.CreatePathRuleResponse\x12U\n" +
+	"\x0eUpdatePathRule\x12 .werbot.v1.UpdatePathRuleRequest\x1a!.werbot.v1.UpdatePathRuleResponse\x12U\n" +
+	"\x0eDeletePathRule\x12 .werbot.v1.DeletePathRuleRequest\x1a!.werbot.v1.DeletePathRuleResponse\x12^\n" +
+	"\x11ListTerminalRules\x12#.werbot.v1.ListTerminalRulesRequest\x1a$.werbot.v1.ListTerminalRulesResponse\x12a\n" +
+	"\x12CreateTerminalRule\x12$.werbot.v1.CreateTerminalRuleRequest\x1a%.werbot.v1.CreateTerminalRuleResponse\x12a\n" +
+	"\x12DeleteTerminalRule\x12$.werbot.v1.DeleteTerminalRuleRequest\x1a%.werbot.v1.DeleteTerminalRuleResponseB\x92\x01\n" +
 	"\rcom.werbot.v1B\vPolicyProtoP\x01Z/github.com/werbot/werbot/gen/werbot/v1;werbotv1\xa2\x02\x03WXX\xaa\x02\tWerbot.V1\xca\x02\tWerbot\\V1\xe2\x02\x15Werbot\\V1\\GPBMetadata\xea\x02\n" +
 	"Werbot::V1b\x06proto3"
 
@@ -2233,6 +2275,20 @@ var file_werbot_v1_policy_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),      // 36: google.protobuf.Timestamp
 	(*Subjects)(nil),                   // 37: werbot.v1.Subjects
 	(*ResourceSelector)(nil),           // 38: werbot.v1.ResourceSelector
+	(*ListPathRulesRequest)(nil),       // 39: werbot.v1.ListPathRulesRequest
+	(*CreatePathRuleRequest)(nil),      // 40: werbot.v1.CreatePathRuleRequest
+	(*UpdatePathRuleRequest)(nil),      // 41: werbot.v1.UpdatePathRuleRequest
+	(*DeletePathRuleRequest)(nil),      // 42: werbot.v1.DeletePathRuleRequest
+	(*ListTerminalRulesRequest)(nil),   // 43: werbot.v1.ListTerminalRulesRequest
+	(*CreateTerminalRuleRequest)(nil),  // 44: werbot.v1.CreateTerminalRuleRequest
+	(*DeleteTerminalRuleRequest)(nil),  // 45: werbot.v1.DeleteTerminalRuleRequest
+	(*ListPathRulesResponse)(nil),      // 46: werbot.v1.ListPathRulesResponse
+	(*CreatePathRuleResponse)(nil),     // 47: werbot.v1.CreatePathRuleResponse
+	(*UpdatePathRuleResponse)(nil),     // 48: werbot.v1.UpdatePathRuleResponse
+	(*DeletePathRuleResponse)(nil),     // 49: werbot.v1.DeletePathRuleResponse
+	(*ListTerminalRulesResponse)(nil),  // 50: werbot.v1.ListTerminalRulesResponse
+	(*CreateTerminalRuleResponse)(nil), // 51: werbot.v1.CreateTerminalRuleResponse
+	(*DeleteTerminalRuleResponse)(nil), // 52: werbot.v1.DeleteTerminalRuleResponse
 }
 var file_werbot_v1_policy_proto_depIdxs = []int32{
 	0,  // 0: werbot.v1.GetResourceRulesResponse.networks:type_name -> werbot.v1.NetworkRule
@@ -2274,23 +2330,37 @@ var file_werbot_v1_policy_proto_depIdxs = []int32{
 	30, // 36: werbot.v1.PolicyService.UpdateCustomPolicy:input_type -> werbot.v1.UpdateCustomPolicyRequest
 	32, // 37: werbot.v1.PolicyService.DeleteCustomPolicy:input_type -> werbot.v1.DeleteCustomPolicyRequest
 	34, // 38: werbot.v1.PolicyService.TestCommand:input_type -> werbot.v1.TestCommandRequest
-	4,  // 39: werbot.v1.PolicyService.GetResourceRules:output_type -> werbot.v1.GetResourceRulesResponse
-	6,  // 40: werbot.v1.PolicyService.SetResourceRules:output_type -> werbot.v1.SetResourceRulesResponse
-	8,  // 41: werbot.v1.PolicyService.CheckAccess:output_type -> werbot.v1.CheckAccessResponse
-	11, // 42: werbot.v1.PolicyService.ListCommandRules:output_type -> werbot.v1.ListCommandRulesResponse
-	13, // 43: werbot.v1.PolicyService.CreateCommandRule:output_type -> werbot.v1.CreateCommandRuleResponse
-	15, // 44: werbot.v1.PolicyService.UpdateCommandRule:output_type -> werbot.v1.UpdateCommandRuleResponse
-	17, // 45: werbot.v1.PolicyService.DeleteCommandRule:output_type -> werbot.v1.DeleteCommandRuleResponse
-	20, // 46: werbot.v1.PolicyService.ListClassRules:output_type -> werbot.v1.ListClassRulesResponse
-	22, // 47: werbot.v1.PolicyService.CreateClassRule:output_type -> werbot.v1.CreateClassRuleResponse
-	24, // 48: werbot.v1.PolicyService.DeleteClassRule:output_type -> werbot.v1.DeleteClassRuleResponse
-	27, // 49: werbot.v1.PolicyService.ListCustomPolicies:output_type -> werbot.v1.ListCustomPoliciesResponse
-	29, // 50: werbot.v1.PolicyService.CreateCustomPolicy:output_type -> werbot.v1.CreateCustomPolicyResponse
-	31, // 51: werbot.v1.PolicyService.UpdateCustomPolicy:output_type -> werbot.v1.UpdateCustomPolicyResponse
-	33, // 52: werbot.v1.PolicyService.DeleteCustomPolicy:output_type -> werbot.v1.DeleteCustomPolicyResponse
-	35, // 53: werbot.v1.PolicyService.TestCommand:output_type -> werbot.v1.TestCommandResponse
-	39, // [39:54] is the sub-list for method output_type
-	24, // [24:39] is the sub-list for method input_type
+	39, // 39: werbot.v1.PolicyService.ListPathRules:input_type -> werbot.v1.ListPathRulesRequest
+	40, // 40: werbot.v1.PolicyService.CreatePathRule:input_type -> werbot.v1.CreatePathRuleRequest
+	41, // 41: werbot.v1.PolicyService.UpdatePathRule:input_type -> werbot.v1.UpdatePathRuleRequest
+	42, // 42: werbot.v1.PolicyService.DeletePathRule:input_type -> werbot.v1.DeletePathRuleRequest
+	43, // 43: werbot.v1.PolicyService.ListTerminalRules:input_type -> werbot.v1.ListTerminalRulesRequest
+	44, // 44: werbot.v1.PolicyService.CreateTerminalRule:input_type -> werbot.v1.CreateTerminalRuleRequest
+	45, // 45: werbot.v1.PolicyService.DeleteTerminalRule:input_type -> werbot.v1.DeleteTerminalRuleRequest
+	4,  // 46: werbot.v1.PolicyService.GetResourceRules:output_type -> werbot.v1.GetResourceRulesResponse
+	6,  // 47: werbot.v1.PolicyService.SetResourceRules:output_type -> werbot.v1.SetResourceRulesResponse
+	8,  // 48: werbot.v1.PolicyService.CheckAccess:output_type -> werbot.v1.CheckAccessResponse
+	11, // 49: werbot.v1.PolicyService.ListCommandRules:output_type -> werbot.v1.ListCommandRulesResponse
+	13, // 50: werbot.v1.PolicyService.CreateCommandRule:output_type -> werbot.v1.CreateCommandRuleResponse
+	15, // 51: werbot.v1.PolicyService.UpdateCommandRule:output_type -> werbot.v1.UpdateCommandRuleResponse
+	17, // 52: werbot.v1.PolicyService.DeleteCommandRule:output_type -> werbot.v1.DeleteCommandRuleResponse
+	20, // 53: werbot.v1.PolicyService.ListClassRules:output_type -> werbot.v1.ListClassRulesResponse
+	22, // 54: werbot.v1.PolicyService.CreateClassRule:output_type -> werbot.v1.CreateClassRuleResponse
+	24, // 55: werbot.v1.PolicyService.DeleteClassRule:output_type -> werbot.v1.DeleteClassRuleResponse
+	27, // 56: werbot.v1.PolicyService.ListCustomPolicies:output_type -> werbot.v1.ListCustomPoliciesResponse
+	29, // 57: werbot.v1.PolicyService.CreateCustomPolicy:output_type -> werbot.v1.CreateCustomPolicyResponse
+	31, // 58: werbot.v1.PolicyService.UpdateCustomPolicy:output_type -> werbot.v1.UpdateCustomPolicyResponse
+	33, // 59: werbot.v1.PolicyService.DeleteCustomPolicy:output_type -> werbot.v1.DeleteCustomPolicyResponse
+	35, // 60: werbot.v1.PolicyService.TestCommand:output_type -> werbot.v1.TestCommandResponse
+	46, // 61: werbot.v1.PolicyService.ListPathRules:output_type -> werbot.v1.ListPathRulesResponse
+	47, // 62: werbot.v1.PolicyService.CreatePathRule:output_type -> werbot.v1.CreatePathRuleResponse
+	48, // 63: werbot.v1.PolicyService.UpdatePathRule:output_type -> werbot.v1.UpdatePathRuleResponse
+	49, // 64: werbot.v1.PolicyService.DeletePathRule:output_type -> werbot.v1.DeletePathRuleResponse
+	50, // 65: werbot.v1.PolicyService.ListTerminalRules:output_type -> werbot.v1.ListTerminalRulesResponse
+	51, // 66: werbot.v1.PolicyService.CreateTerminalRule:output_type -> werbot.v1.CreateTerminalRuleResponse
+	52, // 67: werbot.v1.PolicyService.DeleteTerminalRule:output_type -> werbot.v1.DeleteTerminalRuleResponse
+	46, // [46:68] is the sub-list for method output_type
+	24, // [24:46] is the sub-list for method input_type
 	24, // [24:24] is the sub-list for extension type_name
 	24, // [24:24] is the sub-list for extension extendee
 	0,  // [0:24] is the sub-list for field type_name
@@ -2301,6 +2371,7 @@ func file_werbot_v1_policy_proto_init() {
 	if File_werbot_v1_policy_proto != nil {
 		return
 	}
+	file_werbot_v1_policy_paths_proto_init()
 	file_werbot_v1_selector_proto_init()
 	file_werbot_v1_policy_proto_msgTypes[34].OneofWrappers = []any{
 		(*TestCommandRequest_UserId)(nil),

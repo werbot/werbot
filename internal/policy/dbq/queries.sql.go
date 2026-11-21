@@ -13,34 +13,34 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countCommandRuleRefs = `-- name: CountCommandRuleRefs :one
+const countRuleRefs = `-- name: CountRuleRefs :one
 SELECT (SELECT count(*) FROM resource r WHERE r.org_id = $1 AND r.id = ANY($2::uuid[]))::int AS resources,
        (SELECT count(*) FROM membership m WHERE m.org_id = $1 AND m.user_id = ANY($3::uuid[]))::int AS users,
        (SELECT count(*) FROM team t WHERE t.org_id = $1 AND t.id = ANY($4::uuid[]))::int AS teams
 `
 
-type CountCommandRuleRefsParams struct {
+type CountRuleRefsParams struct {
 	OrgID       uuid.UUID
 	ResourceIds []uuid.UUID
 	UserIds     []uuid.UUID
 	TeamIds     []uuid.UUID
 }
 
-type CountCommandRuleRefsRow struct {
+type CountRuleRefsRow struct {
 	Resources int32
 	Users     int32
 	Teams     int32
 }
 
 // How many of the given ids exist in the organization, one count per kind.
-func (q *Queries) CountCommandRuleRefs(ctx context.Context, arg CountCommandRuleRefsParams) (CountCommandRuleRefsRow, error) {
-	row := q.db.QueryRow(ctx, countCommandRuleRefs,
+func (q *Queries) CountRuleRefs(ctx context.Context, arg CountRuleRefsParams) (CountRuleRefsRow, error) {
+	row := q.db.QueryRow(ctx, countRuleRefs,
 		arg.OrgID,
 		arg.ResourceIds,
 		arg.UserIds,
 		arg.TeamIds,
 	)
-	var i CountCommandRuleRefsRow
+	var i CountRuleRefsRow
 	err := row.Scan(&i.Resources, &i.Users, &i.Teams)
 	return i, err
 }
@@ -150,6 +150,91 @@ func (q *Queries) CreateCustomPolicy(ctx context.Context, arg CreateCustomPolicy
 		&i.Enabled,
 		&i.CreatedBy,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createPathRule = `-- name: CreatePathRule :one
+INSERT INTO path_rule (org_id, name, subjects, resource_selector, paths, access, effect, message, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, org_id, name, subjects, resource_selector, paths, access, effect, message, created_by, created_at
+`
+
+type CreatePathRuleParams struct {
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Paths            []string
+	Access           string
+	Effect           string
+	Message          string
+	CreatedBy        *uuid.UUID
+}
+
+func (q *Queries) CreatePathRule(ctx context.Context, arg CreatePathRuleParams) (PathRule, error) {
+	row := q.db.QueryRow(ctx, createPathRule,
+		arg.OrgID,
+		arg.Name,
+		arg.Subjects,
+		arg.ResourceSelector,
+		arg.Paths,
+		arg.Access,
+		arg.Effect,
+		arg.Message,
+		arg.CreatedBy,
+	)
+	var i PathRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.Paths,
+		&i.Access,
+		&i.Effect,
+		&i.Message,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createTerminalRule = `-- name: CreateTerminalRule :one
+INSERT INTO terminal_rule (org_id, name, subjects, resource_selector, mode, created_by)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, org_id, name, subjects, resource_selector, mode, created_by, created_at
+`
+
+type CreateTerminalRuleParams struct {
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Mode             string
+	CreatedBy        *uuid.UUID
+}
+
+func (q *Queries) CreateTerminalRule(ctx context.Context, arg CreateTerminalRuleParams) (TerminalRule, error) {
+	row := q.db.QueryRow(ctx, createTerminalRule,
+		arg.OrgID,
+		arg.Name,
+		arg.Subjects,
+		arg.ResourceSelector,
+		arg.Mode,
+		arg.CreatedBy,
+	)
+	var i TerminalRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.Mode,
+		&i.CreatedBy,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -265,6 +350,34 @@ func (q *Queries) DeleteNetworkRules(ctx context.Context, arg DeleteNetworkRules
 	return err
 }
 
+const deletePathRule = `-- name: DeletePathRule :one
+DELETE FROM path_rule WHERE org_id = $1 AND id = $2 RETURNING id, org_id, name, subjects, resource_selector, paths, access, effect, message, created_by, created_at
+`
+
+type DeletePathRuleParams struct {
+	OrgID uuid.UUID
+	ID    uuid.UUID
+}
+
+func (q *Queries) DeletePathRule(ctx context.Context, arg DeletePathRuleParams) (PathRule, error) {
+	row := q.db.QueryRow(ctx, deletePathRule, arg.OrgID, arg.ID)
+	var i PathRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.Paths,
+		&i.Access,
+		&i.Effect,
+		&i.Message,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const deleteSchedule = `-- name: DeleteSchedule :exec
 DELETE FROM resource_schedule WHERE org_id = $1 AND resource_id = $2
 `
@@ -277,6 +390,31 @@ type DeleteScheduleParams struct {
 func (q *Queries) DeleteSchedule(ctx context.Context, arg DeleteScheduleParams) error {
 	_, err := q.db.Exec(ctx, deleteSchedule, arg.OrgID, arg.ResourceID)
 	return err
+}
+
+const deleteTerminalRule = `-- name: DeleteTerminalRule :one
+DELETE FROM terminal_rule WHERE org_id = $1 AND id = $2 RETURNING id, org_id, name, subjects, resource_selector, mode, created_by, created_at
+`
+
+type DeleteTerminalRuleParams struct {
+	OrgID uuid.UUID
+	ID    uuid.UUID
+}
+
+func (q *Queries) DeleteTerminalRule(ctx context.Context, arg DeleteTerminalRuleParams) (TerminalRule, error) {
+	row := q.db.QueryRow(ctx, deleteTerminalRule, arg.OrgID, arg.ID)
+	var i TerminalRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.Mode,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getGeoIPData = `-- name: GetGeoIPData :one
@@ -588,6 +726,42 @@ func (q *Queries) ListNetworkRules(ctx context.Context, arg ListNetworkRulesPara
 	return items, nil
 }
 
+const listPathRules = `-- name: ListPathRules :many
+SELECT id, org_id, name, subjects, resource_selector, paths, access, effect, message, created_by, created_at FROM path_rule WHERE org_id = $1 ORDER BY name
+`
+
+func (q *Queries) ListPathRules(ctx context.Context, orgID uuid.UUID) ([]PathRule, error) {
+	rows, err := q.db.Query(ctx, listPathRules, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PathRule
+	for rows.Next() {
+		var i PathRule
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.Subjects,
+			&i.ResourceSelector,
+			&i.Paths,
+			&i.Access,
+			&i.Effect,
+			&i.Message,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSchedule = `-- name: ListSchedule :many
 SELECT resource_id, weekday, hour FROM resource_schedule
 WHERE org_id = $1 AND ($2::uuid IS NULL OR resource_id = $2::uuid)
@@ -615,6 +789,39 @@ func (q *Queries) ListSchedule(ctx context.Context, arg ListScheduleParams) ([]L
 	for rows.Next() {
 		var i ListScheduleRow
 		if err := rows.Scan(&i.ResourceID, &i.Weekday, &i.Hour); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTerminalRules = `-- name: ListTerminalRules :many
+SELECT id, org_id, name, subjects, resource_selector, mode, created_by, created_at FROM terminal_rule WHERE org_id = $1 ORDER BY name
+`
+
+func (q *Queries) ListTerminalRules(ctx context.Context, orgID uuid.UUID) ([]TerminalRule, error) {
+	rows, err := q.db.Query(ctx, listTerminalRules, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TerminalRule
+	for rows.Next() {
+		var i TerminalRule
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.Subjects,
+			&i.ResourceSelector,
+			&i.Mode,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -715,6 +922,54 @@ func (q *Queries) UpdateCustomPolicy(ctx context.Context, arg UpdateCustomPolicy
 		&i.Enabled,
 		&i.CreatedBy,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updatePathRule = `-- name: UpdatePathRule :one
+UPDATE path_rule SET name = $1, subjects = $2, resource_selector = $3, paths = $4,
+    access = $5, effect = $6, message = $7
+WHERE org_id = $8 AND id = $9
+RETURNING id, org_id, name, subjects, resource_selector, paths, access, effect, message, created_by, created_at
+`
+
+type UpdatePathRuleParams struct {
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Paths            []string
+	Access           string
+	Effect           string
+	Message          string
+	OrgID            uuid.UUID
+	ID               uuid.UUID
+}
+
+func (q *Queries) UpdatePathRule(ctx context.Context, arg UpdatePathRuleParams) (PathRule, error) {
+	row := q.db.QueryRow(ctx, updatePathRule,
+		arg.Name,
+		arg.Subjects,
+		arg.ResourceSelector,
+		arg.Paths,
+		arg.Access,
+		arg.Effect,
+		arg.Message,
+		arg.OrgID,
+		arg.ID,
+	)
+	var i PathRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.Paths,
+		&i.Access,
+		&i.Effect,
+		&i.Message,
+		&i.CreatedBy,
+		&i.CreatedAt,
 	)
 	return i, err
 }

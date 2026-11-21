@@ -128,7 +128,7 @@ func (p parity) decideExec(ctx context.Context, t *testing.T, action, command st
 		ep, _, err := r.Endpoint()
 		require.NoError(t, err)
 		req.Command, req.Classes = command, pol.Classify(command, ep.Host)
-		res, err := p.s.d.Policy.TestCommand(ctx, p.org, p.user, p.srv, command, ip, monday10)
+		res, err := p.s.d.Policy.TestCommand(ctx, p.org, p.user, p.srv, command, "", ip, monday10)
 		require.NoError(t, err)
 		require.Equal(t, res.Classes, req.Classes, "classes")
 	}

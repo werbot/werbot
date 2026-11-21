@@ -1,0 +1,101 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "werbot/v1/selector.proto";
+
+// PathRule limits the paths a command may touch: "only" keeps every path of
+// the access inside the globs, "deny" and "approval" act on a path inside them.
+message PathRule {
+  string id = 1;
+  string name = 2;
+  Subjects subjects = 3;
+  ResourceSelector resource_selector = 4;
+  repeated string paths = 5; // globs: absolute, "~" or "~/…"
+  string access = 6; // "read" | "write" | "any"
+  string effect = 7; // "only" | "deny" | "approval"
+  string message = 8;
+  string created_by = 9; // empty: the creator was deleted
+  google.protobuf.Timestamp created_at = 10;
+}
+
+message ListPathRulesRequest {}
+message ListPathRulesResponse {
+  repeated PathRule rules = 1;
+}
+
+message CreatePathRuleRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  Subjects subjects = 2;
+  ResourceSelector resource_selector = 3;
+  repeated string paths = 4 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 32
+    unique: true
+    items: {string: {min_len: 1, max_bytes: 1024}}
+  }];
+  string access = 5 [(buf.validate.field).string = {in: ["read", "write", "any"]}];
+  string effect = 6 [(buf.validate.field).string = {in: ["only", "deny", "approval"]}];
+  string message = 7 [(buf.validate.field).string.max_len = 256];
+}
+message CreatePathRuleResponse {
+  PathRule rule = 1;
+}
+
+// UpdatePathRuleRequest replaces the rule as a whole.
+message UpdatePathRuleRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  Subjects subjects = 3;
+  ResourceSelector resource_selector = 4;
+  repeated string paths = 5 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 32
+    unique: true
+    items: {string: {min_len: 1, max_bytes: 1024}}
+  }];
+  string access = 6 [(buf.validate.field).string = {in: ["read", "write", "any"]}];
+  string effect = 7 [(buf.validate.field).string = {in: ["only", "deny", "approval"]}];
+  string message = 8 [(buf.validate.field).string.max_len = 256];
+}
+message UpdatePathRuleResponse {
+  PathRule rule = 1;
+}
+
+message DeletePathRuleRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeletePathRuleResponse {}
+
+// TerminalRule makes the shell of subjects on resources a checked command
+// console ("console") or denies it ("deny").
+message TerminalRule {
+  string id = 1;
+  string name = 2;
+  Subjects subjects = 3;
+  ResourceSelector resource_selector = 4;
+  string mode = 5; // "console" | "deny"
+  string created_by = 6; // empty: the creator was deleted
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message ListTerminalRulesRequest {}
+message ListTerminalRulesResponse {
+  repeated TerminalRule rules = 1;
+}
+
+message CreateTerminalRuleRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  Subjects subjects = 2;
+  ResourceSelector resource_selector = 3;
+  string mode = 4 [(buf.validate.field).string = {in: ["console", "deny"]}];
+}
+message CreateTerminalRuleResponse {
+  TerminalRule rule = 1;
+}
+
+message DeleteTerminalRuleRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteTerminalRuleResponse {}

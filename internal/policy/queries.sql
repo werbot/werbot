@@ -74,7 +74,7 @@ RETURNING *;
 -- name: DeleteCommandRule :one
 DELETE FROM command_rule WHERE org_id = @org_id AND id = @id RETURNING *;
 
--- name: CountCommandRuleRefs :one
+-- name: CountRuleRefs :one
 -- How many of the given ids exist in the organization, one count per kind.
 SELECT (SELECT count(*) FROM resource r WHERE r.org_id = @org_id AND r.id = ANY(@resource_ids::uuid[]))::int AS resources,
        (SELECT count(*) FROM membership m WHERE m.org_id = @org_id AND m.user_id = ANY(@user_ids::uuid[]))::int AS users,
@@ -107,3 +107,31 @@ DELETE FROM custom_policy WHERE org_id = @org_id AND id = @id RETURNING *;
 
 -- name: IsMember :one
 SELECT EXISTS (SELECT 1 FROM membership WHERE org_id = @org_id AND user_id = @user_id);
+
+-- name: ListPathRules :many
+SELECT * FROM path_rule WHERE org_id = @org_id ORDER BY name;
+
+-- name: CreatePathRule :one
+INSERT INTO path_rule (org_id, name, subjects, resource_selector, paths, access, effect, message, created_by)
+VALUES (@org_id, @name, @subjects, @resource_selector, @paths, @access, @effect, @message, @created_by)
+RETURNING *;
+
+-- name: UpdatePathRule :one
+UPDATE path_rule SET name = @name, subjects = @subjects, resource_selector = @resource_selector, paths = @paths,
+    access = @access, effect = @effect, message = @message
+WHERE org_id = @org_id AND id = @id
+RETURNING *;
+
+-- name: DeletePathRule :one
+DELETE FROM path_rule WHERE org_id = @org_id AND id = @id RETURNING *;
+
+-- name: ListTerminalRules :many
+SELECT * FROM terminal_rule WHERE org_id = @org_id ORDER BY name;
+
+-- name: CreateTerminalRule :one
+INSERT INTO terminal_rule (org_id, name, subjects, resource_selector, mode, created_by)
+VALUES (@org_id, @name, @subjects, @resource_selector, @mode, @created_by)
+RETURNING *;
+
+-- name: DeleteTerminalRule :one
+DELETE FROM terminal_rule WHERE org_id = @org_id AND id = @id RETURNING *;

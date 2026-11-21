@@ -3,6 +3,7 @@ package werbot.v1;
 
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
+import "werbot/v1/policy_paths.proto";
 import "werbot/v1/selector.proto";
 
 service PolicyService {
@@ -27,6 +28,16 @@ service PolicyService {
   rpc DeleteCustomPolicy(DeleteCustomPolicyRequest) returns (DeleteCustomPolicyResponse);
   // TestCommand classifies a command and decides it for a subject on a resource (probe).
   rpc TestCommand(TestCommandRequest) returns (TestCommandResponse);
+
+  // Path rules limit the paths a command may touch (messages in policy_paths.proto).
+  rpc ListPathRules(ListPathRulesRequest) returns (ListPathRulesResponse);
+  rpc CreatePathRule(CreatePathRuleRequest) returns (CreatePathRuleResponse);
+  rpc UpdatePathRule(UpdatePathRuleRequest) returns (UpdatePathRuleResponse);
+  rpc DeletePathRule(DeletePathRuleRequest) returns (DeletePathRuleResponse);
+  // Terminal rules make a shell a checked command console or deny it.
+  rpc ListTerminalRules(ListTerminalRulesRequest) returns (ListTerminalRulesResponse);
+  rpc CreateTerminalRule(CreateTerminalRuleRequest) returns (CreateTerminalRuleResponse);
+  rpc DeleteTerminalRule(DeleteTerminalRuleRequest) returns (DeleteTerminalRuleResponse);
 }
 
 // NetworkRule allows or denies a client CIDR.
@@ -217,6 +228,7 @@ message TestCommandRequest {
   }
   string resource_id = 3 [(buf.validate.field).string.uuid = true];
   string command = 4 [(buf.validate.field).string = {min_bytes: 1, max_bytes: 65536}];
+  string cwd = 5 [(buf.validate.field).string.max_bytes = 1024]; // "~", "~/…" or absolute; empty: "~"
 }
 // TestCommandResponse is the exec decision, or the connect decision when connect denies.
 message TestCommandResponse {
@@ -225,4 +237,7 @@ message TestCommandResponse {
   repeated string reasons = 3;
   repeated string obligations = 4;
   string message = 5;
+  repeated string paths = 6; // the paths of the command, in analysis order
+  repeated string path_hits = 7; // ids of the deny and approval path rules of the organization it hits
+  repeated string path_outside = 8; // ids of the only path rules of the organization it leaves
 }

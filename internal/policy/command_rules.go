@@ -2,8 +2,6 @@ package policy
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -105,13 +103,7 @@ func (s Selector) validate() error {
 }
 
 func (in CommandRuleInput) validate() error {
-	if err := validName(in.Name); err != nil {
-		return err
-	}
-	if in.Subjects.empty() {
-		return invalid("subjects must not be empty")
-	}
-	if err := in.Selector.validate(); err != nil {
+	if err := validTarget(in.Name, in.Subjects, in.Selector); err != nil {
 		return err
 	}
 	if err := validClasses(in.Classes); err != nil {
@@ -123,31 +115,10 @@ func (in CommandRuleInput) validate() error {
 	return validMessage(in.Message)
 }
 
-// distinct counts the different ids.
-func distinct(ids []uuid.UUID) int {
-	return len(slices.Compact(slices.SortedFunc(slices.Values(ids), compareIDs)))
-}
-
-// checkRefs refuses users, teams and resources of another organization.
-func (in CommandRuleInput) checkRefs(ctx context.Context, st Store, orgID uuid.UUID) error {
-	n, err := st.CountCommandRuleRefs(ctx, dbq.CountCommandRuleRefsParams{OrgID: orgID, ResourceIds: in.Selector.ResourceIDs,
-		UserIds: in.Subjects.Users, TeamIds: in.Subjects.Teams})
-	if err != nil {
-		return err
-	}
-	if int(n.Users) != distinct(in.Subjects.Users) || int(n.Teams) != distinct(in.Subjects.Teams) {
-		return invalid("subject is not in organization")
-	}
-	if int(n.Resources) != distinct(in.Selector.ResourceIDs) {
-		return invalid("resource is not in organization")
-	}
-	return nil
-}
-
 func toCommandRule(r dbq.CommandRule) (CommandRule, error) {
 	out := CommandRule{ID: r.ID, CommandRuleInput: CommandRuleInput{Name: r.Name, Classes: r.Classes, Effect: r.Effect, Message: r.Message},
 		CreatedBy: r.CreatedBy, CreatedAt: r.CreatedAt}
-	if err := errors.Join(json.Unmarshal(r.Subjects, &out.Subjects), json.Unmarshal(r.ResourceSelector, &out.Selector)); err != nil {
+	if err := decodeTarget(r.Subjects, r.ResourceSelector, &out.Subjects, &out.Selector); err != nil {
 		return CommandRule{}, fmt.Errorf("policy: decode command rule %s: %w", r.ID, err)
 	}
 	return out, nil
@@ -215,15 +186,12 @@ func (s *Service) writeCommandRule(ctx context.Context, orgID uuid.UUID, in Comm
 	}
 	arg := dbq.UpdateCommandRuleParams{OrgID: orgID, Name: in.Name, Classes: in.Classes, Effect: in.Effect, Message: in.Message}
 	var err error
-	if arg.Subjects, err = json.Marshal(in.Subjects); err != nil {
-		return CommandRule{}, err
-	}
-	if arg.ResourceSelector, err = json.Marshal(in.Selector); err != nil {
+	if arg.Subjects, arg.ResourceSelector, err = encodeTarget(in.Subjects, in.Selector); err != nil {
 		return CommandRule{}, err
 	}
 	var out CommandRule
 	err = s.apply(ctx, orgID, "command rule", func(st Store, actor uuid.UUID) (change, error) {
-		if err := in.checkRefs(ctx, st, orgID); err != nil {
+		if err := checkRefs(ctx, st, orgID, in.Subjects, in.Selector); err != nil {
 			return change{}, err
 		}
 		row, err := write(st, arg, actor)

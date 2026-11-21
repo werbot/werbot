@@ -22,22 +22,34 @@ func createdBy(id *uuid.UUID) string {
 	return id.String()
 }
 
-func commandRuleFromProto(name string, subj *werbotv1.Subjects, sel *werbotv1.ResourceSelector, classes []string, effect, message string) (CommandRuleInput, error) {
-	in := CommandRuleInput{Name: name, Subjects: Subjects{AllUsers: subj.GetAllUsers(), AllAgents: subj.GetAllAgents()},
-		Selector: Selector{Labels: sel.GetLabels()}, Classes: classes, Effect: effect, Message: message}
+// targetFromProto parses the subjects and the selector of a rule.
+func targetFromProto(subj *werbotv1.Subjects, sel *werbotv1.ResourceSelector) (Subjects, Selector, error) {
+	s, l := Subjects{AllUsers: subj.GetAllUsers(), AllAgents: subj.GetAllAgents()}, Selector{Labels: sel.GetLabels()}
 	var e1, e2, e3 error
-	in.Subjects.Users, e1 = rpcid.Parse(subj.GetUsers())
-	in.Subjects.Teams, e2 = rpcid.Parse(subj.GetTeams())
-	in.Selector.ResourceIDs, e3 = rpcid.Parse(sel.GetResourceIds())
-	return in, errors.Join(e1, e2, e3)
+	s.Users, e1 = rpcid.Parse(subj.GetUsers())
+	s.Teams, e2 = rpcid.Parse(subj.GetTeams())
+	l.ResourceIDs, e3 = rpcid.Parse(sel.GetResourceIds())
+	return s, l, errors.Join(e1, e2, e3)
+}
+
+func subjectsToProto(s Subjects) *werbotv1.Subjects {
+	return &werbotv1.Subjects{Users: rpcid.Strings(s.Users), Teams: rpcid.Strings(s.Teams), AllUsers: s.AllUsers, AllAgents: s.AllAgents}
+}
+
+func selectorToProto(s Selector) *werbotv1.ResourceSelector {
+	return &werbotv1.ResourceSelector{ResourceIds: rpcid.Strings(s.ResourceIDs), Labels: s.Labels}
+}
+
+func commandRuleFromProto(name string, subj *werbotv1.Subjects, sel *werbotv1.ResourceSelector, classes []string, effect, message string) (CommandRuleInput, error) {
+	in := CommandRuleInput{Name: name, Classes: classes, Effect: effect, Message: message}
+	var err error
+	in.Subjects, in.Selector, err = targetFromProto(subj, sel)
+	return in, err
 }
 
 func commandRuleToProto(r CommandRule) *werbotv1.CommandRule {
-	s := r.Subjects
-	return &werbotv1.CommandRule{Id: r.ID.String(), Name: r.Name,
-		Subjects:         &werbotv1.Subjects{Users: rpcid.Strings(s.Users), Teams: rpcid.Strings(s.Teams), AllUsers: s.AllUsers, AllAgents: s.AllAgents},
-		ResourceSelector: &werbotv1.ResourceSelector{ResourceIds: rpcid.Strings(r.Selector.ResourceIDs), Labels: r.Selector.Labels},
-		Classes:          r.Classes, Effect: r.Effect, Message: r.Message, CreatedBy: createdBy(r.CreatedBy), CreatedAt: timestamppb.New(r.CreatedAt)}
+	return &werbotv1.CommandRule{Id: r.ID.String(), Name: r.Name, Subjects: subjectsToProto(r.Subjects), ResourceSelector: selectorToProto(r.Selector),
+		Classes: r.Classes, Effect: r.Effect, Message: r.Message, CreatedBy: createdBy(r.CreatedBy), CreatedAt: timestamppb.New(r.CreatedAt)}
 }
 
 func classRuleToProto(r ClassRule) *werbotv1.ClassRule {
@@ -241,10 +253,10 @@ func (h *Handler) TestCommand(ctx context.Context, req *connect.Request[werbotv1
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	r, err := h.svc.TestCommand(ctx, org, user, resource, m.GetCommand(), clientip.From(ctx), time.Now())
+	r, err := h.svc.TestCommand(ctx, org, user, resource, m.GetCommand(), m.GetCwd(), clientip.From(ctx), time.Now())
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
 	return connect.NewResponse(&werbotv1.TestCommandResponse{Classes: r.Classes, Allow: r.Allow, Reasons: r.Reasons,
-		Obligations: r.Obligations, Message: r.Message}), nil
+		Obligations: r.Obligations, Message: r.Message, Paths: r.Paths, PathHits: r.PathHits, PathOutside: r.PathOutside}), nil
 }

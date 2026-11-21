@@ -1,10 +1,15 @@
 package policy
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"net/netip"
+	"path"
+	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -15,17 +20,23 @@ import (
 	"github.com/werbot/werbot/internal/policy/dbq"
 )
 
-// CommandResult is the classes of a command and the decision on it: the exec
-// decision, or the connect decision when connect denies.
+// CommandResult is the classes and paths of a command and the decision on it:
+// the exec decision, or the connect decision when connect denies. Paths are
+// the shellclass.PathRef texts in analysis order; PathHits and PathOutside
+// the ids of the path rules of the whole organization it hits or leaves.
 type CommandResult struct {
-	Classes []string
+	Classes                      []string
+	Paths, PathHits, PathOutside []string
 	Decision
 }
 
-// TestCommand classifies command with the class rules of orgID and the host of
-// the resource and decides it for userID from ip at the time at (zero: now):
-// connect first, then the exec action of the resource type.
-func (s *Service) TestCommand(ctx context.Context, orgID, userID, resourceID uuid.UUID, command string, ip netip.Addr, at time.Time) (CommandResult, error) {
+// maxCwdBytes bounds the cwd of TestCommand.
+const maxCwdBytes = 1024
+
+// TestCommand analyzes command from cwd ("" is "~") with the class rules of
+// orgID and the host of the resource and decides it for userID from ip at the
+// time at (zero: now): connect first, then the exec action of the resource type.
+func (s *Service) TestCommand(ctx context.Context, orgID, userID, resourceID uuid.UUID, command, cwd string, ip netip.Addr, at time.Time) (CommandResult, error) {
 	if err := s.requireMember(ctx, orgID, userID); err != nil {
 		return CommandResult{}, err
 	}
@@ -37,15 +48,17 @@ func (s *Service) TestCommand(ctx context.Context, orgID, userID, resourceID uui
 	if !ok {
 		return CommandResult{}, fmt.Errorf("resource type has no exec action: %w", apperr.ErrFailedPrecondition)
 	}
-	classes, err := classify(c.snap.ClassRules, command, c.res.Host)
+	a, err := analyze(c.snap, command, c.res.Host, cwd)
 	if err != nil {
 		return CommandResult{}, err
 	}
-	out := CommandResult{Classes: classes, Decision: c.ps.Authorize(c.req)}
+	out := result(a, c.snap.PathEvalRules())
+	out.Decision = c.ps.Authorize(c.req)
 	if !out.Allow {
 		return out, nil
 	}
-	c.req.Action, c.req.Command, c.req.Classes = exec, command, classes
+	c.req.Action, c.req.Command, c.req.Classes = exec, command, out.Classes
+	c.req.Paths, c.req.PathHits, c.req.PathOutside = out.Paths, out.PathHits, out.PathOutside
 	out.Decision = c.ps.Authorize(c.req)
 	return out, nil
 }
@@ -63,22 +76,42 @@ func (s *Service) requireMember(ctx context.Context, orgID, userID uuid.UUID) er
 	return err
 }
 
-// classify classifies command as the gateway does with the class rules.
-func classify(rules []SnapshotClassRule, command, host string) ([]string, error) {
-	overrides := make([]shellclass.Override, len(rules))
-	for i, r := range rules {
+// analyze analyzes command from cwd ("" is "~") as the gateway does with the
+// class rules of snap; a cwd other than "~", "~/…" or a clean absolute path of
+// at most maxCwdBytes without control characters is invalid.
+func analyze(snap Snapshot, command, host, cwd string) (shellclass.Analysis, error) {
+	cwd = cmp.Or(cwd, "~")
+	if !validCwd(cwd) {
+		return shellclass.Analysis{}, invalid("invalid cwd")
+	}
+	overrides := make([]shellclass.Override, len(snap.ClassRules))
+	for i, r := range snap.ClassRules {
 		overrides[i] = shellclass.Override{Pattern: r.Pattern, Classes: classesOf(r.Classes)}
 	}
 	c, err := shellclass.New(overrides)
 	if err != nil {
-		return nil, fmt.Errorf("policy: class rules: %w", err)
+		return shellclass.Analysis{}, fmt.Errorf("policy: class rules: %w", err)
 	}
-	classes := c.Classify(command, host)
-	out := make([]string, len(classes))
-	for i, cl := range classes {
-		out[i] = string(cl)
+	return c.Analyze(command, host, cwd), nil
+}
+
+func validCwd(cwd string) bool {
+	return len(cwd) <= maxCwdBytes && utf8.ValidString(cwd) && path.Clean(cwd) == cwd &&
+		(cwd == "~" || strings.HasPrefix(cwd, "~/") || strings.HasPrefix(cwd, "/")) &&
+		strings.IndexFunc(cwd, unicode.IsControl) < 0
+}
+
+// result is the classes and paths of a and the path rules it hits or leaves.
+func result(a shellclass.Analysis, rules []shellclass.PathRule) CommandResult {
+	var out CommandResult
+	for _, cl := range a.Classes {
+		out.Classes = append(out.Classes, string(cl))
 	}
-	return out, nil
+	for _, p := range a.Paths {
+		out.Paths = append(out.Paths, p.String())
+	}
+	out.PathHits, out.PathOutside = shellclass.EvalPaths(rules, a.Paths, a.Unresolved)
+	return out
 }
 
 func classesOf(names []string) []shellclass.Class {
