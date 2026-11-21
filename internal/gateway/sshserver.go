@@ -253,8 +253,6 @@ const usageText = "Use ssh <login>+<resource>@<host> to run commands or forward 
 // openText is the user text for an Open error; denied and unknown resources read the same.
 func openText(err error, resource string, kind Kind, pol *Policy) string {
 	switch {
-	case errors.Is(err, ErrNotReady):
-		return "Gateway is not ready, try again later"
 	case errors.Is(err, ErrBusy), errors.Is(err, ErrSpoolMax):
 		return "Gateway is busy, try again later"
 	case errors.Is(err, ErrUnsupportedType):
@@ -262,13 +260,10 @@ func openText(err error, resource string, kind Kind, pol *Policy) string {
 		return fmt.Sprintf("Resource type %q is not supported by this gateway", r.Type)
 	case errors.Is(err, ErrUnsupportedKind):
 		return fmt.Sprintf("Resource %s does not support %s sessions", resource, kind)
-	case errors.Is(err, ErrApprovalTimeout):
-		return ErrApprovalTimeout.Error()
+	case errors.Is(err, ErrShellDenied):
+		return "Interactive shell is not allowed on " + resource
 	}
-	if cd, ok := errors.AsType[*CommandDeniedError](err); ok {
-		return cd.Error()
-	}
-	return "Access denied"
+	return CommandErrorText(err)
 }
 
 // runText is the user text for a connector error.
@@ -278,6 +273,9 @@ func runText(err error, resource string) string {
 	}
 	if errors.Is(err, ErrHostKeyMismatch) {
 		return "SSH host key mismatch for " + resource
+	}
+	if errors.Is(err, ErrConsoleUnavailable) {
+		return ErrConsoleUnavailable.Error()
 	}
 	return "Connection to " + resource + " failed"
 }

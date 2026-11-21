@@ -65,10 +65,15 @@ func (a *activeSessions) expire(now time.Time) {
 		switch {
 		case t.max > 0 && now.Sub(t.started) >= t.max:
 			a.cancelLocked(id, causeMax)
-		case t.idle > 0 && t.c.idleFor(now) >= t.idle:
+		case t.idledOut(now):
 			a.cancelLocked(id, causeIdle)
 		}
 	}
+}
+
+// idledOut reports whether t has passed its idle limit at now; a held session has not.
+func (t *tracked) idledOut(now time.Time) bool {
+	return t.idle > 0 && t.held == 0 && t.c.idleFor(now) >= t.idle
 }
 
 // evaluation is one session to re-evaluate, copied out of activeSessions so the
@@ -142,7 +147,7 @@ func recheck(pol *Policy, e evaluation, now time.Time) (AccessRequest, bool) {
 		}
 	}
 	allow, _ := pol.Authorize(connectOf(req))
-	return req, allow && commandAllowed(pol, req)
+	return req, allow && commandAllowed(pol, req, e.kind)
 }
 
 // limits are the idle timeout and max duration of a session on r.

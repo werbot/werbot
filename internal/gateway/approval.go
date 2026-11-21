@@ -90,12 +90,12 @@ func (c *tunnelClient) SubscribeApproval(id string) (decided <-chan struct{}, un
 }
 
 // approve asks the approvers for the command of req, which d denied with the
-// approval obligation, tells the user where to look and waits for the
-// decision. An unreachable server is ErrNotReady; a refused request, or a
-// denial, refuses the command.
-func (p *Pipeline) approve(ctx context.Context, req AccessRequest, d Decision, notice io.Writer) error {
+// approval obligation, showing them text, tells the user where to look and
+// waits for the decision. An unreachable server is ErrNotReady; a refused
+// request, or a denial, refuses the command.
+func (p *Pipeline) approve(ctx context.Context, req AccessRequest, d Decision, text string, notice io.Writer) error {
 	t, err := p.ctl.RequestApproval(ctx, approvalRequest{UserID: req.User.ID, ResourceID: req.Resource.ID,
-		Command: req.Command, Classes: req.Classes, Reasons: d.Reasons})
+		Command: text, Classes: req.Classes, Reasons: d.Reasons})
 	if unreachable(err) {
 		return controlErr(err)
 	}
@@ -109,7 +109,7 @@ func (p *Pipeline) approve(ctx context.Context, req AccessRequest, d Decision, n
 	if err := p.awaitApproval(ctx, t); !errors.Is(err, ErrApprovalDenied) {
 		return err
 	}
-	return &CommandDeniedError{Err: ErrApprovalDenied, Message: d.Message}
+	return &CommandDeniedError{Err: ErrApprovalDenied, Message: d.Message, Reasons: d.Reasons}
 }
 
 // awaitApproval waits for the decision on t: a hint on the stream or every

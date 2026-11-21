@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"errors"
 	"io"
 	"sync/atomic"
@@ -48,6 +49,7 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 		say(openOut(r, s, err), openText(err, resource, r.Kind, h.p.ctl.Policy()))
 		return 1
 	}
+	h.withKeepalive(sctx, sess)
 	c, ok := LookupConnector(sess.Resource.Type)
 	if !ok { // Open found it; registrations are never removed
 		h.p.abort(sess)
@@ -67,6 +69,19 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 		return 1
 	}
 	return int(exit.Load())
+}
+
+// withKeepalive sends keepalives on the connection of ctx while a console
+// line of s is checked: an approval wait inside Run carries no data either.
+func (h *sshHandler) withKeepalive(ctx ssh.Context, s *Session) {
+	check := s.CheckCommand
+	if check == nil {
+		return
+	}
+	s.CheckCommand = func(c context.Context, command, cwd, home string, notice io.Writer) (CommandCheck, error) {
+		defer keepalive(ctx, h.keepalive)()
+		return check(c, command, cwd, home, notice)
+	}
 }
 
 // sessionRequest is the OpenRequest of a session channel: a shell is a

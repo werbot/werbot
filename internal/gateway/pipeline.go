@@ -57,7 +57,7 @@ type OpenRequest struct {
 // control is the control plane of the pipeline; *tunnelClient implements it.
 type control interface {
 	AuthenticateUser(ctx context.Context, id Identity, ip netip.Addr) (User, error)
-	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes []string) (uuid.UUID, Secret, error)
+	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes, paths []string) (uuid.UUID, Secret, error)
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
 	RequestApproval(ctx context.Context, r approvalRequest) (approvalTicket, error)
 	GetApproval(ctx context.Context, id string) (status string, err error)
@@ -181,11 +181,14 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID
 	if err := p.servable(ctx, r.Kind, req.Resource, host, recorded); err != nil {
 		return nil, req.User.ID, err
 	}
-	if pol, req, err = p.authorizeCommand(ctx, pol, withExecAction(req, r, typ), r.Command, r.Notice); err != nil {
+	if pol, req, err = p.authorizeCommand(ctx, pol, withExecAction(req, r, typ), commandInput{Text: r.Command, Cwd: "~"}, r.Notice); err != nil {
+		return nil, req.User.ID, err
+	}
+	if req, err = p.authorizeShell(pol, req, r, typ); err != nil {
 		return nil, req.User.ID, err
 	}
 	u, res := req.User, req.Resource
-	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target, req.Command, req.Classes)
+	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target, req.Command, req.Classes, req.Paths)
 	if err != nil {
 		return nil, u.ID, controlErr(err)
 	}
@@ -196,14 +199,16 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID
 	t := &tracked{req: req, kind: r.Kind, host: host, version: pol.Version(), started: time.Now()}
 	t.idle, t.max = limits(res, p.cfg)
 	p.active.add(id, t) // reported in heartbeats from now on, so the server keeps the session
-	return &Session{
+	s := &Session{
 		ID: id, Kind: r.Kind, Front: r.Front, User: u, Resource: res, Secret: secret, ClientIP: r.ClientIP, Target: r.Target,
-		Command:   r.Command,
+		Command: r.Command, Classes: req.Classes, Paths: req.Paths, Console: req.Console,
 		PinKey:    func(alg string, key []byte) error { return p.pinKey(res, alg, key) },
 		Dial:      p.dial,
 		Recording: rec,
 		Metrics:   p.cfg.Metrics,
-	}, u.ID, nil
+	}
+	s.CheckCommand = p.commandChecker(req, r, s)
+	return s, u.ID, nil
 }
 
 // Run serves s on c until it ends, then spools the session end with its counters,
@@ -246,6 +251,9 @@ func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel co
 		}
 	}()
 	defer maskExec(s, p.ctl.Policy())() // flushes right after Serve, before Run returns
+	if s.Console {
+		return false, c.(ConsoleServer).ServeConsole(ctx, s) // Open checked it: never a raw shell
+	}
 	return false, c.Serve(ctx, s)
 }
 
@@ -260,7 +268,7 @@ func (p *Pipeline) finish(ctx context.Context, s *Session, reason string) {
 	if c := p.active.countersOf(s.ID); c != nil {
 		final = countersProto(s.ID, c.load())
 	}
-	if err := p.spool.End(s.ID, reason, final, nil); err != nil {
+	if err := p.spool.End(s.ID, reason, final, s.result()); err != nil {
 		p.log.Error("session: end not spooled; the server closes it as lost", "session_id", s.ID, "reason", reason, "error", err)
 	}
 	cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)

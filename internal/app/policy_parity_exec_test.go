@@ -127,7 +127,10 @@ func (p parity) decideExec(ctx context.Context, t *testing.T, action, command st
 	if action == "ssh.exec" {
 		ep, _, err := r.Endpoint()
 		require.NoError(t, err)
-		req.Command, req.Classes = command, pol.Classify(command, ep.Host)
+		for _, c := range pol.Analyze(command, ep.Host, "~").Classes {
+			req.Classes = append(req.Classes, string(c))
+		}
+		req.Command = command
 		res, err := p.s.d.Policy.TestCommand(ctx, p.org, p.user, p.srv, command, "", ip, monday10)
 		require.NoError(t, err)
 		require.Equal(t, res.Classes, req.Classes, "classes")

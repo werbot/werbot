@@ -49,16 +49,45 @@ func matchRows(g, p []string) (full, prefix bool) {
 
 // MatchPath reports whether the normalized path p matches glob: "*" within one
 // segment, "**" any number of segments (zero included), "~" only the leading
-// home segment.
+// home segment. A path outside the literal prefix of glob is rejected before
+// the segment DP.
 func MatchPath(glob, p string) bool {
+	return strings.HasPrefix(p, literalPrefix(glob)) && matchFull(glob, p)
+}
+
+// matchPrefix reports whether p or some path under p may match glob (Ruling G5).
+// p must lie on the literal prefix of glob or under it.
+func matchPrefix(glob, p string) bool {
+	l := literalPrefix(glob)
+	return (strings.HasPrefix(p, l) || strings.HasPrefix(l, p)) && matchSubtree(glob, p)
+}
+
+// matchFull is MatchPath without the literal prefilter.
+func matchFull(glob, p string) bool {
 	full, _ := matchRows(segments(glob), segments(p))
 	return full
 }
 
-// matchPrefix reports whether p or some path under p may match glob (Ruling G5).
-func matchPrefix(glob, p string) bool {
+// matchSubtree is matchPrefix without the literal prefilter.
+func matchSubtree(glob, p string) bool {
 	_, prefix := matchRows(segments(glob), segments(p))
 	return prefix
+}
+
+// globMeta are the bytes path.Match treats as special; "**" contains "*".
+const globMeta = `*?[\`
+
+// literalPrefix is the whole segments of glob before its first segment with
+// a special byte ("/a/b" of "/a/b/*.c"; all of a glob without one). Those
+// segments only match themselves, so every path a glob matches starts with
+// it, and every path a glob prefix matches is on it or under it: the
+// prefilter only rejects pairs the segment DP would reject.
+func literalPrefix(glob string) string {
+	i := strings.IndexAny(glob, globMeta)
+	if i < 0 {
+		return glob
+	}
+	return glob[:max(strings.LastIndexByte(glob[:i], '/'), 0)]
 }
 
 const errGlob = "invalid path glob: "

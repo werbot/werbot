@@ -12,14 +12,24 @@ import (
 	"github.com/stretchr/testify/require"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/internal/platform/shellclass"
 )
 
 const benchCommand = "cat /var/log/syslog | grep -i error | tail -n 50"
 
+// worstCommand touches shellclass.MaxPaths paths (Ruling G6).
+var worstCommand = func() string {
+	paths := make([]string, shellclass.MaxPaths)
+	for i := range paths {
+		paths[i] = fmt.Sprintf("/srv/d%d/f", i)
+	}
+	return "cat " + strings.Join(paths, " ")
+}()
+
 // execBench compiles the latency budget snapshot (design §12): 1 000
-// resources, 1 000 bindings, 100 command rules and 10 custom policies; the
-// request is an ssh.exec of a team member that an approval rule covers, so
-// Decide also runs the trial evaluation of the obligation.
+// resources, 1 000 bindings, 100 command rules, 100 path rules of 4 globs and
+// 10 custom policies; the request is an ssh.exec of a team member that an
+// approval rule covers, so Decide also runs the trial evaluation of the obligation.
 func execBench(tb testing.TB) (*Policy, AccessRequest) {
 	tb.Helper()
 	team, user := uuid.New(), uuid.New()
@@ -47,6 +57,13 @@ func execBench(tb testing.TB) (*Policy, AccessRequest) {
 	for i := range 10 {
 		fmt.Fprintf(&b, "@id(\"custom:%d:0\")\nforbid (principal, action == Werbot::Action::\"ssh.exec\", resource)\nwhen { context.command like \"*shutdown*\" && context.hour == %d };\n\n", i, i)
 	}
+	for i := range 100 {
+		id := uuid.NewString()
+		s.PathRules = append(s.PathRules, &gatewayv1.PathRule{Id: id, Access: "any", Effect: "deny",
+			Paths: []string{fmt.Sprintf("/srv/app%d/**", i), fmt.Sprintf("/home/*/secret%d/**", i), fmt.Sprintf("~/keys%d/*.pem", i), fmt.Sprintf("/etc/conf%d/*", i)}})
+		fmt.Fprintf(&b, "@id(\"path:%s\")\nforbid (principal, action in [Werbot::Action::\"ssh.exec\"], resource)\n"+
+			"when { principal in [Werbot::Team::%q] && context.path_hits.contains(%q) };\n\n", id, team.String(), id)
+	}
 	s.CedarPolicies = b.String()
 	var err error
 	s.EntitiesJson, err = json.Marshal(ents)
@@ -59,10 +76,9 @@ func execBench(tb testing.TB) (*Policy, AccessRequest) {
 		Action: "ssh.exec", Command: benchCommand}
 }
 
-// decideExec classifies the request command and decides it.
+// decideExec analyses the request command, matches its paths and decides it.
 func decideExec(p *Policy, r AccessRequest) Decision {
-	r.Classes = p.Classify(r.Command, "")
-	return p.Decide(r)
+	return p.Decide(p.withCommand(r, commandInput{Text: r.Command, Cwd: "~"}))
 }
 
 func BenchmarkExecDecision(b *testing.B) {

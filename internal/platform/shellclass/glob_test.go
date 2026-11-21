@@ -7,29 +7,31 @@ import (
 	"time"
 )
 
+// matchPathCases are glob, path and whether they match.
+var matchPathCases = []struct {
+	glob, path string
+	want       bool
+}{
+	{"/etc/**", "/etc", true},
+	{"/etc/**", "/etc/a/b", true},
+	{"/etc/*", "/etc/a/b", false},
+	{"/etc/*.conf", "/etc/a.conf", true},
+	{"~/app/**", "~/app/x", true},
+	{"~/app/**", "/home/u/app/x", false},
+	{"/**", "~/x", false},
+	{"/**", "/", true},
+	{"/a/**/c", "/a/c", true},
+	{"/a/**/c", "/a/b/d/c", true},
+	{"/", "/", true},
+	{"/a", "/a/b", false},
+	{"~", "~", true},
+	{"~/**", "~", true},
+	{"/srv/*", "/srv/.env", true},
+}
+
 // Globs match whole segments: "*" inside one segment, "**" any number of segments, "~" only the home symbol.
 func TestMatchPath(t *testing.T) {
-	cases := []struct {
-		glob, path string
-		want       bool
-	}{
-		{"/etc/**", "/etc", true},
-		{"/etc/**", "/etc/a/b", true},
-		{"/etc/*", "/etc/a/b", false},
-		{"/etc/*.conf", "/etc/a.conf", true},
-		{"~/app/**", "~/app/x", true},
-		{"~/app/**", "/home/u/app/x", false},
-		{"/**", "~/x", false},
-		{"/**", "/", true},
-		{"/a/**/c", "/a/c", true},
-		{"/a/**/c", "/a/b/d/c", true},
-		{"/", "/", true},
-		{"/a", "/a/b", false},
-		{"~", "~", true},
-		{"~/**", "~", true},
-		{"/srv/*", "/srv/.env", true},
-	}
-	for _, tc := range cases {
+	for _, tc := range matchPathCases {
 		if got := MatchPath(tc.glob, tc.path); got != tc.want {
 			t.Errorf("MatchPath(%q, %q) = %v, want %v", tc.glob, tc.path, got, tc.want)
 		}

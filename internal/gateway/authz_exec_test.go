@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/internal/platform/shellclass"
 )
 
 // execPolicies is the compiled shape of a binding, a deny rule and an approval
@@ -127,10 +128,11 @@ func TestCompilePolicyRejectsBadClassRule(t *testing.T) {
 func TestClassifyUsesOverrides(t *testing.T) {
 	p, err := CompilePolicy(&gatewayv1.Snapshot{ClassRules: []*gatewayv1.ClassRule{{Pattern: "./deploy.sh", Classes: []string{"write"}}}})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"write"}, p.Classify("./deploy.sh", ""))
-	assert.Equal(t, []string{"opaque"}, p.Classify("./other.sh", ""), "a path without an override is opaque")
-	assert.Equal(t, []string{"read"}, p.Classify("curl http://db.internal/health", "db.internal"), "the resource host is not egress")
-	assert.Equal(t, []string{"opaque"}, (*Policy)(nil).Classify("ls", ""), "no snapshot: opaque")
+	classes := func(p *Policy, command, host string) []shellclass.Class { return p.Analyze(command, host, "~").Classes }
+	assert.Equal(t, []shellclass.Class{"write"}, classes(p, "./deploy.sh", ""))
+	assert.Equal(t, []shellclass.Class{"opaque"}, classes(p, "./other.sh", ""), "a path without an override is opaque")
+	assert.Equal(t, []shellclass.Class{"read"}, classes(p, "curl http://db.internal/health", "db.internal"), "the resource host is not egress")
+	assert.Equal(t, []shellclass.Class{"opaque"}, classes(nil, "ls", ""), "no snapshot: opaque")
 }
 
 func TestMaskOutput(t *testing.T) {

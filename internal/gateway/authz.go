@@ -56,11 +56,15 @@ type AccessRequest struct {
 	CLISessionID uuid.UUID
 	// Action is the Cedar action ("ssh.exec"); "" means "<type>.connect".
 	Action string
-	// Command, Classes and ApprovalGranted describe an exec request; a
-	// connect request leaves them empty.
-	Command         string
-	Classes         []string
-	ApprovalGranted bool
+	// Command, Classes, Paths (shellclass.PathRef texts), PathHits and
+	// PathOutside (path rule ids) and ApprovalGranted describe an exec
+	// request; a connect request leaves them empty.
+	Command                      string
+	Classes                      []string
+	Paths, PathHits, PathOutside []string
+	ApprovalGranted              bool
+	// Console marks a shell served by the command console.
+	Console bool
 }
 
 // Policy is a compiled snapshot: the local policy decision point.
@@ -76,6 +80,7 @@ type Policy struct {
 	lockMode    string                    // "": best_effort
 	notes       map[cedar.PolicyID]note   // @message and @obligation of the policies that have one
 	classifier  *shellclass.Classifier    // built-in classes and the snapshot's class rules
+	pathRules   []shellclass.PathRule     // the snapshot's path rules, by ID
 	maskOutput  string                    // "": an older server, agents
 }
 
@@ -96,7 +101,7 @@ func CompilePolicy(s *gatewayv1.Snapshot) (*Policy, error) {
 	if p.blocklist, err = compileBlocklist(s.GetBlocklist()); err != nil {
 		return nil, err
 	}
-	if p.classifier, err = compileClassRules(s.GetClassRules()); err != nil {
+	if p.classifier, p.pathRules, err = compileCommandRules(s); err != nil {
 		return nil, err
 	}
 	for _, r := range s.GetResources() {

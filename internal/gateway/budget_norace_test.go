@@ -10,14 +10,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestExecDecisionP99 holds the exec decision (classify and decide) of the
-// BenchmarkExecDecision snapshot to the design §12 budget: p99 ≤ 5 ms after
-// 100 warm-up runs, over 2 000 runs. go test runs packages in parallel, so a
+// TestExecDecisionP99 holds the exec decision (analyse, match paths and
+// decide) of the BenchmarkExecDecision snapshot to the design §12 budget, for
+// benchCommand and worstCommand: p99 ≤ 5 ms after 100 warm-up runs, over 2 000 runs. go test runs packages in parallel, so a
 // busy CI runner can stretch one round's tail: the best of three rounds must
 // meet the budget (a real slowdown fails every round). The race detector slows
 // it many times, so the test runs only without it.
 func TestExecDecisionP99(t *testing.T) {
 	p, r := execBench(t)
+	for _, command := range []string{benchCommand, worstCommand} {
+		r.Command = command
+		requireP99(t, p, r)
+	}
+}
+
+func requireP99(t *testing.T, p *Policy, r AccessRequest) {
+	t.Helper()
 	for range 100 {
 		decideExec(p, r)
 	}

@@ -134,7 +134,7 @@ func (f *fakeControl) AuthenticateUser(_ context.Context, id Identity, ip netip.
 	return u, nil
 }
 
-func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _, command string, classes []string) (uuid.UUID, Secret, error) {
+func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _, command string, classes, paths []string) (uuid.UUID, Secret, error) {
 	if f.onStart != nil {
 		f.onStart()
 	}
@@ -148,7 +148,7 @@ func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UU
 	if f.byKey == nil && userID != f.user.ID {
 		return uuid.Nil, Secret{}, fmt.Errorf("unexpected user %s", userID)
 	}
-	return uuid.New(), Secret{Kind: "password", Value: []byte("s3cret-value")}, nil
+	return started(paths), Secret{Kind: "password", Value: []byte("s3cret-value")}, nil
 }
 
 func (f *fakeControl) PinHostKey(_ context.Context, resourceID uuid.UUID, alg string, key []byte) error {

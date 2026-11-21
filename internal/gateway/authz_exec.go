@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"errors"
 	"fmt"
 	"net/netip"
 	"slices"
@@ -9,17 +10,23 @@ import (
 
 	"github.com/cedar-policy/cedar-go"
 	"github.com/cedar-policy/cedar-go/types"
+	"github.com/google/uuid"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/platform/shellclass"
 )
 
-// ObligationApproval asks for an approval of the command.
-const ObligationApproval = "approval"
+// Obligations a deny can carry.
+const (
+	ObligationApproval = "approval" // an approval of the command
+	ObligationConsole  = "console"  // the shell is served by the command console
+)
 
-// obligations are the known @obligation names and how a request meets each.
+// obligations are the known @obligation names and how a request meets each;
+// they mirror internal/policy/obligations.go: change both together.
 var obligations = map[string]func(*AccessRequest){
 	ObligationApproval: func(r *AccessRequest) { r.ApprovalGranted = true },
+	ObligationConsole:  func(r *AccessRequest) { r.Console = true },
 }
 
 // Decision lists the ids of the policies that decided it (@id, else
@@ -62,11 +69,12 @@ func compileCedar(text string) (*cedar.PolicySet, map[cedar.PolicyID]note, error
 	return ps, notes, nil
 }
 
-// compileClassRules builds the classifier of the snapshot class rules; a rule
-// the classifier refuses rejects the snapshot.
-func compileClassRules(rules []*gatewayv1.ClassRule) (*shellclass.Classifier, error) {
-	overrides := make([]shellclass.Override, len(rules))
-	for i, r := range rules {
+// compileCommandRules builds the classifier of the snapshot class rules and
+// the path rules; a rule the classifier refuses, or a path rule with an
+// invalid id, glob, access or effect, rejects the snapshot.
+func compileCommandRules(s *gatewayv1.Snapshot) (*shellclass.Classifier, []shellclass.PathRule, error) {
+	overrides := make([]shellclass.Override, len(s.GetClassRules()))
+	for i, r := range s.GetClassRules() {
 		classes := make([]shellclass.Class, len(r.GetClasses()))
 		for j, c := range r.GetClasses() {
 			classes[j] = shellclass.Class(c)
@@ -75,24 +83,53 @@ func compileClassRules(rules []*gatewayv1.ClassRule) (*shellclass.Classifier, er
 	}
 	c, err := shellclass.New(overrides)
 	if err != nil {
-		return nil, fmt.Errorf("snapshot class rules: %w", err)
+		return nil, nil, fmt.Errorf("snapshot class rules: %w", err)
 	}
-	return c, nil
+	rules := make([]shellclass.PathRule, len(s.GetPathRules()))
+	for i, r := range s.GetPathRules() {
+		if rules[i], err = compilePathRule(r); err != nil {
+			return nil, nil, err
+		}
+	}
+	return c, rules, nil
 }
 
-// Classify returns the classes of command, sorted and never empty, with the
-// snapshot class rules; resourceHost is the host of the target resource. No
-// snapshot: opaque.
-func (p *Policy) Classify(command, resourceHost string) []string {
+var (
+	pathAccesses = []string{string(shellclass.AccessRead), string(shellclass.AccessWrite), string(shellclass.AccessAny)}
+	pathEffects  = []string{"only", "deny", "approval"}
+)
+
+// compilePathRule checks a snapshot path rule as the server compile does
+// (internal/policy/compile_paths.go).
+func compilePathRule(r *gatewayv1.PathRule) (shellclass.PathRule, error) {
+	id, err := uuid.Parse(r.GetId())
+	if err != nil || id.String() != r.GetId() || len(r.GetPaths()) == 0 || !slices.Contains(pathAccesses, r.GetAccess()) || !slices.Contains(pathEffects, r.GetEffect()) {
+		return shellclass.PathRule{}, errors.New("snapshot path rule: invalid id, paths, access or effect")
+	}
+	for _, g := range r.GetPaths() {
+		if err := shellclass.ValidPathGlob(g); err != nil {
+			return shellclass.PathRule{}, fmt.Errorf("snapshot path rule %s: %w", id, err)
+		}
+	}
+	return shellclass.PathRule{ID: id.String(), Globs: slices.Clone(r.GetPaths()), Access: shellclass.Access(r.GetAccess()), Effect: r.GetEffect()}, nil
+}
+
+// Analyze classifies command like the server's TestCommand, with the snapshot
+// class rules and the host of the target resource, and lists the paths it
+// touches from cwd ("~", "~/…" or absolute). No snapshot: opaque and unresolved.
+func (p *Policy) Analyze(command, resourceHost, cwd string) shellclass.Analysis {
 	if p == nil {
-		return []string{string(shellclass.Opaque)}
+		return shellclass.Analysis{Classes: []shellclass.Class{shellclass.Opaque}, Unresolved: true}
 	}
-	classes := p.classifier.Classify(command, resourceHost)
-	out := make([]string, len(classes))
-	for i, c := range classes {
-		out[i] = string(c)
+	return p.classifier.Analyze(command, resourceHost, cwd)
+}
+
+// PathRules are the snapshot path rules, by ID.
+func (p *Policy) PathRules() []shellclass.PathRule {
+	if p == nil {
+		return nil
 	}
-	return out
+	return p.pathRules
 }
 
 // MaskOutput is whose exec output the gateway masks: "agents", "all" or
@@ -192,10 +229,6 @@ func (p *Policy) evaluate(r AccessRequest) (cedar.Decision, cedar.Diagnostic) {
 		UID:     cedar.NewEntityUID("Werbot::User", cedar.String(r.User.ID.String())),
 		Parents: cedar.NewEntityUIDSet(teams...),
 	}
-	classes := make([]cedar.Value, len(r.Classes))
-	for i, c := range r.Classes {
-		classes[i] = cedar.String(c)
-	}
 	req := cedar.Request{
 		Principal: user.UID,
 		Action:    cedar.NewEntityUID("Werbot::Action", cedar.String(r.Action)),
@@ -210,9 +243,22 @@ func (p *Policy) evaluate(r AccessRequest) (cedar.Decision, cedar.Diagnostic) {
 			"now":              cedar.Long(t.Unix()),
 			"cli_session_id":   cedar.String(cliSession(r.CLISessionID)),
 			"command":          cedar.String(r.Command),
-			"classes":          cedar.NewSet(classes...),
+			"classes":          stringSet(r.Classes),
 			"approval_granted": cedar.Boolean(r.ApprovalGranted),
+			"paths":            stringSet(r.Paths),
+			"path_hits":        stringSet(r.PathHits),
+			"path_outside":     stringSet(r.PathOutside),
+			"console":          cedar.Boolean(r.Console),
 		}),
 	}
 	return cedar.Authorize(p.policies, entityGetter{p.entities, user}, req)
+}
+
+// stringSet is values as a Cedar set of strings.
+func stringSet(values []string) cedar.Set {
+	out := make([]cedar.Value, len(values))
+	for i, v := range values {
+		out[i] = cedar.String(v)
+	}
+	return cedar.NewSet(out...)
 }

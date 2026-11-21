@@ -47,6 +47,7 @@ type tracked struct {
 	version   string // the policy version req was last allowed on
 	started   time.Time
 	idle, max time.Duration // 0: no limit
+	held      int           // console checks running (hold): the idle limit waits
 	c         *counters
 	sent      [4]int64 // the counters in the last heartbeat
 }
@@ -191,6 +192,25 @@ func (a *activeSessions) countersOf(id uuid.UUID) *counters {
 		return t.c
 	}
 	return nil
+}
+
+// hold marks a console check of session id running until release: expire
+// skips its idle limit (not its max duration) meanwhile, and the release
+// counts as activity. An unknown session is left alone.
+func (a *activeSessions) hold(id uuid.UUID) (release func()) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	t := a.sessions[id]
+	if t == nil {
+		return func() {}
+	}
+	t.held++
+	return func() {
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		t.held--
+		t.c.touch()
+	}
 }
 
 // done drops a finished session.
