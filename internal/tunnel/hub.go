@@ -175,7 +175,7 @@ func (h *Hub) register(g Gateway, serial string) (*stream, error) {
 	if h.closed {
 		return nil, unavailable("shutdown")
 	}
-	s := &stream{gw: g, serial: serial, wake: make(chan struct{}, 1), done: make(chan struct{})}
+	s := &stream{gw: g, serial: serial, wake: make(chan struct{}, 1), done: make(chan struct{}), ctl: make(chan uuid.UUID, ControlQueueSize)}
 	if h.streams[g.OrgID] == nil {
 		h.streams[g.OrgID] = map[*stream]struct{}{}
 	}

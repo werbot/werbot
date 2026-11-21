@@ -2,13 +2,11 @@ package gateway
 
 import (
 	"cmp"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/netip"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/cedar-policy/cedar-go"
@@ -16,6 +14,7 @@ import (
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/connector"
+	"github.com/werbot/werbot/internal/platform/shellclass"
 )
 
 // User is an organization member resolved by the control plane.
@@ -45,45 +44,65 @@ func (r Resource) Endpoint() (connector.Endpoint, bool, error) {
 	return t.EndpointOf(r.Config)
 }
 
-// AccessRequest asks whether User may connect to Resource; a zero Time means
-// now, Port is the target port of a stream or datagram (0: terminal or exec).
+// AccessRequest asks whether User may perform Action on Resource; a zero Time
+// means now, Port is the target port of a stream or datagram (0: terminal or exec).
 type AccessRequest struct {
 	User     User
 	Resource Resource
 	IP       netip.Addr
 	Time     time.Time
 	Port     uint16
+	// CLISessionID is the CLI session of the user's certificate; uuid.Nil: none.
+	CLISessionID uuid.UUID
+	// Action is the Cedar action ("ssh.exec"); "" means "<type>.connect".
+	Action string
+	// Command, Classes, Paths (shellclass.PathRef texts), PathHits and
+	// PathOutside (path rule ids) and ApprovalGranted describe an exec
+	// request; a connect request leaves them empty.
+	Command                      string
+	Classes                      []string
+	Paths, PathHits, PathOutside []string
+	ApprovalGranted              bool
+	// Console marks a shell served by the command console.
+	Console bool
 }
 
 // Policy is a compiled snapshot: the local policy decision point.
 type Policy struct {
-	version   string
-	policies  *cedar.PolicySet
-	entities  cedar.EntityMap
-	blocklist []netip.Prefix
-	resources []Resource                // by Name
-	members   map[uuid.UUID][]uuid.UUID // org members and their teams; empty: the server sends none
+	version     string
+	policies    *cedar.PolicySet
+	entities    cedar.EntityMap
+	blocklist   []netip.Prefix
+	resources   []Resource                // by Name
+	members     map[uuid.UUID][]uuid.UUID // org members and their teams; empty: the server sends none
+	userCAs     [][]byte                  // wire form of the organization's user CA keys; empty: no certificate
+	expirations []int64                   // unix seconds of grant and lock expiries, ascending
+	lockMode    string                    // "": best_effort
+	notes       map[cedar.PolicyID]note   // @message and @obligation of the policies that have one
+	classifier  *shellclass.Classifier    // built-in classes and the snapshot's class rules
+	pathRules   []shellclass.PathRule     // the snapshot's path rules, by ID
+	maskOutput  string                    // "": an older server, agents
 }
 
 // CompilePolicy parses a snapshot; any malformed part is an error.
 func CompilePolicy(s *gatewayv1.Snapshot) (*Policy, error) {
-	ps, err := cedar.NewPolicySetFromBytes("snapshot.cedar", []byte(s.GetCedarPolicies()))
+	ps, notes, err := compileCedar(s.GetCedarPolicies())
 	if err != nil {
-		return nil, fmt.Errorf("snapshot policies: %w", err)
+		return nil, err
 	}
-	p := &Policy{version: s.GetVersion(), policies: ps, entities: cedar.EntityMap{}}
+	p := &Policy{version: s.GetVersion(), policies: ps, notes: notes, entities: cedar.EntityMap{},
+		expirations: slices.Sorted(slices.Values(s.GetExpirations())), lockMode: s.GetLockMode(), maskOutput: s.GetMaskOutput()}
 	// empty entities_json is the server's deny-all snapshot
 	if b := s.GetEntitiesJson(); len(b) > 0 {
 		if err := json.Unmarshal(b, &p.entities); err != nil {
 			return nil, fmt.Errorf("snapshot entities: %w", err)
 		}
 	}
-	for _, c := range s.GetBlocklist() {
-		pfx, err := netip.ParsePrefix(c)
-		if err != nil {
-			return nil, fmt.Errorf("snapshot blocklist: %w", err)
-		}
-		p.blocklist = append(p.blocklist, pfx)
+	if p.blocklist, err = compileBlocklist(s.GetBlocklist()); err != nil {
+		return nil, err
+	}
+	if p.classifier, p.pathRules, err = compileCommandRules(s); err != nil {
+		return nil, err
 	}
 	for _, r := range s.GetResources() {
 		id, err := uuid.Parse(r.GetId())
@@ -94,7 +113,7 @@ func CompilePolicy(s *gatewayv1.Snapshot) (*Policy, error) {
 			IdleTimeout: max(r.GetIdleTimeout().AsDuration(), 0), MaxDuration: max(r.GetMaxDuration().AsDuration(), 0),
 			HostKeySHA256: r.GetHostKeySha256()})
 	}
-	if p.members, err = compileMembers(s.GetMembers()); err != nil {
+	if p.members, p.userCAs, err = compileSubjects(s); err != nil {
 		return nil, err
 	}
 	slices.SortFunc(p.resources, func(a, b Resource) int { return cmp.Compare(a.Name, b.Name) })
@@ -104,6 +123,18 @@ func CompilePolicy(s *gatewayv1.Snapshot) (*Policy, error) {
 		}
 	}
 	return p, nil
+}
+
+func compileBlocklist(cidrs []string) ([]netip.Prefix, error) {
+	out := make([]netip.Prefix, 0, len(cidrs))
+	for _, c := range cidrs {
+		pfx, err := netip.ParsePrefix(c)
+		if err != nil {
+			return nil, fmt.Errorf("snapshot blocklist: %w", err)
+		}
+		out = append(out, pfx)
+	}
+	return out, nil
 }
 
 func compileMembers(ms []*gatewayv1.Member) (map[uuid.UUID][]uuid.UUID, error) {
@@ -183,58 +214,10 @@ func (p *Policy) Permitted(u User, ip netip.Addr, now time.Time) []Resource {
 	return out
 }
 
-// Authorize decides r with the action "<type>.connect". It mirrors
-// policy.(*PolicySet).Authorize in internal/policy/policy.go, which the gateway
-// may not import; TestPolicyParity keeps the two equal. An invalid IP, an action
-// the resource type lacks or any policy evaluation error denies.
+// Authorize is Decide(r).Allow and its Reasons.
 func (p *Policy) Authorize(r AccessRequest) (allow bool, reasons []string) {
-	if p == nil {
-		return false, []string{"error:compile"}
-	}
-	if !r.IP.IsValid() {
-		return false, []string{"invalid_ip"}
-	}
-	action := r.Resource.Type + ".connect"
-	if !p.typeHasAction(r.Resource.ID, action) {
-		return false, []string{"invalid_action"}
-	}
-	ip := r.IP.Unmap()
-	t := r.Time
-	if t.IsZero() {
-		t = time.Now()
-	}
-	t = t.UTC()
-	teams := make([]cedar.EntityUID, len(r.User.TeamIDs))
-	for i, id := range r.User.TeamIDs {
-		teams[i] = cedar.NewEntityUID("Werbot::Team", cedar.String(id.String()))
-	}
-	user := cedar.Entity{
-		UID:     cedar.NewEntityUID("Werbot::User", cedar.String(r.User.ID.String())),
-		Parents: cedar.NewEntityUIDSet(teams...),
-	}
-	req := cedar.Request{
-		Principal: user.UID,
-		Action:    cedar.NewEntityUID("Werbot::Action", cedar.String(action)),
-		Resource:  cedar.NewEntityUID("Werbot::Resource", cedar.String(r.Resource.ID.String())),
-		Context: cedar.NewRecord(cedar.RecordMap{
-			"ip":         cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
-			"country":    cedar.String(strings.ToUpper(r.User.Country)),
-			"weekday":    cedar.Long(t.Weekday()),
-			"hour":       cedar.Long(t.Hour()),
-			"ip_blocked": cedar.Boolean(slices.ContainsFunc(p.blocklist, func(b netip.Prefix) bool { return b.Contains(ip) })),
-			"port":       cedar.Long(r.Port),
-		}),
-	}
-	d, diag := cedar.Authorize(p.policies, entityGetter{p.entities, user}, req)
-	// cedar-go skips a policy that fails to evaluate: a broken forbid would allow.
-	allow = d == cedar.Allow && len(diag.Errors) == 0
-	for _, rs := range diag.Reasons {
-		reasons = append(reasons, string(rs.PolicyID))
-	}
-	for _, e := range diag.Errors {
-		reasons = append(reasons, "error:"+string(e.PolicyID))
-	}
-	return allow, reasons
+	d := p.Decide(r)
+	return d.Allow, d.Reasons
 }
 
 // typeHasAction reports whether action is one of the actions of the registered
@@ -264,35 +247,11 @@ func (g entityGetter) Get(uid cedar.EntityUID) (cedar.Entity, bool) {
 	return e, ok
 }
 
-// decide authenticates the user of r and asks the PDP whether they may open
-// it: the resource must exist and, for a stream or datagram, the target must be
-// one of its endpoints. The request it decided comes back with an error too, so
-// the denial names the user once known.
-func (p *Pipeline) decide(ctx context.Context, r OpenRequest) (pol *Policy, req AccessRequest, host string, err error) {
-	if pol = p.ctl.Policy(); pol == nil || !p.ctl.Connected() {
-		return nil, req, "", ErrNotReady
+// cliSession is id as context.cli_session_id: uuid.Nil (no CLI session) is "",
+// which no cli_session lock matches.
+func cliSession(id uuid.UUID) string {
+	if id == uuid.Nil {
+		return ""
 	}
-	var reused, ok bool
-	if req.User, reused, err = p.user(ctx, r); err != nil {
-		return nil, AccessRequest{}, "", controlErr(err)
-	}
-	req.IP = r.ClientIP
-	// The handshake's teams may predate pol, which stamps the session: take pol's.
-	if reused {
-		if req.User, ok = pol.withTeams(req.User); !ok {
-			return nil, req, "", ErrDenied
-		}
-	}
-	if req.Resource, ok = pol.Resource(r.Resource); !ok {
-		return nil, req, "", ErrDenied
-	}
-	if r.Kind == KindStream || r.Kind == KindDatagram {
-		if host, req.Port, err = allowTarget(req.Resource, r.Target); err != nil {
-			return nil, req, "", err
-		}
-	}
-	if allow, _ := pol.Authorize(req); !allow {
-		return nil, req, "", ErrDenied
-	}
-	return pol, req, host, nil
+	return id.String()
 }

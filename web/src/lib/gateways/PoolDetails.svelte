@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Badge, Button, Chip, PropertyRow } from '#lib/ui/index.js';
+	import { untrack } from 'svelte';
+	import { Badge, Button, Chip, PropertyRow, Tooltip, toast } from '#lib/ui/index.js';
+	import FormField from '#lib/FormField.svelte';
 	import { gateways } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import type { Gateway, GatewayInstance, JoinToken } from '#lib/gen/werbot/v1/gateway_pb.js';
@@ -19,6 +21,28 @@
 
 	let tokens = $state<JoinToken[]>([]);
 	let failed = $state(false);
+	// the drawer mounts this per pool; the 10 s list poll must not overwrite what the person types
+	let address = $state(untrack(() => pool.sshAddress));
+
+	async function saveAddress(e: SubmitEvent) {
+		e.preventDefault();
+		try {
+			const { gateway } = await gateways.updateGateway({ id: pool.id, sshAddress: address.trim() });
+			address = gateway?.sshAddress ?? '';
+			toast({ tone: 'success', text: m.common_saved() });
+		} catch (err) {
+			failToast(err);
+		}
+	}
+
+	async function copyHostKey() {
+		try {
+			await navigator.clipboard.writeText(pool.hostKey);
+			toast({ tone: 'success', text: m.gateways_copied() });
+		} catch {
+			failToast(m.gateways_copy_failed());
+		}
+	}
 
 	// polled: a failure toasts once, not on every tick; a manual Retry always toasts
 	async function refresh(manual = false) {
@@ -55,7 +79,17 @@
 		<PropertyRow label={m.gateways_col_connectors()}>
 			{#each pool.connectors as c (c)}<Chip>{c}</Chip>{:else}—{/each}
 		</PropertyRow>
+		<PropertyRow label={m.gateways_host_key()}>
+			<code class="host-key">{pool.hostKey}</code>
+			<Tooltip text={m.gateways_host_key_copy()}>
+				<Button scheme="g" variant="ghost" size={28} icon="content_copy" aria-label={m.gateways_host_key_copy()} onclick={copyHostKey} />
+			</Tooltip>
+		</PropertyRow>
 	</div>
+	<form class="address" onsubmit={saveAddress}>
+		<FormField label={m.gateways_ssh_address_label()} hint={m.gateways_ssh_address_hint()} placeholder="gw.example.com:2222" bind:value={address} maxlength={300} />
+		<div><Button size={40} type="submit" variant="solid">{m.gateways_ssh_address_save()}</Button></div>
+	</form>
 	<section><InstancesTable instances={pool.instances} ondelete={ondeleteInstance} bind:menu={instanceMenu} /></section>
 	<section>
 		{#if failed}<LoadFailed onretry={() => refresh(true)} />{:else}<TokensTable {tokens} onrevoke={revoke} />{/if}
@@ -77,6 +111,19 @@
 
 	.cta {
 		margin-top: var(--miso-sp-16);
+	}
+
+	.host-key {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-family: var(--miso-font-mono);
+	}
+
+	.address {
+		display: flex;
+		flex-direction: column;
+		gap: var(--miso-sp-12);
 	}
 
 	section :global(h3) {

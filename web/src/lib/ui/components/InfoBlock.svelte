@@ -98,6 +98,11 @@
 		color: var(--miso-txt-accent);
 	}
 
+	/* no title above: nothing to indent under */
+	.miso-info-block__text:first-child {
+		padding: 8px 6px;
+	}
+
 	.miso-info-block__actions {
 		display: flex;
 		align-items: flex-start;

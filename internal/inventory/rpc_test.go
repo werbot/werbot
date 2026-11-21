@@ -55,7 +55,7 @@ func (f fakeCreds) Kinds(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (map[u
 func newHandler(t *testing.T) (*inventory.Handler, env) {
 	t.Helper()
 	e := setup(t)
-	return inventory.NewHandler(e.svc, fakeCreds{map[uuid.UUID]connector.CredentialKind{}}), e
+	return inventory.NewHandler(e.svc, fakeCreds{map[uuid.UUID]connector.CredentialKind{}}, nil, nil, nil), e
 }
 
 func createReq(name string, cfg *sshv1.Config) *connect.Request[werbotv1.CreateResourceRequest] {
@@ -165,7 +165,7 @@ func TestListResourceTypesExposesKinds(t *testing.T) {
 			continue
 		}
 		assert.Equal(t, []string{"terminal", "exec", "stream"}, ty.GetKinds())
-		assert.Equal(t, []string{"ssh.connect"}, ty.GetActions())
+		assert.Equal(t, []string{"ssh.connect", "ssh.exec", "ssh.shell"}, ty.GetActions())
 		assert.Equal(t, []string{"password", "private_key"}, ty.GetCredentialKinds())
 		assert.Equal(t, "L2", ty.GetLevel())
 		assert.Equal(t, "type.googleapis.com/werbot.connector.ssh.v1.Config", ty.GetConfigTypeUrl())

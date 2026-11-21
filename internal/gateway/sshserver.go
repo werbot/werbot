@@ -29,12 +29,13 @@ type sshFront struct {
 	hostKey          gossh.Signer
 	log              *slog.Logger
 	handshakeTimeout time.Duration // closes a connection that has not authenticated by then
+	keepalive        time.Duration // keepalive@openssh.com period while a session waits to open
 }
 
 var _ Front = (*sshFront)(nil)
 
 func newSSHFront(cfg Config, hostKey gossh.Signer, logger *slog.Logger) *sshFront {
-	return &sshFront{cfg: cfg, hostKey: hostKey, log: logger, handshakeTimeout: 30 * time.Second}
+	return &sshFront{cfg: cfg, hostKey: hostKey, log: logger, handshakeTimeout: 30 * time.Second, keepalive: 30 * time.Second}
 }
 
 func (*sshFront) Name() string { return "ssh" }
@@ -42,7 +43,7 @@ func (*sshFront) Name() string { return "ssh" }
 // Serve accepts SSH connections on ln until ctx ends, then closes ln. Open
 // connections keep running while the pipeline drains and are closed once it stops.
 func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) error {
-	h := &sshHandler{p: p, log: f.log}
+	h := &sshHandler{p: p, log: f.log, keepalive: f.keepalive}
 	srv := &ssh.Server{
 		Version:          "Werbot_" + strings.ReplaceAll(version.Version, "-", "_"),
 		PublicKeyHandler: h.auth,
@@ -86,11 +87,11 @@ func wrapListener(ln net.Listener, proxyProtocol bool) net.Listener {
 // control plane was unreachable.
 type userKey struct{}
 
-// authed is the user accepted at the handshake, the key fingerprint it was
-// found by, and when the lookup started.
+// authed is the user accepted at the handshake, the identity it was found
+// by, and when the lookup started.
 type authed struct {
 	u  User
-	fp string
+	id Identity
 	at time.Time
 }
 
@@ -119,8 +120,9 @@ func (h *sshHandler) authFailed(ctx ssh.Context) {
 }
 
 type sshHandler struct {
-	p   *Pipeline
-	log *slog.Logger
+	p         *Pipeline
+	log       *slog.Logger
+	keepalive time.Duration
 }
 
 // auth checks the key and the login. x/crypto also calls it for keys the client
@@ -137,11 +139,14 @@ func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
 	actx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	ip := clientIP(ctx.RemoteAddr())
-	fp := gossh.FingerprintSHA256(key)
 	start := h.p.now() // the reuse window counts from before the server's lookup
-	u, err := h.p.ctl.AuthenticateUser(actx, fp, ip)
+	id, err := keyIdentity(h.p.ctl.Policy(), login, key, start)
+	var u User
+	if err == nil {
+		u, err = h.p.ctl.AuthenticateUser(actx, id, ip)
+	}
 	switch {
-	case unreachable(err):
+	case unreachable(err), errors.Is(err, ErrNotReady):
 		return true
 	case err != nil:
 		lvl := slog.LevelWarn
@@ -149,14 +154,14 @@ func (h *sshHandler) auth(ctx ssh.Context, key ssh.PublicKey) bool {
 			lvl = slog.LevelInfo // an unknown or refused key
 		}
 		h.log.Log(ctx, lvl, "ssh: key refused", "login", login, "client_ip", ip, "error", err)
-		ctx.SetValue(refusedKey{}, &refusal{fingerprint: fp, user: ctx.User(), ip: ip})
+		ctx.SetValue(refusedKey{}, &refusal{fingerprint: id.Value, user: ctx.User(), ip: ip})
 		return false
 	case u.Login != login:
 		h.log.Info("ssh: key belongs to another login", "login", login, "client_ip", ip)
-		ctx.SetValue(refusedKey{}, &refusal{fingerprint: fp, user: ctx.User(), ip: ip})
+		ctx.SetValue(refusedKey{}, &refusal{fingerprint: id.Value, user: ctx.User(), ip: ip})
 		return false
 	}
-	ctx.SetValue(userKey{}, &authed{u: u, fp: fp, at: start})
+	ctx.SetValue(userKey{}, &authed{u: u, id: id, at: start})
 	return true
 }
 
@@ -219,7 +224,8 @@ func (h *sshHandler) forward(_ *ssh.Server, conn *gossh.ServerConn, nc gossh.New
 	_ = h.p.Run(ctx, sess, c) // the pipeline logs connector errors
 }
 
-// request is the OpenRequest of the key that signed the handshake.
+// request is the OpenRequest of the key that signed the handshake; a
+// certificate keeps the identity its handshake verified.
 func (h *sshHandler) request(ctx ssh.Context, resource string, kind Kind, w Window, target string) OpenRequest {
 	key, _ := ctx.Value(ssh.ContextKeyPublicKey).(ssh.PublicKey) // set by the last accepted key: the one that signed
 	fp := ""
@@ -228,8 +234,8 @@ func (h *sshHandler) request(ctx ssh.Context, resource string, kind Kind, w Wind
 	}
 	r := OpenRequest{Front: "ssh", Kind: kind, Identity: Identity{Method: "ssh-key", Value: fp},
 		Resource: resource, Target: target, ClientIP: clientIP(ctx.RemoteAddr()), Window: w}
-	if a, _ := ctx.Value(userKey{}).(*authed); a != nil && a.fp == fp {
-		r.Handshake = &Handshake{User: a.u, At: a.at}
+	if a, _ := ctx.Value(userKey{}).(*authed); a != nil && a.id.Value == fp {
+		r.Identity, r.Handshake = a.id, &Handshake{User: a.u, At: a.at}
 	}
 	return r
 }
@@ -247,8 +253,6 @@ const usageText = "Use ssh <login>+<resource>@<host> to run commands or forward 
 // openText is the user text for an Open error; denied and unknown resources read the same.
 func openText(err error, resource string, kind Kind, pol *Policy) string {
 	switch {
-	case errors.Is(err, ErrNotReady):
-		return "Gateway is not ready, try again later"
 	case errors.Is(err, ErrBusy), errors.Is(err, ErrSpoolMax):
 		return "Gateway is busy, try again later"
 	case errors.Is(err, ErrUnsupportedType):
@@ -256,8 +260,10 @@ func openText(err error, resource string, kind Kind, pol *Policy) string {
 		return fmt.Sprintf("Resource type %q is not supported by this gateway", r.Type)
 	case errors.Is(err, ErrUnsupportedKind):
 		return fmt.Sprintf("Resource %s does not support %s sessions", resource, kind)
+	case errors.Is(err, ErrShellDenied):
+		return "Interactive shell is not allowed on " + resource
 	}
-	return "Access denied"
+	return CommandErrorText(err)
 }
 
 // runText is the user text for a connector error.
@@ -267,6 +273,9 @@ func runText(err error, resource string) string {
 	}
 	if errors.Is(err, ErrHostKeyMismatch) {
 		return "SSH host key mismatch for " + resource
+	}
+	if errors.Is(err, ErrConsoleUnavailable) {
+		return ErrConsoleUnavailable.Error()
 	}
 	return "Connection to " + resource + " failed"
 }

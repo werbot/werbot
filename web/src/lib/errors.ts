@@ -28,3 +28,9 @@ export function errorMessage(e: unknown): string {
 export function failToast(e: unknown): void {
 	toast({ tone: 'alert', text: typeof e === 'string' ? e : errorMessage(e) });
 }
+
+/** An InvalidArgument error keeps its full server text (for example a glob or a Cedar position); any other error passes unchanged to failToast. */
+export function serverText(e: unknown): unknown {
+	const c = ConnectError.from(e);
+	return c.code === Code.InvalidArgument && c.rawMessage ? c.rawMessage : e;
+}

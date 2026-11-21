@@ -102,6 +102,18 @@ type Session struct {
 	Datagram Datagrams                          // KindDatagram
 	Target   string                             // KindStream, KindDatagram: the requested host:port
 	PinKey   func(alg string, key []byte) error // pins the target host key through the server unless the snapshot pins it; mismatch is ErrHostKeyMismatch
+	// Command is what the connector runs (KindExec, KindTerminal with a command):
+	// the command the PDP decided, or the request's when the type runs none.
+	// The console sets it to the last line it ran.
+	Command string
+	// Classes and Paths are those of Command; the console sets the classes
+	// and paths of every line it ran, sorted and unique.
+	Classes, Paths []string
+	// Console marks a shell served by ConsoleServer: CheckCommand checks a
+	// line (command) run in cwd, with home resolving "~", telling the user
+	// about an approval wait on notice; nil for any other session.
+	Console      bool
+	CheckCommand func(ctx context.Context, command, cwd, home string, notice io.Writer) (CommandCheck, error)
 	// Dial connects to the target; on the embedded gateway it refuses local
 	// addresses with ErrTargetNotAllowed.
 	Dial      func(ctx context.Context, network, address string) (net.Conn, error)

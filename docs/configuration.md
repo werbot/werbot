@@ -86,14 +86,16 @@ No database access. Its four shared variables follow the same rules as on the se
 
 `werbot web` does not read `WERBOT_DATABASE_URL` or `WERBOT_SECRET_KEY`. Details: [web.md](web.md).
 
-## Client (`werbot connect`)
+## Client (`werbot connect`, `werbot login`)
 
 | Variable | Flag | Default | Description |
 | --- | --- | --- | --- |
 | `WERBOT_CONNECT_GATEWAY` | `--gateway` | required | Gateway SSH address `host[:port]`; the port defaults to `2222`. |
 | `WERBOT_CONNECT_LOGIN` | `--login` | required | Werbot login. |
+| `WERBOT_SERVER` | — | server of the last `werbot login` (`<home>/current`) | Server whose profile the client commands use, `http(s)://host[:port]`. |
+| `WERBOT_HOME` | — | `~/.werbot` (Windows: `%USERPROFILE%\.werbot`) | Client profiles: one `0700` directory per server with `profile.json`, the key and the certificate (`0600`). |
 
-Other flags: `-i <key>` and `--known-hosts <path>`. Details: [connect.md](connect.md).
+Other flags: `-i <key>` and `--known-hosts <path>`. Details: [connect.md](connect.md) and [cli.md](cli.md).
 
 ## Docker Compose
 
@@ -135,6 +137,8 @@ Run `werbot server` with `WERBOT_WEB_EMBEDDED=false`: it serves only the API, an
 ## Email
 
 An empty `WERBOT_SMTP_HOST` writes emails to the log. With `WERBOT_ENV=development` the log has the full text with links; in production it does not.
+
+On any port but 465 the server requires STARTTLS. With `WERBOT_ENV=development` it uses STARTTLS only when the SMTP server offers it, so a local server such as Mailpit (`make dev-db`, SMTP `localhost:27025`, inbox http://localhost:27825) works without TLS.
 
 `WERBOT_ENV=development` is for local plain-http runs: the session cookie is `werbot_session` without `Secure`. The production cookie and remote access over plain http: [install.md](install.md#remote-access).
 

@@ -42,6 +42,9 @@ message Session {
   int64 bytes_down = 15;
   int64 datagrams_up = 16;
   int64 datagrams_down = 17;
+  string command = 18; // exec only; cut at 64 KiB
+  repeated string classes = 19; // exec only: read | write | destructive | privilege | secrets | egress | opaque
+  repeated string paths = 25; // paths the command touched; output only
 }
 
 message ListSessionsRequest {

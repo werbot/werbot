@@ -142,7 +142,9 @@ func TestDrain(t *testing.T) {
 		go func() { _ = e.p.Run(t.Context(), s, c) }()
 		start := time.Now()
 		e.p.drain(0)
-		require.Less(t, time.Since(start), 100*time.Millisecond)
+		// the cancel ends the blocker at once; a wait for the 10s flush timeout
+		// would show here, a busy CI runner's scheduling should not
+		require.Less(t, time.Since(start), time.Second)
 		requireEnds(t, e.f, s.ID, "gateway_shutdown")
 	})
 
@@ -183,12 +185,12 @@ func TestIDsCapWarnsOnce(t *testing.T) {
 	for range maxSessionIDs {
 		a.add(uuid.New(), &tracked{})
 	}
-	require.NoError(t, sp.End(uuid.New(), "closed", nil))
+	require.NoError(t, sp.End(uuid.New(), "closed", nil, nil))
 	for range 3 {
 		require.Len(t, heartbeatSessionIDs(a, sp), maxSessionIDs)
 	}
 	require.Equal(t, 1, strings.Count(log.String(), "heartbeat full"))
-	require.NoError(t, sp.End(uuid.New(), "closed", nil))
+	require.NoError(t, sp.End(uuid.New(), "closed", nil, nil))
 	heartbeatSessionIDs(a, sp)
 	require.Equal(t, 2, strings.Count(log.String(), "heartbeat full"), "the omitted count changed")
 }

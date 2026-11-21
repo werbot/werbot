@@ -17,6 +17,10 @@ service TunnelService {
   rpc RenewCertificate(RenewCertificateRequest) returns (RenewCertificateResponse);
   rpc UploadRecordingChunk(UploadRecordingChunkRequest) returns (UploadRecordingChunkResponse);
   rpc FinishRecording(FinishRecordingRequest) returns (FinishRecordingResponse);
+  // RequestApproval asks the approvers to allow one command of a session;
+  // the decision arrives as approval_decided on Connect.
+  rpc RequestApproval(RequestApprovalRequest) returns (RequestApprovalResponse);
+  rpc GetApproval(GetApprovalRequest) returns (GetApprovalResponse);
 }
 
 message ConnectRequest {
@@ -61,19 +65,28 @@ message Denial {
   // resource name from the login; the server resolves the id when it exists
   string resource = 3 [(buf.validate.field).string.max_bytes = 63];
   string kind = 4 [(buf.validate.field).string.max_bytes = 16];
-  string target = 5 [(buf.validate.field).string.max_bytes = 300];
+  // stream or datagram: host:port; exec or terminal with a command: the command
+  string target = 5 [(buf.validate.field).string.max_bytes = 1024];
   string client_ip = 6 [(buf.validate.field).string = {ip: true, max_bytes: 64}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   string reason = 7 [(buf.validate.field).string = {
-    in: ["denied", "target_not_allowed", "unsupported_type", "unsupported_kind", "busy", "spool_full", "auth_failed"]
+    in: ["denied", "target_not_allowed", "unsupported_type", "unsupported_kind", "busy", "spool_full", "auth_failed", "approval_denied", "approval_timeout"]
   }];
   google.protobuf.Timestamp at = 8;
+  // a console line denied inside this session (target: the line) and its decision
+  string session_id = 10 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  repeated string classes = 11 [(buf.validate.field).repeated = {
+    max_items: 7
+    items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
+  }];
+  repeated string paths = 12 [(buf.validate.field).repeated = {max_items: 16, items: {string: {max_bytes: 1024}}}];
+  repeated string reasons = 13 [(buf.validate.field).repeated = {max_items: 16, items: {string: {max_bytes: 128}}}];
 }
 
 // ResourceHealth is one probe result of a resource.
 message ResourceHealth {
   string resource_id = 1 [(buf.validate.field).string.uuid = true];
   bool ok = 2;
-  // the gateway truncates; the bound keeps a full heartbeat under the 1 MiB read limit
+  // the gateway truncates; the bound keeps a full heartbeat under the 4 MiB read limit
   string error = 3 [(buf.validate.field).string.max_bytes = 100];
   google.protobuf.Timestamp checked_at = 4;
 }
@@ -87,7 +100,15 @@ message ConnectResponse {
   oneof msg {
     Snapshot snapshot = 1;
     PoolInstances pool_instances = 2;
+    ApprovalDecided approval_decided = 3;
   }
+}
+
+// ApprovalDecided is a decided command approval of the receiving instance.
+message ApprovalDecided {
+  string approval_id = 1;
+  // "approved" or "denied"
+  string status = 2;
 }
 
 message Snapshot {
@@ -99,6 +120,32 @@ message Snapshot {
   string version = 5;
   // organization members sorted by user_id; a change revokes sessions on the gateway
   repeated Member members = 6;
+  // unix seconds when grants and locks expire, ascending, unique
+  repeated int64 expirations = 7;
+  // "best_effort" or "strict": strict ends sessions when the tunnel is down too long
+  string lock_mode = 8;
+  // "agents", "all" or "none": whose exec output the gateway masks
+  string mask_output = 9;
+  // the organization's command class overrides, ascending pattern
+  repeated ClassRule class_rules = 10;
+  // the organization's path rules by ascending id; only in a compiled snapshot
+  repeated PathRule path_rules = 17;
+  // the organization's user CA keys (authorized_keys); empty: no certificate is accepted
+  repeated string user_ca_keys = 18;
+}
+
+// ClassRule gives the commands matching pattern the classes.
+message ClassRule {
+  string pattern = 1;
+  repeated string classes = 2;
+}
+
+// PathRule is a path rule for EvalPaths: access "read"|"write"|"any", effect "only"|"deny"|"approval".
+message PathRule {
+  string id = 1;
+  repeated string paths = 2;
+  string access = 3;
+  string effect = 4;
 }
 
 // Member is an organization member and its teams, sorted.
@@ -125,8 +172,18 @@ message AuthenticateUserRequest {
     option (buf.validate.oneof).required = true;
     string fingerprint_sha256 = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
     string login = 2 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
+    CertIdentity cert = 4;
   }
   string client_ip = 3 [(buf.validate.field).string = {ip: true, max_bytes: 64}];
+}
+
+// CertIdentity is a user certificate the gateway verified against the
+// organization's user CA: its werbot extensions, principal and fingerprint.
+message CertIdentity {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string cli_session_id = 2 [(buf.validate.field).string.uuid = true];
+  string login = 3 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
+  string cert_fingerprint = 4 [(buf.validate.field).string.max_len = 128];
 }
 
 message AuthenticateUserResponse {
@@ -145,6 +202,14 @@ message StartSessionRequest {
   }];
   // host:port the gateway connects to; empty for terminal and exec
   string target = 5 [(buf.validate.field).string.max_bytes = 300];
+  // exec only: the authorized command (the gateway truncates) and its classes
+  string command = 6 [(buf.validate.field).string.max_bytes = 65536];
+  repeated string classes = 7 [(buf.validate.field).repeated = {
+    max_items: 7
+    items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
+  }];
+  // the paths the authorized command touches
+  repeated string paths = 15 [(buf.validate.field).repeated = {max_items: 256, items: {string: {max_bytes: 1024}}}];
 }
 
 message StartSessionResponse {
@@ -159,12 +224,20 @@ message Credential {
 
 message EndSessionRequest {
   string session_id = 1 [(buf.validate.field).string.uuid = true];
-  // gateway-side end reasons; gateway_lost is set only by the server
+  // gateway-side end reasons; gateway_lost is set only by the server;
+  // policy_stale: a strict organization's tunnel was down too long
   string reason = 2 [(buf.validate.field).string = {
-    in: ["closed", "error", "internal_error", "gateway_shutdown", "recording_unavailable", "idle_timeout", "max_duration", "access_revoked"]
+    in: ["closed", "error", "internal_error", "gateway_shutdown", "recording_unavailable", "idle_timeout", "max_duration", "access_revoked", "policy_stale"]
   }];
   // final totals; unset keeps the stored ones; session_id must equal session_id above
   SessionCounters counters = 3;
+  // console only: the last checked command (the gateway truncates), its classes and paths
+  string command = 8 [(buf.validate.field).string.max_bytes = 65536];
+  repeated string classes = 9 [(buf.validate.field).repeated = {
+    max_items: 7
+    items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
+  }];
+  repeated string paths = 10 [(buf.validate.field).repeated = {max_items: 256, items: {string: {max_bytes: 1024}}}];
 }
 
 message EndSessionResponse {}
@@ -207,3 +280,35 @@ message FinishRecordingRequest {
 }
 
 message FinishRecordingResponse {}
+
+message RequestApprovalRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string resource_id = 2 [(buf.validate.field).string.uuid = true];
+  // empty: the user's own command
+  string agent_run_id = 3 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string command = 4 [(buf.validate.field).string = {min_bytes: 1, max_bytes: 16384}];
+  repeated string classes = 5 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {string: {max_len: 64}}
+  }];
+  repeated string reasons = 6 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {string: {max_len: 256}}
+  }];
+}
+
+message RequestApprovalResponse {
+  string approval_id = 1;
+  google.protobuf.Timestamp expires_at = 2;
+  // the approval page for the approvers
+  string url = 3;
+}
+
+message GetApprovalRequest {
+  string approval_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message GetApprovalResponse {
+  // "pending", "approved", "denied", "expired" or "canceled"
+  string status = 1;
+}

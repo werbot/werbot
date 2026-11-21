@@ -52,6 +52,7 @@
 			<div class="pfm__group">
 				<MenuItem icon="person" iconSize={20} href="/profile" onclick={close}>{m.nav_profile()}</MenuItem>
 				<MenuItem icon="key" iconSize={20} href="/profile/keys" onclick={close}>{m.nav_keys()}</MenuItem>
+				<MenuItem icon="laptop" iconSize={20} href="/profile/cli-sessions" onclick={close}>{m.cli_sessions_title()}</MenuItem>
 			</div>
 
 			<!-- ── footer (.menu__foot-profile) ───────── -->

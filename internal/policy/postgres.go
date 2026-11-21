@@ -15,7 +15,12 @@ type pgStore struct{ *dbq.Queries }
 func newStore(db dbq.DBTX) Store { return pgStore{dbq.New(db)} }
 
 // isForeignKeyViolation reports SQLSTATE 23503.
-func isForeignKeyViolation(err error) bool {
+func isForeignKeyViolation(err error) bool { return pgCode(err, "23503") }
+
+// isUniqueViolation reports SQLSTATE 23505.
+func isUniqueViolation(err error) bool { return pgCode(err, "23505") }
+
+func pgCode(err error, code string) bool {
 	pgErr, ok := errors.AsType[*pgconn.PgError](err)
-	return ok && pgErr.Code == "23503"
+	return ok && pgErr.Code == code
 }

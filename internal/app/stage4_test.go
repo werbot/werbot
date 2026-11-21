@@ -25,6 +25,7 @@ import (
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
+	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/principal"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/policy"
@@ -49,9 +50,9 @@ func stage4Of(t *testing.T, pool *pgxpool.Pool, logger *slog.Logger) stage4 {
 	t.Helper()
 	box, err := secretbox.New(bytes.Repeat([]byte{1}, 32), nil)
 	require.NoError(t, err)
-	d, err := newServices(context.Background(), config.Config{DataDir: t.TempDir()}, pool, box, nil, nil, logger)
+	d, err := newServices(context.Background(), config.Config{DataDir: t.TempDir()}, pool, box, nil, nil, metrics.NewRegistry(), logger)
 	require.NoError(t, err)
-	return stage4{d: d, pool: pool, res: inventory.NewHandler(d.Inventory, d.Credential), acc: access.NewHandler(d.Access), pol: policy.NewHandler(d.Policy)}
+	return stage4{d: d, pool: pool, res: inventory.NewHandler(d.Inventory, d.Credential, d.Policy, d.Gateways, d.Access), acc: access.NewHandler(d.Access), pol: policy.NewHandler(d.Policy)}
 }
 
 // org creates an organization with one user of role and returns the user's ctx.

@@ -241,6 +241,7 @@ type recSink struct {
 
 func (r *recSink) Output(p []byte) { r.mu.Lock(); r.out.Write(p); r.mu.Unlock() }
 func (r *recSink) Input(p []byte)  { r.mu.Lock(); r.in.Write(p); r.mu.Unlock() }
+func (*recSink) Marker(string)     {}
 func (r *recSink) Resize(cols, rows int) {
 	r.mu.Lock()
 	r.sizes = append(r.sizes, gateway.Window{Cols: cols, Rows: rows})

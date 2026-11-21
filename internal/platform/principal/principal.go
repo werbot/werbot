@@ -17,11 +17,21 @@ const (
 	RoleMember = "member"
 )
 
+// How the principal authenticated.
+const (
+	AuthMethodCookie = "cookie"
+	AuthMethodOAuth  = "oauth"
+)
+
 // Principal is the authenticated user acting within one organization.
+// SessionID is the cookie session, CLISessionID the CLI session of a Bearer
+// token; the other is the zero UUID.
 type Principal struct {
 	UserID, OrgID uuid.UUID
 	Role          string
 	SessionID     uuid.UUID
+	AuthMethod    string
+	CLISessionID  uuid.UUID
 }
 
 type ctxKey struct{}

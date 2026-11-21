@@ -12,13 +12,17 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/secretbox"
 )
 
 // Config holds identity settings from the server configuration.
 type Config struct {
-	WebURL        string       // base of links in emails (config.WebURL)
-	SecureCookies bool         // false only for WERBOT_ENV=development
-	Logger        *slog.Logger // nil: slog.Default()
+	WebURL        string            // base of links in emails (config.WebURL)
+	SecureCookies bool              // false only for WERBOT_ENV=development
+	Logger        *slog.Logger      // nil: slog.Default()
+	Box           *secretbox.Box    // seals the organizations' user CAs
+	Metrics       *metrics.Registry // nil: a private registry
 }
 
 // EmailQueue enqueues an email in the caller's transaction.

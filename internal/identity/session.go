@@ -68,7 +68,7 @@ func (s *Service) authenticate(ctx context.Context, rawToken string) (principal.
 		if err != nil {
 			return err
 		}
-		p = principal.Principal{UserID: row.UserID, OrgID: row.OrgID, Role: row.Role, SessionID: row.ID}
+		p = principal.Principal{UserID: row.UserID, OrgID: row.OrgID, Role: row.Role, SessionID: row.ID, AuthMethod: principal.AuthMethodCookie}
 		if !row.Stale {
 			return nil
 		}
@@ -105,35 +105,47 @@ func (s *Service) CurrentSession(ctx context.Context) (SessionInfo, error) {
 	return info, err
 }
 
-// Middleware puts the principal of a valid session cookie into the request
-// context. A missing or invalid session is not an error: the request goes on
-// without a subject and handlers decide with principal.Require. A failed
-// lookup (database down, pool timeout) is logged and answers Connect calls
-// with Unavailable, so clients retry instead of going to the login page;
-// other paths (the SPA) are served without a subject.
-func Middleware(s *Service) func(http.Handler) http.Handler {
+// Middleware puts the principal of a valid session cookie or, when bearer is
+// set, of a CLI access token (Authorization: Bearer) into the request
+// context. With an Authorization header the cookie is never read, even when
+// the token is bad. A missing or invalid credential is not an error: the
+// request goes on without a subject and handlers decide with
+// principal.Require. A failed lookup (database down, pool timeout) is logged
+// and answers Connect calls with Unavailable, so clients retry instead of
+// going to the login page; other paths (the SPA) are served without a subject.
+func Middleware(s *Service, bearer BearerVerifier) func(http.Handler) http.Handler {
 	secure := s.cfg.SecureCookies
 	name := sessionCookieName(secure)
 	logger := cmp.Or(s.cfg.Logger, slog.Default())
 	errw := connect.NewErrorWriter()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if c, err := r.Cookie(name); err == nil {
-				p, extended, err := s.authenticate(r.Context(), c.Value)
-				switch {
-				case err == nil:
-					if extended {
-						http.SetCookie(w, newSessionCookie(c.Value, sessionMaxAge, secure))
-					}
-					r = r.WithContext(principal.With(r.Context(), p))
-				case r.Context().Err() != nil: // client went away: not a store failure
+			var (
+				p   principal.Principal
+				err error
+			)
+			if authz := r.Header.Get("Authorization"); bearer != nil && authz != "" {
+				p, err = s.authenticateBearer(r.Context(), bearer, authz)
+			} else if c, cerr := r.Cookie(name); cerr == nil {
+				var extended bool
+				p, extended, err = s.authenticate(r.Context(), c.Value)
+				if err == nil && extended {
+					http.SetCookie(w, newSessionCookie(c.Value, sessionMaxAge, secure))
+				}
+			} else {
+				next.ServeHTTP(w, r)
+				return
+			}
+			switch {
+			case err == nil:
+				r = r.WithContext(principal.With(r.Context(), p))
+			case r.Context().Err() != nil: // client went away: not a store failure
+				return
+			case !errors.Is(err, apperr.ErrUnauthenticated):
+				logger.Warn("session lookup failed", "err", err) // no path: SPA paths carry one-time tokens
+				if strings.HasPrefix(r.URL.Path, "/werbot.v1.") {
+					_ = errw.Write(w, r, apperr.ToConnect(apperr.ErrUnavailable))
 					return
-				case !errors.Is(err, apperr.ErrUnauthenticated):
-					logger.Warn("session lookup failed", "err", err) // no path: SPA paths carry one-time tokens
-					if strings.HasPrefix(r.URL.Path, "/werbot.v1.") {
-						_ = errw.Write(w, r, apperr.ToConnect(apperr.ErrUnavailable))
-						return
-					}
 				}
 			}
 			next.ServeHTTP(w, r)

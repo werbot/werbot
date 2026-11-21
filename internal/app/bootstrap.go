@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/werbot/werbot/internal/identity/oauth"
 	"github.com/werbot/werbot/internal/platform/db"
 	"github.com/werbot/werbot/internal/platform/jobs"
 	"github.com/werbot/werbot/internal/platform/secretbox"
@@ -17,8 +18,9 @@ import (
 
 // bootstrapped is what werbot server takes from bootstrap.
 type bootstrapped struct {
-	CA     *tlsca.CA
-	Signer *session.Signer
+	CA       *tlsca.CA
+	Signer   *session.Signer
+	OAuthKey *oauth.SigningKey
 }
 
 // bootstrap is the only place for one-off startup work (contract §1.6). It runs
@@ -26,7 +28,8 @@ type bootstrapped struct {
 // waiting for the lock is bounded only by ctx, and a second replica sees the
 // finished schema instead of failing. Later stages append steps to the closure
 // in this order: (1) goose Up, (2) jobs.Migrate, (3) tlsca.LoadOrCreate,
-// (4) session.LoadSigner. box == nil is werbot migrate: steps (1)-(2) only.
+// (4) session.LoadSigner, (5) oauth.LoadSigningKey. box == nil is werbot
+// migrate: steps (1)-(2) only.
 func bootstrap(ctx context.Context, databaseURL string, box *secretbox.Box) (bootstrapped, error) {
 	octx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	bpool, err := db.OpenBootstrap(octx, databaseURL)
@@ -60,6 +63,10 @@ func bootstrap(ctx context.Context, databaseURL string, box *secretbox.Box) (boo
 		}
 		// (4) recording manifest signing key: created once, loaded by every replica.
 		if out.Signer, err = session.LoadSigner(ctx, bpool, box); err != nil {
+			return fmt.Errorf("bootstrap: %w", err)
+		}
+		// (5) OAuth token signing key: created once, loaded by every replica.
+		if out.OAuthKey, err = oauth.LoadSigningKey(ctx, bpool, box); err != nil {
 			return fmt.Errorf("bootstrap: %w", err)
 		}
 		return nil

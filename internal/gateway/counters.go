@@ -21,6 +21,9 @@ type counters struct {
 
 func newCounters(started time.Time) *counters { return &counters{started: started} }
 
+// touch records activity now.
+func (c *counters) touch() { c.last.Store(int64(time.Since(c.started))) }
+
 // idleFor is how long the session has had no traffic at now.
 func (c *counters) idleFor(now time.Time) time.Duration {
 	return now.Sub(c.started) - time.Duration(c.last.Load())
@@ -72,7 +75,7 @@ func (m meter) down(n int) {
 }
 
 // touch notes traffic now: the idle timeout restarts.
-func (m meter) touch() { m.c.last.Store(int64(time.Since(m.c.started))) }
+func (m meter) touch() { m.c.touch() }
 
 // wrap makes the session's client side count its traffic; Run calls it before
 // Serve, once the front has set the streams.

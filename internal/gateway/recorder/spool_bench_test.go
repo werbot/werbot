@@ -20,7 +20,7 @@ func BenchmarkSpoolSessionEnd(b *testing.B) {
 	hash, gz := bytes.Repeat([]byte{1}, 32), make([]byte, 200)
 	for b.Loop() {
 		id := uuid.New()
-		if err := sp.End(id, "closed", nil); err != nil {
+		if err := sp.End(id, "closed", nil, nil); err != nil {
 			b.Fatal(err)
 		}
 		if err := sp.Append(id, 0, hash, gz); err != nil {

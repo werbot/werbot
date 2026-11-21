@@ -41,7 +41,7 @@ type Manifest struct {
 // Uploader delivers the spool to the server; the gateway tunnel client implements it.
 type Uploader interface {
 	UploadChunk(ctx context.Context, sessionID uuid.UUID, seq int, hash, gz []byte) error
-	EndSession(ctx context.Context, sessionID uuid.UUID, reason string, c *gatewayv1.SessionCounters) error // a repeat returns nil; nil c keeps the stored counters
+	EndSession(ctx context.Context, sessionID uuid.UUID, reason string, c *gatewayv1.SessionCounters, r *SessionResult) error // a repeat returns nil; nil c keeps the stored counters
 	FinishRecording(ctx context.Context, m Manifest) error
 }
 

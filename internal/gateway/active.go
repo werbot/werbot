@@ -29,6 +29,7 @@ type activeSessions struct {
 	gauge       *metrics.Gauge
 	log         *slog.Logger
 	draining    bool
+	drained     chan struct{} // closed by startDrain: approval waits end
 	slots       int
 	idleCh      chan struct{}          // closed when slots drops to 0; nil while 0
 	sessions    map[uuid.UUID]*tracked // opened sessions
@@ -46,12 +47,13 @@ type tracked struct {
 	version   string // the policy version req was last allowed on
 	started   time.Time
 	idle, max time.Duration // 0: no limit
+	held      int           // console checks running (hold): the idle limit waits
 	c         *counters
 	sent      [4]int64 // the counters in the last heartbeat
 }
 
 func newActiveSessions(gauge *metrics.Gauge, logger *slog.Logger) *activeSessions {
-	return &activeSessions{gauge: gauge, log: logger, sessions: map[uuid.UUID]*tracked{}}
+	return &activeSessions{gauge: gauge, log: logger, sessions: map[uuid.UUID]*tracked{}, drained: make(chan struct{})}
 }
 
 // reserve takes a slot: ErrNotReady while draining, ErrBusy when limit are taken.
@@ -87,10 +89,13 @@ func (a *activeSessions) release() {
 	}
 }
 
-// startDrain makes every later reserve fail with ErrNotReady.
+// startDrain makes every later reserve fail with ErrNotReady and closes drained.
 func (a *activeSessions) startDrain() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if !a.draining {
+		close(a.drained)
+	}
 	a.draining = true
 }
 
@@ -187,6 +192,25 @@ func (a *activeSessions) countersOf(id uuid.UUID) *counters {
 		return t.c
 	}
 	return nil
+}
+
+// hold marks a console check of session id running until release: expire
+// skips its idle limit (not its max duration) meanwhile, and the release
+// counts as activity. An unknown session is left alone.
+func (a *activeSessions) hold(id uuid.UUID) (release func()) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	t := a.sessions[id]
+	if t == nil {
+		return func() {}
+	}
+	t.held++
+	return func() {
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		t.held--
+		t.c.touch()
+	}
 }
 
 // done drops a finished session.

@@ -9,6 +9,8 @@
 	import { bytes, fmt } from '#lib/format.js';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
+	import ClassChips from '#lib/policies/ClassChips.svelte';
+	import PathChips from '#lib/policies/PathChips.svelte';
 	import CastPlayer from '#lib/player/CastPlayer.svelte';
 	import { isMe } from '#lib/me.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -66,6 +68,9 @@
 				<PropertyRow label={m.sessions_col_resource()}>{session.resourceName || '—'}</PropertyRow>
 				{#if session.kind}<PropertyRow label={m.sessions_kind()}>{session.kind}</PropertyRow>{/if}
 				{#if session.target}<PropertyRow label={m.sessions_target()}>{session.target}</PropertyRow>{/if}
+				{#if session.command}<PropertyRow label={m.sessions_col_command()}><code>{session.command}</code></PropertyRow>{/if}
+				{#if session.classes.length > 0}<PropertyRow label={m.sessions_classes()}><ClassChips classes={session.classes} /></PropertyRow>{/if}
+				{#if session.paths.length > 0}<PropertyRow label={m.sessions_paths()}><PathChips paths={session.paths} /></PropertyRow>{/if}
 				<PropertyRow label={m.sessions_client_ip()}>{session.clientIp || '—'}</PropertyRow>
 				<PropertyRow label={m.sessions_col_started()}>{fmt(session.startedAt)}</PropertyRow>
 				<PropertyRow label={m.sessions_col_ended()}>{fmt(session.endedAt)}</PropertyRow>
@@ -87,6 +92,12 @@
 		grid-template-columns: 1fr 320px;
 		gap: var(--miso-sp-16);
 		align-items: start;
+	}
+
+	code {
+		font-family: var(--miso-font-mono);
+		font-size: 12px;
+		overflow-wrap: anywhere;
 	}
 
 	.user {

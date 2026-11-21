@@ -526,6 +526,195 @@ func (x *ListResourceTypesResponse) GetTypes() []*ResourceType {
 	return nil
 }
 
+// A resource the caller may connect to or request access to, with the address and host key of its pool.
+type AccessibleResource struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Kinds         []string               `protobuf:"bytes,4,rep,name=kinds,proto3" json:"kinds,omitempty"`
+	Labels        map[string]string      `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	SshAddress    string                 `protobuf:"bytes,6,opt,name=ssh_address,json=sshAddress,proto3" json:"ssh_address,omitempty"` // empty without a pool or before the address is set
+	HostKey       string                 `protobuf:"bytes,8,opt,name=host_key,json=hostKey,proto3" json:"host_key,omitempty"`          // authorized_keys line of the pool host key
+	Requestable   bool                   `protobuf:"varint,9,opt,name=requestable,proto3" json:"requestable,omitempty"`                // an approval policy lets the caller request access
+	Allowed       bool                   `protobuf:"varint,10,opt,name=allowed,proto3" json:"allowed,omitempty"`                       // the caller may connect now
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccessibleResource) Reset() {
+	*x = AccessibleResource{}
+	mi := &file_werbot_v1_resource_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccessibleResource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccessibleResource) ProtoMessage() {}
+
+func (x *AccessibleResource) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_resource_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccessibleResource.ProtoReflect.Descriptor instead.
+func (*AccessibleResource) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AccessibleResource) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AccessibleResource) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AccessibleResource) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *AccessibleResource) GetKinds() []string {
+	if x != nil {
+		return x.Kinds
+	}
+	return nil
+}
+
+func (x *AccessibleResource) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *AccessibleResource) GetSshAddress() string {
+	if x != nil {
+		return x.SshAddress
+	}
+	return ""
+}
+
+func (x *AccessibleResource) GetHostKey() string {
+	if x != nil {
+		return x.HostKey
+	}
+	return ""
+}
+
+func (x *AccessibleResource) GetRequestable() bool {
+	if x != nil {
+		return x.Requestable
+	}
+	return false
+}
+
+func (x *AccessibleResource) GetAllowed() bool {
+	if x != nil {
+		return x.Allowed
+	}
+	return false
+}
+
+type ListAccessibleResourcesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAccessibleResourcesRequest) Reset() {
+	*x = ListAccessibleResourcesRequest{}
+	mi := &file_werbot_v1_resource_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAccessibleResourcesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAccessibleResourcesRequest) ProtoMessage() {}
+
+func (x *ListAccessibleResourcesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_resource_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAccessibleResourcesRequest.ProtoReflect.Descriptor instead.
+func (*ListAccessibleResourcesRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{7}
+}
+
+type ListAccessibleResourcesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Resources     []*AccessibleResource  `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAccessibleResourcesResponse) Reset() {
+	*x = ListAccessibleResourcesResponse{}
+	mi := &file_werbot_v1_resource_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAccessibleResourcesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAccessibleResourcesResponse) ProtoMessage() {}
+
+func (x *ListAccessibleResourcesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_resource_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAccessibleResourcesResponse.ProtoReflect.Descriptor instead.
+func (*ListAccessibleResourcesResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ListAccessibleResourcesResponse) GetResources() []*AccessibleResource {
+	if x != nil {
+		return x.Resources
+	}
+	return nil
+}
+
 type ListResourcesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	LabelFilter   map[string]string      `protobuf:"bytes,1,rep,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -535,7 +724,7 @@ type ListResourcesRequest struct {
 
 func (x *ListResourcesRequest) Reset() {
 	*x = ListResourcesRequest{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[6]
+	mi := &file_werbot_v1_resource_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -547,7 +736,7 @@ func (x *ListResourcesRequest) String() string {
 func (*ListResourcesRequest) ProtoMessage() {}
 
 func (x *ListResourcesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[6]
+	mi := &file_werbot_v1_resource_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -560,7 +749,7 @@ func (x *ListResourcesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResourcesRequest.ProtoReflect.Descriptor instead.
 func (*ListResourcesRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{6}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListResourcesRequest) GetLabelFilter() map[string]string {
@@ -579,7 +768,7 @@ type ListResourcesResponse struct {
 
 func (x *ListResourcesResponse) Reset() {
 	*x = ListResourcesResponse{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[7]
+	mi := &file_werbot_v1_resource_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -591,7 +780,7 @@ func (x *ListResourcesResponse) String() string {
 func (*ListResourcesResponse) ProtoMessage() {}
 
 func (x *ListResourcesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[7]
+	mi := &file_werbot_v1_resource_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -604,7 +793,7 @@ func (x *ListResourcesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResourcesResponse.ProtoReflect.Descriptor instead.
 func (*ListResourcesResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{7}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListResourcesResponse) GetResources() []*Resource {
@@ -623,7 +812,7 @@ type GetResourceRequest struct {
 
 func (x *GetResourceRequest) Reset() {
 	*x = GetResourceRequest{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[8]
+	mi := &file_werbot_v1_resource_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -635,7 +824,7 @@ func (x *GetResourceRequest) String() string {
 func (*GetResourceRequest) ProtoMessage() {}
 
 func (x *GetResourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[8]
+	mi := &file_werbot_v1_resource_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -648,7 +837,7 @@ func (x *GetResourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetResourceRequest.ProtoReflect.Descriptor instead.
 func (*GetResourceRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{8}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetResourceRequest) GetId() string {
@@ -667,7 +856,7 @@ type GetResourceResponse struct {
 
 func (x *GetResourceResponse) Reset() {
 	*x = GetResourceResponse{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[9]
+	mi := &file_werbot_v1_resource_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -679,7 +868,7 @@ func (x *GetResourceResponse) String() string {
 func (*GetResourceResponse) ProtoMessage() {}
 
 func (x *GetResourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[9]
+	mi := &file_werbot_v1_resource_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -692,7 +881,7 @@ func (x *GetResourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetResourceResponse.ProtoReflect.Descriptor instead.
 func (*GetResourceResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{9}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetResourceResponse) GetResource() *Resource {
@@ -720,7 +909,7 @@ type CreateResourceRequest struct {
 
 func (x *CreateResourceRequest) Reset() {
 	*x = CreateResourceRequest{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[10]
+	mi := &file_werbot_v1_resource_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -732,7 +921,7 @@ func (x *CreateResourceRequest) String() string {
 func (*CreateResourceRequest) ProtoMessage() {}
 
 func (x *CreateResourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[10]
+	mi := &file_werbot_v1_resource_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -745,7 +934,7 @@ func (x *CreateResourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateResourceRequest.ProtoReflect.Descriptor instead.
 func (*CreateResourceRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{10}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CreateResourceRequest) GetName() string {
@@ -813,7 +1002,7 @@ type CreateResourceResponse struct {
 
 func (x *CreateResourceResponse) Reset() {
 	*x = CreateResourceResponse{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[11]
+	mi := &file_werbot_v1_resource_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -825,7 +1014,7 @@ func (x *CreateResourceResponse) String() string {
 func (*CreateResourceResponse) ProtoMessage() {}
 
 func (x *CreateResourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[11]
+	mi := &file_werbot_v1_resource_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -838,7 +1027,7 @@ func (x *CreateResourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateResourceResponse.ProtoReflect.Descriptor instead.
 func (*CreateResourceResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{11}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *CreateResourceResponse) GetResource() *Resource {
@@ -866,7 +1055,7 @@ type UpdateResourceRequest struct {
 
 func (x *UpdateResourceRequest) Reset() {
 	*x = UpdateResourceRequest{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[12]
+	mi := &file_werbot_v1_resource_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -878,7 +1067,7 @@ func (x *UpdateResourceRequest) String() string {
 func (*UpdateResourceRequest) ProtoMessage() {}
 
 func (x *UpdateResourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[12]
+	mi := &file_werbot_v1_resource_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -891,7 +1080,7 @@ func (x *UpdateResourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateResourceRequest.ProtoReflect.Descriptor instead.
 func (*UpdateResourceRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{12}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UpdateResourceRequest) GetId() string {
@@ -959,7 +1148,7 @@ type UpdateResourceResponse struct {
 
 func (x *UpdateResourceResponse) Reset() {
 	*x = UpdateResourceResponse{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[13]
+	mi := &file_werbot_v1_resource_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -971,7 +1160,7 @@ func (x *UpdateResourceResponse) String() string {
 func (*UpdateResourceResponse) ProtoMessage() {}
 
 func (x *UpdateResourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[13]
+	mi := &file_werbot_v1_resource_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -984,7 +1173,7 @@ func (x *UpdateResourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateResourceResponse.ProtoReflect.Descriptor instead.
 func (*UpdateResourceResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{13}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *UpdateResourceResponse) GetResource() *Resource {
@@ -1003,7 +1192,7 @@ type DeleteResourceRequest struct {
 
 func (x *DeleteResourceRequest) Reset() {
 	*x = DeleteResourceRequest{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[14]
+	mi := &file_werbot_v1_resource_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1015,7 +1204,7 @@ func (x *DeleteResourceRequest) String() string {
 func (*DeleteResourceRequest) ProtoMessage() {}
 
 func (x *DeleteResourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[14]
+	mi := &file_werbot_v1_resource_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1028,7 +1217,7 @@ func (x *DeleteResourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteResourceRequest.ProtoReflect.Descriptor instead.
 func (*DeleteResourceRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{14}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DeleteResourceRequest) GetId() string {
@@ -1046,7 +1235,7 @@ type DeleteResourceResponse struct {
 
 func (x *DeleteResourceResponse) Reset() {
 	*x = DeleteResourceResponse{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[15]
+	mi := &file_werbot_v1_resource_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1058,7 +1247,7 @@ func (x *DeleteResourceResponse) String() string {
 func (*DeleteResourceResponse) ProtoMessage() {}
 
 func (x *DeleteResourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[15]
+	mi := &file_werbot_v1_resource_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1071,7 +1260,7 @@ func (x *DeleteResourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteResourceResponse.ProtoReflect.Descriptor instead.
 func (*DeleteResourceResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{15}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{18}
 }
 
 type SetCredentialRequest struct {
@@ -1085,7 +1274,7 @@ type SetCredentialRequest struct {
 
 func (x *SetCredentialRequest) Reset() {
 	*x = SetCredentialRequest{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[16]
+	mi := &file_werbot_v1_resource_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1097,7 +1286,7 @@ func (x *SetCredentialRequest) String() string {
 func (*SetCredentialRequest) ProtoMessage() {}
 
 func (x *SetCredentialRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[16]
+	mi := &file_werbot_v1_resource_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1110,7 +1299,7 @@ func (x *SetCredentialRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetCredentialRequest.ProtoReflect.Descriptor instead.
 func (*SetCredentialRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{16}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SetCredentialRequest) GetResourceId() string {
@@ -1142,7 +1331,7 @@ type SetCredentialResponse struct {
 
 func (x *SetCredentialResponse) Reset() {
 	*x = SetCredentialResponse{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[17]
+	mi := &file_werbot_v1_resource_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1154,7 +1343,7 @@ func (x *SetCredentialResponse) String() string {
 func (*SetCredentialResponse) ProtoMessage() {}
 
 func (x *SetCredentialResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[17]
+	mi := &file_werbot_v1_resource_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1167,7 +1356,7 @@ func (x *SetCredentialResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetCredentialResponse.ProtoReflect.Descriptor instead.
 func (*SetCredentialResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{17}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{20}
 }
 
 type ClearCredentialRequest struct {
@@ -1179,7 +1368,7 @@ type ClearCredentialRequest struct {
 
 func (x *ClearCredentialRequest) Reset() {
 	*x = ClearCredentialRequest{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[18]
+	mi := &file_werbot_v1_resource_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1191,7 +1380,7 @@ func (x *ClearCredentialRequest) String() string {
 func (*ClearCredentialRequest) ProtoMessage() {}
 
 func (x *ClearCredentialRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[18]
+	mi := &file_werbot_v1_resource_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1204,7 +1393,7 @@ func (x *ClearCredentialRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearCredentialRequest.ProtoReflect.Descriptor instead.
 func (*ClearCredentialRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{18}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ClearCredentialRequest) GetResourceId() string {
@@ -1222,7 +1411,7 @@ type ClearCredentialResponse struct {
 
 func (x *ClearCredentialResponse) Reset() {
 	*x = ClearCredentialResponse{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[19]
+	mi := &file_werbot_v1_resource_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1234,7 +1423,7 @@ func (x *ClearCredentialResponse) String() string {
 func (*ClearCredentialResponse) ProtoMessage() {}
 
 func (x *ClearCredentialResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[19]
+	mi := &file_werbot_v1_resource_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1247,7 +1436,7 @@ func (x *ClearCredentialResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearCredentialResponse.ProtoReflect.Descriptor instead.
 func (*ClearCredentialResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{19}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{22}
 }
 
 type ClearHostKeyRequest struct {
@@ -1259,7 +1448,7 @@ type ClearHostKeyRequest struct {
 
 func (x *ClearHostKeyRequest) Reset() {
 	*x = ClearHostKeyRequest{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[20]
+	mi := &file_werbot_v1_resource_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1271,7 +1460,7 @@ func (x *ClearHostKeyRequest) String() string {
 func (*ClearHostKeyRequest) ProtoMessage() {}
 
 func (x *ClearHostKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[20]
+	mi := &file_werbot_v1_resource_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1284,7 +1473,7 @@ func (x *ClearHostKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearHostKeyRequest.ProtoReflect.Descriptor instead.
 func (*ClearHostKeyRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{20}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ClearHostKeyRequest) GetResourceId() string {
@@ -1302,7 +1491,7 @@ type ClearHostKeyResponse struct {
 
 func (x *ClearHostKeyResponse) Reset() {
 	*x = ClearHostKeyResponse{}
-	mi := &file_werbot_v1_resource_proto_msgTypes[21]
+	mi := &file_werbot_v1_resource_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1314,7 +1503,7 @@ func (x *ClearHostKeyResponse) String() string {
 func (*ClearHostKeyResponse) ProtoMessage() {}
 
 func (x *ClearHostKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_resource_proto_msgTypes[21]
+	mi := &file_werbot_v1_resource_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1327,7 +1516,7 @@ func (x *ClearHostKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearHostKeyResponse.ProtoReflect.Descriptor instead.
 func (*ClearHostKeyResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{21}
+	return file_werbot_v1_resource_proto_rawDescGZIP(), []int{24}
 }
 
 var File_werbot_v1_resource_proto protoreflect.FileDescriptor
@@ -1384,7 +1573,25 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x1a\n" +
 	"\x18ListResourceTypesRequest\"J\n" +
 	"\x19ListResourceTypesResponse\x12-\n" +
-	"\x05types\x18\x01 \x03(\v2\x17.werbot.v1.ResourceTypeR\x05types\"\xab\x01\n" +
+	"\x05types\x18\x01 \x03(\v2\x17.werbot.v1.ResourceTypeR\x05types\"\xd8\x02\n" +
+	"\x12AccessibleResource\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
+	"\x04type\x18\x03 \x01(\tR\x04type\x12\x14\n" +
+	"\x05kinds\x18\x04 \x03(\tR\x05kinds\x12A\n" +
+	"\x06labels\x18\x05 \x03(\v2).werbot.v1.AccessibleResource.LabelsEntryR\x06labels\x12\x1f\n" +
+	"\vssh_address\x18\x06 \x01(\tR\n" +
+	"sshAddress\x12\x19\n" +
+	"\bhost_key\x18\b \x01(\tR\ahostKey\x12 \n" +
+	"\vrequestable\x18\t \x01(\bR\vrequestable\x12\x18\n" +
+	"\aallowed\x18\n" +
+	" \x01(\bR\aallowed\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\" \n" +
+	"\x1eListAccessibleResourcesRequest\"^\n" +
+	"\x1fListAccessibleResourcesResponse\x12;\n" +
+	"\tresources\x18\x01 \x03(\v2\x1d.werbot.v1.AccessibleResourceR\tresources\"\xab\x01\n" +
 	"\x14ListResourcesRequest\x12S\n" +
 	"\flabel_filter\x18\x01 \x03(\v20.werbot.v1.ListResourcesRequest.LabelFilterEntryR\vlabelFilter\x1a>\n" +
 	"\x10LabelFilterEntry\x12\x10\n" +
@@ -1448,10 +1655,11 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\x13ClearHostKeyRequest\x12)\n" +
 	"\vresource_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
 	"resourceId\"\x16\n" +
-	"\x14ClearHostKeyResponse2\x97\x06\n" +
+	"\x14ClearHostKeyResponse2\x89\a\n" +
 	"\x0fResourceService\x12^\n" +
 	"\x11ListResourceTypes\x12#.werbot.v1.ListResourceTypesRequest\x1a$.werbot.v1.ListResourceTypesResponse\x12R\n" +
-	"\rListResources\x12\x1f.werbot.v1.ListResourcesRequest\x1a .werbot.v1.ListResourcesResponse\x12L\n" +
+	"\rListResources\x12\x1f.werbot.v1.ListResourcesRequest\x1a .werbot.v1.ListResourcesResponse\x12p\n" +
+	"\x17ListAccessibleResources\x12).werbot.v1.ListAccessibleResourcesRequest\x1a*.werbot.v1.ListAccessibleResourcesResponse\x12L\n" +
 	"\vGetResource\x12\x1d.werbot.v1.GetResourceRequest\x1a\x1e.werbot.v1.GetResourceResponse\x12U\n" +
 	"\x0eCreateResource\x12 .werbot.v1.CreateResourceRequest\x1a!.werbot.v1.CreateResourceResponse\x12U\n" +
 	"\x0eUpdateResource\x12 .werbot.v1.UpdateResourceRequest\x1a!.werbot.v1.UpdateResourceResponse\x12U\n" +
@@ -1475,88 +1683,96 @@ func file_werbot_v1_resource_proto_rawDescGZIP() []byte {
 }
 
 var file_werbot_v1_resource_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_werbot_v1_resource_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_werbot_v1_resource_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_werbot_v1_resource_proto_goTypes = []any{
-	(ResourceHealth_State)(0),         // 0: werbot.v1.ResourceHealth.State
-	(*ResourceType)(nil),              // 1: werbot.v1.ResourceType
-	(*HostKey)(nil),                   // 2: werbot.v1.HostKey
-	(*ResourceHealth)(nil),            // 3: werbot.v1.ResourceHealth
-	(*Resource)(nil),                  // 4: werbot.v1.Resource
-	(*ListResourceTypesRequest)(nil),  // 5: werbot.v1.ListResourceTypesRequest
-	(*ListResourceTypesResponse)(nil), // 6: werbot.v1.ListResourceTypesResponse
-	(*ListResourcesRequest)(nil),      // 7: werbot.v1.ListResourcesRequest
-	(*ListResourcesResponse)(nil),     // 8: werbot.v1.ListResourcesResponse
-	(*GetResourceRequest)(nil),        // 9: werbot.v1.GetResourceRequest
-	(*GetResourceResponse)(nil),       // 10: werbot.v1.GetResourceResponse
-	(*CreateResourceRequest)(nil),     // 11: werbot.v1.CreateResourceRequest
-	(*CreateResourceResponse)(nil),    // 12: werbot.v1.CreateResourceResponse
-	(*UpdateResourceRequest)(nil),     // 13: werbot.v1.UpdateResourceRequest
-	(*UpdateResourceResponse)(nil),    // 14: werbot.v1.UpdateResourceResponse
-	(*DeleteResourceRequest)(nil),     // 15: werbot.v1.DeleteResourceRequest
-	(*DeleteResourceResponse)(nil),    // 16: werbot.v1.DeleteResourceResponse
-	(*SetCredentialRequest)(nil),      // 17: werbot.v1.SetCredentialRequest
-	(*SetCredentialResponse)(nil),     // 18: werbot.v1.SetCredentialResponse
-	(*ClearCredentialRequest)(nil),    // 19: werbot.v1.ClearCredentialRequest
-	(*ClearCredentialResponse)(nil),   // 20: werbot.v1.ClearCredentialResponse
-	(*ClearHostKeyRequest)(nil),       // 21: werbot.v1.ClearHostKeyRequest
-	(*ClearHostKeyResponse)(nil),      // 22: werbot.v1.ClearHostKeyResponse
-	nil,                               // 23: werbot.v1.Resource.LabelsEntry
-	nil,                               // 24: werbot.v1.ListResourcesRequest.LabelFilterEntry
-	nil,                               // 25: werbot.v1.CreateResourceRequest.LabelsEntry
-	nil,                               // 26: werbot.v1.UpdateResourceRequest.LabelsEntry
-	(*timestamppb.Timestamp)(nil),     // 27: google.protobuf.Timestamp
-	(*anypb.Any)(nil),                 // 28: google.protobuf.Any
-	(*durationpb.Duration)(nil),       // 29: google.protobuf.Duration
+	(ResourceHealth_State)(0),               // 0: werbot.v1.ResourceHealth.State
+	(*ResourceType)(nil),                    // 1: werbot.v1.ResourceType
+	(*HostKey)(nil),                         // 2: werbot.v1.HostKey
+	(*ResourceHealth)(nil),                  // 3: werbot.v1.ResourceHealth
+	(*Resource)(nil),                        // 4: werbot.v1.Resource
+	(*ListResourceTypesRequest)(nil),        // 5: werbot.v1.ListResourceTypesRequest
+	(*ListResourceTypesResponse)(nil),       // 6: werbot.v1.ListResourceTypesResponse
+	(*AccessibleResource)(nil),              // 7: werbot.v1.AccessibleResource
+	(*ListAccessibleResourcesRequest)(nil),  // 8: werbot.v1.ListAccessibleResourcesRequest
+	(*ListAccessibleResourcesResponse)(nil), // 9: werbot.v1.ListAccessibleResourcesResponse
+	(*ListResourcesRequest)(nil),            // 10: werbot.v1.ListResourcesRequest
+	(*ListResourcesResponse)(nil),           // 11: werbot.v1.ListResourcesResponse
+	(*GetResourceRequest)(nil),              // 12: werbot.v1.GetResourceRequest
+	(*GetResourceResponse)(nil),             // 13: werbot.v1.GetResourceResponse
+	(*CreateResourceRequest)(nil),           // 14: werbot.v1.CreateResourceRequest
+	(*CreateResourceResponse)(nil),          // 15: werbot.v1.CreateResourceResponse
+	(*UpdateResourceRequest)(nil),           // 16: werbot.v1.UpdateResourceRequest
+	(*UpdateResourceResponse)(nil),          // 17: werbot.v1.UpdateResourceResponse
+	(*DeleteResourceRequest)(nil),           // 18: werbot.v1.DeleteResourceRequest
+	(*DeleteResourceResponse)(nil),          // 19: werbot.v1.DeleteResourceResponse
+	(*SetCredentialRequest)(nil),            // 20: werbot.v1.SetCredentialRequest
+	(*SetCredentialResponse)(nil),           // 21: werbot.v1.SetCredentialResponse
+	(*ClearCredentialRequest)(nil),          // 22: werbot.v1.ClearCredentialRequest
+	(*ClearCredentialResponse)(nil),         // 23: werbot.v1.ClearCredentialResponse
+	(*ClearHostKeyRequest)(nil),             // 24: werbot.v1.ClearHostKeyRequest
+	(*ClearHostKeyResponse)(nil),            // 25: werbot.v1.ClearHostKeyResponse
+	nil,                                     // 26: werbot.v1.Resource.LabelsEntry
+	nil,                                     // 27: werbot.v1.AccessibleResource.LabelsEntry
+	nil,                                     // 28: werbot.v1.ListResourcesRequest.LabelFilterEntry
+	nil,                                     // 29: werbot.v1.CreateResourceRequest.LabelsEntry
+	nil,                                     // 30: werbot.v1.UpdateResourceRequest.LabelsEntry
+	(*timestamppb.Timestamp)(nil),           // 31: google.protobuf.Timestamp
+	(*anypb.Any)(nil),                       // 32: google.protobuf.Any
+	(*durationpb.Duration)(nil),             // 33: google.protobuf.Duration
 }
 var file_werbot_v1_resource_proto_depIdxs = []int32{
-	27, // 0: werbot.v1.HostKey.created_at:type_name -> google.protobuf.Timestamp
+	31, // 0: werbot.v1.HostKey.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 1: werbot.v1.ResourceHealth.state:type_name -> werbot.v1.ResourceHealth.State
-	27, // 2: werbot.v1.ResourceHealth.checked_at:type_name -> google.protobuf.Timestamp
-	28, // 3: werbot.v1.Resource.config:type_name -> google.protobuf.Any
-	23, // 4: werbot.v1.Resource.labels:type_name -> werbot.v1.Resource.LabelsEntry
+	31, // 2: werbot.v1.ResourceHealth.checked_at:type_name -> google.protobuf.Timestamp
+	32, // 3: werbot.v1.Resource.config:type_name -> google.protobuf.Any
+	26, // 4: werbot.v1.Resource.labels:type_name -> werbot.v1.Resource.LabelsEntry
 	2,  // 5: werbot.v1.Resource.host_key:type_name -> werbot.v1.HostKey
-	27, // 6: werbot.v1.Resource.created_at:type_name -> google.protobuf.Timestamp
-	27, // 7: werbot.v1.Resource.updated_at:type_name -> google.protobuf.Timestamp
-	29, // 8: werbot.v1.Resource.idle_timeout:type_name -> google.protobuf.Duration
-	29, // 9: werbot.v1.Resource.max_duration:type_name -> google.protobuf.Duration
+	31, // 6: werbot.v1.Resource.created_at:type_name -> google.protobuf.Timestamp
+	31, // 7: werbot.v1.Resource.updated_at:type_name -> google.protobuf.Timestamp
+	33, // 8: werbot.v1.Resource.idle_timeout:type_name -> google.protobuf.Duration
+	33, // 9: werbot.v1.Resource.max_duration:type_name -> google.protobuf.Duration
 	3,  // 10: werbot.v1.Resource.health:type_name -> werbot.v1.ResourceHealth
 	1,  // 11: werbot.v1.ListResourceTypesResponse.types:type_name -> werbot.v1.ResourceType
-	24, // 12: werbot.v1.ListResourcesRequest.label_filter:type_name -> werbot.v1.ListResourcesRequest.LabelFilterEntry
-	4,  // 13: werbot.v1.ListResourcesResponse.resources:type_name -> werbot.v1.Resource
-	4,  // 14: werbot.v1.GetResourceResponse.resource:type_name -> werbot.v1.Resource
-	28, // 15: werbot.v1.CreateResourceRequest.config:type_name -> google.protobuf.Any
-	25, // 16: werbot.v1.CreateResourceRequest.labels:type_name -> werbot.v1.CreateResourceRequest.LabelsEntry
-	29, // 17: werbot.v1.CreateResourceRequest.idle_timeout:type_name -> google.protobuf.Duration
-	29, // 18: werbot.v1.CreateResourceRequest.max_duration:type_name -> google.protobuf.Duration
-	4,  // 19: werbot.v1.CreateResourceResponse.resource:type_name -> werbot.v1.Resource
-	28, // 20: werbot.v1.UpdateResourceRequest.config:type_name -> google.protobuf.Any
-	26, // 21: werbot.v1.UpdateResourceRequest.labels:type_name -> werbot.v1.UpdateResourceRequest.LabelsEntry
-	29, // 22: werbot.v1.UpdateResourceRequest.idle_timeout:type_name -> google.protobuf.Duration
-	29, // 23: werbot.v1.UpdateResourceRequest.max_duration:type_name -> google.protobuf.Duration
-	4,  // 24: werbot.v1.UpdateResourceResponse.resource:type_name -> werbot.v1.Resource
-	5,  // 25: werbot.v1.ResourceService.ListResourceTypes:input_type -> werbot.v1.ListResourceTypesRequest
-	7,  // 26: werbot.v1.ResourceService.ListResources:input_type -> werbot.v1.ListResourcesRequest
-	9,  // 27: werbot.v1.ResourceService.GetResource:input_type -> werbot.v1.GetResourceRequest
-	11, // 28: werbot.v1.ResourceService.CreateResource:input_type -> werbot.v1.CreateResourceRequest
-	13, // 29: werbot.v1.ResourceService.UpdateResource:input_type -> werbot.v1.UpdateResourceRequest
-	15, // 30: werbot.v1.ResourceService.DeleteResource:input_type -> werbot.v1.DeleteResourceRequest
-	17, // 31: werbot.v1.ResourceService.SetCredential:input_type -> werbot.v1.SetCredentialRequest
-	19, // 32: werbot.v1.ResourceService.ClearCredential:input_type -> werbot.v1.ClearCredentialRequest
-	21, // 33: werbot.v1.ResourceService.ClearHostKey:input_type -> werbot.v1.ClearHostKeyRequest
-	6,  // 34: werbot.v1.ResourceService.ListResourceTypes:output_type -> werbot.v1.ListResourceTypesResponse
-	8,  // 35: werbot.v1.ResourceService.ListResources:output_type -> werbot.v1.ListResourcesResponse
-	10, // 36: werbot.v1.ResourceService.GetResource:output_type -> werbot.v1.GetResourceResponse
-	12, // 37: werbot.v1.ResourceService.CreateResource:output_type -> werbot.v1.CreateResourceResponse
-	14, // 38: werbot.v1.ResourceService.UpdateResource:output_type -> werbot.v1.UpdateResourceResponse
-	16, // 39: werbot.v1.ResourceService.DeleteResource:output_type -> werbot.v1.DeleteResourceResponse
-	18, // 40: werbot.v1.ResourceService.SetCredential:output_type -> werbot.v1.SetCredentialResponse
-	20, // 41: werbot.v1.ResourceService.ClearCredential:output_type -> werbot.v1.ClearCredentialResponse
-	22, // 42: werbot.v1.ResourceService.ClearHostKey:output_type -> werbot.v1.ClearHostKeyResponse
-	34, // [34:43] is the sub-list for method output_type
-	25, // [25:34] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	27, // 12: werbot.v1.AccessibleResource.labels:type_name -> werbot.v1.AccessibleResource.LabelsEntry
+	7,  // 13: werbot.v1.ListAccessibleResourcesResponse.resources:type_name -> werbot.v1.AccessibleResource
+	28, // 14: werbot.v1.ListResourcesRequest.label_filter:type_name -> werbot.v1.ListResourcesRequest.LabelFilterEntry
+	4,  // 15: werbot.v1.ListResourcesResponse.resources:type_name -> werbot.v1.Resource
+	4,  // 16: werbot.v1.GetResourceResponse.resource:type_name -> werbot.v1.Resource
+	32, // 17: werbot.v1.CreateResourceRequest.config:type_name -> google.protobuf.Any
+	29, // 18: werbot.v1.CreateResourceRequest.labels:type_name -> werbot.v1.CreateResourceRequest.LabelsEntry
+	33, // 19: werbot.v1.CreateResourceRequest.idle_timeout:type_name -> google.protobuf.Duration
+	33, // 20: werbot.v1.CreateResourceRequest.max_duration:type_name -> google.protobuf.Duration
+	4,  // 21: werbot.v1.CreateResourceResponse.resource:type_name -> werbot.v1.Resource
+	32, // 22: werbot.v1.UpdateResourceRequest.config:type_name -> google.protobuf.Any
+	30, // 23: werbot.v1.UpdateResourceRequest.labels:type_name -> werbot.v1.UpdateResourceRequest.LabelsEntry
+	33, // 24: werbot.v1.UpdateResourceRequest.idle_timeout:type_name -> google.protobuf.Duration
+	33, // 25: werbot.v1.UpdateResourceRequest.max_duration:type_name -> google.protobuf.Duration
+	4,  // 26: werbot.v1.UpdateResourceResponse.resource:type_name -> werbot.v1.Resource
+	5,  // 27: werbot.v1.ResourceService.ListResourceTypes:input_type -> werbot.v1.ListResourceTypesRequest
+	10, // 28: werbot.v1.ResourceService.ListResources:input_type -> werbot.v1.ListResourcesRequest
+	8,  // 29: werbot.v1.ResourceService.ListAccessibleResources:input_type -> werbot.v1.ListAccessibleResourcesRequest
+	12, // 30: werbot.v1.ResourceService.GetResource:input_type -> werbot.v1.GetResourceRequest
+	14, // 31: werbot.v1.ResourceService.CreateResource:input_type -> werbot.v1.CreateResourceRequest
+	16, // 32: werbot.v1.ResourceService.UpdateResource:input_type -> werbot.v1.UpdateResourceRequest
+	18, // 33: werbot.v1.ResourceService.DeleteResource:input_type -> werbot.v1.DeleteResourceRequest
+	20, // 34: werbot.v1.ResourceService.SetCredential:input_type -> werbot.v1.SetCredentialRequest
+	22, // 35: werbot.v1.ResourceService.ClearCredential:input_type -> werbot.v1.ClearCredentialRequest
+	24, // 36: werbot.v1.ResourceService.ClearHostKey:input_type -> werbot.v1.ClearHostKeyRequest
+	6,  // 37: werbot.v1.ResourceService.ListResourceTypes:output_type -> werbot.v1.ListResourceTypesResponse
+	11, // 38: werbot.v1.ResourceService.ListResources:output_type -> werbot.v1.ListResourcesResponse
+	9,  // 39: werbot.v1.ResourceService.ListAccessibleResources:output_type -> werbot.v1.ListAccessibleResourcesResponse
+	13, // 40: werbot.v1.ResourceService.GetResource:output_type -> werbot.v1.GetResourceResponse
+	15, // 41: werbot.v1.ResourceService.CreateResource:output_type -> werbot.v1.CreateResourceResponse
+	17, // 42: werbot.v1.ResourceService.UpdateResource:output_type -> werbot.v1.UpdateResourceResponse
+	19, // 43: werbot.v1.ResourceService.DeleteResource:output_type -> werbot.v1.DeleteResourceResponse
+	21, // 44: werbot.v1.ResourceService.SetCredential:output_type -> werbot.v1.SetCredentialResponse
+	23, // 45: werbot.v1.ResourceService.ClearCredential:output_type -> werbot.v1.ClearCredentialResponse
+	25, // 46: werbot.v1.ResourceService.ClearHostKey:output_type -> werbot.v1.ClearHostKeyResponse
+	37, // [37:47] is the sub-list for method output_type
+	27, // [27:37] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_werbot_v1_resource_proto_init() }
@@ -1570,7 +1786,7 @@ func file_werbot_v1_resource_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_werbot_v1_resource_proto_rawDesc), len(file_werbot_v1_resource_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   26,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

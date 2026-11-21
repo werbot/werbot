@@ -15,12 +15,14 @@ import (
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/access"
 	"github.com/werbot/werbot/internal/audit"
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/notify"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/jobs"
+	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
 	"github.com/werbot/werbot/internal/policy"
@@ -42,9 +44,19 @@ func (p policyResources) PolicyResources(ctx context.Context, orgID uuid.UUID) (
 	}
 	out := make([]policy.SnapshotResource, len(rs))
 	for i, r := range rs {
-		out[i] = policy.SnapshotResource{ID: r.ID, Name: r.Name, Type: r.Type, Labels: r.Labels}
+		out[i] = policy.SnapshotResource{ID: r.ID, Name: r.Name, Type: r.Type, Labels: r.Labels, Host: endpointHost(r)}
 	}
 	return out, nil
+}
+
+// endpointHost is the host of the endpoint of r; "" when its type has none
+// or its config is not decoded.
+func endpointHost(r inventory.Resource) string {
+	t, ok := connector.Lookup(r.Type)
+	if !ok || t.Endpoint == nil || r.Config == nil {
+		return ""
+	}
+	return t.Endpoint(r.Config).Host
 }
 
 // policyBindings is the access service as a policy.BindingSource.
@@ -90,8 +102,9 @@ type services struct {
 // newServices wires the services, registers every worker and periodic job on
 // one River client (not started) and loads the stored GeoIP database, so every
 // replica decides country rules from start. A broken database is logged, not fatal.
-// signer comes from bootstrap; recordings go to cfg.RecordingsS3 or cfg.DataDir.
-func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box *secretbox.Box, ca *tlsca.CA, signer *session.Signer, logger *slog.Logger) (*services, error) {
+// signer comes from bootstrap; recordings go to cfg.RecordingsS3 or cfg.DataDir;
+// reg is the registry /metrics serves.
+func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box *secretbox.Box, ca *tlsca.CA, signer *session.Signer, reg *metrics.Registry, logger *slog.Logger) (*services, error) {
 	mailer, err := notify.NewMailer(cfg.SMTP, cfg.Env == "development", logger)
 	if err != nil {
 		return nil, err
@@ -100,15 +113,16 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	if err != nil {
 		return nil, err
 	}
-	s := &services{Inventory: inventory.New(pool), Credential: credential.New(pool, box), Access: access.New(pool),
+	s := &services{Inventory: inventory.New(pool), Credential: credential.New(pool, box),
 		Box: box, CA: ca, Gateways: inventory.NewGateways(pool, ca, box), Sessions: session.New(pool),
 		Recordings: session.NewRecordings(pool, store, kind, signer), Audit: audit.New(audit.NewPostgres(pool)), Logger: logger}
+	s.Access = access.New(pool, accessEmails{s}, accessSettings{s}, access.Config{WebURL: cfg.WebURL})
 	// identity needs the River client, which needs the policy jobs: teams
 	// reads s.Identity, which is set below, before any request is served.
 	s.Policy = policy.New(policy.Deps{Pool: pool, Resources: policyResources{s.Inventory}, Bindings: policyBindings{s.Access},
 		Teams: teamsFunc(func(ctx context.Context, orgID, userID uuid.UUID) ([]uuid.UUID, error) {
 			return s.Identity.UserTeams(ctx, orgID, userID)
-		}), Logger: logger})
+		}), Grants: policyGrants{s.Access}, Locks: policyLocks{s.Access}, Logger: logger})
 	if err := s.Policy.ReloadGeoIP(ctx); err != nil {
 		logger.Warn("geoip reload failed", "err", err)
 	}
@@ -122,20 +136,24 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	periodic := policy.RegisterJobs(workers, s.Policy, feeds)
 	periodic = append(periodic, session.RegisterJobs(workers, s.Sessions, time.Now())...)
 	periodic = append(periodic, inventory.RegisterGatewayJobs(workers, s.Gateways)...)
+	periodic = append(periodic, access.RegisterApprovalJobs(workers, s.Access)...)
 	if s.Jobs, err = jobs.NewClient(pool, workers, periodic, logger); err != nil {
 		return nil, err
 	}
 	s.Identity = identity.New(pool, notify.NewQueue(s.Jobs, box), identity.Config{
-		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger,
+		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger, Box: box, Metrics: reg,
 	})
 	return s, nil
 }
 
-// mount registers ResourceService, AccessService, PolicyService, SessionService,
-// AuditService and the recording replay route on mux.
+// mount registers ResourceService, AccessService, ApprovalPolicyService, AccessRequestService, LockService,
+// PolicyService, SessionService, AuditService and the recording replay route on mux.
 func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
-	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential), opts...))
+	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential, s.Policy, s.Gateways, s.Access), opts...))
 	mux.Handle(werbotv1connect.NewAccessServiceHandler(access.NewHandler(s.Access), opts...))
+	mux.Handle(werbotv1connect.NewApprovalPolicyServiceHandler(access.NewApprovalPolicyHandler(s.Access), opts...))
+	mux.Handle(werbotv1connect.NewAccessRequestServiceHandler(access.NewAccessRequestHandler(s.Access), opts...))
+	mux.Handle(werbotv1connect.NewLockServiceHandler(access.NewLockHandler(s.Access), opts...))
 	mux.Handle(werbotv1connect.NewPolicyServiceHandler(policy.NewHandler(s.Policy), opts...))
 	mux.Handle(werbotv1connect.NewSessionServiceHandler(session.NewSessionHandler(s.Sessions, s.Recordings), opts...))
 	mux.Handle(werbotv1connect.NewAuditServiceHandler(audit.NewHandler(s.Audit), opts...))

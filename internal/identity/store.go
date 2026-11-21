@@ -28,6 +28,7 @@ type Store interface {
 	GetUserOrg(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 	DeleteUserSessions(ctx context.Context, userID uuid.UUID) error
 	GetProfile(ctx context.Context, id uuid.UUID) (dbq.GetProfileRow, error)
+	GetCertSubject(ctx context.Context, arg dbq.GetCertSubjectParams) (dbq.GetCertSubjectRow, error)
 	UpdateProfile(ctx context.Context, arg dbq.UpdateProfileParams) error
 	GetPasswordHash(ctx context.Context, id uuid.UUID) (string, error)
 	DeleteOtherUserSessions(ctx context.Context, arg dbq.DeleteOtherUserSessionsParams) error
@@ -56,4 +57,16 @@ type Store interface {
 	RemoveTeamMember(ctx context.Context, arg dbq.RemoveTeamMemberParams) (int64, error)
 	UserTeams(ctx context.Context, arg dbq.UserTeamsParams) ([]uuid.UUID, error)
 	ListOrgMembers(ctx context.Context, orgID uuid.UUID) ([]dbq.ListOrgMembersRow, error)
+	CreateOrgSetting(ctx context.Context, orgID uuid.UUID) error
+	GetOrgSettings(ctx context.Context, orgID uuid.UUID) (dbq.GetOrgSettingsRow, error)
+	LockOrgSettings(ctx context.Context, orgID uuid.UUID) (dbq.LockOrgSettingsRow, error)
+	UpdateOrgSettings(ctx context.Context, arg dbq.UpdateOrgSettingsParams) error
+	GetMemberRole(ctx context.Context, arg dbq.GetMemberRoleParams) (string, error)
+	GetCLISessionRole(ctx context.Context, arg dbq.GetCLISessionRoleParams) (string, error)
+	ListCLISessions(ctx context.Context, arg dbq.ListCLISessionsParams) ([]dbq.ListCLISessionsRow, error)
+	RevokeCLISession(ctx context.Context, arg dbq.RevokeCLISessionParams) (int64, error)
+	RevokeUserCLISessions(ctx context.Context, arg dbq.RevokeUserCLISessionsParams) error
+	GetUserCA(ctx context.Context, orgID uuid.UUID) (dbq.GetUserCARow, error)
+	InsertUserCA(ctx context.Context, arg dbq.InsertUserCAParams) error
+	LookupCertUser(ctx context.Context, arg dbq.LookupCertUserParams) (dbq.LookupCertUserRow, error)
 }

@@ -23,15 +23,19 @@ import (
 type Target struct {
 	Addr, EchoAddr, Password string // EchoAddr is a TCP echo reachable through direct-tcpip
 	HostKey                  gossh.PublicKey
-	Events                   chan string // "pty:<term> <cols>x<rows>", "win:<cols>x<rows>", "closed"
+	Events                   chan string           // "pty:<term> <cols>x<rows>", "win:<cols>x<rows>", "signal:<name>", "closed"
+	exec                     func(ssh.Session) int // runs a command instead of run; set by an Option
 }
+
+// Option changes how a target runs commands.
+type Option func(*Target)
 
 // StartTarget starts a target that accepts password (if not empty) and the
 // authorized key (if not nil); with neither it needs no authentication.
 // The shell echoes input line by line; exec runs "echo X" ("X\n"), "exit N"
-// (exit code N), "cat" (stdin to stdout) and "hostname" ("target\n").
-// Everything stops at the test cleanup.
-func StartTarget(t testing.TB, password string, authorized gossh.PublicKey) *Target {
+// (exit code N), "cat" (stdin to stdout) and "hostname" ("target\n"), unless
+// an option changes it. Everything stops at the test cleanup.
+func StartTarget(t testing.TB, password string, authorized gossh.PublicKey, opts ...Option) *Target {
 	t.Helper()
 	_, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
@@ -41,7 +45,10 @@ func StartTarget(t testing.TB, password string, authorized gossh.PublicKey) *Tar
 	if err != nil {
 		t.Fatalf("sshtest: host signer: %v", err)
 	}
-	tg := &Target{Password: password, HostKey: signer.PublicKey(), Events: make(chan string, 64)}
+	tg := &Target{Password: password, HostKey: signer.PublicKey(), Events: make(chan string, 64), exec: run}
+	for _, o := range opts {
+		o(tg)
+	}
 	srv := &ssh.Server{
 		Handler:                     tg.handle,
 		HostSigners:                 []ssh.Signer{signer},
@@ -105,11 +112,11 @@ func (tg *Target) handle(s ssh.Session) {
 		tg.event(fmt.Sprintf("pty:%s %dx%d", pty.Term, pty.Window.Width, pty.Window.Height))
 		go tg.windows(winch)
 	}
-	if len(s.Command()) == 0 {
+	if s.RawCommand() == "" {
 		shell(s)
 		return
 	}
-	_ = s.Exit(run(s))
+	_ = s.Exit(tg.exec(s))
 }
 
 // windows reports size changes. gliderlabs puts the pty-req size into the

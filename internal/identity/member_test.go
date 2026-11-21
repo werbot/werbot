@@ -17,16 +17,17 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
 const inviteURLPrefix = "https://werbot.test/invite/"
 
 // invite has ctx's user invite email and returns the raw token from the email.
-func invite(ctx context.Context, t *testing.T, svc *Service, q *fakeQueue, email, role string) string {
+func invite(ctx context.Context, t *testing.T, svc *Service, q *dbtest.Mails, email, role string) string {
 	t.Helper()
 	require.NoError(t, svc.InviteMember(ctx, email, role))
-	mail := q.sent[len(q.sent)-1]
+	mail := q.Sent()[len(q.Sent())-1]
 	require.Equal(t, "invite", mail.Template)
 	require.True(t, strings.HasPrefix(mail.Data["url"], inviteURLPrefix), mail.Data["url"])
 	return strings.TrimPrefix(mail.Data["url"], inviteURLPrefix)
@@ -47,7 +48,7 @@ func TestInviteAndAcceptNewUser(t *testing.T) {
 	ctx, _ := loginCtx(t, svc, "alice")
 
 	raw := invite(ctx, t, svc, q, "Bob@Example.com", principal.RoleMember)
-	mail := q.sent[0]
+	mail := q.Sent()[0]
 	assert.Equal(t, "bob@example.com", mail.To)
 	assert.Equal(t, "Acme", mail.Data["org"])
 	assert.Equal(t, "alice", mail.Data["inviter"])
@@ -75,7 +76,7 @@ func TestInviteAndAcceptNewUser(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, members, 2)
 	assert.Empty(t, invites)
-	assert.Subset(t, auditActions(t, pool), []string{"member.invite", "member.accept"})
+	assert.Subset(t, dbtest.AuditActions(t, pool), []string{"member.invite", "member.accept"})
 }
 
 func TestAcceptInviteNewUserNeedsFields(t *testing.T) {
@@ -107,7 +108,7 @@ func TestMemberCannotInvite(t *testing.T) {
 	ctx, _ := loginCtx(t, svc, "carol")
 
 	assert.ErrorIs(t, svc.InviteMember(ctx, "bob@example.com", principal.RoleMember), apperr.ErrPermissionDenied)
-	assert.Empty(t, q.sent)
+	assert.Empty(t, q.Sent())
 	_, _, err := svc.ListMembers(ctx)
 	assert.ErrorIs(t, err, apperr.ErrPermissionDenied)
 }
@@ -124,7 +125,7 @@ func TestAdminCannotGrantOwner(t *testing.T) {
 	assert.ErrorIs(t, svc.UpdateMemberRole(ctx, bob, principal.RoleOwner), apperr.ErrPermissionDenied)
 	assert.ErrorIs(t, svc.UpdateMemberRole(ctx, alice, principal.RoleAdmin), apperr.ErrPermissionDenied)
 	assert.ErrorIs(t, svc.RemoveMember(ctx, alice), apperr.ErrPermissionDenied)
-	assert.Empty(t, q.sent)
+	assert.Empty(t, q.Sent())
 	assert.Equal(t, principal.RoleOwner, memberRole(t, pool, org, alice))
 
 	assert.ErrorIs(t, svc.UpdateMemberRole(ctx, bob, "root"), apperr.ErrInvalidArgument)
@@ -140,7 +141,7 @@ func TestInviteExistingMember(t *testing.T) {
 	ctx, _ := loginCtx(t, svc, "alice")
 
 	assert.ErrorIs(t, svc.InviteMember(ctx, " BOB@Example.COM ", principal.RoleMember), apperr.ErrAlreadyExists)
-	assert.Empty(t, q.sent)
+	assert.Empty(t, q.Sent())
 }
 
 func TestAcceptInviteExistingUser(t *testing.T) {
@@ -158,7 +159,7 @@ func TestAcceptInviteExistingUser(t *testing.T) {
 	require.NoError(t, err, "a wrong password leaves the token unspent")
 	p, err := svc.AuthenticateSession(bg, token)
 	require.NoError(t, err)
-	assert.Equal(t, principal.Principal{UserID: dave, OrgID: org1, Role: principal.RoleAdmin, SessionID: p.SessionID}, p)
+	assert.Equal(t, principal.Principal{UserID: dave, OrgID: org1, Role: principal.RoleAdmin, SessionID: p.SessionID, AuthMethod: principal.AuthMethodCookie}, p)
 	assert.Equal(t, principal.RoleOwner, memberRole(t, pool, org2, dave))
 }
 
@@ -263,7 +264,7 @@ func TestRemovedMemberSessionStopsWorking(t *testing.T) {
 	require.NoError(t, pool.QueryRow(bg,
 		"SELECT data->>'from', data->>'to' FROM audit_event WHERE action = 'member.role_update'").Scan(&from, &to))
 	assert.Equal(t, []string{principal.RoleMember, principal.RoleAdmin}, []string{from, to})
-	assert.Contains(t, auditActions(t, pool), "member.remove")
+	assert.Contains(t, dbtest.AuditActions(t, pool), "member.remove")
 }
 
 func TestCrossOrgIsolationMembers(t *testing.T) {
@@ -288,7 +289,7 @@ func TestMemberRPC(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.Handle(werbotv1connect.NewAuthServiceHandler(NewHandler(svc)))
 	mux.Handle(werbotv1connect.NewMemberServiceHandler(NewHandler(svc)))
-	srv := httptest.NewServer(Middleware(svc)(mux))
+	srv := httptest.NewServer(Middleware(svc, nil)(mux))
 	t.Cleanup(srv.Close)
 	members := werbotv1connect.NewMemberServiceClient(srv.Client(), srv.URL)
 	c := login(t, werbotv1connect.NewAuthServiceClient(srv.Client(), srv.URL))
@@ -304,7 +305,7 @@ func TestMemberRPC(t *testing.T) {
 	assert.Equal(t, werbotv1.Role_ROLE_ADMIN, res.Msg.GetInvites()[0].GetRole())
 	assert.Equal(t, werbotv1.Role_ROLE_OWNER, res.Msg.GetMembers()[0].GetRole())
 
-	raw := strings.TrimPrefix(q.sent[0].Data["url"], inviteURLPrefix)
+	raw := strings.TrimPrefix(q.Sent()[0].Data["url"], inviteURLPrefix)
 	acc, err := members.AcceptInvite(bg, connect.NewRequest(&werbotv1.AcceptInviteRequest{Token: raw, Login: "bob", Name: "Bob", Password: testPassword}))
 	require.NoError(t, err)
 	cookie, err := http.ParseSetCookie(acc.Header().Get("Set-Cookie"))

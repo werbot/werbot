@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -68,8 +67,8 @@ type stack struct {
 }
 
 // startStack runs the stack on a fresh database with 127.0.0.1 ports only;
-// everything stops at the test cleanup.
-func startStack(t *testing.T) *stack {
+// opts go to the SSH target. Everything stops at the test cleanup.
+func startStack(t *testing.T, opts ...sshtest.Option) *stack {
 	t.Helper()
 	pool, dbURL := dbtest.New(t)
 	httpAddr := freeAddr(t)
@@ -78,7 +77,7 @@ func startStack(t *testing.T) *stack {
 		"WERBOT_SECRET_KEY": testSecretKey, "WERBOT_GATEWAY_ADDR": freeAddr(t), "WERBOT_DATA_DIR": t.TempDir(),
 		"WERBOT_ENV": "development",
 	})).healthy(t)
-	s := &stack{pool: pool, url: r.api, target: sshtest.StartTarget(t, "target-secret", nil)}
+	s := &stack{pool: pool, url: r.api, target: sshtest.StartTarget(t, "target-secret", nil, opts...)}
 	ctx := context.Background()
 
 	hc, _ := jarClient(t, http.DefaultTransport)
@@ -218,33 +217,10 @@ func (s *stack) dial(addr, user string, key gossh.Signer) (*gossh.Client, gossh.
 	return c, host, err
 }
 
-// exec runs cmd as alice without a PTY and returns stdout+stderr and the exit
-// code. A connection or channel failure returns its text and -1, so exec is
-// safe in an Eventually condition.
+// exec runs cmd as alice without a PTY (execKey).
 func (s *stack) exec(t *testing.T, addr, user, cmd string) (out string, code int) {
 	t.Helper()
-	c, _, err := s.dial(addr, user, s.key)
-	if err != nil {
-		return err.Error(), -1
-	}
-	defer c.Close() //nolint:errcheck // test client
-	// a hung session returns -1 instead of waiting for the global timeout
-	hung := time.AfterFunc(15*time.Second, func() { _ = c.Close() })
-	defer hung.Stop()
-	sess, err := c.NewSession()
-	if err != nil {
-		return err.Error(), -1
-	}
-	defer sess.Close() //nolint:errcheck // closed by the server after exit
-	b, err := sess.CombinedOutput(cmd)
-	var ee *gossh.ExitError
-	switch {
-	case err == nil:
-		return string(b), 0
-	case errors.As(err, &ee):
-		return string(b), ee.ExitStatus()
-	}
-	return string(b) + err.Error(), -1
+	return s.execKey(t, s.key, addr, user, cmd)
 }
 
 // instanceIdentity reads the gateway and instance ids an instance saved in dataDir.
@@ -283,7 +259,7 @@ func instanceClient(t *testing.T, dataDir string) gatewayv1connect.TunnelService
 func (s *stack) services(t *testing.T) *services {
 	t.Helper()
 	o := testServeOpts(t, config.Config{SecretKey: bytes.Repeat([]byte{1}, 32)}, s.pool)
-	svc, err := newServices(context.Background(), config.Config{DataDir: t.TempDir()}, s.pool, o.Box, o.CA, o.Signer, slog.New(slog.DiscardHandler))
+	svc, err := newServices(context.Background(), config.Config{DataDir: t.TempDir()}, s.pool, o.Box, o.CA, o.Signer, metrics.NewRegistry(), slog.New(slog.DiscardHandler))
 	require.NoError(t, err)
 	return svc
 }

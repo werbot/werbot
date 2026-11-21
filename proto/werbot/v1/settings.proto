@@ -1,0 +1,73 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/field_mask.proto";
+
+// Organization settings; owner and admin only.
+service SettingsService {
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
+}
+
+message OrgSettings {
+  // Idle lifetime of a CLI session: 1h to 720h.
+  google.protobuf.Duration cli_session_ttl = 1 [(buf.validate.field).duration = {
+    gte: {seconds: 3600}
+    lte: {seconds: 2592000}
+  }];
+  // Absolute lifetime of a CLI session: 24h to 2160h.
+  google.protobuf.Duration cli_session_max = 2 [(buf.validate.field).duration = {
+    gte: {seconds: 86400}
+    lte: {seconds: 7776000}
+  }];
+  // Grant length when a request names none: above 0, at most grant_max_ttl.
+  google.protobuf.Duration grant_default_ttl = 3 [(buf.validate.field).duration = {
+    gt: {}
+    lte: {seconds: 1209600}
+  }];
+  // Longest grant: 1m to 14d.
+  google.protobuf.Duration grant_max_ttl = 4 [(buf.validate.field).duration = {
+    gte: {seconds: 60}
+    lte: {seconds: 1209600}
+  }];
+  // How long an access request waits for a decision: 1m to 24h.
+  google.protobuf.Duration request_pending_ttl = 5 [(buf.validate.field).duration = {
+    gte: {seconds: 60}
+    lte: {seconds: 86400}
+  }];
+  // How long a command approval waits for a decision: 30s to 1h.
+  google.protobuf.Duration command_approval_ttl = 6 [(buf.validate.field).duration = {
+    gte: {seconds: 30}
+    lte: {seconds: 3600}
+  }];
+  // What gateways do while their tunnel is down: "best_effort" keeps sessions, "strict" ends them after 60s.
+  string lock_mode = 7 [
+    (buf.validate.field).string = {
+      in: ["best_effort", "strict"]
+    },
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
+  // Whose session output is masked: "agents" (default), "all" or "none".
+  string mask_output = 8 [
+    (buf.validate.field).string = {
+      in: ["agents", "all", "none"]
+    },
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
+}
+
+message GetSettingsRequest {}
+message GetSettingsResponse {
+  OrgSettings settings = 1;
+}
+
+message UpdateSettingsRequest {
+  OrgSettings settings = 1 [(buf.validate.field).required = true];
+  // Field names of settings to write, e.g. "cli_session_ttl".
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
+}
+message UpdateSettingsResponse {
+  OrgSettings settings = 1;
+}

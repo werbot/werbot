@@ -20,6 +20,7 @@ import (
 // Recording limits and the session end reason for a lost recording.
 const (
 	MaxChunkRaw                   = 64 << 10 // uncompressed bytes per chunk
+	MaxMarkerBytes                = 1024     // marker text cut to this on a UTF-8 boundary
 	FlushInterval                 = 10 * time.Second
 	EndReasonRecordingUnavailable = "recording_unavailable"
 )
@@ -101,6 +102,21 @@ func (r *Recorder) Resize(cols, rows int) {
 	d = append(d, 'x')
 	d = strconv.AppendInt(d, int64(rows), 10)
 	r.event('r', d)
+}
+
+// Marker records a console line as an "m" event, cut to MaxMarkerBytes.
+// Pending UTF-8 tails of o/i stay held, so a split rune survives a marker.
+func (r *Recorder) Marker(text string) {
+	if len(text) > MaxMarkerBytes {
+		n := MaxMarkerBytes
+		for n > 0 && !utf8.RuneStart(text[n]) {
+			n--
+		}
+		text = text[:n]
+	}
+	r.mu.Lock()
+	defer r.unlock()
+	r.event('m', []byte(text))
 }
 
 // Close flushes the rest and closes the sink session; it is idempotent.

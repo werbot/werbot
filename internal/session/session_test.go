@@ -95,12 +95,12 @@ func TestStartAndEnd(t *testing.T) {
 		Scan(&targetType, &targetID, &sid))
 	assert.Equal(t, [3]string{"resource", e.res.String(), id.String()}, [3]string{targetType, targetID, sid})
 
-	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "closed", nil))
+	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "closed", nil, nil))
 	require.NotNil(t, e.ended(t, id))
 	assert.Equal(t, "closed", *e.ended(t, id))
 	assert.Equal(t, 1, e.endAudits(t, "gateway"))
 
-	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "again", nil))
+	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "again", nil, nil))
 	assert.Equal(t, "closed", *e.ended(t, id))
 	assert.Equal(t, 1, e.endAudits(t, "gateway"), "repeat End writes no event")
 }
@@ -108,8 +108,8 @@ func TestStartAndEnd(t *testing.T) {
 func TestEndForeign(t *testing.T) {
 	e := setup(t)
 	id := e.open(t, &e.a, 0)
-	assert.ErrorIs(t, e.svc.End(bg, e.org, e.b, id, "closed", nil), apperr.ErrNotFound)
-	assert.ErrorIs(t, e.svc.End(bg, uuid.New(), e.a, id, "closed", nil), apperr.ErrNotFound)
+	assert.ErrorIs(t, e.svc.End(bg, e.org, e.b, id, "closed", nil, nil), apperr.ErrNotFound)
+	assert.ErrorIs(t, e.svc.End(bg, uuid.New(), e.a, id, "closed", nil, nil), apperr.ErrNotFound)
 	assert.Nil(t, e.ended(t, id))
 }
 
@@ -234,4 +234,35 @@ func TestEndLostPeriodicJob(t *testing.T) {
 	assert.True(t, c.PeriodicJobs().RemoveByID("session.end_lost"))
 	t0 := time.Date(2026, 11, 16, 10, 0, 0, 0, time.UTC)
 	assert.Equal(t, t0.Add(30*time.Second), endLostSchedule.Next(t0))
+}
+
+// A session opened under an active break-glass grant of its user and resource
+// is marked in its session.start audit event; any other session is not.
+func TestSessionStartMarksBreakGlass(t *testing.T) {
+	e := setup(t)
+	other := dbtest.Resource(t, e.pool, e.org, "db", nil)
+	grant := func(res uuid.UUID, breakGlass bool, ttl string, revoked bool) {
+		e.exec(t, `INSERT INTO access_grant (org_id, user_id, resource_id, expires_at, revoked_at, break_glass)
+			VALUES ($1, $2, $3, now() + $4::interval, CASE WHEN $5 THEN now() END, $6)`, e.org, e.user, res, ttl, revoked, breakGlass)
+	}
+	mark := func() *bool {
+		id, err := e.svc.Start(bg, Start{OrgID: e.org, UserID: e.user, ResourceID: e.res, GatewayID: e.gw, InstanceID: e.a,
+			ClientIP: netip.MustParseAddr("10.0.0.1")})
+		require.NoError(t, err)
+		var v *bool
+		require.NoError(t, e.pool.QueryRow(bg,
+			"SELECT (data->'break_glass')::bool FROM audit_event WHERE action = 'session.start' AND data->>'session_id' = $1", id.String()).Scan(&v))
+		return v
+	}
+
+	grant(e.res, false, "1 hour", false)   // ordinary
+	grant(e.res, true, "-1 second", false) // expired
+	grant(e.res, true, "1 hour", true)     // revoked
+	grant(other, true, "1 hour", false)    // another resource
+	assert.Nil(t, mark(), "no active break-glass grant: no field")
+
+	grant(e.res, true, "1 hour", false)
+	v := mark()
+	require.NotNil(t, v)
+	assert.True(t, *v)
 }

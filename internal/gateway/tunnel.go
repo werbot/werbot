@@ -52,7 +52,9 @@ type tunnelClient struct {
 	pool      atomic.Pointer[[]uuid.UUID] // online instances of the pool; nil until the server sent them
 	changed   chan struct{}               // capacity 1: a new Policy was stored
 	connected atomic.Bool
-	graceEnd  atomic.Int64 // unix nanoseconds: Connected stays true until then after a planned close
+	graceEnd  atomic.Int64              // unix nanoseconds: Connected stays true until then after a planned close
+	downAt    atomic.Pointer[time.Time] // connected last became false; the start time before that
+	approvals approvals                 // the waits for approval decisions
 
 	mu           sync.Mutex
 	cancelStream context.CancelCauseFunc // the current stream
@@ -65,6 +67,8 @@ func newTunnelClient(st state, roots *x509.CertPool, certs *certStore, reg *metr
 		st:             st, roots: roots, certs: certs, log: logger, changed: make(chan struct{}, 1),
 		gauge: reg.Gauge("werbot_gateway_tunnel_connected", "1 while the tunnel stream is open and its latest snapshot compiled."),
 	}
+	now := time.Now()
+	c.downAt.Store(&now)
 	c.dial()
 	return c
 }
@@ -113,7 +117,22 @@ func (c *tunnelClient) Connected() bool {
 	return c.connected.Load() || time.Now().UnixNano() < c.graceEnd.Load()
 }
 
+// DisconnectedSince is zero while Connected; otherwise when the stream or its
+// compiled snapshot was last lost (the start time before the first one). The grace
+// of a planned reconnect delays it from being reported, not the time it reports.
+func (c *tunnelClient) DisconnectedSince() time.Time {
+	if c.Connected() {
+		return time.Time{}
+	}
+	return *c.downAt.Load()
+}
+
+// setConnected runs on the stream goroutine only.
 func (c *tunnelClient) setConnected(v bool) {
+	if !v && c.connected.Load() { // stored before the flag drops: DisconnectedSince never reads an older loss
+		now := time.Now()
+		c.downAt.Store(&now)
+	}
 	c.connected.Store(v)
 	if v {
 		c.gauge.Set(1)

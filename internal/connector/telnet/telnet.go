@@ -24,7 +24,7 @@ func init() {
 		NewConfig:   func() proto.Message { return &telnetv1.Config{} },
 		Validate:    Validate,
 		Credentials: []connector.CredentialKind{connector.CredentialPassword},
-		Actions:     []string{"telnet.connect"},
+		Actions:     []string{"telnet.connect", "telnet.shell"}, // connect first: callers use Actions[0]
 		Level:       "L2",
 		Kinds:       []connector.Kind{connector.KindTerminal, connector.KindStream},
 		Recorded:    []connector.Kind{connector.KindTerminal, connector.KindStream},

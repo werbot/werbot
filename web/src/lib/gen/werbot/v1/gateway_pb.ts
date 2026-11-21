@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file werbot/v1/gateway.proto.
  */
 export const file_werbot_v1_gateway: GenFile = /*@__PURE__*/
-  fileDesc("Chd3ZXJib3QvdjEvZ2F0ZXdheS5wcm90bxIJd2VyYm90LnYxIqYBCgdHYXRld2F5EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGb25saW5lGAMgASgIEhIKCmNvbm5lY3RvcnMYBCADKAkSLgoKY3JlYXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLQoJaW5zdGFuY2VzGAYgAygLMhoud2VyYm90LnYxLkdhdGV3YXlJbnN0YW5jZSKOAgoPR2F0ZXdheUluc3RhbmNlEgoKAmlkGAEgASgJEhAKCGhvc3RuYW1lGAIgASgJEg8KB3ZlcnNpb24YAyABKAkSEgoKY29ubmVjdG9ycxgEIAMoCRIOCgZvbmxpbmUYBSABKAgSMAoMbGFzdF9zZWVuX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9jZXJ0X2V4cGlyZXNfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhEKCWNsaWVudF9pcBgIIAEoCRIuCgpjcmVhdGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCLbAQoJSm9pblRva2VuEgoKAmlkGAEgASgJEhAKCG1heF91c2VzGAIgASgFEgwKBHVzZXMYAyABKAUSLgoKZXhwaXJlc19hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKcmV2b2tlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKY3JlYXRlZF9ieRgGIAEoCRIuCgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCIvChRDcmVhdGVHYXRld2F5UmVxdWVzdBIXCgRuYW1lGAEgASgJQgm6SAZyBBABGD8iPAoVQ3JlYXRlR2F0ZXdheVJlc3BvbnNlEiMKB2dhdGV3YXkYASABKAsyEi53ZXJib3QudjEuR2F0ZXdheSIVChNMaXN0R2F0ZXdheXNSZXF1ZXN0IjwKFExpc3RHYXRld2F5c1Jlc3BvbnNlEiQKCGdhdGV3YXlzGAEgAygLMhIud2VyYm90LnYxLkdhdGV3YXkiLAoURGVsZXRlR2F0ZXdheVJlcXVlc3QSFAoCaWQYASABKAlCCLpIBXIDsAEBIhcKFURlbGV0ZUdhdGV3YXlSZXNwb25zZSKXAQoWQ3JlYXRlSm9pblRva2VuUmVxdWVzdBIcCgpnYXRld2F5X2lkGAEgASgJQgi6SAVyA7ABARJBCgpleHBpcmVzX2luGAIgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uQhK6SA+qAQwiBQiA54QPMgMIkBwSHAoIbWF4X3VzZXMYAyABKAVCCrpIBxoFGOgHKAAiZAoXQ3JlYXRlSm9pblRva2VuUmVzcG9uc2USCgoCaWQYASABKAkSDQoFdG9rZW4YAiABKAkSLgoKZXhwaXJlc19hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiNQoVTGlzdEpvaW5Ub2tlbnNSZXF1ZXN0EhwKCmdhdGV3YXlfaWQYASABKAlCCLpIBXIDsAEBIj4KFkxpc3RKb2luVG9rZW5zUmVzcG9uc2USJAoGdG9rZW5zGAEgAygLMhQud2VyYm90LnYxLkpvaW5Ub2tlbiIuChZSZXZva2VKb2luVG9rZW5SZXF1ZXN0EhQKAmlkGAEgASgJQgi6SAVyA7ABASIZChdSZXZva2VKb2luVG9rZW5SZXNwb25zZSI0ChxEZWxldGVHYXRld2F5SW5zdGFuY2VSZXF1ZXN0EhQKAmlkGAEgASgJQgi6SAVyA7ABASIfCh1EZWxldGVHYXRld2F5SW5zdGFuY2VSZXNwb25zZSKqAQoNRW5yb2xsUmVxdWVzdBIeCgpqb2luX3Rva2VuGAEgASgJQgq6SAdyBRABGIACEhsKB2Nzcl9kZXIYAiABKAxCCrpIB3oFEAEYgCASHAoIaG9zdG5hbWUYAyABKAlCCrpIB3IFEAEY/wESGAoHdmVyc2lvbhgEIAEoCUIHukgEcgIYQBIkCgpjb25uZWN0b3JzGAUgAygJQhC6SA2SAQoQQCIGcgQQARhAIoUBCg5FbnJvbGxSZXNwb25zZRISCgpnYXRld2F5X2lkGAEgASgJEhMKC2luc3RhbmNlX2lkGAIgASgJEhAKCGNlcnRfcGVtGAMgASgJEg4KBmNhX3BlbRgEIAEoCRISCgp0dW5uZWxfdXJsGAUgASgJEhQKDGhvc3Rfa2V5X3BlbRgGIAEoCTKABQoOR2F0ZXdheVNlcnZpY2USUgoNQ3JlYXRlR2F0ZXdheRIfLndlcmJvdC52MS5DcmVhdGVHYXRld2F5UmVxdWVzdBogLndlcmJvdC52MS5DcmVhdGVHYXRld2F5UmVzcG9uc2USTwoMTGlzdEdhdGV3YXlzEh4ud2VyYm90LnYxLkxpc3RHYXRld2F5c1JlcXVlc3QaHy53ZXJib3QudjEuTGlzdEdhdGV3YXlzUmVzcG9uc2USUgoNRGVsZXRlR2F0ZXdheRIfLndlcmJvdC52MS5EZWxldGVHYXRld2F5UmVxdWVzdBogLndlcmJvdC52MS5EZWxldGVHYXRld2F5UmVzcG9uc2USWAoPQ3JlYXRlSm9pblRva2VuEiEud2VyYm90LnYxLkNyZWF0ZUpvaW5Ub2tlblJlcXVlc3QaIi53ZXJib3QudjEuQ3JlYXRlSm9pblRva2VuUmVzcG9uc2USVQoOTGlzdEpvaW5Ub2tlbnMSIC53ZXJib3QudjEuTGlzdEpvaW5Ub2tlbnNSZXF1ZXN0GiEud2VyYm90LnYxLkxpc3RKb2luVG9rZW5zUmVzcG9uc2USWAoPUmV2b2tlSm9pblRva2VuEiEud2VyYm90LnYxLlJldm9rZUpvaW5Ub2tlblJlcXVlc3QaIi53ZXJib3QudjEuUmV2b2tlSm9pblRva2VuUmVzcG9uc2USagoVRGVsZXRlR2F0ZXdheUluc3RhbmNlEicud2VyYm90LnYxLkRlbGV0ZUdhdGV3YXlJbnN0YW5jZVJlcXVlc3QaKC53ZXJib3QudjEuRGVsZXRlR2F0ZXdheUluc3RhbmNlUmVzcG9uc2UyVQoUR2F0ZXdheUVucm9sbFNlcnZpY2USPQoGRW5yb2xsEhgud2VyYm90LnYxLkVucm9sbFJlcXVlc3QaGS53ZXJib3QudjEuRW5yb2xsUmVzcG9uc2VCkwEKDWNvbS53ZXJib3QudjFCDEdhdGV3YXlQcm90b1ABWi9naXRodWIuY29tL3dlcmJvdC93ZXJib3QvZ2VuL3dlcmJvdC92MTt3ZXJib3R2MaICA1dYWKoCCVdlcmJvdC5WMcoCCVdlcmJvdFxWMeICFVdlcmJvdFxWMVxHUEJNZXRhZGF0YeoCCldlcmJvdDo6VjFiBnByb3RvMw", [file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("Chd3ZXJib3QvdjEvZ2F0ZXdheS5wcm90bxIJd2VyYm90LnYxIs0BCgdHYXRld2F5EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGb25saW5lGAMgASgIEhIKCmNvbm5lY3RvcnMYBCADKAkSLgoKY3JlYXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLQoJaW5zdGFuY2VzGAYgAygLMhoud2VyYm90LnYxLkdhdGV3YXlJbnN0YW5jZRITCgtzc2hfYWRkcmVzcxgHIAEoCRIQCghob3N0X2tleRgIIAEoCSKOAgoPR2F0ZXdheUluc3RhbmNlEgoKAmlkGAEgASgJEhAKCGhvc3RuYW1lGAIgASgJEg8KB3ZlcnNpb24YAyABKAkSEgoKY29ubmVjdG9ycxgEIAMoCRIOCgZvbmxpbmUYBSABKAgSMAoMbGFzdF9zZWVuX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9jZXJ0X2V4cGlyZXNfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhEKCWNsaWVudF9pcBgIIAEoCRIuCgpjcmVhdGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCLbAQoJSm9pblRva2VuEgoKAmlkGAEgASgJEhAKCG1heF91c2VzGAIgASgFEgwKBHVzZXMYAyABKAUSLgoKZXhwaXJlc19hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKcmV2b2tlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKY3JlYXRlZF9ieRgGIAEoCRIuCgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCIvChRDcmVhdGVHYXRld2F5UmVxdWVzdBIXCgRuYW1lGAEgASgJQgm6SAZyBBABGD8iPAoVQ3JlYXRlR2F0ZXdheVJlc3BvbnNlEiMKB2dhdGV3YXkYASABKAsyEi53ZXJib3QudjEuR2F0ZXdheSIVChNMaXN0R2F0ZXdheXNSZXF1ZXN0IjwKFExpc3RHYXRld2F5c1Jlc3BvbnNlEiQKCGdhdGV3YXlzGAEgAygLMhIud2VyYm90LnYxLkdhdGV3YXkiSwoUVXBkYXRlR2F0ZXdheVJlcXVlc3QSFAoCaWQYASABKAlCCLpIBXIDsAEBEh0KC3NzaF9hZGRyZXNzGAIgASgJQgi6SAVyAyisAiI8ChVVcGRhdGVHYXRld2F5UmVzcG9uc2USIwoHZ2F0ZXdheRgBIAEoCzISLndlcmJvdC52MS5HYXRld2F5IiwKFERlbGV0ZUdhdGV3YXlSZXF1ZXN0EhQKAmlkGAEgASgJQgi6SAVyA7ABASIXChVEZWxldGVHYXRld2F5UmVzcG9uc2UilwEKFkNyZWF0ZUpvaW5Ub2tlblJlcXVlc3QSHAoKZ2F0ZXdheV9pZBgBIAEoCUIIukgFcgOwAQESQQoKZXhwaXJlc19pbhgCIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbkISukgPqgEMIgUIgOeEDzIDCJAcEhwKCG1heF91c2VzGAMgASgFQgq6SAcaBRjoBygAImQKF0NyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlEgoKAmlkGAEgASgJEg0KBXRva2VuGAIgASgJEi4KCmV4cGlyZXNfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjUKFUxpc3RKb2luVG9rZW5zUmVxdWVzdBIcCgpnYXRld2F5X2lkGAEgASgJQgi6SAVyA7ABASI+ChZMaXN0Sm9pblRva2Vuc1Jlc3BvbnNlEiQKBnRva2VucxgBIAMoCzIULndlcmJvdC52MS5Kb2luVG9rZW4iLgoWUmV2b2tlSm9pblRva2VuUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQEiGQoXUmV2b2tlSm9pblRva2VuUmVzcG9uc2UiNAocRGVsZXRlR2F0ZXdheUluc3RhbmNlUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQEiHwodRGVsZXRlR2F0ZXdheUluc3RhbmNlUmVzcG9uc2UiqgEKDUVucm9sbFJlcXVlc3QSHgoKam9pbl90b2tlbhgBIAEoCUIKukgHcgUQARiAAhIbCgdjc3JfZGVyGAIgASgMQgq6SAd6BRABGIAgEhwKCGhvc3RuYW1lGAMgASgJQgq6SAdyBRABGP8BEhgKB3ZlcnNpb24YBCABKAlCB7pIBHICGEASJAoKY29ubmVjdG9ycxgFIAMoCUIQukgNkgEKEEAiBnIEEAEYQCKFAQoORW5yb2xsUmVzcG9uc2USEgoKZ2F0ZXdheV9pZBgBIAEoCRITCgtpbnN0YW5jZV9pZBgCIAEoCRIQCghjZXJ0X3BlbRgDIAEoCRIOCgZjYV9wZW0YBCABKAkSEgoKdHVubmVsX3VybBgFIAEoCRIUCgxob3N0X2tleV9wZW0YBiABKAky1AUKDkdhdGV3YXlTZXJ2aWNlElIKDUNyZWF0ZUdhdGV3YXkSHy53ZXJib3QudjEuQ3JlYXRlR2F0ZXdheVJlcXVlc3QaIC53ZXJib3QudjEuQ3JlYXRlR2F0ZXdheVJlc3BvbnNlEk8KDExpc3RHYXRld2F5cxIeLndlcmJvdC52MS5MaXN0R2F0ZXdheXNSZXF1ZXN0Gh8ud2VyYm90LnYxLkxpc3RHYXRld2F5c1Jlc3BvbnNlElIKDVVwZGF0ZUdhdGV3YXkSHy53ZXJib3QudjEuVXBkYXRlR2F0ZXdheVJlcXVlc3QaIC53ZXJib3QudjEuVXBkYXRlR2F0ZXdheVJlc3BvbnNlElIKDURlbGV0ZUdhdGV3YXkSHy53ZXJib3QudjEuRGVsZXRlR2F0ZXdheVJlcXVlc3QaIC53ZXJib3QudjEuRGVsZXRlR2F0ZXdheVJlc3BvbnNlElgKD0NyZWF0ZUpvaW5Ub2tlbhIhLndlcmJvdC52MS5DcmVhdGVKb2luVG9rZW5SZXF1ZXN0GiIud2VyYm90LnYxLkNyZWF0ZUpvaW5Ub2tlblJlc3BvbnNlElUKDkxpc3RKb2luVG9rZW5zEiAud2VyYm90LnYxLkxpc3RKb2luVG9rZW5zUmVxdWVzdBohLndlcmJvdC52MS5MaXN0Sm9pblRva2Vuc1Jlc3BvbnNlElgKD1Jldm9rZUpvaW5Ub2tlbhIhLndlcmJvdC52MS5SZXZva2VKb2luVG9rZW5SZXF1ZXN0GiIud2VyYm90LnYxLlJldm9rZUpvaW5Ub2tlblJlc3BvbnNlEmoKFURlbGV0ZUdhdGV3YXlJbnN0YW5jZRInLndlcmJvdC52MS5EZWxldGVHYXRld2F5SW5zdGFuY2VSZXF1ZXN0Gigud2VyYm90LnYxLkRlbGV0ZUdhdGV3YXlJbnN0YW5jZVJlc3BvbnNlMlUKFEdhdGV3YXlFbnJvbGxTZXJ2aWNlEj0KBkVucm9sbBIYLndlcmJvdC52MS5FbnJvbGxSZXF1ZXN0Ghkud2VyYm90LnYxLkVucm9sbFJlc3BvbnNlQpMBCg1jb20ud2VyYm90LnYxQgxHYXRld2F5UHJvdG9QAVovZ2l0aHViLmNvbS93ZXJib3Qvd2VyYm90L2dlbi93ZXJib3QvdjE7d2VyYm90djGiAgNXWFiqAglXZXJib3QuVjHKAglXZXJib3RcVjHiAhVXZXJib3RcVjFcR1BCTWV0YWRhdGHqAgpXZXJib3Q6OlYxYgZwcm90bzM", [file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message werbot.v1.Gateway
@@ -48,6 +48,20 @@ export type Gateway = Message<"werbot.v1.Gateway"> & {
    * @generated from field: repeated werbot.v1.GatewayInstance instances = 6;
    */
   instances: GatewayInstance[];
+
+  /**
+   * host:port clients dial; empty until set
+   *
+   * @generated from field: string ssh_address = 7;
+   */
+  sshAddress: string;
+
+  /**
+   * pool host key in authorized_keys format
+   *
+   * @generated from field: string host_key = 8;
+   */
+  hostKey: string;
 };
 
 /**
@@ -226,6 +240,47 @@ export const ListGatewaysResponseSchema: GenMessage<ListGatewaysResponse> = /*@_
   messageDesc(file_werbot_v1_gateway, 6);
 
 /**
+ * @generated from message werbot.v1.UpdateGatewayRequest
+ */
+export type UpdateGatewayRequest = Message<"werbot.v1.UpdateGatewayRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * "" resets; otherwise host:port.
+   *
+   * @generated from field: string ssh_address = 2;
+   */
+  sshAddress: string;
+};
+
+/**
+ * Describes the message werbot.v1.UpdateGatewayRequest.
+ * Use `create(UpdateGatewayRequestSchema)` to create a new message.
+ */
+export const UpdateGatewayRequestSchema: GenMessage<UpdateGatewayRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_gateway, 7);
+
+/**
+ * @generated from message werbot.v1.UpdateGatewayResponse
+ */
+export type UpdateGatewayResponse = Message<"werbot.v1.UpdateGatewayResponse"> & {
+  /**
+   * @generated from field: werbot.v1.Gateway gateway = 1;
+   */
+  gateway?: Gateway | undefined;
+};
+
+/**
+ * Describes the message werbot.v1.UpdateGatewayResponse.
+ * Use `create(UpdateGatewayResponseSchema)` to create a new message.
+ */
+export const UpdateGatewayResponseSchema: GenMessage<UpdateGatewayResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_gateway, 8);
+
+/**
  * @generated from message werbot.v1.DeleteGatewayRequest
  */
 export type DeleteGatewayRequest = Message<"werbot.v1.DeleteGatewayRequest"> & {
@@ -240,7 +295,7 @@ export type DeleteGatewayRequest = Message<"werbot.v1.DeleteGatewayRequest"> & {
  * Use `create(DeleteGatewayRequestSchema)` to create a new message.
  */
 export const DeleteGatewayRequestSchema: GenMessage<DeleteGatewayRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 7);
+  messageDesc(file_werbot_v1_gateway, 9);
 
 /**
  * @generated from message werbot.v1.DeleteGatewayResponse
@@ -253,7 +308,7 @@ export type DeleteGatewayResponse = Message<"werbot.v1.DeleteGatewayResponse"> &
  * Use `create(DeleteGatewayResponseSchema)` to create a new message.
  */
 export const DeleteGatewayResponseSchema: GenMessage<DeleteGatewayResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 8);
+  messageDesc(file_werbot_v1_gateway, 10);
 
 /**
  * @generated from message werbot.v1.CreateJoinTokenRequest
@@ -284,7 +339,7 @@ export type CreateJoinTokenRequest = Message<"werbot.v1.CreateJoinTokenRequest">
  * Use `create(CreateJoinTokenRequestSchema)` to create a new message.
  */
 export const CreateJoinTokenRequestSchema: GenMessage<CreateJoinTokenRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 9);
+  messageDesc(file_werbot_v1_gateway, 11);
 
 /**
  * @generated from message werbot.v1.CreateJoinTokenResponse
@@ -313,7 +368,7 @@ export type CreateJoinTokenResponse = Message<"werbot.v1.CreateJoinTokenResponse
  * Use `create(CreateJoinTokenResponseSchema)` to create a new message.
  */
 export const CreateJoinTokenResponseSchema: GenMessage<CreateJoinTokenResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 10);
+  messageDesc(file_werbot_v1_gateway, 12);
 
 /**
  * @generated from message werbot.v1.ListJoinTokensRequest
@@ -330,7 +385,7 @@ export type ListJoinTokensRequest = Message<"werbot.v1.ListJoinTokensRequest"> &
  * Use `create(ListJoinTokensRequestSchema)` to create a new message.
  */
 export const ListJoinTokensRequestSchema: GenMessage<ListJoinTokensRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 11);
+  messageDesc(file_werbot_v1_gateway, 13);
 
 /**
  * @generated from message werbot.v1.ListJoinTokensResponse
@@ -347,7 +402,7 @@ export type ListJoinTokensResponse = Message<"werbot.v1.ListJoinTokensResponse">
  * Use `create(ListJoinTokensResponseSchema)` to create a new message.
  */
 export const ListJoinTokensResponseSchema: GenMessage<ListJoinTokensResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 12);
+  messageDesc(file_werbot_v1_gateway, 14);
 
 /**
  * @generated from message werbot.v1.RevokeJoinTokenRequest
@@ -364,7 +419,7 @@ export type RevokeJoinTokenRequest = Message<"werbot.v1.RevokeJoinTokenRequest">
  * Use `create(RevokeJoinTokenRequestSchema)` to create a new message.
  */
 export const RevokeJoinTokenRequestSchema: GenMessage<RevokeJoinTokenRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 13);
+  messageDesc(file_werbot_v1_gateway, 15);
 
 /**
  * @generated from message werbot.v1.RevokeJoinTokenResponse
@@ -377,7 +432,7 @@ export type RevokeJoinTokenResponse = Message<"werbot.v1.RevokeJoinTokenResponse
  * Use `create(RevokeJoinTokenResponseSchema)` to create a new message.
  */
 export const RevokeJoinTokenResponseSchema: GenMessage<RevokeJoinTokenResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 14);
+  messageDesc(file_werbot_v1_gateway, 16);
 
 /**
  * @generated from message werbot.v1.DeleteGatewayInstanceRequest
@@ -394,7 +449,7 @@ export type DeleteGatewayInstanceRequest = Message<"werbot.v1.DeleteGatewayInsta
  * Use `create(DeleteGatewayInstanceRequestSchema)` to create a new message.
  */
 export const DeleteGatewayInstanceRequestSchema: GenMessage<DeleteGatewayInstanceRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 15);
+  messageDesc(file_werbot_v1_gateway, 17);
 
 /**
  * @generated from message werbot.v1.DeleteGatewayInstanceResponse
@@ -407,7 +462,7 @@ export type DeleteGatewayInstanceResponse = Message<"werbot.v1.DeleteGatewayInst
  * Use `create(DeleteGatewayInstanceResponseSchema)` to create a new message.
  */
 export const DeleteGatewayInstanceResponseSchema: GenMessage<DeleteGatewayInstanceResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 16);
+  messageDesc(file_werbot_v1_gateway, 18);
 
 /**
  * @generated from message werbot.v1.EnrollRequest
@@ -444,7 +499,7 @@ export type EnrollRequest = Message<"werbot.v1.EnrollRequest"> & {
  * Use `create(EnrollRequestSchema)` to create a new message.
  */
 export const EnrollRequestSchema: GenMessage<EnrollRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 17);
+  messageDesc(file_werbot_v1_gateway, 19);
 
 /**
  * @generated from message werbot.v1.EnrollResponse
@@ -486,7 +541,7 @@ export type EnrollResponse = Message<"werbot.v1.EnrollResponse"> & {
  * Use `create(EnrollResponseSchema)` to create a new message.
  */
 export const EnrollResponseSchema: GenMessage<EnrollResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_gateway, 18);
+  messageDesc(file_werbot_v1_gateway, 20);
 
 /**
  * GatewayService manages gateway pools; owners and admins only.
@@ -509,6 +564,14 @@ export const GatewayService: GenService<{
     methodKind: "unary";
     input: typeof ListGatewaysRequestSchema;
     output: typeof ListGatewaysResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.GatewayService.UpdateGateway
+   */
+  updateGateway: {
+    methodKind: "unary";
+    input: typeof UpdateGatewayRequestSchema;
+    output: typeof UpdateGatewayResponseSchema;
   },
   /**
    * @generated from rpc werbot.v1.GatewayService.DeleteGateway

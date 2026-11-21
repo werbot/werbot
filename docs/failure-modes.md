@@ -15,7 +15,16 @@ What happens to running and new sessions and to data when a part of Werbot fails
 | `Overloaded instance` | Live. | Refused with `Gateway is busy, try again later` at `WERBOT_GATEWAY_MAX_SESSIONS`; `/readyz` answers 503. | No loss. |
 | `Total spool ≥ WERBOT_GATEWAY_SPOOL_MAX` | Live; a session with more than 64 MiB unsent ends with `recording_unavailable`. | Recorded sessions (`ssh` terminal and exec, `telnet`) are refused with `Gateway is busy, try again later`; `ssh -L`, `tcp` and `udp` are not recorded and keep working. | No loss. |
 | `Target unreachable` | The channel closes, `end_reason` is `error`. | Resource health becomes `unhealthy`. | No loss. |
-| `Access revoked` | Sessions without access close with `access_revoked` after the next snapshot, within 1 s (60 s for schedules). | Refused with `Access denied`; event `session.deny`. | No loss. |
+| `Access revoked` | Sessions without access close with `access_revoked` after the next snapshot, within 1 s (60 s for schedules); a revoked grant or a new lock within 2 s, an expired grant within 1 s of `expires_at` ([jit.md](jit.md#ending-sessions)). | Refused with `Access denied`; event `session.deny`. | No loss. |
+| `Server unavailable while a request waits for approval` | Live. | `werbot request` fails at its next poll (every 5 s) with the connection error; the request stays `pending` on the server and expires after `request_pending_ttl` (a timeout is always a denial). | No loss: the request, the decision and the grant are in PostgreSQL. |
+| `Server unavailable while a command waits for approval` | Live. | The command keeps waiting: the gateway reads the approval status every 15 s and logs failed reads. A decision made meanwhile runs or refuses the command at the next successful read; with no successful read by the deadline (`command_approval_ttl`) the user gets `Approval timed out`. A command that needs an approval while the server is unreachable is refused with `Gateway is not ready, try again later` (`RequestApproval` fails). | No loss: the request and the decision are in PostgreSQL. |
+| `Target cannot run pwd -P when a command console starts` | Not affected. | The console session closes with `Console unavailable: cannot read working directory` ([policies.md](policies.md#command-console)). | No loss. |
+| `Server unavailable while a console line waits for approval` | Live; the console stays open. | The line waits as an exec command does (see the row above): with no successful status read by the deadline it gets `Approval timed out` and the console shows the next prompt. | No loss: the request and the decision are in PostgreSQL. |
+| `NOTIFY lost while a replica reconnects LISTEN` | Live. | A waiting command learns a decision made meanwhile at its next status read, within 15 s. After a tunnel reconnect the server also resends the decisions of the last 10 minutes of that instance. | No loss. |
+| `Gateway without a tunnel, lock_mode = best_effort` | Live on the last snapshot; revokes and locks wait for the reconnect. A grant still ends on time: the gateway timer works from the last snapshot. | Refused with `Gateway is not ready, try again later`. | No loss. |
+| `Gateway without a tunnel, lock_mode = strict` | End with `policy_stale` once the tunnel has been down for more than 60 s (checked every 5 s: 60 to 65 s after the loss); a reconnect before that resets the wait. Grant expiry works as in `best_effort`. | Refused with `Gateway is not ready, try again later`. | Session ends wait in the spool. |
+| `Authorization server unavailable` (the CLI cannot reach the server) | Live. | `werbot login`, the commands that call the API (`ls`, `ssh`, `status`) and certificate renewal fail. OpenSSH through `werbot ssh-config` keeps connecting with the current certificate until it expires (at most 1 hour). | No loss. |
+| `Client clock skew` | Not affected. | A certificate is valid from 1 minute before the server time. A larger skew fails renewal with `clock skew <d> between this computer and <server>; sync the system clock`. | No loss. |
 
 ## End reasons
 
@@ -27,7 +36,8 @@ What happens to running and new sessions and to data when a part of Werbot fails
 - `recording_unavailable`: the recording cannot be kept.
 - `idle_timeout`: no traffic for the idle timeout.
 - `max_duration`: the maximum duration passed.
-- `access_revoked`: the policy no longer allows the session.
+- `access_revoked`: the policy no longer allows the session: a binding, grant or lock changed, or a grant or lock expired.
+- `policy_stale`: the organization uses `strict` lock mode and the gateway lost its tunnel to the server for more than 60 seconds (checked every 5 seconds).
 
 ## How Werbot protects data
 

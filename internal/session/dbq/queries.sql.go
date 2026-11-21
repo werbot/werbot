@@ -141,14 +141,18 @@ func (q *Queries) EndMissingSessions(ctx context.Context, arg EndMissingSessions
 const endSession = `-- name: EndSession :one
 UPDATE session
 SET ended_at = now(), end_reason = $1::text,
-    bytes_up = GREATEST(bytes_up, $2::bigint), bytes_down = GREATEST(bytes_down, $3::bigint),
-    datagrams_up = GREATEST(datagrams_up, $4::bigint), datagrams_down = GREATEST(datagrams_down, $5::bigint)
-WHERE id = $6 AND org_id = $7 AND gateway_instance_id = $8::uuid AND ended_at IS NULL
+    command = coalesce(nullif($2::text, ''), command), classes = coalesce($3::text[], classes), paths = coalesce($4::text[], paths),
+    bytes_up = GREATEST(bytes_up, $5::bigint), bytes_down = GREATEST(bytes_down, $6::bigint),
+    datagrams_up = GREATEST(datagrams_up, $7::bigint), datagrams_down = GREATEST(datagrams_down, $8::bigint)
+WHERE id = $9 AND org_id = $10 AND gateway_instance_id = $11::uuid AND ended_at IS NULL
 RETURNING resource_id
 `
 
 type EndSessionParams struct {
 	Reason        string
+	Command       string
+	Classes       []string
+	Paths         []string
 	BytesUp       int64
 	BytesDown     int64
 	DatagramsUp   int64
@@ -162,6 +166,9 @@ type EndSessionParams struct {
 func (q *Queries) EndSession(ctx context.Context, arg EndSessionParams) (*uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, endSession,
 		arg.Reason,
+		arg.Command,
+		arg.Classes,
+		arg.Paths,
 		arg.BytesUp,
 		arg.BytesDown,
 		arg.DatagramsUp,
@@ -266,7 +273,7 @@ func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyPara
 
 const listSessions = `-- name: ListSessions :many
 SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
-       s.kind, s.target, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
+       s.kind, s.target, coalesce(s.command, '')::text AS command, s.classes, s.paths, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
        coalesce(u.login, '')::text AS user_login,
        coalesce(r.name, '')::text AS resource_name,
        coalesce(s.end_reason, '')::text AS end_reason,
@@ -310,6 +317,9 @@ type ListSessionsRow struct {
 	EndedAt       *time.Time
 	Kind          string
 	Target        string
+	Command       string
+	Classes       []string
+	Paths         []string
 	BytesUp       int64
 	BytesDown     int64
 	DatagramsUp   int64
@@ -352,6 +362,9 @@ func (q *Queries) ListSessions(ctx context.Context, arg ListSessionsParams) ([]L
 			&i.EndedAt,
 			&i.Kind,
 			&i.Target,
+			&i.Command,
+			&i.Classes,
+			&i.Paths,
 			&i.BytesUp,
 			&i.BytesDown,
 			&i.DatagramsUp,
@@ -466,6 +479,22 @@ func (q *Queries) ResourceIDsByName(ctx context.Context, arg ResourceIDsByNamePa
 		return nil, err
 	}
 	return items, nil
+}
+
+const sessionInOrg = `-- name: SessionInOrg :one
+SELECT EXISTS (SELECT 1 FROM session WHERE id = $1 AND org_id = $2)
+`
+
+type SessionInOrgParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+func (q *Queries) SessionInOrg(ctx context.Context, arg SessionInOrgParams) (bool, error) {
+	row := q.db.QueryRow(ctx, sessionInOrg, arg.ID, arg.OrgID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const sessionOfInstanceExists = `-- name: SessionOfInstanceExists :one

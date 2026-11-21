@@ -26,7 +26,7 @@ func TestSpoolRecoversAfterRestart(t *testing.T) {
 			id := uuid.New()
 			total, last := appendN(t, old, id, 2)
 			if ended {
-				require.NoError(t, old.End(id, "gateway_shutdown", nil))
+				require.NoError(t, old.End(id, "gateway_shutdown", nil, nil))
 			}
 
 			up := &fakeUploader{}
@@ -146,7 +146,7 @@ func TestSpoolEndCountersSurviveRestart(t *testing.T) {
 	down.down.Store(true)
 	old := openSpool(t, dir, down, 0)
 	a, b := uuid.New(), uuid.New()
-	require.NoError(t, old.End(a, "idle_timeout", &gatewayv1.SessionCounters{SessionId: a.String(), BytesUp: 5, BytesDown: 6, DatagramsUp: 1, DatagramsDown: 2}))
+	require.NoError(t, old.End(a, "idle_timeout", &gatewayv1.SessionCounters{SessionId: a.String(), BytesUp: 5, BytesDown: 6, DatagramsUp: 1, DatagramsDown: 2}, nil))
 	require.NoError(t, os.Mkdir(filepath.Join(dir, b.String()), 0o700))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, b.String(), "end.json"), []byte(`{"reason":"closed"}`), 0o600))
 

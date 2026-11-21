@@ -1,0 +1,31 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+
+// ResourceSelector picks resources by id or by labels: exactly one of the two.
+message ResourceSelector {
+  repeated string resource_ids = 1 [(buf.validate.field).repeated = {
+    max_items: 100
+    items: {string: {uuid: true}}
+  }];
+  map<string, string> labels = 2 [(buf.validate.field).map = {
+    max_pairs: 8
+    keys: {string: {pattern: "^[a-z0-9]([a-z0-9._-]{0,61}[a-z0-9])?$"}}
+    values: {string: {pattern: "^[A-Za-z0-9._-]{0,63}$"}}
+  }];
+}
+
+// Subjects names who a rule applies to.
+message Subjects {
+  repeated string users = 1 [(buf.validate.field).repeated = {
+    max_items: 100
+    items: {string: {uuid: true}}
+  }];
+  repeated string teams = 2 [(buf.validate.field).repeated = {
+    max_items: 100
+    items: {string: {uuid: true}}
+  }];
+  bool all_users = 3;
+  bool all_agents = 4;
+}

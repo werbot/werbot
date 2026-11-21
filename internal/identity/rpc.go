@@ -20,11 +20,15 @@ type Handler struct {
 	werbotv1connect.UnimplementedSSHKeyServiceHandler
 	werbotv1connect.UnimplementedMemberServiceHandler
 	werbotv1connect.UnimplementedTeamServiceHandler
+	werbotv1connect.UnimplementedSettingsServiceHandler
+	werbotv1connect.UnimplementedCLISessionServiceHandler
+	werbotv1connect.UnimplementedCertServiceHandler
 	svc *Service
 }
 
 // NewHandler returns the Connect handler for AuthService, ProfileService,
-// SSHKeyService, MemberService and TeamService.
+// SSHKeyService, MemberService, TeamService, SettingsService,
+// CLISessionService and CertService.
 func NewHandler(s *Service) *Handler {
 	return &Handler{svc: s}
 }

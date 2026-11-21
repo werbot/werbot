@@ -76,6 +76,12 @@ DELETE FROM user_session WHERE user_id = @user_id;
 -- name: GetProfile :one
 SELECT id, email, login, name, created_at FROM users WHERE id = @id;
 
+-- name: GetCertSubject :one
+-- The login a user certificate names and whether an active lock holds its CLI session.
+SELECT u.login, EXISTS (SELECT 1 FROM lock l WHERE l.org_id = @org_id AND l.target_type = 'cli_session'
+    AND l.target_id = @cli_session_id::uuid AND (l.expires_at IS NULL OR l.expires_at > now()))::bool AS locked
+FROM users u WHERE u.id = @user_id;
+
 -- name: UpdateProfile :exec
 -- A NULL email keeps the current one.
 UPDATE users SET name = @name, email = coalesce(sqlc.narg(email), email), updated_at = now() WHERE id = @id;
@@ -206,3 +212,87 @@ LEFT JOIN team_member tm ON tm.org_id = m.org_id AND tm.user_id = m.user_id
 WHERE m.org_id = @org_id
 GROUP BY m.user_id
 ORDER BY m.user_id;
+
+-- name: CreateOrgSetting :exec
+INSERT INTO org_setting (org_id) VALUES (@org_id);
+
+-- name: GetOrgSettings :one
+SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
+       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs,
+       extract(epoch FROM grant_default_ttl)::bigint AS grant_default_ttl_secs,
+       extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
+       extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
+       extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
+       lock_mode, mask_output
+FROM org_setting WHERE org_id = @org_id;
+
+-- name: LockOrgSettings :one
+SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
+       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs,
+       extract(epoch FROM grant_default_ttl)::bigint AS grant_default_ttl_secs,
+       extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
+       extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
+       extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
+       lock_mode, mask_output
+FROM org_setting WHERE org_id = @org_id FOR UPDATE;
+
+-- name: UpdateOrgSettings :exec
+UPDATE org_setting SET
+    cli_session_ttl = make_interval(secs => @cli_session_ttl_secs::float8),
+    cli_session_max = make_interval(secs => @cli_session_max_secs::float8),
+    grant_default_ttl = make_interval(secs => @grant_default_ttl_secs::float8),
+    grant_max_ttl = make_interval(secs => @grant_max_ttl_secs::float8),
+    request_pending_ttl = make_interval(secs => @request_pending_ttl_secs::float8),
+    command_approval_ttl = make_interval(secs => @command_approval_ttl_secs::float8),
+    lock_mode = @lock_mode,
+    mask_output = @mask_output,
+    updated_at = now()
+WHERE org_id = @org_id;
+
+-- name: GetMemberRole :one
+SELECT role FROM membership WHERE org_id = @org_id AND user_id = @user_id;
+
+-- name: GetCLISessionRole :one
+-- A Bearer request: the live cli_session of the token and the member's role.
+SELECT m.role FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+WHERE c.id = @id AND c.org_id = @org_id AND c.user_id = @user_id AND c.revoked_at IS NULL
+  AND c.expires_at > now() AND c.absolute_expires_at > now();
+
+-- name: ListCLISessions :many
+SELECT id, user_id, client_id, hostname, ip, created_at, last_used_at, expires_at, absolute_expires_at
+FROM cli_session
+WHERE org_id = @org_id AND user_id = @user_id AND revoked_at IS NULL
+  AND expires_at > now() AND absolute_expires_at > now()
+ORDER BY created_at DESC;
+
+-- name: RevokeCLISession :execrows
+-- A manager revokes any session of the organization, others only their own.
+UPDATE cli_session SET revoked_at = now(), revoke_reason = @reason::text
+WHERE id = @id AND org_id = @org_id AND revoked_at IS NULL AND (@manager::bool OR user_id = @user_id);
+
+-- name: RevokeUserCLISessions :exec
+-- A new password ends the user's CLI sessions in every organization but keep_id.
+UPDATE cli_session SET revoked_at = now(), revoke_reason = 'password_reset'
+WHERE user_id = @user_id AND id <> @keep_id AND revoked_at IS NULL;
+
+-- name: GetUserCA :one
+SELECT ciphertext, key_id FROM org_ssh_ca WHERE org_id = @org_id;
+
+-- name: InsertUserCA :exec
+-- Concurrent first uses race here: the first insert wins, the rest re-read.
+INSERT INTO org_ssh_ca (org_id, ciphertext, key_id, public_key)
+VALUES (@org_id, @ciphertext, @key_id, @public_key)
+ON CONFLICT (org_id) DO NOTHING;
+
+-- name: LookupCertUser :one
+-- An SSH certificate: the live cli_session it was issued for, the member and
+-- the login of its principal. ponytail: team sub-select as LookupLoginUser.
+SELECT u.id, u.login, m.role,
+       (SELECT array_agg(tm.team_id ORDER BY tm.team_id) FROM team_member tm
+        WHERE tm.org_id = m.org_id AND tm.user_id = u.id)::uuid[] AS team_ids
+FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+JOIN users u ON u.id = c.user_id
+WHERE c.id = @id AND c.org_id = @org_id AND c.user_id = @user_id AND u.login = @login
+  AND c.revoked_at IS NULL AND c.expires_at > now() AND c.absolute_expires_at > now();

@@ -1,0 +1,149 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// Just-in-time access: requests, decisions and the grants they create.
+service AccessRequestService {
+  // Asks for access to one resource or to the resources matching a label selector.
+  rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse);
+  rpc ListRequests(ListRequestsRequest) returns (ListRequestsResponse);
+  // The requester, a possible approver, owner and admin see a request; others get NotFound.
+  rpc GetRequest(GetRequestRequest) returns (GetRequestResponse);
+  rpc Approve(ApproveRequest) returns (ApproveResponse);
+  rpc Deny(DenyRequest) returns (DenyResponse);
+  // Only the requester cancels a pending request.
+  rpc Cancel(CancelRequest) returns (CancelResponse);
+  // Owner and admin list the organization's grants, a member only own ones.
+  rpc ListGrants(ListGrantsRequest) returns (ListGrantsResponse);
+  // Owner and admin revoke any grant, a member only own ones.
+  rpc RevokeGrant(RevokeGrantRequest) returns (RevokeGrantResponse);
+  // Owner and admin mark a break-glass grant of another user reviewed.
+  rpc ReviewBreakGlass(ReviewBreakGlassRequest) returns (ReviewBreakGlassResponse);
+}
+
+enum RequestScope {
+  REQUEST_SCOPE_UNSPECIFIED = 0; // the caller's own requests
+  REQUEST_SCOPE_MINE = 1;
+  REQUEST_SCOPE_TO_APPROVE = 2; // pending requests the caller may decide
+  REQUEST_SCOPE_ALL = 3; // owner and admin only
+}
+
+// AccessRequest is an access request or a command approval.
+message AccessRequest {
+  string id = 1;
+  string kind = 2; // "access" | "command"
+  string requester_user_id = 3;
+  string requester_login = 4;
+  string resource_id = 5; // empty for a label selector request
+  string resource_name = 6;
+  map<string, string> label_selector = 7;
+  google.protobuf.Duration duration = 8; // requested grant length; unset: the organization default
+  string command = 9; // command approvals only
+  repeated string classes = 10;
+  string reason = 11;
+  string policy_id = 12;
+  bool break_glass = 13;
+  string status = 14; // "pending" | "approved" | "denied" | "expired" | "canceled"
+  string decided_by = 15;
+  google.protobuf.Timestamp decided_at = 16;
+  string comment = 17;
+  google.protobuf.Timestamp expires_at = 18; // pending: the decision deadline; approved access request: the grant end
+  google.protobuf.Timestamp created_at = 19;
+  string url = 20;
+  bool can_decide = 21; // the caller may approve or deny it now
+}
+
+// Grant is time-limited access of a user to one resource.
+message Grant {
+  string id = 1;
+  string user_id = 2;
+  string user_login = 3;
+  string resource_id = 4;
+  string resource_name = 5;
+  string approval_id = 6;
+  google.protobuf.Timestamp expires_at = 7;
+  google.protobuf.Timestamp revoked_at = 8;
+  bool break_glass = 9;
+  bool needs_review = 10;
+  string created_by = 11;
+  google.protobuf.Timestamp created_at = 12;
+}
+
+message CreateRequestRequest {
+  string resource_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE]; // exactly one of resource_id and label_selector
+  map<string, string> label_selector = 2 [(buf.validate.field).map.max_pairs = 8];
+  google.protobuf.Duration duration = 3; // unset: the organization default
+  string reason = 4 [(buf.validate.field).string.max_len = 1024];
+  bool break_glass = 5;
+}
+message CreateRequestResponse {
+  AccessRequest request = 1;
+}
+
+message ListRequestsRequest {
+  RequestScope scope = 1 [(buf.validate.field).enum.defined_only = true];
+  string status = 2 [
+    (buf.validate.field).string = {
+      in: ["pending", "approved", "denied", "expired", "canceled"]
+    },
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
+  int32 page = 3 [(buf.validate.field).int32 = {gte: 0, lte: 10000000}];
+  int32 page_size = 4 [(buf.validate.field).int32 = {gte: 0, lte: 200}]; // 0: 50
+}
+message ListRequestsResponse {
+  repeated AccessRequest requests = 1;
+  int32 next_page = 2; // 0: no further pages
+}
+
+message GetRequestRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetRequestResponse {
+  AccessRequest request = 1;
+}
+
+message ApproveRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string comment = 2 [(buf.validate.field).string.max_len = 1024];
+}
+message ApproveResponse {
+  AccessRequest request = 1;
+}
+
+message DenyRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string comment = 2 [(buf.validate.field).string.max_len = 1024];
+}
+message DenyResponse {
+  AccessRequest request = 1;
+}
+
+message CancelRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message CancelResponse {}
+
+message ListGrantsRequest {
+  optional string user_id = 1 [(buf.validate.field).string.uuid = true];
+  optional string resource_id = 2 [(buf.validate.field).string.uuid = true];
+  bool active = 3; // only unrevoked, unexpired grants
+}
+message ListGrantsResponse {
+  repeated Grant grants = 1;
+}
+
+message RevokeGrantRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string reason = 2 [(buf.validate.field).string.max_len = 1024];
+}
+message RevokeGrantResponse {}
+
+message ReviewBreakGlassRequest {
+  string grant_id = 1 [(buf.validate.field).string.uuid = true];
+  string comment = 2 [(buf.validate.field).string.max_len = 1024];
+}
+message ReviewBreakGlassResponse {}

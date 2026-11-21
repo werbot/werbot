@@ -15,6 +15,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
@@ -59,7 +60,7 @@ func TestAddSSHKey(t *testing.T) {
 
 	_, err = svc.AddSSHKey(bctx, "dup", line)
 	assert.ErrorIs(t, err, apperr.ErrAlreadyExists)
-	assert.Contains(t, auditActions(t, pool), "ssh_key.add")
+	assert.Contains(t, dbtest.AuditActions(t, pool), "ssh_key.add")
 
 	keys, err := svc.ListSSHKeys(actx)
 	require.NoError(t, err)
@@ -69,7 +70,7 @@ func TestAddSSHKey(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "work", k2.Name)
 	require.NoError(t, svc.DeleteSSHKey(actx, k.ID))
-	assert.Subset(t, auditActions(t, pool), []string{"ssh_key.update", "ssh_key.delete"})
+	assert.Subset(t, dbtest.AuditActions(t, pool), []string{"ssh_key.update", "ssh_key.delete"})
 }
 
 func TestAddSSHKeyRejectsPrivateKey(t *testing.T) {

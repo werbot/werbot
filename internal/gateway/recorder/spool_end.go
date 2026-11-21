@@ -10,22 +10,32 @@ import (
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 )
 
+// SessionResult is what a console session ran: the last checked command, its
+// classes and paths.
+type SessionResult struct {
+	Command string   `json:"command"`
+	Classes []string `json:"classes,omitempty"`
+	Paths   []string `json:"paths,omitempty"`
+}
+
 // sessionEnd is an EndSession waiting in the spool.
 type sessionEnd struct {
 	reason   string
 	counters *gatewayv1.SessionCounters // nil: an end.json written before counters existed
+	result   *SessionResult             // nil: none
 }
 
 // endJSON is the content of end.json; counters are protojson.
 type endJSON struct {
 	Reason   string          `json:"reason"`
 	Counters json.RawMessage `json:"counters,omitempty"`
+	Result   *SessionResult  `json:"result,omitempty"`
 }
 
-// End spools EndSession(sessionID, reason, c); the id is in PendingEnds until it is
-// delivered. c are the final counters of the session (nil: none).
-func (s *Spool) End(sessionID uuid.UUID, reason string, c *gatewayv1.SessionCounters) error {
-	e := endJSON{Reason: reason}
+// End spools EndSession(sessionID, reason, c, r); the id is in PendingEnds until it is
+// delivered. c are the final counters of the session, r its console result (nil: none).
+func (s *Spool) End(sessionID uuid.UUID, reason string, c *gatewayv1.SessionCounters, r *SessionResult) error {
+	e := endJSON{Reason: reason, Result: r}
 	if c != nil {
 		b, err := protojson.Marshal(c)
 		if err != nil {
@@ -51,7 +61,7 @@ func (s *Spool) End(sessionID uuid.UUID, reason string, c *gatewayv1.SessionCoun
 	if err := s.write(path.Join(sessionID.String(), endFile), b); err != nil {
 		return err
 	}
-	s.ends[sessionID] = sessionEnd{reason: reason, counters: c}
+	s.ends[sessionID] = sessionEnd{reason: reason, counters: c, result: r}
 	s.notify()
 	select {
 	case s.ended <- struct{}{}:
@@ -66,7 +76,7 @@ func (s *Spool) readEnd(name string) (sessionEnd, error) {
 	if err := s.readJSON(name, &e); err != nil {
 		return sessionEnd{}, err
 	}
-	out := sessionEnd{reason: e.Reason}
+	out := sessionEnd{reason: e.Reason, result: e.Result}
 	if len(e.Counters) > 0 {
 		out.counters = &gatewayv1.SessionCounters{}
 		if err := protojson.Unmarshal(e.Counters, out.counters); err != nil {

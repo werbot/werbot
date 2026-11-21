@@ -23,7 +23,7 @@ func TestSpoolRetriesUntilServerBack(t *testing.T) {
 	sp := openSpool(t, dir, up, 0)
 	id := uuid.New()
 	total, last := appendN(t, sp, id, 3)
-	require.NoError(t, sp.End(id, "closed", nil))
+	require.NoError(t, sp.End(id, "closed", nil, nil))
 	require.NoError(t, sp.Close(id))
 	runSpool(t, sp)
 
@@ -46,7 +46,7 @@ func TestSpoolEndSurvivesServerOutage(t *testing.T) {
 	sp := openSpool(t, t.TempDir(), up, 0)
 	id := uuid.New()
 	_, _ = appendN(t, sp, id, 1)
-	require.NoError(t, sp.End(id, "closed", nil))
+	require.NoError(t, sp.End(id, "closed", nil, nil))
 	require.NoError(t, sp.Close(id))
 	runSpool(t, sp)
 	require.Equal(t, []uuid.UUID{id}, sp.PendingEnds())
@@ -70,9 +70,9 @@ func TestSpoolStoreDownKeepsChunks(t *testing.T) {
 	sp := openSpool(t, dir, up, 0)
 	a, b := uuid.New(), uuid.New()
 	total, _ := appendN(t, sp, a, 2)
-	require.NoError(t, sp.End(a, "closed", nil))
+	require.NoError(t, sp.End(a, "closed", nil, nil))
 	require.NoError(t, sp.Close(a))
-	require.NoError(t, sp.End(b, "closed", nil))
+	require.NoError(t, sp.End(b, "closed", nil, nil))
 	runSpool(t, sp)
 
 	require.Eventually(t, func() bool {
@@ -119,7 +119,7 @@ func TestSpoolRejectedMovesAside(t *testing.T) {
 	sp := openSpool(t, dir, up, 0)
 	id := uuid.New()
 	_, _ = appendN(t, sp, id, 1)
-	require.NoError(t, sp.End(id, "closed", nil))
+	require.NoError(t, sp.End(id, "closed", nil, nil))
 	require.NoError(t, sp.Close(id))
 	runSpool(t, sp)
 
@@ -152,7 +152,7 @@ func TestSpoolEndCutsRetryPause(t *testing.T) {
 	runSpool(t, sp)
 	require.Eventually(t, func() bool { return up.calls.Load() >= 1 }, 2*time.Second, time.Millisecond, "the first pass failed")
 
-	require.NoError(t, sp.End(b, "closed", nil))
+	require.NoError(t, sp.End(b, "closed", nil, nil))
 	require.Eventually(t, func() bool { return up.count(fmt.Sprintf("end %s closed", b)) == 1 }, 200*time.Millisecond, time.Millisecond)
 	_, _ = appendN(t, sp, uuid.New(), 1) // new chunks do not cut the pause
 	time.Sleep(50 * time.Millisecond)
@@ -176,7 +176,7 @@ func TestSpoolRejectedSessionRefusesAppend(t *testing.T) {
 	require.Error(t, sp.Append(id, 1, make([]byte, 32), []byte("gz")), "the session goes on")
 	require.NoDirExists(t, filepath.Join(dir, id.String()))
 	require.Zero(t, sp.Total())
-	require.NoError(t, sp.End(id, "recording_unavailable", nil))
+	require.NoError(t, sp.End(id, "recording_unavailable", nil, nil))
 	require.Eventually(t, func() bool {
 		entries, _ := os.ReadDir(filepath.Join(dir, "rejected"))
 		return len(entries) == 2

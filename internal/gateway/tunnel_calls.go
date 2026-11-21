@@ -12,6 +12,7 @@ import (
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/gateway/recorder"
+	"github.com/werbot/werbot/internal/platform/shellclass"
 )
 
 // ErrHostKeyMismatch is a target host key that differs from the pinned one.
@@ -31,13 +32,11 @@ func (Secret) LogValue() slog.Value { return slog.StringValue("[redacted]") }
 
 // Each unary call runs under callTimeout.
 
-// AuthenticateUser resolves the user of an SSH key fingerprint.
-func (c *tunnelClient) AuthenticateUser(ctx context.Context, fingerprint string, ip netip.Addr) (User, error) {
+// AuthenticateUser resolves the user of an SSH key fingerprint or of a verified certificate.
+func (c *tunnelClient) AuthenticateUser(ctx context.Context, id Identity, ip netip.Addr) (User, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
-	resp, err := c.conn.Load().rpc.AuthenticateUser(ctx, connect.NewRequest(&gatewayv1.AuthenticateUserRequest{
-		By: &gatewayv1.AuthenticateUserRequest_FingerprintSha256{FingerprintSha256: fingerprint}, ClientIp: ip.String(),
-	}))
+	resp, err := c.conn.Load().rpc.AuthenticateUser(ctx, connect.NewRequest(authRequest(id, ip)))
 	if err != nil {
 		return User{}, err
 	}
@@ -56,13 +55,27 @@ func (c *tunnelClient) AuthenticateUser(ctx context.Context, fingerprint string,
 	return u, nil
 }
 
-// StartSession records a session of kind (target: host:port for a stream)
-// and reveals the resource credential.
-func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target string) (uuid.UUID, Secret, error) {
+// authRequest asks for the user of id: by the certificate's werbot identity,
+// else by the key fingerprint.
+func authRequest(id Identity, ip netip.Addr) *gatewayv1.AuthenticateUserRequest {
+	r := &gatewayv1.AuthenticateUserRequest{ClientIp: ip.String(),
+		By: &gatewayv1.AuthenticateUserRequest_FingerprintSha256{FingerprintSha256: id.Value}}
+	if c := id.Cert; c != nil {
+		r.By = &gatewayv1.AuthenticateUserRequest_Cert{Cert: &gatewayv1.CertIdentity{
+			UserId: c.UserID.String(), CliSessionId: c.CLISessionID.String(), Login: c.Login, CertFingerprint: id.Value}}
+	}
+	return r
+}
+
+// StartSession records a session of kind (target: host:port for a stream; an
+// exec: its authorized command, cut to the wire bound, and classes) and reveals
+// the resource credential.
+func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes, paths []string) (uuid.UUID, Secret, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
 	resp, err := c.conn.Load().rpc.StartSession(ctx, connect.NewRequest(&gatewayv1.StartSessionRequest{
 		UserId: userID.String(), ResourceId: resourceID.String(), ClientIp: ip.String(), Kind: string(kind), Target: target,
+		Command: TruncateUTF8(command, 65536), Classes: classes, Paths: paths[:min(len(paths), shellclass.MaxPaths)],
 	}))
 	if err != nil {
 		return uuid.Nil, Secret{}, err
@@ -78,17 +91,21 @@ func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid
 	return id, Secret{Kind: cred.GetKind(), Value: cred.GetValue()}, nil
 }
 
-// EndSession closes a session with a gateway-side reason and its final counters
-// (nil: none); the counters get the session id the server requires.
-func (c *tunnelClient) EndSession(ctx context.Context, sessionID uuid.UUID, reason string, counters *gatewayv1.SessionCounters) error {
+// EndSession closes a session with a gateway-side reason, its final counters
+// and its console result (nil: none); the counters get the session id the
+// server requires, the result is cut to the wire bounds.
+func (c *tunnelClient) EndSession(ctx context.Context, sessionID uuid.UUID, reason string, counters *gatewayv1.SessionCounters, r *recorder.SessionResult) error {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
 	if counters != nil {
 		counters.SessionId = sessionID.String()
 	}
-	_, err := c.conn.Load().rpc.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{
-		SessionId: sessionID.String(), Reason: reason, Counters: counters,
-	}))
+	req := &gatewayv1.EndSessionRequest{SessionId: sessionID.String(), Reason: reason, Counters: counters}
+	if r != nil {
+		req.Command, req.Classes = TruncateUTF8(r.Command, 65536), r.Classes
+		req.Paths = r.Paths[:min(len(r.Paths), shellclass.MaxPaths)]
+	}
+	_, err := c.conn.Load().rpc.EndSession(ctx, connect.NewRequest(req))
 	return err
 }
 
@@ -123,4 +140,30 @@ func (c *tunnelClient) FinishRecording(ctx context.Context, m recorder.Manifest)
 		SessionId: m.SessionID.String(), Chunks: int32(m.Chunks), Bytes: m.Bytes, FinalHash: m.FinalHash, //nolint:gosec // chunks is bounded like seq
 	}))
 	return err
+}
+
+// RequestApproval asks the approvers to allow a command; the decision comes as
+// a hint on the stream or from GetApproval.
+func (c *tunnelClient) RequestApproval(ctx context.Context, r approvalRequest) (approvalTicket, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
+	defer cancel()
+	resp, err := c.conn.Load().rpc.RequestApproval(ctx, connect.NewRequest(&gatewayv1.RequestApprovalRequest{
+		UserId: r.UserID.String(), ResourceId: r.ResourceID.String(), Command: r.Command, Classes: r.Classes, Reasons: r.Reasons,
+	}))
+	if err != nil {
+		return approvalTicket{}, err
+	}
+	m := resp.Msg
+	return approvalTicket{ID: m.GetApprovalId(), URL: m.GetUrl(), ExpiresAt: m.GetExpiresAt().AsTime()}, nil
+}
+
+// GetApproval returns the status of approval id: pending, approved, denied, expired or canceled.
+func (c *tunnelClient) GetApproval(ctx context.Context, id string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
+	defer cancel()
+	resp, err := c.conn.Load().rpc.GetApproval(ctx, connect.NewRequest(&gatewayv1.GetApprovalRequest{ApprovalId: id}))
+	if err != nil {
+		return "", err
+	}
+	return resp.Msg.GetStatus(), nil
 }

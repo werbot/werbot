@@ -1,17 +1,19 @@
 package identity
 
 import (
+	"bytes"
 	"context"
 	"sync"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
+	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/principal"
+	"github.com/werbot/werbot/internal/platform/secretbox"
 )
 
 const testPassword = "correct horse battery"
@@ -25,29 +27,14 @@ var testPasswordHash = sync.OnceValue(func() string {
 	return h
 })
 
-type sentEmail struct {
-	To, Template string
-	Data         map[string]string
-}
-
-// fakeQueue records enqueued emails instead of inserting River jobs.
-type fakeQueue struct {
-	mu   sync.Mutex
-	sent []sentEmail
-}
-
-func (q *fakeQueue) EnqueueTx(_ context.Context, _ pgx.Tx, to, template string, data map[string]string) error {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	q.sent = append(q.sent, sentEmail{To: to, Template: template, Data: data})
-	return nil
-}
-
-func newTestService(t *testing.T) (*Service, *pgxpool.Pool, *fakeQueue) {
+func newTestService(t *testing.T) (*Service, *pgxpool.Pool, *dbtest.Mails) {
 	t.Helper()
 	pool, _ := dbtest.New(t)
-	q := &fakeQueue{}
-	return New(pool, q, Config{WebURL: "https://werbot.test", SecureCookies: true}), pool, q
+	q := &dbtest.Mails{}
+	box, err := secretbox.New(bytes.Repeat([]byte{7}, 32), nil)
+	require.NoError(t, err)
+	cfg := Config{WebURL: "https://werbot.test", SecureCookies: true, Box: box, Metrics: metrics.NewRegistry()}
+	return New(pool, q, cfg), pool, q
 }
 
 func seedOrg(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
@@ -55,6 +42,8 @@ func seedOrg(t *testing.T, pool *pgxpool.Pool, name string) uuid.UUID {
 	var id uuid.UUID
 	require.NoError(t, pool.QueryRow(context.Background(),
 		"INSERT INTO organization (name) VALUES ($1) RETURNING id", name).Scan(&id))
+	_, err := pool.Exec(context.Background(), "INSERT INTO org_setting (org_id) VALUES ($1)", id)
+	require.NoError(t, err)
 	return id
 }
 
@@ -80,13 +69,4 @@ func loginCtx(t *testing.T, svc *Service, login string) (context.Context, string
 	p, err := svc.AuthenticateSession(ctx, token)
 	require.NoError(t, err)
 	return principal.With(ctx, p), token
-}
-
-func auditActions(t *testing.T, pool *pgxpool.Pool) []string {
-	t.Helper()
-	rows, err := pool.Query(context.Background(), "SELECT action FROM audit_event ORDER BY created_at")
-	require.NoError(t, err)
-	actions, err := pgx.CollectRows(rows, pgx.RowTo[string])
-	require.NoError(t, err)
-	return actions
 }

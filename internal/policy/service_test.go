@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/netip"
+	"slices"
 	"testing"
 	"time"
 
@@ -219,4 +220,67 @@ func TestCheckAccessPort(t *testing.T) {
 		require.NoError(t, err, port)
 		assert.Equal(t, allow, d.Allow, port)
 	}
+}
+
+type fakeGrants []SnapshotGrant
+
+func (f fakeGrants) PolicyGrants(context.Context, uuid.UUID) ([]SnapshotGrant, error) { return f, nil }
+
+type fakeLocks []SnapshotLock
+
+func (f fakeLocks) PolicyLocks(context.Context, uuid.UUID) ([]SnapshotLock, error) { return f, nil }
+
+func TestSnapshotIncludesGrantsAndLocks(t *testing.T) {
+	e := setup(t)
+	snap, err := e.svc.Snapshot(e.ctx, e.org)
+	require.NoError(t, err)
+	assert.Empty(t, snap.Grants, "nil sources: none")
+	assert.Empty(t, snap.Locks)
+
+	r := e.resource(t, e.org)
+	grants := fakeGrants{{ID: uuid.New(), UserID: e.owner, ResourceID: r, ExpiresUnix: time.Now().Add(time.Hour).Unix()}}
+	locks := fakeLocks{{ID: uuid.New(), TargetType: "user", TargetID: &e.owner}}
+	e.svc.deps.Grants, e.svc.deps.Locks = grants, locks
+	snap, err = e.svc.Snapshot(e.ctx, e.org)
+	require.NoError(t, err)
+	assert.Equal(t, []SnapshotGrant(grants), snap.Grants)
+	assert.Equal(t, []SnapshotLock(locks), snap.Locks)
+
+	d, err := e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"lock:" + locks[0].ID.String()}, d.Reasons, "the grant allows, the lock forbids")
+	e.svc.deps.Locks = nil
+	d, err = e.svc.CheckAccess(e.ctx, e.org, e.owner, r, ip10, time.Time{}, 0)
+	require.NoError(t, err)
+	assert.True(t, d.Allow, "the grant allows now")
+}
+
+func TestSnapshotIncludesStage11(t *testing.T) {
+	e := setup(t)
+	prod1, dev, prod2 := e.resource(t, e.org), e.resource(t, e.org), e.resource(t, e.org)
+	for i, env := range []string{"prod", "dev", "prod"} {
+		e.res[e.org][i].Labels = map[string]string{"env": env}
+	}
+	byLabel := CommandRuleInput{Name: "prod", Subjects: Subjects{AllUsers: true}, Selector: Selector{Labels: map[string]string{"env": "prod"}},
+		Classes: []string{"destructive"}, Effect: "deny"}
+	rule, err := e.svc.CreateCommandRule(e.ctx, e.org, byLabel)
+	require.NoError(t, err)
+	_, err = e.svc.CreateClassRule(e.ctx, e.org, "b*", []string{"write"})
+	require.NoError(t, err)
+	_, err = e.svc.CreateClassRule(e.ctx, e.org, "a*", []string{"read"})
+	require.NoError(t, err)
+
+	snap, err := e.svc.Snapshot(e.ctx, e.org)
+	require.NoError(t, err)
+	want := []uuid.UUID{prod1, prod2}
+	slices.SortFunc(want, compareIDs)
+	assert.Equal(t, []SnapshotCommandRule{{ID: rule.ID, Subjects: byLabel.Subjects, ResourceIDs: want, Classes: []string{"destructive"},
+		Effect: "deny"}}, snap.CommandRules)
+	assert.NotContains(t, snap.CommandRules[0].ResourceIDs, dev)
+	assert.Equal(t, []SnapshotClassRule{{Pattern: "a*", Classes: []string{"read"}}, {Pattern: "b*", Classes: []string{"write"}}}, snap.ClassRules)
+	assert.Empty(t, snap.CustomPolicies)
+
+	_, text, err := Compile(snap)
+	require.NoError(t, err)
+	assert.Contains(t, text, `@id("command:`+rule.ID.String()+`")`)
 }

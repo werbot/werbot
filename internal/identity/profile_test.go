@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
@@ -34,7 +35,7 @@ func TestUpdateProfile(t *testing.T) {
 
 	_, err = svc.UpdateProfile(ctx, "Alice", "BOB@example.com", testPassword)
 	assert.ErrorIs(t, err, apperr.ErrAlreadyExists)
-	assert.Contains(t, auditActions(t, pool), "profile.update")
+	assert.Contains(t, dbtest.AuditActions(t, pool), "profile.update")
 }
 
 // profileAuditData returns the data of the only profile.update audit event.
@@ -54,7 +55,7 @@ func TestUpdateProfileEmailRequiresPassword(t *testing.T) {
 	resetToken := requestReset(t, svc, q)
 	ctx, _ := loginCtx(t, svc, "alice")
 	_, other := loginCtx(t, svc, "alice")
-	audit := auditActions(t, pool)
+	audit := dbtest.AuditActions(t, pool)
 
 	for _, pw := range []string{"", "wrong password!"} {
 		_, err := svc.UpdateProfile(ctx, "Alice", "new@example.com", pw)
@@ -64,7 +65,7 @@ func TestUpdateProfileEmailRequiresPassword(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "alice@example.com", got.Email)
 	assert.Equal(t, "alice", got.Name, "a refused change keeps the name too")
-	assert.Equal(t, audit, auditActions(t, pool), "a refused change writes no audit event")
+	assert.Equal(t, audit, dbtest.AuditActions(t, pool), "a refused change writes no audit event")
 
 	u, err := svc.UpdateProfile(ctx, "Alice", "New@Example.com", testPassword)
 	require.NoError(t, err)
@@ -113,16 +114,16 @@ func TestChangePassword(t *testing.T) {
 	require.NoError(t, err, "current session %s survives", p.SessionID)
 	_, err = svc.Login(bg, "alice@example.com", "new correct horse", "test")
 	require.NoError(t, err)
-	assert.Contains(t, auditActions(t, pool), "profile.password_change")
+	assert.Contains(t, dbtest.AuditActions(t, pool), "profile.password_change")
 }
 
 // deletionToken has ctx's user request deletion and returns the emailed token.
-func deletionToken(ctx context.Context, t *testing.T, svc *Service, q *fakeQueue) string {
+func deletionToken(ctx context.Context, t *testing.T, svc *Service, q *dbtest.Mails) string {
 	t.Helper()
-	n := len(q.sent)
+	n := len(q.Sent())
 	require.NoError(t, svc.RequestAccountDeletion(ctx))
-	require.Len(t, q.sent, n+1)
-	last := q.sent[n]
+	require.Len(t, q.Sent(), n+1)
+	last := q.Sent()[n]
 	assert.Equal(t, "account_deletion", last.Template)
 	require.True(t, strings.HasPrefix(last.Data["url"], deleteURLPrefix))
 	return strings.TrimPrefix(last.Data["url"], deleteURLPrefix)
@@ -136,8 +137,8 @@ func TestAccountDeletion(t *testing.T) {
 	ctx, _ := loginCtx(t, svc, "bob")
 
 	token := deletionToken(ctx, t, svc, q)
-	assert.Equal(t, "bob@example.com", q.sent[0].To)
-	assert.Equal(t, "bob", q.sent[0].Data["name"])
+	assert.Equal(t, "bob@example.com", q.Sent()[0].To)
+	assert.Equal(t, "bob", q.Sent()[0].Data["name"])
 	require.NoError(t, svc.ConfirmAccountDeletion(ctx, token))
 
 	bg := context.Background()
@@ -149,7 +150,7 @@ func TestAccountDeletion(t *testing.T) {
 	var actor uuid.UUID
 	require.NoError(t, pool.QueryRow(bg, "SELECT actor_user_id FROM audit_event WHERE action = 'profile.delete'").Scan(&actor))
 	assert.Equal(t, bobID, actor)
-	assert.Contains(t, auditActions(t, pool), "profile.deletion_request")
+	assert.Contains(t, dbtest.AuditActions(t, pool), "profile.deletion_request")
 }
 
 func TestAccountDeletionTokenOfOtherUser(t *testing.T) {

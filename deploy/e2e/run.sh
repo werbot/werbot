@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Network e2e: SSH, telnet, TCP and UDP through a gateway pool to targets the
-# server cannot reach, directly and through `werbot connect`.
+# server cannot reach, directly and through `werbot connect`; then the werbot
+# login, ls, ssh and ssh-config commands (cli.sh).
 # Expects postgres, server, target, router, echo and dns already up (see
 # `make e2e-network`). Requires docker, curl, jq, ssh, ssh-keygen, go, nc, dig.
 set -euo pipefail
@@ -11,10 +12,12 @@ compose() { docker compose -p werbot-e2e -f deploy/e2e/docker-compose.yaml "$@";
 API=http://localhost:8080
 TMP=$(mktemp -d)
 connect_pid=
+login_pid=
 cleanup() {
   local rc=$?
   set +e # a failing teardown must not skip the rest or replace the exit code
   [[ -z "$connect_pid" ]] || kill "$connect_pid"
+  [[ -z "$login_pid" ]] || kill "$login_pid"
   ((rc == 0)) || { cat "$TMP/connect.log" 2>/dev/null >&2; compose --profile gateway logs --tail 100 >&2; }
   compose --profile gateway down -v
   rm -rf "$TMP"
@@ -235,5 +238,8 @@ wait_for $((created + 180 - SECONDS)) health_settled || {
   rpc ResourceService/ListResources '{}' | jq -c '.resources[] | {name, health}' >&2
   exit 1
 }
+
+# shellcheck source=deploy/e2e/cli.sh
+source deploy/e2e/cli.sh
 
 echo "PASS"

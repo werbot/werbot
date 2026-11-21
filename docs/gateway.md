@@ -72,11 +72,11 @@ A saved identity whose certificate has expired or no longer loads counts as not 
 
 Put the instances of one pool behind DNS round-robin or an L4 load balancer with PROXY protocol. Users see one host key on every instance. Balancer rules: [scaling.md](scaling.md#load-balancing); Kubernetes: [scaling.md](scaling.md#kubernetes).
 
-The UI does not show the pool host key yet. Add it to `known_hosts` from an instance on a network you trust:
+## SSH address
 
-```sh
-ssh-keyscan -p 2222 gw.example.com | grep -v '^#' >> ~/.ssh/known_hosts
-```
+The SSH address of a pool is the `host:port` that users and the [werbot CLI](cli.md) connect to: the DNS name of the instances or of their load balancer, for example `gw.example.com:2222`. An owner or admin sets it on the Gateways page (pool details, SSH address) or with `GatewayService/UpdateGateway` (`{"id": "<pool id>", "sshAddress": "gw.example.com:2222"}`); an empty value resets it. The port must be 1 to 65535.
+
+The pool details also show the pool host key, and the API returns it with the pool (`host_key`) and with each resource from `ListAccessibleResources`. `werbot ssh`, `werbot ssh-config` and `werbot connect` write it to the profile's `known_hosts` under the SSH address, so `ssh-keyscan` is no longer needed. Until the address is set, the CLI fails for the pool's resources with `gateway address for <resource> is not set`.
 
 ## PROXY protocol
 
@@ -84,7 +84,7 @@ Set `WERBOT_GATEWAY_PROXY_PROTOCOL=true` only behind an L4 balancer that sends t
 
 ## Connect
 
-Users log in with their SSH key:
+Users log in with their SSH key or with the short-lived certificate of `werbot login` ([cli.md](cli.md)):
 
 - `ssh -p 2222 <login>+<resource>@<gateway>` runs a shell or a command on the resource.
 - `ssh -p 2222 <login>@<gateway>` shows a menu of the resources the user may open (interactive terminal only).
@@ -120,7 +120,15 @@ Each session counts bytes and datagrams both ways (`up` is client to target). Ev
 
 Every 5 s the gateway ends sessions without traffic for their idle timeout (`idle_timeout`) or older than their maximum duration (`max_duration`); a terminal first prints `Session closed: idle timeout` or `Session closed: max duration reached`. On each new policy snapshot and every 60 s it re-evaluates every running session against bindings, resources and their targets, network, country and schedule rules, the IP blocklist, and organization and team membership. It ends refused sessions with `access_revoked` and applies changed resource timeouts.
 
-Refused connections (`denied`, `target_not_allowed`, `unsupported_type`, `unsupported_kind`, `busy`, `spool_full`, and `auth_failed` once per SSH connection that offered only refused keys) go to the server with the next heartbeat and become `session.deny` audit events. `not_ready` is not reported. Per-heartbeat limits: [security.md](security.md#threat-model-summary).
+Refused connections (`denied`, `target_not_allowed`, `unsupported_type`, `unsupported_kind`, `busy`, `spool_full`, `approval_denied` and `approval_timeout` for a command whose approval was refused or not decided in time, and `auth_failed` once per SSH connection that offered only refused keys) go to the server with the next heartbeat and become `session.deny` audit events; the target of a refused command is the command (its first 1024 bytes). A refused console line becomes `session.command_denied` on its session ([policies.md](policies.md#command-console)). `not_ready` is not reported. Per-heartbeat limits: [security.md](security.md#threat-model-summary).
+
+## Lock mode and clock
+
+The gateway checks every open session again when a new snapshot arrives and when a grant or lock of the snapshot expires ([jit.md](jit.md#ending-sessions)).
+
+- **Clock.** Expiry is measured by the clock of the gateway host, not of the server. Run NTP (chrony, systemd-timesyncd) on every gateway host: a clock that runs behind keeps sessions open past their grant, one that runs ahead ends them early.
+- **Without the server.** Expiry needs no server: the timer works from the last snapshot. Revokes and new locks reach the gateway only through the tunnel.
+- **Lock mode** is an organization setting (Settings, `lock_mode`). With `best_effort` (default) open sessions keep running while the tunnel is down. With `strict` the gateway ends every session with `policy_stale` (log line `policy is stale, sessions terminated`) once the tunnel has been down for more than 60 seconds (checked every 5 seconds, so 60 to 65 seconds after the loss); a reconnect resets the wait. Use `strict` when a lock must win over availability.
 
 ## Recordings
 

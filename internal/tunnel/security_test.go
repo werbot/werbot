@@ -86,7 +86,7 @@ func TestRequestLimits(t *testing.T) {
 	}
 	wantCode(t, renew(nil), connect.CodeInvalidArgument, "")
 	wantCode(t, renew(make([]byte, 4097)), connect.CodeInvalidArgument, "")
-	wantCode(t, renew(make([]byte, 2<<20)), connect.CodeResourceExhausted, "")
+	wantCode(t, renew(make([]byte, readMaxBytes+1)), connect.CodeResourceExhausted, "")
 
 	_, err := g.client.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{SessionId: uuid.NewString(), Reason: "gateway_lost"}))
 	wantCode(t, err, connect.CodeInvalidArgument, "")

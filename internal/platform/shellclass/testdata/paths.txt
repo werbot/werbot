@@ -1,0 +1,156 @@
+# Path corpus: "<expected>\t<cwd>\t<command>", resource host "db.internal".
+# Expected: "r:<ref>" / "w:<ref>" (PathRef.String()), "?" for an unresolved path, "-" for no paths; order does not matter.
+# A line that starts with "# " followed by a section name opens that section.
+# read
+r:/var/log/syslog	~	cat /var/log/syslog
+r:~/app/config.yml	~	cat app/config.yml
+r:/srv/app/x	/srv/app	cat x
+r:~	~	ls
+r:/srv/**	~	find /srv -name '*.log'
+r:/etc/hosts	~	head -n 5 /etc/hosts
+r:~/a.txt	~	grep -e foo a.txt
+r:~/b.txt	~	grep foo b.txt
+r:/srv/**	~	grep -r TODO /srv
+r:~/**	~	grep -R TODO
+r:/etc/nginx/nginx.conf	~	sed -n '1,20p' /etc/nginx/nginx.conf
+r:~/app/a r:~/app/b	~/app	diff a b
+r:/srv/**	~	du -sh /srv
+r:/srv/x r:~/prog.awk	~	awk -f prog.awk /srv/x
+r:~/app/data.json	~/app	jq .name data.json
+r:~/a	~	cat - a
+r:/srv/app	~	ls -la /srv/app/
+r:/srv/**	~	ls -R /srv
+r:~/backup.tar.gz	~	tar tzf backup.tar.gz
+r:~/in.txt	~	uniq -f 2 in.txt
+# pwd reads its cwd: the console checks a cd as "cd -- '<dir>' && pwd -P"; an exec pwd reads ~.
+r:~	~	pwd
+# write
+r:~/app/a w:~/app/b/**	~	cp app/a app/b
+# a source of mv may be a folder: it is a subtree (a file source is checked the same, conservatively).
+w:~/a/** w:~/b/**	~	mv a b
+w:/srv/app/build/**	~	rm -rf /srv/app/build
+w:/srv/old/**	~	rm --rec /srv/old
+r:~/a.tgz w:/srv/dist/**	~	tar -xzf a.tgz -C /srv/dist
+r:/srv/** w:~/backup.tgz	~	tar czf backup.tgz /srv
+w:/tmp/**	~	scp -t /tmp
+r:/data	~	rsync --server --sender . /data
+w:/srv/app/a	~	sed -i s/a/b/ /srv/app/a
+w:/srv/app/**	~	chmod -R 755 /srv/app
+w:/srv/a.conf	~	chmod -w /srv/a.conf
+w:/srv/x/**	~	chown -R www-data /srv/x
+r:/etc/ref w:~/f	~	chmod --reference=/etc/ref f
+r:~/data.txt w:/tmp/sorted.txt	~	sort -o /tmp/sorted.txt data.txt
+r:~/in.txt w:~/out.txt	~	uniq in.txt out.txt
+r:/dev/zero w:/dev/sda	~	dd if=/dev/zero of=/dev/sda
+r:~/ref w:~/f	~	touch -r ref f
+w:/tmp/x	~	echo x | tee /tmp/x
+r:/etc/a w:/srv/**	~	cp -t /srv /etc/a
+r:~/a.zip w:~/**	~	unzip a.zip
+w:~/d1 w:~/d2	~	install -d d1 d2
+w:/etc/hosts	~	vim /etc/hosts
+r:~/a w:/srv/**	~	cp a /srv
+w:~/x.key/** w:/srv/**	~	mv x.key /srv
+r:~/f w:/srv/**	~	install f /srv
+r:~/x w:/srv/**	~	ln -s x /srv
+r:~/a r:~/b w:/dst/**	~	cp a b /dst/
+r:~/a w:~/dst/**	~	scp a dst
+w:/data/**	~	rsync --server . /data
+r:~/data.txt w:/tmp/x	~	sort --out /tmp/x data.txt
+r:~/data.txt w:/tmp/t	~	sort --temp /tmp/t data.txt
+r:~/f w:/tmp/l	~	less --log-f /tmp/l f
+r:/srv r:~/a.tar w:/srv/**	~	tar --dir /srv -x --file a.tar
+r:~/src/** w:/dst/** w:/tmp/l	~	rsync -a --log /tmp/l src /dst
+# redirect
+w:/tmp/out	~	echo ok > /tmp/out
+r:/etc/hosts	~	sort < /etc/hosts
+r:/srv	~	ls /srv 2>/dev/null
+r:~ w:~/out	~	ls >> out
+w:~/log	~	echo x &> log
+w:/srv/out	/srv	echo x >| out
+r:/etc/hosts w:/tmp/h	~	cat < /etc/hosts > /tmp/h
+-	~	echo ok > /dev/null 2>&1
+# cd
+w:/srv/app/build	~	cd /srv/app && rm build
+r:/srv/x	~	(cd /srv && cat x)
+?	~	cd /srv; rm b
+w:/srv/b	~	cd /srv && rm b
+r:/srv/a r:~/x	~	(cd /srv && cat a); cat x
+?	~	cd /srv || cat x
+?	~	cd /srv | cat x
+?	~	cd /srv & cat x
+?	~	! cd /srv && cat x
+?	~	cd app && cat x
+r:~/app/x	~	cd ./app && cat x
+r:/srv/x	/srv/app	cd .. && cat x
+r:~/x	/srv	cd && cat x
+?	~	cd $D && cat x
+?	~	cd - && cat x
+?	~	cd ../.. && cat x
+r:/x	~	cd /srv; cat /x
+r:/srv/x	~	{ cd /srv; } && cat x
+?	~	if true; then cd /srv; fi; cat x
+# a cd in any list of a clause makes the cwd unknown for the whole clause; every list is walked.
+w:/srv/a	~	if cd /x; then rm /srv/a; fi
+w:/srv/data/**	~	if cd /tmp; then rm -rf /srv/data; fi
+w:/srv/a	~	while cd /x; do rm /srv/a; done
+w:/srv/a	~	until cd /x; do rm /srv/a; done
+w:/srv/a	~	if true; then cd /x; else rm /srv/a; fi
+w:/srv/a	~	if true; then cd /x; elif rm /srv/a; then true; fi
+w:/srv/a	~	case a in a) cd /x;; b) rm /srv/a;; esac
+?	~	if cd /x; then rm a; fi
+?	~	case a in a) cd /x;; b) rm a;; esac
+r:~/x	~	if true; then cat x; fi
+r:/etc	/srv	cd -- '/etc' && pwd -P
+?	~	pushd /srv && cat x
+# glob
+r:/var/log/**	~	cat /var/log/*.log
+w:~/**	~	rm -f *
+r:/srv/**	~	ls /srv/{a,b}
+w:/srv/app/**	~	rm /srv/app/*/cache
+r:~/logs/**	~	cat logs/*.txt
+r:/**	~	cat /*
+r:~/**	~	cat ~/*.txt
+r:~/a*b	~	cat 'a*b'
+# unresolved
+?	~	cat $FILE
+? r:~	~	ls | xargs rm -f
+?	~	cat ~bob/notes
+? r:~/list	~	cat $(cat list)
+?	~	cat ../x
+?	~	cat ~/../x
+?	~	cat ~"/x"
+?	~	cat ~$U/x
+?	~	cat $'/etc/x'
+?	~	cat "/srv/$F"
+? r:/srv/**	~	find /srv -exec cat {} \;
+?	~	dd of=~/x
+?	~	cat < $F
+?	~	cat a=~/x
+?	~	ls -l $DIR
+?	~	head -n $N /etc/hosts
+# wrappers
+w:/etc/hosts	~	sudo tee /etc/hosts
+r:/srv/x	~	bash -c 'cat /srv/x'
+r:~/x	~	env LANG=C cat x
+?	~	env -C /srv cat x
+?	~	sudo -D /srv cat x
+?	~	sudo -i cat x
+?	~	sudo bash -c 'cat ~/x'
+r:~/x	~	sudo cat ~/x
+?	~	su -c 'cat ~/x' root
+?	~	su - root -c 'cat x'
+w:/tmp/x/**	~	timeout 5 rm -rf /tmp/x
+r:/srv/x	~	nohup cat /srv/x
+r:/srv/** w:/srv/x	~	find /srv -name x -exec rm /srv/x \;
+? r:~/list.txt	~	xargs -0 rm -rf < list.txt
+?	~	HOME=/srv cat ~/x
+?	~	CDPATH=/srv cat x
+?	~	env HOME=/srv cat x
+# argv
+r:~/deploy.sh	~	./deploy.sh prod
+r:/opt/x/tool r:/etc/x	~	/opt/x/tool --config=/etc/x
+r:/usr/bin/env r:~/x	~	/usr/bin/env cat x
+r:/srv/x.yaml	~	kubectl apply --filename=/srv/x.yaml
+r:/etc/hosts	~	echo /etc/hosts
+r:~/~/x	~	cat \~/x
+r:/srv/~/x	/srv	cat '~/x'

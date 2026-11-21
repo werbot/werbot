@@ -57,6 +57,8 @@ type SnapshotResource struct {
 	Name   string            `json:"name"`
 	Type   string            `json:"type"`
 	Labels map[string]string `json:"labels"`
+	// Host is the endpoint host: the resource host of the egress class.
+	Host string `json:"host,omitempty"`
 }
 
 // Binding is an access binding as stored: one resource or a label selector.
@@ -85,6 +87,14 @@ type Snapshot struct {
 	Resources []SnapshotResource `json:"resources"`
 	Bindings  []SnapshotBinding  `json:"bindings"`
 	Rules     []ResourceRules    `json:"rules"`
+	Grants    []SnapshotGrant    `json:"grants"`
+	Locks     []SnapshotLock     `json:"locks"`
+	// CommandRules have their selectors expanded.
+	CommandRules   []SnapshotCommandRule  `json:"command_rules"`
+	ClassRules     []SnapshotClassRule    `json:"class_rules"`
+	CustomPolicies []SnapshotCustomPolicy `json:"custom_policies"` // enabled only
+	PathRules      []SnapshotPathRule     `json:"path_rules"`
+	TerminalRules  []SnapshotTerminalRule `json:"terminal_rules"`
 }
 
 // Request asks whether a user may perform Action on a resource.
@@ -98,13 +108,29 @@ type Request struct {
 	Time       time.Time
 	IPBlocked  bool
 	Port       uint16 // target port of a stream or datagram; 0: terminal or exec
+	// CLISessionID is the CLI session of the user certificate; uuid.Nil: none.
+	CLISessionID uuid.UUID
+	// Command, Classes and ApprovalGranted describe an exec request; a
+	// connect request leaves them empty.
+	Command         string
+	Classes         []string
+	ApprovalGranted bool
+	// Paths are the paths of the command, PathHits and PathOutside the ids
+	// of the path rules it hits or leaves (shellclass.EvalPaths); Console
+	// marks a shell the command console serves.
+	Paths, PathHits, PathOutside []string
+	Console                      bool
 }
 
 // Decision lists the ids of the policies that decided it; "error:<id>" marks
-// a policy that failed to evaluate.
+// a policy that failed to evaluate. A deny carries Obligations when meeting
+// them (e.g. an approval) would allow, and the @message of the first
+// deciding forbid.
 type Decision struct {
-	Allow   bool
-	Reasons []string
+	Allow       bool
+	Reasons     []string
+	Obligations []string
+	Message     string
 }
 
 // PolicySet is a compiled snapshot.
@@ -149,7 +175,8 @@ func matches(labels, selector map[string]string) bool {
 
 // Authorize decides r. An invalid IP, an action that is not one of the
 // resource type's actions or any policy evaluation error denies. A zero
-// r.Time means now.
+// r.Time means now. A deny also carries the @message and the obligations of
+// the forbids that decided it.
 func (ps *PolicySet) Authorize(r Request) Decision {
 	if ps == nil {
 		return Decision{Reasons: []string{"error:compile"}}
@@ -160,6 +187,26 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 	if !ps.typeHasAction(r.ResourceID, r.Action) {
 		return Decision{Reasons: []string{"invalid_action"}}
 	}
+	d, diag := ps.evaluate(r)
+	// cedar-go skips a policy that fails to evaluate: a broken forbid would allow.
+	out := Decision{Allow: d == cedar.Allow && len(diag.Errors) == 0}
+	for _, rs := range diag.Reasons {
+		out.Reasons = append(out.Reasons, string(rs.PolicyID))
+	}
+	slices.Sort(out.Reasons) // cedar-go reports in map order
+	n := len(out.Reasons)
+	for _, e := range diag.Errors {
+		out.Reasons = append(out.Reasons, "error:"+string(e.PolicyID))
+	}
+	slices.Sort(out.Reasons[n:])
+	if d == cedar.Deny && len(diag.Errors) == 0 {
+		out.Message, out.Obligations = ps.explain(r, out.Reasons)
+	}
+	return out
+}
+
+// evaluate runs the policies on r; r.IP must be valid.
+func (ps *PolicySet) evaluate(r Request) (cedar.Decision, cedar.Diagnostic) {
 	ip := r.IP.Unmap()
 	t := r.Time
 	if t.IsZero() {
@@ -179,24 +226,33 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 		Action:    cedar.NewEntityUID("Werbot::Action", cedar.String(r.Action)),
 		Resource:  cedar.NewEntityUID("Werbot::Resource", cedar.String(r.ResourceID.String())),
 		Context: cedar.NewRecord(cedar.RecordMap{
-			"ip":         cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
-			"country":    cedar.String(strings.ToUpper(r.Country)),
-			"weekday":    cedar.Long(t.Weekday()),
-			"hour":       cedar.Long(t.Hour()),
-			"ip_blocked": cedar.Boolean(r.IPBlocked),
-			"port":       cedar.Long(r.Port),
+			"ip":               cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
+			"country":          cedar.String(strings.ToUpper(r.Country)),
+			"weekday":          cedar.Long(t.Weekday()),
+			"hour":             cedar.Long(t.Hour()),
+			"ip_blocked":       cedar.Boolean(r.IPBlocked),
+			"port":             cedar.Long(r.Port),
+			"now":              cedar.Long(t.Unix()),
+			"cli_session_id":   cedar.String(cliSession(r.CLISessionID)),
+			"command":          cedar.String(r.Command),
+			"classes":          stringSet(r.Classes),
+			"approval_granted": cedar.Boolean(r.ApprovalGranted),
+			"paths":            stringSet(r.Paths),
+			"path_hits":        stringSet(r.PathHits),
+			"path_outside":     stringSet(r.PathOutside),
+			"console":          cedar.Boolean(r.Console),
 		}),
 	}
-	d, diag := cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)
-	// cedar-go skips a policy that fails to evaluate: a broken forbid would allow.
-	out := Decision{Allow: d == cedar.Allow && len(diag.Errors) == 0}
-	for _, rs := range diag.Reasons {
-		out.Reasons = append(out.Reasons, string(rs.PolicyID))
+	return cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)
+}
+
+// cliSession is id as context.cli_session_id: uuid.Nil (no CLI session) is "",
+// which no cli_session lock matches.
+func cliSession(id uuid.UUID) string {
+	if id == uuid.Nil {
+		return ""
 	}
-	for _, e := range diag.Errors {
-		out.Reasons = append(out.Reasons, "error:"+string(e.PolicyID))
-	}
-	return out
+	return id.String()
 }
 
 // typeHasAction reports whether action is one of the actions of the registered

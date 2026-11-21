@@ -41,6 +41,9 @@ const (
 	// GatewayServiceListGatewaysProcedure is the fully-qualified name of the GatewayService's
 	// ListGateways RPC.
 	GatewayServiceListGatewaysProcedure = "/werbot.v1.GatewayService/ListGateways"
+	// GatewayServiceUpdateGatewayProcedure is the fully-qualified name of the GatewayService's
+	// UpdateGateway RPC.
+	GatewayServiceUpdateGatewayProcedure = "/werbot.v1.GatewayService/UpdateGateway"
 	// GatewayServiceDeleteGatewayProcedure is the fully-qualified name of the GatewayService's
 	// DeleteGateway RPC.
 	GatewayServiceDeleteGatewayProcedure = "/werbot.v1.GatewayService/DeleteGateway"
@@ -65,6 +68,7 @@ const (
 type GatewayServiceClient interface {
 	CreateGateway(context.Context, *connect.Request[v1.CreateGatewayRequest]) (*connect.Response[v1.CreateGatewayResponse], error)
 	ListGateways(context.Context, *connect.Request[v1.ListGatewaysRequest]) (*connect.Response[v1.ListGatewaysResponse], error)
+	UpdateGateway(context.Context, *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error)
 	DeleteGateway(context.Context, *connect.Request[v1.DeleteGatewayRequest]) (*connect.Response[v1.DeleteGatewayResponse], error)
 	CreateJoinToken(context.Context, *connect.Request[v1.CreateJoinTokenRequest]) (*connect.Response[v1.CreateJoinTokenResponse], error)
 	ListJoinTokens(context.Context, *connect.Request[v1.ListJoinTokensRequest]) (*connect.Response[v1.ListJoinTokensResponse], error)
@@ -93,6 +97,12 @@ func NewGatewayServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+GatewayServiceListGatewaysProcedure,
 			connect.WithSchema(gatewayServiceMethods.ByName("ListGateways")),
+			connect.WithClientOptions(opts...),
+		),
+		updateGateway: connect.NewClient[v1.UpdateGatewayRequest, v1.UpdateGatewayResponse](
+			httpClient,
+			baseURL+GatewayServiceUpdateGatewayProcedure,
+			connect.WithSchema(gatewayServiceMethods.ByName("UpdateGateway")),
 			connect.WithClientOptions(opts...),
 		),
 		deleteGateway: connect.NewClient[v1.DeleteGatewayRequest, v1.DeleteGatewayResponse](
@@ -132,6 +142,7 @@ func NewGatewayServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 type gatewayServiceClient struct {
 	createGateway         *connect.Client[v1.CreateGatewayRequest, v1.CreateGatewayResponse]
 	listGateways          *connect.Client[v1.ListGatewaysRequest, v1.ListGatewaysResponse]
+	updateGateway         *connect.Client[v1.UpdateGatewayRequest, v1.UpdateGatewayResponse]
 	deleteGateway         *connect.Client[v1.DeleteGatewayRequest, v1.DeleteGatewayResponse]
 	createJoinToken       *connect.Client[v1.CreateJoinTokenRequest, v1.CreateJoinTokenResponse]
 	listJoinTokens        *connect.Client[v1.ListJoinTokensRequest, v1.ListJoinTokensResponse]
@@ -147,6 +158,11 @@ func (c *gatewayServiceClient) CreateGateway(ctx context.Context, req *connect.R
 // ListGateways calls werbot.v1.GatewayService.ListGateways.
 func (c *gatewayServiceClient) ListGateways(ctx context.Context, req *connect.Request[v1.ListGatewaysRequest]) (*connect.Response[v1.ListGatewaysResponse], error) {
 	return c.listGateways.CallUnary(ctx, req)
+}
+
+// UpdateGateway calls werbot.v1.GatewayService.UpdateGateway.
+func (c *gatewayServiceClient) UpdateGateway(ctx context.Context, req *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error) {
+	return c.updateGateway.CallUnary(ctx, req)
 }
 
 // DeleteGateway calls werbot.v1.GatewayService.DeleteGateway.
@@ -178,6 +194,7 @@ func (c *gatewayServiceClient) DeleteGatewayInstance(ctx context.Context, req *c
 type GatewayServiceHandler interface {
 	CreateGateway(context.Context, *connect.Request[v1.CreateGatewayRequest]) (*connect.Response[v1.CreateGatewayResponse], error)
 	ListGateways(context.Context, *connect.Request[v1.ListGatewaysRequest]) (*connect.Response[v1.ListGatewaysResponse], error)
+	UpdateGateway(context.Context, *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error)
 	DeleteGateway(context.Context, *connect.Request[v1.DeleteGatewayRequest]) (*connect.Response[v1.DeleteGatewayResponse], error)
 	CreateJoinToken(context.Context, *connect.Request[v1.CreateJoinTokenRequest]) (*connect.Response[v1.CreateJoinTokenResponse], error)
 	ListJoinTokens(context.Context, *connect.Request[v1.ListJoinTokensRequest]) (*connect.Response[v1.ListJoinTokensResponse], error)
@@ -202,6 +219,12 @@ func NewGatewayServiceHandler(svc GatewayServiceHandler, opts ...connect.Handler
 		GatewayServiceListGatewaysProcedure,
 		svc.ListGateways,
 		connect.WithSchema(gatewayServiceMethods.ByName("ListGateways")),
+		connect.WithHandlerOptions(opts...),
+	)
+	gatewayServiceUpdateGatewayHandler := connect.NewUnaryHandler(
+		GatewayServiceUpdateGatewayProcedure,
+		svc.UpdateGateway,
+		connect.WithSchema(gatewayServiceMethods.ByName("UpdateGateway")),
 		connect.WithHandlerOptions(opts...),
 	)
 	gatewayServiceDeleteGatewayHandler := connect.NewUnaryHandler(
@@ -240,6 +263,8 @@ func NewGatewayServiceHandler(svc GatewayServiceHandler, opts ...connect.Handler
 			gatewayServiceCreateGatewayHandler.ServeHTTP(w, r)
 		case GatewayServiceListGatewaysProcedure:
 			gatewayServiceListGatewaysHandler.ServeHTTP(w, r)
+		case GatewayServiceUpdateGatewayProcedure:
+			gatewayServiceUpdateGatewayHandler.ServeHTTP(w, r)
 		case GatewayServiceDeleteGatewayProcedure:
 			gatewayServiceDeleteGatewayHandler.ServeHTTP(w, r)
 		case GatewayServiceCreateJoinTokenProcedure:
@@ -265,6 +290,10 @@ func (UnimplementedGatewayServiceHandler) CreateGateway(context.Context, *connec
 
 func (UnimplementedGatewayServiceHandler) ListGateways(context.Context, *connect.Request[v1.ListGatewaysRequest]) (*connect.Response[v1.ListGatewaysResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.GatewayService.ListGateways is not implemented"))
+}
+
+func (UnimplementedGatewayServiceHandler) UpdateGateway(context.Context, *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.GatewayService.UpdateGateway is not implemented"))
 }
 
 func (UnimplementedGatewayServiceHandler) DeleteGateway(context.Context, *connect.Request[v1.DeleteGatewayRequest]) (*connect.Response[v1.DeleteGatewayResponse], error) {

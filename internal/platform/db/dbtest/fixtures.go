@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,10 +28,12 @@ func exec(t testing.TB, pool *pgxpool.Pool, sql string, args ...any) {
 	}
 }
 
-// Org inserts an organization.
+// Org inserts an organization with its default settings row.
 func Org(t testing.TB, pool *pgxpool.Pool) uuid.UUID {
 	t.Helper()
-	return insertID(t, pool, "INSERT INTO organization (name) VALUES ('test') RETURNING id")
+	return insertID(t, pool, `WITH o AS (INSERT INTO organization (name) VALUES ('test') RETURNING id),
+		s AS (INSERT INTO org_setting (org_id) SELECT id FROM o)
+		SELECT id FROM o`)
 }
 
 // User inserts a user and its membership in orgID with the given role.
@@ -130,4 +133,30 @@ func (f Fixture) Principal(userID uuid.UUID) principal.Principal {
 		role = principal.RoleAdmin
 	}
 	return principal.Principal{UserID: userID, OrgID: f.OrgID, Role: role}
+}
+
+// ApprovalPolicy inserts a policy of OrgID; selector, requesters and approvers are jsonb texts.
+func (f Fixture) ApprovalPolicy(t testing.TB, pool *pgxpool.Pool, name, mode, selector, requesters, approvers string) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		`INSERT INTO approval_policy (org_id, name, mode, resource_selector, requesters, approvers)
+		 VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb) RETURNING id`,
+		f.OrgID, name, mode, selector, requesters, approvers)
+}
+
+// Grant inserts a grant of resourceID to userID that expires after ttl (a negative ttl gives an expired grant).
+func (f Fixture) Grant(t testing.TB, pool *pgxpool.Pool, userID, resourceID uuid.UUID, ttl time.Duration) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		`INSERT INTO access_grant (org_id, user_id, resource_id, expires_at)
+		 VALUES ($1, $2, $3, now() + make_interval(secs => $4::float8)) RETURNING id`,
+		f.OrgID, userID, resourceID, ttl.Seconds())
+}
+
+// Lock inserts a lock of OrgID with reason "test"; targetID is nil only for all_agents.
+func (f Fixture) Lock(t testing.TB, pool *pgxpool.Pool, targetType string, targetID *uuid.UUID) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		"INSERT INTO lock (org_id, target_type, target_id, reason) VALUES ($1, $2, $3, 'test') RETURNING id",
+		f.OrgID, targetType, targetID)
 }

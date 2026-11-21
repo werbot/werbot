@@ -30,7 +30,7 @@ export function ago(ts?: Timestamp, now = Date.now(), locale = getLocale()): str
 	return new Intl.RelativeTimeFormat(locale, { numeric: n === 0 ? 'auto' : 'always' }).format(n, steps[i][0]);
 }
 
-const spans: [string, number][] = [
+export const spans: [string, number][] = [
 	['day', 86400],
 	['hour', 3600],
 	['minute', 60],

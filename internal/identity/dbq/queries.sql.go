@@ -101,6 +101,15 @@ func (q *Queries) CreateOneTimeToken(ctx context.Context, arg CreateOneTimeToken
 	return err
 }
 
+const createOrgSetting = `-- name: CreateOrgSetting :exec
+INSERT INTO org_setting (org_id) VALUES ($1)
+`
+
+func (q *Queries) CreateOrgSetting(ctx context.Context, orgID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, createOrgSetting, orgID)
+	return err
+}
+
 const createOrganization = `-- name: CreateOrganization :one
 INSERT INTO organization (name) VALUES ($1) RETURNING id
 `
@@ -328,6 +337,52 @@ func (q *Queries) ExtendSession(ctx context.Context, arg ExtendSessionParams) er
 	return err
 }
 
+const getCLISessionRole = `-- name: GetCLISessionRole :one
+SELECT m.role FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+WHERE c.id = $1 AND c.org_id = $2 AND c.user_id = $3 AND c.revoked_at IS NULL
+  AND c.expires_at > now() AND c.absolute_expires_at > now()
+`
+
+type GetCLISessionRoleParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+// A Bearer request: the live cli_session of the token and the member's role.
+func (q *Queries) GetCLISessionRole(ctx context.Context, arg GetCLISessionRoleParams) (string, error) {
+	row := q.db.QueryRow(ctx, getCLISessionRole, arg.ID, arg.OrgID, arg.UserID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
+}
+
+const getCertSubject = `-- name: GetCertSubject :one
+SELECT u.login, EXISTS (SELECT 1 FROM lock l WHERE l.org_id = $1 AND l.target_type = 'cli_session'
+    AND l.target_id = $2::uuid AND (l.expires_at IS NULL OR l.expires_at > now()))::bool AS locked
+FROM users u WHERE u.id = $3
+`
+
+type GetCertSubjectParams struct {
+	OrgID        uuid.UUID
+	CliSessionID uuid.UUID
+	UserID       uuid.UUID
+}
+
+type GetCertSubjectRow struct {
+	Login  string
+	Locked bool
+}
+
+// The login a user certificate names and whether an active lock holds its CLI session.
+func (q *Queries) GetCertSubject(ctx context.Context, arg GetCertSubjectParams) (GetCertSubjectRow, error) {
+	row := q.db.QueryRow(ctx, getCertSubject, arg.OrgID, arg.CliSessionID, arg.UserID)
+	var i GetCertSubjectRow
+	err := row.Scan(&i.Login, &i.Locked)
+	return i, err
+}
+
 const getLoginUser = `-- name: GetLoginUser :one
 SELECT u.id, u.password_hash, m.org_id
 FROM users u LEFT JOIN membership m ON m.user_id = u.id
@@ -347,6 +402,60 @@ func (q *Queries) GetLoginUser(ctx context.Context, email string) (GetLoginUserR
 	row := q.db.QueryRow(ctx, getLoginUser, email)
 	var i GetLoginUserRow
 	err := row.Scan(&i.ID, &i.PasswordHash, &i.OrgID)
+	return i, err
+}
+
+const getMemberRole = `-- name: GetMemberRole :one
+SELECT role FROM membership WHERE org_id = $1 AND user_id = $2
+`
+
+type GetMemberRoleParams struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error) {
+	row := q.db.QueryRow(ctx, getMemberRole, arg.OrgID, arg.UserID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
+}
+
+const getOrgSettings = `-- name: GetOrgSettings :one
+SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
+       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs,
+       extract(epoch FROM grant_default_ttl)::bigint AS grant_default_ttl_secs,
+       extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
+       extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
+       extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
+       lock_mode, mask_output
+FROM org_setting WHERE org_id = $1
+`
+
+type GetOrgSettingsRow struct {
+	CliSessionTtlSecs      int64
+	CliSessionMaxSecs      int64
+	GrantDefaultTtlSecs    int64
+	GrantMaxTtlSecs        int64
+	RequestPendingTtlSecs  int64
+	CommandApprovalTtlSecs int64
+	LockMode               string
+	MaskOutput             string
+}
+
+func (q *Queries) GetOrgSettings(ctx context.Context, orgID uuid.UUID) (GetOrgSettingsRow, error) {
+	row := q.db.QueryRow(ctx, getOrgSettings, orgID)
+	var i GetOrgSettingsRow
+	err := row.Scan(
+		&i.CliSessionTtlSecs,
+		&i.CliSessionMaxSecs,
+		&i.GrantDefaultTtlSecs,
+		&i.GrantMaxTtlSecs,
+		&i.RequestPendingTtlSecs,
+		&i.CommandApprovalTtlSecs,
+		&i.LockMode,
+		&i.MaskOutput,
+	)
 	return i, err
 }
 
@@ -474,6 +583,22 @@ func (q *Queries) GetSessionInfo(ctx context.Context, arg GetSessionInfoParams) 
 	return i, err
 }
 
+const getUserCA = `-- name: GetUserCA :one
+SELECT ciphertext, key_id FROM org_ssh_ca WHERE org_id = $1
+`
+
+type GetUserCARow struct {
+	Ciphertext []byte
+	KeyID      string
+}
+
+func (q *Queries) GetUserCA(ctx context.Context, orgID uuid.UUID) (GetUserCARow, error) {
+	row := q.db.QueryRow(ctx, getUserCA, orgID)
+	var i GetUserCARow
+	err := row.Scan(&i.Ciphertext, &i.KeyID)
+	return i, err
+}
+
 const getUserOrg = `-- name: GetUserOrg :one
 SELECT org_id FROM membership WHERE user_id = $1 ORDER BY created_at LIMIT 1
 `
@@ -496,6 +621,30 @@ func (q *Queries) HasUsers(ctx context.Context) (bool, error) {
 	return exists, err
 }
 
+const insertUserCA = `-- name: InsertUserCA :exec
+INSERT INTO org_ssh_ca (org_id, ciphertext, key_id, public_key)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (org_id) DO NOTHING
+`
+
+type InsertUserCAParams struct {
+	OrgID      uuid.UUID
+	Ciphertext []byte
+	KeyID      string
+	PublicKey  string
+}
+
+// Concurrent first uses race here: the first insert wins, the rest re-read.
+func (q *Queries) InsertUserCA(ctx context.Context, arg InsertUserCAParams) error {
+	_, err := q.db.Exec(ctx, insertUserCA,
+		arg.OrgID,
+		arg.Ciphertext,
+		arg.KeyID,
+		arg.PublicKey,
+	)
+	return err
+}
+
 const isMemberEmail = `-- name: IsMemberEmail :one
 SELECT EXISTS (
     SELECT 1 FROM membership m JOIN users u ON u.id = m.user_id
@@ -513,6 +662,61 @@ func (q *Queries) IsMemberEmail(ctx context.Context, arg IsMemberEmailParams) (b
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const listCLISessions = `-- name: ListCLISessions :many
+SELECT id, user_id, client_id, hostname, ip, created_at, last_used_at, expires_at, absolute_expires_at
+FROM cli_session
+WHERE org_id = $1 AND user_id = $2 AND revoked_at IS NULL
+  AND expires_at > now() AND absolute_expires_at > now()
+ORDER BY created_at DESC
+`
+
+type ListCLISessionsParams struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+type ListCLISessionsRow struct {
+	ID                uuid.UUID
+	UserID            uuid.UUID
+	ClientID          string
+	Hostname          string
+	Ip                *netip.Addr
+	CreatedAt         time.Time
+	LastUsedAt        time.Time
+	ExpiresAt         time.Time
+	AbsoluteExpiresAt time.Time
+}
+
+func (q *Queries) ListCLISessions(ctx context.Context, arg ListCLISessionsParams) ([]ListCLISessionsRow, error) {
+	rows, err := q.db.Query(ctx, listCLISessions, arg.OrgID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCLISessionsRow
+	for rows.Next() {
+		var i ListCLISessionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ClientID,
+			&i.Hostname,
+			&i.Ip,
+			&i.CreatedAt,
+			&i.LastUsedAt,
+			&i.ExpiresAt,
+			&i.AbsoluteExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listInvites = `-- name: ListInvites :many
@@ -749,6 +953,44 @@ func (q *Queries) LockOrgOwners(ctx context.Context, orgID uuid.UUID) ([]uuid.UU
 	return items, nil
 }
 
+const lockOrgSettings = `-- name: LockOrgSettings :one
+SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
+       extract(epoch FROM cli_session_max)::bigint AS cli_session_max_secs,
+       extract(epoch FROM grant_default_ttl)::bigint AS grant_default_ttl_secs,
+       extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
+       extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
+       extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
+       lock_mode, mask_output
+FROM org_setting WHERE org_id = $1 FOR UPDATE
+`
+
+type LockOrgSettingsRow struct {
+	CliSessionTtlSecs      int64
+	CliSessionMaxSecs      int64
+	GrantDefaultTtlSecs    int64
+	GrantMaxTtlSecs        int64
+	RequestPendingTtlSecs  int64
+	CommandApprovalTtlSecs int64
+	LockMode               string
+	MaskOutput             string
+}
+
+func (q *Queries) LockOrgSettings(ctx context.Context, orgID uuid.UUID) (LockOrgSettingsRow, error) {
+	row := q.db.QueryRow(ctx, lockOrgSettings, orgID)
+	var i LockOrgSettingsRow
+	err := row.Scan(
+		&i.CliSessionTtlSecs,
+		&i.CliSessionMaxSecs,
+		&i.GrantDefaultTtlSecs,
+		&i.GrantMaxTtlSecs,
+		&i.RequestPendingTtlSecs,
+		&i.CommandApprovalTtlSecs,
+		&i.LockMode,
+		&i.MaskOutput,
+	)
+	return i, err
+}
+
 const lockSetup = `-- name: LockSetup :exec
 SELECT pg_advisory_xact_lock($1::bigint)
 `
@@ -789,6 +1031,50 @@ func (q *Queries) LockUserOwnedOrgs(ctx context.Context, userID uuid.UUID) ([]Lo
 		return nil, err
 	}
 	return items, nil
+}
+
+const lookupCertUser = `-- name: LookupCertUser :one
+SELECT u.id, u.login, m.role,
+       (SELECT array_agg(tm.team_id ORDER BY tm.team_id) FROM team_member tm
+        WHERE tm.org_id = m.org_id AND tm.user_id = u.id)::uuid[] AS team_ids
+FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+JOIN users u ON u.id = c.user_id
+WHERE c.id = $1 AND c.org_id = $2 AND c.user_id = $3 AND u.login = $4
+  AND c.revoked_at IS NULL AND c.expires_at > now() AND c.absolute_expires_at > now()
+`
+
+type LookupCertUserParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+	Login  string
+}
+
+type LookupCertUserRow struct {
+	ID      uuid.UUID
+	Login   string
+	Role    string
+	TeamIds []uuid.UUID
+}
+
+// An SSH certificate: the live cli_session it was issued for, the member and
+// the login of its principal. ponytail: team sub-select as LookupLoginUser.
+func (q *Queries) LookupCertUser(ctx context.Context, arg LookupCertUserParams) (LookupCertUserRow, error) {
+	row := q.db.QueryRow(ctx, lookupCertUser,
+		arg.ID,
+		arg.OrgID,
+		arg.UserID,
+		arg.Login,
+	)
+	var i LookupCertUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Login,
+		&i.Role,
+		&i.TeamIds,
+	)
+	return i, err
 }
 
 const lookupLoginUser = `-- name: LookupLoginUser :one
@@ -904,6 +1190,50 @@ func (q *Queries) RenameTeam(ctx context.Context, arg RenameTeamParams) (RenameT
 	return i, err
 }
 
+const revokeCLISession = `-- name: RevokeCLISession :execrows
+UPDATE cli_session SET revoked_at = now(), revoke_reason = $1::text
+WHERE id = $2 AND org_id = $3 AND revoked_at IS NULL AND ($4::bool OR user_id = $5)
+`
+
+type RevokeCLISessionParams struct {
+	Reason  string
+	ID      uuid.UUID
+	OrgID   uuid.UUID
+	Manager bool
+	UserID  uuid.UUID
+}
+
+// A manager revokes any session of the organization, others only their own.
+func (q *Queries) RevokeCLISession(ctx context.Context, arg RevokeCLISessionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeCLISession,
+		arg.Reason,
+		arg.ID,
+		arg.OrgID,
+		arg.Manager,
+		arg.UserID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const revokeUserCLISessions = `-- name: RevokeUserCLISessions :exec
+UPDATE cli_session SET revoked_at = now(), revoke_reason = 'password_reset'
+WHERE user_id = $1 AND id <> $2 AND revoked_at IS NULL
+`
+
+type RevokeUserCLISessionsParams struct {
+	UserID uuid.UUID
+	KeepID uuid.UUID
+}
+
+// A new password ends the user's CLI sessions in every organization but keep_id.
+func (q *Queries) RevokeUserCLISessions(ctx context.Context, arg RevokeUserCLISessionsParams) error {
+	_, err := q.db.Exec(ctx, revokeUserCLISessions, arg.UserID, arg.KeepID)
+	return err
+}
+
 const teamMemberIDs = `-- name: TeamMemberIDs :many
 SELECT user_id FROM team_member WHERE team_id = $1 AND org_id = $2 ORDER BY user_id
 `
@@ -945,6 +1275,47 @@ type UpdateMemberRoleParams struct {
 
 func (q *Queries) UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) error {
 	_, err := q.db.Exec(ctx, updateMemberRole, arg.Role, arg.OrgID, arg.UserID)
+	return err
+}
+
+const updateOrgSettings = `-- name: UpdateOrgSettings :exec
+UPDATE org_setting SET
+    cli_session_ttl = make_interval(secs => $1::float8),
+    cli_session_max = make_interval(secs => $2::float8),
+    grant_default_ttl = make_interval(secs => $3::float8),
+    grant_max_ttl = make_interval(secs => $4::float8),
+    request_pending_ttl = make_interval(secs => $5::float8),
+    command_approval_ttl = make_interval(secs => $6::float8),
+    lock_mode = $7,
+    mask_output = $8,
+    updated_at = now()
+WHERE org_id = $9
+`
+
+type UpdateOrgSettingsParams struct {
+	CliSessionTtlSecs      float64
+	CliSessionMaxSecs      float64
+	GrantDefaultTtlSecs    float64
+	GrantMaxTtlSecs        float64
+	RequestPendingTtlSecs  float64
+	CommandApprovalTtlSecs float64
+	LockMode               string
+	MaskOutput             string
+	OrgID                  uuid.UUID
+}
+
+func (q *Queries) UpdateOrgSettings(ctx context.Context, arg UpdateOrgSettingsParams) error {
+	_, err := q.db.Exec(ctx, updateOrgSettings,
+		arg.CliSessionTtlSecs,
+		arg.CliSessionMaxSecs,
+		arg.GrantDefaultTtlSecs,
+		arg.GrantMaxTtlSecs,
+		arg.RequestPendingTtlSecs,
+		arg.CommandApprovalTtlSecs,
+		arg.LockMode,
+		arg.MaskOutput,
+		arg.OrgID,
+	)
 	return err
 }
 

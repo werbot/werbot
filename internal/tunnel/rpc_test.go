@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -123,7 +124,7 @@ func TestStartSessionOnlyOwnPool(t *testing.T) {
 	want := SessionStart{OrgID: b.org, GatewayID: g.ID, InstanceID: g.InstanceID, UserID: user, ResourceID: res,
 		ClientIP: netip.MustParseAddr("10.1.2.3"), Kind: "stream", Target: "db:5432"}
 	b.f.with(func(f *fake) {
-		if len(f.starts) != 1 || f.starts[0] != want {
+		if len(f.starts) != 1 || !reflect.DeepEqual(f.starts[0], want) {
 			t.Fatalf("Start(%+v), want %+v", f.starts, want)
 		}
 		if !slices.Equal(f.revealed, []string{"ssh", "ssh"}) {
@@ -188,6 +189,21 @@ func TestEndSessionCountersAndReasons(t *testing.T) {
 		want := Counters{SessionID: id, BytesUp: 7, BytesDown: 8, DatagramsUp: 9, DatagramsDown: 10}
 		if len(f.ends) != 3 || f.ends[2].reason != "access_revoked" || f.ends[2].c == nil || *f.ends[2].c != want {
 			t.Fatalf("End(%+v), want counters %+v", f.ends, want)
+		}
+	})
+}
+
+// A strict organization's gateway ends its sessions with policy_stale when its tunnel is down too long.
+func TestEndSessionPolicyStale(t *testing.T) {
+	b := newBench(t, nil)
+	g := b.instance(t, b.org, uuid.New())
+	id := uuid.New()
+	if _, err := g.client.EndSession(ctx, connect.NewRequest(&gatewayv1.EndSessionRequest{SessionId: id.String(), Reason: "policy_stale"})); err != nil {
+		t.Fatal(err)
+	}
+	b.f.with(func(f *fake) {
+		if len(f.ends) != 1 || f.ends[0].id != id || f.ends[0].reason != "policy_stale" {
+			t.Fatalf("End(%+v), want reason policy_stale", f.ends)
 		}
 	})
 }

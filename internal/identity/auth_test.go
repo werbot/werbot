@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
@@ -43,7 +44,7 @@ func TestSetupOnlyOnce(t *testing.T) {
 	var email string
 	require.NoError(t, pool.QueryRow(ctx, "SELECT email FROM users WHERE id = $1", p.UserID).Scan(&email))
 	assert.Equal(t, "owner@example.com", email)
-	assert.Equal(t, []string{"auth.setup"}, auditActions(t, pool))
+	assert.Equal(t, []string{"auth.setup"}, dbtest.AuditActions(t, pool))
 }
 
 func TestConcurrentSetupCreatesOneOwner(t *testing.T) {
@@ -102,7 +103,7 @@ func TestLogin(t *testing.T) {
 	p, err := svc.AuthenticateSession(ctx, token)
 	require.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, p.SessionID)
-	assert.Equal(t, principal.Principal{UserID: userID, OrgID: orgID, Role: principal.RoleOwner, SessionID: p.SessionID}, p)
+	assert.Equal(t, principal.Principal{UserID: userID, OrgID: orgID, Role: principal.RoleOwner, SessionID: p.SessionID, AuthMethod: principal.AuthMethodCookie}, p)
 
 	_, wrongPw := svc.Login(ctx, "alice@example.com", "wrong horse battery", "test")
 	assert.ErrorIs(t, wrongPw, apperr.ErrUnauthenticated)
@@ -117,7 +118,7 @@ func TestLogin(t *testing.T) {
 	assert.ErrorIs(t, noMember, apperr.ErrUnauthenticated)
 	assert.Equal(t, wrongPw.Error(), noMember.Error())
 
-	assert.Contains(t, auditActions(t, pool), "auth.login")
+	assert.Contains(t, dbtest.AuditActions(t, pool), "auth.login")
 }
 
 func TestLoginEmailCaseInsensitive(t *testing.T) {
@@ -164,5 +165,5 @@ func TestLogout(t *testing.T) {
 	require.NoError(t, svc.Logout(ctx))
 	_, err := svc.AuthenticateSession(context.Background(), token)
 	assert.ErrorIs(t, err, apperr.ErrUnauthenticated)
-	assert.Contains(t, auditActions(t, pool), "auth.logout")
+	assert.Contains(t, dbtest.AuditActions(t, pool), "auth.logout")
 }

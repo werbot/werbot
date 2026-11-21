@@ -1,14 +1,19 @@
 package connectcli
 
 import (
+	"context"
 	"io"
 	"net"
+	"os"
 	"strconv"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/werbot/werbot/internal/platform/sshdgram"
 )
@@ -210,4 +215,28 @@ func TestConnectUDPRefusedBacksOff(t *testing.T) {
 	require.Eventually(t, func() bool { return send() && len(f.openData()) > opens }, 5*time.Second, 5*time.Millisecond)
 	assert.Equal(t, opens+1, len(f.openData()), "the datagrams sent in the backoff opened nothing")
 	assert.Equal(t, "Access denied\n", r.stderr.String(), "the same text is printed once")
+}
+
+// Config.Signer replaces the agent and key file, and is asked again on every redial.
+func TestConnectSigner(t *testing.T) {
+	port := freePortNum(t)
+	f, cfg := testSetup(t, tcpInfo, strconv.Itoa(int(port))+":pg")
+	raw, err := os.ReadFile(cfg.Identity)
+	require.NoError(t, err)
+	key, err := gossh.ParsePrivateKey(raw)
+	require.NoError(t, err)
+	cfg.Identity = ""
+	var calls atomic.Int64
+	cfg.Signer = func(context.Context) (gossh.Signer, error) { calls.Add(1); return key, nil }
+	r := startRun(t, cfg)
+	addr := r.ready(t, "pg", port, "tcp")
+	assert.Equal(t, int64(1), calls.Load())
+
+	f.down.Store(true)
+	f.drop()
+	require.Eventually(t, func() bool { return strings.Contains(r.stderr.String(), "reconnecting") }, 5*time.Second, 5*time.Millisecond)
+	f.down.Store(false)
+	pingEventually(t, addr)
+	assert.GreaterOrEqual(t, calls.Load(), int64(2), "a redial asks the signer again")
+	assert.NoError(t, r.stop(t))
 }

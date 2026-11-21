@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -13,7 +14,8 @@ import (
 	"github.com/werbot/werbot/internal/session/dbq"
 )
 
-// Deny audits refused attempts as "session.deny". The gateway is not trusted
+// Deny audits refused attempts as "session.deny", or as "session.command_denied"
+// for a command refused inside a session. The gateway is not trusted
 // with identities: a user id that is no member of orgID is stored as nil. The
 // target is the resource id when the name matches a resource, else the name;
 // a set At is stored as "at" (RFC 3339, UTC).
@@ -44,25 +46,43 @@ func (s *Service) Deny(ctx context.Context, orgID uuid.UUID, ds []Denial) error 
 			return err
 		}
 		for _, d := range ds {
-			target, ok := ids[d.Resource]
-			if !ok {
-				target = d.Resource
-			}
-			actor := d.UserID
-			if actor != nil && !slices.Contains(members, *actor) {
-				actor = nil
-			}
-			data := map[string]any{"kind": d.Kind, "target": d.Target, "reason": d.Reason, "key_fingerprint": d.KeyFingerprint}
-			if !d.At.IsZero() {
-				data["at"] = d.At.UTC().Format(time.RFC3339) // when the gateway refused; created_at is when it arrived
-			}
-			if err := auditlog.Write(ctx, tx, auditlog.Event{
-				OrgID: &orgID, ActorUserID: actor, ActorKind: "gateway", Action: "session.deny",
-				TargetType: "resource", TargetID: target, IP: d.ClientIP, Data: data,
-			}); err != nil {
+			if err := writeDenial(ctx, tx, st, orgID, d, ids, members); err != nil {
 				return err
 			}
 		}
 		return nil
 	})
+}
+
+// writeDenial audits one denial: "session.command_denied" for a command refused
+// inside a session of orgID (skipped when the session is not one of orgID),
+// else "session.deny".
+func writeDenial(ctx context.Context, tx pgx.Tx, st Store, orgID uuid.UUID, d Denial, ids map[string]string, members []uuid.UUID) error {
+	target, ok := ids[d.Resource]
+	if !ok {
+		target = d.Resource
+	}
+	actor := d.UserID
+	if actor != nil && !slices.Contains(members, *actor) {
+		actor = nil
+	}
+	e := auditlog.Event{OrgID: &orgID, ActorUserID: actor, ActorKind: "gateway", Action: "session.deny",
+		TargetType: "resource", TargetID: target, IP: d.ClientIP}
+	data := map[string]any{"kind": d.Kind, "target": d.Target, "reason": d.Reason, "key_fingerprint": d.KeyFingerprint}
+	if d.SessionID != nil {
+		own, err := st.SessionInOrg(ctx, dbq.SessionInOrgParams{ID: *d.SessionID, OrgID: orgID})
+		if err != nil || !own {
+			if err == nil {
+				slog.WarnContext(ctx, "session: command denial for a foreign session skipped", "session_id", d.SessionID.String())
+			}
+			return err
+		}
+		e.Action, e.TargetType, e.TargetID = "session.command_denied", "session", d.SessionID.String()
+		data = map[string]any{"command": d.Target, "classes": d.Classes, "paths": d.Paths, "reasons": d.Reasons, "reason": d.Reason}
+	}
+	if !d.At.IsZero() {
+		data["at"] = d.At.UTC().Format(time.RFC3339) // when the gateway refused; created_at is when it arrived
+	}
+	e.Data = data
+	return auditlog.Write(ctx, tx, e)
 }

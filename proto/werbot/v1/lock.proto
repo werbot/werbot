@@ -1,0 +1,48 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// Locks deny access to a target until they expire or are deleted; owner and admin only.
+service LockService {
+  // Lists the unexpired locks, newest first.
+  rpc ListLocks(ListLocksRequest) returns (ListLocksResponse);
+  rpc CreateLock(CreateLockRequest) returns (CreateLockResponse);
+  rpc DeleteLock(DeleteLockRequest) returns (DeleteLockResponse);
+}
+
+message Lock {
+  string id = 1;
+  string target_type = 2;
+  string target_id = 3; // empty for all_agents
+  string reason = 4;
+  google.protobuf.Timestamp expires_at = 5; // unset: until deleted
+  string created_by = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message ListLocksRequest {}
+message ListLocksResponse {
+  repeated Lock locks = 1;
+}
+
+message CreateLockRequest {
+  // Accepted now: user, team, resource, grant, cli_session; the others come with agents and MFA.
+  // Also listed in internal/access/locks.go and internal/policy/compile_jit.go: change them together.
+  string target_type = 1 [(buf.validate.field).string = {
+    in: ["user", "team", "resource", "grant", "agent", "agent_run", "agents_of_user", "all_agents", "cli_session", "mfa_device"]
+  }];
+  string target_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string reason = 3 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+  google.protobuf.Duration expires_in = 4; // unset: until deleted
+}
+message CreateLockResponse {
+  Lock lock = 1;
+}
+
+message DeleteLockRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteLockResponse {}

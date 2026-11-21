@@ -4,6 +4,7 @@
 package connectcli
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,6 +14,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -28,9 +31,12 @@ func ConfigVars() []string { return []string{envGateway, envLogin} }
 
 // Config is what werbot connect needs: the gateway host:port, the Werbot login,
 // an optional private key file, the known_hosts file and one Spec per resource.
+// Signer, when set, replaces the agent and the key file; it is called for every
+// connection to the gateway, so a renewed certificate is picked up on a redial.
 type Config struct {
 	Gateway, Login, Identity, KnownHosts string
 	Specs                                []Spec
+	Signer                               func(ctx context.Context) (ssh.Signer, error)
 }
 
 // Spec is one [<local_port>:]<resource>[:<target_port>] argument; 0 means not given.

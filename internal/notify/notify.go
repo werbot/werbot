@@ -20,9 +20,10 @@ type Mailer interface {
 	Send(ctx context.Context, to, subject, htmlBody string) error
 }
 
-// SendEmailArgs is the send_email job. Template is "invite", "password_reset"
-// or "account_deletion"; SealedData is the secretbox-sealed JSON of the template
-// data, so links with one-time tokens never sit in river_job in clear.
+// SendEmailArgs is the send_email job. Template is "invite", "password_reset",
+// "account_deletion", "access_request", "access_decision" or "break_glass";
+// SealedData is the secretbox-sealed JSON of the template data, so links with
+// one-time tokens never sit in river_job in clear.
 type SendEmailArgs struct {
 	To         string `json:"to"`
 	Template   string `json:"template"`
@@ -45,6 +46,11 @@ var subjects = map[string]func(d map[string]string) string{
 	"invite":           func(d map[string]string) string { return d["inviter"] + " invited you to " + d["org"] + " on Werbot" },
 	"password_reset":   func(map[string]string) string { return "Reset your Werbot password" },
 	"account_deletion": func(map[string]string) string { return "Confirm deletion of your Werbot account" },
+	"access_request":   func(d map[string]string) string { return d["requester"] + " requests access to " + d["resource"] },
+	"access_decision":  func(d map[string]string) string { return "Your request for " + d["resource"] + " was " + d["status"] },
+	"break_glass": func(d map[string]string) string {
+		return "Break-glass access to " + d["resource"] + " by " + d["requester"]
+	},
 }
 
 var templates = func() map[string]*template.Template {
