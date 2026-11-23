@@ -1,0 +1,201 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// AI agents act for their sponsor inside bounded runs. A member manages own
+// agents and runs; owner and admin any; another sponsor's agent or run is
+// NotFound for a member. A run starts by token exchange, not by an RPC.
+service AgentService {
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+  // A member creates only own agents; owner and admin may name another sponsor.
+  rpc CreateAgent(CreateAgentRequest) returns (CreateAgentResponse);
+  rpc UpdateAgent(UpdateAgentRequest) returns (UpdateAgentResponse);
+  rpc DeleteAgent(DeleteAgentRequest) returns (DeleteAgentResponse);
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse);
+  // The run with its timeline: tool calls, sessions, approvals and denials.
+  rpc GetRun(GetRunRequest) returns (GetRunResponse);
+  rpc EndRun(EndRunRequest) returns (EndRunResponse);
+  // Moves a paused run back to running.
+  rpc ResumeRun(ResumeRunRequest) returns (ResumeRunResponse);
+  // Agent run tokens only.
+  rpc RecordToolCall(RecordToolCallRequest) returns (RecordToolCallResponse);
+  // Agent run tokens only.
+  rpc FinishToolCall(FinishToolCallRequest) returns (FinishToolCallResponse);
+}
+
+// AgentLimits bound each run of an agent; 0 or unset means the default.
+message AgentLimits {
+  int32 max_actions = 1 [(buf.validate.field).int32 = {gte: 0, lte: 10000}]; // 0: 100
+  // 0 or unset: 1h; otherwise 1m to 1h.
+  google.protobuf.Duration max_duration = 2 [(buf.validate.field).cel = {
+    id: "agent_limits.max_duration"
+    message: "max_duration must be 0 or 1m to 1h"
+    expression: "this == duration('0s') || (this >= duration('60s') && this <= duration('3600s'))"
+  }];
+  int32 max_concurrent = 3 [(buf.validate.field).int32 = {gte: 0, lte: 32}]; // 0: 4
+}
+
+message Agent {
+  string id = 1;
+  string name = 2;
+  string sponsor_user_id = 3;
+  string sponsor_login = 4;
+  string kind = 5; // "interactive"
+  string status = 6; // "active" | "frozen"
+  AgentLimits limits = 7;
+  int32 active_runs = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message AgentRun {
+  string id = 1;
+  string agent_id = 2;
+  string agent_name = 3;
+  string sponsor_user_id = 4;
+  string client = 5;
+  string reason = 6;
+  string status = 7; // "running" | "paused" | "ended"
+  int32 actions = 8;
+  int32 max_actions = 9;
+  int32 denials_in_row = 10;
+  int32 max_concurrent = 11;
+  google.protobuf.Timestamp started_at = 12;
+  google.protobuf.Timestamp expires_at = 13;
+  google.protobuf.Timestamp ended_at = 14;
+  string end_reason = 15; // "client_exit" | "ended_by_user" | "expired"
+}
+
+message ToolCall {
+  string id = 1;
+  string tool = 2;
+  google.protobuf.Struct arguments = 3; // masked by key
+  string traceparent = 4;
+  string status = 5; // "running" | "ok" | "error" | "pending_approval" | "denied"
+  google.protobuf.Timestamp started_at = 6;
+  google.protobuf.Timestamp ended_at = 7;
+}
+
+message RunSession {
+  string id = 1;
+  string resource_name = 2;
+  string tool_call_id = 3;
+  string command = 4;
+  repeated string classes = 5;
+  optional int32 exit_code = 6;
+  string end_reason = 7;
+  bytes output_sha256 = 8;
+  google.protobuf.Timestamp started_at = 9;
+  google.protobuf.Timestamp ended_at = 10;
+}
+
+message RunApproval {
+  string id = 1;
+  string resource_name = 2;
+  string command = 3;
+  repeated string classes = 4;
+  string status = 5;
+  string decided_by_login = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp decided_at = 8;
+}
+
+message RunDenial {
+  string resource = 1;
+  string command = 2;
+  repeated string classes = 3;
+  repeated string reasons = 4;
+  google.protobuf.Timestamp at = 5;
+}
+
+message ListAgentsRequest {}
+message ListAgentsResponse {
+  repeated Agent agents = 1;
+}
+
+message CreateAgentRequest {
+  string name = 1 [(buf.validate.field).string.pattern = "^[a-z0-9][a-z0-9_-]{0,62}$"];
+  string sponsor_user_id = 2 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE]; // empty: the caller
+  AgentLimits limits = 3;
+}
+message CreateAgentResponse {
+  Agent agent = 1;
+}
+
+message UpdateAgentRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  AgentLimits limits = 2; // unset: unchanged
+  // "frozen" freezes the agent; empty: unchanged.
+  string status = 3 [
+    (buf.validate.field).string = {
+      in: ["active", "frozen"]
+    },
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
+}
+message UpdateAgentResponse {
+  Agent agent = 1;
+}
+
+message DeleteAgentRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteAgentResponse {}
+
+message ListRunsRequest {
+  string agent_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string status = 2 [
+    (buf.validate.field).string = {
+      in: ["running", "paused", "ended"]
+    },
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
+  int32 page = 3 [(buf.validate.field).int32 = {gte: 0, lte: 10000000}];
+  int32 page_size = 4 [(buf.validate.field).int32 = {gte: 1, lte: 100}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE]; // 0: 50
+}
+message ListRunsResponse {
+  repeated AgentRun runs = 1;
+  int32 next_page = 2; // 0: no further pages
+}
+
+message GetRunRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+// Each list holds at most 1000 entries, oldest first.
+message GetRunResponse {
+  AgentRun run = 1;
+  repeated ToolCall tool_calls = 2;
+  repeated RunSession sessions = 3;
+  repeated RunApproval approvals = 4;
+  repeated RunDenial denials = 5;
+}
+
+message EndRunRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message EndRunResponse {}
+
+message ResumeRunRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message ResumeRunResponse {}
+
+message RecordToolCallRequest {
+  string tool = 1 [(buf.validate.field).string.pattern = "^[a-z][a-z0-9_]{0,63}$"];
+  google.protobuf.Struct arguments = 2; // at most 16 KiB as JSON, checked by the server
+  string traceparent = 3 [(buf.validate.field).string.max_bytes = 55];
+}
+message RecordToolCallResponse {
+  string id = 1;
+}
+
+message FinishToolCallRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string status = 2 [(buf.validate.field).string = {
+    in: ["ok", "error", "pending_approval", "denied"]
+  }];
+}
+message FinishToolCallResponse {}
