@@ -69,7 +69,7 @@ func freeAddr(t *testing.T) string {
 func newRelay(t *testing.T, pool *pgxpool.Pool, ca *tlsca.CA) *Relay {
 	t.Helper()
 	addr := freeAddr(t)
-	r := New(pool, ca, Config{InstanceID: uuid.New(), InternalAddr: addr, InternalURL: "https://" + addr, Version: "v-test"},
+	r := New(pool, ca, nil, Config{InstanceID: uuid.New(), InternalAddr: addr, InternalURL: "https://" + addr, Version: "v-test"},
 		slog.New(slog.DiscardHandler))
 	r.heartbeat = 50 * time.Millisecond
 	return r

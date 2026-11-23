@@ -1,0 +1,40 @@
+syntax = "proto3";
+package werbot.relay.v1;
+
+import "buf/validate/validate.proto";
+
+// RelayService joins server replicas: the replica that bridges a gateway
+// stream pipes it to the replica holding the browser's WebSocket. It is
+// served only on the internal mTLS listener.
+service RelayService {
+  // Pipe carries one browser stream; the first request frame names its ticket.
+  rpc Pipe(stream PipeRequest) returns (stream PipeResponse);
+}
+
+// PipeRequest is a frame from the bridging replica.
+message PipeRequest {
+  PipeFrame frame = 1;
+}
+
+// PipeResponse is a frame from the replica holding the browser.
+message PipeResponse {
+  PipeFrame frame = 1;
+}
+
+// PipeFrame is one frame of a piped stream. Window bounds are checked in
+// code: a resize out of bounds is skipped, the stream lives.
+message PipeFrame {
+  oneof frame {
+    string ticket_id = 1 [(buf.validate.field).string.uuid = true];
+    bytes data = 2;
+    Resize resize = 3;
+    // "closed", "denied", "not_found", "limit" or "error"
+    string close = 4 [(buf.validate.field).string.max_len = 32];
+  }
+}
+
+// Resize is a terminal window size in cells.
+message Resize {
+  int32 cols = 1;
+  int32 rows = 2;
+}

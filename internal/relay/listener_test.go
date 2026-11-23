@@ -76,7 +76,7 @@ func TestInternalListenerAcceptsOnlyKnownServers(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, code, "registered replica over HTTP/2")
 
-	unknown := New(pool, ca, Config{InstanceID: uuid.New()}, r.log)
+	unknown := New(pool, ca, nil, Config{InstanceID: uuid.New()}, r.log)
 	code, err = get(client(ca, unknown.clientCert, true))
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusUnauthorized, code, "replica without a server_instance row")
@@ -88,7 +88,7 @@ func TestInternalListenerAcceptsOnlyKnownServers(t *testing.T) {
 	_, err = get(client(ca, nil, true))
 	assert.Error(t, err, "no client certificate fails the TLS handshake")
 
-	other := New(pool, newCA(t), Config{InstanceID: r.cfg.InstanceID}, r.log)
+	other := New(pool, newCA(t), nil, Config{InstanceID: r.cfg.InstanceID}, r.log)
 	_, err = get(client(ca, other.clientCert, true))
 	assert.Error(t, err, "certificate of another CA fails the TLS handshake")
 }
@@ -108,7 +108,7 @@ func TestInternalListenerRefusesHTTP1(t *testing.T) {
 
 func TestClientCertPerHandshake(t *testing.T) {
 	ca := newCA(t)
-	r := New(nil, ca, Config{InstanceID: uuid.New()}, slog.New(slog.DiscardHandler))
+	r := New(nil, ca, nil, Config{InstanceID: uuid.New()}, slog.New(slog.DiscardHandler))
 	parse := func() *x509.Certificate {
 		c, err := r.clientCert(nil)
 		require.NoError(t, err)
