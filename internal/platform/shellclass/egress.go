@@ -153,9 +153,10 @@ func jumpHosts(opts []opt) []string {
 var (
 	curlEgress = "-x|--proxy|--preproxy|-K|--config|--connect-to|--resolve|--socks4|--socks4a|--socks5|--socks5-hostname"
 	curlLongs  = "data data-binary data-raw data-urlencode data-ascii header request user output upload-file " +
-		"form cookie proxy preproxy config url connect-to resolve socks4 socks4a socks5 socks5-hostname"
+		"form cookie proxy preproxy config url connect-to resolve socks4 socks4a socks5 socks5-hostname " +
+		"dump-header cookie-jar trace trace-ascii stderr libcurl etag-save hsts alt-svc"
 	wgetLongs = "output-document output-file execute input-file user-agent directory-prefix tries timeout " +
-		"header post-data post-file user password base"
+		"header post-data post-file user password base append-output"
 	sshSpec = optSpec{value: "BbcDEeFIiJLlmOoPpQRSWw", loose: true}
 )
 
@@ -168,10 +169,10 @@ func longs(names string) map[string]bool {
 }
 
 func addClients(add func(rule, string)) {
-	add(rule{check: client{spec: optSpec{value: "odHXuAeTFbcxK", long: longs(curlLongs), loose: true},
-		risk: keyed(map[Class]string{Egress: curlEgress}), hosts: urlHosts}.check}, "curl")
-	add(rule{check: client{spec: optSpec{value: "OoeUPaitTwQlDBIXAR", long: longs(wgetLongs), loose: true},
-		risk: keyed(map[Class]string{Egress: "-e|--execute|-i|--input-file|-B|--base"}), hosts: urlHosts}.check}, "wget")
+	add(rule{check: saving(client{spec: optSpec{value: "odDHXuAeTFbcxK", long: longs(curlLongs), loose: true},
+		risk: keyed(map[Class]string{Egress: curlEgress}), hosts: urlHosts}, curlSaves)}, "curl")
+	add(rule{check: saving(client{spec: optSpec{value: "OoeUPaitTwQlDBIXAR", long: longs(wgetLongs), loose: true},
+		risk: keyed(map[Class]string{Egress: "-e|--execute|-i|--input-file|-B|--base"}), hosts: urlHosts}, wgetSaves)}, "wget")
 	add(rule{check: client{spec: optSpec{value: "IiOpqsTVwXxPec", long: longs("exec sh-exec lua-exec proxy proxy-type source"), loose: true},
 		risk:  keyed(map[Class]string{Opaque: "-e|-c|--exec|--sh-exec|--lua-exec", Egress: "-x|--proxy"}),
 		hosts: firstHost}.check}, "nc ncat netcat")

@@ -35,6 +35,11 @@ read	ls /tmp/*.log
 read	echo {a,b}
 read	socat - TCP:localhost:5432
 read	ls >&2
+read	awk '{print $1}' /var/log/syslog
+read	awk '$3 > 100 {print $1}' f
+read	curl -s -o /dev/null http://localhost/
+read	git diff --no-ext-diff
+read	wget --spider http://127.0.0.1/
 # write
 write	cp a.conf b.conf && mv b.conf /etc/nginx/nginx.conf
 write	sed -i 's/a/b/' /etc/hosts
@@ -74,6 +79,16 @@ write	dmesg -C
 write	dmesg --read-clear
 write	hostname web-2
 write	hostname -F /etc/hostname
+write	less -o /tmp/x f
+write	curl -o /tmp/x http://localhost/
+write	curl -O http://localhost/f
+write	wget -O /tmp/x http://127.0.0.1/
+write	wget -P /tmp http://127.0.0.1/f
+write	curl -D /tmp/h http://localhost/
+write	curl -c /tmp/j http://localhost/
+write	curl --remote-name-all http://localhost/f
+write	wget http://127.0.0.1/f
+write	wget -a /tmp/log -qO- http://127.0.0.1/
 # destructive
 destructive	rm -rf /
 destructive	find /tmp -name '*.log' -delete
@@ -143,6 +158,8 @@ egress	telnet 203.0.113.1 23
 egress	curl -x http://proxy.example:3128 http://localhost/
 egress	ssh -o StrictHostKeyChecking=no localhost
 egress,read	cat < /dev/tcp/203.0.113.5/80
+egress,write	curl -o /tmp/x https://203.0.113.5/
+egress,write	wget -q http://203.0.113.5/f
 # opaque
 opaque	sort --compress-program=gzip data.txt
 opaque	eval "$CMD"
@@ -177,6 +194,19 @@ opaque	/tmp/x/ls -la
 opaque,read	ls; IFS=/ ls
 egress,opaque	ssh -o ProxyCommand=true localhost
 opaque,read	ssh localhost ls
+opaque	awk 'BEGIN{system("id")}'
+opaque	awk '{print > "/tmp/x"}' f
+opaque	awk '{print | "sort"}' f
+opaque	awk '{"date" | getline d; print d}'
+opaque	awk -f prog.awk f
+opaque	sed 's/a/b/e' f
+opaque	sed -n 'w /tmp/x' f
+opaque	sed '1e id' f
+opaque	sed 's/a/b/w /tmp/x' f
+opaque	sed -f script.sed f
+opaque	git diff --ext-diff
+opaque	git log -p --textconv
+opaque	git show --ext-diff HEAD
 # bypass
 destructive	\rm -fr /var/lib/app
 destructive	r''m -rf /

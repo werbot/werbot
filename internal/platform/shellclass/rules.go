@@ -55,10 +55,9 @@ func buildRules() map[string]rule {
 			m[n] = r
 		}
 	}
-	add(rule{base: of(Read)}, "ls cat head tail less more grep egrep fgrep zgrep zcat wc stat file du df free "+
+	add(rule{base: of(Read)}, "ls cat head tail more grep egrep fgrep zgrep zcat wc stat file du df free "+
 		"uptime uname id whoami w who ps top pgrep pidof echo pwd which type cd test [ true false : "+
-		"sleep cut tr awk jq diff cmp md5sum sha256sum lsblk lsof ss netstat git-upload-pack")
-	add(rule{base: of(Read), flags: keyed(map[Class]string{Write: "-i|--in-place"})}, "sed")
+		"sleep cut tr jq diff cmp md5sum sha256sum lsblk lsof ss netstat git-upload-pack")
 	add(rule{base: of(Read), flags: keyed(map[Class]string{Write: "-o|--output", Opaque: "--compress-program"})}, "sort")
 	add(rule{base: of(Read), flags: keyed(map[Class]string{Write: "-s|--set"})}, "date")
 	add(rule{base: of(Read), flags: keyed(map[Class]string{Write: "-c|-C|--clear|--read-clear"})}, "dmesg")
@@ -96,12 +95,9 @@ func buildRules() map[string]rule {
 		Write:       "start|stop|restart|pull",
 		Destructive: "rm|rmi|prune|system prune|volume prune|image prune",
 	})}, "docker")
-	add(rule{pre: map[string]bool{"-C": true}, flags: keyed(map[Class]string{Write: "--output"}), subs: keyed(map[Class]string{
-		Read:  "status|log|diff|show",
-		Write: "pull|fetch|checkout|commit|push",
-	})}, "git")
 	add(rule{subs: pkgSubs}, "apt apt-get yum dnf apk")
 	addClients(add)
+	addScripts(add)
 	return m
 }
 

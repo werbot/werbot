@@ -21,13 +21,13 @@ The gateway parses the command as a bash command line (pipes, lists, `$(…)`, r
 
 | Class | Built-in examples |
 | --- | --- |
-| `read` | `ls`, `cat`, `head`, `tail`, `less`, `grep`, `wc`, `df`, `du`, `ps`, `top`, `uptime`, `hostname`, `whoami`, `date`, `echo`, `sort`, `awk`, `jq`, `diff`, `journalctl`; `sed` without `-i`; `find` without `-delete` or `-exec`; `tar t…`; `crontab -l`; `systemctl status`, `kubectl get`, `docker ps`, `git status` and other read-only subcommands |
-| `write` | `cp`, `mv`, `mkdir`, `touch`, `ln`, `tee`, `rm` without `-r` or `-f`, `chmod`, `kill`, `vi`, `vim`, `nano`, `tar c…`/`x…`, `unzip`, `sed -i`, `sort -o`, `uniq` with an output file, `date -s`, `hostname <name>`, `dmesg -c`/`-C`, `journalctl --vacuum-…`/`--rotate`, `git … --output`, redirections to a file (`>`, `>>`); `systemctl restart`, `kubectl apply`, `docker pull`, `git pull`, `apt install` and other changing subcommands |
+| `read` | `ls`, `cat`, `head`, `tail`, `less`, `grep`, `wc`, `df`, `du`, `ps`, `top`, `uptime`, `hostname`, `whoami`, `date`, `echo`, `sort`, `awk`, `jq`, `diff`, `journalctl`; `sed` without `-i`; see [Stricter classes](#stricter-classes) for `awk`, `sed`, `less`, `curl`, `wget` and `git` forms that are not `read`; `find` without `-delete` or `-exec`; `tar t…`; `crontab -l`; `systemctl status`, `kubectl get`, `docker ps`, `git status` and other read-only subcommands |
+| `write` | `cp`, `mv`, `mkdir`, `touch`, `ln`, `tee`, `rm` without `-r` or `-f`, `chmod`, `kill`, `vi`, `vim`, `nano`, `tar c…`/`x…`, `unzip`, `sed -i`, `sort -o`, `less -o`, `curl -o`, `wget -O`, `uniq` with an output file, `date -s`, `hostname <name>`, `dmesg -c`/`-C`, `journalctl --vacuum-…`/`--rotate`, `git … --output`, redirections to a file (`>`, `>>`); `systemctl restart`, `kubectl apply`, `docker pull`, `git pull`, `apt install` and other changing subcommands |
 | `destructive` | `rm -r`, `rm -f` (any combination), `dd`, `mkfs`, `truncate`, `shred`, `wipefs`, `fdisk`, `parted`, `reboot`, `shutdown`, `crontab -r`, `find -delete`; `kubectl delete`, `docker rm`, `docker system prune`, `apt remove` |
 | `privilege` | `sudo`, `doas`, `su`, `pkexec` (plus the classes of the command they run), `chown`, `useradd`, `usermod`, `passwd`, `visudo`, `setcap`, `chmod 777`, `chmod +s`, writes to `/etc/sudoers` |
 | `secrets` | `printenv`, `env` and `set` without arguments, `history`; any argument or redirection that names `~/.ssh`, `.env`, `/proc/*/environ`, `/etc/shadow`, `.aws/credentials`, `.kube/config`, `.git-credentials`, `.netrc`, `.pgpass` |
 | `egress` | `curl`, `wget`, `scp`, `rsync`, `nc`, `socat`, `ssh`, `sftp`, `ftp`, `telnet` to any host other than `localhost`, `127.0.0.1`, `::1` and the resource's own host (those are `read`); a proxy option or a host the classifier cannot find is `egress` too |
-| `opaque` | Scripts and unknown programs or paths (`./deploy.sh`, `/opt/app/bin/x`), `python`, `perl`, `node` and other interpreters, `bash` without `-c` or with a non-literal `-c`, `eval`, `source`, `base64 -d`, `kubectl exec`, `docker run`, an unknown subcommand of a listed tool, shell functions, and anything that does not parse |
+| `opaque` | Scripts and unknown programs or paths (`./deploy.sh`, `/opt/app/bin/x`), `python`, `perl`, `node` and other interpreters, `bash` without `-c` or with a non-literal `-c`, `awk` and `sed` scripts that run commands or write files, `git diff --ext-diff`, `eval`, `source`, `base64 -d`, `kubectl exec`, `docker run`, an unknown subcommand of a listed tool, shell functions, and anything that does not parse |
 
 Examples: `tail -n 50 /var/log/syslog | grep error` is `read`; `sudo systemctl restart nginx` is `privilege` and `write`; `cat ~/.ssh/id_ed25519` is `read` and `secrets`.
 
@@ -45,9 +45,21 @@ Before the table is consulted the classifier:
 The classifier is a heuristic. It reads the command line, not what the programs do, and it is a guard on top of the session recording, not a sandbox.
 
 - A script or an unknown program is `opaque`: the classifier cannot see inside it. Treat `opaque` as "may do anything".
-- Some `read` programs can still write files or run other programs: `awk`, `sed` without `-i` and `less`, and `curl -o` or `wget` to the local or resource host (they write the download to a file). `vi` and `vim` are `write`, yet they can run other programs too. The table knows the common writing options (`sort -o`, `date -s`, …), not every one. Rule out such programs with an override or a custom policy where it matters.
+- Some `read` programs can still write files or run other programs. `git` runs programs named in the repository configuration (`diff.external`, textconv drivers, `core.fsmonitor`, `core.pager`) whatever its options; changing that configuration already needs `write`. `vi` and `vim` are `write`, yet they can run other programs too. The table knows the common writing options (`sort -o`, `date -s`, `curl -o`, …), not every one. Rule out such programs with an override or a custom policy where it matters.
 - A raw interactive shell is not checked per command; use the [command console](#command-console) where that matters.
 - A path the classifier cannot compute (a variable, a command substitution, `~user`) adds `opaque` to the command. A rule on `opaque` (such as the `opaque` → `approval` preset) therefore also catches commands whose paths are unknown.
+
+### Stricter classes
+
+These forms of programs that are otherwise `read` write files or run other programs, so they get a stricter class:
+
+- `awk` is `opaque` when its program calls `system` or `getline`, has `|` or `>` after `print` or `printf`, comes from a file (`-f`) or is not literal, or when an option other than `-F` or `-v` is given. A comparison such as `awk '$3 > 100 {print $1}'` stays `read`.
+- `sed` is `opaque` when its script has an `e`, `w` or `W` command or an `e` or `w` flag of `s`, comes from a file (`-f`) or does not parse; `sed -i` stays `write`.
+- `less -o`, `-O`, `--log-file`; `curl -o`, `-O`, `--output`, `--remote-name`, `--remote-name-all`, `-D`/`--dump-header`, `-c`/`--cookie-jar`, `--trace`, `--trace-ascii`, `--stderr`, `--libcurl`, `--etag-save`, `--hsts`, `--alt-svc`; `wget -O`, `-o`, `-a`, `-P`, `--output-document`, `--output-file`, `--append-output`, `--directory-prefix` add `write` in place of `read`. The value `-` or `/dev/null` writes no file and stays `read`, like `> /dev/null` (`curl -s -o /dev/null …`, `wget -qO- …`).
+- `wget` saves each download in the working directory, so it is `write` unless `-O` names `-` or `/dev/null` or `--spider` only checks the URL.
+- `git diff`, `git log` and `git show` with `--ext-diff` or `--textconv` are `opaque`.
+
+Rules on `write` or `opaque`, and the **Only allowed commands** preset, therefore refuse or ask approval for these forms where they used to pass as `read`.
 
 ## Class overrides
 
