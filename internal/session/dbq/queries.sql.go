@@ -36,6 +36,34 @@ func (q *Queries) AppendRecordingChunk(ctx context.Context, arg AppendRecordingC
 	return err
 }
 
+const consumeStreamTicket = `-- name: ConsumeStreamTicket :one
+UPDATE stream_ticket SET used_at = now()
+WHERE id = $1 AND used_at IS NULL AND expires_at > now()
+RETURNING id, org_id, mode, session_id, resource_id, user_id, cols, rows, gateway_instance_id, target_server_id, client_ip, expires_at, used_at, created_at
+`
+
+func (q *Queries) ConsumeStreamTicket(ctx context.Context, id uuid.UUID) (StreamTicket, error) {
+	row := q.db.QueryRow(ctx, consumeStreamTicket, id)
+	var i StreamTicket
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Mode,
+		&i.SessionID,
+		&i.ResourceID,
+		&i.UserID,
+		&i.Cols,
+		&i.Rows,
+		&i.GatewayInstanceID,
+		&i.TargetServerID,
+		&i.ClientIp,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createRecording = `-- name: CreateRecording :exec
 INSERT INTO recording (session_id, org_id, store)
 VALUES ($1, $2, $3)
@@ -51,6 +79,18 @@ type CreateRecordingParams struct {
 func (q *Queries) CreateRecording(ctx context.Context, arg CreateRecordingParams) error {
 	_, err := q.db.Exec(ctx, createRecording, arg.SessionID, arg.OrgID, arg.Store)
 	return err
+}
+
+const deleteExpiredStreamTickets = `-- name: DeleteExpiredStreamTickets :execrows
+DELETE FROM stream_ticket WHERE expires_at < now() - make_interval(secs => $1::float8)
+`
+
+func (q *Queries) DeleteExpiredStreamTickets(ctx context.Context, afterSecs float64) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredStreamTickets, afterSecs)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const endLostSessions = `-- name: EndLostSessions :many
@@ -276,6 +316,62 @@ func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyPara
 	return err
 }
 
+const insertStreamTicket = `-- name: InsertStreamTicket :one
+INSERT INTO stream_ticket (org_id, mode, session_id, resource_id, user_id, cols, rows,
+                           gateway_instance_id, target_server_id, client_ip, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10, now() + make_interval(secs => $11::float8))
+RETURNING id, org_id, mode, session_id, resource_id, user_id, cols, rows, gateway_instance_id, target_server_id, client_ip, expires_at, used_at, created_at
+`
+
+type InsertStreamTicketParams struct {
+	OrgID             uuid.UUID
+	Mode              string
+	SessionID         *uuid.UUID
+	ResourceID        *uuid.UUID
+	UserID            uuid.UUID
+	Cols              int32
+	Rows              int32
+	GatewayInstanceID uuid.UUID
+	TargetServerID    uuid.UUID
+	ClientIp          *netip.Addr
+	TtlSecs           float64
+}
+
+func (q *Queries) InsertStreamTicket(ctx context.Context, arg InsertStreamTicketParams) (StreamTicket, error) {
+	row := q.db.QueryRow(ctx, insertStreamTicket,
+		arg.OrgID,
+		arg.Mode,
+		arg.SessionID,
+		arg.ResourceID,
+		arg.UserID,
+		arg.Cols,
+		arg.Rows,
+		arg.GatewayInstanceID,
+		arg.TargetServerID,
+		arg.ClientIp,
+		arg.TtlSecs,
+	)
+	var i StreamTicket
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Mode,
+		&i.SessionID,
+		&i.ResourceID,
+		&i.UserID,
+		&i.Cols,
+		&i.Rows,
+		&i.GatewayInstanceID,
+		&i.TargetServerID,
+		&i.ClientIp,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listSessions = `-- name: ListSessions :many
 SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
        s.kind, s.target, s.front,
@@ -455,6 +551,50 @@ func (q *Queries) LockSessionToTerminate(ctx context.Context, arg LockSessionToT
 	return i, err
 }
 
+const lookupStreamTicket = `-- name: LookupStreamTicket :one
+SELECT t.id, t.org_id, t.mode, t.session_id, t.resource_id, t.user_id, t.cols, t.rows, t.gateway_instance_id, t.target_server_id, t.client_ip, t.expires_at, t.used_at, t.created_at, u.login, coalesce(r.name, '')::text AS resource_name
+FROM stream_ticket t
+JOIN users u ON u.id = t.user_id
+LEFT JOIN resource r ON r.id = t.resource_id AND r.org_id = t.org_id
+WHERE t.id = $1 AND t.org_id = $2 AND t.gateway_instance_id = $3 AND t.expires_at > now()
+`
+
+type LookupStreamTicketParams struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	InstanceID uuid.UUID
+}
+
+type LookupStreamTicketRow struct {
+	StreamTicket StreamTicket
+	Login        string
+	ResourceName string
+}
+
+func (q *Queries) LookupStreamTicket(ctx context.Context, arg LookupStreamTicketParams) (LookupStreamTicketRow, error) {
+	row := q.db.QueryRow(ctx, lookupStreamTicket, arg.ID, arg.OrgID, arg.InstanceID)
+	var i LookupStreamTicketRow
+	err := row.Scan(
+		&i.StreamTicket.ID,
+		&i.StreamTicket.OrgID,
+		&i.StreamTicket.Mode,
+		&i.StreamTicket.SessionID,
+		&i.StreamTicket.ResourceID,
+		&i.StreamTicket.UserID,
+		&i.StreamTicket.Cols,
+		&i.StreamTicket.Rows,
+		&i.StreamTicket.GatewayInstanceID,
+		&i.StreamTicket.TargetServerID,
+		&i.StreamTicket.ClientIp,
+		&i.StreamTicket.ExpiresAt,
+		&i.StreamTicket.UsedAt,
+		&i.StreamTicket.CreatedAt,
+		&i.Login,
+		&i.ResourceName,
+	)
+	return i, err
+}
+
 const membersAmong = `-- name: MembersAmong :many
 SELECT user_id FROM membership WHERE org_id = $1 AND user_id = ANY($2::uuid[])
 `
@@ -491,6 +631,27 @@ SELECT pg_notify('werbot_session_terminate', $1::text)
 func (q *Queries) NotifySessionTerminate(ctx context.Context, payload string) error {
 	_, err := q.db.Exec(ctx, notifySessionTerminate, payload)
 	return err
+}
+
+const observableSession = `-- name: ObservableSession :one
+SELECT gateway_instance_id::uuid AS instance_id
+FROM session
+WHERE id = $1 AND org_id = $2 AND ($3::uuid IS NULL OR user_id = $3)
+  AND ended_at IS NULL AND kind = 'terminal' AND gateway_instance_id IS NOT NULL
+`
+
+type ObservableSessionParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID *uuid.UUID
+}
+
+// The instance of a live terminal session; a set user_id narrows to that user's session.
+func (q *Queries) ObservableSession(ctx context.Context, arg ObservableSessionParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, observableSession, arg.ID, arg.OrgID, arg.UserID)
+	var instance_id uuid.UUID
+	err := row.Scan(&instance_id)
+	return instance_id, err
 }
 
 const pendingTerminations = `-- name: PendingTerminations :one
@@ -595,6 +756,35 @@ func (q *Queries) SessionOfInstanceExists(ctx context.Context, arg SessionOfInst
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const terminalTarget = `-- name: TerminalTarget :one
+SELECT r.id AS resource_id,
+       (SELECT i.id FROM gateway_instance i
+        WHERE r.gateway_id IS NOT NULL AND i.gateway_id = r.gateway_id AND i.org_id = r.org_id
+          AND i.last_seen_at > now() - interval '45 seconds' AND r.type = ANY(i.connectors)
+        ORDER BY random() LIMIT 1) AS instance_id
+FROM resource r
+WHERE r.org_id = $1 AND r.name = $2
+`
+
+type TerminalTargetParams struct {
+	OrgID uuid.UUID
+	Name  string
+}
+
+type TerminalTargetRow struct {
+	ResourceID uuid.UUID
+	InstanceID uuid.UUID
+}
+
+// The resource by name with a random online instance of its pool serving its
+// type; instance_id is NULL (scanned as uuid.Nil) without a pool or an online instance.
+func (q *Queries) TerminalTarget(ctx context.Context, arg TerminalTargetParams) (TerminalTargetRow, error) {
+	row := q.db.QueryRow(ctx, terminalTarget, arg.OrgID, arg.Name)
+	var i TerminalTargetRow
+	err := row.Scan(&i.ResourceID, &i.InstanceID)
+	return i, err
 }
 
 const updateSessionCounters = `-- name: UpdateSessionCounters :exec

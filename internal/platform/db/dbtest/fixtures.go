@@ -123,6 +123,13 @@ func (f Fixture) StartSession(t testing.TB, pool *pgxpool.Pool, userID uuid.UUID
 		f.OrgID, userID, f.ResourceID, f.GatewayID, f.InstanceID)
 }
 
+// OnlineInstance marks instanceID seen now, serving the given connector types.
+func (f Fixture) OnlineInstance(t testing.TB, pool *pgxpool.Pool, instanceID uuid.UUID, connectors ...string) {
+	t.Helper()
+	exec(t, pool, "UPDATE gateway_instance SET last_seen_at = now(), connectors = $3 WHERE id = $1 AND org_id = $2",
+		instanceID, f.OrgID, append([]string{}, connectors...))
+}
+
 // Principal returns userID acting in OrgID with its seeded role.
 func (f Fixture) Principal(userID uuid.UUID) principal.Principal {
 	role := principal.RoleMember

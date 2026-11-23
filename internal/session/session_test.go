@@ -213,7 +213,7 @@ func TestEndLostJobStartupGrace(t *testing.T) {
 	id := e.open(t, &e.a, time.Hour)
 
 	workers := river.NewWorkers()
-	assert.Len(t, RegisterJobs(workers, e.svc, time.Now()), 1)
+	assert.Len(t, RegisterJobs(workers, e.svc, time.Now()), 2)
 	w := &endLostWorker{s: e.svc, started: time.Now()}
 	require.NoError(t, w.Work(bg, &river.Job[EndLostArgs]{}))
 	assert.Nil(t, e.ended(t, id), "inside startup grace")

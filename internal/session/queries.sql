@@ -131,3 +131,43 @@ SELECT coalesce(array_agg(id ORDER BY id), '{}')::uuid[] AS ids
 FROM session
 WHERE org_id = @org_id AND gateway_instance_id = @instance_id::uuid
   AND terminate_requested_at IS NOT NULL AND ended_at IS NULL;
+
+-- name: ObservableSession :one
+-- The instance of a live terminal session; a set user_id narrows to that user's session.
+SELECT gateway_instance_id::uuid AS instance_id
+FROM session
+WHERE id = @id AND org_id = @org_id AND (sqlc.narg(user_id)::uuid IS NULL OR user_id = sqlc.narg(user_id))
+  AND ended_at IS NULL AND kind = 'terminal' AND gateway_instance_id IS NOT NULL;
+
+-- name: TerminalTarget :one
+-- The resource by name with a random online instance of its pool serving its
+-- type; instance_id is NULL (scanned as uuid.Nil) without a pool or an online instance.
+SELECT r.id AS resource_id,
+       (SELECT i.id FROM gateway_instance i
+        WHERE r.gateway_id IS NOT NULL AND i.gateway_id = r.gateway_id AND i.org_id = r.org_id
+          AND i.last_seen_at > now() - interval '45 seconds' AND r.type = ANY(i.connectors)
+        ORDER BY random() LIMIT 1) AS instance_id
+FROM resource r
+WHERE r.org_id = @org_id AND r.name = @name;
+
+-- name: InsertStreamTicket :one
+INSERT INTO stream_ticket (org_id, mode, session_id, resource_id, user_id, cols, rows,
+                           gateway_instance_id, target_server_id, client_ip, expires_at)
+VALUES (@org_id, @mode, sqlc.narg(session_id), sqlc.narg(resource_id), @user_id, @cols, @rows,
+        @gateway_instance_id, @target_server_id, sqlc.narg(client_ip), now() + make_interval(secs => @ttl_secs::float8))
+RETURNING *;
+
+-- name: ConsumeStreamTicket :one
+UPDATE stream_ticket SET used_at = now()
+WHERE id = @id AND used_at IS NULL AND expires_at > now()
+RETURNING *;
+
+-- name: LookupStreamTicket :one
+SELECT sqlc.embed(t), u.login, coalesce(r.name, '')::text AS resource_name
+FROM stream_ticket t
+JOIN users u ON u.id = t.user_id
+LEFT JOIN resource r ON r.id = t.resource_id AND r.org_id = t.org_id
+WHERE t.id = @id AND t.org_id = @org_id AND t.gateway_instance_id = @instance_id AND t.expires_at > now();
+
+-- name: DeleteExpiredStreamTickets :execrows
+DELETE FROM stream_ticket WHERE expires_at < now() - make_interval(secs => @after_secs::float8);

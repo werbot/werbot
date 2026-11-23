@@ -30,6 +30,12 @@ type Store interface {
 	RequestTerminate(ctx context.Context, arg dbq.RequestTerminateParams) error
 	NotifySessionTerminate(ctx context.Context, payload string) error
 	PendingTerminations(ctx context.Context, arg dbq.PendingTerminationsParams) ([]uuid.UUID, error)
+	ObservableSession(ctx context.Context, arg dbq.ObservableSessionParams) (uuid.UUID, error)
+	TerminalTarget(ctx context.Context, arg dbq.TerminalTargetParams) (dbq.TerminalTargetRow, error)
+	InsertStreamTicket(ctx context.Context, arg dbq.InsertStreamTicketParams) (dbq.StreamTicket, error)
+	ConsumeStreamTicket(ctx context.Context, id uuid.UUID) (dbq.StreamTicket, error)
+	LookupStreamTicket(ctx context.Context, arg dbq.LookupStreamTicketParams) (dbq.LookupStreamTicketRow, error)
+	DeleteExpiredStreamTickets(ctx context.Context, afterSecs float64) (int64, error)
 }
 
 // newStore binds the queries to a dbx transaction or a dbx.Read.
