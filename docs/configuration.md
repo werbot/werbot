@@ -30,6 +30,8 @@ Variables that are `required` make the process refuse to start when they are emp
 | `WERBOT_RECORDINGS_S3_REGION` | `us-east-1` when the bucket is set | S3 region. |
 | `WERBOT_RECORDINGS_S3_ACCESS_KEY`, `WERBOT_RECORDINGS_S3_SECRET_KEY` | empty | S3 credentials; set both or neither. |
 | `WERBOT_GATEWAY_ADDR` | `:8443` | mTLS listener of the gateway tunnel (TLS 1.3, HTTP/2). Its port is the port in the tunnel URL given to gateways. |
+| `WERBOT_INTERNAL_ADDR` | `:8444` | mTLS listener between server replicas (TLS 1.3, HTTP/2 only), port 1-65535. It accepts only client certificates of the internal CA with the common name of a registered replica. Keep it on the private network. |
+| `WERBOT_INTERNAL_URL` | `https://<hostname>:<WERBOT_INTERNAL_ADDR port>` | `https://` address other replicas use to reach this one; its host is in the listener certificate. Set it when the OS hostname does not resolve from the other replicas. |
 | `WERBOT_LOCAL_POOL_ALLOW_LOOPBACK` | `false` | See [Embedded gateway](#embedded-gateway). |
 | `WERBOT_GEOIP_URL` | `https://download.db-ip.com/free/dbip-country-lite-%s.mmdb.gz` | Country database for country rules; see [GeoIP database](#geoip-database). |
 

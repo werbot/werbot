@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"bytes"
+	"os"
 	"slices"
 	"testing"
 
@@ -30,10 +31,13 @@ func base(kv map[string]string) func(string) string {
 func TestLoadDefaults(t *testing.T) {
 	c, err := config.Load(base(nil))
 	require.NoError(t, err)
+	host, err := os.Hostname()
+	require.NoError(t, err)
 	assert.Equal(t, config.Config{
 		Env: "production", HTTPAddr: ":8080", DatabaseURL: "postgres://x", LogLevel: "info", LogFormat: "json", MetricsAddr: "", WebEmbedded: true,
 		PublicURL: "https://werbot.example.com", WebURL: "https://werbot.example.com", SMTP: config.SMTP{Port: 587}, SecretKey: bytes.Repeat([]byte{1}, 32),
 		DataDir: "./data", GatewayAddr: ":8443", GeoIPURL: config.DefaultGeoIPURL,
+		InternalAddr: ":8444", InternalURL: "https://" + host + ":8444",
 	}, c)
 }
 
@@ -220,5 +224,28 @@ func TestLoadGeoIPURL(t *testing.T) {
 		_, err = config.Load(base(map[string]string{"WERBOT_GEOIP_URL": v}))
 		require.ErrorContains(t, err, "WERBOT_GEOIP_URL", v)
 		assert.NotContains(t, err.Error(), "SECRET", v)
+	}
+}
+
+func TestLoadInternal(t *testing.T) {
+	host, err := os.Hostname()
+	require.NoError(t, err)
+	c, err := config.Load(base(nil))
+	require.NoError(t, err)
+	assert.Equal(t, ":8444", c.InternalAddr)
+	assert.Equal(t, "https://"+host+":8444", c.InternalURL)
+	c, err = config.Load(base(map[string]string{"WERBOT_INTERNAL_ADDR": "10.0.0.5:9444"}))
+	require.NoError(t, err)
+	assert.Equal(t, "https://"+host+":9444", c.InternalURL)
+	c, err = config.Load(base(map[string]string{"WERBOT_INTERNAL_URL": "https://s1.internal:8444/"}))
+	require.NoError(t, err)
+	assert.Equal(t, "https://s1.internal:8444", c.InternalURL)
+	for _, v := range []string{"http://s1:8444", "https://", "not a url"} {
+		_, err = config.Load(base(map[string]string{"WERBOT_INTERNAL_URL": v}))
+		assert.ErrorContains(t, err, "WERBOT_INTERNAL_URL", v)
+	}
+	for _, v := range []string{"8444", ":0", ":65536", ":x"} {
+		_, err = config.Load(base(map[string]string{"WERBOT_INTERNAL_ADDR": v}))
+		assert.ErrorContains(t, err, "WERBOT_INTERNAL_ADDR", v)
 	}
 }
