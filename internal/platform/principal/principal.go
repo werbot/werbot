@@ -4,6 +4,7 @@ package principal
 import (
 	"context"
 	"slices"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -26,7 +27,9 @@ const (
 // Principal is the authenticated user acting within one organization.
 // SessionID is the cookie session, CLISessionID the CLI session of a Bearer
 // token; the other is the zero UUID. AgentID and RunID are set together, only
-// for an agent run token: UserID is then the agent's sponsor.
+// for an agent run token: UserID is then the agent's sponsor. MFAAt is when
+// the cookie session last passed a second factor (nil: never; always nil for
+// a Bearer token).
 type Principal struct {
 	UserID, OrgID  uuid.UUID
 	Role           string
@@ -34,6 +37,7 @@ type Principal struct {
 	AuthMethod     string
 	CLISessionID   uuid.UUID
 	AgentID, RunID *uuid.UUID
+	MFAAt          *time.Time
 }
 
 // IsAgent reports whether p is an agent run token.

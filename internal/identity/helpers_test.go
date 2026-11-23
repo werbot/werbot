@@ -64,9 +64,9 @@ func seedUser(t *testing.T, pool *pgxpool.Pool, orgID uuid.UUID, login, role str
 func loginCtx(t *testing.T, svc *Service, login string) (context.Context, string) {
 	t.Helper()
 	ctx := context.Background()
-	token, err := svc.Login(ctx, login+"@example.com", testPassword, "test")
+	res, err := svc.Login(ctx, login+"@example.com", testPassword, "test")
 	require.NoError(t, err)
-	p, err := svc.AuthenticateSession(ctx, token)
+	p, err := svc.AuthenticateSession(ctx, res.Token)
 	require.NoError(t, err)
-	return principal.With(ctx, p), token
+	return principal.With(ctx, p), res.Token
 }

@@ -121,7 +121,7 @@ func keepRequiredFactor(ctx context.Context, st Store, p principal.Principal) er
 	if err != nil {
 		return err
 	}
-	if mode == "all" || mode == "admins" && p.Manager() {
+	if mfaRequired(mode, p) {
 		return fmt.Errorf("mfa is required by the organization: %w", apperr.ErrFailedPrecondition)
 	}
 	return nil

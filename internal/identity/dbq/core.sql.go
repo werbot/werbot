@@ -337,32 +337,6 @@ func (q *Queries) ExtendSession(ctx context.Context, arg ExtendSessionParams) er
 	return err
 }
 
-const getCLISessionRole = `-- name: GetCLISessionRole :one
-SELECT m.role, c.agent_id FROM cli_session c
-JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
-WHERE c.id = $1 AND c.org_id = $2 AND c.user_id = $3 AND c.revoked_at IS NULL
-  AND c.expires_at > now() AND c.absolute_expires_at > now()
-`
-
-type GetCLISessionRoleParams struct {
-	ID     uuid.UUID
-	OrgID  uuid.UUID
-	UserID uuid.UUID
-}
-
-type GetCLISessionRoleRow struct {
-	Role    string
-	AgentID *uuid.UUID
-}
-
-// A Bearer request: the live cli_session of the token, its agent and the member's role.
-func (q *Queries) GetCLISessionRole(ctx context.Context, arg GetCLISessionRoleParams) (GetCLISessionRoleRow, error) {
-	row := q.db.QueryRow(ctx, getCLISessionRole, arg.ID, arg.OrgID, arg.UserID)
-	var i GetCLISessionRoleRow
-	err := row.Scan(&i.Role, &i.AgentID)
-	return i, err
-}
-
 const getCertSubject = `-- name: GetCertSubject :one
 SELECT u.login, EXISTS (SELECT 1 FROM lock l WHERE l.org_id = $1 AND l.target_type = 'cli_session'
     AND l.target_id = $2::uuid AND (l.expires_at IS NULL OR l.expires_at > now()))::bool AS locked
@@ -433,7 +407,7 @@ SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
        extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
        extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
        extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
-       lock_mode, mask_output
+       lock_mode, mask_output, require_mfa
 FROM org_setting WHERE org_id = $1
 `
 
@@ -446,6 +420,7 @@ type GetOrgSettingsRow struct {
 	CommandApprovalTtlSecs int64
 	LockMode               string
 	MaskOutput             string
+	RequireMfa             string
 }
 
 func (q *Queries) GetOrgSettings(ctx context.Context, orgID uuid.UUID) (GetOrgSettingsRow, error) {
@@ -460,6 +435,7 @@ func (q *Queries) GetOrgSettings(ctx context.Context, orgID uuid.UUID) (GetOrgSe
 		&i.CommandApprovalTtlSecs,
 		&i.LockMode,
 		&i.MaskOutput,
+		&i.RequireMfa,
 	)
 	return i, err
 }
@@ -519,34 +495,6 @@ func (q *Queries) GetResetUser(ctx context.Context, email string) (GetResetUserR
 	row := q.db.QueryRow(ctx, getResetUser, email)
 	var i GetResetUserRow
 	err := row.Scan(&i.ID, &i.Name, &i.OrgID)
-	return i, err
-}
-
-const getSessionByToken = `-- name: GetSessionByToken :one
-SELECT s.id, s.user_id, s.org_id, m.role, s.last_seen_at < now() - interval '1 minute' AS stale
-FROM user_session s
-JOIN membership m ON m.org_id = s.org_id AND m.user_id = s.user_id
-WHERE s.token_hash = $1 AND s.expires_at > now()
-`
-
-type GetSessionByTokenRow struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
-	OrgID  uuid.UUID
-	Role   string
-	Stale  bool
-}
-
-func (q *Queries) GetSessionByToken(ctx context.Context, tokenHash []byte) (GetSessionByTokenRow, error) {
-	row := q.db.QueryRow(ctx, getSessionByToken, tokenHash)
-	var i GetSessionByTokenRow
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.OrgID,
-		&i.Role,
-		&i.Stale,
-	)
 	return i, err
 }
 
@@ -965,7 +913,7 @@ SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
        extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
        extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
        extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
-       lock_mode, mask_output
+       lock_mode, mask_output, require_mfa
 FROM org_setting WHERE org_id = $1 FOR UPDATE
 `
 
@@ -978,6 +926,7 @@ type LockOrgSettingsRow struct {
 	CommandApprovalTtlSecs int64
 	LockMode               string
 	MaskOutput             string
+	RequireMfa             string
 }
 
 func (q *Queries) LockOrgSettings(ctx context.Context, orgID uuid.UUID) (LockOrgSettingsRow, error) {
@@ -992,6 +941,7 @@ func (q *Queries) LockOrgSettings(ctx context.Context, orgID uuid.UUID) (LockOrg
 		&i.CommandApprovalTtlSecs,
 		&i.LockMode,
 		&i.MaskOutput,
+		&i.RequireMfa,
 	)
 	return i, err
 }
@@ -1293,8 +1243,9 @@ UPDATE org_setting SET
     command_approval_ttl = make_interval(secs => $6::float8),
     lock_mode = $7,
     mask_output = $8,
+    require_mfa = $9,
     updated_at = now()
-WHERE org_id = $9
+WHERE org_id = $10
 `
 
 type UpdateOrgSettingsParams struct {
@@ -1306,6 +1257,7 @@ type UpdateOrgSettingsParams struct {
 	CommandApprovalTtlSecs float64
 	LockMode               string
 	MaskOutput             string
+	RequireMfa             string
 	OrgID                  uuid.UUID
 }
 
@@ -1319,6 +1271,7 @@ func (q *Queries) UpdateOrgSettings(ctx context.Context, arg UpdateOrgSettingsPa
 		arg.CommandApprovalTtlSecs,
 		arg.LockMode,
 		arg.MaskOutput,
+		arg.RequireMfa,
 		arg.OrgID,
 	)
 	return err

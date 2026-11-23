@@ -88,3 +88,50 @@ WHERE id = (SELECT c.id FROM webauthn_ceremony c
         ORDER BY c.created_at DESC, c.id DESC LIMIT 1 FOR UPDATE)
     AND used_at IS NULL
 RETURNING session_data;
+
+-- name: GetSessionByToken :one
+-- A cookie request: the live session, the member's role and the user's MFA
+-- state (the session's last second factor, the organization's requirement,
+-- whether the user has a factor; recovery codes alone are no factor).
+SELECT s.id, s.user_id, s.org_id, m.role, s.last_seen_at < now() - interval '1 minute' AS stale, s.mfa_at, o.require_mfa,
+    (EXISTS (SELECT 1 FROM totp_secret t WHERE t.user_id = s.user_id AND t.confirmed_at IS NOT NULL)
+        OR EXISTS (SELECT 1 FROM webauthn_credential w WHERE w.user_id = s.user_id))::bool AS has_factor
+FROM user_session s
+JOIN membership m ON m.org_id = s.org_id AND m.user_id = s.user_id
+JOIN org_setting o ON o.org_id = s.org_id
+WHERE s.token_hash = @token_hash AND s.expires_at > now();
+
+-- name: GetCLISessionRole :one
+-- A Bearer request: the live cli_session of the token, its agent, the
+-- member's role and the user's MFA state as for a cookie, with the newest
+-- second factor verified for this cli_session.
+SELECT m.role, c.agent_id, o.require_mfa,
+    (EXISTS (SELECT 1 FROM totp_secret t WHERE t.user_id = c.user_id AND t.confirmed_at IS NOT NULL)
+        OR EXISTS (SELECT 1 FROM webauthn_credential w WHERE w.user_id = c.user_id))::bool AS has_factor,
+    v.verified_at AS mfa_at
+FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+JOIN org_setting o ON o.org_id = c.org_id
+LEFT JOIN mfa_verification v ON v.user_id = c.user_id AND v.org_id = c.org_id AND v.binding = 'cli:' || c.id::text
+WHERE c.id = @id AND c.org_id = @org_id AND c.user_id = @user_id AND c.revoked_at IS NULL
+  AND c.expires_at > now() AND c.absolute_expires_at > now()
+ORDER BY v.verified_at DESC NULLS LAST LIMIT 1;
+
+-- name: GetLoginFactors :one
+-- What a login can be finished with; recovery codes count while one is unused.
+SELECT EXISTS (SELECT 1 FROM totp_secret WHERE user_id = @user_id::uuid AND confirmed_at IS NOT NULL)::bool AS has_totp,
+    EXISTS (SELECT 1 FROM webauthn_credential WHERE user_id = @user_id::uuid)::bool AS has_passkey,
+    EXISTS (SELECT 1 FROM mfa_recovery_code WHERE user_id = @user_id::uuid AND used_at IS NULL)::bool AS has_recovery;
+
+-- name: GetMFALoginToken :one
+-- Reads an open mfa_token without spending it (consumeToken spends it).
+SELECT org_id::uuid AS org_id, user_id::uuid AS user_id FROM one_time_token
+WHERE token_hash = @token_hash AND kind = 'mfa_login' AND used_at IS NULL AND expires_at > now()
+    AND org_id IS NOT NULL AND user_id IS NOT NULL;
+
+-- name: SetSessionMFA :one
+-- Records that the session of token_hash has just passed a second factor.
+UPDATE user_session SET mfa_at = now() WHERE token_hash = @token_hash RETURNING id;
+
+-- name: CreateMFAVerification :exec
+INSERT INTO mfa_verification (org_id, user_id, binding, method) VALUES (@org_id, @user_id, @binding, @method);

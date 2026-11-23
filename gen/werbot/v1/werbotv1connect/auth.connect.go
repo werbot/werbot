@@ -40,6 +40,8 @@ const (
 	AuthServiceSetupProcedure = "/werbot.v1.AuthService/Setup"
 	// AuthServiceLoginProcedure is the fully-qualified name of the AuthService's Login RPC.
 	AuthServiceLoginProcedure = "/werbot.v1.AuthService/Login"
+	// AuthServiceCompleteMFAProcedure is the fully-qualified name of the AuthService's CompleteMFA RPC.
+	AuthServiceCompleteMFAProcedure = "/werbot.v1.AuthService/CompleteMFA"
 	// AuthServiceLogoutProcedure is the fully-qualified name of the AuthService's Logout RPC.
 	AuthServiceLogoutProcedure = "/werbot.v1.AuthService/Logout"
 	// AuthServiceGetSessionProcedure is the fully-qualified name of the AuthService's GetSession RPC.
@@ -56,7 +58,12 @@ const (
 type AuthServiceClient interface {
 	GetSetupState(context.Context, *connect.Request[v1.GetSetupStateRequest]) (*connect.Response[v1.GetSetupStateResponse], error)
 	Setup(context.Context, *connect.Request[v1.SetupRequest]) (*connect.Response[v1.SetupResponse], error)
+	// Checks the password. A user with a second factor gets no session yet:
+	// mfa_token and the methods to finish the login with CompleteMFA.
 	Login(context.Context, *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error)
+	// Public: finishes a login with the mfa_token and one factor and sets the
+	// session cookie. A wrong factor leaves the token usable until it expires.
+	CompleteMFA(context.Context, *connect.Request[v1.CompleteMFARequest]) (*connect.Response[v1.CompleteMFAResponse], error)
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 	GetSession(context.Context, *connect.Request[v1.GetSessionRequest]) (*connect.Response[v1.GetSessionResponse], error)
 	RequestPasswordReset(context.Context, *connect.Request[v1.RequestPasswordResetRequest]) (*connect.Response[v1.RequestPasswordResetResponse], error)
@@ -92,6 +99,12 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("Login")),
 			connect.WithClientOptions(opts...),
 		),
+		completeMFA: connect.NewClient[v1.CompleteMFARequest, v1.CompleteMFAResponse](
+			httpClient,
+			baseURL+AuthServiceCompleteMFAProcedure,
+			connect.WithSchema(authServiceMethods.ByName("CompleteMFA")),
+			connect.WithClientOptions(opts...),
+		),
 		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
 			httpClient,
 			baseURL+AuthServiceLogoutProcedure,
@@ -124,6 +137,7 @@ type authServiceClient struct {
 	getSetupState        *connect.Client[v1.GetSetupStateRequest, v1.GetSetupStateResponse]
 	setup                *connect.Client[v1.SetupRequest, v1.SetupResponse]
 	login                *connect.Client[v1.LoginRequest, v1.LoginResponse]
+	completeMFA          *connect.Client[v1.CompleteMFARequest, v1.CompleteMFAResponse]
 	logout               *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
 	getSession           *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
 	requestPasswordReset *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
@@ -143,6 +157,11 @@ func (c *authServiceClient) Setup(ctx context.Context, req *connect.Request[v1.S
 // Login calls werbot.v1.AuthService.Login.
 func (c *authServiceClient) Login(ctx context.Context, req *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error) {
 	return c.login.CallUnary(ctx, req)
+}
+
+// CompleteMFA calls werbot.v1.AuthService.CompleteMFA.
+func (c *authServiceClient) CompleteMFA(ctx context.Context, req *connect.Request[v1.CompleteMFARequest]) (*connect.Response[v1.CompleteMFAResponse], error) {
+	return c.completeMFA.CallUnary(ctx, req)
 }
 
 // Logout calls werbot.v1.AuthService.Logout.
@@ -169,7 +188,12 @@ func (c *authServiceClient) ResetPassword(ctx context.Context, req *connect.Requ
 type AuthServiceHandler interface {
 	GetSetupState(context.Context, *connect.Request[v1.GetSetupStateRequest]) (*connect.Response[v1.GetSetupStateResponse], error)
 	Setup(context.Context, *connect.Request[v1.SetupRequest]) (*connect.Response[v1.SetupResponse], error)
+	// Checks the password. A user with a second factor gets no session yet:
+	// mfa_token and the methods to finish the login with CompleteMFA.
 	Login(context.Context, *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error)
+	// Public: finishes a login with the mfa_token and one factor and sets the
+	// session cookie. A wrong factor leaves the token usable until it expires.
+	CompleteMFA(context.Context, *connect.Request[v1.CompleteMFARequest]) (*connect.Response[v1.CompleteMFAResponse], error)
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 	GetSession(context.Context, *connect.Request[v1.GetSessionRequest]) (*connect.Response[v1.GetSessionResponse], error)
 	RequestPasswordReset(context.Context, *connect.Request[v1.RequestPasswordResetRequest]) (*connect.Response[v1.RequestPasswordResetResponse], error)
@@ -199,6 +223,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		AuthServiceLoginProcedure,
 		svc.Login,
 		connect.WithSchema(authServiceMethods.ByName("Login")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceCompleteMFAHandler := connect.NewUnaryHandler(
+		AuthServiceCompleteMFAProcedure,
+		svc.CompleteMFA,
+		connect.WithSchema(authServiceMethods.ByName("CompleteMFA")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authServiceLogoutHandler := connect.NewUnaryHandler(
@@ -233,6 +263,8 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceSetupHandler.ServeHTTP(w, r)
 		case AuthServiceLoginProcedure:
 			authServiceLoginHandler.ServeHTTP(w, r)
+		case AuthServiceCompleteMFAProcedure:
+			authServiceCompleteMFAHandler.ServeHTTP(w, r)
 		case AuthServiceLogoutProcedure:
 			authServiceLogoutHandler.ServeHTTP(w, r)
 		case AuthServiceGetSessionProcedure:
@@ -260,6 +292,10 @@ func (UnimplementedAuthServiceHandler) Setup(context.Context, *connect.Request[v
 
 func (UnimplementedAuthServiceHandler) Login(context.Context, *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.Login is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) CompleteMFA(context.Context, *connect.Request[v1.CompleteMFARequest]) (*connect.Response[v1.CompleteMFAResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.CompleteMFA is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {

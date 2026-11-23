@@ -98,9 +98,9 @@ func TestLogin(t *testing.T) {
 	orgID := seedOrg(t, pool, "Acme")
 	userID := seedUser(t, pool, orgID, "alice", principal.RoleOwner)
 
-	token, err := svc.Login(ctx, "alice@example.com", testPassword, "test")
+	res, err := svc.Login(ctx, "alice@example.com", testPassword, "test")
 	require.NoError(t, err)
-	p, err := svc.AuthenticateSession(ctx, token)
+	p, err := svc.AuthenticateSession(ctx, res.Token)
 	require.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, p.SessionID)
 	assert.Equal(t, principal.Principal{UserID: userID, OrgID: orgID, Role: principal.RoleOwner, SessionID: p.SessionID, AuthMethod: principal.AuthMethodCookie}, p)

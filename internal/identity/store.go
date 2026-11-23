@@ -93,4 +93,8 @@ type Store interface {
 	DeleteStaleCeremonies(ctx context.Context, userID uuid.UUID) error
 	CreateCeremony(ctx context.Context, arg dbq.CreateCeremonyParams) error
 	UseCeremony(ctx context.Context, arg dbq.UseCeremonyParams) ([]byte, error)
+	GetLoginFactors(ctx context.Context, userID uuid.UUID) (dbq.GetLoginFactorsRow, error)
+	GetMFALoginToken(ctx context.Context, tokenHash []byte) (dbq.GetMFALoginTokenRow, error)
+	SetSessionMFA(ctx context.Context, tokenHash []byte) (uuid.UUID, error)
+	CreateMFAVerification(ctx context.Context, arg dbq.CreateMFAVerificationParams) error
 }

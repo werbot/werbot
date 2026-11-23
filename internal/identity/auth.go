@@ -11,14 +11,16 @@ import (
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
-// Login checks email and password and opens a session in the user's first
-// organization. Unknown email, wrong password and no membership all return
-// errInvalidCredentials; the password is verified in every case. Past the
-// login rate limit it returns apperr.ErrResourceExhausted before the check.
-func (s *Service) Login(ctx context.Context, email, password, userAgent string) (string, error) {
+// Login checks email and password in the user's first organization. A user
+// without a second factor gets a session (LoginResult.Token); a user with one
+// gets an mfa_token for CompleteMFA and no session. Unknown email, wrong
+// password and no membership all return errInvalidCredentials; the password
+// is verified in every case. Past the login rate limit it returns
+// apperr.ErrResourceExhausted before the check.
+func (s *Service) Login(ctx context.Context, email, password, userAgent string) (LoginResult, error) {
 	u, found, err := s.loginUser(ctx, normalizeEmail(email))
 	if err != nil {
-		return "", err
+		return LoginResult{}, err
 	}
 	// argon2 runs outside the transaction: no pooled connection waits on it.
 	hash := dummyHash
@@ -27,23 +29,12 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent string) 
 	}
 	ok, err := verifyPassword(ctx, hash, password)
 	if err != nil {
-		return "", err
+		return LoginResult{}, err
 	}
 	if !found || !ok || u.OrgID == nil {
-		return "", errInvalidCredentials
+		return LoginResult{}, errInvalidCredentials
 	}
-	var token string
-	err = dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
-		var err error
-		if token, err = s.createSession(ctx, newStore(tx), u.ID, *u.OrgID, userAgent); err != nil {
-			return err
-		}
-		return writeAudit(ctx, tx, "auth.login", *u.OrgID, u.ID)
-	})
-	if err != nil {
-		return "", err
-	}
-	return token, nil
+	return s.finishLogin(ctx, u.ID, *u.OrgID, userAgent)
 }
 
 // loginUser counts the attempt and finds the user of email; found is false

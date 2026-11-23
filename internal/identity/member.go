@@ -204,7 +204,9 @@ func (s *Service) RemoveMember(ctx context.Context, userID uuid.UUID) error {
 // AcceptInvite joins the invited organization. A signed-in user must own the
 // invited email and keeps the session (token ""); an existing user confirms
 // with the password, a new one is created from Login, Name and Password.
-// Both get a session in the organization. Any failure leaves the token unspent.
+// Both get a session in the organization, unless the user has a second
+// factor: then token is "" and the user signs in through the login page.
+// Any failure leaves the token unspent.
 func (s *Service) AcceptInvite(ctx context.Context, in AcceptInput, userAgent string) (string, error) {
 	p, signedIn := principal.From(ctx)
 	var token string
@@ -237,13 +239,23 @@ func (s *Service) AcceptInvite(ctx context.Context, in AcceptInput, userAgent st
 			return err
 		}
 		if !signedIn {
-			if token, err = s.createSession(ctx, st, userID, *c.OrgID, userAgent); err != nil {
+			if token, err = s.inviteSession(ctx, st, userID, *c.OrgID, userAgent); err != nil {
 				return err
 			}
 		}
 		return writeMemberAudit(ctx, tx, "member.accept", *c.OrgID, userID, userID, nil)
 	})
 	return token, err
+}
+
+// inviteSession opens the session of an invitee who is not signed in; a user
+// with a second factor gets none ("").
+func (s *Service) inviteSession(ctx context.Context, st Store, userID, orgID uuid.UUID, userAgent string) (string, error) {
+	has, err := st.HasFactor(ctx, userID)
+	if err != nil || has {
+		return "", err
+	}
+	return s.createSession(ctx, st, userID, orgID, userAgent)
 }
 
 // inviteeUser returns the user with email after checking in.Password, or

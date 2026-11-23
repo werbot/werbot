@@ -23,7 +23,10 @@ const (
 	LockModeStrict     = "strict"
 )
 
-var maskOutputModes = []string{"agents", "all", "none"}
+var (
+	maskOutputModes = []string{"agents", "all", "none"}
+	requireMFAModes = []string{"off", "admins", "all"}
+)
 
 // OrgSettings is the org_setting row of one organization.
 type OrgSettings struct {
@@ -35,13 +38,15 @@ type OrgSettings struct {
 	CommandApprovalTTL time.Duration // how long a command approval waits for a decision
 	LockMode           string        // LockModeBestEffort | LockModeStrict
 	MaskOutput         string        // "agents" | "all" | "none": whose session output is masked
+	RequireMFA         string        // "off" | "admins" (owners and admins) | "all": who must use a second factor
 }
 
 func settingsFromRow(r dbq.GetOrgSettingsRow) OrgSettings {
 	sec := func(n int64) time.Duration { return time.Duration(n) * time.Second }
 	return OrgSettings{CLISessionTTL: sec(r.CliSessionTtlSecs), CLISessionMax: sec(r.CliSessionMaxSecs),
 		GrantDefaultTTL: sec(r.GrantDefaultTtlSecs), GrantMaxTTL: sec(r.GrantMaxTtlSecs),
-		RequestPendingTTL: sec(r.RequestPendingTtlSecs), CommandApprovalTTL: sec(r.CommandApprovalTtlSecs), LockMode: r.LockMode, MaskOutput: r.MaskOutput}
+		RequestPendingTTL: sec(r.RequestPendingTtlSecs), CommandApprovalTTL: sec(r.CommandApprovalTtlSecs), LockMode: r.LockMode, MaskOutput: r.MaskOutput,
+		RequireMFA: r.RequireMfa}
 }
 
 // Settings returns the settings of orgID without a subject, for adapters in
@@ -82,7 +87,7 @@ func (s *Service) UpdateSettings(ctx context.Context, p principal.Principal, in 
 			OrgID: p.OrgID, CliSessionTtlSecs: out.CLISessionTTL.Seconds(), CliSessionMaxSecs: out.CLISessionMax.Seconds(),
 			GrantDefaultTtlSecs: out.GrantDefaultTTL.Seconds(), GrantMaxTtlSecs: out.GrantMaxTTL.Seconds(),
 			RequestPendingTtlSecs: out.RequestPendingTTL.Seconds(), CommandApprovalTtlSecs: out.CommandApprovalTTL.Seconds(),
-			LockMode: out.LockMode, MaskOutput: out.MaskOutput,
+			LockMode: out.LockMode, MaskOutput: out.MaskOutput, RequireMfa: out.RequireMFA,
 		})
 		if err != nil {
 			return err
@@ -131,6 +136,8 @@ func applyMode(cur *OrgSettings, in OrgSettings, path string) bool {
 		cur.LockMode = in.LockMode
 	case "mask_output":
 		cur.MaskOutput = in.MaskOutput
+	case "require_mfa":
+		cur.RequireMFA = in.RequireMFA
 	default:
 		return false
 	}
@@ -165,6 +172,8 @@ func validateModes(o OrgSettings) error {
 		return fmt.Errorf("lock_mode must be best_effort or strict: %w", apperr.ErrInvalidArgument)
 	case !slices.Contains(maskOutputModes, o.MaskOutput):
 		return fmt.Errorf("mask_output must be agents, all or none: %w", apperr.ErrInvalidArgument)
+	case !slices.Contains(requireMFAModes, o.RequireMFA):
+		return fmt.Errorf("require_mfa must be off, admins or all: %w", apperr.ErrInvalidArgument)
 	}
 	return nil
 }

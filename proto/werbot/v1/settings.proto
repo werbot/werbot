@@ -56,6 +56,13 @@ message OrgSettings {
     },
     (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
   ];
+  // Who must use a second factor: "off" (default), "admins" (owners and admins) or "all".
+  string require_mfa = 9 [
+    (buf.validate.field).string = {
+      in: ["off", "admins", "all"]
+    },
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
 }
 
 message GetSettingsRequest {}

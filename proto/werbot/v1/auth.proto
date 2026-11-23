@@ -7,7 +7,12 @@ import "werbot/v1/user.proto";
 service AuthService {
   rpc GetSetupState(GetSetupStateRequest) returns (GetSetupStateResponse);
   rpc Setup(SetupRequest) returns (SetupResponse);
+  // Checks the password. A user with a second factor gets no session yet:
+  // mfa_token and the methods to finish the login with CompleteMFA.
   rpc Login(LoginRequest) returns (LoginResponse);
+  // Public: finishes a login with the mfa_token and one factor and sets the
+  // session cookie. A wrong factor leaves the token usable until it expires.
+  rpc CompleteMFA(CompleteMFARequest) returns (CompleteMFAResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
   rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
@@ -32,7 +37,28 @@ message LoginRequest {
   string email = 1 [(buf.validate.field).string = {email: true, max_len: 254}];
   string password = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
 }
-message LoginResponse {}
+message LoginResponse {
+  // Set when the user has a second factor: no session cookie was set.
+  bool mfa_required = 1;
+  // Single use, 5 minutes; a wrong factor does not spend it.
+  string mfa_token = 2;
+  // Subset of "webauthn", "totp", "recovery", in that order.
+  repeated string methods = 3;
+  // JSON of the WebAuthn assertion options when methods has "webauthn".
+  bytes webauthn_options = 4;
+}
+
+message CompleteMFARequest {
+  string mfa_token = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  oneof proof {
+    option (buf.validate.oneof).required = true;
+    string totp_code = 2 [(buf.validate.field).string.pattern = "^[0-9]{6}$"];
+    // The browser's assertion (JSON).
+    bytes webauthn_assertion = 3 [(buf.validate.field).bytes = {min_len: 1, max_len: 16384}];
+    string recovery_code = 4 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  }
+}
+message CompleteMFAResponse {}
 
 message LogoutRequest {}
 message LogoutResponse {}
@@ -42,6 +68,9 @@ message GetSessionResponse {
   User user = 1;
   Organization organization = 2;
   Role role = 3;
+  // The organization requires a second factor the user has not enrolled:
+  // only enrollment works until then.
+  bool mfa_enrollment_required = 4;
 }
 
 message RequestPasswordResetRequest {

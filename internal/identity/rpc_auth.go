@@ -33,13 +33,31 @@ func (h *Handler) Setup(ctx context.Context, req *connect.Request[werbotv1.Setup
 	return res, nil
 }
 
-// Login is public: it sets the session cookie.
+// Login is public: it sets the session cookie, or, for a user with a second
+// factor, answers the mfa_token and the methods for CompleteMFA.
 func (h *Handler) Login(ctx context.Context, req *connect.Request[werbotv1.LoginRequest]) (*connect.Response[werbotv1.LoginResponse], error) {
-	token, err := h.svc.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword(), req.Header().Get("User-Agent"))
+	r, err := h.svc.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword(), req.Header().Get("User-Agent"))
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	res := connect.NewResponse(&werbotv1.LoginResponse{})
+	res := connect.NewResponse(&werbotv1.LoginResponse{
+		MfaRequired: r.MFAToken != "", MfaToken: r.MFAToken, Methods: r.Methods, WebauthnOptions: r.WebAuthnOptions,
+	})
+	if r.Token != "" {
+		res.Header().Add("Set-Cookie", h.sessionCookie(r.Token, sessionMaxAge))
+	}
+	return res, nil
+}
+
+// CompleteMFA is public: the mfa_token is the credential. It sets the session cookie.
+func (h *Handler) CompleteMFA(ctx context.Context, req *connect.Request[werbotv1.CompleteMFARequest]) (*connect.Response[werbotv1.CompleteMFAResponse], error) {
+	m := req.Msg
+	proof := MFAProof{TOTP: m.GetTotpCode(), RecoveryCode: m.GetRecoveryCode(), Assertion: m.GetWebauthnAssertion()}
+	token, err := h.svc.CompleteMFA(ctx, m.GetMfaToken(), proof, req.Header().Get("User-Agent"))
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	res := connect.NewResponse(&werbotv1.CompleteMFAResponse{})
 	res.Header().Add("Set-Cookie", h.sessionCookie(token, sessionMaxAge))
 	return res, nil
 }
@@ -67,9 +85,10 @@ func (h *Handler) GetSession(ctx context.Context, _ *connect.Request[werbotv1.Ge
 		return nil, apperr.ToConnect(err)
 	}
 	return connect.NewResponse(&werbotv1.GetSessionResponse{
-		User:         userToProto(info.User),
-		Organization: &werbotv1.Organization{Id: info.OrgID.String(), Name: info.OrgName},
-		Role:         roleToProto(info.Role),
+		User:                  userToProto(info.User),
+		Organization:          &werbotv1.Organization{Id: info.OrgID.String(), Name: info.OrgName},
+		Role:                  roleToProto(info.Role),
+		MfaEnrollmentRequired: EnrollmentRequired(ctx),
 	}), nil
 }
 

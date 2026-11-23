@@ -27,12 +27,6 @@ LIMIT 1;
 INSERT INTO user_session (token_hash, user_id, org_id, expires_at, ip, user_agent)
 VALUES (@token_hash, @user_id, @org_id, now() + interval '7 days', @ip, @user_agent);
 
--- name: GetSessionByToken :one
-SELECT s.id, s.user_id, s.org_id, m.role, s.last_seen_at < now() - interval '1 minute' AS stale
-FROM user_session s
-JOIN membership m ON m.org_id = s.org_id AND m.user_id = s.user_id
-WHERE s.token_hash = @token_hash AND s.expires_at > now();
-
 -- name: ExtendSession :exec
 UPDATE user_session SET last_seen_at = now(), expires_at = now() + interval '7 days'
 WHERE id = @id AND org_id = @org_id;
@@ -223,7 +217,7 @@ SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
        extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
        extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
        extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
-       lock_mode, mask_output
+       lock_mode, mask_output, require_mfa
 FROM org_setting WHERE org_id = @org_id;
 
 -- name: LockOrgSettings :one
@@ -233,7 +227,7 @@ SELECT extract(epoch FROM cli_session_ttl)::bigint AS cli_session_ttl_secs,
        extract(epoch FROM grant_max_ttl)::bigint AS grant_max_ttl_secs,
        extract(epoch FROM request_pending_ttl)::bigint AS request_pending_ttl_secs,
        extract(epoch FROM command_approval_ttl)::bigint AS command_approval_ttl_secs,
-       lock_mode, mask_output
+       lock_mode, mask_output, require_mfa
 FROM org_setting WHERE org_id = @org_id FOR UPDATE;
 
 -- name: UpdateOrgSettings :exec
@@ -246,18 +240,12 @@ UPDATE org_setting SET
     command_approval_ttl = make_interval(secs => @command_approval_ttl_secs::float8),
     lock_mode = @lock_mode,
     mask_output = @mask_output,
+    require_mfa = @require_mfa,
     updated_at = now()
 WHERE org_id = @org_id;
 
 -- name: GetMemberRole :one
 SELECT role FROM membership WHERE org_id = @org_id AND user_id = @user_id;
-
--- name: GetCLISessionRole :one
--- A Bearer request: the live cli_session of the token, its agent and the member's role.
-SELECT m.role, c.agent_id FROM cli_session c
-JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
-WHERE c.id = @id AND c.org_id = @org_id AND c.user_id = @user_id AND c.revoked_at IS NULL
-  AND c.expires_at > now() AND c.absolute_expires_at > now();
 
 -- name: ListCLISessions :many
 SELECT id, user_id, client_id, hostname, ip, created_at, last_used_at, expires_at, absolute_expires_at

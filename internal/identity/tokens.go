@@ -18,12 +18,14 @@ const (
 	tokenInvite          = "invite"
 	tokenPasswordReset   = "password_reset"
 	tokenAccountDeletion = "account_deletion"
+	tokenMFALogin        = "mfa_login"
 )
 
 var tokenTTL = map[string]time.Duration{
 	tokenInvite:          7 * 24 * time.Hour,
 	tokenPasswordReset:   time.Hour,
 	tokenAccountDeletion: time.Hour,
+	tokenMFALogin:        MFATokenTTL,
 }
 
 // tokenClaims is what a token grants; empty fields are stored as NULL.

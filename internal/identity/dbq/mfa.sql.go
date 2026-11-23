@@ -50,6 +50,27 @@ func (q *Queries) CreateCeremony(ctx context.Context, arg CreateCeremonyParams) 
 	return err
 }
 
+const createMFAVerification = `-- name: CreateMFAVerification :exec
+INSERT INTO mfa_verification (org_id, user_id, binding, method) VALUES ($1, $2, $3, $4)
+`
+
+type CreateMFAVerificationParams struct {
+	OrgID   uuid.UUID
+	UserID  uuid.UUID
+	Binding string
+	Method  string
+}
+
+func (q *Queries) CreateMFAVerification(ctx context.Context, arg CreateMFAVerificationParams) error {
+	_, err := q.db.Exec(ctx, createMFAVerification,
+		arg.OrgID,
+		arg.UserID,
+		arg.Binding,
+		arg.Method,
+	)
+	return err
+}
+
 const createWebAuthnCredential = `-- name: CreateWebAuthnCredential :one
 INSERT INTO webauthn_credential (user_id, name, credential_id, public_key, sign_count, aaguid, transports, backup_eligible)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -162,6 +183,89 @@ func (q *Queries) DeleteWebAuthnCredential(ctx context.Context, arg DeleteWebAut
 	return result.RowsAffected(), nil
 }
 
+const getCLISessionRole = `-- name: GetCLISessionRole :one
+SELECT m.role, c.agent_id, o.require_mfa,
+    (EXISTS (SELECT 1 FROM totp_secret t WHERE t.user_id = c.user_id AND t.confirmed_at IS NOT NULL)
+        OR EXISTS (SELECT 1 FROM webauthn_credential w WHERE w.user_id = c.user_id))::bool AS has_factor,
+    v.verified_at AS mfa_at
+FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+JOIN org_setting o ON o.org_id = c.org_id
+LEFT JOIN mfa_verification v ON v.user_id = c.user_id AND v.org_id = c.org_id AND v.binding = 'cli:' || c.id::text
+WHERE c.id = $1 AND c.org_id = $2 AND c.user_id = $3 AND c.revoked_at IS NULL
+  AND c.expires_at > now() AND c.absolute_expires_at > now()
+ORDER BY v.verified_at DESC NULLS LAST LIMIT 1
+`
+
+type GetCLISessionRoleParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+type GetCLISessionRoleRow struct {
+	Role       string
+	AgentID    *uuid.UUID
+	RequireMfa string
+	HasFactor  bool
+	MfaAt      *time.Time
+}
+
+// A Bearer request: the live cli_session of the token, its agent, the
+// member's role and the user's MFA state as for a cookie, with the newest
+// second factor verified for this cli_session.
+func (q *Queries) GetCLISessionRole(ctx context.Context, arg GetCLISessionRoleParams) (GetCLISessionRoleRow, error) {
+	row := q.db.QueryRow(ctx, getCLISessionRole, arg.ID, arg.OrgID, arg.UserID)
+	var i GetCLISessionRoleRow
+	err := row.Scan(
+		&i.Role,
+		&i.AgentID,
+		&i.RequireMfa,
+		&i.HasFactor,
+		&i.MfaAt,
+	)
+	return i, err
+}
+
+const getLoginFactors = `-- name: GetLoginFactors :one
+SELECT EXISTS (SELECT 1 FROM totp_secret WHERE user_id = $1::uuid AND confirmed_at IS NOT NULL)::bool AS has_totp,
+    EXISTS (SELECT 1 FROM webauthn_credential WHERE user_id = $1::uuid)::bool AS has_passkey,
+    EXISTS (SELECT 1 FROM mfa_recovery_code WHERE user_id = $1::uuid AND used_at IS NULL)::bool AS has_recovery
+`
+
+type GetLoginFactorsRow struct {
+	HasTotp     bool
+	HasPasskey  bool
+	HasRecovery bool
+}
+
+// What a login can be finished with; recovery codes count while one is unused.
+func (q *Queries) GetLoginFactors(ctx context.Context, userID uuid.UUID) (GetLoginFactorsRow, error) {
+	row := q.db.QueryRow(ctx, getLoginFactors, userID)
+	var i GetLoginFactorsRow
+	err := row.Scan(&i.HasTotp, &i.HasPasskey, &i.HasRecovery)
+	return i, err
+}
+
+const getMFALoginToken = `-- name: GetMFALoginToken :one
+SELECT org_id::uuid AS org_id, user_id::uuid AS user_id FROM one_time_token
+WHERE token_hash = $1 AND kind = 'mfa_login' AND used_at IS NULL AND expires_at > now()
+    AND org_id IS NOT NULL AND user_id IS NOT NULL
+`
+
+type GetMFALoginTokenRow struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+// Reads an open mfa_token without spending it (consumeToken spends it).
+func (q *Queries) GetMFALoginToken(ctx context.Context, tokenHash []byte) (GetMFALoginTokenRow, error) {
+	row := q.db.QueryRow(ctx, getMFALoginToken, tokenHash)
+	var i GetMFALoginTokenRow
+	err := row.Scan(&i.OrgID, &i.UserID)
+	return i, err
+}
+
 const getRecoveryFactor = `-- name: GetRecoveryFactor :one
 SELECT count(*) AS total, count(*) FILTER (WHERE used_at IS NULL) AS remaining
 FROM mfa_recovery_code WHERE user_id = $1
@@ -188,6 +292,46 @@ func (q *Queries) GetRequireMFA(ctx context.Context, orgID uuid.UUID) (string, e
 	var require_mfa string
 	err := row.Scan(&require_mfa)
 	return require_mfa, err
+}
+
+const getSessionByToken = `-- name: GetSessionByToken :one
+SELECT s.id, s.user_id, s.org_id, m.role, s.last_seen_at < now() - interval '1 minute' AS stale, s.mfa_at, o.require_mfa,
+    (EXISTS (SELECT 1 FROM totp_secret t WHERE t.user_id = s.user_id AND t.confirmed_at IS NOT NULL)
+        OR EXISTS (SELECT 1 FROM webauthn_credential w WHERE w.user_id = s.user_id))::bool AS has_factor
+FROM user_session s
+JOIN membership m ON m.org_id = s.org_id AND m.user_id = s.user_id
+JOIN org_setting o ON o.org_id = s.org_id
+WHERE s.token_hash = $1 AND s.expires_at > now()
+`
+
+type GetSessionByTokenRow struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	OrgID      uuid.UUID
+	Role       string
+	Stale      bool
+	MfaAt      *time.Time
+	RequireMfa string
+	HasFactor  bool
+}
+
+// A cookie request: the live session, the member's role and the user's MFA
+// state (the session's last second factor, the organization's requirement,
+// whether the user has a factor; recovery codes alone are no factor).
+func (q *Queries) GetSessionByToken(ctx context.Context, tokenHash []byte) (GetSessionByTokenRow, error) {
+	row := q.db.QueryRow(ctx, getSessionByToken, tokenHash)
+	var i GetSessionByTokenRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.OrgID,
+		&i.Role,
+		&i.Stale,
+		&i.MfaAt,
+		&i.RequireMfa,
+		&i.HasFactor,
+	)
+	return i, err
 }
 
 const getTOTPFactor = `-- name: GetTOTPFactor :one
@@ -338,6 +482,18 @@ func (q *Queries) MFADeviceLocked(ctx context.Context, arg MFADeviceLockedParams
 	var locked bool
 	err := row.Scan(&locked)
 	return locked, err
+}
+
+const setSessionMFA = `-- name: SetSessionMFA :one
+UPDATE user_session SET mfa_at = now() WHERE token_hash = $1 RETURNING id
+`
+
+// Records that the session of token_hash has just passed a second factor.
+func (q *Queries) SetSessionMFA(ctx context.Context, tokenHash []byte) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, setSessionMFA, tokenHash)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const upsertTOTPSecret = `-- name: UpsertTOTPSecret :execrows
