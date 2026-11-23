@@ -72,6 +72,7 @@ func TestE2EAgentExecApproval(t *testing.T) {
 	s.classRule(t, "hostname", "write")
 	s.agentCommandRule(t, srv, "approval", "write")
 	requestPolicy(t, signIn(t, s.url, "alice@example.com"), "srv-commands", false, srv)
+	s.denyDestructive(t, srv) // the rules above have reached the gateway snapshot
 	m := s.startMCP(t, mcpserver.Options{Profile: p, Agent: "e2e"})
 
 	done := make(chan mcpserver.ExecOutput, 1)
