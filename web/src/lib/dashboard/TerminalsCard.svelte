@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { m } from '#lib/paraglide/messages.js';
+	import { terminalHref } from '#lib/terminal/socket.js';
 	import type { AccessibleResource } from '#lib/gen/werbot/v1/resource_pb.js';
 	import DashCard from './DashCard.svelte';
 	import DashRow from './DashRow.svelte';
@@ -19,7 +20,7 @@
 	{#snippet children(list)}
 		<ul>
 			{#each list as r (r.name)}
-				<DashRow href={`/terminal/${encodeURIComponent(r.name)}`} title={r.name} icon="desktop">
+				<DashRow href={terminalHref(r.name)} title={r.name} icon="desktop">
 					{#snippet meta()}<span>{m.terminal_open()}</span>{/snippet}
 				</DashRow>
 			{/each}

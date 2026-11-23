@@ -85,15 +85,21 @@ func (f *webFront) firstSeen(ticket uuid.UUID) bool {
 	now := time.Now()
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	maps.DeleteFunc(f.seen, func(_ uuid.UUID, at time.Time) bool { return now.Sub(at) >= ticketTTL })
-	if _, ok := f.seen[ticket]; ok {
+	if at, ok := f.seen[ticket]; ok && now.Sub(at) < ticketTTL {
 		return false
 	}
-	if len(f.seen) >= maxTickets {
-		delete(f.seen, slices.MinFunc(slices.Collect(maps.Keys(f.seen)), func(x, y uuid.UUID) int { return f.seen[x].Compare(f.seen[y]) }))
-	}
+	pruneOld(f.seen, func(at time.Time) time.Time { return at }, ticketTTL, maxTickets, now)
 	f.seen[ticket] = now
 	return true
+}
+
+// pruneOld deletes the entries of m that are ttl old at now and, when m
+// still holds limit, the oldest one: one more entry then fits.
+func pruneOld[K comparable, V any](m map[K]V, at func(V) time.Time, ttl time.Duration, limit int, now time.Time) {
+	maps.DeleteFunc(m, func(_ K, v V) bool { return now.Sub(at(v)) >= ttl })
+	if len(m) >= limit {
+		delete(m, slices.MinFunc(slices.Collect(maps.Keys(m)), func(x, y K) int { return at(m[x]).Compare(at(m[y])) }))
+	}
 }
 
 // open resolves ticket, opens its stream and serves it by the ticket's mode.

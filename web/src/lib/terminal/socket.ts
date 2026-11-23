@@ -9,6 +9,14 @@ export function wsURL(path: string, params: Record<string, string | number> = {}
 	return `${loc.protocol === 'https:' ? 'wss:' : 'ws:'}//${loc.host}${path}${query && `?${query}`}`;
 }
 
+/** The browser terminal page of resource name. */
+export const terminalHref = (name: string): string => `/terminal/${encodeURIComponent(name)}`;
+
+/** Whether a resource of type opens in the browser terminal: its type among types has the terminal kind. */
+export function hasTerminal(types: readonly { name: string; kinds: readonly string[] }[], type: string): boolean {
+	return types.find((t) => t.name === type)?.kinds.includes('terminal') ?? false;
+}
+
 export const resizeFrame = (cols: number, rows: number): string => JSON.stringify({ type: 'resize', cols, rows });
 
 /** The window of a server resize frame; anything else (not JSON, other type, bad numbers) is null. */

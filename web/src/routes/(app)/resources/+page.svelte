@@ -14,6 +14,7 @@
 	import { address } from '#lib/resources/address.js';
 	import { categoryLabel, typeIcon } from '#lib/resources/icons.js';
 	import { parseLabelFilter } from '#lib/resources/labels.js';
+	import { hasTerminal, terminalHref } from '#lib/terminal/socket.js';
 	import Ago from '#lib/Ago.svelte';
 	import CellLead from '#lib/CellLead.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -106,8 +107,8 @@
 					</td>
 					<td><span class="health"><HealthDot health={r.health} /><Ago ts={r.health?.checkedAt} /></span></td>
 					<td class="more">
-						{#if types.find((t) => t.name === r.type)?.kinds.includes('terminal')}
-							<Button scheme="g" variant="plain" size={28} onclick={() => goto(`/terminal/${encodeURIComponent(r.name)}`)}>{m.terminal_open()}</Button>
+						{#if hasTerminal(types, r.type)}
+							<Button scheme="g" variant="plain" size={28} onclick={() => goto(terminalHref(r.name))}>{m.terminal_open()}</Button>
 						{/if}
 					</td>
 				</tr>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { m } from '#lib/paraglide/messages.js';
-import { closeMessage, connect, parseServerText, resizeFrame, wsURL } from './socket.js';
+import { closeMessage, connect, hasTerminal, parseServerText, resizeFrame, terminalHref, wsURL } from './socket.js';
 
 describe('wsURL', () => {
 	it('uses ws for http and wss for https, same host', () => {
@@ -10,6 +10,26 @@ describe('wsURL', () => {
 	it('encodes query params', () => {
 		const u = wsURL('/api/terminal', { resource: 'a b&c', cols: 100, rows: 30 }, { protocol: 'https:', host: 'h' });
 		expect(u).toBe('wss://h/api/terminal?resource=a+b%26c&cols=100&rows=30');
+	});
+});
+
+describe('terminalHref', () => {
+	it('encodes the resource name as one path segment', () => {
+		expect(terminalHref('db')).toBe('/terminal/db');
+		expect(terminalHref('a b/c?d')).toBe('/terminal/a%20b%2Fc%3Fd');
+	});
+});
+
+describe('hasTerminal', () => {
+	const types = [
+		{ name: 'ssh', kinds: ['terminal', 'exec', 'stream'] },
+		{ name: 'tcp', kinds: ['stream'] }
+	];
+	it('is true only for a known type with the terminal kind', () => {
+		expect(hasTerminal(types, 'ssh')).toBe(true);
+		expect(hasTerminal(types, 'tcp')).toBe(false);
+		expect(hasTerminal(types, 'unknown')).toBe(false);
+		expect(hasTerminal([], 'ssh')).toBe(false);
 	});
 });
 

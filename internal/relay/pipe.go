@@ -27,6 +27,11 @@ const (
 	maxCols, maxRows = 500, 200
 )
 
+// inWindow reports whether cols×rows is within the window bounds.
+func inWindow(cols, rows int) bool {
+	return cols >= 1 && cols <= maxCols && rows >= 1 && rows <= maxRows
+}
+
 var (
 	// ErrLimit is a stream refused because the replica holds MaxStreams.
 	ErrLimit = fmt.Errorf("relay: stream limit reached: %w", apperr.ErrUnavailable)
@@ -88,7 +93,7 @@ func (p *framePipe) Read() ([]byte, int, int, error) {
 		case *relayv1.PipeFrame_Data:
 			return f.Data, 0, 0, nil
 		case *relayv1.PipeFrame_Resize:
-			if c, r := int(f.Resize.GetCols()), int(f.Resize.GetRows()); c >= 1 && c <= maxCols && r >= 1 && r <= maxRows {
+			if c, r := int(f.Resize.GetCols()), int(f.Resize.GetRows()); inWindow(c, r) {
 				return nil, c, r, nil
 			}
 		case *relayv1.PipeFrame_Close:

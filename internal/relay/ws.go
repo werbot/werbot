@@ -225,7 +225,7 @@ func parseResize(b []byte) (cols, rows int, ok bool) {
 	if json.Unmarshal(b, &m) != nil || m.Type != "resize" {
 		return 0, 0, false
 	}
-	return m.Cols, m.Rows, m.Cols >= 1 && m.Cols <= maxCols && m.Rows >= 1 && m.Rows <= maxRows
+	return m.Cols, m.Rows, inWindow(m.Cols, m.Rows)
 }
 
 // pingBrowser pings the browser every r.ping until ctx ends; an unanswered

@@ -180,10 +180,7 @@ func (a *activeSessions) cancelLocked(id uuid.UUID, cause error) {
 // at earlyMax the oldest, make room.
 func (a *activeSessions) keepEarly(id uuid.UUID, cause error) {
 	now := time.Now()
-	maps.DeleteFunc(a.early, func(_ uuid.UUID, e *tracked) bool { return now.Sub(e.started) >= earlyTTL })
-	if len(a.early) >= earlyMax {
-		delete(a.early, slices.MinFunc(slices.Collect(maps.Keys(a.early)), func(x, y uuid.UUID) int { return a.early[x].started.Compare(a.early[y].started) }))
-	}
+	pruneOld(a.early, func(e *tracked) time.Time { return e.started }, earlyTTL, earlyMax, now)
 	a.early[id] = &tracked{cause: cause, started: now}
 }
 

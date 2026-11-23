@@ -117,10 +117,7 @@ func (o *observedSink) Output(p []byte) {
 		if c == nil {
 			c = bytes.Clone(p)
 		}
-		select {
-		case ch <- ObserveEvent{Data: c}:
-		default:
-		}
+		ch <- ObserveEvent{Data: c}
 	}
 }
 

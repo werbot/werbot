@@ -20,7 +20,7 @@ func serveTerminal(ctx context.Context, p *Pipeline, st relayStream, r OpenReque
 	sctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 	go term.pump(cancel)
-	defer term.stop()
+	defer term.Close()
 	s, err := p.Open(sctx, r)
 	if err != nil {
 		say(term, openText(err, r.Resource, r.Kind, p.ctl.Policy()))
@@ -44,20 +44,19 @@ func serveTerminal(ctx context.Context, p *Pipeline, st relayStream, r OpenReque
 }
 
 // webTerminal is the terminal of a web session: output goes to the stream,
-// input and window changes come from it through pump.
+// input and window changes come from it through pump. Closing it ends the
+// input once the session is over: a pump blocked on it returns.
 type webTerminal struct {
+	*io.PipeReader
 	st     relayStream
-	in     *io.PipeReader
 	inW    *io.PipeWriter
 	resize chan Window
 }
 
 func newWebTerminal(st relayStream) *webTerminal {
 	r, w := io.Pipe()
-	return &webTerminal{st: st, in: r, inW: w, resize: make(chan Window, 1)}
+	return &webTerminal{PipeReader: r, st: st, inW: w, resize: make(chan Window, 1)}
 }
-
-func (t *webTerminal) Read(p []byte) (int, error) { return t.in.Read(p) }
 
 func (t *webTerminal) Write(p []byte) (int, error) {
 	if err := t.st.Write(p); err != nil {
@@ -98,6 +97,3 @@ func (t *webTerminal) pump(cancel context.CancelCauseFunc) {
 		}
 	}
 }
-
-// stop ends the input once the session is over: a pump blocked on it returns.
-func (t *webTerminal) stop() { _ = t.in.Close() }

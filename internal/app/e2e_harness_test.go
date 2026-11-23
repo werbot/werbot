@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,7 +24,6 @@ import (
 	"github.com/stretchr/testify/require"
 	gossh "golang.org/x/crypto/ssh"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/werbot/werbot/gen/gateway/v1/gatewayv1connect"
@@ -183,28 +181,12 @@ func (s *stack) startGateway(t *testing.T, token string) (sshAddr, dataDir strin
 // password and binds it to alice. An ssh resource points at the target.
 func (s *stack) addResource(t *testing.T, name, typ string) uuid.UUID {
 	t.Helper()
-	ctx := context.Background()
-	host, port, err := net.SplitHostPort(s.target.Addr)
-	require.NoError(t, err)
-	p, err := strconv.ParseUint(port, 10, 16)
-	require.NoError(t, err)
-	var cfg proto.Message = &sshv1.Config{Host: host, Port: uint32(p), Login: "root", PortForwarding: true}
+	host, port := hostPort(t, s.target.Addr)
+	var cfg proto.Message = &sshv1.Config{Host: host, Port: port, Login: "root", PortForwarding: true}
 	if typ == "echo" {
 		cfg = &wrapperspb.StringValue{Value: "echo"} // the echo type requires a non-empty value
 	}
-	a, err := anypb.New(cfg)
-	require.NoError(t, err)
-	res, err := s.api.res.CreateResource(ctx, connect.NewRequest(&werbotv1.CreateResourceRequest{
-		Name: name, Type: typ, GatewayId: s.gatewayID.String(), Config: a}))
-	require.NoError(t, err)
-	id := res.Msg.GetResource().GetId()
-	_, err = s.api.res.SetCredential(ctx, connect.NewRequest(&werbotv1.SetCredentialRequest{
-		ResourceId: id, Kind: "password", Value: []byte(s.target.Password)}))
-	require.NoError(t, err)
-	_, err = s.api.acc.CreateBinding(ctx, connect.NewRequest(&werbotv1.CreateBindingRequest{
-		SubjectType: "user", SubjectId: s.alice, ResourceId: id}))
-	require.NoError(t, err)
-	return uuid.MustParse(id)
+	return s.createResource(t, s.gatewayID, name, typ, cfg, s.target.Password, true)
 }
 
 // dial opens an SSH connection to addr as user with key and returns the host

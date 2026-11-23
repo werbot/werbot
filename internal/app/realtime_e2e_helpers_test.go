@@ -5,9 +5,7 @@ package app
 import (
 	"context"
 	"errors"
-	"net"
 	"net/http"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -17,8 +15,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	sshv1 "github.com/werbot/werbot/gen/werbot/connector/ssh/v1"
 	telnetv1 "github.com/werbot/werbot/gen/werbot/connector/telnet/v1"
@@ -150,48 +146,18 @@ func (s *stack) count(t *testing.T, query string, args ...any) int {
 	return n
 }
 
-// createResource creates resource name of typ with cfg in pool gatewayID,
-// with password when not empty, bound to alice when bind is set.
-func (s *stack) createResource(t *testing.T, gatewayID uuid.UUID, name, typ string, cfg proto.Message, password string, bind bool) uuid.UUID {
-	t.Helper()
-	ctx := context.Background()
-	a, err := anypb.New(cfg)
-	require.NoError(t, err)
-	res, err := s.api.res.CreateResource(ctx, connect.NewRequest(&werbotv1.CreateResourceRequest{
-		Name: name, Type: typ, GatewayId: gatewayID.String(), Config: a}))
-	require.NoError(t, err)
-	id := res.Msg.GetResource().GetId()
-	if password != "" {
-		_, err = s.api.res.SetCredential(ctx, connect.NewRequest(&werbotv1.SetCredentialRequest{
-			ResourceId: id, Kind: "password", Value: []byte(password)}))
-		require.NoError(t, err)
-	}
-	if bind {
-		_, err = s.api.acc.CreateBinding(ctx, connect.NewRequest(&werbotv1.CreateBindingRequest{
-			SubjectType: "user", SubjectId: s.alice, ResourceId: id}))
-		require.NoError(t, err)
-	}
-	return uuid.MustParse(id)
-}
-
 // sshConfigOf is the config of an ssh resource at the stack's target.
 func (s *stack) sshConfigOf(t *testing.T) *sshv1.Config {
 	t.Helper()
-	host, port, err := net.SplitHostPort(s.target.Addr)
-	require.NoError(t, err)
-	p, err := strconv.ParseUint(port, 10, 16)
-	require.NoError(t, err)
-	return &sshv1.Config{Host: host, Port: uint32(p), Login: "root"}
+	host, port := hostPort(t, s.target.Addr)
+	return &sshv1.Config{Host: host, Port: port, Login: "root"}
 }
 
 // telnetConfigOf is the config of a telnet resource at addr logging in as login.
 func telnetConfigOf(t *testing.T, addr, login string) *telnetv1.Config {
 	t.Helper()
-	host, port, err := net.SplitHostPort(addr)
-	require.NoError(t, err)
-	p, err := strconv.ParseUint(port, 10, 16)
-	require.NoError(t, err)
-	return &telnetv1.Config{Host: host, Port: uint32(p), Login: login}
+	host, port := hostPort(t, addr)
+	return &telnetv1.Config{Host: host, Port: port, Login: login}
 }
 
 // sshReady adds the ssh resource name bound to alice and waits until the

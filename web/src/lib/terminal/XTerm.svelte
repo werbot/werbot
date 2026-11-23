@@ -30,7 +30,7 @@
 	}
 
 	function mount(el: HTMLElement) {
-		const t = new Terminal({ disableStdin: readonly, convertEol: false, cursorBlink: !readonly, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 13 });
+		const t = new Terminal({ disableStdin: readonly, cursorBlink: !readonly, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 13 });
 		term = t;
 		t.open(el);
 		t.onData((s) => ondata?.(encoder.encode(s)));

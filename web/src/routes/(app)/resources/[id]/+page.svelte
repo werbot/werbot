@@ -17,6 +17,7 @@
 	import HostKeyTab from '#lib/resources/HostKeyTab.svelte';
 	import RulesTab from '#lib/resources/RulesTab.svelte';
 	import SettingsTab from '#lib/resources/SettingsTab.svelte';
+	import { hasTerminal, terminalHref } from '#lib/terminal/socket.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let resource = $state<Resource>();
@@ -65,8 +66,8 @@
 <PageHeader title={resource?.name ?? ''} breadcrumbs={[{ label: m.resources_title(), href: '/resources' }, { label: resource?.name ?? '' }]}>
 	{#snippet toolbar()}
 		{#if resource}<HealthDot health={resource.health} />{/if}
-		{#if resource && types.find((t) => t.name === resource?.type)?.kinds.includes('terminal')}
-			<Button scheme="g" variant="plain" size={40} onclick={() => goto(`/terminal/${encodeURIComponent(resource!.name)}`)}>{m.terminal_open()}</Button>
+		{#if resource && hasTerminal(types, resource.type)}
+			<Button scheme="g" variant="plain" size={40} onclick={() => goto(terminalHref(resource!.name))}>{m.terminal_open()}</Button>
 		{/if}
 	{/snippet}
 	{#snippet tabs()}
