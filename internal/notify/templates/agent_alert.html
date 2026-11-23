@@ -1,0 +1,5 @@
+{{define "content"}}<p>Agent <strong>{{.agent}}</strong> of {{.sponsor}} attempted a <strong>{{.classes}}</strong> action on <strong>{{.resource}}</strong>. Werbot denied it.</p>
+<p>Command:</p>
+<pre style="background:#f4f4f5;padding:12px;border-radius:6px;white-space:pre-wrap;word-break:break-all">{{.command}}</pre>
+<p><a href="{{.url}}" style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px">Review run</a></p>
+{{end}}

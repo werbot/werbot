@@ -21,4 +21,16 @@ type Store interface {
 	ExpireRuns(ctx context.Context) ([]dbq.ExpireRunsRow, error)
 	SnapshotAgents(ctx context.Context, orgID uuid.UUID) ([]dbq.SnapshotAgentsRow, error)
 	BlockedRuns(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error)
+	ActionGate(ctx context.Context, arg dbq.ActionGateParams) (dbq.ActionGateRow, error)
+	OpenRunSessions(ctx context.Context, arg dbq.OpenRunSessionsParams) (int64, error)
+	CountAction(ctx context.Context, arg dbq.CountActionParams) error
+	SetDenials(ctx context.Context, arg dbq.SetDenialsParams) error
+	ResourceIDByName(ctx context.Context, arg dbq.ResourceIDByNameParams) (uuid.UUID, error)
+	AlertNames(ctx context.Context, arg dbq.AlertNamesParams) (dbq.AlertNamesRow, error)
+	AlertRecipients(ctx context.Context, arg dbq.AlertRecipientsParams) ([]string, error)
+	ToolCallGate(ctx context.Context, arg dbq.ToolCallGateParams) (bool, error)
+	CountToolCalls(ctx context.Context, arg dbq.CountToolCallsParams) (int64, error)
+	InsertToolCall(ctx context.Context, arg dbq.InsertToolCallParams) (uuid.UUID, error)
+	LockToolCall(ctx context.Context, arg dbq.LockToolCallParams) (string, error)
+	FinishToolCall(ctx context.Context, arg dbq.FinishToolCallParams) error
 }

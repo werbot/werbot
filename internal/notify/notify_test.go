@@ -106,6 +106,22 @@ func TestRenderAccessTemplates(t *testing.T) {
 	assert.NotContains(t, subj, "\r")
 }
 
+func TestRenderAgentAlert(t *testing.T) {
+	subj, html, err := Render("agent_alert", map[string]string{"url": "https://w.example/agents/runs/1", "agent": "claude",
+		"sponsor": "bob", "resource": "db", "command": "cat <id_rsa> && echo \"x\"", "classes": "read, secrets"})
+	require.NoError(t, err)
+	assert.Equal(t, "Werbot: agent claude attempted read, secrets on db", subj)
+	for _, b := range []string{`href="https://w.example/agents/runs/1"`, "bob", "db", "read, secrets",
+		"cat &lt;id_rsa&gt; &amp;&amp; echo &#34;x&#34;"} {
+		assert.Contains(t, html, b)
+	}
+	assert.NotContains(t, html, "<id_rsa>", "the command is escaped")
+	subj, _, err = Render("agent_alert", map[string]string{"url": "u", "agent": "claude", "sponsor": "bob",
+		"resource": "db\r\nBcc: x", "command": "id", "classes": "egress"})
+	require.NoError(t, err)
+	assert.NotContains(t, subj, "\n")
+}
+
 func TestRenderUnknownTemplate(t *testing.T) {
 	_, _, err := Render("nope", nil)
 	assert.ErrorContains(t, err, "unknown template")
