@@ -56,12 +56,8 @@ func (h *Handler) RequestApproval(ctx context.Context, req *connect.Request[gate
 	if r.ResourceID, err = parseID(m.GetResourceId(), "resource_id"); err != nil {
 		return nil, err
 	}
-	if m.GetAgentRunId() != "" {
-		run, err := parseID(m.GetAgentRunId(), "agent_run_id")
-		if err != nil {
-			return nil, err
-		}
-		r.AgentRunID = &run
+	if r.AgentRunID, err = optionalID(m.GetAgentRunId(), "agent_run_id"); err != nil {
+		return nil, err
 	}
 	if _, err := h.ownResource(ctx, g, r.ResourceID); err != nil {
 		return nil, err
@@ -71,7 +67,7 @@ func (h *Handler) RequestApproval(ctx context.Context, req *connect.Request[gate
 		return nil, h.fail(ctx, "request approval", err)
 	}
 	return connect.NewResponse(&gatewayv1.RequestApprovalResponse{ApprovalId: a.ID.String(),
-		ExpiresAt: timestamppb.New(a.ExpiresAt), Url: a.URL}), nil
+		ExpiresAt: timestamppb.New(a.ExpiresAt), Url: a.URL, Status: a.Status}), nil
 }
 
 // GetApproval returns the status of a command approval of the calling instance.

@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/internal/agentic"
 	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
@@ -29,15 +30,16 @@ import (
 func newTunnelDeps(s *services, reg *metrics.Registry, logger *slog.Logger) tunnel.Deps {
 	return tunnel.Deps{
 		Gateways:    tunnelGateways{s.Gateways},
-		Users:       tunnelUsers{s.Identity},
+		Users:       tunnelUsers{s.Identity, s.Agents},
 		Resources:   tunnelResources{s.Inventory},
 		Credentials: tunnelCredentials{s.Credential},
 		Snapshots:   tunnelSnapshots{s: s, logger: logger},
-		Sessions:    tunnelSessions{s.Sessions},
+		Sessions:    tunnelSessions{s.Sessions, s.Agents},
 		Recordings:  s.Recordings,
 		Health:      tunnelResources{s.Inventory},
 		Pools:       tunnelGateways{s.Gateways},
 		Approvals:   tunnelApprovals{s.Access},
+		Agents:      tunnelAgents{s.Agents},
 		Country:     s.Policy.Country,
 		Metrics:     reg,
 		Logger:      logger,
@@ -55,8 +57,12 @@ func (g tunnelGateways) Authenticate(ctx context.Context, gatewayID, instanceID 
 	return tunnel.Gateway{ID: in.GatewayID, InstanceID: in.ID, OrgID: in.OrgID, CertSerial: in.CertSerial}, nil
 }
 
-// tunnelUsers resolves SSH clients to members with their teams.
-type tunnelUsers struct{ ids *identity.Service }
+// tunnelUsers resolves SSH clients to members with their teams, and agent
+// certificates to their sponsor with the run.
+type tunnelUsers struct {
+	ids    *identity.Service
+	agents *agentic.Service
+}
 
 func (u tunnelUsers) ByFingerprint(ctx context.Context, orgID uuid.UUID, fingerprint string) (tunnel.User, error) {
 	return tunnelUser(u.ids.LookupSSHKey(ctx, orgID, fingerprint))
@@ -67,7 +73,12 @@ func (u tunnelUsers) ByLogin(ctx context.Context, orgID uuid.UUID, login string)
 }
 
 func (u tunnelUsers) ByCert(ctx context.Context, orgID uuid.UUID, id sshca.Identity) (tunnel.User, error) {
-	return tunnelUser(u.ids.AuthenticateCert(ctx, orgID, id))
+	usr, err := tunnelUser(u.ids.AuthenticateCert(ctx, orgID, id))
+	if err != nil || id.RunID == nil {
+		return usr, err
+	}
+	usr.Agent, err = agentOf(ctx, u.agents, orgID, usr.ID, id)
+	return usr, err
 }
 
 func tunnelUser(ref identity.UserRef, err error) (tunnel.User, error) {
@@ -109,13 +120,19 @@ func (c tunnelCredentials) Reveal(ctx context.Context, orgID, resourceID uuid.UU
 }
 
 // tunnelSessions adapts session.Service to the tunnel types; Start records
-// sessions only for members of the organization.
-type tunnelSessions struct{ *session.Service }
+// sessions only for members of the organization, an agent's only when its run
+// counts the action.
+type tunnelSessions struct {
+	*session.Service
+	agents *agentic.Service
+}
 
 func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid.UUID, error) {
-	return s.Service.Start(ctx, session.Start{OrgID: st.OrgID, UserID: st.UserID, ResourceID: st.ResourceID,
+	id, err := s.Service.Start(ctx, session.Start{OrgID: st.OrgID, UserID: st.UserID, ResourceID: st.ResourceID,
 		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Target: st.Target,
-		Command: st.Command, Classes: st.Classes, Paths: st.Paths})
+		Command: st.Command, Classes: st.Classes, Paths: st.Paths, AgentRunID: st.AgentRunID, ToolCallID: st.ToolCallID,
+		Guard: actionGuard(s.agents, st)})
+	return id, actionError(err)
 }
 
 func (s tunnelSessions) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *tunnel.Counters, r *tunnel.SessionResult) error {

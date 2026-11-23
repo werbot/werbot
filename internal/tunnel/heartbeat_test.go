@@ -175,7 +175,7 @@ func TestHeartbeatMaxSizeFitsReadLimit(t *testing.T) {
 		hb.Denials = append(hb.Denials, &gatewayv1.Denial{UserId: id, KeyFingerprint: fill(128),
 			Resource: fill(63), Kind: fill(16), Target: fill(1024),
 			ClientIp: "fe80::ffff:ffff:ffff:ffff%" + strings.Repeat("z", 38), Reason: "target_not_allowed", At: ts, // 64 bytes
-			SessionId: id, Classes: []string{"destructive", "destructive", "destructive", "destructive", "destructive", "destructive", "destructive"},
+			SessionId: id, AgentRunId: id, Classes: []string{"destructive", "destructive", "destructive", "destructive", "destructive", "destructive", "destructive"},
 			Paths: slices.Repeat([]string{fill(1024)}, 16), Reasons: slices.Repeat([]string{fill(128)}, 16)})
 	}
 	for range 1000 {

@@ -3,6 +3,7 @@ UPDATE session
 -- Final counters never lower the stored ones; zeros leave them as they are.
 SET ended_at = now(), end_reason = @reason::text,
     command = coalesce(nullif(@command::text, ''), command), classes = coalesce(@classes::text[], classes), paths = coalesce(@paths::text[], paths),
+    exit_code = sqlc.narg(exit_code)::int, output_sha256 = sqlc.narg(output_sha256)::bytea,
     bytes_up = GREATEST(bytes_up, @bytes_up::bigint), bytes_down = GREATEST(bytes_down, @bytes_down::bigint),
     datagrams_up = GREATEST(datagrams_up, @datagrams_up::bigint), datagrams_down = GREATEST(datagrams_down, @datagrams_down::bigint)
 WHERE id = @id AND org_id = @org_id AND gateway_instance_id = @instance_id::uuid AND ended_at IS NULL

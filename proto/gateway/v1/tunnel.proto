@@ -2,6 +2,7 @@ syntax = "proto3";
 package gateway.v1;
 
 import "buf/validate/validate.proto";
+import "gateway/v1/tunnel_agent.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -21,6 +22,7 @@ service TunnelService {
   // the decision arrives as approval_decided on Connect.
   rpc RequestApproval(RequestApprovalRequest) returns (RequestApprovalResponse);
   rpc GetApproval(GetApprovalRequest) returns (GetApprovalResponse);
+  rpc RecordDenial(RecordDenialRequest) returns (RecordDenialResponse);
 }
 
 message ConnectRequest {
@@ -72,6 +74,8 @@ message Denial {
     in: ["denied", "target_not_allowed", "unsupported_type", "unsupported_kind", "busy", "spool_full", "auth_failed", "approval_denied", "approval_timeout"]
   }];
   google.protobuf.Timestamp at = 8;
+  // the agent run of the attempt, when RecordDenial was not reachable
+  string agent_run_id = 9 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   // a console line denied inside this session (target: the line) and its decision
   string session_id = 10 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   repeated string classes = 11 [(buf.validate.field).repeated = {
@@ -184,6 +188,9 @@ message CertIdentity {
   string cli_session_id = 2 [(buf.validate.field).string.uuid = true];
   string login = 3 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
   string cert_fingerprint = 4 [(buf.validate.field).string.max_len = 128];
+  // an agent certificate: both set, or neither
+  string agent_id = 5 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string run_id = 6 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
 }
 
 message AuthenticateUserResponse {
@@ -191,6 +198,7 @@ message AuthenticateUserResponse {
   string login = 2;
   repeated string team_ids = 3;
   string country = 4;
+  AgentInfo agent = 5;
 }
 
 message StartSessionRequest {
@@ -210,6 +218,9 @@ message StartSessionRequest {
   }];
   // the paths the authorized command touches
   repeated string paths = 15 [(buf.validate.field).repeated = {max_items: 256, items: {string: {max_bytes: 1024}}}];
+  // an agent's session: its run counts the action; a tool call of another run is not stored
+  string agent_run_id = 8 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string tool_call_id = 9 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
 }
 
 message StartSessionResponse {
@@ -231,6 +242,9 @@ message EndSessionRequest {
   }];
   // final totals; unset keeps the stored ones; session_id must equal session_id above
   SessionCounters counters = 3;
+  // exec: the exit status and the SHA-256 of the recorded output
+  optional int32 exit_code = 4;
+  bytes output_sha256 = 5 [(buf.validate.field).bytes.len = 32, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   // console only: the last checked command (the gateway truncates), its classes and paths
   string command = 8 [(buf.validate.field).string.max_bytes = 65536];
   repeated string classes = 9 [(buf.validate.field).repeated = {
@@ -302,6 +316,8 @@ message RequestApprovalResponse {
   google.protobuf.Timestamp expires_at = 2;
   // the approval page for the approvers
   string url = 3;
+  // "pending", or "approved" for an agent's approved command it asks again
+  string status = 4;
 }
 
 message GetApprovalRequest {

@@ -24,6 +24,10 @@ const (
 	StatusCanceled = "canceled"
 )
 
+// AgentApprovalReuse is how long an agent run's approved command stays
+// approved when the agent asks for it again.
+const AgentApprovalReuse = 10 * time.Minute
+
 // Approval policy modes.
 const (
 	ModeManual = "manual"

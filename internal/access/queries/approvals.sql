@@ -79,6 +79,22 @@ WHERE org_id = @org_id AND kind = 'command' AND gateway_instance_id = @gateway_i
   AND status IN ('approved', 'denied') AND decided_at > @since::timestamptz
 ORDER BY decided_at, id;
 
+-- name: ReuseCommandApproval :one
+-- An agent run's latest approval of the same command on the same resource,
+-- pending or approved within reuse_secs, moved to the asking instance.
+UPDATE approval a SET gateway_instance_id = @gateway_instance_id::uuid
+WHERE a.org_id = @org_id::uuid AND a.id = (
+    SELECT p.id FROM approval p
+    WHERE p.org_id = @org_id::uuid AND p.kind = 'command' AND p.agent_run_id = @agent_run_id::uuid
+      AND p.requester_user_id = @requester_user_id::uuid AND p.resource_id = @resource_id::uuid
+      AND p.command_sha256 = @command_sha256::bytea
+      AND ((p.status = 'pending' AND p.expires_at > now())
+        OR (p.status = 'approved' AND p.decided_at > now() - make_interval(secs => @reuse_secs::float8)))
+    ORDER BY p.created_at DESC, p.id DESC
+    LIMIT 1
+    FOR UPDATE)
+RETURNING *;
+
 -- name: ExpireApprovals :many
 -- Every organization: a pending approval past its deadline expires; one of concurrent runs wins each row.
 WITH expired AS (

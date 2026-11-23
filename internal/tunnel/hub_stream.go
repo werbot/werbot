@@ -246,16 +246,12 @@ func countersOf(id uuid.UUID, c *gatewayv1.SessionCounters) Counters {
 		DatagramsUp: c.GetDatagramsUp(), DatagramsDown: c.GetDatagramsDown()}
 }
 
-// denialOf converts d; an empty or invalid user id, session id, client IP or time stays unset.
+// denialOf converts d; an empty or invalid user id, session id, agent run id,
+// client IP or time stays unset.
 func denialOf(d *gatewayv1.Denial) Denial {
 	out := Denial{KeyFingerprint: d.GetKeyFingerprint(), Resource: d.GetResource(), Kind: d.GetKind(),
-		Target: d.GetTarget(), Reason: d.GetReason(), Classes: d.GetClasses(), Paths: d.GetPaths(), Reasons: d.GetReasons()}
-	if id, err := uuid.Parse(d.GetUserId()); err == nil {
-		out.UserID = &id
-	}
-	if id, err := uuid.Parse(d.GetSessionId()); err == nil {
-		out.SessionID = &id
-	}
+		Target: d.GetTarget(), Reason: d.GetReason(), Classes: d.GetClasses(), Paths: d.GetPaths(), Reasons: d.GetReasons(),
+		UserID: validID(d.GetUserId()), SessionID: validID(d.GetSessionId()), AgentRunID: validID(d.GetAgentRunId())}
 	if ip, err := netip.ParseAddr(d.GetClientIp()); err == nil {
 		out.ClientIP = ip.Unmap()
 	}
@@ -263,6 +259,15 @@ func denialOf(d *gatewayv1.Denial) Denial {
 		out.At = d.GetAt().AsTime()
 	}
 	return out
+}
+
+// validID is s as an id; nil when s is empty or invalid.
+func validID(s string) *uuid.UUID {
+	id, err := uuid.Parse(s)
+	if err != nil {
+		return nil
+	}
+	return &id
 }
 
 // heartbeatHealth converts the probe results and counts the dropped ones:

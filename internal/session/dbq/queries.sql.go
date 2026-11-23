@@ -142,9 +142,10 @@ const endSession = `-- name: EndSession :one
 UPDATE session
 SET ended_at = now(), end_reason = $1::text,
     command = coalesce(nullif($2::text, ''), command), classes = coalesce($3::text[], classes), paths = coalesce($4::text[], paths),
-    bytes_up = GREATEST(bytes_up, $5::bigint), bytes_down = GREATEST(bytes_down, $6::bigint),
-    datagrams_up = GREATEST(datagrams_up, $7::bigint), datagrams_down = GREATEST(datagrams_down, $8::bigint)
-WHERE id = $9 AND org_id = $10 AND gateway_instance_id = $11::uuid AND ended_at IS NULL
+    exit_code = $5::int, output_sha256 = $6::bytea,
+    bytes_up = GREATEST(bytes_up, $7::bigint), bytes_down = GREATEST(bytes_down, $8::bigint),
+    datagrams_up = GREATEST(datagrams_up, $9::bigint), datagrams_down = GREATEST(datagrams_down, $10::bigint)
+WHERE id = $11 AND org_id = $12 AND gateway_instance_id = $13::uuid AND ended_at IS NULL
 RETURNING resource_id
 `
 
@@ -153,6 +154,8 @@ type EndSessionParams struct {
 	Command       string
 	Classes       []string
 	Paths         []string
+	ExitCode      *int32
+	OutputSha256  []byte
 	BytesUp       int64
 	BytesDown     int64
 	DatagramsUp   int64
@@ -169,6 +172,8 @@ func (q *Queries) EndSession(ctx context.Context, arg EndSessionParams) (*uuid.U
 		arg.Command,
 		arg.Classes,
 		arg.Paths,
+		arg.ExitCode,
+		arg.OutputSha256,
 		arg.BytesUp,
 		arg.BytesDown,
 		arg.DatagramsUp,

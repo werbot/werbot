@@ -72,11 +72,11 @@ func (h *Handler) AuthenticateUser(ctx context.Context, req *connect.Request[gat
 		teams[i] = id.String()
 	}
 	return connect.NewResponse(&gatewayv1.AuthenticateUserResponse{
-		UserId: u.ID.String(), Login: u.Login, TeamIds: teams, Country: h.d.Country(ip)}), nil
+		UserId: u.ID.String(), Login: u.Login, TeamIds: teams, Country: h.d.Country(ip), Agent: agentInfo(u)}), nil
 }
 
-// byCert resolves a certificate the gateway verified; the organization is
-// always the caller's, never one the gateway names.
+// byCert resolves a certificate the gateway verified, with its agent run when
+// it has one; the organization is always the caller's, never one the gateway names.
 func (h *Handler) byCert(ctx context.Context, orgID uuid.UUID, c *gatewayv1.CertIdentity) (User, error) {
 	id := sshca.Identity{OrgID: orgID, Login: c.GetLogin()}
 	var err error
@@ -86,44 +86,58 @@ func (h *Handler) byCert(ctx context.Context, orgID uuid.UUID, c *gatewayv1.Cert
 	if id.CLISessionID, err = parseID(c.GetCliSessionId(), "cli_session_id"); err != nil {
 		return User{}, err
 	}
+	if err = parseAgent(c, &id); err != nil {
+		return User{}, err
+	}
 	return h.d.Users.ByCert(ctx, orgID, id)
 }
 
 // StartSession reveals the credential first, so a failed reveal never leaves
-// an open session row, then records the session with its kind and target.
+// an open session row, then records the session with its kind and target; an
+// agent's session counts an action of its run (Sessions.Start refuses it).
 func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gatewayv1.StartSessionRequest]) (*connect.Response[gatewayv1.StartSessionResponse], error) {
 	g, err := caller(ctx)
 	if err != nil {
 		return nil, err
 	}
-	userID, err := parseID(req.Msg.GetUserId(), "user_id")
+	s, err := sessionStartOf(g, req.Msg)
 	if err != nil {
 		return nil, err
 	}
-	resourceID, err := parseID(req.Msg.GetResourceId(), "resource_id")
+	typ, err := h.ownResource(ctx, g, s.ResourceID)
 	if err != nil {
 		return nil, err
 	}
-	ip, err := parseIP(req.Msg.GetClientIp())
-	if err != nil {
-		return nil, err
-	}
-	typ, err := h.ownResource(ctx, g, resourceID)
-	if err != nil {
-		return nil, err
-	}
-	secret, err := h.d.Credentials.Reveal(ctx, g.OrgID, resourceID, typ)
+	secret, err := h.d.Credentials.Reveal(ctx, g.OrgID, s.ResourceID, typ)
 	if err != nil {
 		return nil, h.fail(ctx, "reveal credential", err)
 	}
-	id, err := h.d.Sessions.Start(ctx, SessionStart{OrgID: g.OrgID, GatewayID: g.ID, InstanceID: g.InstanceID,
-		UserID: userID, ResourceID: resourceID, ClientIP: ip, Kind: req.Msg.GetKind(), Target: req.Msg.GetTarget(),
-		Command: req.Msg.GetCommand(), Classes: req.Msg.GetClasses(), Paths: req.Msg.GetPaths()})
+	id, err := h.d.Sessions.Start(ctx, s)
 	if err != nil {
 		return nil, h.fail(ctx, "start session", err)
 	}
 	return connect.NewResponse(&gatewayv1.StartSessionResponse{SessionId: id.String(),
 		Credential: &gatewayv1.Credential{Kind: secret.Kind, Value: secret.Value}}), nil
+}
+
+// sessionStartOf is the session m asks g to record; an invalid id or IP is InvalidArgument.
+func sessionStartOf(g Gateway, m *gatewayv1.StartSessionRequest) (s SessionStart, err error) {
+	s = SessionStart{OrgID: g.OrgID, GatewayID: g.ID, InstanceID: g.InstanceID, Kind: m.GetKind(), Target: m.GetTarget(),
+		Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths()}
+	if s.UserID, err = parseID(m.GetUserId(), "user_id"); err != nil {
+		return s, err
+	}
+	if s.ResourceID, err = parseID(m.GetResourceId(), "resource_id"); err != nil {
+		return s, err
+	}
+	if s.ClientIP, err = parseIP(m.GetClientIp()); err != nil {
+		return s, err
+	}
+	if s.AgentRunID, err = optionalID(m.GetAgentRunId(), "agent_run_id"); err != nil {
+		return s, err
+	}
+	s.ToolCallID, err = optionalID(m.GetToolCallId(), "tool_call_id")
+	return s, err
 }
 
 // ownResource denies resources outside the caller's pool and returns the type of one inside it.
@@ -139,7 +153,7 @@ func (h *Handler) ownResource(ctx context.Context, g Gateway, resourceID uuid.UU
 }
 
 // EndSession closes a session of the calling instance with its final counters
-// and, for a console session, its result, if sent.
+// and its result, if sent: a console's last command, an exec's exit code and output hash.
 func (h *Handler) EndSession(ctx context.Context, req *connect.Request[gatewayv1.EndSessionRequest]) (*connect.Response[gatewayv1.EndSessionResponse], error) {
 	g, err := caller(ctx)
 	if err != nil {
@@ -163,12 +177,13 @@ func (h *Handler) EndSession(ctx context.Context, req *connect.Request[gatewayv1
 	return connect.NewResponse(&gatewayv1.EndSessionResponse{}), nil
 }
 
-// resultOf is the console result of m; nil without a command.
+// resultOf is the result of m; nil without a command, an exit code and an output hash.
 func resultOf(m *gatewayv1.EndSessionRequest) *SessionResult {
-	if m.GetCommand() == "" {
+	if m.GetCommand() == "" && m.ExitCode == nil && len(m.GetOutputSha256()) == 0 {
 		return nil
 	}
-	return &SessionResult{Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths()}
+	return &SessionResult{Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths(),
+		ExitCode: m.ExitCode, OutputSHA256: m.GetOutputSha256()}
 }
 
 // PinHostKey records the target host key seen on first connect.

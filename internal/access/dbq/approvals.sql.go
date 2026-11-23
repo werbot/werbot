@@ -550,3 +550,67 @@ func (q *Queries) NotifyApprovalDecided(ctx context.Context, payload string) err
 	_, err := q.db.Exec(ctx, notifyApprovalDecided, payload)
 	return err
 }
+
+const reuseCommandApproval = `-- name: ReuseCommandApproval :one
+UPDATE approval a SET gateway_instance_id = $1::uuid
+WHERE a.org_id = $2::uuid AND a.id = (
+    SELECT p.id FROM approval p
+    WHERE p.org_id = $2::uuid AND p.kind = 'command' AND p.agent_run_id = $3::uuid
+      AND p.requester_user_id = $4::uuid AND p.resource_id = $5::uuid
+      AND p.command_sha256 = $6::bytea
+      AND ((p.status = 'pending' AND p.expires_at > now())
+        OR (p.status = 'approved' AND p.decided_at > now() - make_interval(secs => $7::float8)))
+    ORDER BY p.created_at DESC, p.id DESC
+    LIMIT 1
+    FOR UPDATE)
+RETURNING id, org_id, kind, requester_user_id, agent_run_id, resource_id, label_selector, duration, command, command_sha256, classes, reason, policy_id, break_glass, status, decided_by, decided_at, comment, expires_at, gateway_instance_id, created_at
+`
+
+type ReuseCommandApprovalParams struct {
+	GatewayInstanceID uuid.UUID
+	OrgID             uuid.UUID
+	AgentRunID        uuid.UUID
+	RequesterUserID   uuid.UUID
+	ResourceID        uuid.UUID
+	CommandSha256     []byte
+	ReuseSecs         float64
+}
+
+// An agent run's latest approval of the same command on the same resource,
+// pending or approved within reuse_secs, moved to the asking instance.
+func (q *Queries) ReuseCommandApproval(ctx context.Context, arg ReuseCommandApprovalParams) (Approval, error) {
+	row := q.db.QueryRow(ctx, reuseCommandApproval,
+		arg.GatewayInstanceID,
+		arg.OrgID,
+		arg.AgentRunID,
+		arg.RequesterUserID,
+		arg.ResourceID,
+		arg.CommandSha256,
+		arg.ReuseSecs,
+	)
+	var i Approval
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Kind,
+		&i.RequesterUserID,
+		&i.AgentRunID,
+		&i.ResourceID,
+		&i.LabelSelector,
+		&i.Duration,
+		&i.Command,
+		&i.CommandSha256,
+		&i.Classes,
+		&i.Reason,
+		&i.PolicyID,
+		&i.BreakGlass,
+		&i.Status,
+		&i.DecidedBy,
+		&i.DecidedAt,
+		&i.Comment,
+		&i.ExpiresAt,
+		&i.GatewayInstanceID,
+		&i.CreatedAt,
+	)
+	return i, err
+}

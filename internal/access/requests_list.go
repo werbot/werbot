@@ -136,7 +136,8 @@ func (s *Service) ListRequests(ctx context.Context, p principal.Principal, f Req
 	return out, next, nil
 }
 
-// Requestable reports for each of resourceIDs whether a policy lets p request access to it.
+// Requestable reports for each of resourceIDs whether a policy lets p request
+// access to it; an agent token (p.RunID set) only through policies of all agents.
 func (s *Service) Requestable(ctx context.Context, p principal.Principal, resourceIDs []uuid.UUID) (map[uuid.UUID]bool, error) {
 	out := make(map[uuid.UUID]bool, len(resourceIDs))
 	err := s.tx(ctx, p.OrgID, p.UserID, func(st Store, _ pgx.Tx) error {
@@ -145,7 +146,7 @@ func (s *Service) Requestable(ctx context.Context, p principal.Principal, resour
 			return err
 		}
 		for _, id := range resourceIDs {
-			_, ok := e.terms(Approval{RequesterID: p.UserID, Kind: KindAccess, ResourceID: &id})
+			_, ok := e.terms(Approval{RequesterID: p.UserID, AgentRunID: p.RunID, Kind: KindAccess, ResourceID: &id})
 			out[id] = ok
 		}
 		return nil

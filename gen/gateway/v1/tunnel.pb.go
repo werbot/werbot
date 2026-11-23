@@ -269,6 +269,8 @@ type Denial struct {
 	ClientIp string                 `protobuf:"bytes,6,opt,name=client_ip,json=clientIp,proto3" json:"client_ip,omitempty"`
 	Reason   string                 `protobuf:"bytes,7,opt,name=reason,proto3" json:"reason,omitempty"`
 	At       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=at,proto3" json:"at,omitempty"`
+	// the agent run of the attempt, when RecordDenial was not reachable
+	AgentRunId string `protobuf:"bytes,9,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
 	// a console line denied inside this session (target: the line) and its decision
 	SessionId     string   `protobuf:"bytes,10,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	Classes       []string `protobuf:"bytes,11,rep,name=classes,proto3" json:"classes,omitempty"`
@@ -362,6 +364,13 @@ func (x *Denial) GetAt() *timestamppb.Timestamp {
 		return x.At
 	}
 	return nil
+}
+
+func (x *Denial) GetAgentRunId() string {
+	if x != nil {
+		return x.AgentRunId
+	}
+	return ""
 }
 
 func (x *Denial) GetSessionId() string {
@@ -1183,8 +1192,11 @@ type CertIdentity struct {
 	CliSessionId    string                 `protobuf:"bytes,2,opt,name=cli_session_id,json=cliSessionId,proto3" json:"cli_session_id,omitempty"`
 	Login           string                 `protobuf:"bytes,3,opt,name=login,proto3" json:"login,omitempty"`
 	CertFingerprint string                 `protobuf:"bytes,4,opt,name=cert_fingerprint,json=certFingerprint,proto3" json:"cert_fingerprint,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// an agent certificate: both set, or neither
+	AgentId       string `protobuf:"bytes,5,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	RunId         string `protobuf:"bytes,6,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CertIdentity) Reset() {
@@ -1245,12 +1257,27 @@ func (x *CertIdentity) GetCertFingerprint() string {
 	return ""
 }
 
+func (x *CertIdentity) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *CertIdentity) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
 type AuthenticateUserResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Login         string                 `protobuf:"bytes,2,opt,name=login,proto3" json:"login,omitempty"`
 	TeamIds       []string               `protobuf:"bytes,3,rep,name=team_ids,json=teamIds,proto3" json:"team_ids,omitempty"`
 	Country       string                 `protobuf:"bytes,4,opt,name=country,proto3" json:"country,omitempty"`
+	Agent         *AgentInfo             `protobuf:"bytes,5,opt,name=agent,proto3" json:"agent,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1313,6 +1340,13 @@ func (x *AuthenticateUserResponse) GetCountry() string {
 	return ""
 }
 
+func (x *AuthenticateUserResponse) GetAgent() *AgentInfo {
+	if x != nil {
+		return x.Agent
+	}
+	return nil
+}
+
 type StartSessionRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	UserId     string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -1325,7 +1359,10 @@ type StartSessionRequest struct {
 	Command string   `protobuf:"bytes,6,opt,name=command,proto3" json:"command,omitempty"`
 	Classes []string `protobuf:"bytes,7,rep,name=classes,proto3" json:"classes,omitempty"`
 	// the paths the authorized command touches
-	Paths         []string `protobuf:"bytes,15,rep,name=paths,proto3" json:"paths,omitempty"`
+	Paths []string `protobuf:"bytes,15,rep,name=paths,proto3" json:"paths,omitempty"`
+	// an agent's session: its run counts the action; a tool call of another run is not stored
+	AgentRunId    string `protobuf:"bytes,8,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
+	ToolCallId    string `protobuf:"bytes,9,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1414,6 +1451,20 @@ func (x *StartSessionRequest) GetPaths() []string {
 		return x.Paths
 	}
 	return nil
+}
+
+func (x *StartSessionRequest) GetAgentRunId() string {
+	if x != nil {
+		return x.AgentRunId
+	}
+	return ""
+}
+
+func (x *StartSessionRequest) GetToolCallId() string {
+	if x != nil {
+		return x.ToolCallId
+	}
+	return ""
 }
 
 type StartSessionResponse struct {
@@ -1528,6 +1579,9 @@ type EndSessionRequest struct {
 	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	// final totals; unset keeps the stored ones; session_id must equal session_id above
 	Counters *SessionCounters `protobuf:"bytes,3,opt,name=counters,proto3" json:"counters,omitempty"`
+	// exec: the exit status and the SHA-256 of the recorded output
+	ExitCode     *int32 `protobuf:"varint,4,opt,name=exit_code,json=exitCode,proto3,oneof" json:"exit_code,omitempty"`
+	OutputSha256 []byte `protobuf:"bytes,5,opt,name=output_sha256,json=outputSha256,proto3" json:"output_sha256,omitempty"`
 	// console only: the last checked command (the gateway truncates), its classes and paths
 	Command       string   `protobuf:"bytes,8,opt,name=command,proto3" json:"command,omitempty"`
 	Classes       []string `protobuf:"bytes,9,rep,name=classes,proto3" json:"classes,omitempty"`
@@ -1583,6 +1637,20 @@ func (x *EndSessionRequest) GetReason() string {
 func (x *EndSessionRequest) GetCounters() *SessionCounters {
 	if x != nil {
 		return x.Counters
+	}
+	return nil
+}
+
+func (x *EndSessionRequest) GetExitCode() int32 {
+	if x != nil && x.ExitCode != nil {
+		return *x.ExitCode
+	}
+	return 0
+}
+
+func (x *EndSessionRequest) GetOutputSha256() []byte {
+	if x != nil {
+		return x.OutputSha256
 	}
 	return nil
 }
@@ -2131,7 +2199,9 @@ type RequestApprovalResponse struct {
 	ApprovalId string                 `protobuf:"bytes,1,opt,name=approval_id,json=approvalId,proto3" json:"approval_id,omitempty"`
 	ExpiresAt  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	// the approval page for the approvers
-	Url           string `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	Url string `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	// "pending", or "approved" for an agent's approved command it asks again
+	Status        string `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2183,6 +2253,13 @@ func (x *RequestApprovalResponse) GetExpiresAt() *timestamppb.Timestamp {
 func (x *RequestApprovalResponse) GetUrl() string {
 	if x != nil {
 		return x.Url
+	}
+	return ""
+}
+
+func (x *RequestApprovalResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
 	}
 	return ""
 }
@@ -2281,7 +2358,7 @@ var File_gateway_v1_tunnel_proto protoreflect.FileDescriptor
 const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"\x17gateway/v1/tunnel.proto\x12\n" +
-	"gateway.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"N\n" +
+	"gateway.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1dgateway/v1/tunnel_agent.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"N\n" +
 	"\x0eConnectRequest\x125\n" +
 	"\theartbeat\x18\x01 \x01(\v2\x15.gateway.v1.HeartbeatH\x00R\theartbeatB\x05\n" +
 	"\x03msg\"\xdb\x02\n" +
@@ -2303,7 +2380,7 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"bytes_down\x18\x03 \x01(\x03R\tbytesDown\x12!\n" +
 	"\fdatagrams_up\x18\x04 \x01(\x03R\vdatagramsUp\x12%\n" +
-	"\x0edatagrams_down\x18\x05 \x01(\x03R\rdatagramsDown\"\xa5\x05\n" +
+	"\x0edatagrams_down\x18\x05 \x01(\x03R\rdatagramsDown\"\xd4\x05\n" +
 	"\x06Denial\x12$\n" +
 	"\auser_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\x121\n" +
 	"\x0fkey_fingerprint\x18\x02 \x01(\tB\b\xbaH\x05r\x03(\x80\x01R\x0ekeyFingerprint\x12#\n" +
@@ -2313,7 +2390,9 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\tclient_ip\x18\x06 \x01(\tB\f\xbaH\t\xd8\x01\x01r\x04(@p\x01R\bclientIp\x12\xa2\x01\n" +
 	"\x06reason\x18\a \x01(\tB\x89\x01\xbaH\x85\x01r\x82\x01R\x06deniedR\x12target_not_allowedR\x10unsupported_typeR\x10unsupported_kindR\x04busyR\n" +
 	"spool_fullR\vauth_failedR\x0fapproval_deniedR\x10approval_timeoutR\x06reason\x12*\n" +
-	"\x02at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x12*\n" +
+	"\x02at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x12-\n" +
+	"\fagent_run_id\x18\t \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\n" +
+	"agentRunId\x12*\n" +
 	"\n" +
 	"session_id\x18\n" +
 	" \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\tsessionId\x12d\n" +
@@ -2383,18 +2462,21 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\xbaH\ar\x05\x10\x01\x18\xff\x01H\x00R\x05login\x12.\n" +
 	"\x04cert\x18\x04 \x01(\v2\x18.gateway.v1.CertIdentityH\x00R\x04cert\x12&\n" +
 	"\tclient_ip\x18\x03 \x01(\tB\t\xbaH\x06r\x04(@p\x01R\bclientIpB\v\n" +
-	"\x02by\x12\x05\xbaH\x02\b\x01\"\xb8\x01\n" +
+	"\x02by\x12\x05\xbaH\x02\b\x01\"\x84\x02\n" +
 	"\fCertIdentity\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12.\n" +
 	"\x0ecli_session_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\fcliSessionId\x12 \n" +
 	"\x05login\x18\x03 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\xff\x01R\x05login\x123\n" +
-	"\x10cert_fingerprint\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x0fcertFingerprint\"~\n" +
+	"\x10cert_fingerprint\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x0fcertFingerprint\x12&\n" +
+	"\bagent_id\x18\x05 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aagentId\x12\"\n" +
+	"\x06run_id\x18\x06 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x05runId\"\xab\x01\n" +
 	"\x18AuthenticateUserResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05login\x18\x02 \x01(\tR\x05login\x12\x19\n" +
 	"\bteam_ids\x18\x03 \x03(\tR\ateamIds\x12\x18\n" +
-	"\acountry\x18\x04 \x01(\tR\acountry\"\x9d\x03\n" +
+	"\acountry\x18\x04 \x01(\tR\acountry\x12+\n" +
+	"\x05agent\x18\x05 \x01(\v2\x15.gateway.v1.AgentInfoR\x05agent\"\xfb\x03\n" +
 	"\x13StartSessionRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12)\n" +
 	"\vresource_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
@@ -2405,7 +2487,11 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\acommand\x18\x06 \x01(\tB\t\xbaH\x06r\x04(\x80\x80\x04R\acommand\x12d\n" +
 	"\aclasses\x18\a \x03(\tBJ\xbaHG\x92\x01D\x10\a\"@r>R\x04readR\x05writeR\vdestructiveR\tprivilegeR\asecretsR\x06egressR\x06opaqueR\aclasses\x12&\n" +
 	"\x05paths\x18\x0f \x03(\tB\x10\xbaH\r\x92\x01\n" +
-	"\x10\x80\x02\"\x05r\x03(\x80\bR\x05paths\"m\n" +
+	"\x10\x80\x02\"\x05r\x03(\x80\bR\x05paths\x12-\n" +
+	"\fagent_run_id\x18\b \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\n" +
+	"agentRunId\x12-\n" +
+	"\ftool_call_id\x18\t \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\n" +
+	"toolCallId\"m\n" +
 	"\x14StartSessionResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x126\n" +
@@ -2415,17 +2501,22 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"Credential\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value\"\xcd\x03\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value\"\xae\x04\n" +
 	"\x11EndSessionRequest\x12'\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\x12\xa2\x01\n" +
 	"\x06reason\x18\x02 \x01(\tB\x89\x01\xbaH\x85\x01r\x82\x01R\x06closedR\x05errorR\x0einternal_errorR\x10gateway_shutdownR\x15recording_unavailableR\fidle_timeoutR\fmax_durationR\x0eaccess_revokedR\fpolicy_staleR\x06reason\x127\n" +
-	"\bcounters\x18\x03 \x01(\v2\x1b.gateway.v1.SessionCountersR\bcounters\x12#\n" +
+	"\bcounters\x18\x03 \x01(\v2\x1b.gateway.v1.SessionCountersR\bcounters\x12 \n" +
+	"\texit_code\x18\x04 \x01(\x05H\x00R\bexitCode\x88\x01\x01\x12/\n" +
+	"\routput_sha256\x18\x05 \x01(\fB\n" +
+	"\xbaH\a\xd8\x01\x01z\x02h R\foutputSha256\x12#\n" +
 	"\acommand\x18\b \x01(\tB\t\xbaH\x06r\x04(\x80\x80\x04R\acommand\x12d\n" +
 	"\aclasses\x18\t \x03(\tBJ\xbaHG\x92\x01D\x10\a\"@r>R\x04readR\x05writeR\vdestructiveR\tprivilegeR\asecretsR\x06egressR\x06opaqueR\aclasses\x12&\n" +
 	"\x05paths\x18\n" +
 	" \x03(\tB\x10\xbaH\r\x92\x01\n" +
-	"\x10\x80\x02\"\x05r\x03(\x80\bR\x05paths\"\x14\n" +
+	"\x10\x80\x02\"\x05r\x03(\x80\bR\x05pathsB\f\n" +
+	"\n" +
+	"_exit_code\"\x14\n" +
 	"\x12EndSessionResponse\"\x86\x01\n" +
 	"\x11PinHostKeyRequest\x12)\n" +
 	"\vresource_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
@@ -2463,18 +2554,19 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"agentRunId\x12%\n" +
 	"\acommand\x18\x04 \x01(\tB\v\xbaH\br\x06 \x01(\x80\x80\x01R\acommand\x12(\n" +
 	"\aclasses\x18\x05 \x03(\tB\x0e\xbaH\v\x92\x01\b\x10 \"\x04r\x02\x18@R\aclasses\x12)\n" +
-	"\areasons\x18\x06 \x03(\tB\x0f\xbaH\f\x92\x01\t\x10 \"\x05r\x03\x18\x80\x02R\areasons\"\x87\x01\n" +
+	"\areasons\x18\x06 \x03(\tB\x0f\xbaH\f\x92\x01\t\x10 \"\x05r\x03\x18\x80\x02R\areasons\"\x9f\x01\n" +
 	"\x17RequestApprovalResponse\x12\x1f\n" +
 	"\vapproval_id\x18\x01 \x01(\tR\n" +
 	"approvalId\x129\n" +
 	"\n" +
 	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x10\n" +
-	"\x03url\x18\x03 \x01(\tR\x03url\"?\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\"?\n" +
 	"\x12GetApprovalRequest\x12)\n" +
 	"\vapproval_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
 	"approvalId\"-\n" +
 	"\x13GetApprovalResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status2\xf5\x06\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status2\xc8\a\n" +
 	"\rTunnelService\x12F\n" +
 	"\aConnect\x12\x1a.gateway.v1.ConnectRequest\x1a\x1b.gateway.v1.ConnectResponse(\x010\x01\x12]\n" +
 	"\x10AuthenticateUser\x12#.gateway.v1.AuthenticateUserRequest\x1a$.gateway.v1.AuthenticateUserResponse\x12Q\n" +
@@ -2487,7 +2579,8 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\x14UploadRecordingChunk\x12'.gateway.v1.UploadRecordingChunkRequest\x1a(.gateway.v1.UploadRecordingChunkResponse\x12Z\n" +
 	"\x0fFinishRecording\x12\".gateway.v1.FinishRecordingRequest\x1a#.gateway.v1.FinishRecordingResponse\x12Z\n" +
 	"\x0fRequestApproval\x12\".gateway.v1.RequestApprovalRequest\x1a#.gateway.v1.RequestApprovalResponse\x12N\n" +
-	"\vGetApproval\x12\x1e.gateway.v1.GetApprovalRequest\x1a\x1f.gateway.v1.GetApprovalResponseB\x99\x01\n" +
+	"\vGetApproval\x12\x1e.gateway.v1.GetApprovalRequest\x1a\x1f.gateway.v1.GetApprovalResponse\x12Q\n" +
+	"\fRecordDenial\x12\x1f.gateway.v1.RecordDenialRequest\x1a .gateway.v1.RecordDenialResponseB\x99\x01\n" +
 	"\x0ecom.gateway.v1B\vTunnelProtoP\x01Z1github.com/werbot/werbot/gen/gateway/v1;gatewayv1\xa2\x02\x03GXX\xaa\x02\n" +
 	"Gateway.V1\xca\x02\n" +
 	"Gateway\\V1\xe2\x02\x16Gateway\\V1\\GPBMetadata\xea\x02\vGateway::V1b\x06proto3"
@@ -2541,6 +2634,9 @@ var file_gateway_v1_tunnel_proto_goTypes = []any{
 	(*GetApprovalResponse)(nil),          // 32: gateway.v1.GetApprovalResponse
 	(*timestamppb.Timestamp)(nil),        // 33: google.protobuf.Timestamp
 	(*durationpb.Duration)(nil),          // 34: google.protobuf.Duration
+	(*AgentInfo)(nil),                    // 35: gateway.v1.AgentInfo
+	(*RecordDenialRequest)(nil),          // 36: gateway.v1.RecordDenialRequest
+	(*RecordDenialResponse)(nil),         // 37: gateway.v1.RecordDenialResponse
 }
 var file_gateway_v1_tunnel_proto_depIdxs = []int32{
 	1,  // 0: gateway.v1.ConnectRequest.heartbeat:type_name -> gateway.v1.Heartbeat
@@ -2559,34 +2655,37 @@ var file_gateway_v1_tunnel_proto_depIdxs = []int32{
 	34, // 13: gateway.v1.Resource.idle_timeout:type_name -> google.protobuf.Duration
 	34, // 14: gateway.v1.Resource.max_duration:type_name -> google.protobuf.Duration
 	14, // 15: gateway.v1.AuthenticateUserRequest.cert:type_name -> gateway.v1.CertIdentity
-	18, // 16: gateway.v1.StartSessionResponse.credential:type_name -> gateway.v1.Credential
-	2,  // 17: gateway.v1.EndSessionRequest.counters:type_name -> gateway.v1.SessionCounters
-	33, // 18: gateway.v1.RequestApprovalResponse.expires_at:type_name -> google.protobuf.Timestamp
-	0,  // 19: gateway.v1.TunnelService.Connect:input_type -> gateway.v1.ConnectRequest
-	13, // 20: gateway.v1.TunnelService.AuthenticateUser:input_type -> gateway.v1.AuthenticateUserRequest
-	16, // 21: gateway.v1.TunnelService.StartSession:input_type -> gateway.v1.StartSessionRequest
-	19, // 22: gateway.v1.TunnelService.EndSession:input_type -> gateway.v1.EndSessionRequest
-	21, // 23: gateway.v1.TunnelService.PinHostKey:input_type -> gateway.v1.PinHostKeyRequest
-	23, // 24: gateway.v1.TunnelService.RenewCertificate:input_type -> gateway.v1.RenewCertificateRequest
-	25, // 25: gateway.v1.TunnelService.UploadRecordingChunk:input_type -> gateway.v1.UploadRecordingChunkRequest
-	27, // 26: gateway.v1.TunnelService.FinishRecording:input_type -> gateway.v1.FinishRecordingRequest
-	29, // 27: gateway.v1.TunnelService.RequestApproval:input_type -> gateway.v1.RequestApprovalRequest
-	31, // 28: gateway.v1.TunnelService.GetApproval:input_type -> gateway.v1.GetApprovalRequest
-	6,  // 29: gateway.v1.TunnelService.Connect:output_type -> gateway.v1.ConnectResponse
-	15, // 30: gateway.v1.TunnelService.AuthenticateUser:output_type -> gateway.v1.AuthenticateUserResponse
-	17, // 31: gateway.v1.TunnelService.StartSession:output_type -> gateway.v1.StartSessionResponse
-	20, // 32: gateway.v1.TunnelService.EndSession:output_type -> gateway.v1.EndSessionResponse
-	22, // 33: gateway.v1.TunnelService.PinHostKey:output_type -> gateway.v1.PinHostKeyResponse
-	24, // 34: gateway.v1.TunnelService.RenewCertificate:output_type -> gateway.v1.RenewCertificateResponse
-	26, // 35: gateway.v1.TunnelService.UploadRecordingChunk:output_type -> gateway.v1.UploadRecordingChunkResponse
-	28, // 36: gateway.v1.TunnelService.FinishRecording:output_type -> gateway.v1.FinishRecordingResponse
-	30, // 37: gateway.v1.TunnelService.RequestApproval:output_type -> gateway.v1.RequestApprovalResponse
-	32, // 38: gateway.v1.TunnelService.GetApproval:output_type -> gateway.v1.GetApprovalResponse
-	29, // [29:39] is the sub-list for method output_type
-	19, // [19:29] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	35, // 16: gateway.v1.AuthenticateUserResponse.agent:type_name -> gateway.v1.AgentInfo
+	18, // 17: gateway.v1.StartSessionResponse.credential:type_name -> gateway.v1.Credential
+	2,  // 18: gateway.v1.EndSessionRequest.counters:type_name -> gateway.v1.SessionCounters
+	33, // 19: gateway.v1.RequestApprovalResponse.expires_at:type_name -> google.protobuf.Timestamp
+	0,  // 20: gateway.v1.TunnelService.Connect:input_type -> gateway.v1.ConnectRequest
+	13, // 21: gateway.v1.TunnelService.AuthenticateUser:input_type -> gateway.v1.AuthenticateUserRequest
+	16, // 22: gateway.v1.TunnelService.StartSession:input_type -> gateway.v1.StartSessionRequest
+	19, // 23: gateway.v1.TunnelService.EndSession:input_type -> gateway.v1.EndSessionRequest
+	21, // 24: gateway.v1.TunnelService.PinHostKey:input_type -> gateway.v1.PinHostKeyRequest
+	23, // 25: gateway.v1.TunnelService.RenewCertificate:input_type -> gateway.v1.RenewCertificateRequest
+	25, // 26: gateway.v1.TunnelService.UploadRecordingChunk:input_type -> gateway.v1.UploadRecordingChunkRequest
+	27, // 27: gateway.v1.TunnelService.FinishRecording:input_type -> gateway.v1.FinishRecordingRequest
+	29, // 28: gateway.v1.TunnelService.RequestApproval:input_type -> gateway.v1.RequestApprovalRequest
+	31, // 29: gateway.v1.TunnelService.GetApproval:input_type -> gateway.v1.GetApprovalRequest
+	36, // 30: gateway.v1.TunnelService.RecordDenial:input_type -> gateway.v1.RecordDenialRequest
+	6,  // 31: gateway.v1.TunnelService.Connect:output_type -> gateway.v1.ConnectResponse
+	15, // 32: gateway.v1.TunnelService.AuthenticateUser:output_type -> gateway.v1.AuthenticateUserResponse
+	17, // 33: gateway.v1.TunnelService.StartSession:output_type -> gateway.v1.StartSessionResponse
+	20, // 34: gateway.v1.TunnelService.EndSession:output_type -> gateway.v1.EndSessionResponse
+	22, // 35: gateway.v1.TunnelService.PinHostKey:output_type -> gateway.v1.PinHostKeyResponse
+	24, // 36: gateway.v1.TunnelService.RenewCertificate:output_type -> gateway.v1.RenewCertificateResponse
+	26, // 37: gateway.v1.TunnelService.UploadRecordingChunk:output_type -> gateway.v1.UploadRecordingChunkResponse
+	28, // 38: gateway.v1.TunnelService.FinishRecording:output_type -> gateway.v1.FinishRecordingResponse
+	30, // 39: gateway.v1.TunnelService.RequestApproval:output_type -> gateway.v1.RequestApprovalResponse
+	32, // 40: gateway.v1.TunnelService.GetApproval:output_type -> gateway.v1.GetApprovalResponse
+	37, // 41: gateway.v1.TunnelService.RecordDenial:output_type -> gateway.v1.RecordDenialResponse
+	31, // [31:42] is the sub-list for method output_type
+	20, // [20:31] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_gateway_v1_tunnel_proto_init() }
@@ -2594,6 +2693,7 @@ func file_gateway_v1_tunnel_proto_init() {
 	if File_gateway_v1_tunnel_proto != nil {
 		return
 	}
+	file_gateway_v1_tunnel_agent_proto_init()
 	file_gateway_v1_tunnel_proto_msgTypes[0].OneofWrappers = []any{
 		(*ConnectRequest_Heartbeat)(nil),
 	}
@@ -2607,6 +2707,7 @@ func file_gateway_v1_tunnel_proto_init() {
 		(*AuthenticateUserRequest_Login)(nil),
 		(*AuthenticateUserRequest_Cert)(nil),
 	}
+	file_gateway_v1_tunnel_proto_msgTypes[19].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

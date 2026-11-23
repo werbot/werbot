@@ -25,33 +25,20 @@ func New(pool *pgxpool.Pool) *Service { return &Service{pool: pool} }
 // Start records a new open session and audits "session.start", marked
 // break_glass under an active break-glass grant of the user. The gateway
 // names the user, which the server does not trust: a user who is not a member
-// of the organization is apperr.ErrNotFound and gets no session.
+// of the organization is apperr.ErrNotFound and gets no session. p.Guard, when
+// set, runs in the same transaction before the insert.
 func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	if p.Kind == "" {
 		p.Kind = "terminal"
 	}
-	args := []any{p.OrgID, p.UserID, p.ResourceID, p.GatewayID, p.InstanceID, p.ClientIP, p.Kind, p.Target, p.Command, p.Classes, p.Paths}
 	var id uuid.UUID
-	err := dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
-		data := map[string]any{"kind": p.Kind, "target": p.Target}
-		var breakGlass bool
-		if err := tx.QueryRow(ctx, activeBreakGlass, p.OrgID, p.UserID, p.ResourceID).Scan(&breakGlass); err != nil {
-			return err
+	err := dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) (err error) {
+		if p.Guard != nil {
+			if err := p.Guard(ctx, tx); err != nil {
+				return err
+			}
 		}
-		if breakGlass {
-			data["break_glass"] = true
-		}
-		audit, auditArgs, err := auditlog.InsertFrom(auditlog.Event{
-			OrgID: &p.OrgID, ActorUserID: &p.UserID, ActorKind: "user", Action: "session.start",
-			TargetType: "resource", TargetID: p.ResourceID.String(), IP: p.ClientIP, Data: data,
-		}, "s", "id", "session_id", len(args)+1)
-		if err != nil {
-			return err
-		}
-		err = tx.QueryRow(ctx, startSession+audit+") SELECT id FROM s", append(args, auditArgs...)...).Scan(&id)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return errNotMember
-		}
+		id, err = insertSession(ctx, tx, p)
 		return err
 	})
 	if errors.Is(err, errNotMember) {
@@ -63,15 +50,45 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	return id, nil
 }
 
+// insertSession inserts the session of p and its session.start audit row in one statement.
+func insertSession(ctx context.Context, tx pgx.Tx, p Start) (uuid.UUID, error) {
+	args := []any{p.OrgID, p.UserID, p.ResourceID, p.GatewayID, p.InstanceID, p.ClientIP, p.Kind, p.Target, p.Command, p.Classes, p.Paths,
+		p.AgentRunID, p.ToolCallID}
+	data := map[string]any{"kind": p.Kind, "target": p.Target}
+	var breakGlass bool
+	if err := tx.QueryRow(ctx, activeBreakGlass, p.OrgID, p.UserID, p.ResourceID).Scan(&breakGlass); err != nil {
+		return uuid.Nil, err
+	}
+	if breakGlass {
+		data["break_glass"] = true
+	}
+	audit, auditArgs, err := auditlog.InsertFrom(auditlog.Event{
+		OrgID: &p.OrgID, ActorUserID: &p.UserID, ActorKind: "user", Action: "session.start",
+		TargetType: "resource", TargetID: p.ResourceID.String(), IP: p.ClientIP, Data: data,
+	}, "s", "id", "session_id", len(args)+1)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	var id uuid.UUID
+	err = tx.QueryRow(ctx, startSession+audit+") SELECT id FROM s", append(args, auditArgs...)...).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, errNotMember
+	}
+	return id, err
+}
+
 // activeBreakGlass tells whether the user holds an active break-glass grant to the resource.
 const activeBreakGlass = `SELECT EXISTS (SELECT 1 FROM access_grant WHERE org_id = $1 AND user_id = $2 AND resource_id = $3
 	AND break_glass AND revoked_at IS NULL AND expires_at > now())`
 
 // startSession inserts the session, only for a member of the organization (no
-// row otherwise), and opens the CTE of its audit row, which the caller appends.
+// row otherwise), with the tool call only when it is one of the session's run,
+// and opens the CTE of its audit row, which the caller appends.
 const startSession = `WITH s AS (
-	INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target, command, classes, paths)
-	SELECT m.org_id, m.user_id, $3::uuid, $4::uuid, $5::uuid, $6::inet, $7::text, $8::text, NULLIF($9::text, ''), $10::text[], $11::text[]
+	INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target, command, classes, paths,
+		agent_run_id, tool_call_id)
+	SELECT m.org_id, m.user_id, $3::uuid, $4::uuid, $5::uuid, $6::inet, $7::text, $8::text, NULLIF($9::text, ''), $10::text[], $11::text[],
+		$12::uuid, (SELECT t.id FROM agent_tool_call t WHERE t.id = $13::uuid AND t.run_id = $12::uuid AND t.org_id = m.org_id)
 	FROM membership m WHERE m.org_id = $1 AND m.user_id = $2
 	RETURNING id
 ), audit AS (`
@@ -81,8 +98,9 @@ var errNotMember = fmt.Errorf("user not found: %w", apperr.ErrNotFound)
 // End closes an open session of instanceID. A repeat call is a no-op; a
 // session of another instance or organization is apperr.ErrNotFound. A
 // non-nil c stores the final counters, never below the current ones. A non-nil
-// r (tunnel passes one only with a command) stores the command, classes and
-// paths of a console session, in the first close only.
+// r (tunnel passes one only with a command, an exit code or an output hash)
+// stores the command, classes and paths of a console session and the exit
+// code and output hash of an exec, in the first close only.
 func (s *Service) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters, r *Result) error {
 	if c == nil {
 		c = &Counters{}
@@ -94,7 +112,7 @@ func (s *Service) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reas
 		st := newStore(tx)
 		res, err := st.EndSession(ctx, dbq.EndSessionParams{ID: id, OrgID: orgID, InstanceID: instanceID, Reason: reason,
 			BytesUp: c.BytesUp, BytesDown: c.BytesDown, DatagramsUp: c.DatagramsUp, DatagramsDown: c.DatagramsDown,
-			Command: r.Command, Classes: r.Classes, Paths: r.Paths})
+			Command: r.Command, Classes: r.Classes, Paths: r.Paths, ExitCode: r.ExitCode, OutputSha256: r.OutputSHA256})
 		if errors.Is(err, pgx.ErrNoRows) {
 			ok, err := st.SessionOfInstanceExists(ctx, dbq.SessionOfInstanceExistsParams{ID: id, OrgID: orgID, InstanceID: instanceID})
 			if err != nil {

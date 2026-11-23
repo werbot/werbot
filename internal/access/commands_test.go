@@ -91,7 +91,7 @@ func TestCommandApprovalSponsorFourEyes(t *testing.T) {
 	pol := f.ApprovalPolicy(t, pool, "agents", access.ModeManual, onResource(f.ResourceID), `{"all_agents": true}`,
 		`{"users": ["`+f.MemberID.String()+`"]}`)
 	in := commandInput(f)
-	in.AgentRunID = new(uuid.New())
+	in.AgentRunID = agentRunOf(t, pool, f, f.MemberID, "a1")
 	a, err := svc.RequestCommandApproval(bg, in)
 	require.NoError(t, err)
 	got, err := svc.Decide(bg, f.Principal(f.MemberID), a.ID, true, "")
@@ -99,6 +99,7 @@ func TestCommandApprovalSponsorFourEyes(t *testing.T) {
 	assert.Equal(t, access.StatusApproved, got.Status)
 
 	setPolicy(t, pool, pol, "four_eyes = true")
+	in.AgentRunID = agentRunOf(t, pool, f, f.MemberID, "a2") // a new run: the first one reuses its approved command
 	_, err = svc.RequestCommandApproval(bg, in)
 	require.ErrorIs(t, err, apperr.ErrFailedPrecondition, "the sponsor is the only approver")
 	assert.ErrorContains(t, err, "no one can approve this request")

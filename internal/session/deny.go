@@ -18,7 +18,7 @@ import (
 // for a command refused inside a session. The gateway is not trusted
 // with identities: a user id that is no member of orgID is stored as nil. The
 // target is the resource id when the name matches a resource, else the name;
-// a set At is stored as "at" (RFC 3339, UTC).
+// a set At is stored as "at" (RFC 3339, UTC), a set AgentRunID as "agent_run_id".
 func (s *Service) Deny(ctx context.Context, orgID uuid.UUID, ds []Denial) error {
 	if len(ds) == 0 {
 		return nil
@@ -80,9 +80,17 @@ func writeDenial(ctx context.Context, tx pgx.Tx, st Store, orgID uuid.UUID, d De
 		e.Action, e.TargetType, e.TargetID = "session.command_denied", "session", d.SessionID.String()
 		data = map[string]any{"command": d.Target, "classes": d.Classes, "paths": d.Paths, "reasons": d.Reasons, "reason": d.Reason}
 	}
+	e.Data = withDenialContext(data, d)
+	return auditlog.Write(ctx, tx, e)
+}
+
+// withDenialContext adds to data when the gateway refused d and the agent run of d, when set.
+func withDenialContext(data map[string]any, d Denial) map[string]any {
 	if !d.At.IsZero() {
 		data["at"] = d.At.UTC().Format(time.RFC3339) // when the gateway refused; created_at is when it arrived
 	}
-	e.Data = data
-	return auditlog.Write(ctx, tx, e)
+	if d.AgentRunID != nil {
+		data["agent_run_id"] = d.AgentRunID.String()
+	}
+	return data
 }
