@@ -38,6 +38,48 @@ type AccessGrant struct {
 	CreatedAt   time.Time
 }
 
+type Agent struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	SponsorUserID uuid.UUID
+	Name          string
+	Kind          string
+	Status        string
+	Limits        []byte
+	CreatedBy     *uuid.UUID
+	CreatedAt     time.Time
+}
+
+type AgentRun struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	AgentID       uuid.UUID
+	SponsorUserID uuid.UUID
+	Client        string
+	Reason        string
+	Status        string
+	Actions       int32
+	DenialsInRow  int32
+	MaxActions    int32
+	MaxConcurrent int32
+	ExpiresAt     time.Time
+	StartedAt     time.Time
+	EndedAt       *time.Time
+	EndReason     *string
+}
+
+type AgentToolCall struct {
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	RunID       uuid.UUID
+	Tool        string
+	Arguments   []byte
+	Traceparent string
+	Status      string
+	StartedAt   time.Time
+	EndedAt     *time.Time
+}
+
 type Approval struct {
 	ID                uuid.UUID
 	OrgID             uuid.UUID
@@ -416,6 +458,10 @@ type Session struct {
 	Command           *string
 	Classes           []string
 	Paths             []string
+	AgentRunID        *uuid.UUID
+	ToolCallID        *uuid.UUID
+	ExitCode          *int32
+	OutputSha256      []byte
 }
 
 type SigningKey struct {
