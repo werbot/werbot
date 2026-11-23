@@ -9,12 +9,13 @@
 		manager: boolean;
 		open?: boolean;
 		onlimits: () => void;
+		onprofiles: () => void;
 		onfreeze: () => void;
 		onkill: (type: 'agent' | 'agents_of_user') => void;
 		ondelete: () => void;
 	}
 
-	let { agent, manager, open = $bindable(false), onlimits, onfreeze, onkill, ondelete }: Props = $props();
+	let { agent, manager, open = $bindable(false), onlimits, onprofiles, onfreeze, onkill, ondelete }: Props = $props();
 </script>
 
 <Dropdown placement="bottom-end" bind:open>
@@ -26,6 +27,7 @@
 	{#snippet children({ close })}
 		<Menu>
 			<MenuItem icon="gear" onclick={() => (close(), onlimits())}>{m.agents_action_limits()}</MenuItem>
+			<MenuItem icon="key" onclick={() => (close(), onprofiles())}>{m.agents_action_profiles()}</MenuItem>
 			<MenuItem icon={agent.status === 'frozen' ? 'activity' : 'hourglass'} onclick={() => (close(), onfreeze())}>
 				{agent.status === 'frozen' ? m.agents_action_unfreeze() : m.agents_action_freeze()}
 			</MenuItem>

@@ -30,6 +30,7 @@ type agentFake struct {
 	werbotv1connect.UnimplementedCertServiceHandler
 	werbotv1connect.UnimplementedAgentServiceHandler
 	werbotv1connect.UnimplementedResourceServiceHandler
+	profileFake
 
 	h              *harness
 	agentID, runID uuid.UUID
@@ -52,6 +53,8 @@ func useAgentServer(t *testing.T, h *harness) *agentFake {
 	mux.Handle(werbotv1connect.NewCertServiceHandler(f))
 	mux.Handle(werbotv1connect.NewAgentServiceHandler(f))
 	mux.Handle(werbotv1connect.NewResourceServiceHandler(f))
+	mux.Handle(werbotv1connect.NewAgentProfileServiceHandler(&f.profileFake))
+	mux.HandleFunc("/oauth/revoke", f.revokeToken)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.hits.Add(1)
 		mux.ServeHTTP(w, r)

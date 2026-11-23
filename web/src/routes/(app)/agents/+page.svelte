@@ -9,6 +9,7 @@
 	import AgentMenu from '#lib/agents/AgentMenu.svelte';
 	import KillSwitchDrawer, { type KillTarget } from '#lib/agents/KillSwitchDrawer.svelte';
 	import LimitsDrawer from '#lib/agents/LimitsDrawer.svelte';
+	import ProfilesDrawer from '#lib/agents/ProfilesDrawer.svelte';
 	import RunsTable from '#lib/agents/RunsTable.svelte';
 	import CellLead from '#lib/CellLead.svelte';
 	import LoadFailed from '#lib/LoadFailed.svelte';
@@ -27,6 +28,7 @@
 	let failed = $state(false);
 	let menuOpen = $state('');
 	let limiting = $state<Agent | null>(null);
+	let profiling = $state<Agent | null>(null);
 	let removing = $state<Agent | null>(null);
 	let kill = $state<KillTarget | null>(null);
 
@@ -111,6 +113,7 @@
 							{manager}
 							bind:open={() => menuOpen === a.id, (v) => (menuOpen = v ? a.id : '')}
 							onlimits={() => (limiting = a)}
+							onprofiles={() => (profiling = a)}
 							onfreeze={() => freeze(a)}
 							onkill={(type) => killAgent(a, type)}
 							ondelete={() => (removing = a)}
@@ -129,6 +132,7 @@
 </PageBody>
 
 <LimitsDrawer agent={limiting} onclose={() => (limiting = null)} onsaved={load} />
+<ProfilesDrawer agent={profiling} onclose={() => (profiling = null)} />
 <KillSwitchDrawer target={kill} onclose={() => (kill = null)} />
 
 <Modal open={removing !== null} onclose={() => (removing = null)} title={m.agents_action_delete()}>

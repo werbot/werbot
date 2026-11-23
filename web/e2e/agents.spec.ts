@@ -7,6 +7,7 @@ import { loginAsOwner } from './support/auth';
 import { rpc } from './support/rpc';
 
 const agentSvc = 'werbot.v1.AgentService/';
+const profileSvc = 'werbot.v1.AgentProfileService/';
 const lockSvc = 'werbot.v1.LockService/';
 
 test('owner manages agent limits, freeze and kill switch', async ({ page }) => {
@@ -52,6 +53,30 @@ test('owner manages agent limits, freeze and kill switch', async ({ page }) => {
 		const { locks = [] } = await rpc(page, lockSvc + 'ListLocks', {});
 		for (const l of locks.filter((x: { targetId: string }) => x.targetId === agent.id)) await rpc(page, lockSvc + 'DeleteLock', { id: l.id });
 		if (!deleted) await rpc(page, agentSvc + 'DeleteAgent', { id: agent.id });
+	}
+});
+
+test('owner sees and revokes agent profiles', async ({ page }) => {
+	await loginAsOwner(page);
+	const { agent } = await rpc(page, agentSvc + 'CreateAgent', { name: 'e2e-profile' });
+	try {
+		await rpc(page, profileSvc + 'CreateAgentProfile', { agentId: agent.id, label: 'e2e box' });
+		await page.goto('/agents');
+		const row = page.getByRole('row').filter({ hasText: 'e2e-profile' });
+		await row.getByRole('button', { name: en.common_more }).click();
+		await page.getByRole('menuitem', { name: en.agents_action_profiles, exact: true }).click();
+		const drawer = page.getByRole('dialog', { name: 'Profiles of e2e-profile' });
+		await expect(drawer.getByText('werbot agents profile create e2e-profile')).toBeVisible();
+		await expect(drawer.getByRole('row').filter({ hasText: 'e2e box' })).toBeVisible();
+		await page.waitForTimeout(500); // the drawer slide-in ends
+		await page.screenshot({ path: '../.superpowers/sdd/stage12-agents/screens/agent-profiles-drawer.png' });
+
+		await drawer.getByRole('button', { name: en.agents_profiles_revoke }).click();
+		await page.getByRole('dialog', { name: en.agents_profiles_revoke }).getByRole('button', { name: en.agents_profiles_revoke }).click();
+		await expect(page.getByText(en.agents_profiles_revoked)).toBeVisible();
+		await expect(drawer.getByText(en.agents_profiles_empty)).toBeVisible();
+	} finally {
+		await rpc(page, agentSvc + 'DeleteAgent', { id: agent.id });
 	}
 });
 

@@ -604,6 +604,7 @@
 	"agents_action_limits": "Limits",
 	"agents_action_freeze": "Freeze",
 	"agents_action_unfreeze": "Unfreeze",
+	"agents_action_profiles": "Profiles",
 	"agents_action_delete": "Delete agent",
 	"agents_delete_confirm": "The agent and its runs are deleted. Active runs end at once.",
 	"agents_kill_agent": "Lock agent",
@@ -656,5 +657,15 @@
 	"agents_baseline_terminal": "Agents get no terminal",
 	"agents_baseline_sftp": "Agents get no file transfer",
 	"agents_baseline_frozen": "The agent is frozen",
-	"agents_baseline_blocked_runs": "The run is locked or paused"
+	"agents_baseline_blocked_runs": "The run is locked or paused",
+	"agents_profiles_title": "Profiles of {agent}",
+	"agents_profiles_hint": "A profile lets another OS user or a container start runs of this agent only. Create one in the CLI, it writes the profile directory:",
+	"agents_profiles_empty": "No live profiles",
+	"agents_profiles_label": "Label",
+	"agents_profiles_created": "Created",
+	"agents_profiles_last_used": "Last used",
+	"agents_profiles_expires": "Expires",
+	"agents_profiles_revoke": "Revoke",
+	"agents_profiles_revoke_confirm": "Revoke this profile? The agent host loses access at once.",
+	"agents_profiles_revoked": "Profile revoked"
 }

@@ -13,7 +13,7 @@ import (
 )
 
 func newAgentsCommand(env Env) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use: "agents", Short: "List the agents you may run", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			_, p, err := loadProfile(env)
@@ -36,6 +36,8 @@ func newAgentsCommand(env Env) *cobra.Command {
 			return w.Flush()
 		},
 	}
+	cmd.AddCommand(newAgentProfileCommand(env))
+	return cmd
 }
 
 // orDefault is text, or "default" when the limit is unset (0).
