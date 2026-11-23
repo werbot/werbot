@@ -14,7 +14,7 @@ import (
 
 // AccessibleResources returns the resources userID may connect to (the first
 // action of the type, port 0) from ip at the time at (zero: now), in snapshot
-// order. It evaluates one snapshot like CheckAccess: teams, country and the
+// order; a resource that needs a fresh second factor first is listed too. It evaluates one snapshot like CheckAccess: teams, country and the
 // blocklist apply. A snapshot that fails to compile allows nothing.
 func (s *Service) AccessibleResources(ctx context.Context, orgID, userID uuid.UUID, ip netip.Addr, at time.Time) ([]uuid.UUID, error) {
 	snap, blocked, err := s.load(ctx, orgID, ip)
@@ -37,8 +37,8 @@ func (s *Service) AccessibleResources(ctx context.Context, orgID, userID uuid.UU
 		if !ok {
 			continue
 		}
-		if ps.Authorize(Request{UserID: userID, TeamIDs: teams, ResourceID: r.ID, Action: typ.Actions[0],
-			IP: ip, Country: country, Time: at, IPBlocked: blocked}).Allow {
+		if reachable(ps.Authorize(Request{UserID: userID, TeamIDs: teams, ResourceID: r.ID, Action: typ.Actions[0],
+			IP: ip, Country: country, Time: at, IPBlocked: blocked})) {
 			out = append(out, r.ID)
 		}
 	}

@@ -154,6 +154,47 @@ func (q *Queries) CreateCustomPolicy(ctx context.Context, arg CreateCustomPolicy
 	return i, err
 }
 
+const createMFARule = `-- name: CreateMFARule :one
+INSERT INTO mfa_rule (org_id, name, subjects, resource_selector, max_age, strength, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, org_id, name, subjects, resource_selector, max_age, strength, created_by, created_at
+`
+
+type CreateMFARuleParams struct {
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	MaxAge           pgtype.Interval
+	Strength         string
+	CreatedBy        *uuid.UUID
+}
+
+func (q *Queries) CreateMFARule(ctx context.Context, arg CreateMFARuleParams) (MfaRule, error) {
+	row := q.db.QueryRow(ctx, createMFARule,
+		arg.OrgID,
+		arg.Name,
+		arg.Subjects,
+		arg.ResourceSelector,
+		arg.MaxAge,
+		arg.Strength,
+		arg.CreatedBy,
+	)
+	var i MfaRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.MaxAge,
+		&i.Strength,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createPathRule = `-- name: CreatePathRule :one
 INSERT INTO path_rule (org_id, name, subjects, resource_selector, paths, access, effect, message, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -332,6 +373,32 @@ func (q *Queries) DeleteCustomPolicy(ctx context.Context, arg DeleteCustomPolicy
 		&i.Enabled,
 		&i.CreatedBy,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const deleteMFARule = `-- name: DeleteMFARule :one
+DELETE FROM mfa_rule WHERE org_id = $1 AND id = $2 RETURNING id, org_id, name, subjects, resource_selector, max_age, strength, created_by, created_at
+`
+
+type DeleteMFARuleParams struct {
+	OrgID uuid.UUID
+	ID    uuid.UUID
+}
+
+func (q *Queries) DeleteMFARule(ctx context.Context, arg DeleteMFARuleParams) (MfaRule, error) {
+	row := q.db.QueryRow(ctx, deleteMFARule, arg.OrgID, arg.ID)
+	var i MfaRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.MaxAge,
+		&i.Strength,
+		&i.CreatedBy,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -688,6 +755,40 @@ func (q *Queries) ListCustomPolicies(ctx context.Context, orgID uuid.UUID) ([]Cu
 	return items, nil
 }
 
+const listMFARules = `-- name: ListMFARules :many
+SELECT id, org_id, name, subjects, resource_selector, max_age, strength, created_by, created_at FROM mfa_rule WHERE org_id = $1 ORDER BY name
+`
+
+func (q *Queries) ListMFARules(ctx context.Context, orgID uuid.UUID) ([]MfaRule, error) {
+	rows, err := q.db.Query(ctx, listMFARules, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MfaRule
+	for rows.Next() {
+		var i MfaRule
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.Subjects,
+			&i.ResourceSelector,
+			&i.MaxAge,
+			&i.Strength,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listNetworkRules = `-- name: ListNetworkRules :many
 SELECT resource_id, cidr, effect FROM resource_network_rule
 WHERE org_id = $1 AND ($2::uuid IS NULL OR resource_id = $2::uuid)
@@ -922,6 +1023,47 @@ func (q *Queries) UpdateCustomPolicy(ctx context.Context, arg UpdateCustomPolicy
 		&i.Enabled,
 		&i.CreatedBy,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateMFARule = `-- name: UpdateMFARule :one
+UPDATE mfa_rule SET name = $1, subjects = $2, resource_selector = $3, max_age = $4, strength = $5
+WHERE org_id = $6 AND id = $7
+RETURNING id, org_id, name, subjects, resource_selector, max_age, strength, created_by, created_at
+`
+
+type UpdateMFARuleParams struct {
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	MaxAge           pgtype.Interval
+	Strength         string
+	OrgID            uuid.UUID
+	ID               uuid.UUID
+}
+
+func (q *Queries) UpdateMFARule(ctx context.Context, arg UpdateMFARuleParams) (MfaRule, error) {
+	row := q.db.QueryRow(ctx, updateMFARule,
+		arg.Name,
+		arg.Subjects,
+		arg.ResourceSelector,
+		arg.MaxAge,
+		arg.Strength,
+		arg.OrgID,
+		arg.ID,
+	)
+	var i MfaRule
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.Subjects,
+		&i.ResourceSelector,
+		&i.MaxAge,
+		&i.Strength,
+		&i.CreatedBy,
+		&i.CreatedAt,
 	)
 	return i, err
 }

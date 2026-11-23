@@ -74,7 +74,7 @@ func TestDecideObligationsFailClosed(t *testing.T) {
 	m := newIDs("u1", "r1")
 	permit := `@id("binding:b") permit (principal, action, resource);` + "\n"
 	for name, text := range map[string]string{
-		"unknown obligation": permit + `@id("f") @obligation("mfa") forbid (principal, action, resource) unless { context.approval_granted };`,
+		"unknown obligation": permit + `@id("f") @obligation("sms") forbid (principal, action, resource) unless { context.approval_granted };`,
 		"no permit":          `@id("f") @obligation("approval") forbid (principal, action, resource) unless { context.approval_granted };`,
 		"evaluation error": permit + `@id("f") @obligation("approval") forbid (principal, action, resource) unless { context.approval_granted };
 @id("bad") forbid (principal, action, resource) when { context.missing };`,

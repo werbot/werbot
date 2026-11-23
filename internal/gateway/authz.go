@@ -68,6 +68,10 @@ type AccessRequest struct {
 	Console bool
 	// Kind is the kind of the session ("terminal" for its shell decision); "": none.
 	Kind Kind
+	// MFAAgeSeconds is the age of the user's last second factor of
+	// MFAMethod ("totp" | "webauthn"); MFAMethod "" means none.
+	MFAAgeSeconds int64
+	MFAMethod     string
 }
 
 // Policy is a compiled snapshot: the local policy decision point.
@@ -205,14 +209,17 @@ func (p *Policy) Resource(name string) (Resource, bool) {
 	return p.resources[i], true
 }
 
-// Permitted lists the resources u may connect to, by ascending Name.
+// Permitted lists the resources u may connect to, by ascending Name; a
+// resource that needs a fresh second factor first is listed too. An agent's
+// decision never carries mfa (mergeAgent). It mirrors
+// policy.(*Service).AccessibleResources: change both together.
 func (p *Policy) Permitted(u User, ip netip.Addr, now time.Time) []Resource {
 	if p == nil {
 		return nil
 	}
 	var out []Resource
 	for _, r := range p.resources {
-		if ok, _ := p.Authorize(AccessRequest{User: u, Resource: r, IP: ip, Time: now}); ok {
+		if d := p.Decide(AccessRequest{User: u, Resource: r, IP: ip, Time: now}); d.Allow || slices.Equal(d.Obligations, []string{ObligationMFA}) {
 			out = append(out, r)
 		}
 	}

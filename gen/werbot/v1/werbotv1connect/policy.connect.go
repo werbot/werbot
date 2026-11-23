@@ -99,6 +99,18 @@ const (
 	// PolicyServiceDeleteTerminalRuleProcedure is the fully-qualified name of the PolicyService's
 	// DeleteTerminalRule RPC.
 	PolicyServiceDeleteTerminalRuleProcedure = "/werbot.v1.PolicyService/DeleteTerminalRule"
+	// PolicyServiceListMFARulesProcedure is the fully-qualified name of the PolicyService's
+	// ListMFARules RPC.
+	PolicyServiceListMFARulesProcedure = "/werbot.v1.PolicyService/ListMFARules"
+	// PolicyServiceCreateMFARuleProcedure is the fully-qualified name of the PolicyService's
+	// CreateMFARule RPC.
+	PolicyServiceCreateMFARuleProcedure = "/werbot.v1.PolicyService/CreateMFARule"
+	// PolicyServiceUpdateMFARuleProcedure is the fully-qualified name of the PolicyService's
+	// UpdateMFARule RPC.
+	PolicyServiceUpdateMFARuleProcedure = "/werbot.v1.PolicyService/UpdateMFARule"
+	// PolicyServiceDeleteMFARuleProcedure is the fully-qualified name of the PolicyService's
+	// DeleteMFARule RPC.
+	PolicyServiceDeleteMFARuleProcedure = "/werbot.v1.PolicyService/DeleteMFARule"
 )
 
 // PolicyServiceClient is a client for the werbot.v1.PolicyService service.
@@ -132,6 +144,11 @@ type PolicyServiceClient interface {
 	ListTerminalRules(context.Context, *connect.Request[v1.ListTerminalRulesRequest]) (*connect.Response[v1.ListTerminalRulesResponse], error)
 	CreateTerminalRule(context.Context, *connect.Request[v1.CreateTerminalRuleRequest]) (*connect.Response[v1.CreateTerminalRuleResponse], error)
 	DeleteTerminalRule(context.Context, *connect.Request[v1.DeleteTerminalRuleRequest]) (*connect.Response[v1.DeleteTerminalRuleResponse], error)
+	// MFA rules require a fresh second factor to connect (messages in policy_mfa.proto).
+	ListMFARules(context.Context, *connect.Request[v1.ListMFARulesRequest]) (*connect.Response[v1.ListMFARulesResponse], error)
+	CreateMFARule(context.Context, *connect.Request[v1.CreateMFARuleRequest]) (*connect.Response[v1.CreateMFARuleResponse], error)
+	UpdateMFARule(context.Context, *connect.Request[v1.UpdateMFARuleRequest]) (*connect.Response[v1.UpdateMFARuleResponse], error)
+	DeleteMFARule(context.Context, *connect.Request[v1.DeleteMFARuleRequest]) (*connect.Response[v1.DeleteMFARuleResponse], error)
 }
 
 // NewPolicyServiceClient constructs a client for the werbot.v1.PolicyService service. By default,
@@ -277,6 +294,30 @@ func NewPolicyServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(policyServiceMethods.ByName("DeleteTerminalRule")),
 			connect.WithClientOptions(opts...),
 		),
+		listMFARules: connect.NewClient[v1.ListMFARulesRequest, v1.ListMFARulesResponse](
+			httpClient,
+			baseURL+PolicyServiceListMFARulesProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("ListMFARules")),
+			connect.WithClientOptions(opts...),
+		),
+		createMFARule: connect.NewClient[v1.CreateMFARuleRequest, v1.CreateMFARuleResponse](
+			httpClient,
+			baseURL+PolicyServiceCreateMFARuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("CreateMFARule")),
+			connect.WithClientOptions(opts...),
+		),
+		updateMFARule: connect.NewClient[v1.UpdateMFARuleRequest, v1.UpdateMFARuleResponse](
+			httpClient,
+			baseURL+PolicyServiceUpdateMFARuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("UpdateMFARule")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteMFARule: connect.NewClient[v1.DeleteMFARuleRequest, v1.DeleteMFARuleResponse](
+			httpClient,
+			baseURL+PolicyServiceDeleteMFARuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("DeleteMFARule")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -304,6 +345,10 @@ type policyServiceClient struct {
 	listTerminalRules  *connect.Client[v1.ListTerminalRulesRequest, v1.ListTerminalRulesResponse]
 	createTerminalRule *connect.Client[v1.CreateTerminalRuleRequest, v1.CreateTerminalRuleResponse]
 	deleteTerminalRule *connect.Client[v1.DeleteTerminalRuleRequest, v1.DeleteTerminalRuleResponse]
+	listMFARules       *connect.Client[v1.ListMFARulesRequest, v1.ListMFARulesResponse]
+	createMFARule      *connect.Client[v1.CreateMFARuleRequest, v1.CreateMFARuleResponse]
+	updateMFARule      *connect.Client[v1.UpdateMFARuleRequest, v1.UpdateMFARuleResponse]
+	deleteMFARule      *connect.Client[v1.DeleteMFARuleRequest, v1.DeleteMFARuleResponse]
 }
 
 // GetResourceRules calls werbot.v1.PolicyService.GetResourceRules.
@@ -416,6 +461,26 @@ func (c *policyServiceClient) DeleteTerminalRule(ctx context.Context, req *conne
 	return c.deleteTerminalRule.CallUnary(ctx, req)
 }
 
+// ListMFARules calls werbot.v1.PolicyService.ListMFARules.
+func (c *policyServiceClient) ListMFARules(ctx context.Context, req *connect.Request[v1.ListMFARulesRequest]) (*connect.Response[v1.ListMFARulesResponse], error) {
+	return c.listMFARules.CallUnary(ctx, req)
+}
+
+// CreateMFARule calls werbot.v1.PolicyService.CreateMFARule.
+func (c *policyServiceClient) CreateMFARule(ctx context.Context, req *connect.Request[v1.CreateMFARuleRequest]) (*connect.Response[v1.CreateMFARuleResponse], error) {
+	return c.createMFARule.CallUnary(ctx, req)
+}
+
+// UpdateMFARule calls werbot.v1.PolicyService.UpdateMFARule.
+func (c *policyServiceClient) UpdateMFARule(ctx context.Context, req *connect.Request[v1.UpdateMFARuleRequest]) (*connect.Response[v1.UpdateMFARuleResponse], error) {
+	return c.updateMFARule.CallUnary(ctx, req)
+}
+
+// DeleteMFARule calls werbot.v1.PolicyService.DeleteMFARule.
+func (c *policyServiceClient) DeleteMFARule(ctx context.Context, req *connect.Request[v1.DeleteMFARuleRequest]) (*connect.Response[v1.DeleteMFARuleResponse], error) {
+	return c.deleteMFARule.CallUnary(ctx, req)
+}
+
 // PolicyServiceHandler is an implementation of the werbot.v1.PolicyService service.
 type PolicyServiceHandler interface {
 	GetResourceRules(context.Context, *connect.Request[v1.GetResourceRulesRequest]) (*connect.Response[v1.GetResourceRulesResponse], error)
@@ -447,6 +512,11 @@ type PolicyServiceHandler interface {
 	ListTerminalRules(context.Context, *connect.Request[v1.ListTerminalRulesRequest]) (*connect.Response[v1.ListTerminalRulesResponse], error)
 	CreateTerminalRule(context.Context, *connect.Request[v1.CreateTerminalRuleRequest]) (*connect.Response[v1.CreateTerminalRuleResponse], error)
 	DeleteTerminalRule(context.Context, *connect.Request[v1.DeleteTerminalRuleRequest]) (*connect.Response[v1.DeleteTerminalRuleResponse], error)
+	// MFA rules require a fresh second factor to connect (messages in policy_mfa.proto).
+	ListMFARules(context.Context, *connect.Request[v1.ListMFARulesRequest]) (*connect.Response[v1.ListMFARulesResponse], error)
+	CreateMFARule(context.Context, *connect.Request[v1.CreateMFARuleRequest]) (*connect.Response[v1.CreateMFARuleResponse], error)
+	UpdateMFARule(context.Context, *connect.Request[v1.UpdateMFARuleRequest]) (*connect.Response[v1.UpdateMFARuleResponse], error)
+	DeleteMFARule(context.Context, *connect.Request[v1.DeleteMFARuleRequest]) (*connect.Response[v1.DeleteMFARuleResponse], error)
 }
 
 // NewPolicyServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -588,6 +658,30 @@ func NewPolicyServiceHandler(svc PolicyServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(policyServiceMethods.ByName("DeleteTerminalRule")),
 		connect.WithHandlerOptions(opts...),
 	)
+	policyServiceListMFARulesHandler := connect.NewUnaryHandler(
+		PolicyServiceListMFARulesProcedure,
+		svc.ListMFARules,
+		connect.WithSchema(policyServiceMethods.ByName("ListMFARules")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceCreateMFARuleHandler := connect.NewUnaryHandler(
+		PolicyServiceCreateMFARuleProcedure,
+		svc.CreateMFARule,
+		connect.WithSchema(policyServiceMethods.ByName("CreateMFARule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceUpdateMFARuleHandler := connect.NewUnaryHandler(
+		PolicyServiceUpdateMFARuleProcedure,
+		svc.UpdateMFARule,
+		connect.WithSchema(policyServiceMethods.ByName("UpdateMFARule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceDeleteMFARuleHandler := connect.NewUnaryHandler(
+		PolicyServiceDeleteMFARuleProcedure,
+		svc.DeleteMFARule,
+		connect.WithSchema(policyServiceMethods.ByName("DeleteMFARule")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/werbot.v1.PolicyService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PolicyServiceGetResourceRulesProcedure:
@@ -634,6 +728,14 @@ func NewPolicyServiceHandler(svc PolicyServiceHandler, opts ...connect.HandlerOp
 			policyServiceCreateTerminalRuleHandler.ServeHTTP(w, r)
 		case PolicyServiceDeleteTerminalRuleProcedure:
 			policyServiceDeleteTerminalRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceListMFARulesProcedure:
+			policyServiceListMFARulesHandler.ServeHTTP(w, r)
+		case PolicyServiceCreateMFARuleProcedure:
+			policyServiceCreateMFARuleHandler.ServeHTTP(w, r)
+		case PolicyServiceUpdateMFARuleProcedure:
+			policyServiceUpdateMFARuleHandler.ServeHTTP(w, r)
+		case PolicyServiceDeleteMFARuleProcedure:
+			policyServiceDeleteMFARuleHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -729,4 +831,20 @@ func (UnimplementedPolicyServiceHandler) CreateTerminalRule(context.Context, *co
 
 func (UnimplementedPolicyServiceHandler) DeleteTerminalRule(context.Context, *connect.Request[v1.DeleteTerminalRuleRequest]) (*connect.Response[v1.DeleteTerminalRuleResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.DeleteTerminalRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) ListMFARules(context.Context, *connect.Request[v1.ListMFARulesRequest]) (*connect.Response[v1.ListMFARulesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.ListMFARules is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) CreateMFARule(context.Context, *connect.Request[v1.CreateMFARuleRequest]) (*connect.Response[v1.CreateMFARuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.CreateMFARule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) UpdateMFARule(context.Context, *connect.Request[v1.UpdateMFARuleRequest]) (*connect.Response[v1.UpdateMFARuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.UpdateMFARule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) DeleteMFARule(context.Context, *connect.Request[v1.DeleteMFARuleRequest]) (*connect.Response[v1.DeleteMFARuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.DeleteMFARule is not implemented"))
 }

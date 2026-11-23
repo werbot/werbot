@@ -49,4 +49,8 @@ type Store interface {
 	ListTerminalRules(ctx context.Context, orgID uuid.UUID) ([]dbq.TerminalRule, error)
 	CreateTerminalRule(ctx context.Context, arg dbq.CreateTerminalRuleParams) (dbq.TerminalRule, error)
 	DeleteTerminalRule(ctx context.Context, arg dbq.DeleteTerminalRuleParams) (dbq.TerminalRule, error)
+	ListMFARules(ctx context.Context, orgID uuid.UUID) ([]dbq.MfaRule, error)
+	CreateMFARule(ctx context.Context, arg dbq.CreateMFARuleParams) (dbq.MfaRule, error)
+	UpdateMFARule(ctx context.Context, arg dbq.UpdateMFARuleParams) (dbq.MfaRule, error)
+	DeleteMFARule(ctx context.Context, arg dbq.DeleteMFARuleParams) (dbq.MfaRule, error)
 }

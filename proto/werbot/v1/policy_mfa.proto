@@ -1,0 +1,68 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "werbot/v1/selector.proto";
+
+// MFARule makes the people among subjects confirm a second factor no older
+// than max_age before they connect to the selected resources; strength
+// "webauthn" accepts only a passkey, "any" a TOTP code too.
+message MFARule {
+  string id = 1;
+  string name = 2;
+  Subjects subjects = 3; // people only: all_agents is refused
+  ResourceSelector resource_selector = 4;
+  google.protobuf.Duration max_age = 5;
+  string strength = 6; // "any" | "webauthn"
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message ListMFARulesRequest {}
+message ListMFARulesResponse {
+  repeated MFARule rules = 1;
+}
+
+message CreateMFARuleRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  Subjects subjects = 2;
+  ResourceSelector resource_selector = 3;
+  // 30s to 24h.
+  google.protobuf.Duration max_age = 4 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).duration = {
+      gte: {seconds: 30}
+      lte: {seconds: 86400}
+    }
+  ];
+  string strength = 5 [(buf.validate.field).string = {in: ["any", "webauthn"]}];
+}
+message CreateMFARuleResponse {
+  MFARule rule = 1;
+}
+
+// UpdateMFARuleRequest replaces the rule as a whole.
+message UpdateMFARuleRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  Subjects subjects = 3;
+  ResourceSelector resource_selector = 4;
+  // 30s to 24h.
+  google.protobuf.Duration max_age = 5 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).duration = {
+      gte: {seconds: 30}
+      lte: {seconds: 86400}
+    }
+  ];
+  string strength = 6 [(buf.validate.field).string = {in: ["any", "webauthn"]}];
+}
+message UpdateMFARuleResponse {
+  MFARule rule = 1;
+}
+
+message DeleteMFARuleRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteMFARuleResponse {}

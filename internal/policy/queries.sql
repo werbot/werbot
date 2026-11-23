@@ -135,3 +135,19 @@ RETURNING *;
 
 -- name: DeleteTerminalRule :one
 DELETE FROM terminal_rule WHERE org_id = @org_id AND id = @id RETURNING *;
+
+-- name: ListMFARules :many
+SELECT * FROM mfa_rule WHERE org_id = @org_id ORDER BY name;
+
+-- name: CreateMFARule :one
+INSERT INTO mfa_rule (org_id, name, subjects, resource_selector, max_age, strength, created_by)
+VALUES (@org_id, @name, @subjects, @resource_selector, @max_age, @strength, @created_by)
+RETURNING *;
+
+-- name: UpdateMFARule :one
+UPDATE mfa_rule SET name = @name, subjects = @subjects, resource_selector = @resource_selector, max_age = @max_age, strength = @strength
+WHERE org_id = @org_id AND id = @id
+RETURNING *;
+
+-- name: DeleteMFARule :one
+DELETE FROM mfa_rule WHERE org_id = @org_id AND id = @id RETURNING *;

@@ -53,6 +53,13 @@ func TestMigrations14(t *testing.T) {
 	pgCode(t, rule("1 minute", "bogus"), "23514")
 	require.NoError(t, rule("30 seconds", "any"))
 	require.NoError(t, rule("24 hours", "webauthn"))
+	for _, q := range []string{
+		`INSERT INTO mfa_rule (org_id, name, subjects, resource_selector, max_age) VALUES ($1, 'subjects', '[]', '{}', '1 minute')`,
+		`INSERT INTO mfa_rule (org_id, name, subjects, resource_selector, max_age) VALUES ($1, 'selector', '{}', '[]', '1 minute')`,
+	} {
+		_, err := pool.Exec(ctx, q, f.OrgID)
+		pgCode(t, err, "23514")
+	}
 
 	member := []any{f.OrgID, f.MemberID}
 	for name, c := range map[string]struct {

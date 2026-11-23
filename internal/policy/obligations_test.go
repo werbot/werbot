@@ -66,7 +66,7 @@ func TestObligationsOnlyWhenAllForbidsCarryThem(t *testing.T) {
 func TestUnknownObligationOrErrorDenies(t *testing.T) {
 	cases := map[string]string{
 		"unknown obligation": `@id("ok") permit (principal, action, resource);
-@id("f") @obligation("mfa") forbid (principal, action, resource) unless { context.approval_granted };`,
+@id("f") @obligation("sms") forbid (principal, action, resource) unless { context.approval_granted };`,
 		"evaluation error": `@id("ok") permit (principal, action, resource);
 @id("f") @obligation("approval") forbid (principal, action, resource) unless { context.approval_granted };
 @id("bad") forbid (principal, action, resource) when { context.missing };`,

@@ -3,6 +3,7 @@ package werbot.v1;
 
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
+import "werbot/v1/policy_mfa.proto";
 import "werbot/v1/policy_paths.proto";
 import "werbot/v1/selector.proto";
 
@@ -38,6 +39,11 @@ service PolicyService {
   rpc ListTerminalRules(ListTerminalRulesRequest) returns (ListTerminalRulesResponse);
   rpc CreateTerminalRule(CreateTerminalRuleRequest) returns (CreateTerminalRuleResponse);
   rpc DeleteTerminalRule(DeleteTerminalRuleRequest) returns (DeleteTerminalRuleResponse);
+  // MFA rules require a fresh second factor to connect (messages in policy_mfa.proto).
+  rpc ListMFARules(ListMFARulesRequest) returns (ListMFARulesResponse);
+  rpc CreateMFARule(CreateMFARuleRequest) returns (CreateMFARuleResponse);
+  rpc UpdateMFARule(UpdateMFARuleRequest) returns (UpdateMFARuleResponse);
+  rpc DeleteMFARule(DeleteMFARuleRequest) returns (DeleteMFARuleResponse);
 }
 
 // NetworkRule allows or denies a client CIDR.

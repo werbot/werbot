@@ -54,6 +54,7 @@ func (p *Policy) AuthorizeAgent(r AccessRequest) Decision {
 	if !ok {
 		return Decision{Reasons: []string{"agent:missing"}}
 	}
+	r.MFAAgeSeconds, r.MFAMethod = 0, "" // an agent never carries a second factor
 	return mergeAgent(p.decidePass(r, nil), p.decidePass(r, &agent))
 }
 
@@ -76,8 +77,9 @@ func (p *Policy) agentEntity(r AccessRequest) (cedar.Entity, bool) {
 
 // mergeAgent combines the sponsor and agent passes: allow only when both
 // allow; reasons are the union, sorted; a deny carries obligations only when
-// every denying pass carries them (their union), and the message of the
-// first denying pass that has one. It mirrors policy.mergeAgent: change both together.
+// every denying pass carries them (their union) and none is mfa, which an
+// agent never meets, and the message of the first denying pass that has one.
+// It mirrors policy.mergeAgent: change both together.
 // ponytail: depguard does not force this copy (both may import platform); move
 // Decision and mergeAgent to one platform package in the mirror cleanup.
 func mergeAgent(user, agent Decision) Decision {
@@ -96,7 +98,7 @@ func mergeAgent(user, agent Decision) Decision {
 		every = every && len(d.Obligations) > 0
 		obligations = append(obligations, d.Obligations...)
 	}
-	if every {
+	if every && !slices.Contains(obligations, ObligationMFA) {
 		out.Obligations = slices.Compact(slices.Sorted(slices.Values(obligations)))
 	}
 	return out

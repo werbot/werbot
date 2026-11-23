@@ -35,7 +35,7 @@ func TestValidateCustomRejects(t *testing.T) {
 		{"empty", "", "no policies"},
 		{"comment only", "// nothing\n", "no policies"},
 		{"reserved id", `@id("x") permit (principal, action, resource);`, "@id is reserved"},
-		{"unknown obligation", `@obligation("mfa") forbid (principal, action, resource);`, `unknown obligation "mfa"`},
+		{"unknown obligation", `@obligation("sms") forbid (principal, action, resource);`, `unknown obligation "sms"`},
 		{"obligation on permit", `@obligation("approval") permit (principal, action, resource);`, "only on forbid"},
 		{"unknown context attribute", `forbid (principal, action, resource) when { context.clases.contains("write") };`, "attribute `clases`"},
 		{"tags as attribute", `forbid (principal, action, resource) when { resource.tags["env"] == "prod" };`, "attribute `tags`"},
@@ -114,7 +114,7 @@ func TestValidateCustomStage11b(t *testing.T) {
 	} {
 		assert.NoError(t, ValidateCustom(text), text)
 	}
-	err := ValidateCustom(`@obligation("mfa") forbid (principal, action == Werbot::Action::"ssh.shell", resource);`)
+	err := ValidateCustom(`@obligation("sms") forbid (principal, action == Werbot::Action::"ssh.shell", resource);`)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), `unknown obligation "mfa"`)
+	assert.Contains(t, err.Error(), `unknown obligation "sms"`)
 }

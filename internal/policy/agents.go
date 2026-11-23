@@ -37,7 +37,7 @@ func agentUID(id uuid.UUID) cedar.EntityUID {
 // authorizeAgent decides r of agent r.AgentID twice: as its sponsor r.UserID
 // (with the sponsor's teams) and as the agent, and allows only when both
 // passes allow. An agent missing from the snapshot or sponsored by another
-// user denies (fail-closed).
+// user denies (fail-closed); an agent never carries a second factor.
 // The gateway PDP mirrors this in internal/gateway/agent.go: change both together.
 func (ps *PolicySet) authorizeAgent(r Request) Decision {
 	agent := agentUID(*r.AgentID)
@@ -46,13 +46,14 @@ func (ps *PolicySet) authorizeAgent(r Request) Decision {
 	if !ok || sponsor != userUID(r.UserID) {
 		return Decision{Reasons: []string{"agent:missing"}}
 	}
+	r.MFAAgeSeconds, r.MFAMethod = 0, ""
 	return mergeAgent(ps.decidePass(r, userUID(r.UserID)), ps.decidePass(r, agent))
 }
 
 // mergeAgent combines the sponsor and agent passes: allow only when both
 // allow; reasons are the union, sorted; a deny carries obligations only when
-// every denying pass carries them (their union), and the message of the
-// first denying pass that has one.
+// every denying pass carries them (their union) and none is mfa, which an
+// agent never meets, and the message of the first denying pass that has one.
 func mergeAgent(user, agent Decision) Decision {
 	out := Decision{Allow: user.Allow && agent.Allow,
 		Reasons: slices.Compact(slices.Sorted(slices.Values(slices.Concat(user.Reasons, agent.Reasons))))}
@@ -69,7 +70,7 @@ func mergeAgent(user, agent Decision) Decision {
 		every = every && len(d.Obligations) > 0
 		obligations = append(obligations, d.Obligations...)
 	}
-	if every {
+	if every && !slices.Contains(obligations, ObligationMFA) {
 		out.Obligations = slices.Compact(slices.Sorted(slices.Values(obligations)))
 	}
 	return out

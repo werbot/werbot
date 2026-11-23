@@ -181,13 +181,13 @@ func (s *Service) loadSources(ctx context.Context, orgID uuid.UUID, snap *Snapsh
 	return err
 }
 
-// readOrg reads the resource, exec, path and terminal rules of snap.OrgID into snap and
+// readOrg reads the resource, exec, path, terminal and MFA rules of snap.OrgID into snap and
 // checks a valid ip against the blocklist.
 func readOrg(ctx context.Context, st Store, ip netip.Addr, snap *Snapshot) (blocked bool, err error) {
 	if snap.Rules, err = listRules(ctx, st, snap.OrgID, nil); err != nil {
 		return false, err
 	}
-	if err = errors.Join(loadExec(ctx, st, snap), loadPaths(ctx, st, snap)); err != nil {
+	if err = errors.Join(loadExec(ctx, st, snap), loadPaths(ctx, st, snap), loadMFA(ctx, st, snap)); err != nil {
 		return false, err
 	}
 	if ip.IsValid() {

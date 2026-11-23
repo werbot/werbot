@@ -11,6 +11,7 @@ import (
 const (
 	ObligationApproval = "approval" // an approval of the command
 	ObligationConsole  = "console"  // the shell is served by the command console
+	ObligationMFA      = "mfa"      // a fresh second factor of the user (mfa_rule)
 )
 
 // obligations are the known @obligation names and how a request meets each;
@@ -18,6 +19,7 @@ const (
 var obligations = map[string]func(*Request){
 	ObligationApproval: func(r *Request) { r.ApprovalGranted = true },
 	ObligationConsole:  func(r *Request) { r.Console = true },
+	ObligationMFA:      func(r *Request) { r.MFAAgeSeconds, r.MFAMethod = 0, "webauthn" },
 }
 
 // explain returns the @message of the first deciding forbid by ascending
@@ -59,4 +61,21 @@ func (ps *PolicySet) meet(r Request, p cedar.EntityUID, names []string) []string
 		return nil
 	}
 	return slices.Compact(slices.Sorted(slices.Values(names)))
+}
+
+// MFAStrength is the factor that meets the mfa obligation of r: "any" when
+// a TOTP code confirmed now would allow r, "webauthn" otherwise.
+// The gateway PDP mirrors it in internal/gateway/authz_exec.go: change both together.
+func MFAStrength(ps *PolicySet, r Request) string {
+	r.MFAAgeSeconds, r.MFAMethod = 0, "totp"
+	if ps.Authorize(r).Allow {
+		return "any"
+	}
+	return "webauthn"
+}
+
+// reachable reports whether d allows, or denies only until the user confirms
+// a second factor; an agent's decision never carries mfa (mergeAgent).
+func reachable(d Decision) bool {
+	return d.Allow || slices.Equal(d.Obligations, []string{ObligationMFA})
 }

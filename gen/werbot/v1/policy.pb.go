@@ -2060,7 +2060,7 @@ var File_werbot_v1_policy_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_policy_proto_rawDesc = "" +
 	"\n" +
-	"\x16werbot/v1/policy.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cwerbot/v1/policy_paths.proto\x1a\x18werbot/v1/selector.proto\"9\n" +
+	"\x16werbot/v1/policy.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1awerbot/v1/policy_mfa.proto\x1a\x1cwerbot/v1/policy_paths.proto\x1a\x18werbot/v1/selector.proto\"9\n" +
 	"\vNetworkRule\x12\x12\n" +
 	"\x04cidr\x18\x01 \x01(\tR\x04cidr\x12\x16\n" +
 	"\x06effect\x18\x02 \x01(\tR\x06effect\"?\n" +
@@ -2195,7 +2195,7 @@ const file_werbot_v1_policy_proto_rawDesc = "" +
 	"\amessage\x18\x05 \x01(\tR\amessage\x12\x14\n" +
 	"\x05paths\x18\x06 \x03(\tR\x05paths\x12\x1b\n" +
 	"\tpath_hits\x18\a \x03(\tR\bpathHits\x12!\n" +
-	"\fpath_outside\x18\b \x03(\tR\vpathOutside2\xf8\x0f\n" +
+	"\fpath_outside\x18\b \x03(\tR\vpathOutside2\xc5\x12\n" +
 	"\rPolicyService\x12[\n" +
 	"\x10GetResourceRules\x12\".werbot.v1.GetResourceRulesRequest\x1a#.werbot.v1.GetResourceRulesResponse\x12[\n" +
 	"\x10SetResourceRules\x12\".werbot.v1.SetResourceRulesRequest\x1a#.werbot.v1.SetResourceRulesResponse\x12L\n" +
@@ -2218,7 +2218,11 @@ const file_werbot_v1_policy_proto_rawDesc = "" +
 	"\x0eDeletePathRule\x12 .werbot.v1.DeletePathRuleRequest\x1a!.werbot.v1.DeletePathRuleResponse\x12^\n" +
 	"\x11ListTerminalRules\x12#.werbot.v1.ListTerminalRulesRequest\x1a$.werbot.v1.ListTerminalRulesResponse\x12a\n" +
 	"\x12CreateTerminalRule\x12$.werbot.v1.CreateTerminalRuleRequest\x1a%.werbot.v1.CreateTerminalRuleResponse\x12a\n" +
-	"\x12DeleteTerminalRule\x12$.werbot.v1.DeleteTerminalRuleRequest\x1a%.werbot.v1.DeleteTerminalRuleResponseB\x92\x01\n" +
+	"\x12DeleteTerminalRule\x12$.werbot.v1.DeleteTerminalRuleRequest\x1a%.werbot.v1.DeleteTerminalRuleResponse\x12O\n" +
+	"\fListMFARules\x12\x1e.werbot.v1.ListMFARulesRequest\x1a\x1f.werbot.v1.ListMFARulesResponse\x12R\n" +
+	"\rCreateMFARule\x12\x1f.werbot.v1.CreateMFARuleRequest\x1a .werbot.v1.CreateMFARuleResponse\x12R\n" +
+	"\rUpdateMFARule\x12\x1f.werbot.v1.UpdateMFARuleRequest\x1a .werbot.v1.UpdateMFARuleResponse\x12R\n" +
+	"\rDeleteMFARule\x12\x1f.werbot.v1.DeleteMFARuleRequest\x1a .werbot.v1.DeleteMFARuleResponseB\x92\x01\n" +
 	"\rcom.werbot.v1B\vPolicyProtoP\x01Z/github.com/werbot/werbot/gen/werbot/v1;werbotv1\xa2\x02\x03WXX\xaa\x02\tWerbot.V1\xca\x02\tWerbot\\V1\xe2\x02\x15Werbot\\V1\\GPBMetadata\xea\x02\n" +
 	"Werbot::V1b\x06proto3"
 
@@ -2282,13 +2286,21 @@ var file_werbot_v1_policy_proto_goTypes = []any{
 	(*ListTerminalRulesRequest)(nil),   // 43: werbot.v1.ListTerminalRulesRequest
 	(*CreateTerminalRuleRequest)(nil),  // 44: werbot.v1.CreateTerminalRuleRequest
 	(*DeleteTerminalRuleRequest)(nil),  // 45: werbot.v1.DeleteTerminalRuleRequest
-	(*ListPathRulesResponse)(nil),      // 46: werbot.v1.ListPathRulesResponse
-	(*CreatePathRuleResponse)(nil),     // 47: werbot.v1.CreatePathRuleResponse
-	(*UpdatePathRuleResponse)(nil),     // 48: werbot.v1.UpdatePathRuleResponse
-	(*DeletePathRuleResponse)(nil),     // 49: werbot.v1.DeletePathRuleResponse
-	(*ListTerminalRulesResponse)(nil),  // 50: werbot.v1.ListTerminalRulesResponse
-	(*CreateTerminalRuleResponse)(nil), // 51: werbot.v1.CreateTerminalRuleResponse
-	(*DeleteTerminalRuleResponse)(nil), // 52: werbot.v1.DeleteTerminalRuleResponse
+	(*ListMFARulesRequest)(nil),        // 46: werbot.v1.ListMFARulesRequest
+	(*CreateMFARuleRequest)(nil),       // 47: werbot.v1.CreateMFARuleRequest
+	(*UpdateMFARuleRequest)(nil),       // 48: werbot.v1.UpdateMFARuleRequest
+	(*DeleteMFARuleRequest)(nil),       // 49: werbot.v1.DeleteMFARuleRequest
+	(*ListPathRulesResponse)(nil),      // 50: werbot.v1.ListPathRulesResponse
+	(*CreatePathRuleResponse)(nil),     // 51: werbot.v1.CreatePathRuleResponse
+	(*UpdatePathRuleResponse)(nil),     // 52: werbot.v1.UpdatePathRuleResponse
+	(*DeletePathRuleResponse)(nil),     // 53: werbot.v1.DeletePathRuleResponse
+	(*ListTerminalRulesResponse)(nil),  // 54: werbot.v1.ListTerminalRulesResponse
+	(*CreateTerminalRuleResponse)(nil), // 55: werbot.v1.CreateTerminalRuleResponse
+	(*DeleteTerminalRuleResponse)(nil), // 56: werbot.v1.DeleteTerminalRuleResponse
+	(*ListMFARulesResponse)(nil),       // 57: werbot.v1.ListMFARulesResponse
+	(*CreateMFARuleResponse)(nil),      // 58: werbot.v1.CreateMFARuleResponse
+	(*UpdateMFARuleResponse)(nil),      // 59: werbot.v1.UpdateMFARuleResponse
+	(*DeleteMFARuleResponse)(nil),      // 60: werbot.v1.DeleteMFARuleResponse
 }
 var file_werbot_v1_policy_proto_depIdxs = []int32{
 	0,  // 0: werbot.v1.GetResourceRulesResponse.networks:type_name -> werbot.v1.NetworkRule
@@ -2337,30 +2349,38 @@ var file_werbot_v1_policy_proto_depIdxs = []int32{
 	43, // 43: werbot.v1.PolicyService.ListTerminalRules:input_type -> werbot.v1.ListTerminalRulesRequest
 	44, // 44: werbot.v1.PolicyService.CreateTerminalRule:input_type -> werbot.v1.CreateTerminalRuleRequest
 	45, // 45: werbot.v1.PolicyService.DeleteTerminalRule:input_type -> werbot.v1.DeleteTerminalRuleRequest
-	4,  // 46: werbot.v1.PolicyService.GetResourceRules:output_type -> werbot.v1.GetResourceRulesResponse
-	6,  // 47: werbot.v1.PolicyService.SetResourceRules:output_type -> werbot.v1.SetResourceRulesResponse
-	8,  // 48: werbot.v1.PolicyService.CheckAccess:output_type -> werbot.v1.CheckAccessResponse
-	11, // 49: werbot.v1.PolicyService.ListCommandRules:output_type -> werbot.v1.ListCommandRulesResponse
-	13, // 50: werbot.v1.PolicyService.CreateCommandRule:output_type -> werbot.v1.CreateCommandRuleResponse
-	15, // 51: werbot.v1.PolicyService.UpdateCommandRule:output_type -> werbot.v1.UpdateCommandRuleResponse
-	17, // 52: werbot.v1.PolicyService.DeleteCommandRule:output_type -> werbot.v1.DeleteCommandRuleResponse
-	20, // 53: werbot.v1.PolicyService.ListClassRules:output_type -> werbot.v1.ListClassRulesResponse
-	22, // 54: werbot.v1.PolicyService.CreateClassRule:output_type -> werbot.v1.CreateClassRuleResponse
-	24, // 55: werbot.v1.PolicyService.DeleteClassRule:output_type -> werbot.v1.DeleteClassRuleResponse
-	27, // 56: werbot.v1.PolicyService.ListCustomPolicies:output_type -> werbot.v1.ListCustomPoliciesResponse
-	29, // 57: werbot.v1.PolicyService.CreateCustomPolicy:output_type -> werbot.v1.CreateCustomPolicyResponse
-	31, // 58: werbot.v1.PolicyService.UpdateCustomPolicy:output_type -> werbot.v1.UpdateCustomPolicyResponse
-	33, // 59: werbot.v1.PolicyService.DeleteCustomPolicy:output_type -> werbot.v1.DeleteCustomPolicyResponse
-	35, // 60: werbot.v1.PolicyService.TestCommand:output_type -> werbot.v1.TestCommandResponse
-	46, // 61: werbot.v1.PolicyService.ListPathRules:output_type -> werbot.v1.ListPathRulesResponse
-	47, // 62: werbot.v1.PolicyService.CreatePathRule:output_type -> werbot.v1.CreatePathRuleResponse
-	48, // 63: werbot.v1.PolicyService.UpdatePathRule:output_type -> werbot.v1.UpdatePathRuleResponse
-	49, // 64: werbot.v1.PolicyService.DeletePathRule:output_type -> werbot.v1.DeletePathRuleResponse
-	50, // 65: werbot.v1.PolicyService.ListTerminalRules:output_type -> werbot.v1.ListTerminalRulesResponse
-	51, // 66: werbot.v1.PolicyService.CreateTerminalRule:output_type -> werbot.v1.CreateTerminalRuleResponse
-	52, // 67: werbot.v1.PolicyService.DeleteTerminalRule:output_type -> werbot.v1.DeleteTerminalRuleResponse
-	46, // [46:68] is the sub-list for method output_type
-	24, // [24:46] is the sub-list for method input_type
+	46, // 46: werbot.v1.PolicyService.ListMFARules:input_type -> werbot.v1.ListMFARulesRequest
+	47, // 47: werbot.v1.PolicyService.CreateMFARule:input_type -> werbot.v1.CreateMFARuleRequest
+	48, // 48: werbot.v1.PolicyService.UpdateMFARule:input_type -> werbot.v1.UpdateMFARuleRequest
+	49, // 49: werbot.v1.PolicyService.DeleteMFARule:input_type -> werbot.v1.DeleteMFARuleRequest
+	4,  // 50: werbot.v1.PolicyService.GetResourceRules:output_type -> werbot.v1.GetResourceRulesResponse
+	6,  // 51: werbot.v1.PolicyService.SetResourceRules:output_type -> werbot.v1.SetResourceRulesResponse
+	8,  // 52: werbot.v1.PolicyService.CheckAccess:output_type -> werbot.v1.CheckAccessResponse
+	11, // 53: werbot.v1.PolicyService.ListCommandRules:output_type -> werbot.v1.ListCommandRulesResponse
+	13, // 54: werbot.v1.PolicyService.CreateCommandRule:output_type -> werbot.v1.CreateCommandRuleResponse
+	15, // 55: werbot.v1.PolicyService.UpdateCommandRule:output_type -> werbot.v1.UpdateCommandRuleResponse
+	17, // 56: werbot.v1.PolicyService.DeleteCommandRule:output_type -> werbot.v1.DeleteCommandRuleResponse
+	20, // 57: werbot.v1.PolicyService.ListClassRules:output_type -> werbot.v1.ListClassRulesResponse
+	22, // 58: werbot.v1.PolicyService.CreateClassRule:output_type -> werbot.v1.CreateClassRuleResponse
+	24, // 59: werbot.v1.PolicyService.DeleteClassRule:output_type -> werbot.v1.DeleteClassRuleResponse
+	27, // 60: werbot.v1.PolicyService.ListCustomPolicies:output_type -> werbot.v1.ListCustomPoliciesResponse
+	29, // 61: werbot.v1.PolicyService.CreateCustomPolicy:output_type -> werbot.v1.CreateCustomPolicyResponse
+	31, // 62: werbot.v1.PolicyService.UpdateCustomPolicy:output_type -> werbot.v1.UpdateCustomPolicyResponse
+	33, // 63: werbot.v1.PolicyService.DeleteCustomPolicy:output_type -> werbot.v1.DeleteCustomPolicyResponse
+	35, // 64: werbot.v1.PolicyService.TestCommand:output_type -> werbot.v1.TestCommandResponse
+	50, // 65: werbot.v1.PolicyService.ListPathRules:output_type -> werbot.v1.ListPathRulesResponse
+	51, // 66: werbot.v1.PolicyService.CreatePathRule:output_type -> werbot.v1.CreatePathRuleResponse
+	52, // 67: werbot.v1.PolicyService.UpdatePathRule:output_type -> werbot.v1.UpdatePathRuleResponse
+	53, // 68: werbot.v1.PolicyService.DeletePathRule:output_type -> werbot.v1.DeletePathRuleResponse
+	54, // 69: werbot.v1.PolicyService.ListTerminalRules:output_type -> werbot.v1.ListTerminalRulesResponse
+	55, // 70: werbot.v1.PolicyService.CreateTerminalRule:output_type -> werbot.v1.CreateTerminalRuleResponse
+	56, // 71: werbot.v1.PolicyService.DeleteTerminalRule:output_type -> werbot.v1.DeleteTerminalRuleResponse
+	57, // 72: werbot.v1.PolicyService.ListMFARules:output_type -> werbot.v1.ListMFARulesResponse
+	58, // 73: werbot.v1.PolicyService.CreateMFARule:output_type -> werbot.v1.CreateMFARuleResponse
+	59, // 74: werbot.v1.PolicyService.UpdateMFARule:output_type -> werbot.v1.UpdateMFARuleResponse
+	60, // 75: werbot.v1.PolicyService.DeleteMFARule:output_type -> werbot.v1.DeleteMFARuleResponse
+	50, // [50:76] is the sub-list for method output_type
+	24, // [24:50] is the sub-list for method input_type
 	24, // [24:24] is the sub-list for extension type_name
 	24, // [24:24] is the sub-list for extension extendee
 	0,  // [0:24] is the sub-list for field type_name
@@ -2371,6 +2391,7 @@ func file_werbot_v1_policy_proto_init() {
 	if File_werbot_v1_policy_proto != nil {
 		return
 	}
+	file_werbot_v1_policy_mfa_proto_init()
 	file_werbot_v1_policy_paths_proto_init()
 	file_werbot_v1_selector_proto_init()
 	file_werbot_v1_policy_proto_msgTypes[34].OneofWrappers = []any{

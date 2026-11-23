@@ -96,6 +96,7 @@ type Snapshot struct {
 	CustomPolicies []SnapshotCustomPolicy `json:"custom_policies"` // enabled only
 	PathRules      []SnapshotPathRule     `json:"path_rules"`
 	TerminalRules  []SnapshotTerminalRule `json:"terminal_rules"`
+	MFARules       []SnapshotMFARule      `json:"mfa_rules"`
 	Agents         []SnapshotAgent        `json:"agents"`
 	BlockedRuns    []uuid.UUID            `json:"blocked_runs"` // paused or recently ended runs
 }
@@ -126,6 +127,10 @@ type Request struct {
 	// marks a shell the command console serves.
 	Paths, PathHits, PathOutside []string
 	Console                      bool
+	// MFAAgeSeconds is the age of the user's last second factor of
+	// MFAMethod ("totp" | "webauthn"); MFAMethod "" means none (mfaAge).
+	MFAAgeSeconds int64
+	MFAMethod     string
 }
 
 // Decision lists the ids of the policies that decided it; "error:<id>" marks
@@ -254,31 +259,11 @@ func (ps *PolicySet) evaluate(r Request, p cedar.EntityUID) (cedar.Decision, ced
 			"console":          cedar.Boolean(r.Console),
 			"run_id":           cedar.String(rpcid.String(r.RunID)), // no run is "", which no run id matches
 			"kind":             cedar.String(r.Kind),
+			"mfa_age":          cedar.Long(mfaAge(r)),
+			"mfa_method":       cedar.String(r.MFAMethod),
 		}),
 	}
 	return cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)
-}
-
-// cliSession is id as context.cli_session_id: uuid.Nil (no CLI session) is "",
-// which no cli_session lock matches.
-func cliSession(id uuid.UUID) string {
-	if id == uuid.Nil {
-		return ""
-	}
-	return id.String()
-}
-
-// typeHasAction reports whether action is one of the actions of the registered
-// type of resource id; a resource outside the snapshot has none.
-func (ps *PolicySet) typeHasAction(id uuid.UUID, action string) bool {
-	e, ok := ps.entities[cedar.NewEntityUID("Werbot::Resource", cedar.String(id.String()))]
-	if !ok {
-		return false
-	}
-	v, _ := e.Attributes.Get("type")
-	typ, _ := v.(cedar.String)
-	t, ok := connector.Lookup(string(typ))
-	return ok && slices.Contains(t.Actions, action)
 }
 
 // entityGetter adds the request user to the compiled entities without copying them.

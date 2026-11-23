@@ -3,6 +3,7 @@ package gateway
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/netip"
 	"slices"
 	"strings"
@@ -20,6 +21,7 @@ import (
 const (
 	ObligationApproval = "approval" // an approval of the command
 	ObligationConsole  = "console"  // the shell is served by the command console
+	ObligationMFA      = "mfa"      // a fresh second factor of the user (mfa_rule)
 )
 
 // obligations are the known @obligation names and how a request meets each;
@@ -27,6 +29,7 @@ const (
 var obligations = map[string]func(*AccessRequest){
 	ObligationApproval: func(r *AccessRequest) { r.ApprovalGranted = true },
 	ObligationConsole:  func(r *AccessRequest) { r.Console = true },
+	ObligationMFA:      func(r *AccessRequest) { r.MFAAgeSeconds, r.MFAMethod = 0, "webauthn" },
 }
 
 // Decision lists the ids of the policies that decided it (@id, else
@@ -106,45 +109,6 @@ func compilePathRule(r *gatewayv1.PathRule) (shellclass.PathRule, error) {
 		return shellclass.PathRule{}, fmt.Errorf("snapshot path rule %s: %w", id, err)
 	}
 	return rule, nil
-}
-
-// Analyze classifies command like the server's TestCommand, with the snapshot
-// class rules and the host of the target resource, and lists the paths it
-// touches from cwd ("~", "~/…" or absolute). No snapshot: opaque and unresolved.
-func (p *Policy) Analyze(command, resourceHost, cwd string) shellclass.Analysis {
-	if p == nil {
-		return shellclass.Analysis{Classes: []shellclass.Class{shellclass.Opaque}, Unresolved: true}
-	}
-	return p.classifier.Analyze(command, resourceHost, cwd)
-}
-
-// PathRules are the snapshot path rules, by ID.
-func (p *Policy) PathRules() []shellclass.PathRule {
-	if p == nil {
-		return nil
-	}
-	return p.pathRules
-}
-
-// pathSet is the compiled path rules of p, with "~" globs resolved from home
-// when it is set.
-func (p *Policy) pathSet(home string) shellclass.PathSet {
-	switch {
-	case p == nil:
-		return shellclass.PathSet{}
-	case home == "":
-		return p.paths
-	}
-	return shellclass.CompilePaths(shellclass.ExpandHome(p.pathRules, home))
-}
-
-// MaskOutput is whose exec output the gateway masks: "agents", "all" or
-// "none"; an older server sends none, which means "agents".
-func (p *Policy) MaskOutput() string {
-	if p == nil || p.maskOutput == "" {
-		return "agents"
-	}
-	return p.maskOutput
 }
 
 // Decide decides r: an agent's request in two passes (AuthorizeAgent), a
@@ -270,9 +234,35 @@ func (p *Policy) evaluate(r AccessRequest, agent *cedar.Entity) (cedar.Decision,
 			"console":          cedar.Boolean(r.Console),
 			"run_id":           cedar.String(idString(r.User.runID())),
 			"kind":             cedar.String(r.Kind),
+			"mfa_age":          cedar.Long(r.mfaAge()),
+			"mfa_method":       cedar.String(r.MFAMethod),
 		}),
 	}
 	return cedar.Authorize(p.policies, getter, req)
+}
+
+// noMFA is context.mfa_age of a request without a second factor: no rule's
+// max_age is met.
+const noMFA int64 = math.MaxInt64
+
+// mfaAge is r as context.mfa_age: noMFA without a method or with a negative
+// age (fail-closed). It mirrors policy.mfaAge: change both together.
+func (r AccessRequest) mfaAge() int64 {
+	if r.MFAMethod == "" || r.MFAAgeSeconds < 0 {
+		return noMFA
+	}
+	return r.MFAAgeSeconds
+}
+
+// MFAStrength is the factor that meets the mfa obligation of r: "any" when
+// a TOTP code confirmed now would allow r, "webauthn" otherwise. It mirrors
+// policy.MFAStrength: change both together.
+func (p *Policy) MFAStrength(r AccessRequest) string {
+	r.MFAAgeSeconds, r.MFAMethod = 0, "totp"
+	if p.Decide(r).Allow {
+		return "any"
+	}
+	return "webauthn"
 }
 
 // at is the time of r; zero is now.
