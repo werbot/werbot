@@ -13,7 +13,7 @@ import (
 func TestRootHelpListsCommands(t *testing.T) {
 	var out bytes.Buffer
 	require.NoError(t, Run(context.Background(), []string{"--help"}, env(nil), &out))
-	for _, cmd := range []string{"server", "gateway", "web", "connect", "migrate", "version", "healthcheck"} {
+	for _, cmd := range []string{"server", "gateway", "web", "connect", "migrate", "version", "healthcheck", "mcp", "agent", "agents"} {
 		assert.Contains(t, out.String(), cmd)
 	}
 }
