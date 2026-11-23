@@ -2,7 +2,6 @@ package tunnel
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -92,42 +91,13 @@ func (h *Handler) GetApproval(ctx context.Context, req *connect.Request[gatewayv
 // and dropped. It never blocks the listener: a full queue closes the stream
 // with "overflow", and the reconnected gateway gets the decision resent.
 func (h *Hub) ApprovalDecided(payload string) {
-	inst, id, err := parseDecided(payload)
-	if err != nil {
-		h.logger().Warn("tunnel: ignoring approval_decided payload", "payload", payload)
-		return
-	}
-	overflow := false
+	inst, id, ok := h.parsePayload("approval_decided", payload)
 	h.mu.Lock()
-	if h.h != nil && h.h.d.Approvals != nil {
-		// ponytail: linear scan over the replica's streams; index them by instance if NOTIFY volume grows
-		for _, set := range h.streams {
-			for s := range set {
-				if s.gw.InstanceID != inst {
-					continue
-				}
-				select {
-				case s.ctl <- id:
-				default:
-					overflow = true
-					s.close(unavailable("overflow"))
-				}
-			}
-		}
-	}
+	on := h.h != nil && h.h.d.Approvals != nil
 	h.mu.Unlock()
-	if overflow {
+	if ok && on && h.enqueue(inst, ctlMsg{kind: approvalDecided, id: id}, true) {
 		h.logger().Warn("tunnel: approval decision overflow", "instance_id", inst)
 	}
-}
-
-func parseDecided(payload string) (inst, id uuid.UUID, err error) {
-	a, b, _ := strings.Cut(payload, ":")
-	if inst, err = uuid.Parse(a); err != nil {
-		return
-	}
-	id, err = uuid.Parse(b)
-	return
 }
 
 type connectStream = connect.BidiStream[gatewayv1.ConnectRequest, gatewayv1.ConnectResponse]

@@ -65,6 +65,8 @@ const (
 	// TunnelServiceRecordDenialProcedure is the fully-qualified name of the TunnelService's
 	// RecordDenial RPC.
 	TunnelServiceRecordDenialProcedure = "/gateway.v1.TunnelService/RecordDenial"
+	// TunnelServiceStreamProcedure is the fully-qualified name of the TunnelService's Stream RPC.
+	TunnelServiceStreamProcedure = "/gateway.v1.TunnelService/Stream"
 )
 
 // TunnelServiceClient is a client for the gateway.v1.TunnelService service.
@@ -83,6 +85,7 @@ type TunnelServiceClient interface {
 	RequestApproval(context.Context, *connect.Request[v1.RequestApprovalRequest]) (*connect.Response[v1.RequestApprovalResponse], error)
 	GetApproval(context.Context, *connect.Request[v1.GetApprovalRequest]) (*connect.Response[v1.GetApprovalResponse], error)
 	RecordDenial(context.Context, *connect.Request[v1.RecordDenialRequest]) (*connect.Response[v1.RecordDenialResponse], error)
+	Stream(context.Context) *connect.BidiStreamForClient[v1.StreamRequest, v1.StreamResponse]
 }
 
 // NewTunnelServiceClient constructs a client for the gateway.v1.TunnelService service. By default,
@@ -162,6 +165,12 @@ func NewTunnelServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(tunnelServiceMethods.ByName("RecordDenial")),
 			connect.WithClientOptions(opts...),
 		),
+		stream: connect.NewClient[v1.StreamRequest, v1.StreamResponse](
+			httpClient,
+			baseURL+TunnelServiceStreamProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("Stream")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -178,6 +187,7 @@ type tunnelServiceClient struct {
 	requestApproval      *connect.Client[v1.RequestApprovalRequest, v1.RequestApprovalResponse]
 	getApproval          *connect.Client[v1.GetApprovalRequest, v1.GetApprovalResponse]
 	recordDenial         *connect.Client[v1.RecordDenialRequest, v1.RecordDenialResponse]
+	stream               *connect.Client[v1.StreamRequest, v1.StreamResponse]
 }
 
 // Connect calls gateway.v1.TunnelService.Connect.
@@ -235,6 +245,11 @@ func (c *tunnelServiceClient) RecordDenial(ctx context.Context, req *connect.Req
 	return c.recordDenial.CallUnary(ctx, req)
 }
 
+// Stream calls gateway.v1.TunnelService.Stream.
+func (c *tunnelServiceClient) Stream(ctx context.Context) *connect.BidiStreamForClient[v1.StreamRequest, v1.StreamResponse] {
+	return c.stream.CallBidiStream(ctx)
+}
+
 // TunnelServiceHandler is an implementation of the gateway.v1.TunnelService service.
 type TunnelServiceHandler interface {
 	// Connect carries heartbeats up and policy snapshots down.
@@ -251,6 +266,7 @@ type TunnelServiceHandler interface {
 	RequestApproval(context.Context, *connect.Request[v1.RequestApprovalRequest]) (*connect.Response[v1.RequestApprovalResponse], error)
 	GetApproval(context.Context, *connect.Request[v1.GetApprovalRequest]) (*connect.Response[v1.GetApprovalResponse], error)
 	RecordDenial(context.Context, *connect.Request[v1.RecordDenialRequest]) (*connect.Response[v1.RecordDenialResponse], error)
+	Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error
 }
 
 // NewTunnelServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -326,6 +342,12 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(tunnelServiceMethods.ByName("RecordDenial")),
 		connect.WithHandlerOptions(opts...),
 	)
+	tunnelServiceStreamHandler := connect.NewBidiStreamHandler(
+		TunnelServiceStreamProcedure,
+		svc.Stream,
+		connect.WithSchema(tunnelServiceMethods.ByName("Stream")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gateway.v1.TunnelService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TunnelServiceConnectProcedure:
@@ -350,6 +372,8 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 			tunnelServiceGetApprovalHandler.ServeHTTP(w, r)
 		case TunnelServiceRecordDenialProcedure:
 			tunnelServiceRecordDenialHandler.ServeHTTP(w, r)
+		case TunnelServiceStreamProcedure:
+			tunnelServiceStreamHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -401,4 +425,8 @@ func (UnimplementedTunnelServiceHandler) GetApproval(context.Context, *connect.R
 
 func (UnimplementedTunnelServiceHandler) RecordDenial(context.Context, *connect.Request[v1.RecordDenialRequest]) (*connect.Response[v1.RecordDenialResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.RecordDenial is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.Stream is not implemented"))
 }

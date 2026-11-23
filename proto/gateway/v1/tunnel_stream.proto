@@ -1,0 +1,67 @@
+syntax = "proto3";
+package gateway.v1;
+
+import "buf/validate/validate.proto";
+
+// StreamRequest is a frame from the gateway on TunnelService.Stream; the
+// first one opens the stream with its ticket.
+message StreamRequest {
+  StreamFrame frame = 1;
+}
+
+// StreamResponse is a frame to the gateway on TunnelService.Stream.
+message StreamResponse {
+  StreamFrame frame = 1;
+}
+
+// StreamFrame is one frame of a browser stream. Window bounds are checked in
+// code: a resize out of bounds is skipped, the stream lives.
+message StreamFrame {
+  oneof frame {
+    StreamOpen open = 1;
+    bytes data = 2;
+    Resize resize = 3;
+    StreamClose close = 4;
+  }
+}
+
+message StreamOpen {
+  string ticket_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// Resize is a terminal window size in cells.
+message Resize {
+  int32 cols = 1;
+  int32 rows = 2;
+}
+
+// StreamClose ends a stream: "closed", "denied", "not_found", "limit" or "error".
+message StreamClose {
+  string reason = 1 [(buf.validate.field).string.max_len = 32];
+}
+
+// OpenStream asks the receiving instance to open TunnelService.Stream for a
+// ticket; the stream kind comes from AuthenticateUserResponse.web.mode.
+message OpenStream {
+  string ticket_id = 1;
+  reserved 2;
+  reserved "mode";
+}
+
+// Terminate asks the receiving instance to end one of its sessions.
+message Terminate {
+  string session_id = 1;
+  // always "terminated"; the requester's reason stays in the audit log
+  string reason = 2;
+}
+
+// WebTicket is the stream ticket AuthenticateUser resolved: mode "web" opens
+// a terminal on resource, "observe" watches session_id; client_ip is the browser's.
+message WebTicket {
+  string mode = 1;
+  string resource = 2;
+  string session_id = 3;
+  int32 cols = 4;
+  int32 rows = 5;
+  string client_ip = 6;
+}

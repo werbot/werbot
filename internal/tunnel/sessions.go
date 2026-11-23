@@ -12,6 +12,7 @@ type SessionStart struct {
 	OrgID, GatewayID, InstanceID, UserID, ResourceID uuid.UUID
 	ClientIP                                         netip.Addr
 	Kind, Target                                     string
+	Front                                            string     // "ssh", "web" or empty: ssh
 	Command                                          string     // exec only
 	Classes                                          []string   // exec only; nil when none
 	Paths                                            []string   // the paths the command touches; nil when none

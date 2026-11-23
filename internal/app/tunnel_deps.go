@@ -30,7 +30,7 @@ import (
 func newTunnelDeps(s *services, reg *metrics.Registry, logger *slog.Logger) tunnel.Deps {
 	return tunnel.Deps{
 		Gateways:    tunnelGateways{s.Gateways},
-		Users:       tunnelUsers{s.Identity, s.Agents},
+		Users:       tunnelUsers{s.Identity, s.Agents, s.Sessions},
 		Resources:   tunnelResources{s.Inventory},
 		Credentials: tunnelCredentials{s.Credential},
 		Snapshots:   tunnelSnapshots{s: s, logger: logger},
@@ -60,8 +60,9 @@ func (g tunnelGateways) Authenticate(ctx context.Context, gatewayID, instanceID 
 // tunnelUsers resolves SSH clients to members with their teams, and agent
 // certificates to their sponsor with the run.
 type tunnelUsers struct {
-	ids    *identity.Service
-	agents *agentic.Service
+	ids      *identity.Service
+	agents   *agentic.Service
+	sessions *session.Service
 }
 
 func (u tunnelUsers) ByFingerprint(ctx context.Context, orgID uuid.UUID, fingerprint string) (tunnel.User, error) {

@@ -43,7 +43,8 @@ func parseID(s, field string) (uuid.UUID, error) {
 	return id, nil
 }
 
-// AuthenticateUser resolves an SSH client in the caller's organization.
+// AuthenticateUser resolves an SSH client, or the user of a web ticket, in
+// the caller's organization; a web ticket's country is the browser's.
 func (h *Handler) AuthenticateUser(ctx context.Context, req *connect.Request[gatewayv1.AuthenticateUserRequest]) (*connect.Response[gatewayv1.AuthenticateUserResponse], error) {
 	g, err := caller(ctx)
 	if err != nil {
@@ -53,26 +54,37 @@ func (h *Handler) AuthenticateUser(ctx context.Context, req *connect.Request[gat
 	if err != nil {
 		return nil, err
 	}
-	var u User
-	switch by := req.Msg.GetBy().(type) {
-	case *gatewayv1.AuthenticateUserRequest_FingerprintSha256:
-		u, err = h.d.Users.ByFingerprint(ctx, g.OrgID, by.FingerprintSha256)
-	case *gatewayv1.AuthenticateUserRequest_Login:
-		u, err = h.d.Users.ByLogin(ctx, g.OrgID, by.Login)
-	case *gatewayv1.AuthenticateUserRequest_Cert:
-		u, err = h.byCert(ctx, g.OrgID, by.Cert)
-	default:
-		return nil, invalid("by")
-	}
+	u, wt, err := h.userBy(ctx, g, req.Msg)
 	if err != nil {
 		return nil, h.fail(ctx, "authenticate user", err)
+	}
+	if wt != nil {
+		ip = wt.ClientIP
 	}
 	teams := make([]string, len(u.TeamIDs))
 	for i, id := range u.TeamIDs {
 		teams[i] = id.String()
 	}
-	return connect.NewResponse(&gatewayv1.AuthenticateUserResponse{
-		UserId: u.ID.String(), Login: u.Login, TeamIds: teams, Country: h.d.Country(ip), Agent: agentInfo(u)}), nil
+	return connect.NewResponse(&gatewayv1.AuthenticateUserResponse{UserId: u.ID.String(), Login: u.Login, TeamIds: teams,
+		Country: h.d.Country(ip), Agent: agentInfo(u), Web: webTicketOf(wt)}), nil
+}
+
+// userBy resolves the identity m names; the web ticket is set only for one.
+func (h *Handler) userBy(ctx context.Context, g Gateway, m *gatewayv1.AuthenticateUserRequest) (User, *WebTicket, error) {
+	switch by := m.GetBy().(type) {
+	case *gatewayv1.AuthenticateUserRequest_FingerprintSha256:
+		u, err := h.d.Users.ByFingerprint(ctx, g.OrgID, by.FingerprintSha256)
+		return u, nil, err
+	case *gatewayv1.AuthenticateUserRequest_Login:
+		u, err := h.d.Users.ByLogin(ctx, g.OrgID, by.Login)
+		return u, nil, err
+	case *gatewayv1.AuthenticateUserRequest_Cert:
+		u, err := h.byCert(ctx, g.OrgID, by.Cert)
+		return u, nil, err
+	case *gatewayv1.AuthenticateUserRequest_WebTicket:
+		return h.userByWebTicket(ctx, g, by.WebTicket)
+	}
+	return User{}, nil, invalid("by")
 }
 
 // byCert resolves a certificate the gateway verified, with its agent run when
@@ -123,7 +135,7 @@ func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gateway
 // sessionStartOf is the session m asks g to record; an invalid id or IP is InvalidArgument.
 func sessionStartOf(g Gateway, m *gatewayv1.StartSessionRequest) (s SessionStart, err error) {
 	s = SessionStart{OrgID: g.OrgID, GatewayID: g.ID, InstanceID: g.InstanceID, Kind: m.GetKind(), Target: m.GetTarget(),
-		Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths()}
+		Front: m.GetFront(), Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths()}
 	if s.UserID, err = parseID(m.GetUserId(), "user_id"); err != nil {
 		return s, err
 	}

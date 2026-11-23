@@ -75,6 +75,8 @@ type Users interface {
 	ByFingerprint(ctx context.Context, orgID uuid.UUID, fingerprint string) (User, error)
 	ByLogin(ctx context.Context, orgID uuid.UUID, login string) (User, error)
 	ByCert(ctx context.Context, orgID uuid.UUID, id sshca.Identity) (User, error) // a live CLI session of the certificate
+	// ByWebTicket reads an unspent, unexpired stream ticket of the instance.
+	ByWebTicket(ctx context.Context, orgID, instanceID, ticketID uuid.UUID) (User, WebTicket, error)
 }
 
 // Resources checks pool ownership and pins host keys.
@@ -106,6 +108,8 @@ type Sessions interface {
 	EndMissing(ctx context.Context, orgID, instanceID uuid.UUID, active []uuid.UUID, reason string) (int64, error)
 	UpdateCounters(ctx context.Context, orgID, instanceID uuid.UUID, cs []Counters) error
 	Deny(ctx context.Context, orgID uuid.UUID, ds []Denial) error
+	// PendingTerminations lists the open sessions of the instance asked to end.
+	PendingTerminations(ctx context.Context, orgID, instanceID uuid.UUID) ([]uuid.UUID, error)
 }
 
 // Health stores the probe results of an instance.
@@ -138,6 +142,7 @@ type Deps struct {
 	Pools       Pools
 	Approvals   Approvals // nil: no approval decisions are sent
 	Agents      Agents    // nil: RecordDenial is unimplemented
+	Relay       Bridger   // nil: Stream is unimplemented
 	Country     func(netip.Addr) string
 	Metrics     *metrics.Registry // nil: a private registry
 	Logger      *slog.Logger      // nil: slog.Default()
@@ -173,7 +178,8 @@ func New(d Deps, hub *Hub) *Handler {
 
 // Mount registers TunnelService behind the mTLS middleware. Connect has its
 // own handler: its gzip compressor encodes each distinct message once for
-// all streams (gzipCache); the other procedures keep the default one.
+// all streams (gzipCache); the other procedures keep the default one. Stream
+// has its own read limit (mountStream).
 func (h *Handler) Mount(mux *http.ServeMux) {
 	opts := connect.WithHandlerOptions(connect.WithCompressMinBytes(CompressMinBytes),
 		connect.WithReadMaxBytes(readMaxBytes), connect.WithInterceptors(validate.NewInterceptor()))
@@ -184,6 +190,7 @@ func (h *Handler) Mount(mux *http.ServeMux) {
 		connect.WithCompression("gzip", func() connect.Decompressor { return &gzip.Reader{} },
 			func() connect.Compressor { return &gzipOnce{c: &h.gz} }))
 	mux.Handle(gatewayv1connect.TunnelServiceConnectProcedure, h.mtls(stream))
+	h.mountStream(mux)
 }
 
 // readMaxBytes caps one tunnel message; a snapshot only travels server → gateway.

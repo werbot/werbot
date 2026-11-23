@@ -3,6 +3,7 @@ package gateway.v1;
 
 import "buf/validate/validate.proto";
 import "gateway/v1/tunnel_agent.proto";
+import "gateway/v1/tunnel_stream.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -23,6 +24,7 @@ service TunnelService {
   rpc RequestApproval(RequestApprovalRequest) returns (RequestApprovalResponse);
   rpc GetApproval(GetApprovalRequest) returns (GetApprovalResponse);
   rpc RecordDenial(RecordDenialRequest) returns (RecordDenialResponse);
+  rpc Stream(stream StreamRequest) returns (stream StreamResponse);
 }
 
 message ConnectRequest {
@@ -105,6 +107,8 @@ message ConnectResponse {
     Snapshot snapshot = 1;
     PoolInstances pool_instances = 2;
     ApprovalDecided approval_decided = 3;
+    OpenStream open_stream = 4;
+    Terminate terminate = 5;
   }
 }
 
@@ -177,6 +181,7 @@ message AuthenticateUserRequest {
     string fingerprint_sha256 = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
     string login = 2 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
     CertIdentity cert = 4;
+    string web_ticket = 5 [(buf.validate.field).string.uuid = true];
   }
   string client_ip = 3 [(buf.validate.field).string = {ip: true, max_bytes: 64}];
 }
@@ -199,6 +204,7 @@ message AuthenticateUserResponse {
   repeated string team_ids = 3;
   string country = 4;
   AgentInfo agent = 5;
+  WebTicket web = 6;
 }
 
 message StartSessionRequest {
@@ -221,6 +227,7 @@ message StartSessionRequest {
   // an agent's session: its run counts the action; a tool call of another run is not stored
   string agent_run_id = 8 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   string tool_call_id = 9 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  string front = 10 [(buf.validate.field).string = {in: ["ssh", "web"]}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
 }
 
 message StartSessionResponse {
@@ -238,7 +245,7 @@ message EndSessionRequest {
   // gateway-side end reasons; gateway_lost is set only by the server;
   // policy_stale: a strict organization's tunnel was down too long
   string reason = 2 [(buf.validate.field).string = {
-    in: ["closed", "error", "internal_error", "gateway_shutdown", "recording_unavailable", "idle_timeout", "max_duration", "access_revoked", "policy_stale"]
+    in: ["closed", "error", "internal_error", "gateway_shutdown", "recording_unavailable", "idle_timeout", "max_duration", "access_revoked", "policy_stale", "terminated"]
   }];
   // final totals; unset keeps the stored ones; session_id must equal session_id above
   SessionCounters counters = 3;
