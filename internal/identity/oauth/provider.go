@@ -30,7 +30,7 @@ func New(pool *pgxpool.Pool, key *SigningKey, users Users, agents Agents, cfg Co
 		CodeMethodS256:        true,
 		GrantTypeRefreshToken: true,
 		DeviceAuthorization: op.DeviceAuthorizationConfig{
-			Lifetime: 10 * time.Minute, PollInterval: 5 * time.Second,
+			Lifetime: 10 * time.Minute, PollInterval: DevicePollInterval,
 			UserFormURL: cfg.WebURL + "/device", UserCode: op.UserCodeBase20,
 		},
 	}
@@ -62,11 +62,12 @@ func New(pool *pgxpool.Pool, key *SigningKey, users Users, agents Agents, cfg Co
 		o.ServeHTTP(w, r)
 	})
 	return &Provider{
-		handler: withReqInfo(mux), pool: pool, users: users, webURL: cfg.WebURL,
+		handler: withReqInfo(limitToken(pool, mux)), pool: pool, users: users, webURL: cfg.WebURL,
 		verifier: op.NewAccessTokenVerifier(cfg.Issuer, publicKey{key}, op.WithSupportedAccessTokenSigningAlgorithms(string(jose.ES256))),
 	}, nil
 }
 
 // Handler serves /.well-known/openid-configuration,
-// /.well-known/oauth-authorization-server and /oauth/* (bodies up to 64 KiB).
+// /.well-known/oauth-authorization-server and /oauth/* (bodies up to 64 KiB,
+// POST /oauth/token rate limited per client IP).
 func (p *Provider) Handler() http.Handler { return p.handler }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -16,9 +17,13 @@ import (
 )
 
 // RequestPasswordReset emails a reset link when the address belongs to a
-// user. It returns nil either way, so the answer never reveals an account.
+// user. It returns nil either way, so the answer never reveals an account;
+// the rate limit is counted before the lookup, so it answers alike too.
 func (s *Service) RequestPasswordReset(ctx context.Context, email string) error {
 	email = normalizeEmail(email)
+	if err := s.limit(ctx, "reset:"+email, ResetPerEmail, time.Hour); err != nil {
+		return err
+	}
 	return dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
 		st := newStore(tx)
 		u, err := st.GetResetUser(ctx, email)

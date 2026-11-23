@@ -49,3 +49,12 @@ func TestToConnect(t *testing.T) {
 	assert.Equal(t, "canceled", ce.Message())
 	assert.ErrorIs(t, ce, context.Canceled)
 }
+
+// TestToConnectResourceExhausted: a rate limit refusal is ResourceExhausted
+// with the sentinel's text.
+func TestToConnectResourceExhausted(t *testing.T) {
+	var ce *connect.Error
+	require.ErrorAs(t, apperr.ToConnect(apperr.ErrResourceExhausted), &ce)
+	assert.Equal(t, connect.CodeResourceExhausted, ce.Code())
+	assert.Equal(t, "too many requests", ce.Message())
+}

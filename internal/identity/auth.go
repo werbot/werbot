@@ -13,16 +13,11 @@ import (
 
 // Login checks email and password and opens a session in the user's first
 // organization. Unknown email, wrong password and no membership all return
-// errInvalidCredentials; the password is verified in every case.
+// errInvalidCredentials; the password is verified in every case. Past the
+// login rate limit it returns apperr.ErrResourceExhausted before the check.
 func (s *Service) Login(ctx context.Context, email, password, userAgent string) (string, error) {
-	var u dbq.GetLoginUserRow
-	err := dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
-		var err error
-		u, err = newStore(tx).GetLoginUser(ctx, normalizeEmail(email))
-		return err
-	})
-	found := err == nil
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	u, found, err := s.loginUser(ctx, normalizeEmail(email))
+	if err != nil {
 		return "", err
 	}
 	// argon2 runs outside the transaction: no pooled connection waits on it.
@@ -49,6 +44,23 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent string) 
 		return "", err
 	}
 	return token, nil
+}
+
+// loginUser counts the attempt and finds the user of email; found is false
+// for an unknown email.
+func (s *Service) loginUser(ctx context.Context, email string) (u dbq.GetLoginUserRow, found bool, err error) {
+	if err := s.limitLogin(ctx, email); err != nil {
+		return u, false, err
+	}
+	err = dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
+		var err error
+		u, err = newStore(tx).GetLoginUser(ctx, email)
+		return err
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return u, false, nil
+	}
+	return u, err == nil, err
 }
 
 // Logout deletes the caller's session.

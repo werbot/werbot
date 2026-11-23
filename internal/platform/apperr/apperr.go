@@ -17,6 +17,7 @@ var (
 	ErrUnauthenticated    = errors.New("unauthenticated")
 	ErrFailedPrecondition = errors.New("failed precondition")
 	ErrUnavailable        = errors.New("unavailable") // temporary (database, record store): the client retries
+	ErrResourceExhausted  = errors.New("too many requests")
 )
 
 var codes = []struct {
@@ -30,6 +31,7 @@ var codes = []struct {
 	{ErrUnauthenticated, connect.CodeUnauthenticated},
 	{ErrFailedPrecondition, connect.CodeFailedPrecondition},
 	{ErrUnavailable, connect.CodeUnavailable},
+	{ErrResourceExhausted, connect.CodeResourceExhausted},
 }
 
 // ToConnect converts err to a *connect.Error. Unknown causes never reach the

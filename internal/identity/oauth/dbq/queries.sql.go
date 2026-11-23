@@ -656,9 +656,14 @@ func (q *Queries) LogoutCLISession(ctx context.Context, arg LogoutCLISessionPara
 }
 
 const pollDeviceCode = `-- name: PollDeviceCode :one
-UPDATE oauth_device_code SET last_poll_at = now()
-WHERE device_code_hash = $1 AND client_id = $2
-RETURNING id, status, scopes, user_id, org_id, expires_at, (expires_at > now())::bool AS live
+WITH prev AS (
+    SELECT c.id, c.last_poll_at FROM oauth_device_code c
+    WHERE c.device_code_hash = $1 AND c.client_id = $2
+)
+UPDATE oauth_device_code d SET last_poll_at = now()
+FROM prev WHERE d.id = prev.id
+RETURNING d.id, d.status, d.scopes, d.user_id, d.org_id, d.expires_at, (d.expires_at > now())::bool AS live,
+    d.last_poll_at, prev.last_poll_at AS prev_poll_at
 `
 
 type PollDeviceCodeParams struct {
@@ -667,15 +672,18 @@ type PollDeviceCodeParams struct {
 }
 
 type PollDeviceCodeRow struct {
-	ID        uuid.UUID
-	Status    string
-	Scopes    []string
-	UserID    *uuid.UUID
-	OrgID     *uuid.UUID
-	ExpiresAt time.Time
-	Live      bool
+	ID         uuid.UUID
+	Status     string
+	Scopes     []string
+	UserID     *uuid.UUID
+	OrgID      *uuid.UUID
+	ExpiresAt  time.Time
+	Live       bool
+	LastPollAt *time.Time
+	PrevPollAt *time.Time
 }
 
+// prev_poll_at is the poll before this one (slow_down under 5 s).
 func (q *Queries) PollDeviceCode(ctx context.Context, arg PollDeviceCodeParams) (PollDeviceCodeRow, error) {
 	row := q.db.QueryRow(ctx, pollDeviceCode, arg.DeviceCodeHash, arg.ClientID)
 	var i PollDeviceCodeRow
@@ -687,6 +695,8 @@ func (q *Queries) PollDeviceCode(ctx context.Context, arg PollDeviceCodeParams) 
 		&i.OrgID,
 		&i.ExpiresAt,
 		&i.Live,
+		&i.LastPollAt,
+		&i.PrevPollAt,
 	)
 	return i, err
 }

@@ -24,7 +24,8 @@ import (
 
 var (
 	errNoDevice      = fmt.Errorf("device code: %w", apperr.ErrNotFound)
-	errUnknownDevice = errors.New("unknown device code") // op answers access_denied
+	errUnknownDevice = errors.New("unknown device code")                           // op answers access_denied
+	errSlowDown      = fmt.Errorf("polled too fast: %w", context.DeadlineExceeded) // op answers slow_down
 )
 
 // deviceGrant is the approved code a poll found: the token step of the same
@@ -48,17 +49,10 @@ func (s *storage) StoreDeviceAuthorization(ctx context.Context, clientID, device
 
 // GetDeviceAuthorizatonState implements op.DeviceAuthorizationStorage (op's
 // spelling). A used or ended code reads as expired (expired_token); only an
-// unknown code or a store failure is an error (access_denied, R11).
+// unknown code or a store failure is an error (access_denied, R11), and a
+// pending code polled too fast is errSlowDown (slow_down).
 func (s *storage) GetDeviceAuthorizatonState(ctx context.Context, clientID, deviceCode string) (*op.DeviceAuthorizationState, error) {
-	var r dbq.PollDeviceCodeRow
-	err := dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
-		var err error
-		r, err = dbq.New(tx).PollDeviceCode(ctx, dbq.PollDeviceCodeParams{DeviceCodeHash: hashSecret(deviceCode), ClientID: clientID})
-		return err
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, errUnknownDevice
-	}
+	r, err := s.pollDevice(ctx, clientID, deviceCode)
 	if err != nil {
 		return nil, err
 	}
@@ -75,6 +69,27 @@ func (s *storage) GetDeviceAuthorizatonState(ctx context.Context, clientID, devi
 		st.Expires = r.ExpiresAt
 	}
 	return st, nil
+}
+
+// pollDevice records a poll of deviceCode. A pending code polled again within
+// DevicePollInterval (database clock) returns errSlowDown: op answers
+// slow_down only for context.DeadlineExceeded (RFC 8628 §3.5).
+func (s *storage) pollDevice(ctx context.Context, clientID, deviceCode string) (dbq.PollDeviceCodeRow, error) {
+	var r dbq.PollDeviceCodeRow
+	err := dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
+		var err error
+		r, err = dbq.New(tx).PollDeviceCode(ctx, dbq.PollDeviceCodeParams{DeviceCodeHash: hashSecret(deviceCode), ClientID: clientID})
+		return err
+	})
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return r, errUnknownDevice
+	case err != nil:
+		return r, err
+	case r.Status == "pending" && r.Live && r.PrevPollAt != nil && r.LastPollAt.Sub(*r.PrevPollAt) < DevicePollInterval:
+		return r, errSlowDown
+	}
+	return r, nil
 }
 
 // exchangeDevice consumes the approved code the poll found and opens its

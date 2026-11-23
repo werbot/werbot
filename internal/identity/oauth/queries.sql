@@ -64,9 +64,15 @@ INSERT INTO oauth_device_code (device_code_hash, user_code, client_id, scopes, c
 VALUES (@device_code_hash, @user_code, @client_id, @scopes, @client_hostname, @client_ip, @expires_at);
 
 -- name: PollDeviceCode :one
-UPDATE oauth_device_code SET last_poll_at = now()
-WHERE device_code_hash = @device_code_hash AND client_id = @client_id
-RETURNING id, status, scopes, user_id, org_id, expires_at, (expires_at > now())::bool AS live;
+-- prev_poll_at is the poll before this one (slow_down under 5 s).
+WITH prev AS (
+    SELECT c.id, c.last_poll_at FROM oauth_device_code c
+    WHERE c.device_code_hash = @device_code_hash AND c.client_id = @client_id
+)
+UPDATE oauth_device_code d SET last_poll_at = now()
+FROM prev WHERE d.id = prev.id
+RETURNING d.id, d.status, d.scopes, d.user_id, d.org_id, d.expires_at, (d.expires_at > now())::bool AS live,
+    d.last_poll_at, prev.last_poll_at AS prev_poll_at;
 
 -- name: ConsumeDeviceCode :one
 -- Of concurrent polls of one approved code exactly one marks it used.

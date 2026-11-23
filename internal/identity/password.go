@@ -35,7 +35,7 @@ var dummyHash = encodeHash(make([]byte, argonSaltLen), make([]byte, argonKeyLen)
 // argonSlots bounds concurrent argon2 runs: each allocates its memory
 // parameter (64 MiB), so public Login cannot exhaust the process memory.
 // ponytail: per-process cap of GOMAXPROCS runs (~GOMAXPROCS × 64 MiB); callers
-// queue on it. Rate limiting of Login and RequestPasswordReset is a later stage.
+// queue on it. Login is also rate limited per IP and email (ratelimit.go).
 var argonSlots = make(chan struct{}, runtime.GOMAXPROCS(0))
 
 // argonKey is argon2.IDKey run in a free slot; it gives up with ctx.Err()
