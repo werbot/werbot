@@ -7,6 +7,7 @@ package dbq
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -219,6 +220,20 @@ func (q *Queries) CountToolCalls(ctx context.Context, arg CountToolCallsParams) 
 	return count, err
 }
 
+const deleteAgent = `-- name: DeleteAgent :exec
+DELETE FROM agent WHERE org_id = $1 AND id = $2
+`
+
+type DeleteAgentParams struct {
+	OrgID uuid.UUID
+	ID    uuid.UUID
+}
+
+func (q *Queries) DeleteAgent(ctx context.Context, arg DeleteAgentParams) error {
+	_, err := q.db.Exec(ctx, deleteAgent, arg.OrgID, arg.ID)
+	return err
+}
+
 const endRun = `-- name: EndRun :exec
 UPDATE agent_run SET status = 'ended', ended_at = now(), end_reason = $1
 WHERE org_id = $2 AND id = $3
@@ -312,8 +327,8 @@ func (q *Queries) GetAgentByName(ctx context.Context, arg GetAgentByNameParams) 
 }
 
 const insertAgent = `-- name: InsertAgent :one
-INSERT INTO agent (org_id, sponsor_user_id, name, created_by)
-VALUES ($1, $2, $3, $2)
+INSERT INTO agent (org_id, sponsor_user_id, name, limits, created_by)
+VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (org_id, sponsor_user_id, name) DO NOTHING
 RETURNING id, org_id, sponsor_user_id, name, kind, status, limits, created_by, created_at
 `
@@ -322,11 +337,19 @@ type InsertAgentParams struct {
 	OrgID         uuid.UUID
 	SponsorUserID uuid.UUID
 	Name          string
+	Limits        []byte
+	CreatedBy     *uuid.UUID
 }
 
 // Inserts nothing (no row) when the sponsor already has an agent of that name.
 func (q *Queries) InsertAgent(ctx context.Context, arg InsertAgentParams) (Agent, error) {
-	row := q.db.QueryRow(ctx, insertAgent, arg.OrgID, arg.SponsorUserID, arg.Name)
+	row := q.db.QueryRow(ctx, insertAgent,
+		arg.OrgID,
+		arg.SponsorUserID,
+		arg.Name,
+		arg.Limits,
+		arg.CreatedBy,
+	)
 	var i Agent
 	err := row.Scan(
 		&i.ID,
@@ -417,6 +440,165 @@ func (q *Queries) InsertToolCall(ctx context.Context, arg InsertToolCallParams) 
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const listAgents = `-- name: ListAgents :many
+SELECT a.id, a.org_id, a.sponsor_user_id, a.name, a.kind, a.status, a.limits, a.created_by, a.created_at, u.login AS sponsor_login,
+    (SELECT count(*) FROM agent_run r
+     WHERE r.org_id = a.org_id AND r.agent_id = a.id AND r.status = 'running' AND r.expires_at > now())::int AS active_runs
+FROM agent a
+JOIN users u ON u.id = a.sponsor_user_id
+WHERE a.org_id = $1
+  AND ($2::uuid IS NULL OR a.sponsor_user_id = $2::uuid)
+  AND ($3::uuid IS NULL OR a.id = $3::uuid)
+ORDER BY u.login, a.name
+`
+
+type ListAgentsParams struct {
+	OrgID         uuid.UUID
+	SponsorUserID *uuid.UUID
+	ID            *uuid.UUID
+}
+
+type ListAgentsRow struct {
+	Agent        Agent
+	SponsorLogin string
+	ActiveRuns   int32
+}
+
+// The agents of an organization with their sponsor's login and live runs, by
+// sponsor login and name; sponsor_user_id and id narrow the list.
+func (q *Queries) ListAgents(ctx context.Context, arg ListAgentsParams) ([]ListAgentsRow, error) {
+	rows, err := q.db.Query(ctx, listAgents, arg.OrgID, arg.SponsorUserID, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAgentsRow
+	for rows.Next() {
+		var i ListAgentsRow
+		if err := rows.Scan(
+			&i.Agent.ID,
+			&i.Agent.OrgID,
+			&i.Agent.SponsorUserID,
+			&i.Agent.Name,
+			&i.Agent.Kind,
+			&i.Agent.Status,
+			&i.Agent.Limits,
+			&i.Agent.CreatedBy,
+			&i.Agent.CreatedAt,
+			&i.SponsorLogin,
+			&i.ActiveRuns,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRuns = `-- name: ListRuns :many
+SELECT r.id, r.org_id, r.agent_id, r.sponsor_user_id, r.client, r.reason, r.status, r.actions, r.denials_in_row, r.max_actions, r.max_concurrent, r.expires_at, r.started_at, r.ended_at, r.end_reason, a.name AS agent_name
+FROM agent_run r
+JOIN agent a ON a.id = r.agent_id AND a.org_id = r.org_id
+WHERE r.org_id = $1
+  AND ($2::uuid IS NULL OR r.id = $2::uuid)
+  AND ($3::uuid IS NULL OR r.sponsor_user_id = $3::uuid)
+  AND ($4::uuid IS NULL OR r.agent_id = $4::uuid)
+  AND ($5::text = '' OR r.status = $5::text)
+ORDER BY r.started_at DESC, r.id DESC
+LIMIT $7::int OFFSET $6::int
+`
+
+type ListRunsParams struct {
+	OrgID         uuid.UUID
+	ID            *uuid.UUID
+	SponsorUserID *uuid.UUID
+	AgentID       *uuid.UUID
+	Status        string
+	RowOffset     int32
+	RowLimit      int32
+}
+
+type ListRunsRow struct {
+	AgentRun  AgentRun
+	AgentName string
+}
+
+// Runs with their agent's name, newest first; id, sponsor_user_id, agent_id
+// and status (empty: any) narrow the list.
+func (q *Queries) ListRuns(ctx context.Context, arg ListRunsParams) ([]ListRunsRow, error) {
+	rows, err := q.db.Query(ctx, listRuns,
+		arg.OrgID,
+		arg.ID,
+		arg.SponsorUserID,
+		arg.AgentID,
+		arg.Status,
+		arg.RowOffset,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRunsRow
+	for rows.Next() {
+		var i ListRunsRow
+		if err := rows.Scan(
+			&i.AgentRun.ID,
+			&i.AgentRun.OrgID,
+			&i.AgentRun.AgentID,
+			&i.AgentRun.SponsorUserID,
+			&i.AgentRun.Client,
+			&i.AgentRun.Reason,
+			&i.AgentRun.Status,
+			&i.AgentRun.Actions,
+			&i.AgentRun.DenialsInRow,
+			&i.AgentRun.MaxActions,
+			&i.AgentRun.MaxConcurrent,
+			&i.AgentRun.ExpiresAt,
+			&i.AgentRun.StartedAt,
+			&i.AgentRun.EndedAt,
+			&i.AgentRun.EndReason,
+			&i.AgentName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const lockAgent = `-- name: LockAgent :one
+SELECT id, org_id, sponsor_user_id, name, kind, status, limits, created_by, created_at FROM agent WHERE org_id = $1 AND id = $2 FOR UPDATE
+`
+
+type LockAgentParams struct {
+	OrgID uuid.UUID
+	ID    uuid.UUID
+}
+
+func (q *Queries) LockAgent(ctx context.Context, arg LockAgentParams) (Agent, error) {
+	row := q.db.QueryRow(ctx, lockAgent, arg.OrgID, arg.ID)
+	var i Agent
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.SponsorUserID,
+		&i.Name,
+		&i.Kind,
+		&i.Status,
+		&i.Limits,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const lockRun = `-- name: LockRun :one
@@ -517,6 +699,106 @@ func (q *Queries) ResumeRun(ctx context.Context, arg ResumeRunParams) error {
 	return err
 }
 
+const runApprovals = `-- name: RunApprovals :many
+SELECT a.id, coalesce(r.name, '')::text AS resource_name, coalesce(a.command, '')::text AS command,
+    coalesce(a.classes, '{}')::text[] AS classes, a.status, coalesce(u.login, '')::text AS decided_by_login,
+    a.created_at, a.decided_at
+FROM approval a
+LEFT JOIN resource r ON r.id = a.resource_id AND r.org_id = a.org_id
+LEFT JOIN users u ON u.id = a.decided_by
+WHERE a.org_id = $1 AND a.agent_run_id = $2
+ORDER BY a.created_at, a.id
+LIMIT 1000
+`
+
+type RunApprovalsParams struct {
+	OrgID uuid.UUID
+	RunID *uuid.UUID
+}
+
+type RunApprovalsRow struct {
+	ID             uuid.UUID
+	ResourceName   string
+	Command        string
+	Classes        []string
+	Status         string
+	DecidedByLogin string
+	CreatedAt      time.Time
+	DecidedAt      *time.Time
+}
+
+func (q *Queries) RunApprovals(ctx context.Context, arg RunApprovalsParams) ([]RunApprovalsRow, error) {
+	rows, err := q.db.Query(ctx, runApprovals, arg.OrgID, arg.RunID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RunApprovalsRow
+	for rows.Next() {
+		var i RunApprovalsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ResourceName,
+			&i.Command,
+			&i.Classes,
+			&i.Status,
+			&i.DecidedByLogin,
+			&i.CreatedAt,
+			&i.DecidedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const runDenials = `-- name: RunDenials :many
+SELECT coalesce(r.name, e.target_id)::text AS resource, e.data, e.created_at
+FROM audit_event e
+LEFT JOIN resource r ON r.org_id = e.org_id AND r.id::text = e.target_id
+WHERE e.org_id = $1 AND e.action = 'session.deny' AND e.data ? 'agent_run_id'
+  AND e.data->>'agent_run_id' = $2::text
+ORDER BY e.created_at, e.id
+LIMIT 1000
+`
+
+type RunDenialsParams struct {
+	OrgID *uuid.UUID
+	RunID string
+}
+
+type RunDenialsRow struct {
+	Resource  string
+	Data      []byte
+	CreatedAt time.Time
+}
+
+// The session.deny events of a run: the resource by name when it still
+// exists in the organization, else as recorded.
+func (q *Queries) RunDenials(ctx context.Context, arg RunDenialsParams) ([]RunDenialsRow, error) {
+	rows, err := q.db.Query(ctx, runDenials, arg.OrgID, arg.RunID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RunDenialsRow
+	for rows.Next() {
+		var i RunDenialsRow
+		if err := rows.Scan(&i.Resource, &i.Data, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const runGate = `-- name: RunGate :one
 SELECT r.id, r.org_id, r.agent_id, r.sponsor_user_id, r.client, r.reason, r.status, r.actions, r.denials_in_row, r.max_actions, r.max_concurrent, r.expires_at, r.started_at, r.ended_at, r.end_reason, a.status AS agent_status,
     (r.status = 'running' AND r.expires_at > now())::bool AS active,
@@ -571,6 +853,117 @@ func (q *Queries) RunGate(ctx context.Context, arg RunGateParams) (RunGateRow, e
 		&i.Locked,
 	)
 	return i, err
+}
+
+const runSessions = `-- name: RunSessions :many
+SELECT s.id, coalesce(r.name, '')::text AS resource_name, s.tool_call_id, coalesce(s.command, '')::text AS command,
+    coalesce(s.classes, '{}')::text[] AS classes, s.exit_code, coalesce(s.end_reason, '')::text AS end_reason,
+    s.output_sha256, s.started_at, s.ended_at
+FROM session s
+LEFT JOIN resource r ON r.id = s.resource_id AND r.org_id = s.org_id
+WHERE s.org_id = $1 AND s.agent_run_id = $2
+ORDER BY s.started_at, s.id
+LIMIT 1000
+`
+
+type RunSessionsParams struct {
+	OrgID uuid.UUID
+	RunID *uuid.UUID
+}
+
+type RunSessionsRow struct {
+	ID           uuid.UUID
+	ResourceName string
+	ToolCallID   *uuid.UUID
+	Command      string
+	Classes      []string
+	ExitCode     *int32
+	EndReason    string
+	OutputSha256 []byte
+	StartedAt    time.Time
+	EndedAt      *time.Time
+}
+
+func (q *Queries) RunSessions(ctx context.Context, arg RunSessionsParams) ([]RunSessionsRow, error) {
+	rows, err := q.db.Query(ctx, runSessions, arg.OrgID, arg.RunID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RunSessionsRow
+	for rows.Next() {
+		var i RunSessionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ResourceName,
+			&i.ToolCallID,
+			&i.Command,
+			&i.Classes,
+			&i.ExitCode,
+			&i.EndReason,
+			&i.OutputSha256,
+			&i.StartedAt,
+			&i.EndedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const runToolCalls = `-- name: RunToolCalls :many
+SELECT id, tool, arguments, traceparent, status, started_at, ended_at
+FROM agent_tool_call
+WHERE org_id = $1 AND run_id = $2
+ORDER BY started_at, id
+LIMIT 1000
+`
+
+type RunToolCallsParams struct {
+	OrgID uuid.UUID
+	RunID uuid.UUID
+}
+
+type RunToolCallsRow struct {
+	ID          uuid.UUID
+	Tool        string
+	Arguments   []byte
+	Traceparent string
+	Status      string
+	StartedAt   time.Time
+	EndedAt     *time.Time
+}
+
+func (q *Queries) RunToolCalls(ctx context.Context, arg RunToolCallsParams) ([]RunToolCallsRow, error) {
+	rows, err := q.db.Query(ctx, runToolCalls, arg.OrgID, arg.RunID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RunToolCallsRow
+	for rows.Next() {
+		var i RunToolCallsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Tool,
+			&i.Arguments,
+			&i.Traceparent,
+			&i.Status,
+			&i.StartedAt,
+			&i.EndedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setDenials = `-- name: SetDenials :exec
@@ -643,4 +1036,25 @@ func (q *Queries) ToolCallGate(ctx context.Context, arg ToolCallGateParams) (boo
 	var active bool
 	err := row.Scan(&active)
 	return active, err
+}
+
+const updateAgent = `-- name: UpdateAgent :exec
+UPDATE agent SET limits = $1, status = $2 WHERE org_id = $3 AND id = $4
+`
+
+type UpdateAgentParams struct {
+	Limits []byte
+	Status string
+	OrgID  uuid.UUID
+	ID     uuid.UUID
+}
+
+func (q *Queries) UpdateAgent(ctx context.Context, arg UpdateAgentParams) error {
+	_, err := q.db.Exec(ctx, updateAgent,
+		arg.Limits,
+		arg.Status,
+		arg.OrgID,
+		arg.ID,
+	)
+	return err
 }

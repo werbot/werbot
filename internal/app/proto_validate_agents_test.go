@@ -3,12 +3,15 @@ package app
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"buf.build/go/protovalidate"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 )
 
 // TestRequestValidationTunnelAgents covers the bounds of the tunnel's agent
@@ -70,4 +73,45 @@ func TestRequestValidationTunnelAgents(t *testing.T) {
 	} {
 		invalid(deny(mut), name)
 	}
+}
+
+// TestRequestValidationAgentService covers the bounds of agent.proto (stage
+// 12): names, limits, statuses, paging and tool calls.
+func TestRequestValidationAgentService(t *testing.T) {
+	id := "0190a000-0000-7000-8000-000000000001"
+	valid := func(m proto.Message, name string) { assert.NoError(t, protovalidate.Validate(m), name) }
+	invalid := func(m proto.Message, name string) { assert.Error(t, protovalidate.Validate(m), name) }
+
+	limits := func(actions, concurrent int32, d time.Duration) *werbotv1.CreateAgentRequest {
+		return &werbotv1.CreateAgentRequest{Name: "claude", Limits: &werbotv1.AgentLimits{MaxActions: actions,
+			MaxConcurrent: concurrent, MaxDuration: durationpb.New(d)}}
+	}
+	valid(limits(0, 0, 0), "all defaults")
+	valid(limits(10000, 32, time.Hour), "every limit at its maximum")
+	valid(limits(1, 1, time.Minute), "every limit at its minimum")
+	invalid(limits(10001, 0, 0), "max_actions above 10000")
+	invalid(limits(0, 33, 0), "max_concurrent above 32")
+	invalid(limits(-1, 0, 0), "negative max_actions")
+	invalid(limits(0, 0, 59*time.Second), "max_duration below 1m")
+	invalid(limits(0, 0, time.Hour+time.Second), "max_duration above 1h")
+	valid(&werbotv1.CreateAgentRequest{Name: strings.Repeat("a", 63), SponsorUserId: id}, "a 63-character name of a sponsor")
+	invalid(&werbotv1.CreateAgentRequest{Name: strings.Repeat("a", 64)}, "a 64-character name")
+	invalid(&werbotv1.CreateAgentRequest{Name: "Claude"}, "an upper-case name")
+	invalid(&werbotv1.CreateAgentRequest{Name: "claude", SponsorUserId: "x"}, "sponsor_user_id not a UUID")
+
+	valid(&werbotv1.UpdateAgentRequest{Id: id}, "nothing changes")
+	valid(&werbotv1.UpdateAgentRequest{Id: id, Status: "frozen"}, "freeze")
+	invalid(&werbotv1.UpdateAgentRequest{Id: id, Status: "paused"}, "status paused")
+	invalid(&werbotv1.UpdateAgentRequest{Id: "x"}, "id not a UUID")
+
+	valid(&werbotv1.ListRunsRequest{}, "page and size default")
+	valid(&werbotv1.ListRunsRequest{AgentId: id, Status: "ended", Page: 2, PageSize: 100}, "every filter")
+	invalid(&werbotv1.ListRunsRequest{PageSize: 101}, "page_size above 100")
+	invalid(&werbotv1.ListRunsRequest{Status: "frozen"}, "status frozen")
+
+	valid(&werbotv1.RecordToolCallRequest{Tool: "ssh_exec", Traceparent: strings.Repeat("0", 55)}, "a traceparent of 55 bytes")
+	invalid(&werbotv1.RecordToolCallRequest{Tool: "ssh_exec", Traceparent: strings.Repeat("0", 56)}, "a traceparent of 56 bytes")
+	invalid(&werbotv1.RecordToolCallRequest{Tool: "SSH"}, "an upper-case tool")
+	valid(&werbotv1.FinishToolCallRequest{Id: id, Status: "pending_approval"}, "pending_approval")
+	invalid(&werbotv1.FinishToolCallRequest{Id: id, Status: "running"}, "status running")
 }

@@ -60,6 +60,7 @@ func views(e evaluator, rows []dbq.ListApprovalsRow, user uuid.UUID, keep func(R
 }
 
 // GetRequest returns a request the requester, a possible approver, an owner or an admin sees; to others it is not found.
+// A run token (p.RunID set) sees only the requests of its run.
 func (s *Service) GetRequest(ctx context.Context, p principal.Principal, id uuid.UUID) (RequestView, error) {
 	var out []RequestView
 	err := s.tx(ctx, p.OrgID, p.UserID, func(st Store, _ pgx.Tx) error {
@@ -67,7 +68,7 @@ func (s *Service) GetRequest(ctx context.Context, p principal.Principal, id uuid
 		if err != nil {
 			return err
 		}
-		rows, err := st.ListApprovals(ctx, dbq.ListApprovalsParams{OrgID: p.OrgID, ID: &id, RowLimit: new(int32(1))})
+		rows, err := st.ListApprovals(ctx, dbq.ListApprovalsParams{OrgID: p.OrgID, ID: &id, AgentRunID: p.RunID, RowLimit: new(int32(1))})
 		if err != nil {
 			return err
 		}
@@ -85,7 +86,8 @@ func (s *Service) GetRequest(ctx context.Context, p principal.Principal, id uuid
 
 // ListRequests returns one page of requests, newest first, and the next page
 // number (0 after the last): ScopeMine those of p, ScopeToApprove the pending
-// ones p may decide, ScopeAll every request (owner and admin only).
+// ones p may decide, ScopeAll every request (owner and admin only). A run
+// token (p.RunID set) lists only the requests of its run, in every scope.
 func (s *Service) ListRequests(ctx context.Context, p principal.Principal, f RequestFilter) ([]RequestView, int, error) {
 	statuses := []string{"", StatusPending, StatusApproved, StatusDenied, StatusExpired, StatusCanceled}
 	if f.Page < 0 || f.Page > maxPage || f.PageSize < 0 || !slices.Contains(statuses, f.Status) {
@@ -95,7 +97,7 @@ func (s *Service) ListRequests(ctx context.Context, p principal.Principal, f Req
 	if size == 0 {
 		size = defaultPageSize
 	}
-	arg := dbq.ListApprovalsParams{OrgID: p.OrgID, Status: f.Status,
+	arg := dbq.ListApprovalsParams{OrgID: p.OrgID, AgentRunID: p.RunID, Status: f.Status,
 		RowOffset: int32((page - 1) * size), RowLimit: new(int32(size + 1))} //nolint:gosec // page <= maxPage, size <= maxPageSize
 	switch f.Scope {
 	case ScopeMine:

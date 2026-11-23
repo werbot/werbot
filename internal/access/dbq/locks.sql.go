@@ -57,6 +57,10 @@ WHERE CASE $2::text
     WHEN 'resource' THEN EXISTS (SELECT 1 FROM resource WHERE org_id = $1 AND id = $3)
     WHEN 'grant' THEN EXISTS (SELECT 1 FROM access_grant WHERE org_id = $1 AND id = $3)
     WHEN 'cli_session' THEN EXISTS (SELECT 1 FROM cli_session WHERE org_id = $1 AND id = $3)
+    WHEN 'agent' THEN EXISTS (SELECT 1 FROM agent WHERE org_id = $1 AND id = $3)
+    WHEN 'agent_run' THEN EXISTS (SELECT 1 FROM agent_run WHERE org_id = $1 AND id = $3)
+    WHEN 'agents_of_user' THEN EXISTS (SELECT 1 FROM membership WHERE org_id = $1 AND user_id = $3)
+    WHEN 'all_agents' THEN $3::uuid IS NULL
     ELSE false
 END
 RETURNING id, org_id, target_type, target_id, reason, expires_at, created_by, created_at
@@ -65,7 +69,7 @@ RETURNING id, org_id, target_type, target_id, reason, expires_at, created_by, cr
 type CreateLockParams struct {
 	OrgID       uuid.UUID
 	TargetType  string
-	TargetID    uuid.UUID
+	TargetID    *uuid.UUID
 	Reason      string
 	ExpiresSecs float64
 	CreatedBy   uuid.UUID

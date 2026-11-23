@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/agentic"
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/identity/oauth"
 	"github.com/werbot/werbot/internal/inventory"
@@ -83,7 +84,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	}
 	idh := identity.NewHandler(s.Identity)
 	opts := connect.WithHandlerOptions(
-		connect.WithInterceptors(validate.NewInterceptor(), logInternalErrors(logger)),
+		connect.WithInterceptors(validate.NewInterceptor(), logInternalErrors(logger), agentic.RestrictAgentTokens(s.Agents)),
 		connect.WithReadMaxBytes(1<<20), // public RPCs: no body is read past 1 MiB
 	)
 
@@ -98,7 +99,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	mux.Handle(werbotv1connect.NewMemberServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewTeamServiceHandler(idh, opts))
 	s.mount(mux, opts)
-	bearer, err := mountOAuth(mux, cfg, pool, o.OAuthKey, s.Identity, opts)
+	bearer, err := mountOAuth(mux, cfg, pool, o.OAuthKey, s.Identity, oauthAgents{s.Agents, logger}, opts)
 	if err != nil {
 		return err
 	}
@@ -124,7 +125,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 		mux.Handle("/", http.NotFoundHandler())
 	}
 
-	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, clientip.Middleware(cfg.TrustedProxies)(identity.Middleware(s.Identity, bearer)(mux)))}
+	servers := []*http.Server{httpserver.New(cfg.HTTPAddr, clientip.Middleware(cfg.TrustedProxies)(identity.Middleware(s.Identity, bearer)(agentRoutes(mux))))}
 	if cfg.MetricsAddr != "" {
 		mmux := http.NewServeMux()
 		mmux.Handle("/metrics", reg.Handler())

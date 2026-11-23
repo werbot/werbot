@@ -125,7 +125,7 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	s.Policy = policy.New(policy.Deps{Pool: pool, Resources: policyResources{s.Inventory}, Bindings: policyBindings{s.Access},
 		Teams: teamsFunc(func(ctx context.Context, orgID, userID uuid.UUID) ([]uuid.UUID, error) {
 			return s.Identity.UserTeams(ctx, orgID, userID)
-		}), Grants: policyGrants{s.Access}, Locks: policyLocks{s.Access}, Logger: logger})
+		}), Grants: policyGrants{s.Access}, Locks: policyLocks{s.Access}, Agents: policyAgents{s.Agents}, Logger: logger})
 	if err := s.Policy.ReloadGeoIP(ctx); err != nil {
 		logger.Warn("geoip reload failed", "err", err)
 	}
@@ -140,6 +140,7 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	periodic = append(periodic, session.RegisterJobs(workers, s.Sessions, time.Now())...)
 	periodic = append(periodic, inventory.RegisterGatewayJobs(workers, s.Gateways)...)
 	periodic = append(periodic, access.RegisterApprovalJobs(workers, s.Access)...)
+	periodic = append(periodic, agentic.RegisterJobs(workers, s.Agents)...)
 	if s.Jobs, err = jobs.NewClient(pool, workers, periodic, logger); err != nil {
 		return nil, err
 	}
@@ -150,9 +151,10 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 }
 
 // mount registers ResourceService, AccessService, ApprovalPolicyService, AccessRequestService, LockService,
-// PolicyService, SessionService, AuditService and the recording replay route on mux.
+// PolicyService, SessionService, AuditService, AgentService and the recording replay route on mux.
 func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
-	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential, s.Policy, s.Gateways, s.Access), opts...))
+	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential, accessibleResources{s.Policy},
+		s.Gateways, s.Access), opts...))
 	mux.Handle(werbotv1connect.NewAccessServiceHandler(access.NewHandler(s.Access), opts...))
 	mux.Handle(werbotv1connect.NewApprovalPolicyServiceHandler(access.NewApprovalPolicyHandler(s.Access), opts...))
 	mux.Handle(werbotv1connect.NewAccessRequestServiceHandler(access.NewAccessRequestHandler(s.Access), opts...))
@@ -160,5 +162,6 @@ func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
 	mux.Handle(werbotv1connect.NewPolicyServiceHandler(policy.NewHandler(s.Policy), opts...))
 	mux.Handle(werbotv1connect.NewSessionServiceHandler(session.NewSessionHandler(s.Sessions, s.Recordings), opts...))
 	mux.Handle(werbotv1connect.NewAuditServiceHandler(audit.NewHandler(s.Audit), opts...))
+	mux.Handle(werbotv1connect.NewAgentServiceHandler(agentic.NewHandler(s.Agents), opts...))
 	mux.Handle("GET /api/recordings/{file}", session.NewReplayHandler(s.Sessions, s.Recordings, s.Logger))
 }

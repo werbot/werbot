@@ -1,14 +1,18 @@
 -- name: CreateLock :one
 -- Inserts nothing (no row) when the target is not in the organization.
 INSERT INTO lock (org_id, target_type, target_id, reason, expires_at, created_by)
-SELECT @org_id::uuid, @target_type::text, @target_id::uuid, @reason::text,
+SELECT @org_id::uuid, @target_type::text, sqlc.narg(target_id)::uuid, @reason::text,
     CASE WHEN @expires_secs::float8 > 0 THEN now() + make_interval(secs => @expires_secs::float8) END, @created_by::uuid
 WHERE CASE @target_type::text
-    WHEN 'user' THEN EXISTS (SELECT 1 FROM membership WHERE org_id = @org_id AND user_id = @target_id)
-    WHEN 'team' THEN EXISTS (SELECT 1 FROM team WHERE org_id = @org_id AND id = @target_id)
-    WHEN 'resource' THEN EXISTS (SELECT 1 FROM resource WHERE org_id = @org_id AND id = @target_id)
-    WHEN 'grant' THEN EXISTS (SELECT 1 FROM access_grant WHERE org_id = @org_id AND id = @target_id)
-    WHEN 'cli_session' THEN EXISTS (SELECT 1 FROM cli_session WHERE org_id = @org_id AND id = @target_id)
+    WHEN 'user' THEN EXISTS (SELECT 1 FROM membership WHERE org_id = @org_id AND user_id = sqlc.narg(target_id))
+    WHEN 'team' THEN EXISTS (SELECT 1 FROM team WHERE org_id = @org_id AND id = sqlc.narg(target_id))
+    WHEN 'resource' THEN EXISTS (SELECT 1 FROM resource WHERE org_id = @org_id AND id = sqlc.narg(target_id))
+    WHEN 'grant' THEN EXISTS (SELECT 1 FROM access_grant WHERE org_id = @org_id AND id = sqlc.narg(target_id))
+    WHEN 'cli_session' THEN EXISTS (SELECT 1 FROM cli_session WHERE org_id = @org_id AND id = sqlc.narg(target_id))
+    WHEN 'agent' THEN EXISTS (SELECT 1 FROM agent WHERE org_id = @org_id AND id = sqlc.narg(target_id))
+    WHEN 'agent_run' THEN EXISTS (SELECT 1 FROM agent_run WHERE org_id = @org_id AND id = sqlc.narg(target_id))
+    WHEN 'agents_of_user' THEN EXISTS (SELECT 1 FROM membership WHERE org_id = @org_id AND user_id = sqlc.narg(target_id))
+    WHEN 'all_agents' THEN sqlc.narg(target_id)::uuid IS NULL
     ELSE false
 END
 RETURNING id, org_id, target_type, target_id, reason, expires_at, created_by, created_at;

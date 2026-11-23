@@ -33,4 +33,13 @@ type Store interface {
 	InsertToolCall(ctx context.Context, arg dbq.InsertToolCallParams) (uuid.UUID, error)
 	LockToolCall(ctx context.Context, arg dbq.LockToolCallParams) (string, error)
 	FinishToolCall(ctx context.Context, arg dbq.FinishToolCallParams) error
+	ListAgents(ctx context.Context, arg dbq.ListAgentsParams) ([]dbq.ListAgentsRow, error)
+	LockAgent(ctx context.Context, arg dbq.LockAgentParams) (dbq.Agent, error)
+	UpdateAgent(ctx context.Context, arg dbq.UpdateAgentParams) error
+	DeleteAgent(ctx context.Context, arg dbq.DeleteAgentParams) error
+	ListRuns(ctx context.Context, arg dbq.ListRunsParams) ([]dbq.ListRunsRow, error)
+	RunToolCalls(ctx context.Context, arg dbq.RunToolCallsParams) ([]dbq.RunToolCallsRow, error)
+	RunSessions(ctx context.Context, arg dbq.RunSessionsParams) ([]dbq.RunSessionsRow, error)
+	RunApprovals(ctx context.Context, arg dbq.RunApprovalsParams) ([]dbq.RunApprovalsRow, error)
+	RunDenials(ctx context.Context, arg dbq.RunDenialsParams) ([]dbq.RunDenialsRow, error)
 }

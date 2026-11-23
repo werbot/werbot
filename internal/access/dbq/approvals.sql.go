@@ -15,6 +15,7 @@ import (
 const cancelApproval = `-- name: CancelApproval :one
 UPDATE approval SET status = 'canceled', decided_at = now()
 WHERE id = $1 AND org_id = $2 AND requester_user_id = $3 AND kind = 'access' AND status = 'pending'
+  AND ($4::uuid IS NULL OR agent_run_id = $4::uuid)
 RETURNING id
 `
 
@@ -22,10 +23,17 @@ type CancelApprovalParams struct {
 	ID              uuid.UUID
 	OrgID           uuid.UUID
 	RequesterUserID uuid.UUID
+	AgentRunID      *uuid.UUID
 }
 
+// An agent run (agent_run_id set) cancels only the requests of that run.
 func (q *Queries) CancelApproval(ctx context.Context, arg CancelApprovalParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, cancelApproval, arg.ID, arg.OrgID, arg.RequesterUserID)
+	row := q.db.QueryRow(ctx, cancelApproval,
+		arg.ID,
+		arg.OrgID,
+		arg.RequesterUserID,
+		arg.AgentRunID,
+	)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
@@ -387,15 +395,17 @@ LEFT JOIN resource r ON r.id = a.resource_id AND r.org_id = a.org_id
 WHERE a.org_id = $1
   AND ($2::uuid IS NULL OR a.id = $2::uuid)
   AND ($3::uuid IS NULL OR a.requester_user_id = $3::uuid)
-  AND ($4::text = '' OR a.status = $4::text)
+  AND ($4::uuid IS NULL OR a.agent_run_id = $4::uuid)
+  AND ($5::text = '' OR a.status = $5::text)
 ORDER BY a.created_at DESC, a.id DESC
-LIMIT $6::int OFFSET $5::int
+LIMIT $7::int OFFSET $6::int
 `
 
 type ListApprovalsParams struct {
 	OrgID           uuid.UUID
 	ID              *uuid.UUID
 	RequesterUserID *uuid.UUID
+	AgentRunID      *uuid.UUID
 	Status          string
 	RowOffset       int32
 	RowLimit        *int32
@@ -413,6 +423,7 @@ func (q *Queries) ListApprovals(ctx context.Context, arg ListApprovalsParams) ([
 		arg.OrgID,
 		arg.ID,
 		arg.RequesterUserID,
+		arg.AgentRunID,
 		arg.Status,
 		arg.RowOffset,
 		arg.RowLimit,

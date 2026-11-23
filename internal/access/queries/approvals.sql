@@ -44,8 +44,10 @@ RETURNING *;
 SELECT status, expires_at <= now() AS overdue FROM approval WHERE id = @id AND org_id = @org_id;
 
 -- name: CancelApproval :one
+-- An agent run (agent_run_id set) cancels only the requests of that run.
 UPDATE approval SET status = 'canceled', decided_at = now()
 WHERE id = @id AND org_id = @org_id AND requester_user_id = @requester_user_id AND kind = 'access' AND status = 'pending'
+  AND (sqlc.narg(agent_run_id)::uuid IS NULL OR agent_run_id = sqlc.narg(agent_run_id)::uuid)
 RETURNING id;
 
 -- name: CreateGrants :many
@@ -68,6 +70,7 @@ LEFT JOIN resource r ON r.id = a.resource_id AND r.org_id = a.org_id
 WHERE a.org_id = @org_id
   AND (sqlc.narg(id)::uuid IS NULL OR a.id = sqlc.narg(id)::uuid)
   AND (sqlc.narg(requester_user_id)::uuid IS NULL OR a.requester_user_id = sqlc.narg(requester_user_id)::uuid)
+  AND (sqlc.narg(agent_run_id)::uuid IS NULL OR a.agent_run_id = sqlc.narg(agent_run_id)::uuid)
   AND (@status::text = '' OR a.status = @status::text)
 ORDER BY a.created_at DESC, a.id DESC
 LIMIT sqlc.narg(row_limit)::int OFFSET @row_offset::int;

@@ -116,6 +116,7 @@ func grant(ctx context.Context, st Store, tx pgx.Tx, a Approval, ts []target, d 
 }
 
 // CreateRequest asks for access for p: auto and break-glass requests are approved at once, others wait for an approver.
+// A run token (p.RunID set) asks for its sponsor through policies of all agents only; the request keeps the run.
 func (s *Service) CreateRequest(ctx context.Context, p principal.Principal, in CreateRequestInput) (Approval, error) {
 	if err := in.validate(); err != nil {
 		return Approval{}, err
@@ -128,8 +129,8 @@ func (s *Service) CreateRequest(ctx context.Context, p principal.Principal, in C
 	if err != nil {
 		return Approval{}, err
 	}
-	a := Approval{OrgID: p.OrgID, RequesterID: p.UserID, Kind: KindAccess, ResourceID: in.ResourceID, Selector: in.Selector,
-		Reason: reason, BreakGlass: in.BreakGlass}
+	a := Approval{OrgID: p.OrgID, RequesterID: p.UserID, AgentRunID: p.RunID, Kind: KindAccess, ResourceID: in.ResourceID,
+		Selector: in.Selector, Reason: reason, BreakGlass: in.BreakGlass}
 	err = s.tx(ctx, p.OrgID, p.UserID, func(st Store, tx pgx.Tx) error {
 		return s.createTx(ctx, st, tx, &a, in, set)
 	})
@@ -178,14 +179,15 @@ func createData(a Approval) map[string]any {
 	return d
 }
 
-// Cancel withdraws a pending access request of p; a request of someone else is not found.
+// Cancel withdraws a pending access request of p; a request of someone else
+// (for a run token: of anything but its run) is not found.
 func (s *Service) Cancel(ctx context.Context, p principal.Principal, id uuid.UUID) error {
 	return s.tx(ctx, p.OrgID, p.UserID, func(st Store, tx pgx.Tx) error {
-		_, err := st.CancelApproval(ctx, dbq.CancelApprovalParams{ID: id, OrgID: p.OrgID, RequesterUserID: p.UserID})
+		_, err := st.CancelApproval(ctx, dbq.CancelApprovalParams{ID: id, OrgID: p.OrgID, RequesterUserID: p.UserID, AgentRunID: p.RunID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			row, gerr := st.GetApproval(ctx, dbq.GetApprovalParams{ID: id, OrgID: p.OrgID})
 			switch {
-			case errors.Is(gerr, pgx.ErrNoRows) || (gerr == nil && (row.RequesterUserID != p.UserID || row.Kind != string(KindAccess))):
+			case errors.Is(gerr, pgx.ErrNoRows) || (gerr == nil && !ownAccessRequest(row, p)):
 				return fmt.Errorf("request not found: %w", apperr.ErrNotFound)
 			case gerr != nil:
 				return gerr
@@ -197,4 +199,11 @@ func (s *Service) Cancel(ctx context.Context, p principal.Principal, id uuid.UUI
 		}
 		return audit(ctx, tx, p.OrgID, p.UserID, "access.request.cancel", "approval", id, nil)
 	})
+}
+
+// ownAccessRequest reports whether row is an access request of p; a run
+// token owns only the requests of its run.
+func ownAccessRequest(row dbq.Approval, p principal.Principal) bool {
+	ownRun := p.RunID == nil || (row.AgentRunID != nil && *row.AgentRunID == *p.RunID)
+	return row.RequesterUserID == p.UserID && row.Kind == string(KindAccess) && ownRun
 }

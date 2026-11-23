@@ -27,8 +27,9 @@ const (
 )
 
 var (
-	errAgentNotFound = fmt.Errorf("agent not found: %w", apperr.ErrNotFound)
-	errRunNotFound   = fmt.Errorf("agent run not found: %w", apperr.ErrNotFound)
+	errAgentNotFound   = fmt.Errorf("agent not found: %w", apperr.ErrNotFound)
+	errRunNotFound     = fmt.Errorf("agent run not found: %w", apperr.ErrNotFound)
+	errSponsorNotFound = fmt.Errorf("sponsor not found: %w", apperr.ErrNotFound)
 )
 
 // EnsureAgent returns the sponsor's agent of that name, creating it on first
@@ -39,7 +40,8 @@ func (s *Service) EnsureAgent(ctx context.Context, orgID, sponsorID uuid.UUID, n
 	}
 	var out Agent
 	err := s.tx(ctx, orgID, sponsorID, func(st Store, tx pgx.Tx) error {
-		row, err := st.InsertAgent(ctx, dbq.InsertAgentParams{OrgID: orgID, SponsorUserID: sponsorID, Name: name})
+		row, err := st.InsertAgent(ctx, dbq.InsertAgentParams{OrgID: orgID, SponsorUserID: sponsorID, Name: name,
+			Limits: []byte("{}"), CreatedBy: &sponsorID})
 		created := err == nil
 		if errors.Is(err, pgx.ErrNoRows) { // the name exists: another call created it
 			row, err = st.GetAgentByName(ctx, dbq.GetAgentByNameParams{OrgID: orgID, SponsorUserID: sponsorID, Name: name})
@@ -54,7 +56,7 @@ func (s *Service) EnsureAgent(ctx context.Context, orgID, sponsorID uuid.UUID, n
 			map[string]any{"name": name, "sponsor_user_id": sponsorID})
 	})
 	if isForeignKeyViolation(err) { // the sponsor is not a member of orgID
-		return Agent{}, fmt.Errorf("sponsor not found: %w", apperr.ErrNotFound)
+		return Agent{}, errSponsorNotFound
 	}
 	return out, err
 }
@@ -165,14 +167,17 @@ func (s *Service) EndRun(ctx context.Context, orgID, runID uuid.UUID, reason str
 
 // ResumeRun moves a paused run of p's organization back to running and
 // clears its denial counter (audit agent.run.resume). A member resumes only
-// own runs: another sponsor's run is ErrNotFound.
+// own runs: another sponsor's run is ErrNotFound; a run token never resumes.
 func (s *Service) ResumeRun(ctx context.Context, p principal.Principal, runID uuid.UUID) error {
+	if err := person(p); err != nil {
+		return err
+	}
 	return s.tx(ctx, p.OrgID, p.UserID, func(st Store, tx pgx.Tx) error {
 		run, err := lockRun(ctx, st, p.OrgID, runID)
 		if err != nil {
 			return err
 		}
-		if run.SponsorUserID != p.UserID && p.Role != principal.RoleOwner && p.Role != principal.RoleAdmin {
+		if !sees(p, runID, run.SponsorUserID) {
 			return errRunNotFound
 		}
 		if run.Status != "paused" {

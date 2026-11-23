@@ -27,9 +27,9 @@ func TestRPCLockService(t *testing.T) {
 	_, err = h.DeleteLock(member, connect.NewRequest(&werbotv1.DeleteLockRequest{Id: f.MemberID.String()}))
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 
-	_, err = h.CreateLock(admin, connect.NewRequest(&werbotv1.CreateLockRequest{TargetType: "agent", TargetId: f.MemberID.String(), Reason: "x"}))
+	_, err = h.CreateLock(admin, connect.NewRequest(&werbotv1.CreateLockRequest{TargetType: "mfa_device", TargetId: f.MemberID.String(), Reason: "x"}))
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-	assert.ErrorContains(t, err, "target type agent is not supported yet")
+	assert.ErrorContains(t, err, "target type mfa_device is not supported yet")
 	_, err = h.CreateLock(admin, connect.NewRequest(&werbotv1.CreateLockRequest{TargetType: "user", TargetId: "x", Reason: "x"}))
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "bad target id")
 

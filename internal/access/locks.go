@@ -33,10 +33,10 @@ type LockView struct {
 // The lock target types are also listed in CreateLockRequest.target_type
 // (proto/werbot/v1/lock.proto) and in writeLocks (internal/policy/compile_jit.go): change them together.
 var (
-	// lockTargets are the target types a lock takes now.
-	lockTargets = []string{"user", "team", "resource", "grant", "cli_session"}
-	// laterLockTargets come with agents (stage 12) and MFA (stage 14).
-	laterLockTargets = []string{"agent", "agent_run", "agents_of_user", "all_agents", "mfa_device"}
+	// lockTargets are the target types a lock takes now; all_agents takes no target id.
+	lockTargets = []string{"user", "team", "resource", "grant", "cli_session", "agent", "agent_run", "agents_of_user", "all_agents"}
+	// laterLockTargets come with MFA (stage 14).
+	laterLockTargets = []string{"mfa_device"}
 )
 
 func (in LockInput) validate() (string, error) {
@@ -45,8 +45,8 @@ func (in LockInput) validate() (string, error) {
 		return "", invalid("target type %s is not supported yet", in.TargetType)
 	case !slices.Contains(lockTargets, in.TargetType):
 		return "", invalid("unknown target type")
-	case in.TargetID == nil:
-		return "", invalid("target id is required")
+	case (in.TargetType == "all_agents") != (in.TargetID == nil):
+		return "", invalid("target id is required, except for all_agents, which takes none")
 	case in.ExpiresIn < 0:
 		return "", invalid("expires in must not be negative")
 	}
@@ -110,7 +110,7 @@ func (s *Service) CreateLock(ctx context.Context, p principal.Principal, in Lock
 	}
 	var out Lock
 	err = s.tx(ctx, p.OrgID, p.UserID, func(st Store, tx pgx.Tx) error {
-		row, err := st.CreateLock(ctx, dbq.CreateLockParams{OrgID: p.OrgID, TargetType: in.TargetType, TargetID: *in.TargetID,
+		row, err := st.CreateLock(ctx, dbq.CreateLockParams{OrgID: p.OrgID, TargetType: in.TargetType, TargetID: in.TargetID,
 			Reason: reason, ExpiresSecs: in.ExpiresIn.Seconds(), CreatedBy: p.UserID})
 		if errors.Is(err, pgx.ErrNoRows) { // the guarded INSERT matched no target
 			return fmt.Errorf("lock target not found: %w", apperr.ErrNotFound)

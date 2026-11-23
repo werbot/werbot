@@ -16,9 +16,10 @@ import (
 // /.well-known/, OAuthConsentService, SettingsService, CLISessionService and
 // CertService on mux, with or without the embedded UI. Tokens carry iss =
 // WERBOT_PUBLIC_URL; consent and device pages live at WERBOT_WEB_URL. The
-// provider verifies Bearer tokens for identity.Middleware.
-func mountOAuth(mux *http.ServeMux, cfg config.Config, pool *pgxpool.Pool, key *oauth.SigningKey, ids *identity.Service, opts ...connect.HandlerOption) (*oauth.Provider, error) {
-	p, err := oauth.New(pool, key, ids, nil, oauth.Config{Issuer: cfg.PublicURL, WebURL: cfg.WebURL})
+// provider verifies Bearer tokens for identity.Middleware; agents serves the
+// agent token exchange.
+func mountOAuth(mux *http.ServeMux, cfg config.Config, pool *pgxpool.Pool, key *oauth.SigningKey, ids *identity.Service, agents oauth.Agents, opts ...connect.HandlerOption) (*oauth.Provider, error) {
+	p, err := oauth.New(pool, key, ids, agents, oauth.Config{Issuer: cfg.PublicURL, WebURL: cfg.WebURL})
 	if err != nil {
 		return nil, err
 	}
