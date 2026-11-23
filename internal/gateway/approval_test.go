@@ -73,7 +73,7 @@ func TestApprovalApprovedViaStream(t *testing.T) {
 		s, took, err := e.openWrite(t.Context(), &notice)
 		require.NoError(t, err)
 		require.Equal(t, 10*time.Second, took)
-		require.Equal(t, "Waiting for approval a1, timeout 5m\r\nhttps://werbot.test/requests/a1\r\n", notice.String())
+		require.Equal(t, "Waiting for approval a1, timeout 5m\r\nhttps://werbot.test/requests/a1\r\nApproved\r\n", notice.String())
 		require.Equal(t, []approvalRequest{{UserID: e.m["u1"], ResourceID: e.m["rx"], Command: "mkdir x",
 			Classes: []string{"write"}, Reasons: []string{"command:w"}}}, a.requests)
 		require.Len(t, a.gets, 1, "the decision is read back once the stream hints at it")

@@ -219,7 +219,7 @@ https://werbot.example.com/requests?id=0199f0c2-…
 
 - The approvers get the `access_request` email and see the request, with the command and its classes, on **Requests**. A command approval is never approved automatically and nobody approves their own command. The approvers are those of the approval policies that match the user and the resource; without a matching policy, the owners and admins ([jit.md](jit.md#approval-policies)).
 - The wait lasts `command_approval_ttl` (default `5m`, `30s` to `1h`, **Settings**). The gateway learns the decision from the tunnel at once and also reads it every 15 seconds, so a lost notification delays the command by at most 15 seconds.
-- **Approved**: the gateway decides the command again on its current policy (a binding, lock or rule may have changed meanwhile) and runs it on the resource as it is now. If the resource's connection settings (for example its host or port) changed during the wait, the command is refused with `Access denied`. One approval covers one run of one command.
+- **Approved**: the user sees `Approved` on the same stream, and the gateway decides the command again on its current policy (a binding, lock or rule may have changed meanwhile) and runs it on the resource as it is now. If the resource's connection settings (for example its host or port) changed during the wait, the command is refused with `Access denied`. One approval covers one run of one command.
 - **Denied** or canceled: `Command denied: <message>`, or `Command denied: approval denied`.
 - **No decision in time**: `Approval timed out`. A timeout is always a refusal.
 - The session counts against `WERBOT_GATEWAY_MAX_SESSIONS` while it waits, and the gateway sends SSH keepalives so the connection stays open.

@@ -61,7 +61,7 @@ func TestApprovalWaitKeepsConnection(t *testing.T) {
 	a.decide("approved")
 	require.Equal(t, 7, exitCode(t, s.Wait()), "the approved command ran")
 	require.Equal(t, "spy:x kind=exec cmd=\"mkdir x\"\n", out.String())
-	require.Equal(t, "Waiting for approval a1, timeout 1m\r\nhttps://werbot.test/requests/a1\r\n", errOut.String())
+	require.Equal(t, "Waiting for approval a1, timeout 1m\r\nhttps://werbot.test/requests/a1\r\nApproved\r\n", errOut.String())
 	require.GreaterOrEqual(t, keepalives.Load(), int32(5))
 }
 

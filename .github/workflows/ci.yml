@@ -56,7 +56,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - run: go test -count=1 ./internal/connectcli/... ./internal/clientauth/... ./internal/cli/...
+      - run: go test -count=1 ./internal/connectcli/... ./internal/clientauth/... ./internal/cli/... ./internal/mcpserver/...
       - run: go build -o werbot.exe ./cmd/werbot
       - run: ./werbot.exe login --help
 

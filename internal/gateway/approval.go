@@ -112,16 +112,23 @@ func (p *Pipeline) approve(ctx context.Context, req AccessRequest, d Decision, t
 	return &CommandDeniedError{Err: ErrApprovalDenied, Message: d.Message, Reasons: d.Reasons}
 }
 
-// wait tells the user on notice where to look and waits for the decision on
-// t; an approval granted before (an agent asking again) needs no wait.
+// wait tells the user on notice where to look, waits for the decision on t
+// and, once approved, says so on notice: a client then knows the command
+// runs and is no longer waiting. An approval granted before (an agent
+// asking again) needs no wait and no notice.
 func (p *Pipeline) wait(ctx context.Context, t approvalTicket, notice io.Writer) error {
 	if t.Status == "approved" {
 		return nil
 	}
-	if notice != nil {
-		_, _ = fmt.Fprintf(notice, "Waiting for approval %s, timeout %s\r\n%s\r\n", t.ID, formatWait(t.ExpiresAt.Sub(p.now())), t.URL)
+	if notice == nil {
+		return p.awaitApproval(ctx, t)
 	}
-	return p.awaitApproval(ctx, t)
+	_, _ = fmt.Fprintf(notice, "Waiting for approval %s, timeout %s\r\n%s\r\n", t.ID, formatWait(t.ExpiresAt.Sub(p.now())), t.URL)
+	err := p.awaitApproval(ctx, t)
+	if err == nil {
+		_, _ = io.WriteString(notice, "Approved\r\n")
+	}
+	return err
 }
 
 // awaitApproval waits for the decision on t: a hint on the stream or every
