@@ -108,11 +108,12 @@ func awk(_ *Classifier, args []word, _ string, _ int) set {
 	return of(Read)
 }
 
-// awkRuns reports a program that runs commands or reads their output, or
-// redirects output: awk writes to a file or command only after print/printf,
-// so a comparison before the first print stays read.
+// awkRuns reports a program that runs commands or reads their output, holds
+// a gawk directive (@include, @load, @namespace can pull in code that writes),
+// or redirects output: awk writes to a file or command only after
+// print/printf, so a comparison before the first print stays read.
 func awkRuns(prog string) bool {
-	if strings.Contains(prog, "system") || strings.Contains(prog, "getline") {
+	if strings.Contains(prog, "system") || strings.Contains(prog, "getline") || strings.Contains(prog, "@") {
 		return true
 	}
 	i := strings.Index(prog, "print")

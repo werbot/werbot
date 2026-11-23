@@ -106,8 +106,10 @@ func (s agentStage) sessionsOf(t *testing.T, run uuid.UUID) (n int) {
 }
 
 // An agent's session counts an action of its run in the start transaction; a
-// refused action leaves no session: the limit and an inactive run are
-// FailedPrecondition with a fixed text, another user's or organization's run a denial.
+// refused action leaves no session: the limit is FailedPrecondition "agent
+// limit exceeded"; an inactive run, another user's run and a run of no
+// organization are FailedPrecondition "agent run is not active" (the run's
+// state, never a policy denial the gateway counts).
 func TestStartSessionCountsAction(t *testing.T) {
 	s := newAgentStage(t)
 	_, run := s.run(t, s.f.MemberID, "a1", 1)
@@ -118,30 +120,46 @@ func TestStartSessionCountsAction(t *testing.T) {
 	assert.Equal(t, 1, actions)
 
 	_, err = s.startExec(s.f.MemberID, &run)
-	assertConnect(t, err, connect.CodeFailedPrecondition, "agent limit exceeded")
+	assertFailedPrecondition(t, err, "agent limit exceeded")
 	assert.Equal(t, 1, s.sessionsOf(t, run), "no session past the limit")
 
 	_, paused := s.run(t, s.f.MemberID, "a2", 10)
 	s.exec(t, "UPDATE agent_run SET status = 'paused' WHERE id = $1", paused)
 	_, err = s.startExec(s.f.MemberID, &paused)
-	assertConnect(t, err, connect.CodeFailedPrecondition, "agent run is not active")
+	assertFailedPrecondition(t, err, "agent run is not active")
 
 	_, err = s.startExec(s.f.OtherMemberID, &paused)
-	require.ErrorIs(t, err, apperr.ErrPermissionDenied, "another user's run")
+	assertFailedPrecondition(t, err, "agent run is not active")
 	foreign := uuid.New()
 	_, err = s.startExec(s.f.MemberID, &foreign)
-	require.ErrorIs(t, err, apperr.ErrNotFound, "a run of no organization")
+	assertFailedPrecondition(t, err, "agent run is not active")
 	assert.Zero(t, s.sessionsOf(t, paused))
 
 	_, err = s.startExec(s.f.MemberID, nil)
 	require.NoError(t, err, "a person's session counts nothing")
 }
 
-func assertConnect(t *testing.T, err error, code connect.Code, msg string) {
+// Input class "start of a run whose agent is frozen or locked": the refusal
+// is FailedPrecondition "agent run is not active", which the gateway does not
+// count toward the pause; the run counts no action.
+func TestStartSessionLockedAgentNotDenial(t *testing.T) {
+	s := newAgentStage(t)
+	frozen, frozenRun := s.run(t, s.f.MemberID, "a1", 10)
+	s.exec(t, "UPDATE agent SET status = 'frozen' WHERE id = $1", frozen)
+	locked, lockedRun := s.run(t, s.f.MemberID, "a2", 10)
+	s.exec(t, "INSERT INTO lock (org_id, target_type, target_id, reason) VALUES ($1, 'agent', $2, 'stop')", s.f.OrgID, locked)
+	for _, run := range []uuid.UUID{frozenRun, lockedRun} {
+		_, err := s.startExec(s.f.MemberID, &run)
+		assertFailedPrecondition(t, err, "agent run is not active")
+		assert.Zero(t, s.sessionsOf(t, run))
+	}
+}
+
+func assertFailedPrecondition(t *testing.T, err error, msg string) {
 	t.Helper()
 	var ce *connect.Error
 	require.True(t, errors.As(err, &ce), "connect error: %v", err)
-	assert.Equal(t, code, ce.Code())
+	assert.Equal(t, connect.CodeFailedPrecondition, ce.Code())
 	assert.Equal(t, msg, ce.Message())
 }
 

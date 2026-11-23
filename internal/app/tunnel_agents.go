@@ -39,13 +39,16 @@ func actionGuard(agents *agentic.Service, st tunnel.SessionStart) func(context.C
 	return func(ctx context.Context, tx pgx.Tx) error { return agents.CountAction(ctx, tx, in) }
 }
 
-// actionError is the tunnel error of a refused start: the gateway tells a run
-// limit and an inactive run from a policy denial by these texts.
+// actionError is the tunnel error of a refused start of an agent: the gateway
+// tells a run limit and an inactive run from a policy denial by these texts.
+// A frozen or locked agent, another user's run and a missing run or member
+// are the run's state too, so they read as an inactive run, never as a denial
+// that counts toward the pause.
 func actionError(err error) error {
 	switch {
 	case errors.Is(err, agentic.ErrLimitExceeded):
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("agent limit exceeded"))
-	case errors.Is(err, agentic.ErrRunNotActive):
+	case errors.Is(err, agentic.ErrRunNotActive), errors.Is(err, apperr.ErrPermissionDenied), errors.Is(err, apperr.ErrNotFound):
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("agent run is not active"))
 	}
 	return err

@@ -125,4 +125,4 @@ Profile modes:
 
 ## Windows
 
-`werbot login`, `ls`, `status`, `ssh-config` and `connect` work on Windows. `werbot ssh` needs the OpenSSH client (`ssh.exe`) in `PATH`.
+`werbot login`, `ls`, `status`, `ssh-config` and `connect` work on Windows. `werbot ssh` needs the OpenSSH client (`ssh.exe`) in `PATH`. `werbot agent run` writes the wrapper `bin\ssh.cmd`; a child that starts `ssh` without a `PATHEXT` lookup runs the system `ssh.exe` instead, and the Windows OpenSSH agent stays reachable to it ([agents.md](agents.md#werbot-agent-run)).

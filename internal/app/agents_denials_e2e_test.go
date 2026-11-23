@@ -52,13 +52,14 @@ func TestE2EAgentDestructiveDenied(t *testing.T) {
 	_, err := s.agentsAPI(t).ResumeRun(ctx, connect.NewRequest(&werbotv1.ResumeRunRequest{Id: run.String()}))
 	require.NoError(t, err)
 	// the gateway denies the run until its next snapshot drops it from the
-	// blocked runs (debounce 500ms); each such denial counts, below the pause
+	// blocked runs (debounce 500ms); such state denials are not counted
 	require.Eventually(t, func() bool { return m.exec(t, "uname").Status == "ok" }, 3*time.Second, 700*time.Millisecond,
 		"a resumed run runs again")
 }
 
 // TestE2EAgentKillSwitch: a lock on the run ends its open session within
-// 3s and refuses its next call; a frozen agent gets no new run.
+// 3s with status "error" and no exit code, and refuses its next call; a
+// frozen agent gets no new run.
 func TestE2EAgentKillSwitch(t *testing.T) {
 	s, _, p := agentStack(t)
 	s.classRule(t, "sleep", "read")
@@ -77,8 +78,10 @@ func TestE2EAgentKillSwitch(t *testing.T) {
 	require.NoError(t, err)
 	locked := time.Now()
 	select {
-	case <-done:
+	case out := <-done:
 		assert.LessOrEqual(t, time.Since(locked), 3*time.Second)
+		assert.Equal(t, "error", out.Status, "a command the lock ends is not a success")
+		assert.Nil(t, out.ExitCode)
 	case <-time.After(5 * time.Second):
 		t.Fatal("the locked run's command did not end within 5s")
 	}

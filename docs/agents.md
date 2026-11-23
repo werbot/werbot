@@ -44,7 +44,7 @@ Owners and admins see every agent and run on **AI agents**; a member sees their 
 | `request_access` | `resource`, `duration` (Go duration, empty: the organization default), `reason` | `request_id`, `status`, `url` |
 | `run_status` | none | Status, actions used and left, expiry and the approvals the run waits for |
 
-`ssh_exec` runs one command without a terminal through the resource's gateway, with the run certificate and the gateway host key from `list_resources` (no trust on first use). A relative path starts at the login's home directory. Output is stdout and stderr together, at most 64 KiB; the rest is dropped and `truncated` is set. A command that waits for an approval longer than 50 seconds returns `pending_approval` with the link; call `ssh_exec` again with the same resource and command once it is approved. A refusal of the gateway is `denied` with its message (`Command denied: …`, `Access denied`); `Agent limit exceeded` and `Agent run is not active` are `error`.
+`ssh_exec` runs one command without a terminal through the resource's gateway, with the run certificate and the gateway host key from `list_resources` (no trust on first use). A relative path starts at the login's home directory. Output is stdout and stderr together, at most 64 KiB; the rest is dropped and `truncated` is set. A command that waits for an approval longer than 50 seconds returns `pending_approval` with the link; call `ssh_exec` again with the same resource and command once it is approved. A refusal of the gateway is `denied` with its message (`Command denied: …`, `Access denied`); `Agent limit exceeded` and `Agent run is not active` are `error`. A command the gateway ends (a lock, a revoke, the idle timeout or the max duration) has no exit code and is `error` with `the session ended without an exit status`.
 
 ## `werbot agent run`
 
@@ -55,7 +55,8 @@ werbot agent run --agent ops --reason "nightly check" -- ./check.sh
 ```
 
 - The run directory `<WERBOT_HOME>/runs/<run id>` (`0700`, files `0600`) holds the run key and certificate, `known_hosts`, an `ssh_config` with one `Host <resource>` block per ssh resource and `bin/ssh`, a wrapper that runs the system `ssh` with that config. The directory is removed when the program exits, also after a failed start.
-- The program runs with `bin` first on `PATH`, an empty `SSH_AUTH_SOCK` (your SSH agent stays hidden) and without `WERBOT_HOME` and `WERBOT_SERVER`. `ssh <resource> <command>` inside it is the agent.
+- The program runs with `bin` first on `PATH`, an empty `SSH_AUTH_SOCK` (your SSH agent stays hidden) and without `WERBOT_HOME` and `WERBOT_SERVER`. `ssh <resource> <command>` inside it is the agent. The `ssh_config` offers only the run key (`IdentitiesOnly yes`, `IdentityAgent none`), never the keys of an SSH agent.
+- On Windows the wrapper is `bin\ssh.cmd`. The program itself is found in `bin` first, and so is `ssh` for a child that looks programs up through `PATHEXT` (`cmd`, PowerShell, Go). A child that starts `ssh` without that lookup (for example Python `subprocess` or Node `child_process` without a shell) runs the system `ssh.exe` with your own configuration instead. The Windows OpenSSH agent listens on a fixed named pipe, so an empty `SSH_AUTH_SOCK` does not hide it from such a child. Use an [agent profile](#isolated-an-agent-profile) under another Windows user to keep your keys out of the agent's reach.
 - The certificate is renewed while the program runs. The exit code of the program is the exit code of `werbot`; Ctrl-C reaches the program; a program that has not left 2 seconds later is killed.
 - `--resource` limits the setup to the named resources. A `tcp` or `udp` resource named there gets a local port as in [`werbot connect`](connect.md). The baseline gives agents no ports: allow them with a custom Cedar policy, for example
 
@@ -156,9 +157,13 @@ Each agent has limits; a run takes them when it starts, so a change applies to n
 
 An action is a session the gateway opens. Past a limit the gateway refuses the command with `Agent limit exceeded` before it connects to the resource; that refusal is not a denial. A run also records at most 1000 tool calls, each with arguments up to 16 KiB.
 
+- A run past its `max_duration` refuses new actions at once, but its open sessions end when the expiry job ends the run, which runs every minute: up to about one minute later.
+- If the server fails to sign the run token after it started the run, the client gets no token and the run stays `running` without one until it expires.
+- The gateway decides an agent missing from its policy snapshot as active for 30 seconds after the agent's SSH login. A session of a deleted agent opened in that window ends at the next re-evaluation, up to about 90 seconds after the login.
+
 ### Pause after denials
 
-Five policy denials in a row pause the run; an allowed action resets the count. A paused run refuses every tool call, `run_status` included, with `agent run is not active`. A person resumes it on the run page (**Resume**, `ResumeRun`). Right after a resume the gateway may refuse the run for about a second more, until its next policy snapshot; such refusals count as denials.
+Five policy denials in a row pause the run; an allowed action resets the count. A paused run refuses every tool call, `run_status` included, with `agent run is not active`. A person resumes it on the run page (**Resume**, `ResumeRun`). Right after a resume the gateway may refuse the run for about a second more, until its next policy snapshot. Refusals by the run's own state (a paused or ended run, a frozen, locked or deleted agent) are audited as denials but never count toward the pause.
 
 A denial of a `secrets` or `egress` command emails `agent_alert` to the sponsor and to every owner and admin.
 
@@ -173,7 +178,11 @@ Owners and admins stop agents with a [lock](jit.md#locks):
 | `agents_of_user` | Every agent of one sponsor. |
 | `all_agents` | Every agent of the organization. |
 
-A lock ends the open sessions of the matched runs within about 2 seconds (`access_revoked`), and refuses their next tool call (`agent is locked`); a locked agent gets no new run. **Freeze** on **AI agents** (`UpdateAgent` with status `frozen`) does the same for one agent until it is unfrozen and also revokes its profiles. **Delete agent** removes the agent with its runs and tool calls and ends its open sessions; the sessions and approvals stay in the history.
+A lock ends the open sessions of the matched runs within about 2 seconds (`access_revoked`; a command cut short this way has no exit status), and refuses their next tool call (`agent is locked`); a locked agent gets no new run. Only a lock is the owner and admin kill switch: the sponsor cannot remove it.
+
+**Freeze** on **AI agents** (`UpdateAgent` with status `frozen`) stops one agent in the same way and also revokes its profiles, but the sponsor can unfreeze their own agent. **Delete agent** removes the agent with its runs and tool calls and ends its open sessions; the sessions and approvals stay in the history.
+
+In the shared profile mode without `--agent`, the agent name is the name the MCP client reports. A client that reports another name runs as another agent, which a lock on the first agent does not stop. To stop every agent of a sponsor, lock `agents_of_user` (or `all_agents`).
 
 ## Run timeline
 

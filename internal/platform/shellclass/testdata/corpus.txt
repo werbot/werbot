@@ -199,6 +199,8 @@ opaque	awk '{print > "/tmp/x"}' f
 opaque	awk '{print | "sort"}' f
 opaque	awk '{"date" | getline d; print d}'
 opaque	awk -f prog.awk f
+opaque	awk '@include "inplace"; {print}' f
+opaque	awk '@load "filefuncs"; BEGIN{print}'
 opaque	sed 's/a/b/e' f
 opaque	sed -n 'w /tmp/x' f
 opaque	sed '1e id' f

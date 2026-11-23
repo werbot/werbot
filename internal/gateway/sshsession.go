@@ -11,8 +11,30 @@ import (
 
 // session serves a session channel and exits with the status of its command;
 // returning closes the channel, which also ends the connector's input relay.
+// A session the gateway ended has no status: the channel closes first, so the
+// library's Exit(0) after the handler sends nothing and the client never reads
+// a command cut short as a success.
 func (h *sshHandler) session(s ssh.Session) {
-	_ = s.Exit(h.serveSession(s))
+	if code := h.serveSession(s); code >= 0 {
+		_ = s.Exit(code)
+		return
+	}
+	_ = s.Close()
+}
+
+// ended is the end reason of s served under ctx; s is cut when the gateway
+// ended it with an end cause, not when it closed or failed on its own.
+func (s *Session) ended(ctx context.Context, err error) string {
+	s.cut = errors.As(context.Cause(ctx), new(endCause))
+	return endReason(ctx, err)
+}
+
+// exitStatus is the status of the command of s, -1 (none) when s was cut.
+func exitStatus(s *Session, code int32) int {
+	if s.cut {
+		return -1
+	}
+	return int(code)
 }
 
 // serveSession maps the channel to a session kind: a shell is a terminal, an exec
@@ -68,7 +90,7 @@ func (h *sshHandler) serveSession(s ssh.Session) int {
 		say(s, runText(err, resource))
 		return 1
 	}
-	return int(exit.Load())
+	return exitStatus(sess, exit.Load())
 }
 
 // withKeepalive sends keepalives on the connection of ctx while a console

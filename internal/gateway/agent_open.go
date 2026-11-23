@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -79,9 +80,24 @@ func agentPolicyDenial(err error) bool {
 		errors.Is(err, ErrApprovalDenied) || errors.Is(err, ErrApprovalTimeout)
 }
 
+// stateReasons are the policies that deny an agent for its run's own state;
+// a lock ("lock:<id>") is one too.
+var stateReasons = map[string]bool{"agent:baseline:blocked_runs": true, "agent:baseline:frozen": true, "agent:missing": true}
+
+// stateDenial reports a denial decided by the run's state: a blocked run, a
+// frozen or missing agent or a lock forbids every action of the run, so the
+// denial is audited but never counted toward the pause, as a refused run is
+// not. Any such reason decides it: the reasons also hold the permits of an
+// allowing pass (the sponsor's binding), and a run its state forbids cannot
+// act whatever else it tried.
+func stateDenial(reasons []string) bool {
+	return slices.ContainsFunc(reasons, func(r string) bool { return stateReasons[r] || strings.HasPrefix(r, "lock:") })
+}
+
 // reportAgentDenial records a policy denial of an agent's request req at
-// once through RecordDenial; when that fails the denial goes to the next
-// heartbeat with the run. It reports whether err was such a denial.
+// once through RecordDenial; a denial by the run's state, or one RecordDenial
+// failed on, goes to the next heartbeat with the run. It reports whether err
+// was such a denial.
 func (p *Pipeline) reportAgentDenial(ctx context.Context, r OpenRequest, req AccessRequest, err error) bool {
 	a := req.User.Agent
 	if a == nil || !agentPolicyDenial(err) {
@@ -89,16 +105,26 @@ func (p *Pipeline) reportAgentDenial(ctx context.Context, r OpenRequest, req Acc
 	}
 	target := cmp.Or(r.Command, r.Target)
 	reasons := truncateAll(deniedReasons(err), maxDenialReasons, 128)
+	if stateDenial(reasons) {
+		p.denyAgentLater(r, req, err, target, reasons)
+		return true
+	}
 	paused, rerr := p.ctl.RecordDenial(context.WithoutCancel(ctx), a.RunID, TruncateUTF8(r.Resource, 63), TruncateUTF8(target, 1024), req.Classes, reasons)
 	if rerr != nil {
 		p.log.Warn("agent: denial not recorded, reported in the next heartbeat", "run_id", a.RunID, "error", rerr)
-		d := newDenial(denialReason(err), req.User.ID, r.Identity.Value, r.Resource, r.Kind, target, r.ClientIP)
-		d.AgentRunId, d.Classes, d.Reasons = a.RunID.String(), req.Classes, reasons
-		p.denials.add(d)
+		p.denyAgentLater(r, req, err, target, reasons)
 		return true
 	}
 	if paused {
 		p.log.Info("agent: run paused after a denial", "run_id", a.RunID)
 	}
 	return true
+}
+
+// denyAgentLater reports an agent's denial in the next heartbeat with its run,
+// where the server audits it without counting it.
+func (p *Pipeline) denyAgentLater(r OpenRequest, req AccessRequest, err error, target string, reasons []string) {
+	d := newDenial(denialReason(err), req.User.ID, r.Identity.Value, r.Resource, r.Kind, target, r.ClientIP)
+	d.AgentRunId, d.Classes, d.Reasons = req.User.Agent.RunID.String(), req.Classes, reasons
+	p.denials.add(d)
 }

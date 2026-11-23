@@ -121,6 +121,7 @@ type Session struct {
 	Metrics   *metrics.Registry // for connector counters; nil means a private registry
 
 	outcome *execOutcome // an exec's exit status and output hash, kept by Run
+	cut     bool         // the gateway ended it (sweeper, lock, cancel, drain), set by Run
 }
 
 // Redact removes the credential value from text bound for the log.

@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-// Input classes "awk or sed program that writes files or runs commands, program from a file or not
+// Input classes "awk or sed program that writes files or runs commands, awk program with a gawk directive, program from a file or not
 // literal, output option of less, curl or wget, git external diff or textconv" are opaque or write;
 // each clean twin keeps its old class (owner decision O1).
 func TestScriptFormsWriteOrRun(t *testing.T) {
 	classifyAll(t, map[string]string{
-		// awk: run, getline, output redirection after print/printf, program from a file or option.
+		// awk: run, getline, output redirection after print/printf, gawk @ directive, program from a file or option.
 		`awk 'BEGIN{system("id")}'`:                     "opaque",
 		`awk '{print > "/tmp/x"}' f`:                    "opaque",
 		`awk '{printf "%s", $1 >> "/tmp/x"}' f`:         "opaque",
@@ -22,6 +22,15 @@ func TestScriptFormsWriteOrRun(t *testing.T) {
 		`awk -e '{print}' f`:                            "opaque",
 		`awk -E prog.awk f`:                             "opaque",
 		`awk "$P" f`:                                    "opaque",
+		`awk '@include "inplace"; {print}' f`:           "opaque",
+		`awk '@load "filefuncs"; BEGIN{print}'`:         "opaque",
+		`awk '@namespace "x"; {print}' f`:               "opaque",
+		`awk -i inplace '{print}' f`:                    "opaque",
+		`awk --include=inplace '{print}' f`:             "opaque",
+		`awk -l filefuncs '{print}' f`:                  "opaque",
+		`awk --load filefuncs '{print}' f`:              "opaque",
+		`awk --source '{print}' f`:                      "opaque",
+		`awk --exec prog.awk f`:                         "opaque",
 		`awk -F, -v n=1`:                                "opaque",
 		`awk '{print $1}' /var/log/syslog`:              "read",
 		`awk '$3 > 100 {print $1}' f`:                   "read",

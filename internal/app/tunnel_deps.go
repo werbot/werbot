@@ -132,6 +132,9 @@ func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid
 		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Target: st.Target,
 		Command: st.Command, Classes: st.Classes, Paths: st.Paths, AgentRunID: st.AgentRunID, ToolCallID: st.ToolCallID,
 		Guard: actionGuard(s.agents, st)})
+	if st.AgentRunID == nil {
+		return id, err
+	}
 	return id, actionError(err)
 }
 

@@ -186,3 +186,62 @@ func (e *pipeEnv) runBlocking(t *testing.T, s *Session) {
 	}()
 	t.Cleanup(func() { cancel(); <-done })
 }
+
+// Input class "agent denied by its run's state: blocked run, frozen or
+// missing agent, lock": no RecordDenial, so it never counts toward the pause;
+// the denial goes to the next heartbeat with the run and is audited there.
+func TestStateDenialsNotCounted(t *testing.T) {
+	lock := "@id(\"lock:l1\")\nforbid (principal is Werbot::Agent, action, resource);\n"
+	cases := []struct {
+		reason, policies string
+		blocked          bool
+		agents           []testAgent
+	}{
+		{"agent:baseline:blocked_runs", execTestPolicies, true, []testAgent{{"a1", "u1", "active"}}},
+		{"agent:baseline:frozen", execTestPolicies, false, []testAgent{{"a1", "u1", "frozen"}}},
+		{"lock:l1", execTestPolicies + lock, false, []testAgent{{"a1", "u1", "active"}}},
+		{"agent:missing", execTestPolicies, false, nil},
+	}
+	for _, tc := range cases {
+		e, a := newAgentEnv(t)
+		var blocked []string
+		if tc.blocked {
+			blocked = []string{e.m["run1"].String()}
+		}
+		e.f.setPolicy(agentPolicy(t, e.m, tc.policies, blocked, tc.agents...))
+		e.f.with(func(f *fakeControl) { f.user.Agent.AuthAt = time.Now().Add(-time.Hour) }) // past the grace
+		_, err := e.p.Open(t.Context(), e.cmdReq("x", KindExec, "ls"))
+		require.ErrorIs(t, err, ErrDenied, tc.reason)
+		assert.Empty(t, a.recorded(), "%s: a state denial is not counted", tc.reason)
+		ds := e.p.heartbeat().GetDenials()
+		require.Len(t, ds, 1, tc.reason)
+		assert.Equal(t, e.m["run1"].String(), ds[0].GetAgentRunId(), tc.reason)
+		assert.Contains(t, ds[0].GetReasons(), tc.reason)
+	}
+}
+
+// Input class "agent deleted (or its sponsor removed) while its session is
+// open": the snapshot no longer lists the agent; past agentSnapshotGrace the
+// sweeper ends the session with access_revoked, and a new request is denied
+// as agent:missing.
+func TestDeletedAgentSessionRevoked(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		e, _ := newAgentEnv(t)
+		startSweeper(t, e.p)
+		s, err := e.p.Open(t.Context(), e.cmdReq("x", KindExec, "sleep 30"))
+		require.NoError(t, err)
+		e.runBlocking(t, s)
+
+		pol := agentPolicy(t, e.m, execTestPolicies, nil) // the agent is gone
+		pol.version = "v2"
+		e.f.setPolicy(pol)
+		time.Sleep(time.Second)
+		assert.Empty(t, e.endedWith(s.ID), "within the grace the agent is decided as active")
+		time.Sleep(agentSnapshotGrace + reevalEvery)
+		assert.Equal(t, []string{"access_revoked"}, e.endedWith(s.ID), "past the grace the next re-evaluation ends it")
+
+		_, err = e.p.Open(t.Context(), e.cmdReq("x", KindExec, "ls"))
+		require.ErrorIs(t, err, ErrDenied)
+		assert.Contains(t, deniedReasons(err), "agent:missing")
+	})
+}

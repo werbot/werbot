@@ -58,6 +58,10 @@ func TestPolicyParityAgents(t *testing.T) {
 		require.NoError(t, err)
 	}
 	lockID := uuid.New()
+	custom := policy.SnapshotCustomPolicy{ID: uuid.New(), Cedar: `permit (principal is Werbot::Agent, action, resource);`}
+	withCustom := func() func(*policy.Snapshot) {
+		return func(s *policy.Snapshot) { s.CustomPolicies = append(s.CustomPolicies, custom) }
+	}
 	cases := []struct {
 		name, command string
 		action        string // "" is ssh.exec
@@ -97,6 +101,8 @@ func TestPolicyParityAgents(t *testing.T) {
 			command("approval", "write")
 			return nil
 		}},
+		{name: "custom permit", command: "touch /tmp/x", allow: true, reason: "custom:" + custom.ID.String() + ":0", setup: withCustom},
+		{name: "custom permit destructive", command: "rm -rf /tmp/x", reason: "agent:baseline:dangerous", setup: withCustom},
 		{name: "missing agent", command: "ls", reason: "agent:missing",
 			setup: func() func(*policy.Snapshot) { return func(s *policy.Snapshot) { s.Agents = nil } }},
 		{name: "foreign sponsor", command: "ls", reason: "agent:missing",

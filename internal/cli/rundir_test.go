@@ -50,7 +50,7 @@ func TestRunDirLayout(t *testing.T) {
 	cfg := read("ssh_config")
 	for _, want := range []string{"Host srv\n", "HostName gw.example.com", "Port 2222", "User alice+srv",
 		"IdentityFile " + filepath.Join(dir, "id_ed25519"), "CertificateFile " + filepath.Join(dir, "id_ed25519-cert.pub"),
-		"IdentitiesOnly yes", "UserKnownHostsFile " + filepath.Join(dir, "known_hosts")} {
+		"IdentitiesOnly yes", "IdentityAgent none", "UserKnownHostsFile " + filepath.Join(dir, "known_hosts")} {
 		assert.Contains(t, cfg, want)
 	}
 	assert.NotContains(t, cfg, "Host pg", "only ssh resources get a block")
@@ -80,6 +80,14 @@ func TestRunDirWindowsWrapper(t *testing.T) {
 	assert.Equal(t, `@"C:\Windows\System32\OpenSSH\ssh.exe" -F "`+filepath.Join(dir, "ssh_config")+`" %*`+"\r\n", string(raw))
 	_, err = os.Stat(filepath.Join(dir, "bin", "ssh"))
 	assert.ErrorIs(t, err, os.ErrNotExist)
+
+	// cmd expands %NAME% in a script: a literal % in a path is doubled
+	pct := filepath.Join(t.TempDir(), "50%off")
+	require.NoError(t, writeRunDir(pct, run, h.resources, `C:\Tools%1\ssh.exe`, "windows"))
+	raw, err = os.ReadFile(filepath.Join(pct, "bin", "ssh.cmd")) //nolint:gosec // test temp dir
+	require.NoError(t, err)
+	cfg := strings.ReplaceAll(filepath.Join(pct, "ssh_config"), "%", "%%")
+	assert.Equal(t, `@"C:\Tools%%1\ssh.exe" -F "`+cfg+`" %*`+"\r\n", string(raw))
 }
 
 func TestShellQuote(t *testing.T) {

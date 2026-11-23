@@ -53,7 +53,7 @@ The classifier is a heuristic. It reads the command line, not what the programs 
 
 These forms of programs that are otherwise `read` write files or run other programs, so they get a stricter class:
 
-- `awk` is `opaque` when its program calls `system` or `getline`, has `|` or `>` after `print` or `printf`, comes from a file (`-f`) or is not literal, or when an option other than `-F` or `-v` is given. A comparison such as `awk '$3 > 100 {print $1}'` stays `read`.
+- `awk` is `opaque` when its program calls `system` or `getline`, contains `@` (gawk directives such as `@include`, `@load` or `@namespace`; any `@`, even inside a string, counts), has `|` or `>` after `print` or `printf`, comes from a file (`-f`) or is not literal, or when an option other than `-F` or `-v` is given. A comparison such as `awk '$3 > 100 {print $1}'` stays `read`.
 - `sed` is `opaque` when its script has an `e`, `w` or `W` command or an `e` or `w` flag of `s`, comes from a file (`-f`) or does not parse; `sed -i` stays `write`.
 - `less -o`, `-O`, `--log-file`; `curl -o`, `-O`, `--output`, `--remote-name`, `--remote-name-all`, `-D`/`--dump-header`, `-c`/`--cookie-jar`, `--trace`, `--trace-ascii`, `--stderr`, `--libcurl`, `--etag-save`, `--hsts`, `--alt-svc`; `wget -O`, `-o`, `-a`, `-P`, `--output-document`, `--output-file`, `--append-output`, `--directory-prefix` add `write` in place of `read`. The value `-` or `/dev/null` writes no file and stays `read`, like `> /dev/null` (`curl -s -o /dev/null …`, `wget -qO- …`).
 - `wget` saves each download in the working directory, so it is `write` unless `-O` names `-` or `/dev/null` or `--spider` only checks the URL.

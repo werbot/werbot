@@ -225,7 +225,7 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	s.trackOutcome()
 	panicked, err := p.serve(sctx, s, c, cancel)
 	cancel(errServed)
-	reason := endReason(sctx, err)
+	reason := s.ended(sctx, err)
 	if panicked { // also after a client cancel or drain
 		reason = string(causeInternal)
 	}

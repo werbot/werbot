@@ -26,7 +26,8 @@ func writeRunDir(dir string, a *clientauth.AgentProfile, res []*werbotv1.Accessi
 	return writeSSHWrapper(dir, sshPath, goos)
 }
 
-// runSSHConfig has one Host <resource> block for every ssh resource with a gateway address.
+// runSSHConfig has one Host <resource> block for every ssh resource with a
+// gateway address; only the run key is offered, never an SSH agent's keys.
 func runSSHConfig(dir, login string, res []*werbotv1.AccessibleResource) string {
 	var b strings.Builder
 	for _, r := range res {
@@ -34,7 +35,7 @@ func runSSHConfig(dir, login string, res []*werbotv1.AccessibleResource) string 
 		if r.GetType() != "ssh" || err != nil {
 			continue
 		}
-		fmt.Fprintf(&b, "Host %s\n  HostName %s\n  Port %s\n  User %s+%s\n  IdentityFile %s\n  CertificateFile %s\n  IdentitiesOnly yes\n  UserKnownHostsFile %s\n  StrictHostKeyChecking yes\n",
+		fmt.Fprintf(&b, "Host %s\n  HostName %s\n  Port %s\n  User %s+%s\n  IdentityFile %s\n  CertificateFile %s\n  IdentitiesOnly yes\n  IdentityAgent none\n  UserKnownHostsFile %s\n  StrictHostKeyChecking yes\n",
 			r.GetName(), host, port, login, r.GetName(),
 			filepath.Join(dir, "id_ed25519"), filepath.Join(dir, "id_ed25519-cert.pub"), filepath.Join(dir, "known_hosts"))
 	}
@@ -56,8 +57,8 @@ func writeSSHWrapper(dir, sshPath, goos string) error {
 	}
 	cfg := filepath.Join(dir, "ssh_config")
 	script := "#!/bin/sh\nexec " + shellQuote(sshPath) + " -F " + shellQuote(cfg) + " \"$@\"\n"
-	if goos == "windows" {
-		script = `@"` + sshPath + `" -F "` + cfg + `" %*` + "\r\n"
+	if goos == "windows" { // cmd expands %NAME% in a script: a literal % is %%
+		script = `@"` + strings.ReplaceAll(sshPath, "%", "%%") + `" -F "` + strings.ReplaceAll(cfg, "%", "%%") + `" %*` + "\r\n"
 	}
 	return os.WriteFile(wrapperPath(dir, goos), []byte(script), 0o700) //nolint:gosec // an executable in the 0700 run directory
 }
