@@ -4,7 +4,7 @@
 	import { failToast } from '#lib/errors.js';
 	import type { AuditEvent } from '#lib/gen/werbot/v1/audit_pb.js';
 	import type { Gateway } from '#lib/gen/werbot/v1/gateway_pb.js';
-	import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
+	import type { AccessibleResource, Resource } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { type Session, SessionStatus } from '#lib/gen/werbot/v1/session_pb.js';
 	import type { SSHKey } from '#lib/gen/werbot/v1/ssh_key_pb.js';
 	import { Role } from '#lib/gen/werbot/v1/user_pb.js';
@@ -16,6 +16,7 @@
 	import KeysCard from '#lib/dashboard/KeysCard.svelte';
 	import PoolsCard from '#lib/dashboard/PoolsCard.svelte';
 	import SessionsCard from '#lib/dashboard/SessionsCard.svelte';
+	import TerminalsCard from '#lib/dashboard/TerminalsCard.svelte';
 	import { ACTIVE_PAGE, activeLabel, onlineCount, type Slot } from '#lib/dashboard/dashboard.js';
 	import type { PageProps } from './$types';
 
@@ -43,11 +44,16 @@
 	let pools = $state<Slot<Gateway[]>>(loading);
 	let events = $state<Slot<AuditEvent[]>>(loading);
 	let keys = $state<Slot<SSHKey[]>>(loading);
+	let terminals = $state<Slot<AccessibleResource[]>>(loading);
 
 	onMount(() => {
 		const list = (status: SessionStatus, pageSize: number) => () => sessions.listSessions({ status, pageSize }).then((r) => r.sessions);
 		load(list(SessionStatus.ACTIVE, ACTIVE_PAGE), (s) => (active = s));
 		load(list(SessionStatus.UNSPECIFIED, 5), (s) => (recent = s));
+		load(
+			() => resources.listAccessibleResources({}).then((r) => r.resources.filter((x) => x.allowed && x.kinds.includes('terminal'))),
+			(s) => (terminals = s)
+		);
 		if (manager) {
 			load(() => resources.listResources({}).then((r) => r.resources), (s) => (res = s));
 			load(() => gateways.listGateways({}).then((r) => r.gateways), (s) => (pools = s));
@@ -85,6 +91,7 @@
 
 <div class="grid">
 	<SessionsCard {recent} />
+	<TerminalsCard accessible={terminals} />
 	{#if manager}
 		<HealthCard resources={res} />
 		<PoolsCard {pools} />

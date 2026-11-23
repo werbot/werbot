@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Banner, Avatar, PropertyRow, Skeleton, Spinner } from '#lib/ui/index.js';
+	import { Banner, Avatar, Button, PropertyRow, Skeleton, Spinner } from '#lib/ui/index.js';
 	import { sessions } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import LoadFailed from '#lib/LoadFailed.svelte';
@@ -13,12 +14,17 @@
 	import PathChips from '#lib/policies/PathChips.svelte';
 	import CastPlayer from '#lib/player/CastPlayer.svelte';
 	import { isMe } from '#lib/me.js';
+	import { canControlSession } from '#lib/sessions/access.js';
+	import TerminateDrawer from '#lib/sessions/TerminateDrawer.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let session = $state<Session>();
 	let failed = $state(false);
 	let verified = $state<boolean>();
 	let playerFailed = $state(false);
+	let terminating = $state<string | null>(null);
+
+	const control = $derived(!!session && canControlSession(page.data.session?.role, page.data.session?.user?.login, session.userLogin));
 
 	const finished = $derived(!!session?.recording?.finished);
 
@@ -38,7 +44,15 @@
 <PageHeader
 	title={session ? session.resourceName || session.id : ''}
 	breadcrumbs={[{ label: m.sessions_title(), href: '/sessions' }, { label: session ? session.resourceName || session.id : '' }]}
-/>
+>
+	{#snippet toolbar()}
+		{#if control && session?.live}
+			<Button scheme="g" variant="plain" size={40} iconLeft="eye" onclick={() => goto(`/sessions/${session!.id}/live`)}>{m.sessions_watch()}</Button>
+			<Button scheme="g" variant="plain" size={40} iconLeft="close" onclick={() => (terminating = session!.id)}>{m.live_terminate()}</Button>
+		{/if}
+	{/snippet}
+</PageHeader>
+<TerminateDrawer id={terminating} onclose={() => ((terminating = null), load())} />
 <PageBody>
 	{#if failed}
 		<LoadFailed onretry={load} />

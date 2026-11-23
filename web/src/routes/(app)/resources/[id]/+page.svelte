@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
 	import { page } from '$app/state';
-	import { Banner, InfoBlock, Skeleton, Tabs } from '#lib/ui/index.js';
+	import { Banner, Button, InfoBlock, Skeleton, Tabs } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import LoadFailed from '#lib/LoadFailed.svelte';
@@ -64,6 +65,9 @@
 <PageHeader title={resource?.name ?? ''} breadcrumbs={[{ label: m.resources_title(), href: '/resources' }, { label: resource?.name ?? '' }]}>
 	{#snippet toolbar()}
 		{#if resource}<HealthDot health={resource.health} />{/if}
+		{#if resource && types.find((t) => t.name === resource?.type)?.kinds.includes('terminal')}
+			<Button scheme="g" variant="plain" size={40} onclick={() => goto(`/terminal/${encodeURIComponent(resource!.name)}`)}>{m.terminal_open()}</Button>
+		{/if}
 	{/snippet}
 	{#snippet tabs()}
 		<Tabs options={tabOptions} bind:value={tab} />

@@ -14,6 +14,9 @@
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import Pager from '#lib/Pager.svelte';
+	import { canControlSession } from '#lib/sessions/access.js';
+	import SessionMenu from '#lib/sessions/SessionMenu.svelte';
+	import TerminateDrawer from '#lib/sessions/TerminateDrawer.svelte';
 	import { dayStart, dayString } from '#lib/period.js';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -36,6 +39,8 @@
 	const to = $derived(dayString(rangeEnd));
 	let users = $state<SelectOption[]>([]);
 	let resourceOptions = $state<SelectOption[]>([]);
+	let menuOpen = $state('');
+	let terminating = $state<string | null>(null);
 
 	const statuses = $derived([
 		{ value: '0', label: m.sessions_status_all() },
@@ -123,6 +128,7 @@
 				<th>{m.sessions_col_started()}</th>
 				<th>{m.sessions_col_duration()}</th>
 				<th>{m.sessions_col_traffic()}</th>
+				<th></th>
 			{/snippet}
 			{#each list as s (s.id)}
 				<tr>
@@ -152,12 +158,18 @@
 						{/if}
 					</td>
 					<td class="muted">↑ {bytes(s.bytesUp)} ↓ {bytes(s.bytesDown)}</td>
+					<td class="more">
+						{#if s.live && canControlSession(page.data.session?.role, page.data.session?.user?.login, s.userLogin)}
+							<SessionMenu id={s.id} onterminate={() => (terminating = s.id)} bind:open={() => menuOpen === s.id, (v) => (menuOpen = v ? s.id : '')} />
+						{/if}
+					</td>
 				</tr>
 			{/each}
 		</Table>
 	{/if}
 	<Pager bind:page={pageNo} {next} />
 </PageBody>
+<TerminateDrawer id={terminating} onclose={() => (terminating = null)} />
 
 <style>
 	.cmd {
@@ -176,5 +188,9 @@
 	.muted {
 		color: var(--miso-txt-secondary);
 		white-space: nowrap;
+	}
+
+	.more {
+		text-align: right;
 	}
 </style>
