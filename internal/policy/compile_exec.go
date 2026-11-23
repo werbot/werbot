@@ -71,27 +71,34 @@ func selects(sel Selector, r SnapshotResource) bool {
 	return len(sel.Labels) > 0 && matches(r.Labels, sel.Labels)
 }
 
-// writeCommandRules emits one forbid per deny or approval rule, sorted by ID.
-// Allow rules emit nothing (bindings already allow exec; agents: stage 12),
-// nor do rules without people, without resources or without exec types.
+// writeCommandRules emits one forbid per deny or approval rule of people or
+// agents, sorted by ID, and the agent permit of each allow and approval rule
+// (writeAgentPermit): bindings already allow people exec. Rules without
+// subjects, without resources or without exec types emit nothing.
 func writeCommandRules(b *strings.Builder, rules []SnapshotCommandRule) error {
 	actions := execActions()
 	for _, r := range slices.SortedFunc(slices.Values(rules), func(x, y SnapshotCommandRule) int { return compareIDs(x.ID, y.ID) }) {
 		if !slices.Contains(commandEffects, r.Effect) || len(r.Classes) == 0 {
 			return fmt.Errorf("policy: command rule %s: invalid effect or classes", r.ID)
 		}
-		t := target(r.Subjects, r.ResourceIDs)
-		if r.Effect == "allow" || t == "" {
-			continue
+		if t := target(ruleSubject(r.Subjects), r.ResourceIDs); t != "" && r.Effect != "allow" {
+			writeForbid(b, r.forbid(t, actions))
 		}
-		f := forbid{id: "command:" + r.ID.String(), message: r.Message, actions: actions,
-			when: fmt.Sprintf("%s && context.classes.containsAny([%s])", t, strings.Join(cedarStrings(r.Classes), ", "))}
-		if r.Effect == "approval" {
-			f.obligation, f.unless = ObligationApproval, "context.approval_granted"
+		if r.Effect != "deny" {
+			writeAgentPermit(b, r, actions)
 		}
-		writeForbid(b, f)
 	}
 	return nil
+}
+
+// forbid is the policy of a deny or approval rule r on target.
+func (r SnapshotCommandRule) forbid(target string, actions []string) forbid {
+	f := forbid{id: "command:" + r.ID.String(), message: r.Message, actions: actions,
+		when: fmt.Sprintf("%s && context.classes.containsAny([%s])", target, strings.Join(cedarStrings(r.Classes), ", "))}
+	if r.Effect == "approval" {
+		f.obligation, f.unless = ObligationApproval, "context.approval_granted"
+	}
+	return f
 }
 
 // writeAnnotation writes @key("value") with Cedar escaping of value.
@@ -107,10 +114,7 @@ func subjectCondition(s Subjects) string {
 	}
 	terms := slices.DeleteFunc([]string{principalIn("Werbot::Team", s.Teams), principalIn("Werbot::User", s.Users)},
 		func(t string) bool { return t == "" })
-	if len(terms) > 1 {
-		return "(" + strings.Join(terms, " || ") + ")"
-	}
-	return strings.Join(terms, "")
+	return orTerms(terms)
 }
 
 // principalIn is "principal in [<ids>]"; "" without ids.

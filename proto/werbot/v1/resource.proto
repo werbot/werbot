@@ -82,6 +82,10 @@ message AccessibleResource {
   string host_key = 8;    // authorized_keys line of the pool host key
   bool requestable = 9;   // an approval policy lets the caller request access
   bool allowed = 10;      // the caller may connect now
+  // An agent caller only (stage 12): the command classes the merged sponsor
+  // and agent decision allows, and those it allows after an approval.
+  repeated string allowed_classes = 20;
+  repeated string approval_classes = 21;
 }
 
 message ListAccessibleResourcesRequest {}

@@ -88,7 +88,7 @@ func TestPolicyRPCStage11(t *testing.T) {
 
 	_, err = h.TestCommand(e.ctx, connect.NewRequest(&werbotv1.TestCommandRequest{
 		Subject: &werbotv1.TestCommandRequest_AgentId{AgentId: member.String()}, ResourceId: member.String(), Command: "ls"}))
-	assert.Equal(t, connect.CodeUnimplemented, connect.CodeOf(err))
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err), "no such agent")
 }
 
 func TestPolicyRPCStage11RoundTrip(t *testing.T) {

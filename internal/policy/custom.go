@@ -118,7 +118,8 @@ func trialError(p *cedar.Policy) string {
 		ps := &PolicySet{policies: set, entities: resourceEntities([]SnapshotResource{{ID: trialResource, Type: t.Name}})}
 		for _, a := range t.Actions {
 			_, diag := ps.evaluate(Request{UserID: trialUser, TeamIDs: []uuid.UUID{trialTeam}, ResourceID: trialResource,
-				Action: a, IP: netip.MustParseAddr("192.0.2.1"), Time: trialTime, Command: "ls", Classes: []string{"read"}, Paths: []string{"/etc/hosts"}})
+				Action: a, IP: netip.MustParseAddr("192.0.2.1"), Time: trialTime, Command: "ls", Classes: []string{"read"}, Paths: []string{"/etc/hosts"}},
+				userUID(trialUser))
 			if len(diag.Errors) > 0 {
 				return diag.Errors[0].Message
 			}

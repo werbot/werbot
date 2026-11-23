@@ -87,10 +87,8 @@ when { context.cli_session_id == "019a0000-0000-7000-8000-000000000005" && conte
 	text := compileText(t, jitSnap(nil, SnapshotLock{ID: lockID, TargetType: "user", TargetID: &target}))
 	assert.Contains(t, text, "when { context.now < 9223372036854775807 };", "a lock without expiry")
 
-	for _, typ := range []string{"agent", "agent_run", "agents_of_user", "all_agents", "mfa_device"} {
-		text := compileText(t, jitSnap(nil, SnapshotLock{ID: lockID, TargetType: typ, TargetID: &target}))
-		assert.NotContains(t, text, "lock:", typ)
-	}
+	text = compileText(t, jitSnap(nil, SnapshotLock{ID: lockID, TargetType: "mfa_device", TargetID: &target}))
+	assert.NotContains(t, text, "lock:", "mfa_device")
 
 	for _, l := range []SnapshotLock{{ID: lockID, TargetType: "bogus", TargetID: &target}, {ID: lockID, TargetType: "user"}} {
 		_, _, err := Compile(jitSnap(nil, l))

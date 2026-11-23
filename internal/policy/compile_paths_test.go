@@ -104,7 +104,7 @@ func TestCompiledPathPoliciesTypecheck(t *testing.T) {
 	require.NoError(t, err)
 	list, err := cedar.NewPolicyListFromBytes("werbot.cedar", []byte(text))
 	require.NoError(t, err)
-	require.Len(t, list, 8) // binding, three path rules, three terminal policies, blocklist
+	require.Len(t, list, 14) // binding, three path rules, three terminal policies, blocklist, six agent baseline policies
 	for i, p := range list {
 		assert.NoError(t, v.Policy(fmt.Sprint(i), (*xast.Policy)(p.AST())), i)
 	}
@@ -135,7 +135,8 @@ func TestPathRulesSkipWithoutPeopleOrResources(t *testing.T) {
 	term := terminalRule(termDenyID, "deny")
 	_, text, err := Compile(pathSnap([]SnapshotPathRule{agents, none}, term))
 	require.NoError(t, err)
-	assert.NotContains(t, text, "path:")
+	assert.NotContains(t, text, "path:"+pathApprID.String(), "a rule without resources")
+	assert.NotContains(t, text, "principal in [Werbot::User::", "the agent rule has no term for people")
 	assert.NotContains(t, text, "terminal:")
 }
 

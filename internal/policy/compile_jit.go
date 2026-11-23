@@ -86,32 +86,45 @@ func writeGrants(b *strings.Builder, grants []SnapshotGrant, locks []SnapshotLoc
 }
 
 // writeLocks emits one forbid per lock, sorted by ID. Grant locks are grant
-// conditions; agent and MFA device targets are not compiled yet (stages 12, 14).
+// conditions; MFA device targets are not compiled yet (stage 14).
 // The target types are also listed in internal/access/locks.go and
 // proto/werbot/v1/lock.proto: change them together.
 func writeLocks(b *strings.Builder, locks []SnapshotLock) error {
 	for _, l := range slices.SortedFunc(slices.Values(locks), func(x, y SnapshotLock) int { return compareIDs(x.ID, y.ID) }) {
 		switch l.TargetType {
-		case "grant", "agent", "agent_run", "agents_of_user", "all_agents", "mfa_device":
+		case "grant", "mfa_device":
 			continue
 		}
-		if l.TargetID == nil {
-			return fmt.Errorf("policy: lock %s: no target", l.ID)
-		}
-		scope, cond := "principal, action, resource", ""
-		switch l.TargetType {
-		case "user":
-			scope = fmt.Sprintf("principal == Werbot::User::%q, action, resource", *l.TargetID)
-		case "team":
-			scope = fmt.Sprintf("principal in Werbot::Team::%q, action, resource", *l.TargetID)
-		case "resource":
-			scope = fmt.Sprintf("principal, action, resource == Werbot::Resource::%q", *l.TargetID)
-		case "cli_session":
-			cond = fmt.Sprintf("context.cli_session_id == %q && ", *l.TargetID)
-		default:
-			return fmt.Errorf("policy: lock %s: unknown target type %q", l.ID, l.TargetType)
+		scope, cond, err := lockTerms(l)
+		if err != nil {
+			return err
 		}
 		fmt.Fprintf(b, "@id(\"lock:%s\")\nforbid (%s)\nwhen { %scontext.now < %d };\n\n", l.ID, scope, cond, lockUntil(l))
 	}
 	return nil
+}
+
+// lockTerms are the scope and condition prefix of the forbid of l; agent
+// targets come from agentLockTerms.
+func lockTerms(l SnapshotLock) (scope, cond string, err error) {
+	if scope, cond, ok := agentLockTerms(l); ok {
+		return scope, cond, nil
+	}
+	if l.TargetID == nil {
+		return "", "", fmt.Errorf("policy: lock %s: no target", l.ID)
+	}
+	scope = "principal, action, resource"
+	switch l.TargetType {
+	case "user":
+		scope = fmt.Sprintf("principal == Werbot::User::%q, action, resource", *l.TargetID)
+	case "team":
+		scope = fmt.Sprintf("principal in Werbot::Team::%q, action, resource", *l.TargetID)
+	case "resource":
+		scope = fmt.Sprintf("principal, action, resource == Werbot::Resource::%q", *l.TargetID)
+	case "cli_session":
+		cond = fmt.Sprintf("context.cli_session_id == %q && ", *l.TargetID)
+	default:
+		return "", "", fmt.Errorf("policy: lock %s: unknown target type %q", l.ID, l.TargetType)
+	}
+	return scope, cond, nil
 }

@@ -235,28 +235,41 @@ func (h *Handler) DeleteCustomPolicy(ctx context.Context, req *connect.Request[w
 	return connect.NewResponse(&werbotv1.DeleteCustomPolicyResponse{}), nil
 }
 
-// TestCommand probes a command for a user with the caller's address, now.
-// Agents arrive in stage 12.
+// TestCommand probes a command for a user or an agent with the caller's
+// address, now.
 func (h *Handler) TestCommand(ctx context.Context, req *connect.Request[werbotv1.TestCommandRequest]) (*connect.Response[werbotv1.TestCommandResponse], error) {
-	m := req.Msg
-	if _, isAgent := m.GetSubject().(*werbotv1.TestCommandRequest_AgentId); isAgent {
-		if _, err := admin(ctx); err != nil {
-			return nil, err
-		}
-		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agents arrive in stage 12"))
-	}
-	org, user, err := adminWith(ctx, m.GetUserId())
+	org, err := admin(ctx)
 	if err != nil {
 		return nil, err
 	}
-	resource, err := parseID(m.GetResourceId())
-	if err != nil {
-		return nil, apperr.ToConnect(err)
-	}
-	r, err := h.svc.TestCommand(ctx, org, user, resource, m.GetCommand(), m.GetCwd(), clientip.From(ctx), time.Now())
+	r, err := h.testCommand(ctx, org, req.Msg)
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
 	return connect.NewResponse(&werbotv1.TestCommandResponse{Classes: r.Classes, Allow: r.Allow, Reasons: r.Reasons,
 		Obligations: r.Obligations, Message: r.Message, Paths: r.Paths, PathHits: r.PathHits, PathOutside: r.PathOutside}), nil
+}
+
+// testCommand runs the TestCommand of the subject of m: a user or an agent.
+func (h *Handler) testCommand(ctx context.Context, org uuid.UUID, m *werbotv1.TestCommandRequest) (CommandResult, error) {
+	resource, err := parseID(m.GetResourceId())
+	if err != nil {
+		return CommandResult{}, err
+	}
+	ip, now := clientip.From(ctx), time.Now()
+	switch sub := m.GetSubject().(type) {
+	case *werbotv1.TestCommandRequest_UserId:
+		user, err := parseID(sub.UserId)
+		if err != nil {
+			return CommandResult{}, err
+		}
+		return h.svc.TestCommand(ctx, org, user, resource, m.GetCommand(), m.GetCwd(), ip, now)
+	case *werbotv1.TestCommandRequest_AgentId:
+		agent, err := parseID(sub.AgentId)
+		if err != nil {
+			return CommandResult{}, err
+		}
+		return h.svc.TestCommandAgent(ctx, org, agent, resource, m.GetCommand(), m.GetCwd(), ip, now)
+	}
+	return CommandResult{}, invalid("user_id or agent_id is required")
 }

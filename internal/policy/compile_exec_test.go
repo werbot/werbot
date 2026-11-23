@@ -50,7 +50,7 @@ func TestCompileExecGolden(t *testing.T) {
 
 	// Reversed input order compiles to the same text.
 	s.CommandRules[0], s.CommandRules[2] = s.CommandRules[2], s.CommandRules[0]
-	s.CommandRules[2].Subjects.Users = []uuid.UUID{userID, otherID}
+	s.CommandRules[1].Subjects.Users = []uuid.UUID{userID, otherID} // the approval rule
 	_, text2, err := Compile(s)
 	require.NoError(t, err)
 	assert.Equal(t, text, text2)
@@ -74,7 +74,8 @@ func TestAllowRuleSkippedForHumans(t *testing.T) {
 	noResources.ResourceIDs = nil
 	_, text, err := Compile(execSnap(userRule(allowID, "allow", "", "read"), agentsOnly, noResources))
 	require.NoError(t, err)
-	assert.NotContains(t, text, "command:")
+	assert.NotContains(t, text, "command:"+apprID.String(), "a rule without resources")
+	assert.NotContains(t, text, "principal in [Werbot::User::", "allow and agent rules have no term for people")
 }
 
 func TestAllUsersRule(t *testing.T) {

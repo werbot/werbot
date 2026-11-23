@@ -95,11 +95,16 @@ type Snapshot struct {
 	CustomPolicies []SnapshotCustomPolicy `json:"custom_policies"` // enabled only
 	PathRules      []SnapshotPathRule     `json:"path_rules"`
 	TerminalRules  []SnapshotTerminalRule `json:"terminal_rules"`
+	Agents         []SnapshotAgent        `json:"agents"`
+	BlockedRuns    []uuid.UUID            `json:"blocked_runs"` // paused or recently ended runs
 }
 
-// Request asks whether a user may perform Action on a resource.
+// Request asks whether a user or an agent of the user may perform Action.
 type Request struct {
-	UserID     uuid.UUID
+	UserID     uuid.UUID // the sponsor of AgentID
+	AgentID    *uuid.UUID
+	RunID      *uuid.UUID
+	Kind       string // connector.Kind of the session; "" when none
 	TeamIDs    []uuid.UUID
 	ResourceID uuid.UUID
 	Action     string // "ssh.connect"
@@ -176,7 +181,7 @@ func matches(labels, selector map[string]string) bool {
 // Authorize decides r. An invalid IP, an action that is not one of the
 // resource type's actions or any policy evaluation error denies. A zero
 // r.Time means now. A deny also carries the @message and the obligations of
-// the forbids that decided it.
+// the forbids that decided it. An agent's request passes twice (authorizeAgent).
 func (ps *PolicySet) Authorize(r Request) Decision {
 	if ps == nil {
 		return Decision{Reasons: []string{"error:compile"}}
@@ -187,7 +192,15 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 	if !ps.typeHasAction(r.ResourceID, r.Action) {
 		return Decision{Reasons: []string{"invalid_action"}}
 	}
-	d, diag := ps.evaluate(r)
+	if r.AgentID != nil {
+		return ps.authorizeAgent(r)
+	}
+	return ps.decidePass(r, userUID(r.UserID))
+}
+
+// decidePass decides r with principal p: the user of r or its agent.
+func (ps *PolicySet) decidePass(r Request, p cedar.EntityUID) Decision {
+	d, diag := ps.evaluate(r, p)
 	// cedar-go skips a policy that fails to evaluate: a broken forbid would allow.
 	out := Decision{Allow: d == cedar.Allow && len(diag.Errors) == 0}
 	for _, rs := range diag.Reasons {
@@ -200,13 +213,13 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 	}
 	slices.Sort(out.Reasons[n:])
 	if d == cedar.Deny && len(diag.Errors) == 0 {
-		out.Message, out.Obligations = ps.explain(r, out.Reasons)
+		out.Message, out.Obligations = ps.explain(r, p, out.Reasons)
 	}
 	return out
 }
 
-// evaluate runs the policies on r; r.IP must be valid.
-func (ps *PolicySet) evaluate(r Request) (cedar.Decision, cedar.Diagnostic) {
+// evaluate runs the policies on r with principal p; r.IP must be valid.
+func (ps *PolicySet) evaluate(r Request, p cedar.EntityUID) (cedar.Decision, cedar.Diagnostic) {
 	ip := r.IP.Unmap()
 	t := r.Time
 	if t.IsZero() {
@@ -217,12 +230,9 @@ func (ps *PolicySet) evaluate(r Request) (cedar.Decision, cedar.Diagnostic) {
 	for i, id := range r.TeamIDs {
 		teams[i] = cedar.NewEntityUID("Werbot::Team", cedar.String(id.String()))
 	}
-	user := cedar.Entity{
-		UID:     cedar.NewEntityUID("Werbot::User", cedar.String(r.UserID.String())),
-		Parents: cedar.NewEntityUIDSet(teams...),
-	}
+	user := cedar.Entity{UID: userUID(r.UserID), Parents: cedar.NewEntityUIDSet(teams...)}
 	req := cedar.Request{
-		Principal: user.UID,
+		Principal: p,
 		Action:    cedar.NewEntityUID("Werbot::Action", cedar.String(r.Action)),
 		Resource:  cedar.NewEntityUID("Werbot::Resource", cedar.String(r.ResourceID.String())),
 		Context: cedar.NewRecord(cedar.RecordMap{
@@ -241,6 +251,8 @@ func (ps *PolicySet) evaluate(r Request) (cedar.Decision, cedar.Diagnostic) {
 			"path_hits":        stringSet(r.PathHits),
 			"path_outside":     stringSet(r.PathOutside),
 			"console":          cedar.Boolean(r.Console),
+			"run_id":           cedar.String(idString(r.RunID)),
+			"kind":             cedar.String(r.Kind),
 		}),
 	}
 	return cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)
@@ -268,7 +280,7 @@ func (ps *PolicySet) typeHasAction(id uuid.UUID, action string) bool {
 	return ok && slices.Contains(t.Actions, action)
 }
 
-// entityGetter adds the request principal to the compiled entities without copying them.
+// entityGetter adds the request user to the compiled entities without copying them.
 type entityGetter struct {
 	entities cedar.EntityMap
 	user     cedar.Entity

@@ -72,26 +72,25 @@ func writeForbid(b *strings.Builder, f forbid) {
 	b.WriteString(";\n\n")
 }
 
-// target is the principal and resource term of a rule; "" when the rule has
-// no people or no resources.
-func target(s Subjects, resources []uuid.UUID) string {
-	subj := subjectCondition(s)
+// target is the principal term subj and the resource term of a rule; ""
+// when the rule has no subjects or no resources.
+func target(subj string, resources []uuid.UUID) string {
 	if subj == "" || len(resources) == 0 {
 		return ""
 	}
 	return fmt.Sprintf("%s && [%s].contains(resource)", subj, strings.Join(entityRefs("Werbot::Resource", resources), ", "))
 }
 
-// writePathRules emits one forbid on the exec actions per path rule, sorted
-// by ID; rules without people or resources emit nothing. An invalid glob,
-// access or effect fails the compile.
+// writePathRules emits one forbid on the exec actions per path rule of people
+// or agents, sorted by ID; rules without subjects or resources emit nothing.
+// An invalid glob, access or effect fails the compile.
 func writePathRules(b *strings.Builder, rules []SnapshotPathRule) error {
 	actions := execActions()
 	for _, r := range slices.SortedFunc(slices.Values(rules), func(x, y SnapshotPathRule) int { return compareIDs(x.ID, y.ID) }) {
 		if err := r.validate(); err != nil {
 			return err
 		}
-		if t := target(r.Subjects, r.ResourceIDs); t != "" {
+		if t := target(ruleSubject(r.Subjects), r.ResourceIDs); t != "" {
 			writeForbid(b, r.forbid(t, actions))
 		}
 	}
@@ -124,7 +123,8 @@ func (r SnapshotPathRule) forbid(target string, actions []string) forbid {
 // actions, sorted by ID. A console rule forbids the shell of a type with an
 // exec action unless the console serves it, and plainly forbids the shell of
 // every other type (":deny"); a deny rule forbids every shell. Rules without
-// people or resources emit nothing; an unknown mode fails the compile.
+// people or resources emit nothing: agents never get a terminal
+// (agent:baseline:terminal). An unknown mode fails the compile.
 func writeTerminalRules(b *strings.Builder, rules []SnapshotTerminalRule) error {
 	console, plain := shellActions()
 	all := slices.Sorted(slices.Values(slices.Concat(console, plain)))
@@ -132,7 +132,7 @@ func writeTerminalRules(b *strings.Builder, rules []SnapshotTerminalRule) error 
 		if !slices.Contains(terminalModes, r.Mode) {
 			return fmt.Errorf("policy: terminal rule %s: invalid mode", r.ID)
 		}
-		t := target(r.Subjects, r.ResourceIDs)
+		t := target(subjectCondition(r.Subjects), r.ResourceIDs)
 		id := "terminal:" + r.ID.String()
 		switch {
 		case t == "":

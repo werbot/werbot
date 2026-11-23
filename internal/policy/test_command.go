@@ -40,10 +40,21 @@ func (s *Service) TestCommand(ctx context.Context, orgID, userID, resourceID uui
 	if err := s.requireMember(ctx, orgID, userID); err != nil {
 		return CommandResult{}, err
 	}
-	c, err := s.prepare(ctx, orgID, userID, resourceID, ip, at)
+	return s.testCommand(ctx, orgID, subject{user: userID}, resourceID, command, cwd, ip, at)
+}
+
+// TestCommandAgent is TestCommand for agentID of the snapshot of orgID (none:
+// ErrNotFound), as its sponsor and itself, outside any run.
+func (s *Service) TestCommandAgent(ctx context.Context, orgID, agentID, resourceID uuid.UUID, command, cwd string, ip netip.Addr, at time.Time) (CommandResult, error) {
+	return s.testCommand(ctx, orgID, subject{agent: &agentID}, resourceID, command, cwd, ip, at)
+}
+
+func (s *Service) testCommand(ctx context.Context, orgID uuid.UUID, sub subject, resourceID uuid.UUID, command, cwd string, ip netip.Addr, at time.Time) (CommandResult, error) {
+	c, err := s.prepare(ctx, orgID, sub, resourceID, ip, at)
 	if err != nil {
 		return CommandResult{}, err
 	}
+	c.req.Kind = "exec"
 	exec, ok := c.typ.ExecAction()
 	if !ok {
 		return CommandResult{}, fmt.Errorf("resource type has no exec action: %w", apperr.ErrFailedPrecondition)

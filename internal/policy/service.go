@@ -45,6 +45,7 @@ type Deps struct {
 	Teams     TeamSource
 	Grants    GrantSource // nil: no grants
 	Locks     LockSource  // nil: no locks
+	Agents    AgentSource // nil: no agents
 	Logger    *slog.Logger
 }
 
@@ -148,15 +149,8 @@ func (s *Service) load(ctx context.Context, orgID uuid.UUID, ip netip.Addr) (sna
 		return Snapshot{}, false, err
 	}
 	snap = Snapshot{OrgID: orgID, Resources: resources, Bindings: ExpandBindings(resources, bindings)}
-	if s.deps.Grants != nil {
-		if snap.Grants, err = s.deps.Grants.PolicyGrants(ctx, orgID); err != nil {
-			return Snapshot{}, false, err
-		}
-	}
-	if s.deps.Locks != nil {
-		if snap.Locks, err = s.deps.Locks.PolicyLocks(ctx, orgID); err != nil {
-			return Snapshot{}, false, err
-		}
+	if err = s.loadSources(ctx, orgID, &snap); err != nil {
+		return Snapshot{}, false, err
 	}
 	err = dbx.InOrg(ctx, s.deps.Pool, orgID, actor(ctx), func(tx pgx.Tx) (err error) {
 		blocked, err = readOrg(ctx, newStore(tx), ip, &snap)
@@ -166,6 +160,25 @@ func (s *Service) load(ctx context.Context, orgID uuid.UUID, ip netip.Addr) (sna
 		return Snapshot{}, false, err
 	}
 	return snap, blocked, nil
+}
+
+// loadSources reads the grants, locks and agents of orgID into snap from
+// the sources that are set.
+func (s *Service) loadSources(ctx context.Context, orgID uuid.UUID, snap *Snapshot) (err error) {
+	if s.deps.Grants != nil {
+		if snap.Grants, err = s.deps.Grants.PolicyGrants(ctx, orgID); err != nil {
+			return err
+		}
+	}
+	if s.deps.Locks != nil {
+		if snap.Locks, err = s.deps.Locks.PolicyLocks(ctx, orgID); err != nil {
+			return err
+		}
+	}
+	if s.deps.Agents != nil {
+		snap.Agents, snap.BlockedRuns, err = s.deps.Agents.PolicyAgents(ctx, orgID)
+	}
+	return err
 }
 
 // readOrg reads the resource, exec, path and terminal rules of snap.OrgID into snap and
@@ -218,14 +231,36 @@ type check struct {
 	req  Request
 }
 
-// prepare loads and compiles the snapshot of orgID for a request of userID on
+// prepare loads and compiles the snapshot of orgID for a request of sub on
 // resourceID from ip at the time at (zero: now) with the first action of the
 // resource type.
-func (s *Service) prepare(ctx context.Context, orgID, userID, resourceID uuid.UUID, ip netip.Addr, at time.Time) (check, error) {
+func (s *Service) prepare(ctx context.Context, orgID uuid.UUID, sub subject, resourceID uuid.UUID, ip netip.Addr, at time.Time) (check, error) {
 	snap, blocked, err := s.load(ctx, orgID, ip)
 	if err != nil {
 		return check{}, err
 	}
+	user, err := sub.sponsor(snap)
+	if err != nil {
+		return check{}, err
+	}
+	c, err := locate(snap, resourceID)
+	if err != nil {
+		return check{}, err
+	}
+	teams, err := s.deps.Teams.UserTeams(ctx, orgID, user)
+	if err != nil {
+		return check{}, err
+	}
+	if c.ps, _, err = Compile(snap); err != nil {
+		s.deps.Logger.ErrorContext(ctx, "policy: compile snapshot", "org_id", orgID, "err", err)
+	}
+	c.req = Request{UserID: user, AgentID: sub.agent, TeamIDs: teams, ResourceID: resourceID, Action: c.typ.Actions[0],
+		IP: ip, Country: s.Country(ip), Time: at, IPBlocked: blocked}
+	return c, nil
+}
+
+// locate is the check of resourceID in snap, its request not set yet.
+func locate(snap Snapshot, resourceID uuid.UUID) (check, error) {
 	i := slices.IndexFunc(snap.Resources, func(r SnapshotResource) bool { return r.ID == resourceID })
 	if i < 0 {
 		return check{}, fmt.Errorf("resource not found: %w", apperr.ErrNotFound)
@@ -235,15 +270,6 @@ func (s *Service) prepare(ctx context.Context, orgID, userID, resourceID uuid.UU
 	if c.typ, ok = connector.Lookup(c.res.Type); !ok {
 		return check{}, fmt.Errorf("resource type %q is not registered: %w", c.res.Type, apperr.ErrFailedPrecondition)
 	}
-	teams, err := s.deps.Teams.UserTeams(ctx, orgID, userID)
-	if err != nil {
-		return check{}, err
-	}
-	if c.ps, _, err = Compile(snap); err != nil {
-		s.deps.Logger.ErrorContext(ctx, "policy: compile snapshot", "org_id", orgID, "err", err)
-	}
-	c.req = Request{UserID: userID, TeamIDs: teams, ResourceID: resourceID, Action: c.typ.Actions[0],
-		IP: ip, Country: s.Country(ip), Time: at, IPBlocked: blocked}
 	return c, nil
 }
 
@@ -251,7 +277,7 @@ func (s *Service) prepare(ctx context.Context, orgID, userID, resourceID uuid.UU
 // (zero: now) on the target port (0: terminal or exec) with the first action of
 // the resource type. A snapshot that fails to compile denies.
 func (s *Service) CheckAccess(ctx context.Context, orgID, userID, resourceID uuid.UUID, ip netip.Addr, at time.Time, port uint16) (Decision, error) {
-	c, err := s.prepare(ctx, orgID, userID, resourceID, ip, at)
+	c, err := s.prepare(ctx, orgID, subject{user: userID}, resourceID, ip, at)
 	if err != nil {
 		return Decision{}, err
 	}

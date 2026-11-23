@@ -26,7 +26,8 @@ forbid (principal, action, resource) when { context.ip_blocked };
 // Compile turns s into a policy set and its Cedar text. The text is
 // deterministic: bindings sort by ID, rules by ResourceID, list items by
 // value, grants, locks, command, path and terminal rules and custom policies
-// by ID.
+// by ID; the agent baseline ends it (writeBaseline).
+// Agent entities join the resource entities.
 func Compile(s Snapshot) (*PolicySet, string, error) {
 	var b strings.Builder
 	for _, bd := range slices.SortedFunc(slices.Values(s.Bindings), func(x, y SnapshotBinding) int { return compareIDs(x.ID, y.ID) }) {
@@ -49,14 +50,17 @@ func Compile(s Snapshot) (*PolicySet, string, error) {
 	if err := writeCustomPolicies(&b, s.CustomPolicies); err != nil {
 		return nil, "", err
 	}
-	b.WriteString(blocklistPolicy)
+	b.WriteString(blocklistPolicy + "\n")
+	writeBaseline(&b, connector.Types(), s.BlockedRuns)
 	text := b.String()
 
 	policies, err := parse(text)
 	if err != nil {
 		return nil, "", err
 	}
-	return &PolicySet{policies: policies, entities: resourceEntities(s.Resources)}, text, nil
+	entities := resourceEntities(s.Resources)
+	agentEntities(entities, s.Agents)
+	return &PolicySet{policies: policies, entities: entities}, text, nil
 }
 
 // resourceEntities are the Cedar entities of resources: name and type
