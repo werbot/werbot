@@ -26,6 +26,9 @@ export default defineConfig({
 				WERBOT_GATEWAY_ADDR: '127.0.0.1:18443',
 				WERBOT_GATEWAY_SSH_ADDR: '127.0.0.1:2222',
 				WERBOT_HTTP_ADDR: '127.0.0.1:18080',
+				WERBOT_INTERNAL_ADDR: '127.0.0.1:18444',
+				WERBOT_INTERNAL_URL: 'https://127.0.0.1:18444',
+				WERBOT_LOCAL_POOL_ALLOW_LOOPBACK: 'true', // the telnet target listens on loopback
 				WERBOT_PUBLIC_URL: 'http://127.0.0.1:18080',
 				WERBOT_DATABASE_URL: dbURL,
 				// the e2e database is recreated per run, so the embedded gateway needs a fresh identity
@@ -39,6 +42,13 @@ export default defineConfig({
 			command: 'go run ./internal/e2e/sshtarget -addr 127.0.0.1:2022 -password e2e-secret',
 			cwd: '..',
 			port: 2022,
+			reuseExistingServer: false,
+			timeout: 120_000
+		},
+		{
+			command: 'go run ./internal/e2e/telnettarget -addr 127.0.0.1:2023 -login e2e -password e2e-telnet',
+			cwd: '..',
+			port: 2023,
 			reuseExistingServer: false,
 			timeout: 120_000
 		}
