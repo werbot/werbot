@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/werbot/werbot/internal/connector"
+	"github.com/werbot/werbot/internal/platform/rpcid"
 )
 
 // anyAgent is the scope of a policy on every agent.
@@ -48,12 +49,8 @@ func writeBaseline(b *strings.Builder, types []connector.Type, blockedRuns []uui
 	baseline(b, "terminal", "forbid", anyAgent, `context.kind == "terminal"`, true)
 	baseline(b, "sftp", "forbid", "principal is Werbot::Agent, action in ["+strings.Join(sftp, ", ")+"], resource", "", len(sftp) > 0)
 	baseline(b, "frozen", "forbid", anyAgent, `principal.status == "frozen"`, true)
-	runs := make([]string, len(blockedRuns))
-	for i, id := range blockedRuns {
-		runs[i] = id.String()
-	}
 	baseline(b, "blocked_runs", "forbid", "principal, action, resource",
-		"["+strings.Join(cedarStrings(runs), ", ")+"].contains(context.run_id)", len(runs) > 0)
+		"["+strings.Join(cedarStrings(rpcid.Strings(blockedRuns)), ", ")+"].contains(context.run_id)", len(blockedRuns) > 0)
 }
 
 // baseline writes the agent:baseline:<name> policy, with its when clause
@@ -71,6 +68,7 @@ func baseline(b *strings.Builder, name, effect, scope, when string, emit bool) {
 
 // agentLockTerms are the scope and condition prefix of a lock on agents;
 // ok is false for any other target and for an agent target without an id.
+// The SQL function agent_locked (migration 00161) checks the same targets.
 func agentLockTerms(l SnapshotLock) (scope, cond string, ok bool) {
 	if l.TargetType == "all_agents" {
 		return anyAgent, "", true

@@ -32,3 +32,13 @@ func TestRequireRole(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, p, got)
 }
+
+func TestIsAgentManager(t *testing.T) {
+	id := uuid.New()
+	assert.False(t, principal.Principal{}.IsAgent())
+	assert.True(t, principal.Principal{AgentID: &id}.IsAgent())
+	assert.True(t, principal.Principal{RunID: &id}.IsAgent())
+	assert.True(t, principal.Principal{Role: principal.RoleOwner}.Manager())
+	assert.True(t, principal.Principal{Role: principal.RoleAdmin}.Manager())
+	assert.False(t, principal.Principal{Role: principal.RoleMember}.Manager())
+}

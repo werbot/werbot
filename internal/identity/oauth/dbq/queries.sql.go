@@ -127,6 +127,8 @@ type CountAgentProfilesParams struct {
 
 // Live profiles of an agent; after LockProfileAgent, so this statement's
 // snapshot sees every profile committed before the lock.
+// ponytail: the live cli_session predicate is repeated in GetLiveCLISession,
+// here and ListAgentProfiles; a live_cli_session view would hold it once.
 func (q *Queries) CountAgentProfiles(ctx context.Context, arg CountAgentProfilesParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countAgentProfiles, arg.OrgID, arg.AgentID)
 	var count int64

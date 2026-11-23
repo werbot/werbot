@@ -46,20 +46,16 @@ var (
 
 // person refuses a run token: agents never manage agents or runs.
 func person(p principal.Principal) error {
-	if p.AgentID != nil || p.RunID != nil {
+	if p.IsAgent() {
 		return errAgentToken
 	}
 	return nil
 }
 
-func manager(p principal.Principal) bool {
-	return p.Role == principal.RoleOwner || p.Role == principal.RoleAdmin
-}
-
 // ownSponsor narrows a list to p's own agents or runs: nil (every sponsor)
 // for owner and admin.
 func ownSponsor(p principal.Principal) *uuid.UUID {
-	if manager(p) {
+	if p.Manager() {
 		return nil
 	}
 	return &p.UserID
@@ -87,11 +83,11 @@ func (s *Service) CreateAgent(ctx context.Context, p principal.Principal, in Cre
 		return AgentView{}, err
 	}
 	sponsor := *cmp.Or(in.SponsorID, &p.UserID)
-	if sponsor != p.UserID && !manager(p) {
+	if sponsor != p.UserID && !p.Manager() {
 		return AgentView{}, errForeignNew
 	}
-	if !nameRe.MatchString(in.Name) {
-		return AgentView{}, fmt.Errorf("agent name must match %s: %w", nameRe, apperr.ErrInvalidArgument)
+	if err := checkName(in.Name); err != nil {
+		return AgentView{}, err
 	}
 	limits, err := marshalLimits(in.Limits)
 	if err != nil {
@@ -161,10 +157,10 @@ func (s *Service) UpdateAgent(ctx context.Context, p principal.Principal, in Upd
 // revokeProfiles ends the agent's profiles in tx when in freezes it; an
 // unfreeze restores none.
 func (s *Service) revokeProfiles(ctx context.Context, tx pgx.Tx, p principal.Principal, in UpdateAgentInput) error {
-	if in.Status != "frozen" || s.cfg.Profiles == nil {
+	if in.Status != "frozen" || s.cfg.RevokeProfiles == nil {
 		return nil
 	}
-	return s.cfg.Profiles.RevokeAgentProfiles(ctx, tx, p.OrgID, in.ID, &p.UserID, "agent_frozen")
+	return s.cfg.RevokeProfiles(ctx, tx, p.OrgID, in.ID, p.UserID, "agent_frozen")
 }
 
 // check validates in and returns its limits as agent.limits; nil: unchanged.
@@ -206,7 +202,7 @@ func lockAgent(ctx context.Context, st Store, p principal.Principal, id uuid.UUI
 		return row, errAgentNotFound
 	case err != nil:
 		return row, err
-	case row.SponsorUserID != p.UserID && !manager(p):
+	case row.SponsorUserID != p.UserID && !p.Manager():
 		return row, errAgentNotFound
 	}
 	return row, nil

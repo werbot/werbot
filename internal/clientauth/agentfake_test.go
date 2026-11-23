@@ -24,6 +24,8 @@ import (
 )
 
 // agentAS stands in for the exchange endpoint, CertService and AgentService.
+// ponytail: cli and mcpserver keep their own copies of this fake; extract one
+// clientauthtest package when a fourth copy appears.
 type agentAS struct {
 	werbotv1connect.UnimplementedCertServiceHandler
 	werbotv1connect.UnimplementedAgentServiceHandler

@@ -26,3 +26,24 @@ func TestParseAndStrings(t *testing.T) {
 	require.ErrorIs(t, err, apperr.ErrInvalidArgument)
 	assert.Contains(t, err.Error(), `"nope"`)
 }
+
+func TestOneOptionalString(t *testing.T) {
+	a := uuid.New()
+	id, err := One(a.String())
+	require.NoError(t, err)
+	assert.Equal(t, a, id)
+	_, err = One("nope")
+	require.ErrorIs(t, err, apperr.ErrInvalidArgument)
+
+	opt, err := Optional("")
+	require.NoError(t, err)
+	assert.Nil(t, opt)
+	opt, err = Optional(a.String())
+	require.NoError(t, err)
+	assert.Equal(t, &a, opt)
+	_, err = Optional("nope")
+	require.ErrorIs(t, err, apperr.ErrInvalidArgument)
+
+	assert.Empty(t, String(nil))
+	assert.Equal(t, a.String(), String(&a))
+}

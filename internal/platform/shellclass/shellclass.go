@@ -57,6 +57,9 @@ func (s set) list() []Class {
 	return out
 }
 
+// Classes lists the seven classes in ascending order.
+func Classes() []Class { return slices.Clone(classOrder[:]) }
+
 // Valid reports whether c is one of the seven classes.
 func Valid(c Class) bool { return slices.Contains(classOrder[:], c) }
 

@@ -14,15 +14,16 @@ import (
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 )
 
-// fakeProfiles is agentic.ProfileRevoker: it records each call and fails with err.
+// fakeProfiles.RevokeAgentProfiles is agentic.Config.RevokeProfiles: it
+// records each call and fails with err.
 type fakeProfiles struct {
 	calls []string // agent id and reason
-	actor *uuid.UUID
+	actor uuid.UUID
 	inTx  bool
 	err   error
 }
 
-func (f *fakeProfiles) RevokeAgentProfiles(ctx context.Context, tx pgx.Tx, _, agentID uuid.UUID, actor *uuid.UUID, reason string) error {
+func (f *fakeProfiles) RevokeAgentProfiles(ctx context.Context, tx pgx.Tx, _, agentID, actor uuid.UUID, reason string) error {
 	var status string
 	f.inTx = tx.QueryRow(ctx, "SELECT status FROM agent WHERE id = $1", agentID).Scan(&status) == nil && status == "frozen"
 	f.calls = append(f.calls, agentID.String()+" "+reason)
@@ -37,7 +38,7 @@ func TestUpdateAgentFreezeRevokesProfiles(t *testing.T) {
 	pool, _ := dbtest.New(t)
 	f := dbtest.Seed(t, pool)
 	profiles := &fakeProfiles{}
-	svc := agentic.New(pool, &dbtest.Mails{}, agentic.Config{Profiles: profiles})
+	svc := agentic.New(pool, &dbtest.Mails{}, agentic.Config{RevokeProfiles: profiles.RevokeAgentProfiles})
 	p := f.Principal(f.MemberID)
 	agent := dbtest.Agent(t, pool, f.OrgID, f.MemberID, "ops")
 
@@ -57,7 +58,7 @@ func TestUpdateAgentFreezeRevokesProfiles(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{agent.String() + " agent_frozen"}, profiles.calls)
 	assert.True(t, profiles.inTx, "called inside the freezing transaction")
-	assert.Equal(t, &f.MemberID, profiles.actor)
+	assert.Equal(t, f.MemberID, profiles.actor)
 
 	_, err = svc.UpdateAgent(bg, p, agentic.UpdateAgentInput{ID: agent, Status: "active"})
 	require.NoError(t, err)

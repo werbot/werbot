@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/werbot/werbot/internal/connector"
+	"github.com/werbot/werbot/internal/platform/rpcid"
 )
 
 // Effect of a network or country rule.
@@ -251,7 +252,7 @@ func (ps *PolicySet) evaluate(r Request, p cedar.EntityUID) (cedar.Decision, ced
 			"path_hits":        stringSet(r.PathHits),
 			"path_outside":     stringSet(r.PathOutside),
 			"console":          cedar.Boolean(r.Console),
-			"run_id":           cedar.String(idString(r.RunID)),
+			"run_id":           cedar.String(rpcid.String(r.RunID)), // no run is "", which no run id matches
 			"kind":             cedar.String(r.Kind),
 		}),
 	}

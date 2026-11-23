@@ -136,6 +136,8 @@ FOR UPDATE OF a;
 -- name: CountAgentProfiles :one
 -- Live profiles of an agent; after LockProfileAgent, so this statement's
 -- snapshot sees every profile committed before the lock.
+-- ponytail: the live cli_session predicate is repeated in GetLiveCLISession,
+-- here and ListAgentProfiles; a live_cli_session view would hold it once.
 SELECT count(*) FROM cli_session c
 JOIN org_setting s ON s.org_id = c.org_id
 WHERE c.org_id = @org_id AND c.agent_id = @agent_id::uuid AND c.revoked_at IS NULL AND c.expires_at > now()

@@ -51,10 +51,6 @@ type ClassAccess struct {
 	Allowed, Approval []string
 }
 
-// probeClasses are the classes AgentResources probes one by one.
-var probeClasses = []shellclass.Class{shellclass.Destructive, shellclass.Egress, shellclass.Opaque,
-	shellclass.Privilege, shellclass.Read, shellclass.Secrets, shellclass.Write}
-
 // AgentResources returns the resources agentID may connect to for an exec
 // (the first action of the type, kind "exec") from ip at the time at (zero:
 // now) with the classes it may run there. The decision merges the sponsor
@@ -101,7 +97,7 @@ func classAccess(ps *PolicySet, r Request, typ connector.Type) ClassAccess {
 		return out
 	}
 	r.Action = exec
-	for _, c := range probeClasses {
+	for _, c := range shellclass.Classes() { // probed one by one
 		r.Classes = []string{string(c)}
 		d := ps.Authorize(r)
 		switch {

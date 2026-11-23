@@ -12,6 +12,7 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/clientauth"
 	"github.com/werbot/werbot/internal/connectcli"
+	"github.com/werbot/werbot/internal/platform/sshca"
 	"github.com/werbot/werbot/internal/platform/version"
 )
 
@@ -20,15 +21,10 @@ const (
 	DefaultTimeout = 60 * time.Second
 	MaxTimeout     = 600 * time.Second
 	MaxOutput      = 65536 // bytes of stdout and stderr together
-	PendingAfter   = 50 * time.Second
 )
 
 // pendingAfter is how long a call waits for an approval; tests shrink it.
-var pendingAfter = PendingAfter
-
-// envToolCall is the SSH environment variable that tells the gateway the
-// tool call of an exec (gateway.EnvToolCall).
-const envToolCall = "WERBOT_TOOL_CALL"
+var pendingAfter = 50 * time.Second
 
 // ExecInput is the input of ssh_exec.
 type ExecInput struct {
@@ -106,7 +102,7 @@ func (s *server) exec(ctx context.Context, c call, r *werbotv1.AccessibleResourc
 	if err != nil {
 		return ExecOutput{}, err
 	}
-	if err := sess.Setenv(envToolCall, c.id); err != nil {
+	if err := sess.Setenv(sshca.EnvToolCall, c.id); err != nil {
 		return ExecOutput{}, err
 	}
 	out := newCapture()

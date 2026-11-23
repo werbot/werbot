@@ -21,6 +21,14 @@ import (
 // nameRe is the agent name rule of migration 00160 and agent.proto.
 var nameRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,62}$`)
 
+// checkName refuses an agent name outside nameRe.
+func checkName(name string) error {
+	if !nameRe.MatchString(name) {
+		return fmt.Errorf("agent name must match %s: %w", nameRe, apperr.ErrInvalidArgument)
+	}
+	return nil
+}
+
 const (
 	maxClient = 128  // characters of Run.Client
 	maxReason = 1024 // characters of Run.Reason
@@ -35,8 +43,8 @@ var (
 // EnsureAgent returns the sponsor's agent of that name, creating it on first
 // use (audit agent.create only then). The sponsor must be a member of orgID.
 func (s *Service) EnsureAgent(ctx context.Context, orgID, sponsorID uuid.UUID, name string) (Agent, error) {
-	if !nameRe.MatchString(name) {
-		return Agent{}, fmt.Errorf("agent name must match %s: %w", nameRe, apperr.ErrInvalidArgument)
+	if err := checkName(name); err != nil {
+		return Agent{}, err
 	}
 	var out Agent
 	err := s.tx(ctx, orgID, sponsorID, func(st Store, tx pgx.Tx) error {

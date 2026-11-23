@@ -141,7 +141,7 @@ func TestAgentProfileFailsClosed(t *testing.T) {
 			require.NoError(t, err)
 			_, err = tx.Exec(ctx, "UPDATE agent SET status = 'frozen' WHERE id = $1", prof.AgentID)
 			require.NoError(t, err)
-			require.NoError(t, oauth.RevokeAgentProfiles(ctx, tx, s.fx.OrgID, prof.AgentID, nil, "agent_frozen"))
+			require.NoError(t, oauth.RevokeAgentProfiles(ctx, tx, s.fx.OrgID, prof.AgentID, s.fx.MemberID, "agent_frozen"))
 			require.NoError(t, tx.Commit(ctx))
 		},
 		"sponsor removed": func(oauth.AgentProfile) {
@@ -159,6 +159,6 @@ func TestAgentProfileFailsClosed(t *testing.T) {
 	assert.Zero(t, ag.count())
 	var n int
 	require.NoError(t, s.pool.QueryRow(ctx, `SELECT count(*) FROM audit_event WHERE action = 'agent.profile.revoke'
-		AND actor_kind = 'system' AND data->>'reason' = 'agent_frozen'`).Scan(&n))
+		AND actor_kind = 'user' AND actor_user_id = $1 AND data->>'reason' = 'agent_frozen'`, s.fx.MemberID).Scan(&n))
 	assert.Equal(t, 1, n)
 }

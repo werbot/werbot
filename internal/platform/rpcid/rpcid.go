@@ -1,4 +1,4 @@
-// Package rpcid converts lists of ids between their API text and UUIDs.
+// Package rpcid converts ids between their API text and UUIDs.
 package rpcid
 
 import (
@@ -9,14 +9,39 @@ import (
 	"github.com/werbot/werbot/internal/platform/apperr"
 )
 
-// Parse parses ids; a malformed one is an apperr.ErrInvalidArgument naming it.
-// No ids give nil.
+// One parses s; a malformed id is an apperr.ErrInvalidArgument naming it.
+func One(s string) (uuid.UUID, error) {
+	id, err := uuid.Parse(s)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("%w: invalid id %q", apperr.ErrInvalidArgument, s)
+	}
+	return id, nil
+}
+
+// Optional parses s as One does; empty is nil.
+func Optional(s string) (*uuid.UUID, error) {
+	if s == "" {
+		return nil, nil
+	}
+	id, err := One(s)
+	return &id, err
+}
+
+// String is the text of id; nil is empty.
+func String(id *uuid.UUID) string {
+	if id == nil {
+		return ""
+	}
+	return id.String()
+}
+
+// Parse parses ids as One does. No ids give nil.
 func Parse(ss []string) ([]uuid.UUID, error) {
 	var out []uuid.UUID
 	for _, s := range ss {
-		id, err := uuid.Parse(s)
+		id, err := One(s)
 		if err != nil {
-			return nil, fmt.Errorf("%w: invalid id %q", apperr.ErrInvalidArgument, s)
+			return nil, err
 		}
 		out = append(out, id)
 	}

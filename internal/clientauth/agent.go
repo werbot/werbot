@@ -95,6 +95,8 @@ func (p *Profile) ExchangeAgent(ctx context.Context, agent, client, reason strin
 
 // runClaims reads the agent (act.sub) and the run (werbot_run) of a token
 // from our own server over TLS; the signature is not checked here.
+// ponytail: hand-rolled JWT split; go-jose UnsafeClaimsWithoutVerification
+// replaces it once the test fakes stop signing with alg none.
 func runClaims(token string) (agent, run uuid.UUID, err error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {

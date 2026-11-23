@@ -39,6 +39,8 @@ var (
 )
 
 // Agent is an agent of a sponsor; Name is unique per sponsor.
+// ponytail: Kind has one value and no reader; drop it (column, proto) or add
+// the second kind.
 type Agent struct {
 	ID, OrgID, SponsorID uuid.UUID
 	Name, Kind, Status   string // Kind "interactive"; Status "active" | "frozen"
@@ -69,16 +71,13 @@ type EmailQueue interface {
 	EnqueueTx(ctx context.Context, tx pgx.Tx, to, template string, data map[string]string) error
 }
 
-// ProfileRevoker ends the agent profiles of an agent inside the caller's
-// transaction (oauth.RevokeAgentProfiles through an adapter in internal/app).
-type ProfileRevoker interface {
-	RevokeAgentProfiles(ctx context.Context, tx pgx.Tx, orgID, agentID uuid.UUID, actor *uuid.UUID, reason string) error
-}
-
 // Config configures a Service.
 type Config struct {
-	WebURL   string         // base of the run link in agent_alert emails
-	Profiles ProfileRevoker // freezing an agent revokes its profiles; nil only in agentic's unit tests
+	WebURL string // base of the run link in agent_alert emails
+	// RevokeProfiles ends the agent profiles of an agent inside the caller's
+	// transaction (oauth.RevokeAgentProfiles): freezing an agent calls it;
+	// nil only in agentic's unit tests.
+	RevokeProfiles func(ctx context.Context, tx pgx.Tx, orgID, agentID, actor uuid.UUID, reason string) error
 }
 
 // Service manages the agents and runs of organizations.

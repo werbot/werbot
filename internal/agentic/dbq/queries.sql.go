@@ -15,14 +15,7 @@ import (
 const actionGate = `-- name: ActionGate :one
 SELECT r.sponsor_user_id, r.actions, r.max_actions, r.max_concurrent, a.status AS agent_status,
     (r.status = 'running' AND r.expires_at > now())::bool AS active,
-    EXISTS (
-        SELECT 1 FROM lock l
-        WHERE l.org_id = r.org_id AND (l.expires_at IS NULL OR l.expires_at > now())
-          AND ((l.target_type = 'agent_run' AND l.target_id = r.id)
-            OR (l.target_type = 'agent' AND l.target_id = a.id)
-            OR (l.target_type IN ('agents_of_user', 'user') AND l.target_id = a.sponsor_user_id)
-            OR l.target_type = 'all_agents')
-    ) AS locked
+    agent_locked(r.org_id, a.id, a.sponsor_user_id, r.id)::bool AS locked
 FROM agent_run r
 JOIN agent a ON a.id = r.agent_id AND a.org_id = r.org_id
 WHERE r.org_id = $1 AND r.id = $2
@@ -64,13 +57,7 @@ func (q *Queries) ActionGate(ctx context.Context, arg ActionGateParams) (ActionG
 
 const agentGate = `-- name: AgentGate :one
 SELECT a.sponsor_user_id, a.status, a.limits,
-    EXISTS (
-        SELECT 1 FROM lock l
-        WHERE l.org_id = a.org_id AND (l.expires_at IS NULL OR l.expires_at > now())
-          AND ((l.target_type = 'agent' AND l.target_id = a.id)
-            OR (l.target_type IN ('agents_of_user', 'user') AND l.target_id = a.sponsor_user_id)
-            OR l.target_type = 'all_agents')
-    ) AS locked
+    agent_locked(a.org_id, a.id, a.sponsor_user_id, NULL)::bool AS locked
 FROM agent a
 WHERE a.org_id = $1 AND a.id = $2
 `
@@ -88,7 +75,7 @@ type AgentGateRow struct {
 }
 
 // The agent's state for a new run. locked: an active lock of the agent, its
-// sponsor (agents_of_user or user) or all agents; RunGate checks the same targets.
+// sponsor (agents_of_user or user) or all agents (agent_locked, no run).
 func (q *Queries) AgentGate(ctx context.Context, arg AgentGateParams) (AgentGateRow, error) {
 	row := q.db.QueryRow(ctx, agentGate, arg.OrgID, arg.AgentID)
 	var i AgentGateRow
@@ -802,14 +789,7 @@ func (q *Queries) RunDenials(ctx context.Context, arg RunDenialsParams) ([]RunDe
 const runGate = `-- name: RunGate :one
 SELECT r.id, r.org_id, r.agent_id, r.sponsor_user_id, r.client, r.reason, r.status, r.actions, r.denials_in_row, r.max_actions, r.max_concurrent, r.expires_at, r.started_at, r.ended_at, r.end_reason, a.status AS agent_status,
     (r.status = 'running' AND r.expires_at > now())::bool AS active,
-    EXISTS (
-        SELECT 1 FROM lock l
-        WHERE l.org_id = r.org_id AND (l.expires_at IS NULL OR l.expires_at > now())
-          AND ((l.target_type = 'agent_run' AND l.target_id = r.id)
-            OR (l.target_type = 'agent' AND l.target_id = a.id)
-            OR (l.target_type IN ('agents_of_user', 'user') AND l.target_id = a.sponsor_user_id)
-            OR l.target_type = 'all_agents')
-    ) AS locked
+    agent_locked(r.org_id, a.id, a.sponsor_user_id, r.id)::bool AS locked
 FROM agent_run r
 JOIN agent a ON a.id = r.agent_id AND a.org_id = r.org_id
 WHERE r.org_id = $1 AND r.id = $2
@@ -828,7 +808,8 @@ type RunGateRow struct {
 }
 
 // A run with its agent's status. active: running and not expired. locked: an
-// active lock of the run, the agent, its sponsor (agents_of_user or user) or all agents.
+// active lock of the run, the agent, its sponsor (agents_of_user or user) or
+// all agents (agent_locked).
 func (q *Queries) RunGate(ctx context.Context, arg RunGateParams) (RunGateRow, error) {
 	row := q.db.QueryRow(ctx, runGate, arg.OrgID, arg.ID)
 	var i RunGateRow

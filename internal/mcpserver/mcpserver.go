@@ -81,10 +81,7 @@ func (s *server) agent(ctx context.Context, req *mcp.CallToolRequest) (*clientau
 // agentName is the agent of the run: an agent profile's own (ExchangeAgent
 // refuses another flag), else the flag or the client name.
 func (s *server) agentName(client string) string {
-	if s.opts.Profile.Agent != "" {
-		return cmp.Or(s.opts.Agent, s.opts.Profile.Agent)
-	}
-	return AgentName(s.opts.Agent, client)
+	return AgentName(cmp.Or(s.opts.Agent, s.opts.Profile.Agent), client)
 }
 
 // end finishes the run (client_exit) even after ctx ended.

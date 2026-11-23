@@ -36,6 +36,12 @@ type Principal struct {
 	AgentID, RunID *uuid.UUID
 }
 
+// IsAgent reports whether p is an agent run token.
+func (p Principal) IsAgent() bool { return p.AgentID != nil || p.RunID != nil }
+
+// Manager reports whether p is an organization owner or admin.
+func (p Principal) Manager() bool { return p.Role == RoleOwner || p.Role == RoleAdmin }
+
 type ctxKey struct{}
 
 // With returns ctx carrying p.

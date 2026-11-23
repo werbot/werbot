@@ -9,6 +9,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
+
+	"github.com/werbot/werbot/internal/platform/sshca"
 )
 
 // agentStart is the agent run of a session and the tool call it serves; zero
@@ -24,11 +26,11 @@ func startOf(u User, r OpenRequest) agentStart {
 	return agentStart{RunID: u.Agent.RunID, ToolCall: r.ToolCall}
 }
 
-// toolCallOf is the tool call of an SSH session environment (EnvToolCall);
+// toolCallOf is the tool call of an SSH session environment (sshca.EnvToolCall);
 // uuid.Nil when it is unset or not a uuid.
 func toolCallOf(env []string) uuid.UUID {
 	for _, kv := range env {
-		if v, ok := strings.CutPrefix(kv, EnvToolCall+"="); ok {
+		if v, ok := strings.CutPrefix(kv, sshca.EnvToolCall+"="); ok {
 			id, err := uuid.Parse(v)
 			if err != nil {
 				return uuid.Nil
@@ -115,7 +117,7 @@ func (p *Pipeline) reportAgentDenial(ctx context.Context, r OpenRequest, req Acc
 		p.denyAgentLater(r, req, err, target, reasons)
 		return true
 	}
-	if paused {
+	if paused { // ponytail: paused feeds only this log; the pause reaches the PDP via BlockedRuns. Drop it at the next proto break.
 		p.log.Info("agent: run paused after a denial", "run_id", a.RunID)
 	}
 	return true

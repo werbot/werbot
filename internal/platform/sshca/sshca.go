@@ -24,6 +24,10 @@ const (
 	ClockSkew   = time.Minute
 )
 
+// EnvToolCall is the SSH environment variable an agent's client sets to the
+// tool call (a uuid) its exec belongs to.
+const EnvToolCall = "WERBOT_TOOL_CALL"
+
 // Identity is the werbot subject a user certificate is issued to.
 type Identity struct {
 	OrgID, UserID, CLISessionID uuid.UUID

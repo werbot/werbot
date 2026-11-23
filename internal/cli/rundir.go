@@ -64,6 +64,9 @@ func writeSSHWrapper(dir, sshPath, goos string) error {
 }
 
 // shellQuote quotes s as one POSIX shell word (cli may not import gateway).
+// ponytail: copy of gateway.ShellQuote. syntax.Quote(LangPOSIX) refuses
+// non-printable runes and invalid UTF-8, which this quotes; keep both until
+// such paths may fail the wrapper.
 func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }

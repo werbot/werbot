@@ -10,10 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/werbot/werbot/internal/agentic"
-	"github.com/werbot/werbot/internal/identity/oauth"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/principal"
@@ -47,13 +45,6 @@ func (a oauthAgents) StartAgentRun(ctx context.Context, orgID, userID uuid.UUID,
 		return uuid.Nil, uuid.Nil, time.Time{}, errRunNotStarted
 	}
 	return agent.ID, run.ID, run.ExpiresAt, nil
-}
-
-// agentProfiles revokes the agent profiles of a frozen agent (agentic.ProfileRevoker).
-type agentProfiles struct{}
-
-func (agentProfiles) RevokeAgentProfiles(ctx context.Context, tx pgx.Tx, orgID, agentID uuid.UUID, actor *uuid.UUID, reason string) error {
-	return oauth.RevokeAgentProfiles(ctx, tx, orgID, agentID, actor, reason)
 }
 
 // policyAgents is the agents of agentic as a policy.AgentSource.
@@ -96,7 +87,7 @@ func (a accessibleResources) AgentResources(ctx context.Context, orgID, agentID 
 // inside identity.Middleware, which sets the principal.
 func agentRoutes(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if p, ok := principal.From(r.Context()); ok && (p.AgentID != nil || p.RunID != nil) && !strings.HasPrefix(r.URL.Path, "/werbot.v1.") {
+		if p, ok := principal.From(r.Context()); ok && p.IsAgent() && !strings.HasPrefix(r.URL.Path, "/werbot.v1.") {
 			http.Error(w, "not allowed for agent tokens", http.StatusForbidden)
 			return
 		}

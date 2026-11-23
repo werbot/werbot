@@ -1,11 +1,10 @@
 package agentic
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -13,31 +12,6 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/platform/rpcid"
 )
-
-func parseID(s string) (uuid.UUID, error) {
-	ids, err := rpcid.Parse([]string{s})
-	if err != nil {
-		return uuid.Nil, err
-	}
-	return ids[0], nil
-}
-
-// optionalID parses s; empty is nil.
-func optionalID(s string) (*uuid.UUID, error) {
-	if s == "" {
-		return nil, nil
-	}
-	id, err := parseID(s)
-	return &id, err
-}
-
-// idString is the text of id; nil is empty.
-func idString(id *uuid.UUID) string {
-	if id == nil {
-		return ""
-	}
-	return id.String()
-}
 
 // timestamp converts t; nil stays unset.
 func timestamp(t *time.Time) *timestamppb.Timestamp {
@@ -72,12 +46,8 @@ func runToProto(r RunView) *werbotv1.AgentRun {
 func timelineToProto(tl Timeline) (*werbotv1.GetRunResponse, error) {
 	out := &werbotv1.GetRunResponse{Run: runToProto(tl.Run)}
 	for _, c := range tl.ToolCalls {
-		var args map[string]any
-		if err := json.Unmarshal(c.Arguments, &args); err != nil {
-			return nil, fmt.Errorf("agentic: arguments of tool call %s: %w", c.ID, err)
-		}
-		st, err := structpb.NewStruct(args)
-		if err != nil {
+		st := &structpb.Struct{}
+		if err := protojson.Unmarshal(c.Arguments, st); err != nil {
 			return nil, fmt.Errorf("agentic: arguments of tool call %s: %w", c.ID, err)
 		}
 		out.ToolCalls = append(out.ToolCalls, &werbotv1.ToolCall{Id: c.ID.String(), Tool: c.Tool, Arguments: st,
@@ -85,7 +55,7 @@ func timelineToProto(tl Timeline) (*werbotv1.GetRunResponse, error) {
 	}
 	for _, s := range tl.Sessions {
 		out.Sessions = append(out.Sessions, &werbotv1.RunSession{Id: s.ID.String(), ResourceName: s.ResourceName,
-			ToolCallId: idString(s.ToolCallID), Command: s.Command, Classes: s.Classes, ExitCode: s.ExitCode,
+			ToolCallId: rpcid.String(s.ToolCallID), Command: s.Command, Classes: s.Classes, ExitCode: s.ExitCode,
 			EndReason: s.EndReason, OutputSha256: s.OutputSha256, StartedAt: timestamppb.New(s.StartedAt), EndedAt: timestamp(s.EndedAt)})
 	}
 	for _, a := range tl.Approvals {

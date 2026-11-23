@@ -1,16 +1,19 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { Button, Dropdown, Menu, MenuItem, Tooltip } from '#lib/ui/index.js';
 	import { m } from '#lib/paraglide/messages.js';
 
 	interface Props {
 		/** the single danger item */
-		label: string;
+		label?: string;
 		disabled?: boolean;
-		onselect: () => void;
+		onselect?: () => void;
+		/** other items instead of the danger one; close shuts the menu */
+		items?: Snippet<[close: () => void]>;
 		open?: boolean;
 	}
 
-	let { label, disabled = false, onselect, open = $bindable(false) }: Props = $props();
+	let { label, disabled = false, onselect, items, open = $bindable(false) }: Props = $props();
 </script>
 
 <Dropdown placement="bottom-end" bind:open>
@@ -21,17 +24,21 @@
 	{/snippet}
 	{#snippet children({ close })}
 		<Menu>
-			<MenuItem
-				icon="trash"
-				danger
-				{disabled}
-				onclick={() => {
-					close();
-					onselect();
-				}}
-			>
-				{label}
-			</MenuItem>
+			{#if items}
+				{@render items(close)}
+			{:else}
+				<MenuItem
+					icon="trash"
+					danger
+					{disabled}
+					onclick={() => {
+						close();
+						onselect?.();
+					}}
+				>
+					{label}
+				</MenuItem>
+			{/if}
 		</Menu>
 	{/snippet}
 </Dropdown>

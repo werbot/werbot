@@ -26,5 +26,22 @@ CREATE INDEX agent_run_live_idx ON agent_run (expires_at) WHERE status <> 'ended
 CREATE TRIGGER agent_run_status_changed AFTER UPDATE ON agent_run
     FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status) EXECUTE FUNCTION werbot_notify_org_changed();
 
+-- An active lock of the run, the agent, its sponsor (agents_of_user or user)
+-- or all agents; run_id NULL checks the agent only. The targets mirror
+-- policy.agentLockTerms: change both together.
+-- +goose StatementBegin
+CREATE FUNCTION agent_locked(org_id uuid, agent_id uuid, sponsor_id uuid, run_id uuid) RETURNS bool
+LANGUAGE sql STABLE AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM lock l
+        WHERE l.org_id = agent_locked.org_id AND (l.expires_at IS NULL OR l.expires_at > now())
+          AND ((l.target_type = 'agent_run' AND l.target_id = agent_locked.run_id)
+            OR (l.target_type = 'agent' AND l.target_id = agent_locked.agent_id)
+            OR (l.target_type IN ('agents_of_user', 'user') AND l.target_id = agent_locked.sponsor_id)
+            OR l.target_type = 'all_agents'))
+$$;
+-- +goose StatementEnd
+
 -- +goose Down
+DROP FUNCTION agent_locked(uuid, uuid, uuid, uuid);
 DROP TABLE agent_run;

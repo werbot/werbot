@@ -108,12 +108,15 @@ func TestAuthenticateAgentCertFields(t *testing.T) {
 	assert.Equal(t, run.String(), f.certs[0].GetRunId())
 
 	other := uuid.New()
-	for name, id := range map[string]Identity{"person's certificate": cert(nil, nil), "other run": cert(&agent, &other),
-		"key": {Method: "ssh-key", Value: "SHA256:k"}} {
-		_, err = c.AuthenticateUser(t.Context(), id, ip)
-		assert.Error(t, err, "%s: an agent answer for another identity is refused", name)
+	for _, tc := range []struct { // ordered: f.certs[1] is the person's certificate
+		name string
+		id   Identity
+	}{{"person's certificate", cert(nil, nil)}, {"other run", cert(&agent, &other)}, {"key", Identity{Method: "ssh-key", Value: "SHA256:k"}}} {
+		_, err = c.AuthenticateUser(t.Context(), tc.id, ip)
+		assert.Error(t, err, "%s: an agent answer for another identity is refused", tc.name)
 	}
 	assert.Empty(t, f.certs[1].GetAgentId(), "a person's certificate sends no agent")
+	assert.Equal(t, other.String(), f.certs[2].GetRunId(), "the other run is sent as is")
 
 	f.mu.Lock()
 	f.agent = nil

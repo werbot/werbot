@@ -73,7 +73,7 @@ func (r restrict) WrapStreamingHandler(next connect.StreamingHandlerFunc) connec
 func (r restrict) admit(ctx context.Context, procedure string) error {
 	p, ok := principal.From(ctx)
 	switch {
-	case !ok || (p.AgentID == nil && p.RunID == nil):
+	case !ok || !p.IsAgent():
 		return nil
 	case p.AgentID == nil || p.RunID == nil || !AgentProcedures[procedure]:
 		return connect.NewError(connect.CodePermissionDenied, errNotForAgents)

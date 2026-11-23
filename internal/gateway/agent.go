@@ -10,12 +10,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// EnvToolCall is the SSH environment variable an agent's client sets to the
-// tool call (a uuid) its exec belongs to.
-const EnvToolCall = "WERBOT_TOOL_CALL"
-
 // Refusals of an agent's session by its run, not by policy: the front reads
 // "Agent limit exceeded" and "Agent run is not active".
+// ponytail: this text is a protocol spelled in app, gateway and mcpserver;
+// move it to shared constants or a connect error detail with the next protocol change.
 var (
 	ErrAgentLimit        = errors.New("agent limit exceeded")
 	ErrAgentRunNotActive = errors.New("agent run is not active")
@@ -80,6 +78,8 @@ func (p *Policy) agentEntity(r AccessRequest) (cedar.Entity, bool) {
 // allow; reasons are the union, sorted; a deny carries obligations only when
 // every denying pass carries them (their union), and the message of the
 // first denying pass that has one. It mirrors policy.mergeAgent: change both together.
+// ponytail: depguard does not force this copy (both may import platform); move
+// Decision and mergeAgent to one platform package in the mirror cleanup.
 func mergeAgent(user, agent Decision) Decision {
 	out := Decision{Allow: user.Allow && agent.Allow,
 		Reasons: slices.Compact(slices.Sorted(slices.Values(slices.Concat(user.Reasons, agent.Reasons))))}

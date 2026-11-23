@@ -8,6 +8,8 @@ import (
 )
 
 // Endpoint is where the gateway listens. Stage 15 adds a WebSocket URL.
+// ponytail: Endpoint and Dialer are the plan's seam for stage 15; nothing sets
+// mcpserver.Options.Dial yet. Cut them if stage 15 does not use them.
 type Endpoint struct{ SSHAddress string }
 
 // Dialer opens the transport connection to the gateway.

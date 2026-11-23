@@ -35,20 +35,11 @@ type RunFilter struct {
 	Page, PageSize int
 }
 
-// ToolCall is one tool call of a run; Arguments is JSON.
-type ToolCall struct {
-	ID                        uuid.UUID
-	Tool, Traceparent, Status string
-	Arguments                 []byte
-	StartedAt                 time.Time
-	EndedAt                   *time.Time
-}
-
 // Timeline is a run with its tool calls, sessions, approvals and denials,
 // each oldest first and at most 1000 long.
 type Timeline struct {
 	Run       RunView
-	ToolCalls []ToolCall
+	ToolCalls []dbq.RunToolCallsRow // Arguments is JSON
 	Sessions  []dbq.RunSessionsRow
 	Approvals []dbq.RunApprovalsRow
 	Denials   []RunDenial
@@ -67,7 +58,7 @@ func sees(p principal.Principal, runID, sponsor uuid.UUID) bool {
 	if p.RunID != nil {
 		return *p.RunID == runID
 	}
-	return sponsor == p.UserID || manager(p)
+	return sponsor == p.UserID || p.Manager()
 }
 
 // ListRuns returns one page of the runs p may see, newest first, and the next
@@ -157,13 +148,9 @@ func listRuns(ctx context.Context, st Store, arg dbq.ListRunsParams) ([]RunView,
 // timeline reads the tool calls, sessions, approvals and denials of run.
 func timeline(ctx context.Context, st Store, orgID uuid.UUID, run RunView) (Timeline, error) {
 	out := Timeline{Run: run}
-	calls, err := st.RunToolCalls(ctx, dbq.RunToolCallsParams{OrgID: orgID, RunID: run.ID})
-	if err != nil {
+	var err error
+	if out.ToolCalls, err = st.RunToolCalls(ctx, dbq.RunToolCallsParams{OrgID: orgID, RunID: run.ID}); err != nil {
 		return out, err
-	}
-	for _, c := range calls {
-		out.ToolCalls = append(out.ToolCalls, ToolCall{ID: c.ID, Tool: c.Tool, Traceparent: c.Traceparent, Status: c.Status,
-			Arguments: c.Arguments, StartedAt: c.StartedAt, EndedAt: c.EndedAt})
 	}
 	if out.Sessions, err = st.RunSessions(ctx, dbq.RunSessionsParams{OrgID: orgID, RunID: &run.ID}); err != nil {
 		return out, err

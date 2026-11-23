@@ -128,6 +128,8 @@ func countDenial(ctx context.Context, st Store, tx pgx.Tx, run dbq.AgentRun) (bo
 
 // writeDenial audits d as session.writeDenial does: the target is the resource
 // id when the name matches a resource of the organization, else the name.
+// ponytail: a copy of session.writeDenial kept so count, audit and alert commit
+// in one tx; route it through session.Deny once that atomicity is not needed.
 func writeDenial(ctx context.Context, st Store, tx pgx.Tx, run dbq.AgentRun, d Denial) error {
 	target := d.Resource
 	id, err := st.ResourceIDByName(ctx, dbq.ResourceIDByNameParams{OrgID: run.OrgID, Name: d.Resource})

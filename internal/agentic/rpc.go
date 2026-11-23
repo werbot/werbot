@@ -10,6 +10,7 @@ import (
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/principal"
+	"github.com/werbot/werbot/internal/platform/rpcid"
 )
 
 // Handler serves AgentService; roles and run scoping are in the service.
@@ -30,7 +31,7 @@ func call(ctx context.Context, id string) (principal.Principal, uuid.UUID, error
 	if id == "" {
 		return p, uuid.Nil, nil
 	}
-	parsed, err := parseID(id)
+	parsed, err := rpcid.One(id)
 	return p, parsed, apperr.ToConnect(err)
 }
 
@@ -58,7 +59,7 @@ func (h *Handler) CreateAgent(ctx context.Context, req *connect.Request[werbotv1
 		return nil, err
 	}
 	in := CreateAgentInput{Name: req.Msg.GetName(), Limits: limitsFromProto(req.Msg.GetLimits())}
-	if in.SponsorID, err = optionalID(req.Msg.GetSponsorUserId()); err != nil {
+	if in.SponsorID, err = rpcid.Optional(req.Msg.GetSponsorUserId()); err != nil {
 		return nil, apperr.ToConnect(err)
 	}
 	v, err := h.svc.CreateAgent(ctx, p, in)
@@ -105,7 +106,7 @@ func (h *Handler) ListRuns(ctx context.Context, req *connect.Request[werbotv1.Li
 	}
 	m := req.Msg
 	f := RunFilter{Status: m.GetStatus(), Page: int(m.GetPage()), PageSize: int(m.GetPageSize())}
-	if f.AgentID, err = optionalID(m.GetAgentId()); err != nil {
+	if f.AgentID, err = rpcid.Optional(m.GetAgentId()); err != nil {
 		return nil, apperr.ToConnect(err)
 	}
 	rs, next, err := h.svc.ListRuns(ctx, p, f)

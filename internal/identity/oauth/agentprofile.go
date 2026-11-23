@@ -48,14 +48,10 @@ type AgentProfile struct {
 
 // person refuses an agent run token: agents never manage profiles.
 func person(pr principal.Principal) error {
-	if pr.AgentID != nil || pr.RunID != nil {
+	if pr.IsAgent() {
 		return errProfileAgentToken
 	}
 	return nil
-}
-
-func manager(pr principal.Principal) bool {
-	return pr.Role == principal.RoleOwner || pr.Role == principal.RoleAdmin
 }
 
 // CreateAgentProfile opens a profile of the caller's own agent (owner and
@@ -139,7 +135,7 @@ func (p *Provider) ListAgentProfiles(ctx context.Context, pr principal.Principal
 		return nil, err
 	}
 	arg := dbq.ListAgentProfilesParams{OrgID: pr.OrgID, AgentID: agentID}
-	if !manager(pr) {
+	if !pr.Manager() {
 		arg.SponsorUserID = &pr.UserID
 	}
 	var out []AgentProfile
@@ -163,21 +159,21 @@ func (p *Provider) RevokeAgentProfile(ctx context.Context, pr principal.Principa
 		return err
 	}
 	return dbx.InOrg(ctx, p.pool, pr.OrgID, pr.UserID, func(tx pgx.Tx) error {
-		agentID, err := dbq.New(tx).RevokeAgentProfile(ctx, dbq.RevokeAgentProfileParams{ID: id, OrgID: pr.OrgID, Manager: manager(pr), UserID: pr.UserID})
+		agentID, err := dbq.New(tx).RevokeAgentProfile(ctx, dbq.RevokeAgentProfileParams{ID: id, OrgID: pr.OrgID, Manager: pr.Manager(), UserID: pr.UserID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errProfileNotFound
 		}
 		if err != nil {
 			return err
 		}
-		return revokeAudit(ctx, tx, pr.OrgID, &pr.UserID, id, *agentID, "revoked")
+		return revokeAudit(ctx, tx, pr.OrgID, pr.UserID, id, *agentID, "revoked")
 	})
 }
 
 // RevokeAgentProfiles ends every profile of agentID in tx (the caller's
-// transaction, agentic freezing the agent), one agent.profile.revoke each;
-// actor nil is the system. It needs no Provider: agentic is built first.
-func RevokeAgentProfiles(ctx context.Context, tx pgx.Tx, orgID, agentID uuid.UUID, actor *uuid.UUID, reason string) error {
+// transaction, agentic freezing the agent), one agent.profile.revoke each by
+// actor. It needs no Provider: agentic is built first.
+func RevokeAgentProfiles(ctx context.Context, tx pgx.Tx, orgID, agentID, actor uuid.UUID, reason string) error {
 	ids, err := dbq.New(tx).RevokeProfilesOfAgent(ctx, dbq.RevokeProfilesOfAgentParams{Reason: reason, OrgID: orgID, AgentID: agentID})
 	if err != nil {
 		return err
@@ -190,13 +186,9 @@ func RevokeAgentProfiles(ctx context.Context, tx pgx.Tx, orgID, agentID uuid.UUI
 	return nil
 }
 
-func revokeAudit(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, actor *uuid.UUID, id, agentID uuid.UUID, reason string) error {
-	kind := "user"
-	if actor == nil {
-		kind = "system"
-	}
+func revokeAudit(ctx context.Context, tx pgx.Tx, orgID, actor, id, agentID uuid.UUID, reason string) error {
 	return auditlog.Write(ctx, tx, auditlog.Event{
-		OrgID: &orgID, ActorUserID: actor, ActorKind: kind, Action: "agent.profile.revoke",
+		OrgID: &orgID, ActorUserID: &actor, ActorKind: "user", Action: "agent.profile.revoke",
 		TargetType: "agent_profile", TargetID: id.String(), IP: clientip.From(ctx),
 		Data: map[string]any{"agent_id": agentID, "reason": reason},
 	})

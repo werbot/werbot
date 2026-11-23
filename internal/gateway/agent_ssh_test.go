@@ -10,6 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/werbot/werbot/internal/platform/sshca"
 )
 
 // newAgentSSHEnv is an SSH front whose key of alice belongs to her agent a1 in run1.
@@ -57,15 +59,15 @@ func (e *sshEnv) lastEnd(t *testing.T, n int) uuid.UUID {
 func TestToolCallEnvParsing(t *testing.T) {
 	e := newAgentSSHEnv(t)
 	tool := uuid.New()
-	_, code := execEnv(t, e, "alice+spy", map[string]string{EnvToolCall: tool.String()}, "ls")
+	_, code := execEnv(t, e, "alice+spy", map[string]string{sshca.EnvToolCall: tool.String()}, "ls")
 	require.Equal(t, 7, code)
 	assert.Equal(t, agentStart{RunID: e.m["run1"], ToolCall: tool}, sessionAgent(e.lastEnd(t, 1)))
 
-	_, code = execEnv(t, e, "alice+spy", map[string]string{EnvToolCall: "garbage"}, "ls")
+	_, code = execEnv(t, e, "alice+spy", map[string]string{sshca.EnvToolCall: "garbage"}, "ls")
 	require.Equal(t, 7, code)
 	assert.Equal(t, agentStart{RunID: e.m["run1"]}, sessionAgent(e.lastEnd(t, 2)), "an invalid tool call is none")
 
-	assert.Equal(t, tool, toolCallOf([]string{"A=1", EnvToolCall + "=" + tool.String()}))
+	assert.Equal(t, tool, toolCallOf([]string{"A=1", sshca.EnvToolCall + "=" + tool.String()}))
 	assert.Equal(t, uuid.Nil, toolCallOf(nil))
 }
 

@@ -34,14 +34,6 @@ func agentUID(id uuid.UUID) cedar.EntityUID {
 	return cedar.NewEntityUID("Werbot::Agent", cedar.String(id.String()))
 }
 
-// idString is id as a context string; nil (no run) is "", which no run id matches.
-func idString(id *uuid.UUID) string {
-	if id == nil {
-		return ""
-	}
-	return id.String()
-}
-
 // authorizeAgent decides r of agent r.AgentID twice: as its sponsor r.UserID
 // (with the sponsor's teams) and as the agent, and allows only when both
 // passes allow. An agent missing from the snapshot or sponsored by another

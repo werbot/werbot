@@ -52,7 +52,7 @@ type OpenRequest struct {
 	Notice   io.Writer // the user's side channel: stderr of an exec, the PTY of a terminal
 	// Handshake is the user the front authenticated for Identity; nil: none.
 	Handshake *Handshake
-	ToolCall  uuid.UUID // an agent's tool call (EnvToolCall); uuid.Nil: none
+	ToolCall  uuid.UUID // an agent's tool call (sshca.EnvToolCall); uuid.Nil: none
 }
 
 // control is the control plane of the pipeline; *tunnelClient implements it.
