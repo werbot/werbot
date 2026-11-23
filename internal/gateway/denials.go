@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"cmp"
+	"context"
 	"errors"
 	"net/netip"
 	"sync"
@@ -94,9 +95,17 @@ func newDenial(reason string, user uuid.UUID, fingerprint, resource string, kind
 	return d
 }
 
-// deny reports a refused Open in the next heartbeat; the target of a request
-// with a command is the command.
-func (p *Pipeline) deny(r OpenRequest, user uuid.UUID, err error) {
+// deny reports a refused Open of req: an agent's policy denial at once
+// (reportAgentDenial), anything else in the next heartbeat; the target of a
+// request with a command is the command.
+func (p *Pipeline) deny(ctx context.Context, r OpenRequest, req AccessRequest, err error) {
+	if !p.reportAgentDenial(ctx, r, req, err) {
+		p.denyLater(r, req.User.ID, err)
+	}
+}
+
+// denyLater reports a refused Open of user in the next heartbeat.
+func (p *Pipeline) denyLater(r OpenRequest, user uuid.UUID, err error) {
 	if reason := denialReason(err); reason != "" {
 		p.denials.add(newDenial(reason, user, r.Identity.Value, r.Resource, r.Kind, cmp.Or(r.Command, r.Target), r.ClientIP))
 	}

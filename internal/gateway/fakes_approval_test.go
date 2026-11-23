@@ -8,13 +8,14 @@ import (
 )
 
 // fakeApprovals is the approval side of fakeControl. RequestApproval returns
-// the ticket "a1", expiring ttl after the call, or reqErr; GetApproval answers
+// the ticket "a1" of status, expiring ttl after the call, or reqErr; GetApproval answers
 // getErr or the statuses in turn, the last one repeating. Decisions reach the
 // waits through the production router, as the tunnel delivers them.
 type fakeApprovals struct {
 	approvals
 	mu       sync.Mutex
 	ttl      time.Duration
+	status   string
 	reqErr   error
 	getErr   error
 	statuses []string
@@ -44,7 +45,7 @@ func (a *fakeApprovals) request(r approvalRequest) (approvalTicket, error) {
 	if a.reqErr != nil {
 		return approvalTicket{}, a.reqErr
 	}
-	return approvalTicket{ID: "a1", URL: "https://werbot.test/requests/a1", ExpiresAt: time.Now().Add(a.ttl)}, nil
+	return approvalTicket{ID: "a1", URL: "https://werbot.test/requests/a1", ExpiresAt: time.Now().Add(a.ttl), Status: a.status}, nil
 }
 
 func (a *fakeApprovals) get(string) (string, error) {

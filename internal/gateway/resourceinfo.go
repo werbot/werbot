@@ -34,7 +34,7 @@ func (h *sshHandler) resourceInfo(ctx ssh.Context, _ *ssh.Server, _ *gossh.Reque
 	r := h.request(ctx, resource, "", Window{}, "")
 	_, req, _, err := h.p.decide(dctx, r)
 	if err != nil {
-		h.p.deny(r, req.User.ID, err)
+		h.p.deny(dctx, r, req, err)
 		if errors.Is(err, ErrNotReady) {
 			return false, notReady
 		}

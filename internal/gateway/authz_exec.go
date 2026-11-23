@@ -147,10 +147,12 @@ func (p *Policy) MaskOutput() string {
 	return p.maskOutput
 }
 
-// Decide decides r. It mirrors policy.(*PolicySet).Authorize in
+// Decide decides r: an agent's request in two passes (AuthorizeAgent), a
+// person's in one. It mirrors policy.(*PolicySet).Authorize in
 // internal/policy/policy.go, which the gateway may not import;
-// TestPolicyParity and TestPolicyParityExec keep the two equal. An invalid IP,
-// an action the resource type lacks or any policy evaluation error denies.
+// TestPolicyParity, TestPolicyParityExec and TestPolicyParityAgents keep the
+// two equal. An invalid IP, an action the resource type lacks or any policy
+// evaluation error denies.
 func (p *Policy) Decide(r AccessRequest) Decision {
 	if p == nil {
 		return Decision{Reasons: []string{"error:compile"}}
@@ -164,7 +166,16 @@ func (p *Policy) Decide(r AccessRequest) Decision {
 	if !p.typeHasAction(r.Resource.ID, r.Action) {
 		return Decision{Reasons: []string{"invalid_action"}}
 	}
-	d, diag := p.evaluate(r)
+	if r.User.Agent != nil {
+		return p.AuthorizeAgent(r)
+	}
+	return p.decidePass(r, nil)
+}
+
+// decidePass decides r with the user of r as principal, or with agent in an
+// agent's pass. It mirrors policy.(*PolicySet).decidePass: change both together.
+func (p *Policy) decidePass(r AccessRequest, agent *cedar.Entity) Decision {
+	d, diag := p.evaluate(r, agent)
 	// cedar-go skips a policy that fails to evaluate: a broken forbid would allow.
 	out := Decision{Allow: d == cedar.Allow && len(diag.Errors) == 0}
 	for _, rs := range diag.Reasons {
@@ -177,16 +188,17 @@ func (p *Policy) Decide(r AccessRequest) Decision {
 	}
 	slices.Sort(out.Reasons[n:])
 	if d == cedar.Deny && len(diag.Errors) == 0 {
-		out.Message, out.Obligations = p.explain(r, out.Reasons)
+		out.Message, out.Obligations = p.explain(r, agent, out.Reasons)
 	}
 	return out
 }
 
 // explain returns the @message of the first deciding forbid by ascending id
-// and the obligations of a deny decided by forbids. It mirrors
+// and the obligations of a deny decided by forbids, met for the principal of
+// the pass (agent, or the user when nil). It mirrors
 // policy.(*PolicySet).explain in internal/policy/obligations.go: change both
 // together.
-func (p *Policy) explain(r AccessRequest, forbids []string) (string, []string) {
+func (p *Policy) explain(r AccessRequest, agent *cedar.Entity, forbids []string) (string, []string) {
 	var message string
 	names := make([]string, 0, len(forbids))
 	for _, id := range slices.Sorted(slices.Values(forbids)) {
@@ -196,12 +208,12 @@ func (p *Policy) explain(r AccessRequest, forbids []string) (string, []string) {
 		}
 		names = append(names, n.obligation)
 	}
-	return message, p.meet(r, names)
+	return message, p.meet(r, agent, names)
 }
 
 // meet returns names, sorted and unique, when each is known and r with all of
-// them met is allowed; nil otherwise.
-func (p *Policy) meet(r AccessRequest, names []string) []string {
+// them met is allowed for the principal of the pass; nil otherwise.
+func (p *Policy) meet(r AccessRequest, agent *cedar.Entity, names []string) []string {
 	if len(names) == 0 {
 		return nil
 	}
@@ -212,21 +224,18 @@ func (p *Policy) meet(r AccessRequest, names []string) []string {
 		}
 		fulfil(&r)
 	}
-	d, diag := p.evaluate(r)
+	d, diag := p.evaluate(r, agent)
 	if d != cedar.Allow || len(diag.Errors) > 0 {
 		return nil
 	}
 	return slices.Compact(slices.Sorted(slices.Values(names)))
 }
 
-// evaluate runs the policies on r; r.IP must be valid and r.Action set.
-func (p *Policy) evaluate(r AccessRequest) (cedar.Decision, cedar.Diagnostic) {
+// evaluate runs the policies on r with the user of r as principal, or with
+// agent in an agent's pass; r.IP must be valid and r.Action set.
+func (p *Policy) evaluate(r AccessRequest, agent *cedar.Entity) (cedar.Decision, cedar.Diagnostic) {
 	ip := r.IP.Unmap()
-	t := r.Time
-	if t.IsZero() {
-		t = time.Now()
-	}
-	t = t.UTC()
+	t := r.at().UTC()
 	teams := make([]cedar.EntityUID, len(r.User.TeamIDs))
 	for i, id := range r.User.TeamIDs {
 		teams[i] = cedar.NewEntityUID("Werbot::Team", cedar.String(id.String()))
@@ -235,8 +244,12 @@ func (p *Policy) evaluate(r AccessRequest) (cedar.Decision, cedar.Diagnostic) {
 		UID:     cedar.NewEntityUID("Werbot::User", cedar.String(r.User.ID.String())),
 		Parents: cedar.NewEntityUIDSet(teams...),
 	}
+	principal, getter := user.UID, cedar.EntityGetter(entityGetter{p.entities, user})
+	if agent != nil {
+		principal, getter = agent.UID, agentGetter{getter, *agent}
+	}
 	req := cedar.Request{
-		Principal: user.UID,
+		Principal: principal,
 		Action:    cedar.NewEntityUID("Werbot::Action", cedar.String(r.Action)),
 		Resource:  cedar.NewEntityUID("Werbot::Resource", cedar.String(r.Resource.ID.String())),
 		Context: cedar.NewRecord(cedar.RecordMap{
@@ -255,9 +268,19 @@ func (p *Policy) evaluate(r AccessRequest) (cedar.Decision, cedar.Diagnostic) {
 			"path_hits":        stringSet(r.PathHits),
 			"path_outside":     stringSet(r.PathOutside),
 			"console":          cedar.Boolean(r.Console),
+			"run_id":           cedar.String(idString(r.User.runID())),
+			"kind":             cedar.String(r.Kind),
 		}),
 	}
-	return cedar.Authorize(p.policies, entityGetter{p.entities, user}, req)
+	return cedar.Authorize(p.policies, getter, req)
+}
+
+// at is the time of r; zero is now.
+func (r AccessRequest) at() time.Time {
+	if r.Time.IsZero() {
+		return time.Now()
+	}
+	return r.Time
 }
 
 // stringSet is values as a Cedar set of strings.

@@ -52,12 +52,14 @@ type OpenRequest struct {
 	Notice   io.Writer // the user's side channel: stderr of an exec, the PTY of a terminal
 	// Handshake is the user the front authenticated for Identity; nil: none.
 	Handshake *Handshake
+	ToolCall  uuid.UUID // an agent's tool call (EnvToolCall); uuid.Nil: none
 }
 
 // control is the control plane of the pipeline; *tunnelClient implements it.
 type control interface {
 	AuthenticateUser(ctx context.Context, id Identity, ip netip.Addr) (User, error)
-	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes, paths []string) (uuid.UUID, Secret, error)
+	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes, paths []string, agent agentStart) (uuid.UUID, Secret, error)
+	RecordDenial(ctx context.Context, runID uuid.UUID, resource, command string, classes, reasons []string) (paused bool, err error)
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
 	RequestApproval(ctx context.Context, r approvalRequest) (approvalTicket, error)
 	GetApproval(ctx context.Context, id string) (status string, err error)
@@ -139,18 +141,18 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 }
 
 // Open checks the request in contract order and starts the session on the server.
-// Any error frees the slot and, unless it is ErrNotReady, goes to the next
-// heartbeat as a denial. A spool at SpoolMax, or one that cannot write, refuses
-// the kinds the resource type records: recording is mandatory for them.
+// Any error frees the slot and, unless it is ErrNotReady, is reported as a denial
+// (p.deny). A spool at SpoolMax, or one that cannot write, refuses the kinds the
+// resource type records: recording is mandatory for them.
 func (p *Pipeline) Open(ctx context.Context, r OpenRequest) (*Session, error) {
 	if err := p.active.reserve(p.cfg.MaxSessions); err != nil {
-		p.deny(r, uuid.Nil, err)
+		p.deny(ctx, r, AccessRequest{}, err)
 		return nil, p.reject(err)
 	}
-	s, user, err := p.open(ctx, r)
+	s, req, err := p.open(ctx, r)
 	if err != nil {
 		p.active.release()
-		p.deny(r, user, err)
+		p.deny(ctx, r, req, err)
 		return nil, p.reject(err)
 	}
 	return s, nil
@@ -168,32 +170,31 @@ func (p *Pipeline) reject(err error) error {
 	return err
 }
 
-// open returns the user it authenticated, also with an error, for the denial.
-// After an approval wait the session runs on the user and resource of the
-// recheck, not on those read before the wait.
-func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID, error) {
+// open returns the request it decided, also with an error, for the denial. After
+// an approval wait that is the recheck's: the session runs on its user and resource.
+func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, AccessRequest, error) {
 	pol, req, host, err := p.decide(ctx, r)
 	if err != nil {
-		return nil, req.User.ID, err
+		return nil, req, err
 	}
 	typ, _ := connector.Lookup(req.Resource.Type)
 	recorded := typ.Records(r.Kind)
 	if err := p.servable(ctx, r.Kind, req.Resource, host, recorded); err != nil {
-		return nil, req.User.ID, err
+		return nil, req, err
 	}
 	if err := p.shellBeforeCommand(pol, req, r, typ); err != nil {
-		return nil, req.User.ID, err
+		return nil, req, err
 	}
 	if pol, req, err = p.authorizeCommand(ctx, pol, withExecAction(req, r, typ), commandInput{Text: r.Command, Cwd: "~"}, r.Notice); err != nil {
-		return nil, req.User.ID, err
+		return nil, req, err
 	}
 	if req, err = p.authorizeShell(pol, req, r, typ); err != nil {
-		return nil, req.User.ID, err
+		return nil, req, err
 	}
 	u, res := req.User, req.Resource
-	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target, req.Command, req.Classes, req.Paths)
+	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target, req.Command, req.Classes, req.Paths, startOf(u, r))
 	if err != nil {
-		return nil, u.ID, controlErr(err)
+		return nil, req, startErr(err)
 	}
 	rec := NopRecording(id, 0, 0)
 	if recorded {
@@ -211,7 +212,7 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID
 		Metrics:   p.cfg.Metrics,
 	}
 	s.CheckCommand = p.commandChecker(req, r, s)
-	return s, u.ID, nil
+	return s, req, nil
 }
 
 // Run serves s on c until it ends, then spools the session end with its counters,
@@ -221,6 +222,7 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	sctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 	meter{p.active.bind(s.ID, cancel), p.meters}.wrap(s)
+	s.trackOutcome()
 	panicked, err := p.serve(sctx, s, c, cancel)
 	cancel(errServed)
 	reason := endReason(sctx, err)

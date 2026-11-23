@@ -12,15 +12,18 @@ import (
 
 // TestExecDecisionP99 holds the exec decision (analyse, match paths and
 // decide) of the BenchmarkExecDecision snapshot to the design §12 budget, for
-// benchCommand and worstCommand: p99 ≤ 5 ms after 100 warm-up runs, over 2 000 runs. go test runs packages in parallel, so a
+// benchCommand and worstCommand of a person and of an agent (two passes):
+// p99 ≤ 5 ms after 100 warm-up runs, over 2 000 runs. go test runs packages in parallel, so a
 // busy CI runner can stretch one round's tail: the best of three rounds must
 // meet the budget (a real slowdown fails every round). The race detector slows
 // it many times, so the test runs only without it.
 func TestExecDecisionP99(t *testing.T) {
-	p, r := execBench(t)
-	for _, command := range []string{benchCommand, worstCommand} {
-		r.Command = command
-		requireP99(t, p, r)
+	p, human, agent := execBench(t)
+	for _, r := range []AccessRequest{human, agent} {
+		for _, command := range []string{benchCommand, worstCommand} {
+			r.Command = command
+			requireP99(t, p, r)
+		}
 	}
 }
 

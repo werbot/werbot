@@ -17,7 +17,7 @@ func (p *Pipeline) decide(ctx context.Context, r OpenRequest) (pol *Policy, req 
 	if req.User, reused, err = p.user(ctx, r); err != nil {
 		return nil, AccessRequest{}, "", controlErr(err)
 	}
-	req.IP = r.ClientIP
+	req.IP, req.Kind = r.ClientIP, r.Kind
 	if r.Identity.Cert != nil {
 		req.CLISessionID = r.Identity.Cert.CLISessionID
 	}
@@ -35,8 +35,8 @@ func (p *Pipeline) decide(ctx context.Context, r OpenRequest) (pol *Policy, req 
 			return nil, req, "", err
 		}
 	}
-	if allow, _ := pol.Authorize(req); !allow {
-		return nil, req, "", ErrDenied
+	if d := pol.Decide(req); !d.Allow {
+		return nil, req, "", accessDenied{d.Reasons}
 	}
 	return pol, req, host, nil
 }

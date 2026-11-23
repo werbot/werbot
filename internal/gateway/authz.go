@@ -23,6 +23,7 @@ type User struct {
 	Login   string
 	TeamIDs []uuid.UUID
 	Country string
+	Agent   *Agent // the agent run the user sponsors on this request; nil: the user
 }
 
 // Resource is a resource of the pool as the snapshot lists it.
@@ -65,6 +66,8 @@ type AccessRequest struct {
 	ApprovalGranted              bool
 	// Console marks a shell served by the command console.
 	Console bool
+	// Kind is the kind of the session ("terminal" for its shell decision); "": none.
+	Kind Kind
 }
 
 // Policy is a compiled snapshot: the local policy decision point.
@@ -247,6 +250,20 @@ func (g entityGetter) Get(uid cedar.EntityUID) (cedar.Entity, bool) {
 	}
 	e, ok := g.entities[uid]
 	return e, ok
+}
+
+// agentGetter adds the agent of an agent's pass, which the snapshot may not
+// list yet (AuthorizeAgent), to an entityGetter.
+type agentGetter struct {
+	cedar.EntityGetter
+	agent cedar.Entity
+}
+
+func (g agentGetter) Get(uid cedar.EntityUID) (cedar.Entity, bool) {
+	if uid == g.agent.UID {
+		return g.agent, true
+	}
+	return g.EntityGetter.Get(uid)
 }
 
 // cliSession is id as context.cli_session_id: uuid.Nil (no CLI session) is "",

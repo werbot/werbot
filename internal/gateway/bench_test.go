@@ -27,12 +27,14 @@ var worstCommand = func() string {
 }()
 
 // execBench compiles the latency budget snapshot (design §12): 1 000
-// resources, 1 000 bindings, 100 command rules, 100 path rules of 4 globs and
-// 10 custom policies; the request is an ssh.exec of a team member that an
-// approval rule covers, so Decide also runs the trial evaluation of the obligation.
-func execBench(tb testing.TB) (*Policy, AccessRequest) {
+// resources, 1 000 bindings, 100 command rules, 100 path rules of 4 globs, 10
+// custom policies and the agent baseline with 100 blocked runs; the request
+// is an ssh.exec of a team member that an approval rule covers, so Decide
+// also runs the trial evaluation of the obligation. agent is the same request
+// of the member's agent: two passes.
+func execBench(tb testing.TB) (p *Policy, r, agent AccessRequest) {
 	tb.Helper()
-	team, user := uuid.New(), uuid.New()
+	team, user, agentID := uuid.New(), uuid.New(), uuid.New()
 	ids := make([]string, 1000)
 	ents := cedar.EntityMap{}
 	s := &gatewayv1.Snapshot{Version: "bench"}
@@ -64,16 +66,27 @@ func execBench(tb testing.TB) (*Policy, AccessRequest) {
 		fmt.Fprintf(&b, "@id(\"path:%s\")\nforbid (principal, action in [Werbot::Action::\"ssh.exec\"], resource)\n"+
 			"when { principal in [Werbot::Team::%q] && context.path_hits.contains(%q) };\n\n", id, team.String(), id)
 	}
+	runs := make([]string, 100)
+	for i := range runs {
+		runs[i] = uuid.NewString()
+	}
+	b.WriteString(agentBaseline(runs, "ssh"))
 	s.CedarPolicies = b.String()
+	uid := cedar.NewEntityUID("Werbot::Agent", cedar.String(agentID.String()))
+	ents[uid] = cedar.Entity{UID: uid, Attributes: cedar.NewRecord(cedar.RecordMap{
+		"sponsor": cedar.NewEntityUID("Werbot::User", cedar.String(user.String())), "status": cedar.String("active")})}
 	var err error
 	s.EntitiesJson, err = json.Marshal(ents)
 	require.NoError(tb, err)
-	p, err := CompilePolicy(s)
+	p, err = CompilePolicy(s)
 	require.NoError(tb, err)
-	r, ok := p.Resource("r0")
+	res, ok := p.Resource("r0")
 	require.True(tb, ok)
-	return p, AccessRequest{User: User{ID: user, TeamIDs: []uuid.UUID{team}}, Resource: r, IP: netip.MustParseAddr("192.0.2.1"),
-		Action: "ssh.exec", Command: benchCommand}
+	r = AccessRequest{User: User{ID: user, TeamIDs: []uuid.UUID{team}}, Resource: res, IP: netip.MustParseAddr("192.0.2.1"),
+		Action: "ssh.exec", Kind: KindExec, Command: benchCommand}
+	agent = r
+	agent.User.Agent = &Agent{ID: agentID, RunID: uuid.New()}
+	return p, r, agent
 }
 
 // decideExec analyses the request command, matches its paths and decides it.
@@ -82,14 +95,17 @@ func decideExec(p *Policy, r AccessRequest) Decision {
 }
 
 func BenchmarkExecDecision(b *testing.B) {
-	p, r := execBench(b)
-	require.Equal(b, []string{ObligationApproval}, decideExec(p, r).Obligations)
-	for name, command := range map[string]string{"bench": benchCommand, "worst": worstCommand} {
-		r.Command = command
-		b.Run(name, func(b *testing.B) {
-			for b.Loop() {
-				decideExec(p, r)
-			}
-		})
+	p, human, agent := execBench(b)
+	require.Equal(b, []string{ObligationApproval}, decideExec(p, human).Obligations)
+	require.Equal(b, []string{ObligationApproval}, decideExec(p, agent).Obligations, "the agent pass allows a read")
+	for who, r := range map[string]AccessRequest{"human": human, "agent": agent} {
+		for name, command := range map[string]string{"bench": benchCommand, "worst": worstCommand} {
+			r.Command = command
+			b.Run(who+"/"+name, func(b *testing.B) {
+				for b.Loop() {
+					decideExec(p, r)
+				}
+			})
+		}
 	}
 }

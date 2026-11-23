@@ -97,17 +97,24 @@ func (h *sshHandler) sessionRequest(s ssh.Session, resource string, pty ssh.Pty,
 		}
 	}
 	r := h.request(s.Context(), resource, kind, w, "")
-	r.Command, r.Notice = s.RawCommand(), notice
+	r.Command, r.Notice, r.ToolCall = s.RawCommand(), notice, toolCallOf(s.Environ())
 	return r
 }
 
 // openOut is where the user reads the text of an Open error: Notice for a
-// refused or timed-out command, the session channel otherwise.
+// refused or timed-out command and a refused agent run, the session channel
+// otherwise.
 func openOut(r OpenRequest, s ssh.Session, err error) io.Writer {
-	if _, ok := errors.AsType[*CommandDeniedError](err); ok || errors.Is(err, ErrApprovalTimeout) {
+	if noticed(err) {
 		return r.Notice
 	}
 	return s
+}
+
+// noticed reports whether the user reads the text of an Open error on Notice.
+func noticed(err error) bool {
+	_, denied := errors.AsType[*CommandDeniedError](err)
+	return denied || errors.Is(err, ErrApprovalTimeout) || errors.Is(err, ErrAgentLimit) || errors.Is(err, ErrAgentRunNotActive)
 }
 
 // windowChanges relays the window changes after the initial one, which comes

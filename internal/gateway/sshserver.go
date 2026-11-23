@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -263,7 +264,7 @@ func openText(err error, resource string, kind Kind, pol *Policy) string {
 	case errors.Is(err, ErrShellDenied):
 		return "Interactive shell is not allowed on " + resource
 	}
-	return CommandErrorText(err)
+	return cmp.Or(agentRunText(err), CommandErrorText(err))
 }
 
 // runText is the user text for a connector error.

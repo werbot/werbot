@@ -145,11 +145,12 @@ func truncateAll(values []string, n, size int) []string {
 	return out
 }
 
-// result is the console result of s for the session end: the last line run,
-// the classes and paths of every line; nil for any other session.
+// result is the result of s for the session end: an exec's exit status and
+// output hash; a console's last line run, the classes and paths of every
+// line; nil for any other session.
 func (s *Session) result() *recorder.SessionResult {
 	if !s.Console || s.Command == "" {
-		return nil
+		return s.outcome.result()
 	}
 	return &recorder.SessionResult{Command: s.Command, Classes: s.Classes, Paths: s.Paths}
 }

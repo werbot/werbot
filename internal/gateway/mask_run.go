@@ -22,8 +22,7 @@ func maskEnabled(mode string, agent bool) bool {
 // sent. The recording keeps the original: connectors record apart from
 // Exec.Stdout and Exec.Stderr.
 func maskExec(s *Session, pol *Policy) (flush func()) {
-	// stage 11 has no agent subjects: every session is a human's
-	if s.Exec == nil || !maskEnabled(pol.MaskOutput(), false) {
+	if s.Exec == nil || !maskEnabled(pol.MaskOutput(), s.User.Agent != nil) {
 		return func() {}
 	}
 	secrets := [][]byte{s.Secret.Value}

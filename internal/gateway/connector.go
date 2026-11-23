@@ -119,6 +119,8 @@ type Session struct {
 	Dial      func(ctx context.Context, network, address string) (net.Conn, error)
 	Recording RecordingSink     // a no-op sink for kinds the type does not record
 	Metrics   *metrics.Registry // for connector counters; nil means a private registry
+
+	outcome *execOutcome // an exec's exit status and output hash, kept by Run
 }
 
 // Redact removes the credential value from text bound for the log.

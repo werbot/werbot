@@ -18,17 +18,19 @@ import (
 const approvalPollInterval = 15 * time.Second
 
 // approvalRequest asks the approvers to allow one command; Reasons are the
-// ids of the rules that asked for the approval.
+// ids of the rules that asked for the approval, AgentRunID the run of an
+// agent's command (uuid.Nil: a person's).
 type approvalRequest struct {
-	UserID, ResourceID uuid.UUID
-	Command            string
-	Classes, Reasons   []string
+	UserID, ResourceID, AgentRunID uuid.UUID
+	Command                        string
+	Classes, Reasons               []string
 }
 
-// approvalTicket is a pending approval: the page of the approvers and when it expires.
+// approvalTicket is an approval: the page of the approvers, when it expires
+// and its status, "approved" for an agent's command approved before.
 type approvalTicket struct {
-	ID, URL   string
-	ExpiresAt time.Time
+	ID, URL, Status string
+	ExpiresAt       time.Time
 }
 
 // approvalOutcomes end a wait by the approval status; any other status waits on.
@@ -91,10 +93,11 @@ func (c *tunnelClient) SubscribeApproval(id string) (decided <-chan struct{}, un
 
 // approve asks the approvers for the command of req, which d denied with the
 // approval obligation, showing them text, tells the user where to look and
-// waits for the decision. An unreachable server is ErrNotReady; a refused
-// request, or a denial, refuses the command.
+// waits for the decision; an approval granted before needs no wait. An
+// unreachable server is ErrNotReady; a refused request, or a denial, refuses
+// the command.
 func (p *Pipeline) approve(ctx context.Context, req AccessRequest, d Decision, text string, notice io.Writer) error {
-	t, err := p.ctl.RequestApproval(ctx, approvalRequest{UserID: req.User.ID, ResourceID: req.Resource.ID,
+	t, err := p.ctl.RequestApproval(ctx, approvalRequest{UserID: req.User.ID, ResourceID: req.Resource.ID, AgentRunID: req.User.runID(),
 		Command: text, Classes: req.Classes, Reasons: d.Reasons})
 	if unreachable(err) {
 		return controlErr(err)
@@ -103,13 +106,22 @@ func (p *Pipeline) approve(ctx context.Context, req AccessRequest, d Decision, t
 		p.log.Warn("approval: request refused", "user_id", req.User.ID, "resource_id", req.Resource.ID, "error", err)
 		return &CommandDeniedError{Err: ErrApprovalDenied}
 	}
-	if notice != nil {
-		_, _ = fmt.Fprintf(notice, "Waiting for approval %s, timeout %s\r\n%s\r\n", t.ID, formatWait(t.ExpiresAt.Sub(p.now())), t.URL)
-	}
-	if err := p.awaitApproval(ctx, t); !errors.Is(err, ErrApprovalDenied) {
+	if err := p.wait(ctx, t, notice); !errors.Is(err, ErrApprovalDenied) {
 		return err
 	}
 	return &CommandDeniedError{Err: ErrApprovalDenied, Message: d.Message, Reasons: d.Reasons}
+}
+
+// wait tells the user on notice where to look and waits for the decision on
+// t; an approval granted before (an agent asking again) needs no wait.
+func (p *Pipeline) wait(ctx context.Context, t approvalTicket, notice io.Writer) error {
+	if t.Status == "approved" {
+		return nil
+	}
+	if notice != nil {
+		_, _ = fmt.Fprintf(notice, "Waiting for approval %s, timeout %s\r\n%s\r\n", t.ID, formatWait(t.ExpiresAt.Sub(p.now())), t.URL)
+	}
+	return p.awaitApproval(ctx, t)
 }
 
 // awaitApproval waits for the decision on t: a hint on the stream or every

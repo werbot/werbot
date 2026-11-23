@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
@@ -33,7 +34,8 @@ type Option func(*Target)
 // StartTarget starts a target that accepts password (if not empty) and the
 // authorized key (if not nil); with neither it needs no authentication.
 // The shell echoes input line by line; exec runs "echo X" ("X\n"), "exit N"
-// (exit code N), "cat" (stdin to stdout) and "hostname" ("target\n"), unless
+// (exit code N), "cat" (stdin to stdout), "hostname" ("target\n"), "uname"
+// ("Linux\n") and "sleep N" (N seconds, or until the client leaves), unless
 // an option changes it. Everything stops at the test cleanup.
 func StartTarget(t testing.TB, password string, authorized gossh.PublicKey, opts ...Option) *Target {
 	t.Helper()
@@ -166,8 +168,29 @@ func run(s ssh.Session) int {
 	case args[0] == "hostname":
 		_, _ = io.WriteString(s, "target\n")
 	default:
-		_, _ = fmt.Fprintf(s.Stderr(), "%s: command not found\n", args[0])
-		return 127
+		return other(s, args)
 	}
 	return 0
+}
+
+// other runs "uname" and "sleep N"; anything else is not found.
+func other(s ssh.Session, args []string) int {
+	switch {
+	case args[0] == "uname":
+		_, _ = io.WriteString(s, "Linux\n")
+		return 0
+	case args[0] == "sleep" && len(args) == 2:
+		n, err := strconv.Atoi(args[1])
+		if err != nil {
+			return 2
+		}
+		select {
+		case <-time.After(time.Duration(n) * time.Second):
+			return 0
+		case <-s.Context().Done():
+			return 1
+		}
+	}
+	_, _ = fmt.Fprintf(s.Stderr(), "%s: command not found\n", args[0])
+	return 127
 }
