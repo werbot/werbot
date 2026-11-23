@@ -94,9 +94,10 @@ type Relay struct {
 	registered   atomic.Bool   // set after the first server_instance upsert
 	active       atomic.Int64  // taken stream slots
 
-	mu    sync.Mutex
-	waits map[uuid.UUID]chan *stream // browsers waiting for their ticket's stream
-	live  map[closer]struct{}        // streams closed on shutdown
+	mu       sync.Mutex
+	waits    map[uuid.UUID]chan *stream // browsers waiting for their ticket's stream
+	live     map[closer]struct{}        // streams closed on shutdown
+	stopping bool                       // closeAll ran: no stream is taken any more
 }
 
 // closer is a live stream the relay ends on shutdown.

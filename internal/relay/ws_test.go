@@ -27,12 +27,13 @@ func TestWebSocketOriginRejected(t *testing.T) {
 	assert.Empty(t, spy.list(), "no ticket for a foreign origin")
 	assert.EqualValues(t, len(origins), rejected(t, r, "origin"))
 
-	r, _ = idleRelay(t, nil)
+	r, _ = idleRelay(t, apperr.ErrPermissionDenied)
 	r.cfg.WebURL = "https://UI.example.com:443/app"
 	c, res, err := dial(t, serveWS(t, r, &member), "/api/terminal", webURL) //nolint:bodyclose // websocket.Dial owns the body
 	require.NoError(t, err, "default port and case are normalized")
 	assert.Equal(t, http.StatusSwitchingProtocols, res.StatusCode)
-	_ = c.CloseNow()
+	code, reason := closed(t, c)
+	assert.Equal(t, [2]any{websocket.StatusCode(4003), ReasonDenied}, [2]any{code, reason}, "the accepted stream reaches the ticket check")
 	assert.Zero(t, rejected(t, r, "origin"))
 }
 
@@ -79,14 +80,14 @@ func TestTerminalWebSocket(t *testing.T) {
 	assert.Equal(t, []string{"terminal db 120x40 " + b.cfg.InstanceID.String()}, spy.list())
 
 	send(t, ws, websocket.MessageBinary, "ls\r")
-	assert.Equal(t, "ls\r", string(gwFrame(t, gw).data))
+	assert.Equal(t, "ls\r", string(nextFrame(t, gw).data))
 	require.NoError(t, gw.Write([]byte("out")))
 	typ, msg := recv(t, ws)
 	assert.Equal(t, websocket.MessageBinary, typ)
 	assert.Equal(t, "out", msg)
 
 	send(t, ws, websocket.MessageText, `{"type":"resize","cols":100,"rows":30}`)
-	f := gwFrame(t, gw)
+	f := nextFrame(t, gw)
 	assert.Equal(t, [2]int{100, 30}, [2]int{f.cols, f.rows})
 
 	require.NoError(t, gw.Close(ReasonClosed))
@@ -123,7 +124,7 @@ func TestLiveDropsBrowserInput(t *testing.T) {
 	assert.Equal(t, "out", msg)
 
 	require.NoError(t, ws.Close(websocket.StatusNormalClosure, ""))
-	assert.Equal(t, ReasonClosed, gwClose(t, gw))
+	assert.Equal(t, ReasonClosed, readClose(t, gw))
 	drained(t, b)
 }
 
@@ -137,12 +138,12 @@ func TestWebSocketMalformedText(t *testing.T) {
 		send(t, ws, websocket.MessageText, m)
 	}
 	send(t, ws, websocket.MessageBinary, "next")
-	f := gwFrame(t, gw)
+	f := nextFrame(t, gw)
 	assert.Zero(t, f.cols, "no resize reached the gateway")
 	assert.Equal(t, "next", string(f.data), "the connection lives")
 
 	require.NoError(t, ws.Close(websocket.StatusNormalClosure, ""))
-	assert.Equal(t, ReasonClosed, gwClose(t, gw))
+	assert.Equal(t, ReasonClosed, readClose(t, gw))
 	drained(t, b)
 }
 
@@ -156,15 +157,15 @@ func TestWebSocketReadLimit(t *testing.T) {
 	gwBig, gwOther := peer(t, g), peer(t, g)
 
 	send(t, big, websocket.MessageBinary, strings.Repeat("a", 64<<10))
-	assert.Len(t, gwFrame(t, gwBig).data, 64<<10, "a 64 KiB message passes")
+	assert.Len(t, nextFrame(t, gwBig).data, 64<<10, "a 64 KiB message passes")
 	send(t, big, websocket.MessageBinary, strings.Repeat("a", 64<<10+1))
 	code, _ := closed(t, big)
 	assert.Equal(t, websocket.StatusMessageTooBig, code)
-	assert.Equal(t, ReasonClosed, gwClose(t, gwBig))
+	assert.Equal(t, ReasonClosed, readClose(t, gwBig))
 
 	send(t, other, websocket.MessageBinary, "ok")
-	assert.Equal(t, "ok", string(gwFrame(t, gwOther).data))
+	assert.Equal(t, "ok", string(nextFrame(t, gwOther).data))
 	require.NoError(t, other.Close(websocket.StatusNormalClosure, ""))
-	assert.Equal(t, ReasonClosed, gwClose(t, gwOther))
+	assert.Equal(t, ReasonClosed, readClose(t, gwOther))
 	drained(t, b)
 }

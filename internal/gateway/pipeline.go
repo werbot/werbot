@@ -238,6 +238,9 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	return err
 }
 
+// errConnectorPanic is the Run error of a session whose connector panicked.
+var errConnectorPanic = errors.New("connector panicked")
+
 func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel context.CancelCauseFunc) (panicked bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -245,7 +248,7 @@ func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel co
 			p.panics.Inc()
 			p.log.Error("session: connector panic", "session_id", s.ID, "type", c.Type(),
 				"panic", s.Secret.Redact(fmt.Sprint(r)), "stack", s.Secret.Redact(string(debug.Stack())))
-			panicked, err = true, fmt.Errorf("connector %q panicked", c.Type())
+			panicked, err = true, fmt.Errorf("%w: %s", errConnectorPanic, c.Type())
 		}
 	}()
 	defer maskExec(s, p.ctl.Policy())() // flushes right after Serve, before Run returns

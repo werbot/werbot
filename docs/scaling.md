@@ -46,7 +46,7 @@ When a browser lands on replica A and the gateway holds its tunnel on replica C,
 - `WERBOT_INTERNAL_ADDR` (default `:8444`) is an mTLS-only listener (TLS 1.3, HTTP/2). It accepts only client certificates that the internal CA issued to a registered replica. Keep it on the private network; it needs no balancer.
 - `WERBOT_INTERNAL_URL` is the address the other replicas dial. Its host is in the certificate of the listener, and it must resolve and be reachable from every replica. The default is `https://<os hostname>:<port>`. Replicas started by compose `deploy.replicas` report the container id as hostname; it resolves on a user-defined network, so the example works as is. Set the variable explicitly when the hostname does not resolve from the other replicas, and always on Kubernetes: use the pod IP, for example `https://$(POD_IP):8444`.
 - With one replica nothing crosses the network, and no replica-to-replica connectivity is needed.
-- Each replica holds at most 1000 streams (browser WebSockets plus bridges for other replicas); the 1001st gets close code `4008`.
+- Each replica holds at most 1000 streams (browser WebSockets plus bridges for other replicas). A browser whose own replica is full gets close code `4008`; when only the replica bridging the stream is full, the browser waits and gets `1011` (`error`) after 10 s.
 - PostgreSQL connections do not change: the signals use the existing `LISTEN` connection.
 
 The balancer also needs enough file descriptors for the sessions it relays (the example sets `worker_rlimit_nofile 65536` and `ulimits: { nofile: 65536 }`). Werbot v0.1.x has no per-IP limit for unauthenticated SSH connections: limit connections per source IP on the balancer or firewall ([security.md](security.md)).

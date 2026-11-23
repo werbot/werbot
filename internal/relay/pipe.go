@@ -32,6 +32,9 @@ var (
 	ErrLimit = fmt.Errorf("relay: stream limit reached: %w", apperr.ErrUnavailable)
 	// ErrAwaitTimeout is a browser stream no gateway opened within AwaitTimeout.
 	ErrAwaitTimeout = fmt.Errorf("relay: gateway did not open the stream: %w", apperr.ErrUnavailable)
+	// errNotRunning is a stream asked for before the replica registered or
+	// after its shutdown started.
+	errNotRunning = fmt.Errorf("relay: not running: %w", apperr.ErrUnavailable)
 
 	errPipeClosed = errors.New("relay: stream closed")
 )

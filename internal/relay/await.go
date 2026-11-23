@@ -3,14 +3,12 @@ package relay
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/dbx"
 	"github.com/werbot/werbot/internal/platform/pgnotify"
 	"github.com/werbot/werbot/internal/platform/principal"
@@ -37,7 +35,7 @@ func (r *Relay) Terminal(ctx context.Context, p principal.Principal, resource st
 // its gateway stream; the returned Pipe holds the slot until it ends.
 func (r *Relay) open(ctx context.Context, create func(target uuid.UUID) (ticketID, instanceID uuid.UUID, err error)) (Pipe, error) {
 	if !r.registered.Load() {
-		return nil, fmt.Errorf("%w: relay is not running", apperr.ErrUnavailable)
+		return nil, errNotRunning
 	}
 	if !r.acquire() {
 		r.reject("limit")
@@ -98,9 +96,15 @@ func (r *Relay) notify(ctx context.Context, instanceID, ticketID uuid.UUID) erro
 }
 
 // handOff gives p to the browser waiting for ticketID and blocks until that
-// stream ends or ctx does; with no waiter p is closed not_found.
+// stream ends or ctx does; with no waiter p is closed not_found. After
+// closeAll p is closed error and the waiter ends on its timeout or context.
 func (r *Relay) handOff(ctx context.Context, ticketID uuid.UUID, p Pipe) {
 	r.mu.Lock()
+	if r.stopping {
+		r.mu.Unlock()
+		_ = p.Close(ReasonError)
+		return
+	}
 	ch, ok := r.waits[ticketID]
 	delete(r.waits, ticketID)
 	var s *stream
@@ -141,10 +145,14 @@ func (r *Relay) reject(reason string) {
 	r.reg.Counter("werbot_relay_rejected_total", "Browser streams refused by this replica.", "reason", reason).Inc()
 }
 
-func (r *Relay) track(c closer) {
+// track adds c to the streams closed on shutdown; false once closeAll ran.
+func (r *Relay) track(c closer) bool {
 	r.mu.Lock()
-	r.live[c] = struct{}{}
-	r.mu.Unlock()
+	defer r.mu.Unlock()
+	if !r.stopping {
+		r.live[c] = struct{}{}
+	}
+	return !r.stopping
 }
 
 func (r *Relay) untrack(c closer) {
@@ -153,9 +161,11 @@ func (r *Relay) untrack(c closer) {
 	r.mu.Unlock()
 }
 
-// closeAll ends every live stream with ReasonError (shutdown).
+// closeAll ends every live stream with ReasonError (shutdown); streams
+// arriving after it are closed the same way.
 func (r *Relay) closeAll() {
 	r.mu.Lock()
+	r.stopping = true
 	live := make([]closer, 0, len(r.live))
 	for c := range r.live {
 		live = append(live, c)

@@ -159,7 +159,7 @@ func TestRevokeAppliesToSessionOpenedDuringSnapshot(t *testing.T) {
 		e := newPipeEnv(t, 10)
 		startSweeper(t, e.p)
 		revoke := compileV(t, e.m, "v2", `forbid (principal, action, resource);`, res{"rblocker", "blocker", "blocker"})
-		e.f.onStart = func() { // the snapshot lands, and the sweeper handles it, between the PDP and add
+		e.f.onStart = func(context.Context) { // the snapshot lands, and the sweeper handles it, between the PDP and add
 			e.f.setPolicy(revoke)
 			synctest.Wait()
 		}

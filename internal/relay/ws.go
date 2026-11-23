@@ -46,7 +46,7 @@ func errorCode(err error, terminal bool) (websocket.StatusCode, string) {
 	switch {
 	case errors.Is(err, ErrLimit): // wraps ErrUnavailable
 		return CloseCode(ReasonLimit), ReasonLimit
-	case errors.Is(err, ErrAwaitTimeout): // wraps ErrUnavailable
+	case errors.Is(err, ErrAwaitTimeout), errors.Is(err, errNotRunning): // wrap ErrUnavailable
 		return websocket.StatusInternalError, ReasonError
 	case errors.Is(err, apperr.ErrUnavailable):
 		return websocket.StatusInternalError, "Gateway is unavailable"
@@ -147,7 +147,7 @@ func (r *Relay) serveWS(w http.ResponseWriter, req *http.Request, terminal bool,
 	pipe, err := open(ctx)
 	if err != nil {
 		code, reason := errorCode(err, terminal)
-		if reason == ReasonError && !errors.Is(err, ErrAwaitTimeout) {
+		if reason == ReasonError && !errors.Is(err, apperr.ErrUnavailable) { // timeout or not running: expected
 			r.log.Warn("relay: stream not opened", "error", err)
 		}
 		_ = conn.Close(code, reason)

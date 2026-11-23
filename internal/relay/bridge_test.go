@@ -30,7 +30,7 @@ func TestTerminalRemoteBridge(t *testing.T) {
 
 	p, err := b.Terminal(context.Background(), nobody, "web1", 80, 24)
 	require.NoError(t, err)
-	gw := <-g.peers
+	gw := peer(t, g)
 	assert.EqualValues(t, 1, streams(t, b))
 	assert.EqualValues(t, 1, streams(t, bridge))
 	assert.Zero(t, streams(t, c.rs[0]))
@@ -38,9 +38,8 @@ func TestTerminalRemoteBridge(t *testing.T) {
 	require.NoError(t, p.Write([]byte("ls\r")))
 	assert.Equal(t, "ls\r", readData(t, gw))
 	require.NoError(t, p.Resize(100, 30))
-	_, cols, rows, err := gw.Read()
-	require.NoError(t, err)
-	assert.Equal(t, [2]int{100, 30}, [2]int{cols, rows})
+	f := nextFrame(t, gw)
+	assert.Equal(t, [2]int{100, 30}, [2]int{f.cols, f.rows})
 
 	big := make([]byte, 1<<20)
 	_, _ = rand.Read(big)
@@ -53,7 +52,7 @@ func TestTerminalRemoteBridge(t *testing.T) {
 
 	require.NoError(t, p.Close(ReasonClosed))
 	assert.Equal(t, ReasonClosed, readClose(t, gw))
-	require.NoError(t, <-g.results)
+	require.NoError(t, take(t, g.results))
 	drained(t, b, bridge)
 }
 
@@ -66,10 +65,10 @@ func TestCloseReasonCrossesReplicas(t *testing.T) {
 	for _, reason := range []string{ReasonDenied, ReasonNotFound, ReasonLimit, ReasonError} {
 		p, err := b.Observe(context.Background(), nobody, uuid.New())
 		require.NoError(t, err)
-		gw := <-g.peers
+		gw := peer(t, g)
 		require.NoError(t, gw.Close(reason))
 		assert.Equal(t, reason, readClose(t, p))
-		require.NoError(t, <-g.results)
+		require.NoError(t, take(t, g.results))
 	}
 	drained(t, b, bridge)
 }
@@ -80,11 +79,11 @@ func TestBridgeConsumesOnce(t *testing.T) {
 	g := startGateway(t, c, b)
 	p, err := b.Observe(context.Background(), nobody, uuid.New())
 	require.NoError(t, err)
-	id, gw := <-g.ids, <-g.peers
+	id, gw := take(t, g.ids), peer(t, g)
 
 	second := g.bridge(b, id)
 	assert.Equal(t, ReasonNotFound, readClose(t, second), "a spent ticket opens nothing")
-	require.NoError(t, <-g.results)
+	require.NoError(t, take(t, g.results))
 	assert.EqualValues(t, 1, rejected(t, b, "ticket"))
 
 	require.NoError(t, gw.Write([]byte("first")))
@@ -104,13 +103,13 @@ func TestBridgeRejectsForeignCaller(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			errc := make(chan error, 1)
 			go func() { _, err := b.Observe(context.Background(), nobody, uuid.New()); errc <- err }()
-			id := <-g.ids
+			id := take(t, g.ids)
 			gw, peer := memPair()
 			require.NoError(t, b.Bridge(ctx, id, gw))
 			assert.Equal(t, ReasonNotFound, readClose(t, peer))
 			_, err := c.tk.Consume(context.Background(), id)
 			assert.ErrorIs(t, err, apperr.ErrNotFound, "the ticket is spent")
-			assert.ErrorIs(t, <-errc, ErrAwaitTimeout, "the browser's wait is untouched and expires")
+			assert.ErrorIs(t, take(t, errc), ErrAwaitTimeout, "the browser's wait is untouched and expires")
 		})
 	}
 	assert.EqualValues(t, len(callers), rejected(t, b, "ticket"))
@@ -169,8 +168,8 @@ func TestStreamSlotsReleased(t *testing.T) {
 	g.via.Store(bridge)
 	p, err := b.Observe(context.Background(), nobody, uuid.New())
 	require.NoError(t, err)
-	<-g.ids
-	gw := <-g.peers
+	take(t, g.ids)
+	gw := peer(t, g)
 	gw.fail.Store(true) // the gateway end refuses what the bridge writes to it
 	require.NoError(t, p.Write([]byte("x")))
 	assert.Equal(t, ReasonError, readClose(t, p))
@@ -195,7 +194,7 @@ func TestPeerReplicaDies(t *testing.T) {
 	g := startGateway(t, c, bridge)
 	p, err := b.Terminal(context.Background(), nobody, "web1", 80, 24)
 	require.NoError(t, err)
-	gw := <-g.peers
+	gw := peer(t, g)
 
 	mu.Lock()
 	for _, conn := range conns {
@@ -203,7 +202,7 @@ func TestPeerReplicaDies(t *testing.T) {
 	}
 	mu.Unlock()
 	done := make(chan string, 1)
-	go func() { done <- readClose(t, p) }()
+	go func() { done <- closeReason(p) }()
 	select {
 	case reason := <-done:
 		assert.Empty(t, reason, "a lost peer is an error without a close reason")
@@ -225,26 +224,30 @@ func TestPipeRefusesNonReplica(t *testing.T) {
 	g := startGateway(t, c, nil)
 	errc := make(chan error, 1)
 	go func() { _, err := b.Observe(context.Background(), nobody, uuid.New()); errc <- err }()
-	id := <-g.ids
+	id := take(t, g.ids)
 
-	st := pipeClient(c, b, gatewayCert(t, c.ca)).Pipe(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), wait)
+	defer cancel()
+	st := pipeClient(c, b, gatewayCert(t, c.ca)).Pipe(ctx)
 	_ = st.Send(&relayv1.PipeRequest{Frame: &relayv1.PipeFrame{Frame: &relayv1.PipeFrame_TicketId{TicketId: id.String()}}})
 	_, err := st.Receive()
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err), "a gateway certificate is not a replica")
-	assert.ErrorIs(t, <-errc, ErrAwaitTimeout, "the waiting browser gets nothing")
+	assert.ErrorIs(t, take(t, errc), ErrAwaitTimeout, "the waiting browser gets nothing")
 }
 
 func TestPipeHandsOnlyAwaitedStreams(t *testing.T) {
 	c := newCluster(t, 1, nil)
 	b := c.rs[0]
 	rpc := pipeClient(c, b, b.clientCert)
+	ctx, cancel := context.WithTimeout(context.Background(), wait)
+	defer cancel()
 
-	st := rpc.Pipe(context.Background())
+	st := rpc.Pipe(ctx)
 	require.NoError(t, st.Send(&relayv1.PipeRequest{Frame: &relayv1.PipeFrame{Frame: &relayv1.PipeFrame_Data{Data: []byte("x")}}}))
 	_, err := st.Receive()
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "the first frame names a ticket")
 
-	st = rpc.Pipe(context.Background())
+	st = rpc.Pipe(ctx)
 	require.NoError(t, st.Send(&relayv1.PipeRequest{Frame: &relayv1.PipeFrame{Frame: &relayv1.PipeFrame_TicketId{TicketId: uuid.NewString()}}}))
 	m, err := st.Receive()
 	require.NoError(t, err)
@@ -260,7 +263,7 @@ func TestNoStreamContentInLogs(t *testing.T) {
 	g := startGateway(t, c, bridge)
 	p, err := b.Terminal(context.Background(), nobody, "web1", 80, 24)
 	require.NoError(t, err)
-	id, gw := <-g.ids, <-g.peers
+	id, gw := take(t, g.ids), peer(t, g)
 	require.NoError(t, p.Write([]byte("keystroke-marker")))
 	assert.Equal(t, "keystroke-marker", readData(t, gw))
 	require.NoError(t, gw.Write([]byte("output-marker")))

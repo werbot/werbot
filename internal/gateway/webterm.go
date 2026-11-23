@@ -10,13 +10,18 @@ import (
 // (a server replica died).
 const causeLost endCause = "error"
 
-// serveTerminal opens r on st and runs it until it ends. An Open error is
-// written as on SSH and closes st by its kind; a connector error after Run
-// closes it with "error"; any other end, a gateway cut included, "closed".
+// serveTerminal opens r on st and runs it until it ends; a browser close
+// cancels the open too. An Open error is written as on SSH and closes st by
+// its kind; a connector error or panic after Run closes it with "error"; any
+// other end, a gateway cut included, "closed".
 func serveTerminal(ctx context.Context, p *Pipeline, st relayStream, r OpenRequest) {
 	term := newWebTerminal(st)
 	r.Notice = term
-	s, err := p.Open(ctx, r)
+	sctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	go term.pump(cancel)
+	defer term.stop()
+	s, err := p.Open(sctx, r)
 	if err != nil {
 		say(term, openText(err, r.Resource, r.Kind, p.ctl.Policy()))
 		_ = st.Close(streamCloseReason(err))
@@ -29,12 +34,8 @@ func serveTerminal(ctx context.Context, p *Pipeline, st relayStream, r OpenReque
 		_ = st.Close("denied")
 		return
 	}
-	sctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(nil)
-	go term.pump(cancel)
-	defer term.stop()
 	s.Terminal = &Terminal{ReadWriter: term, Term: "xterm-256color", Window: r.Window, Resize: term.resize, SetExitStatus: func(int) {}}
-	if err := p.Run(sctx, s, c); err != nil && !s.cut && sctx.Err() == nil {
+	if err := p.Run(sctx, s, c); err != nil && (errors.Is(err, errConnectorPanic) || !s.cut && sctx.Err() == nil) {
 		say(term, runText(err, r.Resource))
 		_ = st.Close("error")
 		return
@@ -88,6 +89,9 @@ func (t *webTerminal) pump(cancel context.CancelCauseFunc) {
 			}
 			t.resize <- Window{Cols: cols, Rows: rows}
 		default:
+			// ponytail: blocks while the connector reads no input, so a browser close
+			// is seen only once it reads again, at idle timeout or max duration; read
+			// into a bounded queue that ends the session on overflow if that matters.
 			if _, err := t.inW.Write(data); err != nil {
 				return // the session is over
 			}

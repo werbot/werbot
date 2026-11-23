@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"crypto/sha256"
 	"io"
 	"testing"
@@ -128,6 +129,18 @@ func TestWebFrontRunError(t *testing.T) {
 	})
 }
 
+// A connector panic ends the session internal_error and closes the stream with error.
+func TestWebFrontConnectorPanic(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		w := newWebEnv(t, 10)
+		st := w.open(t, terminalTicket("panicky"))
+		assert.Equal(t, "error", st.closedWith(t))
+		assert.Equal(t, "Connection to panicky failed\r\n", st.output())
+		synctest.Wait()
+		w.f.with(func(f *fakeControl) { require.Len(t, f.ends, 1); assert.Equal(t, "internal_error", f.ends[0].reason) })
+	})
+}
+
 func TestWebFrontStreamLost(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		w := newWebEnv(t, 10)
@@ -162,6 +175,20 @@ func TestWebFrontBrowserClosed(t *testing.T) {
 		st.in <- browserClosed
 		assert.Equal(t, "closed", st.closedWith(t))
 		assert.Equal(t, []string{"closed"}, w.endedWith(id))
+	})
+}
+
+// A browser close while Open still runs cancels the open.
+func TestWebFrontBrowserClosedDuringOpen(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		w := newWebEnv(t, 10)
+		w.f.onStart = func(ctx context.Context) { <-ctx.Done() } // StartSession waits for the server
+		st := w.open(t, terminalTicket("blocker"))
+		synctest.Wait()
+		st.in <- browserClosed
+		assert.Equal(t, "closed", st.closedWith(t))
+		synctest.Wait()
+		w.f.with(func(f *fakeControl) { require.Len(t, f.ends, 1); assert.Equal(t, "closed", f.ends[0].reason) })
 	})
 }
 

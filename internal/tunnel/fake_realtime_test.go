@@ -136,10 +136,11 @@ func nextControl(t *testing.T, msgs <-chan *gatewayv1.ConnectResponse, errc <-ch
 
 type streamClient = connect.BidiStreamForClient[gatewayv1.StreamRequest, gatewayv1.StreamResponse]
 
-// dialStream opens TunnelService.Stream as g and sends frame first.
+// dialStream opens TunnelService.Stream as g and sends frame first. The
+// stream ends after 10 s, so a step waiting on it fails instead of hanging.
 func dialStream(t *testing.T, g *gw, first *gatewayv1.StreamFrame) *streamClient {
 	t.Helper()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 	st := g.client.Stream(ctx)
 	if err := st.Send(&gatewayv1.StreamRequest{Frame: first}); err != nil {

@@ -22,21 +22,20 @@ func TestObserveLocalBridge(t *testing.T) {
 
 	p, err := b.Observe(context.Background(), principal.Principal{}, uuid.New())
 	require.NoError(t, err)
-	<-g.ids
-	gw := <-g.peers
+	take(t, g.ids)
+	gw := peer(t, g)
 	assert.EqualValues(t, 1, streams(t, b))
 
 	require.NoError(t, gw.Write([]byte("out")))
 	assert.Equal(t, "out", readData(t, p))
 	require.NoError(t, gw.Resize(120, 40))
-	_, cols, rows, err := p.Read()
-	require.NoError(t, err)
-	assert.Equal(t, [2]int{120, 40}, [2]int{cols, rows})
+	f := nextFrame(t, p)
+	assert.Equal(t, [2]int{120, 40}, [2]int{f.cols, f.rows})
 
 	require.NoError(t, gw.Close(ReasonClosed))
-	_, _, _, err = p.Read()
+	err = within(t, func() error { _, _, _, err := p.Read(); return err })
 	assert.Equal(t, CloseError{Reason: ReasonClosed}, err)
-	require.NoError(t, <-g.results)
+	require.NoError(t, take(t, g.results))
 	drained(t, b)
 }
 
@@ -51,9 +50,9 @@ func TestAwaitTimeout(t *testing.T) {
 	assert.EqualValues(t, 1, rejected(t, b, "timeout"))
 	drained(t, b)
 
-	late := g.bridge(b, <-g.ids)
+	late := g.bridge(b, take(t, g.ids))
 	assert.Equal(t, ReasonNotFound, readClose(t, late), "a bridge after the timeout finds no waiter")
-	require.NoError(t, <-g.results)
+	require.NoError(t, take(t, g.results))
 }
 
 func TestRunShutdownClosesStreams(t *testing.T) {
@@ -62,7 +61,7 @@ func TestRunShutdownClosesStreams(t *testing.T) {
 	g := startGateway(t, c, b)
 	p, err := b.Observe(context.Background(), principal.Principal{}, uuid.New())
 	require.NoError(t, err)
-	gw := <-g.peers
+	gw := peer(t, g)
 
 	require.NoError(t, c.stops[0]())
 	assert.Equal(t, ReasonError, readClose(t, p))
@@ -71,6 +70,28 @@ func TestRunShutdownClosesStreams(t *testing.T) {
 	assert.False(t, ok, "row removed on exit")
 	_, err = b.Observe(context.Background(), principal.Principal{}, uuid.New())
 	assert.ErrorIs(t, err, apperr.ErrUnavailable)
+}
+
+// A gateway stream that arrives after the shutdown closed the live streams
+// is closed with error, here or on the browser's replica, not handed to the
+// browser still waiting for it.
+func TestBridgeAfterCloseAllClosesWithError(t *testing.T) {
+	c := newCluster(t, 2, nil)
+	bridge := c.rs[1]
+	bridge.closeAll()
+	for name, target := range map[string]*Relay{"local": bridge, "remote": c.rs[0]} {
+		id, _, _ := c.tk.add(target.cfg.InstanceID)
+		waiter := make(chan *stream, 1)
+		target.mu.Lock()
+		target.waits[id] = waiter
+		target.mu.Unlock()
+		gw, p := memPair()
+		ctx := WithCaller(context.Background(), c.tk.org, c.tk.inst)
+		require.NoError(t, within(t, func() error { return bridge.Bridge(ctx, id, gw) }), name)
+		assert.Equal(t, ReasonError, readClose(t, p), name)
+		assert.Empty(t, waiter, name)
+	}
+	drained(t, c.rs...)
 }
 
 func TestStreamLimit(t *testing.T) {

@@ -38,6 +38,13 @@ func TestWebSocketCloseCodes(t *testing.T) {
 			assert.Zero(t, streams(t, r))
 		})
 	}
+	t.Run("relay not running", func(t *testing.T) {
+		r, spy := idleRelay(t, nil)
+		r.registered.Store(false) // starting or stopping
+		code, reason := closed(t, mustDial(t, serveWS(t, r, &member), terminal))
+		assert.Equal(t, [2]any{websocket.StatusInternalError, ReasonError}, [2]any{code, reason})
+		assert.Empty(t, spy.list())
+	})
 	t.Run("limit", func(t *testing.T) {
 		r, spy := idleRelay(t, nil)
 		r.maxStreams = 0
@@ -91,7 +98,7 @@ func TestWebSocketSlotsReleased(t *testing.T) {
 	ws := mustDial(t, srv, terminal)
 	gw := peer(t, g)
 	require.NoError(t, ws.Close(websocket.StatusGoingAway, ""))
-	assert.Equal(t, ReasonClosed, gwClose(t, gw), "browser close")
+	assert.Equal(t, ReasonClosed, readClose(t, gw), "browser close")
 	drained(t, b)
 
 	ws = mustDial(t, srv, terminal)
@@ -101,17 +108,20 @@ func TestWebSocketSlotsReleased(t *testing.T) {
 	drained(t, b)
 
 	_ = mustDial(t, srv, terminal) // never read: pings go unanswered
-	assert.Equal(t, ReasonClosed, gwClose(t, peer(t, g)), "ping failure")
+	assert.Equal(t, ReasonClosed, readClose(t, peer(t, g)), "ping failure")
 	drained(t, b)
 
 	ws = mustDial(t, srv, terminal)
 	gw = peer(t, g)
+	require.NoError(t, gw.Write([]byte("x")))
+	_, got := recv(t, ws)
+	require.Equal(t, "x", got, "the stream is handed over before the replica stops")
 	readErr := make(chan error, 1)
 	go func() { _, _, err := ws.Read(ctx); readErr <- err }() // answers pings while the replica stops
 	require.NoError(t, cl.stops[0]())
 	var ce websocket.CloseError
 	require.ErrorAs(t, within(t, func() error { return <-readErr }), &ce)
 	assert.Equal(t, [2]any{websocket.StatusInternalError, ReasonError}, [2]any{ce.Code, ce.Reason}, "replica shutdown")
-	assert.Equal(t, ReasonError, gwClose(t, gw))
+	assert.Equal(t, ReasonError, readClose(t, gw))
 	drained(t, b)
 }

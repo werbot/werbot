@@ -54,7 +54,7 @@ The WebSocket closes with one of these codes and a short reason:
 | `4003` | `denied` | No access, or the resource is unknown. |
 | `4004` | `not_found` | Live view: the session is unknown, ended, not a terminal or not visible to you. |
 | `4008` | `limit` | A replica holds 1000 streams, or the session has 16 observers. |
-| `1011` | `error` | The stream failed: the gateway did not open it within 10 seconds, a replica died, or the connection was lost. |
+| `1011` | `error` | The stream failed: the gateway did not open it within 10 seconds, a replica died or is starting or stopping, or the connection was lost. |
 | `1011` | `Gateway is unavailable` | The resource exists but its pool has no online instance. |
 | `1009` | | A browser message was larger than 64 KiB. |
 

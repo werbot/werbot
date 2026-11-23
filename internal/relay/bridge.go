@@ -72,7 +72,10 @@ func (r *Relay) link(ctx context.Context, url string, ticketID uuid.UUID, gw Pip
 		send: func(f *relayv1.PipeFrame) error { return cs.Send(&relayv1.PipeRequest{Frame: f}) },
 	}
 	l := &pair{a: gw, b: remote}
-	r.track(l)
+	if !r.track(l) { // the replica is stopping
+		_ = gw.Close(ReasonError)
+		return
+	}
 	defer r.untrack(l)
 	if err := remote.send(&relayv1.PipeFrame{Frame: &relayv1.PipeFrame_TicketId{TicketId: ticketID.String()}}); err != nil {
 		_ = l.Close(ReasonError)

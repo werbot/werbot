@@ -99,8 +99,8 @@ type fakeControl struct {
 	startErr   error
 	upErr      error // returned by every uploader call: the server is down
 	pinErr     error
-	onStart    func() // runs inside StartSession, without the lock
-	onAuth     func() // runs inside AuthenticateUser, under the lock
+	onStart    func(context.Context) // runs inside StartSession, without the lock
+	onAuth     func()                // runs inside AuthenticateUser, under the lock
 	changed    chan struct{}
 	authCalls  []string
 	idents     []Identity // every AuthenticateUser identity
@@ -134,9 +134,9 @@ func (f *fakeControl) AuthenticateUser(_ context.Context, id Identity, ip netip.
 	return u, nil
 }
 
-func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _, command string, classes, paths []string, agent startArgs) (uuid.UUID, Secret, error) {
+func (f *fakeControl) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _, command string, classes, paths []string, agent startArgs) (uuid.UUID, Secret, error) {
 	if f.onStart != nil {
-		f.onStart()
+		f.onStart(ctx)
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()

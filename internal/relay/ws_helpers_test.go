@@ -176,14 +176,21 @@ func within[T any](t *testing.T, f func() T) T {
 	}
 }
 
+// take is the next value of ch, within wait.
+func take[T any](t *testing.T, ch <-chan T) T {
+	t.Helper()
+	return within(t, func() T { return <-ch })
+}
+
 // peer is the gateway end of the next bridged stream.
 func peer(t *testing.T, g *fakeGateway) *memPipe {
 	t.Helper()
-	return within(t, func() *memPipe { return <-g.peers })
+	return take(t, g.peers)
 }
 
-// gwFrame is the next frame the gateway end p reads.
-func gwFrame(t *testing.T, p *memPipe) frame {
+// nextFrame is the next frame p reads, within wait; a failed Read is a frame
+// with its close reason.
+func nextFrame(t *testing.T, p Pipe) frame {
 	t.Helper()
 	return within(t, func() frame {
 		d, cols, rows, err := p.Read()
@@ -193,10 +200,4 @@ func gwFrame(t *testing.T, p *memPipe) frame {
 		}
 		return frame{data: d, cols: cols, rows: rows}
 	})
-}
-
-// gwClose reads p until it ends and returns the close reason.
-func gwClose(t *testing.T, p *memPipe) string {
-	t.Helper()
-	return within(t, func() string { return readClose(t, p) })
 }

@@ -224,19 +224,25 @@ func rejected(t *testing.T, r *Relay, reason string) int64 {
 	return metric(t, r, `werbot_relay_rejected_total{reason="`+reason+`"}`)
 }
 
-// readData reads p until a data frame and returns it.
+// readData is the next frame of p, within wait; it must be data.
 func readData(t *testing.T, p Pipe) string {
 	t.Helper()
-	d, cols, _, err := p.Read()
-	require.NoError(t, err)
-	require.Zero(t, cols, "want data, got a resize")
-	return string(d)
+	f := nextFrame(t, p)
+	require.Nil(t, f.close, "want data, got the end of the stream")
+	require.Zero(t, f.cols, "want data, got a resize")
+	return string(f.data)
 }
 
-// readClose reads p until it fails and returns the close reason, "" when
-// the stream ended without one.
+// readClose reads p until it fails, within wait, and returns the close
+// reason, "" when the stream ended without one.
 func readClose(t *testing.T, p Pipe) string {
 	t.Helper()
+	return within(t, func() string { return closeReason(p) })
+}
+
+// closeReason reads p until it fails and returns the close reason, "" when
+// the stream ended without one.
+func closeReason(p Pipe) string {
 	for {
 		_, _, _, err := p.Read()
 		if err == nil {
