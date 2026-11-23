@@ -126,7 +126,7 @@
 			}}
 		>
 			<FormField label={m.policies_custom_name()} bind:value={name} required maxlength={63} />
-			<FormField multiline label={m.policies_custom_cedar()} bind:value={cedar} rows={16} required spellcheck="false" autocomplete="off" style="font-family: var(--miso-font-mono)" />
+			<FormField multiline label={m.policies_custom_cedar()} hint={m.policies_custom_agents_hint()} bind:value={cedar} rows={16} required spellcheck="false" autocomplete="off" style="font-family: var(--miso-font-mono)" />
 			<Toggle bind:checked={enabled}>{m.policies_custom_enabled()}</Toggle>
 		</form>
 	{/if}

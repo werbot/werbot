@@ -17,6 +17,7 @@ import { OAuthConsentService } from '#lib/gen/werbot/v1/oauth_pb.js';
 import { CLISessionService } from '#lib/gen/werbot/v1/cli_session_pb.js';
 import { AccessRequestService } from '#lib/gen/werbot/v1/access_request_pb.js';
 import { ApprovalPolicyService } from '#lib/gen/werbot/v1/approval_policy_pb.js';
+import { AgentService } from '#lib/gen/werbot/v1/agent_pb.js';
 import { LockService } from '#lib/gen/werbot/v1/lock_pb.js';
 
 // Same origin in all-in-one mode and behind `werbot web`.
@@ -42,3 +43,4 @@ export const cliSessions: Client<typeof CLISessionService> = createClient(CLISes
 export const accessRequests: Client<typeof AccessRequestService> = createClient(AccessRequestService, transport);
 export const approvalPolicies: Client<typeof ApprovalPolicyService> = createClient(ApprovalPolicyService, transport);
 export const locks: Client<typeof LockService> = createClient(LockService, transport);
+export const agents: Client<typeof AgentService> = createClient(AgentService, transport);

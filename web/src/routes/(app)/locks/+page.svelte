@@ -3,7 +3,7 @@
 	import { Button, EmptyState, Modal, Skeleton, Table, toast, type SelectOption } from '#lib/ui/index.js';
 	import FilledSelect from '#lib/FilledSelect.svelte';
 	import FormField from '#lib/FormField.svelte';
-	import { accessRequests, locks, members, resources, teams } from '#lib/api.js';
+	import { accessRequests, agents, locks, members, resources, teams } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import { parseDuration } from '#lib/duration.js';
 	import { fmt } from '#lib/format.js';
@@ -22,12 +22,16 @@
 		{ value: 'team', label: m.locks_type_team() },
 		{ value: 'resource', label: m.locks_type_resource() },
 		{ value: 'grant', label: m.locks_type_grant() },
-		{ value: 'cli_session', label: m.locks_type_cli_session() }
+		{ value: 'cli_session', label: m.locks_type_cli_session() },
+		{ value: 'agent', label: m.locks_type_agent() },
+		{ value: 'agent_run', label: m.locks_type_agent_run() },
+		{ value: 'agents_of_user', label: m.locks_type_agents_of_user() },
+		{ value: 'all_agents', label: m.locks_type_all_agents() }
 	];
 	const typeLabel = new Map(types.map((t) => [t.value, t.label]));
 
 	let list = $state<Lock[]>([]);
-	// target options per lock type; cli_session has none (its id is typed)
+	// target options per lock type; cli_session has none (its id is typed), all_agents has no target
 	let targets = $state<Record<string, SelectOption[]>>({});
 	let loaded = $state(false);
 	let failed = $state(false);
@@ -40,19 +44,24 @@
 	const names = $derived(new Map(Object.values(targets).flatMap((opts) => opts.map((o) => [o.value, o.label]))));
 
 	async function refresh() {
-		const [l, mem, tm, res, gr] = await Promise.all([
+		const [l, mem, tm, res, gr, ag, runs] = await Promise.all([
 			locks.listLocks({}),
 			members.listMembers({}),
 			teams.listTeams({}),
 			resources.listResources({}),
-			accessRequests.listGrants({ active: true })
+			accessRequests.listGrants({ active: true }),
+			agents.listAgents({}),
+			agents.listRuns({ status: 'running', pageSize: 100 })
 		]);
 		list = l.locks;
 		targets = {
 			user: userOptions(mem.members),
 			team: tm.teams.map((t) => ({ value: t.id, label: t.name })),
 			resource: res.resources.map((r) => ({ value: r.id, label: r.name })),
-			grant: gr.grants.map((g) => ({ value: g.id, label: `${g.userLogin} → ${g.resourceName}` }))
+			grant: gr.grants.map((g) => ({ value: g.id, label: `${g.userLogin} → ${g.resourceName}` })),
+			agent: ag.agents.map((a) => ({ value: a.id, label: a.name })),
+			agent_run: runs.runs.map((r) => ({ value: r.id, label: `${r.agentName} · ${r.client || r.id}` })),
+			agents_of_user: userOptions(mem.members)
 		};
 		loaded = true;
 	}
@@ -125,7 +134,7 @@
 				<tr>
 					<td>
 						<CellLead icon="lock">
-							<span class="target">{names.get(lock.targetId) ?? lock.targetId}</span>
+							<span class="target">{names.get(lock.targetId) ?? (lock.targetId || typeLabel.get(lock.targetType))}</span>
 							{#snippet sub()}{typeLabel.get(lock.targetType) ?? lock.targetType}{/snippet}
 						</CellLead>
 					</td>
@@ -147,7 +156,7 @@
 		<FilledSelect label={m.locks_target_type()} options={types} bind:value={form.type} onchange={() => (form.target = '')} />
 		{#if form.type === 'cli_session'}
 			<FormField label={m.locks_cli_session_id()} bind:value={form.target} required hint={m.locks_cli_session_id_hint()} />
-		{:else}
+		{:else if form.type !== 'all_agents'}
 			<FilledSelect label={m.locks_target()} options={targets[form.type] ?? []} bind:value={form.target} />
 		{/if}
 		<FormField label={m.locks_reason()} bind:value={form.reason} required maxlength={1024} />
@@ -155,7 +164,7 @@
 	</form>
 	{#snippet footer()}
 		<Button size={40} scheme="g" variant="plain" onclick={() => (creating = false)}>{m.common_cancel()}</Button>
-		<Button size={40} type="submit" form="create-lock" variant="solid" disabled={!form.target.trim()}>{m.locks_new()}</Button>
+		<Button size={40} type="submit" form="create-lock" variant="solid" disabled={form.type !== 'all_agents' && !form.target.trim()}>{m.locks_new()}</Button>
 	{/snippet}
 </Modal>
 

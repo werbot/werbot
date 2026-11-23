@@ -28,6 +28,7 @@ export function navSections(manager: boolean): NavSection[] {
 		...(manager ? [{ href: '/resources', label: m.nav_resources, icon: 'desktop' as const }] : []),
 		{ href: '/sessions', label: m.nav_sessions, icon: 'history' },
 		{ href: '/requests', label: m.nav_requests, icon: 'front_hand' },
+		{ href: '/agents', label: m.nav_agents, icon: 'sparkle' },
 		...(manager
 			? [
 					{ href: '/gateways', label: m.nav_gateways, icon: 'shield' as const },
