@@ -43,8 +43,17 @@ func (c *tunnelClient) AuthenticateUser(ctx context.Context, id Identity, ip net
 	if err != nil {
 		return User{}, err
 	}
-	m := resp.Msg
+	u, err := userOf(resp.Msg)
+	if err != nil {
+		return User{}, err
+	}
+	return withAgent(u, id.Cert, resp.Msg.GetAgent())
+}
+
+// userOf is the user of an AuthenticateUser answer, without its agent run.
+func userOf(m *gatewayv1.AuthenticateUserResponse) (User, error) {
 	u := User{Login: m.GetLogin(), Country: m.GetCountry()}
+	var err error
 	if u.ID, err = uuid.Parse(m.GetUserId()); err != nil {
 		return User{}, errors.New("authenticate user: invalid user_id in response")
 	}
@@ -55,7 +64,7 @@ func (c *tunnelClient) AuthenticateUser(ctx context.Context, id Identity, ip net
 		}
 		u.TeamIDs = append(u.TeamIDs, id)
 	}
-	return withAgent(u, id.Cert, m.GetAgent())
+	return u, nil
 }
 
 // errAgentMismatch is an AuthenticateUser answer whose agent run is not the
@@ -91,15 +100,15 @@ func authRequest(id Identity, ip netip.Addr) *gatewayv1.AuthenticateUserRequest 
 }
 
 // StartSession records a session of kind (target: host:port for a stream; an
-// exec: its authorized command, cut to the wire bound, and classes; an
-// agent's: its run and tool call) and reveals the resource credential.
-func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes, paths []string, agent agentStart) (uuid.UUID, Secret, error) {
+// exec: its authorized command, cut to the wire bound, and classes; its
+// front; an agent's: its run and tool call) and reveals the resource credential.
+func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes, paths []string, args startArgs) (uuid.UUID, Secret, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
 	resp, err := c.conn.Load().rpc.StartSession(ctx, connect.NewRequest(&gatewayv1.StartSessionRequest{
 		UserId: userID.String(), ResourceId: resourceID.String(), ClientIp: ip.String(), Kind: string(kind), Target: target,
 		Command: TruncateUTF8(command, 65536), Classes: classes, Paths: paths[:min(len(paths), shellclass.MaxPaths)],
-		AgentRunId: idString(agent.RunID), ToolCallId: idString(agent.ToolCall),
+		AgentRunId: idString(args.RunID), ToolCallId: idString(args.ToolCall), Front: args.Front,
 	}))
 	if err != nil {
 		return uuid.Nil, Secret{}, err

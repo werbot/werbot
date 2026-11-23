@@ -22,7 +22,7 @@ func TestOpenAgentExec(t *testing.T) {
 	r.ToolCall = tool
 	s, err := e.p.Open(t.Context(), r)
 	require.NoError(t, err)
-	assert.Equal(t, agentStart{RunID: e.m["run1"], ToolCall: tool}, sessionAgent(s.ID), "StartSession carries the run and the tool call")
+	assert.Equal(t, startArgs{Front: "ssh", RunID: e.m["run1"], ToolCall: tool}, sessionAgent(s.ID), "StartSession carries the run and the tool call")
 	require.NotNil(t, s.User.Agent)
 
 	_, err = e.p.Open(t.Context(), e.req("x", KindTerminal))
@@ -59,7 +59,7 @@ func TestOpenHumanIgnoresToolCall(t *testing.T) {
 	r.ToolCall = uuid.New()
 	s, err := e.p.Open(t.Context(), r)
 	require.NoError(t, err)
-	assert.Equal(t, agentStart{}, sessionAgent(s.ID), "a person's session has no run and no tool call")
+	assert.Equal(t, startArgs{Front: "ssh"}, sessionAgent(s.ID), "a person's session has no run and no tool call")
 	_, err = e.p.Open(t.Context(), e.cmdReq("x", KindExec, "rm -rf /"))
 	require.ErrorIs(t, err, ErrDenied)
 	assert.Empty(t, a.recorded(), "a person's denial is never recorded as an agent's")

@@ -149,15 +149,15 @@ func newAgentEnv(t *testing.T) (*pipeEnv, *agentControl) {
 var startAgents sync.Map
 
 // startedAs is started that also keeps the agent of the session.
-func startedAs(paths []string, a agentStart) uuid.UUID {
+func startedAs(paths []string, a startArgs) uuid.UUID {
 	id := started(paths)
 	startAgents.Store(id, a)
 	return id
 }
 
 // sessionAgent is the agent run and tool call StartSession received for session id.
-func sessionAgent(id uuid.UUID) agentStart {
+func sessionAgent(id uuid.UUID) startArgs {
 	a, _ := startAgents.Load(id)
-	out, _ := a.(agentStart)
+	out, _ := a.(startArgs)
 	return out
 }

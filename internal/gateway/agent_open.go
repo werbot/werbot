@@ -13,17 +13,21 @@ import (
 	"github.com/werbot/werbot/internal/platform/sshca"
 )
 
-// agentStart is the agent run of a session and the tool call it serves; zero
-// for a person's session.
-type agentStart struct{ RunID, ToolCall uuid.UUID }
+// startArgs is what StartSession records besides the access request: the
+// front of the session and, for an agent's, its run and the tool call it
+// serves (zero for a person's session).
+type startArgs struct {
+	Front           string
+	RunID, ToolCall uuid.UUID
+}
 
-// startOf is the agent start of u's session for r: the run of u's agent and
-// the tool call of r; zero for a person, whose tool call is ignored.
-func startOf(u User, r OpenRequest) agentStart {
+// startOf is the start of u's session for r: the front of r and, for an
+// agent, the run of u's agent and the tool call of r; a person's tool call is ignored.
+func startOf(u User, r OpenRequest) startArgs {
 	if u.Agent == nil {
-		return agentStart{}
+		return startArgs{Front: r.Front}
 	}
-	return agentStart{RunID: u.Agent.RunID, ToolCall: r.ToolCall}
+	return startArgs{Front: r.Front, RunID: u.Agent.RunID, ToolCall: r.ToolCall}
 }
 
 // toolCallOf is the tool call of an SSH session environment (sshca.EnvToolCall);

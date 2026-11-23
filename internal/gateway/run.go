@@ -75,6 +75,7 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	}
 	p = newPipeline(tc, cfg, logger)
 	p.spool = sp
+	tc.onTerminate = func(id uuid.UUID) { p.active.Terminate(id, "terminated") } // a gateway cut: no exit status
 	spoolCtx, stopSpool := context.WithCancel(context.WithoutCancel(ctx))
 	spoolDone := make(chan struct{})
 	go func() {

@@ -78,10 +78,16 @@ func (a *approvals) deliver(id string) {
 	}
 }
 
-// dispatch hands a control message of the stream to its waiter.
+// dispatch hands a control message of the stream to its waiter or hook.
 func (c *tunnelClient) dispatch(msg *gatewayv1.ConnectResponse) {
 	if d := msg.GetApprovalDecided(); d != nil {
 		c.approvals.deliver(d.GetApprovalId())
+	}
+	if o := msg.GetOpenStream(); o != nil {
+		c.command("open_stream", o.GetTicketId(), c.onOpenStream)
+	}
+	if t := msg.GetTerminate(); t != nil {
+		c.command("terminate", t.GetSessionId(), c.onTerminate)
 	}
 }
 

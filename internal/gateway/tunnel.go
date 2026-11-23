@@ -55,6 +55,10 @@ type tunnelClient struct {
 	graceEnd  atomic.Int64              // unix nanoseconds: Connected stays true until then after a planned close
 	downAt    atomic.Pointer[time.Time] // connected last became false; the start time before that
 	approvals approvals                 // the waits for approval decisions
+	// the stream's commands, set before Run; they run on the stream goroutine and
+	// must not block. nil: the command is ignored
+	onOpenStream func(ticketID uuid.UUID)
+	onTerminate  func(sessionID uuid.UUID)
 
 	mu           sync.Mutex
 	cancelStream context.CancelCauseFunc // the current stream

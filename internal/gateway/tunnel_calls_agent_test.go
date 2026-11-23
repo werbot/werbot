@@ -134,9 +134,9 @@ func TestTunnelAgentCalls(t *testing.T) {
 	ip := netip.MustParseAddr("192.0.2.7")
 	run, tool := uuid.New(), uuid.New()
 
-	_, _, err := c.StartSession(t.Context(), testUserID, uuid.New(), ip, KindExec, "", "ls", []string{"read"}, nil, agentStart{RunID: run, ToolCall: tool})
+	_, _, err := c.StartSession(t.Context(), testUserID, uuid.New(), ip, KindExec, "", "ls", []string{"read"}, nil, startArgs{RunID: run, ToolCall: tool})
 	require.NoError(t, err)
-	_, _, err = c.StartSession(t.Context(), testUserID, uuid.New(), ip, KindExec, "", "ls", []string{"read"}, nil, agentStart{})
+	_, _, err = c.StartSession(t.Context(), testUserID, uuid.New(), ip, KindExec, "", "ls", []string{"read"}, nil, startArgs{})
 	require.NoError(t, err)
 	assert.Equal(t, run.String(), f.starts[0].GetAgentRunId())
 	assert.Equal(t, tool.String(), f.starts[0].GetToolCallId())

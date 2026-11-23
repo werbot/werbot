@@ -58,7 +58,7 @@ type OpenRequest struct {
 // control is the control plane of the pipeline; *tunnelClient implements it.
 type control interface {
 	AuthenticateUser(ctx context.Context, id Identity, ip netip.Addr) (User, error)
-	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes, paths []string, agent agentStart) (uuid.UUID, Secret, error)
+	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes, paths []string, args startArgs) (uuid.UUID, Secret, error)
 	RecordDenial(ctx context.Context, runID uuid.UUID, resource, command string, classes, reasons []string) (paused bool, err error)
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
 	RequestApproval(ctx context.Context, r approvalRequest) (approvalTicket, error)
@@ -100,6 +100,7 @@ type Pipeline struct {
 	health                            *prober
 	dial                              func(ctx context.Context, network, address string) (net.Conn, error)
 	now                               func() time.Time
+	dropped                           *metrics.Counter // live view events observers lost: they fell behind
 
 	stop    context.Context // canceled at the end of drain: the front closes its connections
 	stopNow context.CancelFunc
@@ -134,6 +135,7 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 		guard:        localGuard{deny: cfg.DenyLocalTargets, hosts: cfg.DenyHosts},
 		flushTimeout: 10 * time.Second,
 		now:          time.Now,
+		dropped:      reg.Counter("werbot_gateway_observer_drops_total", "Live view events an observer lost: it fell behind."),
 	}
 	p.dial = p.guard.dialer()
 	p.health = newProber(ctl.Policy, tcpProbe(p.dial), reg)
@@ -196,11 +198,8 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, AccessReq
 	if err != nil {
 		return nil, req, startErr(err)
 	}
-	rec := NopRecording(id, 0, 0)
-	if recorded {
-		rec = p.cfg.Recording(id, r.Window.Cols, r.Window.Rows)
-	}
-	t := &tracked{req: req, kind: r.Kind, host: host, version: pol.Version(), started: time.Now()}
+	rec := p.recording(id, r, recorded)
+	t := &tracked{req: req, kind: r.Kind, host: host, version: pol.Version(), started: time.Now(), rec: rec}
 	t.idle, t.max = limits(res, p.cfg)
 	p.active.add(id, t) // reported in heartbeats from now on, so the server keeps the session
 	s := &Session{
@@ -237,12 +236,6 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	}
 	p.finish(ctx, s, reason)
 	return err
-}
-
-// closeText is what a terminal reads when the sweeper ends it.
-var closeText = map[string]string{
-	string(causeIdle): "Session closed: idle timeout",
-	string(causeMax):  "Session closed: max duration reached",
 }
 
 func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel context.CancelCauseFunc) (panicked bool, err error) {

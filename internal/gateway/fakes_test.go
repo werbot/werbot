@@ -134,7 +134,7 @@ func (f *fakeControl) AuthenticateUser(_ context.Context, id Identity, ip netip.
 	return u, nil
 }
 
-func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _, command string, classes, paths []string, agent agentStart) (uuid.UUID, Secret, error) {
+func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _, command string, classes, paths []string, agent startArgs) (uuid.UUID, Secret, error) {
 	if f.onStart != nil {
 		f.onStart()
 	}
