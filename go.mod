@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.33.13
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.13
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.6
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
 	github.com/cedar-policy/cedar-go v1.9.0
 	github.com/coder/websocket v1.8.15
 	github.com/gliderlabs/ssh v0.3.8
@@ -21,6 +22,7 @@ require (
 	github.com/oschwald/maxminddb-golang/v2 v2.9.0
 	github.com/peterldowns/pgtestdb v0.1.1
 	github.com/pires/go-proxyproto v0.16.0
+	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.30.1
 	github.com/riverqueue/river v0.51.0
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.51.0

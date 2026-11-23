@@ -10,11 +10,14 @@ import (
 )
 
 // Rate limits (contract §3.6): Login per client IP and per client IP and
-// email each minute, password reset requests per email each hour.
+// email each minute, password reset requests per email each hour, TOTP and
+// recovery code attempts (successful ones too) per user in MFAWindow.
 const (
 	LoginPerIP      = 100
 	LoginPerIPEmail = 10
 	ResetPerEmail   = 3
+	MFAAttempts     = 5
+	MFAWindow       = 5 * time.Minute
 )
 
 // limit counts one call of key before and outside any effect transaction

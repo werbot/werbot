@@ -2,6 +2,7 @@ package identity
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -71,4 +72,18 @@ type Store interface {
 	LookupCertUser(ctx context.Context, arg dbq.LookupCertUserParams) (dbq.LookupCertUserRow, error)
 	DeleteOldMFAChallenges(ctx context.Context, olderSecs float64) (int64, error)
 	DeleteOldMFAVerifications(ctx context.Context, olderSecs float64) (int64, error)
+	UpsertTOTPSecret(ctx context.Context, arg dbq.UpsertTOTPSecretParams) (int64, error)
+	ConfirmTOTPSecret(ctx context.Context, userID uuid.UUID) (int64, error)
+	GetTOTPSecret(ctx context.Context, userID uuid.UUID) (dbq.GetTOTPSecretRow, error)
+	UseTOTPStep(ctx context.Context, arg dbq.UseTOTPStepParams) (int64, error)
+	DeleteTOTPSecret(ctx context.Context, userID uuid.UUID) (int64, error)
+	DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
+	InsertRecoveryCodes(ctx context.Context, arg dbq.InsertRecoveryCodesParams) error
+	UseRecoveryCode(ctx context.Context, arg dbq.UseRecoveryCodeParams) (int64, error)
+	DeleteWebAuthnCredential(ctx context.Context, arg dbq.DeleteWebAuthnCredentialParams) (int64, error)
+	HasFactor(ctx context.Context, userID uuid.UUID) (bool, error)
+	GetTOTPFactor(ctx context.Context, userID uuid.UUID) (time.Time, error)
+	GetRecoveryFactor(ctx context.Context, userID uuid.UUID) (dbq.GetRecoveryFactorRow, error)
+	ListWebAuthnFactors(ctx context.Context, userID uuid.UUID) ([]dbq.ListWebAuthnFactorsRow, error)
+	GetRequireMFA(ctx context.Context, orgID uuid.UUID) (string, error)
 }

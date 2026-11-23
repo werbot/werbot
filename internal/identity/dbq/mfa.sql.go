@@ -7,7 +7,22 @@ package dbq
 
 import (
 	"context"
+	"time"
+
+	"github.com/google/uuid"
 )
+
+const confirmTOTPSecret = `-- name: ConfirmTOTPSecret :execrows
+UPDATE totp_secret SET confirmed_at = now() WHERE user_id = $1 AND confirmed_at IS NULL
+`
+
+func (q *Queries) ConfirmTOTPSecret(ctx context.Context, userID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, confirmTOTPSecret, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
 
 const deleteOldMFAChallenges = `-- name: DeleteOldMFAChallenges :execrows
 DELETE FROM mfa_challenge WHERE created_at < now() - make_interval(secs => $1::float8)
@@ -27,6 +42,221 @@ DELETE FROM mfa_verification WHERE verified_at < now() - make_interval(secs => $
 
 func (q *Queries) DeleteOldMFAVerifications(ctx context.Context, olderSecs float64) (int64, error) {
 	result, err := q.db.Exec(ctx, deleteOldMFAVerifications, olderSecs)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteRecoveryCodes = `-- name: DeleteRecoveryCodes :execrows
+DELETE FROM mfa_recovery_code WHERE user_id = $1
+`
+
+func (q *Queries) DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteRecoveryCodes, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteTOTPSecret = `-- name: DeleteTOTPSecret :execrows
+DELETE FROM totp_secret WHERE user_id = $1
+`
+
+func (q *Queries) DeleteTOTPSecret(ctx context.Context, userID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteTOTPSecret, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteWebAuthnCredential = `-- name: DeleteWebAuthnCredential :execrows
+DELETE FROM webauthn_credential WHERE id = $1 AND user_id = $2
+`
+
+type DeleteWebAuthnCredentialParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeleteWebAuthnCredential(ctx context.Context, arg DeleteWebAuthnCredentialParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteWebAuthnCredential, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const getRecoveryFactor = `-- name: GetRecoveryFactor :one
+SELECT count(*) AS total, count(*) FILTER (WHERE used_at IS NULL) AS remaining
+FROM mfa_recovery_code WHERE user_id = $1
+`
+
+type GetRecoveryFactorRow struct {
+	Total     int64
+	Remaining int64
+}
+
+func (q *Queries) GetRecoveryFactor(ctx context.Context, userID uuid.UUID) (GetRecoveryFactorRow, error) {
+	row := q.db.QueryRow(ctx, getRecoveryFactor, userID)
+	var i GetRecoveryFactorRow
+	err := row.Scan(&i.Total, &i.Remaining)
+	return i, err
+}
+
+const getRequireMFA = `-- name: GetRequireMFA :one
+SELECT require_mfa FROM org_setting WHERE org_id = $1
+`
+
+func (q *Queries) GetRequireMFA(ctx context.Context, orgID uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, getRequireMFA, orgID)
+	var require_mfa string
+	err := row.Scan(&require_mfa)
+	return require_mfa, err
+}
+
+const getTOTPFactor = `-- name: GetTOTPFactor :one
+SELECT confirmed_at::timestamptz AS confirmed_at FROM totp_secret WHERE user_id = $1 AND confirmed_at IS NOT NULL
+`
+
+func (q *Queries) GetTOTPFactor(ctx context.Context, userID uuid.UUID) (time.Time, error) {
+	row := q.db.QueryRow(ctx, getTOTPFactor, userID)
+	var confirmed_at time.Time
+	err := row.Scan(&confirmed_at)
+	return confirmed_at, err
+}
+
+const getTOTPSecret = `-- name: GetTOTPSecret :one
+SELECT ciphertext, key_id FROM totp_secret WHERE user_id = $1 AND confirmed_at IS NOT NULL
+`
+
+type GetTOTPSecretRow struct {
+	Ciphertext []byte
+	KeyID      string
+}
+
+func (q *Queries) GetTOTPSecret(ctx context.Context, userID uuid.UUID) (GetTOTPSecretRow, error) {
+	row := q.db.QueryRow(ctx, getTOTPSecret, userID)
+	var i GetTOTPSecretRow
+	err := row.Scan(&i.Ciphertext, &i.KeyID)
+	return i, err
+}
+
+const hasFactor = `-- name: HasFactor :one
+SELECT (EXISTS (SELECT 1 FROM totp_secret t WHERE t.user_id = $1::uuid AND t.confirmed_at IS NOT NULL)
+    OR EXISTS (SELECT 1 FROM webauthn_credential w WHERE w.user_id = $1::uuid))::bool AS has
+`
+
+// A confirmed TOTP secret or a passkey; recovery codes alone are no factor.
+func (q *Queries) HasFactor(ctx context.Context, userID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, hasFactor, userID)
+	var has bool
+	err := row.Scan(&has)
+	return has, err
+}
+
+const insertRecoveryCodes = `-- name: InsertRecoveryCodes :exec
+INSERT INTO mfa_recovery_code (user_id, code_hash) SELECT $1::uuid, h FROM unnest($2::bytea[]) AS h
+`
+
+type InsertRecoveryCodesParams struct {
+	UserID     uuid.UUID
+	CodeHashes [][]byte
+}
+
+func (q *Queries) InsertRecoveryCodes(ctx context.Context, arg InsertRecoveryCodesParams) error {
+	_, err := q.db.Exec(ctx, insertRecoveryCodes, arg.UserID, arg.CodeHashes)
+	return err
+}
+
+const listWebAuthnFactors = `-- name: ListWebAuthnFactors :many
+SELECT id, name, created_at, last_used_at FROM webauthn_credential WHERE user_id = $1 ORDER BY created_at, id
+`
+
+type ListWebAuthnFactorsRow struct {
+	ID         uuid.UUID
+	Name       string
+	CreatedAt  time.Time
+	LastUsedAt *time.Time
+}
+
+func (q *Queries) ListWebAuthnFactors(ctx context.Context, userID uuid.UUID) ([]ListWebAuthnFactorsRow, error) {
+	rows, err := q.db.Query(ctx, listWebAuthnFactors, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListWebAuthnFactorsRow
+	for rows.Next() {
+		var i ListWebAuthnFactorsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.LastUsedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const upsertTOTPSecret = `-- name: UpsertTOTPSecret :execrows
+INSERT INTO totp_secret (user_id, ciphertext, key_id) VALUES ($1, $2, $3)
+ON CONFLICT (user_id) DO UPDATE SET ciphertext = excluded.ciphertext, key_id = excluded.key_id, last_step = 0
+WHERE totp_secret.confirmed_at IS NULL
+`
+
+type UpsertTOTPSecretParams struct {
+	UserID     uuid.UUID
+	Ciphertext []byte
+	KeyID      string
+}
+
+// A new enrollment replaces an unconfirmed one; a confirmed secret stays (0 rows).
+func (q *Queries) UpsertTOTPSecret(ctx context.Context, arg UpsertTOTPSecretParams) (int64, error) {
+	result, err := q.db.Exec(ctx, upsertTOTPSecret, arg.UserID, arg.Ciphertext, arg.KeyID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const useRecoveryCode = `-- name: UseRecoveryCode :execrows
+UPDATE mfa_recovery_code SET used_at = now() WHERE user_id = $1 AND code_hash = $2 AND used_at IS NULL
+`
+
+type UseRecoveryCodeParams struct {
+	UserID   uuid.UUID
+	CodeHash []byte
+}
+
+func (q *Queries) UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, useRecoveryCode, arg.UserID, arg.CodeHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const useTOTPStep = `-- name: UseTOTPStep :execrows
+UPDATE totp_secret SET last_step = $1 WHERE user_id = $2 AND confirmed_at IS NOT NULL AND last_step < $1
+`
+
+type UseTOTPStepParams struct {
+	Step   int64
+	UserID uuid.UUID
+}
+
+// Spends step: a code of last_step or an older step is never accepted again.
+func (q *Queries) UseTOTPStep(ctx context.Context, arg UseTOTPStepParams) (int64, error) {
+	result, err := q.db.Exec(ctx, useTOTPStep, arg.Step, arg.UserID)
 	if err != nil {
 		return 0, err
 	}

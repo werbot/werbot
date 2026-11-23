@@ -1,0 +1,61 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// The caller's second factors: a TOTP authenticator app, passkeys and
+// recovery codes.
+service MFAService {
+  rpc ListFactors(ListFactorsRequest) returns (ListFactorsResponse);
+  // Starts a TOTP enrollment; an unconfirmed one is replaced, a confirmed
+  // one is AlreadyExists. The only response that carries the secret.
+  rpc EnrollTOTP(EnrollTOTPRequest) returns (EnrollTOTPResponse);
+  // Confirms the enrollment with a current code.
+  rpc ConfirmTOTP(ConfirmTOTPRequest) returns (ConfirmTOTPResponse);
+  // Replaces all recovery codes; the only response that carries them.
+  rpc GenerateRecoveryCodes(GenerateRecoveryCodesRequest) returns (GenerateRecoveryCodesResponse);
+  rpc DeleteFactor(DeleteFactorRequest) returns (DeleteFactorResponse);
+}
+
+message Factor {
+  // The passkey's uuid, "totp" or "recovery".
+  string id = 1;
+  // "webauthn", "totp" or "recovery".
+  string kind = 2;
+  string name = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp last_used_at = 5;
+  // Unused recovery codes; 0 for other kinds.
+  int32 remaining = 6;
+}
+
+message ListFactorsRequest {}
+message ListFactorsResponse {
+  repeated Factor factors = 1;
+}
+
+message EnrollTOTPRequest {}
+message EnrollTOTPResponse {
+  string otpauth_url = 1;
+  // Base32, for manual entry.
+  string secret = 2;
+  // The QR code is qr_size × qr_size modules drawn by the SVG path qr_path.
+  int32 qr_size = 3;
+  string qr_path = 4;
+}
+
+message ConfirmTOTPRequest {
+  string code = 1 [(buf.validate.field).string.pattern = "^[0-9]{6}$"];
+}
+message ConfirmTOTPResponse {}
+
+message GenerateRecoveryCodesRequest {}
+message GenerateRecoveryCodesResponse {
+  repeated string codes = 1;
+}
+
+message DeleteFactorRequest {
+  string id = 1 [(buf.validate.field).string.pattern = "^(totp|recovery|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"];
+}
+message DeleteFactorResponse {}
