@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"strings"
 	"sync"
 	"time"
@@ -50,8 +49,7 @@ func newLink(c *ssh.Client, addr string, conf *ssh.ClientConfig, resource string
 
 // dial opens an SSH connection to addr; a cancel of ctx aborts it.
 func dial(ctx context.Context, addr string, conf *ssh.ClientConfig) (*ssh.Client, error) {
-	d := net.Dialer{Timeout: 10 * time.Second}
-	conn, err := d.DialContext(ctx, "tcp", addr)
+	conn, err := Dial(ctx, Endpoint{SSHAddress: addr})
 	if err != nil {
 		return nil, err
 	}

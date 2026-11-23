@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -34,7 +35,7 @@ func (p *Profile) Signer(ctx context.Context, home string) (ssh.Signer, error) {
 	if cert != nil && time.Until(validBefore(cert)) >= sshca.RenewBefore {
 		return ssh.NewCertSigner(cert, key)
 	}
-	fresh, err := p.issueCert(ctx, key.PublicKey())
+	fresh, err := issueCert(ctx, p.HTTPClient(), p.Server, key.PublicKey())
 	if err != nil {
 		if cert != nil && time.Until(validBefore(cert)) > 0 {
 			return ssh.NewCertSigner(cert, key) // server unreachable: keep the valid certificate
@@ -101,8 +102,8 @@ func parseCert(raw []byte, pub ssh.PublicKey) (*ssh.Certificate, error) {
 	return cert, nil
 }
 
-func (p *Profile) issueCert(ctx context.Context, pub ssh.PublicKey) (*ssh.Certificate, error) {
-	res, err := werbotv1connect.NewCertServiceClient(p.HTTPClient(), p.Server).IssueUserCert(ctx,
+func issueCert(ctx context.Context, hc *http.Client, server string, pub ssh.PublicKey) (*ssh.Certificate, error) {
+	res, err := werbotv1connect.NewCertServiceClient(hc, server).IssueUserCert(ctx,
 		connect.NewRequest(&werbotv1.IssueUserCertRequest{PublicKey: string(ssh.MarshalAuthorizedKey(pub))}))
 	if err != nil {
 		return nil, fmt.Errorf("issue a certificate: %w", err)

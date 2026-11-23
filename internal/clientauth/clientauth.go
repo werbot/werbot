@@ -27,6 +27,7 @@ const (
 var (
 	ErrNotLoggedIn   = errors.New("not logged in; run werbot login --server <url>")
 	ErrLoginRequired = errors.New("session expired or revoked; run werbot login")
+	ErrAgentProfile  = errors.New("this is an agent profile: only werbot mcp, werbot agent run, werbot status and werbot logout use it")
 )
 
 // ConfigVars lists the client variables of werbot login and the commands after it.

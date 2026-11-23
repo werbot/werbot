@@ -25,6 +25,8 @@ type Profile struct {
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
 	AccessExpiry time.Time `json:"access_expiry"`
+	// Agent is set on an agent profile: its token only exchanges for this agent.
+	Agent string `json:"agent,omitempty"`
 
 	home string
 	mu   sync.Mutex // guards the token fields across goroutines of one process
