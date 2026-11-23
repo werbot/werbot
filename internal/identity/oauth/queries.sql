@@ -89,7 +89,8 @@ WHERE user_code = @user_code AND status = 'pending' AND expires_at > now();
 
 -- name: GetLiveCLISession :one
 -- The session of a refresh token, if live under the current settings.
-SELECT c.id, c.org_id, c.user_id, c.client_id FROM cli_session c
+-- agent_id: an agent profile.
+SELECT c.id, c.org_id, c.user_id, c.client_id, c.agent_id FROM cli_session c
 JOIN org_setting s ON s.org_id = c.org_id
 WHERE c.refresh_hash = @refresh_hash AND c.revoked_at IS NULL AND c.expires_at > now()
   AND c.absolute_expires_at > now() AND c.created_at + s.cli_session_max > now();
@@ -116,8 +117,59 @@ WHERE id = @id AND user_id = @user_id AND revoked_at IS NULL
 RETURNING org_id;
 
 -- name: LiveCLISessionMember :one
--- A token exchange subject: its cli_session is live and its user a member.
-SELECT c.id FROM cli_session c
+-- A token exchange subject: its cli_session is live and its user a member;
+-- an agent profile also names its agent.
+SELECT c.id, c.agent_id, a.name AS agent_name FROM cli_session c
 JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+LEFT JOIN agent a ON a.id = c.agent_id AND a.org_id = c.org_id
 WHERE c.id = @id AND c.org_id = @org_id AND c.user_id = @user_id AND c.revoked_at IS NULL
   AND c.expires_at > now() AND c.absolute_expires_at > now();
+
+-- name: LockProfileAgent :one
+-- An agent profile is created under the agent's row lock: its sponsor and
+-- status and the organization's cli_session_max.
+SELECT a.name, a.sponsor_user_id, a.status, extract(epoch FROM s.cli_session_max)::bigint AS max_secs
+FROM agent a JOIN org_setting s ON s.org_id = a.org_id
+WHERE a.id = @id AND a.org_id = @org_id
+FOR UPDATE OF a;
+
+-- name: CountAgentProfiles :one
+-- Live profiles of an agent; after LockProfileAgent, so this statement's
+-- snapshot sees every profile committed before the lock.
+SELECT count(*) FROM cli_session c
+JOIN org_setting s ON s.org_id = c.org_id
+WHERE c.org_id = @org_id AND c.agent_id = @agent_id::uuid AND c.revoked_at IS NULL AND c.expires_at > now()
+  AND c.absolute_expires_at > now() AND c.created_at + s.cli_session_max > now();
+
+-- name: CreateAgentProfile :one
+-- Idle past cli_session_ttl or older than ttl, the profile ends.
+INSERT INTO cli_session (org_id, user_id, client_id, hostname, ip, refresh_hash, agent_id, expires_at, absolute_expires_at)
+SELECT s.org_id, @user_id, 'werbot-cli', @hostname, @ip, @refresh_hash, @agent_id::uuid,
+       least(now() + s.cli_session_ttl, now() + make_interval(secs => @ttl_secs::float8)),
+       now() + make_interval(secs => @ttl_secs::float8)
+FROM org_setting s WHERE s.org_id = @org_id
+RETURNING id, created_at, last_used_at, expires_at, absolute_expires_at;
+
+-- name: ListAgentProfiles :many
+-- Live agent profiles, of one sponsor and one agent when given.
+SELECT c.id, a.id AS agent_id, a.name AS agent_name, c.user_id, c.hostname, c.created_at, c.last_used_at, c.expires_at, c.absolute_expires_at
+FROM cli_session c
+JOIN agent a ON a.id = c.agent_id AND a.org_id = c.org_id
+JOIN org_setting s ON s.org_id = c.org_id
+WHERE c.org_id = @org_id AND c.revoked_at IS NULL AND c.expires_at > now()
+  AND c.absolute_expires_at > now() AND c.created_at + s.cli_session_max > now()
+  AND (sqlc.narg(sponsor_user_id)::uuid IS NULL OR c.user_id = sqlc.narg(sponsor_user_id))
+  AND (sqlc.narg(agent_id)::uuid IS NULL OR c.agent_id = sqlc.narg(agent_id))
+ORDER BY c.created_at DESC;
+
+-- name: RevokeAgentProfile :one
+-- A manager revokes any profile of the organization, others only their own.
+UPDATE cli_session SET revoked_at = now(), revoke_reason = 'revoked'
+WHERE id = @id AND org_id = @org_id AND agent_id IS NOT NULL AND revoked_at IS NULL
+  AND (@manager::bool OR user_id = @user_id)
+RETURNING agent_id;
+
+-- name: RevokeProfilesOfAgent :many
+UPDATE cli_session SET revoked_at = now(), revoke_reason = @reason::text
+WHERE org_id = @org_id AND agent_id = @agent_id::uuid AND revoked_at IS NULL
+RETURNING id;

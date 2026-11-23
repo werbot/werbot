@@ -121,7 +121,8 @@ func (s *Service) CreateAgent(ctx context.Context, p principal.Principal, in Cre
 }
 
 // UpdateAgent changes the limits or status of an agent p manages (audit
-// agent.update); limits apply to new runs only. Another sponsor's agent is
+// agent.update); limits apply to new runs only. Freezing revokes the agent's
+// profiles in the same transaction. Another sponsor's agent is
 // ErrNotFound for a member.
 func (s *Service) UpdateAgent(ctx context.Context, p principal.Principal, in UpdateAgentInput) (AgentView, error) {
 	if err := person(p); err != nil {
@@ -148,10 +149,22 @@ func (s *Service) UpdateAgent(ctx context.Context, p principal.Principal, in Upd
 			map[string]any{"limits": json.RawMessage(stored), "status": status}); err != nil {
 			return err
 		}
+		if err := s.revokeProfiles(ctx, tx, p, in); err != nil {
+			return err
+		}
 		out, err = agentView(ctx, st, p.OrgID, in.ID)
 		return err
 	})
 	return out, err
+}
+
+// revokeProfiles ends the agent's profiles in tx when in freezes it; an
+// unfreeze restores none.
+func (s *Service) revokeProfiles(ctx context.Context, tx pgx.Tx, p principal.Principal, in UpdateAgentInput) error {
+	if in.Status != "frozen" || s.cfg.Profiles == nil {
+		return nil
+	}
+	return s.cfg.Profiles.RevokeAgentProfiles(ctx, tx, p.OrgID, in.ID, &p.UserID, "agent_frozen")
 }
 
 // check validates in and returns its limits as agent.limits; nil: unchanged.

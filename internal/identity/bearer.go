@@ -23,7 +23,8 @@ type BearerVerifier interface {
 // authenticateBearer resolves an Authorization header to the principal of a
 // CLI access token: the token is verified without the database, then one
 // statement checks that its cli_session is live and the user still a member.
-// An agent run token is its sponsor's principal with AgentID and RunID.
+// An agent run token is its sponsor's principal with AgentID and RunID; a
+// session bound to an agent (an agent profile) admits only that agent's tokens.
 // A bad header or token and a revoked, expired or missing session give
 // ErrUnauthenticated; a store failure is returned as is.
 func (s *Service) authenticateBearer(ctx context.Context, bearer BearerVerifier, header string) (principal.Principal, error) {
@@ -35,10 +36,10 @@ func (s *Service) authenticateBearer(ctx context.Context, bearer BearerVerifier,
 	if err != nil {
 		return principal.Principal{}, fmt.Errorf("access token: %w", apperr.ErrUnauthenticated)
 	}
-	var role string
+	var row dbq.GetCLISessionRoleRow
 	err = dbx.ReadInOrg(s.pool, c.OrgID, c.UserID, func(rd *dbx.Read) error {
 		var err error
-		role, err = newStore(rd).GetCLISessionRole(ctx, dbq.GetCLISessionRoleParams{ID: c.CLISessionID, OrgID: c.OrgID, UserID: c.UserID})
+		row, err = newStore(rd).GetCLISessionRole(ctx, dbq.GetCLISessionRoleParams{ID: c.CLISessionID, OrgID: c.OrgID, UserID: c.UserID})
 		return err
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -47,8 +48,11 @@ func (s *Service) authenticateBearer(ctx context.Context, bearer BearerVerifier,
 	if err != nil {
 		return principal.Principal{}, err
 	}
+	if row.AgentID != nil && (c.AgentID == nil || *c.AgentID != *row.AgentID) {
+		return principal.Principal{}, fmt.Errorf("agent profile token: %w", apperr.ErrUnauthenticated)
+	}
 	return principal.Principal{
-		UserID: c.UserID, OrgID: c.OrgID, Role: role, AuthMethod: principal.AuthMethodOAuth, CLISessionID: c.CLISessionID,
+		UserID: c.UserID, OrgID: c.OrgID, Role: row.Role, AuthMethod: principal.AuthMethodOAuth, CLISessionID: c.CLISessionID,
 		AgentID: c.AgentID, RunID: c.RunID,
 	}, nil
 }

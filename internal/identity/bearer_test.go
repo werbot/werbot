@@ -23,6 +23,7 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/identity/oauth"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
@@ -232,4 +233,29 @@ func TestMiddlewareAgentPrincipal(t *testing.T) {
 	want := user
 	want.AgentID, want.RunID = &agent, &run
 	assert.Equal(t, want, p)
+}
+
+// TestBearerRefusesAgentProfileSession: on a cli_session bound to an agent
+// (an agent profile) only a run token of that agent is a principal; a token
+// without an agent or of another agent is Unauthenticated.
+func TestBearerRefusesAgentProfileSession(t *testing.T) {
+	s := newCLIStand(t)
+	org := seedOrg(t, s.pool, "Acme")
+	alice := seedUser(t, s.pool, org, "alice", principal.RoleMember)
+	tr := s.cliLogin(t, org, alice)
+	user := s.asBearer(t, tr.AccessToken, principal.RoleMember)
+	agent := dbtest.Agent(t, s.pool, org, alice, "ops")
+	_, err := s.pool.Exec(context.Background(), "UPDATE cli_session SET agent_id = $1 WHERE id = $2", agent, user.CLISessionID)
+	require.NoError(t, err)
+
+	_, err = s.auth().GetSession(context.Background(), bearer(&werbotv1.GetSessionRequest{}, tr.AccessToken))
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err), "a token without an agent")
+	_, ok := whoami(t, s.srv, bearerHeader(agentToken(t, s, user, uuid.New(), uuid.New())))
+	assert.False(t, ok, "a run token of another agent")
+
+	run := uuid.New()
+	p, ok := whoami(t, s.srv, bearerHeader(agentToken(t, s, user, agent, run)))
+	require.True(t, ok, "a run token of the bound agent")
+	assert.Equal(t, agent, *p.AgentID)
+	assert.Equal(t, run, *p.RunID)
 }

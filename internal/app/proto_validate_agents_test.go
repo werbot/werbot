@@ -115,3 +115,32 @@ func TestRequestValidationAgentService(t *testing.T) {
 	valid(&werbotv1.FinishToolCallRequest{Id: id, Status: "pending_approval"}, "pending_approval")
 	invalid(&werbotv1.FinishToolCallRequest{Id: id, Status: "running"}, "status running")
 }
+
+// TestRequestValidationAgentProfileService covers the bounds of
+// agent_profile.proto (stage 12): ids are UUIDs, ttl is 0 or 1h to 90d, the
+// label at most 255 bytes.
+func TestRequestValidationAgentProfileService(t *testing.T) {
+	id := "0190a000-0000-7000-8000-000000000001"
+	valid := func(m proto.Message, name string) { assert.NoError(t, protovalidate.Validate(m), name) }
+	invalid := func(m proto.Message, name string) { assert.Error(t, protovalidate.Validate(m), name) }
+
+	create := func(ttl time.Duration, label string) *werbotv1.CreateAgentProfileRequest {
+		return &werbotv1.CreateAgentProfileRequest{AgentId: id, Ttl: durationpb.New(ttl), Label: label}
+	}
+	valid(&werbotv1.CreateAgentProfileRequest{AgentId: id}, "no ttl, no label")
+	valid(create(0, strings.Repeat("a", 255)), "ttl 0, a label of 255 bytes")
+	valid(create(time.Hour, ""), "ttl 1h")
+	valid(create(90*24*time.Hour, ""), "ttl 90d")
+	invalid(create(30*time.Minute, ""), "ttl below 1h")
+	invalid(create(90*24*time.Hour+time.Second, ""), "ttl above 90d")
+	invalid(create(-time.Hour, ""), "negative ttl")
+	invalid(create(0, strings.Repeat("a", 256)), "a label of 256 bytes")
+	invalid(&werbotv1.CreateAgentProfileRequest{AgentId: "x"}, "agent_id not a UUID")
+	invalid(&werbotv1.CreateAgentProfileRequest{}, "no agent_id")
+
+	valid(&werbotv1.ListAgentProfilesRequest{}, "every agent")
+	valid(&werbotv1.ListAgentProfilesRequest{AgentId: id}, "one agent")
+	invalid(&werbotv1.ListAgentProfilesRequest{AgentId: "x"}, "agent_id not a UUID")
+	valid(&werbotv1.RevokeAgentProfileRequest{Id: id}, "a profile")
+	invalid(&werbotv1.RevokeAgentProfileRequest{Id: "x"}, "id not a UUID")
+}

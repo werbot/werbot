@@ -113,6 +113,76 @@ func (q *Queries) ConsumeDeviceCode(ctx context.Context, id uuid.UUID) (ConsumeD
 	return i, err
 }
 
+const countAgentProfiles = `-- name: CountAgentProfiles :one
+SELECT count(*) FROM cli_session c
+JOIN org_setting s ON s.org_id = c.org_id
+WHERE c.org_id = $1 AND c.agent_id = $2::uuid AND c.revoked_at IS NULL AND c.expires_at > now()
+  AND c.absolute_expires_at > now() AND c.created_at + s.cli_session_max > now()
+`
+
+type CountAgentProfilesParams struct {
+	OrgID   uuid.UUID
+	AgentID uuid.UUID
+}
+
+// Live profiles of an agent; after LockProfileAgent, so this statement's
+// snapshot sees every profile committed before the lock.
+func (q *Queries) CountAgentProfiles(ctx context.Context, arg CountAgentProfilesParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countAgentProfiles, arg.OrgID, arg.AgentID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createAgentProfile = `-- name: CreateAgentProfile :one
+INSERT INTO cli_session (org_id, user_id, client_id, hostname, ip, refresh_hash, agent_id, expires_at, absolute_expires_at)
+SELECT s.org_id, $1, 'werbot-cli', $2, $3, $4, $5::uuid,
+       least(now() + s.cli_session_ttl, now() + make_interval(secs => $6::float8)),
+       now() + make_interval(secs => $6::float8)
+FROM org_setting s WHERE s.org_id = $7
+RETURNING id, created_at, last_used_at, expires_at, absolute_expires_at
+`
+
+type CreateAgentProfileParams struct {
+	UserID      uuid.UUID
+	Hostname    string
+	Ip          *netip.Addr
+	RefreshHash []byte
+	AgentID     uuid.UUID
+	TtlSecs     float64
+	OrgID       uuid.UUID
+}
+
+type CreateAgentProfileRow struct {
+	ID                uuid.UUID
+	CreatedAt         time.Time
+	LastUsedAt        time.Time
+	ExpiresAt         time.Time
+	AbsoluteExpiresAt time.Time
+}
+
+// Idle past cli_session_ttl or older than ttl, the profile ends.
+func (q *Queries) CreateAgentProfile(ctx context.Context, arg CreateAgentProfileParams) (CreateAgentProfileRow, error) {
+	row := q.db.QueryRow(ctx, createAgentProfile,
+		arg.UserID,
+		arg.Hostname,
+		arg.Ip,
+		arg.RefreshHash,
+		arg.AgentID,
+		arg.TtlSecs,
+		arg.OrgID,
+	)
+	var i CreateAgentProfileRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+		&i.ExpiresAt,
+		&i.AbsoluteExpiresAt,
+	)
+	return i, err
+}
+
 const createAuthRequest = `-- name: CreateAuthRequest :one
 WITH gc AS (DELETE FROM oauth_auth_request WHERE expires_at < now() - interval '1 hour')
 INSERT INTO oauth_auth_request (client_id, redirect_uri, code_challenge, scopes, state, client_hostname, client_ip, expires_at)
@@ -332,7 +402,7 @@ func (q *Queries) GetCLISessionByRefresh(ctx context.Context, arg GetCLISessionB
 }
 
 const getLiveCLISession = `-- name: GetLiveCLISession :one
-SELECT c.id, c.org_id, c.user_id, c.client_id FROM cli_session c
+SELECT c.id, c.org_id, c.user_id, c.client_id, c.agent_id FROM cli_session c
 JOIN org_setting s ON s.org_id = c.org_id
 WHERE c.refresh_hash = $1 AND c.revoked_at IS NULL AND c.expires_at > now()
   AND c.absolute_expires_at > now() AND c.created_at + s.cli_session_max > now()
@@ -343,9 +413,11 @@ type GetLiveCLISessionRow struct {
 	OrgID    uuid.UUID
 	UserID   uuid.UUID
 	ClientID string
+	AgentID  *uuid.UUID
 }
 
 // The session of a refresh token, if live under the current settings.
+// agent_id: an agent profile.
 func (q *Queries) GetLiveCLISession(ctx context.Context, refreshHash []byte) (GetLiveCLISessionRow, error) {
 	row := q.db.QueryRow(ctx, getLiveCLISession, refreshHash)
 	var i GetLiveCLISessionRow
@@ -354,6 +426,7 @@ func (q *Queries) GetLiveCLISession(ctx context.Context, refreshHash []byte) (Ge
 		&i.OrgID,
 		&i.UserID,
 		&i.ClientID,
+		&i.AgentID,
 	)
 	return i, err
 }
@@ -439,9 +512,71 @@ func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyPara
 	return err
 }
 
+const listAgentProfiles = `-- name: ListAgentProfiles :many
+SELECT c.id, a.id AS agent_id, a.name AS agent_name, c.user_id, c.hostname, c.created_at, c.last_used_at, c.expires_at, c.absolute_expires_at
+FROM cli_session c
+JOIN agent a ON a.id = c.agent_id AND a.org_id = c.org_id
+JOIN org_setting s ON s.org_id = c.org_id
+WHERE c.org_id = $1 AND c.revoked_at IS NULL AND c.expires_at > now()
+  AND c.absolute_expires_at > now() AND c.created_at + s.cli_session_max > now()
+  AND ($2::uuid IS NULL OR c.user_id = $2)
+  AND ($3::uuid IS NULL OR c.agent_id = $3)
+ORDER BY c.created_at DESC
+`
+
+type ListAgentProfilesParams struct {
+	OrgID         uuid.UUID
+	SponsorUserID *uuid.UUID
+	AgentID       *uuid.UUID
+}
+
+type ListAgentProfilesRow struct {
+	ID                uuid.UUID
+	AgentID           uuid.UUID
+	AgentName         string
+	UserID            uuid.UUID
+	Hostname          string
+	CreatedAt         time.Time
+	LastUsedAt        time.Time
+	ExpiresAt         time.Time
+	AbsoluteExpiresAt time.Time
+}
+
+// Live agent profiles, of one sponsor and one agent when given.
+func (q *Queries) ListAgentProfiles(ctx context.Context, arg ListAgentProfilesParams) ([]ListAgentProfilesRow, error) {
+	rows, err := q.db.Query(ctx, listAgentProfiles, arg.OrgID, arg.SponsorUserID, arg.AgentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAgentProfilesRow
+	for rows.Next() {
+		var i ListAgentProfilesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AgentID,
+			&i.AgentName,
+			&i.UserID,
+			&i.Hostname,
+			&i.CreatedAt,
+			&i.LastUsedAt,
+			&i.ExpiresAt,
+			&i.AbsoluteExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const liveCLISessionMember = `-- name: LiveCLISessionMember :one
-SELECT c.id FROM cli_session c
+SELECT c.id, c.agent_id, a.name AS agent_name FROM cli_session c
 JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+LEFT JOIN agent a ON a.id = c.agent_id AND a.org_id = c.org_id
 WHERE c.id = $1 AND c.org_id = $2 AND c.user_id = $3 AND c.revoked_at IS NULL
   AND c.expires_at > now() AND c.absolute_expires_at > now()
 `
@@ -452,12 +587,52 @@ type LiveCLISessionMemberParams struct {
 	UserID uuid.UUID
 }
 
-// A token exchange subject: its cli_session is live and its user a member.
-func (q *Queries) LiveCLISessionMember(ctx context.Context, arg LiveCLISessionMemberParams) (uuid.UUID, error) {
+type LiveCLISessionMemberRow struct {
+	ID        uuid.UUID
+	AgentID   *uuid.UUID
+	AgentName *string
+}
+
+// A token exchange subject: its cli_session is live and its user a member;
+// an agent profile also names its agent.
+func (q *Queries) LiveCLISessionMember(ctx context.Context, arg LiveCLISessionMemberParams) (LiveCLISessionMemberRow, error) {
 	row := q.db.QueryRow(ctx, liveCLISessionMember, arg.ID, arg.OrgID, arg.UserID)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	return id, err
+	var i LiveCLISessionMemberRow
+	err := row.Scan(&i.ID, &i.AgentID, &i.AgentName)
+	return i, err
+}
+
+const lockProfileAgent = `-- name: LockProfileAgent :one
+SELECT a.name, a.sponsor_user_id, a.status, extract(epoch FROM s.cli_session_max)::bigint AS max_secs
+FROM agent a JOIN org_setting s ON s.org_id = a.org_id
+WHERE a.id = $1 AND a.org_id = $2
+FOR UPDATE OF a
+`
+
+type LockProfileAgentParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+type LockProfileAgentRow struct {
+	Name          string
+	SponsorUserID uuid.UUID
+	Status        string
+	MaxSecs       int64
+}
+
+// An agent profile is created under the agent's row lock: its sponsor and
+// status and the organization's cli_session_max.
+func (q *Queries) LockProfileAgent(ctx context.Context, arg LockProfileAgentParams) (LockProfileAgentRow, error) {
+	row := q.db.QueryRow(ctx, lockProfileAgent, arg.ID, arg.OrgID)
+	var i LockProfileAgentRow
+	err := row.Scan(
+		&i.Name,
+		&i.SponsorUserID,
+		&i.Status,
+		&i.MaxSecs,
+	)
+	return i, err
 }
 
 const logoutCLISession = `-- name: LogoutCLISession :one
@@ -512,6 +687,65 @@ func (q *Queries) PollDeviceCode(ctx context.Context, arg PollDeviceCodeParams) 
 		&i.Live,
 	)
 	return i, err
+}
+
+const revokeAgentProfile = `-- name: RevokeAgentProfile :one
+UPDATE cli_session SET revoked_at = now(), revoke_reason = 'revoked'
+WHERE id = $1 AND org_id = $2 AND agent_id IS NOT NULL AND revoked_at IS NULL
+  AND ($3::bool OR user_id = $4)
+RETURNING agent_id
+`
+
+type RevokeAgentProfileParams struct {
+	ID      uuid.UUID
+	OrgID   uuid.UUID
+	Manager bool
+	UserID  uuid.UUID
+}
+
+// A manager revokes any profile of the organization, others only their own.
+func (q *Queries) RevokeAgentProfile(ctx context.Context, arg RevokeAgentProfileParams) (*uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, revokeAgentProfile,
+		arg.ID,
+		arg.OrgID,
+		arg.Manager,
+		arg.UserID,
+	)
+	var agent_id *uuid.UUID
+	err := row.Scan(&agent_id)
+	return agent_id, err
+}
+
+const revokeProfilesOfAgent = `-- name: RevokeProfilesOfAgent :many
+UPDATE cli_session SET revoked_at = now(), revoke_reason = $1::text
+WHERE org_id = $2 AND agent_id = $3::uuid AND revoked_at IS NULL
+RETURNING id
+`
+
+type RevokeProfilesOfAgentParams struct {
+	Reason  string
+	OrgID   uuid.UUID
+	AgentID uuid.UUID
+}
+
+func (q *Queries) RevokeProfilesOfAgent(ctx context.Context, arg RevokeProfilesOfAgentParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, revokeProfilesOfAgent, arg.Reason, arg.OrgID, arg.AgentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const revokeReusedCLISession = `-- name: RevokeReusedCLISession :one

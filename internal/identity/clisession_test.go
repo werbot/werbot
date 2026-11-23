@@ -12,6 +12,7 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/identity/oauth"
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
@@ -127,4 +128,27 @@ func TestRevokeCLISession(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, s.pool.QueryRow(ctx, `SELECT revoke_reason FROM cli_session WHERE id = $1`, pa.CLISessionID).Scan(&reason))
 	assert.Equal(t, "revoked", reason, "the RPC passes reason revoked")
+}
+
+// TestListCLISessionsHidesAgentProfiles: a sponsor's CLI sessions do not list
+// the agent's profiles; a password change ends them too (password_reset).
+func TestListCLISessionsHidesAgentProfiles(t *testing.T) {
+	s := newCLIStand(t)
+	ctx := context.Background()
+	org := seedOrg(t, s.pool, "Acme")
+	alice := seedUser(t, s.pool, org, "alice", principal.RoleMember)
+	pa := s.asBearer(t, s.cliLogin(t, org, alice).AccessToken, principal.RoleMember)
+	profile := s.asBearer(t, s.cliLogin(t, org, alice).AccessToken, "").CLISessionID
+	_, err := s.pool.Exec(ctx, "UPDATE cli_session SET agent_id = $1 WHERE id = $2", dbtest.Agent(t, s.pool, org, alice, "ops"), profile)
+	require.NoError(t, err)
+
+	list, err := s.svc.ListCLISessions(ctx, pa, nil)
+	require.NoError(t, err)
+	assert.Equal(t, []uuid.UUID{pa.CLISessionID}, sessionIDs(list), "the agent profile is not a CLI session of the sponsor")
+
+	actx, _ := loginCtx(t, s.svc, "alice")
+	require.NoError(t, s.svc.ChangePassword(actx, testPassword, "new correct horse battery"))
+	var reason string
+	require.NoError(t, s.pool.QueryRow(ctx, "SELECT coalesce(revoke_reason, '') FROM cli_session WHERE id = $1", profile).Scan(&reason))
+	assert.Equal(t, "password_reset", reason)
 }

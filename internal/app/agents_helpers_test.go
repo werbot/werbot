@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 	gossh "golang.org/x/crypto/ssh"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -24,12 +25,13 @@ import (
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 )
 
-// agentRig is a served werbot with its owner: a browser session (web) and a
-// CLI access token from the device flow (token).
+// agentRig is a served werbot on pool with its owner: a browser session
+// (web) and a CLI access token from the device flow (token).
 type agentRig struct {
 	base  string
 	web   *http.Client
 	token string
+	pool  *pgxpool.Pool
 }
 
 // startAgentRig serves werbot on a fresh database and signs the owner in.
@@ -39,7 +41,7 @@ func startAgentRig(t *testing.T) *agentRig {
 	// development: cookie without Secure, which the jar sends over plain http.
 	cfg := config.Config{HTTPAddr: freeAddr(t), Env: "development", WebEmbedded: false}
 	startServe(t, cfg, pool, nil, nil, slog.New(slog.DiscardHandler))
-	r := &agentRig{base: "http://" + cfg.HTTPAddr}
+	r := &agentRig{base: "http://" + cfg.HTTPAddr, pool: pool}
 	r.web, _ = jarClient(t, http.DefaultTransport)
 	ctx := context.Background()
 	_, err := werbotv1connect.NewAuthServiceClient(r.web, r.base).Setup(ctx, connect.NewRequest(ownerSetup))

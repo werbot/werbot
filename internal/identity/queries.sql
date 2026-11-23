@@ -253,8 +253,8 @@ WHERE org_id = @org_id;
 SELECT role FROM membership WHERE org_id = @org_id AND user_id = @user_id;
 
 -- name: GetCLISessionRole :one
--- A Bearer request: the live cli_session of the token and the member's role.
-SELECT m.role FROM cli_session c
+-- A Bearer request: the live cli_session of the token, its agent and the member's role.
+SELECT m.role, c.agent_id FROM cli_session c
 JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
 WHERE c.id = @id AND c.org_id = @org_id AND c.user_id = @user_id AND c.revoked_at IS NULL
   AND c.expires_at > now() AND c.absolute_expires_at > now();
@@ -262,7 +262,7 @@ WHERE c.id = @id AND c.org_id = @org_id AND c.user_id = @user_id AND c.revoked_a
 -- name: ListCLISessions :many
 SELECT id, user_id, client_id, hostname, ip, created_at, last_used_at, expires_at, absolute_expires_at
 FROM cli_session
-WHERE org_id = @org_id AND user_id = @user_id AND revoked_at IS NULL
+WHERE org_id = @org_id AND user_id = @user_id AND revoked_at IS NULL AND agent_id IS NULL
   AND expires_at > now() AND absolute_expires_at > now()
 ORDER BY created_at DESC;
 

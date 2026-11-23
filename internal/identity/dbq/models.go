@@ -156,6 +156,7 @@ type CliSession struct {
 	AbsoluteExpiresAt time.Time
 	RevokedAt         *time.Time
 	RevokeReason      *string
+	AgentID           *uuid.UUID
 }
 
 type CommandClassRule struct {

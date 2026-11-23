@@ -15,8 +15,11 @@ const (
 	ClientCLI = "werbot-cli"
 	// AccessTokenTTL is the lifetime of access and ID tokens.
 	AccessTokenTTL = 10 * time.Minute
-	// Audience is the aud of every access token.
+	// Audience is the aud of every access token but an agent profile's.
 	Audience = "werbot-api"
+	// AudienceAgentExchange is the aud of an agent profile's access token:
+	// VerifyAccessToken refuses it, only the token exchange takes it.
+	AudienceAgentExchange = "werbot-agent-exchange"
 )
 
 // Config configures the authorization server.

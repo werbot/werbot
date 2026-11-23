@@ -69,9 +69,16 @@ type EmailQueue interface {
 	EnqueueTx(ctx context.Context, tx pgx.Tx, to, template string, data map[string]string) error
 }
 
+// ProfileRevoker ends the agent profiles of an agent inside the caller's
+// transaction (oauth.RevokeAgentProfiles through an adapter in internal/app).
+type ProfileRevoker interface {
+	RevokeAgentProfiles(ctx context.Context, tx pgx.Tx, orgID, agentID uuid.UUID, actor *uuid.UUID, reason string) error
+}
+
 // Config configures a Service.
 type Config struct {
-	WebURL string // base of the run link in agent_alert emails
+	WebURL   string         // base of the run link in agent_alert emails
+	Profiles ProfileRevoker // freezing an agent revokes its profiles; nil only in agentic's unit tests
 }
 
 // Service manages the agents and runs of organizations.

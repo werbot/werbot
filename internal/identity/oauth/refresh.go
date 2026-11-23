@@ -32,12 +32,19 @@ type refreshRequest struct {
 var _ op.RefreshTokenRequest = (*refreshRequest)(nil)
 
 func (*refreshRequest) GetAMR() []string               { return nil }
-func (*refreshRequest) GetAudience() []string          { return []string{Audience} }
 func (*refreshRequest) GetAuthTime() time.Time         { return time.Time{} }
 func (r *refreshRequest) GetClientID() string          { return r.ClientID }
 func (r *refreshRequest) GetScopes() []string          { return r.scopes }
 func (r *refreshRequest) GetSubject() string           { return r.UserID.String() }
 func (r *refreshRequest) SetCurrentScopes(sc []string) { r.scopes = sc }
+
+// GetAudience: an agent profile's access token is for the exchange only.
+func (r *refreshRequest) GetAudience() []string {
+	if r.AgentID != nil {
+		return []string{AudienceAgentExchange}
+	}
+	return []string{Audience}
+}
 
 // TokenRequestByRefreshToken implements op.Storage: the session of a live
 // token (not revoked, before expires_at, absolute_expires_at and created_at

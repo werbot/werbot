@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/werbot/werbot/internal/agentic"
+	"github.com/werbot/werbot/internal/identity/oauth"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/principal"
@@ -45,6 +47,13 @@ func (a oauthAgents) StartAgentRun(ctx context.Context, orgID, userID uuid.UUID,
 		return uuid.Nil, uuid.Nil, time.Time{}, errRunNotStarted
 	}
 	return agent.ID, run.ID, run.ExpiresAt, nil
+}
+
+// agentProfiles revokes the agent profiles of a frozen agent (agentic.ProfileRevoker).
+type agentProfiles struct{}
+
+func (agentProfiles) RevokeAgentProfiles(ctx context.Context, tx pgx.Tx, orgID, agentID uuid.UUID, actor *uuid.UUID, reason string) error {
+	return oauth.RevokeAgentProfiles(ctx, tx, orgID, agentID, actor, reason)
 }
 
 // policyAgents is the agents of agentic as a policy.AgentSource.

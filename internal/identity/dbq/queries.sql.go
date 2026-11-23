@@ -338,7 +338,7 @@ func (q *Queries) ExtendSession(ctx context.Context, arg ExtendSessionParams) er
 }
 
 const getCLISessionRole = `-- name: GetCLISessionRole :one
-SELECT m.role FROM cli_session c
+SELECT m.role, c.agent_id FROM cli_session c
 JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
 WHERE c.id = $1 AND c.org_id = $2 AND c.user_id = $3 AND c.revoked_at IS NULL
   AND c.expires_at > now() AND c.absolute_expires_at > now()
@@ -350,12 +350,17 @@ type GetCLISessionRoleParams struct {
 	UserID uuid.UUID
 }
 
-// A Bearer request: the live cli_session of the token and the member's role.
-func (q *Queries) GetCLISessionRole(ctx context.Context, arg GetCLISessionRoleParams) (string, error) {
+type GetCLISessionRoleRow struct {
+	Role    string
+	AgentID *uuid.UUID
+}
+
+// A Bearer request: the live cli_session of the token, its agent and the member's role.
+func (q *Queries) GetCLISessionRole(ctx context.Context, arg GetCLISessionRoleParams) (GetCLISessionRoleRow, error) {
 	row := q.db.QueryRow(ctx, getCLISessionRole, arg.ID, arg.OrgID, arg.UserID)
-	var role string
-	err := row.Scan(&role)
-	return role, err
+	var i GetCLISessionRoleRow
+	err := row.Scan(&i.Role, &i.AgentID)
+	return i, err
 }
 
 const getCertSubject = `-- name: GetCertSubject :one
@@ -667,7 +672,7 @@ func (q *Queries) IsMemberEmail(ctx context.Context, arg IsMemberEmailParams) (b
 const listCLISessions = `-- name: ListCLISessions :many
 SELECT id, user_id, client_id, hostname, ip, created_at, last_used_at, expires_at, absolute_expires_at
 FROM cli_session
-WHERE org_id = $1 AND user_id = $2 AND revoked_at IS NULL
+WHERE org_id = $1 AND user_id = $2 AND revoked_at IS NULL AND agent_id IS NULL
   AND expires_at > now() AND absolute_expires_at > now()
 ORDER BY created_at DESC
 `

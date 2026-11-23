@@ -13,8 +13,8 @@ import (
 )
 
 // mountOAuth builds the CLI authorization server and mounts /oauth/,
-// /.well-known/, OAuthConsentService, SettingsService, CLISessionService and
-// CertService on mux, with or without the embedded UI. Tokens carry iss =
+// /.well-known/, OAuthConsentService, AgentProfileService, SettingsService,
+// CLISessionService and CertService on mux, with or without the embedded UI. Tokens carry iss =
 // WERBOT_PUBLIC_URL; consent and device pages live at WERBOT_WEB_URL. The
 // provider verifies Bearer tokens for identity.Middleware; agents serves the
 // agent token exchange.
@@ -26,6 +26,7 @@ func mountOAuth(mux *http.ServeMux, cfg config.Config, pool *pgxpool.Pool, key *
 	mux.Handle("/oauth/", p.Handler())
 	mux.Handle("/.well-known/", p.Handler())
 	mux.Handle(werbotv1connect.NewOAuthConsentServiceHandler(oauth.NewConsentHandler(p), opts...))
+	mux.Handle(werbotv1connect.NewAgentProfileServiceHandler(oauth.NewAgentProfileHandler(p), opts...))
 	idh := identity.NewHandler(ids)
 	mux.Handle(werbotv1connect.NewSettingsServiceHandler(idh, opts...))
 	mux.Handle(werbotv1connect.NewCLISessionServiceHandler(idh, opts...))

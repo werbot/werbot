@@ -21,6 +21,8 @@ import (
 
 // Token exchange (RFC 8693): a member's CLI access token and scope
 // agent:<name> give an access token of one new run of the member's agent.
+// An agent profile's access token (aud werbot-agent-exchange) gives runs of
+// its own agent only.
 
 const (
 	// AgentScopePrefix starts the exchange scope agent:<name> and the act.sub
@@ -50,6 +52,7 @@ type Agents interface {
 // (ValidateTokenExchangeRequest), then the run Agents started (Create…).
 type agentGrant struct {
 	orgID, userID, sessionID uuid.UUID
+	profile                  bool // the subject is an agent profile's token
 	name, client, reason     string
 	agentID, runID           uuid.UUID
 	expiresAt                time.Time
@@ -61,8 +64,9 @@ var _ op.TokenExchangeStorage = (*storage)(nil)
 // checked the client and the subject token's signature, issuer and expiry.
 // Here: access tokens only, no actor, audience exactly werbot-api, one scope
 // agent:<name>, werbot_client and werbot_reason within bounds, and a
-// non-delegated werbot-api subject whose cli_session is live and whose user is
-// still a member. It writes nothing.
+// non-delegated subject whose cli_session is live, whose user is still a
+// member and whose aud matches the session: werbot-api for a person's,
+// werbot-agent-exchange for an agent profile of agent <name>. It writes nothing.
 func (s *storage) ValidateTokenExchangeRequest(ctx context.Context, req op.TokenExchangeRequest) error {
 	if s.agents == nil {
 		return oidc.ErrUnsupportedGrantType().WithDescription("token exchange is not served")
@@ -83,10 +87,10 @@ func (s *storage) ValidateTokenExchangeRequest(ctx context.Context, req op.Token
 	if err != nil {
 		return err
 	}
+	g.name, g.client, g.reason = name, client, reason
 	if err := s.liveSubject(ctx, g); err != nil {
 		return err
 	}
-	g.name, g.client, g.reason = name, client, reason
 	req.SetCurrentScopes([]string{AgentScopePrefix + name})
 	ri.grant = g
 	return nil
@@ -191,8 +195,9 @@ func exchangeParams(ri *reqInfo) (client, reason string, err error) {
 	return client, ri.reason, nil
 }
 
-// subjectOf reads the subject token's claims as VerifyAccessToken does
-// (aud ∋ werbot-api, UUID sub, jti and werbot_org) and refuses an agent token.
+// subjectOf reads the subject token's claims as VerifyAccessToken does (UUID
+// sub, jti and werbot_org), with aud holding werbot-api or, for an agent
+// profile, werbot-agent-exchange (never both), and refuses an agent token.
 func subjectOf(req op.TokenExchangeRequest) (*agentGrant, error) {
 	c := req.GetExchangeSubjectTokenClaims()
 	_, act := c["act"]
@@ -204,32 +209,45 @@ func subjectOf(req op.TokenExchangeRequest) (*agentGrant, error) {
 	user, err1 := parseID(req.GetExchangeSubject())
 	sess, err2 := parseID(req.GetExchangeSubjectTokenIDOrToken())
 	orgID, err3 := parseID(org)
-	if !hasAudience(c["aud"]) || errors.Join(err1, err2, err3) != nil {
+	api, profile := subjectAudience(c["aud"])
+	if api == profile || errors.Join(err1, err2, err3) != nil {
 		return nil, oidc.ErrInvalidGrant().WithDescription("subject token is not a " + Audience + " access token")
 	}
-	return &agentGrant{orgID: orgID, userID: user, sessionID: sess}, nil
+	return &agentGrant{orgID: orgID, userID: user, sessionID: sess, profile: profile}, nil
 }
 
-// hasAudience: the raw aud claim (a string or a list) holds werbot-api.
-func hasAudience(aud any) bool {
+// subjectAudience reports whether the raw aud claim (a string or a list)
+// holds werbot-api and werbot-agent-exchange; a subject needs exactly one.
+func subjectAudience(aud any) (api, profile bool) {
+	var list []any
 	switch a := aud.(type) {
 	case string:
-		return a == Audience
+		list = []any{a}
 	case []any:
-		return slices.Contains(a, any(Audience))
+		list = a
 	}
-	return false
+	return slices.Contains(list, any(Audience)), slices.Contains(list, any(AudienceAgentExchange))
 }
 
 // liveSubject: the subject's cli_session is live and its user still a member
-// (as the Bearer middleware checks); otherwise invalid_grant.
+// (as the Bearer middleware checks), and the session is an agent profile
+// exactly when the token is one; otherwise invalid_grant. A profile of
+// another agent than g.name is invalid_scope.
 func (s *storage) liveSubject(ctx context.Context, g *agentGrant) error {
-	err := dbx.ReadInOrg(s.pool, g.orgID, g.userID, func(rd *dbx.Read) error {
-		_, err := dbq.New(rd).LiveCLISessionMember(ctx, dbq.LiveCLISessionMemberParams{ID: g.sessionID, OrgID: g.orgID, UserID: g.userID})
+	var row dbq.LiveCLISessionMemberRow
+	err := dbx.ReadInOrg(s.pool, g.orgID, g.userID, func(rd *dbx.Read) (err error) {
+		row, err = dbq.New(rd).LiveCLISessionMember(ctx, dbq.LiveCLISessionMemberParams{ID: g.sessionID, OrgID: g.orgID, UserID: g.userID})
 		return err
 	})
-	if errors.Is(err, pgx.ErrNoRows) {
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
 		return oidc.ErrInvalidGrant().WithDescription("cli session ended")
+	case err != nil:
+		return err
+	case (row.AgentID != nil) != g.profile:
+		return oidc.ErrInvalidGrant().WithDescription("subject token does not match its cli session")
+	case g.profile && (row.AgentName == nil || *row.AgentName != g.name):
+		return oidc.ErrInvalidScope().WithDescription("agent profile is bound to another agent")
 	}
-	return err
+	return nil
 }
