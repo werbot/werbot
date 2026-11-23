@@ -23,13 +23,14 @@ type Service struct{ pool *pgxpool.Pool }
 func New(pool *pgxpool.Pool) *Service { return &Service{pool: pool} }
 
 // Start records a new open session and audits "session.start", marked
-// break_glass under an active break-glass grant of the user. The gateway
+// break_glass under an active break-glass grant of the user and front "web"
+// for a web session. The gateway
 // names the user, which the server does not trust: a user who is not a member
 // of the organization is apperr.ErrNotFound and gets no session. p.Guard, when
 // set, runs in the same transaction before the insert.
 func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
-	if p.Kind == "" {
-		p.Kind = "terminal"
+	if err := p.defaults(); err != nil {
+		return uuid.Nil, err
 	}
 	var id uuid.UUID
 	err := dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) (err error) {
@@ -50,17 +51,27 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	return id, nil
 }
 
+// defaults sets the empty Kind and Front of p and refuses an unknown Front.
+func (p *Start) defaults() error {
+	if p.Kind == "" {
+		p.Kind = "terminal"
+	}
+	if p.Front == "" {
+		p.Front = "ssh"
+	}
+	if p.Front != "ssh" && p.Front != "web" {
+		return fmt.Errorf("invalid session front %q: %w", p.Front, apperr.ErrInvalidArgument)
+	}
+	return nil
+}
+
 // insertSession inserts the session of p and its session.start audit row in one statement.
 func insertSession(ctx context.Context, tx pgx.Tx, p Start) (uuid.UUID, error) {
 	args := []any{p.OrgID, p.UserID, p.ResourceID, p.GatewayID, p.InstanceID, p.ClientIP, p.Kind, p.Target, p.Command, p.Classes, p.Paths,
-		p.AgentRunID, p.ToolCallID}
-	data := map[string]any{"kind": p.Kind, "target": p.Target}
-	var breakGlass bool
-	if err := tx.QueryRow(ctx, activeBreakGlass, p.OrgID, p.UserID, p.ResourceID).Scan(&breakGlass); err != nil {
+		p.AgentRunID, p.ToolCallID, p.Front}
+	data, err := startData(ctx, tx, p)
+	if err != nil {
 		return uuid.Nil, err
-	}
-	if breakGlass {
-		data["break_glass"] = true
 	}
 	audit, auditArgs, err := auditlog.InsertFrom(auditlog.Event{
 		OrgID: &p.OrgID, ActorUserID: &p.UserID, ActorKind: "user", Action: "session.start",
@@ -77,6 +88,23 @@ func insertSession(ctx context.Context, tx pgx.Tx, p Start) (uuid.UUID, error) {
 	return id, err
 }
 
+// startData is the session.start audit data of p: its kind and target, front
+// "web" for a web session and break_glass under an active break-glass grant.
+func startData(ctx context.Context, tx pgx.Tx, p Start) (map[string]any, error) {
+	data := map[string]any{"kind": p.Kind, "target": p.Target}
+	if p.Front == "web" {
+		data["front"] = p.Front
+	}
+	var breakGlass bool
+	if err := tx.QueryRow(ctx, activeBreakGlass, p.OrgID, p.UserID, p.ResourceID).Scan(&breakGlass); err != nil {
+		return nil, err
+	}
+	if breakGlass {
+		data["break_glass"] = true
+	}
+	return data, nil
+}
+
 // activeBreakGlass tells whether the user holds an active break-glass grant to the resource.
 const activeBreakGlass = `SELECT EXISTS (SELECT 1 FROM access_grant WHERE org_id = $1 AND user_id = $2 AND resource_id = $3
 	AND break_glass AND revoked_at IS NULL AND expires_at > now())`
@@ -86,9 +114,9 @@ const activeBreakGlass = `SELECT EXISTS (SELECT 1 FROM access_grant WHERE org_id
 // and opens the CTE of its audit row, which the caller appends.
 const startSession = `WITH s AS (
 	INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target, command, classes, paths,
-		agent_run_id, tool_call_id)
+		agent_run_id, tool_call_id, front)
 	SELECT m.org_id, m.user_id, $3::uuid, $4::uuid, $5::uuid, $6::inet, $7::text, $8::text, NULLIF($9::text, ''), $10::text[], $11::text[],
-		$12::uuid, (SELECT t.id FROM agent_tool_call t WHERE t.id = $13::uuid AND t.run_id = $12::uuid AND t.org_id = m.org_id)
+		$12::uuid, (SELECT t.id FROM agent_tool_call t WHERE t.id = $13::uuid AND t.run_id = $12::uuid AND t.org_id = m.org_id), $14::text
 	FROM membership m WHERE m.org_id = $1 AND m.user_id = $2
 	RETURNING id
 ), audit AS (`

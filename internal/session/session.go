@@ -24,6 +24,7 @@ type Start struct {
 	OrgID, UserID, ResourceID, GatewayID, InstanceID uuid.UUID
 	ClientIP                                         netip.Addr
 	Kind, Target                                     string     // Kind "" is "terminal"
+	Front                                            string     // "ssh" | "web"; "" is "ssh"
 	Command                                          string     // exec only; "" is NULL
 	Classes                                          []string   // exec only; nil is NULL
 	Paths                                            []string   // nil is NULL

@@ -15,11 +15,15 @@ import (
 )
 
 // NOTIFY channels: OrgChanged carries an org id or "*" (all orgs), GeoIPChanged has no payload,
-// ApprovalDecided carries "<gateway_instance_id>:<approval_id>" of a decided command approval.
+// ApprovalDecided carries "<gateway_instance_id>:<approval_id>" of a decided command approval,
+// StreamOpen "<gateway_instance_id>:<ticket_id>" of a new stream ticket and SessionTerminate
+// "<gateway_instance_id>:<session_id>" of a session to terminate.
 const (
-	OrgChanged      = "werbot_org_changed"
-	GeoIPChanged    = "werbot_geoip_changed"
-	ApprovalDecided = "werbot_approval_decided"
+	OrgChanged       = "werbot_org_changed"
+	GeoIPChanged     = "werbot_geoip_changed"
+	ApprovalDecided  = "werbot_approval_decided"
+	StreamOpen       = "werbot_stream_open"
+	SessionTerminate = "werbot_session_terminate"
 )
 
 const (

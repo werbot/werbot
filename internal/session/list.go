@@ -30,7 +30,8 @@ type ListFilter struct {
 }
 
 // Summary is a session with its user, resource and recording state.
-// The ids are nil once the user, resource or gateway is deleted.
+// The ids are nil once the user, resource or gateway is deleted. Live is an
+// open terminal session with a gateway instance: it can be watched or terminated.
 type Summary struct {
 	ID                                 uuid.UUID
 	UserID, ResourceID, GatewayID      *uuid.UUID
@@ -41,7 +42,8 @@ type Summary struct {
 	Chunks                             int
 	Bytes                              int64
 	Finished                           bool
-	Kind, Target, Command              string
+	Kind, Target, Command, Front       string
+	Live                               bool
 	Classes                            []string
 	Paths                              []string
 	BytesUp, BytesDown                 int64
@@ -117,6 +119,6 @@ func summary(r dbq.ListSessionsRow) Summary {
 		UserLogin: r.UserLogin, ResourceName: r.ResourceName, EndReason: r.EndReason,
 		ClientIP: r.ClientIp, StartedAt: r.StartedAt, EndedAt: r.EndedAt,
 		Chunks: int(r.Chunks), Bytes: r.Bytes, Finished: r.Finished,
-		Kind: r.Kind, Target: r.Target, Command: r.Command, Classes: r.Classes, Paths: r.Paths, BytesUp: r.BytesUp, BytesDown: r.BytesDown,
+		Kind: r.Kind, Target: r.Target, Command: r.Command, Front: r.Front, Live: r.Live, Classes: r.Classes, Paths: r.Paths, BytesUp: r.BytesUp, BytesDown: r.BytesDown,
 		DatagramsUp: r.DatagramsUp, DatagramsDown: r.DatagramsDown}
 }

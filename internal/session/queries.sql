@@ -88,7 +88,8 @@ WHERE session_id = @session_id AND org_id = @org_id;
 -- name: ListSessions :many
 -- LEFT JOINs keep the history of deleted users and resources.
 SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
-       s.kind, s.target, coalesce(s.command, '')::text AS command, s.classes, s.paths, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
+       s.kind, s.target, s.front,
+       (s.ended_at IS NULL AND s.kind = 'terminal' AND s.gateway_instance_id IS NOT NULL)::bool AS live, coalesce(s.command, '')::text AS command, s.classes, s.paths, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
        coalesce(u.login, '')::text AS user_login,
        coalesce(r.name, '')::text AS resource_name,
        coalesce(s.end_reason, '')::text AS end_reason,
@@ -108,3 +109,25 @@ WHERE s.org_id = @org_id
   AND (sqlc.narg(id)::uuid IS NULL OR s.id = sqlc.narg(id))
 ORDER BY s.started_at DESC, s.id DESC
 LIMIT @row_limit::int OFFSET @row_offset::int;
+
+-- name: LockSessionToTerminate :one
+-- A set user_id narrows to that user's session; the lock orders terminate against End.
+SELECT gateway_instance_id, ended_at, terminate_requested_at
+FROM session
+WHERE id = @id AND org_id = @org_id AND (sqlc.narg(user_id)::uuid IS NULL OR user_id = sqlc.narg(user_id))
+FOR UPDATE;
+
+-- name: RequestTerminate :exec
+UPDATE session
+SET terminate_requested_at = now(), terminate_reason = @reason::text
+WHERE id = @id AND org_id = @org_id;
+
+-- name: NotifySessionTerminate :exec
+SELECT pg_notify('werbot_session_terminate', @payload::text);
+
+-- name: PendingTerminations :one
+-- One row for dbx.ReadInOrg; the partial index session_terminate_pending_idx serves it.
+SELECT coalesce(array_agg(id ORDER BY id), '{}')::uuid[] AS ids
+FROM session
+WHERE org_id = @org_id AND gateway_instance_id = @instance_id::uuid
+  AND terminate_requested_at IS NOT NULL AND ended_at IS NULL;

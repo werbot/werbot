@@ -278,7 +278,8 @@ func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyPara
 
 const listSessions = `-- name: ListSessions :many
 SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
-       s.kind, s.target, coalesce(s.command, '')::text AS command, s.classes, s.paths, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
+       s.kind, s.target, s.front,
+       (s.ended_at IS NULL AND s.kind = 'terminal' AND s.gateway_instance_id IS NOT NULL)::bool AS live, coalesce(s.command, '')::text AS command, s.classes, s.paths, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
        coalesce(u.login, '')::text AS user_login,
        coalesce(r.name, '')::text AS resource_name,
        coalesce(s.end_reason, '')::text AS end_reason,
@@ -322,6 +323,8 @@ type ListSessionsRow struct {
 	EndedAt       *time.Time
 	Kind          string
 	Target        string
+	Front         string
+	Live          bool
 	Command       string
 	Classes       []string
 	Paths         []string
@@ -367,6 +370,8 @@ func (q *Queries) ListSessions(ctx context.Context, arg ListSessionsParams) ([]L
 			&i.EndedAt,
 			&i.Kind,
 			&i.Target,
+			&i.Front,
+			&i.Live,
 			&i.Command,
 			&i.Classes,
 			&i.Paths,
@@ -423,6 +428,33 @@ func (q *Queries) LockRecording(ctx context.Context, arg LockRecordingParams) (L
 	return i, err
 }
 
+const lockSessionToTerminate = `-- name: LockSessionToTerminate :one
+SELECT gateway_instance_id, ended_at, terminate_requested_at
+FROM session
+WHERE id = $1 AND org_id = $2 AND ($3::uuid IS NULL OR user_id = $3)
+FOR UPDATE
+`
+
+type LockSessionToTerminateParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID *uuid.UUID
+}
+
+type LockSessionToTerminateRow struct {
+	GatewayInstanceID    *uuid.UUID
+	EndedAt              *time.Time
+	TerminateRequestedAt *time.Time
+}
+
+// A set user_id narrows to that user's session; the lock orders terminate against End.
+func (q *Queries) LockSessionToTerminate(ctx context.Context, arg LockSessionToTerminateParams) (LockSessionToTerminateRow, error) {
+	row := q.db.QueryRow(ctx, lockSessionToTerminate, arg.ID, arg.OrgID, arg.UserID)
+	var i LockSessionToTerminateRow
+	err := row.Scan(&i.GatewayInstanceID, &i.EndedAt, &i.TerminateRequestedAt)
+	return i, err
+}
+
 const membersAmong = `-- name: MembersAmong :many
 SELECT user_id FROM membership WHERE org_id = $1 AND user_id = ANY($2::uuid[])
 `
@@ -450,6 +482,52 @@ func (q *Queries) MembersAmong(ctx context.Context, arg MembersAmongParams) ([]u
 		return nil, err
 	}
 	return items, nil
+}
+
+const notifySessionTerminate = `-- name: NotifySessionTerminate :exec
+SELECT pg_notify('werbot_session_terminate', $1::text)
+`
+
+func (q *Queries) NotifySessionTerminate(ctx context.Context, payload string) error {
+	_, err := q.db.Exec(ctx, notifySessionTerminate, payload)
+	return err
+}
+
+const pendingTerminations = `-- name: PendingTerminations :one
+SELECT coalesce(array_agg(id ORDER BY id), '{}')::uuid[] AS ids
+FROM session
+WHERE org_id = $1 AND gateway_instance_id = $2::uuid
+  AND terminate_requested_at IS NOT NULL AND ended_at IS NULL
+`
+
+type PendingTerminationsParams struct {
+	OrgID      uuid.UUID
+	InstanceID uuid.UUID
+}
+
+// One row for dbx.ReadInOrg; the partial index session_terminate_pending_idx serves it.
+func (q *Queries) PendingTerminations(ctx context.Context, arg PendingTerminationsParams) ([]uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, pendingTerminations, arg.OrgID, arg.InstanceID)
+	var ids []uuid.UUID
+	err := row.Scan(&ids)
+	return ids, err
+}
+
+const requestTerminate = `-- name: RequestTerminate :exec
+UPDATE session
+SET terminate_requested_at = now(), terminate_reason = $1::text
+WHERE id = $2 AND org_id = $3
+`
+
+type RequestTerminateParams struct {
+	Reason string
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+}
+
+func (q *Queries) RequestTerminate(ctx context.Context, arg RequestTerminateParams) error {
+	_, err := q.db.Exec(ctx, requestTerminate, arg.Reason, arg.ID, arg.OrgID)
+	return err
 }
 
 const resourceIDsByName = `-- name: ResourceIDsByName :many

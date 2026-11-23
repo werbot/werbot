@@ -439,30 +439,42 @@ type ResourceSchedule struct {
 	Hour       int16
 }
 
+type ServerInstance struct {
+	ID          uuid.UUID
+	Hostname    string
+	InternalUrl string
+	Version     string
+	StartedAt   time.Time
+	LastSeenAt  time.Time
+}
+
 type Session struct {
-	ID                uuid.UUID
-	OrgID             uuid.UUID
-	UserID            *uuid.UUID
-	ResourceID        *uuid.UUID
-	GatewayID         *uuid.UUID
-	GatewayInstanceID *uuid.UUID
-	ClientIp          netip.Addr
-	StartedAt         time.Time
-	EndedAt           *time.Time
-	EndReason         *string
-	Kind              string
-	Target            string
-	BytesUp           int64
-	BytesDown         int64
-	DatagramsUp       int64
-	DatagramsDown     int64
-	Command           *string
-	Classes           []string
-	Paths             []string
-	AgentRunID        *uuid.UUID
-	ToolCallID        *uuid.UUID
-	ExitCode          *int32
-	OutputSha256      []byte
+	ID                   uuid.UUID
+	OrgID                uuid.UUID
+	UserID               *uuid.UUID
+	ResourceID           *uuid.UUID
+	GatewayID            *uuid.UUID
+	GatewayInstanceID    *uuid.UUID
+	ClientIp             netip.Addr
+	StartedAt            time.Time
+	EndedAt              *time.Time
+	EndReason            *string
+	Kind                 string
+	Target               string
+	BytesUp              int64
+	BytesDown            int64
+	DatagramsUp          int64
+	DatagramsDown        int64
+	Command              *string
+	Classes              []string
+	Paths                []string
+	AgentRunID           *uuid.UUID
+	ToolCallID           *uuid.UUID
+	ExitCode             *int32
+	OutputSha256         []byte
+	Front                string
+	TerminateRequestedAt *time.Time
+	TerminateReason      *string
 }
 
 type SigningKey struct {
@@ -470,6 +482,23 @@ type SigningKey struct {
 	Ciphertext []byte
 	KeyID      string
 	PublicKey  []byte
+}
+
+type StreamTicket struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	Mode              string
+	SessionID         *uuid.UUID
+	ResourceID        *uuid.UUID
+	UserID            uuid.UUID
+	Cols              int32
+	Rows              int32
+	GatewayInstanceID uuid.UUID
+	TargetServerID    uuid.UUID
+	ClientIp          *netip.Addr
+	ExpiresAt         time.Time
+	UsedAt            *time.Time
+	CreatedAt         time.Time
 }
 
 type Team struct {

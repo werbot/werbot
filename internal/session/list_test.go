@@ -215,3 +215,32 @@ func TestListSessionsNonAdminRoleSeesOwn(t *testing.T) {
 	_, err = e.svc.GetSession(t.Context(), p, e.ids[1])
 	assert.ErrorIs(t, err, apperr.ErrNotFound)
 }
+
+// A session is live while it is an open terminal session with a gateway
+// instance; the summary carries its front.
+func TestListSessionsFrontLive(t *testing.T) {
+	e := newListEnv(t)
+	exec := func(sql string, args ...any) {
+		_, err := e.pool.Exec(t.Context(), sql, args...)
+		require.NoError(t, err)
+	}
+	exec("UPDATE session SET front = 'web' WHERE id = $1", e.ids[0])
+	exec("UPDATE session SET kind = 'exec' WHERE id = $1", e.ids[1])
+	exec("UPDATE session SET ended_at = now(), end_reason = 'closed' WHERE id = $1", e.ids[2])
+	lost := e.a.StartSession(t, e.pool, e.a.OwnerID)
+	exec("UPDATE session SET gateway_instance_id = NULL WHERE id = $1", lost)
+
+	items, _, err := e.svc.ListSessions(t.Context(), e.a.Principal(e.a.OwnerID), session.ListFilter{})
+	require.NoError(t, err)
+	got := map[uuid.UUID][2]any{}
+	for _, s := range items {
+		got[s.ID] = [2]any{s.Front, s.Live}
+	}
+	assert.Equal(t, map[uuid.UUID][2]any{
+		e.ids[0]: {"web", true}, e.ids[1]: {"ssh", false}, e.ids[2]: {"ssh", false}, lost: {"ssh", false},
+	}, got)
+
+	s, err := e.svc.GetSession(t.Context(), e.a.Principal(e.a.MemberID), e.ids[0])
+	require.NoError(t, err)
+	assert.Equal(t, [2]any{"web", true}, [2]any{s.Front, s.Live})
+}
