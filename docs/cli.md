@@ -40,6 +40,10 @@ Files are `0600`, directories `0700` ([security.md](security.md#cli-sessions-and
 | `werbot approve <id>`, `werbot deny <id>` | Decide a request; `--comment` adds a note for the requester. |
 | `werbot status` | Server, user, organization, token expiry and certificate; renews a certificate close to expiry. |
 | `werbot logout` | Revokes the session on the server and removes the profile. |
+| `werbot mcp` | Serves MCP on stdio as an agent of your account ([AI agents](#ai-agents)). |
+| `werbot agent run -- <cmd>` | Runs a program with `ssh` set up for an agent run ([AI agents](#ai-agents)). |
+| `werbot agents` | Table `NAME STATUS MAX ACTIONS MAX DURATION MAX CONCURRENT ACTIVE RUNS` of your agents (owners and admins: all). |
+| `werbot agents profile create`, `list`, `revoke` | Manage agent profiles ([AI agents](#ai-agents)). |
 
 `ssh`, `ssh-config` and `connect` use only the resources you can open. `werbot ssh` to a resource you can only request fails with `resource <r> is not accessible; run werbot request <r>`.
 
@@ -96,6 +100,28 @@ The block sets `User <login>+<resource>`, `IdentityFile`, `CertificateFile`, `Us
 Every login is a CLI session. An organization sets its lifetime in Settings (idle timeout and maximum age). A user sees the sessions in Profile, CLI sessions and revokes one there; `logout` revokes the current one, and a new `login` to the same server revokes the previous one. A revoked session stops working at the next API request and the next gateway connection: commands fail with `session expired or revoked; run werbot login`. Open connections keep running; to end them, an owner or admin locks the CLI session on the Locks page ([jit.md](jit.md#revoking-a-cli-session)).
 
 Refresh-token rotation and reuse detection: [security.md](security.md#cli-sessions-and-user-certificates).
+
+## AI agents
+
+The guide is [agents.md](agents.md).
+
+```text
+werbot mcp [--agent <name>] [--reason <text>]
+werbot agent run [--agent <name>] [--reason <text>] [--resource <name>]... -- <cmd> [args]
+werbot agents
+werbot agents profile create <agent> --dir <path> [--ttl <duration>] [--label <text>]
+werbot agents profile list [<agent>]
+werbot agents profile revoke <id>
+```
+
+- `werbot mcp` starts a run of the agent on the first tool call and ends it when stdin closes. `--agent` defaults to the MCP client name. It exits `0` at the end of stdin and `1` when no profile can be loaded; a refused token exchange is a tool error, not an exit.
+- `werbot agent run` exits with the exit code of `<cmd>`, and `1` with the message when the run cannot start. `--agent` defaults to the command name; `--resource` (repeatable) limits the setup to those resources and opens local ports for `tcp` and `udp` ones.
+- `werbot agents profile create` writes an agent profile into `--dir` (missing or empty, `0700`): another OS user or a container runs `WERBOT_HOME=<dir> werbot mcp`. It creates the agent if you have none of that name. `--ttl` is `1h` to `90d` (default: the organization's `cli_session_max`); `--label` defaults to the host name. `list` prints `ID AGENT LABEL CREATED LAST USED EXPIRES`; `revoke` takes an id from it.
+
+Profile modes:
+
+- **Shared**: with your own profile, `werbot mcp` and `werbot agent run` print `warning: the agent runs as your OS user and can read your werbot profile in <home>; isolate it with "werbot agents profile create"`. The agent can read your tokens and key ([agents.md](agents.md#shared-the-sponsors-profile)).
+- **Isolated**: with an agent profile (`WERBOT_HOME` pointing at its directory) only `mcp`, `agent run`, `status` and `logout` work; other commands fail with `this is an agent profile: only werbot mcp, werbot agent run, werbot status and werbot logout use it`. `--agent` must be the profile's agent or empty.
 
 ## Windows
 

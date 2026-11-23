@@ -31,6 +31,8 @@ Open http://localhost:8080 and create the first account. What runs, ports and vo
 
 Set the SSH address of the pool (Gateways page, pool details; `localhost:2222` for the quick start above), add a resource and bind it to yourself. Then run `werbot login --server http://localhost:8080` on your computer and continue with [docs/cli.md](docs/cli.md).
 
+AI agents (Claude Code, Codex, Cursor) connect through `werbot mcp`: they run commands as a run of your account, under a read-only baseline, with no SSH key or password of their own ([docs/agents.md](docs/agents.md)).
+
 ## Other ways to install
 
 - Binary and systemd: [docs/install.md](docs/install.md#binary).
@@ -58,6 +60,7 @@ Releases and images are signed with cosign (keyless) and ship SBOMs. Commands: [
 - [policies.md](docs/policies.md): command policies: risk classes, class overrides, command rules, folder rules, the command console, custom Cedar, command approvals, output masking.
 - [ssh-hardening.md](docs/ssh-hardening.md): host permissions under the Werbot rules: accounts per access level, ACLs, SFTP-only accounts, narrow `sudo`.
 - [connect.md](docs/connect.md): the `werbot connect` client.
+- [agents.md](docs/agents.md): AI agents: `werbot mcp`, `werbot agent run`, sponsors, runs, the baseline, limits, the kill switch, agent profiles.
 
 Release notes (the changelog): [GitHub Releases](https://github.com/werbot/werbot/releases).
 
@@ -102,6 +105,7 @@ Commands: `./bin/werbot <server|gateway|web|login|logout|status|ls|ssh|ssh-confi
 - `connect` opens local ports that reach `tcp`, `udp` and other port resources through a gateway ([docs/connect.md](docs/connect.md)).
 - `request`, `requests`, `approve`, `deny` ask for just-in-time access to a resource, list requests and decide them ([docs/cli.md](docs/cli.md#access-requests)); `ls` marks resources you can only request with `ACCESS` `request`.
 - `login`, `logout`, `status`, `ls`, `ssh`, `ssh-config` sign the CLI in with a browser or device flow, keep a profile and a short-lived SSH certificate in `WERBOT_HOME`, and open sessions with the system `ssh` ([docs/cli.md](docs/cli.md)); `connect` uses the profile when there is one.
+- `mcp`, `agent run`, `agents` run an AI agent as a run of your account (MCP on stdio, or a program with `ssh` set up) and manage your agents and agent profiles ([docs/agents.md](docs/agents.md)).
 - `migrate` runs migrations (schema and River job queue) and exits.
 - `web` serves the UI and proxies the API to a separate `server`.
 - `version` prints the build version.
@@ -114,17 +118,18 @@ The API covers identity (auth, profile, SSH keys, members, teams) and, for owner
 - `AccessService`: bindings that grant a user or team one resource or every resource matching a label selector. A binding may list up to 16 target ports or ranges (`ports`, 1–65535, no overlap): stream and datagram sessions (TCP, UDP, `ssh -L`) then reach only those ports, while terminal and exec sessions are not restricted. A binding without ports allows every port of the resource.
 - `ApprovalPolicyService` (owners and admins): approval policies that say who may request access to which resources, who approves and how (`manual` or `auto`, `max_duration`, `require_reason`, `four_eyes`, `break_glass`) ([docs/jit.md](docs/jit.md#approval-policies)).
 - `AccessRequestService` (every member): access requests, approvals, grants and break-glass reviews. Nobody approves their own request, and a pending request that times out is `expired`, never approved ([docs/jit.md](docs/jit.md#access-requests)).
-- `LockService` (owners and admins): locks on a user, team, resource, grant or CLI session; a lock beats every binding and grant and ends matching sessions within 2 s ([docs/jit.md](docs/jit.md#locks)).
+- `LockService` (owners and admins): locks on a user, team, resource, grant, CLI session, agent, agent run, the agents of a user or all agents; a lock beats every binding and grant and ends matching sessions within 2 s ([docs/jit.md](docs/jit.md#locks)).
 - Organization settings (owners and admins, web UI `/settings`): CLI session lifetimes, grant and request lengths, `lock_mode` and `mask_output` (`agents` by default, `all` or `none`: whose exec output the gateway masks) ([docs/jit.md](docs/jit.md#organization-settings)).
 - `PolicyService`: per-resource network, country and schedule (UTC) rules, and `CheckAccess` to test a decision (optional `port`; 0 tests a terminal or exec session). Decisions use Cedar and fail closed.
 - `PolicyService` command policies (owners and admins, web UI `/policies/commands` and `/policies/custom`): the gateway sorts each exec command into risk classes, and class overrides, command rules (`deny` or `approval`) and custom Cedar policies decide it; a command under `approval` waits until an approver decides on `/requests`. Details: [docs/policies.md](docs/policies.md).
 - `PolicyService` folder and terminal rules (owners and admins, web UI `/policies/paths` and `/policies/terminal`): folder rules limit the paths a command may touch, and terminal rules open interactive shells as a command console that checks every line, or refuse them ([docs/policies.md](docs/policies.md#folders)).
+- `AgentService`, `AgentProfileService` (web UI `/agents`): agents with their limits and status, runs with their timeline (tool calls, sessions, approvals, denials), resume and end, and agent profiles for another OS user or a container ([docs/agents.md](docs/agents.md)).
 - `SessionService`: session list (filters by user, resource, period, status; paging; each session carries its `kind` (`terminal`, `exec`, `stream`, `datagram`), `target`, the `command` it ran (if any) with its classes, and byte and datagram counters), session card and `VerifyRecording` (hash chain and signature check). Members see only their own sessions.
 - `GET /api/recordings/{session_id}.cast` (session cookie): the session recording as one asciicast v2 file, for anyone who may see the session. The header `X-Werbot-Recording-Verified` is `true` only when the served bytes passed the hash chain and signature check; an active, unfinished or tampered recording is served as far as it goes with `false`. The response is an attachment (`<session_id>.cast`, `nosniff`); a chunk that inflates past 1 MiB (a gateway writes at most 64 KiB) ends the stream there. A session without a recording, or one the caller may not see, is `404`; an unreachable recording store is `503`. A replica runs at most 4 replays at once; the fifth gets `503` `replay busy, try again` with `Retry-After: 5`. The server checks the whole recording before it sends the headers, so a very large recording replayed through `werbot web` can hit its 30 s upstream header timeout (`503`).
 - `AuditService`: read-only event journal (`ListEvents`, `GetEvent`) for owners and admins; other roles get `permission_denied`. `ListEvents` filters by `action` (a domain such as `session` matches `session.*`, a full action matches itself), actor, target and period `[from, to)`, newest first, `page_size` 50 by default and 200 at most (a larger value is clamped). Events without an organization are never shown. `session.start` events carry the session's `kind` and `target` in `data`.
 - `GatewayService`: gateway pools, their instances and join tokens. A gateway joins with `GatewayEnrollService/Enroll` (the join token is its only credential) and then talks to the server only over the mTLS tunnel (`https://<WERBOT_PUBLIC_URL host>:<WERBOT_GATEWAY_ADDR port>`). The server never connects to a gateway.
 
-Maintenance jobs run on the River `maintenance` queue: `session.end_lost` (every 30s) closes sessions of gateways that stopped reporting, `gateway.gc` (hourly) removes instances whose certificate expired over 24h ago and join tokens expired over 7 days ago, `approval.expire` (every minute) marks pending requests past their deadline `expired`.
+Maintenance jobs run on the River `maintenance` queue: `session.end_lost` (every 30s) closes sessions of gateways that stopped reporting, `gateway.gc` (hourly) removes instances whose certificate expired over 24h ago and join tokens expired over 7 days ago, `approval.expire` (every minute) marks pending requests past their deadline `expired`, `agent_run.expire` (every minute) ends agent runs past their expiry.
 
 Background jobs on the River `feeds` queue (one worker) need outbound HTTPS from the server:
 

@@ -49,6 +49,7 @@ Rules that no policy changes:
 - **Decision time.** A decision checks the policies again against the current resources. Owners and admins may deny any request.
 - **Timeout is a denial.** A pending request past its deadline (`request_pending_ttl`) becomes `expired` and never turns into an approval. The `approval.expire` job (River `maintenance` queue, every minute) marks such requests; an approval that reaches the server after the deadline fails.
 - **Commands.** A command approval (an `approval` command rule or custom policy, [policies.md](policies.md#command-approvals)) is never approved automatically. Without a matching policy owners and admins decide. It waits `command_approval_ttl`.
+- **Agents.** An AI agent asks through its sponsor: its access request needs a policy with `all_agents` among the requesters, and the grant belongs to the sponsor, so it also opens the resource to the sponsor's own sessions. Its command approvals go to the sponsor's approvers ([agents.md](agents.md#access-requests)).
 
 ## Organization settings
 
@@ -87,8 +88,12 @@ A lock refuses access at once, above every binding and grant. Owners and admins 
 | `resource` | Every session to the resource. |
 | `grant` | The grant opens nothing while the lock lasts. |
 | `cli_session` | Connections made with the certificates of that CLI session, and new certificates for it (`cli session is locked`). Other logins of the same user keep working. |
+| `agent` | Every run of one AI agent ([agents.md](agents.md#kill-switch)). |
+| `agent_run` | One run of an agent. |
+| `agents_of_user` | Every agent of one sponsor; the sponsor's own sessions keep working. |
+| `all_agents` | Every agent of the organization; takes no target id. |
 
-The targets `agent`, `agent_run`, `agents_of_user`, `all_agents` and `mfa_device` are refused with `target type <t> is not supported yet`; they come with agents and MFA.
+The target `mfa_device` is refused with `target type mfa_device is not supported yet`; it comes with MFA.
 
 Locks are audited as `lock.create` and `lock.delete`.
 

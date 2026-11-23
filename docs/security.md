@@ -87,4 +87,8 @@ Classes, command rules, custom Cedar, command approvals and output masking: [pol
 Folder rules and the command console read the command text, so they do not replace permissions on the host: [policies.md](policies.md#honest-limits), [ssh-hardening.md](ssh-hardening.md).
 
 - **Command text at rest.** The command of a session is stored with the session, and a refused command in its `session.deny` audit event, a refused console line in its `session.command_denied` audit event (first 1024 bytes); owners and admins see both.
-- **Custom `permit`.** A custom Cedar `permit` allows what it matches without a binding, so it can widen access.
+- **Custom `permit`.** A custom Cedar `permit` allows what it matches without a binding, so it can widen access. A `permit` without `principal is Werbot::User` applies to AI agents too.
+
+## AI agents
+
+Agents act for a sponsor with a run token (1 hour) and an SSH key held in memory; their access is the sponsor's access cut down to a read-only baseline ([agents.md](agents.md)). In the shared profile mode `werbot mcp` and `werbot agent run` run the agent as the sponsor's OS user, so the agent can read the sponsor's `WERBOT_HOME` (refresh token, key, certificate) and act as the sponsor; a different `HOME` under the same OS user does not prevent it. Run untrusted agents as another OS user or in a container with an agent profile (`werbot agents profile create <agent> --dir <path>`, then `WERBOT_HOME=<path> werbot mcp`): its credential only starts runs of that one agent, so a leaked profile gives agent access, never the sponsor's, and revoking it stops its runs at the next request.

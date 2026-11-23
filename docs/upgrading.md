@@ -6,6 +6,26 @@ Between minor `v0.x` releases incompatible changes are possible. They are listed
 
 In `v0.x` an upgrade needs a full stop: every server replica and every gateway instance runs the same version, and a rolling upgrade is not supported (it comes with the public beta and expand/contract migrations).
 
+## Release notes
+
+### AI agents
+
+This release adds AI agents ([agents.md](agents.md)). Check these changes before you upgrade:
+
+- **Stricter command classes, for everyone.** Forms of programs that used to be `read` but write files or run programs now get a stricter class ([policies.md](policies.md#stricter-classes)):
+  - `awk` is `opaque` when its program calls `system` or `getline`, has `|` or `>` after `print` or `printf`, comes from `-f` or is not literal, or when an option other than `-F`/`-v` (`--field-separator`/`--assign`) is given.
+  - `sed` is `opaque` with an `e`, `w` or `W` command or an `e` or `w` flag of `s`, with `-f`, with a script that does not parse and without a script.
+  - `less -o`/`-O`/`--log-file`; `curl -o`/`-O`/`--output`/`--remote-name`/`--remote-name-all`/`-D`/`-c`/`--trace`/`--trace-ascii`/`--stderr`/`--libcurl`/`--etag-save`/`--hsts`/`--alt-svc`; `wget -O`/`-o`/`-a`/`-P` and their long forms are `write`. A bare `wget <url>` is `write`; it stays `read` only with `-O -`, `-O /dev/null` or `--spider`. The values `-` and `/dev/null` stay `read`.
+  - `git diff`, `git log` and `git show` with `--ext-diff` or `--textconv` are `opaque`.
+  - `less` with options the classifier does not parse or a non-literal first argument is `opaque`.
+
+  Rules on `write` or `opaque` and the **Only allowed commands** preset therefore deny these forms or ask approval for them, where they ran as `read` before. Expect more refusals and approval requests for people under such rules; give a trusted script a [class override](policies.md#class-overrides) if needed.
+- **Custom `permit` policies apply to agents.** A `permit (principal, …)` without a principal type now also matches AI agents and can widen what they may do. Review your custom policies and write `principal is Werbot::User` where a policy is meant for people only ([policies.md](policies.md#custom-cedar)).
+- **`Approved` line.** After an approved command approval the gateway writes `Approved` on stderr (or the terminal) before the command runs. Scripts that read the stderr of a waiting exec see this extra line.
+- **Locks on agents.** The lock targets `agent`, `agent_run`, `agents_of_user` and `all_agents` are now accepted ([jit.md](jit.md#locks)).
+- **Migrations.** `00160` to `00164` add the agent tables, link sessions and approvals to agent runs and add agent profiles (`cli_session.agent_id`). They run at server start as usual.
+- **New dependency.** The CLI includes the MCP Go SDK (`github.com/modelcontextprotocol/go-sdk` v1.8.0) for `werbot mcp`, with its modules `google/jsonschema-go`, `segmentio/asm`, `segmentio/encoding`, `yosida95/uritemplate/v3` and `golang.org/x/time`. No new environment variable.
+
 ## Backup
 
 Back up before every upgrade. For the Docker Compose quick start, run in its directory (`werbot/`, with `docker-compose.yaml`):

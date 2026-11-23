@@ -78,7 +78,7 @@ Owners and admins manage command rules on **Policies**, **Command rules** (`Crea
 | Field | Meaning |
 | --- | --- |
 | `name` | 1 to 63 characters. |
-| `subjects` | Users, teams, or all users. |
+| `subjects` | Users, teams, all users or all agents. For agents, users and teams mean the agents those users (or team members) sponsor; all users covers people only. |
 | `resource_selector` | Resource ids, or labels (`key=value`; a resource must carry every pair). A label selector also covers resources added later. |
 | `classes` | One or more classes. The rule applies when the command has **any** of them. |
 | `effect` | `deny`, `approval` or `allow`. |
@@ -86,7 +86,7 @@ Owners and admins manage command rules on **Policies**, **Command rules** (`Crea
 
 - `deny` refuses the command: `Command denied: <message>`, or `Access denied` without a message.
 - `approval` refuses the command unless an approver allows it first ([Command approvals](#command-approvals)).
-- `allow` has no effect on people: a binding already allows every command. It is reserved for agents.
+- `allow` has no effect on people: a binding already allows every command. For agents it allows a command whose classes are all among the rule's classes (add `read` for commands that also read); it never lifts the baseline denial of `destructive`, `secrets` and `egress` ([agents.md](agents.md#command-rules-for-agents)).
 - A `deny` beats an `approval`: a command matched by both is refused without asking anyone.
 - When several rules or policies refuse a command, the user sees the message of the first one by policy id.
 - There is no built-in rule. A new organization runs every command its bindings allow; the empty rule list offers a preset `opaque` → `approval`.
@@ -95,7 +95,7 @@ Rules reach the gateways with the next policy snapshot (within about 2 seconds).
 
 ## Folders
 
-Folder rules limit the paths a command may touch. Owners and admins manage them on **Policies**, **Folders** (`CreatePathRule`, `UpdatePathRule`, `DeletePathRule`). A rule has a `name`, `subjects`, a `resource_selector` and a `message` as a command rule, and:
+Folder rules limit the paths a command may touch. Owners and admins manage them on **Policies**, **Folders** (`CreatePathRule`, `UpdatePathRule`, `DeletePathRule`). A rule has a `name`, `subjects` (agents included), a `resource_selector` and a `message` as a command rule, and:
 
 | Field | Meaning |
 | --- | --- |
@@ -172,16 +172,32 @@ The preset **Only allowed commands** on **Policies**, **Command rules** creates 
 
 So set `only` together with an allowlist of commands, and make the real boundary on the host: [ssh-hardening.md](ssh-hardening.md).
 
+## Agents
+
+AI agents ([agents.md](agents.md)) go through the same rules, in two passes: the sponsor's pass (as if the sponsor ran the command) and the agent's pass (the baseline plus the rules and policies that name agents). A command of an agent runs only when both allow it; an approval is asked only when every refusing pass asks for one. The agent's pass adds built-in policies whose ids appear in the decision reasons (**Requests**, the run timeline, `TestCommand`):
+
+| Reason | Meaning |
+| --- | --- |
+| `agent:baseline:connect` | Agents open exec sessions only. |
+| `agent:baseline:read` | Agents run commands of exactly the `read` class. |
+| `agent:baseline:dangerous` | `destructive`, `secrets` and `egress` are denied to agents, even under an `allow` rule. |
+| `agent:baseline:terminal` | Agents get no shell, PTY or console. |
+| `agent:baseline:sftp` | Agents get no file transfer. |
+| `agent:baseline:frozen` | The agent is frozen. |
+| `agent:baseline:blocked_runs` | The run is paused, ended or locked. |
+
+A command rule that names agents with `approval` appears as `command:<id>:agent`.
+
 ## Custom Cedar
 
 Owners and admins can write their own [Cedar](https://www.cedarpolicy.com) policies on **Policies**, **Custom Cedar** (`CreateCustomPolicy`, `UpdateCustomPolicy`, `DeleteCustomPolicy`). A policy has a name, the Cedar text (up to 64 KiB) and an `enabled` switch; only enabled policies reach the gateways.
 
 What a policy can use:
 
-- `principal`: `Werbot::User`, a member of `Werbot::Team` entities.
+- `principal`: `Werbot::User`, a member of `Werbot::Team` entities, or `Werbot::Agent` with `sponsor` (its `Werbot::User`) and `status` ([agents.md](agents.md#custom-cedar-for-agents)).
 - `action`: `Werbot::Action::"<type>.connect"`, `Werbot::Action::"<type>.exec"` and `Werbot::Action::"<type>.shell"` (for `ssh`: `ssh.connect`, `ssh.exec`, `ssh.shell`).
 - `resource`: `Werbot::Resource` with `name`, `type` and its labels as tags (`resource.hasTag("env") && resource.getTag("env") == "prod"`).
-- `context`: `ip`, `country`, `weekday`, `hour` (UTC), `now`, `ip_blocked`, `port`, `cli_session_id`, for commands `command` (the command text), `classes` (a set of strings), `paths` (the normalized paths, a set of strings), `path_hits` and `path_outside` (ids of the folder rules a path hit or fell outside), and `approval_granted`; for a shell `console` (true while the console checks the line).
+- `context`: `ip`, `country`, `weekday`, `hour` (UTC), `now`, `ip_blocked`, `port`, `cli_session_id`, for commands `command` (the command text), `classes` (a set of strings), `paths` (the normalized paths, a set of strings), `path_hits` and `path_outside` (ids of the folder rules a path hit or fell outside), and `approval_granted`; for a shell `console` (true while the console checks the line); `kind` (`exec`, `terminal`, `stream`, `datagram`) and `run_id` (the agent run, empty for people).
 
 Annotations:
 
@@ -205,6 +221,15 @@ when { context.command like "apt*" && (context.hour < 8 || context.hour >= 20) }
 The server checks a policy when it is saved: syntax, the schema (an unknown attribute, or a tag read without `hasTag`, is an error), the annotations, and a trial evaluation of each policy. The first error comes back with its line and column, and nothing is stored. An error at run time still denies.
 
 > **A custom `permit` widens access.** A `permit` policy allows what it matches even without a binding or a grant, on every resource it covers. Only owners and admins can save one and every change is audited, but review a `permit` as carefully as a new binding. Prefer `forbid` policies, which can only take access away.
+
+> **A `permit` without a principal type also applies to agents.** `permit (principal, …)` matches AI agents as well as people, so it can widen what an agent may do past its read-only baseline (it never lifts a baseline `forbid`). To keep a policy for people only, write `principal is Werbot::User`:
+>
+> ```cedar
+> permit (principal is Werbot::User, action == Werbot::Action::"ssh.exec", resource)
+> when { resource.hasTag("env") && resource.getTag("env") == "dev" };
+> ```
+>
+> The custom Cedar form shows the same hint.
 
 Audit: `custom_policy.create`, `custom_policy.update`, `custom_policy.delete` with the name and `enabled`; the Cedar text is not in the audit log.
 
@@ -256,4 +281,4 @@ Limits:
 
 ## Testing a command
 
-The test box on **Policies**, **Command rules** (`PolicyService` `TestCommand`, owners and admins) takes a user, a resource, a command and an optional working directory (`cwd`, default `~`) and shows its classes, its paths and the decision now: allowed or denied, the rules that decided, whether an approval would be asked and the message. It uses the same class overrides, command rules, folder rules and custom policies as the gateways and does not run anything.
+The test box on **Policies**, **Command rules** (`PolicyService` `TestCommand`, owners and admins) takes a user or an agent, a resource, a command and an optional working directory (`cwd`, default `~`) and shows its classes, its paths and the decision now: allowed or denied, the rules that decided, whether an approval would be asked and the message. It uses the same class overrides, command rules, folder rules and custom policies as the gateways and does not run anything.
