@@ -154,7 +154,7 @@ func TestOrgChangedTriggers(t *testing.T) {
 	require.NoError(t, err)
 	got, err := pgx.CollectRows(rows, pgx.RowTo[string])
 	require.NoError(t, err)
-	want := []string{"access_binding", "access_grant", "command_class_rule", "command_rule", "custom_policy", "gateway", "gateway_instance", "gateway_instance", "ip_blocklist", "lock", "membership", "org_setting", "path_rule", "resource", "resource_country_rule", "resource_label", "resource_network_rule", "resource_schedule", "team", "team_member", "terminal_rule"}
+	want := []string{"access_binding", "access_grant", "agent", "agent", "agent_run", "command_class_rule", "command_rule", "custom_policy", "gateway", "gateway_instance", "gateway_instance", "ip_blocklist", "lock", "membership", "org_setting", "path_rule", "resource", "resource_country_rule", "resource_label", "resource_network_rule", "resource_schedule", "team", "team_member", "terminal_rule"}
 	require.True(t, slices.Equal(want, got), "triggered tables = %v", got)
 
 	conn, err := pgx.ConnectConfig(ctx, pool.Config().ConnConfig.Copy())

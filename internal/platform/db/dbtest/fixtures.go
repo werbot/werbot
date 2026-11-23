@@ -160,3 +160,21 @@ func (f Fixture) Lock(t testing.TB, pool *pgxpool.Pool, targetType string, targe
 		"INSERT INTO lock (org_id, target_type, target_id, reason) VALUES ($1, $2, $3, 'test') RETURNING id",
 		f.OrgID, targetType, targetID)
 }
+
+// Agent inserts an active agent of sponsorID (a member of orgID) with empty limits.
+func Agent(t testing.TB, pool *pgxpool.Pool, orgID, sponsorID uuid.UUID, name string) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		"INSERT INTO agent (org_id, sponsor_user_id, name, created_by) VALUES ($1, $2, $3, $2) RETURNING id",
+		orgID, sponsorID, name)
+}
+
+// AgentRun inserts a running run of agentID, owned by the agent's sponsor, expiring in an hour.
+func AgentRun(t testing.TB, pool *pgxpool.Pool, orgID, agentID uuid.UUID, maxActions, maxConcurrent int) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		`INSERT INTO agent_run (org_id, agent_id, sponsor_user_id, client, status, max_actions, max_concurrent, expires_at)
+		 SELECT org_id, id, sponsor_user_id, 'test', 'running', $3, $4, now() + interval '1 hour'
+		 FROM agent WHERE id = $2 AND org_id = $1 RETURNING id`,
+		orgID, agentID, maxActions, maxConcurrent)
+}
