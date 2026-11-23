@@ -76,6 +76,7 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	p = newPipeline(tc, cfg, logger)
 	p.spool = sp
 	tc.onTerminate = func(id uuid.UUID) { p.active.Terminate(id, "terminated") } // a gateway cut: no exit status
+	startWebFront(tc, p, logger)
 	spoolCtx, stopSpool := context.WithCancel(context.WithoutCancel(ctx))
 	spoolDone := make(chan struct{})
 	go func() {
@@ -165,4 +166,14 @@ func waitEnds(sp *recorder.Spool, d time.Duration) {
 	for len(sp.PendingEnds()) > 0 && time.Now().Before(deadline) {
 		<-tick.C
 	}
+}
+
+// startWebFront serves the browser streams the server announces on tc until
+// the pipeline stops: through the drain a new ticket is refused (ErrNotReady),
+// running web sessions end like SSH ones. Its sessions end before the spool
+// closes: the drain waits for them.
+func startWebFront(tc *tunnelClient, p *Pipeline, logger *slog.Logger) {
+	wf := newWebFront(tc, logger)
+	tc.onOpenStream = wf.enqueue
+	go func() { _ = wf.Serve(p.stop, nil, p) }()
 }

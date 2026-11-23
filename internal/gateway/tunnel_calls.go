@@ -34,8 +34,9 @@ func (Secret) LogValue() slog.Value { return slog.StringValue("[redacted]") }
 
 // Each unary call runs under callTimeout.
 
-// AuthenticateUser resolves the user of an SSH key fingerprint or of a
-// verified certificate, with the agent run of an agent certificate.
+// AuthenticateUser resolves the user of an SSH key fingerprint, of a
+// verified certificate, with the agent run of an agent certificate, or of a
+// web terminal's stream ticket.
 func (c *tunnelClient) AuthenticateUser(ctx context.Context, id Identity, ip netip.Addr) (User, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
@@ -46,6 +47,9 @@ func (c *tunnelClient) AuthenticateUser(ctx context.Context, id Identity, ip net
 	u, err := userOf(resp.Msg)
 	if err != nil {
 		return User{}, err
+	}
+	if id.Method == "web-ticket" && resp.Msg.GetWeb().GetMode() != "web" { // an observe ticket opens no terminal
+		return User{}, ErrDenied
 	}
 	return withAgent(u, id.Cert, resp.Msg.GetAgent())
 }
@@ -86,11 +90,14 @@ func withAgent(u User, cert *sshca.Identity, a *gatewayv1.AgentInfo) (User, erro
 	return u, nil
 }
 
-// authRequest asks for the user of id: by the certificate's werbot identity,
-// else by the key fingerprint.
+// authRequest asks for the user of id: by the stream ticket of a web
+// identity, by the certificate's werbot identity, else by the key fingerprint.
 func authRequest(id Identity, ip netip.Addr) *gatewayv1.AuthenticateUserRequest {
 	r := &gatewayv1.AuthenticateUserRequest{ClientIp: ip.String(),
 		By: &gatewayv1.AuthenticateUserRequest_FingerprintSha256{FingerprintSha256: id.Value}}
+	if id.Method == "web-ticket" {
+		r.By = &gatewayv1.AuthenticateUserRequest_WebTicket{WebTicket: id.Value}
+	}
 	if c := id.Cert; c != nil {
 		r.By = &gatewayv1.AuthenticateUserRequest_Cert{Cert: &gatewayv1.CertIdentity{
 			UserId: c.UserID.String(), CliSessionId: c.CLISessionID.String(), Login: c.Login, CertFingerprint: id.Value,

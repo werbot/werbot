@@ -129,7 +129,7 @@ const (
 // newCommandDenial is the denial of a console line in session id: the line,
 // its classes, its first paths and the deciding policies, cut to the wire bounds.
 func newCommandDenial(reason string, id uuid.UUID, r OpenRequest, req AccessRequest, reasons []string) *gatewayv1.Denial {
-	d := newDenial(reason, req.User.ID, r.Identity.Value, r.Resource, KindTerminal, req.Command, r.ClientIP)
+	d := newDenial(reason, req.User.ID, r.Identity.fingerprint(), r.Resource, KindTerminal, req.Command, r.ClientIP)
 	d.SessionId, d.Classes = id.String(), req.Classes
 	d.Paths = truncateAll(req.Paths, maxDenialPaths, 1024)
 	d.Reasons = truncateAll(reasons, maxDenialReasons, 128)

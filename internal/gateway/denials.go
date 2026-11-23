@@ -107,6 +107,15 @@ func (p *Pipeline) deny(ctx context.Context, r OpenRequest, req AccessRequest, e
 // denyLater reports a refused Open of user in the next heartbeat.
 func (p *Pipeline) denyLater(r OpenRequest, user uuid.UUID, err error) {
 	if reason := denialReason(err); reason != "" {
-		p.denials.add(newDenial(reason, user, r.Identity.Value, r.Resource, r.Kind, cmp.Or(r.Command, r.Target), r.ClientIP))
+		p.denials.add(newDenial(reason, user, r.Identity.fingerprint(), r.Resource, r.Kind, cmp.Or(r.Command, r.Target), r.ClientIP))
 	}
+}
+
+// fingerprint is the key fingerprint a denial of id reports; a web identity's
+// value is its stream ticket, which never leaves the gateway in a denial.
+func (id Identity) fingerprint() string {
+	if id.Method == "web-ticket" {
+		return ""
+	}
+	return id.Value
 }

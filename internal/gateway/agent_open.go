@@ -130,7 +130,7 @@ func (p *Pipeline) reportAgentDenial(ctx context.Context, r OpenRequest, req Acc
 // denyAgentLater reports an agent's denial in the next heartbeat with its run,
 // where the server audits it without counting it.
 func (p *Pipeline) denyAgentLater(r OpenRequest, req AccessRequest, err error, target string, reasons []string) {
-	d := newDenial(denialReason(err), req.User.ID, r.Identity.Value, r.Resource, r.Kind, target, r.ClientIP)
+	d := newDenial(denialReason(err), req.User.ID, r.Identity.fingerprint(), r.Resource, r.Kind, target, r.ClientIP)
 	d.AgentRunId, d.Classes, d.Reasons = req.User.Agent.RunID.String(), req.Classes, reasons
 	p.denials.add(d)
 }
