@@ -12,6 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.13
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.6
 	github.com/cedar-policy/cedar-go v1.9.0
+	github.com/coder/websocket v1.8.15
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/google/uuid v1.6.0

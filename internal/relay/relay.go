@@ -41,6 +41,7 @@ const (
 const (
 	AwaitTimeout = 10 * time.Second // a gateway opens a browser stream within it
 	MaxStreams   = 1000             // browser WebSockets plus remote bridges per replica
+	pingInterval = 30 * time.Second // browser WebSocket keep-alive
 )
 
 // Config identifies this replica.
@@ -49,6 +50,7 @@ type Config struct {
 	InternalAddr string // WERBOT_INTERNAL_ADDR
 	InternalURL  string // WERBOT_INTERNAL_URL
 	Version      string
+	WebURL       string            // WERBOT_WEB_URL: the only Origin a browser WebSocket may come from
 	Metrics      *metrics.Registry // nil: a private registry
 }
 
@@ -88,8 +90,9 @@ type Relay struct {
 	heartbeat    time.Duration
 	awaitTimeout time.Duration
 	maxStreams   int
-	registered   atomic.Bool  // set after the first server_instance upsert
-	active       atomic.Int64 // taken stream slots
+	ping         time.Duration // browser WebSocket ping period
+	registered   atomic.Bool   // set after the first server_instance upsert
+	active       atomic.Int64  // taken stream slots
 
 	mu    sync.Mutex
 	waits map[uuid.UUID]chan *stream // browsers waiting for their ticket's stream
@@ -113,7 +116,7 @@ func New(pool *pgxpool.Pool, ca *tlsca.CA, tickets Tickets, cfg Config, logger *
 		cfg.Metrics = metrics.NewRegistry()
 	}
 	r := &Relay{pool: pool, ca: ca, tickets: tickets, cfg: cfg, log: logger, reg: cfg.Metrics, mux: http.NewServeMux(),
-		key: key, csr: csr, heartbeat: HeartbeatInterval, awaitTimeout: AwaitTimeout, maxStreams: MaxStreams,
+		key: key, csr: csr, heartbeat: HeartbeatInterval, awaitTimeout: AwaitTimeout, maxStreams: MaxStreams, ping: pingInterval,
 		waits: map[uuid.UUID]chan *stream{}, live: map[closer]struct{}{}}
 	r.slots = r.reg.Gauge("werbot_relay_streams", "Browser streams and remote bridges held by this replica.")
 	r.tr = r.transport()
