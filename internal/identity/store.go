@@ -97,4 +97,13 @@ type Store interface {
 	GetMFALoginToken(ctx context.Context, tokenHash []byte) (dbq.GetMFALoginTokenRow, error)
 	SetSessionMFA(ctx context.Context, tokenHash []byte) (uuid.UUID, error)
 	CreateMFAVerification(ctx context.Context, arg dbq.CreateMFAVerificationParams) error
+	CreateMFAChallenge(ctx context.Context, arg dbq.CreateMFAChallengeParams) (dbq.CreateMFAChallengeRow, error)
+	GetUserMFAChallenge(ctx context.Context, arg dbq.GetUserMFAChallengeParams) (dbq.GetUserMFAChallengeRow, error)
+	GetInstanceMFAChallenge(ctx context.Context, arg dbq.GetInstanceMFAChallengeParams) (dbq.GetInstanceMFAChallengeRow, error)
+	ConfirmMFAChallenge(ctx context.Context, arg dbq.ConfirmMFAChallengeParams) (dbq.ConfirmMFAChallengeRow, error)
+	DenyMFAChallenge(ctx context.Context, arg dbq.DenyMFAChallengeParams) error
+	MFAChallengeStatus(ctx context.Context, arg dbq.MFAChallengeStatusParams) (string, error)
+	ListConfirmedMFAChallenges(ctx context.Context, arg dbq.ListConfirmedMFAChallengesParams) ([]uuid.UUID, error)
+	NotifyMFAConfirmed(ctx context.Context, payload string) error
+	LastMFAVerification(ctx context.Context, arg dbq.LastMFAVerificationParams) (dbq.LastMFAVerificationRow, error)
 }

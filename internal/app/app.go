@@ -101,6 +101,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	mux.Handle(werbotv1connect.NewMemberServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewTeamServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewMFAServiceHandler(idh, opts))
+	mux.Handle(werbotv1connect.NewMFAChallengeServiceHandler(idh, opts))
 	s.mount(mux, opts)
 	ws := s.Relay.WebSocketHandler() // inside identity.Middleware and agentRoutes, like every route of mux
 	mux.Handle("GET /api/terminal", ws)

@@ -24,6 +24,15 @@ service MFAService {
   rpc FinishWebAuthnRegistration(FinishWebAuthnRegistrationRequest) returns (FinishWebAuthnRegistrationResponse);
 }
 
+// The browser side of an SSH MFA challenge: only the challenge's user reads
+// it and confirms it with a passkey; a TOTP code is entered in the terminal.
+service MFAChallengeService {
+  // NotFound for another user's challenge, FailedPrecondition once it is
+  // not pending; webauthn_options is empty without a passkey.
+  rpc GetChallenge(GetChallengeRequest) returns (GetChallengeResponse);
+  rpc ConfirmChallenge(ConfirmChallengeRequest) returns (ConfirmChallengeResponse);
+}
+
 message Factor {
   // The passkey's uuid, "totp" or "recovery".
   string id = 1;
@@ -78,3 +87,27 @@ message FinishWebAuthnRegistrationRequest {
 message FinishWebAuthnRegistrationResponse {
   Factor factor = 1;
 }
+
+message GetChallengeRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetChallengeResponse {
+  // The code the terminal shows.
+  string code = 1;
+  // The hostname of the gateway instance.
+  string host = 2;
+  string client_ip = 3;
+  // The resource name; empty once it is deleted.
+  string resource = 4;
+  // "any" or "webauthn".
+  string strength = 5;
+  google.protobuf.Timestamp expires_at = 6;
+  // The JSON of the WebAuthn assertion options.
+  bytes webauthn_options = 7;
+}
+
+message ConfirmChallengeRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes webauthn_assertion = 2 [(buf.validate.field).bytes = {min_len: 1, max_len: 16384}];
+}
+message ConfirmChallengeResponse {}

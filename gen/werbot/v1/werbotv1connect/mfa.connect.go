@@ -23,6 +23,8 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// MFAServiceName is the fully-qualified name of the MFAService service.
 	MFAServiceName = "werbot.v1.MFAService"
+	// MFAChallengeServiceName is the fully-qualified name of the MFAChallengeService service.
+	MFAChallengeServiceName = "werbot.v1.MFAChallengeService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -50,6 +52,12 @@ const (
 	// MFAServiceFinishWebAuthnRegistrationProcedure is the fully-qualified name of the MFAService's
 	// FinishWebAuthnRegistration RPC.
 	MFAServiceFinishWebAuthnRegistrationProcedure = "/werbot.v1.MFAService/FinishWebAuthnRegistration"
+	// MFAChallengeServiceGetChallengeProcedure is the fully-qualified name of the MFAChallengeService's
+	// GetChallenge RPC.
+	MFAChallengeServiceGetChallengeProcedure = "/werbot.v1.MFAChallengeService/GetChallenge"
+	// MFAChallengeServiceConfirmChallengeProcedure is the fully-qualified name of the
+	// MFAChallengeService's ConfirmChallenge RPC.
+	MFAChallengeServiceConfirmChallengeProcedure = "/werbot.v1.MFAChallengeService/ConfirmChallenge"
 )
 
 // MFAServiceClient is a client for the werbot.v1.MFAService service.
@@ -292,4 +300,104 @@ func (UnimplementedMFAServiceHandler) BeginWebAuthnRegistration(context.Context,
 
 func (UnimplementedMFAServiceHandler) FinishWebAuthnRegistration(context.Context, *connect.Request[v1.FinishWebAuthnRegistrationRequest]) (*connect.Response[v1.FinishWebAuthnRegistrationResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.MFAService.FinishWebAuthnRegistration is not implemented"))
+}
+
+// MFAChallengeServiceClient is a client for the werbot.v1.MFAChallengeService service.
+type MFAChallengeServiceClient interface {
+	// NotFound for another user's challenge, FailedPrecondition once it is
+	// not pending; webauthn_options is empty without a passkey.
+	GetChallenge(context.Context, *connect.Request[v1.GetChallengeRequest]) (*connect.Response[v1.GetChallengeResponse], error)
+	ConfirmChallenge(context.Context, *connect.Request[v1.ConfirmChallengeRequest]) (*connect.Response[v1.ConfirmChallengeResponse], error)
+}
+
+// NewMFAChallengeServiceClient constructs a client for the werbot.v1.MFAChallengeService service.
+// By default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped
+// responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewMFAChallengeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) MFAChallengeServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	mFAChallengeServiceMethods := v1.File_werbot_v1_mfa_proto.Services().ByName("MFAChallengeService").Methods()
+	return &mFAChallengeServiceClient{
+		getChallenge: connect.NewClient[v1.GetChallengeRequest, v1.GetChallengeResponse](
+			httpClient,
+			baseURL+MFAChallengeServiceGetChallengeProcedure,
+			connect.WithSchema(mFAChallengeServiceMethods.ByName("GetChallenge")),
+			connect.WithClientOptions(opts...),
+		),
+		confirmChallenge: connect.NewClient[v1.ConfirmChallengeRequest, v1.ConfirmChallengeResponse](
+			httpClient,
+			baseURL+MFAChallengeServiceConfirmChallengeProcedure,
+			connect.WithSchema(mFAChallengeServiceMethods.ByName("ConfirmChallenge")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// mFAChallengeServiceClient implements MFAChallengeServiceClient.
+type mFAChallengeServiceClient struct {
+	getChallenge     *connect.Client[v1.GetChallengeRequest, v1.GetChallengeResponse]
+	confirmChallenge *connect.Client[v1.ConfirmChallengeRequest, v1.ConfirmChallengeResponse]
+}
+
+// GetChallenge calls werbot.v1.MFAChallengeService.GetChallenge.
+func (c *mFAChallengeServiceClient) GetChallenge(ctx context.Context, req *connect.Request[v1.GetChallengeRequest]) (*connect.Response[v1.GetChallengeResponse], error) {
+	return c.getChallenge.CallUnary(ctx, req)
+}
+
+// ConfirmChallenge calls werbot.v1.MFAChallengeService.ConfirmChallenge.
+func (c *mFAChallengeServiceClient) ConfirmChallenge(ctx context.Context, req *connect.Request[v1.ConfirmChallengeRequest]) (*connect.Response[v1.ConfirmChallengeResponse], error) {
+	return c.confirmChallenge.CallUnary(ctx, req)
+}
+
+// MFAChallengeServiceHandler is an implementation of the werbot.v1.MFAChallengeService service.
+type MFAChallengeServiceHandler interface {
+	// NotFound for another user's challenge, FailedPrecondition once it is
+	// not pending; webauthn_options is empty without a passkey.
+	GetChallenge(context.Context, *connect.Request[v1.GetChallengeRequest]) (*connect.Response[v1.GetChallengeResponse], error)
+	ConfirmChallenge(context.Context, *connect.Request[v1.ConfirmChallengeRequest]) (*connect.Response[v1.ConfirmChallengeResponse], error)
+}
+
+// NewMFAChallengeServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewMFAChallengeServiceHandler(svc MFAChallengeServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	mFAChallengeServiceMethods := v1.File_werbot_v1_mfa_proto.Services().ByName("MFAChallengeService").Methods()
+	mFAChallengeServiceGetChallengeHandler := connect.NewUnaryHandler(
+		MFAChallengeServiceGetChallengeProcedure,
+		svc.GetChallenge,
+		connect.WithSchema(mFAChallengeServiceMethods.ByName("GetChallenge")),
+		connect.WithHandlerOptions(opts...),
+	)
+	mFAChallengeServiceConfirmChallengeHandler := connect.NewUnaryHandler(
+		MFAChallengeServiceConfirmChallengeProcedure,
+		svc.ConfirmChallenge,
+		connect.WithSchema(mFAChallengeServiceMethods.ByName("ConfirmChallenge")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/werbot.v1.MFAChallengeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case MFAChallengeServiceGetChallengeProcedure:
+			mFAChallengeServiceGetChallengeHandler.ServeHTTP(w, r)
+		case MFAChallengeServiceConfirmChallengeProcedure:
+			mFAChallengeServiceConfirmChallengeHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedMFAChallengeServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedMFAChallengeServiceHandler struct{}
+
+func (UnimplementedMFAChallengeServiceHandler) GetChallenge(context.Context, *connect.Request[v1.GetChallengeRequest]) (*connect.Response[v1.GetChallengeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.MFAChallengeService.GetChallenge is not implemented"))
+}
+
+func (UnimplementedMFAChallengeServiceHandler) ConfirmChallenge(context.Context, *connect.Request[v1.ConfirmChallengeRequest]) (*connect.Response[v1.ConfirmChallengeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.MFAChallengeService.ConfirmChallenge is not implemented"))
 }

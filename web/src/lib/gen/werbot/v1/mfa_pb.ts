@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file werbot/v1/mfa.proto.
  */
 export const file_werbot_v1_mfa: GenFile = /*@__PURE__*/
-  fileDesc("ChN3ZXJib3QvdjEvbWZhLnByb3RvEgl3ZXJib3QudjEipQEKBkZhY3RvchIKCgJpZBgBIAEoCRIMCgRraW5kGAIgASgJEgwKBG5hbWUYAyABKAkSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMbGFzdF91c2VkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCglyZW1haW5pbmcYBiABKAUiFAoSTGlzdEZhY3RvcnNSZXF1ZXN0IjkKE0xpc3RGYWN0b3JzUmVzcG9uc2USIgoHZmFjdG9ycxgBIAMoCzIRLndlcmJvdC52MS5GYWN0b3IiEwoRRW5yb2xsVE9UUFJlcXVlc3QiWwoSRW5yb2xsVE9UUFJlc3BvbnNlEhMKC290cGF1dGhfdXJsGAEgASgJEg4KBnNlY3JldBgCIAEoCRIPCgdxcl9zaXplGAMgASgFEg8KB3FyX3BhdGgYBCABKAkiNQoSQ29uZmlybVRPVFBSZXF1ZXN0Eh8KBGNvZGUYASABKAlCEbpIDnIMMgpeWzAtOV17Nn0kIhUKE0NvbmZpcm1UT1RQUmVzcG9uc2UiHgocR2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdCIuCh1HZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRINCgVjb2RlcxgBIAMoCSKHAQoTRGVsZXRlRmFjdG9yUmVxdWVzdBJwCgJpZBgBIAEoCUJkukhhcl8yXV4odG90cHxyZWNvdmVyeXxbMC05YS1mQS1GXXs4fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXsxMn0pJCIWChREZWxldGVGYWN0b3JSZXNwb25zZSIiCiBCZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVxdWVzdCI0CiFCZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVzcG9uc2USDwoHb3B0aW9ucxgBIAEoDCJeCiFGaW5pc2hXZWJBdXRoblJlZ2lzdHJhdGlvblJlcXVlc3QSFwoEbmFtZRgBIAEoCUIJukgGcgQQARhAEiAKC2F0dGVzdGF0aW9uGAIgASgMQgu6SAh6BhABGICAASJHCiJGaW5pc2hXZWJBdXRoblJlZ2lzdHJhdGlvblJlc3BvbnNlEiEKBmZhY3RvchgBIAEoCzIRLndlcmJvdC52MS5GYWN0b3IyowUKCk1GQVNlcnZpY2USTAoLTGlzdEZhY3RvcnMSHS53ZXJib3QudjEuTGlzdEZhY3RvcnNSZXF1ZXN0Gh4ud2VyYm90LnYxLkxpc3RGYWN0b3JzUmVzcG9uc2USSQoKRW5yb2xsVE9UUBIcLndlcmJvdC52MS5FbnJvbGxUT1RQUmVxdWVzdBodLndlcmJvdC52MS5FbnJvbGxUT1RQUmVzcG9uc2USTAoLQ29uZmlybVRPVFASHS53ZXJib3QudjEuQ29uZmlybVRPVFBSZXF1ZXN0Gh4ud2VyYm90LnYxLkNvbmZpcm1UT1RQUmVzcG9uc2USagoVR2VuZXJhdGVSZWNvdmVyeUNvZGVzEicud2VyYm90LnYxLkdlbmVyYXRlUmVjb3ZlcnlDb2Rlc1JlcXVlc3QaKC53ZXJib3QudjEuR2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVzcG9uc2USTwoMRGVsZXRlRmFjdG9yEh4ud2VyYm90LnYxLkRlbGV0ZUZhY3RvclJlcXVlc3QaHy53ZXJib3QudjEuRGVsZXRlRmFjdG9yUmVzcG9uc2USdgoZQmVnaW5XZWJBdXRoblJlZ2lzdHJhdGlvbhIrLndlcmJvdC52MS5CZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVxdWVzdBosLndlcmJvdC52MS5CZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVzcG9uc2USeQoaRmluaXNoV2ViQXV0aG5SZWdpc3RyYXRpb24SLC53ZXJib3QudjEuRmluaXNoV2ViQXV0aG5SZWdpc3RyYXRpb25SZXF1ZXN0Gi0ud2VyYm90LnYxLkZpbmlzaFdlYkF1dGhuUmVnaXN0cmF0aW9uUmVzcG9uc2VCjwEKDWNvbS53ZXJib3QudjFCCE1mYVByb3RvUAFaL2dpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vd2VyYm90L3YxO3dlcmJvdHYxogIDV1hYqgIJV2VyYm90LlYxygIJV2VyYm90XFYx4gIVV2VyYm90XFYxXEdQQk1ldGFkYXRh6gIKV2VyYm90OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("ChN3ZXJib3QvdjEvbWZhLnByb3RvEgl3ZXJib3QudjEipQEKBkZhY3RvchIKCgJpZBgBIAEoCRIMCgRraW5kGAIgASgJEgwKBG5hbWUYAyABKAkSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMbGFzdF91c2VkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCglyZW1haW5pbmcYBiABKAUiFAoSTGlzdEZhY3RvcnNSZXF1ZXN0IjkKE0xpc3RGYWN0b3JzUmVzcG9uc2USIgoHZmFjdG9ycxgBIAMoCzIRLndlcmJvdC52MS5GYWN0b3IiEwoRRW5yb2xsVE9UUFJlcXVlc3QiWwoSRW5yb2xsVE9UUFJlc3BvbnNlEhMKC290cGF1dGhfdXJsGAEgASgJEg4KBnNlY3JldBgCIAEoCRIPCgdxcl9zaXplGAMgASgFEg8KB3FyX3BhdGgYBCABKAkiNQoSQ29uZmlybVRPVFBSZXF1ZXN0Eh8KBGNvZGUYASABKAlCEbpIDnIMMgpeWzAtOV17Nn0kIhUKE0NvbmZpcm1UT1RQUmVzcG9uc2UiHgocR2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdCIuCh1HZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRINCgVjb2RlcxgBIAMoCSKHAQoTRGVsZXRlRmFjdG9yUmVxdWVzdBJwCgJpZBgBIAEoCUJkukhhcl8yXV4odG90cHxyZWNvdmVyeXxbMC05YS1mQS1GXXs4fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXsxMn0pJCIWChREZWxldGVGYWN0b3JSZXNwb25zZSIiCiBCZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVxdWVzdCI0CiFCZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVzcG9uc2USDwoHb3B0aW9ucxgBIAEoDCJeCiFGaW5pc2hXZWJBdXRoblJlZ2lzdHJhdGlvblJlcXVlc3QSFwoEbmFtZRgBIAEoCUIJukgGcgQQARhAEiAKC2F0dGVzdGF0aW9uGAIgASgMQgu6SAh6BhABGICAASJHCiJGaW5pc2hXZWJBdXRoblJlZ2lzdHJhdGlvblJlc3BvbnNlEiEKBmZhY3RvchgBIAEoCzIRLndlcmJvdC52MS5GYWN0b3IiKwoTR2V0Q2hhbGxlbmdlUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQEiswEKFEdldENoYWxsZW5nZVJlc3BvbnNlEgwKBGNvZGUYASABKAkSDAoEaG9zdBgCIAEoCRIRCgljbGllbnRfaXAYAyABKAkSEAoIcmVzb3VyY2UYBCABKAkSEAoIc3RyZW5ndGgYBSABKAkSLgoKZXhwaXJlc19hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGAoQd2ViYXV0aG5fb3B0aW9ucxgHIAEoDCJYChdDb25maXJtQ2hhbGxlbmdlUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQESJwoSd2ViYXV0aG5fYXNzZXJ0aW9uGAIgASgMQgu6SAh6BhABGICAASIaChhDb25maXJtQ2hhbGxlbmdlUmVzcG9uc2UyowUKCk1GQVNlcnZpY2USTAoLTGlzdEZhY3RvcnMSHS53ZXJib3QudjEuTGlzdEZhY3RvcnNSZXF1ZXN0Gh4ud2VyYm90LnYxLkxpc3RGYWN0b3JzUmVzcG9uc2USSQoKRW5yb2xsVE9UUBIcLndlcmJvdC52MS5FbnJvbGxUT1RQUmVxdWVzdBodLndlcmJvdC52MS5FbnJvbGxUT1RQUmVzcG9uc2USTAoLQ29uZmlybVRPVFASHS53ZXJib3QudjEuQ29uZmlybVRPVFBSZXF1ZXN0Gh4ud2VyYm90LnYxLkNvbmZpcm1UT1RQUmVzcG9uc2USagoVR2VuZXJhdGVSZWNvdmVyeUNvZGVzEicud2VyYm90LnYxLkdlbmVyYXRlUmVjb3ZlcnlDb2Rlc1JlcXVlc3QaKC53ZXJib3QudjEuR2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVzcG9uc2USTwoMRGVsZXRlRmFjdG9yEh4ud2VyYm90LnYxLkRlbGV0ZUZhY3RvclJlcXVlc3QaHy53ZXJib3QudjEuRGVsZXRlRmFjdG9yUmVzcG9uc2USdgoZQmVnaW5XZWJBdXRoblJlZ2lzdHJhdGlvbhIrLndlcmJvdC52MS5CZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVxdWVzdBosLndlcmJvdC52MS5CZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVzcG9uc2USeQoaRmluaXNoV2ViQXV0aG5SZWdpc3RyYXRpb24SLC53ZXJib3QudjEuRmluaXNoV2ViQXV0aG5SZWdpc3RyYXRpb25SZXF1ZXN0Gi0ud2VyYm90LnYxLkZpbmlzaFdlYkF1dGhuUmVnaXN0cmF0aW9uUmVzcG9uc2UywwEKE01GQUNoYWxsZW5nZVNlcnZpY2USTwoMR2V0Q2hhbGxlbmdlEh4ud2VyYm90LnYxLkdldENoYWxsZW5nZVJlcXVlc3QaHy53ZXJib3QudjEuR2V0Q2hhbGxlbmdlUmVzcG9uc2USWwoQQ29uZmlybUNoYWxsZW5nZRIiLndlcmJvdC52MS5Db25maXJtQ2hhbGxlbmdlUmVxdWVzdBojLndlcmJvdC52MS5Db25maXJtQ2hhbGxlbmdlUmVzcG9uc2VCjwEKDWNvbS53ZXJib3QudjFCCE1mYVByb3RvUAFaL2dpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vd2VyYm90L3YxO3dlcmJvdHYxogIDV1hYqgIJV2VyYm90LlYxygIJV2VyYm90XFYx4gIVV2VyYm90XFYxXEdQQk1ldGFkYXRh6gIKV2VyYm90OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message werbot.v1.Factor
@@ -302,6 +302,115 @@ export const FinishWebAuthnRegistrationResponseSchema: GenMessage<FinishWebAuthn
   messageDesc(file_werbot_v1_mfa, 14);
 
 /**
+ * @generated from message werbot.v1.GetChallengeRequest
+ */
+export type GetChallengeRequest = Message<"werbot.v1.GetChallengeRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message werbot.v1.GetChallengeRequest.
+ * Use `create(GetChallengeRequestSchema)` to create a new message.
+ */
+export const GetChallengeRequestSchema: GenMessage<GetChallengeRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_mfa, 15);
+
+/**
+ * @generated from message werbot.v1.GetChallengeResponse
+ */
+export type GetChallengeResponse = Message<"werbot.v1.GetChallengeResponse"> & {
+  /**
+   * The code the terminal shows.
+   *
+   * @generated from field: string code = 1;
+   */
+  code: string;
+
+  /**
+   * The hostname of the gateway instance.
+   *
+   * @generated from field: string host = 2;
+   */
+  host: string;
+
+  /**
+   * @generated from field: string client_ip = 3;
+   */
+  clientIp: string;
+
+  /**
+   * The resource name; empty once it is deleted.
+   *
+   * @generated from field: string resource = 4;
+   */
+  resource: string;
+
+  /**
+   * "any" or "webauthn".
+   *
+   * @generated from field: string strength = 5;
+   */
+  strength: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp expires_at = 6;
+   */
+  expiresAt?: Timestamp | undefined;
+
+  /**
+   * The JSON of the WebAuthn assertion options.
+   *
+   * @generated from field: bytes webauthn_options = 7;
+   */
+  webauthnOptions: Uint8Array;
+};
+
+/**
+ * Describes the message werbot.v1.GetChallengeResponse.
+ * Use `create(GetChallengeResponseSchema)` to create a new message.
+ */
+export const GetChallengeResponseSchema: GenMessage<GetChallengeResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_mfa, 16);
+
+/**
+ * @generated from message werbot.v1.ConfirmChallengeRequest
+ */
+export type ConfirmChallengeRequest = Message<"werbot.v1.ConfirmChallengeRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: bytes webauthn_assertion = 2;
+   */
+  webauthnAssertion: Uint8Array;
+};
+
+/**
+ * Describes the message werbot.v1.ConfirmChallengeRequest.
+ * Use `create(ConfirmChallengeRequestSchema)` to create a new message.
+ */
+export const ConfirmChallengeRequestSchema: GenMessage<ConfirmChallengeRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_mfa, 17);
+
+/**
+ * @generated from message werbot.v1.ConfirmChallengeResponse
+ */
+export type ConfirmChallengeResponse = Message<"werbot.v1.ConfirmChallengeResponse"> & {
+};
+
+/**
+ * Describes the message werbot.v1.ConfirmChallengeResponse.
+ * Use `create(ConfirmChallengeResponseSchema)` to create a new message.
+ */
+export const ConfirmChallengeResponseSchema: GenMessage<ConfirmChallengeResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_mfa, 18);
+
+/**
  * The caller's second factors: a TOTP authenticator app, passkeys and
  * recovery codes.
  *
@@ -379,4 +488,33 @@ export const MFAService: GenService<{
   },
 }> = /*@__PURE__*/
   serviceDesc(file_werbot_v1_mfa, 0);
+
+/**
+ * The browser side of an SSH MFA challenge: only the challenge's user reads
+ * it and confirms it with a passkey; a TOTP code is entered in the terminal.
+ *
+ * @generated from service werbot.v1.MFAChallengeService
+ */
+export const MFAChallengeService: GenService<{
+  /**
+   * NotFound for another user's challenge, FailedPrecondition once it is
+   * not pending; webauthn_options is empty without a passkey.
+   *
+   * @generated from rpc werbot.v1.MFAChallengeService.GetChallenge
+   */
+  getChallenge: {
+    methodKind: "unary";
+    input: typeof GetChallengeRequestSchema;
+    output: typeof GetChallengeResponseSchema;
+  },
+  /**
+   * @generated from rpc werbot.v1.MFAChallengeService.ConfirmChallenge
+   */
+  confirmChallenge: {
+    methodKind: "unary";
+    input: typeof ConfirmChallengeRequestSchema;
+    output: typeof ConfirmChallengeResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_werbot_v1_mfa, 1);
 

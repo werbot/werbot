@@ -712,6 +712,235 @@ func (x *FinishWebAuthnRegistrationResponse) GetFactor() *Factor {
 	return nil
 }
 
+type GetChallengeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetChallengeRequest) Reset() {
+	*x = GetChallengeRequest{}
+	mi := &file_werbot_v1_mfa_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChallengeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChallengeRequest) ProtoMessage() {}
+
+func (x *GetChallengeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_mfa_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetChallengeRequest.ProtoReflect.Descriptor instead.
+func (*GetChallengeRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_mfa_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetChallengeRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetChallengeResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The code the terminal shows.
+	Code string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	// The hostname of the gateway instance.
+	Host     string `protobuf:"bytes,2,opt,name=host,proto3" json:"host,omitempty"`
+	ClientIp string `protobuf:"bytes,3,opt,name=client_ip,json=clientIp,proto3" json:"client_ip,omitempty"`
+	// The resource name; empty once it is deleted.
+	Resource string `protobuf:"bytes,4,opt,name=resource,proto3" json:"resource,omitempty"`
+	// "any" or "webauthn".
+	Strength  string                 `protobuf:"bytes,5,opt,name=strength,proto3" json:"strength,omitempty"`
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// The JSON of the WebAuthn assertion options.
+	WebauthnOptions []byte `protobuf:"bytes,7,opt,name=webauthn_options,json=webauthnOptions,proto3" json:"webauthn_options,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetChallengeResponse) Reset() {
+	*x = GetChallengeResponse{}
+	mi := &file_werbot_v1_mfa_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChallengeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChallengeResponse) ProtoMessage() {}
+
+func (x *GetChallengeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_mfa_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetChallengeResponse.ProtoReflect.Descriptor instead.
+func (*GetChallengeResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_mfa_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetChallengeResponse) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *GetChallengeResponse) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+func (x *GetChallengeResponse) GetClientIp() string {
+	if x != nil {
+		return x.ClientIp
+	}
+	return ""
+}
+
+func (x *GetChallengeResponse) GetResource() string {
+	if x != nil {
+		return x.Resource
+	}
+	return ""
+}
+
+func (x *GetChallengeResponse) GetStrength() string {
+	if x != nil {
+		return x.Strength
+	}
+	return ""
+}
+
+func (x *GetChallengeResponse) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *GetChallengeResponse) GetWebauthnOptions() []byte {
+	if x != nil {
+		return x.WebauthnOptions
+	}
+	return nil
+}
+
+type ConfirmChallengeRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	WebauthnAssertion []byte                 `protobuf:"bytes,2,opt,name=webauthn_assertion,json=webauthnAssertion,proto3" json:"webauthn_assertion,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ConfirmChallengeRequest) Reset() {
+	*x = ConfirmChallengeRequest{}
+	mi := &file_werbot_v1_mfa_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmChallengeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmChallengeRequest) ProtoMessage() {}
+
+func (x *ConfirmChallengeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_mfa_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmChallengeRequest.ProtoReflect.Descriptor instead.
+func (*ConfirmChallengeRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_mfa_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ConfirmChallengeRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ConfirmChallengeRequest) GetWebauthnAssertion() []byte {
+	if x != nil {
+		return x.WebauthnAssertion
+	}
+	return nil
+}
+
+type ConfirmChallengeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmChallengeResponse) Reset() {
+	*x = ConfirmChallengeResponse{}
+	mi := &file_werbot_v1_mfa_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmChallengeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmChallengeResponse) ProtoMessage() {}
+
+func (x *ConfirmChallengeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_mfa_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmChallengeResponse.ProtoReflect.Descriptor instead.
+func (*ConfirmChallengeResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_mfa_proto_rawDescGZIP(), []int{18}
+}
+
 var File_werbot_v1_mfa_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_mfa_proto_rawDesc = "" +
@@ -753,7 +982,22 @@ const file_werbot_v1_mfa_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x04name\x12-\n" +
 	"\vattestation\x18\x02 \x01(\fB\v\xbaH\bz\x06\x10\x01\x18\x80\x80\x01R\vattestation\"O\n" +
 	"\"FinishWebAuthnRegistrationResponse\x12)\n" +
-	"\x06factor\x18\x01 \x01(\v2\x11.werbot.v1.FactorR\x06factor2\xa3\x05\n" +
+	"\x06factor\x18\x01 \x01(\v2\x11.werbot.v1.FactorR\x06factor\"/\n" +
+	"\x13GetChallengeRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\xf9\x01\n" +
+	"\x14GetChallengeResponse\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
+	"\x04host\x18\x02 \x01(\tR\x04host\x12\x1b\n" +
+	"\tclient_ip\x18\x03 \x01(\tR\bclientIp\x12\x1a\n" +
+	"\bresource\x18\x04 \x01(\tR\bresource\x12\x1a\n" +
+	"\bstrength\x18\x05 \x01(\tR\bstrength\x129\n" +
+	"\n" +
+	"expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12)\n" +
+	"\x10webauthn_options\x18\a \x01(\fR\x0fwebauthnOptions\"o\n" +
+	"\x17ConfirmChallengeRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12:\n" +
+	"\x12webauthn_assertion\x18\x02 \x01(\fB\v\xbaH\bz\x06\x10\x01\x18\x80\x80\x01R\x11webauthnAssertion\"\x1a\n" +
+	"\x18ConfirmChallengeResponse2\xa3\x05\n" +
 	"\n" +
 	"MFAService\x12L\n" +
 	"\vListFactors\x12\x1d.werbot.v1.ListFactorsRequest\x1a\x1e.werbot.v1.ListFactorsResponse\x12I\n" +
@@ -763,7 +1007,10 @@ const file_werbot_v1_mfa_proto_rawDesc = "" +
 	"\x15GenerateRecoveryCodes\x12'.werbot.v1.GenerateRecoveryCodesRequest\x1a(.werbot.v1.GenerateRecoveryCodesResponse\x12O\n" +
 	"\fDeleteFactor\x12\x1e.werbot.v1.DeleteFactorRequest\x1a\x1f.werbot.v1.DeleteFactorResponse\x12v\n" +
 	"\x19BeginWebAuthnRegistration\x12+.werbot.v1.BeginWebAuthnRegistrationRequest\x1a,.werbot.v1.BeginWebAuthnRegistrationResponse\x12y\n" +
-	"\x1aFinishWebAuthnRegistration\x12,.werbot.v1.FinishWebAuthnRegistrationRequest\x1a-.werbot.v1.FinishWebAuthnRegistrationResponseB\x8f\x01\n" +
+	"\x1aFinishWebAuthnRegistration\x12,.werbot.v1.FinishWebAuthnRegistrationRequest\x1a-.werbot.v1.FinishWebAuthnRegistrationResponse2\xc3\x01\n" +
+	"\x13MFAChallengeService\x12O\n" +
+	"\fGetChallenge\x12\x1e.werbot.v1.GetChallengeRequest\x1a\x1f.werbot.v1.GetChallengeResponse\x12[\n" +
+	"\x10ConfirmChallenge\x12\".werbot.v1.ConfirmChallengeRequest\x1a#.werbot.v1.ConfirmChallengeResponseB\x8f\x01\n" +
 	"\rcom.werbot.v1B\bMfaProtoP\x01Z/github.com/werbot/werbot/gen/werbot/v1;werbotv1\xa2\x02\x03WXX\xaa\x02\tWerbot.V1\xca\x02\tWerbot\\V1\xe2\x02\x15Werbot\\V1\\GPBMetadata\xea\x02\n" +
 	"Werbot::V1b\x06proto3"
 
@@ -779,7 +1026,7 @@ func file_werbot_v1_mfa_proto_rawDescGZIP() []byte {
 	return file_werbot_v1_mfa_proto_rawDescData
 }
 
-var file_werbot_v1_mfa_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_werbot_v1_mfa_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_werbot_v1_mfa_proto_goTypes = []any{
 	(*Factor)(nil),                             // 0: werbot.v1.Factor
 	(*ListFactorsRequest)(nil),                 // 1: werbot.v1.ListFactorsRequest
@@ -796,32 +1043,41 @@ var file_werbot_v1_mfa_proto_goTypes = []any{
 	(*BeginWebAuthnRegistrationResponse)(nil),  // 12: werbot.v1.BeginWebAuthnRegistrationResponse
 	(*FinishWebAuthnRegistrationRequest)(nil),  // 13: werbot.v1.FinishWebAuthnRegistrationRequest
 	(*FinishWebAuthnRegistrationResponse)(nil), // 14: werbot.v1.FinishWebAuthnRegistrationResponse
-	(*timestamppb.Timestamp)(nil),              // 15: google.protobuf.Timestamp
+	(*GetChallengeRequest)(nil),                // 15: werbot.v1.GetChallengeRequest
+	(*GetChallengeResponse)(nil),               // 16: werbot.v1.GetChallengeResponse
+	(*ConfirmChallengeRequest)(nil),            // 17: werbot.v1.ConfirmChallengeRequest
+	(*ConfirmChallengeResponse)(nil),           // 18: werbot.v1.ConfirmChallengeResponse
+	(*timestamppb.Timestamp)(nil),              // 19: google.protobuf.Timestamp
 }
 var file_werbot_v1_mfa_proto_depIdxs = []int32{
-	15, // 0: werbot.v1.Factor.created_at:type_name -> google.protobuf.Timestamp
-	15, // 1: werbot.v1.Factor.last_used_at:type_name -> google.protobuf.Timestamp
+	19, // 0: werbot.v1.Factor.created_at:type_name -> google.protobuf.Timestamp
+	19, // 1: werbot.v1.Factor.last_used_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: werbot.v1.ListFactorsResponse.factors:type_name -> werbot.v1.Factor
 	0,  // 3: werbot.v1.FinishWebAuthnRegistrationResponse.factor:type_name -> werbot.v1.Factor
-	1,  // 4: werbot.v1.MFAService.ListFactors:input_type -> werbot.v1.ListFactorsRequest
-	3,  // 5: werbot.v1.MFAService.EnrollTOTP:input_type -> werbot.v1.EnrollTOTPRequest
-	5,  // 6: werbot.v1.MFAService.ConfirmTOTP:input_type -> werbot.v1.ConfirmTOTPRequest
-	7,  // 7: werbot.v1.MFAService.GenerateRecoveryCodes:input_type -> werbot.v1.GenerateRecoveryCodesRequest
-	9,  // 8: werbot.v1.MFAService.DeleteFactor:input_type -> werbot.v1.DeleteFactorRequest
-	11, // 9: werbot.v1.MFAService.BeginWebAuthnRegistration:input_type -> werbot.v1.BeginWebAuthnRegistrationRequest
-	13, // 10: werbot.v1.MFAService.FinishWebAuthnRegistration:input_type -> werbot.v1.FinishWebAuthnRegistrationRequest
-	2,  // 11: werbot.v1.MFAService.ListFactors:output_type -> werbot.v1.ListFactorsResponse
-	4,  // 12: werbot.v1.MFAService.EnrollTOTP:output_type -> werbot.v1.EnrollTOTPResponse
-	6,  // 13: werbot.v1.MFAService.ConfirmTOTP:output_type -> werbot.v1.ConfirmTOTPResponse
-	8,  // 14: werbot.v1.MFAService.GenerateRecoveryCodes:output_type -> werbot.v1.GenerateRecoveryCodesResponse
-	10, // 15: werbot.v1.MFAService.DeleteFactor:output_type -> werbot.v1.DeleteFactorResponse
-	12, // 16: werbot.v1.MFAService.BeginWebAuthnRegistration:output_type -> werbot.v1.BeginWebAuthnRegistrationResponse
-	14, // 17: werbot.v1.MFAService.FinishWebAuthnRegistration:output_type -> werbot.v1.FinishWebAuthnRegistrationResponse
-	11, // [11:18] is the sub-list for method output_type
-	4,  // [4:11] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	19, // 4: werbot.v1.GetChallengeResponse.expires_at:type_name -> google.protobuf.Timestamp
+	1,  // 5: werbot.v1.MFAService.ListFactors:input_type -> werbot.v1.ListFactorsRequest
+	3,  // 6: werbot.v1.MFAService.EnrollTOTP:input_type -> werbot.v1.EnrollTOTPRequest
+	5,  // 7: werbot.v1.MFAService.ConfirmTOTP:input_type -> werbot.v1.ConfirmTOTPRequest
+	7,  // 8: werbot.v1.MFAService.GenerateRecoveryCodes:input_type -> werbot.v1.GenerateRecoveryCodesRequest
+	9,  // 9: werbot.v1.MFAService.DeleteFactor:input_type -> werbot.v1.DeleteFactorRequest
+	11, // 10: werbot.v1.MFAService.BeginWebAuthnRegistration:input_type -> werbot.v1.BeginWebAuthnRegistrationRequest
+	13, // 11: werbot.v1.MFAService.FinishWebAuthnRegistration:input_type -> werbot.v1.FinishWebAuthnRegistrationRequest
+	15, // 12: werbot.v1.MFAChallengeService.GetChallenge:input_type -> werbot.v1.GetChallengeRequest
+	17, // 13: werbot.v1.MFAChallengeService.ConfirmChallenge:input_type -> werbot.v1.ConfirmChallengeRequest
+	2,  // 14: werbot.v1.MFAService.ListFactors:output_type -> werbot.v1.ListFactorsResponse
+	4,  // 15: werbot.v1.MFAService.EnrollTOTP:output_type -> werbot.v1.EnrollTOTPResponse
+	6,  // 16: werbot.v1.MFAService.ConfirmTOTP:output_type -> werbot.v1.ConfirmTOTPResponse
+	8,  // 17: werbot.v1.MFAService.GenerateRecoveryCodes:output_type -> werbot.v1.GenerateRecoveryCodesResponse
+	10, // 18: werbot.v1.MFAService.DeleteFactor:output_type -> werbot.v1.DeleteFactorResponse
+	12, // 19: werbot.v1.MFAService.BeginWebAuthnRegistration:output_type -> werbot.v1.BeginWebAuthnRegistrationResponse
+	14, // 20: werbot.v1.MFAService.FinishWebAuthnRegistration:output_type -> werbot.v1.FinishWebAuthnRegistrationResponse
+	16, // 21: werbot.v1.MFAChallengeService.GetChallenge:output_type -> werbot.v1.GetChallengeResponse
+	18, // 22: werbot.v1.MFAChallengeService.ConfirmChallenge:output_type -> werbot.v1.ConfirmChallengeResponse
+	14, // [14:23] is the sub-list for method output_type
+	5,  // [5:14] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_werbot_v1_mfa_proto_init() }
@@ -835,9 +1091,9 @@ func file_werbot_v1_mfa_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_werbot_v1_mfa_proto_rawDesc), len(file_werbot_v1_mfa_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   19,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_werbot_v1_mfa_proto_goTypes,
 		DependencyIndexes: file_werbot_v1_mfa_proto_depIdxs,

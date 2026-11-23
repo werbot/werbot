@@ -152,9 +152,10 @@ WHERE r.org_id = @org_id AND r.name = @name;
 
 -- name: InsertStreamTicket :one
 INSERT INTO stream_ticket (org_id, mode, session_id, resource_id, user_id, cols, rows,
-                           gateway_instance_id, target_server_id, client_ip, expires_at)
+                           gateway_instance_id, target_server_id, client_ip, user_session_id, expires_at)
 VALUES (@org_id, @mode, sqlc.narg(session_id), sqlc.narg(resource_id), @user_id, @cols, @rows,
-        @gateway_instance_id, @target_server_id, sqlc.narg(client_ip), now() + make_interval(secs => @ttl_secs::float8))
+        @gateway_instance_id, @target_server_id, sqlc.narg(client_ip), sqlc.narg(user_session_id),
+        now() + make_interval(secs => @ttl_secs::float8))
 RETURNING *;
 
 -- name: ConsumeStreamTicket :one

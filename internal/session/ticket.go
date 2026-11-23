@@ -48,6 +48,7 @@ type StreamTicket struct {
 	SessionID, ResourceID                         *uuid.UUID
 	Cols, Rows                                    int
 	ClientIP                                      netip.Addr // the browser's address; zero when unknown
+	UserSessionID                                 *uuid.UUID // the browser's cookie session: the MFA binding web:<id>
 	ExpiresAt                                     time.Time
 }
 
@@ -123,9 +124,13 @@ func (s *Service) CreateTerminalTicket(ctx context.Context, p principal.Principa
 	return tk, ticketErr("terminal ticket", err)
 }
 
-// insertTicket stores arg as a ticket of p from the request's client address, valid for StreamTicketTTL.
+// insertTicket stores arg as a ticket of p from the request's client address
+// and cookie session (deleted with it), valid for StreamTicketTTL.
 func insertTicket(ctx context.Context, st Store, p principal.Principal, arg dbq.InsertStreamTicketParams) (StreamTicket, error) {
 	arg.OrgID, arg.UserID, arg.TtlSecs = p.OrgID, p.UserID, StreamTicketTTL.Seconds()
+	if p.SessionID != uuid.Nil {
+		arg.UserSessionID = &p.SessionID
+	}
 	if ip := clientip.From(ctx); ip.IsValid() {
 		arg.ClientIp = &ip
 	}
@@ -187,7 +192,8 @@ func (s *Service) GCStreamTickets(ctx context.Context) (n int64, err error) {
 
 func ticketOf(t dbq.StreamTicket) StreamTicket {
 	tk := StreamTicket{ID: t.ID, OrgID: t.OrgID, UserID: t.UserID, InstanceID: t.GatewayInstanceID, TargetServerID: t.TargetServerID,
-		Mode: t.Mode, SessionID: t.SessionID, ResourceID: t.ResourceID, Cols: int(t.Cols), Rows: int(t.Rows), ExpiresAt: t.ExpiresAt}
+		Mode: t.Mode, SessionID: t.SessionID, ResourceID: t.ResourceID, Cols: int(t.Cols), Rows: int(t.Rows), UserSessionID: t.UserSessionID,
+		ExpiresAt: t.ExpiresAt}
 	if t.ClientIp != nil {
 		tk.ClientIP = *t.ClientIp
 	}

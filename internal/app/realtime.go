@@ -83,5 +83,5 @@ func (u tunnelUsers) ByWebTicket(ctx context.Context, orgID, instanceID, ticketI
 		return tunnel.User{}, tunnel.WebTicket{}, fmt.Errorf("stream ticket user changed: %w", apperr.ErrNotFound)
 	}
 	return usr, tunnel.WebTicket{Mode: t.Mode, Resource: t.ResourceName, SessionID: t.SessionID,
-		Cols: t.Cols, Rows: t.Rows, ClientIP: t.ClientIP}, nil
+		Cols: t.Cols, Rows: t.Rows, ClientIP: t.ClientIP, UserSessionID: t.UserSessionID}, nil
 }

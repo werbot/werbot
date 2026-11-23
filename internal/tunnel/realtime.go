@@ -11,12 +11,14 @@ import (
 )
 
 // WebTicket is a stream ticket of the calling instance: Mode "web" opens a
-// terminal on Resource, "observe" watches SessionID; ClientIP is the browser's.
+// terminal on Resource, "observe" watches SessionID; ClientIP is the
+// browser's, UserSessionID its cookie session (the MFA binding web:<id>).
 type WebTicket struct {
 	Mode, Resource string
 	SessionID      *uuid.UUID
 	Cols, Rows     int
 	ClientIP       netip.Addr
+	UserSessionID  *uuid.UUID
 }
 
 // ctlKind is what a control message asks a Connect stream to send.
@@ -27,6 +29,7 @@ const (
 	openStream                        // open_stream for ticket id
 	terminate                         // terminate for session id
 	resendTerminations                // every pending terminate of the instance
+	mfaConfirmed                      // mfa_confirmed for challenge id
 )
 
 // ctlMsg is one entry of a stream's control queue.
@@ -106,18 +109,23 @@ func (hd *Handler) sendControl(ctx context.Context, st *connectStream, g Gateway
 			OpenStream: &gatewayv1.OpenStream{TicketId: m.id.String()}}})
 	case terminate:
 		return sendTerminate(st, m.id)
+	case mfaConfirmed:
+		return sendMFAConfirmed(st, m.id)
 	default:
 		return hd.resendTerminations(ctx, st, g)
 	}
 }
 
 // resend sends what a (re)connected gateway may have missed: approval
-// decisions and pending terminations.
+// decisions, pending terminations and confirmed MFA challenges.
 func (hd *Handler) resend(ctx context.Context, st *connectStream, g Gateway) error {
 	if err := hd.resendDecided(ctx, st, g); err != nil {
 		return err
 	}
-	return hd.resendTerminations(ctx, st, g)
+	if err := hd.resendTerminations(ctx, st, g); err != nil {
+		return err
+	}
+	return hd.resendMFAConfirmed(ctx, st, g)
 }
 
 // resendTerminations sends terminate for every open session of g asked to

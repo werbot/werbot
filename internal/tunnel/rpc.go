@@ -65,8 +65,12 @@ func (h *Handler) AuthenticateUser(ctx context.Context, req *connect.Request[gat
 	for i, id := range u.TeamIDs {
 		teams[i] = id.String()
 	}
-	return connect.NewResponse(&gatewayv1.AuthenticateUserResponse{UserId: u.ID.String(), Login: u.Login, TeamIds: teams,
-		Country: h.d.Country(ip), Agent: agentInfo(u), Web: webTicketOf(wt)}), nil
+	res := &gatewayv1.AuthenticateUserResponse{UserId: u.ID.String(), Login: u.Login, TeamIds: teams,
+		Country: h.d.Country(ip), Agent: agentInfo(u), Web: webTicketOf(wt)}
+	if err := h.setMFAAge(ctx, g, req.Msg, u, wt, res); err != nil {
+		return nil, h.fail(ctx, "mfa age", err)
+	}
+	return connect.NewResponse(res), nil
 }
 
 // userBy resolves the identity m names; the web ticket is set only for one.

@@ -525,6 +525,7 @@ type ConnectResponse struct {
 	//	*ConnectResponse_ApprovalDecided
 	//	*ConnectResponse_OpenStream
 	//	*ConnectResponse_Terminate
+	//	*ConnectResponse_MfaConfirmed
 	Msg           isConnectResponse_Msg `protobuf_oneof:"msg"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -612,6 +613,15 @@ func (x *ConnectResponse) GetTerminate() *Terminate {
 	return nil
 }
 
+func (x *ConnectResponse) GetMfaConfirmed() *MFAConfirmed {
+	if x != nil {
+		if x, ok := x.Msg.(*ConnectResponse_MfaConfirmed); ok {
+			return x.MfaConfirmed
+		}
+	}
+	return nil
+}
+
 type isConnectResponse_Msg interface {
 	isConnectResponse_Msg()
 }
@@ -636,6 +646,10 @@ type ConnectResponse_Terminate struct {
 	Terminate *Terminate `protobuf:"bytes,5,opt,name=terminate,proto3,oneof"`
 }
 
+type ConnectResponse_MfaConfirmed struct {
+	MfaConfirmed *MFAConfirmed `protobuf:"bytes,6,opt,name=mfa_confirmed,json=mfaConfirmed,proto3,oneof"`
+}
+
 func (*ConnectResponse_Snapshot) isConnectResponse_Msg() {}
 
 func (*ConnectResponse_PoolInstances) isConnectResponse_Msg() {}
@@ -645,6 +659,8 @@ func (*ConnectResponse_ApprovalDecided) isConnectResponse_Msg() {}
 func (*ConnectResponse_OpenStream) isConnectResponse_Msg() {}
 
 func (*ConnectResponse_Terminate) isConnectResponse_Msg() {}
+
+func (*ConnectResponse_MfaConfirmed) isConnectResponse_Msg() {}
 
 // ApprovalDecided is a decided command approval of the receiving instance.
 type ApprovalDecided struct {
@@ -1320,13 +1336,16 @@ func (x *CertIdentity) GetRunId() string {
 }
 
 type AuthenticateUserResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Login         string                 `protobuf:"bytes,2,opt,name=login,proto3" json:"login,omitempty"`
-	TeamIds       []string               `protobuf:"bytes,3,rep,name=team_ids,json=teamIds,proto3" json:"team_ids,omitempty"`
-	Country       string                 `protobuf:"bytes,4,opt,name=country,proto3" json:"country,omitempty"`
-	Agent         *AgentInfo             `protobuf:"bytes,5,opt,name=agent,proto3" json:"agent,omitempty"`
-	Web           *WebTicket             `protobuf:"bytes,6,opt,name=web,proto3" json:"web,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	UserId  string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Login   string                 `protobuf:"bytes,2,opt,name=login,proto3" json:"login,omitempty"`
+	TeamIds []string               `protobuf:"bytes,3,rep,name=team_ids,json=teamIds,proto3" json:"team_ids,omitempty"`
+	Country string                 `protobuf:"bytes,4,opt,name=country,proto3" json:"country,omitempty"`
+	Agent   *AgentInfo             `protobuf:"bytes,5,opt,name=agent,proto3" json:"agent,omitempty"`
+	Web     *WebTicket             `protobuf:"bytes,6,opt,name=web,proto3" json:"web,omitempty"`
+	// the last MFA of the request's binding: seconds since (9223372036854775807: none) and its method
+	MfaAgeSeconds int64  `protobuf:"varint,7,opt,name=mfa_age_seconds,json=mfaAgeSeconds,proto3" json:"mfa_age_seconds,omitempty"`
+	MfaMethod     string `protobuf:"bytes,8,opt,name=mfa_method,json=mfaMethod,proto3" json:"mfa_method,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1401,6 +1420,20 @@ func (x *AuthenticateUserResponse) GetWeb() *WebTicket {
 		return x.Web
 	}
 	return nil
+}
+
+func (x *AuthenticateUserResponse) GetMfaAgeSeconds() int64 {
+	if x != nil {
+		return x.MfaAgeSeconds
+	}
+	return 0
+}
+
+func (x *AuthenticateUserResponse) GetMfaMethod() string {
+	if x != nil {
+		return x.MfaMethod
+	}
+	return ""
 }
 
 type StartSessionRequest struct {
@@ -2422,7 +2455,7 @@ var File_gateway_v1_tunnel_proto protoreflect.FileDescriptor
 const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"\x17gateway/v1/tunnel.proto\x12\n" +
-	"gateway.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1dgateway/v1/tunnel_agent.proto\x1a\x1egateway/v1/tunnel_stream.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"N\n" +
+	"gateway.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1dgateway/v1/tunnel_agent.proto\x1a\x1bgateway/v1/tunnel_mfa.proto\x1a\x1egateway/v1/tunnel_stream.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"N\n" +
 	"\x0eConnectRequest\x125\n" +
 	"\theartbeat\x18\x01 \x01(\v2\x15.gateway.v1.HeartbeatH\x00R\theartbeatB\x05\n" +
 	"\x03msg\"\xdb\x02\n" +
@@ -2471,14 +2504,15 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"checked_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAt\"!\n" +
 	"\rPoolInstances\x12\x10\n" +
-	"\x03ids\x18\x01 \x03(\tR\x03ids\"\xcc\x02\n" +
+	"\x03ids\x18\x01 \x03(\tR\x03ids\"\x8d\x03\n" +
 	"\x0fConnectResponse\x122\n" +
 	"\bsnapshot\x18\x01 \x01(\v2\x14.gateway.v1.SnapshotH\x00R\bsnapshot\x12B\n" +
 	"\x0epool_instances\x18\x02 \x01(\v2\x19.gateway.v1.PoolInstancesH\x00R\rpoolInstances\x12H\n" +
 	"\x10approval_decided\x18\x03 \x01(\v2\x1b.gateway.v1.ApprovalDecidedH\x00R\x0fapprovalDecided\x129\n" +
 	"\vopen_stream\x18\x04 \x01(\v2\x16.gateway.v1.OpenStreamH\x00R\n" +
 	"openStream\x125\n" +
-	"\tterminate\x18\x05 \x01(\v2\x15.gateway.v1.TerminateH\x00R\tterminateB\x05\n" +
+	"\tterminate\x18\x05 \x01(\v2\x15.gateway.v1.TerminateH\x00R\tterminate\x12?\n" +
+	"\rmfa_confirmed\x18\x06 \x01(\v2\x18.gateway.v1.MFAConfirmedH\x00R\fmfaConfirmedB\x05\n" +
 	"\x03msg\"J\n" +
 	"\x0fApprovalDecided\x12\x1f\n" +
 	"\vapproval_id\x18\x01 \x01(\tR\n" +
@@ -2539,14 +2573,17 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\xbaH\ar\x05\x10\x01\x18\xff\x01R\x05login\x123\n" +
 	"\x10cert_fingerprint\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x0fcertFingerprint\x12&\n" +
 	"\bagent_id\x18\x05 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\aagentId\x12\"\n" +
-	"\x06run_id\x18\x06 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x05runId\"\xd4\x01\n" +
+	"\x06run_id\x18\x06 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x05runId\"\x9b\x02\n" +
 	"\x18AuthenticateUserResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05login\x18\x02 \x01(\tR\x05login\x12\x19\n" +
 	"\bteam_ids\x18\x03 \x03(\tR\ateamIds\x12\x18\n" +
 	"\acountry\x18\x04 \x01(\tR\acountry\x12+\n" +
 	"\x05agent\x18\x05 \x01(\v2\x15.gateway.v1.AgentInfoR\x05agent\x12'\n" +
-	"\x03web\x18\x06 \x01(\v2\x15.gateway.v1.WebTicketR\x03web\"\xa5\x04\n" +
+	"\x03web\x18\x06 \x01(\v2\x15.gateway.v1.WebTicketR\x03web\x12&\n" +
+	"\x0fmfa_age_seconds\x18\a \x01(\x03R\rmfaAgeSeconds\x12\x1d\n" +
+	"\n" +
+	"mfa_method\x18\b \x01(\tR\tmfaMethod\"\xa5\x04\n" +
 	"\x13StartSessionRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12)\n" +
 	"\vresource_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
@@ -2640,7 +2677,8 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\vapproval_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
 	"approvalId\"-\n" +
 	"\x13GetApprovalResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status2\x8d\b\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status2\xa4\n" +
+	"\n" +
 	"\rTunnelService\x12F\n" +
 	"\aConnect\x12\x1a.gateway.v1.ConnectRequest\x1a\x1b.gateway.v1.ConnectResponse(\x010\x01\x12]\n" +
 	"\x10AuthenticateUser\x12#.gateway.v1.AuthenticateUserRequest\x1a$.gateway.v1.AuthenticateUserResponse\x12Q\n" +
@@ -2655,7 +2693,10 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\x0fRequestApproval\x12\".gateway.v1.RequestApprovalRequest\x1a#.gateway.v1.RequestApprovalResponse\x12N\n" +
 	"\vGetApproval\x12\x1e.gateway.v1.GetApprovalRequest\x1a\x1f.gateway.v1.GetApprovalResponse\x12Q\n" +
 	"\fRecordDenial\x12\x1f.gateway.v1.RecordDenialRequest\x1a .gateway.v1.RecordDenialResponse\x12C\n" +
-	"\x06Stream\x12\x19.gateway.v1.StreamRequest\x1a\x1a.gateway.v1.StreamResponse(\x010\x01B\x99\x01\n" +
+	"\x06Stream\x12\x19.gateway.v1.StreamRequest\x1a\x1a.gateway.v1.StreamResponse(\x010\x01\x12c\n" +
+	"\x12CreateMFAChallenge\x12%.gateway.v1.CreateMFAChallengeRequest\x1a&.gateway.v1.CreateMFAChallengeResponse\x12T\n" +
+	"\rVerifyMFATOTP\x12 .gateway.v1.VerifyMFATOTPRequest\x1a!.gateway.v1.VerifyMFATOTPResponse\x12Z\n" +
+	"\x0fGetMFAChallenge\x12\".gateway.v1.GetMFAChallengeRequest\x1a#.gateway.v1.GetMFAChallengeResponseB\x99\x01\n" +
 	"\x0ecom.gateway.v1B\vTunnelProtoP\x01Z1github.com/werbot/werbot/gen/gateway/v1;gatewayv1\xa2\x02\x03GXX\xaa\x02\n" +
 	"Gateway.V1\xca\x02\n" +
 	"Gateway\\V1\xe2\x02\x16Gateway\\V1\\GPBMetadata\xea\x02\vGateway::V1b\x06proto3"
@@ -2710,13 +2751,20 @@ var file_gateway_v1_tunnel_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),        // 33: google.protobuf.Timestamp
 	(*OpenStream)(nil),                   // 34: gateway.v1.OpenStream
 	(*Terminate)(nil),                    // 35: gateway.v1.Terminate
-	(*durationpb.Duration)(nil),          // 36: google.protobuf.Duration
-	(*AgentInfo)(nil),                    // 37: gateway.v1.AgentInfo
-	(*WebTicket)(nil),                    // 38: gateway.v1.WebTicket
-	(*RecordDenialRequest)(nil),          // 39: gateway.v1.RecordDenialRequest
-	(*StreamRequest)(nil),                // 40: gateway.v1.StreamRequest
-	(*RecordDenialResponse)(nil),         // 41: gateway.v1.RecordDenialResponse
-	(*StreamResponse)(nil),               // 42: gateway.v1.StreamResponse
+	(*MFAConfirmed)(nil),                 // 36: gateway.v1.MFAConfirmed
+	(*durationpb.Duration)(nil),          // 37: google.protobuf.Duration
+	(*AgentInfo)(nil),                    // 38: gateway.v1.AgentInfo
+	(*WebTicket)(nil),                    // 39: gateway.v1.WebTicket
+	(*RecordDenialRequest)(nil),          // 40: gateway.v1.RecordDenialRequest
+	(*StreamRequest)(nil),                // 41: gateway.v1.StreamRequest
+	(*CreateMFAChallengeRequest)(nil),    // 42: gateway.v1.CreateMFAChallengeRequest
+	(*VerifyMFATOTPRequest)(nil),         // 43: gateway.v1.VerifyMFATOTPRequest
+	(*GetMFAChallengeRequest)(nil),       // 44: gateway.v1.GetMFAChallengeRequest
+	(*RecordDenialResponse)(nil),         // 45: gateway.v1.RecordDenialResponse
+	(*StreamResponse)(nil),               // 46: gateway.v1.StreamResponse
+	(*CreateMFAChallengeResponse)(nil),   // 47: gateway.v1.CreateMFAChallengeResponse
+	(*VerifyMFATOTPResponse)(nil),        // 48: gateway.v1.VerifyMFATOTPResponse
+	(*GetMFAChallengeResponse)(nil),      // 49: gateway.v1.GetMFAChallengeResponse
 }
 var file_gateway_v1_tunnel_proto_depIdxs = []int32{
 	1,  // 0: gateway.v1.ConnectRequest.heartbeat:type_name -> gateway.v1.Heartbeat
@@ -2730,47 +2778,54 @@ var file_gateway_v1_tunnel_proto_depIdxs = []int32{
 	7,  // 8: gateway.v1.ConnectResponse.approval_decided:type_name -> gateway.v1.ApprovalDecided
 	34, // 9: gateway.v1.ConnectResponse.open_stream:type_name -> gateway.v1.OpenStream
 	35, // 10: gateway.v1.ConnectResponse.terminate:type_name -> gateway.v1.Terminate
-	12, // 11: gateway.v1.Snapshot.resources:type_name -> gateway.v1.Resource
-	11, // 12: gateway.v1.Snapshot.members:type_name -> gateway.v1.Member
-	9,  // 13: gateway.v1.Snapshot.class_rules:type_name -> gateway.v1.ClassRule
-	10, // 14: gateway.v1.Snapshot.path_rules:type_name -> gateway.v1.PathRule
-	36, // 15: gateway.v1.Resource.idle_timeout:type_name -> google.protobuf.Duration
-	36, // 16: gateway.v1.Resource.max_duration:type_name -> google.protobuf.Duration
-	14, // 17: gateway.v1.AuthenticateUserRequest.cert:type_name -> gateway.v1.CertIdentity
-	37, // 18: gateway.v1.AuthenticateUserResponse.agent:type_name -> gateway.v1.AgentInfo
-	38, // 19: gateway.v1.AuthenticateUserResponse.web:type_name -> gateway.v1.WebTicket
-	18, // 20: gateway.v1.StartSessionResponse.credential:type_name -> gateway.v1.Credential
-	2,  // 21: gateway.v1.EndSessionRequest.counters:type_name -> gateway.v1.SessionCounters
-	33, // 22: gateway.v1.RequestApprovalResponse.expires_at:type_name -> google.protobuf.Timestamp
-	0,  // 23: gateway.v1.TunnelService.Connect:input_type -> gateway.v1.ConnectRequest
-	13, // 24: gateway.v1.TunnelService.AuthenticateUser:input_type -> gateway.v1.AuthenticateUserRequest
-	16, // 25: gateway.v1.TunnelService.StartSession:input_type -> gateway.v1.StartSessionRequest
-	19, // 26: gateway.v1.TunnelService.EndSession:input_type -> gateway.v1.EndSessionRequest
-	21, // 27: gateway.v1.TunnelService.PinHostKey:input_type -> gateway.v1.PinHostKeyRequest
-	23, // 28: gateway.v1.TunnelService.RenewCertificate:input_type -> gateway.v1.RenewCertificateRequest
-	25, // 29: gateway.v1.TunnelService.UploadRecordingChunk:input_type -> gateway.v1.UploadRecordingChunkRequest
-	27, // 30: gateway.v1.TunnelService.FinishRecording:input_type -> gateway.v1.FinishRecordingRequest
-	29, // 31: gateway.v1.TunnelService.RequestApproval:input_type -> gateway.v1.RequestApprovalRequest
-	31, // 32: gateway.v1.TunnelService.GetApproval:input_type -> gateway.v1.GetApprovalRequest
-	39, // 33: gateway.v1.TunnelService.RecordDenial:input_type -> gateway.v1.RecordDenialRequest
-	40, // 34: gateway.v1.TunnelService.Stream:input_type -> gateway.v1.StreamRequest
-	6,  // 35: gateway.v1.TunnelService.Connect:output_type -> gateway.v1.ConnectResponse
-	15, // 36: gateway.v1.TunnelService.AuthenticateUser:output_type -> gateway.v1.AuthenticateUserResponse
-	17, // 37: gateway.v1.TunnelService.StartSession:output_type -> gateway.v1.StartSessionResponse
-	20, // 38: gateway.v1.TunnelService.EndSession:output_type -> gateway.v1.EndSessionResponse
-	22, // 39: gateway.v1.TunnelService.PinHostKey:output_type -> gateway.v1.PinHostKeyResponse
-	24, // 40: gateway.v1.TunnelService.RenewCertificate:output_type -> gateway.v1.RenewCertificateResponse
-	26, // 41: gateway.v1.TunnelService.UploadRecordingChunk:output_type -> gateway.v1.UploadRecordingChunkResponse
-	28, // 42: gateway.v1.TunnelService.FinishRecording:output_type -> gateway.v1.FinishRecordingResponse
-	30, // 43: gateway.v1.TunnelService.RequestApproval:output_type -> gateway.v1.RequestApprovalResponse
-	32, // 44: gateway.v1.TunnelService.GetApproval:output_type -> gateway.v1.GetApprovalResponse
-	41, // 45: gateway.v1.TunnelService.RecordDenial:output_type -> gateway.v1.RecordDenialResponse
-	42, // 46: gateway.v1.TunnelService.Stream:output_type -> gateway.v1.StreamResponse
-	35, // [35:47] is the sub-list for method output_type
-	23, // [23:35] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	36, // 11: gateway.v1.ConnectResponse.mfa_confirmed:type_name -> gateway.v1.MFAConfirmed
+	12, // 12: gateway.v1.Snapshot.resources:type_name -> gateway.v1.Resource
+	11, // 13: gateway.v1.Snapshot.members:type_name -> gateway.v1.Member
+	9,  // 14: gateway.v1.Snapshot.class_rules:type_name -> gateway.v1.ClassRule
+	10, // 15: gateway.v1.Snapshot.path_rules:type_name -> gateway.v1.PathRule
+	37, // 16: gateway.v1.Resource.idle_timeout:type_name -> google.protobuf.Duration
+	37, // 17: gateway.v1.Resource.max_duration:type_name -> google.protobuf.Duration
+	14, // 18: gateway.v1.AuthenticateUserRequest.cert:type_name -> gateway.v1.CertIdentity
+	38, // 19: gateway.v1.AuthenticateUserResponse.agent:type_name -> gateway.v1.AgentInfo
+	39, // 20: gateway.v1.AuthenticateUserResponse.web:type_name -> gateway.v1.WebTicket
+	18, // 21: gateway.v1.StartSessionResponse.credential:type_name -> gateway.v1.Credential
+	2,  // 22: gateway.v1.EndSessionRequest.counters:type_name -> gateway.v1.SessionCounters
+	33, // 23: gateway.v1.RequestApprovalResponse.expires_at:type_name -> google.protobuf.Timestamp
+	0,  // 24: gateway.v1.TunnelService.Connect:input_type -> gateway.v1.ConnectRequest
+	13, // 25: gateway.v1.TunnelService.AuthenticateUser:input_type -> gateway.v1.AuthenticateUserRequest
+	16, // 26: gateway.v1.TunnelService.StartSession:input_type -> gateway.v1.StartSessionRequest
+	19, // 27: gateway.v1.TunnelService.EndSession:input_type -> gateway.v1.EndSessionRequest
+	21, // 28: gateway.v1.TunnelService.PinHostKey:input_type -> gateway.v1.PinHostKeyRequest
+	23, // 29: gateway.v1.TunnelService.RenewCertificate:input_type -> gateway.v1.RenewCertificateRequest
+	25, // 30: gateway.v1.TunnelService.UploadRecordingChunk:input_type -> gateway.v1.UploadRecordingChunkRequest
+	27, // 31: gateway.v1.TunnelService.FinishRecording:input_type -> gateway.v1.FinishRecordingRequest
+	29, // 32: gateway.v1.TunnelService.RequestApproval:input_type -> gateway.v1.RequestApprovalRequest
+	31, // 33: gateway.v1.TunnelService.GetApproval:input_type -> gateway.v1.GetApprovalRequest
+	40, // 34: gateway.v1.TunnelService.RecordDenial:input_type -> gateway.v1.RecordDenialRequest
+	41, // 35: gateway.v1.TunnelService.Stream:input_type -> gateway.v1.StreamRequest
+	42, // 36: gateway.v1.TunnelService.CreateMFAChallenge:input_type -> gateway.v1.CreateMFAChallengeRequest
+	43, // 37: gateway.v1.TunnelService.VerifyMFATOTP:input_type -> gateway.v1.VerifyMFATOTPRequest
+	44, // 38: gateway.v1.TunnelService.GetMFAChallenge:input_type -> gateway.v1.GetMFAChallengeRequest
+	6,  // 39: gateway.v1.TunnelService.Connect:output_type -> gateway.v1.ConnectResponse
+	15, // 40: gateway.v1.TunnelService.AuthenticateUser:output_type -> gateway.v1.AuthenticateUserResponse
+	17, // 41: gateway.v1.TunnelService.StartSession:output_type -> gateway.v1.StartSessionResponse
+	20, // 42: gateway.v1.TunnelService.EndSession:output_type -> gateway.v1.EndSessionResponse
+	22, // 43: gateway.v1.TunnelService.PinHostKey:output_type -> gateway.v1.PinHostKeyResponse
+	24, // 44: gateway.v1.TunnelService.RenewCertificate:output_type -> gateway.v1.RenewCertificateResponse
+	26, // 45: gateway.v1.TunnelService.UploadRecordingChunk:output_type -> gateway.v1.UploadRecordingChunkResponse
+	28, // 46: gateway.v1.TunnelService.FinishRecording:output_type -> gateway.v1.FinishRecordingResponse
+	30, // 47: gateway.v1.TunnelService.RequestApproval:output_type -> gateway.v1.RequestApprovalResponse
+	32, // 48: gateway.v1.TunnelService.GetApproval:output_type -> gateway.v1.GetApprovalResponse
+	45, // 49: gateway.v1.TunnelService.RecordDenial:output_type -> gateway.v1.RecordDenialResponse
+	46, // 50: gateway.v1.TunnelService.Stream:output_type -> gateway.v1.StreamResponse
+	47, // 51: gateway.v1.TunnelService.CreateMFAChallenge:output_type -> gateway.v1.CreateMFAChallengeResponse
+	48, // 52: gateway.v1.TunnelService.VerifyMFATOTP:output_type -> gateway.v1.VerifyMFATOTPResponse
+	49, // 53: gateway.v1.TunnelService.GetMFAChallenge:output_type -> gateway.v1.GetMFAChallengeResponse
+	39, // [39:54] is the sub-list for method output_type
+	24, // [24:39] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_gateway_v1_tunnel_proto_init() }
@@ -2779,6 +2834,7 @@ func file_gateway_v1_tunnel_proto_init() {
 		return
 	}
 	file_gateway_v1_tunnel_agent_proto_init()
+	file_gateway_v1_tunnel_mfa_proto_init()
 	file_gateway_v1_tunnel_stream_proto_init()
 	file_gateway_v1_tunnel_proto_msgTypes[0].OneofWrappers = []any{
 		(*ConnectRequest_Heartbeat)(nil),
@@ -2789,6 +2845,7 @@ func file_gateway_v1_tunnel_proto_init() {
 		(*ConnectResponse_ApprovalDecided)(nil),
 		(*ConnectResponse_OpenStream)(nil),
 		(*ConnectResponse_Terminate)(nil),
+		(*ConnectResponse_MfaConfirmed)(nil),
 	}
 	file_gateway_v1_tunnel_proto_msgTypes[13].OneofWrappers = []any{
 		(*AuthenticateUserRequest_FingerprintSha256)(nil),

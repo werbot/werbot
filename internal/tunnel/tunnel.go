@@ -143,6 +143,7 @@ type Deps struct {
 	Approvals   Approvals // nil: no approval decisions are sent
 	Agents      Agents    // nil: RecordDenial is unimplemented
 	Relay       Bridger   // nil: Stream is unimplemented
+	MFA         MFA       // nil: the MFA challenge RPCs are unimplemented, no MFA age is sent
 	Country     func(netip.Addr) string
 	Metrics     *metrics.Registry // nil: a private registry
 	Logger      *slog.Logger      // nil: slog.Default()

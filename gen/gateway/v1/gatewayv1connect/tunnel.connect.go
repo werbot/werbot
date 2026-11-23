@@ -67,6 +67,15 @@ const (
 	TunnelServiceRecordDenialProcedure = "/gateway.v1.TunnelService/RecordDenial"
 	// TunnelServiceStreamProcedure is the fully-qualified name of the TunnelService's Stream RPC.
 	TunnelServiceStreamProcedure = "/gateway.v1.TunnelService/Stream"
+	// TunnelServiceCreateMFAChallengeProcedure is the fully-qualified name of the TunnelService's
+	// CreateMFAChallenge RPC.
+	TunnelServiceCreateMFAChallengeProcedure = "/gateway.v1.TunnelService/CreateMFAChallenge"
+	// TunnelServiceVerifyMFATOTPProcedure is the fully-qualified name of the TunnelService's
+	// VerifyMFATOTP RPC.
+	TunnelServiceVerifyMFATOTPProcedure = "/gateway.v1.TunnelService/VerifyMFATOTP"
+	// TunnelServiceGetMFAChallengeProcedure is the fully-qualified name of the TunnelService's
+	// GetMFAChallenge RPC.
+	TunnelServiceGetMFAChallengeProcedure = "/gateway.v1.TunnelService/GetMFAChallenge"
 )
 
 // TunnelServiceClient is a client for the gateway.v1.TunnelService service.
@@ -86,6 +95,9 @@ type TunnelServiceClient interface {
 	GetApproval(context.Context, *connect.Request[v1.GetApprovalRequest]) (*connect.Response[v1.GetApprovalResponse], error)
 	RecordDenial(context.Context, *connect.Request[v1.RecordDenialRequest]) (*connect.Response[v1.RecordDenialResponse], error)
 	Stream(context.Context) *connect.BidiStreamForClient[v1.StreamRequest, v1.StreamResponse]
+	CreateMFAChallenge(context.Context, *connect.Request[v1.CreateMFAChallengeRequest]) (*connect.Response[v1.CreateMFAChallengeResponse], error)
+	VerifyMFATOTP(context.Context, *connect.Request[v1.VerifyMFATOTPRequest]) (*connect.Response[v1.VerifyMFATOTPResponse], error)
+	GetMFAChallenge(context.Context, *connect.Request[v1.GetMFAChallengeRequest]) (*connect.Response[v1.GetMFAChallengeResponse], error)
 }
 
 // NewTunnelServiceClient constructs a client for the gateway.v1.TunnelService service. By default,
@@ -171,6 +183,24 @@ func NewTunnelServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(tunnelServiceMethods.ByName("Stream")),
 			connect.WithClientOptions(opts...),
 		),
+		createMFAChallenge: connect.NewClient[v1.CreateMFAChallengeRequest, v1.CreateMFAChallengeResponse](
+			httpClient,
+			baseURL+TunnelServiceCreateMFAChallengeProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("CreateMFAChallenge")),
+			connect.WithClientOptions(opts...),
+		),
+		verifyMFATOTP: connect.NewClient[v1.VerifyMFATOTPRequest, v1.VerifyMFATOTPResponse](
+			httpClient,
+			baseURL+TunnelServiceVerifyMFATOTPProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("VerifyMFATOTP")),
+			connect.WithClientOptions(opts...),
+		),
+		getMFAChallenge: connect.NewClient[v1.GetMFAChallengeRequest, v1.GetMFAChallengeResponse](
+			httpClient,
+			baseURL+TunnelServiceGetMFAChallengeProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("GetMFAChallenge")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -188,6 +218,9 @@ type tunnelServiceClient struct {
 	getApproval          *connect.Client[v1.GetApprovalRequest, v1.GetApprovalResponse]
 	recordDenial         *connect.Client[v1.RecordDenialRequest, v1.RecordDenialResponse]
 	stream               *connect.Client[v1.StreamRequest, v1.StreamResponse]
+	createMFAChallenge   *connect.Client[v1.CreateMFAChallengeRequest, v1.CreateMFAChallengeResponse]
+	verifyMFATOTP        *connect.Client[v1.VerifyMFATOTPRequest, v1.VerifyMFATOTPResponse]
+	getMFAChallenge      *connect.Client[v1.GetMFAChallengeRequest, v1.GetMFAChallengeResponse]
 }
 
 // Connect calls gateway.v1.TunnelService.Connect.
@@ -250,6 +283,21 @@ func (c *tunnelServiceClient) Stream(ctx context.Context) *connect.BidiStreamFor
 	return c.stream.CallBidiStream(ctx)
 }
 
+// CreateMFAChallenge calls gateway.v1.TunnelService.CreateMFAChallenge.
+func (c *tunnelServiceClient) CreateMFAChallenge(ctx context.Context, req *connect.Request[v1.CreateMFAChallengeRequest]) (*connect.Response[v1.CreateMFAChallengeResponse], error) {
+	return c.createMFAChallenge.CallUnary(ctx, req)
+}
+
+// VerifyMFATOTP calls gateway.v1.TunnelService.VerifyMFATOTP.
+func (c *tunnelServiceClient) VerifyMFATOTP(ctx context.Context, req *connect.Request[v1.VerifyMFATOTPRequest]) (*connect.Response[v1.VerifyMFATOTPResponse], error) {
+	return c.verifyMFATOTP.CallUnary(ctx, req)
+}
+
+// GetMFAChallenge calls gateway.v1.TunnelService.GetMFAChallenge.
+func (c *tunnelServiceClient) GetMFAChallenge(ctx context.Context, req *connect.Request[v1.GetMFAChallengeRequest]) (*connect.Response[v1.GetMFAChallengeResponse], error) {
+	return c.getMFAChallenge.CallUnary(ctx, req)
+}
+
 // TunnelServiceHandler is an implementation of the gateway.v1.TunnelService service.
 type TunnelServiceHandler interface {
 	// Connect carries heartbeats up and policy snapshots down.
@@ -267,6 +315,9 @@ type TunnelServiceHandler interface {
 	GetApproval(context.Context, *connect.Request[v1.GetApprovalRequest]) (*connect.Response[v1.GetApprovalResponse], error)
 	RecordDenial(context.Context, *connect.Request[v1.RecordDenialRequest]) (*connect.Response[v1.RecordDenialResponse], error)
 	Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error
+	CreateMFAChallenge(context.Context, *connect.Request[v1.CreateMFAChallengeRequest]) (*connect.Response[v1.CreateMFAChallengeResponse], error)
+	VerifyMFATOTP(context.Context, *connect.Request[v1.VerifyMFATOTPRequest]) (*connect.Response[v1.VerifyMFATOTPResponse], error)
+	GetMFAChallenge(context.Context, *connect.Request[v1.GetMFAChallengeRequest]) (*connect.Response[v1.GetMFAChallengeResponse], error)
 }
 
 // NewTunnelServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -348,6 +399,24 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(tunnelServiceMethods.ByName("Stream")),
 		connect.WithHandlerOptions(opts...),
 	)
+	tunnelServiceCreateMFAChallengeHandler := connect.NewUnaryHandler(
+		TunnelServiceCreateMFAChallengeProcedure,
+		svc.CreateMFAChallenge,
+		connect.WithSchema(tunnelServiceMethods.ByName("CreateMFAChallenge")),
+		connect.WithHandlerOptions(opts...),
+	)
+	tunnelServiceVerifyMFATOTPHandler := connect.NewUnaryHandler(
+		TunnelServiceVerifyMFATOTPProcedure,
+		svc.VerifyMFATOTP,
+		connect.WithSchema(tunnelServiceMethods.ByName("VerifyMFATOTP")),
+		connect.WithHandlerOptions(opts...),
+	)
+	tunnelServiceGetMFAChallengeHandler := connect.NewUnaryHandler(
+		TunnelServiceGetMFAChallengeProcedure,
+		svc.GetMFAChallenge,
+		connect.WithSchema(tunnelServiceMethods.ByName("GetMFAChallenge")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gateway.v1.TunnelService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TunnelServiceConnectProcedure:
@@ -374,6 +443,12 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 			tunnelServiceRecordDenialHandler.ServeHTTP(w, r)
 		case TunnelServiceStreamProcedure:
 			tunnelServiceStreamHandler.ServeHTTP(w, r)
+		case TunnelServiceCreateMFAChallengeProcedure:
+			tunnelServiceCreateMFAChallengeHandler.ServeHTTP(w, r)
+		case TunnelServiceVerifyMFATOTPProcedure:
+			tunnelServiceVerifyMFATOTPHandler.ServeHTTP(w, r)
+		case TunnelServiceGetMFAChallengeProcedure:
+			tunnelServiceGetMFAChallengeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -429,4 +504,16 @@ func (UnimplementedTunnelServiceHandler) RecordDenial(context.Context, *connect.
 
 func (UnimplementedTunnelServiceHandler) Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.Stream is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) CreateMFAChallenge(context.Context, *connect.Request[v1.CreateMFAChallengeRequest]) (*connect.Response[v1.CreateMFAChallengeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.CreateMFAChallenge is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) VerifyMFATOTP(context.Context, *connect.Request[v1.VerifyMFATOTPRequest]) (*connect.Response[v1.VerifyMFATOTPResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.VerifyMFATOTP is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) GetMFAChallenge(context.Context, *connect.Request[v1.GetMFAChallengeRequest]) (*connect.Response[v1.GetMFAChallengeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.GetMFAChallenge is not implemented"))
 }

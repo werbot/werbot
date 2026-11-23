@@ -319,9 +319,10 @@ func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyPara
 
 const insertStreamTicket = `-- name: InsertStreamTicket :one
 INSERT INTO stream_ticket (org_id, mode, session_id, resource_id, user_id, cols, rows,
-                           gateway_instance_id, target_server_id, client_ip, expires_at)
+                           gateway_instance_id, target_server_id, client_ip, user_session_id, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
-        $8, $9, $10, now() + make_interval(secs => $11::float8))
+        $8, $9, $10, $11,
+        now() + make_interval(secs => $12::float8))
 RETURNING id, org_id, mode, session_id, resource_id, user_id, cols, rows, gateway_instance_id, target_server_id, client_ip, expires_at, used_at, created_at, user_session_id
 `
 
@@ -336,6 +337,7 @@ type InsertStreamTicketParams struct {
 	GatewayInstanceID uuid.UUID
 	TargetServerID    uuid.UUID
 	ClientIp          *netip.Addr
+	UserSessionID     *uuid.UUID
 	TtlSecs           float64
 }
 
@@ -351,6 +353,7 @@ func (q *Queries) InsertStreamTicket(ctx context.Context, arg InsertStreamTicket
 		arg.GatewayInstanceID,
 		arg.TargetServerID,
 		arg.ClientIp,
+		arg.UserSessionID,
 		arg.TtlSecs,
 	)
 	var i StreamTicket

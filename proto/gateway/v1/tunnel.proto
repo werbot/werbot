@@ -3,6 +3,7 @@ package gateway.v1;
 
 import "buf/validate/validate.proto";
 import "gateway/v1/tunnel_agent.proto";
+import "gateway/v1/tunnel_mfa.proto";
 import "gateway/v1/tunnel_stream.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
@@ -25,6 +26,9 @@ service TunnelService {
   rpc GetApproval(GetApprovalRequest) returns (GetApprovalResponse);
   rpc RecordDenial(RecordDenialRequest) returns (RecordDenialResponse);
   rpc Stream(stream StreamRequest) returns (stream StreamResponse);
+  rpc CreateMFAChallenge(CreateMFAChallengeRequest) returns (CreateMFAChallengeResponse);
+  rpc VerifyMFATOTP(VerifyMFATOTPRequest) returns (VerifyMFATOTPResponse);
+  rpc GetMFAChallenge(GetMFAChallengeRequest) returns (GetMFAChallengeResponse);
 }
 
 message ConnectRequest {
@@ -109,6 +113,7 @@ message ConnectResponse {
     ApprovalDecided approval_decided = 3;
     OpenStream open_stream = 4;
     Terminate terminate = 5;
+    MFAConfirmed mfa_confirmed = 6;
   }
 }
 
@@ -205,6 +210,9 @@ message AuthenticateUserResponse {
   string country = 4;
   AgentInfo agent = 5;
   WebTicket web = 6;
+  // the last MFA of the request's binding: seconds since (9223372036854775807: none) and its method
+  int64 mfa_age_seconds = 7;
+  string mfa_method = 8;
 }
 
 message StartSessionRequest {

@@ -41,6 +41,7 @@ func newTunnelDeps(s *services, reg *metrics.Registry, logger *slog.Logger) tunn
 		Approvals:   tunnelApprovals{s.Access},
 		Agents:      tunnelAgents{s.Agents},
 		Relay:       bridger{s.Relay},
+		MFA:         tunnelMFA{s.Identity},
 		Country:     s.Policy.Country,
 		Metrics:     reg,
 		Logger:      logger,
