@@ -61,7 +61,7 @@ func logoutCommand(env Env) *cobra.Command {
 	return &cobra.Command{
 		Use: "logout", Short: "Revoke the session and remove the profile", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			home, p, err := loadProfile(env)
+			home, p, err := loadAnyProfile(env)
 			if err != nil {
 				return err
 			}
@@ -78,8 +78,12 @@ func statusCommand(env Env) *cobra.Command {
 	return &cobra.Command{
 		Use: "status", Short: "Show the logged-in server, user, organization and certificate", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			home, p, err := loadProfile(env)
+			home, p, err := loadAnyProfile(env)
 			if err != nil {
+				return err
+			}
+			if p.Agent != "" { // its token only exchanges for the agent: no API call
+				_, err = fmt.Fprintf(env.Stdout, "Server: %s\nUser: %s\nProfile: agent %s\n", p.Server, p.Login, p.Agent)
 				return err
 			}
 			sess, err := werbotv1connect.NewAuthServiceClient(p.HTTPClient(), p.Server).

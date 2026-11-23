@@ -1,0 +1,68 @@
+package cli
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
+	"github.com/werbot/werbot/internal/clientauth"
+)
+
+// writeRunDir fills the run directory dir (0700, files 0600): the run key and
+// certificate (call a.Signer first), known_hosts of res, an ssh_config with a
+// block per ssh resource of res, and bin/ssh that runs ssh with that config.
+func writeRunDir(dir string, a *clientauth.AgentProfile, res []*werbotv1.AccessibleResource, sshPath, goos string) error {
+	if err := a.WriteKey(dir); err != nil {
+		return err
+	}
+	if err := writeKnownHosts(filepath.Join(dir, "known_hosts"), res); err != nil {
+		return err
+	}
+	if err := clientauth.WriteFile(filepath.Join(dir, "ssh_config"), []byte(runSSHConfig(dir, a.Login, res))); err != nil {
+		return err
+	}
+	return writeSSHWrapper(dir, sshPath, goos)
+}
+
+// runSSHConfig has one Host <resource> block for every ssh resource with a gateway address.
+func runSSHConfig(dir, login string, res []*werbotv1.AccessibleResource) string {
+	var b strings.Builder
+	for _, r := range res {
+		host, port, err := gatewayAddr(r)
+		if r.GetType() != "ssh" || err != nil {
+			continue
+		}
+		fmt.Fprintf(&b, "Host %s\n  HostName %s\n  Port %s\n  User %s+%s\n  IdentityFile %s\n  CertificateFile %s\n  IdentitiesOnly yes\n  UserKnownHostsFile %s\n  StrictHostKeyChecking yes\n",
+			r.GetName(), host, port, login, r.GetName(),
+			filepath.Join(dir, "id_ed25519"), filepath.Join(dir, "id_ed25519-cert.pub"), filepath.Join(dir, "known_hosts"))
+	}
+	return b.String()
+}
+
+// wrapperPath is the ssh wrapper of the run directory.
+func wrapperPath(dir, goos string) string {
+	if goos == "windows" {
+		return filepath.Join(dir, "bin", "ssh.cmd")
+	}
+	return filepath.Join(dir, "bin", "ssh")
+}
+
+// writeSSHWrapper writes the executable that runs sshPath with the run ssh_config.
+func writeSSHWrapper(dir, sshPath, goos string) error {
+	if err := os.MkdirAll(filepath.Join(dir, "bin"), 0o700); err != nil {
+		return err
+	}
+	cfg := filepath.Join(dir, "ssh_config")
+	script := "#!/bin/sh\nexec " + shellQuote(sshPath) + " -F " + shellQuote(cfg) + " \"$@\"\n"
+	if goos == "windows" {
+		script = `@"` + sshPath + `" -F "` + cfg + `" %*` + "\r\n"
+	}
+	return os.WriteFile(wrapperPath(dir, goos), []byte(script), 0o700) //nolint:gosec // an executable in the 0700 run directory
+}
+
+// shellQuote quotes s as one POSIX shell word (cli may not import gateway).
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
