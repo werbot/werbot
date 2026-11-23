@@ -140,6 +140,19 @@ func TestWebFrontStreamLost(t *testing.T) {
 	})
 }
 
+// A connector that returns no error when its input ends still gives the lost stream the end reason "error".
+func TestWebFrontStreamLostCleanExit(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		w := newWebEnv(t, 10)
+		st := w.open(t, terminalTicket("eof"))
+		synctest.Wait()
+		id := w.session(t)
+		st.in <- frame{err: io.ErrUnexpectedEOF}
+		st.closedWith(t)
+		assert.Equal(t, []string{"error"}, w.endedWith(id))
+	})
+}
+
 func TestWebFrontBrowserClosed(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		w := newWebEnv(t, 10)

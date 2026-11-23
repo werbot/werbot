@@ -19,14 +19,16 @@ import (
 )
 
 func init() {
-	// "echo" echoes a terminal and reports its window changes; "failing" fails at once
+	// "echo" echoes a terminal and reports its window changes; "failing" fails at once;
+	// "eof" waits for the session to end and returns no error, as an SSH connector does at EOF
 	term := []connector.Kind{connector.KindTerminal}
-	for _, n := range []string{"echo", "failing"} {
+	for _, n := range []string{"echo", "failing", "eof"} {
 		connector.Register(connector.Type{Name: n, NewConfig: func() proto.Message { return &emptypb.Empty{} },
 			Validate: func(proto.Message) error { return nil }, Actions: []string{n + ".connect", n + ".shell"}, Kinds: term,
 			Recorded: term, Endpoint: func(proto.Message) connector.Endpoint { return connector.Endpoint{AnyTarget: true, NoHealth: true} }})
 	}
 	RegisterConnector(funcConn{typ: "echo", kinds: []Kind{KindTerminal}, serve: echoTerminal})
+	RegisterConnector(funcConn{typ: "eof", kinds: []Kind{KindTerminal}, serve: func(ctx context.Context, _ *Session) error { <-ctx.Done(); return nil }})
 	RegisterConnector(funcConn{typ: "failing", kinds: []Kind{KindTerminal}, serve: func(context.Context, *Session) error { return ErrLoginFailed }})
 }
 
@@ -190,11 +192,11 @@ type webEnv struct {
 func newWebEnv(t *testing.T, maxSessions int) *webEnv {
 	t.Helper()
 	e := newPipeEnv(t, maxSessions)
-	e.m["recho"], e.m["rfail"] = uuid.New(), uuid.New()
+	e.m["recho"], e.m["rfail"], e.m["reof"] = uuid.New(), uuid.New(), uuid.New()
 	e.f.setPolicy(compileTest(t, e.m, pipePolicies, nil,
 		res{"rfake", "fake", "fake"}, res{"rblocker", "blocker", "blocker"}, res{"rpanicky", "panicky", "panicky"},
 		res{"rstream", "streamonly", "streamonly"}, res{"rdenied", "denied", "fake"}, res{"recho", "echo", "echo"},
-		res{"rfail", "fail", "failing"}))
+		res{"rfail", "fail", "failing"}, res{"reof", "eof", "eof"}))
 	return serveWeb(t, e)
 }
 

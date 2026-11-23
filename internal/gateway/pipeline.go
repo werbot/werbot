@@ -228,7 +228,7 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	if panicked { // also after a client cancel or drain
 		reason = string(causeInternal)
 	}
-	if reason == "error" {
+	if reason == "error" && err != nil { // a lost web stream is "error" without a connector error
 		p.log.Warn("session: connector failed", "session_id", s.ID, "type", c.Type(), "error", s.Secret.Redact(err.Error()))
 	}
 	if text := closeText[reason]; text != "" && s.Terminal != nil {
