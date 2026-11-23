@@ -83,6 +83,7 @@ type webTunnel struct {
 	auths  []*gatewayv1.AuthenticateUserRequest
 	starts []*gatewayv1.StartSessionRequest
 	send   []*gatewayv1.StreamFrame    // Stream sends these first
+	hold   chan struct{}               // when set, Stream reads only after it closes
 	frames chan *gatewayv1.StreamFrame // Stream got these; closed at the end of the request
 }
 
@@ -103,8 +104,14 @@ func (f *webTunnel) StartSession(_ context.Context, r *connect.Request[gatewayv1
 	return connect.NewResponse(&gatewayv1.StartSessionResponse{SessionId: testSessionID.String(), Credential: &gatewayv1.Credential{Kind: "password"}}), nil
 }
 
-func (f *webTunnel) Stream(_ context.Context, st *connect.BidiStream[gatewayv1.StreamRequest, gatewayv1.StreamResponse]) error {
+func (f *webTunnel) Stream(ctx context.Context, st *connect.BidiStream[gatewayv1.StreamRequest, gatewayv1.StreamResponse]) error {
 	defer close(f.frames)
+	if f.hold != nil {
+		<-f.hold
+		if ctx.Err() != nil { // as the server, whose work (spending the ticket) needs the call alive
+			return ctx.Err()
+		}
+	}
 	for _, fr := range f.send {
 		if err := st.Send(&gatewayv1.StreamResponse{Frame: fr}); err != nil {
 			return err
@@ -239,4 +246,23 @@ func TestOpenStreamFrames(t *testing.T) {
 	_, _, _, err = s.Read()
 	var closed streamCloseError
 	require.ErrorAs(t, err, &closed, "a close from the other side")
+}
+
+// The call outlives the caller's context: what was sent before it ended,
+// the close frame included, still reaches a server that reads it late.
+func TestOpenStreamOutlivesCaller(t *testing.T) {
+	f := &webTunnel{hold: make(chan struct{})}
+	c := newWebTunnel(t, f)
+	ctx, cancel := context.WithCancel(t.Context())
+	s, err := c.OpenStream(ctx, uuid.New())
+	require.NoError(t, err)
+	require.NoError(t, s.Write([]byte("Access denied\r\n")))
+	require.NoError(t, s.Close("denied"))
+	cancel()
+	time.Sleep(50 * time.Millisecond) // the cancellation reaches the transport first
+	close(f.hold)
+	assert.NotNil(t, nextFrame(t, f).GetOpen())
+	assert.Equal(t, "Access denied\r\n", string(nextFrame(t, f).GetData()))
+	assert.Equal(t, "denied", nextFrame(t, f).GetClose().GetReason())
+	assert.Nil(t, nextFrame(t, f), "the request ends after the close")
 }

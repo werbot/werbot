@@ -62,11 +62,13 @@ type serveOpts struct {
 }
 
 // serve runs the main HTTP server (and the metrics server when cfg.MetricsAddr
-// is set), the gateway tunnel on cfg.GatewayAddr, the NOTIFY listener, the
-// River client and, with o.WithGateway, the embedded gateway until ctx ends.
-// Then it drains /readyz, lets the embedded gateway drain its sessions (it
-// still needs the tunnel), closes the tunnel streams, shuts the HTTP servers
-// down and stops River, each within 10s.
+// is set), the gateway tunnel on cfg.GatewayAddr, the relay on
+// cfg.InternalAddr, the NOTIFY listener, the River client and, with
+// o.WithGateway, the embedded gateway until ctx ends. Then it drains /readyz,
+// lets the embedded gateway drain its sessions (it still needs the tunnel),
+// closes the tunnel streams, stops the relay (its browser streams close and
+// its replica row goes), shuts the HTTP servers down and stops River, each
+// within 10s.
 func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pgxpool.Pool, modules []sdk.Module, ui fs.FS, o serveOpts) error {
 	turl, err := tunnelURL(cfg.PublicURL, cfg.GatewayAddr)
 	if err != nil {
@@ -99,6 +101,9 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	mux.Handle(werbotv1connect.NewMemberServiceHandler(idh, opts))
 	mux.Handle(werbotv1connect.NewTeamServiceHandler(idh, opts))
 	s.mount(mux, opts)
+	ws := s.Relay.WebSocketHandler() // inside identity.Middleware and agentRoutes, like every route of mux
+	mux.Handle("GET /api/terminal", ws)
+	mux.Handle("GET /api/sessions/{id}/live", ws)
 	bearer, err := mountOAuth(mux, cfg, pool, o.OAuthKey, s.Identity, oauthAgents{s.Agents, logger}, opts)
 	if err != nil {
 		return err
@@ -145,7 +150,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 		closeAll(append(lns, gln))
 		return err
 	}
-	errc := make(chan error, len(servers))
+	errc := make(chan error, len(servers)+1) // and the relay's
 	for i, srv := range servers {
 		go func() { errc <- srv.Serve(lns[i]) }()
 	}
@@ -156,6 +161,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	hub := tunnel.NewHub()
 	plane := make(chan error, 1)
 	go func() { plane <- runGatewayPlane(pctx, gln, cfg, s, hub, reg, logger) }()
+	relayDone := startRelay(pctx, s.Relay, errc)
 	listening := listenNotify(pctx, pool, hub, s.Policy.ReloadGeoIP, subs, logger)
 	gctx, gcancel := context.WithCancel(ctx)
 	defer gcancel()
@@ -187,6 +193,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	}
 	hub.Shutdown()
 	pcancel()
+	<-relayDone // its WebSockets closed and its row removed
 	sctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancel()
 	for _, srv := range servers {

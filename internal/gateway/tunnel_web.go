@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/netip"
 	"sync"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -12,9 +13,12 @@ import (
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 )
 
-// streamFrameBytes bounds the data of one stream frame; the server reads
-// messages of up to 64 KiB.
-const streamFrameBytes = 32 << 10
+// Stream limits: the data of one frame (the server reads messages of up to
+// 64 KiB) and how long a call outlives its context.
+const (
+	streamFrameBytes = 32 << 10
+	streamCloseWait  = 5 * time.Second
+)
 
 // WebTicket is a stream ticket the server resolved: Mode "web" opens a
 // terminal on Resource with Window, "observe" watches SessionID; ClientIP
@@ -95,10 +99,19 @@ func webTicketOf(w *gatewayv1.WebTicket) (WebTicket, error) {
 // ticket and joins the stream to the browser waiting for it. The stream
 // ends with Close, a close by the other side or ctx.
 func (c *tunnelClient) OpenStream(ctx context.Context, ticket uuid.UUID) (relayStream, error) {
-	st := c.conn.Load().rpc.Stream(ctx)
-	context.AfterFunc(ctx, func() { _ = st.CloseRequest() }) // as in stream: unblocks the transport
+	// The end of ctx ends the request side; the call itself lives up to
+	// streamCloseWait longer, so the server still reads the last frames (the
+	// close frame among them) and ends the response instead of losing them
+	// to an aborted call.
+	call, abort := context.WithCancel(context.WithoutCancel(ctx))
+	st := c.conn.Load().rpc.Stream(call)
+	context.AfterFunc(ctx, func() {
+		_ = st.CloseRequest() // as in stream: unblocks the transport
+		time.AfterFunc(streamCloseWait, abort)
+	})
 	s := &tunnelStream{st: st}
 	if err := s.send(&gatewayv1.StreamFrame{Frame: &gatewayv1.StreamFrame_Open{Open: &gatewayv1.StreamOpen{TicketId: ticket.String()}}}, false); err != nil {
+		abort()
 		_ = st.CloseRequest()
 		_ = st.CloseResponse()
 		return nil, err

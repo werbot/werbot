@@ -28,6 +28,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
 	"github.com/werbot/werbot/internal/policy"
+	"github.com/werbot/werbot/internal/relay"
 	"github.com/werbot/werbot/internal/session"
 	"github.com/werbot/werbot/internal/session/recstore"
 )
@@ -98,13 +99,15 @@ type services struct {
 	Sessions   *session.Service
 	Recordings *session.Recordings
 	Audit      *audit.Service
+	Relay      *relay.Relay
 	Logger     *slog.Logger // replay errors; nil is slog.Default()
 	Jobs       *river.Client[pgx.Tx]
 }
 
-// newServices wires the services, registers every worker and periodic job on
-// one River client (not started) and loads the stored GeoIP database, so every
-// replica decides country rules from start. A broken database is logged, not fatal.
+// newServices wires the services and this replica's relay (not started),
+// registers every worker and periodic job on one River client (not started)
+// and loads the stored GeoIP database, so every replica decides country rules
+// from start. A broken database is logged, not fatal.
 // signer comes from bootstrap; recordings go to cfg.RecordingsS3 or cfg.DataDir;
 // reg is the registry /metrics serves.
 func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box *secretbox.Box, ca *tlsca.CA, signer *session.Signer, reg *metrics.Registry, logger *slog.Logger) (*services, error) {
@@ -131,6 +134,8 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 		logger.Warn("geoip reload failed", "err", err)
 	}
 
+	s.Relay = newRelay(cfg, pool, ca, ticketsAdapter{s.Sessions}, reg, logger)
+
 	workers := river.NewWorkers()
 	river.AddWorker(workers, notify.NewWorker(mailer, box))
 	feeds := feedsConfig
@@ -142,6 +147,7 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	periodic = append(periodic, inventory.RegisterGatewayJobs(workers, s.Gateways)...)
 	periodic = append(periodic, access.RegisterApprovalJobs(workers, s.Access)...)
 	periodic = append(periodic, agentic.RegisterJobs(workers, s.Agents)...)
+	periodic = append(periodic, relay.RegisterJobs(workers, s.Relay)...)
 	if s.Jobs, err = jobs.NewClient(pool, workers, periodic, logger); err != nil {
 		return nil, err
 	}

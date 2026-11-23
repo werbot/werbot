@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"io"
 	"io/fs"
@@ -62,6 +63,11 @@ func withTestDefaults(t *testing.T, cfg *config.Config) {
 	if cfg.DataDir == "" {
 		cfg.DataDir = t.TempDir()
 	}
+	if cfg.InternalAddr == "" { // as startRun: the default :8444 is shared by every server
+		cfg.InternalAddr = freeAddr(t)
+		cfg.InternalURL = "https://" + cfg.InternalAddr
+	}
+	cfg.WebURL = cmp.Or(cfg.WebURL, cfg.PublicURL) // as config.Load
 }
 
 // testServeOpts loads the tunnel CA and the signers as bootstrap does for werbot server.

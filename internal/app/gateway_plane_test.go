@@ -37,7 +37,7 @@ import (
 func TestBootstrapCreatesCAOnlyForServer(t *testing.T) {
 	pool, url := dbtest.New(t)
 	getenv := env(map[string]string{"WERBOT_DATABASE_URL": url, "WERBOT_PUBLIC_URL": testPublicURL, "WERBOT_SECRET_KEY": testSecretKey,
-		"WERBOT_HTTP_ADDR": freeAddr(t), "WERBOT_GATEWAY_ADDR": freeAddr(t), "WERBOT_DATA_DIR": t.TempDir()})
+		"WERBOT_HTTP_ADDR": freeAddr(t), "WERBOT_GATEWAY_ADDR": freeAddr(t), "WERBOT_DATA_DIR": t.TempDir(), "WERBOT_INTERNAL_ADDR": freeAddr(t)})
 	caKeys := func() int {
 		var n int
 		require.NoError(t, pool.QueryRow(context.Background(), "SELECT count(*) FROM ca_key").Scan(&n))
