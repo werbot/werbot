@@ -28,8 +28,7 @@ func TestRPCLockService(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 
 	_, err = h.CreateLock(admin, connect.NewRequest(&werbotv1.CreateLockRequest{TargetType: "mfa_device", TargetId: f.MemberID.String(), Reason: "x"}))
-	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-	assert.ErrorContains(t, err, "target type mfa_device is not supported yet")
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err), "a user id is no passkey")
 	_, err = h.CreateLock(admin, connect.NewRequest(&werbotv1.CreateLockRequest{TargetType: "user", TargetId: "x", Reason: "x"}))
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "bad target id")
 

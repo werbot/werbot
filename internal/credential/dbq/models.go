@@ -656,14 +656,15 @@ type WebauthnCeremony struct {
 }
 
 type WebauthnCredential struct {
-	ID           uuid.UUID
-	UserID       uuid.UUID
-	Name         string
-	CredentialID []byte
-	PublicKey    []byte
-	SignCount    int64
-	Aaguid       []byte
-	Transports   []string
-	CreatedAt    time.Time
-	LastUsedAt   *time.Time
+	ID             uuid.UUID
+	UserID         uuid.UUID
+	Name           string
+	CredentialID   []byte
+	PublicKey      []byte
+	SignCount      int64
+	Aaguid         []byte
+	Transports     []string
+	BackupEligible bool
+	CreatedAt      time.Time
+	LastUsedAt     *time.Time
 }

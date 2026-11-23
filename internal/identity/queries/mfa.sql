@@ -52,3 +52,39 @@ SELECT id, name, created_at, last_used_at FROM webauthn_credential WHERE user_id
 
 -- name: GetRequireMFA :one
 SELECT require_mfa FROM org_setting WHERE org_id = @org_id;
+
+-- name: ListWebAuthnCredentials :many
+SELECT id, credential_id, public_key, sign_count, aaguid, transports, backup_eligible FROM webauthn_credential
+WHERE user_id = @user_id ORDER BY created_at, id;
+
+-- name: CreateWebAuthnCredential :one
+INSERT INTO webauthn_credential (user_id, name, credential_id, public_key, sign_count, aaguid, transports, backup_eligible)
+VALUES (@user_id, @name, @credential_id, @public_key, @sign_count, @aaguid, @transports, @backup_eligible)
+RETURNING id, created_at;
+
+-- name: UseWebAuthnCredential :execrows
+-- Stores the sign count of an assertion: it must grow, unless the
+-- authenticator keeps no counter (0 before and now).
+UPDATE webauthn_credential SET sign_count = @sign_count, last_used_at = now()
+WHERE id = @id AND (sign_count < @sign_count OR sign_count = 0 AND @sign_count = 0);
+
+-- name: MFADeviceLocked :one
+SELECT EXISTS (SELECT 1 FROM lock WHERE org_id = @org_id AND target_type = 'mfa_device' AND target_id = @id::uuid
+    AND (expires_at IS NULL OR expires_at > now()))::bool AS locked;
+
+-- name: DeleteStaleCeremonies :exec
+DELETE FROM webauthn_ceremony WHERE user_id = @user_id AND (expires_at <= now() OR used_at IS NOT NULL);
+
+-- name: CreateCeremony :exec
+INSERT INTO webauthn_ceremony (org_id, user_id, kind, ref, session_data, expires_at)
+VALUES (@org_id, @user_id, @kind, @ref, @session_data, now() + make_interval(secs => @ttl_secs::float8));
+
+-- name: UseCeremony :one
+-- Spends the newest open ceremony of the user, kind and ref.
+UPDATE webauthn_ceremony SET used_at = now()
+WHERE id = (SELECT c.id FROM webauthn_ceremony c
+        WHERE c.org_id = @org_id AND c.user_id = @user_id AND c.kind = @kind AND c.ref = @ref
+            AND c.used_at IS NULL AND c.expires_at > now()
+        ORDER BY c.created_at DESC, c.id DESC LIMIT 1 FOR UPDATE)
+    AND used_at IS NULL
+RETURNING session_data;

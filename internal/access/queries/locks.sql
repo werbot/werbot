@@ -13,6 +13,8 @@ WHERE CASE @target_type::text
     WHEN 'agent_run' THEN EXISTS (SELECT 1 FROM agent_run WHERE org_id = @org_id AND id = sqlc.narg(target_id))
     WHEN 'agents_of_user' THEN EXISTS (SELECT 1 FROM membership WHERE org_id = @org_id AND user_id = sqlc.narg(target_id))
     WHEN 'all_agents' THEN sqlc.narg(target_id)::uuid IS NULL
+    WHEN 'mfa_device' THEN EXISTS (SELECT 1 FROM webauthn_credential w JOIN membership m ON m.user_id = w.user_id
+        WHERE m.org_id = @org_id AND w.id = sqlc.narg(target_id))
     ELSE false
 END
 RETURNING id, org_id, target_type, target_id, reason, expires_at, created_by, created_at;

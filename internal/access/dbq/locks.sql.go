@@ -61,6 +61,8 @@ WHERE CASE $2::text
     WHEN 'agent_run' THEN EXISTS (SELECT 1 FROM agent_run WHERE org_id = $1 AND id = $3)
     WHEN 'agents_of_user' THEN EXISTS (SELECT 1 FROM membership WHERE org_id = $1 AND user_id = $3)
     WHEN 'all_agents' THEN $3::uuid IS NULL
+    WHEN 'mfa_device' THEN EXISTS (SELECT 1 FROM webauthn_credential w JOIN membership m ON m.user_id = w.user_id
+        WHERE m.org_id = $1 AND w.id = $3)
     ELSE false
 END
 RETURNING id, org_id, target_type, target_id, reason, expires_at, created_by, created_at

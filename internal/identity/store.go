@@ -86,4 +86,11 @@ type Store interface {
 	GetRecoveryFactor(ctx context.Context, userID uuid.UUID) (dbq.GetRecoveryFactorRow, error)
 	ListWebAuthnFactors(ctx context.Context, userID uuid.UUID) ([]dbq.ListWebAuthnFactorsRow, error)
 	GetRequireMFA(ctx context.Context, orgID uuid.UUID) (string, error)
+	ListWebAuthnCredentials(ctx context.Context, userID uuid.UUID) ([]dbq.ListWebAuthnCredentialsRow, error)
+	CreateWebAuthnCredential(ctx context.Context, arg dbq.CreateWebAuthnCredentialParams) (dbq.CreateWebAuthnCredentialRow, error)
+	UseWebAuthnCredential(ctx context.Context, arg dbq.UseWebAuthnCredentialParams) (int64, error)
+	MFADeviceLocked(ctx context.Context, arg dbq.MFADeviceLockedParams) (bool, error)
+	DeleteStaleCeremonies(ctx context.Context, userID uuid.UUID) error
+	CreateCeremony(ctx context.Context, arg dbq.CreateCeremonyParams) error
+	UseCeremony(ctx context.Context, arg dbq.UseCeremonyParams) ([]byte, error)
 }

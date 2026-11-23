@@ -9,6 +9,8 @@ CREATE TABLE webauthn_credential (
     sign_count bigint NOT NULL DEFAULT 0,
     aaguid bytea NOT NULL,
     transports text[] NOT NULL DEFAULT '{}',
+    -- Fixed at registration: an assertion with another backup eligibility is refused.
+    backup_eligible boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now(),
     last_used_at timestamptz
 );

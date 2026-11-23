@@ -59,9 +59,6 @@ func TestCreateLockTargets(t *testing.T) {
 	_, err := svc.CreateLock(bg, admin, access.LockInput{TargetType: "user", TargetID: &unknown, Reason: "x"})
 	require.ErrorIs(t, err, apperr.ErrNotFound)
 
-	_, err = svc.CreateLock(bg, admin, access.LockInput{TargetType: "mfa_device", TargetID: &unknown, Reason: "x"})
-	require.ErrorIs(t, err, apperr.ErrInvalidArgument)
-	assert.ErrorContains(t, err, "target type mfa_device is not supported yet")
 	for name, in := range map[string]access.LockInput{
 		"empty reason": {TargetType: "user", TargetID: &f.MemberID, Reason: "  "},
 		"long reason":  {TargetType: "user", TargetID: &f.MemberID, Reason: strings.Repeat("a", 1025)},

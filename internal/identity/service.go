@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,6 +27,7 @@ type Service struct {
 	cfg         Config
 	cas         sync.Map // org id → ssh.Signer: a user CA never changes
 	certsIssued *metrics.Counter
+	wa          *webauthn.WebAuthn // nil: passkeys are off (no domain name in WebURL)
 }
 
 // New returns a Service; emails receives invite and reset emails.
@@ -33,7 +35,7 @@ func New(pool *pgxpool.Pool, emails EmailQueue, cfg Config) *Service {
 	if cfg.Metrics == nil {
 		cfg.Metrics = metrics.NewRegistry()
 	}
-	return &Service{pool: pool, emails: emails, cfg: cfg,
+	return &Service{pool: pool, emails: emails, cfg: cfg, wa: newWebAuthn(cfg),
 		certsIssued: cfg.Metrics.Counter("werbot_user_certs_issued_total", "SSH user certificates issued to the CLI.")}
 }
 

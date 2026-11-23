@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -16,6 +17,7 @@ import (
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/identity/webauthntest"
 )
 
 // newMFAClient serves AuthService and MFAService behind Middleware with the
@@ -113,4 +115,31 @@ func TestNoMFASecretsInLogs(t *testing.T) {
 		assert.NotContains(t, logs.String(), s)
 		assert.NotContains(t, audit, s)
 	}
+}
+
+func TestMFAServiceWebAuthnRPC(t *testing.T) {
+	svc, _, _ := newMFATest(t)
+	client, c := newMFAClient(t, svc)
+	ctx := context.Background()
+
+	_, err := client.BeginWebAuthnRegistration(ctx, connect.NewRequest(&werbotv1.BeginWebAuthnRegistrationRequest{}))
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	for name, req := range map[string]*werbotv1.FinishWebAuthnRegistrationRequest{
+		"no name":        {Attestation: []byte("{}")},
+		"long name":      {Name: strings.Repeat("a", 65), Attestation: []byte("{}")},
+		"no attestation": {Name: "YubiKey"},
+	} {
+		_, err := client.FinishWebAuthnRegistration(ctx, withCookie(req, c.Name, c.Value))
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), name)
+	}
+
+	begin, err := client.BeginWebAuthnRegistration(ctx, withCookie(&werbotv1.BeginWebAuthnRegistrationRequest{}, c.Name, c.Value))
+	require.NoError(t, err)
+	a := webauthntest.New(t, testOrigin)
+	res, err := client.FinishWebAuthnRegistration(ctx, withCookie(&werbotv1.FinishWebAuthnRegistrationRequest{
+		Name: "YubiKey", Attestation: a.Create(begin.Msg.GetOptions())}, c.Name, c.Value))
+	require.NoError(t, err)
+	assert.Equal(t, "webauthn", res.Msg.GetFactor().GetKind())
+	assert.Equal(t, "YubiKey", res.Msg.GetFactor().GetName())
+	assert.NotNil(t, res.Msg.GetFactor().GetCreatedAt())
 }

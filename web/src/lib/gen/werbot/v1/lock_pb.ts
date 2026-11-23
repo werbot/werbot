@@ -101,8 +101,8 @@ export const ListLocksResponseSchema: GenMessage<ListLocksResponse> = /*@__PURE_
  */
 export type CreateLockRequest = Message<"werbot.v1.CreateLockRequest"> & {
   /**
-   * Accepted now: user, team, resource, grant, cli_session, agent, agent_run, agents_of_user and
-   * all_agents (without target_id); mfa_device comes with MFA.
+   * Accepted: user, team, resource, grant, cli_session, agent, agent_run, agents_of_user,
+   * mfa_device (a member's passkey: its Factor id) and all_agents (without target_id).
    * Also listed in internal/access/locks.go and internal/policy/compile_jit.go: change them together.
    *
    * @generated from field: string target_type = 1;

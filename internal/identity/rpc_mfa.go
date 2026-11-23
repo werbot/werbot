@@ -92,3 +92,29 @@ func (h *Handler) DeleteFactor(ctx context.Context, req *connect.Request[werbotv
 	}
 	return connect.NewResponse(&werbotv1.DeleteFactorResponse{}), nil
 }
+
+// BeginWebAuthnRegistration starts a passkey registration of the caller.
+func (h *Handler) BeginWebAuthnRegistration(ctx context.Context, _ *connect.Request[werbotv1.BeginWebAuthnRegistrationRequest]) (*connect.Response[werbotv1.BeginWebAuthnRegistrationResponse], error) {
+	p, err := principal.Require(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	opts, err := h.svc.BeginWebAuthnRegistration(ctx, p)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.BeginWebAuthnRegistrationResponse{Options: opts}), nil
+}
+
+// FinishWebAuthnRegistration stores the caller's new passkey.
+func (h *Handler) FinishWebAuthnRegistration(ctx context.Context, req *connect.Request[werbotv1.FinishWebAuthnRegistrationRequest]) (*connect.Response[werbotv1.FinishWebAuthnRegistrationResponse], error) {
+	p, err := principal.Require(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	f, err := h.svc.FinishWebAuthnRegistration(ctx, p, req.Msg.GetName(), req.Msg.GetAttestation())
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.FinishWebAuthnRegistrationResponse{Factor: factorToProto(f)}), nil
+}

@@ -24,6 +24,70 @@ func (q *Queries) ConfirmTOTPSecret(ctx context.Context, userID uuid.UUID) (int6
 	return result.RowsAffected(), nil
 }
 
+const createCeremony = `-- name: CreateCeremony :exec
+INSERT INTO webauthn_ceremony (org_id, user_id, kind, ref, session_data, expires_at)
+VALUES ($1, $2, $3, $4, $5, now() + make_interval(secs => $6::float8))
+`
+
+type CreateCeremonyParams struct {
+	OrgID       uuid.UUID
+	UserID      uuid.UUID
+	Kind        string
+	Ref         string
+	SessionData []byte
+	TtlSecs     float64
+}
+
+func (q *Queries) CreateCeremony(ctx context.Context, arg CreateCeremonyParams) error {
+	_, err := q.db.Exec(ctx, createCeremony,
+		arg.OrgID,
+		arg.UserID,
+		arg.Kind,
+		arg.Ref,
+		arg.SessionData,
+		arg.TtlSecs,
+	)
+	return err
+}
+
+const createWebAuthnCredential = `-- name: CreateWebAuthnCredential :one
+INSERT INTO webauthn_credential (user_id, name, credential_id, public_key, sign_count, aaguid, transports, backup_eligible)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, created_at
+`
+
+type CreateWebAuthnCredentialParams struct {
+	UserID         uuid.UUID
+	Name           string
+	CredentialID   []byte
+	PublicKey      []byte
+	SignCount      int64
+	Aaguid         []byte
+	Transports     []string
+	BackupEligible bool
+}
+
+type CreateWebAuthnCredentialRow struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+}
+
+func (q *Queries) CreateWebAuthnCredential(ctx context.Context, arg CreateWebAuthnCredentialParams) (CreateWebAuthnCredentialRow, error) {
+	row := q.db.QueryRow(ctx, createWebAuthnCredential,
+		arg.UserID,
+		arg.Name,
+		arg.CredentialID,
+		arg.PublicKey,
+		arg.SignCount,
+		arg.Aaguid,
+		arg.Transports,
+		arg.BackupEligible,
+	)
+	var i CreateWebAuthnCredentialRow
+	err := row.Scan(&i.ID, &i.CreatedAt)
+	return i, err
+}
+
 const deleteOldMFAChallenges = `-- name: DeleteOldMFAChallenges :execrows
 DELETE FROM mfa_challenge WHERE created_at < now() - make_interval(secs => $1::float8)
 `
@@ -58,6 +122,15 @@ func (q *Queries) DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) (in
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const deleteStaleCeremonies = `-- name: DeleteStaleCeremonies :exec
+DELETE FROM webauthn_ceremony WHERE user_id = $1 AND (expires_at <= now() OR used_at IS NOT NULL)
+`
+
+func (q *Queries) DeleteStaleCeremonies(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteStaleCeremonies, userID)
+	return err
 }
 
 const deleteTOTPSecret = `-- name: DeleteTOTPSecret :execrows
@@ -171,6 +244,49 @@ func (q *Queries) InsertRecoveryCodes(ctx context.Context, arg InsertRecoveryCod
 	return err
 }
 
+const listWebAuthnCredentials = `-- name: ListWebAuthnCredentials :many
+SELECT id, credential_id, public_key, sign_count, aaguid, transports, backup_eligible FROM webauthn_credential
+WHERE user_id = $1 ORDER BY created_at, id
+`
+
+type ListWebAuthnCredentialsRow struct {
+	ID             uuid.UUID
+	CredentialID   []byte
+	PublicKey      []byte
+	SignCount      int64
+	Aaguid         []byte
+	Transports     []string
+	BackupEligible bool
+}
+
+func (q *Queries) ListWebAuthnCredentials(ctx context.Context, userID uuid.UUID) ([]ListWebAuthnCredentialsRow, error) {
+	rows, err := q.db.Query(ctx, listWebAuthnCredentials, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListWebAuthnCredentialsRow
+	for rows.Next() {
+		var i ListWebAuthnCredentialsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CredentialID,
+			&i.PublicKey,
+			&i.SignCount,
+			&i.Aaguid,
+			&i.Transports,
+			&i.BackupEligible,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWebAuthnFactors = `-- name: ListWebAuthnFactors :many
 SELECT id, name, created_at, last_used_at FROM webauthn_credential WHERE user_id = $1 ORDER BY created_at, id
 `
@@ -207,6 +323,23 @@ func (q *Queries) ListWebAuthnFactors(ctx context.Context, userID uuid.UUID) ([]
 	return items, nil
 }
 
+const mFADeviceLocked = `-- name: MFADeviceLocked :one
+SELECT EXISTS (SELECT 1 FROM lock WHERE org_id = $1 AND target_type = 'mfa_device' AND target_id = $2::uuid
+    AND (expires_at IS NULL OR expires_at > now()))::bool AS locked
+`
+
+type MFADeviceLockedParams struct {
+	OrgID uuid.UUID
+	ID    uuid.UUID
+}
+
+func (q *Queries) MFADeviceLocked(ctx context.Context, arg MFADeviceLockedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, mFADeviceLocked, arg.OrgID, arg.ID)
+	var locked bool
+	err := row.Scan(&locked)
+	return locked, err
+}
+
 const upsertTOTPSecret = `-- name: UpsertTOTPSecret :execrows
 INSERT INTO totp_secret (user_id, ciphertext, key_id) VALUES ($1, $2, $3)
 ON CONFLICT (user_id) DO UPDATE SET ciphertext = excluded.ciphertext, key_id = excluded.key_id, last_step = 0
@@ -226,6 +359,36 @@ func (q *Queries) UpsertTOTPSecret(ctx context.Context, arg UpsertTOTPSecretPara
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const useCeremony = `-- name: UseCeremony :one
+UPDATE webauthn_ceremony SET used_at = now()
+WHERE id = (SELECT c.id FROM webauthn_ceremony c
+        WHERE c.org_id = $1 AND c.user_id = $2 AND c.kind = $3 AND c.ref = $4
+            AND c.used_at IS NULL AND c.expires_at > now()
+        ORDER BY c.created_at DESC, c.id DESC LIMIT 1 FOR UPDATE)
+    AND used_at IS NULL
+RETURNING session_data
+`
+
+type UseCeremonyParams struct {
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+	Kind   string
+	Ref    string
+}
+
+// Spends the newest open ceremony of the user, kind and ref.
+func (q *Queries) UseCeremony(ctx context.Context, arg UseCeremonyParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, useCeremony,
+		arg.OrgID,
+		arg.UserID,
+		arg.Kind,
+		arg.Ref,
+	)
+	var session_data []byte
+	err := row.Scan(&session_data)
+	return session_data, err
 }
 
 const useRecoveryCode = `-- name: UseRecoveryCode :execrows
@@ -257,6 +420,26 @@ type UseTOTPStepParams struct {
 // Spends step: a code of last_step or an older step is never accepted again.
 func (q *Queries) UseTOTPStep(ctx context.Context, arg UseTOTPStepParams) (int64, error) {
 	result, err := q.db.Exec(ctx, useTOTPStep, arg.Step, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const useWebAuthnCredential = `-- name: UseWebAuthnCredential :execrows
+UPDATE webauthn_credential SET sign_count = $1, last_used_at = now()
+WHERE id = $2 AND (sign_count < $1 OR sign_count = 0 AND $1 = 0)
+`
+
+type UseWebAuthnCredentialParams struct {
+	SignCount int64
+	ID        uuid.UUID
+}
+
+// Stores the sign count of an assertion: it must grow, unless the
+// authenticator keeps no counter (0 before and now).
+func (q *Queries) UseWebAuthnCredential(ctx context.Context, arg UseWebAuthnCredentialParams) (int64, error) {
+	result, err := q.db.Exec(ctx, useWebAuthnCredential, arg.SignCount, arg.ID)
 	if err != nil {
 		return 0, err
 	}

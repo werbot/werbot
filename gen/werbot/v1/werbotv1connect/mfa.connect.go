@@ -44,6 +44,12 @@ const (
 	MFAServiceGenerateRecoveryCodesProcedure = "/werbot.v1.MFAService/GenerateRecoveryCodes"
 	// MFAServiceDeleteFactorProcedure is the fully-qualified name of the MFAService's DeleteFactor RPC.
 	MFAServiceDeleteFactorProcedure = "/werbot.v1.MFAService/DeleteFactor"
+	// MFAServiceBeginWebAuthnRegistrationProcedure is the fully-qualified name of the MFAService's
+	// BeginWebAuthnRegistration RPC.
+	MFAServiceBeginWebAuthnRegistrationProcedure = "/werbot.v1.MFAService/BeginWebAuthnRegistration"
+	// MFAServiceFinishWebAuthnRegistrationProcedure is the fully-qualified name of the MFAService's
+	// FinishWebAuthnRegistration RPC.
+	MFAServiceFinishWebAuthnRegistrationProcedure = "/werbot.v1.MFAService/FinishWebAuthnRegistration"
 )
 
 // MFAServiceClient is a client for the werbot.v1.MFAService service.
@@ -57,6 +63,12 @@ type MFAServiceClient interface {
 	// Replaces all recovery codes; the only response that carries them.
 	GenerateRecoveryCodes(context.Context, *connect.Request[v1.GenerateRecoveryCodesRequest]) (*connect.Response[v1.GenerateRecoveryCodesResponse], error)
 	DeleteFactor(context.Context, *connect.Request[v1.DeleteFactorRequest]) (*connect.Response[v1.DeleteFactorResponse], error)
+	// Starts a passkey registration: options is the JSON of the WebAuthn
+	// credential creation options. FailedPrecondition when WERBOT_WEB_URL has
+	// no domain name.
+	BeginWebAuthnRegistration(context.Context, *connect.Request[v1.BeginWebAuthnRegistrationRequest]) (*connect.Response[v1.BeginWebAuthnRegistrationResponse], error)
+	// Stores the passkey from the browser's attestation (JSON).
+	FinishWebAuthnRegistration(context.Context, *connect.Request[v1.FinishWebAuthnRegistrationRequest]) (*connect.Response[v1.FinishWebAuthnRegistrationResponse], error)
 }
 
 // NewMFAServiceClient constructs a client for the werbot.v1.MFAService service. By default, it uses
@@ -100,16 +112,30 @@ func NewMFAServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(mFAServiceMethods.ByName("DeleteFactor")),
 			connect.WithClientOptions(opts...),
 		),
+		beginWebAuthnRegistration: connect.NewClient[v1.BeginWebAuthnRegistrationRequest, v1.BeginWebAuthnRegistrationResponse](
+			httpClient,
+			baseURL+MFAServiceBeginWebAuthnRegistrationProcedure,
+			connect.WithSchema(mFAServiceMethods.ByName("BeginWebAuthnRegistration")),
+			connect.WithClientOptions(opts...),
+		),
+		finishWebAuthnRegistration: connect.NewClient[v1.FinishWebAuthnRegistrationRequest, v1.FinishWebAuthnRegistrationResponse](
+			httpClient,
+			baseURL+MFAServiceFinishWebAuthnRegistrationProcedure,
+			connect.WithSchema(mFAServiceMethods.ByName("FinishWebAuthnRegistration")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // mFAServiceClient implements MFAServiceClient.
 type mFAServiceClient struct {
-	listFactors           *connect.Client[v1.ListFactorsRequest, v1.ListFactorsResponse]
-	enrollTOTP            *connect.Client[v1.EnrollTOTPRequest, v1.EnrollTOTPResponse]
-	confirmTOTP           *connect.Client[v1.ConfirmTOTPRequest, v1.ConfirmTOTPResponse]
-	generateRecoveryCodes *connect.Client[v1.GenerateRecoveryCodesRequest, v1.GenerateRecoveryCodesResponse]
-	deleteFactor          *connect.Client[v1.DeleteFactorRequest, v1.DeleteFactorResponse]
+	listFactors                *connect.Client[v1.ListFactorsRequest, v1.ListFactorsResponse]
+	enrollTOTP                 *connect.Client[v1.EnrollTOTPRequest, v1.EnrollTOTPResponse]
+	confirmTOTP                *connect.Client[v1.ConfirmTOTPRequest, v1.ConfirmTOTPResponse]
+	generateRecoveryCodes      *connect.Client[v1.GenerateRecoveryCodesRequest, v1.GenerateRecoveryCodesResponse]
+	deleteFactor               *connect.Client[v1.DeleteFactorRequest, v1.DeleteFactorResponse]
+	beginWebAuthnRegistration  *connect.Client[v1.BeginWebAuthnRegistrationRequest, v1.BeginWebAuthnRegistrationResponse]
+	finishWebAuthnRegistration *connect.Client[v1.FinishWebAuthnRegistrationRequest, v1.FinishWebAuthnRegistrationResponse]
 }
 
 // ListFactors calls werbot.v1.MFAService.ListFactors.
@@ -137,6 +163,16 @@ func (c *mFAServiceClient) DeleteFactor(ctx context.Context, req *connect.Reques
 	return c.deleteFactor.CallUnary(ctx, req)
 }
 
+// BeginWebAuthnRegistration calls werbot.v1.MFAService.BeginWebAuthnRegistration.
+func (c *mFAServiceClient) BeginWebAuthnRegistration(ctx context.Context, req *connect.Request[v1.BeginWebAuthnRegistrationRequest]) (*connect.Response[v1.BeginWebAuthnRegistrationResponse], error) {
+	return c.beginWebAuthnRegistration.CallUnary(ctx, req)
+}
+
+// FinishWebAuthnRegistration calls werbot.v1.MFAService.FinishWebAuthnRegistration.
+func (c *mFAServiceClient) FinishWebAuthnRegistration(ctx context.Context, req *connect.Request[v1.FinishWebAuthnRegistrationRequest]) (*connect.Response[v1.FinishWebAuthnRegistrationResponse], error) {
+	return c.finishWebAuthnRegistration.CallUnary(ctx, req)
+}
+
 // MFAServiceHandler is an implementation of the werbot.v1.MFAService service.
 type MFAServiceHandler interface {
 	ListFactors(context.Context, *connect.Request[v1.ListFactorsRequest]) (*connect.Response[v1.ListFactorsResponse], error)
@@ -148,6 +184,12 @@ type MFAServiceHandler interface {
 	// Replaces all recovery codes; the only response that carries them.
 	GenerateRecoveryCodes(context.Context, *connect.Request[v1.GenerateRecoveryCodesRequest]) (*connect.Response[v1.GenerateRecoveryCodesResponse], error)
 	DeleteFactor(context.Context, *connect.Request[v1.DeleteFactorRequest]) (*connect.Response[v1.DeleteFactorResponse], error)
+	// Starts a passkey registration: options is the JSON of the WebAuthn
+	// credential creation options. FailedPrecondition when WERBOT_WEB_URL has
+	// no domain name.
+	BeginWebAuthnRegistration(context.Context, *connect.Request[v1.BeginWebAuthnRegistrationRequest]) (*connect.Response[v1.BeginWebAuthnRegistrationResponse], error)
+	// Stores the passkey from the browser's attestation (JSON).
+	FinishWebAuthnRegistration(context.Context, *connect.Request[v1.FinishWebAuthnRegistrationRequest]) (*connect.Response[v1.FinishWebAuthnRegistrationResponse], error)
 }
 
 // NewMFAServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -187,6 +229,18 @@ func NewMFAServiceHandler(svc MFAServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(mFAServiceMethods.ByName("DeleteFactor")),
 		connect.WithHandlerOptions(opts...),
 	)
+	mFAServiceBeginWebAuthnRegistrationHandler := connect.NewUnaryHandler(
+		MFAServiceBeginWebAuthnRegistrationProcedure,
+		svc.BeginWebAuthnRegistration,
+		connect.WithSchema(mFAServiceMethods.ByName("BeginWebAuthnRegistration")),
+		connect.WithHandlerOptions(opts...),
+	)
+	mFAServiceFinishWebAuthnRegistrationHandler := connect.NewUnaryHandler(
+		MFAServiceFinishWebAuthnRegistrationProcedure,
+		svc.FinishWebAuthnRegistration,
+		connect.WithSchema(mFAServiceMethods.ByName("FinishWebAuthnRegistration")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/werbot.v1.MFAService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MFAServiceListFactorsProcedure:
@@ -199,6 +253,10 @@ func NewMFAServiceHandler(svc MFAServiceHandler, opts ...connect.HandlerOption) 
 			mFAServiceGenerateRecoveryCodesHandler.ServeHTTP(w, r)
 		case MFAServiceDeleteFactorProcedure:
 			mFAServiceDeleteFactorHandler.ServeHTTP(w, r)
+		case MFAServiceBeginWebAuthnRegistrationProcedure:
+			mFAServiceBeginWebAuthnRegistrationHandler.ServeHTTP(w, r)
+		case MFAServiceFinishWebAuthnRegistrationProcedure:
+			mFAServiceFinishWebAuthnRegistrationHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -226,4 +284,12 @@ func (UnimplementedMFAServiceHandler) GenerateRecoveryCodes(context.Context, *co
 
 func (UnimplementedMFAServiceHandler) DeleteFactor(context.Context, *connect.Request[v1.DeleteFactorRequest]) (*connect.Response[v1.DeleteFactorResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.MFAService.DeleteFactor is not implemented"))
+}
+
+func (UnimplementedMFAServiceHandler) BeginWebAuthnRegistration(context.Context, *connect.Request[v1.BeginWebAuthnRegistrationRequest]) (*connect.Response[v1.BeginWebAuthnRegistrationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.MFAService.BeginWebAuthnRegistration is not implemented"))
+}
+
+func (UnimplementedMFAServiceHandler) FinishWebAuthnRegistration(context.Context, *connect.Request[v1.FinishWebAuthnRegistrationRequest]) (*connect.Response[v1.FinishWebAuthnRegistrationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.MFAService.FinishWebAuthnRegistration is not implemented"))
 }

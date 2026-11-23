@@ -16,6 +16,12 @@ service MFAService {
   // Replaces all recovery codes; the only response that carries them.
   rpc GenerateRecoveryCodes(GenerateRecoveryCodesRequest) returns (GenerateRecoveryCodesResponse);
   rpc DeleteFactor(DeleteFactorRequest) returns (DeleteFactorResponse);
+  // Starts a passkey registration: options is the JSON of the WebAuthn
+  // credential creation options. FailedPrecondition when WERBOT_WEB_URL has
+  // no domain name.
+  rpc BeginWebAuthnRegistration(BeginWebAuthnRegistrationRequest) returns (BeginWebAuthnRegistrationResponse);
+  // Stores the passkey from the browser's attestation (JSON).
+  rpc FinishWebAuthnRegistration(FinishWebAuthnRegistrationRequest) returns (FinishWebAuthnRegistrationResponse);
 }
 
 message Factor {
@@ -59,3 +65,16 @@ message DeleteFactorRequest {
   string id = 1 [(buf.validate.field).string.pattern = "^(totp|recovery|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"];
 }
 message DeleteFactorResponse {}
+
+message BeginWebAuthnRegistrationRequest {}
+message BeginWebAuthnRegistrationResponse {
+  bytes options = 1;
+}
+
+message FinishWebAuthnRegistrationRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  bytes attestation = 2 [(buf.validate.field).bytes = {min_len: 1, max_len: 16384}];
+}
+message FinishWebAuthnRegistrationResponse {
+  Factor factor = 1;
+}

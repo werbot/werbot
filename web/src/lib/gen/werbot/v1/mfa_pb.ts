@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file werbot/v1/mfa.proto.
  */
 export const file_werbot_v1_mfa: GenFile = /*@__PURE__*/
-  fileDesc("ChN3ZXJib3QvdjEvbWZhLnByb3RvEgl3ZXJib3QudjEipQEKBkZhY3RvchIKCgJpZBgBIAEoCRIMCgRraW5kGAIgASgJEgwKBG5hbWUYAyABKAkSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMbGFzdF91c2VkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCglyZW1haW5pbmcYBiABKAUiFAoSTGlzdEZhY3RvcnNSZXF1ZXN0IjkKE0xpc3RGYWN0b3JzUmVzcG9uc2USIgoHZmFjdG9ycxgBIAMoCzIRLndlcmJvdC52MS5GYWN0b3IiEwoRRW5yb2xsVE9UUFJlcXVlc3QiWwoSRW5yb2xsVE9UUFJlc3BvbnNlEhMKC290cGF1dGhfdXJsGAEgASgJEg4KBnNlY3JldBgCIAEoCRIPCgdxcl9zaXplGAMgASgFEg8KB3FyX3BhdGgYBCABKAkiNQoSQ29uZmlybVRPVFBSZXF1ZXN0Eh8KBGNvZGUYASABKAlCEbpIDnIMMgpeWzAtOV17Nn0kIhUKE0NvbmZpcm1UT1RQUmVzcG9uc2UiHgocR2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdCIuCh1HZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRINCgVjb2RlcxgBIAMoCSKHAQoTRGVsZXRlRmFjdG9yUmVxdWVzdBJwCgJpZBgBIAEoCUJkukhhcl8yXV4odG90cHxyZWNvdmVyeXxbMC05YS1mQS1GXXs4fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXsxMn0pJCIWChREZWxldGVGYWN0b3JSZXNwb25zZTKwAwoKTUZBU2VydmljZRJMCgtMaXN0RmFjdG9ycxIdLndlcmJvdC52MS5MaXN0RmFjdG9yc1JlcXVlc3QaHi53ZXJib3QudjEuTGlzdEZhY3RvcnNSZXNwb25zZRJJCgpFbnJvbGxUT1RQEhwud2VyYm90LnYxLkVucm9sbFRPVFBSZXF1ZXN0Gh0ud2VyYm90LnYxLkVucm9sbFRPVFBSZXNwb25zZRJMCgtDb25maXJtVE9UUBIdLndlcmJvdC52MS5Db25maXJtVE9UUFJlcXVlc3QaHi53ZXJib3QudjEuQ29uZmlybVRPVFBSZXNwb25zZRJqChVHZW5lcmF0ZVJlY292ZXJ5Q29kZXMSJy53ZXJib3QudjEuR2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdBooLndlcmJvdC52MS5HZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRJPCgxEZWxldGVGYWN0b3ISHi53ZXJib3QudjEuRGVsZXRlRmFjdG9yUmVxdWVzdBofLndlcmJvdC52MS5EZWxldGVGYWN0b3JSZXNwb25zZUKPAQoNY29tLndlcmJvdC52MUIITWZhUHJvdG9QAVovZ2l0aHViLmNvbS93ZXJib3Qvd2VyYm90L2dlbi93ZXJib3QvdjE7d2VyYm90djGiAgNXWFiqAglXZXJib3QuVjHKAglXZXJib3RcVjHiAhVXZXJib3RcVjFcR1BCTWV0YWRhdGHqAgpXZXJib3Q6OlYxYgZwcm90bzM", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("ChN3ZXJib3QvdjEvbWZhLnByb3RvEgl3ZXJib3QudjEipQEKBkZhY3RvchIKCgJpZBgBIAEoCRIMCgRraW5kGAIgASgJEgwKBG5hbWUYAyABKAkSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMbGFzdF91c2VkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCglyZW1haW5pbmcYBiABKAUiFAoSTGlzdEZhY3RvcnNSZXF1ZXN0IjkKE0xpc3RGYWN0b3JzUmVzcG9uc2USIgoHZmFjdG9ycxgBIAMoCzIRLndlcmJvdC52MS5GYWN0b3IiEwoRRW5yb2xsVE9UUFJlcXVlc3QiWwoSRW5yb2xsVE9UUFJlc3BvbnNlEhMKC290cGF1dGhfdXJsGAEgASgJEg4KBnNlY3JldBgCIAEoCRIPCgdxcl9zaXplGAMgASgFEg8KB3FyX3BhdGgYBCABKAkiNQoSQ29uZmlybVRPVFBSZXF1ZXN0Eh8KBGNvZGUYASABKAlCEbpIDnIMMgpeWzAtOV17Nn0kIhUKE0NvbmZpcm1UT1RQUmVzcG9uc2UiHgocR2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdCIuCh1HZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRINCgVjb2RlcxgBIAMoCSKHAQoTRGVsZXRlRmFjdG9yUmVxdWVzdBJwCgJpZBgBIAEoCUJkukhhcl8yXV4odG90cHxyZWNvdmVyeXxbMC05YS1mQS1GXXs4fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXsxMn0pJCIWChREZWxldGVGYWN0b3JSZXNwb25zZSIiCiBCZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVxdWVzdCI0CiFCZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVzcG9uc2USDwoHb3B0aW9ucxgBIAEoDCJeCiFGaW5pc2hXZWJBdXRoblJlZ2lzdHJhdGlvblJlcXVlc3QSFwoEbmFtZRgBIAEoCUIJukgGcgQQARhAEiAKC2F0dGVzdGF0aW9uGAIgASgMQgu6SAh6BhABGICAASJHCiJGaW5pc2hXZWJBdXRoblJlZ2lzdHJhdGlvblJlc3BvbnNlEiEKBmZhY3RvchgBIAEoCzIRLndlcmJvdC52MS5GYWN0b3IyowUKCk1GQVNlcnZpY2USTAoLTGlzdEZhY3RvcnMSHS53ZXJib3QudjEuTGlzdEZhY3RvcnNSZXF1ZXN0Gh4ud2VyYm90LnYxLkxpc3RGYWN0b3JzUmVzcG9uc2USSQoKRW5yb2xsVE9UUBIcLndlcmJvdC52MS5FbnJvbGxUT1RQUmVxdWVzdBodLndlcmJvdC52MS5FbnJvbGxUT1RQUmVzcG9uc2USTAoLQ29uZmlybVRPVFASHS53ZXJib3QudjEuQ29uZmlybVRPVFBSZXF1ZXN0Gh4ud2VyYm90LnYxLkNvbmZpcm1UT1RQUmVzcG9uc2USagoVR2VuZXJhdGVSZWNvdmVyeUNvZGVzEicud2VyYm90LnYxLkdlbmVyYXRlUmVjb3ZlcnlDb2Rlc1JlcXVlc3QaKC53ZXJib3QudjEuR2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVzcG9uc2USTwoMRGVsZXRlRmFjdG9yEh4ud2VyYm90LnYxLkRlbGV0ZUZhY3RvclJlcXVlc3QaHy53ZXJib3QudjEuRGVsZXRlRmFjdG9yUmVzcG9uc2USdgoZQmVnaW5XZWJBdXRoblJlZ2lzdHJhdGlvbhIrLndlcmJvdC52MS5CZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVxdWVzdBosLndlcmJvdC52MS5CZWdpbldlYkF1dGhuUmVnaXN0cmF0aW9uUmVzcG9uc2USeQoaRmluaXNoV2ViQXV0aG5SZWdpc3RyYXRpb24SLC53ZXJib3QudjEuRmluaXNoV2ViQXV0aG5SZWdpc3RyYXRpb25SZXF1ZXN0Gi0ud2VyYm90LnYxLkZpbmlzaFdlYkF1dGhuUmVnaXN0cmF0aW9uUmVzcG9uc2VCjwEKDWNvbS53ZXJib3QudjFCCE1mYVByb3RvUAFaL2dpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vd2VyYm90L3YxO3dlcmJvdHYxogIDV1hYqgIJV2VyYm90LlYxygIJV2VyYm90XFYx4gIVV2VyYm90XFYxXEdQQk1ldGFkYXRh6gIKV2VyYm90OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message werbot.v1.Factor
@@ -233,6 +233,75 @@ export const DeleteFactorResponseSchema: GenMessage<DeleteFactorResponse> = /*@_
   messageDesc(file_werbot_v1_mfa, 10);
 
 /**
+ * @generated from message werbot.v1.BeginWebAuthnRegistrationRequest
+ */
+export type BeginWebAuthnRegistrationRequest = Message<"werbot.v1.BeginWebAuthnRegistrationRequest"> & {
+};
+
+/**
+ * Describes the message werbot.v1.BeginWebAuthnRegistrationRequest.
+ * Use `create(BeginWebAuthnRegistrationRequestSchema)` to create a new message.
+ */
+export const BeginWebAuthnRegistrationRequestSchema: GenMessage<BeginWebAuthnRegistrationRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_mfa, 11);
+
+/**
+ * @generated from message werbot.v1.BeginWebAuthnRegistrationResponse
+ */
+export type BeginWebAuthnRegistrationResponse = Message<"werbot.v1.BeginWebAuthnRegistrationResponse"> & {
+  /**
+   * @generated from field: bytes options = 1;
+   */
+  options: Uint8Array;
+};
+
+/**
+ * Describes the message werbot.v1.BeginWebAuthnRegistrationResponse.
+ * Use `create(BeginWebAuthnRegistrationResponseSchema)` to create a new message.
+ */
+export const BeginWebAuthnRegistrationResponseSchema: GenMessage<BeginWebAuthnRegistrationResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_mfa, 12);
+
+/**
+ * @generated from message werbot.v1.FinishWebAuthnRegistrationRequest
+ */
+export type FinishWebAuthnRegistrationRequest = Message<"werbot.v1.FinishWebAuthnRegistrationRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: bytes attestation = 2;
+   */
+  attestation: Uint8Array;
+};
+
+/**
+ * Describes the message werbot.v1.FinishWebAuthnRegistrationRequest.
+ * Use `create(FinishWebAuthnRegistrationRequestSchema)` to create a new message.
+ */
+export const FinishWebAuthnRegistrationRequestSchema: GenMessage<FinishWebAuthnRegistrationRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_mfa, 13);
+
+/**
+ * @generated from message werbot.v1.FinishWebAuthnRegistrationResponse
+ */
+export type FinishWebAuthnRegistrationResponse = Message<"werbot.v1.FinishWebAuthnRegistrationResponse"> & {
+  /**
+   * @generated from field: werbot.v1.Factor factor = 1;
+   */
+  factor?: Factor | undefined;
+};
+
+/**
+ * Describes the message werbot.v1.FinishWebAuthnRegistrationResponse.
+ * Use `create(FinishWebAuthnRegistrationResponseSchema)` to create a new message.
+ */
+export const FinishWebAuthnRegistrationResponseSchema: GenMessage<FinishWebAuthnRegistrationResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_mfa, 14);
+
+/**
  * The caller's second factors: a TOTP authenticator app, passkeys and
  * recovery codes.
  *
@@ -285,6 +354,28 @@ export const MFAService: GenService<{
     methodKind: "unary";
     input: typeof DeleteFactorRequestSchema;
     output: typeof DeleteFactorResponseSchema;
+  },
+  /**
+   * Starts a passkey registration: options is the JSON of the WebAuthn
+   * credential creation options. FailedPrecondition when WERBOT_WEB_URL has
+   * no domain name.
+   *
+   * @generated from rpc werbot.v1.MFAService.BeginWebAuthnRegistration
+   */
+  beginWebAuthnRegistration: {
+    methodKind: "unary";
+    input: typeof BeginWebAuthnRegistrationRequestSchema;
+    output: typeof BeginWebAuthnRegistrationResponseSchema;
+  },
+  /**
+   * Stores the passkey from the browser's attestation (JSON).
+   *
+   * @generated from rpc werbot.v1.MFAService.FinishWebAuthnRegistration
+   */
+  finishWebAuthnRegistration: {
+    methodKind: "unary";
+    input: typeof FinishWebAuthnRegistrationRequestSchema;
+    output: typeof FinishWebAuthnRegistrationResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_werbot_v1_mfa, 0);
