@@ -33,6 +33,14 @@ Terminate TLS on the load balancer or ingress in front of web. Web removes incom
 - Put the subnet of the web replicas into `WERBOT_TRUSTED_PROXIES` of the server. Otherwise audit and IP rules see the address of web, and an "allowed CIDRs" rule denies everyone.
 - Open the server HTTP port only to web and the gateways.
 
+## WebSocket
+
+The web terminal and the live view ([web-terminal.md](web-terminal.md)) use WebSockets on `/api/terminal` and `/api/sessions/<id>/live`. `werbot web` proxies them to the server with no setting. Check these in front of web:
+
+- The load balancer passes `Upgrade` and `Connection` and keeps idle connections at least 60 seconds ([scaling.md](scaling.md#websocket-streams)).
+- The server accepts a WebSocket only when its `Origin` equals the origin of `WERBOT_WEB_URL`; any other `Origin` gets `403`. Serve the UI from that one origin. A UI reachable at several origins is not supported.
+- The handshake has the 30 s response-header wait of any proxied request; after it the connection lasts as long as the session.
+
 ## Failures
 
 - The server is down or times out: web answers `503` with `{"code":"unavailable","message":"api unavailable"}` (on `/api/`: `text/plain` `api unavailable`), and the UI offers a retry. Each such request adds to `werbot_web_upstream_errors_total` and logs `upstream error`; a request the browser cancels is not counted.

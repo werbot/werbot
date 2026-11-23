@@ -8,6 +8,17 @@ In `v0.x` an upgrade needs a full stop: every server replica and every gateway i
 
 ## Release notes
 
+### Web terminal, live view and terminate
+
+This release adds a web terminal, a live view and Terminate ([web-terminal.md](web-terminal.md)). Check these changes before you upgrade:
+
+- **New listener `:8444`.** Every server replica opens `WERBOT_INTERNAL_ADDR` (default `:8444`), an mTLS-only listener that replicas use to bridge browser streams. It accepts only client certificates of the internal CA. Keep it on the private network and open it between the replicas. With several replicas set `WERBOT_INTERNAL_ADDR` and `WERBOT_INTERNAL_URL` (an address the other replicas can reach); with one replica no setting is needed ([scaling.md](scaling.md#internal-listener)).
+- **Load balancer.** The balancer in front of the server or `werbot web` must pass WebSocket upgrades and keep idle connections at least 60 seconds ([scaling.md](scaling.md#websocket-streams)). Without it the web terminal and the live view do not connect; nothing else is affected.
+- **UI origin.** The server accepts a WebSocket only from the origin of `WERBOT_WEB_URL` (it defaults to `WERBOT_PUBLIC_URL`). Set `WERBOT_WEB_URL` to the address users open in the browser ([web.md](web.md#websocket)).
+- **Gateways.** Upgrade standalone gateways with the server: older ones do not serve browser streams.
+- **Migrations.** `00180` to `00182` add the server replica registry, stream tickets, and the session columns for the entry (`front`) and terminate requests. They run at server start as usual.
+- **Dependency.** The server includes `github.com/coder/websocket` v1.8.15; the UI includes `@xterm/xterm` and `@xterm/addon-fit`.
+
 ### AI agents
 
 This release adds AI agents ([agents.md](agents.md)). Check these changes before you upgrade:
