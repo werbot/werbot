@@ -25,6 +25,7 @@ import (
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/jobs"
 	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/rate"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
 	"github.com/werbot/werbot/internal/policy"
@@ -148,6 +149,8 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	periodic = append(periodic, access.RegisterApprovalJobs(workers, s.Access)...)
 	periodic = append(periodic, agentic.RegisterJobs(workers, s.Agents)...)
 	periodic = append(periodic, relay.RegisterJobs(workers, s.Relay)...)
+	periodic = append(periodic, rate.RegisterJobs(workers, pool)...)
+	periodic = append(periodic, identity.RegisterMFAJobs(workers, pool)...)
 	if s.Jobs, err = jobs.NewClient(pool, workers, periodic, logger); err != nil {
 		return nil, err
 	}

@@ -2,6 +2,8 @@ package dbtest
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base32"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/werbot/werbot/internal/platform/principal"
+	"github.com/werbot/werbot/internal/platform/secretbox"
 )
 
 func insertID(t testing.TB, pool *pgxpool.Pool, sql string, args ...any) uuid.UUID {
@@ -184,4 +187,31 @@ func AgentRun(t testing.TB, pool *pgxpool.Pool, orgID, agentID uuid.UUID, maxAct
 		 SELECT org_id, id, sponsor_user_id, 'test', 'running', $3, $4, now() + interval '1 hour'
 		 FROM agent WHERE id = $2 AND org_id = $1 RETURNING id`,
 		orgID, agentID, maxActions, maxConcurrent)
+}
+
+// TOTP stores a confirmed TOTP factor of userID and returns its secret: 20
+// random bytes in unpadded base32, as otpauth URLs carry it. The table holds
+// that string sealed by box.
+func (f Fixture) TOTP(t testing.TB, pool *pgxpool.Pool, box *secretbox.Box, userID uuid.UUID) (secret string) {
+	t.Helper()
+	raw := make([]byte, 20)
+	_, _ = rand.Read(raw) // never fails (crypto/rand)
+	secret = base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(raw)
+	ciphertext, keyID, err := box.Seal([]byte(secret))
+	if err != nil {
+		t.Fatalf("dbtest: %v", err)
+	}
+	exec(t, pool, "INSERT INTO totp_secret (user_id, ciphertext, key_id, confirmed_at) VALUES ($1, $2, $3, now())",
+		userID, ciphertext, keyID)
+	return secret
+}
+
+// MFARule inserts an MFA rule of OrgID; subjects and selector are jsonb texts,
+// strength is any or webauthn.
+func (f Fixture) MFARule(t testing.TB, pool *pgxpool.Pool, name, subjects, selector string, maxAge time.Duration, strength string) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		`INSERT INTO mfa_rule (org_id, name, subjects, resource_selector, max_age, strength)
+		 VALUES ($1, $2, $3::jsonb, $4::jsonb, make_interval(secs => $5::float8), $6) RETURNING id`,
+		f.OrgID, name, subjects, selector, maxAge.Seconds(), strength)
 }

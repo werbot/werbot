@@ -161,3 +161,36 @@ func assertQueueRunsJobs(t *testing.T, queue string) {
 		t.Fatalf("%s job did not run", queue)
 	}
 }
+
+// TestQueueIdP: the idp queue runs jobs, at most two at a time.
+func TestQueueIdP(t *testing.T) {
+	assertQueueRunsJobs(t, jobs.QueueIdP)
+
+	pool, _ := dbtest.New(t)
+	ctx := context.Background()
+	block := &blockWorker{started: make(chan struct{}, 3), release: make(chan struct{})}
+	workers := river.NewWorkers()
+	river.AddWorker(workers, block)
+	client, err := jobs.NewClient(pool, workers, nil, slog.New(slog.DiscardHandler))
+	require.NoError(t, err)
+	require.NoError(t, client.Start(ctx))
+	t.Cleanup(func() { _ = client.Stop(ctx) })
+	t.Cleanup(func() { close(block.release) }) // LIFO: workers are released before Stop
+
+	for range 3 {
+		_, err = client.Insert(ctx, blockArgs{}, &river.InsertOpts{Queue: jobs.QueueIdP})
+		require.NoError(t, err)
+	}
+	for range 2 {
+		select {
+		case <-block.started:
+		case <-time.After(5 * time.Second):
+			t.Fatal("idp worker did not start")
+		}
+	}
+	select {
+	case <-block.started:
+		t.Fatal("third idp job started: idp MaxWorkers must be 2")
+	case <-time.After(time.Second):
+	}
+}

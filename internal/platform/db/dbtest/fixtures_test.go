@@ -1,7 +1,9 @@
 package dbtest_test
 
 import (
+	"bytes"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
+	"github.com/werbot/werbot/internal/platform/secretbox"
 )
 
 func TestSeed(t *testing.T) {
@@ -42,4 +45,38 @@ func TestSeed(t *testing.T) {
 		require.NoError(t, pool.QueryRow(ctx, "SELECT role FROM membership WHERE org_id = $1 AND user_id = $2", f.OrgID, id).Scan(&dbRole))
 		assert.Equal(t, role, dbRole)
 	}
+}
+
+func TestTOTPFixture(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	f := dbtest.Seed(t, pool)
+	box, err := secretbox.New(bytes.Repeat([]byte{1}, 32), nil)
+	require.NoError(t, err)
+
+	secret := f.TOTP(t, pool, box, f.MemberID)
+	assert.Regexp(t, `^[A-Z2-7]{32}$`, secret)
+	var ciphertext []byte
+	var keyID string
+	var confirmed bool
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT ciphertext, key_id, confirmed_at IS NOT NULL FROM totp_secret WHERE user_id = $1",
+		f.MemberID).Scan(&ciphertext, &keyID, &confirmed))
+	assert.True(t, confirmed)
+	assert.NotContains(t, string(ciphertext), secret, "the secret is stored sealed")
+	plain, err := box.Open(ciphertext, keyID)
+	require.NoError(t, err)
+	assert.Equal(t, secret, string(plain))
+}
+
+func TestMFARuleFixture(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	f := dbtest.Seed(t, pool)
+	id := f.MFARule(t, pool, "prod", `{"users":[]}`, `{"all":true}`, 90*time.Second, "webauthn")
+	var org uuid.UUID
+	var maxAge, strength, subjects string
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT org_id, max_age::text, strength, subjects::text FROM mfa_rule WHERE id = $1 AND name = 'prod'",
+		id).Scan(&org, &maxAge, &strength, &subjects))
+	assert.Equal(t, f.OrgID, org)
+	assert.Equal(t, "00:01:30", maxAge)
+	assert.Equal(t, "webauthn", strength)
+	assert.JSONEq(t, `{"users":[]}`, subjects)
 }

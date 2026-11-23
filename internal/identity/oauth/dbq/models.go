@@ -247,6 +247,22 @@ type GeoipDb struct {
 	UpdatedAt time.Time
 }
 
+type IdpOidc struct {
+	ID                     uuid.UUID
+	OrgID                  uuid.UUID
+	Name                   string
+	Issuer                 string
+	ClientID               string
+	ClientSecretCiphertext []byte
+	KeyID                  string
+	Scopes                 []string
+	ClaimsMapping          []byte
+	AllowSignup            bool
+	Enabled                bool
+	CreatedBy              *uuid.UUID
+	CreatedAt              time.Time
+}
+
 type IpBlocklist struct {
 	Cidr      netip.Prefix
 	Source    string
@@ -269,6 +285,50 @@ type Membership struct {
 	UserID    uuid.UUID
 	Role      string
 	CreatedAt time.Time
+}
+
+type MfaChallenge struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	UserID            uuid.UUID
+	Code              string
+	SshSessionID      []byte
+	ResourceID        *uuid.UUID
+	ClientIp          *netip.Addr
+	Binding           string
+	Strength          string
+	Status            string
+	ExpiresAt         time.Time
+	ConfirmedAt       *time.Time
+	GatewayInstanceID *uuid.UUID
+	CreatedAt         time.Time
+}
+
+type MfaRecoveryCode struct {
+	UserID   uuid.UUID
+	CodeHash []byte
+	UsedAt   *time.Time
+}
+
+type MfaRule struct {
+	ID               uuid.UUID
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	MaxAge           pgtype.Interval
+	Strength         string
+	CreatedBy        *uuid.UUID
+	CreatedAt        time.Time
+}
+
+type MfaVerification struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	UserID     uuid.UUID
+	Binding    string
+	Method     string
+	VerifiedAt time.Time
 }
 
 type OauthAuthRequest struct {
@@ -334,6 +394,7 @@ type OrgSetting struct {
 	CommandApprovalTtl pgtype.Interval
 	LockMode           string
 	MaskOutput         string
+	RequireMfa         string
 }
 
 type OrgSshCa struct {
@@ -362,6 +423,12 @@ type PathRule struct {
 	Message          string
 	CreatedBy        *uuid.UUID
 	CreatedAt        time.Time
+}
+
+type RateLimit struct {
+	Key         string
+	WindowStart time.Time
+	Count       int32
 }
 
 type Recording struct {
@@ -499,6 +566,7 @@ type StreamTicket struct {
 	ExpiresAt         time.Time
 	UsedAt            *time.Time
 	CreatedAt         time.Time
+	UserSessionID     *uuid.UUID
 }
 
 type Team struct {
@@ -525,6 +593,14 @@ type TerminalRule struct {
 	CreatedAt        time.Time
 }
 
+type TotpSecret struct {
+	UserID      uuid.UUID
+	Ciphertext  []byte
+	KeyID       string
+	ConfirmedAt *time.Time
+	LastStep    int64
+}
+
 type User struct {
 	ID           uuid.UUID
 	Email        string
@@ -533,6 +609,16 @@ type User struct {
 	PasswordHash string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+type UserIdpLink struct {
+	UserID            uuid.UUID
+	IdpID             uuid.UUID
+	OrgID             uuid.UUID
+	Subject           string
+	RefreshCiphertext []byte
+	KeyID             *string
+	LastCheckedAt     time.Time
 }
 
 type UserSession struct {
@@ -545,6 +631,7 @@ type UserSession struct {
 	LastSeenAt time.Time
 	Ip         *netip.Addr
 	UserAgent  string
+	MfaAt      *time.Time
 }
 
 type UserSshKey struct {
@@ -554,4 +641,29 @@ type UserSshKey struct {
 	PublicKey         string
 	FingerprintSha256 string
 	CreatedAt         time.Time
+}
+
+type WebauthnCeremony struct {
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	UserID      uuid.UUID
+	Kind        string
+	Ref         string
+	SessionData []byte
+	ExpiresAt   time.Time
+	UsedAt      *time.Time
+	CreatedAt   time.Time
+}
+
+type WebauthnCredential struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	Name         string
+	CredentialID []byte
+	PublicKey    []byte
+	SignCount    int64
+	Aaguid       []byte
+	Transports   []string
+	CreatedAt    time.Time
+	LastUsedAt   *time.Time
 }

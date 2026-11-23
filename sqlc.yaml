@@ -2,7 +2,7 @@ version: "2"
 sql:
   - engine: postgresql
     schema: migrations
-    queries: internal/identity/queries.sql
+    queries: internal/identity/queries
     gen:
       go:
         package: dbq

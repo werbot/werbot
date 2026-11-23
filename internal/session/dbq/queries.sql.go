@@ -39,7 +39,7 @@ func (q *Queries) AppendRecordingChunk(ctx context.Context, arg AppendRecordingC
 const consumeStreamTicket = `-- name: ConsumeStreamTicket :one
 UPDATE stream_ticket SET used_at = now()
 WHERE id = $1 AND used_at IS NULL AND expires_at > now()
-RETURNING id, org_id, mode, session_id, resource_id, user_id, cols, rows, gateway_instance_id, target_server_id, client_ip, expires_at, used_at, created_at
+RETURNING id, org_id, mode, session_id, resource_id, user_id, cols, rows, gateway_instance_id, target_server_id, client_ip, expires_at, used_at, created_at, user_session_id
 `
 
 func (q *Queries) ConsumeStreamTicket(ctx context.Context, id uuid.UUID) (StreamTicket, error) {
@@ -60,6 +60,7 @@ func (q *Queries) ConsumeStreamTicket(ctx context.Context, id uuid.UUID) (Stream
 		&i.ExpiresAt,
 		&i.UsedAt,
 		&i.CreatedAt,
+		&i.UserSessionID,
 	)
 	return i, err
 }
@@ -321,7 +322,7 @@ INSERT INTO stream_ticket (org_id, mode, session_id, resource_id, user_id, cols,
                            gateway_instance_id, target_server_id, client_ip, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
         $8, $9, $10, now() + make_interval(secs => $11::float8))
-RETURNING id, org_id, mode, session_id, resource_id, user_id, cols, rows, gateway_instance_id, target_server_id, client_ip, expires_at, used_at, created_at
+RETURNING id, org_id, mode, session_id, resource_id, user_id, cols, rows, gateway_instance_id, target_server_id, client_ip, expires_at, used_at, created_at, user_session_id
 `
 
 type InsertStreamTicketParams struct {
@@ -368,6 +369,7 @@ func (q *Queries) InsertStreamTicket(ctx context.Context, arg InsertStreamTicket
 		&i.ExpiresAt,
 		&i.UsedAt,
 		&i.CreatedAt,
+		&i.UserSessionID,
 	)
 	return i, err
 }
@@ -552,7 +554,7 @@ func (q *Queries) LockSessionToTerminate(ctx context.Context, arg LockSessionToT
 }
 
 const lookupStreamTicket = `-- name: LookupStreamTicket :one
-SELECT t.id, t.org_id, t.mode, t.session_id, t.resource_id, t.user_id, t.cols, t.rows, t.gateway_instance_id, t.target_server_id, t.client_ip, t.expires_at, t.used_at, t.created_at, u.login, coalesce(r.name, '')::text AS resource_name
+SELECT t.id, t.org_id, t.mode, t.session_id, t.resource_id, t.user_id, t.cols, t.rows, t.gateway_instance_id, t.target_server_id, t.client_ip, t.expires_at, t.used_at, t.created_at, t.user_session_id, u.login, coalesce(r.name, '')::text AS resource_name
 FROM stream_ticket t
 JOIN users u ON u.id = t.user_id
 LEFT JOIN resource r ON r.id = t.resource_id AND r.org_id = t.org_id
@@ -589,6 +591,7 @@ func (q *Queries) LookupStreamTicket(ctx context.Context, arg LookupStreamTicket
 		&i.StreamTicket.ExpiresAt,
 		&i.StreamTicket.UsedAt,
 		&i.StreamTicket.CreatedAt,
+		&i.StreamTicket.UserSessionID,
 		&i.Login,
 		&i.ResourceName,
 	)

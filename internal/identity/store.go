@@ -69,4 +69,6 @@ type Store interface {
 	GetUserCA(ctx context.Context, orgID uuid.UUID) (dbq.GetUserCARow, error)
 	InsertUserCA(ctx context.Context, arg dbq.InsertUserCAParams) error
 	LookupCertUser(ctx context.Context, arg dbq.LookupCertUserParams) (dbq.LookupCertUserRow, error)
+	DeleteOldMFAChallenges(ctx context.Context, olderSecs float64) (int64, error)
+	DeleteOldMFAVerifications(ctx context.Context, olderSecs float64) (int64, error)
 }
