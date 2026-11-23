@@ -23,6 +23,7 @@ type BearerVerifier interface {
 // authenticateBearer resolves an Authorization header to the principal of a
 // CLI access token: the token is verified without the database, then one
 // statement checks that its cli_session is live and the user still a member.
+// An agent run token is its sponsor's principal with AgentID and RunID.
 // A bad header or token and a revoked, expired or missing session give
 // ErrUnauthenticated; a store failure is returned as is.
 func (s *Service) authenticateBearer(ctx context.Context, bearer BearerVerifier, header string) (principal.Principal, error) {
@@ -48,5 +49,6 @@ func (s *Service) authenticateBearer(ctx context.Context, bearer BearerVerifier,
 	}
 	return principal.Principal{
 		UserID: c.UserID, OrgID: c.OrgID, Role: role, AuthMethod: principal.AuthMethodOAuth, CLISessionID: c.CLISessionID,
+		AgentID: c.AgentID, RunID: c.RunID,
 	}, nil
 }

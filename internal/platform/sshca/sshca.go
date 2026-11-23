@@ -31,9 +31,16 @@ type Identity struct {
 	AgentID, RunID              *uuid.UUID
 }
 
+// errAgentPair: an agent certificate names both its agent and its run.
+var errAgentPair = errors.New("sshca: agent extensions need each other")
+
 // Sign issues a user certificate for pub, valid from now-ClockSkew to now+ttl,
-// with the single principal id.Login and the identity in extensions.
+// with the single principal id.Login and the identity in extensions. An agent
+// identity sets both AgentID and RunID; one alone is an error.
 func Sign(ca ssh.Signer, pub ssh.PublicKey, id Identity, now time.Time, ttl time.Duration) (*ssh.Certificate, error) {
+	if (id.AgentID == nil) != (id.RunID == nil) {
+		return nil, errAgentPair
+	}
 	var serial [8]byte
 	_, _ = rand.Read(serial[:]) // crypto/rand.Read never returns an error
 	ext := map[string]string{
@@ -45,8 +52,6 @@ func Sign(ca ssh.Signer, pub ssh.PublicKey, id Identity, now time.Time, ttl time
 	}
 	if id.AgentID != nil {
 		ext[ExtAgent] = id.AgentID.String()
-	}
-	if id.RunID != nil {
 		ext[ExtRun] = id.RunID.String()
 	}
 	cert := &ssh.Certificate{
@@ -86,19 +91,31 @@ func Parse(cert *ssh.Certificate) (Identity, error) {
 		}
 		*dst = u
 	}
-	for name, dst := range map[string]**uuid.UUID{ExtAgent: &id.AgentID, ExtRun: &id.RunID} {
-		v, ok := cert.Extensions[name]
-		if !ok {
-			continue
-		}
-		u, err := uuid.Parse(v)
-		if err != nil {
-			return Identity{}, fmt.Errorf("sshca: invalid extension %s", name)
-		}
-		*dst = &u
+	var err error
+	if id.AgentID, id.RunID, err = parseAgent(cert.Extensions); err != nil {
+		return Identity{}, err
 	}
 	if cert.KeyId != id.UserID.String() {
 		return Identity{}, fmt.Errorf("sshca: key id does not match %s", ExtUser)
 	}
 	return id, nil
+}
+
+// parseAgent reads ExtAgent and ExtRun: both UUIDs or neither extension.
+func parseAgent(ext map[string]string) (agent, run *uuid.UUID, err error) {
+	for name, dst := range map[string]**uuid.UUID{ExtAgent: &agent, ExtRun: &run} {
+		v, ok := ext[name]
+		if !ok {
+			continue
+		}
+		u, err := uuid.Parse(v)
+		if err != nil {
+			return nil, nil, fmt.Errorf("sshca: invalid extension %s", name)
+		}
+		*dst = &u
+	}
+	if (agent == nil) != (run == nil) {
+		return nil, nil, errAgentPair
+	}
+	return agent, run, nil
 }

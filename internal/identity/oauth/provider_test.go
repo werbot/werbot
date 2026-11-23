@@ -59,10 +59,10 @@ func TestUnknownClientRejected(t *testing.T) {
 func TestNewRejectsBadIssuer(t *testing.T) {
 	s := newStand(t)
 	for _, issuer := range []string{"", "ftp://werbot.test", "https://"} {
-		_, err := oauth.New(s.pool, s.key, nil, oauth.Config{Issuer: issuer, WebURL: testWebURL})
+		_, err := oauth.New(s.pool, s.key, nil, nil, oauth.Config{Issuer: issuer, WebURL: testWebURL})
 		assert.Error(t, err, issuer)
 	}
-	_, err := oauth.New(s.pool, s.key, nil, oauth.Config{Issuer: "https://werbot.test", WebURL: testWebURL})
+	_, err := oauth.New(s.pool, s.key, nil, nil, oauth.Config{Issuer: "https://werbot.test", WebURL: testWebURL})
 	assert.NoError(t, err)
 }
 

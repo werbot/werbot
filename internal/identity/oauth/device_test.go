@@ -164,7 +164,7 @@ func TestDeviceApproveFlow(t *testing.T) {
 // one cli_session; the code is spent afterwards.
 func TestDeviceCodeUsedOnce(t *testing.T) {
 	s := newStand(t)
-	b, _ := serveProvider(t, s.pool, s.key, s.srv.URL)
+	b, _ := serveProvider(t, s.pool, s.key, nil, s.srv.URL)
 	dr := startDevice(t, s.srv)
 	require.NoError(t, b.ApproveDeviceCode(context.Background(), cookieAs(s.fx, s.fx.MemberID), dr.UserCode))
 	const n = 5

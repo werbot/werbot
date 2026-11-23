@@ -209,3 +209,32 @@ func TestIssueUserCertLockedCLISession(t *testing.T) {
 	_, err = s.svc.IssueUserCert(ctx, locked, pub)
 	require.NoError(t, err, "an expired lock")
 }
+
+// TestIssueUserCertAgent: an agent token gets a certificate of its sponsor
+// with both agent extensions; a user token gets neither.
+func TestIssueUserCertAgent(t *testing.T) {
+	s := newCLIStand(t)
+	ctx := context.Background()
+	org := seedOrg(t, s.pool, "Acme")
+	alice := seedUser(t, s.pool, org, "alice", principal.RoleMember)
+	user := s.asBearer(t, s.cliLogin(t, org, alice).AccessToken, principal.RoleMember)
+	agent, run := uuid.New(), uuid.New()
+	_, pub := newEd25519(t, "")
+
+	res, err := s.certs().IssueUserCert(ctx, bearer(&werbotv1.IssueUserCertRequest{PublicKey: authorizedLine(pub)}, agentToken(t, s, user, agent, run)))
+	require.NoError(t, err)
+	parsed, _, _, _, err := ssh.ParseAuthorizedKey([]byte(res.Msg.GetCertificate()))
+	require.NoError(t, err)
+	cert, ok := parsed.(*ssh.Certificate)
+	require.True(t, ok)
+	assert.Equal(t, alice.String(), cert.KeyId, "the certificate names the sponsor")
+	assert.Equal(t, uint64((sshca.UserCertTTL + sshca.ClockSkew).Seconds()), cert.ValidBefore-cert.ValidAfter)
+	id, err := sshca.Parse(cert)
+	require.NoError(t, err)
+	assert.Equal(t, sshca.Identity{OrgID: org, UserID: alice, CLISessionID: user.CLISessionID, Login: "alice", AgentID: &agent, RunID: &run}, id)
+
+	plain, err := s.svc.IssueUserCert(ctx, user, pub)
+	require.NoError(t, err)
+	assert.NotContains(t, plain.Extensions, sshca.ExtAgent)
+	assert.NotContains(t, plain.Extensions, sshca.ExtRun)
+}

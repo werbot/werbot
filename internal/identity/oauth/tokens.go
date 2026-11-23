@@ -30,9 +30,13 @@ func newRefreshToken() (raw string, hash []byte) {
 	return raw, hashSecret(raw)
 }
 
-// CreateAccessToken implements op.Storage: every grant of werbot-cli comes
+// CreateAccessToken implements op.Storage: only a token exchange issues an
+// access token alone (exchangeToken). Every other grant of werbot-cli comes
 // with a refresh token, so a token without one is a request without offline_access.
-func (*storage) CreateAccessToken(context.Context, op.TokenRequest) (string, time.Time, error) {
+func (*storage) CreateAccessToken(ctx context.Context, request op.TokenRequest) (string, time.Time, error) {
+	if id, exp, ok := exchangeToken(ctx, request); ok {
+		return id, exp, nil
+	}
 	return "", time.Time{}, oidc.ErrInvalidScope().WithDescription("offline_access required")
 }
 

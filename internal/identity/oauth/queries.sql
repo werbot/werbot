@@ -114,3 +114,10 @@ SELECT id, user_id FROM cli_session WHERE refresh_hash = @refresh_hash AND clien
 UPDATE cli_session SET revoked_at = now(), revoke_reason = 'logout'
 WHERE id = @id AND user_id = @user_id AND revoked_at IS NULL
 RETURNING org_id;
+
+-- name: LiveCLISessionMember :one
+-- A token exchange subject: its cli_session is live and its user a member.
+SELECT c.id FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+WHERE c.id = @id AND c.org_id = @org_id AND c.user_id = @user_id AND c.revoked_at IS NULL
+  AND c.expires_at > now() AND c.absolute_expires_at > now();

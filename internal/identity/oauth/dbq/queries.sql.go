@@ -439,6 +439,27 @@ func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyPara
 	return err
 }
 
+const liveCLISessionMember = `-- name: LiveCLISessionMember :one
+SELECT c.id FROM cli_session c
+JOIN membership m ON m.org_id = c.org_id AND m.user_id = c.user_id
+WHERE c.id = $1 AND c.org_id = $2 AND c.user_id = $3 AND c.revoked_at IS NULL
+  AND c.expires_at > now() AND c.absolute_expires_at > now()
+`
+
+type LiveCLISessionMemberParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+// A token exchange subject: its cli_session is live and its user a member.
+func (q *Queries) LiveCLISessionMember(ctx context.Context, arg LiveCLISessionMemberParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, liveCLISessionMember, arg.ID, arg.OrgID, arg.UserID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const logoutCLISession = `-- name: LogoutCLISession :one
 UPDATE cli_session SET revoked_at = now(), revoke_reason = 'logout'
 WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL

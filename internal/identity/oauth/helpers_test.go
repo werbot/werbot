@@ -41,15 +41,16 @@ func testBox(t *testing.T) *secretbox.Box {
 }
 
 // serveProvider starts one more provider on pool, behind clientip like the
-// server. Its issuer is its own URL unless issuer is set (another replica).
-func serveProvider(t *testing.T, pool *pgxpool.Pool, key *oauth.SigningKey, issuer string) (*oauth.Provider, *httptest.Server) {
+// server. Its issuer is its own URL unless issuer is set (another replica);
+// agents nil serves no token exchange.
+func serveProvider(t *testing.T, pool *pgxpool.Pool, key *oauth.SigningKey, agents oauth.Agents, issuer string) (*oauth.Provider, *httptest.Server) {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	if issuer == "" {
 		issuer = "http://" + ln.Addr().String()
 	}
-	p, err := oauth.New(pool, key, dbUsers{pool}, oauth.Config{Issuer: issuer, WebURL: testWebURL})
+	p, err := oauth.New(pool, key, dbUsers{pool}, agents, oauth.Config{Issuer: issuer, WebURL: testWebURL})
 	require.NoError(t, err)
 	srv := &httptest.Server{Listener: ln, Config: &http.Server{Handler: clientip.Middleware(nil)(p.Handler())}} //nolint:gosec // test server
 	srv.Start()
@@ -68,10 +69,16 @@ type stand struct {
 
 func newStand(t *testing.T) stand {
 	t.Helper()
+	return newAgentStand(t, nil)
+}
+
+// newAgentStand is a stand whose provider exchanges tokens through agents.
+func newAgentStand(t *testing.T, agents oauth.Agents) stand {
+	t.Helper()
 	pool, _ := dbtest.New(t)
 	key, err := oauth.LoadSigningKey(context.Background(), pool, testBox(t))
 	require.NoError(t, err)
-	p, srv := serveProvider(t, pool, key, "")
+	p, srv := serveProvider(t, pool, key, agents, "")
 	return stand{p: p, key: key, pool: pool, srv: srv, fx: dbtest.Seed(t, pool)}
 }
 

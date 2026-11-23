@@ -128,7 +128,7 @@ func TestCodeOnlyRedirectURI(t *testing.T) {
 func TestTwoProvidersShareState(t *testing.T) {
 	s := newStand(t)
 	ctx := context.Background()
-	b, srvB := serveProvider(t, s.pool, s.key, s.srv.URL) // replica B: same issuer, own listener
+	b, srvB := serveProvider(t, s.pool, s.key, nil, s.srv.URL) // replica B: same issuer, own listener
 	verifier, challenge := pkce()
 	id := authorize(t, s.srv, challenge, nil)
 	redirect, err := b.ApproveAuthRequest(ctx, cookieAs(s.fx, s.fx.MemberID), id)

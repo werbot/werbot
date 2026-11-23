@@ -13,12 +13,14 @@ import (
 // errNoFlow answers the steps of a flow this server does not serve.
 var errNoFlow = errors.New("oauth: flow not supported")
 
-// storage is the op.Storage (and op.DeviceAuthorizationStorage) of the
-// provider: keys, the werbot-cli client and health.
+// storage is the op.Storage (and op.DeviceAuthorizationStorage,
+// op.TokenExchangeStorage) of the provider: keys, the werbot-cli client,
+// health and the agent runs of the token exchange (agents nil: not served).
 type storage struct {
 	pool   *pgxpool.Pool
 	key    *SigningKey
 	client cliClient
+	agents Agents
 }
 
 // The device grant is advertised only while storage implements this.
@@ -47,7 +49,12 @@ func (s *storage) GetClientByClientID(_ context.Context, clientID string) (op.Cl
 }
 
 // AuthorizeClientIDSecret implements op.OPStorage: werbot-cli has no secret.
-func (*storage) AuthorizeClientIDSecret(context.Context, string, string) error {
+// op authenticates the token exchange client only this way, so the exchange
+// alone accepts werbot-cli with an empty secret; everything else is refused.
+func (*storage) AuthorizeClientIDSecret(ctx context.Context, clientID, secret string) error {
+	if requestInfo(ctx).exchange && clientID == ClientCLI && secret == "" {
+		return nil
+	}
 	return oidc.ErrInvalidClient().WithDescription("client secrets are not supported")
 }
 

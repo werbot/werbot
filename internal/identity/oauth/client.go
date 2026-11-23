@@ -9,7 +9,8 @@ import (
 )
 
 // cliClient is werbot-cli: public (no secret), native, loopback redirects
-// (RFC 8252 §7.3: any port), authorization code, refresh and device grants.
+// (RFC 8252 §7.3: any port), authorization code, refresh, device and token
+// exchange grants.
 type cliClient struct{ webURL string }
 
 func (cliClient) GetID() string { return ClientCLI }
@@ -34,7 +35,7 @@ func (cliClient) RestrictAdditionalIdTokenScopes() func([]string) []string     {
 func (cliClient) RestrictAdditionalAccessTokenScopes() func([]string) []string { return keepScopes }
 
 func (cliClient) GrantTypes() []oidc.GrantType {
-	return []oidc.GrantType{oidc.GrantTypeCode, oidc.GrantTypeRefreshToken, oidc.GrantTypeDeviceCode}
+	return []oidc.GrantType{oidc.GrantTypeCode, oidc.GrantTypeRefreshToken, oidc.GrantTypeDeviceCode, oidc.GrantTypeTokenExchange}
 }
 
 // LoginURL is the consent page of the web UI (outside the proxied /oauth/).

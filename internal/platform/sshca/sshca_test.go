@@ -164,3 +164,51 @@ func TestOpenSSHReadsCert(t *testing.T) {
 		}
 	}
 }
+
+// TestSignParseAgentExtensions: an agent certificate carries both agent
+// extensions and parses back to the same UUIDs; a user certificate has neither.
+func TestSignParseAgentExtensions(t *testing.T) {
+	agent, run := uuid.New(), uuid.New()
+	id := testIdentity()
+	id.AgentID, id.RunID = &agent, &run
+	cert := signTest(t, id)
+	if cert.Extensions[ExtAgent] != agent.String() || cert.Extensions[ExtRun] != run.String() {
+		t.Fatalf("extensions = %v", cert.Extensions)
+	}
+	got, err := Parse(cert)
+	if err != nil || *got.AgentID != agent || *got.RunID != run {
+		t.Fatalf("Parse = %+v, %v", got, err)
+	}
+	plain, err := Parse(signTest(t, testIdentity()))
+	if err != nil || plain.AgentID != nil || plain.RunID != nil {
+		t.Fatalf("Parse without agent = %+v, %v", plain, err)
+	}
+}
+
+// TestAgentExtensionsNeedEachOther: one agent extension without the other,
+// or a non-UUID value, is refused by Parse; Sign refuses an agent without a run.
+func TestAgentExtensionsNeedEachOther(t *testing.T) {
+	agent, run := uuid.New(), uuid.New()
+	id := testIdentity()
+	id.AgentID, id.RunID = &agent, &run
+	for _, tc := range []struct{ name, drop, want string }{
+		{"agent only", ExtRun, "sshca: agent extensions need each other"},
+		{"run only", ExtAgent, "sshca: agent extensions need each other"},
+	} {
+		c := signTest(t, id)
+		delete(c.Extensions, tc.drop)
+		if _, err := Parse(c); err == nil || err.Error() != tc.want {
+			t.Fatalf("%s: Parse err = %v", tc.name, err)
+		}
+	}
+	c := signTest(t, id)
+	c.Extensions[ExtAgent] = "x"
+	if _, err := Parse(c); err == nil {
+		t.Fatal(`Parse accepted agent "x"`)
+	}
+	half := testIdentity()
+	half.AgentID = &agent
+	if _, err := Sign(newSigner(t), newSigner(t).PublicKey(), half, testNow, UserCertTTL); err == nil {
+		t.Fatal("Sign accepted an agent without a run")
+	}
+}

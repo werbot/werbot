@@ -8,6 +8,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
@@ -127,4 +128,49 @@ func TestVerifyRejectsIDToken(t *testing.T) {
 	assert.Equal(t, s.fx.MemberID.String(), id["sub"], "same sub: only jti and werbot_org tell it apart")
 	_, err := s.p.VerifyAccessToken(context.Background(), tr.IDToken)
 	assert.ErrorIs(t, err, apperr.ErrUnauthenticated)
+}
+
+// TestVerifyAgentClaims: act.sub "agent:<uuid>" and werbot_run fill
+// AgentID and RunID only together; one without the other, or a value that is
+// not a UUID, is ErrUnauthenticated.
+func TestVerifyAgentClaims(t *testing.T) {
+	s := newStand(t)
+	ctx := context.Background()
+	priv, ok := s.key.Key().(*ecdsa.PrivateKey)
+	require.True(t, ok)
+	agent, run := uuid.New(), uuid.New()
+	token := func(extra map[string]any) string {
+		m := map[string]any{
+			"iss": s.srv.URL, "sub": uuid.NewString(), "aud": []string{oauth.Audience}, "jti": uuid.NewString(),
+			"werbot_org": uuid.NewString(), "exp": time.Now().Add(time.Minute).Unix(), "iat": time.Now().Unix(),
+		}
+		maps.Copy(m, extra)
+		return sign(t, jose.ES256, priv, s.key.ID(), m)
+	}
+	act := map[string]any{"sub": oauth.AgentScopePrefix + agent.String()}
+
+	c, err := s.p.VerifyAccessToken(ctx, token(map[string]any{"act": act, "werbot_run": run.String()}))
+	require.NoError(t, err)
+	require.NotNil(t, c.AgentID)
+	require.NotNil(t, c.RunID)
+	assert.Equal(t, agent, *c.AgentID)
+	assert.Equal(t, run, *c.RunID)
+
+	c, err = s.p.VerifyAccessToken(ctx, token(nil))
+	require.NoError(t, err)
+	assert.Nil(t, c.AgentID, "a CLI token has no agent")
+	assert.Nil(t, c.RunID)
+
+	for name, extra := range map[string]map[string]any{
+		"act without run":    {"act": act},
+		"run without act":    {"werbot_run": run.String()},
+		"act not agent":      {"act": map[string]any{"sub": agent.String()}, "werbot_run": run.String()},
+		"act agent not uuid": {"act": map[string]any{"sub": "agent:claude"}, "werbot_run": run.String()},
+		"act nil uuid":       {"act": map[string]any{"sub": "agent:" + uuid.Nil.String()}, "werbot_run": run.String()},
+		"run not uuid":       {"act": act, "werbot_run": "x"},
+		"run not string":     {"act": act, "werbot_run": 7},
+	} {
+		_, err := s.p.VerifyAccessToken(ctx, token(extra))
+		assert.ErrorIs(t, err, apperr.ErrUnauthenticated, name)
+	}
 }

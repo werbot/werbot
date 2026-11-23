@@ -18,7 +18,7 @@ import (
 // WERBOT_PUBLIC_URL; consent and device pages live at WERBOT_WEB_URL. The
 // provider verifies Bearer tokens for identity.Middleware.
 func mountOAuth(mux *http.ServeMux, cfg config.Config, pool *pgxpool.Pool, key *oauth.SigningKey, ids *identity.Service, opts ...connect.HandlerOption) (*oauth.Provider, error) {
-	p, err := oauth.New(pool, key, ids, oauth.Config{Issuer: cfg.PublicURL, WebURL: cfg.WebURL})
+	p, err := oauth.New(pool, key, ids, nil, oauth.Config{Issuer: cfg.PublicURL, WebURL: cfg.WebURL})
 	if err != nil {
 		return nil, err
 	}

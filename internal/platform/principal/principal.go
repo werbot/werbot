@@ -25,13 +25,15 @@ const (
 
 // Principal is the authenticated user acting within one organization.
 // SessionID is the cookie session, CLISessionID the CLI session of a Bearer
-// token; the other is the zero UUID.
+// token; the other is the zero UUID. AgentID and RunID are set together, only
+// for an agent run token: UserID is then the agent's sponsor.
 type Principal struct {
-	UserID, OrgID uuid.UUID
-	Role          string
-	SessionID     uuid.UUID
-	AuthMethod    string
-	CLISessionID  uuid.UUID
+	UserID, OrgID  uuid.UUID
+	Role           string
+	SessionID      uuid.UUID
+	AuthMethod     string
+	CLISessionID   uuid.UUID
+	AgentID, RunID *uuid.UUID
 }
 
 type ctxKey struct{}

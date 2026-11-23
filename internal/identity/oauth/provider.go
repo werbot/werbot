@@ -22,8 +22,9 @@ type Provider struct {
 
 // New builds the provider. Every endpoint lives under /oauth/; op's login
 // callback is /oauth/authorize/callback. An http issuer is allowed only as
-// such (op.WithAllowInsecure iff the scheme is http).
-func New(pool *pgxpool.Pool, key *SigningKey, users Users, cfg Config) (*Provider, error) {
+// such (op.WithAllowInsecure iff the scheme is http). agents serves the token
+// exchange; with nil the exchange is unsupported_grant_type.
+func New(pool *pgxpool.Pool, key *SigningKey, users Users, agents Agents, cfg Config) (*Provider, error) {
 	c := &op.Config{
 		CryptoKey:             key.crypto,
 		CodeMethodS256:        true,
@@ -48,7 +49,7 @@ func New(pool *pgxpool.Pool, key *SigningKey, users Users, cfg Config) (*Provide
 	if u, err := url.Parse(cfg.Issuer); err == nil && u.Scheme == "http" {
 		opts = append(opts, op.WithAllowInsecure())
 	}
-	o, err := op.NewProvider(c, &storage{pool: pool, key: key, client: cliClient{webURL: cfg.WebURL}}, op.StaticIssuer(cfg.Issuer), opts...)
+	o, err := op.NewProvider(c, &storage{pool: pool, key: key, client: cliClient{webURL: cfg.WebURL}, agents: agents}, op.StaticIssuer(cfg.Issuer), opts...)
 	if err != nil {
 		return nil, err
 	}

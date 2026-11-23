@@ -9,6 +9,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/zitadel/oidc/v3/pkg/oidc"
+
 	"github.com/werbot/werbot/internal/platform/clientip"
 )
 
@@ -20,10 +22,15 @@ const (
 // reqInfo is what the storage needs from the HTTP request op is serving:
 // the CLI's reported hostname and its address, and the approved device code
 // a poll found (op hands the token step only a *op.DeviceAuthorizationState).
+// A token exchange also carries werbot_client and werbot_reason, and its
+// grant from the validate step to the token step.
 type reqInfo struct {
-	hostname string
-	ip       netip.Addr
-	device   *deviceGrant
+	hostname       string
+	ip             netip.Addr
+	device         *deviceGrant
+	exchange       bool
+	client, reason string
+	grant          *agentGrant
 }
 
 type reqInfoKey struct{}
@@ -63,6 +70,9 @@ func withReqInfo(next http.Handler) http.Handler {
 			return
 		}
 		ri := &reqInfo{hostname: cleanHostname(r.Form.Get("werbot_hostname")), ip: clientip.From(r.Context())}
+		if r.URL.Path == "/oauth/token" && r.Form.Get("grant_type") == string(oidc.GrantTypeTokenExchange) {
+			exchangeInfo(r, ri)
+		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), reqInfoKey{}, ri)))
 	})
 }
@@ -84,17 +94,34 @@ func validAuthorizeTarget(form url.Values) bool {
 	return h == "127.0.0.1" || h == "::1"
 }
 
+// exchangeInfo records a token exchange: werbot_client and werbot_reason
+// without control characters (checked by the storage). op reads the exchange
+// client from Basic auth only, so one form client_id werbot-cli becomes Basic
+// werbot-cli with an empty secret when the request has no Authorization.
+func exchangeInfo(r *http.Request, ri *reqInfo) {
+	ri.exchange = true
+	ri.client, ri.reason = dropControl(r.Form.Get("werbot_client")), dropControl(r.Form.Get("werbot_reason"))
+	if len(r.Form["client_id"]) == 1 && r.Form.Get("client_id") == ClientCLI && r.Header.Get("Authorization") == "" {
+		r.SetBasicAuth(ClientCLI, "")
+	}
+}
+
 // cleanHostname drops control characters and keeps at most maxHostname
 // bytes of valid UTF-8.
 func cleanHostname(s string) string {
-	s = strings.Map(func(r rune) rune {
+	s = dropControl(s)
+	if len(s) > maxHostname {
+		s = s[:maxHostname]
+	}
+	return strings.ToValidUTF8(s, "")
+}
+
+// dropControl removes control characters.
+func dropControl(s string) string {
+	return strings.Map(func(r rune) rune {
 		if unicode.IsControl(r) {
 			return -1
 		}
 		return r
 	}, s)
-	if len(s) > maxHostname {
-		s = s[:maxHostname]
-	}
-	return strings.ToValidUTF8(s, "")
 }

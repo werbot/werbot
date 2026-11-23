@@ -198,3 +198,38 @@ func TestRemovedMemberBearerFails(t *testing.T) {
 	_, err := s.auth().GetSession(context.Background(), bearer(&werbotv1.GetSessionRequest{}, tr.AccessToken))
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
+
+// agentToken signs, with the provider's key, the access token an exchange
+// gives a run of agent on the CLI session of c.
+func agentToken(t *testing.T, s cliStand, c principal.Principal, agent, run uuid.UUID) string {
+	t.Helper()
+	priv, ok := s.key.Key().(*ecdsa.PrivateKey)
+	require.True(t, ok)
+	return signES256(t, priv, s.key.ID(), map[string]any{
+		"iss": s.srv.URL, "sub": c.UserID.String(), "aud": []string{oauth.Audience}, "jti": c.CLISessionID.String(),
+		"werbot_org": c.OrgID.String(), "exp": time.Now().Add(time.Minute).Unix(), "iat": time.Now().Unix(),
+		"act": map[string]any{"sub": oauth.AgentScopePrefix + agent.String()}, "werbot_run": run.String(),
+	})
+}
+
+// TestMiddlewareAgentPrincipal: an agent token is its sponsor's CLI
+// principal plus AgentID and RunID; a user token has neither.
+func TestMiddlewareAgentPrincipal(t *testing.T) {
+	s := newCLIStand(t)
+	org := seedOrg(t, s.pool, "Acme")
+	alice := seedUser(t, s.pool, org, "alice", principal.RoleMember)
+	tr := s.cliLogin(t, org, alice)
+	user := s.asBearer(t, tr.AccessToken, principal.RoleMember)
+
+	p, ok := whoami(t, s.srv, bearerHeader(tr.AccessToken))
+	require.True(t, ok)
+	assert.Nil(t, p.AgentID)
+	assert.Nil(t, p.RunID)
+
+	agent, run := uuid.New(), uuid.New()
+	p, ok = whoami(t, s.srv, bearerHeader(agentToken(t, s, user, agent, run)))
+	require.True(t, ok)
+	want := user
+	want.AgentID, want.RunID = &agent, &run
+	assert.Equal(t, want, p)
+}

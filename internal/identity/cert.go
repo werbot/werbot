@@ -90,7 +90,8 @@ func (s *Service) UserCAPublicKeys(ctx context.Context, orgID uuid.UUID) ([]stri
 }
 
 // IssueUserCert signs pub, an ed25519 key, for the CLI session of p for
-// sshca.UserCertTTL. Only a CLI token (AuthMethodOAuth) gets a certificate.
+// sshca.UserCertTTL. Only a CLI token (AuthMethodOAuth) gets a certificate;
+// an agent run token's certificate also names its agent and run.
 // Issuing is counted, not audited: the CLI renews certificates often.
 func (s *Service) IssueUserCert(ctx context.Context, p principal.Principal, pub ssh.PublicKey) (*ssh.Certificate, error) {
 	if p.AuthMethod != principal.AuthMethodOAuth {
@@ -114,8 +115,9 @@ func (s *Service) IssueUserCert(ctx context.Context, p principal.Principal, pub 
 	if err != nil {
 		return nil, err
 	}
-	cert, err := sshca.Sign(ca, pub, sshca.Identity{OrgID: p.OrgID, UserID: p.UserID, CLISessionID: p.CLISessionID, Login: sub.Login},
-		time.Now(), sshca.UserCertTTL)
+	cert, err := sshca.Sign(ca, pub, sshca.Identity{
+		OrgID: p.OrgID, UserID: p.UserID, CLISessionID: p.CLISessionID, Login: sub.Login, AgentID: p.AgentID, RunID: p.RunID,
+	}, time.Now(), sshca.UserCertTTL)
 	if err != nil {
 		return nil, err
 	}
