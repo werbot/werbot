@@ -115,14 +115,16 @@ func (s *server) exec(ctx context.Context, c call, r *werbotv1.AccessibleResourc
 	return out.wait(ctx, done, timeout), nil
 }
 
-// dialSSH connects to the gateway of r as <login>+<resource> with the run
-// certificate, trusting only the pool host key the server listed.
+// dialSSH connects to the gateway of r (its ssh_address, else its WebSocket
+// URL) as <login>+<resource> with the run certificate, trusting only the pool
+// host key the server listed.
 func (s *server) dialSSH(ctx context.Context, run *clientauth.AgentProfile, r *werbotv1.AccessibleResource) (*ssh.Client, error) {
+	ep := connectcli.Endpoint{SSHAddress: r.GetSshAddress(), WSURL: r.GetWsUrl()}
 	hostKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(r.GetHostKey()))
-	if r.GetSshAddress() == "" || err != nil {
+	if ep == (connectcli.Endpoint{}) || err != nil {
 		return nil, fmt.Errorf("resource %s has no gateway address or host key", r.GetName())
 	}
-	conn, err := s.opts.Dial(ctx, connectcli.Endpoint{SSHAddress: r.GetSshAddress()})
+	conn, err := s.opts.Dial(ctx, ep)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +142,7 @@ func (s *server) dialSSH(ctx context.Context, run *clientauth.AgentProfile, r *w
 		HostKeyCallback: ssh.FixedHostKey(hostKey),
 		ClientVersion:   "SSH-2.0-Werbot_mcp_" + strings.ReplaceAll(version.Version, "-", "_"),
 	}
-	cc, chans, reqs, err := ssh.NewClientConn(conn, r.GetSshAddress(), conf)
+	cc, chans, reqs, err := ssh.NewClientConn(conn, connectcli.HostKeyAddr(ep), conf)
 	if err != nil {
 		_ = conn.Close()
 		return nil, err

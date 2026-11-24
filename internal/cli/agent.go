@@ -105,7 +105,7 @@ func serveRun(ctx context.Context, env Env, run *clientauth.AgentProfile, dir st
 	}
 	cfg := connectcli.Config{Login: run.Login, KnownHosts: filepath.Join(dir, "known_hosts"), Specs: specs, Signer: run.Signer}
 	if len(specs) > 0 {
-		if cfg.Gateway, err = sharedGateway(sel, specs); err != nil {
+		if cfg.Gateway, cfg.WSURL, err = sharedGateway(sel, specs); err != nil {
 			return err
 		}
 	}

@@ -35,6 +35,7 @@ Files are `0600`, directories `0700` ([security.md](security.md#cli-sessions-and
 | `werbot ssh <resource> [-- command...]` | Runs the system `ssh` with the profile key, certificate and `known_hosts` as `<login>+<resource>`. The exit code of `ssh` is the exit code of `werbot`. |
 | `werbot ssh-config` | Prints an OpenSSH config block `Host <resource>.<server-host>` for each resource with the `terminal`, `exec` or `stream` kind, and refreshes the certificate and `known_hosts`. |
 | `werbot connect <resource> ...` | As in [connect.md](connect.md), with the login, gateway, key and `known_hosts` taken from the profile. |
+| `werbot proxy <target>` | Connects stdin and stdout to a gateway, for an OpenSSH `ProxyCommand` ([OpenSSH config](#openssh-config)). |
 | `werbot request <resource>` | Asks for access and waits for the decision ([Access requests](#access-requests)). |
 | `werbot requests` | Your access requests; `--to-approve` lists the pending requests you can decide. |
 | `werbot approve <id>`, `werbot deny <id>` | Decide a request; `--comment` adds a note for the requester. |
@@ -94,6 +95,25 @@ ssh db.werbot.example.com
 ```
 
 The block sets `User <login>+<resource>`, `IdentityFile`, `CertificateFile`, `UserKnownHostsFile` and `IdentitiesOnly yes`. The certificate in it is renewed by `werbot ssh`, `ssh-config`, `connect` and `status`, so run `werbot status` before a long-idle `ssh`. A resource without a gateway address gets a comment line. Resources that only have the `datagram` kind are skipped: use `werbot connect`.
+
+A pool with only a WebSocket URL ([connect.md](connect.md#websocket)) is reached through `werbot proxy`:
+
+```text
+Host pg.werbot.example.com
+  HostName pg
+  HostKeyAlias [gw.example.com]:443
+  ProxyCommand werbot proxy %h
+  User alice+pg
+  ...
+```
+
+`werbot proxy <target>` dials the gateway and copies stdin and stdout until either side ends:
+
+- a resource name (the `HostName` above, `%h` in the `ProxyCommand`): the pool of that resource from the profile, SSH address first, then the WebSocket URL;
+- `ws://…` or `wss://…`: that WebSocket URL; no profile is needed;
+- anything else: `host[:port]` of the SSH port (port `2222` by default).
+
+`HostKeyAlias` is the name the gateway host key has in the profile's `known_hosts`. `werbot ssh` adds the same `ProxyCommand` (with the absolute path of `werbot`) and `HostKeyAlias` for such a pool, and `werbot agent run` writes `ProxyCommand <werbot path> proxy <ws_url>` into the run's `ssh_config`, so the agent never uses your profile. The MFA prompt of `werbot ssh` keeps working through the proxy.
 
 ## CLI sessions
 

@@ -1,7 +1,9 @@
 package mcpserver
 
 import (
+	"context"
 	"io"
+	"net"
 	"slices"
 	"strings"
 	"sync"
@@ -14,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
+	"github.com/werbot/werbot/internal/connectcli"
 )
 
 // execSetup is an agent run with one resource "srv" behind a fake gateway.
@@ -207,4 +210,29 @@ func TestGatewayStatus(t *testing.T) {
 		assert.Equal(t, tc.status, status, "%q %d", tc.output, tc.code)
 		assert.Equal(t, tc.text, text, "%q %d", tc.output, tc.code)
 	}
+}
+
+// A pool with only a WebSocket URL is dialed with that URL.
+func TestMCPSSHExecUsesWSURL(t *testing.T) {
+	a := newFakeAPI(t)
+	g := newFakeGateway(t, a.ca.PublicKey(), func(_ *fakeGateway, s gliderssh.Session) { _ = s.Exit(0) })
+	r := g.resource()
+	r.SshAddress, r.WsUrl = "", "wss://gw.example.com/v1/ssh"
+	a.resources = []*werbotv1.AccessibleResource{r}
+	var mu sync.Mutex
+	var dialed []connectcli.Endpoint
+	dial := func(ctx context.Context, ep connectcli.Endpoint) (net.Conn, error) {
+		mu.Lock()
+		dialed = append(dialed, ep)
+		mu.Unlock()
+		var d net.Dialer
+		return d.DialContext(ctx, "tcp", g.addr) // stands in for the WebSocket transport
+	}
+	cs := startRun(t, Options{Profile: a.profile(), Dial: dial}).sdk(t)
+
+	out := decode[ExecOutput](t, callTool(t, cs, "ssh_exec", map[string]any{"resource": "srv", "command": "id"}))
+	assert.Equal(t, "ok", out.Status)
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, []connectcli.Endpoint{{WSURL: "wss://gw.example.com/v1/ssh"}}, dialed)
 }

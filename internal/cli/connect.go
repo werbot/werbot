@@ -76,7 +76,7 @@ func connectConfig(ctx context.Context, env Env, args []string) (connectcli.Conf
 		return cfg, err
 	}
 	if pending {
-		if cfg.Gateway, err = sharedGateway(rs, cfg.Specs); err != nil {
+		if cfg.Gateway, cfg.WSURL, err = sharedGateway(rs, cfg.Specs); err != nil {
 			return cfg, err
 		}
 	}
@@ -87,26 +87,28 @@ func connectConfig(ctx context.Context, env Env, args []string) (connectcli.Conf
 	return cfg, err
 }
 
-// sharedGateway is the one ssh_address of the resources in specs.
-func sharedGateway(rs []*werbotv1.AccessibleResource, specs []connectcli.Spec) (string, error) {
-	var addrs, names []string
+// sharedGateway is the one pool of the resources in specs: its ssh_address
+// and its WebSocket URL.
+func sharedGateway(rs []*werbotv1.AccessibleResource, specs []connectcli.Spec) (sshAddress, wsURL string, err error) {
+	var eps []connectcli.Endpoint
+	var names []string
 	for _, sp := range specs {
 		r, err := find(rs, sp.Resource)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
-		if _, _, err := gatewayAddr(r); err != nil {
-			return "", err
+		if _, _, err := gatewayAddr(r); err != nil && !wsOnly(r) {
+			return "", "", err
 		}
-		if !slices.Contains(addrs, r.GetSshAddress()) {
-			addrs = append(addrs, r.GetSshAddress())
+		if !slices.Contains(eps, endpoint(r)) {
+			eps = append(eps, endpoint(r))
 		}
 		names = append(names, r.GetName())
 	}
-	if len(addrs) > 1 {
-		return "", fmt.Errorf("resources %s are behind different gateways; use --gateway", strings.Join(names, ", "))
+	if len(eps) > 1 {
+		return "", "", fmt.Errorf("resources %s are behind different gateways; use --gateway", strings.Join(names, ", "))
 	}
-	return addrs[0], nil
+	return eps[0].SSHAddress, eps[0].WSURL, nil
 }
 
 func hostOf(addr string) string {

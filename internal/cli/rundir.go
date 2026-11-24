@@ -20,23 +20,29 @@ func writeRunDir(dir string, a *clientauth.AgentProfile, res []*werbotv1.Accessi
 	if err := writeKnownHosts(filepath.Join(dir, "known_hosts"), res); err != nil {
 		return err
 	}
-	if err := clientauth.WriteFile(filepath.Join(dir, "ssh_config"), []byte(runSSHConfig(dir, a.Login, res))); err != nil {
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	if err := clientauth.WriteFile(filepath.Join(dir, "ssh_config"), []byte(runSSHConfig(dir, exe, a.Login, res, goos))); err != nil {
 		return err
 	}
 	return writeSSHWrapper(dir, sshPath, goos)
 }
 
 // runSSHConfig has one Host <resource> block for every ssh resource with a
-// gateway address; only the run key is offered, never an SSH agent's keys.
-func runSSHConfig(dir, login string, res []*werbotv1.AccessibleResource) string {
+// gateway address; only the run key is offered, never an SSH agent's keys. A
+// WebSocket-only pool is reached through "<exe> proxy <ws_url>": the child
+// runs without the profile location, so the proxy never looks a name up.
+func runSSHConfig(dir, exe, login string, res []*werbotv1.AccessibleResource, goos string) string {
 	var b strings.Builder
 	for _, r := range res {
-		host, port, err := gatewayAddr(r)
+		lines, err := hostLines(r, proxyCommand(exe, r.GetWsUrl(), goos))
 		if r.GetType() != "ssh" || err != nil {
 			continue
 		}
-		fmt.Fprintf(&b, "Host %s\n  HostName %s\n  Port %s\n  User %s+%s\n  IdentityFile %s\n  CertificateFile %s\n  IdentitiesOnly yes\n  IdentityAgent none\n  UserKnownHostsFile %s\n  StrictHostKeyChecking yes\n",
-			r.GetName(), host, port, login, r.GetName(),
+		fmt.Fprintf(&b, "Host %s\n%s  User %s+%s\n  IdentityFile %s\n  CertificateFile %s\n  IdentitiesOnly yes\n  IdentityAgent none\n  UserKnownHostsFile %s\n  StrictHostKeyChecking yes\n",
+			r.GetName(), lines, login, r.GetName(),
 			filepath.Join(dir, "id_ed25519"), filepath.Join(dir, "id_ed25519-cert.pub"), filepath.Join(dir, "known_hosts"))
 	}
 	return b.String()

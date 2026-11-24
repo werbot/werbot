@@ -19,7 +19,7 @@ import (
 func TestSSHArgs(t *testing.T) {
 	dir := filepath.Join("home", "srv")
 	r := &werbotv1.AccessibleResource{Name: "db", SshAddress: "gw.example.com:2222"}
-	got, err := sshArgs(dir, r, "alice", []string{"uptime", "-a"})
+	got, err := sshArgs(dir, "/usr/local/bin/werbot", r, "alice", []string{"uptime", "-a"})
 	require.NoError(t, err)
 	assert.Equal(t, []string{
 		"-i", filepath.Join(dir, "id_ed25519"),
@@ -30,11 +30,11 @@ func TestSSHArgs(t *testing.T) {
 		"-p", "2222", "alice+db@gw.example.com", "uptime", "-a",
 	}, got)
 
-	got, err = sshArgs(dir, &werbotv1.AccessibleResource{Name: "db", SshAddress: "[2001:db8::1]:22"}, "alice", nil)
+	got, err = sshArgs(dir, "/usr/local/bin/werbot", &werbotv1.AccessibleResource{Name: "db", SshAddress: "[2001:db8::1]:22"}, "alice", nil)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"-p", "22", "alice+db@2001:db8::1"}, got[len(got)-3:])
 
-	_, err = sshArgs(dir, &werbotv1.AccessibleResource{Name: "db"}, "alice", nil)
+	_, err = sshArgs(dir, "/usr/local/bin/werbot", &werbotv1.AccessibleResource{Name: "db"}, "alice", nil)
 	assert.EqualError(t, err, "gateway address for db is not set; ask an admin to set it on the Gateways page")
 }
 
@@ -103,4 +103,45 @@ func TestSSHExitCode(t *testing.T) {
 	assert.Contains(t, string(got), "-p 2222 alice+db@gw.example.com uptime -a")
 	_, serr := os.Stat(filepath.Join(h.dir, "known_hosts"))
 	assert.NoError(t, serr)
+}
+
+const wsGateway = "wss://gw.example.com/v1/ssh"
+
+// A pool with only a WebSocket URL is reached through werbot proxy; its host
+// key is known under the URL's host:port.
+func TestSSHConfigWebSocketOnly(t *testing.T) {
+	rs := []*werbotv1.AccessibleResource{
+		{Name: "pg", Kinds: []string{"stream"}, WsUrl: wsGateway},
+		{Name: "db", Kinds: []string{"terminal"}, SshAddress: "gw.example.com:2222", WsUrl: wsGateway},
+	}
+	got := sshConfig("dir", "werbot.example.com", "alice", rs)
+	assert.Contains(t, got, "Host pg.werbot.example.com\n  HostName pg\n  HostKeyAlias [gw.example.com]:443\n  ProxyCommand werbot proxy %h\n  User alice+pg\n")
+	assert.Contains(t, got, "Host db.werbot.example.com\n  HostName gw.example.com\n  Port 2222\n  User alice+db\n")
+	assert.Equal(t, 1, strings.Count(got, "ProxyCommand"), "a pool with an ssh_address gets no ProxyCommand")
+}
+
+func TestSSHArgsWebSocketOnly(t *testing.T) {
+	exe := filepath.Join("opt", "werbot")
+	got, err := sshArgs("dir", exe, &werbotv1.AccessibleResource{Name: "pg", WsUrl: wsGateway}, "alice", []string{"id"})
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"-o", "ProxyCommand=" + proxyCommand(exe, "pg", runtime.GOOS),
+		"-o", "HostKeyAlias=[gw.example.com]:443",
+		"alice+pg@pg", "id",
+	}, got[len(got)-6:])
+	assert.NotContains(t, got, "-p")
+}
+
+func TestKnownHostsWebSocketAlias(t *testing.T) {
+	key := newPub(t)
+	line := string(ssh.MarshalAuthorizedKey(key))
+	rs := []*werbotv1.AccessibleResource{
+		{Name: "pg", WsUrl: wsGateway, HostKey: line},
+		{Name: "lab", WsUrl: "ws://lab.example.com:8088", HostKey: line},
+	}
+	path := filepath.Join(t.TempDir(), "known_hosts")
+	require.NoError(t, writeKnownHosts(path, rs))
+	raw, err := os.ReadFile(path) //nolint:gosec // test temp file
+	require.NoError(t, err)
+	assert.Equal(t, "[gw.example.com]:443 "+line+"[lab.example.com]:8088 "+line, string(raw))
 }

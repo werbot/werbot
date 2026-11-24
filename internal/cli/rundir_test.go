@@ -94,3 +94,26 @@ func TestShellQuote(t *testing.T) {
 	assert.Equal(t, `'a b'`, shellQuote("a b"))
 	assert.Equal(t, `'it'\''s'`, shellQuote("it's"))
 }
+
+// The run ssh_config of a WebSocket-only pool starts this binary by its
+// absolute path with the URL: the child has no profile to look a name up in.
+func TestRunSSHConfigWebSocketOnly(t *testing.T) {
+	h := newHarness(t)
+	const ws = "wss://gw.example.com/edge"
+	h.resources[0].SshAddress, h.resources[0].WsUrl = "", ws
+	_, run := exchanged(t, h, 0)
+	dir := filepath.Join(t.TempDir(), "runs", "r1")
+	require.NoError(t, writeRunDir(dir, run, h.resources, "/usr/bin/ssh", runtime.GOOS))
+
+	exe, err := os.Executable()
+	require.NoError(t, err)
+	require.True(t, filepath.IsAbs(exe))
+	raw, err := os.ReadFile(filepath.Join(dir, "ssh_config")) //nolint:gosec // test temp dir
+	require.NoError(t, err)
+	cfg := string(raw)
+	assert.Contains(t, cfg, "Host db\n  HostName db\n  HostKeyAlias [gw.example.com]:443\n  ProxyCommand "+proxyCommand(exe, ws, runtime.GOOS)+"\n  User alice+db\n")
+	assert.NotContains(t, cfg, "%h")
+	raw, err = os.ReadFile(filepath.Join(dir, "known_hosts")) //nolint:gosec // test temp dir
+	require.NoError(t, err)
+	assert.Contains(t, string(raw), "[gw.example.com]:443 ssh-ed25519 ")
+}

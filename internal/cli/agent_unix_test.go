@@ -156,3 +156,16 @@ func TestAgentRunUsesWrapperSSH(t *testing.T) {
 	cfg := filepath.Join(h.home, "runs", f.runID.String(), "ssh_config")
 	assert.Equal(t, "system-ssh [] -F "+cfg+" srv id\n", h.out.String())
 }
+
+func TestAgentRunLocalPortsWebSocketOnly(t *testing.T) {
+	h := newHarness(t)
+	useAgentServer(t, h)
+	h.resources = append(h.resources, &werbotv1.AccessibleResource{
+		Name: "pg", Type: "postgres", Kinds: []string{"stream"}, Allowed: true,
+		WsUrl: "wss://gw.example.com/v1/ssh", HostKey: h.resources[0].HostKey,
+	})
+	cfg := captureConnect(t)
+	require.NoError(t, h.run("agent", "run", "--agent", "ops", "--resource", "pg", "--", "true"))
+	assert.Empty(t, cfg.Gateway)
+	assert.Equal(t, "wss://gw.example.com/v1/ssh", cfg.WSURL)
+}

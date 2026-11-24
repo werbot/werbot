@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"io"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -62,4 +63,22 @@ func TestHasFlag(t *testing.T) {
 	assert.True(t, hasFlag([]string{"-i", "k"}, "i"))
 	assert.False(t, hasFlag([]string{"i", "--", "-i"}, "i"), "a resource named i, and args after --")
 	assert.False(t, hasFlag([]string{"-in"}, "i"))
+}
+
+// The pool's WebSocket URL reaches connect with its ssh_address, or alone.
+func TestConnectUsesPoolWSURL(t *testing.T) {
+	h := newHarness(t)
+	got := captureConnect(t)
+	h.resources[0].WsUrl = "wss://gw.example.com/v1/ssh"
+	require.NoError(t, h.run("connect", "db"))
+	assert.Equal(t, "gw.example.com:2222", got.Gateway)
+	assert.Equal(t, "wss://gw.example.com/v1/ssh", got.WSURL)
+
+	h.resources[0].SshAddress = ""
+	require.NoError(t, h.run("connect", "db"))
+	assert.Empty(t, got.Gateway)
+	assert.Equal(t, "wss://gw.example.com/v1/ssh", got.WSURL)
+	raw, err := os.ReadFile(got.KnownHosts)
+	require.NoError(t, err)
+	assert.Contains(t, string(raw), "[gw.example.com]:443 ssh-ed25519 ")
 }

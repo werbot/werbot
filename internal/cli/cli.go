@@ -26,7 +26,7 @@ type Env struct {
 func Commands(env Env) []*cobra.Command {
 	cmds := []*cobra.Command{
 		loginCommand(env), logoutCommand(env), statusCommand(env), lsCommand(env),
-		sshCommand(env), sshConfigCommand(env), connectCommand(env),
+		sshCommand(env), sshConfigCommand(env), connectCommand(env), newProxyCommand(env),
 		newRequestCommand(env), newRequestsCommand(env), newDecideCommand(env, true), newDecideCommand(env, false),
 		newMCPCommand(env), newAgentsCommand(env),
 	}
