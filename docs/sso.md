@@ -112,7 +112,7 @@ The check needs a refresh token that still works about an hour after the login. 
 - Request the scope `offline_access` (add it to the scopes of the IdP in Werbot, and allow it for the client at the IdP), or
 - set the IdP session idle time to at least 1 hour.
 
-Keycloak: the default SSO Session Idle is 30 minutes, shorter than the 50-minute check interval. Without `offline_access` the refresh token expires and sessions are revoked about an hour after login. Use the scopes `openid email profile offline_access` with the client and role setup of the [table above](#set-up-an-idp) (tested), or raise **SSO Session Idle** of the realm to 1 hour or more.
+Keycloak: the default SSO Session Idle is 30 minutes, shorter than the 50-minute check interval. Without `offline_access` the refresh token expires and sessions are revoked about an hour after login. Use the scopes `openid email profile offline_access` with the client and role setup of the [table above](#set-up-an-idp) (tested), or raise **SSO Session Idle** of the realm to 1 hour or more. An offline token outlives the SSO session, but not a **Sign out** of the user by a Keycloak admin: it makes the user's earlier tokens stale, offline ones included, so the next check revokes the user's Werbot sessions.
 
 Some IdPs issue a refresh token that can be used once. The job and a CLI renewal never ask with the same link at the same time, so they do not race for it.
 

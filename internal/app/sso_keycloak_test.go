@@ -98,6 +98,19 @@ func (k *kcAPI) setGroup(user, group string, member bool) {
 	k.do(method, "/users/"+k.user(user)+"/groups/"+k.id("/groups?exact=true&search="+group), nil, nil)
 }
 
+// endSessions removes the online SSO sessions of user as their idle timeout
+// does (Keycloak 26 keeps none after an offline_access login); unlike
+// POST /users/{id}/logout it leaves the user's notBefore, which makes every
+// token issued in an earlier second stale, offline ones included.
+func (k *kcAPI) endSessions(user string) {
+	k.t.Helper()
+	var sessions []struct{ ID string }
+	k.do(http.MethodGet, "/users/"+k.user(user)+"/sessions", nil, &sessions)
+	for _, s := range sessions {
+		k.do(http.MethodDelete, "/sessions/"+s.ID, nil, nil)
+	}
+}
+
 // setEnabled enables or disables user; the rest of the user is sent back as read.
 func (k *kcAPI) setEnabled(user string, enabled bool) {
 	k.t.Helper()
@@ -198,7 +211,7 @@ func TestKeycloakDisabledUserRevoked(t *testing.T) {
 	}
 	revoked := "SELECT count(*) FROM cli_session WHERE user_id = $1 AND revoke_reason = 'idp'"
 
-	kc.do(http.MethodPost, "/users/"+kc.user("sso-bob")+"/logout", nil, nil) // as an idle SSO session ends
+	kc.endSessions("sso-bob")
 	recheck()
 	assert.Equal(t, 1, s.count(t, "SELECT count(*) FROM user_session WHERE user_id = $1", bob))
 	assert.Zero(t, s.count(t, revoked, bob))
