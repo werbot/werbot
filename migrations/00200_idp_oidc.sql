@@ -9,7 +9,7 @@ CREATE TABLE idp_oidc (
     client_id text NOT NULL,
     client_secret_ciphertext bytea NOT NULL,
     key_id text NOT NULL,
-    scopes text[] NOT NULL DEFAULT '{openid,email,profile,groups}',
+    scopes text[] NOT NULL DEFAULT '{openid,email,profile}',
     claims_mapping jsonb NOT NULL DEFAULT '[]',
     allow_signup bool NOT NULL DEFAULT false,
     enabled bool NOT NULL DEFAULT true,

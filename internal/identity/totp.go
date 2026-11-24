@@ -77,8 +77,8 @@ func (s *Service) EnrollTOTP(ctx context.Context, p principal.Principal) (TOTPEn
 	return e, err
 }
 
-// ConfirmTOTP turns the pending enrollment into a factor with a current code.
-// The attempt is counted against mfa:<user_id> first; a wrong code leaves the
+// ConfirmTOTP turns the pending enrollment into a factor with a current code
+// and makes a browser session fresh. The attempt is counted against mfa:<user_id> first; a wrong code leaves the
 // enrollment pending and is audited as auth.mfa.fail.
 func (s *Service) ConfirmTOTP(ctx context.Context, p principal.Principal, code string) error {
 	if err := s.limit(ctx, "mfa:"+p.UserID.String(), MFAAttempts, MFAWindow); err != nil {
@@ -93,6 +93,9 @@ func (s *Service) ConfirmTOTP(ctx context.Context, p principal.Principal, code s
 			return fmt.Errorf("no totp enrollment to confirm: %w", apperr.ErrFailedPrecondition)
 		}
 		if err := s.checkTOTP(ctx, tx, p.UserID, code); err != nil {
+			return err
+		}
+		if err := enrolled(ctx, tx, p, factorTOTP); err != nil {
 			return err
 		}
 		return writeFactorAudit(ctx, tx, "mfa.factor.add", p, factorTOTP, factorTOTP)

@@ -80,7 +80,8 @@ func (s *Store) Create(ctx context.Context, p principal.Principal, in IdP) (IdP,
 }
 
 // Update replaces IdP in.ID of the organization of p with in, already
-// validated; an empty ClientSecret keeps the stored one (idp.update).
+// validated; an empty ClientSecret keeps the stored one, only for the same
+// issuer and client id (idp.update).
 func (s *Store) Update(ctx context.Context, p principal.Principal, in IdP) (IdP, error) {
 	arg := dbq.UpdateIdPParams{ID: in.ID, OrgID: p.OrgID, Name: in.Name, Issuer: in.Issuer, ClientID: in.ClientID,
 		Scopes: in.Scopes, AllowSignup: in.AllowSignup, Enabled: in.Enabled}
@@ -99,6 +100,9 @@ func (s *Store) Update(ctx context.Context, p principal.Principal, in IdP) (IdP,
 	err = dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) error {
 		q := dbq.New(tx)
 		if err := checkTeams(ctx, q, p, in.Mapping); err != nil {
+			return err
+		}
+		if err := checkKeptSecret(ctx, q, p, in); err != nil {
 			return err
 		}
 		r, err := q.UpdateIdP(ctx, arg)
@@ -135,6 +139,19 @@ func checkTeams(ctx context.Context, q *dbq.Queries, p principal.Principal, rule
 	n, err := q.CountOrgTeams(ctx, dbq.CountOrgTeamsParams{OrgID: p.OrgID, Ids: ids})
 	if err == nil && n != int64(len(uniq(ids))) {
 		err = invalid("claims mapping names a team outside the organization")
+	}
+	return err
+}
+
+// checkKeptSecret refuses to keep the stored client secret for a new issuer
+// or client id: the secret belongs to the client it was issued for.
+func checkKeptSecret(ctx context.Context, q *dbq.Queries, p principal.Principal, in IdP) error {
+	if in.ClientSecret != "" {
+		return nil
+	}
+	cur, err := q.GetOrgIdP(ctx, dbq.GetOrgIdPParams{ID: in.ID, OrgID: p.OrgID})
+	if err == nil && (cur.Issuer != in.Issuer || cur.ClientID != in.ClientID) {
+		err = invalid("a new issuer or client id needs the client secret")
 	}
 	return err
 }

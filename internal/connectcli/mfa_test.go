@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	mfaURL     = "https://w.example/mfa/7?x=1"
+	mfaURL     = "https://w.example/mfa/0190a3c4-5b6d-7e8f-9a0b-1c2d3e4f5a6b"
 	totpPrompt = "Open " + mfaURL + " (code BCDF-GHJK) or enter TOTP: "
 	keyPrompt  = "Open " + mfaURL + " (code BCDF-GHJK): "
 )
@@ -36,6 +36,17 @@ func TestParseMFAPrompt(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, []string{mfaURL, "BCDF-GHJK"}, []string{url, code})
 	assert.True(t, totp)
+
+	// WERBOT_WEB_URL may carry a path.
+	_, _, _, ok = ParseMFAPrompt("Open http://w.example/werbot/mfa/0190a3c4-5b6d-7e8f-9a0b-1c2d3e4f5a6b (code BCDF-GHJK): ")
+	assert.True(t, ok, "a path before /mfa/<id>")
+
+	// only a challenge page /mfa/<uuid> is opened
+	for _, u := range []string{"https://w.example/login", "https://w.example/mfa/7", "https://w.example/", "https://w.example",
+		mfaURL + "?x=1", mfaURL + "#x", mfaURL + "/x", "https://w.example/x?y=/mfa/0190a3c4-5b6d-7e8f-9a0b-1c2d3e4f5a6b"} {
+		_, _, _, ok = ParseMFAPrompt("Open " + u + " (code BCDF-GHJK): ")
+		assert.False(t, ok, u)
+	}
 
 	for _, s := range []string{
 		"Password: ", "Open https://w.example/mfa/7: ", "Open https://w.example/m (code ABCD-EFGH): ", // vowels are not in the alphabet

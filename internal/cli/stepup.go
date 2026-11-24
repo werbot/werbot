@@ -46,12 +46,12 @@ func stepUp(ctx context.Context, env Env, p *clientauth.Profile) error {
 	if err != nil {
 		return serverText(err)
 	}
-	prompt, err := stepUpPrompt(p.Server, res.Msg)
+	prompt, page, err := stepUpPrompt(p.Server, res.Msg)
 	if err != nil {
 		return err
 	}
-	if u := res.Msg.GetUrl(); u != "" && env.OpenBrowser != nil {
-		_ = env.OpenBrowser(u) // the prompt shows the URL
+	if page != "" && env.OpenBrowser != nil {
+		_ = env.OpenBrowser(page) // the prompt shows the URL
 	}
 	if _, err := fmt.Fprint(env.Stderr, prompt); err != nil {
 		return err
@@ -70,19 +70,25 @@ func stepUp(ctx context.Context, env Env, p *clientauth.Profile) error {
 }
 
 // stepUpPrompt is the line shown before the answer, in the form of the gateway
-// prompt. The page must be http(s) on the host of server.
-func stepUpPrompt(server string, r *werbotv1.BeginStepUpResponse) (string, error) {
+// prompt, and the page to open: an http(s) page on the host of server. A page
+// elsewhere (a separate web UI) is never opened: TOTP is asked alone, and
+// without TOTP the step-up fails.
+func stepUpPrompt(server string, r *werbotv1.BeginStepUpResponse) (prompt, page string, err error) {
 	totp := slices.Contains(r.GetMethods(), "totp")
-	if r.GetUrl() == "" {
-		return "Enter TOTP: ", nil
+	switch {
+	case r.GetUrl() != "" && onHost(r.GetUrl(), server) && totp:
+		return fmt.Sprintf("Open %s (code %s) or enter TOTP: ", r.GetUrl(), r.GetCode()), r.GetUrl(), nil
+	case r.GetUrl() != "" && onHost(r.GetUrl(), server):
+		return fmt.Sprintf("Open %s (code %s): ", r.GetUrl(), r.GetCode()), r.GetUrl(), nil
+	case r.GetUrl() == "" || totp:
+		return "Enter TOTP: ", "", nil
 	}
-	page, err := url.Parse(r.GetUrl())
+	return "", "", fmt.Errorf("%w: %s", errStepUpHost, r.GetUrl())
+}
+
+// onHost reports whether page is an http(s) URL on the host of server.
+func onHost(page, server string) bool {
+	u, err := url.Parse(page)
 	srv, serr := url.Parse(server)
-	if err != nil || serr != nil || (page.Scheme != "https" && page.Scheme != "http") || page.Host != srv.Host {
-		return "", fmt.Errorf("%w: %s", errStepUpHost, r.GetUrl())
-	}
-	if totp {
-		return fmt.Sprintf("Open %s (code %s) or enter TOTP: ", r.GetUrl(), r.GetCode()), nil
-	}
-	return fmt.Sprintf("Open %s (code %s): ", r.GetUrl(), r.GetCode()), nil
+	return err == nil && serr == nil && (u.Scheme == "https" || u.Scheme == "http") && u.Host == srv.Host
 }

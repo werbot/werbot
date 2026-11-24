@@ -67,8 +67,10 @@ func (s *Store) SealRefresh(refresh string) ([]byte, string, error) {
 	return s.box.Seal([]byte(refresh))
 }
 
-// StaleLinks returns up to limit links with a refresh token whose last check
-// is older than olderThan, oldest first, refresh tokens opened (dbx.ReasonMaintenance).
+// StaleLinks claims up to limit links with a refresh token whose last check
+// is older than olderThan, oldest first, and returns them with refresh tokens
+// opened (dbx.ReasonMaintenance). A claimed link counts as checked now: a
+// concurrent caller never gets it, and it comes back after olderThan.
 func (s *Store) StaleLinks(ctx context.Context, olderThan time.Duration, limit int) ([]Link, error) {
 	var rows []dbq.UserIdpLink
 	err := dbx.System(ctx, s.pool, dbx.ReasonMaintenance, func(tx pgx.Tx) (err error) {
@@ -81,8 +83,8 @@ func (s *Store) StaleLinks(ctx context.Context, olderThan time.Duration, limit i
 	return s.openLinks(rows)
 }
 
-// UserStaleLinks returns the links of userID in orgID with a refresh token
-// whose last check is older than olderThan, refresh tokens opened.
+// UserStaleLinks claims, as StaleLinks does, the links of userID in orgID
+// with a refresh token whose last check is older than olderThan.
 func (s *Store) UserStaleLinks(ctx context.Context, orgID, userID uuid.UUID, olderThan time.Duration) ([]Link, error) {
 	var rows []dbq.UserIdpLink
 	err := dbx.InOrg(ctx, s.pool, orgID, userID, func(tx pgx.Tx) (err error) {

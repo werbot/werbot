@@ -74,6 +74,9 @@ func TestE2EAdminActionNeedsFreshMFA(t *testing.T) {
 func TestE2EWebTerminalMFA(t *testing.T) {
 	m := mfaSSH(t)
 	secret := enrollTOTP(t, m.web)
+	// the enrollment made the session fresh: age it past the rule's max_age
+	_, err := m.pool.Exec(context.Background(), "UPDATE mfa_verification SET verified_at = now() - interval '1 hour'")
+	require.NoError(t, err)
 
 	code, reason := m.dialWeb(t, m.web, "/api/terminal?resource=srv&cols=100&rows=30").closeStatus()
 	assert.Equal(t, websocket.StatusCode(4001), code)

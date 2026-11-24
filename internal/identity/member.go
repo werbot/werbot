@@ -258,17 +258,14 @@ func (s *Service) inviteSession(ctx context.Context, st Store, userID, orgID uui
 	return s.createSession(ctx, st, userID, orgID, userAgent)
 }
 
-// inviteeUser returns the user with email after checking in.Password, or
-// creates one from in when no user has that email.
+// inviteeUser returns the user with email after checking in.Password (a user
+// without a password never passes), or creates one from in when no user has
+// that email.
 func (s *Service) inviteeUser(ctx context.Context, st Store, email string, in AcceptInput) (uuid.UUID, error) {
 	u, err := st.GetLoginUser(ctx, email)
 	if err == nil {
-		ok, err := verifyPassword(ctx, u.PasswordHash, in.Password)
-		if err != nil {
+		if err := inviteePassword(ctx, u.PasswordHash, in.Password); err != nil {
 			return uuid.Nil, err
-		}
-		if !ok {
-			return uuid.Nil, errInvalidCredentials
 		}
 		return u.ID, nil
 	}

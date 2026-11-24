@@ -161,7 +161,7 @@ func TestUnverifiedConnectionChannels(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	s.Stdout, s.Stderr = &stdout, &stderr
 	require.NoError(t, s.Run("uptime"), "the exec waits for the browser confirmation")
-	assert.Equal(t, testPromptAny+"\r\n", stderr.String())
+	assert.Equal(t, testPromptWebAuthn+"\r\n", stderr.String(), "an exec without a PTY cannot read a TOTP code: none offered")
 	assert.Contains(t, stdout.String(), "fake:db user=alice")
 
 	_, err = c.Dial("tcp", "db:80")

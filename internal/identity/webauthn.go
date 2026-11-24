@@ -106,8 +106,9 @@ func (s *Service) BeginWebAuthnRegistration(ctx context.Context, p principal.Pri
 }
 
 // FinishWebAuthnRegistration stores the passkey of attestation (the
-// browser's JSON) as name and audits mfa.factor.add. An attestation that
-// does not answer p's open registration ceremony is ErrInvalidCode.
+// browser's JSON) as name, audits mfa.factor.add and makes a browser session
+// fresh. An attestation that does not answer p's open registration ceremony
+// is ErrInvalidCode.
 func (s *Service) FinishWebAuthnRegistration(ctx context.Context, p principal.Principal, name string, attestation []byte) (Factor, error) {
 	if s.wa == nil {
 		return Factor{}, errPasskeysOff
@@ -122,8 +123,10 @@ func (s *Service) FinishWebAuthnRegistration(ctx context.Context, p principal.Pr
 	}
 	var f Factor
 	err = dbx.InOrg(ctx, s.pool, p.OrgID, p.UserID, func(tx pgx.Tx) (err error) {
-		f, err = s.storePasskey(ctx, tx, p, name, parsed)
-		return err
+		if f, err = s.storePasskey(ctx, tx, p, name, parsed); err != nil {
+			return err
+		}
+		return enrolled(ctx, tx, p, factorWebAuthn)
 	})
 	if err != nil {
 		return Factor{}, err

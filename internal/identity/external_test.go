@@ -244,3 +244,21 @@ func TestListIdentityProvidersPublic(t *testing.T) {
 	assert.Equal(t, on.String(), res.Msg.GetProviders()[0].GetId())
 	assert.Equal(t, "corp", res.Msg.GetProviders()[0].GetName())
 }
+
+// An IdP-provisioned user has no password: an invite accepted without a
+// session answers as a wrong password, never Internal.
+func TestAcceptInviteExistingUserWithoutPassword(t *testing.T) {
+	svc, pool, q := newTestService(t)
+	org1, org2 := seedOrg(t, pool, "Acme"), seedOrg(t, pool, "Other")
+	seedUser(t, pool, org1, "alice", principal.RoleOwner)
+	dave := seedUser(t, pool, org2, "dave", principal.RoleMember)
+	_, err := pool.Exec(context.Background(), "UPDATE users SET password_hash = '' WHERE id = $1", dave)
+	require.NoError(t, err)
+	ctx, _ := loginCtx(t, svc, "alice")
+	raw := invite(ctx, t, svc, q, "dave@example.com", principal.RoleMember)
+
+	for _, pw := range []string{"", testPassword} {
+		_, err = svc.AcceptInvite(context.Background(), AcceptInput{Token: raw, Password: pw}, "test")
+		assert.ErrorIs(t, err, apperr.ErrUnauthenticated, "password %q", pw)
+	}
+}

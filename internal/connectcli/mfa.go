@@ -14,9 +14,11 @@ import (
 )
 
 // mfaPrompt is the gateway question of an MFA round (contract §3.6); the code
-// alphabet has no vowels. Only http and https URLs match. OpenSSH 8.4+ hands
-// it to SSH_ASKPASS behind "(user@host) ".
-var mfaPrompt = regexp.MustCompile(`^(?:\(\S+\) )?Open (https?://\S+) \(code ([B-DF-HJ-NP-TV-XZ]{4}-[B-DF-HJ-NP-TV-XZ]{4})\)( or enter TOTP)?: $`)
+// alphabet has no vowels. Only an http or https challenge page (a path
+// ending in /mfa/<uuid>, no query or fragment) matches. OpenSSH 8.4+ hands it
+// to SSH_ASKPASS behind "(user@host) ".
+var mfaPrompt = regexp.MustCompile(`^(?:\(\S+\) )?Open (https?://[^\s/?#]+(?:/[^\s?#]*)?/mfa/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}) ` +
+	`\(code ([B-DF-HJ-NP-TV-XZ]{4}-[B-DF-HJ-NP-TV-XZ]{4})\)( or enter TOTP)?: $`)
 
 // ParseMFAPrompt splits the MFA prompt s into the page url and the confirmation
 // code; totp reports that a TOTP code may be typed instead of confirming in the

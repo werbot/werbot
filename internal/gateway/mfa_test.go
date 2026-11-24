@@ -50,6 +50,20 @@ func TestMFAWebAuthnOnlyIgnoresAnswer(t *testing.T) {
 	})
 }
 
+func TestMFANoticeOffersNoTOTP(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		e, fm := mfaPipe(t, "any")
+		fm.status = confirmedFrom(1)
+		a := &askWith{}
+		r := e.req("blocker", KindExec)
+		r.MFA = MFAStep{Prompt: a.ask, Notice: true}
+		s, err := e.p.Open(context.Background(), r)
+		require.NoError(t, err)
+		assert.Equal(t, []string{testPromptWebAuthn}, a.texts, "a prompt that cannot read offers no TOTP")
+		e.p.abort(s)
+	})
+}
+
 func TestMFAConfirmedViaHub(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		e, fm := mfaPipe(t, "any")

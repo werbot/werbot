@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
@@ -110,6 +111,16 @@ func checkCurrentPassword(ctx context.Context, hash, pw string) error {
 		return fmt.Errorf("current password is wrong: %w", apperr.ErrInvalidArgument)
 	}
 	return nil
+}
+
+// inviteePassword checks password against hash: a user without a password
+// (IdP-provisioned) answers errInvalidCredentials at the same cost, as Login.
+func inviteePassword(ctx context.Context, hash, password string) error {
+	ok, err := verifyPassword(ctx, cmp.Or(hash, dummyHash), password)
+	if err == nil && (!ok || hash == "") {
+		err = errInvalidCredentials
+	}
+	return err
 }
 
 // loginPattern is the users.login CHECK (migrations/00003_users.sql).

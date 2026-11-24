@@ -107,6 +107,13 @@ func TestStepUpGuards(t *testing.T) {
 	assert.ErrorContains(t, h.run("approve", "r1"), "evil.example")
 	assert.Empty(t, h.opened)
 	assert.Equal(t, 1, h.su.approves, "no retry after a refused step-up")
+
+	// a separate web UI: the page is on another host, TOTP still works
+	h, _ = stepUpHarness(t, "123456\n", &werbotv1.BeginStepUpResponse{Methods: []string{"webauthn", "totp"}, Url: "https://ui.example/mfa/1", Code: "BCDF-GHJK"})
+	require.NoError(t, h.run("approve", "r1"))
+	assert.Equal(t, "Enter TOTP: ", h.errOut.String())
+	assert.Empty(t, h.opened, "a page on another host is never opened")
+	assert.Equal(t, []string{"123456"}, h.su.totp)
 }
 
 func TestBreakGlassStepUp(t *testing.T) {

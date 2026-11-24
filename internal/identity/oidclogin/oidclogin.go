@@ -11,8 +11,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// DefaultScopes are asked of an IdP stored without scopes.
-var DefaultScopes = []string{"openid", "email", "profile", "groups"}
+// DefaultScopes are asked of an IdP stored without scopes: the standard ones
+// only, since some IdPs (Keycloak) refuse a scope they do not know.
+var DefaultScopes = []string{"openid", "email", "profile"}
 
 // Config holds the RP settings from the server configuration. HashKey and
 // BlockKey sign and encrypt the login cookies (state, PKCE verifier, nonce,
@@ -60,9 +61,10 @@ type IdPStore interface { //nolint:revive // name fixed by contract
 	Get(ctx context.Context, id uuid.UUID) (IdP, error)
 	// SealRefresh seals an IdP refresh token for ExternalLogin.
 	SealRefresh(refresh string) (ciphertext []byte, keyID string, err error)
-	// StaleLinks returns links with a refresh token not checked for olderThan, oldest first.
+	// StaleLinks claims links with a refresh token not checked for olderThan,
+	// oldest first: each is returned to one caller, then waits olderThan again.
 	StaleLinks(ctx context.Context, olderThan time.Duration, limit int) ([]Link, error)
-	// UserStaleLinks returns the links of userID in orgID with a refresh token not checked for olderThan.
+	// UserStaleLinks claims the links of userID in orgID with a refresh token not checked for olderThan.
 	UserStaleLinks(ctx context.Context, orgID, userID uuid.UUID, olderThan time.Duration) ([]Link, error)
 	// UpdateLink records a check at checkedAt; refresh nil keeps the token, "" drops it.
 	UpdateLink(ctx context.Context, l Link, refresh *string, checkedAt time.Time) error

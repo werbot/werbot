@@ -225,7 +225,7 @@ export type CreateIdentityProviderRequest = Message<"werbot.v1.CreateIdentityPro
   clientSecret: string;
 
   /**
-   * Empty: openid, email, profile, groups; must contain openid.
+   * Empty: openid, email, profile; must contain openid.
    *
    * @generated from field: repeated string scopes = 5;
    */

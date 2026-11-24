@@ -71,6 +71,7 @@ func TestCLIRefreshRechecksIdP(t *testing.T) {
 	assert.Empty(t, reason)
 
 	op.SetDown(false)
+	exec(t, s, "UPDATE user_idp_link SET last_checked_at = now() - interval '2 hours'") // the last renewal claimed the link
 	tr = refresh(t, s, tr.RefreshToken)
 	assert.Equal(t, http.StatusBadRequest, tr.Status)
 	assert.Equal(t, "invalid_grant", tr.Error)

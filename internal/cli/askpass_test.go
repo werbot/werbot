@@ -34,15 +34,15 @@ func TestAskpassMFA(t *testing.T) {
 	var out, screen bytes.Buffer
 	h.env.Stdout = &out
 	h.env.OpenBrowser = func(u string) error { h.opened = u; return nil }
-	prompt := "Open https://w.example/mfa/7 (code BCDF-GHJK) or enter TOTP: "
+	prompt := "Open https://w.example/mfa/0190a3c4-5b6d-7e8f-9a0b-1c2d3e4f5a6b (code BCDF-GHJK) or enter TOTP: "
 	require.NoError(t, Askpass(h.env, fakeTTY{strings.NewReader("123456\n"), &screen}, prompt))
-	assert.Equal(t, "https://w.example/mfa/7", h.opened)
+	assert.Equal(t, "https://w.example/mfa/0190a3c4-5b6d-7e8f-9a0b-1c2d3e4f5a6b", h.opened)
 	assert.Equal(t, prompt, screen.String())
 	assert.Equal(t, "123456\n", out.String())
 
 	out.Reset()
 	screen.Reset()
-	require.NoError(t, Askpass(h.env, fakeTTY{strings.NewReader(""), &screen}, "Open https://w.example/mfa/7 (code BCDF-GHJK): "))
+	require.NoError(t, Askpass(h.env, fakeTTY{strings.NewReader(""), &screen}, "Open https://w.example/mfa/0190a3c4-5b6d-7e8f-9a0b-1c2d3e4f5a6b (code BCDF-GHJK): "))
 	assert.Equal(t, "\n", out.String(), "a passkey prompt is answered empty")
 }
 

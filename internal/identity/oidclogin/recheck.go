@@ -26,10 +26,11 @@ const (
 // ErrIdPRejected means an IdP refused a user's refresh token (invalid_grant).
 var ErrIdPRejected = errors.New("identity provider rejected the user") //nolint:revive // name fixed by contract
 
-// Recheck refreshes up to RecheckBatch links not checked for RecheckAfter at
-// their IdPs (the idp.recheck job). A new refresh token is stored sealed; an
-// explicit invalid_grant revokes the user's sessions; an unreachable IdP
-// (network, timeout, 5xx, discovery) changes nothing. It returns store errors.
+// Recheck claims up to RecheckBatch links not checked for RecheckAfter and
+// refreshes them at their IdPs (the idp.recheck job). A new refresh token is
+// stored sealed; an explicit invalid_grant revokes the user's sessions; an
+// unreachable IdP (network, timeout, 5xx, discovery) keeps the sessions and
+// its links wait for the next window. It returns store errors.
 // ponytail: one batch per run (600 links/h); loop over batches if installs outgrow it.
 func Recheck(ctx context.Context, store IdPStore, s *identity.Service, cfg Config) error {
 	links, err := store.StaleLinks(ctx, RecheckAfter, RecheckBatch)
@@ -45,8 +46,8 @@ func Recheck(ctx context.Context, store IdPStore, s *identity.Service, cfg Confi
 	return errors.Join(errs...)
 }
 
-// RecheckUser refreshes the links of userID in orgID not checked for
-// RecheckAfter. It returns ErrIdPRejected once an IdP refused one (the
+// RecheckUser claims and refreshes the links of userID in orgID not checked
+// for RecheckAfter. It returns ErrIdPRejected once an IdP refused one (the
 // user's sessions are revoked by then); an unreachable IdP and store errors
 // are logged and give nil, so a CLI renewal proceeds.
 func RecheckUser(ctx context.Context, store IdPStore, s *identity.Service, cfg Config, orgID, userID uuid.UUID) error {

@@ -88,7 +88,7 @@ func TestMigrations14(t *testing.T) {
 	var signup, enabled bool
 	require.NoError(t, pool.QueryRow(ctx, "SELECT scopes, claims_mapping::text, allow_signup, enabled FROM idp_oidc WHERE id = $1", idp).
 		Scan(&scopes, &mapping, &signup, &enabled))
-	assert.Equal(t, []string{"openid", "email", "profile", "groups"}, scopes)
+	assert.Equal(t, []string{"openid", "email", "profile"}, scopes, "groups is a scope only some IdPs know")
 	assert.Equal(t, "[]", mapping)
 	assert.False(t, signup)
 	assert.True(t, enabled)

@@ -63,7 +63,7 @@ message CreateIdentityProviderRequest {
   string issuer = 2 [(buf.validate.field).string = {uri: true, max_len: 2048}];
   string client_id = 3 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
   string client_secret = 4 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
-  // Empty: openid, email, profile, groups; must contain openid.
+  // Empty: openid, email, profile; must contain openid.
   repeated string scopes = 5 [(buf.validate.field).repeated = {
     max_items: 20
     items: {

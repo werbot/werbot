@@ -89,16 +89,17 @@ func TestFreshMFAProcedures(t *testing.T) {
 	}
 }
 
-// enrollOwner gives the rig's owner a TOTP factor through the browser
-// session and returns its secret.
+// enrollOwner gives the rig's owner a TOTP factor through the CLI token and
+// returns its secret: an enrollment from the CLI makes no credential fresh
+// (one in the browser would make that session fresh).
 func enrollOwner(t *testing.T, r *agentRig) string {
 	t.Helper()
-	mfa := werbotv1connect.NewMFAServiceClient(r.web, r.base)
-	enr, err := mfa.EnrollTOTP(context.Background(), connect.NewRequest(&werbotv1.EnrollTOTPRequest{}))
+	mfa := werbotv1connect.NewMFAServiceClient(http.DefaultClient, r.base)
+	enr, err := mfa.EnrollTOTP(context.Background(), withBearer(&werbotv1.EnrollTOTPRequest{}, r.token))
 	require.NoError(t, err)
 	code, err := totp.GenerateCode(enr.Msg.GetSecret(), time.Now())
 	require.NoError(t, err)
-	_, err = mfa.ConfirmTOTP(context.Background(), connect.NewRequest(&werbotv1.ConfirmTOTPRequest{Code: code}))
+	_, err = mfa.ConfirmTOTP(context.Background(), withBearer(&werbotv1.ConfirmTOTPRequest{Code: code}, r.token))
 	require.NoError(t, err)
 	return enr.Msg.GetSecret()
 }

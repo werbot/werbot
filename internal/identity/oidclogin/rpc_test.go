@@ -46,15 +46,32 @@ func TestIdentityProviderServiceCRUD(t *testing.T) {
 	_, err = h.CreateIdentityProvider(admin, connect.NewRequest(create))
 	assert.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err), "same name")
 
-	update := &werbotv1.UpdateIdentityProviderRequest{Id: id, Name: "okta", Issuer: "https://okta.test", ClientId: "c2",
+	for name, mutate := range map[string]func(*werbotv1.UpdateIdentityProviderRequest){
+		"new client id": func(r *werbotv1.UpdateIdentityProviderRequest) { r.ClientId = "c2" },
+		"new issuer":    func(r *werbotv1.UpdateIdentityProviderRequest) { r.Issuer = "https://okta2.test" },
+	} {
+		r := &werbotv1.UpdateIdentityProviderRequest{Id: id, Name: "okta", Issuer: "https://okta.test", ClientId: "c1"}
+		mutate(r)
+		_, err = h.UpdateIdentityProvider(admin, connect.NewRequest(r))
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "%s needs a new client secret", name)
+	}
+	secret := func() string {
+		stored, err := s.store.Get(context.Background(), uuid.MustParse(id))
+		require.NoError(t, err)
+		return stored.ClientSecret
+	}
+	assert.Equal(t, "s3cret-1", secret(), "a refused update changes nothing")
+
+	update := &werbotv1.UpdateIdentityProviderRequest{Id: id, Name: "okta", Issuer: "https://okta.test", ClientId: "c2", ClientSecret: "s3cret-2",
 		ClaimsMapping: []*werbotv1.ClaimMapping{{Claim: "groups", Regex: "admins", Target: &werbotv1.ClaimMapping_Role{Role: "admin"}}}}
 	upd, err := h.UpdateIdentityProvider(admin, connect.NewRequest(update))
 	require.NoError(t, err)
 	assert.Equal(t, "c2", upd.Msg.GetIdentityProvider().GetClientId())
 	assert.False(t, upd.Msg.GetIdentityProvider().GetEnabled())
-	stored, err := s.store.Get(context.Background(), uuid.MustParse(id))
+	update.ClientSecret = ""
+	_, err = h.UpdateIdentityProvider(admin, connect.NewRequest(update))
 	require.NoError(t, err)
-	assert.Equal(t, "s3cret-1", stored.ClientSecret, "an empty secret keeps the stored one")
+	assert.Equal(t, "s3cret-2", secret(), "an empty secret keeps the stored one")
 
 	got2, err := h.GetIdentityProvider(admin, connect.NewRequest(&werbotv1.GetIdentityProviderRequest{Id: id}))
 	require.NoError(t, err)
@@ -96,7 +113,7 @@ func TestIdentityProviderServiceCRUD(t *testing.T) {
 	var data string
 	require.NoError(t, s.pool.QueryRow(context.Background(), `SELECT array_agg(action ORDER BY created_at, action), string_agg(data::text, ' ')
 		FROM audit_event WHERE action LIKE 'idp.%' AND target_id = $1`, id).Scan(&actions, &data))
-	assert.Equal(t, []string{"idp.create", "idp.update", "idp.delete"}, actions)
+	assert.Equal(t, []string{"idp.create", "idp.update", "idp.update", "idp.delete"}, actions)
 	assert.NotContains(t, data, "s3cret", "no secret in the audit")
 }
 

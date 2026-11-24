@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/werbot/werbot/internal/identity/oidclogin/oidctest"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/jobs"
 )
@@ -128,7 +130,7 @@ func TestRecheckKeepsSessionsWhenIdPDown(t *testing.T) {
 			assert.Empty(t, reason, "CLI session alive")
 			after, checkedAfter := s.linkState()
 			assert.Equal(t, before, after)
-			assert.True(t, checked.Equal(checkedAfter), "last_checked_at unchanged")
+			assert.True(t, checkedAfter.After(checked), "claimed: asked again in the next window")
 		})
 	}
 }
@@ -184,6 +186,8 @@ func TestRecheckUser(t *testing.T) {
 	s.op.SetDown(true)
 	assert.NoError(t, RecheckUser(ctx, s.store, s.svc, s.cfg, s.org, bob), "an unreachable IdP does not refuse")
 	s.op.SetDown(false)
+	assert.NoError(t, RecheckUser(ctx, s.store, s.svc, s.cfg, s.org, bob), "claimed by the last call: not asked again")
+	s.age(2 * time.Hour)
 	assert.ErrorIs(t, RecheckUser(ctx, s.store, s.svc, s.cfg, s.org, bob), ErrIdPRejected)
 	cookies, reason := s.sessions(bob)
 	assert.Zero(t, cookies)
@@ -206,4 +210,63 @@ func TestRecheckJob(t *testing.T) {
 	c, err := jobs.NewClient(s.pool, workers, periodic, nil)
 	require.NoError(t, err)
 	assert.True(t, c.PeriodicJobs().RemoveByID("idp.recheck"))
+}
+
+// staleLinks adds n members linked to idp with a sealed refresh token, last
+// checked age ago.
+func (s *stand) staleLinks(idp uuid.UUID, n int, age time.Duration) {
+	s.t.Helper()
+	sealed, keyID, err := s.store.SealRefresh("rt")
+	require.NoError(s.t, err)
+	s.exec(`WITH u AS (INSERT INTO users (email, login, name, password_hash)
+			SELECT 'u' || g || $3 || '@example.com', 'u' || g || $3, 'Test', 'x' FROM generate_series(1, $1::int) g RETURNING id),
+		m AS (INSERT INTO membership (org_id, user_id, role) SELECT $2, id, 'member' FROM u RETURNING user_id)
+		INSERT INTO user_idp_link (user_id, idp_id, org_id, subject, refresh_ciphertext, key_id, last_checked_at)
+		SELECT user_id, $4, $2, user_id::text, $5, $6, now() - make_interval(secs => $7) FROM m`,
+		n, s.org, strings.ReplaceAll(uuid.NewString()[:13], "-", ""), idp, sealed, keyID, age.Seconds())
+}
+
+func TestRecheckDownIdPDoesNotStarveOthers(t *testing.T) {
+	s := newStand(t)
+	down, err := s.store.Create(context.Background(), s.admin, IdP{Name: "down", Issuer: "http://127.0.0.1:1",
+		ClientID: oidctest.ClientID, ClientSecret: oidctest.ClientSecret, Scopes: DefaultScopes, Enabled: true})
+	require.NoError(t, err)
+	s.staleLinks(down.ID, RecheckBatch, 3*time.Hour) // older than bob's: picked first
+	bob := s.linked(2 * time.Hour)
+	s.op.Disable("sub-bob")
+
+	for range 2 {
+		require.NoError(t, Recheck(context.Background(), s.store, s.svc, s.cfg))
+	}
+	cookies, reason := s.sessions(bob)
+	assert.Zero(t, cookies, "a full batch of an unreachable IdP's links does not hold back the healthy IdP's refusal")
+	assert.Equal(t, "idp", reason)
+}
+
+func TestStaleLinksClaimedOnce(t *testing.T) {
+	s := newStand(t)
+	ctx := context.Background()
+	bob := s.linked(2 * time.Hour)
+	s.staleLinks(s.idp.ID, 40, 2*time.Hour)
+
+	var wg sync.WaitGroup
+	got := make([][]Link, 3)
+	wg.Go(func() { got[0], _ = s.store.StaleLinks(ctx, RecheckAfter, 1000) })
+	wg.Go(func() { got[1], _ = s.store.StaleLinks(ctx, RecheckAfter, 1000) })
+	wg.Go(func() { got[2], _ = s.store.UserStaleLinks(ctx, s.org, bob, RecheckAfter) })
+	wg.Wait()
+
+	seen := map[string]int{}
+	for _, links := range got {
+		for _, l := range links {
+			seen[l.Subject]++
+		}
+	}
+	assert.Len(t, seen, 41, "every stale link claimed")
+	for sub, n := range seen {
+		assert.Equal(t, 1, n, "link %s claimed by one caller only", sub)
+	}
+	again, err := s.store.StaleLinks(ctx, RecheckAfter, 1000)
+	require.NoError(t, err)
+	assert.Zero(t, len(again), "a claimed link waits for the next window")
 }

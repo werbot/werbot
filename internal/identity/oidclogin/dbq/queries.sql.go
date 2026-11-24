@@ -192,10 +192,16 @@ func (q *Queries) ListIdPs(ctx context.Context, orgID uuid.UUID) ([]IdpOidc, err
 }
 
 const staleLinks = `-- name: StaleLinks :many
-SELECT user_id, idp_id, org_id, subject, refresh_ciphertext, key_id, last_checked_at FROM user_idp_link
-WHERE refresh_ciphertext IS NOT NULL AND last_checked_at < now() - make_interval(secs => $1::float8)
-ORDER BY last_checked_at
-LIMIT $2
+WITH due AS (
+    SELECT idp_id, subject FROM user_idp_link
+    WHERE refresh_ciphertext IS NOT NULL AND last_checked_at < now() - make_interval(secs => $1::float8)
+    ORDER BY last_checked_at
+    LIMIT $2
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE user_idp_link l SET last_checked_at = now()
+FROM due WHERE l.idp_id = due.idp_id AND l.subject = due.subject
+RETURNING l.user_id, l.idp_id, l.org_id, l.subject, l.refresh_ciphertext, l.key_id, l.last_checked_at
 `
 
 type StaleLinksParams struct {
@@ -203,7 +209,10 @@ type StaleLinksParams struct {
 	Lim       int32
 }
 
-// Links with a refresh token not checked for older_secs, oldest first.
+// Claims up to lim links with a refresh token not checked for older_secs,
+// oldest first: their last check moves to now(), so a concurrent claimer
+// (another run, a CLI renewal) skips them and the links of an unreachable
+// IdP wait for the next window instead of holding back the others.
 func (q *Queries) StaleLinks(ctx context.Context, arg StaleLinksParams) ([]UserIdpLink, error) {
 	rows, err := q.db.Query(ctx, staleLinks, arg.OlderSecs, arg.Lim)
 	if err != nil {
@@ -321,9 +330,15 @@ func (q *Queries) UpdateLink(ctx context.Context, arg UpdateLinkParams) error {
 }
 
 const userStaleLinks = `-- name: UserStaleLinks :many
-SELECT user_id, idp_id, org_id, subject, refresh_ciphertext, key_id, last_checked_at FROM user_idp_link
-WHERE org_id = $1 AND user_id = $2 AND refresh_ciphertext IS NOT NULL
-    AND last_checked_at < now() - make_interval(secs => $3::float8)
+WITH due AS (
+    SELECT u.idp_id, u.subject FROM user_idp_link u
+    WHERE u.org_id = $1 AND u.user_id = $2 AND u.refresh_ciphertext IS NOT NULL
+        AND u.last_checked_at < now() - make_interval(secs => $3::float8)
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE user_idp_link l SET last_checked_at = now()
+FROM due WHERE l.idp_id = due.idp_id AND l.subject = due.subject
+RETURNING l.user_id, l.idp_id, l.org_id, l.subject, l.refresh_ciphertext, l.key_id, l.last_checked_at
 `
 
 type UserStaleLinksParams struct {
@@ -332,7 +347,8 @@ type UserStaleLinksParams struct {
 	OlderSecs float64
 }
 
-// The links of a member with a refresh token not checked for older_secs.
+// Claims the links of a member with a refresh token not checked for
+// older_secs, as StaleLinks does.
 func (q *Queries) UserStaleLinks(ctx context.Context, arg UserStaleLinksParams) ([]UserIdpLink, error) {
 	rows, err := q.db.Query(ctx, userStaleLinks, arg.OrgID, arg.UserID, arg.OlderSecs)
 	if err != nil {

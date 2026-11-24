@@ -28,10 +28,13 @@ type MFAPrompt func(ctx context.Context, text string) (answer string, err error)
 // MFAStep is the second factor of an OpenRequest. Method is the factor the
 // connection passed ("totp" | "webauthn"; "": none), which counts as fresh.
 // Prompt asks the user; nil: the front cannot ask and an mfa obligation is
-// ErrMFARequired. Session is the SSH session id a challenge is bound to.
+// ErrMFARequired. Notice: Prompt only shows the text and cannot read a TOTP
+// code, so none is offered. Session is the SSH session id a challenge is
+// bound to.
 type MFAStep struct {
 	Method  string
 	Prompt  MFAPrompt
+	Notice  bool
 	Session []byte
 }
 
@@ -84,7 +87,7 @@ func (p *Pipeline) connect(ctx context.Context, pol *Policy, req *AccessRequest,
 		return ErrMFARequired
 	}
 	method, err := p.awaitMFA(ctx, challengeRequest{UserID: req.User.ID, ResourceID: req.Resource.ID, SSHSessionID: r.MFA.Session,
-		ClientIP: r.ClientIP, Binding: mfaBinding(r.Identity), Strength: pol.MFAStrength(*req)}, r.MFA.Prompt)
+		ClientIP: r.ClientIP, Binding: mfaBinding(r.Identity), Strength: pol.MFAStrength(*req)}, r.MFA)
 	if err != nil {
 		return err
 	}
@@ -104,10 +107,11 @@ func mfaBinding(id Identity) string {
 	return "key:" + id.Value
 }
 
-// awaitMFA creates a challenge for r and asks until it is met: a TOTP code
-// (strength any) or an empty answer, then the browser confirmation. A wrong
-// or malformed code asks again; it returns the method that met it.
-func (p *Pipeline) awaitMFA(ctx context.Context, r challengeRequest, ask MFAPrompt) (string, error) {
+// awaitMFA creates a challenge for r and asks through step until it is met:
+// a TOTP code (strength any) or an empty answer, then the browser
+// confirmation. A wrong or malformed code asks again; it returns the method
+// that met it.
+func (p *Pipeline) awaitMFA(ctx context.Context, r challengeRequest, step MFAStep) (string, error) {
 	mc, ok := p.ctl.(mfaControl)
 	if !ok {
 		return "", ErrMFARequired
@@ -122,11 +126,11 @@ func (p *Pipeline) awaitMFA(ctx context.Context, r challengeRequest, ask MFAProm
 	}
 	confirmed, unsubscribe := mc.SubscribeMFA(t.ID)
 	defer unsubscribe()
-	text := promptText(t.URL, t.Code, r.Strength != "webauthn")
+	text := promptText(t.URL, t.Code, r.Strength != "webauthn" && !step.Notice)
 	actx, cancel := context.WithDeadline(ctx, end)
 	defer cancel()
 	for {
-		answer, err := ask(actx, text)
+		answer, err := step.Prompt(actx, text)
 		if err != nil {
 			return "", askErr(actx, err)
 		}

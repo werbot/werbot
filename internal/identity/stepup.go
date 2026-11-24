@@ -138,6 +138,12 @@ func (s *Service) stepUp(ctx context.Context, tx pgx.Tx, p principal.Principal, 
 	if err != nil {
 		return err
 	}
+	return verified(ctx, tx, p, method, binding)
+}
+
+// verified records in tx that p just passed method: a browser session gets
+// mfa_at, and the verification is stored for binding.
+func verified(ctx context.Context, tx pgx.Tx, p principal.Principal, method, binding string) error {
 	st := newStore(tx)
 	if p.AuthMethod == principal.AuthMethodCookie {
 		if err := st.SetSessionMFAByID(ctx, dbq.SetSessionMFAByIDParams{ID: p.SessionID, OrgID: p.OrgID, UserID: p.UserID}); err != nil {
@@ -145,4 +151,14 @@ func (s *Service) stepUp(ctx context.Context, tx pgx.Tx, p principal.Principal, 
 		}
 	}
 	return st.CreateMFAVerification(ctx, dbq.CreateMFAVerificationParams{OrgID: p.OrgID, UserID: p.UserID, Binding: binding, Method: method})
+}
+
+// enrolled makes p's browser session fresh in tx after it confirmed a new
+// factor (a current TOTP code spent, a passkey attested): the same proof as a
+// step-up. A Bearer token stays as it is.
+func enrolled(ctx context.Context, tx pgx.Tx, p principal.Principal, method string) error {
+	if p.AuthMethod != principal.AuthMethodCookie {
+		return nil
+	}
+	return verified(ctx, tx, p, method, "web:"+p.SessionID.String())
 }

@@ -65,7 +65,8 @@ func TestCompleteStepUpCookie(t *testing.T) {
 	assert.Equal(t, []string{"webauthn", "totp"}, su.Methods)
 	assert.Empty(t, su.URL, "a browser session confirms in place")
 	require.NoError(t, svc.CompleteStepUp(ctx, p, MFAProof{Assertion: a.Get(su.WebAuthnOptions)}))
-	assert.Equal(t, 1, countRows(t, pool, "SELECT count(*) FROM mfa_verification WHERE binding = $1 AND method = 'webauthn'", web))
+	assert.Equal(t, 2, countRows(t, pool, "SELECT count(*) FROM mfa_verification WHERE binding = $1 AND method = 'webauthn'", web),
+		"the registration and the step-up")
 	err = svc.CompleteStepUp(ctx, p, MFAProof{Assertion: a.Get(su.WebAuthnOptions)})
 	require.ErrorIs(t, err, ErrInvalidCode, "the ceremony is single use")
 }
@@ -140,4 +141,33 @@ func TestFailedAttemptCountSurvivesRollback(t *testing.T) {
 	assert.Equal(t, 1, attempts(), "the failed attempt stays counted")
 	assert.Zero(t, countRows(t, svc.pool, "SELECT count(*) FROM mfa_verification"), "its effect rolled back")
 	assert.Nil(t, sessionMFAAt(t, svc, p))
+}
+
+// TestEnrollmentFreshensSession: confirming a new factor proves it as a
+// step-up does: a browser session becomes fresh, a Bearer token does not.
+func TestEnrollmentFreshensSession(t *testing.T) {
+	ctx := context.Background()
+	verified := func(svc *Service, binding, method string) int {
+		return countRows(t, svc.pool, "SELECT count(*) FROM mfa_verification WHERE binding = $1 AND method = $2", binding, method)
+	}
+
+	svc, p := stepUpUser(t)
+	e, err := svc.EnrollTOTP(ctx, p)
+	require.NoError(t, err)
+	require.NoError(t, svc.ConfirmTOTP(ctx, p, codeAt(t, e.Secret, currentStep())))
+	assert.NotNil(t, sessionMFAAt(t, svc, p), "TOTP confirmed: session fresh")
+	assert.Equal(t, 1, verified(svc, "web:"+p.SessionID.String(), "totp"))
+
+	svc, p = stepUpUser(t)
+	registerPasskey(t, svc, p, webauthntest.New(t, testOrigin))
+	assert.NotNil(t, sessionMFAAt(t, svc, p), "passkey registered: session fresh")
+	assert.Equal(t, 1, verified(svc, "web:"+p.SessionID.String(), "webauthn"))
+
+	s := newCLIStand(t)
+	org := seedOrg(t, s.pool, "Acme")
+	bearer := s.asBearer(t, s.cliLogin(t, org, seedUser(t, s.pool, org, "alice", principal.RoleMember)).AccessToken, principal.RoleMember)
+	e, err = s.svc.EnrollTOTP(ctx, bearer)
+	require.NoError(t, err)
+	require.NoError(t, s.svc.ConfirmTOTP(ctx, bearer, codeAt(t, e.Secret, currentStep())))
+	assert.Zero(t, countRows(t, s.pool, "SELECT count(*) FROM mfa_verification"), "a Bearer token stays not fresh")
 }

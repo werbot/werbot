@@ -75,7 +75,7 @@ func TestE2ESSHMFATOTP(t *testing.T) {
 	l := m.kiDial(t, other, func(string, string) (string, error) { return code, nil })
 	require.Error(t, l.err)
 	assert.Greater(t, l.prompts, 1, "a spent code asks again")
-	assert.Equal(t, 1, m.count(t, "SELECT count(*) FROM mfa_verification"), "only the first login is verified")
+	assert.Equal(t, 1, m.count(t, "SELECT count(*) FROM mfa_verification WHERE binding LIKE 'key:%'"), "only the first login is verified")
 }
 
 // A second login with the same key within the rule's 60s needs no second
@@ -138,11 +138,13 @@ func TestE2EChallengeOfOtherUserRejected(t *testing.T) {
 	})
 	require.Error(t, l.err)
 	assert.Equal(t, "Permission denied (MFA timeout)\r\n", l.banner)
-	assert.Zero(t, m.count(t, "SELECT count(*) FROM mfa_verification"))
+	assert.Zero(t, m.count(t, "SELECT count(*) FROM mfa_verification WHERE binding LIKE 'key:%'"), "no login verified")
 }
 
 // A confirmation through another replica reaches the waiting login over the
-// stream of the replica the instance is connected to, well before the 2s poll.
+// stream of the replica the instance is connected to. The gateway starts its
+// 2 s poll only once the empty answer arrived, so a poll never ends the login
+// within 1.5 s of that answer: only the stream does.
 func TestE2EMFAConfirmedAcrossReplicas(t *testing.T) {
 	m := mfaSSH(t)
 	passkey := enrollPasskey(t, m.web, m.webURL)
@@ -154,21 +156,14 @@ func TestE2EMFAConfirmedAcrossReplicas(t *testing.T) {
 	})).healthy(t)
 	viaB := newMFAClients(m.web.hc, b.api) // the session cookie is the same on both replicas
 
-	confirmed := make(chan time.Time, 1)
+	answered, confirmed := make(chan time.Time, 1), make(chan error, 1)
 	l := m.kiDial(t, m.key, func(id, _ string) (string, error) {
-		go func() { // the login waits for the browser from the empty answer on
-			err := confirm(viaB, passkey, id)
-			assert.NoError(t, err)
-			confirmed <- time.Now()
-		}()
+		go func() { confirmed <- confirm(viaB, passkey, id) }() // the login waits for the browser from the empty answer on
+		answered <- time.Now()
 		return "", nil
 	})
-	opened := time.Now()
+	took := time.Since(<-answered)
+	require.NoError(t, <-confirmed)
 	echoHi(t, l)
-	select {
-	case at := <-confirmed:
-		assert.Less(t, opened.Sub(at), 1500*time.Millisecond, "the stream brought the confirmation, not the poll")
-	case <-time.After(5 * time.Second):
-		t.Fatal("the confirmation did not return")
-	}
+	assert.Less(t, took, 1500*time.Millisecond, "the stream brought the confirmation, not the poll")
 }

@@ -428,7 +428,7 @@ type CreateIdentityProviderRequest struct {
 	Issuer       string `protobuf:"bytes,2,opt,name=issuer,proto3" json:"issuer,omitempty"`
 	ClientId     string `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
 	ClientSecret string `protobuf:"bytes,4,opt,name=client_secret,json=clientSecret,proto3" json:"client_secret,omitempty"`
-	// Empty: openid, email, profile, groups; must contain openid.
+	// Empty: openid, email, profile; must contain openid.
 	Scopes        []string        `protobuf:"bytes,5,rep,name=scopes,proto3" json:"scopes,omitempty"`
 	ClaimsMapping []*ClaimMapping `protobuf:"bytes,6,rep,name=claims_mapping,json=claimsMapping,proto3" json:"claims_mapping,omitempty"`
 	AllowSignup   bool            `protobuf:"varint,7,opt,name=allow_signup,json=allowSignup,proto3" json:"allow_signup,omitempty"`
