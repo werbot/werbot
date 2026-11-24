@@ -32,7 +32,9 @@ Every TCP connection opens a `direct-tcpip` channel through the gateway: one gat
 The responder answers only names under `<org>.werbot`, over UDP and TCP (several queries per TCP connection). Names under the suffix without a resource get `NXDOMAIN`; other query types than `A` for a resource (`AAAA` included) get an empty `NOERROR`; names outside the suffix get `REFUSED`, so the OS goes on to its other resolvers. Records live 60 s.
 
 - Linux: `resolvectl dns werbot0 100.64.0.2` and `resolvectl domain werbot0 ~<org>.werbot` (systemd-resolved). Without `resolvectl`, or when it fails, the command prints the reason and `Add "nameserver 100.64.0.2" before other nameservers in /etc/resolv.conf to resolve *.<org>.werbot`; addresses work without names.
-- macOS: the file `/etc/resolver/<org>.werbot` with `nameserver 100.64.0.2`; check with `scutil --dns`.
+- macOS: the file `/etc/resolver/<org>.werbot` with `nameserver 100.64.0.2`; check with `scutil --dns`. `dig` and `nslookup` do not read `/etc/resolver`: test the system resolver with `dscacheutil -q host -a name <resource>.<org>.werbot`, the responder itself with `dig @100.64.0.2 <resource>.<org>.werbot`.
+
+A DNS proxy or filter on the computer (a network extension such as an encrypted-DNS option of a firewall or an endpoint security agent) can take every query to port 53 before it reaches the interface. Names under `<org>.werbot` then get the proxy's answer (usually `NXDOMAIN`), while the addresses keep working. A query to an address where no server runs shows it: `dig @192.0.2.53 example.com` should time out, and an answer means a proxy. Turn the proxy off, or exclude `<org>.werbot` or the prefix in it.
 
 ## Requirements and privileges
 
@@ -61,6 +63,6 @@ Not covered by CI; check it before a release:
 
 1. `sudo werbot connect --vnet` prints `<resource>.<org>.werbot → 100.…` lines.
 2. `scutil --dns | grep -A3 werbot` shows the resolver for `<org>.werbot` with `100.64.0.2`.
-3. `dig <resource>.<org>.werbot` answers the printed address; `curl http://<resource>.<org>.werbot` (an HTTP resource) answers.
+3. `dig @100.64.0.2 <resource>.<org>.werbot` and `dscacheutil -q host -a name <resource>.<org>.werbot` answer the printed address; `curl http://<resource>.<org>.werbot:<port>` (an HTTP resource) answers. Without names, check a DNS proxy first (see [DNS](#dns)).
 4. Ctrl+C: `/etc/resolver/<org>.werbot` is gone and `ifconfig` shows no `100.64.0.1`.
 5. `ls -l ~/.werbot/*/` shows your user as the owner of every file.
