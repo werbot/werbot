@@ -31,7 +31,7 @@ var errNotConnected = errors.New("the gateway is unreachable")
 // link is the SSH connection of one resource. It is dialed again after a drop
 // while the local listener stays open.
 type link struct {
-	addr     string
+	ep       Endpoint
 	conf     *ssh.ClientConfig
 	resource string
 	stderr   io.Writer
@@ -41,22 +41,23 @@ type link struct {
 	up     chan struct{} // closed while client is set
 }
 
-func newLink(c *ssh.Client, addr string, conf *ssh.ClientConfig, resource string, stderr io.Writer) *link {
+func newLink(c *ssh.Client, ep Endpoint, conf *ssh.ClientConfig, resource string, stderr io.Writer) *link {
 	up := make(chan struct{})
 	close(up)
-	return &link{addr: addr, conf: conf, resource: resource, stderr: stderr, client: c, up: up}
+	return &link{ep: ep, conf: conf, resource: resource, stderr: stderr, client: c, up: up}
 }
 
-// dial opens an SSH connection to addr; a cancel of ctx aborts it.
-func dial(ctx context.Context, addr string, conf *ssh.ClientConfig) (*ssh.Client, error) {
-	conn, err := Dial(ctx, Endpoint{SSHAddress: addr})
+// dial opens an SSH connection to ep, checking the host key for
+// HostKeyAddr(ep) on either transport; a cancel of ctx aborts it.
+func dial(ctx context.Context, ep Endpoint, conf *ssh.ClientConfig) (*ssh.Client, error) {
+	conn, err := Dial(ctx, ep)
 	if err != nil {
 		return nil, err
 	}
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stop()
 	_ = conn.SetDeadline(time.Now().Add(handshakeTimeout))
-	c, chans, reqs, err := ssh.NewClientConn(conn, addr, conf)
+	c, chans, reqs, err := ssh.NewClientConn(conn, HostKeyAddr(ep), conf)
 	if err != nil {
 		_ = conn.Close()
 		if ctx.Err() != nil {
@@ -138,7 +139,7 @@ func (l *link) run(ctx context.Context) error {
 func (l *link) redial(ctx context.Context) (*ssh.Client, error) {
 	wait, last := backoffFirst, ""
 	for {
-		c, err := dial(ctx, l.addr, l.conf)
+		c, err := dial(ctx, l.ep, l.conf)
 		switch {
 		case err == nil:
 			return c, nil

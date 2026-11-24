@@ -161,15 +161,28 @@ func (s *stack) startGateway(t *testing.T, token string) (sshAddr, dataDir strin
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	dataDir = t.TempDir()
+	err = runUntilUp(t, func(ctx context.Context, reg *metrics.Registry) error {
+		cfg := gateway.Config{ServerURL: s.url, JoinToken: token, DataDir: dataDir, Name: "gw-test",
+			IdleTimeout: time.Minute, DrainTimeout: time.Second, MaxSessions: 100, Metrics: reg}
+		return gateway.Serve(ctx, cfg, countingListener{ln, &s.accepted}, slog.New(slog.DiscardHandler))
+	})
+	if err != nil {
+		return "", dataDir, err
+	}
+	return ln.Addr().String(), dataDir, nil
+}
+
+// runUntilUp runs the gateway instance of run (metrics in reg) until the test
+// cleanup and waits until its tunnel has a snapshot or run returned (its error).
+func runUntilUp(t *testing.T, run func(ctx context.Context, reg *metrics.Registry) error) error {
+	t.Helper()
 	reg := metrics.NewRegistry()
-	cfg := gateway.Config{ServerURL: s.url, JoinToken: token, DataDir: dataDir, Name: "gw-test",
-		IdleTimeout: time.Minute, DrainTimeout: time.Second, MaxSessions: 100, Metrics: reg}
 	ctx, cancel := context.WithCancel(context.Background())
 	var serveErr error
 	stopped := make(chan struct{})
 	go func() {
 		defer close(stopped)
-		serveErr = gateway.Serve(ctx, cfg, countingListener{ln, &s.accepted}, slog.New(slog.DiscardHandler))
+		serveErr = run(ctx, reg)
 	}()
 	t.Cleanup(func() {
 		cancel()
@@ -191,9 +204,9 @@ func (s *stack) startGateway(t *testing.T, token string) (sshAddr, dataDir strin
 	}, 15*time.Second, 20*time.Millisecond)
 	select {
 	case <-stopped:
-		return "", dataDir, serveErr
+		return serveErr
 	default:
-		return ln.Addr().String(), dataDir, nil
+		return nil
 	}
 }
 

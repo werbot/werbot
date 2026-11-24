@@ -33,12 +33,13 @@ func Run(ctx context.Context, cfg Config, stdout, stderr io.Writer) error {
 	var wg sync.WaitGroup
 	defer func() { cancel(); wg.Wait() }() // every port closed, every goroutine done
 	fail := make(chan error, len(cfg.Specs))
+	ep := Endpoint{SSHAddress: cfg.Gateway, WSURL: cfg.WSURL}
 	for _, sp := range cfg.Specs {
 		conf := &ssh.ClientConfig{
 			User: cfg.Login + "+" + sp.Resource, Auth: []ssh.AuthMethod{auth, cfg.mfaAuth(stderr)},
 			HostKeyCallback: hostKeyCallback(cfg.KnownHosts), ClientVersion: "SSH-2.0-Werbot_connect_" + strings.ReplaceAll(version.Version, "-", "_"),
 		}
-		b, err := open(ctx, cfg.Gateway, conf, sp, stdout, stderr)
+		b, err := open(ctx, ep, conf, sp, stdout, stderr)
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil
@@ -70,8 +71,8 @@ type binding struct {
 
 // open connects as <login>+<resource>, asks the gateway for the resource,
 // opens the local port and prints where it listens.
-func open(ctx context.Context, addr string, conf *ssh.ClientConfig, sp Spec, stdout, stderr io.Writer) (*binding, error) {
-	c, err := dial(ctx, addr, conf)
+func open(ctx context.Context, ep Endpoint, conf *ssh.ClientConfig, sp Spec, stdout, stderr io.Writer) (*binding, error) {
+	c, err := dial(ctx, ep, conf)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", sp.Resource, err)
 	}
@@ -80,7 +81,7 @@ func open(ctx context.Context, addr string, conf *ssh.ClientConfig, sp Spec, std
 		_ = c.Close()
 		return nil, err
 	}
-	b.link = newLink(c, addr, conf, sp.Resource, stderr)
+	b.link = newLink(c, ep, conf, sp.Resource, stderr)
 	return b, nil
 }
 

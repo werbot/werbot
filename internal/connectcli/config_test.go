@@ -66,3 +66,30 @@ func TestLoadConfig(t *testing.T) {
 	assert.Equal(t, "[::1]:22", c.Gateway)
 	assert.Equal(t, []string{"WERBOT_CONNECT_GATEWAY", "WERBOT_CONNECT_LOGIN"}, ConfigVars())
 }
+
+// A ws:// or wss:// gateway is the WebSocket URL and leaves Gateway empty; a
+// host keeps getting port 2222.
+func TestLoadConfigGatewayURL(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	load := func(gw string) (Config, error) {
+		return LoadConfig([]string{"--gateway", gw, "--login", "a", "--known-hosts", "/kh", "pg"}, func(string) string { return "" })
+	}
+	for _, u := range []string{"wss://gw/v1/ssh", "ws://gw:8088", "WSS://gw"} {
+		c, err := load(u)
+		require.NoError(t, err, u)
+		assert.Equal(t, u, c.WSURL, u)
+		assert.Empty(t, c.Gateway, u)
+	}
+	c, err := load("gw")
+	require.NoError(t, err)
+	assert.Equal(t, "gw:2222", c.Gateway)
+	assert.Empty(t, c.WSURL)
+	c, err = load("ws:2222") // a host named ws
+	require.NoError(t, err)
+	assert.Equal(t, "ws:2222", c.Gateway)
+	for _, u := range []string{"ws://", "http://gw", "wss:///v1/ssh", "ftp://gw", "wss://user:secret@gw"} {
+		_, err := load(u)
+		assert.ErrorContains(t, err, "gateway: want ws://", u)
+		assert.NotContains(t, err.Error(), "secret", "the URL is not echoed")
+	}
+}

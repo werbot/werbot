@@ -117,7 +117,7 @@ func TestConnectHostKeyChangedOnRedial(t *testing.T) {
 // A new local connection waits reconnectWait for a redial, then gives up.
 func TestLinkGetWaits(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		l := newLink(nil, "", nil, "pg", &syncBuffer{})
+		l := newLink(nil, Endpoint{}, nil, "pg", &syncBuffer{})
 		l.set(nil)
 		start := time.Now()
 		_, err := l.get(context.Background())
