@@ -82,6 +82,39 @@ The pool details also show the pool host key, and the API returns it with the po
 
 Set `WERBOT_GATEWAY_PROXY_PROTOCOL=true` only behind an L4 balancer that sends the header: HAProxy `send-proxy-v2`, nginx `proxy_protocol on`, AWS NLB with proxy protocol v2. Then every SSH connection must start with the header, and port `2222` must be open to the balancer only. Otherwise a client can forge its IP, and IP and country rules rely on it.
 
+## WebSocket input
+
+The WebSocket input carries SSH over one HTTPS port, so a gateway can sit behind an L7 load balancer that terminates TLS (nginx, Cloudflare, AWS ALB). Clients then need neither the SSH port nor a direct TCP path to the gateway. Set `WERBOT_GATEWAY_WS_ADDR` (for example `:8022`) to enable it; empty (default) opens no listener.
+
+- Only `GET /v1/ssh` upgrades. Any other path answers 404, another method 405, a request without `Upgrade` 426, and a browser `Origin` of another host 403. SSH travels in binary messages; a text message closes the connection.
+- Behind the input runs the same SSH server as on the SSH port: the same host key, public key and certificate login, keyboard-interactive MFA, the menu, `direct-tcpip`, `datagram@werbot.com`, policy and audit. Sessions record the transport `ws`.
+- The SSH host key is checked inside SSH, so a balancer that terminates TLS cannot impersonate the gateway.
+- TLS on the gateway itself: set `WERBOT_GATEWAY_WS_TLS_CERT` and `WERBOT_GATEWAY_WS_TLS_KEY` (PEM files, both or neither; TLS 1.2 or later). The files are read at start; an unreadable file stops the gateway. Without them the input speaks plain HTTP for a balancer that terminates TLS.
+- Client IP: the PROXY protocol never applies to this input. `X-Forwarded-For` counts only when the TCP peer is inside `WERBOT_GATEWAY_TRUSTED_PROXIES`; the client is then the rightmost address that is not a trusted proxy. Any other peer is identified by its TCP address. That IP goes to sessions, audit, denials and IP rules.
+- The gateway pings every connection every 30 s and closes a peer that does not answer within another 30 s. The pings keep the connection open through the idle timeouts of nginx (60 s), Cloudflare (100 s) and AWS ALB (60 s).
+- A connection must authenticate within 30 s, as on the SSH port. On shutdown the input stops taking upgrades and its sessions drain like SSH ones.
+- Health check of the balancer: `GET /readyz` on `WERBOT_GATEWAY_HTTP_ADDR`.
+
+Tell clients the public URL of the input with the pool's `ws_url` (`ws://` or `wss://`, path `/v1/ssh` by default): `GatewayService/UpdateGateway` with `{"id": "<pool id>", "sshAddress": "gw.example.com:2222", "wsUrl": "wss://gw.example.com/v1/ssh"}`. The call replaces both addresses, so send both.
+
+nginx in front of the input:
+
+```nginx
+location /v1/ssh {
+  proxy_pass http://gateway:8022;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_read_timeout 1h;
+  proxy_send_timeout 1h;
+}
+```
+
+Put the nginx address in `WERBOT_GATEWAY_TRUSTED_PROXIES`, for example `10.0.0.5/32`.
+
+Cloudflare: use a proxied DNS record with WebSockets on, and an origin port from Cloudflare's list of HTTP(S) ports. Set `WERBOT_GATEWAY_TRUSTED_PROXIES` to the Cloudflare IP ranges, or to `127.0.0.1/32` when `cloudflared` runs on the gateway host.
+
 ## Connect
 
 Users log in with their SSH key or with the short-lived certificate of `werbot login` ([cli.md](cli.md)):

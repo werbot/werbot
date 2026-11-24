@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/werbot/werbot/internal/gateway/recorder"
+	"github.com/werbot/werbot/internal/gateway/wsfront"
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
 
@@ -21,7 +22,7 @@ func Serve(ctx context.Context, cfg Config, ln net.Listener, logger *slog.Logger
 	return serve(ctx, cfg, ln, nil, nil, logger)
 }
 
-// Run listens on cfg.SSHAddr and, when set, cfg.HTTPAddr, then serves until ctx ends.
+// Run listens on cfg.SSHAddr and, when set, cfg.HTTPAddr and cfg.WSAddr, then serves until ctx ends.
 func Run(ctx context.Context, cfg Config, logger *slog.Logger) error {
 	sshLn, err := net.Listen("tcp", cfg.SSHAddr)
 	if err != nil {
@@ -34,7 +35,28 @@ func Run(ctx context.Context, cfg Config, logger *slog.Logger) error {
 			return fmt.Errorf("gateway http listen: %w", err)
 		}
 	}
-	return serve(ctx, cfg, sshLn, httpLn, nil, logger)
+	wsLn, err := listenWS(cfg)
+	if err != nil {
+		closeAll(sshLn, httpLn)
+		return err
+	}
+	return serve(ctx, cfg, sshLn, httpLn, wsLn, logger)
+}
+
+// newWSListener opens the WebSocket input; tests count its calls.
+var newWSListener = wsfront.Listener
+
+// listenWS opens the WebSocket input of cfg, or none (nil) when cfg.WSAddr is
+// empty. A bind error keeps its *net.OpError.
+func listenWS(cfg Config) (net.Listener, error) {
+	if cfg.WSAddr == "" {
+		return nil, nil
+	}
+	ln, err := newWSListener(cfg.WSAddr, cfg.WSTLSCert, cfg.WSTLSKey, cfg.TrustedProxies)
+	if err != nil {
+		return nil, fmt.Errorf("gateway ws listen: %w", err)
+	}
+	return ln, nil
 }
 
 // serve enrolls (or loads the identity), keeps the tunnel and serves SSH on sshLn
