@@ -1,4 +1,5 @@
 import type { ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
+import { resolveIcon } from '#lib/ui/icons.js';
 import type { IconName } from '#lib/ui/index.js';
 import { m } from '#lib/paraglide/messages.js';
 
@@ -23,6 +24,9 @@ const typeIcons: Record<string, IconName> = {
 
 export const categoryIcon = (category: string): IconName => categories[category] ?? FALLBACK;
 export const typeIcon = (type: string): IconName => typeIcons[type] ?? FALLBACK;
+
+/** A preset names a registry icon; anything unknown shows its base type's icon. */
+export const resourceTypeIcon = (t: Pick<ResourceType, 'name' | 'baseType' | 'icon'>): IconName => (t.icon && resolveIcon(t.icon) ? t.icon : typeIcon(t.baseType || t.name));
 
 /** Types grouped by category, categories in first-seen order. */
 export function groupTypes(types: ResourceType[]): { category: string; types: ResourceType[] }[] {

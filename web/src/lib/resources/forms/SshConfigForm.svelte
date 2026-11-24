@@ -14,8 +14,9 @@
 	let port = $state(String(current?.port ?? 22));
 	let login = $state(current?.login ?? '');
 	let portForwarding = $state(current?.portForwarding ?? false);
+	let remoteForwarding = $state(current?.remoteForwarding ?? false);
 
-	$effect(() => onchange(sshConfigValue({ host, port: Number(port) || 0, login, portForwarding })));
+	$effect(() => onchange(sshConfigValue({ host, port: Number(port) || 0, login, portForwarding, remoteForwarding })));
 </script>
 
 <FieldRow>
@@ -24,12 +25,18 @@
 </FieldRow>
 <FieldRow even>
 	<FilledField label={m.resources_ssh_login()} bind:value={login} required />
-	<div class="toggle"><Toggle bind:checked={portForwarding}>{m.resources_ssh_port_forwarding()}</Toggle></div>
+	<div class="toggles">
+		<Toggle bind:checked={portForwarding}>{m.resources_ssh_port_forwarding()}</Toggle>
+		<Toggle bind:checked={remoteForwarding}>{m.resources_ssh_remote_forwarding()}</Toggle>
+	</div>
 </FieldRow>
 
 <style>
 	/* centred against the login field next to it */
-	.toggle {
+	.toggles {
+		display: flex;
+		flex-direction: column;
+		gap: var(--miso-sp-08);
 		align-self: center;
 	}
 </style>

@@ -65,6 +65,25 @@ test('open resource by keyboard', async ({ page }) => {
 	await expect(page).toHaveURL(new RegExp(`/resources/${id}$`));
 });
 
+test('ssh remote forwarding toggle is saved', async ({ page }) => {
+	await loginAsOwner(page);
+	await openNew(page);
+	await page.getByLabel(en.resources_name).fill('e2e-ssh-r');
+	await page.getByLabel(en.resources_ssh_host).fill('10.0.0.8');
+	await page.getByLabel(en.resources_ssh_login).fill('root');
+	const toggle = page.getByRole('switch', { name: en.resources_ssh_remote_forwarding });
+	await expect(toggle).not.toBeChecked();
+	await toggle.locator('xpath=ancestor::label').click();
+	await page.getByRole('button', { name: en.resources_save, exact: true }).click();
+	await expect(page).toHaveURL(/\/resources\/[0-9a-f-]{36}$/);
+	await page.reload();
+	await expect(toggle).toBeChecked();
+	await page.screenshot({ path: '../.superpowers/sdd/stage15-wave1/screens/t12-resource-remote-forwarding.png' });
+	await page.getByRole('button', { name: en.resources_delete }).click();
+	await page.getByRole('dialog').getByRole('button', { name: en.resources_delete }).click();
+	await expect(page).toHaveURL(/\/resources$/);
+});
+
 test('tcp resource with ports, port binding, hints and health', async ({ page }) => {
 	await loginAsOwner(page);
 	await openNew(page, 'tcp');

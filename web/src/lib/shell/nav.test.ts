@@ -13,7 +13,7 @@ test('member sections', () => {
 });
 
 test('manager sections', () => {
-	expect(hrefs(byId(true, 'access'))).toEqual(['/resources', '/sessions', '/requests', '/agents', '/gateways', '/policies/approvals', '/policies/commands', '/policies/custom', '/policies/paths', '/policies/terminal', '/policies/mfa', '/locks']);
+	expect(hrefs(byId(true, 'access'))).toEqual(['/resources', '/resources/presets', '/sessions', '/requests', '/agents', '/gateways', '/policies/approvals', '/policies/commands', '/policies/custom', '/policies/paths', '/policies/terminal', '/policies/mfa', '/locks']);
 	expect(hrefs(byId(true, 'organization'))).toEqual(['/members', '/teams', '/audit', '/settings', '/settings/sso']);
 	expect(hrefs(byId(true, 'profile'))).toEqual(['/profile', '/profile/keys', '/profile/mfa', '/profile/cli-sessions']);
 });
@@ -31,6 +31,8 @@ test('nested paths', () => {
 	const profile = byId(true, 'profile');
 	expect(itemFor(profile, '/profile/keys')?.href).toBe('/profile/keys');
 	expect(itemFor(profile, '/profile/mfa')?.href).toBe('/profile/mfa');
+	expect(itemFor(byId(true, 'access'), '/resources/presets')?.href).toBe('/resources/presets');
+	expect(itemFor(byId(true, 'access'), '/resources/7f0c-1')?.href).toBe('/resources');
 	expect(itemFor(byId(true, 'organization'), '/settings/sso')?.href).toBe('/settings/sso');
 	expect(itemFor(profile, '/profile/delete/tok')?.href).toBe('/profile');
 });

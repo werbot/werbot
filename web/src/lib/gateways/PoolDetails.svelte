@@ -4,7 +4,7 @@
 	import { Badge, Button, Chip, PropertyRow, Tooltip, toast } from '#lib/ui/index.js';
 	import FormField from '#lib/FormField.svelte';
 	import { gateways } from '#lib/api.js';
-	import { failToast } from '#lib/errors.js';
+	import { failToast, serverText } from '#lib/errors.js';
 	import type { Gateway, GatewayInstance, JoinToken } from '#lib/gen/werbot/v1/gateway_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import InstancesTable from './InstancesTable.svelte';
@@ -23,15 +23,18 @@
 	let failed = $state(false);
 	// the drawer mounts this per pool; the 10 s list poll must not overwrite what the person types
 	let address = $state(untrack(() => pool.sshAddress));
+	let wsUrl = $state(untrack(() => pool.wsUrl));
 
 	async function saveAddress(e: SubmitEvent) {
 		e.preventDefault();
 		try {
-			const { gateway } = await gateways.updateGateway({ id: pool.id, sshAddress: address.trim() });
+			// the update replaces both addresses
+			const { gateway } = await gateways.updateGateway({ id: pool.id, sshAddress: address.trim(), wsUrl: wsUrl.trim() });
 			address = gateway?.sshAddress ?? '';
+			wsUrl = gateway?.wsUrl ?? '';
 			toast({ tone: 'success', text: m.common_saved() });
 		} catch (err) {
-			failToast(err);
+			failToast(serverText(err));
 		}
 	}
 
@@ -88,6 +91,7 @@
 	</div>
 	<form class="address" onsubmit={saveAddress}>
 		<FormField label={m.gateways_ssh_address_label()} hint={m.gateways_ssh_address_hint()} placeholder="gw.example.com:2222" bind:value={address} maxlength={300} />
+		<FormField label={m.gateways_ws_url_label()} hint={m.gateways_ws_url_help()} placeholder="wss://gw.example.com/v1/ssh" bind:value={wsUrl} maxlength={2048} />
 		<div><Button size={40} type="submit" variant="solid">{m.gateways_ssh_address_save()}</Button></div>
 	</form>
 	<section><InstancesTable instances={pool.instances} ondelete={ondeleteInstance} bind:menu={instanceMenu} /></section>

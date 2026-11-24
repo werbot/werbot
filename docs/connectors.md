@@ -91,6 +91,15 @@ A resource of type `ssh` with `remote_forwarding` on accepts remote forwards on 
 - Idle timeout: a forward without traffic idles out like any `stream`. Raise the resource `idle_timeout` (up to 24 h) for long-lived forwards.
 - Run `ssh -R` as a separate `ssh` with `-N -o ExitOnForwardFailure=yes`: a refused forward then fails the command, and a gateway-ended forward does not take other sessions with it.
 
+## Presets
+
+A preset is a resource type without code: a name on top of the `tcp` or `udp` connector. Owners and admins manage presets in the web UI (Access, Presets) or through `ResourcePresetService`; every member sees them in the resource type list next to the built-in types.
+
+- Fields: `name` (`^[a-z][a-z0-9-]{0,31}$`, cannot be a built-in type name), `base_type` (`tcp` or `udp`), `display_name`, `icon` (a name from the web icon registry, empty for the base type icon), `default_ports` (1 to 16 ranges), `category` and `launch_hint`. `name` and `base_type` never change after creation.
+- `launch_hint` is shown as text on the resource page. `{host}` becomes `127.0.0.1` and `{port}` the local port of `werbot connect`, for example `psql -h {host} -p {port}`.
+- A resource made from a preset is stored with the base type and the `preset_id`. The connector, the config and the policy are those of the base type; the preset only supplies default ports, the category and the hint in the UI.
+- A preset that resources still use cannot be deleted (`FailedPrecondition`); delete or move the resources first.
+
 ## Heavy and third-party connectors
 
 A heavy connector (for example `guacd` for RDP) or a third-party one implements the same `Connector` through an adapter to an external process (go-plugin or a sidecar), passes the same `connectortest.Run` and runs only on specialised pools, so other pools do not pay for it. There is no adapter in `v0.x`: it comes with the first heavy connector.

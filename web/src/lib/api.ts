@@ -7,6 +7,7 @@ import { SSHKeyService } from '#lib/gen/werbot/v1/ssh_key_pb.js';
 import { MemberService } from '#lib/gen/werbot/v1/member_pb.js';
 import { TeamService } from '#lib/gen/werbot/v1/team_pb.js';
 import { ResourceService } from '#lib/gen/werbot/v1/resource_pb.js';
+import { ResourcePresetService } from '#lib/gen/werbot/v1/preset_pb.js';
 import { AccessService } from '#lib/gen/werbot/v1/access_pb.js';
 import { PolicyService } from '#lib/gen/werbot/v1/policy_pb.js';
 import { GatewayService } from '#lib/gen/werbot/v1/gateway_pb.js';
@@ -37,6 +38,7 @@ export const sshKeys: Client<typeof SSHKeyService> = createClient(SSHKeyService,
 export const members: Client<typeof MemberService> = createClient(MemberService, transport);
 export const teams: Client<typeof TeamService> = createClient(TeamService, transport);
 export const resources: Client<typeof ResourceService> = createClient(ResourceService, transport);
+export const presets: Client<typeof ResourcePresetService> = createClient(ResourcePresetService, transport);
 export const access: Client<typeof AccessService> = createClient(AccessService, transport);
 export const policy: Client<typeof PolicyService> = createClient(PolicyService, transport);
 export const gateways: Client<typeof GatewayService> = createClient(GatewayService, transport);

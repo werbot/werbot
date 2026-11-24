@@ -26,6 +26,7 @@ const section = (id: SectionId, label: () => string, icon: IconName, items: NavI
 export function navSections(manager: boolean): NavSection[] {
 	const access: NavItem[] = [
 		...(manager ? [{ href: '/resources', label: m.nav_resources, icon: 'desktop' as const }] : []),
+		...(manager ? [{ href: '/resources/presets', label: m.nav_presets, icon: 'storage' as const }] : []),
 		{ href: '/sessions', label: m.nav_sessions, icon: 'history' },
 		{ href: '/requests', label: m.nav_requests, icon: 'front_hand' },
 		{ href: '/agents', label: m.nav_agents, icon: 'sparkle' },

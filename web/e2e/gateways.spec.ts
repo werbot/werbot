@@ -140,3 +140,32 @@ test('delete pool from drawer', async ({ page }) => {
 	await expect(drawer).toHaveCount(0);
 	await expect(poolRow(page, 'e2e-drawer-pool')).toHaveCount(0);
 });
+
+test('pool WebSocket URL is saved and a bad scheme is refused', async ({ page }) => {
+	await loginAsOwner(page);
+	await page.goto('/gateways');
+	await createPool(page, 'e2e-ws-pool');
+	await page.getByRole('button', { name: 'e2e-ws-pool', exact: true }).click();
+	const drawer = page.getByRole('dialog', { name: 'e2e-ws-pool', exact: true });
+	const field = drawer.getByLabel(en.gateways_ws_url_label);
+
+	await field.fill('http://x');
+	await drawer.getByRole('button', { name: en.gateways_ssh_address_save }).click();
+	await expect(page.getByText(/ws_url must be a ws:\/\/ or wss:\/\/ URL/)).toBeVisible();
+
+	await field.fill('wss://gw.example.com/v1/ssh');
+	await drawer.getByRole('button', { name: en.gateways_ssh_address_save }).click();
+	await expect(page.getByText(en.common_saved).first()).toBeVisible();
+	await page.screenshot({ path: '../.superpowers/sdd/stage15-wave1/screens/t12-pool-ws-url.png' });
+	await page.reload();
+	await page.getByRole('button', { name: 'e2e-ws-pool', exact: true }).click();
+	await expect(page.getByRole('dialog', { name: 'e2e-ws-pool', exact: true }).getByLabel(en.gateways_ws_url_label)).toHaveValue('wss://gw.example.com/v1/ssh');
+
+	// restore: empty URL, then delete the pool
+	await field.fill('');
+	await drawer.getByRole('button', { name: en.gateways_ssh_address_save }).click();
+	await expect(page.getByText(en.common_saved).first()).toBeVisible();
+	await page.keyboard.press('Escape');
+	await deletePoolFromRow(page, 'e2e-ws-pool');
+	await expect(poolRow(page, 'e2e-ws-pool')).toHaveCount(0);
+});
