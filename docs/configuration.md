@@ -61,8 +61,12 @@ An instance of a gateway pool. `WERBOT_LOG_LEVEL` and `WERBOT_LOG_FORMAT` apply 
 | `WERBOT_GATEWAY_SPOOL_MAX` | `--spool-max` | `1GiB` | Size cap of the recording spool: bytes or a `KiB`, `MiB`, `GiB` suffix (powers of 1024); must be above 0. |
 | `WERBOT_GATEWAY_MAX_SESSIONS` | `--max-sessions` | `10000` | Concurrent session limit, 1-10000; above it users get `Gateway is busy, try again later`. |
 | `WERBOT_GATEWAY_MAX_DURATION` | `--max-duration` | `12h` | Ends a session after this long (`max_duration`) unless its resource sets `max_duration`; `0` means no limit, a negative value fails the start. |
+| `WERBOT_GATEWAY_WS_ADDR` | `--ws-addr` | empty (disabled) | Listen address of the WebSocket input (`GET /v1/ssh`), an SSH-over-WebSocket path for clients behind an HTTP proxy. |
+| `WERBOT_GATEWAY_WS_TLS_CERT` | `--ws-tls-cert` | empty | PEM certificate file for the WebSocket input; set together with `WERBOT_GATEWAY_WS_TLS_KEY`, or leave both empty to serve plain HTTP behind a TLS-terminating proxy. |
+| `WERBOT_GATEWAY_WS_TLS_KEY` | `--ws-tls-key` | empty | PEM private key file for the WebSocket input; set together with `WERBOT_GATEWAY_WS_TLS_CERT`. |
+| `WERBOT_GATEWAY_TRUSTED_PROXIES` | `--trusted-proxies` | empty | Comma-separated CIDRs whose `X-Forwarded-For` the WebSocket input trusts for the client address; any other source is identified by its TCP address. It does not affect the SSH port. |
 
-The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR`; it connects out to the server tunnel. The flag `--insecure-enroll` has no variable.
+The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR` and `WERBOT_GATEWAY_WS_ADDR`; it connects out to the server tunnel. The flag `--insecure-enroll` has no variable. WebSocket input: see [gateway.md](gateway.md#websocket-input).
 
 ### Readiness, drain and limits
 

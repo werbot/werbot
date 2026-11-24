@@ -91,7 +91,7 @@ func TestConfigVarsMatchLoadConfig(t *testing.T) {
 	slices.Sort(asked)
 	asked = slices.Compact(asked)
 	want := ConfigVars()
-	require.Len(t, want, 12)
+	require.Len(t, want, 16)
 	slices.Sort(want)
 	require.Equal(t, want, asked)
 }

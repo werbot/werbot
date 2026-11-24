@@ -123,7 +123,7 @@ func Load(getenv func(string) string) (Config, error) {
 			return Config{}, err
 		}
 	}
-	if c.TrustedProxies, err = ParseTrustedProxies(getenv("WERBOT_TRUSTED_PROXIES")); err != nil {
+	if c.TrustedProxies, err = ParsePrefixes("WERBOT_TRUSTED_PROXIES", getenv("WERBOT_TRUSTED_PROXIES")); err != nil {
 		return Config{}, err
 	}
 	if c.SMTP, err = loadSMTP(getenv); err != nil {
@@ -184,8 +184,8 @@ func LoadLogging(getenv func(string) string) (level, format string, err error) {
 	return level, format, nil
 }
 
-// ParseTrustedProxies parses comma-separated CIDRs; empty input gives nil.
-func ParseTrustedProxies(s string) ([]netip.Prefix, error) {
+// ParsePrefixes parses comma-separated CIDRs; empty input gives nil. name is the variable the errors name.
+func ParsePrefixes(name, s string) ([]netip.Prefix, error) {
 	if s == "" {
 		return nil, nil
 	}
@@ -193,7 +193,7 @@ func ParseTrustedProxies(s string) ([]netip.Prefix, error) {
 	for part := range strings.SplitSeq(s, ",") {
 		p, err := netip.ParsePrefix(strings.TrimSpace(part))
 		if err != nil {
-			return nil, fmt.Errorf("WERBOT_TRUSTED_PROXIES: %w", err)
+			return nil, fmt.Errorf("%s: %w", name, err)
 		}
 		out = append(out, p)
 	}

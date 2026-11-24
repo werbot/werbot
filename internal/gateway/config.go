@@ -39,6 +39,11 @@ type Config struct {
 	// enrollment then sends the join token and the pool host key in cleartext).
 	InsecureEnroll bool
 
+	WSAddr         string         // empty: the WebSocket input is disabled
+	WSTLSCert      string         // PEM file path; set together with WSTLSKey
+	WSTLSKey       string         // PEM file path
+	TrustedProxies []netip.Prefix // may set X-Forwarded-For on the WebSocket input only
+
 	TunnelURL string // not from env: overrides the tunnel_url of enrollment (embedded gateway)
 	// DenyLocalTargets (not from env) makes Session.Dial refuse loopback, link-local
 	// and unspecified addresses: the embedded gateway runs inside the server process.
@@ -70,7 +75,7 @@ const DefaultSpoolMax int64 = 1 << 30
 
 // ConfigVars lists the WERBOT_GATEWAY_* variables in Config field order.
 func ConfigVars() []string {
-	return []string{envServer, envToken, envDataDir, envSSHAddr, envProxy, envName, envIdle, envHTTPAddr, envDrain, envMaxSess, envSpoolMax, envMaxDur}
+	return []string{envServer, envToken, envDataDir, envSSHAddr, envProxy, envName, envIdle, envHTTPAddr, envDrain, envMaxSess, envSpoolMax, envMaxDur, envWSAddr, envWSTLSCert, envWSTLSKey, envTrustedProxies}
 }
 
 func orDefault(s, def string) string {
@@ -128,6 +133,7 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	spoolMax := fs.String("spool-max", orDefault(env[envSpoolMax], strconv.FormatInt(DefaultSpoolMax, 10)), "recording spool size cap: bytes or KiB/MiB/GiB")
 	fs.DurationVar(&c.MaxDuration, "max-duration", c.MaxDuration, "session length limit when the resource sets none; 0 disables")
 	fs.BoolVar(&c.InsecureEnroll, "insecure-enroll", false, "allow an http:// server URL to a non-loopback host (trusted lab networks only)")
+	trusted := c.wsFlags(fs, env)
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) { // parse errors are returned, help is printed
 			fs.SetOutput(os.Stderr)
@@ -144,22 +150,30 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	if c.JoinToken == "" {
 		c.JoinToken = env[envToken]
 	}
+	if err := c.checkWS(*trusted); err != nil {
+		return c, err
+	}
+	return c, c.validate()
+}
+
+// validate checks the parsed settings.
+func (c *Config) validate() error {
 	if c.Name == "" {
-		return c, fmt.Errorf("%s is empty and the OS hostname is unavailable", envName)
+		return fmt.Errorf("%s is empty and the OS hostname is unavailable", envName)
 	}
 	if c.MaxSessions < 1 || c.MaxSessions > maxSessionIDs {
-		return c, fmt.Errorf("%s must be between 1 and %d", envMaxSess, maxSessionIDs)
+		return fmt.Errorf("%s must be between 1 and %d", envMaxSess, maxSessionIDs)
 	}
 	if c.DrainTimeout < 0 {
-		return c, fmt.Errorf("%s must be >= 0", envDrain)
+		return fmt.Errorf("%s must be >= 0", envDrain)
 	}
 	if c.IdleTimeout < 0 {
-		return c, fmt.Errorf("%s must be >= 0", envIdle)
+		return fmt.Errorf("%s must be >= 0", envIdle)
 	}
 	if c.MaxDuration < 0 {
-		return c, fmt.Errorf("%s must be >= 0", envMaxDur)
+		return fmt.Errorf("%s must be >= 0", envMaxDur)
 	}
-	return c, nil
+	return nil
 }
 
 // checkServerURL allows an https:// server URL, and http:// only to a loopback

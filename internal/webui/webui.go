@@ -51,7 +51,7 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	var err error
-	if c.TrustedProxies, err = config.ParseTrustedProxies(getenv("WERBOT_TRUSTED_PROXIES")); err != nil {
+	if c.TrustedProxies, err = config.ParsePrefixes("WERBOT_TRUSTED_PROXIES", getenv("WERBOT_TRUSTED_PROXIES")); err != nil {
 		return Config{}, err
 	}
 	if c.LogLevel, c.LogFormat, err = config.LoadLogging(getenv); err != nil {

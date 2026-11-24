@@ -23,8 +23,8 @@ func TestConfigurationDocListsEveryVariable(t *testing.T) {
 	slices.Sort(vars)
 	// WERBOT_TRUSTED_PROXIES, WERBOT_LOG_LEVEL, WERBOT_LOG_FORMAT and WERBOT_METRICS_ADDR are shared by server and web.
 	vars = slices.Compact(vars)
-	// 28 server + 12 gateway + 2 web-only + 4 client; when the count changes, update the docs and this number.
-	assert.Len(t, vars, 46)
+	// 28 server + 16 gateway + 2 web-only + 4 client; when the count changes, update the docs and this number.
+	assert.Len(t, vars, 50)
 	for _, k := range vars {
 		assert.Contains(t, doc, "`"+k+"`")
 	}
