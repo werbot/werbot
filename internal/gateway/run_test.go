@@ -97,7 +97,7 @@ func newServeEnv(t *testing.T, drain time.Duration, opts ...func(*fakeEnroll, *f
 		TunnelURL: tunnelURL, MaxSessions: 10, DrainTimeout: drain}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- serve(ctx, cfg, sshLn, httpLn, slog.New(slog.DiscardHandler)) }()
+	go func() { done <- serve(ctx, cfg, sshLn, httpLn, nil, slog.New(slog.DiscardHandler)) }()
 	e.cancel = cancel
 	e.wait = sync.OnceValue(func() error {
 		select {

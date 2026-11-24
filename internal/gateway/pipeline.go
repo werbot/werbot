@@ -54,6 +54,7 @@ type OpenRequest struct {
 	Handshake *Handshake
 	ToolCall  uuid.UUID // an agent's tool call (sshca.EnvToolCall); uuid.Nil: none
 	MFA       MFAStep
+	Transport string // "tcp" | "ws" | "internal" (the web terminal); "": tcp
 }
 
 // control is the control plane of the pipeline; *tunnelClient implements it.

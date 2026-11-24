@@ -14,20 +14,23 @@ import (
 )
 
 // startArgs is what StartSession records besides the access request: the
-// front of the session and, for an agent's, its run and the tool call it
-// serves (zero for a person's session).
+// front and transport of the session and, for an agent's, its run and the
+// tool call it serves (zero for a person's session).
 type startArgs struct {
 	Front           string
+	Transport       string // "tcp" | "ws" | "internal"
 	RunID, ToolCall uuid.UUID
 }
 
-// startOf is the start of u's session for r: the front of r and, for an
-// agent, the run of u's agent and the tool call of r; a person's tool call is ignored.
+// startOf is the start of u's session for r: the front and transport of r
+// (none is tcp) and, for an agent, the run of u's agent and the tool call
+// of r; a person's tool call is ignored.
 func startOf(u User, r OpenRequest) startArgs {
-	if u.Agent == nil {
-		return startArgs{Front: r.Front}
+	a := startArgs{Front: r.Front, Transport: cmp.Or(r.Transport, "tcp")}
+	if u.Agent != nil {
+		a.RunID, a.ToolCall = u.Agent.RunID, r.ToolCall
 	}
-	return startArgs{Front: r.Front, RunID: u.Agent.RunID, ToolCall: r.ToolCall}
+	return a
 }
 
 // toolCallOf is the tool call of an SSH session environment (sshca.EnvToolCall);

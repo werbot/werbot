@@ -10,6 +10,7 @@ import (
 	"net/netip"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -23,13 +24,18 @@ import (
 )
 
 // sshFront is the SSH entry: public key login, the resource menu, shell, exec,
-// direct-tcpip, datagram@werbot.com and resource@werbot.com.
+// direct-tcpip, datagram@werbot.com and resource@werbot.com. One sshFront
+// serves one pipeline, on any number of listeners.
 type sshFront struct {
 	cfg              Config
 	hostKey          gossh.Signer
 	log              *slog.Logger
 	handshakeTimeout time.Duration // closes a connection that has not authenticated by then
 	keepalive        time.Duration // keepalive@openssh.com period while a session waits to open
+
+	once   sync.Once
+	srv    *ssh.Server   // shared by every listener; built by the first Serve
+	closed chan struct{} // closed once srv is closed, after the pipeline stopped
 }
 
 var _ Front = (*sshFront)(nil)
@@ -40,9 +46,41 @@ func newSSHFront(cfg Config, hostKey gossh.Signer, logger *slog.Logger) *sshFron
 
 func (*sshFront) Name() string { return "ssh" }
 
-// Serve accepts SSH connections on ln until ctx ends, then closes ln. Open
+// Serve accepts SSH connections on ln until ctx ends, then closes ln. It may run
+// on several listeners at once: they share one server. A failed listener closes
+// only itself and its error returns at once; the others keep serving. Open
 // connections keep running while the pipeline drains and are closed once it stops.
 func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) error {
+	srv := f.server(p)
+	served := make(chan error, 1)
+	go func() { served <- srv.Serve(ln) }()
+	select {
+	case err := <-served: // srv.Serve closed ln
+		if !errors.Is(err, ssh.ErrServerClosed) { // closed: the pipeline stopped
+			return fmt.Errorf("ssh front: %w", err)
+		}
+	case <-ctx.Done():
+		_ = ln.Close()
+		<-served
+	}
+	<-f.closed
+	return nil
+}
+
+// server is the server of f for p, built on first use. It closes once p
+// stops, with the connections left in the menu or without a session.
+func (f *sshFront) server(p *Pipeline) *ssh.Server {
+	f.once.Do(func() {
+		f.srv, f.closed = f.newServer(p), make(chan struct{})
+		context.AfterFunc(p.stop, func() {
+			_ = f.srv.Close()
+			close(f.closed)
+		})
+	})
+	return f.srv
+}
+
+func (f *sshFront) newServer(p *Pipeline) *ssh.Server {
 	h := &sshHandler{p: p, log: f.log, keepalive: f.keepalive}
 	srv := &ssh.Server{
 		Version:          "Werbot_" + strings.ReplaceAll(version.Version, "-", "_"),
@@ -53,6 +91,7 @@ func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) erro
 		},
 		RequestHandlers: map[string]ssh.RequestHandler{sshdgram.ResourceRequest: h.resourceInfo},
 		ConnCallback: func(ctx ssh.Context, conn net.Conn) net.Conn {
+			ctx.SetValue(transportKey{}, transportOf(conn))
 			idle := newConnIdle(conn, f.cfg.IdleTimeout)
 			ctx.SetValue(connIdleKey{}, idle)
 			return newHandshakeConn(ctx, conn, f.handshakeTimeout, func() { idle.stop(); h.authFailed(ctx) })
@@ -60,19 +99,7 @@ func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) erro
 		ServerConfigCallback: h.verified,
 	}
 	srv.AddHostKey(f.hostKey)
-	served := make(chan error, 1)
-	go func() { served <- srv.Serve(ln) }()
-	select {
-	case err := <-served: // the listener failed
-		_ = srv.Close()
-		return fmt.Errorf("ssh front: %w", err)
-	case <-ctx.Done():
-	}
-	_ = ln.Close()
-	<-served
-	<-p.stop.Done()
-	_ = srv.Close() // connections left in the menu or without a session
-	return nil
+	return srv
 }
 
 // wrapListener makes ln require a PROXY protocol header on every connection when proxyProtocol is set.
@@ -237,6 +264,7 @@ func (h *sshHandler) request(ctx ssh.Context, resource string, kind Kind, w Wind
 	if a, _ := ctx.Value(userKey{}).(*authed); a != nil && a.id.Value == fp {
 		r.Identity, r.Handshake = a.id, &Handshake{User: a.u, At: a.at}
 	}
+	r.Transport, _ = ctx.Value(transportKey{}).(string)
 	r.MFA.Method, _ = ctx.Value(mfaMethodKey{}).(string)
 	sid, _ := ctx.Value(ssh.ContextKeySessionID).(string) // hex, set with the connection metadata
 	r.MFA.Session, _ = hex.DecodeString(sid)

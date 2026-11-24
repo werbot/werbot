@@ -120,7 +120,7 @@ func (f *webFront) open(ctx context.Context, p *Pipeline, ticket uuid.UUID) {
 	}
 	switch wt.Mode {
 	case "web":
-		serveTerminal(ctx, p, st, OpenRequest{Front: "web", Kind: KindTerminal,
+		serveTerminal(ctx, p, st, OpenRequest{Front: "web", Transport: "internal", Kind: KindTerminal,
 			Identity: Identity{Method: "web-ticket", Value: ticket.String()}, Handshake: &Handshake{User: u, At: at},
 			Resource: wt.Resource, ClientIP: wt.ClientIP, Window: wt.Window})
 	case "observe":

@@ -150,7 +150,7 @@ func TestStartSessionSendsFront(t *testing.T) {
 
 	e := newPipeEnv(t, 10)
 	s := e.open(t, "fake", KindTerminal)
-	assert.Equal(t, startArgs{Front: "ssh"}, sessionAgent(s.ID), "the SSH front starts ssh sessions")
+	assert.Equal(t, startArgs{Front: "ssh", Transport: "tcp"}, sessionAgent(s.ID), "the SSH front starts ssh sessions")
 }
 
 func TestAuthenticateWebTicket(t *testing.T) {

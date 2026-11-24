@@ -18,7 +18,7 @@ import (
 
 // Serve runs the gateway with the SSH front on ln and no HTTP endpoint.
 func Serve(ctx context.Context, cfg Config, ln net.Listener, logger *slog.Logger) error {
-	return serve(ctx, cfg, ln, nil, logger)
+	return serve(ctx, cfg, ln, nil, nil, logger)
 }
 
 // Run listens on cfg.SSHAddr and, when set, cfg.HTTPAddr, then serves until ctx ends.
@@ -34,21 +34,19 @@ func Run(ctx context.Context, cfg Config, logger *slog.Logger) error {
 			return fmt.Errorf("gateway http listen: %w", err)
 		}
 	}
-	return serve(ctx, cfg, sshLn, httpLn, logger)
+	return serve(ctx, cfg, sshLn, httpLn, nil, logger)
 }
 
 // serve enrolls (or loads the identity), keeps the tunnel and serves SSH on sshLn
-// and /readyz, /metrics on httpLn (nil: off) until ctx ends or the tunnel stops for
-// good (expired certificate). Session ends and recordings go through the spool in
+// and wsLn (nil: off; never behind the PROXY protocol), /readyz, /metrics on httpLn
+// (nil: off) until ctx ends, a listener fails or the tunnel stops for good
+// (expired certificate). Session ends and recordings go through the spool in
 // DataDir/spool. On stop it drains: new sessions are refused at once, running ones
 // get cfg.DrainTimeout, and the spool gets up to 10s to deliver their ends; what is
 // left stays on disk for the next start. The tunnel error, if any, is returned after
 // the drain.
-func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *slog.Logger) error {
-	defer sshLn.Close() //nolint:errcheck // closed twice on the normal path
-	if httpLn != nil {
-		defer httpLn.Close() //nolint:errcheck // closed twice on the normal path
-	}
+func serve(ctx context.Context, cfg Config, sshLn, httpLn, wsLn net.Listener, logger *slog.Logger) error {
+	defer closeAll(sshLn, httpLn, wsLn) // closed twice on the normal path
 	if cfg.Metrics == nil {
 		cfg.Metrics = metrics.NewRegistry() // shared by the pipeline and the tunnel
 	}
@@ -118,11 +116,11 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	// the front stops only after /readyz turned 503, so balancers see it first
 	frontCtx, stopFront := context.WithCancel(context.WithoutCancel(ctx))
 	defer stopFront()
-	frontDone, drained := make(chan struct{}), make(chan struct{})
+	drained := make(chan struct{})
 	go func() {
 		select {
 		case <-ctx.Done():
-		case <-frontDone: // a failed front drains too
+		case <-p.active.drained: // a failed listener drains too (serveFronts)
 		case <-tunnelDone: // so does a tunnel that cannot reconnect
 		}
 		p.active.startDrain()
@@ -131,8 +129,7 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 		close(drained)
 	}()
 	logger.Info("gateway: serving", "ssh_addr", sshLn.Addr().String(), "instance_id", st.InstanceID)
-	err = newSSHFront(cfg, hostKey, logger).Serve(frontCtx, wrapListener(sshLn, cfg.ProxyProtocol), p)
-	close(frontDone)
+	err = serveFronts(frontCtx, newSSHFront(cfg, hostKey, logger), p, wrapListener(sshLn, cfg.ProxyProtocol), wsLn)
 	<-drained
 	stopSweep()
 	<-sweepDone
@@ -156,6 +153,37 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 		_ = hs.Close()
 	}
 	return errors.Join(err, tunnelErr)
+}
+
+// serveFronts serves front on every non-nil listener of lns until ctx ends. The
+// first listener to fail starts the drain (which ends ctx in serve); serveFronts
+// waits for every listener and returns their errors.
+func serveFronts(ctx context.Context, front Front, p *Pipeline, lns ...net.Listener) error {
+	errs := make(chan error, len(lns))
+	n := 0
+	for _, ln := range lns {
+		if ln != nil {
+			n++
+			go func() { errs <- front.Serve(ctx, ln, p) }()
+		}
+	}
+	var failed []error
+	for range n {
+		if err := <-errs; err != nil {
+			p.active.startDrain()
+			failed = append(failed, err)
+		}
+	}
+	return errors.Join(failed...)
+}
+
+// closeAll closes every non-nil listener of lns.
+func closeAll(lns ...net.Listener) {
+	for _, ln := range lns {
+		if ln != nil {
+			_ = ln.Close()
+		}
+	}
 }
 
 // waitEnds waits up to d for the spool to deliver every pending session end.

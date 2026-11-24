@@ -24,7 +24,7 @@ func TestWebFrontOpensTerminalSession(t *testing.T) {
 		st := w.stream(t, ticket)
 		synctest.Wait()
 		id := w.session(t)
-		assert.Equal(t, startArgs{Front: "web"}, sessionAgent(id), "StartSession gets the web front")
+		assert.Equal(t, startArgs{Front: "web", Transport: "internal"}, sessionAgent(id), "StartSession gets the web front")
 		assert.Equal(t, browserIP, w.trackedReq(id).IP, "the PDP decides on the browser IP")
 		assert.Contains(t, w.lastStart(), browserIP.String())
 		w.f.with(func(f *fakeControl) {
@@ -103,7 +103,7 @@ forbid (principal, action in [Werbot::Action::"consoley.shell"], resource);`
 		synctest.Wait()
 		id := w.session(t)
 		assert.True(t, w.trackedReq(id).Console)
-		assert.Equal(t, startArgs{Front: "web"}, sessionAgent(id))
+		assert.Equal(t, startArgs{Front: "web", Transport: "internal"}, sessionAgent(id))
 		assert.Equal(t, "console\n", st.output(), "ServeConsole runs, Serve does not")
 		st.in <- browserClosed
 		assert.Equal(t, "closed", st.closedWith(t))
