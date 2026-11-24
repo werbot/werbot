@@ -1,6 +1,6 @@
 //go:build load
 
-// Package load holds the manual load tests L1–L4 (10 §8.3, budgets §10.1) on
+// Package load holds the manual load tests L1–L5 (10 §8.3, budgets §10.1) on
 // the cluster stand of test/cluster. Run them with `make load` on Linux: RSS
 // and listeners come from /proc. With -short only the helper tests run, on any OS.
 package load
@@ -34,6 +34,12 @@ var (
 	idle     = flag.Duration("load.idle", 5*time.Minute, "L4 hold time")
 	tcpConns = flag.Int("load.tcp", 500, "L1 mix: TCP connections through werbot connect (stage 6b)")
 	udpBinds = flag.Int("load.udp", 100, "L1 mix: UDP bindings through werbot connect (stage 6b)")
+
+	agentRuns = flag.Int("load.agent-runs", 20, "L5: agent runs (werbot mcp processes), one agent each")
+	agentRate = flag.Int("load.agent-rate", 1000, "L5: ssh_exec calls per minute in total")
+	agentFor  = flag.Duration("load.agent-duration", 10*time.Minute, "L5: agent exec load length (at most 1h)")
+	relays    = flag.Int("load.relays", 500, "L5: web terminals relayed from server2 through server1")
+	relayHold = flag.Duration("load.relay-hold", 2*time.Minute, "L5: hold time of the relayed terminals")
 )
 
 // st is the stand of this process; nil with -short. `make load` runs one load test per process.
@@ -50,7 +56,8 @@ func TestMain(m *testing.M) {
 	}
 	// a client and a gateway->target connection per session on this host, both ends counted;
 	// the L1 mix adds a client and an echo end per TCP connection and a socket per UDP binding
-	need := 4*max(*sessions, 0) + 2*max(*tcpConns, 0) + max(*udpBinds, 0) + 1024
+	// L5: a browser and a target connection per relayed terminal
+	need := 4*max(*sessions, 0) + 2*max(*tcpConns, 0) + max(*udpBinds, 0) + 2*max(*relays, 0) + 1024
 	var lim syscall.Rlimit
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim); err != nil || lim.Cur < uint64(need) {
 		fmt.Fprintf(os.Stderr, "open files limit %d is below %d: raise it with ulimit -n 65536 (%v)\n", lim.Cur, need, err)

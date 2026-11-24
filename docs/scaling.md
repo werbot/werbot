@@ -91,6 +91,7 @@ A pool is a name in the UI and the `gateway_id` of a resource; its processes are
 - `GOMEMLIMIT` = 90% of the container memory limit (a 1 GiB limit gives `GOMEMLIMIT=920MiB`).
 - Open files: `ulimit -n` at least 4 × `WERBOT_GATEWAY_MAX_SESSIONS` (default 10000, so 40000) plus 32 × the expected UDP sessions (up to 32 sockets per UDP session). Go raises the soft limit to the hard limit, so the hard limit matters: compose `ulimits: { nofile: 65536 }`, systemd `LimitNOFILE=65536`.
 - Budgets checked by the load test: gateway instance RSS ≤ 200 MB + 256 KB × active sessions; server replica RSS ≤ 300 MB + 64 KB × tunnel streams; PostgreSQL connections per replica ≤ `pool_max_conns` + 2.
+- Known limit: the exec decision of a command (classifier, path rules, policy) costs time in proportion to the bindings. The p99 stays under 5 ms at 1 000 bindings (tested on every run of the gateway tests). At 10 000 bindings and 200 command rules it measures 8–11 ms p99 and 3–4 ms p50 (person and agent, development machine). Splitting the policies per resource is planned for phase 3; until then keep an organization under about 1 000 bindings if every command must decide in 5 ms.
 - The stand, method and results are in [test/load/README.md](../test/load/README.md) (Linux only, manual).
 
 ## Metrics

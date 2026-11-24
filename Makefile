@@ -75,7 +75,7 @@ redteam-go:
 
 redteam: redteam-go
 
-LOAD_TESTS ?= L1 L2 L3 L4
+LOAD_TESTS ?= L1 L2 L3 L4 L5
 
 # manual load tests (test/load), Linux only: RSS and listeners come from /proc.
 # Each load test runs on a fresh stand, removed after it; the next one does not

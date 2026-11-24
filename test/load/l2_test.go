@@ -64,7 +64,7 @@ func TestL2(t *testing.T) {
 	assert.EqualValues(t, n, st.TokenUses(t, poolID, tok.Msg.GetId()), "join token uses")
 
 	sctx, stop := context.WithCancel(ctx)
-	samples := sampleEvery(sctx, t, st, sampleInterval)
+	samples := sampleEvery(sctx, t, st)
 	rctx, cancel := context.WithCancel(ctx)
 	var running sync.WaitGroup
 	defer running.Wait()

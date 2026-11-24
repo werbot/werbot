@@ -18,7 +18,7 @@ import (
 // meet the budget (a real slowdown fails every round). The race detector slows
 // it many times, so the test runs only without it.
 func TestExecDecisionP99(t *testing.T) {
-	p, human, agent := execBench(t)
+	p, human, agent := execBench(t, scaleBudget)
 	for _, r := range []AccessRequest{human, agent} {
 		for _, command := range []string{benchCommand, worstCommand} {
 			r.Command = command
@@ -27,22 +27,49 @@ func TestExecDecisionP99(t *testing.T) {
 	}
 }
 
-func requireP99(t *testing.T, p *Policy, r AccessRequest) {
-	t.Helper()
+// TestExecDecisionAtL2Scale measures the same decision at the L2 scale of the
+// load test (10 000 bindings, 200 command rules, 100 agents; O1). The p99
+// budget holds at 1 000 bindings only: the cost grows with the bindings, and
+// splitting the policies per resource is phase 3. The test logs and never
+// fails on latency; it fails only when the decision is not the measured one.
+func TestExecDecisionAtL2Scale(t *testing.T) {
+	p, human, agent := execBench(t, scaleL2)
+	for who, r := range map[string]AccessRequest{"human": human, "agent": agent} {
+		for name, command := range map[string]string{"bench": benchCommand, "worst": worstCommand} {
+			r.Command = command
+			require.Equal(t, []string{ObligationApproval}, decideExec(p, r).Obligations, "%s/%s", who, name)
+			warmUp(p, r)
+			p50, p99 := latencyRound(p, r)
+			t.Logf("L2 scale %s/%s: p50 %v, p99 %v (budget at 1 000 bindings: 5ms)", who, name, p50, p99)
+		}
+	}
+}
+
+func warmUp(p *Policy, r AccessRequest) {
 	for range 100 {
 		decideExec(p, r)
 	}
+}
+
+// latencyRound times 2 000 decisions of r and returns their p50 and p99.
+func latencyRound(p *Policy, r AccessRequest) (p50, p99 time.Duration) {
+	runs := make([]time.Duration, 2000)
+	for i := range runs {
+		start := time.Now()
+		decideExec(p, r)
+		runs[i] = time.Since(start)
+	}
+	slices.Sort(runs)
+	return runs[len(runs)/2], runs[len(runs)*99/100]
+}
+
+func requireP99(t *testing.T, p *Policy, r AccessRequest) {
+	t.Helper()
+	warmUp(p, r)
 	best := time.Duration(1<<63 - 1)
 	for range 3 {
-		runs := make([]time.Duration, 2000)
-		for i := range runs {
-			start := time.Now()
-			decideExec(p, r)
-			runs[i] = time.Since(start)
-		}
-		slices.Sort(runs)
-		p99 := runs[len(runs)*99/100]
-		t.Logf("exec decision p50 %v, p99 %v", runs[len(runs)/2], p99)
+		p50, p99 := latencyRound(p, r)
+		t.Logf("exec decision p50 %v, p99 %v", p50, p99)
 		best = min(best, p99)
 	}
 	require.LessOrEqual(t, best, 5*time.Millisecond)

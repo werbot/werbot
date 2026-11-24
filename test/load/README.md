@@ -1,13 +1,13 @@
 # Load tests
 
-Manual, not part of CI. Criteria: design doc 10 §8.3 (L1–L4) and §10.1 (budgets).
+Manual, not part of CI. Criteria: design doc 10 §8.3 (L1–L5) and §10.1 (budgets).
 
 ## Run
 
 Linux host, Docker with Compose v2, Go 1.27.4, `ulimit -n 65536`.
-`make load` runs L1–L4, each on a fresh stand (`test/cluster/docker-compose.yaml`), removed after the test.
+`make load` runs L1–L5, each on a fresh stand (`test/cluster/docker-compose.yaml`), removed after the test.
 One test: `make load LOAD_TESTS=L2`. Smaller run: `LOAD_ARGS='-load.sessions=100 -load.duration=1m'`.
-Flags (defaults are the design-doc profile): `-load.sessions=5000`, `-load.rate=100` (new SSH sessions per second), `-load.duration=10m` (L1/L3), `-load.idle=5m` (L4 hold), `-load.tcp=500`, `-load.udp=100` (L1 mix), `-load.instances=200`, `-load.resources=10000` (L2).
+Flags (defaults are the design-doc profile): `-load.sessions=5000`, `-load.rate=100` (new SSH sessions per second), `-load.duration=10m` (L1/L3), `-load.idle=5m` (L4 hold), `-load.tcp=500`, `-load.udp=100` (L1 mix), `-load.instances=200`, `-load.resources=10000` (L2), `-load.agent-runs=20`, `-load.agent-rate=1000` (ssh_exec calls per minute in total), `-load.agent-duration=10m` (at most 1h), `-load.relays=500`, `-load.relay-hold=2m` (L5).
 The SSH target and the echo targets run in the test process and listen on the Docker bridge address, so allow traffic from the Docker networks to the host. The harness dials nginx on its bridge IP (`10.231.0.10`), not the docker-proxy port.
 Every criterion prints a `RESULT | <load> | <metric> | <criterion> | <result> | PASS/FAIL` line.
 
@@ -15,12 +15,35 @@ Every criterion prints a `RESULT | <load> | <metric> | <criterion> | <result> | 
 
 - RSS: `VmRSS` from `/proc/<pid>/status`, pid from `docker inspect -f '{{.State.Pid}}'`, every 5 s.
   `docker stats` is not used: cgroup memory includes page cache (gateway spool files).
-- Budgets use decimal units: gateway 200 MB + 256 kB × active sessions; server 300 MB + 64 kB × tunnel streams.
-  Each sample uses the counters from the same moment (`werbot_gateway_sessions_active`, `werbot_tunnel_streams`).
+- Budgets use decimal units: gateway 200 MB + 256 kB × active sessions; server 300 MB + 64 kB × (tunnel streams + relay streams).
+  Each sample uses the counters from the same moment (`werbot_gateway_sessions_active`, `werbot_tunnel_streams`, `werbot_relay_streams`).
   The result row shows the sample with the highest RSS and its budget; PASS needs no sample over its own budget.
 - Connect latency: from the start of the TCP dial to the `ready` line printed by the target shell. SSH sessions only (the L1 mix is not counted). p99 is nearest-rank.
 - L2 latency: from just before the binding change request to the first snapshot with a version other than the previous one on each instance. Every instance must receive it within 30 s.
 - Postgres connections: `pg_stat_activity` grouped by replica address, ≤ `pool_max_conns` (20) + 2 = 22. Postgres runs with `log_min_duration_statement=250`; the "slow statements" rows are references.
+
+## L5: agents and relays
+
+`make load LOAD_TESTS=L5`. One stand, two subtests.
+
+- `AgentExec`: `-load.agent-runs` `werbot mcp` processes (agents `load-<i>`, limits `max_actions 1000`, `max_duration 1h`, `max_concurrent 32`) send `-load.agent-rate` `ssh_exec` calls (`echo load`, a read) a minute in total for `-load.agent-duration` through the pool front. One run takes at most 1 000 tool calls (`MaxToolCallsPerRun`, `list_resources` included): the test stops before the start when rate ÷ runs × minutes + 1 is over 1 000. Criteria: 0 failed calls, every call answered, one `session` row per call (`agent_run_id`), RSS of gateways and replicas within budget in every sample.
+- `Relays`: `gw2` is stopped (the stand is restored after the test), `-load.relays` web terminals of server2 reach the host load target through gw1, so each is a browser stream on server2 and a bridge on server1; each writes one line every 5 s for `-load.relay-hold`. Criteria: `werbot_relay_streams` equals the terminal count on server2 and on server1, no terminal breaks, `werbot_relay_rejected_total{reason="limit"}` is 0, RSS within budget (tunnel + relay streams). `relay.MaxStreams` is 1 000 a replica, so 500 fit.
+- Not run on a stand yet: it needs a Linux host (the default profile is not run on the development machine). Smaller run: `LOAD_ARGS='-load.agent-rate=200 -load.agent-duration=1m -load.relays=50'`.
+
+### Exec decision at 10 000 bindings (known limit)
+
+The classifier and policy decision of an `ssh_exec` (analysis, path rules, `Decide`) has no stand test. `TestExecDecisionP99` (`internal/gateway`, run alone) holds p99 ≤ 5 ms at the budget snapshot: 1 000 resources and bindings, 100 command rules, 100 path rules of 4 globs, 10 custom policies. `TestExecDecisionAtL2Scale` measures the L2 scale (10 000 resources and bindings, 200 command rules, half with an approval, 100 path rules of 4 globs, 5 custom policies, 50 grants, 10 locks, 100 agents) and only logs: it never fails on latency.
+
+The cost grows with the number of bindings, so at 10 000 bindings the 5 ms p99 budget does not hold. Development machine (macOS, 12 cores, other load running), 2 000 runs after 100 warm-up runs:
+
+| Request | p50 at 1 000 bindings | p99 at 1 000 bindings | p50 at 10 000 bindings | p99 at 10 000 bindings |
+|---|---|---|---|---|
+| person, `benchCommand` | 0.43 ms | 0.8–1.4 ms | 3.0–3.7 ms | 8.5–8.9 ms |
+| person, 100-path command | 0.69 ms | 1.1–1.2 ms | 3.5–4.3 ms | 8.7–9.5 ms |
+| agent (two passes), `benchCommand` | 0.58 ms | 1.0–1.1 ms | 3.7–4.3 ms | 8.8–10.4 ms |
+| agent (two passes), 100-path command | 0.91 ms | 1.4 ms | 4.2 ms | 10.1–11.4 ms |
+
+Owner decision O1: the gate stays at 1 000 bindings. Splitting the policies per resource is phase 3. [docs/scaling.md](../../docs/scaling.md#resources) lists it as a known limit.
 
 ## Stand
 
