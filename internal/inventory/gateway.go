@@ -59,6 +59,7 @@ type Gateway struct {
 	Instances  []Instance // by created_at
 	SSHAddress string     // host:port clients dial; "" until set
 	HostKey    string     // authorized_keys line of the pool host key
+	WSURL      string     // ws:// or wss:// URL clients dial; "" until set
 }
 
 // Instance is one gateway process of a pool.

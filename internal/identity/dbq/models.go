@@ -210,6 +210,7 @@ type Gateway struct {
 	HostKeyKeyID      string
 	CreatedAt         time.Time
 	SshAddress        string
+	WsUrl             string
 }
 
 type GatewayInstance struct {
@@ -542,6 +543,7 @@ type Session struct {
 	Front                string
 	TerminateRequestedAt *time.Time
 	TerminateReason      *string
+	Transport            string
 }
 
 type SigningKey struct {

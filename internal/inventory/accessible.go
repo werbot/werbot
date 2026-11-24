@@ -78,7 +78,7 @@ func (h *Handler) ListAccessibleResources(ctx context.Context, _ *connect.Reques
 			}
 		}
 		if r.GatewayID != nil {
-			out.SshAddress, out.HostKey = pools[*r.GatewayID].SSHAddress, pools[*r.GatewayID].HostKey
+			out.SshAddress, out.WsUrl, out.HostKey = pools[*r.GatewayID].SSHAddress, pools[*r.GatewayID].WSURL, pools[*r.GatewayID].HostKey
 		}
 		res.Resources = append(res.Resources, out)
 	}

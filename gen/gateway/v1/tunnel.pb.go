@@ -1450,9 +1450,11 @@ type StartSessionRequest struct {
 	// the paths the authorized command touches
 	Paths []string `protobuf:"bytes,15,rep,name=paths,proto3" json:"paths,omitempty"`
 	// an agent's session: its run counts the action; a tool call of another run is not stored
-	AgentRunId    string `protobuf:"bytes,8,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
-	ToolCallId    string `protobuf:"bytes,9,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
-	Front         string `protobuf:"bytes,10,opt,name=front,proto3" json:"front,omitempty"`
+	AgentRunId string `protobuf:"bytes,8,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
+	ToolCallId string `protobuf:"bytes,9,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
+	Front      string `protobuf:"bytes,10,opt,name=front,proto3" json:"front,omitempty"`
+	// client transport; empty is tcp
+	Transport     string `protobuf:"bytes,11,opt,name=transport,proto3" json:"transport,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1560,6 +1562,13 @@ func (x *StartSessionRequest) GetToolCallId() string {
 func (x *StartSessionRequest) GetFront() string {
 	if x != nil {
 		return x.Front
+	}
+	return ""
+}
+
+func (x *StartSessionRequest) GetTransport() string {
+	if x != nil {
+		return x.Transport
 	}
 	return ""
 }
@@ -2583,7 +2592,7 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\x03web\x18\x06 \x01(\v2\x15.gateway.v1.WebTicketR\x03web\x12&\n" +
 	"\x0fmfa_age_seconds\x18\a \x01(\x03R\rmfaAgeSeconds\x12\x1d\n" +
 	"\n" +
-	"mfa_method\x18\b \x01(\tR\tmfaMethod\"\xa5\x04\n" +
+	"mfa_method\x18\b \x01(\tR\tmfaMethod\"\xe0\x04\n" +
 	"\x13StartSessionRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12)\n" +
 	"\vresource_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
@@ -2601,7 +2610,8 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"toolCallId\x12(\n" +
 	"\x05front\x18\n" +
 	" \x01(\tB\x12\xbaH\x0f\xd8\x01\x01r\n" +
-	"R\x03sshR\x03webR\x05front\"m\n" +
+	"R\x03sshR\x03webR\x05front\x129\n" +
+	"\ttransport\x18\v \x01(\tB\x1b\xbaH\x18\xd8\x01\x01r\x13R\x03tcpR\x02wsR\binternalR\ttransport\"m\n" +
 	"\x14StartSessionResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x126\n" +

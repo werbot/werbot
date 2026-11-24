@@ -139,7 +139,7 @@ func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gateway
 // sessionStartOf is the session m asks g to record; an invalid id or IP is InvalidArgument.
 func sessionStartOf(g Gateway, m *gatewayv1.StartSessionRequest) (s SessionStart, err error) {
 	s = SessionStart{OrgID: g.OrgID, GatewayID: g.ID, InstanceID: g.InstanceID, Kind: m.GetKind(), Target: m.GetTarget(),
-		Front: m.GetFront(), Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths()}
+		Front: m.GetFront(), Transport: m.GetTransport(), Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths()}
 	if s.UserID, err = parseID(m.GetUserId(), "user_id"); err != nil {
 		return s, err
 	}

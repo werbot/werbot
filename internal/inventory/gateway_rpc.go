@@ -35,7 +35,7 @@ func tsPtr(t *time.Time) *timestamppb.Timestamp {
 
 func gatewayToProto(g Gateway) *werbotv1.Gateway {
 	out := &werbotv1.Gateway{Id: g.ID.String(), Name: g.Name, Online: g.Online, Connectors: g.Connectors,
-		CreatedAt: timestamppb.New(g.CreatedAt), SshAddress: g.SSHAddress, HostKey: g.HostKey, Instances: make([]*werbotv1.GatewayInstance, len(g.Instances))}
+		CreatedAt: timestamppb.New(g.CreatedAt), SshAddress: g.SSHAddress, WsUrl: g.WSURL, HostKey: g.HostKey, Instances: make([]*werbotv1.GatewayInstance, len(g.Instances))}
 	for i, in := range g.Instances {
 		pi := &werbotv1.GatewayInstance{Id: in.ID.String(), Hostname: in.Hostname, Version: in.Version, Connectors: in.Connectors,
 			Online: in.Online, LastSeenAt: tsPtr(in.LastSeenAt), CertExpiresAt: timestamppb.New(in.CertExpiresAt),
@@ -79,13 +79,13 @@ func (h *GatewayRPC) ListGateways(ctx context.Context, _ *connect.Request[werbot
 	return connect.NewResponse(res), nil
 }
 
-// UpdateGateway sets the address clients dial for a pool.
+// UpdateGateway sets both addresses clients dial for a pool.
 func (h *GatewayRPC) UpdateGateway(ctx context.Context, req *connect.Request[werbotv1.UpdateGatewayRequest]) (*connect.Response[werbotv1.UpdateGatewayResponse], error) {
 	id, err := parseID(req.Msg.GetId())
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	g, err := h.g.Update(ctx, id, req.Msg.GetSshAddress())
+	g, err := h.g.Update(ctx, id, req.Msg.GetSshAddress(), req.Msg.GetWsUrl())
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}

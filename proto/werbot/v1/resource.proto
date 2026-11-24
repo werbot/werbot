@@ -79,6 +79,7 @@ message AccessibleResource {
   repeated string kinds = 4;
   map<string, string> labels = 5;
   string ssh_address = 6; // empty without a pool or before the address is set
+  string ws_url = 7;      // empty without a pool or before the URL is set
   string host_key = 8;    // authorized_keys line of the pool host key
   bool requestable = 9;   // an approval policy lets the caller request access
   bool allowed = 10;      // the caller may connect now

@@ -31,7 +31,7 @@ type Store interface {
 	GetGatewayIDByName(ctx context.Context, arg dbq.GetGatewayIDByNameParams) (uuid.UUID, error)
 	AssignUnpooledResources(ctx context.Context, arg dbq.AssignUnpooledResourcesParams) (int64, error)
 	ListGateways(ctx context.Context, orgID uuid.UUID) ([]dbq.ListGatewaysRow, error)
-	UpdateGatewayAddress(ctx context.Context, arg dbq.UpdateGatewayAddressParams) (int64, error)
+	UpdateGatewayAddresses(ctx context.Context, arg dbq.UpdateGatewayAddressesParams) (int64, error)
 	DeleteGateway(ctx context.Context, arg dbq.DeleteGatewayParams) (int64, error)
 	GetGatewayHostKey(ctx context.Context, arg dbq.GetGatewayHostKeyParams) (dbq.GetGatewayHostKeyRow, error)
 

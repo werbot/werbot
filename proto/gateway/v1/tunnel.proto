@@ -236,6 +236,8 @@ message StartSessionRequest {
   string agent_run_id = 8 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   string tool_call_id = 9 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   string front = 10 [(buf.validate.field).string = {in: ["ssh", "web"]}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  // client transport; empty is tcp
+  string transport = 11 [(buf.validate.field).string = {in: ["tcp", "ws", "internal"]}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
 }
 
 message StartSessionResponse {

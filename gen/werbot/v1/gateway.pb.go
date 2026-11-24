@@ -34,6 +34,7 @@ type Gateway struct {
 	Instances     []*GatewayInstance     `protobuf:"bytes,6,rep,name=instances,proto3" json:"instances,omitempty"`
 	SshAddress    string                 `protobuf:"bytes,7,opt,name=ssh_address,json=sshAddress,proto3" json:"ssh_address,omitempty"` // host:port clients dial; empty until set
 	HostKey       string                 `protobuf:"bytes,8,opt,name=host_key,json=hostKey,proto3" json:"host_key,omitempty"`          // pool host key in authorized_keys format
+	WsUrl         string                 `protobuf:"bytes,9,opt,name=ws_url,json=wsUrl,proto3" json:"ws_url,omitempty"`                // WebSocket endpoint clients dial; empty until set
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -120,6 +121,13 @@ func (x *Gateway) GetSshAddress() string {
 func (x *Gateway) GetHostKey() string {
 	if x != nil {
 		return x.HostKey
+	}
+	return ""
+}
+
+func (x *Gateway) GetWsUrl() string {
+	if x != nil {
+		return x.WsUrl
 	}
 	return ""
 }
@@ -496,7 +504,9 @@ type UpdateGatewayRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// "" resets; otherwise host:port.
-	SshAddress    string `protobuf:"bytes,2,opt,name=ssh_address,json=sshAddress,proto3" json:"ssh_address,omitempty"`
+	SshAddress string `protobuf:"bytes,2,opt,name=ssh_address,json=sshAddress,proto3" json:"ssh_address,omitempty"`
+	// "" resets; otherwise ws:// or wss:// URL. Both addresses are replaced on every call.
+	WsUrl         string `protobuf:"bytes,3,opt,name=ws_url,json=wsUrl,proto3" json:"ws_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -541,6 +551,13 @@ func (x *UpdateGatewayRequest) GetId() string {
 func (x *UpdateGatewayRequest) GetSshAddress() string {
 	if x != nil {
 		return x.SshAddress
+	}
+	return ""
+}
+
+func (x *UpdateGatewayRequest) GetWsUrl() string {
+	if x != nil {
+		return x.WsUrl
 	}
 	return ""
 }
@@ -1204,7 +1221,7 @@ var File_werbot_v1_gateway_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_gateway_proto_rawDesc = "" +
 	"\n" +
-	"\x17werbot/v1/gateway.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x96\x02\n" +
+	"\x17werbot/v1/gateway.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xad\x02\n" +
 	"\aGateway\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -1217,7 +1234,8 @@ const file_werbot_v1_gateway_proto_rawDesc = "" +
 	"\tinstances\x18\x06 \x03(\v2\x1a.werbot.v1.GatewayInstanceR\tinstances\x12\x1f\n" +
 	"\vssh_address\x18\a \x01(\tR\n" +
 	"sshAddress\x12\x19\n" +
-	"\bhost_key\x18\b \x01(\tR\ahostKey\"\xe9\x02\n" +
+	"\bhost_key\x18\b \x01(\tR\ahostKey\x12\x15\n" +
+	"\x06ws_url\x18\t \x01(\tR\x05wsUrl\"\xe9\x02\n" +
 	"\x0fGatewayInstance\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bhostname\x18\x02 \x01(\tR\bhostname\x12\x18\n" +
@@ -1250,11 +1268,12 @@ const file_werbot_v1_gateway_proto_rawDesc = "" +
 	"\agateway\x18\x01 \x01(\v2\x12.werbot.v1.GatewayR\agateway\"\x15\n" +
 	"\x13ListGatewaysRequest\"F\n" +
 	"\x14ListGatewaysResponse\x12.\n" +
-	"\bgateways\x18\x01 \x03(\v2\x12.werbot.v1.GatewayR\bgateways\"[\n" +
+	"\bgateways\x18\x01 \x03(\v2\x12.werbot.v1.GatewayR\bgateways\"|\n" +
 	"\x14UpdateGatewayRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12)\n" +
 	"\vssh_address\x18\x02 \x01(\tB\b\xbaH\x05r\x03(\xac\x02R\n" +
-	"sshAddress\"E\n" +
+	"sshAddress\x12\x1f\n" +
+	"\x06ws_url\x18\x03 \x01(\tB\b\xbaH\x05r\x03(\x80\x10R\x05wsUrl\"E\n" +
 	"\x15UpdateGatewayResponse\x12,\n" +
 	"\agateway\x18\x01 \x01(\v2\x12.werbot.v1.GatewayR\agateway\"0\n" +
 	"\x14DeleteGatewayRequest\x12\x18\n" +

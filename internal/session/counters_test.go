@@ -32,7 +32,7 @@ func TestStartStoresKindTarget(t *testing.T) {
 	var data string
 	require.NoError(t, e.pool.QueryRow(bg, `SELECT data::text FROM audit_event WHERE action = 'session.start' AND data->>'session_id' = $1`,
 		id.String()).Scan(&data))
-	assert.JSONEq(t, `{"session_id":"`+id.String()+`","kind":"stream","target":"db.internal:5432"}`, data)
+	assert.JSONEq(t, `{"session_id":"`+id.String()+`","kind":"stream","target":"db.internal:5432","transport":"tcp"}`, data)
 
 	st.Kind, st.Target = "", ""
 	id, err = e.svc.Start(bg, st)

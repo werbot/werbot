@@ -36,7 +36,7 @@ func TestUpdateGateway(t *testing.T) {
 	assert.Regexp(t, "^ssh-ed25519 ", got.GetHostKey())
 	assert.Equal(t, strings.TrimSpace(string(gossh.MarshalAuthorizedKey(e.poolKey(t, g.ID).PublicKey()))), got.GetHostKey())
 	assert.Equal(t, 1, e.count(t, `SELECT count(*) FROM audit_event WHERE action = 'gateway.update' AND target_id = $1
-		AND actor_user_id = $2 AND data = '{"ssh_address": "gw.example.com:2222"}'::jsonb`, g.ID.String(), e.owner))
+		AND actor_user_id = $2 AND data = '{"ssh_address": "gw.example.com:2222", "ws_url": ""}'::jsonb`, g.ID.String(), e.owner))
 
 	require.NoError(t, update(e.admin, "[::1]:22"))
 	require.NoError(t, update(e.admin, ""))
@@ -51,6 +51,6 @@ func TestUpdateGateway(t *testing.T) {
 	_, err := e.admin.UpdateGateway(context.Background(), connect.NewRequest(&werbotv1.UpdateGatewayRequest{Id: "x"}))
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "validation")
 	otherCtx, _ := e.otherOrg(t)
-	_, err = e.gw.Update(otherCtx, g.ID, "gw:22")
+	_, err = e.gw.Update(otherCtx, g.ID, "gw:22", "")
 	assert.ErrorIs(t, err, apperr.ErrNotFound, "pool of another org")
 }

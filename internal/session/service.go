@@ -51,7 +51,7 @@ func (s *Service) Start(ctx context.Context, p Start) (uuid.UUID, error) {
 	return id, nil
 }
 
-// defaults sets the empty Kind and Front of p and refuses an unknown Front.
+// defaults sets the empty Kind, Front and Transport of p and refuses an unknown Front or Transport.
 func (p *Start) defaults() error {
 	if p.Kind == "" {
 		p.Kind = "terminal"
@@ -62,13 +62,19 @@ func (p *Start) defaults() error {
 	if p.Front != "ssh" && p.Front != "web" {
 		return fmt.Errorf("invalid session front %q: %w", p.Front, apperr.ErrInvalidArgument)
 	}
+	if p.Transport == "" {
+		p.Transport = "tcp"
+	}
+	if p.Transport != "tcp" && p.Transport != "ws" && p.Transport != "internal" {
+		return fmt.Errorf("invalid session transport %q: %w", p.Transport, apperr.ErrInvalidArgument)
+	}
 	return nil
 }
 
 // insertSession inserts the session of p and its session.start audit row in one statement.
 func insertSession(ctx context.Context, tx pgx.Tx, p Start) (uuid.UUID, error) {
 	args := []any{p.OrgID, p.UserID, p.ResourceID, p.GatewayID, p.InstanceID, p.ClientIP, p.Kind, p.Target, p.Command, p.Classes, p.Paths,
-		p.AgentRunID, p.ToolCallID, p.Front}
+		p.AgentRunID, p.ToolCallID, p.Front, p.Transport}
 	data, err := startData(ctx, tx, p)
 	if err != nil {
 		return uuid.Nil, err
@@ -88,10 +94,10 @@ func insertSession(ctx context.Context, tx pgx.Tx, p Start) (uuid.UUID, error) {
 	return id, err
 }
 
-// startData is the session.start audit data of p: its kind and target, front
+// startData is the session.start audit data of p: its kind, target and transport, front
 // "web" for a web session and break_glass under an active break-glass grant.
 func startData(ctx context.Context, tx pgx.Tx, p Start) (map[string]any, error) {
-	data := map[string]any{"kind": p.Kind, "target": p.Target}
+	data := map[string]any{"kind": p.Kind, "target": p.Target, "transport": p.Transport}
 	if p.Front == "web" {
 		data["front"] = p.Front
 	}
@@ -114,9 +120,9 @@ const activeBreakGlass = `SELECT EXISTS (SELECT 1 FROM access_grant WHERE org_id
 // and opens the CTE of its audit row, which the caller appends.
 const startSession = `WITH s AS (
 	INSERT INTO session (org_id, user_id, resource_id, gateway_id, gateway_instance_id, client_ip, kind, target, command, classes, paths,
-		agent_run_id, tool_call_id, front)
+		agent_run_id, tool_call_id, front, transport)
 	SELECT m.org_id, m.user_id, $3::uuid, $4::uuid, $5::uuid, $6::inet, $7::text, $8::text, NULLIF($9::text, ''), $10::text[], $11::text[],
-		$12::uuid, (SELECT t.id FROM agent_tool_call t WHERE t.id = $13::uuid AND t.run_id = $12::uuid AND t.org_id = m.org_id), $14::text
+		$12::uuid, (SELECT t.id FROM agent_tool_call t WHERE t.id = $13::uuid AND t.run_id = $12::uuid AND t.org_id = m.org_id), $14::text, $15::text
 	FROM membership m WHERE m.org_id = $1 AND m.user_id = $2
 	RETURNING id
 ), audit AS (`

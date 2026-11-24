@@ -46,7 +46,7 @@ func (f *fakeRequestable) Requestable(_ context.Context, p principal.Principal, 
 func TestListAccessibleResources(t *testing.T) {
 	e := gwSetup(t)
 	pool := e.newPool(t, "edge")
-	_, err := e.gw.Update(e.ctx, pool.ID, "gw.example.com:2222")
+	_, err := e.gw.Update(e.ctx, pool.ID, "gw.example.com:2222", "")
 	require.NoError(t, err)
 	inPool, err := e.svc.Create(e.ctx, e.org, inventory.CreateInput{Name: "b-web", Type: "ssh", Config: sshCfg("h"), GatewayID: &pool.ID,
 		Labels: map[string]string{"env": "prod"}})

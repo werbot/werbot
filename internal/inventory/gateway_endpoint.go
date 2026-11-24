@@ -2,9 +2,12 @@ package inventory
 
 import (
 	"context"
+	"errors"
 	"net"
+	"net/url"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -65,21 +68,40 @@ func validAddress(addr string) error {
 	return nil
 }
 
-// Update sets the address clients dial for the pool; "" resets it. Owners and admins only.
-func (g *Gateways) Update(ctx context.Context, id uuid.UUID, sshAddress string) (Gateway, error) {
+// badURLRune is a character ws_url never holds: query, fragment, escape, space or control.
+func badURLRune(r rune) bool {
+	return r == '?' || r == '#' || r == '%' || unicode.IsSpace(r) || unicode.IsControl(r)
+}
+
+// validateWSURL accepts "" (reset) or a ws:// or wss:// URL with a host and no
+// userinfo, query, fragment, '%' or whitespace, up to 2048 bytes.
+func validateWSURL(s string) error {
+	if s == "" {
+		return nil
+	}
+	u, err := url.Parse(s)
+	if err != nil || len(s) > 2048 || (u.Scheme != "ws" && u.Scheme != "wss") || u.Hostname() == "" || u.User != nil ||
+		strings.ContainsFunc(s, badURLRune) {
+		return invalid("ws_url must be a ws:// or wss:// URL with a host, without userinfo, query or fragment")
+	}
+	return nil
+}
+
+// Update replaces both addresses clients dial for the pool; "" resets one. Owners and admins only.
+func (g *Gateways) Update(ctx context.Context, id uuid.UUID, sshAddress, wsURL string) (Gateway, error) {
 	var out Gateway
 	err := g.admin(ctx, func(p principal.Principal, st Store, tx pgx.Tx) error {
-		if err := validAddress(sshAddress); err != nil {
+		if err := errors.Join(validAddress(sshAddress), validateWSURL(wsURL)); err != nil {
 			return err
 		}
-		n, err := st.UpdateGatewayAddress(ctx, dbq.UpdateGatewayAddressParams{ID: id, OrgID: p.OrgID, SshAddress: sshAddress})
+		n, err := st.UpdateGatewayAddresses(ctx, dbq.UpdateGatewayAddressesParams{ID: id, OrgID: p.OrgID, SshAddress: sshAddress, WsUrl: wsURL})
 		if err != nil {
 			return err
 		}
 		if n == 0 {
 			return errGatewayNotFound
 		}
-		if err := userActor(ctx, p).audit(ctx, tx, p.OrgID, "gateway.update", "gateway", id, map[string]any{"ssh_address": sshAddress}); err != nil {
+		if err := userActor(ctx, p).audit(ctx, tx, p.OrgID, "gateway.update", "gateway", id, map[string]any{"ssh_address": sshAddress, "ws_url": wsURL}); err != nil {
 			return err
 		}
 		rows, err := st.ListGateways(ctx, p.OrgID)
@@ -102,5 +124,5 @@ func (g *Gateways) toGateway(r dbq.ListGatewaysRow) (Gateway, error) {
 	if err != nil {
 		return Gateway{}, err
 	}
-	return Gateway{ID: r.ID, OrgID: r.OrgID, Name: r.Name, CreatedAt: r.CreatedAt, SSHAddress: r.SshAddress, HostKey: key}, nil
+	return Gateway{ID: r.ID, OrgID: r.OrgID, Name: r.Name, CreatedAt: r.CreatedAt, SSHAddress: r.SshAddress, WSURL: r.WsUrl, HostKey: key}, nil
 }

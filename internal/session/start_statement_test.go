@@ -73,7 +73,7 @@ func TestStartWritesSessionAndAuditInOneStatement(t *testing.T) {
 	assert.Equal(t, "resource", a.typ)
 	assert.Equal(t, res.String(), a.target)
 	assert.Equal(t, "10.0.0.7", a.ip)
-	assert.JSONEq(t, `{"session_id":"`+id.String()+`","kind":"stream","target":"db:5432"}`, a.data)
+	assert.JSONEq(t, `{"session_id":"`+id.String()+`","kind":"stream","target":"db:5432","transport":"tcp"}`, a.data)
 
 	var n int
 	require.NoError(t, setupPool.QueryRow(bg, `SELECT count(*) FROM session WHERE id = $1 AND org_id = $2 AND user_id = $3

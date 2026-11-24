@@ -132,7 +132,7 @@ type tunnelSessions struct {
 
 func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid.UUID, error) {
 	id, err := s.Service.Start(ctx, session.Start{OrgID: st.OrgID, UserID: st.UserID, ResourceID: st.ResourceID,
-		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Front: st.Front, Target: st.Target,
+		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Front: st.Front, Transport: st.Transport, Target: st.Target,
 		Command: st.Command, Classes: st.Classes, Paths: st.Paths, AgentRunID: st.AgentRunID, ToolCallID: st.ToolCallID,
 		Guard: actionGuard(s.agents, st)})
 	if st.AgentRunID == nil {
