@@ -15,6 +15,7 @@ for f in ../docs/*.md; do
     printf -- '---\ntitle: "%s"\neditUrl: %s/blob/main/docs/%s.md\n---\n' "$title" "$repo" "$name"
     tail -n +2 "$f" | sed -E \
       -e "s#\]\(\.\./([^)]+)\)#](${repo}/blob/${ref}/\1)#g" \
+      -e "s#\]\(maintainers/([^)]+)\)#](${repo}/blob/${ref}/docs/maintainers/\1)#g" \
       -e 's#\]\(([a-z0-9-]+)\.md(\#[^)]*)?\)#](/\1/\2)#g'
   } > "$out/$name.md"
 done

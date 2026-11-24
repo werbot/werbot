@@ -4,6 +4,8 @@ What happens to running and new sessions and to data when a part of Werbot fails
 
 ## Failure matrix
 
+Tests that prove the phase 2 rows: [parity table](maintainers/parity.md#failure-matrix).
+
 | Failure | Active sessions | New sessions | Data |
 | --- | --- | --- | --- |
 | `One server replica` | Live. | Served by the other replicas; the gateway reconnects within 5 s. | No loss. |
