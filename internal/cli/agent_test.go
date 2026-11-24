@@ -70,3 +70,9 @@ func TestChildEnvHidesSponsorAgent(t *testing.T) {
 	env := childEnv([]string{"SSH_AUTH_SOCK=/sponsor/sock", "PATH=/usr/bin", "A=b"}, "/run/bin")
 	assert.Equal(t, []string{"A=b", "SSH_AUTH_SOCK=", "PATH=/run/bin" + string(os.PathListSeparator) + "/usr/bin"}, env)
 }
+
+// An agent never does MFA: the helper variables of a human's shell stay out of the run.
+func TestAgentRunDropsAskpass(t *testing.T) {
+	env := childEnv([]string{"SSH_ASKPASS=/bin/werbot", "SSH_ASKPASS_REQUIRE=force", "A=b"}, "/run/bin")
+	assert.Equal(t, []string{"A=b", "SSH_AUTH_SOCK=", "PATH=/run/bin" + string(os.PathListSeparator)}, env)
+}

@@ -190,13 +190,14 @@ func resolveCommand(name, bin, goos string) string {
 }
 
 // childEnv is environ with bin first on PATH, an empty SSH_AUTH_SOCK (the
-// sponsor's agent stays hidden) and no WERBOT_HOME or WERBOT_SERVER.
+// sponsor's agent stays hidden) and no WERBOT_HOME, WERBOT_SERVER, SSH_ASKPASS
+// or SSH_ASKPASS_REQUIRE: an agent never answers an MFA prompt.
 func childEnv(environ []string, bin string) []string {
 	out := make([]string, 0, len(environ)+1)
 	path := ""
 	for _, kv := range environ {
 		switch k, v, _ := strings.Cut(kv, "="); {
-		case k == "WERBOT_HOME" || k == "WERBOT_SERVER" || k == "SSH_AUTH_SOCK":
+		case k == "WERBOT_HOME" || k == "WERBOT_SERVER" || k == "SSH_AUTH_SOCK" || k == "SSH_ASKPASS" || k == "SSH_ASKPASS_REQUIRE":
 		case strings.EqualFold(k, "PATH"):
 			path = v
 		default:

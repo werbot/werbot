@@ -46,6 +46,7 @@ type harness struct {
 	issued        int    // IssueUserCert calls
 	opened        string // the URL given to OpenBrowser
 	cancelRunning context.CancelFunc
+	su            *fakeStepUp // answers BeginStepUp and CompleteStepUp when set
 }
 
 func newHarness(t *testing.T) *harness {

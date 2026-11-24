@@ -37,6 +37,10 @@ type Config struct {
 	Gateway, Login, Identity, KnownHosts string
 	Specs                                []Spec
 	Signer                               func(ctx context.Context) (ssh.Signer, error)
+	// OpenBrowser opens an MFA page (nil: the prompt shows the URL only); Stdin
+	// answers MFA prompts (nil: os.Stdin).
+	OpenBrowser func(string) error
+	Stdin       io.Reader
 }
 
 // Spec is one [<local_port>:]<resource>[:<target_port>] argument; 0 means not given.

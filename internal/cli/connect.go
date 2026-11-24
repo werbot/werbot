@@ -34,6 +34,7 @@ func connectCommand(env Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			cfg.OpenBrowser, cfg.Stdin = env.OpenBrowser, env.Stdin
 			return runConnect(cmd.Context(), cfg, env.Stdout, env.Stderr)
 		},
 	}

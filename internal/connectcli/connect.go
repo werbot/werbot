@@ -35,7 +35,7 @@ func Run(ctx context.Context, cfg Config, stdout, stderr io.Writer) error {
 	fail := make(chan error, len(cfg.Specs))
 	for _, sp := range cfg.Specs {
 		conf := &ssh.ClientConfig{
-			User: cfg.Login + "+" + sp.Resource, Auth: []ssh.AuthMethod{auth},
+			User: cfg.Login + "+" + sp.Resource, Auth: []ssh.AuthMethod{auth, cfg.mfaAuth(stderr)},
 			HostKeyCallback: hostKeyCallback(cfg.KnownHosts), ClientVersion: "SSH-2.0-Werbot_connect_" + strings.ReplaceAll(version.Version, "-", "_"),
 		}
 		b, err := open(ctx, cfg.Gateway, conf, sp, stdout, stderr)

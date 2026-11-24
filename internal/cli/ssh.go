@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
@@ -133,6 +134,12 @@ func sshCommand(env Env) *cobra.Command {
 			}
 			c := exec.CommandContext(cmd.Context(), "ssh", argv...) //nolint:gosec // fixed binary, every value is one argv entry
 			c.Stdin, c.Stdout, c.Stderr = env.Stdin, env.Stdout, env.Stderr
+			self, err := os.Executable()
+			if err != nil {
+				return err
+			}
+			// the MFA prompt of the gateway is answered by this binary (see Askpass); only ssh gets the variables
+			c.Env = append(os.Environ(), "SSH_ASKPASS="+self, "SSH_ASKPASS_REQUIRE=force")
 			return c.Run() // an *exec.ExitError carries the ssh exit code to the process
 		},
 	}

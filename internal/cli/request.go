@@ -64,7 +64,11 @@ func newRequestCommand(env Env) *cobra.Command {
 				in.Duration = durationpb.New(dur)
 			}
 			c := requestClient(p)
-			res, err := c.CreateRequest(cmd.Context(), connect.NewRequest(in))
+			var res *connect.Response[werbotv1.CreateRequestResponse]
+			err = withStepUp(cmd.Context(), env, p, func() (e error) {
+				res, e = c.CreateRequest(cmd.Context(), connect.NewRequest(in))
+				return e
+			})
 			if err != nil {
 				return serverText(err)
 			}
@@ -168,11 +172,14 @@ func newDecideCommand(env Env, approve bool) *cobra.Command {
 				return err
 			}
 			c := requestClient(p)
-			if approve {
-				_, err = c.Approve(cmd.Context(), connect.NewRequest(&werbotv1.ApproveRequest{Id: args[0], Comment: comment}))
-			} else {
-				_, err = c.Deny(cmd.Context(), connect.NewRequest(&werbotv1.DenyRequest{Id: args[0], Comment: comment}))
-			}
+			err = withStepUp(cmd.Context(), env, p, func() (e error) {
+				if approve {
+					_, e = c.Approve(cmd.Context(), connect.NewRequest(&werbotv1.ApproveRequest{Id: args[0], Comment: comment}))
+				} else {
+					_, e = c.Deny(cmd.Context(), connect.NewRequest(&werbotv1.DenyRequest{Id: args[0], Comment: comment}))
+				}
+				return e
+			})
 			if err != nil {
 				return serverText(err)
 			}

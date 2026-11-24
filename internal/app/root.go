@@ -28,6 +28,9 @@ import (
 // A -help flag is not an error.
 func Run(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) error {
 	env := cli.Env{Getenv: getenv, Stdin: os.Stdin, Stdout: stdout, Stderr: os.Stderr, OpenBrowser: cli.OpenURL}
+	if self, err := os.Executable(); err == nil && cli.IsAskpass(args, getenv, self) {
+		return cli.RunAskpass(env, args[0]) // ssh runs werbot "<prompt>" for the MFA prompt of werbot ssh
+	}
 	root := NewRootCommand(env)
 	if args == nil {
 		args = []string{}
