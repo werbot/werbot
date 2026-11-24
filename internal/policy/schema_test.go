@@ -132,6 +132,8 @@ func TestSchemaHasPathContext(t *testing.T) {
 	require.NoError(t, err)
 	_, ok := res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.shell")]
 	assert.True(t, ok)
+	_, ok = res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.remote_forward")]
+	assert.True(t, ok, "contract §3.7: the ssh type declares ssh.remote_forward")
 	ctx := res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.exec")].AppliesTo.Context
 	for _, key := range []string{"paths", "path_hits", "path_outside"} {
 		assert.Equal(t, resolved.SetType{Element: resolved.StringType{}}, ctx[cedar.String(key)].Type, key)

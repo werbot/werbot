@@ -69,6 +69,9 @@ type Endpoint struct {
 	AnyTarget bool        // any host:port (ssh with port forwarding)
 	NoTarget  bool        // no stream or datagram target; Ports stay for health (ssh without port forwarding)
 	NoHealth  bool
+	// RemoteForward permits remote forwards (tcpip-forward) on the target's
+	// loopback: ssh with remote_forwarding.
+	RemoteForward bool
 }
 
 // Allow reports whether host:port is a permitted target of the resource.

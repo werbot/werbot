@@ -55,6 +55,8 @@ type OpenRequest struct {
 	ToolCall  uuid.UUID // an agent's tool call (sshca.EnvToolCall); uuid.Nil: none
 	MFA       MFAStep
 	Transport string // "tcp" | "ws" | "internal" (the web terminal); "": tcp
+	// RemoteForward: KindStream from tcpip-forward, Target "<bind_host>:<bind_port>".
+	RemoteForward bool
 }
 
 // control is the control plane of the pipeline; *tunnelClient implements it.

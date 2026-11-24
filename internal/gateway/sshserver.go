@@ -89,7 +89,7 @@ func (f *sshFront) newServer(p *Pipeline) *ssh.Server {
 		ChannelHandlers: map[string]ssh.ChannelHandler{
 			"session": sessionChannel, "direct-tcpip": h.forward, sshdgram.ChannelType: h.forward,
 		},
-		RequestHandlers: map[string]ssh.RequestHandler{sshdgram.ResourceRequest: h.resourceInfo},
+		RequestHandlers: map[string]ssh.RequestHandler{sshdgram.ResourceRequest: h.resourceInfo, tcpipForward: h.remoteForward, cancelTCPIPForward: h.cancelRemoteForward},
 		ConnCallback: func(ctx ssh.Context, conn net.Conn) net.Conn {
 			ctx.SetValue(transportKey{}, transportOf(conn))
 			idle := newConnIdle(conn, f.cfg.IdleTimeout)

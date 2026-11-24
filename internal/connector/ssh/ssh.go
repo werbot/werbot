@@ -21,7 +21,7 @@ func init() {
 		NewConfig:   func() proto.Message { return &sshv1.Config{} },
 		Validate:    Validate,
 		Credentials: []connector.CredentialKind{connector.CredentialPassword, connector.CredentialPrivateKey},
-		Actions:     []string{"ssh.connect", "ssh.exec", "ssh.shell"}, // connect first: callers use Actions[0]
+		Actions:     []string{"ssh.connect", "ssh.exec", "ssh.shell", "ssh.remote_forward"}, // connect first: callers use Actions[0]
 		Level:       "L2",
 		Kinds:       []connector.Kind{connector.KindTerminal, connector.KindExec, connector.KindStream},
 		Recorded:    []connector.Kind{connector.KindTerminal, connector.KindExec},
@@ -31,7 +31,8 @@ func init() {
 			if port == 0 {
 				port = 22
 			}
-			return connector.Endpoint{Host: c.Host, Ports: []connector.PortRange{{Port: port}}, AnyTarget: c.PortForwarding, NoTarget: !c.PortForwarding}
+			return connector.Endpoint{Host: c.Host, Ports: []connector.PortRange{{Port: port}}, AnyTarget: c.PortForwarding, NoTarget: !c.PortForwarding,
+				RemoteForward: c.RemoteForwarding}
 		},
 	})
 }

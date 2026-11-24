@@ -29,8 +29,10 @@ type Config struct {
 	Login string `protobuf:"bytes,3,opt,name=login,proto3" json:"login,omitempty"`
 	// allow streams (ssh -L) to any host:port
 	PortForwarding bool `protobuf:"varint,4,opt,name=port_forwarding,json=portForwarding,proto3" json:"port_forwarding,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// allow remote forwards (ssh -R) on the target's loopback
+	RemoteForwarding bool `protobuf:"varint,5,opt,name=remote_forwarding,json=remoteForwarding,proto3" json:"remote_forwarding,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -91,16 +93,24 @@ func (x *Config) GetPortForwarding() bool {
 	return false
 }
 
+func (x *Config) GetRemoteForwarding() bool {
+	if x != nil {
+		return x.RemoteForwarding
+	}
+	return false
+}
+
 var File_werbot_connector_ssh_v1_ssh_proto protoreflect.FileDescriptor
 
 const file_werbot_connector_ssh_v1_ssh_proto_rawDesc = "" +
 	"\n" +
-	"!werbot/connector/ssh/v1/ssh.proto\x12\x17werbot.connector.ssh.v1\"o\n" +
+	"!werbot/connector/ssh/v1/ssh.proto\x12\x17werbot.connector.ssh.v1\"\x9c\x01\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x14\n" +
 	"\x05login\x18\x03 \x01(\tR\x05login\x12'\n" +
-	"\x0fport_forwarding\x18\x04 \x01(\bR\x0eportForwardingB\xe2\x01\n" +
+	"\x0fport_forwarding\x18\x04 \x01(\bR\x0eportForwarding\x12+\n" +
+	"\x11remote_forwarding\x18\x05 \x01(\bR\x10remoteForwardingB\xe2\x01\n" +
 	"\x1bcom.werbot.connector.ssh.v1B\bSshProtoP\x01Z:github.com/werbot/werbot/gen/werbot/connector/ssh/v1;sshv1\xa2\x02\x03WCS\xaa\x02\x17Werbot.Connector.Ssh.V1\xca\x02\x17Werbot\\Connector\\Ssh\\V1\xe2\x02#Werbot\\Connector\\Ssh\\V1\\GPBMetadata\xea\x02\x1aWerbot::Connector::Ssh::V1b\x06proto3"
 
 var (

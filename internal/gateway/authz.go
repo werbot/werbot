@@ -76,6 +76,8 @@ type AccessRequest struct {
 	// MFAMethod ("totp" | "webauthn"); MFAMethod "" means none.
 	MFAAgeSeconds int64
 	MFAMethod     string
+	// RemoteForward marks a remote forward (ssh -R): Port is its bind port.
+	RemoteForward bool
 }
 
 // Policy is a compiled snapshot: the local policy decision point.

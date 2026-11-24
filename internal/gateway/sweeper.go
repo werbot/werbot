@@ -140,14 +140,11 @@ func recheck(pol *Policy, e evaluation, now time.Time) (AccessRequest, bool) {
 	if req.User, ok = pol.withTeams(req.User); !ok {
 		return req, false
 	}
-	if e.kind == KindStream || e.kind == KindDatagram {
-		ep, ok, err := res.Endpoint()
-		if err != nil || !ok || !ep.Allow(res.Name, e.host, req.Port) {
-			return req, false
-		}
+	if !targetAllowed(res, e) {
+		return req, false
 	}
 	allow, _ := pol.Authorize(connectOf(req))
-	return req, allow && commandAllowed(pol, req, e.kind)
+	return req, allow && commandAllowed(pol, req, e.kind) && forwardAllowed(pol, req)
 }
 
 // limits are the idle timeout and max duration of a session on r.

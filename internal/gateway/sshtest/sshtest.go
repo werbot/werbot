@@ -26,13 +26,18 @@ type Target struct {
 	HostKey                  gossh.PublicKey
 	Events                   chan string           // "pty:<term> <cols>x<rows>", "win:<cols>x<rows>", "signal:<name>", "closed"
 	exec                     func(ssh.Session) int // runs a command instead of run; set by an Option
+	noRemoteForward          bool                  // refuses tcpip-forward; set by NoRemoteForward
 }
 
-// Option changes how a target runs commands.
+// Option changes how a target runs commands or forwards.
 type Option func(*Target)
+
+// NoRemoteForward makes the target refuse tcpip-forward.
+func NoRemoteForward(tg *Target) { tg.noRemoteForward = true }
 
 // StartTarget starts a target that accepts password (if not empty) and the
 // authorized key (if not nil); with neither it needs no authentication.
+// It serves direct-tcpip and tcpip-forward (unless NoRemoteForward).
 // The shell echoes input line by line; exec runs "echo X" ("X\n"), "exit N"
 // (exit code N), "cat" (stdin to stdout), "hostname" ("target\n"), "uname"
 // ("Linux\n") and "sleep N" (N seconds, or until the client leaves), unless
@@ -57,6 +62,9 @@ func StartTarget(t testing.TB, password string, authorized gossh.PublicKey, opts
 		LocalPortForwardingCallback: func(ssh.Context, string, uint32) bool { return true },
 		ChannelHandlers:             map[string]ssh.ChannelHandler{"session": ssh.DefaultSessionHandler, "direct-tcpip": ssh.DirectTCPIPHandler},
 	}
+	fwd := &ssh.ForwardedTCPHandler{}
+	srv.RequestHandlers = map[string]ssh.RequestHandler{"tcpip-forward": fwd.HandleSSHRequest, "cancel-tcpip-forward": fwd.HandleSSHRequest}
+	srv.ReversePortForwardingCallback = func(ssh.Context, string, uint32) bool { return !tg.noRemoteForward }
 	if password != "" {
 		srv.PasswordHandler = func(_ ssh.Context, p string) bool {
 			return subtle.ConstantTimeCompare([]byte(p), []byte(password)) == 1

@@ -64,7 +64,7 @@ func TestDecideExecObligations(t *testing.T) {
 	assert.Equal(t, []string{"command:a"}, reasons)
 
 	bad := execRequest(t, p, m, "read")
-	bad.Action = "ssh.remote_forward"
+	bad.Action = "ssh.unknown"
 	assert.Equal(t, Decision{Reasons: []string{"invalid_action"}}, p.Decide(bad))
 }
 

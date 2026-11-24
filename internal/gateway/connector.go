@@ -114,6 +114,9 @@ type Session struct {
 	// about an approval wait on notice; nil for any other session.
 	Console      bool
 	CheckCommand func(ctx context.Context, command, cwd, home string, notice io.Writer) (CommandCheck, error)
+	// RemoteForward is the remote forward (ssh -R) of a KindStream session
+	// from tcpip-forward; Stream is nil.
+	RemoteForward *RemoteForward
 	// Dial connects to the target; on the embedded gateway it refuses local
 	// addresses with ErrTargetNotAllowed.
 	Dial      func(ctx context.Context, network, address string) (net.Conn, error)

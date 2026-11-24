@@ -165,7 +165,7 @@ func TestListResourceTypesExposesKinds(t *testing.T) {
 			continue
 		}
 		assert.Equal(t, []string{"terminal", "exec", "stream"}, ty.GetKinds())
-		assert.Equal(t, []string{"ssh.connect", "ssh.exec", "ssh.shell"}, ty.GetActions())
+		assert.Equal(t, []string{"ssh.connect", "ssh.exec", "ssh.shell", "ssh.remote_forward"}, ty.GetActions())
 		assert.Equal(t, []string{"password", "private_key"}, ty.GetCredentialKinds())
 		assert.Equal(t, "L2", ty.GetLevel())
 		assert.Equal(t, "type.googleapis.com/werbot.connector.ssh.v1.Config", ty.GetConfigTypeUrl())

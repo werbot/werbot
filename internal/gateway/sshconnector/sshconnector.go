@@ -35,7 +35,7 @@ func (Connector) Kinds() []gateway.Kind {
 // closes the target connection (and the stream) and is not an error. A relay
 // panic closes the target and re-panics here, cancel or not, for the pipeline.
 func (c Connector) Serve(ctx context.Context, s *gateway.Session) error {
-	if s.Kind == gateway.KindStream {
+	if s.Kind == gateway.KindStream && s.Stream != nil {
 		defer s.Stream.Close()
 		defer context.AfterFunc(ctx, func() { _ = s.Stream.Close() })()
 	}
@@ -59,6 +59,9 @@ func (c Connector) serve(ctx context.Context, s *gateway.Session) error {
 	case gateway.KindExec:
 		return execCommand(s.Exec).run(ctx, client, s.Recording, s.Secret)
 	case gateway.KindStream:
+		if s.RemoteForward != nil {
+			return serveRemoteForward(ctx, client, s.RemoteForward, s.Secret)
+		}
 		target, err := client.Dial("tcp", dialTarget(s.Resource.Name, s.Target)) // direct-tcpip at the target
 		if err != nil {
 			return fmt.Errorf("ssh: open %s through the target: %w", s.Target, err)

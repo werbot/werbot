@@ -88,14 +88,29 @@ func (m meter) wrap(s *Session) {
 		e.Stdout, e.Stderr = countWriter{e.Stdout, m}, countWriter{e.Stderr, m}
 	}
 	if st := s.Stream; st != nil {
-		s.Stream = countStream{countRW{st, m}, st}
-		if cw, ok := st.(closeWriter); ok {
-			s.Stream = countStreamCW{countStream{countRW{st, m}, st}, cw}
-		}
+		s.Stream = m.stream(st)
 	}
 	if d := s.Datagram; d != nil {
 		s.Datagram = countDatagrams{d, m}
 	}
+	if rf := s.RemoteForward; rf != nil {
+		open := rf.Open
+		rf.Open = func(addr string, port uint32) (io.ReadWriteCloser, error) {
+			st, err := open(addr, port)
+			if err != nil {
+				return nil, err
+			}
+			return m.stream(st), nil
+		}
+	}
+}
+
+// stream counts the traffic of st and keeps its CloseWrite.
+func (m meter) stream(st io.ReadWriteCloser) io.ReadWriteCloser {
+	if cw, ok := st.(closeWriter); ok {
+		return countStreamCW{countStream{countRW{st, m}, st}, cw}
+	}
+	return countStream{countRW{st, m}, st}
 }
 
 type closeWriter interface{ CloseWrite() error }

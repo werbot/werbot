@@ -30,12 +30,10 @@ func (p *Pipeline) decide(ctx context.Context, r OpenRequest) (pol *Policy, req 
 	if req.Resource, ok = pol.Resource(r.Resource); !ok {
 		return nil, req, "", ErrDenied
 	}
-	if r.Kind == KindStream || r.Kind == KindDatagram {
-		if host, req.Port, err = allowTarget(req.Resource, r.Target); err != nil {
-			return nil, req, "", err
-		}
+	if host, req.Port, err = p.target(req.Resource, r); err != nil {
+		return nil, req, "", err
 	}
-	if err := p.connect(ctx, pol, &req, r); err != nil {
+	if err := p.authorize(ctx, pol, &req, r); err != nil {
 		return nil, req, "", err
 	}
 	return pol, req, host, nil

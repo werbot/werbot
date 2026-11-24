@@ -57,13 +57,13 @@ func TestCompileExecGolden(t *testing.T) {
 }
 
 func TestBindingCoversConnectAndExec(t *testing.T) {
-	for _, action := range []string{"ssh.connect", "ssh.exec"} {
+	for _, action := range []string{"ssh.connect", "ssh.exec", "ssh.remote_forward"} {
 		r := req("10.1.2.3", "DE", "")
 		r.Action = action
 		assert.True(t, authorize(t, snap(), r).Allow, action)
 	}
 	r := req("10.1.2.3", "DE", "")
-	r.Action = "ssh.remote_forward"
+	r.Action = "ssh.unknown"
 	assert.Equal(t, Decision{Reasons: []string{"invalid_action"}}, authorize(t, snap(), r))
 }
 
