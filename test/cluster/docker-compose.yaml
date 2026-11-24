@@ -30,6 +30,7 @@ x-server: &server
     WERBOT_RECORDINGS_S3_BUCKET: werbot-recordings
     WERBOT_RECORDINGS_S3_ACCESS_KEY: werbot
     WERBOT_RECORDINGS_S3_SECRET_KEY: werbot-s3-secret
+    WERBOT_INTERNAL_URL: ${SERVER_INTERNAL_URL:-} # empty: https://<hostname>:8444; stage 16 points server2 at a dead port
 
 x-web: &web
   image: werbot:cluster
