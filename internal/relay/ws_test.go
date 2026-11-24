@@ -153,8 +153,11 @@ func TestWebSocketReadLimit(t *testing.T) {
 	c, _, g := wsRelay(t, nil)
 	b := c.rs[0]
 	srv := serveWS(t, b, &member)
-	big, other := mustDial(t, srv, "/api/terminal?resource=db"), mustDial(t, srv, "/api/terminal?resource=db")
-	gwBig, gwOther := peer(t, g), peer(t, g)
+	// each dial takes its own peer: handlers open their gateway pipes concurrently
+	big := mustDial(t, srv, "/api/terminal?resource=db")
+	gwBig := peer(t, g)
+	other := mustDial(t, srv, "/api/terminal?resource=db")
+	gwOther := peer(t, g)
 
 	send(t, big, websocket.MessageBinary, strings.Repeat("a", 64<<10))
 	assert.Len(t, nextFrame(t, gwBig).data, 64<<10, "a 64 KiB message passes")
