@@ -1,4 +1,4 @@
-//go:build cluster || load
+//go:build cluster || load || redteam
 
 // Package cluster is the multi-node docker stand of stage 7a and its harness:
 // two server replicas, two web replicas and a two-instance gateway pool behind
@@ -84,7 +84,7 @@ func Up(ctx context.Context, opts Options) (_ *Stand, err error) {
 	if _, err := s.Compose(ctx, "down", "-v", "--remove-orphans"); err != nil {
 		return nil, err
 	}
-	if err := buildEchoTarget(ctx); err != nil {
+	if err := buildTargets(ctx); err != nil {
 		return nil, err
 	}
 	if err := buildWerbot(ctx); err != nil { // werbot connect on this host (scenario 14, L1)
@@ -94,7 +94,7 @@ func Up(ctx context.Context, opts Options) (_ *Stand, err error) {
 		return nil, err
 	}
 	// both server replicas start at once on the empty database (scenario 6)
-	if _, err := s.Compose(ctx, "up", "-d", "server1", "server2", "web1", "web2", "nginx", "target", "echo", "dns"); err != nil {
+	if _, err := s.Compose(ctx, "up", "-d", "server1", "server2", "web1", "web2", "nginx", "target", "echo", "sshtarget", "dns"); err != nil {
 		return nil, err
 	}
 	if err := poll(ctx, RestoreMax, func(ctx context.Context) error { return s.ready(ctx, "server1", "server2", "web1", "web2") }); err != nil {

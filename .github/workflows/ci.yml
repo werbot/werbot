@@ -179,6 +179,35 @@ jobs:
           path: test/cluster/compose.log
           if-no-files-found: ignore
 
+  # red-team scenarios (owner decision O3: every PR); make redteam brings the
+  # stand up and removes it; the dev DB serves the Playwright step
+  redteam:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # one run per ref: a newer push cancels the red-team run it supersedes
+    concurrency:
+      group: redteam-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.x
+      - run: make dev-db
+      - run: make redteam
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: redteam-logs
+          path: |
+            test/redteam/compose.log
+            web/playwright-report
+            web/e2e/.server.log
+          if-no-files-found: ignore
+
   release-snapshot:
     runs-on: ubuntu-latest
     permissions:

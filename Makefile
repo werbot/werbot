@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster load release-check release-snapshot
+.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster redteam redteam-go load release-check release-snapshot
 
 VERSION ?= dev
 GORELEASER ?= go run github.com/goreleaser/goreleaser/v2@v2.20.0
@@ -61,6 +61,19 @@ e2e-cluster:
 	COMPOSE_PROJECT_NAME=$(CLUSTER_PROJECT) go test -tags cluster -count=1 -timeout 40m -v ./test/cluster/... ; rc=$$?; \
 	[ $$rc -eq 0 ] || $(CLUSTER_LOGS) > $(CLUSTER_LOG); \
 	$(CLUSTER) down -v --remove-orphans; exit $$rc
+
+REDTEAM = docker compose -p werbot-redteam -f test/cluster/docker-compose.yaml
+
+# red-team scenarios (test/redteam) on the cluster stand under their own
+# project; on failure the logs go to test/redteam/compose.log; the stand is
+# always removed at the end
+redteam-go:
+	docker build -f deploy/Dockerfile -t werbot:cluster .
+	COMPOSE_PROJECT_NAME=werbot-redteam go test -tags redteam -count=1 -timeout 45m -v ./test/redteam/... ; rc=$$?; \
+	[ $$rc -eq 0 ] || $(REDTEAM) logs --no-color --timestamps > test/redteam/compose.log; \
+	$(REDTEAM) down -v --remove-orphans; exit $$rc
+
+redteam: redteam-go
 
 LOAD_TESTS ?= L1 L2 L3 L4
 
