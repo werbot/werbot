@@ -133,5 +133,9 @@ WHERE token_hash = @token_hash AND kind = 'mfa_login' AND used_at IS NULL AND ex
 -- Records that the session of token_hash has just passed a second factor.
 UPDATE user_session SET mfa_at = now() WHERE token_hash = @token_hash RETURNING id;
 
+-- name: SetSessionMFAByID :exec
+-- Records that the caller's session has just passed a step-up.
+UPDATE user_session SET mfa_at = now() WHERE id = @id AND org_id = @org_id AND user_id = @user_id;
+
 -- name: CreateMFAVerification :exec
 INSERT INTO mfa_verification (org_id, user_id, binding, method) VALUES (@org_id, @user_id, @binding, @method);

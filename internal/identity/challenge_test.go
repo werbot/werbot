@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,13 +62,13 @@ func (e challengeEnv) expire(t *testing.T, id uuid.UUID) {
 	require.NoError(t, err)
 }
 
-// listenFor returns the payload of the first NOTIFY on channel within d; the
-// channel closes empty when none came.
-func listenFor(t *testing.T, pool *pgxpool.Pool, channel string, d time.Duration) <-chan string {
+// listenFor returns the payload of the first NOTIFY on werbot_mfa_confirmed
+// within d; the channel closes empty when none came.
+func listenFor(t *testing.T, pool *pgxpool.Pool, d time.Duration) <-chan string {
 	t.Helper()
 	conn, err := pool.Acquire(context.Background())
 	require.NoError(t, err)
-	_, err = conn.Exec(context.Background(), "LISTEN "+pgx.Identifier{channel}.Sanitize())
+	_, err = conn.Exec(context.Background(), "LISTEN werbot_mfa_confirmed")
 	require.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), d)
 	t.Cleanup(cancel)
@@ -188,7 +187,7 @@ func TestConfirmMFAChallenge(t *testing.T) {
 	assert.Equal(t, "pending", e.status(t, c.ID))
 	assert.Equal(t, 1, countAudit(t, e.pool, "auth.mfa.fail", `{"method":"webauthn"}`))
 
-	notify := listenFor(t, e.pool, "werbot_mfa_confirmed", 5*time.Second)
+	notify := listenFor(t, e.pool, 5*time.Second)
 	require.NoError(t, e.svc.ConfirmMFAChallenge(ctx, e.p, c.ID, a.Get(got.WebAuthnOptions)), "a failed assertion spends nothing")
 	assert.Equal(t, e.f.InstanceID.String()+":"+c.ID.String(), <-notify)
 	assert.Equal(t, "confirmed", e.status(t, c.ID))
@@ -211,7 +210,7 @@ func TestConfirmExpiredChallenge(t *testing.T) {
 	require.NoError(t, err)
 	e.expire(t, c.ID)
 
-	notify := listenFor(t, e.pool, "werbot_mfa_confirmed", time.Second)
+	notify := listenFor(t, e.pool, time.Second)
 	err = e.svc.ConfirmMFAChallenge(ctx, e.p, c.ID, a.Get(got.WebAuthnOptions))
 	require.ErrorIs(t, err, apperr.ErrFailedPrecondition)
 	_, sent := <-notify

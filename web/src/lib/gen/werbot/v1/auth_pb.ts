@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file werbot/v1/auth.proto.
  */
 export const file_werbot_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChR3ZXJib3QvdjEvYXV0aC5wcm90bxIJd2VyYm90LnYxIhYKFEdldFNldHVwU3RhdGVSZXF1ZXN0IiwKFUdldFNldHVwU3RhdGVSZXNwb25zZRITCgtuZWVkc19zZXR1cBgBIAEoCCK6AQoMU2V0dXBSZXF1ZXN0EhkKBWVtYWlsGAEgASgJQgq6SAdyBRj+AWABEjAKBWxvZ2luGAIgASgJQiG6SB5yHDIaXlthLXowLTldW2EtejAtOV8tXXsxLDMxfSQSGAoEbmFtZRgDIAEoCUIKukgHcgUQARiAARIcCghwYXNzd29yZBgEIAEoCUIKukgHcgUQDBiAAhIlChFvcmdhbml6YXRpb25fbmFtZRgFIAEoCUIKukgHcgUQARiAASIPCg1TZXR1cFJlc3BvbnNlIkcKDExvZ2luUmVxdWVzdBIZCgVlbWFpbBgBIAEoCUIKukgHcgUY/gFgARIcCghwYXNzd29yZBgCIAEoCUIKukgHcgUQARiAAiJjCg1Mb2dpblJlc3BvbnNlEhQKDG1mYV9yZXF1aXJlZBgBIAEoCBIRCgltZmFfdG9rZW4YAiABKAkSDwoHbWV0aG9kcxgDIAMoCRIYChB3ZWJhdXRobl9vcHRpb25zGAQgASgMIroBChJDb21wbGV0ZU1GQVJlcXVlc3QSHQoJbWZhX3Rva2VuGAEgASgJQgq6SAdyBRABGIABEiYKCXRvdHBfY29kZRgCIAEoCUIRukgOcgwyCl5bMC05XXs2fSRIABIpChJ3ZWJhdXRobl9hc3NlcnRpb24YAyABKAxCC7pICHoGEAEYgIABSAASIgoNcmVjb3ZlcnlfY29kZRgEIAEoCUIJukgGcgQQARhASABCDgoFcHJvb2YSBbpIAggBIhUKE0NvbXBsZXRlTUZBUmVzcG9uc2UiDwoNTG9nb3V0UmVxdWVzdCIQCg5Mb2dvdXRSZXNwb25zZSITChFHZXRTZXNzaW9uUmVxdWVzdCKiAQoSR2V0U2Vzc2lvblJlc3BvbnNlEh0KBHVzZXIYASABKAsyDy53ZXJib3QudjEuVXNlchItCgxvcmdhbml6YXRpb24YAiABKAsyFy53ZXJib3QudjEuT3JnYW5pemF0aW9uEh0KBHJvbGUYAyABKA4yDy53ZXJib3QudjEuUm9sZRIfChdtZmFfZW5yb2xsbWVudF9yZXF1aXJlZBgEIAEoCCI4ChtSZXF1ZXN0UGFzc3dvcmRSZXNldFJlcXVlc3QSGQoFZW1haWwYASABKAlCCrpIB3IFGP4BYAEiHgocUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXNwb25zZSJTChRSZXNldFBhc3N3b3JkUmVxdWVzdBIZCgV0b2tlbhgBIAEoCUIKukgHcgUQARiAARIgCgxuZXdfcGFzc3dvcmQYAiABKAlCCrpIB3IFEAwYgAIiFwoVUmVzZXRQYXNzd29yZFJlc3BvbnNlMu4ECgtBdXRoU2VydmljZRJSCg1HZXRTZXR1cFN0YXRlEh8ud2VyYm90LnYxLkdldFNldHVwU3RhdGVSZXF1ZXN0GiAud2VyYm90LnYxLkdldFNldHVwU3RhdGVSZXNwb25zZRI6CgVTZXR1cBIXLndlcmJvdC52MS5TZXR1cFJlcXVlc3QaGC53ZXJib3QudjEuU2V0dXBSZXNwb25zZRI6CgVMb2dpbhIXLndlcmJvdC52MS5Mb2dpblJlcXVlc3QaGC53ZXJib3QudjEuTG9naW5SZXNwb25zZRJMCgtDb21wbGV0ZU1GQRIdLndlcmJvdC52MS5Db21wbGV0ZU1GQVJlcXVlc3QaHi53ZXJib3QudjEuQ29tcGxldGVNRkFSZXNwb25zZRI9CgZMb2dvdXQSGC53ZXJib3QudjEuTG9nb3V0UmVxdWVzdBoZLndlcmJvdC52MS5Mb2dvdXRSZXNwb25zZRJJCgpHZXRTZXNzaW9uEhwud2VyYm90LnYxLkdldFNlc3Npb25SZXF1ZXN0Gh0ud2VyYm90LnYxLkdldFNlc3Npb25SZXNwb25zZRJnChRSZXF1ZXN0UGFzc3dvcmRSZXNldBImLndlcmJvdC52MS5SZXF1ZXN0UGFzc3dvcmRSZXNldFJlcXVlc3QaJy53ZXJib3QudjEuUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXNwb25zZRJSCg1SZXNldFBhc3N3b3JkEh8ud2VyYm90LnYxLlJlc2V0UGFzc3dvcmRSZXF1ZXN0GiAud2VyYm90LnYxLlJlc2V0UGFzc3dvcmRSZXNwb25zZUKQAQoNY29tLndlcmJvdC52MUIJQXV0aFByb3RvUAFaL2dpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vd2VyYm90L3YxO3dlcmJvdHYxogIDV1hYqgIJV2VyYm90LlYxygIJV2VyYm90XFYx4gIVV2VyYm90XFYxXEdQQk1ldGFkYXRh6gIKV2VyYm90OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_werbot_v1_user]);
+  fileDesc("ChR3ZXJib3QvdjEvYXV0aC5wcm90bxIJd2VyYm90LnYxIhYKFEdldFNldHVwU3RhdGVSZXF1ZXN0IiwKFUdldFNldHVwU3RhdGVSZXNwb25zZRITCgtuZWVkc19zZXR1cBgBIAEoCCK6AQoMU2V0dXBSZXF1ZXN0EhkKBWVtYWlsGAEgASgJQgq6SAdyBRj+AWABEjAKBWxvZ2luGAIgASgJQiG6SB5yHDIaXlthLXowLTldW2EtejAtOV8tXXsxLDMxfSQSGAoEbmFtZRgDIAEoCUIKukgHcgUQARiAARIcCghwYXNzd29yZBgEIAEoCUIKukgHcgUQDBiAAhIlChFvcmdhbml6YXRpb25fbmFtZRgFIAEoCUIKukgHcgUQARiAASIPCg1TZXR1cFJlc3BvbnNlIkcKDExvZ2luUmVxdWVzdBIZCgVlbWFpbBgBIAEoCUIKukgHcgUY/gFgARIcCghwYXNzd29yZBgCIAEoCUIKukgHcgUQARiAAiJjCg1Mb2dpblJlc3BvbnNlEhQKDG1mYV9yZXF1aXJlZBgBIAEoCBIRCgltZmFfdG9rZW4YAiABKAkSDwoHbWV0aG9kcxgDIAMoCRIYChB3ZWJhdXRobl9vcHRpb25zGAQgASgMIroBChJDb21wbGV0ZU1GQVJlcXVlc3QSHQoJbWZhX3Rva2VuGAEgASgJQgq6SAdyBRABGIABEiYKCXRvdHBfY29kZRgCIAEoCUIRukgOcgwyCl5bMC05XXs2fSRIABIpChJ3ZWJhdXRobl9hc3NlcnRpb24YAyABKAxCC7pICHoGEAEYgIABSAASIgoNcmVjb3ZlcnlfY29kZRgEIAEoCUIJukgGcgQQARhASABCDgoFcHJvb2YSBbpIAggBIhUKE0NvbXBsZXRlTUZBUmVzcG9uc2UiDwoNTG9nb3V0UmVxdWVzdCIQCg5Mb2dvdXRSZXNwb25zZSITChFHZXRTZXNzaW9uUmVxdWVzdCKiAQoSR2V0U2Vzc2lvblJlc3BvbnNlEh0KBHVzZXIYASABKAsyDy53ZXJib3QudjEuVXNlchItCgxvcmdhbml6YXRpb24YAiABKAsyFy53ZXJib3QudjEuT3JnYW5pemF0aW9uEh0KBHJvbGUYAyABKA4yDy53ZXJib3QudjEuUm9sZRIfChdtZmFfZW5yb2xsbWVudF9yZXF1aXJlZBgEIAEoCCI4ChtSZXF1ZXN0UGFzc3dvcmRSZXNldFJlcXVlc3QSGQoFZW1haWwYASABKAlCCrpIB3IFGP4BYAEiHgocUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXNwb25zZSJTChRSZXNldFBhc3N3b3JkUmVxdWVzdBIZCgV0b2tlbhgBIAEoCUIKukgHcgUQARiAARIgCgxuZXdfcGFzc3dvcmQYAiABKAlCCrpIB3IFEAwYgAIiFwoVUmVzZXRQYXNzd29yZFJlc3BvbnNlIhQKEkJlZ2luU3RlcFVwUmVxdWVzdCJbChNCZWdpblN0ZXBVcFJlc3BvbnNlEg8KB21ldGhvZHMYASADKAkSGAoQd2ViYXV0aG5fb3B0aW9ucxgCIAEoDBILCgN1cmwYAyABKAkSDAoEY29kZRgEIAEoCSJ6ChVDb21wbGV0ZVN0ZXBVcFJlcXVlc3QSJgoJdG90cF9jb2RlGAEgASgJQhG6SA5yDDIKXlswLTldezZ9JEgAEikKEndlYmF1dGhuX2Fzc2VydGlvbhgCIAEoDEILukgIegYQARiAgAFIAEIOCgVwcm9vZhIFukgCCAEiGAoWQ29tcGxldGVTdGVwVXBSZXNwb25zZTKTBgoLQXV0aFNlcnZpY2USUgoNR2V0U2V0dXBTdGF0ZRIfLndlcmJvdC52MS5HZXRTZXR1cFN0YXRlUmVxdWVzdBogLndlcmJvdC52MS5HZXRTZXR1cFN0YXRlUmVzcG9uc2USOgoFU2V0dXASFy53ZXJib3QudjEuU2V0dXBSZXF1ZXN0Ghgud2VyYm90LnYxLlNldHVwUmVzcG9uc2USOgoFTG9naW4SFy53ZXJib3QudjEuTG9naW5SZXF1ZXN0Ghgud2VyYm90LnYxLkxvZ2luUmVzcG9uc2USTAoLQ29tcGxldGVNRkESHS53ZXJib3QudjEuQ29tcGxldGVNRkFSZXF1ZXN0Gh4ud2VyYm90LnYxLkNvbXBsZXRlTUZBUmVzcG9uc2USPQoGTG9nb3V0Ehgud2VyYm90LnYxLkxvZ291dFJlcXVlc3QaGS53ZXJib3QudjEuTG9nb3V0UmVzcG9uc2USSQoKR2V0U2Vzc2lvbhIcLndlcmJvdC52MS5HZXRTZXNzaW9uUmVxdWVzdBodLndlcmJvdC52MS5HZXRTZXNzaW9uUmVzcG9uc2USZwoUUmVxdWVzdFBhc3N3b3JkUmVzZXQSJi53ZXJib3QudjEuUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXF1ZXN0Gicud2VyYm90LnYxLlJlcXVlc3RQYXNzd29yZFJlc2V0UmVzcG9uc2USUgoNUmVzZXRQYXNzd29yZBIfLndlcmJvdC52MS5SZXNldFBhc3N3b3JkUmVxdWVzdBogLndlcmJvdC52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2USTAoLQmVnaW5TdGVwVXASHS53ZXJib3QudjEuQmVnaW5TdGVwVXBSZXF1ZXN0Gh4ud2VyYm90LnYxLkJlZ2luU3RlcFVwUmVzcG9uc2USVQoOQ29tcGxldGVTdGVwVXASIC53ZXJib3QudjEuQ29tcGxldGVTdGVwVXBSZXF1ZXN0GiEud2VyYm90LnYxLkNvbXBsZXRlU3RlcFVwUmVzcG9uc2VCkAEKDWNvbS53ZXJib3QudjFCCUF1dGhQcm90b1ABWi9naXRodWIuY29tL3dlcmJvdC93ZXJib3QvZ2VuL3dlcmJvdC92MTt3ZXJib3R2MaICA1dYWKoCCVdlcmJvdC5WMcoCCVdlcmJvdFxWMeICFVdlcmJvdFxWMVxHUEJNZXRhZGF0YeoCCldlcmJvdDo6VjFiBnByb3RvMw", [file_buf_validate_validate, file_werbot_v1_user]);
 
 /**
  * @generated from message werbot.v1.GetSetupStateRequest
@@ -352,6 +352,102 @@ export const ResetPasswordResponseSchema: GenMessage<ResetPasswordResponse> = /*
   messageDesc(file_werbot_v1_auth, 15);
 
 /**
+ * @generated from message werbot.v1.BeginStepUpRequest
+ */
+export type BeginStepUpRequest = Message<"werbot.v1.BeginStepUpRequest"> & {
+};
+
+/**
+ * Describes the message werbot.v1.BeginStepUpRequest.
+ * Use `create(BeginStepUpRequestSchema)` to create a new message.
+ */
+export const BeginStepUpRequestSchema: GenMessage<BeginStepUpRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 16);
+
+/**
+ * @generated from message werbot.v1.BeginStepUpResponse
+ */
+export type BeginStepUpResponse = Message<"werbot.v1.BeginStepUpResponse"> & {
+  /**
+   * Subset of "webauthn", "totp", in that order; recovery codes never step up.
+   *
+   * @generated from field: repeated string methods = 1;
+   */
+  methods: string[];
+
+  /**
+   * JSON of the WebAuthn assertion options (browser sessions with a passkey).
+   *
+   * @generated from field: bytes webauthn_options = 2;
+   */
+  webauthnOptions: Uint8Array;
+
+  /**
+   * CLI tokens with a passkey: the page that confirms the step-up and the
+   * code it shows (XXXX-XXXX).
+   *
+   * @generated from field: string url = 3;
+   */
+  url: string;
+
+  /**
+   * @generated from field: string code = 4;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message werbot.v1.BeginStepUpResponse.
+ * Use `create(BeginStepUpResponseSchema)` to create a new message.
+ */
+export const BeginStepUpResponseSchema: GenMessage<BeginStepUpResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 17);
+
+/**
+ * @generated from message werbot.v1.CompleteStepUpRequest
+ */
+export type CompleteStepUpRequest = Message<"werbot.v1.CompleteStepUpRequest"> & {
+  /**
+   * @generated from oneof werbot.v1.CompleteStepUpRequest.proof
+   */
+  proof: {
+    /**
+     * @generated from field: string totp_code = 1;
+     */
+    value: string;
+    case: "totpCode";
+  } | {
+    /**
+     * The browser's assertion (JSON).
+     *
+     * @generated from field: bytes webauthn_assertion = 2;
+     */
+    value: Uint8Array;
+    case: "webauthnAssertion";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message werbot.v1.CompleteStepUpRequest.
+ * Use `create(CompleteStepUpRequestSchema)` to create a new message.
+ */
+export const CompleteStepUpRequestSchema: GenMessage<CompleteStepUpRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 18);
+
+/**
+ * @generated from message werbot.v1.CompleteStepUpResponse
+ */
+export type CompleteStepUpResponse = Message<"werbot.v1.CompleteStepUpResponse"> & {
+};
+
+/**
+ * Describes the message werbot.v1.CompleteStepUpResponse.
+ * Use `create(CompleteStepUpResponseSchema)` to create a new message.
+ */
+export const CompleteStepUpResponseSchema: GenMessage<CompleteStepUpResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 19);
+
+/**
  * @generated from service werbot.v1.AuthService
  */
 export const AuthService: GenService<{
@@ -424,6 +520,28 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof ResetPasswordRequestSchema;
     output: typeof ResetPasswordResponseSchema;
+  },
+  /**
+   * Starts a step-up: a fresh second factor for admin actions. A browser
+   * session gets the methods and the passkey options; a CLI token gets the
+   * TOTP method and, with a passkey, a challenge URL to confirm in the browser.
+   *
+   * @generated from rpc werbot.v1.AuthService.BeginStepUp
+   */
+  beginStepUp: {
+    methodKind: "unary";
+    input: typeof BeginStepUpRequestSchema;
+    output: typeof BeginStepUpResponseSchema;
+  },
+  /**
+   * Finishes a step-up of the caller's credential (session or CLI token).
+   *
+   * @generated from rpc werbot.v1.AuthService.CompleteStepUp
+   */
+  completeStepUp: {
+    methodKind: "unary";
+    input: typeof CompleteStepUpRequestSchema;
+    output: typeof CompleteStepUpResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_werbot_v1_auth, 0);

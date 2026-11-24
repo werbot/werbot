@@ -96,6 +96,7 @@ type Store interface {
 	GetLoginFactors(ctx context.Context, userID uuid.UUID) (dbq.GetLoginFactorsRow, error)
 	GetMFALoginToken(ctx context.Context, tokenHash []byte) (dbq.GetMFALoginTokenRow, error)
 	SetSessionMFA(ctx context.Context, tokenHash []byte) (uuid.UUID, error)
+	SetSessionMFAByID(ctx context.Context, arg dbq.SetSessionMFAByIDParams) error
 	CreateMFAVerification(ctx context.Context, arg dbq.CreateMFAVerificationParams) error
 	CreateMFAChallenge(ctx context.Context, arg dbq.CreateMFAChallengeParams) (dbq.CreateMFAChallengeRow, error)
 	GetUserMFAChallenge(ctx context.Context, arg dbq.GetUserMFAChallengeParams) (dbq.GetUserMFAChallengeRow, error)

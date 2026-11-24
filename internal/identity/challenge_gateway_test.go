@@ -29,7 +29,7 @@ func TestVerifyChallengeTOTP(t *testing.T) {
 	assert.Equal(t, "pending", e.status(t, c.ID))
 	assert.Equal(t, 1, countAudit(t, e.pool, "auth.mfa.fail", `{"method":"totp"}`))
 
-	notify := listenFor(t, e.pool, "werbot_mfa_confirmed", 5*time.Second)
+	notify := listenFor(t, e.pool, 5*time.Second)
 	require.NoError(t, e.svc.VerifyChallengeTOTP(ctx, org, inst, c.ID, codeAt(t, secret, step)))
 	assert.Equal(t, inst.String()+":"+c.ID.String(), <-notify)
 	assert.Equal(t, "confirmed", e.status(t, c.ID))

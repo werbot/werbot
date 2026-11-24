@@ -827,6 +827,233 @@ func (*ResetPasswordResponse) Descriptor() ([]byte, []int) {
 	return file_werbot_v1_auth_proto_rawDescGZIP(), []int{15}
 }
 
+type BeginStepUpRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginStepUpRequest) Reset() {
+	*x = BeginStepUpRequest{}
+	mi := &file_werbot_v1_auth_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginStepUpRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginStepUpRequest) ProtoMessage() {}
+
+func (x *BeginStepUpRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_auth_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginStepUpRequest.ProtoReflect.Descriptor instead.
+func (*BeginStepUpRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_auth_proto_rawDescGZIP(), []int{16}
+}
+
+type BeginStepUpResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Subset of "webauthn", "totp", in that order; recovery codes never step up.
+	Methods []string `protobuf:"bytes,1,rep,name=methods,proto3" json:"methods,omitempty"`
+	// JSON of the WebAuthn assertion options (browser sessions with a passkey).
+	WebauthnOptions []byte `protobuf:"bytes,2,opt,name=webauthn_options,json=webauthnOptions,proto3" json:"webauthn_options,omitempty"`
+	// CLI tokens with a passkey: the page that confirms the step-up and the
+	// code it shows (XXXX-XXXX).
+	Url           string `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	Code          string `protobuf:"bytes,4,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginStepUpResponse) Reset() {
+	*x = BeginStepUpResponse{}
+	mi := &file_werbot_v1_auth_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginStepUpResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginStepUpResponse) ProtoMessage() {}
+
+func (x *BeginStepUpResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_auth_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginStepUpResponse.ProtoReflect.Descriptor instead.
+func (*BeginStepUpResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_auth_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *BeginStepUpResponse) GetMethods() []string {
+	if x != nil {
+		return x.Methods
+	}
+	return nil
+}
+
+func (x *BeginStepUpResponse) GetWebauthnOptions() []byte {
+	if x != nil {
+		return x.WebauthnOptions
+	}
+	return nil
+}
+
+func (x *BeginStepUpResponse) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *BeginStepUpResponse) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type CompleteStepUpRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Proof:
+	//
+	//	*CompleteStepUpRequest_TotpCode
+	//	*CompleteStepUpRequest_WebauthnAssertion
+	Proof         isCompleteStepUpRequest_Proof `protobuf_oneof:"proof"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteStepUpRequest) Reset() {
+	*x = CompleteStepUpRequest{}
+	mi := &file_werbot_v1_auth_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteStepUpRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteStepUpRequest) ProtoMessage() {}
+
+func (x *CompleteStepUpRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_auth_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteStepUpRequest.ProtoReflect.Descriptor instead.
+func (*CompleteStepUpRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_auth_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *CompleteStepUpRequest) GetProof() isCompleteStepUpRequest_Proof {
+	if x != nil {
+		return x.Proof
+	}
+	return nil
+}
+
+func (x *CompleteStepUpRequest) GetTotpCode() string {
+	if x != nil {
+		if x, ok := x.Proof.(*CompleteStepUpRequest_TotpCode); ok {
+			return x.TotpCode
+		}
+	}
+	return ""
+}
+
+func (x *CompleteStepUpRequest) GetWebauthnAssertion() []byte {
+	if x != nil {
+		if x, ok := x.Proof.(*CompleteStepUpRequest_WebauthnAssertion); ok {
+			return x.WebauthnAssertion
+		}
+	}
+	return nil
+}
+
+type isCompleteStepUpRequest_Proof interface {
+	isCompleteStepUpRequest_Proof()
+}
+
+type CompleteStepUpRequest_TotpCode struct {
+	TotpCode string `protobuf:"bytes,1,opt,name=totp_code,json=totpCode,proto3,oneof"`
+}
+
+type CompleteStepUpRequest_WebauthnAssertion struct {
+	// The browser's assertion (JSON).
+	WebauthnAssertion []byte `protobuf:"bytes,2,opt,name=webauthn_assertion,json=webauthnAssertion,proto3,oneof"`
+}
+
+func (*CompleteStepUpRequest_TotpCode) isCompleteStepUpRequest_Proof() {}
+
+func (*CompleteStepUpRequest_WebauthnAssertion) isCompleteStepUpRequest_Proof() {}
+
+type CompleteStepUpResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteStepUpResponse) Reset() {
+	*x = CompleteStepUpResponse{}
+	mi := &file_werbot_v1_auth_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteStepUpResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteStepUpResponse) ProtoMessage() {}
+
+func (x *CompleteStepUpResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_auth_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteStepUpResponse.ProtoReflect.Descriptor instead.
+func (*CompleteStepUpResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_auth_proto_rawDescGZIP(), []int{19}
+}
+
 var File_werbot_v1_auth_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_auth_proto_rawDesc = "" +
@@ -883,7 +1110,19 @@ const file_werbot_v1_auth_proto_rawDesc = "" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x05token\x12-\n" +
 	"\fnew_password\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\f\x18\x80\x02R\vnewPassword\"\x17\n" +
-	"\x15ResetPasswordResponse2\xee\x04\n" +
+	"\x15ResetPasswordResponse\"\x14\n" +
+	"\x12BeginStepUpRequest\"\x80\x01\n" +
+	"\x13BeginStepUpResponse\x12\x18\n" +
+	"\amethods\x18\x01 \x03(\tR\amethods\x12)\n" +
+	"\x10webauthn_options\x18\x02 \x01(\fR\x0fwebauthnOptions\x12\x10\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\x12\x12\n" +
+	"\x04code\x18\x04 \x01(\tR\x04code\"\x97\x01\n" +
+	"\x15CompleteStepUpRequest\x120\n" +
+	"\ttotp_code\x18\x01 \x01(\tB\x11\xbaH\x0er\f2\n" +
+	"^[0-9]{6}$H\x00R\btotpCode\x12<\n" +
+	"\x12webauthn_assertion\x18\x02 \x01(\fB\v\xbaH\bz\x06\x10\x01\x18\x80\x80\x01H\x00R\x11webauthnAssertionB\x0e\n" +
+	"\x05proof\x12\x05\xbaH\x02\b\x01\"\x18\n" +
+	"\x16CompleteStepUpResponse2\x93\x06\n" +
 	"\vAuthService\x12R\n" +
 	"\rGetSetupState\x12\x1f.werbot.v1.GetSetupStateRequest\x1a .werbot.v1.GetSetupStateResponse\x12:\n" +
 	"\x05Setup\x12\x17.werbot.v1.SetupRequest\x1a\x18.werbot.v1.SetupResponse\x12:\n" +
@@ -893,7 +1132,9 @@ const file_werbot_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"GetSession\x12\x1c.werbot.v1.GetSessionRequest\x1a\x1d.werbot.v1.GetSessionResponse\x12g\n" +
 	"\x14RequestPasswordReset\x12&.werbot.v1.RequestPasswordResetRequest\x1a'.werbot.v1.RequestPasswordResetResponse\x12R\n" +
-	"\rResetPassword\x12\x1f.werbot.v1.ResetPasswordRequest\x1a .werbot.v1.ResetPasswordResponseB\x90\x01\n" +
+	"\rResetPassword\x12\x1f.werbot.v1.ResetPasswordRequest\x1a .werbot.v1.ResetPasswordResponse\x12L\n" +
+	"\vBeginStepUp\x12\x1d.werbot.v1.BeginStepUpRequest\x1a\x1e.werbot.v1.BeginStepUpResponse\x12U\n" +
+	"\x0eCompleteStepUp\x12 .werbot.v1.CompleteStepUpRequest\x1a!.werbot.v1.CompleteStepUpResponseB\x90\x01\n" +
 	"\rcom.werbot.v1B\tAuthProtoP\x01Z/github.com/werbot/werbot/gen/werbot/v1;werbotv1\xa2\x02\x03WXX\xaa\x02\tWerbot.V1\xca\x02\tWerbot\\V1\xe2\x02\x15Werbot\\V1\\GPBMetadata\xea\x02\n" +
 	"Werbot::V1b\x06proto3"
 
@@ -909,7 +1150,7 @@ func file_werbot_v1_auth_proto_rawDescGZIP() []byte {
 	return file_werbot_v1_auth_proto_rawDescData
 }
 
-var file_werbot_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_werbot_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_werbot_v1_auth_proto_goTypes = []any{
 	(*GetSetupStateRequest)(nil),         // 0: werbot.v1.GetSetupStateRequest
 	(*GetSetupStateResponse)(nil),        // 1: werbot.v1.GetSetupStateResponse
@@ -927,14 +1168,18 @@ var file_werbot_v1_auth_proto_goTypes = []any{
 	(*RequestPasswordResetResponse)(nil), // 13: werbot.v1.RequestPasswordResetResponse
 	(*ResetPasswordRequest)(nil),         // 14: werbot.v1.ResetPasswordRequest
 	(*ResetPasswordResponse)(nil),        // 15: werbot.v1.ResetPasswordResponse
-	(*User)(nil),                         // 16: werbot.v1.User
-	(*Organization)(nil),                 // 17: werbot.v1.Organization
-	(Role)(0),                            // 18: werbot.v1.Role
+	(*BeginStepUpRequest)(nil),           // 16: werbot.v1.BeginStepUpRequest
+	(*BeginStepUpResponse)(nil),          // 17: werbot.v1.BeginStepUpResponse
+	(*CompleteStepUpRequest)(nil),        // 18: werbot.v1.CompleteStepUpRequest
+	(*CompleteStepUpResponse)(nil),       // 19: werbot.v1.CompleteStepUpResponse
+	(*User)(nil),                         // 20: werbot.v1.User
+	(*Organization)(nil),                 // 21: werbot.v1.Organization
+	(Role)(0),                            // 22: werbot.v1.Role
 }
 var file_werbot_v1_auth_proto_depIdxs = []int32{
-	16, // 0: werbot.v1.GetSessionResponse.user:type_name -> werbot.v1.User
-	17, // 1: werbot.v1.GetSessionResponse.organization:type_name -> werbot.v1.Organization
-	18, // 2: werbot.v1.GetSessionResponse.role:type_name -> werbot.v1.Role
+	20, // 0: werbot.v1.GetSessionResponse.user:type_name -> werbot.v1.User
+	21, // 1: werbot.v1.GetSessionResponse.organization:type_name -> werbot.v1.Organization
+	22, // 2: werbot.v1.GetSessionResponse.role:type_name -> werbot.v1.Role
 	0,  // 3: werbot.v1.AuthService.GetSetupState:input_type -> werbot.v1.GetSetupStateRequest
 	2,  // 4: werbot.v1.AuthService.Setup:input_type -> werbot.v1.SetupRequest
 	4,  // 5: werbot.v1.AuthService.Login:input_type -> werbot.v1.LoginRequest
@@ -943,16 +1188,20 @@ var file_werbot_v1_auth_proto_depIdxs = []int32{
 	10, // 8: werbot.v1.AuthService.GetSession:input_type -> werbot.v1.GetSessionRequest
 	12, // 9: werbot.v1.AuthService.RequestPasswordReset:input_type -> werbot.v1.RequestPasswordResetRequest
 	14, // 10: werbot.v1.AuthService.ResetPassword:input_type -> werbot.v1.ResetPasswordRequest
-	1,  // 11: werbot.v1.AuthService.GetSetupState:output_type -> werbot.v1.GetSetupStateResponse
-	3,  // 12: werbot.v1.AuthService.Setup:output_type -> werbot.v1.SetupResponse
-	5,  // 13: werbot.v1.AuthService.Login:output_type -> werbot.v1.LoginResponse
-	7,  // 14: werbot.v1.AuthService.CompleteMFA:output_type -> werbot.v1.CompleteMFAResponse
-	9,  // 15: werbot.v1.AuthService.Logout:output_type -> werbot.v1.LogoutResponse
-	11, // 16: werbot.v1.AuthService.GetSession:output_type -> werbot.v1.GetSessionResponse
-	13, // 17: werbot.v1.AuthService.RequestPasswordReset:output_type -> werbot.v1.RequestPasswordResetResponse
-	15, // 18: werbot.v1.AuthService.ResetPassword:output_type -> werbot.v1.ResetPasswordResponse
-	11, // [11:19] is the sub-list for method output_type
-	3,  // [3:11] is the sub-list for method input_type
+	16, // 11: werbot.v1.AuthService.BeginStepUp:input_type -> werbot.v1.BeginStepUpRequest
+	18, // 12: werbot.v1.AuthService.CompleteStepUp:input_type -> werbot.v1.CompleteStepUpRequest
+	1,  // 13: werbot.v1.AuthService.GetSetupState:output_type -> werbot.v1.GetSetupStateResponse
+	3,  // 14: werbot.v1.AuthService.Setup:output_type -> werbot.v1.SetupResponse
+	5,  // 15: werbot.v1.AuthService.Login:output_type -> werbot.v1.LoginResponse
+	7,  // 16: werbot.v1.AuthService.CompleteMFA:output_type -> werbot.v1.CompleteMFAResponse
+	9,  // 17: werbot.v1.AuthService.Logout:output_type -> werbot.v1.LogoutResponse
+	11, // 18: werbot.v1.AuthService.GetSession:output_type -> werbot.v1.GetSessionResponse
+	13, // 19: werbot.v1.AuthService.RequestPasswordReset:output_type -> werbot.v1.RequestPasswordResetResponse
+	15, // 20: werbot.v1.AuthService.ResetPassword:output_type -> werbot.v1.ResetPasswordResponse
+	17, // 21: werbot.v1.AuthService.BeginStepUp:output_type -> werbot.v1.BeginStepUpResponse
+	19, // 22: werbot.v1.AuthService.CompleteStepUp:output_type -> werbot.v1.CompleteStepUpResponse
+	13, // [13:23] is the sub-list for method output_type
+	3,  // [3:13] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -969,13 +1218,17 @@ func file_werbot_v1_auth_proto_init() {
 		(*CompleteMFARequest_WebauthnAssertion)(nil),
 		(*CompleteMFARequest_RecoveryCode)(nil),
 	}
+	file_werbot_v1_auth_proto_msgTypes[18].OneofWrappers = []any{
+		(*CompleteStepUpRequest_TotpCode)(nil),
+		(*CompleteStepUpRequest_WebauthnAssertion)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_werbot_v1_auth_proto_rawDesc), len(file_werbot_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -496,6 +496,22 @@ func (q *Queries) SetSessionMFA(ctx context.Context, tokenHash []byte) (uuid.UUI
 	return id, err
 }
 
+const setSessionMFAByID = `-- name: SetSessionMFAByID :exec
+UPDATE user_session SET mfa_at = now() WHERE id = $1 AND org_id = $2 AND user_id = $3
+`
+
+type SetSessionMFAByIDParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID uuid.UUID
+}
+
+// Records that the caller's session has just passed a step-up.
+func (q *Queries) SetSessionMFAByID(ctx context.Context, arg SetSessionMFAByIDParams) error {
+	_, err := q.db.Exec(ctx, setSessionMFAByID, arg.ID, arg.OrgID, arg.UserID)
+	return err
+}
+
 const upsertTOTPSecret = `-- name: UpsertTOTPSecret :execrows
 INSERT INTO totp_secret (user_id, ciphertext, key_id) VALUES ($1, $2, $3)
 ON CONFLICT (user_id) DO UPDATE SET ciphertext = excluded.ciphertext, key_id = excluded.key_id, last_step = 0

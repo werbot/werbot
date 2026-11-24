@@ -86,7 +86,9 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	}
 	idh := identity.NewHandler(s.Identity)
 	opts := connect.WithHandlerOptions(
-		connect.WithInterceptors(validate.NewInterceptor(), logInternalErrors(logger), agentic.RestrictAgentTokens(s.Agents)),
+		// RequireFreshMFA comes last: agent tokens keep RestrictAgentTokens' answers.
+		connect.WithInterceptors(validate.NewInterceptor(), logInternalErrors(logger), agentic.RestrictAgentTokens(s.Agents),
+			identity.RequireFreshMFA(freshMFAProcedures())),
 		connect.WithReadMaxBytes(1<<20), // public RPCs: no body is read past 1 MiB
 	)
 

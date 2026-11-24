@@ -110,13 +110,6 @@ func TestMFANotifyReachesStream(t *testing.T) {
 	hc, _ := jarClient(t, http.DefaultTransport)
 	_, err := werbotv1connect.NewAuthServiceClient(hc, api).Setup(ctx, connect.NewRequest(ownerSetup))
 	require.NoError(t, err)
-	enr, err := werbotv1connect.NewMFAServiceClient(hc, api).EnrollTOTP(ctx, connect.NewRequest(&werbotv1.EnrollTOTPRequest{}))
-	require.NoError(t, err)
-	secret := enr.Msg.GetSecret()
-	confirm, err := totp.GenerateCode(secret, time.Now().Add(-30*time.Second))
-	require.NoError(t, err)
-	_, err = werbotv1connect.NewMFAServiceClient(hc, api).ConfirmTOTP(ctx, connect.NewRequest(&werbotv1.ConfirmTOTPRequest{Code: confirm}))
-	require.NoError(t, err)
 	gws := werbotv1connect.NewGatewayServiceClient(hc, api)
 	created, err := gws.CreateGateway(ctx, connect.NewRequest(&werbotv1.CreateGatewayRequest{Name: "edge"}))
 	require.NoError(t, err)
@@ -128,6 +121,14 @@ func TestMFANotifyReachesStream(t *testing.T) {
 	require.NoError(t, err)
 	res, err := werbotv1connect.NewResourceServiceClient(hc, api).CreateResource(ctx, connect.NewRequest(&werbotv1.CreateResourceRequest{
 		Name: "web", Type: "echo", GatewayId: gwID, Config: cfgAny}))
+	require.NoError(t, err)
+	// The factor comes after the admin set-up, which would otherwise need a step-up.
+	enr, err := werbotv1connect.NewMFAServiceClient(hc, api).EnrollTOTP(ctx, connect.NewRequest(&werbotv1.EnrollTOTPRequest{}))
+	require.NoError(t, err)
+	secret := enr.Msg.GetSecret()
+	confirm, err := totp.GenerateCode(secret, time.Now().Add(-30*time.Second))
+	require.NoError(t, err)
+	_, err = werbotv1connect.NewMFAServiceClient(hc, api).ConfirmTOTP(ctx, connect.NewRequest(&werbotv1.ConfirmTOTPRequest{Code: confirm}))
 	require.NoError(t, err)
 	var owner uuid.UUID
 	require.NoError(t, pool.QueryRow(ctx, "SELECT user_id FROM membership WHERE role = 'owner'").Scan(&owner))

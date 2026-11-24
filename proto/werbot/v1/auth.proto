@@ -17,6 +17,12 @@ service AuthService {
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
   rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
   rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  // Starts a step-up: a fresh second factor for admin actions. A browser
+  // session gets the methods and the passkey options; a CLI token gets the
+  // TOTP method and, with a passkey, a challenge URL to confirm in the browser.
+  rpc BeginStepUp(BeginStepUpRequest) returns (BeginStepUpResponse);
+  // Finishes a step-up of the caller's credential (session or CLI token).
+  rpc CompleteStepUp(CompleteStepUpRequest) returns (CompleteStepUpResponse);
 }
 
 message GetSetupStateRequest {}
@@ -83,3 +89,25 @@ message ResetPasswordRequest {
   string new_password = 2 [(buf.validate.field).string = {min_len: 12, max_len: 256}];
 }
 message ResetPasswordResponse {}
+
+message BeginStepUpRequest {}
+message BeginStepUpResponse {
+  // Subset of "webauthn", "totp", in that order; recovery codes never step up.
+  repeated string methods = 1;
+  // JSON of the WebAuthn assertion options (browser sessions with a passkey).
+  bytes webauthn_options = 2;
+  // CLI tokens with a passkey: the page that confirms the step-up and the
+  // code it shows (XXXX-XXXX).
+  string url = 3;
+  string code = 4;
+}
+
+message CompleteStepUpRequest {
+  oneof proof {
+    option (buf.validate.oneof).required = true;
+    string totp_code = 1 [(buf.validate.field).string.pattern = "^[0-9]{6}$"];
+    // The browser's assertion (JSON).
+    bytes webauthn_assertion = 2 [(buf.validate.field).bytes = {min_len: 1, max_len: 16384}];
+  }
+}
+message CompleteStepUpResponse {}

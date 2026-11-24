@@ -214,5 +214,5 @@ func TestRPCRequiresSession(t *testing.T) {
 			checked++
 		}
 	}
-	assert.Equal(t, 23, checked)
+	assert.Equal(t, 25, checked)
 }

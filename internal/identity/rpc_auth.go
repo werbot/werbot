@@ -107,3 +107,31 @@ func (h *Handler) ResetPassword(ctx context.Context, req *connect.Request[werbot
 	}
 	return connect.NewResponse(&werbotv1.ResetPasswordResponse{}), nil
 }
+
+// BeginStepUp starts a step-up of the caller's session or CLI token.
+func (h *Handler) BeginStepUp(ctx context.Context, _ *connect.Request[werbotv1.BeginStepUpRequest]) (*connect.Response[werbotv1.BeginStepUpResponse], error) {
+	p, err := principal.Require(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	su, err := h.svc.BeginStepUp(ctx, p)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.BeginStepUpResponse{
+		Methods: su.Methods, WebauthnOptions: su.WebAuthnOptions, Url: su.URL, Code: su.Code,
+	}), nil
+}
+
+// CompleteStepUp records a fresh second factor of the caller's session or CLI token.
+func (h *Handler) CompleteStepUp(ctx context.Context, req *connect.Request[werbotv1.CompleteStepUpRequest]) (*connect.Response[werbotv1.CompleteStepUpResponse], error) {
+	p, err := principal.Require(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	proof := MFAProof{TOTP: req.Msg.GetTotpCode(), Assertion: req.Msg.GetWebauthnAssertion()}
+	if err := h.svc.CompleteStepUp(ctx, p, proof); err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.CompleteStepUpResponse{}), nil
+}
