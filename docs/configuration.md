@@ -132,6 +132,8 @@ The connection formula for several replicas and PgBouncer: [scaling.md](scaling.
 
 Set `WERBOT_TRUSTED_PROXIES` to the CIDRs of the proxies, so the client IP in sessions and audit comes from `X-Forwarded-For`. Set `WERBOT_PUBLIC_URL` with `https://`. The host of `WERBOT_PUBLIC_URL` and the port of `WERBOT_GATEWAY_ADDR` form the tunnel address `https://<host>:<port>` that gateways receive at enrollment. The tunnel uses mTLS that ends on the replica: put an L4 (TCP passthrough) load balancer in front of it with the same external port; a TLS-terminating proxy breaks the tunnel. The API port works behind any HTTP load balancer.
 
+Without a trusted proxy the server sees the address of the proxy as the client IP, so every user shares one IP. Then the [login and token rate limits](mfa.md#rate-limits) per IP count all users together and sessions and audit show the proxy address. Set `WERBOT_TRUSTED_PROXIES` whenever a proxy sits in front.
+
 ## Separate web UI
 
 Run `werbot server` with `WERBOT_WEB_EMBEDDED=false`: it serves only the API, and `werbot web` serves the UI and proxies the API (`WERBOT_WEB_API_URL`). Set `WERBOT_WEB_URL` on the server to the UI address (links in emails; default `WERBOT_PUBLIC_URL`) and `WERBOT_TRUSTED_PROXIES` of the server to the subnet of `werbot web` (client IPs in sessions and audit). See [web.md](web.md).

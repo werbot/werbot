@@ -93,7 +93,7 @@ A lock refuses access at once, above every binding and grant. Owners and admins 
 | `agents_of_user` | Every agent of one sponsor; the sponsor's own sessions keep working. |
 | `all_agents` | Every agent of the organization; takes no target id. |
 
-The target `mfa_device` is refused with `target type mfa_device is not supported yet`; it comes with MFA.
+The target `mfa_device` is the id of a passkey of a member: the lock refuses that passkey for every MFA step ([mfa.md](mfa.md#locking-a-passkey)).
 
 Locks are audited as `lock.create` and `lock.delete`.
 

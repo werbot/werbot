@@ -50,7 +50,7 @@ The WebSocket closes with one of these codes and a short reason:
 | Code | Reason | Meaning |
 | --- | --- | --- |
 | `1000` | `closed` | Normal end: the session ended or the browser left. |
-| `4001` | `mfa_required` | Reserved for multi-factor authentication; not used yet. |
+| `4001` | `mfa_required` | An [MFA rule](mfa.md#mfa-rules) covers the resource and the browser session has no fresh enough factor, or the terminal was opened with a Bearer token. The UI asks for a step-up and opens the terminal again. |
 | `4003` | `denied` | No access, or the resource is unknown. |
 | `4004` | `not_found` | Live view: the session is unknown, ended, not a terminal or not visible to you. |
 | `4008` | `limit` | A replica holds 1000 streams, or the session has 16 observers. |
